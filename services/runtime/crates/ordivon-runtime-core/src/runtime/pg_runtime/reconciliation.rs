@@ -1,10 +1,21 @@
 //! PostgreSQL Attempt readback, native reconciliation, and Job result projection.
 use super::*;
+use crate::PgJobSnapshot;
 
 // Keep the exact recovery current-Attempt selectors shared with native PG
 // falsification tests; current is an explicit Job pointer, not MAX(number).
 const RECOVERY_CURRENT_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
 const RELEASE_CURRENT_ATTEMPT_STATE_SQL: &str = "SELECT a.state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
+
+// Observation is not an external effect. A terminal PG Job intentionally
+// clears current_attempt_id after its terminal Attempt and events are committed.
+// Bind read-only projection to the exact Attempt already qualified by
+// observe_job_readonly(), never to an unverified newest historical Attempt.
+const READBACK_VERIFIED_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number FROM jobs j JOIN attempts a ON a.job_id=j.job_id AND a.attempt_id=$2 WHERE j.job_id=$1 AND j.row_version=$3 AND a.row_version=$4 AND j.resolution IS NOT DISTINCT FROM $5::TEXT AND (($5::TEXT IS NULL AND j.current_attempt_id=a.attempt_id) OR ($5::TEXT IS NOT NULL AND j.current_attempt_id IS NULL AND a.state=$5::TEXT))";
+// Both native release control and normal native reconciliation use the
+// existing one PG query to detect completed work. It never authorizes an
+// external effect based on a historical Attempt.
+const RECONCILIATION_STAGE_SQL: &str = "SELECT (SELECT resolution FROM jobs WHERE job_id=$1), EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)";
 
 /// An absent or foreign current Attempt is an inconsistent committed
 /// lifecycle identity, not PostgreSQL transport unavailability. Never infer
@@ -295,6 +306,49 @@ impl PgRuntime {
                 .map_err(io)?,
             job,
         )?;
+        self.decode_attempt_record(&r, job)
+    }
+
+    /// Read-only identity may be historical only after the existing PG
+    /// repeatable-read lifecycle, reservation and terminal-event verifier
+    /// supplied its exact Attempt identifier. Re-bind the row to its owner,
+    /// job/attempt versions, resolution, and current-or-terminal identity in
+    /// one new read snapshot; a concurrent transition must be inconclusive.
+    pub(super) fn readback_attempt(
+        &self,
+        db: &mut PgAdmissionStore,
+        snapshot: &PgJobSnapshot,
+    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
+        let row = db
+            .client
+            .query_opt(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[
+                    &snapshot.job_id,
+                    &snapshot.attempt_id,
+                    &snapshot.job_row_version,
+                    &snapshot.attempt_row_version,
+                    &snapshot.resolution,
+                ],
+            )
+            .map_err(io)?;
+        let row = row.ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::ReconciliationRequired,
+                "verified PG lifecycle changed before Attempt readback",
+                Some("jobId"),
+                true,
+            )
+            .with_operation_id(&snapshot.job_id)
+        })?;
+        self.decode_attempt_record(&row, &snapshot.job_id)
+    }
+
+    fn decode_attempt_record(
+        &self,
+        r: &postgres::Row,
+        job: &str,
+    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
         let a:AttemptRecord=serde_json::from_value(json!({"attemptId":r.get::<_,String>(0),"jobId":job,"attemptNumber":r.get::<_, i64>(11),"state":r.get::<_,String>(1),"terminationIntent":r.get::<_,String>(2),"launchTokenDigest":r.get::<_,String>(3),"bundlePath":r.get::<_,String>(4),"unitName":r.get::<_,String>(5),"createdAtMs":r.get::<_,i64>(6),"rowVersion":r.get::<_,i64>(7),"bundleDigest":r.get::<_,Option<String>>(8)})).map_err(io)?;
         let expected = self
             .config
@@ -316,17 +370,20 @@ impl PgRuntime {
         job: &str,
         allow_dispatch: bool,
     ) -> RuntimeResult<()> {
-        // ReleaseEffect identity is not a normal process Task. Until the
-        // operator-qualified PG release installer owns its separate dispatch
-        // and receipt, NEVER send this Job to the generic native Runner.
-        let is_release: bool = db
+        // Preserve the existing one-query ReleaseEffect classification, now
+        // also reading the terminal flag. The atomic terminal PG transition
+        // deliberately clears current_attempt_id. A resolved Job has no
+        // remaining native effect to reconcile; ONLY project/get then verify
+        // its lifecycle, reservation, exact Attempt, and terminal events.
+        // This does not make a historical Attempt eligible for Runner effects.
+        let stage = db
             .client
-            .query_one(
-                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)",
-                &[&job],
-            )
-            .map_err(io)?
-            .get(0);
+            .query_one(RECONCILIATION_STAGE_SQL, &[&job])
+            .map_err(io)?;
+        if stage.get::<_, Option<String>>(0).is_some() {
+            return Ok(());
+        }
+        let is_release: bool = stage.get(1);
         if is_release {
             // Accepted means no physical release dispatch occurred. Any other
             // Attempt state without a release-specific operator receipt is
@@ -831,7 +888,7 @@ impl PgRuntime {
                 .with_operation_id(&request.job_id))
             }
         };
-        let (a, p, operation) = self.attempt(db, &request.job_id)?;
+        let (a, p, operation) = self.readback_attempt(db, &snapshot)?;
         let terminal = snapshot.resolution.is_some();
         let rows=db.client.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(io)?;
         let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":a.attempt_id,"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
@@ -1096,6 +1153,168 @@ mod scan_fairness_tests {
                 .code,
             RuntimeErrorCode::ReconciliationRequired,
             "foreign current Attempt must be reconciliation-required, not registry unavailable"
+        );
+    }
+
+    /// A terminal Job commits resolution and *clears* current_attempt_id.
+    /// Only the already verified snapshot Attempt may be shown to readers.
+    /// Generic native release/reconcile effects must still require current.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("dedicated disposable PostgreSQL cluster required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (
+                job_id text PRIMARY KEY, current_attempt_id text,
+                resolution text, row_version bigint, execution_plan_json text,
+                operation_digest text);
+             CREATE TEMP TABLE job_runtime_release_effects (job_id text PRIMARY KEY);
+             INSERT INTO job_runtime_release_effects VALUES ('terminal-a');
+             CREATE TEMP TABLE attempts (
+                attempt_id text PRIMARY KEY, job_id text,
+                attempt_number bigint, state text, termination_intent text,
+                launch_token_digest text, bundle_path text, unit_name text,
+                created_at_ms bigint, row_version bigint, bundle_digest text);
+             INSERT INTO jobs VALUES
+                ('terminal-a',NULL,'succeeded',8,'{}','op-a'),
+                ('accepted-b','attempt-b',NULL,2,'{}','op-b');
+             INSERT INTO attempts VALUES
+                ('terminal-verified','terminal-a',4,'succeeded','natural',
+                    'launch-a','/tmp/a','unit-a',10,7,NULL),
+                ('later-unverified','terminal-a',5,'running','natural',
+                    'launch-future','/tmp/future','unit-future',11,0,NULL),
+                ('attempt-b','accepted-b',1,'accepted','natural',
+                    'launch-b','/tmp/b','unit-b',12,0,NULL);",
+        )
+        .unwrap();
+
+        // The existing dispatch/reconciliation entry must not try to
+        // reauthorize a terminal ReleaseEffect after its PG current pointer
+        // was atomically cleared. Unresolved accepted work still requires
+        // strict current identity and stays eligible for normal reconciliation.
+        let release_terminal = db
+            .query_one(RECONCILIATION_STAGE_SQL, &[&"terminal-a"])
+            .unwrap();
+        assert_eq!(
+            release_terminal.get::<_, Option<String>>(0).as_deref(),
+            Some("succeeded")
+        );
+        assert!(release_terminal.get::<_, bool>(1));
+        let unresolved_stage = db
+            .query_one(RECONCILIATION_STAGE_SQL, &[&"accepted-b"])
+            .unwrap();
+        assert!(unresolved_stage.get::<_, Option<String>>(0).is_none());
+        assert!(!unresolved_stage.get::<_, bool>(1));
+
+        // In this fixture, the lifecycle/event verifier has already
+        // established exact terminal-verified; a later historical Attempt
+        // must not silently become the effect or readback authority.
+        let verified: Option<String> = Some("succeeded".into());
+        let row = db
+            .query_one(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[
+                    &"terminal-a",
+                    &"terminal-verified",
+                    &8_i64,
+                    &7_i64,
+                    &verified,
+                ],
+            )
+            .unwrap();
+        assert_eq!(row.get::<_, String>(0), "terminal-verified");
+        assert_eq!(row.get::<_, i64>(11), 4);
+        assert!(
+            db.query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&"terminal-a"])
+                .unwrap()
+                .is_none(),
+            "cleared terminal pointer must remain ineligible for native effects"
+        );
+
+        assert!(
+            db.query_opt(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[
+                    &"terminal-a",
+                    &"later-unverified",
+                    &8_i64,
+                    &0_i64,
+                    &verified
+                ],
+            )
+            .unwrap()
+            .is_none(),
+            "later historical running Attempt cannot be projected as terminal"
+        );
+        assert!(
+            db.query_opt(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[
+                    &"accepted-b",
+                    &"terminal-verified",
+                    &2_i64,
+                    &7_i64,
+                    &None::<String>
+                ],
+            )
+            .unwrap()
+            .is_none(),
+            "Attempt must belong to requested Job"
+        );
+        assert!(
+            db.query_opt(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[
+                    &"terminal-a",
+                    &"terminal-verified",
+                    &7_i64,
+                    &7_i64,
+                    &verified
+                ],
+            )
+            .unwrap()
+            .is_none(),
+            "stale Job row-version is inconclusive"
+        );
+        assert!(
+            db.query_opt(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[
+                    &"terminal-a",
+                    &"terminal-verified",
+                    &8_i64,
+                    &6_i64,
+                    &verified
+                ],
+            )
+            .unwrap()
+            .is_none(),
+            "stale Attempt row-version is inconclusive"
+        );
+
+        let pending: Option<String> = None;
+        let current = db
+            .query_one(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[&"accepted-b", &"attempt-b", &2_i64, &0_i64, &pending],
+            )
+            .unwrap();
+        assert_eq!(current.get::<_, String>(0), "attempt-b");
+        db.execute(
+            "UPDATE jobs SET current_attempt_id=NULL WHERE job_id='accepted-b'",
+            &[],
+        )
+        .unwrap();
+        assert!(
+            db.query_opt(
+                READBACK_VERIFIED_ATTEMPT_SQL,
+                &[&"accepted-b", &"attempt-b", &2_i64, &0_i64, &pending],
+            )
+            .unwrap()
+            .is_none(),
+            "unresolved missing current remains fail closed"
         );
     }
 
