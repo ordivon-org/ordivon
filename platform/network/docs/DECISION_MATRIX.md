@@ -138,6 +138,34 @@ Mature native mechanisms: Podman Pod shared netns/infra
 systemd NetworkNamespacePath/JoinsNamespaceOf
 (https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html).
 
+## SourceCut is three-valued, not a Boolean permission to mutate (R10)
+
+Native Go Task status is a Boolean skip optimization. Its failure can mean
+installed bytes differ **or** a local observation could not be completed.
+Therefore a nonzero status alone is not permission to install, reload systemd,
+or restart any unit.
+
+The natural Network owners (core, shared-egress, mobile-tailnet-exit) now
+expose a **read-only** classify task with three semantic outcomes:
+
+| Outcome | Minimum evidence | Allowed effect |
+| --- | --- | --- |
+| MATCH | Source and installed bytes agree; owner-specific systemd state agrees | Skip installation; idempotent start only if explicitly requested |
+| DRIFT | Observed byte mismatch, missing installed file in accessible parent, or known systemd difference | Admit only natural-owner materialization/reconciliation |
+| UNKNOWN | cmp I/O error, source unreadable, failed/unexpected systemd query, or ambiguous symlink | No installation, reload, restart; report failure |
+
+The classifier is executed **again as the first materialization command**
+whenever a Boolean status check fails. The caller cannot guess why status
+failed. It is a source admission safeguard, not a new transaction manager.
+Classifiers have no external DNS/VPN/HTTP health probes. Actual consumer
+Readiness is checked afterwards, independently and with a finite window.
+
+Per-file atomic rename does not make a multi-file release crash-atomic.
+A failed/uncertain release requires fresh source/install/loaded observation;
+durable rollback belongs to existing Runtime/Artifact release capabilities,
+not another Network daemon. No success is inferred solely from Task exit code
+without verifying actual consumer effects.
+
 ## Classification rules
 
 ```text

@@ -49,6 +49,7 @@ def has_exact_https_origin_probe(check: str) -> bool:
 def admit_implementation() -> dict:
     taskfile = TASKS.read_text()
     source = section(taskfile, "core:sourcecut")
+    classifier = section(taskfile, "core:classify")
     install = section(taskfile, "core:install")
     activation = section(taskfile, "core:converge")
     check = section(taskfile, "core:verify")
@@ -56,11 +57,38 @@ def admit_implementation() -> dict:
 
     assert "status:\n      - task core:sourcecut" in install
     assert "status:\n      - task core:verify" not in install
-    assert source.count("cmp -s") >= 10
-    assert "cmp -s config/prometheus/consumer.rules.yml" in source
+    # Core, Mobile and Shared Egress use the same semantic distinction:
+    # binary Task status may skip on MATCH, but only a proved DRIFT may mutate.
+    assert "task --silent core:classify" in source
+    assert 'test "$verdict" = MATCH' in source
+    assert classifier.count("compare ") >= 11
+    assert "compare config/prometheus/consumer.rules.yml" in classifier
+    assert "UNKNOWN" in classifier and "DRIFT" in classifier and "MATCH" in classifier
+    assert "comparison_rc" in classifier and "enabled()" in classifier
+    assert "NeedDaemonReload" in classifier and "systemctl show" in classifier
+    assert "task --silent core:classify" in install
+    assert 'test "$verdict" = DRIFT' in install
+    assert install.index("task --silent core:classify") < install.index("task: core:validate")
     for forbidden in ("curl ", "dig ", "systemctl start ", "systemctl restart ", "--check-loaded-prometheus",
                       "http://", "https://", "core:verify"):
-        assert forbidden not in source, "unexpected external/active probe in SourceCut: " + forbidden
+        assert forbidden not in classifier, "unexpected external/active probe in Core classifier: " + forbidden
+    for location, owner in (
+        (ROOT / "consumers/mobile-tailnet-exit/Taskfile.yml", "consumer:mobile-tailnet-exit"),
+        (ROOT / "substrates/shared-egress/Taskfile.yml", "substrate:shared-egress"),
+    ):
+        other = location.read_text()
+        state = section(other, owner + ":classify")
+        materialize = section(other, owner + ":materialize")
+        source_check = section(other, owner + ":sourcecut")
+        assert "UNKNOWN" in state and "MATCH" in state and "DRIFT" in state
+        assert "cmp -s" in state and "comparison_rc" in state
+        assert "task --silent " + owner + ":classify" in materialize
+        assert ('test "$verdict" = DRIFT' in materialize or "DRIFT)" in materialize)
+        assert "task --silent " + owner + ":classify" in source_check
+        assert 'test "$verdict" = MATCH' in source_check
+        assert materialize.index("task --silent " + owner + ":classify") < materialize.index("install -")
+        for no_network in ("curl ", "dig ", "systemctl restart ", "systemctl start "):
+            assert no_network not in state, (owner, no_network)
     assert "systemctl restart network-v2-r0.target" in install  # only on actual drift
     assert "task: core:install" in activation
     assert "systemctl start network-v2-r0.target" in activation
@@ -70,48 +98,67 @@ def admit_implementation() -> dict:
     assert has_exact_https_origin_probe(check)
     steps = ("task: core:validate", "task: core:install", "systemctl start network-v2-r0.target", "task: core:verify")
     assert [converge.index(step) for step in steps] == sorted(converge.index(step) for step in steps)
-    return {"localCmpChecks": source.count("cmp -s"), "convergeSteps": list(steps)}
+    return {"localCompareCalls": classifier.count("compare "), "consumerCount": 3,
+            "convergeSteps": list(steps)}
 
 
 def prove() -> dict:
     admission = admit_implementation()
-    same_source, active, external = z3.Bools("same_source active external")
-    install = z3.Not(same_source)
+    # The trivalent refinement is necessary: an unreadable file, a failed
+    # systemd query, or a transport failure is not proof of configuration drift.
+    MATCH, DRIFT, UNKNOWN = 0, 1, 2
+    sourcecut = z3.Int("sourcecut_state")
+    active, external = z3.Bools("active external")
+    install = sourcecut == DRIFT
     start = z3.Not(active)
-    verified = z3.And(same_source, active, external)
-
+    verified = z3.And(sourcecut == MATCH, active, external)
+    valid = z3.Or(sourcecut == MATCH, sourcecut == DRIFT, sourcecut == UNKNOWN)
     statements = {
-        "source_match_implies_no_install": z3.Implies(same_source, z3.Not(install)),
+        "source_match_implies_no_install": z3.Implies(sourcecut == MATCH, z3.Not(install)),
+        "source_unknown_cannot_trigger_install": z3.Implies(sourcecut == UNKNOWN, z3.Not(install)),
+        "source_unknown_cannot_trigger_restart": z3.Implies(sourcecut == UNKNOWN, z3.Not(install)),
         "external_failure_cannot_trigger_install": z3.Implies(
-            z3.And(same_source, z3.Not(external)), z3.Not(install)),
-        "source_drift_requires_install": z3.Implies(z3.Not(same_source), install),
-        "dead_service_with_matching_source_requires_only_activation": z3.Implies(
-            z3.And(same_source, z3.Not(active)), z3.And(z3.Not(install), start)),
+            z3.And(sourcecut == MATCH, z3.Not(external)), z3.Not(install)),
+        "source_drift_requires_install": z3.Implies(sourcecut == DRIFT, install),
+        "dead_service_matching_source_requires_only_activation": z3.Implies(
+            z3.And(sourcecut == MATCH, z3.Not(active)), z3.And(z3.Not(install), start)),
         "healthy_running_source_unchanged": z3.Implies(
-            z3.And(same_source, active), z3.And(z3.Not(install), z3.Not(start))),
+            z3.And(sourcecut == MATCH, active), z3.And(z3.Not(install), z3.Not(start))),
         "live_success_is_independent_check": z3.Implies(
-            verified, z3.And(same_source, active, external)),
+            verified, z3.And(sourcecut == MATCH, active, external)),
     }
     for label, claim in statements.items():
         solver = z3.Solver()
         solver.set(timeout=8000)
-        solver.add(z3.Not(claim))
+        solver.add(valid, z3.Not(claim))
         assert solver.check() == z3.unsat, "proof failed: " + label
 
-    # Mutated pre-refactor selection: a failed external request triggered writes.
-    legacy = z3.Not(z3.And(same_source, active, external))
+    # Actual historical bug: Boolean Task status conflated any nonzero
+    # observation (including UNKNOWN) with DRIFT and admitted writes.
+    legacy_install = sourcecut != MATCH
     mutant = z3.Solver()
-    mutant.add(same_source, active, z3.Not(external), legacy)
-    assert mutant.check() == z3.sat, "historical network-trigger regression not detected"
+    mutant.add(valid, sourcecut == UNKNOWN, legacy_install)
+    assert mutant.check() == z3.sat, "UNKNOWN-as-DRIFT regression not detected"
+    # Independent older regression: external failure mistaken for install.
+    legacy_network = z3.Not(z3.And(sourcecut == MATCH, active, external))
+    network_mutant = z3.Solver()
+    network_mutant.add(valid, sourcecut == MATCH, active, z3.Not(external), legacy_network)
+    assert network_mutant.check() == z3.sat
+
     return {
         "kind": "ordivon.network.core-sourcecut-convergence-proof",
         "standing": "SOURCE_BOUND_SYMBOLIC_SELECTION_PROVED",
         "z3Version": z3.get_version_string(),
         "provedProperties": list(statements),
-        "negativeControl": "old live-verify-as-install-status triggers install on external failure",
+        "negativeControls": [
+            "Boolean SourceCut fail means install even when observation UNKNOWN",
+            "external endpoint failure triggers legacy installer with matching SourceCut",
+        ],
         "sourceAdmission": admission,
+        "sourcecutStates": ["MATCH", "DRIFT", "UNKNOWN"],
         "excluded": ["systemd start success", "external Internet availability",
-                     "loaded config actual parity", "network packets and consumer effects"],
+                     "multi-file atomic release under crash", "loaded byte parity",
+                     "actual application traffic and device-origin exit/DNS evidence"],
     }
 
 

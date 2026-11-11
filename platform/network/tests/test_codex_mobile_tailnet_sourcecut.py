@@ -77,9 +77,14 @@ def test_mobile_convergence_uses_sourcecut_not_external_health_to_select_restart
     sourcecut = tasks.split("consumer:mobile-tailnet-exit:sourcecut:", 1)[1].split(
         "consumer:mobile-tailnet-exit:materialize:", 1
     )[0]
-    assert sourcecut.count("cmp -s") >= 3
-    assert "NeedDaemonReload" in sourcecut
-    assert not any(x in sourcecut for x in ("curl ", "dig ", "systemctl start ", "systemctl restart "))
+    assert "consumer:mobile-tailnet-exit:classify" in sourcecut
+    assert "test \"$verdict\" = MATCH" in sourcecut
+    classifier = tasks.split("consumer:mobile-tailnet-exit:classify:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:sourcecut:", 1
+    )[0]
+    assert "cmp -s" in classifier
+    assert "NeedDaemonReload" in classifier
+    assert not any(x in classifier for x in ("curl ", "dig ", "systemctl start ", "systemctl restart "))
     install = tasks.split("consumer:mobile-tailnet-exit:materialize:", 1)[1].split(
         "consumer:mobile-tailnet-exit:converge:", 1
     )[0]
@@ -91,10 +96,36 @@ def test_mobile_convergence_uses_sourcecut_not_external_health_to_select_restart
     assert "systemctl start network-v2-mobile-tailnet-exit.service" in converge
     assert "systemctl restart network-v2-mobile-tailnet-exit.service" in converge
     assert "consumer:mobile-tailnet-exit:sourcecut" in converge
-    assert "if task --silent consumer:mobile-tailnet-exit:sourcecut; then" in converge
-    assert converge.index("systemctl start network-v2-mobile-tailnet-exit.service") < converge.index("else") < converge.index("systemctl restart network-v2-mobile-tailnet-exit.service")
+    assert "case \"$verdict\" in" in converge
+    assert "MATCH)" in converge and "DRIFT)" in converge
+    assert converge.index("systemctl start network-v2-mobile-tailnet-exit.service") < converge.index("systemctl restart network-v2-mobile-tailnet-exit.service")
     assert "consumer:mobile-tailnet-exit:verify" in converge
     assert "network-v2-gluetun-owned.service" not in converge
+
+
+def test_mobile_sourcecut_classifies_unknown_separately_from_drift():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:classify:" in tasks
+    classify = tasks.split("consumer:mobile-tailnet-exit:classify:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:sourcecut:", 1
+    )[0]
+    assert "UNKNOWN" in classify and "DRIFT" in classify and "MATCH" in classify
+    assert "cmp -s" in classify and "case" in classify
+    assert "NeedDaemonReload" in classify
+    assert "exit 2" in classify
+    materialize = tasks.split("consumer:mobile-tailnet-exit:materialize:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:converge:", 1
+    )[0]
+    converge = tasks.split("consumer:mobile-tailnet-exit:converge:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:ready:", 1
+    )[0]
+    # A failed classifier must stop before the first file write or restart.
+    assert "consumer:mobile-tailnet-exit:classify" in materialize
+    assert "consumer:mobile-tailnet-exit:classify" in converge
+    assert "DRIFT)" in converge and "MATCH)" in converge and "*)" in converge
+    assert converge.index("consumer:mobile-tailnet-exit:classify") < converge.index(
+        "systemctl restart network-v2-mobile-tailnet-exit.service"
+    )
 
 
 def test_mobile_native_readiness_has_bounded_rejoin_and_no_provider_restart():
