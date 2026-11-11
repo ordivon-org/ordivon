@@ -1,0 +1,23 @@
+﻿{
+    "schemaVersion":  1,
+    "kind":  "ordivon.finance.r3.simulation-frozen-instruction",
+    "standing":  "SIMULATION_FIXTURE_ONLY",
+    "intentId":  "sim-20261028-spy-nextopen-001",
+    "accountId":  "SIM-001",
+    "instrumentId":  "SPY.SIM",
+    "symbol":  "SPY",
+    "side":  "BUY",
+    "quantity":  1,
+    "limitPrice":  "900.00",
+    "maxCommitmentMinor":  100000,
+    "currency":  "USD",
+    "previousSession":  "2026-10-28",
+    "tradeSession":  "2026-10-29",
+    "sourceCaptureSha256":  "bce793b53f97c5081e7a9b4b9d4a8b03a574977f25054eac42a55dcda9907a30",
+    "researchDatasetSha256":  "e14deedead6efe85f0c460466cffd965d78d23c66b6a1704912e13c8b2113435",
+    "investmentPolicyAdmitted":  false,
+    "historicalPointInTimeAdmitted":  false,
+    "externalFinancialWriteAllowed":  false,
+    "feeReserveMinor":  100,
+    "simulatedDecisionAt":  "2026-10-28T16:01:00-04:00"
+}
