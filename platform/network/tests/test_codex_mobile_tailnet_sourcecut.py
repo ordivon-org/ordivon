@@ -69,6 +69,34 @@ def test_mobile_ready_requires_admin_approval_and_upstream():
         assert word in ready
 
 
+def test_mobile_convergence_uses_sourcecut_not_external_health_to_select_restart():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:sourcecut:" in tasks
+    assert "consumer:mobile-tailnet-exit:materialize:" in tasks
+    assert "consumer:mobile-tailnet-exit:converge:" in tasks
+    sourcecut = tasks.split("consumer:mobile-tailnet-exit:sourcecut:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:materialize:", 1
+    )[0]
+    assert sourcecut.count("cmp -s") >= 3
+    assert "NeedDaemonReload" in sourcecut
+    assert not any(x in sourcecut for x in ("curl ", "dig ", "systemctl start ", "systemctl restart "))
+    install = tasks.split("consumer:mobile-tailnet-exit:materialize:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:converge:", 1
+    )[0]
+    assert "status:" in install
+    assert "consumer:mobile-tailnet-exit:sourcecut" in install
+    converge = tasks.split("consumer:mobile-tailnet-exit:converge:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:ready:", 1
+    )[0]
+    assert "systemctl start network-v2-mobile-tailnet-exit.service" in converge
+    assert "systemctl restart network-v2-mobile-tailnet-exit.service" in converge
+    assert "consumer:mobile-tailnet-exit:sourcecut" in converge
+    assert "if task --silent consumer:mobile-tailnet-exit:sourcecut; then" in converge
+    assert converge.index("systemctl start network-v2-mobile-tailnet-exit.service") < converge.index("else") < converge.index("systemctl restart network-v2-mobile-tailnet-exit.service")
+    assert "consumer:mobile-tailnet-exit:verify" in converge
+    assert "network-v2-gluetun-owned.service" not in converge
+
+
 def test_mobile_native_readiness_has_bounded_rejoin_and_no_provider_restart():
     tasks = (MOBILE / "Taskfile.yml").read_text()
     assert "consumer:mobile-tailnet-exit:ready:" in tasks

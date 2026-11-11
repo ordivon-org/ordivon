@@ -91,6 +91,28 @@ consumer:mobile-tailnet-exit:ready owner task composes the existing readiness
 checker with GNU timeout to observe native systemd/Tailscale rejoin for up to
 120 seconds. It does not change the provider or prove iOS device egress.
 
+An additional Podman 6.1.1 native lifecycle attempt tested the proposed
+two-phase alternative: create/start Pod infra with --network=none, install both
+IPv4 and IPv6 OUTPUT DROP before attaching any external network, then use
+podman network connect podman <infra-container>. The first two phases were
+valid, but the last operation returned exit 125, invalid network mode.
+Therefore the current platform **cannot claim** that the simpler native
+two-phase Pod network-attach sequence is a working migration path. Its
+failure is a mechanism counterexample, not an excuse to remove the
+pre-VPN fail-closed requirement. The isolated Pod was removed.
+
+A separate recurring operational issue is that merely checking Mobile
+readiness and repeatedly hand-installing files obscures *why* a restart is
+necessary. The existing owner-native Go Task now exposes sourcecut,
+materialize and converge. Sourcecut compares exact installed files and
+systemd loaded-unit staleness **without any external probes**. Materialize
+only writes on source drift; converge uses systemctl start (a no-op for
+active services) when source matches, and reserves a Mobile-only restart
+for an explicit opt-in request after source drift and installation.
+Readiness is checked separately with the bounded native recovery task.
+External DNS/VPN failures alone must never trigger reinstallation.
+The change does not add another scheduler or background controller.
+
 Before replacing this topology with a stable Pod, Network's natural Owner
 must independently demonstrate all of:
 
