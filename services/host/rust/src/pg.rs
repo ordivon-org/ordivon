@@ -2,7 +2,7 @@
 //! Bounded pooled PostgreSQL connections are used for each transaction.
 use crate::attention::{self, TargetKind};
 use crate::social::{
-    self, AddMessageRelation, CreateSpace, CreateTopic, ListMessageRelations,
+    self, AddMessageRelation, CreateSpace, CreateTopic, ListMessageRelations, ListSpaces,
     ParticipationStanding, PostMessage, SearchMessages, TopicState,
 };
 use crate::work::{self, ActorDeclare, CommitSnapshot, CreateWork, ListWorks};
@@ -163,6 +163,47 @@ impl HostPg {
     pub async fn social_space_create(&self, command: &CreateSpace) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(social::create_space(&mut client, command).await?)
+    }
+
+    /// B owns all Social inventory read models and PostgreSQL snapshot
+    /// semantics. MCP borrows a bounded pool connection and delegates.
+    pub async fn social_space_list(&self, input: &ListSpaces<'_>) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::list_spaces(&mut client, input).await?)
+    }
+
+    pub async fn social_space_subject_list(
+        &self,
+        space_ref: &str,
+        after_subject_ref: Option<&str>,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(
+            social::list_space_subjects(
+                &mut client,
+                space_ref,
+                after_subject_ref,
+                limit,
+                max_bytes,
+            )
+            .await?,
+        )
+    }
+
+    pub async fn social_space_participation_list(
+        &self,
+        space_ref: &str,
+        after_actor_ref: Option<&str>,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(
+            social::list_participations(&mut client, space_ref, after_actor_ref, limit, max_bytes)
+                .await?,
+        )
     }
 
     pub async fn social_space_get(

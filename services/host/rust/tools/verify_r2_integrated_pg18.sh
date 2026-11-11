@@ -52,8 +52,8 @@ cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --qu
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/audit_mcp_surface.py" \
   --rust-bin "$root/services/host/rust/target/debug/ordivon-host-rust" \
   --source-manifest "$root/services/host/mcp-surface.json" \
-  --report "$root/services/host/rust/planning/mcp_source_rust_r5.json")
-echo "R5_MCP_SOURCE_RUST_SCHEMA_DIFFERENTIAL_PASS"
+  --report "$root/services/host/rust/planning/mcp_source_rust_r6.json")
+echo "R6_MCP_SOURCE_RUST_SCHEMA_DIFFERENTIAL_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" seed)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" seed)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" seed "$doctor_oracle")

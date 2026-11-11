@@ -158,7 +158,10 @@ try:
         "message.search",
         "space.create",
         "space.get",
+        "space.list",
+        "space.participation.list",
         "space.participation.set",
+        "space.subject.list",
         "subscription.follow",
         "subscription.list",
         "subscription.unfollow",
@@ -238,6 +241,29 @@ try:
         }},11,session,
     )
     assert len(r5_topics_http["result"]["structuredContent"]["topics"])==1,r5_topics_http
+    _, r6_spaces_http, _=post(
+        "tools/call",{"name":"space.list","arguments":{
+            "actorRef":"actor:test:rust-mcp-r5-first","subjectRef":"subject:alpha"
+        }},12,session,
+    )
+    spaces=r6_spaces_http["result"]["structuredContent"]
+    assert [s["spaceRef"] for s in spaces["spaces"]]==[
+        "space:test:rust-mcp-r5-first"
+    ],spaces
+    _, r6_subjects_http, _=post(
+        "tools/call",{"name":"space.subject.list","arguments":{
+            "spaceRef":"space:test:rust-mcp-r5-first"
+        }},13,session,
+    )
+    assert r6_subjects_http["result"]["structuredContent"]["subjectRefs"]==[
+        "subject:alpha","subject:zeta"
+    ],r6_subjects_http
+    _, r6_members_http, _=post(
+        "tools/call",{"name":"space.participation.list","arguments":{
+            "spaceRef":"space:test:rust-mcp-r5-first"
+        }},14,session,
+    )
+    assert len(r6_members_http["result"]["structuredContent"]["participants"])==1,r6_members_http
     _, historical, _ = post(
         "tools/call", {"name":"host.status","arguments":{"detail":"history"}}, 8, session,
     )

@@ -150,6 +150,20 @@ def verify() -> None:
     assert rust_observed["topicList"] == python_topics, (
         "topic.list", rust_observed["topicList"], python_topics
     )
+    python_spaces = social.list_spaces(
+        actor_ref=ACTOR,subject_ref="subject:alpha",limit=50,max_bytes=262144
+    )
+    python_subjects = social.list_space_subjects(SPACE,limit=100,max_bytes=262144)
+    python_members = social.list_participations(SPACE,limit=100,max_bytes=262144)
+    assert rust_observed["spaceList"] == python_spaces, (
+        "space.list", rust_observed["spaceList"], python_spaces
+    )
+    assert rust_observed["spaceSubjectList"] == python_subjects, (
+        "space.subject.list", rust_observed["spaceSubjectList"], python_subjects
+    )
+    assert rust_observed["spaceParticipationList"] == python_members, (
+        "space.participation.list", rust_observed["spaceParticipationList"], python_members
+    )
     page = social.resume_topic(TOPIC, after_sequence=0, limit=100, max_bytes=524288)
     assert [entry["messageRef"] for entry in page["messages"]] == [MESSAGE], page
 

@@ -87,7 +87,10 @@ try:
         "message.search",
         "space.create",
         "space.get",
+        "space.list",
+        "space.participation.list",
         "space.participation.set",
+        "space.subject.list",
         "subscription.follow",
         "subscription.list",
         "subscription.unfollow",
@@ -551,6 +554,70 @@ try:
     with open(observed_path,"w",encoding="utf-8") as file:
         json.dump(observed,file,sort_keys=True,ensure_ascii=False)
         file.write("\n")
+    # R6 B-native Space/Subject/Participation inventories must be reachable
+    # on the actual Rust rmcp wire, not merely compiled into Social domain.
+    subjects_one=request("tools/call",{"name":"space.subject.list","arguments":{
+        "spaceRef":r5_space,"limit":1
+    }},80)
+    one=subjects_one["structuredContent"]
+    assert one["subjectRefs"]==["subject:alpha"] and one["hasMore"] is True,one
+    subjects_two=request("tools/call",{"name":"space.subject.list","arguments":{
+        "spaceRef":r5_space,"limit":1,"afterSubjectRef":one["nextAfterSubjectRef"]
+    }},81)
+    two=subjects_two["structuredContent"]
+    assert two["subjectRefs"]==["subject:zeta"] and two["hasMore"] is False,two
+    subjects_all=request("tools/call",{"name":"space.subject.list","arguments":{
+        "spaceRef":r5_space
+    }},82)["structuredContent"]
+    assert subjects_all["subjectRefs"]==one["subjectRefs"]+two["subjectRefs"]
+    membership_list=request("tools/call",{"name":"space.participation.list","arguments":{
+        "spaceRef":r5_space
+    }},83)
+    members=membership_list["structuredContent"]
+    assert len(members["participants"])==1 and members["participants"][0]["actorRef"]==r5_actor,members
+    assert members["participants"][0]["standing"]=="joined",members
+    members_after=request("tools/call",{"name":"space.participation.list","arguments":{
+        "spaceRef":r5_space,"afterActorRef":r5_actor
+    }},84)
+    assert members_after["structuredContent"]["participants"]==[],members_after
+    spaces_args={"actorRef":r5_actor,"subjectRef":"subject:alpha"}
+    spaces_found=request("tools/call",{"name":"space.list","arguments":spaces_args},85)
+    spaces_data=spaces_found["structuredContent"]
+    assert [s["spaceRef"] for s in spaces_data["spaces"]]==[r5_space],spaces_found
+    assert spaces_data["spaces"][0]["activeParticipantCount"]==1,spaces_found
+    assert spaces_data["spaces"][0]["openTopicCount"]==1,spaces_found
+    no_missing_actor=request("tools/call",{"name":"space.list","arguments":{
+        "actorRef":"actor:test:r6-space-list-missing"
+    }},86)
+    assert no_missing_actor["structuredContent"]["error"]["code"]=="NOT_FOUND",no_missing_actor
+    assert no_missing_actor["structuredContent"]["error"]["resourceKind"]=="actor",no_missing_actor
+    no_half_cursor=request("tools/call",{"name":"space.list","arguments":{
+        **spaces_args,"beforeCreatedAt":spaces_data["spaces"][0]["createdAt"]
+    }},87)
+    assert no_half_cursor["structuredContent"]["error"]["code"]=="INVALID_ARGUMENT",no_half_cursor
+    for name, args, id in (
+        ("space.subject.list",{"spaceRef":"space:test:r6-missing-subject-space"},88),
+        ("space.participation.list",{"spaceRef":"space:test:r6-missing-participation-space"},89)
+    ):
+        failure=request("tools/call",{"name":name,"arguments":args},id)
+        assert failure["structuredContent"]["error"]["code"]=="NOT_FOUND",(name,failure)
+        assert failure["structuredContent"]["error"]["resourceKind"]=="space",(name,failure)
+    for name, args, id in (
+        ("space.list",{"limit":0},90),
+        ("space.subject.list",{"spaceRef":r5_space,"limit":0},91),
+        ("space.participation.list",{"spaceRef":r5_space,"limit":0},92)
+    ):
+        failure=request("tools/call",{"name":name,"arguments":args},id)
+        assert failure["structuredContent"]["error"]["code"]=="INVALID_ARGUMENT",(name,failure)
+    with open(observed_path,encoding="utf-8") as file:
+        observed=json.load(file)
+    observed["spaceList"]=spaces_data
+    observed["spaceSubjectList"]=subjects_all
+    observed["spaceParticipationList"]=members
+    with open(observed_path,"w",encoding="utf-8") as file:
+        json.dump(observed,file,ensure_ascii=False,sort_keys=True)
+        file.write("\n")
+    print("MCP_NATIVE_SPACE_INVENTORY_R6_PASS filtered_space=1 subjects_two_pages=2 participation=joined exact_python_oracle=ATTACHED invalid_and_missing=6")
     print("MCP_NATIVE_SOCIAL_READ_R5_PASS relations=2 self_reference_BOTH_once=true cursor_no_skip=true topic_list=1 typed_errors=4 python_oracle=ATTACHED")
     print("MCP_NATIVE_COLLAB_R5_PASS actor=1 space=1 topic=1 participation=joined-left-joined message=1 resume=1 exact_replay=2 invalid=2 conflict=2 missing=1")
     print(f"MCP_NATIVE_OUTPUT_SCHEMA_VALIDATED_PASS published={len(_published_schemas)} exercised={len(_schema_validation_hits)} tools={sorted(_schema_validation_hits)}")

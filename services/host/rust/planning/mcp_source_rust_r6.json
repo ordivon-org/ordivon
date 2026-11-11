@@ -1,0 +1,24 @@
+{
+  "kind": "ordivon.host-mcp-source-rust-differential",
+  "metadataBytes": {
+    "python": 45453,
+    "rust": 44939
+  },
+  "missingRustTools": [
+    "host.pool.stats"
+  ],
+  "pythonTools": 31,
+  "rustTools": 30,
+  "schemaDifferences": {},
+  "schemaVersion": 1,
+  "sourceEpoch": 6,
+  "toolsWithDescriptions": {
+    "python": 2,
+    "rust": 30
+  },
+  "toolsWithOutputSchema": {
+    "python": 31,
+    "rust": 30
+  },
+  "truthBoundary": "Compares real source Python SDK registry to isolated Rust tools/list; not an installed-connector or end-to-end output/effect parity proof"
+}

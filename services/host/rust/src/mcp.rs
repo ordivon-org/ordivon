@@ -43,6 +43,56 @@ pub struct SpaceCreateRequest {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct SpaceListRequest {
+    #[serde(default)]
+    pub actor_ref: Option<String>,
+    #[serde(default)]
+    pub subject_ref: Option<String>,
+    #[serde(default = "space_list_limit")]
+    pub limit: i64,
+    #[serde(default)]
+    pub before_created_at: Option<String>,
+    #[serde(default)]
+    pub before_space_ref: Option<String>,
+    #[serde(default = "space_inventory_max_bytes")]
+    pub max_bytes: usize,
+}
+const fn space_list_limit() -> i64 {
+    50
+}
+const fn space_inventory_limit() -> i64 {
+    100
+}
+const fn space_inventory_max_bytes() -> usize {
+    262_144
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceSubjectListRequest {
+    pub space_ref: String,
+    #[serde(default)]
+    pub after_subject_ref: Option<String>,
+    #[serde(default = "space_inventory_limit")]
+    pub limit: i64,
+    #[serde(default = "space_inventory_max_bytes")]
+    pub max_bytes: usize,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceParticipationListRequest {
+    pub space_ref: String,
+    #[serde(default)]
+    pub after_actor_ref: Option<String>,
+    #[serde(default = "space_inventory_limit")]
+    pub limit: i64,
+    #[serde(default = "space_inventory_max_bytes")]
+    pub max_bytes: usize,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct SpaceGetRequest {
     pub space_ref: String,
     #[serde(default = "embedded_collection_limit")]
@@ -859,6 +909,77 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "space.list",
+        output_schema = legacy_output_schema("space.list"),
+        description = "List compact Social Spaces using B's native PostgreSQL RR actor/subject filters, stable composite cursor and canonical byte budget."
+    )]
+    async fn space_list(
+        &self,
+        Parameters(request): Parameters<SpaceListRequest>,
+    ) -> CallToolResult {
+        let input = social::ListSpaces {
+            actor_ref: request.actor_ref.as_deref(),
+            subject_ref: request.subject_ref.as_deref(),
+            limit: request.limit,
+            before_created_at: request.before_created_at.as_deref(),
+            before_space_ref: request.before_space_ref.as_deref(),
+            max_bytes: request.max_bytes,
+        };
+        match self.pg.social_space_list(&input).await {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("space.list", error),
+        }
+    }
+
+    #[tool(
+        name = "space.subject.list",
+        output_schema = legacy_output_schema("space.subject.list"),
+        description = "List opaque Subjects of a Space, bounded and lexically paginated; references are not authority."
+    )]
+    async fn space_subject_list(
+        &self,
+        Parameters(request): Parameters<SpaceSubjectListRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .social_space_subject_list(
+                &request.space_ref,
+                request.after_subject_ref.as_deref(),
+                request.limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("space.subject.list", error),
+        }
+    }
+
+    #[tool(
+        name = "space.participation.list",
+        output_schema = legacy_output_schema("space.participation.list"),
+        description = "Read actor-scoped desired-state participation in one Space, sorted by ActorRef; not IAM or assignment."
+    )]
+    async fn space_participation_list(
+        &self,
+        Parameters(request): Parameters<SpaceParticipationListRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .social_space_participation_list(
+                &request.space_ref,
+                request.after_actor_ref.as_deref(),
+                request.limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("space.participation.list", error),
+        }
+    }
+
+    #[tool(
         name = "topic.create",
         output_schema = legacy_output_schema("topic.create"),
         description = "Create an asynchronous Topic under an existing Space with immutable first declaration and canonical command receipt."
@@ -1592,7 +1713,7 @@ mod tests {
     #[test]
     fn output_schemas_and_input_defaults_match_original_python_sdk_contract() {
         let tools = HostMcp::tool_router().list_all();
-        assert_eq!(tools.len(), 27);
+        assert_eq!(tools.len(), 30);
         for item in &tools {
             let expected = legacy_output_schema(item.name.as_ref());
             assert_eq!(
@@ -1642,7 +1763,10 @@ mod tests {
                 "message.search",
                 "space.create",
                 "space.get",
+                "space.list",
+                "space.participation.list",
                 "space.participation.set",
+                "space.subject.list",
                 "subscription.follow",
                 "subscription.list",
                 "subscription.unfollow",
