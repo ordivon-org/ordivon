@@ -426,7 +426,9 @@ See [`docs/DATA_AND_PRIVACY.md`](docs/DATA_AND_PRIVACY.md) and [`SECURITY.md`](S
 
 ## License
 
-Apache License 2.0. See [`LICENSE`](LICENSE).\r\n\r\n## Agent tool selection and local execution
+Apache License 2.0. See [`LICENSE`](LICENSE).
+
+## Agent tool selection and local execution
 
 Start with the real Agent run, tool call or provider continuity requirement.
 Current interfaces and consumers are documented by
