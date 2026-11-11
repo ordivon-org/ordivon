@@ -340,3 +340,41 @@ The existing cross-owner scratch-PG18 driver runs the added test with
 HARNESS_B_TYPED_TOOL_HEAD=1. Ordinary Python Gateway effect tests cover
 the production send path and response-loss reconciliation without blindly
 redispatching UNKNOWN.
+
+## Runtime Owner delivery readback: only Owner facts, never physical authority
+
+The Rust runtime_delivery module now consumes the existing Python
+runtime_bridge._runtime_delivery_state contract as the original source
+oracle. The 1362 frozen-seed Python-owned cases cover committed terminal,
+reconciliation required, lost/unknown, malformed and contradictory fields,
+and legacy status strings that must NEVER determine physical outcome.
+Every RuntimeDeliveryDecision is read-only; Terminal means Runtime committed
+its own outcome, NOT domain-semantic completion or permission to redispatch.
+
+The production Python classifier also had a real protocol-error boundary
+hole: list/dict deliveryDisposition raised unhandled TypeError from the
+set membership check. The existing Python source now type-guards it and
+raises HarnessRuntimeClientError, with direct regression tests.
+
+The Rust Owner-evidence join deliberately uses no PG Reader of its own:
+qualify_runtime_job_for_tool_head receives B's true Python Tool Intent
+PG18-verified ObservedToolHead and compares its immutable clientRequestId
+to ONE exact trusted Runtime task.list job in the requested workspace.
+A page with a nextCursor is INCOMPLETE and cannot qualify a Job; zero or
+multiple matches, foreign workspace/client request and missing jobId all
+fail closed. The Runtime task.observe result must match the qualified
+jobId before its deliveryDisposition is interpreted. This narrow Rust
+consumer does NOT implement the Python source's existing multi-page
+task.list cursor loop, poll the Runtime, issue any Tool call, or perform
+durable Owner dispatch. No match does NOT prove that no effect happened.
+
+The same genuine Python PG18 Tool Intent/Fence/Receipt fixture tests the
+PG Head→Owner identity join against owner-shaped response examples,
+including a foreign-job succeeded result. All are synthetic Owner
+wire payloads, NOT real Runtime calls or physical effects; this test
+qualifies exact boundary semantics only.
+
+Physical EffectIntent/current Owner Fence, real Runtime admission,
+durable request commitment, ambiguous-response reconciler and valid
+UNKNOWN→authenticated final Receipt transitions remain separate Owner
+work. Do not confuse the new observation decoder with a Dispatch Permit.

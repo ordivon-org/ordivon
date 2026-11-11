@@ -8,6 +8,7 @@ pub mod pg_domain_read;
 pub mod pg_tool_head;
 pub mod provider_head;
 mod python_text;
+pub mod runtime_delivery;
 pub mod tool_call;
 pub mod tool_surface;
 

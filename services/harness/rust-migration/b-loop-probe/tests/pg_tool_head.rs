@@ -1,7 +1,12 @@
 //! One actual Python Tool Intent/Fence/Receipt CAS producer -> A PG18 verified
 //! readback -> B versioned Tool recovery semantics. No physical Runtime call.
+use ordivon_harness_core::loads_strict;
 use ordivon_harness_loop_b_probe::pg_tool_head::{
     inspect_pg_tool_head, ToolHeadError, ToolHeadStanding,
+};
+use ordivon_harness_loop_b_probe::runtime_delivery::{
+    interpret_qualified_runtime_observation, qualify_runtime_job_for_tool_head,
+    RuntimeDeliveryDecision, RuntimeOwnerEvidenceError,
 };
 use ordivon_harness_pg::ReadError;
 use postgres::{Client, NoTls};
@@ -61,6 +66,63 @@ fn python_pg_tool_source_intent_fence_receipt_and_unknown_are_distinct_from_disp
             ToolHeadStanding::PreparedNeedsOwnerAdmission
         };
         assert_eq!(head.standing(), standing);
+        if label == "unknown_redacted" {
+            // End-to-end identity join: actual Python-authored Intent CAS
+            // comes through A's real PG18 Reader, while Runtime task.list /
+            // task.observe are owner-shaped immutable test observations only.
+            // There is no Runtime connection or physical effect here.
+            let page = serde_json::json!({
+                "jobs": [{
+                    "jobId": "job:source-recovery",
+                    "clientRequestId": head.client_request_id(),
+                    "workspaceId": "ws:test-owner-lookup",
+                }],
+                "nextCursor": null,
+            });
+            let owner_page = loads_strict(&page.to_string()).unwrap();
+            let job = qualify_runtime_job_for_tool_head(&head, &owner_page, "ws:test-owner-lookup")
+                .expect("PG Tool Intent must bind one exact Runtime Job identity");
+            assert_eq!(job.client_request_id(), head.client_request_id());
+            let owner_unknown = loads_strict(
+                r#"{
+                "jobId":"job:source-recovery",
+                "executionTerminal":true,
+                "executionDisposition":"lost",
+                "deliveryDisposition":"unknown",
+                "recoveryRequired":false,
+                "resultAvailable":true,
+                "semanticCompletionEvaluated":false
+            }"#,
+            )
+            .unwrap();
+            assert_eq!(
+                interpret_qualified_runtime_observation(&job, &owner_unknown),
+                Ok(RuntimeDeliveryDecision::Unknown)
+            );
+            let wrong_job = loads_strict(
+                r#"{
+                "jobId":"job:another-tool",
+                "status":"succeeded",
+                "executionTerminal":true,
+                "executionDisposition":"succeeded",
+                "deliveryDisposition":"committed",
+                "recoveryRequired":false,
+                "resultAvailable":true,
+                "semanticCompletionEvaluated":false
+            }"#,
+            )
+            .unwrap();
+            assert_eq!(
+                interpret_qualified_runtime_observation(&job, &wrong_job),
+                Err(RuntimeOwnerEvidenceError::ObservationMismatch)
+            );
+            assert_eq!(
+                qualify_runtime_job_for_tool_head(&head, &owner_page, "ws:wrong-workspace")
+                    .unwrap_err(),
+                RuntimeOwnerEvidenceError::IdentityMismatch,
+            );
+            println!("PG18_TOOL_INTENT_RUNTIME_OWNER_JOB_IDENTITY_FAIL_CLOSED_PASS");
+        }
     }
 
     for label in [
