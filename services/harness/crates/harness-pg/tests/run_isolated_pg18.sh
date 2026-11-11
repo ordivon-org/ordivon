@@ -109,3 +109,15 @@ if [[ "$(printenv HARNESS_WRITER_CONTRACT_FALSIFY || true)" == 1 ]]; then
     -p ordivon-harness-pg --test pg_writer_contract_gate \
     -- --ignored --nocapture
 fi
+
+
+# B typed Tool consumer reuses A's ONE disposable PG18, Python Source producer,
+# and SELECT-only Rust role. Cannot grant any Runtime execution.
+if [[ "$(printenv HARNESS_B_TYPED_TOOL_HEAD || true)" == 1 ]]; then
+  if [[ "$(printenv HARNESS_B_BOUND_PG_DOMAIN || true)" != 1 ]]; then
+    echo "Typed Tool consumer requires B's existing PG source fixture" >&2
+    exit 2
+  fi
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run     --project services/harness --offline --locked python     services/harness/rust-migration/b-loop-probe/tests/pg_tool_head_python_store.py
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline     -p ordivon-harness-loop-b-probe --test pg_tool_head     -- --ignored --nocapture
+fi

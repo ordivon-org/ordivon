@@ -4,6 +4,7 @@
 
 pub mod evidence;
 pub mod pg_domain_read;
+pub mod pg_tool_head;
 pub mod provider_head;
 mod python_text;
 pub mod tool_call;

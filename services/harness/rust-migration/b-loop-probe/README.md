@@ -221,3 +221,46 @@ at-most-once physical effects or replace downstream Receipt/UNKNOWN
 reconciliation. A owner and original C-seat must review before production
 Rust takeover. Native `create_run`, Provider HTTP and old v3 compatibility
 remain open separate gates.
+
+## Source-qualified Tool Intent/Fence/Receipt recovery — R17 (source-only)
+
+Current pg_tool_head is the read-only semantic consumer of A's ONE
+read_run_readonly PostgreSQL Run/Contract/Event/CAS snapshot. It is not
+a Tool executor and cannot construct an Owner Dispatch Permit.
+
+Python's production EventSourcedRunContinuity.prepare_tool_step stores
+Intent V1, Fence V2, Snapshot, State and Event references. The narrow A PG
+projection exposes only already SHA/kind-validated typed Intent/Fence/Receipt
+CAS values plus a whitelist of Snapshot authority identity fields and an
+exact source-field-set witness. Raw State, private Snapshot fields, Tool
+Observation and result contents are not exposed. B reuses mature Serde typed
+decoding with source-exact schemas and validates RunContract/assignment,
+full Event edge set, active Intent in Snapshot, Run/Fence revisions, and
+Receipt provenance/status.
+
+Returned standings are deliberately non-executable: PreparedNeedsOwnerAdmission,
+UnknownRequiresOwnerReconciliation, PendingCancellationRequiresOwnerReconciliation,
+ReceiptObservedNoRedispatch. prepared_revision_is_current() is only a
+historical readback comparison; it never grants physical dispatch.
+Runtime currentness, idempotent Owner admission, actual receipts and
+external UNKNOWN reconciliation are not yet source-qualified in Rust.
+
+Real Python Producer => disposable PostgreSQL18 => A Rust PG reader =>
+B typed Tool Head, same existing A/B test runner:
+
+    HARNESS_CONSUMER_FALSIFY_CONTRACT=1 \
+    HARNESS_WRITER_CONTRACT_FALSIFY=1 \
+    HARNESS_PG_NATIVE_LEASE=1 \
+    HARNESS_PG_NATIVE_WRITER=1 \
+    HARNESS_B_BOUND_PG_DOMAIN=1 \
+    HARNESS_B_TYPED_TOOL_HEAD=1 \
+    bash services/harness/crates/harness-pg/tests/run_isolated_pg18.sh
+
+Nine source cases: prepared; privacy-redacted UNKNOWN; stale Run revision;
+generic Event with no Intent; stolen cross-Run CAS; forged Fence digest;
+extra CAS edge; UNKNOWN Receipt disguised as recorded Event; and a
+digest-valid but semantically invalid Snapshot that lacks the active Intent.
+The last failed before the Snapshot active-binding fix (real RED), then
+passed (real GREEN). No Provider HTTP or physical Runtime Tool request.
+
+Original C, A PG Owner and B Tool Owner must review before promoting source.

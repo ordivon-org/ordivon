@@ -13,3 +13,6 @@ ordivon-harness-core = { path = "../../crates/harness-core" }
 # Consume the only A-owned read-only PG Reader; no B-owned SQL or Writer.
 ordivon-harness-pg = { path = "../../crates/harness-pg" }
 postgres = "0.19.14"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }

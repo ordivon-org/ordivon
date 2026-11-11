@@ -649,6 +649,8 @@ dependencies = [
  "ordivon-harness-core",
  "ordivon-harness-pg",
  "postgres",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
