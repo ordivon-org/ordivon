@@ -1,7 +1,7 @@
 //! Real PostgreSQL 18/schema13 qualification; never accepts the production DSN.
 //! Run only with HOST_RUST_TEST_DSN pointing at a disposable instance:
 //! cargo test --offline --test social_attention_pg -- --ignored
-use ordivon_host_rust_b_qualification::{
+use ordivon_host_rust::{
     attention::{self, TargetKind, DEFAULT_COLLECTION_BYTES},
     social::{self, AddMessageRelation, MessageKind, MessageRelationKind, PostMessage, TopicState},
 };

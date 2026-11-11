@@ -99,12 +99,11 @@ fn rust_rejects_inputs_python_host_rejects() {
         .expect("invalid cases")
     {
         let id = case["id"].as_str().expect("id");
-        match serde_json::from_value::<WorkSnapshot>(case["input"].clone()) {
-            Ok(snapshot) => assert!(
+        if let Ok(snapshot) = serde_json::from_value::<WorkSnapshot>(case["input"].clone()) {
+            assert!(
                 snapshot.validate().is_err(),
                 "{id}: Rust silently accepted Python-invalid input"
-            ),
-            Err(_) => {}
+            );
         }
     }
 }
