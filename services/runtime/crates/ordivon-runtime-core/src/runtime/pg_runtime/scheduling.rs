@@ -5,6 +5,11 @@ use crate::resource_scheduling::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+// A current Attempt belongs to exactly one Job. The schema does not enforce
+// uniqueness of jobs.current_attempt_id, so bind both identities at the query
+// boundary instead of trusting a potentially stale/corrupted pointer.
+const PENDING_JOBS_SQL: &str = "SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id";
+
 /// Immutable PG candidate snapshot. Dominant shares are rescored after every
 /// successful allocation; execution plans need not be queried or decoded again.
 struct PendingCandidate {
@@ -255,7 +260,7 @@ impl PgRuntime {
     pub fn schedule_pending_jobs(&self) -> RuntimeResult<serde_json::Value> {
         let mut db = self.store()?;
         // Idle queue wakeups should not read host resources or every Allocation.
-        let candidates=db.client.query("SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id",&[]).map_err(io)?;
+        let candidates = db.client.query(PENDING_JOBS_SQL, &[]).map_err(io)?;
         if candidates.is_empty() {
             return Ok(json!({"considered":0,"attempted":0}));
         }
@@ -627,5 +632,42 @@ mod scheduler_candidate_tests {
         assert_eq!(next_candidate(&ranked, &BTreeMap::new(), &node), Some(0));
         assert!(preflight.record_allocation(&ranked.remove(0)));
         assert!(!preflight.allows(&ranked[0], &node));
+    }
+
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_pending_requires_attempt_to_belong_to_its_job() {
+        // This intentionally reproduces a cross-Job current_attempt_id link:
+        // attempts.attempt_id is PK but jobs.current_attempt_id is not UNIQUE.
+        // TEMP tables keep this test isolated from any persistent Registry.
+        let dsn =
+            std::env::var("ORDIVON_PG_TEST_DSN").expect("explicit disposable PG test DSN required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (
+                job_id text PRIMARY KEY,
+                principal text NOT NULL,
+                execution_plan_json text NOT NULL,
+                current_attempt_id text NOT NULL,
+                resolution text,
+                desired_state text NOT NULL,
+                created_at_ms bigint NOT NULL
+             );
+             CREATE TEMP TABLE attempts (
+                attempt_id text PRIMARY KEY,
+                job_id text NOT NULL,
+                state text NOT NULL
+             );
+             CREATE TEMP TABLE job_runtime_release_effects(job_id text PRIMARY KEY);
+             INSERT INTO jobs VALUES
+                ('job-a','principal-a','{}','attempt-a',NULL,'run',1),
+                ('job-b','principal-b','{}','attempt-a',NULL,'run',2);
+             INSERT INTO attempts VALUES ('attempt-a','job-a','accepted');",
+        )
+        .unwrap();
+        let found = db.query(PENDING_JOBS_SQL, &[]).unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].get::<_, String>(0), "job-a");
+        assert_eq!(found[0].get::<_, String>(3), "attempt-a");
     }
 }
