@@ -9,10 +9,103 @@ tasks:
       - /usr/bin/bash -n substrates/shared-egress/carrier-ready.sh consumers/browserless/provider-switch.sh consumers/browserless/production-cutover.sh
       - grep -F 'PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}' consumers/browserless/production-cutover.sh >/dev/null
 
+  consumer:browserless:provider-carrier:classify:
+    desc: Determine only installed/source/loaded drift under the current SINGLE physical VPN mode
+    cmds:
+      - |
+        set -eu
+        marker=/etc/network-v2/gluetun/m4-owned-mode.selected
+        # The selected provider is privileged authority. A missing marker
+        # must not auto-select a second VPN while Gluetun remains active.
+        test ! -L "$marker" || { echo UNKNOWN >&2; exit 2; }
+        if test -f "$marker"; then
+          # The selected Gluetun carrier must not coexist with an active
+          # retired provider. Do not react by installing or restarting
+          # anything: the owner must independently resolve the ambiguity.
+          for unit in network-v2-browserless-legacy-provider.target network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service; do
+            observed="$(systemctl show "$unit" --property=ActiveState --value)" || {
+              echo 'UNKNOWN: legacy provider active state unavailable' >&2
+              exit 2
+            }
+            if test "$observed" != inactive; then
+              echo 'UNKNOWN: legacy carrier not proven inactive' >&2
+              exit 2
+            fi
+          done
+          local_verdict="$(python3 scripts/native-sourcecut.py \
+            --file consumers/browserless/systemd/network-v2-browserless-wireguard.service /etc/systemd/system/network-v2-browserless-wireguard.service \
+            --file consumers/browserless/systemd/network-v2-browserless-dns.service /etc/systemd/system/network-v2-browserless-dns.service \
+            --file consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service \
+            --file consumers/browserless/systemd/network-v2-browserless-legacy-provider.target /etc/systemd/system/network-v2-browserless-legacy-provider.target \
+            --unit-loaded network-v2-browserless-wireguard.service \
+            --unit-loaded network-v2-browserless-dns.service \
+            --unit-loaded network-v2-browserless-provider-carrier.service \
+            --unit-loaded network-v2-browserless-legacy-provider.target)" || exit 2
+        elif test ! -e "$marker"; then
+          # Native systemd uncertainty cannot authorize a second physical WG.
+          gluetun_state="$(systemctl show network-v2-gluetun-owned.service --property=ActiveState --value)" || {
+            echo 'UNKNOWN: Gluetun state unavailable without selected marker' >&2
+            exit 2
+          }
+          if test "$gluetun_state" != inactive; then
+            echo 'UNKNOWN: Gluetun not proven inactive without selected-mode marker' >&2
+            exit 2
+          fi
+          local_verdict="$(python3 scripts/native-sourcecut.py \
+            --file consumers/browserless/systemd/network-v2-browserless-wireguard.service /etc/systemd/system/network-v2-browserless-wireguard.service \
+            --file consumers/browserless/systemd/network-v2-browserless-dns.service /etc/systemd/system/network-v2-browserless-dns.service \
+            --file consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service \
+            --file consumers/browserless/systemd/network-v2-browserless-legacy-provider.target /etc/systemd/system/network-v2-browserless-legacy-provider.target \
+            --file consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json \
+            --file consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch \
+            --mode /usr/local/libexec/network-v2/browserless-provider-switch 0755 \
+            --file consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path \
+            --mode /usr/local/libexec/network-v2/browserless-production-path 0755 \
+            --unit-enabled network-v2-browserless.target enabled \
+            --unit-loaded network-v2-browserless-wireguard.service \
+            --unit-loaded network-v2-browserless-dns.service \
+            --unit-loaded network-v2-browserless-provider-carrier.service \
+            --unit-loaded network-v2-browserless-legacy-provider.target)" || exit 2
+        else
+          echo 'UNKNOWN: selected provider marker has unexpected type' >&2
+          exit 2
+        fi
+        # The Browserless consumer depends on the naturally owned shared
+        # carrier. Its SourceCut cannot be MATCH while that dependency drifts.
+        shared_verdict="$(task --silent substrate:shared-egress:classify)" || {
+          echo 'UNKNOWN: shared carrier SourceCut unavailable' >&2
+          exit 2
+        }
+        case "$local_verdict/$shared_verdict" in
+          MATCH/MATCH) echo MATCH ;;
+          MATCH/DRIFT|DRIFT/MATCH|DRIFT/DRIFT) echo DRIFT ;;
+          *) echo 'UNKNOWN: invalid owner or shared SourceCut state' >&2; exit 2 ;;
+        esac
+
+  consumer:browserless:provider-carrier:sourcecut:
+    desc: Reject ambiguous VPN mode and require exact provider-owned source/install/loaded MATCH
+    cmds:
+      - |
+        verdict="$(task --silent consumer:browserless:provider-carrier:classify)" || exit 2
+        test "$verdict" = MATCH
+
   consumer:browserless:provider-carrier:materialize:
     desc: Reconcile mode-independent shared-provider readiness without changing the selected VPN identity
     deps: [consumer:browserless:provider-carrier:validate]
+    # Native Go Task skip: unchanged legacy bytes do not require a reload
+    # or any second VPN start. Independent first guard resists --force.
+    status:
+      - task consumer:browserless:provider-carrier:sourcecut
     cmds:
+      - |
+        verdict="$(task --silent consumer:browserless:provider-carrier:classify)" || {
+          echo 'browserless SourceCut UNKNOWN: refusing materialization' >&2
+          exit 2
+        }
+        test "$verdict" = DRIFT || {
+          echo 'browserless SourceCut not provably DRIFT: refusing materialization' >&2
+          exit 2
+        }
       - task: substrate:shared-egress:materialize
       - |
         if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
@@ -51,15 +144,37 @@ tasks:
 
 
   consumer:browserless:provider-carrier:converge:
-    desc: Reconcile the readiness SourceCut; restart only the selected legacy carrier when applicable
+    desc: Preserve single selected VPN; MATCH starts idempotently, DRIFT updates only owner bytes
     cmds:
-      - task: consumer:browserless:provider-carrier:materialize
+      - task: consumer:browserless:provider-carrier:validate
       - |
-        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
-          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
-        else
-          systemctl restart network-v2-browserless-provider-carrier.service
-        fi
+        set -eu
+        verdict="$(task --silent consumer:browserless:provider-carrier:classify)" || {
+          echo 'browserless SourceCut UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        case "$verdict" in
+          MATCH)
+            if test -f /etc/network-v2/gluetun/m4-owned-mode.selected; then
+              systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+            else
+              systemctl start network-v2-browserless-provider-carrier.service
+            fi
+            ;;
+          DRIFT)
+            task --silent consumer:browserless:provider-carrier:materialize
+            task --silent consumer:browserless:provider-carrier:sourcecut
+            if test -f /etc/network-v2/gluetun/m4-owned-mode.selected; then
+              systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+            else
+              systemctl restart network-v2-browserless-provider-carrier.service
+            fi
+            ;;
+          *)
+            echo 'browserless SourceCut invalid: refusing converge effects' >&2
+            exit 2
+            ;;
+        esac
       - task: consumer:browserless:provider-carrier:ready
 
   consumer:browserless:provider-carrier:select:

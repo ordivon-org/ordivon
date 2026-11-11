@@ -8,22 +8,82 @@ tasks:
       - python3 -c 'import ast; ast.parse(open("consumers/mobile-tailnet-exit/ready.py").read())'
       - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
 
-  consumer:mobile-tailnet-exit:sourcecut:
-    desc: Verify actual installed Mobile source and loaded systemd unit without depending on DNS, VPN, or iOS readiness
+  consumer:mobile-tailnet-exit:classify:
+    desc: Classify exact Mobile source/install/systemd state as MATCH, DRIFT, or UNKNOWN before any physical effect
     cmds:
-      - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
-      - cmp -s consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
-      - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
-      - test "$(systemctl show network-v2-mobile-tailnet-exit.service --property=NeedDaemonReload --value)" = no
+      - |
+        set -u
+        drift=0
+        unknown() {
+          echo UNKNOWN >&2
+          exit 2
+        }
+        compare() {
+          source="$1"
+          installed="$2"
+          test -f "$source" && test -r "$source" || unknown
+          # Existing symlinks or inaccessible/non-regular targets are not
+          # proof of safe source drift; do not replace them opportunistically.
+          if test -L "$installed"; then unknown; fi
+          if ! test -e "$installed"; then
+            # A missing target in an accessible parent is a known install gap.
+            # Inaccessible parents are UNKNOWN, never implicit replacement.
+            parent="$(dirname "$installed")"
+            test -d "$parent" && test -x "$parent" || unknown
+            drift=1
+            return 0
+          fi
+          test -f "$installed" && test -r "$installed" || unknown
+          if cmp -s "$source" "$installed"; then
+            return 0
+          else
+            comparison_rc="$?"
+            case "$comparison_rc" in
+              1) drift=1 ;;
+              *) unknown ;;
+            esac
+          fi
+        }
+        compare consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
+        compare consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
+        compare consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
+        # A failed systemd query cannot be interpreted as an outdated unit.
+        unit_reload="$(systemctl show network-v2-mobile-tailnet-exit.service --property=NeedDaemonReload --value)" || unknown
+        case "$unit_reload" in
+          no) ;;
+          yes) drift=1 ;;
+          *) unknown ;;
+        esac
+        if test "$drift" -eq 0; then
+          echo MATCH
+        else
+          echo DRIFT
+        fi
+
+  consumer:mobile-tailnet-exit:sourcecut:
+    desc: Verify installed Mobile source and loaded systemd unit; UNKNOWN and DRIFT both reject verification
+    cmds:
+      - |
+        verdict="$(task --silent consumer:mobile-tailnet-exit:classify)" || exit 2
+        test "$verdict" = MATCH
 
   consumer:mobile-tailnet-exit:materialize:
-    desc: Atomically install Mobile source only on SourceCut drift; no physical provider or consumer restart
+    desc: Atomically install Mobile source on proved DRIFT only; UNKNOWN must not write or restart
     deps: [consumer:mobile-tailnet-exit:validate]
     status:
       - task consumer:mobile-tailnet-exit:sourcecut
     cmds:
       - |
         set -eu
+        verdict="$(task --silent consumer:mobile-tailnet-exit:classify)" || {
+          echo 'mobile SourceCut UNKNOWN: refusing materialization' >&2
+          exit 2
+        }
+        case "$verdict" in
+          MATCH) exit 0 ;;
+          DRIFT) ;;
+          *) echo 'mobile SourceCut invalid: refusing materialization' >&2; exit 2 ;;
+        esac
         install -d -m 0755 /usr/local/libexec/network-v2
         atomic_install() {
           source="$1"
@@ -40,25 +100,35 @@ tasks:
         atomic_install consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run 0755
         atomic_install consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready 0755
         atomic_install consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service 0644
-      - systemctl daemon-reload
-      - task: consumer:mobile-tailnet-exit:sourcecut
+        systemctl daemon-reload
+        task --silent consumer:mobile-tailnet-exit:sourcecut
 
   consumer:mobile-tailnet-exit:converge:
-    desc: Reconcile Mobile source before bounded real readiness; opt-in restart only on true SourceCut drift, never provider restart
+    desc: Reconcile only provable Mobile SourceCut drift; UNKNOWN is never permission to install or restart
     cmds:
       - task: consumer:mobile-tailnet-exit:validate
       - |
         set -eu
-        if task --silent consumer:mobile-tailnet-exit:sourcecut; then
-          # An already active service is not restarted for transient VPN/DNS loss.
-          systemctl start network-v2-mobile-tailnet-exit.service
-        else
-          # Explicit opt-in consumer-only activation; source mismatch is not
-          # inferred from temporary external unavailability.
-          task --silent consumer:mobile-tailnet-exit:materialize
-          task --silent consumer:mobile-tailnet-exit:sourcecut
-          systemctl restart network-v2-mobile-tailnet-exit.service
-        fi
+        verdict="$(task --silent consumer:mobile-tailnet-exit:classify)" || {
+          echo 'mobile SourceCut UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        case "$verdict" in
+          MATCH)
+            # A running service is untouched by transient VPN/DNS errors.
+            systemctl start network-v2-mobile-tailnet-exit.service
+            ;;
+          DRIFT)
+            # The only restart admission is a witnessed source/install delta.
+            task --silent consumer:mobile-tailnet-exit:materialize
+            task --silent consumer:mobile-tailnet-exit:sourcecut
+            systemctl restart network-v2-mobile-tailnet-exit.service
+            ;;
+          *)
+            echo 'mobile SourceCut invalid: refusing converge effects' >&2
+            exit 2
+            ;;
+        esac
       - task: consumer:mobile-tailnet-exit:verify
 
   consumer:mobile-tailnet-exit:ready:

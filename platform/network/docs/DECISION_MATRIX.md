@@ -138,6 +138,76 @@ Mature native mechanisms: Podman Pod shared netns/infra
 systemd NetworkNamespacePath/JoinsNamespaceOf
 (https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html).
 
+## SourceCut is three-valued, not a Boolean permission to mutate (R10)
+
+Native Go Task status is a Boolean skip optimization. Its failure can mean
+installed bytes differ **or** a local observation could not be completed.
+Therefore a nonzero status alone is not permission to install, reload systemd,
+or restart any unit.
+
+The natural Network owners (core, shared-egress, mobile-tailnet-exit) now
+expose a **read-only** classify task with three semantic outcomes:
+
+| Outcome | Minimum evidence | Allowed effect |
+| --- | --- | --- |
+| MATCH | Source and installed bytes agree; owner-specific systemd state agrees | Skip installation; idempotent start only if explicitly requested |
+| DRIFT | Observed byte mismatch, missing installed file in accessible parent, or known systemd difference | Admit only natural-owner materialization/reconciliation |
+| UNKNOWN | cmp I/O error, source unreadable, failed/unexpected systemd query, or ambiguous symlink | No installation, reload, restart; report failure |
+
+The classifier is executed **again as the first materialization command**
+whenever a Boolean status check fails. The caller cannot guess why status
+failed. It is a source admission safeguard, not a new transaction manager.
+Classifiers have no external DNS/VPN/HTTP health probes. Actual consumer
+Readiness is checked afterwards, independently and with a finite window.
+
+Per-file atomic rename does not make a multi-file release crash-atomic.
+A failed/uncertain release requires fresh source/install/loaded observation;
+durable rollback belongs to existing Runtime/Artifact release capabilities,
+not another Network daemon. No success is inferred solely from Task exit code
+without verifying actual consumer effects.
+
+## Consumer-owned SourceCut composition (R11)
+
+The same R10 trivalent admission logic extends to the existing Claude,
+Finance, Supply Chain, X Reality, Chat Ingress and Browserless owner tasks.
+Each retains its previous validate, start, ready, verify, stop and specialized
+consumer interfaces; the source/installed/loaded classifier adds a local
+admission check, **not** an extra network manager or deploy transaction.
+
+| Task state | Native Go Task action | Owner-side effect |
+| --- | --- | --- |
+| MATCH | status skips materialize; converge uses idempotent systemctl start | No configuration rewrite, daemon-reload or restart |
+| DRIFT | First materialization command reclassifies then proceeds | Only that owner's existing install/reload/restart sequence |
+| UNKNOWN | Even --force reaches the rejecting first-command guard | No installed configuration write, service reload or restart |
+
+The shared classifier is scripts/native-sourcecut.py: Python standard library,
+stat/SHA-256 and native systemctl, no daemon or network probe. It checks
+installed content and expected installed **mode** (0644 normally, 0755 for
+the executable ready helpers), rejects symlinks anywhere in the source or
+installed parent path, distinguishes missing first-install targets from an
+unreadable target, checks retired-file absence, and refuses ambiguous or failed
+systemd readbacks. Checkouts may carry different file modes; source executable
+permissions are **not** the installed-mode authority.
+
+The Supply Chain materializer cannot start its Browserless dependency before
+its own SourceCut has admitted DRIFT. The Browserless owned-mode classifier
+combines its own legacy-unit SourceCut with the natural Shared Egress owner's
+classifier: both must MATCH for a global MATCH; UNKNOWN on either side blocks
+writes, including when the other side has DRIFT. While Gluetun is selected,
+all retired legacy provider services must independently be inactive. An
+unreadable Gluetun systemd state never admits a second physical WireGuard.
+
+Source-bound Z3 checks nine owner entrypoints (R10's Core/Shared/Mobile plus
+these six owners) and proves the two-owner Boolean-OR UNKNOWN counterexample.
+Independent real Go Task isolated shadow fixtures cover MATCH/no effect,
+systemd observation failure/no effect even with --force, and known source
+DRIFT/admitted witness. These prove **selection**, not multi-file crash
+atomicity, TOCTOU-freedom between comparison and later install, correct
+runtime process configuration, or real iPad/iPhone Exit Node and DNS outcomes.
+Use the existing Runtime/Artifact natural owner for any future durable release
+bundle. A healthy external endpoint does not replace SourceCut, and a
+matching SourceCut does not replace a consumer's real ready/verify.
+
 ## Classification rules
 
 ```text

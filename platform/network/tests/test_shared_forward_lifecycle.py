@@ -201,7 +201,11 @@ def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
     assert text.count(helper) == 1
     assert text.index(helper) < text.index(unit)
     byte_check = "cmp -s substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"
-    assert text.count(byte_check) == 3
+    # The new trivalent classifier owns the third independent SourceCut
+    # comparison; raw cmp remains in live reload and verify consumers.
+    assert text.count(byte_check) == 2
+    classifier_check = "compare substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"
+    assert text.count(classifier_check) == 1
 
 def test_native_live_idempotence_acceptance_reuses_without_restart():
     tasks = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()

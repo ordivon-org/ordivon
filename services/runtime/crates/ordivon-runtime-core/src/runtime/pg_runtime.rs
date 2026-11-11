@@ -56,6 +56,7 @@ fn pg(e: PgAdmissionError) -> RuntimeError {
         PgAdmissionError::IdempotencyConflict => RuntimeErrorCode::IdempotencyConflict,
         PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
         PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
+        PgAdmissionError::WorkspaceStale => RuntimeErrorCode::WorkspaceStateMismatch,
         _ => RuntimeErrorCode::RegistryUnavailable,
     };
     RuntimeError::new(code, format!("PostgreSQL Runtime: {e:?}"), None, false)
