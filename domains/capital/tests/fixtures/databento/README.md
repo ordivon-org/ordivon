@@ -13,3 +13,10 @@ The original files are bound by SHA-256 in test_native_dbn.py; the DBN fixture's
 quotes refer to CME ESH21 futures rather than SPY, and the definition fixture
 contains MSFT, so the two sources must not be silently joined.
 Runtime code never automatically promotes these bytes to authorized data.
+
+Redistribution notices: the upstream publisher metadata derives from the
+NautilusTrader v2.0.0rc9 source release; its verbatim GNU LGPL version 3 text
+is included as `LICENSE-LGPL-3.0.txt` in this directory. The DBN fixture's
+Apache-2.0 source license is identified above; the repository root `LICENSE`
+contains the Apache-2.0 license text. These notices do not establish market
+data entitlement, vendor endorsement or use rights for financial execution.
