@@ -37,6 +37,8 @@ def episode():
         "order_events": [{
             "type": "OrderFilled", "event_id": "E-1",
             "client_order_id": "C-1", "trade_id": "T-1",
+            "last_qty": "2", "last_px": "500.01",
+            "commission": "0.10 USD", "ts_event": OPEN,
         }],
         "instrument_symbols": {"SPY.XNAS": "SPY"},
         "marks_minor": {"SPY": 50001},
@@ -69,6 +71,8 @@ class NautilusPaperBridgeTests(unittest.TestCase):
         e["order_events"].append({
             "type": "OrderFilled", "event_id": "E-2",
             "client_order_id": "C-1", "trade_id": "T-2",
+            "last_qty": "1", "last_px": "499.99",
+            "commission": "0.05 USD", "ts_event": OPEN,
         })
         day = next_open_paper_session(**e)
         self.assertEqual([fill.shares for fill in day.buys], [2, 1])
@@ -88,6 +92,27 @@ class NautilusPaperBridgeTests(unittest.TestCase):
                 e["fills"][0][field] = value
                 with self.assertRaises(NautilusPaperBridgeError):
                     next_open_paper_session(**e)
+
+    def test_native_event_and_report_economics_cannot_disagree(self):
+        for field, value in [
+            ("last_qty", "3"), ("last_px", "500.02"),
+            ("commission", "0.11 USD"),
+            ("ts_event", datetime(2026, 11, 10, 14, 31, tzinfo=UTC)),
+        ]:
+            with self.subTest(field=field):
+                e = episode()
+                e["order_events"][0][field] = value
+                with self.assertRaisesRegex(NautilusPaperBridgeError, "economics disagree"):
+                    next_open_paper_session(**e)
+
+    def test_unsupported_fill_correction_variant_fails_closed(self):
+        e = episode()
+        e["order_events"].append({
+            "type": "OrderFillCorrected", "event_id": "E-2",
+            "client_order_id": "C-1", "trade_id": "T-1",
+        })
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "unsupported native fill correction"):
+            next_open_paper_session(**e)
 
     def test_missing_event_history_is_not_a_proven_fill(self):
         e = episode()

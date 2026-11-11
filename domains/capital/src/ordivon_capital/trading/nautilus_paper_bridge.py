@@ -143,11 +143,14 @@ def next_open_paper_session(
 
     counts: Counter[tuple[str, str]] = Counter()
     seen_event_ids: set[str] = set()
+    fill_events: dict[tuple[str, str], Mapping[str, Any]] = {}
     for event in order_events:
         kind = _required(event, "type")
         if kind == "OrderFillVoided":
             raise NautilusPaperBridgeError("voided fill is not supported by immutable paper close")
         if kind != "OrderFilled":
+            if kind.startswith("OrderFill"):
+                raise NautilusPaperBridgeError("unsupported native fill correction event")
             continue
         identity = (_required(event, "client_order_id"), _required(event, "trade_id"))
         event_id = _required(event, "event_id")
@@ -155,6 +158,7 @@ def next_open_paper_session(
             raise NautilusPaperBridgeError("duplicate event identity")
         seen_event_ids.add(event_id)
         counts[identity] += 1
+        fill_events[identity] = event
         if counts[identity] > 1:
             raise NautilusPaperBridgeError("trade restatement or duplicated native fill event")
 
@@ -199,6 +203,14 @@ def next_open_paper_session(
         quantity = _positive_integer(row.get("last_qty"), "last_qty")
         price_minor = _cents(row.get("last_px"), "last_px")
         fee_minor = _fee_cents(row.get("commission"))
+        event = fill_events[identity]
+        if any(key not in event for key in ("last_qty", "last_px", "commission", "ts_event")):
+            raise NautilusPaperBridgeError("native event lacks economic fill witness")
+        if (_positive_integer(event["last_qty"], "event.last_qty") != quantity
+            or _cents(event["last_px"], "event.last_px") != price_minor
+            or _fee_cents(event["commission"]) != fee_minor
+            or _instant(event["ts_event"], "event.ts_event") != fill_time):
+            raise NautilusPaperBridgeError("native event and fills report economics disagree")
         if price_minor == 0:
             raise NautilusPaperBridgeError("zero execution price")
         fill_id = f"nautilus-paper:{account_id}:{trade_id}"
