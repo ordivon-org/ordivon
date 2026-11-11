@@ -3,6 +3,71 @@
 mod access_auth;
 #[cfg(target_os = "linux")]
 mod pg_auth;
+/// A running MCP listener without a running scheduler is not a healthy Runtime.
+/// Allow normal shutdown, but fail the process on an unexpected scheduler exit
+/// so the existing systemd Restart=always policy can restore the control plane.
+#[cfg(target_os = "linux")]
+fn scheduler_exit_result(
+    shutdown_requested: bool,
+    result: Result<(), tokio::task::JoinError>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match result {
+        Err(error) => Err(format!("PG scheduling controller crashed: {error}").into()),
+        Ok(()) if !shutdown_requested => {
+            Err("PG scheduling controller exited without shutdown".into())
+        }
+        Ok(()) => Ok(()),
+    }
+}
+
+/// Supervise the native scheduler and the MCP listener as one availability
+/// unit. Losing either side without an operator shutdown is a service failure.
+#[cfg(target_os = "linux")]
+async fn supervise_pg_service<F>(
+    shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    mut scheduler_task: tokio::task::JoinHandle<()>,
+    server: F,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    F: std::future::Future<Output = std::io::Result<()>>,
+{
+    use std::sync::atomic::Ordering;
+    tokio::pin!(server);
+    tokio::select! {
+        scheduler_result = &mut scheduler_task => {
+            scheduler_exit_result(shutdown.load(Ordering::Acquire), scheduler_result)?;
+            server.await?;
+        }
+        server_result = &mut server => {
+            let requested = shutdown.load(Ordering::Acquire);
+            shutdown.store(true, Ordering::Release);
+            server_result?;
+            if !requested {
+                return Err("PG MCP listener exited without shutdown".into());
+            }
+            scheduler_exit_result(true, scheduler_task.await)?;
+        }
+    }
+    Ok(())
+}
+
+/// An unexpected loss of the HTTP listener must fail the entire service even
+/// if a synchronous scheduler call never unblocks. Tokio waits indefinitely
+/// for started spawn_blocking tasks on Runtime drop, so simply propagating the
+/// error out of #[tokio::main] cannot guarantee systemd will see process exit.
+/// The existing PG Journal/Runner owns durable native effects; this controller
+/// must stop and let systemd restart rather than impersonate a live service.
+#[cfg(target_os = "linux")]
+fn finish_pg_control_plane(
+    result: Result<(), Box<dyn std::error::Error>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if let Err(error) = &result {
+        eprintln!("PG Runtime control plane failed; exiting for systemd restart: {error}");
+        std::process::exit(1);
+    }
+    result
+}
+
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -57,7 +122,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let shutdown = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let worker_shutdown = shutdown.clone();
     let scheduler = runtime.clone();
-    tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
+    let scheduler_task =
+        tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
     let server = PgRuntimeServer::new(
         runtime,
         ExecutionContext {
@@ -97,16 +163,165 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         listener.local_addr()?,
         PgRuntimeServer::catalog().len()
     );
-    axum::serve(listener, app)
+    // Do not detach the scheduler: a panic/early exit must terminate this
+    // apparently healthy MCP process, allowing systemd to restart it.
+    // SIGINT is used by the installed systemd unit; also handle SIGTERM.
+    use std::future::IntoFuture;
+    use std::sync::atomic::Ordering;
+    let signal_shutdown = shutdown.clone();
+    let server = axum::serve(listener, app)
         .with_graceful_shutdown(async move {
-            let _ = tokio::signal::ctrl_c().await;
-            shutdown.store(true, std::sync::atomic::Ordering::Release);
+            let mut term =
+                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                    .expect("failed to install SIGTERM handler");
+            tokio::select! {
+                signal = tokio::signal::ctrl_c() => {
+                    if let Err(error) = signal {
+                        eprintln!("PG Runtime SIGINT handler failed: {error}");
+                    }
+                }
+                _ = term.recv() => {}
+            }
+            signal_shutdown.store(true, Ordering::Release);
         })
-        .await?;
-    Ok(())
+        .into_future();
+    finish_pg_control_plane(supervise_pg_service(shutdown, scheduler_task, server).await)
 }
 #[cfg(not(target_os = "linux"))]
 fn main() {
     eprintln!("The scoped PG execution vertical currently requires Linux");
     std::process::exit(64);
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod scheduler_supervision_tests {
+    use super::{finish_pg_control_plane, scheduler_exit_result, supervise_pg_service};
+    use std::sync::{atomic::AtomicBool, Arc};
+
+    #[tokio::test]
+    async fn silent_scheduler_exit_is_a_process_failure() {
+        let result = tokio::task::spawn_blocking(|| ()).await;
+        assert!(scheduler_exit_result(false, result).is_err());
+    }
+
+    #[tokio::test]
+    async fn expected_scheduler_shutdown_is_not_an_error() {
+        let result = tokio::task::spawn_blocking(|| ()).await;
+        assert!(scheduler_exit_result(true, result).is_ok());
+    }
+
+    #[tokio::test]
+    async fn supervisor_fails_fast_even_if_the_listener_would_never_finish() {
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let scheduler = tokio::task::spawn_blocking(|| ());
+        let still_listening = std::future::pending::<std::io::Result<()>>();
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            supervise_pg_service(shutdown, scheduler, still_listening),
+        )
+        .await
+        .expect("scheduler death must not leave HTTP serving indefinitely");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn supervisor_allows_normal_listener_and_scheduler_shutdown() {
+        let shutdown = Arc::new(AtomicBool::new(true));
+        let scheduler = tokio::task::spawn_blocking(|| ());
+        let listener = std::future::ready(Ok(()));
+        assert!(supervise_pg_service(shutdown, scheduler, listener)
+            .await
+            .is_ok());
+    }
+
+    #[tokio::test]
+    async fn supervisor_rejects_listener_termination_without_shutdown() {
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let scheduler = tokio::task::spawn_blocking(|| ());
+        let listener = std::future::ready(Ok(()));
+        assert!(supervise_pg_service(shutdown, scheduler, listener)
+            .await
+            .is_err());
+    }
+
+    #[test]
+    fn fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler() {
+        use std::process::{Command, Stdio};
+        use std::time::{Duration, Instant};
+
+        const ENV: &str = "ORDIVON_TEST_FATAL_PG_CONTROL_EXIT";
+        if let Ok(mode) = std::env::var(ENV) {
+            let runtime = tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            let result = runtime.block_on(async {
+                let (started_tx, started_rx) = std::sync::mpsc::channel();
+                // The blocking task has actually started and intentionally does
+                // not finish. The child process is always reaped by its parent.
+                tokio::task::spawn_blocking(move || {
+                    let _ = started_tx.send(());
+                    loop {
+                        std::thread::park();
+                    }
+                });
+                started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+                let error: Box<dyn std::error::Error> = "synthetic listener failure".into();
+                if mode == "fatal" {
+                    finish_pg_control_plane(Err(error))
+                } else {
+                    Err(error)
+                }
+            });
+            let _ = result;
+            drop(runtime); // The uncorrected control path waits forever here.
+            return;
+        }
+        let run = |mode: &str| {
+            Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "scheduler_supervision_tests::fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler",
+                    "--nocapture",
+                ])
+                .env(ENV, mode)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap()
+        };
+        let mut uncorrected = run("return");
+        std::thread::sleep(Duration::from_millis(400));
+        assert!(
+            uncorrected.try_wait().unwrap().is_none(),
+            "returning Err from tokio::main alone is not an exit"
+        );
+        uncorrected.kill().unwrap();
+        uncorrected.wait().unwrap();
+
+        let mut corrected = run("fatal");
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if let Some(status) = corrected.try_wait().unwrap() {
+                assert_eq!(
+                    status.code(),
+                    Some(1),
+                    "fatal supervision must exit nonzero"
+                );
+                break;
+            }
+            if Instant::now() > deadline {
+                corrected.kill().unwrap();
+                corrected.wait().unwrap();
+                panic!("fatal supervisor did not exit while scheduler was blocked");
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+
+    #[tokio::test]
+    async fn scheduler_panic_is_not_hidden_by_shutdown() {
+        let result = tokio::task::spawn_blocking(|| panic!("synthetic scheduler panic")).await;
+        assert!(scheduler_exit_result(true, result).is_err());
+    }
 }

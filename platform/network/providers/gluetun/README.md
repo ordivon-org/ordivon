@@ -126,3 +126,30 @@ deployed Quadlet, loaded unit and service preimage before a controlled single-
 session restart, and verify the current Gluetun profile plus real consumers
 afterward. Upstream UPDATER_MIN_RATIO admission remains independent; persisting
 an outdated cache alone cannot make a rejected server update successful.
+
+
+## Upstream v3.41.3 Surfshark updater ratio (2026-11-11)
+
+The pinned Gluetun v3.41.3 native updater compares provider fetch results
+against the transport-expanded built-in server count. In the current selected
+Surfshark catalog there are 363 protocol records, corresponding to 185 unique
+physical hostnames (178 WireGuard records). With the upstream default
+UPDATER_MIN_RATIO=0.8, its admission gate requests 290 hostnames, while the
+real Surfshark fetch returns 185: it rejects an otherwise complete hostname
+set and enters 5-second retry cycles. These facts were independently checked
+against qdm12/gluetun tag v3.41.3 and the official gluetun-servers repository.
+
+The native UPDATER_MIN_RATIO=0.51 makes the pinned upstream integer admission
+threshold int(0.51*363) = 185. A fetch of 184 is still rejected; this is the
+strictest two-decimal setting compatible with the 185-hostname current census.
+A matching count does not prove matching server identities or working endpoints.
+Do not treat this as a general endorsement of fewer servers.
+The source/loaded fingerprint, country restriction, current server identities,
+DNS, and downstream consumer probes remain separately necessary.
+
+The current released binary does not yet implement the newer
+UPDATER_PREFER_DIRECT_DOWNLOAD option described in the upstream master docs;
+do not set unsupported flags or introduce a custom server updater. Revisit
+this explicit ratio when adopting a newer official release or if the provider
+hostname-to-record mapping changes. The live provider must not be restarted
+by a source-only PR.

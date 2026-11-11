@@ -80,6 +80,10 @@ def generate_env(inherited: dict[str, str], interface_address: str) -> str:
         'SERVER_REGIONS="Asia Pacific"',
         f"SERVER_COUNTRIES={COUNTRIES}",
         "UPDATER_PERIOD=480h",
+        # Pinned Gluetun 3.41.3 compares 185 unique Surfshark hostname fetches
+        # against 363 transport-expanded stored records. int(0.51*363)=185,
+        # rejecting any smaller result count against today's observed census.
+        "UPDATER_MIN_RATIO=0.51",
         # Local LAN underlay for the approved mobile Tailnet exit.
         # Gluetun-native CIDR-wide exception; NOT UDP-port-only.
         # Requalify public VPN egress and direct path if local LAN changes.
