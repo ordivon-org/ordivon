@@ -18,6 +18,9 @@ pub enum PgAdmissionError {
     Capacity,
     IdempotencyConflict,
     PendingEffect,
+    /// Workspace physical identity changed after a Job was planned, but before
+    /// its PG admission acquired the global effect/admission lock.
+    WorkspaceStale,
     Blocked,
     UnknownCommit,
     Database(postgres::Error),
@@ -453,25 +456,39 @@ impl PgAdmissionStore {
         {
             return Err(PgAdmissionError::InvalidInput);
         }
-        self.admit_inner(input, Some((&binding, &digest)))
+        self.admit_inner(input, Some((&binding, &digest)), None)
     }
 
     /// One atomic admission. No dispatch/terminal/repair effect is authorized.
     pub fn admit(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
-        self.admit_inner(i, None)
+        self.admit_inner(i, None, None)
+    }
+
+    /// Bind the physical Workspace identity at the actual durable Job
+    /// admission linearization point, not while computing the plan beforehand.
+    /// The callback is performed only for a NEW Job after exact replay is
+    /// resolved; it must be read-only and may not make external side effects.
+    /// It executes while the same global advisory lock guards close/mutate.
+    pub(crate) fn admit_with_workspace_guard(
+        &mut self,
+        i: &PgAdmissionInput,
+        guard: &dyn Fn() -> Result<(), PgAdmissionError>,
+    ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
+        self.admit_inner(i, None, Some(guard))
     }
 
     fn admit_inner(
         &mut self,
         i: &PgAdmissionInput,
         release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
+        guard: Option<&dyn Fn() -> Result<(), PgAdmissionError>>,
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         // PostgreSQL SERIALIZABLE can abort at a row lock while the scheduler
         // updates its qualified epoch or an adjacent state transition. Retry
         // only an explicitly failed, pre-COMMIT transaction: its effects
         // have rolled back. Never replay an UNKNOWN COMMIT acknowledgement.
         retry_aborted_transaction(
-            || self.admit_once(i, release),
+            || self.admit_once(i, release, guard),
             |e| {
                 matches!(
                     e,
@@ -488,6 +505,7 @@ impl PgAdmissionStore {
         &mut self,
         i: &PgAdmissionInput,
         release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
+        guard: Option<&dyn Fn() -> Result<(), PgAdmissionError>>,
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         i.validate()?;
         let mut tx = self
@@ -570,6 +588,14 @@ impl PgAdmissionStore {
             "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned')))",&[])?.get(0);
         if pending {
             return Err(PgAdmissionError::PendingEffect);
+        }
+        // All PG Workspace open/close/mutate operations hold advisory 79245017
+        // across physical Git/FS effects. This guard therefore observes the
+        // exact Workspace identity after any preceding close/reopen committed,
+        // and before this Job creates a durable Attempt and active reservation.
+        // Existing idempotent replay bypasses this mutable-state guard.
+        if let Some(guard) = guard {
+            guard()?;
         }
         // Admission is durable intent, never a physical execution slot.
         // Resource allocation and Workspace access leases are claimed at dispatch.
