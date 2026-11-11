@@ -151,13 +151,6 @@ fn is_digest(value: &str) -> bool {
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
-// CPython str.strip recognizes the four C0 separators 0x1c..0x1f in
-// addition to Unicode White_Space. Rust char::is_whitespace does not.
-// This guard is source-compatible with the existing Python record codec.
-fn python_strip_whitespace(ch: char) -> bool {
-    ch.is_whitespace() || ('\u{001c}'..='\u{001f}').contains(&ch)
-}
-
 fn text(
     document: &CanonicalDocument,
     key: &str,
@@ -165,9 +158,7 @@ fn text(
     max_bytes: usize,
 ) -> Result<String, ProviderRecordError> {
     let value = value_text(document, key)?;
-    if value.is_empty()
-        || value.trim_matches(python_strip_whitespace) != value
-        || value.len() > max_bytes
+    if !crate::python_text::valid_trimmed(&value, max_bytes)
         || prefix.is_some_and(|prefix| !value.starts_with(&format!("{prefix}:")))
     {
         return Err(ProviderRecordError::InvalidV4Record);

@@ -1,56 +1,83 @@
-# Harness Rust migration: B pure turn-decision / evidence probe
+# Harness Rust B: source-qualified Loop, Provider, and Tool Surface
 
-## Source and current scope
+## Exact source boundary
 
-This is an isolated, non-production Rust migration slice. It is NOT a
-Harness Run writer, Provider dispatcher, Runtime client, or second authority.
+This is a **non-production, read-only/pure Rust consumer candidate** on the
+single `services/harness/Cargo.toml` workspace. Its starting integration
+SourceCut is `6d97f2a08265152a2771addb87877f85e2338c40`, rebased on
+protected main `485fbcdc`. A retains the **single** sealed Canonical Core,
+PostgreSQL CAS/Journal Reader and eventual PG Writer/Lease/Dispatch Fence.
+This crate does not clone their parsers or own physical effects.
 
-Python source oracle: ordivon/turn_projection.py, run_contract.py,
-run_recovery.py. Base c7bbeed016be16f4860fec4ba069f3ee0cb11932;
-continuation from prior B commit 8d034f2d18c24e81c23a522af203849f739c69fe.
+Production Python sources used as oracles:
 
-Implemented in pure Rust:
-- Admitted Tool presentation subset and duplicate/outside selection rejection.
-- Observation signatures and Search result/outcome sets (validated input identity).
-- Python lexical path subsumption, not filesystem resolution.
-- UNKNOWN, rejected, cancelled and cancel-requested observations do not
-  manufacture new evidence or claimed action progress.
-- Continuous no-progress / observation-only counters and gate precedence.
-- Combined evaluate_turn transition from prior evidence and budget to next
-  state, without external physical effect.
+- `ordivon/turn_projection.py`, `ordivon/run_recovery.py`,
+  `ordivon/loop.py`: tool selection, evidence and budget-gate decisions
+- `ordivon/continuity_records.py`: exact Provider Call Record V4
+  validation; `protocol.py`: Provider statuses and failure semantics
+- `domain_tools.py`: `DomainToolCatalog.to_dict`, `_select`,
+  `_granted_digest`, plus `ordivon/model.py` `AgentToolDefinition`
 
-The native Python source-oracle tests invoke existing Python implementations,
-not independently transcribed formulas. Qualification includes 400 Tool
-selection / RunBudget Gate inputs and 640 stateful evidence/search-subsumption/
-progress/gate transitions through native AgentToolCall,
-HarnessToolObservation, _advance_turn_evidence, and
-RunBudget.observation_gate_reason. Rust unit tests cover boundary cases.
+## Implemented capabilities and verified bounds
 
-The earlier Rust u64 saturating_add behavior was removed. ProgressError now
-explicitly rejects integer overflow rather than silently changing the
-observable Python arithmetic semantics. Unrepresentable legacy Contract
-budget inputs must be rejected by a future typed adapter, not truncated.
+- B pure Tool Working Set selector, Evidence state transition, path
+  subsumption, progress counters and RunBudget gates. Python 400 selection/
+  gate cases + 640 stateful evidence transitions; UNKNOWN cannot create
+  observed progress or trigger blind effects.
+- `provider_head.rs`: **read-only** Provider v4 record validation and
+  recovery posture. Reuses A's borrowed `CanonicalRef`; checks exact 28
+  fields, identity/digest/status and result/failure reference constraints.
+  `claimed` is not a dispatch grant; `dispatching` and `unknown`
+  require authoritative reconciliation, never automatic resend. Result
+  digest remains even when result content is privacy-redacted.
+- Provider v4 numeric identities and timestamps retain Python-valid
+  arbitrary-precision canonical decimal text. Numeric comparison is exact,
+  not `u64`-bounded. `python_text.rs` captures Python `str.strip()`
+  including C0 0x1c–0x1f; this was a verified Rust/Python RED→GREEN case.
+  525 native Python v4 source examples (54 accepted, 471 rejected) pass.
+- `tool_surface.rs`: immutable Domain-owned Tool Catalog + Grant projection
+  into `catalog_digest`, `grant_digest`, **catalog-ordered** model-visible
+  definitions. Reuses B's original Tool selection and A's Canonical builder;
+  unknown/duplicate/empty grants, mutated catalog or Contract digest
+  mismatch fail closed. 224 native Python DomainToolCatalog/Grant source
+  examples (128 accepted, 96 rejected) pass. This does not create a global
+  Tool registry or authorize tool execution.
+- Whole-root Cargo fmt/test/clippy -D warnings pass. The A PG Reader's
+  separate disposable PostgreSQL 18.6 integration verifies Python-writer
+  → Rust SELECT-only readback and five real normal/corruption/legacy cases.
+  That **does not** mean this B crate has a PG writer.
 
 ## Commands
 
-  CARGO_TARGET_DIR=/tmp/ordivon-harness-b-evidence-test cargo test --offline --all-targets --manifest-path services/harness/rust-migration/b-loop-probe/Cargo.toml
-  cargo fmt --check --manifest-path services/harness/rust-migration/b-loop-probe/Cargo.toml
-  CARGO_TARGET_DIR=/tmp/ordivon-harness-b-evidence-test cargo clippy --offline --all-targets --manifest-path services/harness/rust-migration/b-loop-probe/Cargo.toml -- -D warnings
+Run from `services/harness`:
 
-## Explicit unproven claims
+```sh
+cargo fmt --all --check
+cargo test --offline --workspace --all-targets
+cargo clippy --offline --workspace --all-targets -- -D warnings
+bash crates/harness-pg/tests/run_isolated_pg18.sh
+```
 
-- Rust B does not independently parse/authenticate observation content or
-  compute Canonical digests: the source Oracle supplies presealed evidence
-  signatures and search units. A owns the proposed Canonical/PG library.
-  A caller must never treat unchecked digest strings as evidence.
-- No PG read/write/Lease, Provider dispatch/fence/receipt, Runtime Tool
-  effect, crash/recovery or deployed consumer verified in this slice.
-- Python permits integer values exceeding Rust u64; Rust must reject those
-  during Contract hydration. A bounded corpus is not full-domain equivalence.
-- No migration of model lifecycle, Tool Program, complete WorkingView or
-  Provider-native continuation; no second Scheduler/Registry.
+The Python source-oracle tests use `uv run --offline --locked python` from
+this Harness tree. Do not replace them with hand-copied expected behavior.
 
-Next: after A and C review, integrate existing A canonical and durable PG
-ports, then build a no-Tool Rust Provider Run with real receipt-loss and
-reconciliation negative cases. Historical H3/H4/H5 evidence does not prove
-current deployed consumer parity.
+## What remains unproven
+
+- This is **not** an installed Rust Agent Run, PG writer, Provider transport,
+  Runtime Tool executor, or independently accepted production cutover.
+- Actual Context→Model, Model→Tool Intent→Runtime and Receipt/UNKNOWN→
+  WorkingView consumers, cancellation, recovery of old Run v3, authorized
+  privacy handling and live Writer/Lease/Fence are separate gates.
+- The B pure progress-gate `u64` representation still rejects overflow
+  explicitly; its Contract budget range is not equivalent to arbitrary
+  Python integers. Provider-v4 large-int parity does not cure this separate
+  Contract boundary.
+- A's legacy PG Reader may classify hash-verified, Python-legal deep CAS as
+  UnsupportedLegacyRepresentation; this must never be treated as proven
+  corruption, false effect or a safe replay.
+- The Python DomainToolCatalog is for **custom domain bridges** only;
+  no-Tool and built-in Runtime-search surfaces retain their separate Python
+  Run Contract composition rules and are not implicitly granted here.
+
+Independent C consumer adversarial review is still required before PR/main
+promotion. Keep the one Host Space/Topic/Work and one A PG authority.
