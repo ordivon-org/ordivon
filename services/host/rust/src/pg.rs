@@ -1,7 +1,10 @@
 //! PostgreSQL schema gate and a read-only Host summary projection.
 //! Bounded pooled PostgreSQL connections are used for each transaction.
 use crate::attention::{self, TargetKind};
-use crate::social::{self, AddMessageRelation, PostMessage, TopicState};
+use crate::social::{
+    self, AddMessageRelation, CreateSpace, CreateTopic, ParticipationStanding, PostMessage,
+    TopicState,
+};
 use crate::work::{self, ActorDeclare, CommitSnapshot, CreateWork, ListWorks};
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use serde::Serialize;
@@ -153,6 +156,50 @@ impl HostPg {
     ) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(attention::ack(&mut client, actor, cursor, request_id).await?)
+    }
+
+    // Native Social lifetime is a B-owned Postgres domain. The MCP bridge only
+    // checks out one bounded connection; it never duplicates SQL/CAS/receipts.
+    pub async fn social_space_create(&self, command: &CreateSpace) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::create_space(&mut client, command).await?)
+    }
+
+    pub async fn social_space_get(
+        &self,
+        space_ref: &str,
+        participant_limit: i64,
+        topic_limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::get_space(
+            &mut client,
+            space_ref,
+            participant_limit,
+            topic_limit,
+            max_bytes,
+        )
+        .await?)
+    }
+
+    pub async fn social_topic_create(&self, command: &CreateTopic) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::create_topic(&mut client, command).await?)
+    }
+
+    pub async fn social_participation_set(
+        &self,
+        space_ref: &str,
+        actor_ref: &str,
+        standing: ParticipationStanding,
+        request_id: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(
+            social::set_participation(&mut client, space_ref, actor_ref, standing, request_id)
+                .await?,
+        )
     }
 
     // Social operations delegate to B's existing single-transaction domain

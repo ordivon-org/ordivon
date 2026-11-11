@@ -11,8 +11,78 @@ use serde_json::{json, Value};
 
 use crate::attention::{self, TargetKind};
 use crate::pg::{HostDbError, HostPg};
-use crate::social::{self, AddMessageRelation, PostMessage};
+use crate::social::{self, AddMessageRelation, CreateSpace, CreateTopic, PostMessage};
 use crate::work::{self, ActorDeclare, WorkSnapshot, WorkState};
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceCreateRequest {
+    pub space_ref: String,
+    pub purpose: String,
+    pub actor_ref: String,
+    // Python MCP's optional subjectRefs=None means [] at the Domain boundary.
+    #[serde(default)]
+    pub subject_refs: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceGetRequest {
+    pub space_ref: String,
+    #[serde(default = "embedded_collection_limit")]
+    pub participant_limit: i64,
+    #[serde(default = "embedded_collection_limit")]
+    pub topic_limit: i64,
+    #[serde(default = "space_get_max_bytes")]
+    pub max_bytes: usize,
+}
+const fn embedded_collection_limit() -> i64 {
+    200
+}
+const fn space_get_max_bytes() -> usize {
+    2_097_152
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicCreateRequest {
+    pub topic_ref: String,
+    pub space_ref: String,
+    pub title: String,
+    pub actor_ref: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ParticipationStandingWire {
+    Joined,
+    Left,
+    Observer,
+}
+impl ParticipationStandingWire {
+    fn domain(self) -> social::ParticipationStanding {
+        match self {
+            Self::Joined => social::ParticipationStanding::Joined,
+            Self::Left => social::ParticipationStanding::Left,
+            Self::Observer => social::ParticipationStanding::Observer,
+        }
+    }
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Joined => "joined",
+            Self::Left => "left",
+            Self::Observer => "observer",
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceParticipationSetRequest {
+    pub space_ref: String,
+    pub actor_ref: String,
+    pub standing: ParticipationStandingWire,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -615,6 +685,121 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "space.create",
+        description = "Create one Social Space with immutable subjects, first-writer identity, and exact PostgreSQL receipt replay."
+    )]
+    async fn space_create(
+        &self,
+        Parameters(request): Parameters<SpaceCreateRequest>,
+    ) -> CallToolResult {
+        let subject_refs = request.subject_refs.unwrap_or_default();
+        // Python SpaceInput.model_dump(mode="json") hashes snake_case Domain
+        // fields and the original ordered subject_refs list (not sorted).
+        let payload = json!({
+            "space_ref":request.space_ref, "purpose":request.purpose,
+            "actor_ref":request.actor_ref, "subject_refs":subject_refs
+        });
+        let id = match attention_request_id("space-create", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("space.create", e),
+        };
+        let cmd = CreateSpace {
+            space_ref: request.space_ref,
+            purpose: request.purpose,
+            actor_ref: request.actor_ref,
+            subject_refs,
+            client_request_id: id,
+        };
+        match self.pg.social_space_create(&cmd).await {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("space.create", e),
+        }
+    }
+
+    #[tool(
+        name = "space.get",
+        description = "Read a bounded Space and embedded Topics/participants in one repeatable-read PostgreSQL snapshot."
+    )]
+    async fn space_get(&self, Parameters(request): Parameters<SpaceGetRequest>) -> CallToolResult {
+        match self
+            .pg
+            .social_space_get(
+                &request.space_ref,
+                request.participant_limit,
+                request.topic_limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("space.get", e),
+        }
+    }
+
+    #[tool(
+        name = "topic.create",
+        description = "Create an asynchronous Topic under an existing Space with immutable first declaration and canonical command receipt."
+    )]
+    async fn topic_create(
+        &self,
+        Parameters(request): Parameters<TopicCreateRequest>,
+    ) -> CallToolResult {
+        let payload = json!({
+            "topic_ref":request.topic_ref, "space_ref":request.space_ref,
+            "title":request.title, "actor_ref":request.actor_ref,
+        });
+        let id = match attention_request_id("topic-create", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("topic.create", e),
+        };
+        let cmd = CreateTopic {
+            topic_ref: request.topic_ref,
+            space_ref: request.space_ref,
+            title: request.title,
+            actor_ref: request.actor_ref,
+            client_request_id: id,
+        };
+        match self.pg.social_topic_create(&cmd).await {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("topic.create", e),
+        }
+    }
+
+    #[tool(
+        name = "space.participation.set",
+        description = "Set desired-state Social membership for an existing Space/Actor; not authentication or work assignment."
+    )]
+    async fn space_participation_set(
+        &self,
+        Parameters(request): Parameters<SpaceParticipationSetRequest>,
+    ) -> CallToolResult {
+        // Original Python MCP wrapper computes this identity but B's
+        // desired-state native implementation intentionally ignores receipts.
+        // Replaying joined->left->joined must not be defeated by old ids.
+        let payload = json!({
+            "spaceRef":request.space_ref, "actorRef":request.actor_ref,
+            "standing":request.standing.as_str()
+        });
+        let id = match attention_request_id("space-participation-set", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("space.participation.set", e),
+        };
+        match self
+            .pg
+            .social_participation_set(
+                &request.space_ref,
+                &request.actor_ref,
+                request.standing.domain(),
+                &id,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("space.participation.set", e),
+        }
+    }
+
+    #[tool(
         name = "actor.declare",
         description = "Declare a stable Host ActorRef with immutable kind and an idempotent PG receipt; not authorization."
     )]
@@ -1195,9 +1380,13 @@ mod tests {
                 "host.status",
                 "message.post",
                 "message.relation.add",
+                "space.create",
+                "space.get",
+                "space.participation.set",
                 "subscription.follow",
                 "subscription.list",
                 "subscription.unfollow",
+                "topic.create",
                 "topic.cursor.ack",
                 "topic.cursor.get",
                 "topic.resume",

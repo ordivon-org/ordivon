@@ -131,9 +131,13 @@ try:
         "host.status",
         "message.post",
         "message.relation.add",
+        "space.create",
+        "space.get",
+        "space.participation.set",
         "subscription.follow",
         "subscription.list",
         "subscription.unfollow",
+        "topic.create",
         "topic.cursor.ack",
         "topic.cursor.get",
         "topic.resume",
@@ -174,6 +178,14 @@ try:
     assert [m["messageRef"] for m in resumed["result"]["structuredContent"]["messages"]]==[
         "message:test:rust-mcp-python-seed","message:test:rust-mcp-social-rust"
     ],resumed
+    _, r5_space_http, _ = post(
+        "tools/call",
+        {"name":"space.get","arguments":{"spaceRef":"space:test:rust-mcp-r5-first"}},
+        7, session,
+    )
+    restored=r5_space_http["result"]["structuredContent"]
+    assert restored["subjectRefs"]==["subject:alpha","subject:zeta"],restored
+    assert restored["participantCount"]==1 and restored["topicCount"]==1,restored
     print(f"MCP_STREAMABLE_HTTP_PASS loopback=127.0.0.1 tools={len(names)} work_revision=2")
 finally:
     server.terminate()
