@@ -12,12 +12,20 @@ enum PgJobSchedulingState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+enum PgSchedulingPendingReason {
+    /// No durable placement-failure cause is recorded. Do not turn unknown
+    /// capacity, cgroup observation, or Workspace contention into a claim.
+    CauseUnobserved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct PgJobSchedulingReadback {
     state: PgJobSchedulingState,
     request: ResourceScheduling,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pending_reason: Option<String>,
+    pending_reason: Option<PgSchedulingPendingReason>,
 }
 
 /// Extend only the exact PG success projections that contain the scheduler's
@@ -163,7 +171,7 @@ mod pg_scheduling_output_contract_tests {
     fn typed_pg_scheduling_readback_rejects_malformed_provider_data() {
         let request = serde_json::to_value(ResourceScheduling::default()).unwrap();
         for (state, reason) in [
-            ("pending", Some("waiting_for_resources_pressure_or_workspace_lease")),
+            ("pending", Some("cause_unobserved")),
             ("allocated", None),
             ("released", None),
         ] {
@@ -175,6 +183,11 @@ mod pg_scheduling_output_contract_tests {
             let typed: PgJobSchedulingReadback = serde_json::from_value(valid).unwrap();
             assert_eq!(serde_json::to_value(typed).unwrap()["state"], state);
         }
+        let stale_invented_reason = json!({
+            "state": "pending", "request": request,
+            "pendingReason": "waiting_for_resources_pressure_or_workspace_lease"
+        });
+        assert!(serde_json::from_value::<PgJobSchedulingReadback>(stale_invented_reason).is_err());
         let bad_state = json!({"state":"SUCCESS","request":request});
         assert!(serde_json::from_value::<PgJobSchedulingReadback>(bad_state).is_err());
         let unknown_field = json!({"state":"released","request":request,"proof":true});
