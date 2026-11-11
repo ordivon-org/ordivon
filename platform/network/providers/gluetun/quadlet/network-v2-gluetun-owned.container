@@ -16,11 +16,16 @@ PublishPort=10.252.246.1:19682:8888/tcp
 AddCapability=NET_ADMIN
 AddCapability=NET_RAW
 AddDevice=/dev/net/tun
+# Persist Gluetun's upstream server cache across Podman container replacements.
+# No WireGuard keys are stored here; credentials remain in Podman Secret.
+Volume=/var/lib/network-v2/gluetun:/gluetun
 EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env
 Secret=network-v2-gluetun-surfshark-wgkey,type=mount,target=surfshark-wgkey
 Environment=WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey
 
 [Service]
+# Native systemd owns boot-time cache-directory creation, not an updater daemon.
+ExecStartPre=/usr/bin/install -d -m 0700 /var/lib/network-v2/gluetun
 ExecStartPre=/usr/local/libexec/network-v2/provider-identity-exclusive gluetun
 ExecStartPre=/usr/bin/bash -c '! systemctl is-active --quiet network-v2-browserless-wireguard.service'
 ExecStartPre=/usr/bin/bash -c '! ip netns exec nv2-browserless-prod ip link show nv2blwg >/dev/null 2>&1'

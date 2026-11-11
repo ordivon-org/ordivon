@@ -74,6 +74,8 @@ def test_quadlet_uses_podman_secret_and_no_pinned_endpoint():
     assert "WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey" in source
     assert "EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env" in source
     assert "/gluetun/wireguard/wg0.conf" not in source
+    assert "Volume=/var/lib/network-v2/gluetun:/gluetun" in source
+    assert "ExecStartPre=/usr/bin/install -d -m 0700 /var/lib/network-v2/gluetun" in source
 
 
 def test_running_gluetun_loaded_settings_match_selected_native_sourcecut():
