@@ -31,7 +31,13 @@ Use task provider:gluetun:verify to inspect installed source and consumer result
 The same verification now checks the running Podman container's selected loaded
 non-secret environment against the source-generated profile; an edited env file
 without a provider restart is **not** a successful deployment. Unexpected
-hostname/city/category filters also fail closed, without printing credentials.
+hostname/city/category filters **and** loaded WireGuard endpoint/key overrides
+fail closed, without printing credentials. The loaded container must use the
+Quadlet-owned `WIREGUARD_PRIVATE_KEY_SECRETFILE`; a matching
+`SERVER_COUNTRIES` value alone cannot prove the selected WireGuard identity
+and server pool are unmodified. The JSON selector rejects duplicate keys
+instead of silently accepting the last occurrence. These are source-to-loaded
+admission witnesses, not proof that an external endpoint is reachable.
 
 
 ## Optional IPinfo witness

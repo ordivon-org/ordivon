@@ -72,7 +72,7 @@ def test_quadlet_uses_podman_secret_and_no_pinned_endpoint():
         / "providers/gluetun/quadlet/network-v2-gluetun-owned.container"
     ).read_text()
     assert "Secret=network-v2-gluetun-surfshark-wgkey,type=mount,target=surfshark-wgkey" in source
-    assert "WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey" in source
+    assert f"WIREGUARD_PRIVATE_KEY_SECRETFILE={native.LOADED_WG_SECRETFILE}" in source
     assert "EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env" in source
     assert "/gluetun/wireguard/wg0.conf" not in source
     assert "Volume=/var/lib/network-v2/gluetun:/gluetun" in source
@@ -90,6 +90,7 @@ def test_running_gluetun_loaded_settings_match_selected_native_sourcecut():
     )
     # Gluetun includes empty default filters in the running OCI environment.
     loaded = expected.splitlines() + [
+        f"WIREGUARD_PRIVATE_KEY_SECRETFILE={native.LOADED_WG_SECRETFILE}",
         "SERVER_CITIES=", "SERVER_HOSTNAMES=", "SERVER_NAMES=",
         "SERVER_CATEGORIES=",
     ]
@@ -114,6 +115,32 @@ def test_running_gluetun_loaded_settings_match_selected_native_sourcecut():
         native.verify_loaded_env(expected, [line for line in loaded if not line.startswith("VPN_SERVICE_PROVIDER=")])
 
 
+    # Loaded OCI env must not override the native candidate selector, pin a
+    # different WireGuard endpoint, or inline a private key outside the Secret.
+    for key in (
+        "WIREGUARD_ENDPOINT_IP", "WIREGUARD_ENDPOINT_PORT",
+        "WIREGUARD_PUBLIC_KEY", "WIREGUARD_PRIVATE_KEY",
+        "WIREGUARD_PRESHARED_KEY",
+    ):
+        with pytest.raises(ValueError, match=key):
+            native.verify_loaded_env(expected, loaded + [f"{key}=synthetic-canary"])
+    with pytest.raises(ValueError, match="WIREGUARD_PRIVATE_KEY_SECRETFILE"):
+        native.verify_loaded_env(expected, [
+            item for item in loaded
+            if not item.startswith("WIREGUARD_PRIVATE_KEY_SECRETFILE=")
+        ])
+    with pytest.raises(ValueError, match="WIREGUARD_PRIVATE_KEY_SECRETFILE"):
+        native.verify_loaded_env(expected, [
+            item.replace(native.LOADED_WG_SECRETFILE, "/tmp/not-the-podman-secret")
+            for item in loaded
+        ])
+    with pytest.raises(ValueError, match="WIREGUARD_PRIVATE_KEY_SECRETFILE"):
+        native.verify_loaded_env(
+            expected,
+            loaded + [f"WIREGUARD_PRIVATE_KEY_SECRETFILE={native.LOADED_WG_SECRETFILE}"],
+        )
+
+
 
 def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
     policy = native.read_selector_policy()
@@ -131,6 +158,21 @@ def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
     assert 'SERVER_REGIONS="Asia Pacific"' in rendered
     assert "SERVER_COUNTRIES=Singapore,Hong Kong,Malaysia" in rendered
     assert "WIREGUARD_ENDPOINT_IP" not in rendered
+
+    # JSON duplicate keys must never silently replace approved country or
+    # excluded-country policy fields (json.loads would otherwise keep last).
+    with pytest.raises(ValueError, match="Duplicate Gluetun selector key"):
+        native.parse_selector_policy(
+            '{"regions":["Asia Pacific"],'
+            '"selectedCountries":["Singapore"],'
+            '"selectedCountries":["Japan"],'
+            '"excludedCountries":["South Korea"]}'
+        )
+    with pytest.raises(ValueError, match="Duplicate Gluetun selector key"):
+        native.parse_selector_policy(
+            '{"regions":["Asia Pacific"],"selectedCountries":["Singapore"],'
+            '"excludedCountries":["Japan"],"excludedCountries":[]}'
+        )
 
     for invalid in [
         {**expanded, "selectedCountries": []},
