@@ -12,6 +12,8 @@ dependencies = [
 nonlive = [
     # Pinned upstream 2.x event-driven engine; never a broker or live-capital binding.
     "nautilus-trader==2.0.0rc9",
+    # Upstream Rust DBN stream validator: detect partial records and preserve raw timestamps.
+    "databento-dbn==0.73.0",
     "pandas==3.1.1",
 ]
 research = [
