@@ -35,6 +35,7 @@ pythonpath = ["src"]
 addopts = "-q"
 markers = [
     "provider_qualification: requires node-local provider runtimes, external owner binaries, or credential bindings; excluded from hermetic required CI",
+    "native_nonlive: upstream Nautilus/Databento decoder conformance; requires the pinned nonlive dependency group",
 ]
 
 [tool.ruff]

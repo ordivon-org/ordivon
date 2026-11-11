@@ -30,6 +30,7 @@ class NautilusCandidateBoundaryTests(unittest.TestCase):
 
 
 @pytest.mark.provider_qualification
+@pytest.mark.native_nonlive
 def test_python315_rc9_native_nonlive_reconciliation() -> None:
     # This is a real upstream BacktestEngine-to-Capital consumer, not a mock or
     # proof of external venue execution. The optional nonlive group is required.
@@ -63,6 +64,7 @@ if __name__ == "__main__":
 
 
 @pytest.mark.provider_qualification
+@pytest.mark.native_nonlive
 def test_rc9_synthetic_equity_paper_consumer(monkeypatch):
     monkeypatch.syspath_prepend(str(ROOT / "tools/nautilus_rc4"))
     import equity_paper_qualification as eq
@@ -111,11 +113,14 @@ def test_rc9_synthetic_equity_paper_consumer(monkeypatch):
 
 
 @pytest.mark.provider_qualification
+@pytest.mark.native_nonlive
 def test_rc9_equity_orderfilled_persists_in_real_postgres_paper_close(monkeypatch):
     # Physical integration only: no DSN means no persistence proof.
     # The test DSN MUST reference a disposable, dedicated ordivon_paper DB.
     dsn = os.environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
     if not dsn:
+        if os.environ.get("ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG") == "1":
+            pytest.fail("native CI requires a disposable PostgreSQL database, not SKIP")
         pytest.skip("independent disposable ordivon_paper PostgreSQL is required")
 
     from dataclasses import replace
