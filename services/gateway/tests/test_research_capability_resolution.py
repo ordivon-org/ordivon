@@ -178,9 +178,17 @@ def test_recipe_only_resolution_exposes_canonical_invocation_without_running_it(
     assert resolved.execution_capability == "execution.linux"
     assert len(resolved.invocation_recipes) == 1
     recipe = resolved.invocation_recipes[0]
-    assert recipe.kind == "mise-task"
-    assert recipe.command == ["mise", "run", "research-study:verify"]
-    assert "ad-hoc system Python" in recipe.note
+    assert recipe.kind == "owner-cli"
+    assert recipe.command == [
+        "uv",
+        "--directory",
+        "/root/projects/ordivon-research-v2",
+        "run",
+        "--locked",
+        "ordivon-research-study",
+        "check-all",
+    ]
+    assert "does not verify scientific" in recipe.note
     assert caller.calls == []
 
 
@@ -250,3 +258,140 @@ def test_three_study_route_dogfood_preserves_axis_and_authority_separation() -> 
         assert resolved.observation_errors == ["skills: owner endpoint is not configured"]
         assert any("not authorization" in item for item in resolved.non_claims)
         assert any("Runtime execution success" in item for item in resolved.non_claims)
+
+
+def test_research_birth_route_calls_existing_locked_owner_not_uninstalled_shell_binary() -> None:
+    from ordivon_gateway.research_routes import research_capabilities
+
+    route = research_capabilities()["research.study.birth"]
+    assert len(route.invocation_recipes) == 1
+    recipe = route.invocation_recipes[0]
+    assert recipe.owner_id == "research-v2"
+    assert recipe.kind == "owner-cli"
+    assert list(recipe.command) == [
+        "uv",
+        "--directory",
+        "/root/projects/ordivon-research-v2",
+        "run",
+        "--locked",
+        "ordivon-research-study",
+    ]
+    assert "research-v2:crates/research-birth/src/spec.rs" in route.source_refs
+    assert route.execution_capability == "execution.linux"
+
+
+def test_research_verify_route_is_an_invokable_mechanical_birth_check_not_missing_mise_task() -> (
+    None
+):
+    from ordivon_gateway.research_routes import research_capabilities
+
+    route = research_capabilities()["research.study.verify"]
+    assert len(route.invocation_recipes) == 1
+    recipe = route.invocation_recipes[0]
+    assert recipe.owner_id == "research-v2"
+    assert list(recipe.command) == [
+        "uv",
+        "--directory",
+        "/root/projects/ordivon-research-v2",
+        "run",
+        "--locked",
+        "ordivon-research-study",
+        "check-all",
+    ]
+    assert route.semantic_owner == "research-v2.study-birth-contract"
+    assert "mechanical" in route.description.lower()
+    assert "scientific" in recipe.note.lower()
+
+
+def test_scholarly_intelligence_does_not_pretend_unimplemented_execution_recipe_exists() -> None:
+    from ordivon_gateway.research_routes import research_capabilities
+
+    route = research_capabilities()["research.scholarly.intelligence"]
+    assert route.invocation_recipes == ()
+    assert route.execution_capability is None
+    assert route.completion_owner == "study"
+    assert "no generic" in route.description.lower()
+
+
+def test_real_birth_recipe_reroutes_to_installed_research_owner_when_available() -> None:
+    """Cross-repo native consumer, without granting Study/science/Host authority."""
+    import json
+    import shutil
+    import subprocess
+
+    owner = Path("/root/projects/ordivon-research-v2")
+    if not owner.is_dir() or shutil.which("uv") is None:
+        pytest.skip("external Research-v2 owner or mature uv runner not installed here")
+    route = research_capabilities()["research.study.birth"]
+    recipe = route.invocation_recipes[0]
+    result = subprocess.run(
+        [*recipe.command, "--repo-root", str(owner), "defaults"],
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    projected = json.loads(result.stdout)
+    assert projected["birthPolicy"]["policyId"].startswith("research-study-birth-")
+    assert projected["birthPolicy"]["digest"].startswith("sha256:")
+    assert projected["dataPlane"]["digest"].startswith("sha256:")
+
+
+def test_actual_gateway_research_check_all_and_r2_no_host_fence(
+    tmp_path: Path,
+) -> None:
+    """One real Gateway resolution -> uv owner invocation -> bounded outcome."""
+    import shutil
+    import subprocess
+
+    owner = Path("/root/projects/ordivon-research-v2")
+    if not owner.is_dir() or shutil.which("uv") is None:
+        pytest.skip("external Research-v2 owner or mature uv runner not installed here")
+
+    caller = ResolverCaller()
+    resolved = asyncio.run(
+        GatewayService(caller).capability_resolve(capability="research.study.verify")
+    )
+    assert caller.calls == []
+    assert resolved.selected_skill is None
+    assert resolved.execution_capability == "execution.linux"
+    recipe = resolved.invocation_recipes[0]
+    checked = subprocess.run(
+        [*recipe.command],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert checked.returncode == 0, checked.stderr
+    assert checked.stdout.strip() == "PASS research-study-birth-policy"
+
+    # Running a real routed CLI is physical execution only. The current r2
+    # policy must not authorize a fresh Study without Host decision evidence.
+    root = tmp_path / "research-source-only"
+    (root / "profiles").mkdir(parents=True)
+    shutil.copytree(owner / "profiles/birth", root / "profiles/birth")
+    shutil.copytree(owner / "profiles/data_plane", root / "profiles/data_plane")
+    for name in ("method_authority_bindings.toml", "research_birth_policy.toml"):
+        shutil.copy2(owner / "profiles" / name, root / "profiles" / name)
+    birth = asyncio.run(
+        GatewayService(ResolverCaller()).capability_resolve(capability="research.study.birth")
+    ).invocation_recipes[0]
+    denied = subprocess.run(
+        [
+            *birth.command,
+            "--repo-root",
+            str(root),
+            "create",
+            "--study-id",
+            "no-gateway-approval",
+            "--study-type",
+            "empirical-software-engineering",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert denied.returncode != 0
+    assert "live Host admission" in denied.stderr
+    assert not (root / "studies/research/no-gateway-approval").exists()

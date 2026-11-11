@@ -254,13 +254,24 @@ _PROJECTED = [
         "completion_owner": "study",
         "description": "Create or validate a Research Study birth contract with exact method-authority "
         "and data-plane bindings.",
-        "execution_capability": None,
+        "execution_capability": "execution.linux",
         "invocation_recipes": [
             {
-                "command": ["ordivon-research-study"],
+                "command": [
+                    "uv",
+                    "--directory",
+                    "/root/projects/ordivon-research-v2",
+                    "run",
+                    "--locked",
+                    "ordivon-research-study",
+                ],
                 "kind": "owner-cli",
-                "note": "The CLI is owned by Research-v2. Its frozen birth-policy digest "
-                "and Study output, not Gateway, are the authority.",
+                "note": "Linux Research checkout and locked uv environment must be present; "
+                "uv --directory binds the owner's working directory. The Research-v2 "
+                "Python 3.14 + native Rust Birth CLI owns source/admission checks "
+                "and write effects; Gateway exposes only the invocation recipe, "
+                "not installation/readiness, scientific standing, Host authority "
+                "or permission to create a Study.",
                 "owner_id": "research-v2",
                 "recipe_id": "research-v2-cli",
             }
@@ -271,6 +282,7 @@ _PROJECTED = [
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
             "research-v2:profiles/research_birth_policy.toml",
             "research-v2:src/ordivon_research/study_birth.py",
+            "research-v2:crates/research-birth/src/spec.rs",
         ],
         "study_types": ["all"],
         "tags": ["research", "study", "birth", "authority", "profile", "admission"],
@@ -281,27 +293,38 @@ _PROJECTED = [
     {
         "capability": "research.study.verify",
         "completion_owner": "study",
-        "description": "Run the repository-owned portable Research profile/currentness verification "
-        "recipe.",
+        "description": "Run the Research-v2 mechanical Study Birth policy and managed-source "
+        "binding check; this is not scientific standing or external currentness.",
         "execution_capability": "execution.linux",
         "invocation_recipes": [
             {
-                "command": ["mise", "run", "research-study:verify"],
-                "kind": "mise-task",
-                "note": "Canonical recipe binds its own transient jsonschema dependency "
-                "through uv; do not replace it with ad-hoc system Python "
-                "invocation.",
-                "owner_id": "ordivon-monorepo",
-                "recipe_id": "monorepo-mise-research-study-verify",
+                "command": [
+                    "uv",
+                    "--directory",
+                    "/root/projects/ordivon-research-v2",
+                    "run",
+                    "--locked",
+                    "ordivon-research-study",
+                    "check-all",
+                ],
+                "kind": "owner-cli",
+                "note": "The locked Research checkout command checks mechanical Study Birth "
+                "and current local policy only. It does not verify scientific findings, provenance "
+                "outside its contract, provider currentness or downstream adoption; "
+                "Runtime must observe the actual execution separately.",
+                "owner_id": "research-v2",
+                "recipe_id": "research-v2-birth-check-all",
             }
         ],
         "preferred_skills": [],
-        "semantic_owner": "research-profile-verifiers",
+        "semantic_owner": "research-v2.study-birth-contract",
         "source_refs": [
-            "mise.toml",
+            "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+            "research-v2:profiles/research_birth_policy.toml",
+            "research-v2:src/ordivon_research/study_birth_cli.py",
         ],
         "study_types": ["all"],
-        "tags": ["research", "verify", "currentness", "profile", "mise", "uv"],
+        "tags": ["research", "verify", "birth", "mechanical", "policy", "uv"],
         "truth_boundary": "This Research route is non-authoritative composition metadata. Study/domain "
         "owners retain scientific truth and completion authority; Skills remain "
         "advisory; Runtime owns only physical execution evidence.",
@@ -365,18 +388,10 @@ _PROJECTED = [
     {
         "capability": "research.scholarly.intelligence",
         "completion_owner": "study",
-        "description": "Project Study-owned scholarly state across independent axes without creating a "
-        "universal scientific ontology.",
-        "execution_capability": "execution.linux",
-        "invocation_recipes": [
-            {
-                "command": ["mise", "run", "research-study:verify"],
-                "kind": "mise-task",
-                "note": "Axis-local closure never transfers authority to another scholarly axis.",
-                "owner_id": "ordivon-monorepo",
-                "recipe_id": "monorepo-mise-research-study-verify",
-            }
-        ],
+        "description": "Project Study-owned scholarly state across independent axes; "
+        "no generic executable exists, and the Study must select method-native consumers.",
+        "execution_capability": None,
+        "invocation_recipes": [],
         "preferred_skills": [],
         "semantic_owner": "study",
         "source_refs": [
