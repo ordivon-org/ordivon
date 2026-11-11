@@ -700,6 +700,38 @@ class HarnessToolStepReceipt:
         )
 
 
+def tool_receipt_successor_allowed(
+    previous: HarnessToolStepReceipt,
+    successor: HarnessToolStepReceipt,
+) -> bool:
+    """Source Rule: UNKNOWN remains non-dispatchable, but may be reconciled.
+
+    A terminal status forbids *new physical execution*. An UNKNOWN receipt
+    preserves an epistemically unresolved owner outcome, not an immutable
+    assertion that a future genuine Owner observation is impossible.
+
+    Only an explicitly reconciled, determinate receipt for the SAME owner
+    Job may resolve UNKNOWN; repeated UNKNOWN, renewed dispatch or changing
+    Job identity never creates a second durable receipt.
+    """
+    if not previous.terminal:
+        return True
+    if previous.status is not HarnessToolStepStatus.UNKNOWN:
+        return False
+    if not successor.reconciled or successor.status not in {
+        HarnessToolStepStatus.OBSERVED,
+        HarnessToolStepStatus.REJECTED,
+        HarnessToolStepStatus.CANCELLED,
+    }:
+        return False
+    if (
+        previous.runtime_job_ref is not None
+        and successor.runtime_job_ref != previous.runtime_job_ref
+    ):
+        return False
+    return successor.created_at_ms >= previous.created_at_ms
+
+
 @dataclass(frozen=True, slots=True)
 class HarnessDispatchFence:
     fence_id: str

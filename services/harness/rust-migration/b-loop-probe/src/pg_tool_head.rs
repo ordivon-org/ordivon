@@ -623,14 +623,26 @@ fn qualify(read: &Readback, event: &RunEvent) -> Result<ObservedToolHead, ToolHe
             if let Some(ref prior_sha) = recorded.previous_receipt_object_digest {
                 let prior = related(read, event, "harness-tool-step-receipt", prior_sha)?;
                 let previous: Receipt = parsed(prior.value(), RECEIPT_KEYS)?;
+                let unknown_owner_reconciled = previous.status == "unknown"
+                    && receipt.reconciled
+                    && matches!(
+                        receipt.status.as_str(),
+                        "observed" | "rejected" | "cancelled"
+                    )
+                    && previous
+                        .runtime_job_ref
+                        .as_ref()
+                        .is_none_or(|id| receipt.runtime_job_ref.as_ref() == Some(id))
+                    && previous.created_at_ms <= receipt.created_at_ms;
                 if digest_bytes(&canonical_bytes(prior.value())) != *prior_sha
                     || previous.intent_digest != canonical_intent
                     || previous.harness_run_id != *run
                     || previous.tool_call_id != intent.tool_call_id
                     || matches!(
                         previous.status.as_str(),
-                        "observed" | "rejected" | "unknown" | "cancelled"
+                        "observed" | "rejected" | "cancelled"
                     )
+                    || (previous.status == "unknown" && !unknown_owner_reconciled)
                     || previous.created_at_ms > receipt.created_at_ms
                 {
                     return Err(ToolHeadError::Mismatch("previous Receipt binding/terminal"));

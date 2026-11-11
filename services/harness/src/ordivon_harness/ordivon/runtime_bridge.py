@@ -490,7 +490,11 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
         control: ExecutionControl,
     ) -> HarnessToolObservation:
         current = self.run_store.load_current_tool_step()
-        if current.receipt is not None and current.receipt.terminal:
+        if (
+            current.receipt is not None
+            and current.receipt.terminal
+            and current.receipt.status is not HarnessToolStepStatus.UNKNOWN
+        ):
             if current.observation is None:
                 raise ToolBridgeError(
                     "terminal Tool Observation content was not retained by the Privacy policy; "
@@ -532,11 +536,7 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                 relative_path=None,
                 reconciled=True,
             )
-        return self._record_observation(
-            current.intent,
-            observation,
-            previous_receipt=current.receipt,
-        )
+        return self._record_owner_reconciliation(current, observation)
 
     def reconcile_current_tool_step_with_call(
         self,
@@ -560,7 +560,11 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                 "recovered Tool Call differs from active durable Intent",
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
             )
-        if current.receipt is not None and current.receipt.terminal:
+        if (
+            current.receipt is not None
+            and current.receipt.terminal
+            and current.receipt.status is not HarnessToolStepStatus.UNKNOWN
+        ):
             if current.observation is None:
                 raise ToolBridgeError(
                     "terminal Tool Observation content was not retained by the Privacy policy; "
@@ -579,11 +583,7 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                 tool_name=current.intent.tool_name,
                 client_request_id=current.intent.client_request_id,
             )
-            return self._record_observation(
-                current.intent,
-                observation,
-                previous_receipt=current.receipt,
-            )
+            return self._record_owner_reconciliation(current, observation)
         if current.intent.runtime_operation != "workspace.exec":
             return self.reconcile_current_tool_step(control=control)
 
@@ -613,11 +613,7 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             relative_path=relative_path,
             control=control,
         )
-        return self._record_observation(
-            current.intent,
-            observation,
-            previous_receipt=current.receipt,
-        )
+        return self._record_owner_reconciliation(current, observation)
 
     def _lower_runtime_tool_call(
         self,
@@ -1251,6 +1247,30 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
         raise ToolBridgeError(
             "workspace.patch.get returned an unsupported state",
             kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+        )
+
+    def _record_owner_reconciliation(
+        self, current, observation: HarnessToolObservation
+    ) -> HarnessToolObservation:
+        """Use the existing Runtime Owner observation; never re-dispatch.
+
+        An unchanged UNKNOWN is not new evidence and must not generate an
+        infinite Receipt chain. Private observations are never invented from
+        their hashes. A determinate owner status can reconcile the exact
+        historical UNKNOWN without changing Runtime clientRequestId.
+        """
+        if (
+            current.receipt is not None
+            and current.receipt.status is HarnessToolStepStatus.UNKNOWN
+            and observation.status == "unknown"
+        ):
+            if current.observation is not None:
+                return HarnessToolObservation.from_dict(current.observation)
+            return observation
+        return self._record_observation(
+            current.intent,
+            observation,
+            previous_receipt=current.receipt,
         )
 
     def _record_observation(

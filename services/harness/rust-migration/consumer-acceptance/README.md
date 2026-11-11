@@ -44,3 +44,41 @@ explicit `HARNESS_CONSUMER_FALSIFY_CONTRACT=1` form above for this gate.
 ## Qualification limits
 
 The result is **source-only Rust readback qualification** for the tested Python Contract domain. A complete historical Run also requires accurate event payload semantics, Provider/Tool effect lifecycle, privacy exposure, independent consumer acceptance and actual Runtime/Host continuity. Independent agent C has not yet supplied acceptance. Native Rust PG Writer/lease/fence, Provider/Tool dispatch, genuine effect reconciliation and production cutover are **not** implemented or authorized here. Keep the one A-owned GitHub PR #2085 **Draft**, do not merge/deploy based on this test alone.
+
+## R20 — A durable UNKNOWN is not a permanently failed Tool
+
+The cross-owner A+B source-only candidate now distinguishes two independent
+properties: a Tool receipt with status UNKNOWN is **terminal for fresh
+physical dispatch**, yet its outcome remains epistemically unresolved. The
+original Runtime Owner may later identify the same Job by stable
+clientRequestId, workspaceId and jobId and supply a determinate
+observation through existing task.list/task.observe or workspace.patch.get.
+The historical UNKNOWN receipt remains immutable, and a reconciled=true
+OBSERVED/REJECTED/CANCELLED successor must bind its predecessor digest and
+preserve any known native Job reference. A still-UNKNOWN Owner observation
+adds no further receipt and never triggers another workspace.exec or
+workspace.patch.
+
+This is one source-level Tool Receipt transition shared by the existing
+Python Continuity writer/recovery reader and the Rust B PostgreSQL
+read-only consumer. protocol.tool_receipt_successor_allowed is the
+Python source predicate; Rust B checks the corresponding versioned
+typed Receipt references through A's unchanged single CAS Reader.
+No second PG Writer, Journal, Scheduler, Runtime client, Tool registry
+or external Effect authority is created.
+
+On private PostgreSQL 18, Python production EventSourcedRunContinuity
+builds actual UNKNOWN -> reconciled observed CAS and Journal records;
+Rust B accepts that same-source history but rejects CAS-consistent
+UNKNOWN -> observed without reconciliation and rejects a forged
+change of Runtime Job identity. SQLite tests additionally prove that
+a lost initial Runtime response can be reconciled to the original
+Job later, that repeated UNKNOWN does not grow the Journal, and that
+there is only one physical-call attempt to the fake Runtime interface.
+
+**Scope:** Runtime Owner responses in the bridge tests are controlled
+fixtures; the PostgreSQL tests do not send a real Runtime/Provider physical
+request. This proves neither exactly-once effects nor production
+authorization. A source-qualified prepared Tool Head is still not a
+live Dispatch Permit; the Runtime/Provider Owner must prove physical
+admission/receipt, and domain consumers must separately validate success.

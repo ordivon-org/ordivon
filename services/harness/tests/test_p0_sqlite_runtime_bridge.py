@@ -1013,6 +1013,81 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
                 self.assertTrue(retained.receipt.reconciled)
                 store.close()
 
+    def test_unknown_receipt_later_reconciles_authoritative_runtime_without_redelivery(self) -> None:
+        # Original Runtime dispatch committed but transport lost the response;
+        # the first owner lookup sees no job. Later the SAME owner Job appears.
+        # UNKNOWN must not be treated as a permanent FALSE or final success.
+        from ordivon_harness.ordivon.control import (
+            CancellationToken, ExecutionControl, RunDeadline,
+        )
+
+        class DelayedOwner(FakeRuntime):
+            visible = False
+
+            def call_tool(self, name, arguments):
+                if name == "task.list" and not self.visible:
+                    result = super().call_tool(name, arguments)
+                    return {**result, "jobs": []}
+                return super().call_tool(name, arguments)
+
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = DelayedOwner("loss")
+            store, clock, _, continuity, bridge = self.initialize(
+                Path(directory) / "state", "delayed-owner", runtime
+            )
+            state = bound_state()
+            bridge.bind_run_state(
+                messages=state.messages,
+                observations=(),
+                remaining_budget=state.remaining_budget,
+                requested_model_id=state.requested_model_id,
+                effective_model_id=None,
+                active_elapsed_ms=0,
+            )
+            call = tool_turn("delayed-owner").tool_calls[0]
+            first = bridge.execute(call, step_id="turn-1-tool-delayed-owner")
+            self.assertEqual(first.status, "unknown")
+            original = continuity.load_current_tool_step().receipt
+            assert original is not None
+            self.assertEqual(original.status, HarnessToolStepStatus.UNKNOWN)
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            clock.advance()
+            control = ExecutionControl(CancellationToken(), RunDeadline.after(30_000))
+            before = len(store.list_run_events(continuity.harness_run_id))
+            # Owner remains invisible: no new receipt, no duplicate physical call.
+            repeated = bridge.reconcile_current_tool_step_with_call(
+                call, control=control
+            )
+            self.assertEqual(repeated.status, "unknown")
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            self.assertEqual(len(store.list_run_events(continuity.harness_run_id)), before)
+            runtime.visible = True
+            recovered = bridge.reconcile_current_tool_step_with_call(
+                call, control=control
+            )
+            self.assertEqual(recovered.status, "observed")
+            self.assertTrue(recovered.reconciled)
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            self.assertGreater(
+                [name for name, _ in runtime.calls].count("task.list"), 1
+            )
+            now = continuity.load_current_tool_step()
+            self.assertEqual(now.previous_receipt, original)
+            assert now.receipt is not None
+            self.assertEqual(now.receipt.status, HarnessToolStepStatus.OBSERVED)
+            self.assertEqual(now.receipt.previous_receipt_digest, original.digest)
+            self.assertTrue(now.receipt.reconciled)
+            with SQLiteHarnessStore(Path(directory) / "state") as reopened_store:
+                reopened = EventSourcedRunContinuity.open(
+                    reopened_store, continuity.harness_run_id, clock_ms=clock
+                )
+                self.assertEqual(
+                    reopened.load_current_tool_step().receipt.digest,
+                    now.receipt.digest,
+                )
+                self.assertTrue(reopened.doctor()["healthy"])
+            store.close()
+
     def test_precommit_runtime_rejection_is_model_correctable_observation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             runtime = FakeRuntime("reject")

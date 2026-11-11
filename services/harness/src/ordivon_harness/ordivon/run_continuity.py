@@ -18,6 +18,7 @@ from ..protocol import (
     HarnessToolStepIntent,
     HarnessToolStepReceipt,
     HarnessToolStepStatus,
+    tool_receipt_successor_allowed,
 )
 from ..run_state import HarnessRunState, state_from_dict
 from ..working_view import (
@@ -2248,8 +2249,11 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             expected_previous = None if previous is None else previous.digest
             if receipt.previous_receipt_digest != expected_previous:
                 raise ValueError("Tool Step Receipt predecessor differs from current history")
-            if previous is not None and previous.terminal:
-                raise ValueError("terminal Tool Step Receipt cannot be superseded")
+            if previous is not None and not tool_receipt_successor_allowed(previous, receipt):
+                raise ValueError(
+                    "terminal Tool Step Receipt cannot be superseded without "
+                    "source-bound UNKNOWN Owner reconciliation"
+                )
             receipt_object = self.store.put_object(
                 receipt.to_dict(), kind="harness-tool-step-receipt"
             )
@@ -2426,7 +2430,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             if (
                 previous_receipt.digest != receipt.previous_receipt_digest
                 or previous_receipt.intent_digest != intent.digest
-                or previous_receipt.terminal
+                or not tool_receipt_successor_allowed(previous_receipt, receipt)
             ):
                 raise ValueError("Tool Step Receipt predecessor chain is invalid")
         return StoredHarnessToolStep(

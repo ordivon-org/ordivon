@@ -52,6 +52,9 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         "prepared",
         "owner_exec_prepared",
         "unknown_redacted",
+        "unknown_reconciled",
+        "unknown_bad_successor",
+        "unknown_job_switch",
         "stale_revision",
         "bad_fence_digest",
         "extra_reference",
@@ -149,6 +152,9 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             "prepared",
             "owner_exec_prepared",
             "unknown_redacted",
+            "unknown_reconciled",
+            "unknown_bad_successor",
+            "unknown_job_switch",
             "stale_revision",
             "bad_fence_digest",
             "extra_reference",
@@ -171,7 +177,13 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                         owner_request, current.fence
                     ),
                 }
-            if label in {"unknown_redacted", "receipt_event_mismatch"}:
+            if label in {
+                "unknown_redacted",
+                "unknown_reconciled",
+                "unknown_bad_successor",
+                "unknown_job_switch",
+                "receipt_event_mismatch",
+            }:
                 observation = {
                     "schemaVersion": 1,
                     "kind": "test-only-tool-observation",
@@ -184,7 +196,9 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                     harness_run_id=run_id,
                     tool_call_id=intent.tool_call_id,
                     status=HarnessToolStepStatus.UNKNOWN,
-                    runtime_job_ref=None,
+                    runtime_job_ref=(
+                        "runtime-job:source-original" if label == "unknown_job_switch" else None
+                    ),
                     observation_digest=canonical_digest(observation),
                     reconciled=False,
                     created_at_ms=clock(),
@@ -199,6 +213,133 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                     pass
                 else:
                     raise AssertionError("Receipt must invalidate the prepared Run revision fence")
+            if label == "unknown_reconciled":
+                # Actual source Continuity and privacy-preserving PG Journal:
+                # the same Tool/Run progresses from UNKNOWN to a confirmed
+                # Owner observation without a second physical Tool dispatch.
+                unknown = current.receipt
+                assert unknown is not None
+                clock.advance()
+                result = {
+                    "schemaVersion": 1,
+                    "kind": "test-only-tool-observation",
+                    "outcome": "owner-confirmed",
+                }
+                settled = HarnessToolStepReceipt(
+                    receipt_id=f"harness-tool-step-receipt:source-{label}-settled",
+                    intent_digest=intent.digest,
+                    harness_run_id=run_id,
+                    tool_call_id=intent.tool_call_id,
+                    status=HarnessToolStepStatus.OBSERVED,
+                    runtime_job_ref="runtime-job:owner-confirmed-original",
+                    observation_digest=canonical_digest(result),
+                    reconciled=True,
+                    created_at_ms=clock(),
+                    previous_receipt_digest=unknown.digest,
+                )
+                continuity.record_tool_step_receipt(settled, result)
+                final = continuity.load_current_tool_step()
+                assert final.previous_receipt == unknown
+                assert final.receipt == settled
+                assert final.observation is None  # Tool content remains private
+                current = final
+            if label in {"unknown_bad_successor", "unknown_job_switch"}:
+                # A generic PG Writer can commit a SHA/CAS-valid Event that
+                # wrongly presents an un-reconciled result after UNKNOWN.
+                # Neither Python Continuity nor Rust B may upgrade this to
+                # real owner success without the authenticated reconciliation.
+                from ordivon_harness.store import HarnessEventWrite
+
+                prior = store.list_run_events(run_id)[-1]
+                unknown = current.receipt
+                assert unknown is not None
+                clock.advance()
+                result = {
+                    "schemaVersion": 1,
+                    "kind": "test-only-tool-observation",
+                    "outcome": "asserted-without-owner-proof",
+                }
+                forged = HarnessToolStepReceipt(
+                    receipt_id=f"harness-tool-step-receipt:source-{label}-bad",
+                    intent_digest=intent.digest,
+                    harness_run_id=run_id,
+                    tool_call_id=intent.tool_call_id,
+                    status=HarnessToolStepStatus.OBSERVED,
+                    runtime_job_ref=(
+                        "runtime-job:source-FORGED-different"
+                        if label == "unknown_job_switch"
+                        else None
+                    ),
+                    observation_digest=canonical_digest(result),
+                    reconciled=label == "unknown_job_switch",
+                    created_at_ms=clock(),
+                    previous_receipt_digest=unknown.digest,
+                )
+                try:
+                    continuity.record_tool_step_receipt(forged, result)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError("Python falsely allows UNKNOWN with blind result")
+                bad_ref = store.put_object(forged.to_dict(), kind="harness-tool-step-receipt")
+                data = dict(prior.data)
+                data.update(
+                    {
+                        "receiptDigest": forged.digest,
+                        "receiptObjectDigest": bad_ref.digest,
+                        "previousReceiptObjectDigest": prior.data["receiptObjectDigest"],
+                        "observationObjectDigest": None,
+                    }
+                )
+                refs = tuple(
+                    store.inspect_object(value)
+                    for value in (
+                        prior.data["toolStepIntentObjectDigest"],
+                        prior.data["dispatchFenceObjectDigest"],
+                        prior.data["receiptObjectDigest"],
+                        bad_ref.digest,
+                    )
+                )
+                lease = store.acquire_run_lease(
+                    run_id,
+                    owner_id=f"test:{label}",
+                    ttl_ms=30_000,
+                    now_ms=clock(),
+                    expected_run_revision=store.load_run(run_id).revision,
+                )
+                clock.advance()
+                store.append_events(
+                    harness_run_id=run_id,
+                    expected_revision=lease.run_revision,
+                    lease=lease,
+                    lease_checked_at_ms=clock(),
+                    events=(
+                        HarnessEventWrite(
+                            event_id=f"event:tool-falsify-{label}",
+                            event_kind=(
+                                "harness.tool-step-reconciled"
+                                if label == "unknown_job_switch"
+                                else "harness.tool-step-recorded"
+                            ),
+                            data=data,
+                            recorded_at_ms=clock(),
+                            referenced_objects=refs,
+                        ),
+                    ),
+                )
+                store.validate_run_history(run_id)
+                try:
+                    continuity.load_current_tool_step()
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError("Python recovered a forged un-reconciled owner result")
+                cases[label] = {
+                    "runId": run_id,
+                    "revision": store.load_run(run_id).revision,
+                    "expectedStanding": "rejected",
+                }
+                continue
             if label == "stale_revision":
                 from ordivon_harness.store import HarnessEventWrite
 
@@ -379,7 +520,13 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 "toolCallId": intent.tool_call_id,
                 "revision": store.load_run(run_id).revision,
                 "preparedRevision": 2,
-                "expectedStanding": "unknown" if label == "unknown_redacted" else "prepared",
+                "expectedStanding": (
+                    "unknown"
+                    if label == "unknown_redacted"
+                    else "reconciled"
+                    if label == "unknown_reconciled"
+                    else "prepared"
+                ),
                 "preparedRevisionCurrent": label in {"prepared", "owner_exec_prepared"},
             }
             continue

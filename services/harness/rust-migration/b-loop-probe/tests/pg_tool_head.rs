@@ -28,6 +28,7 @@ fn python_pg_tool_source_intent_fence_receipt_and_unknown_are_distinct_from_disp
         "prepared",
         "owner_exec_prepared",
         "unknown_redacted",
+        "unknown_reconciled",
         "stale_revision",
     ] {
         let case = &cases[label];
@@ -60,10 +61,10 @@ fn python_pg_tool_source_intent_fence_receipt_and_unknown_are_distinct_from_disp
             head.prepared_revision_is_current(),
             case["preparedRevisionCurrent"].as_bool().unwrap()
         );
-        let standing = if label == "unknown_redacted" {
-            ToolHeadStanding::UnknownRequiresOwnerReconciliation
-        } else {
-            ToolHeadStanding::PreparedNeedsOwnerAdmission
+        let standing = match label {
+            "unknown_redacted" => ToolHeadStanding::UnknownRequiresOwnerReconciliation,
+            "unknown_reconciled" => ToolHeadStanding::ReceiptObservedNoRedispatch,
+            _ => ToolHeadStanding::PreparedNeedsOwnerAdmission,
         };
         assert_eq!(head.standing(), standing);
         if label == "unknown_redacted" {
@@ -131,6 +132,8 @@ fn python_pg_tool_source_intent_fence_receipt_and_unknown_are_distinct_from_disp
         "bad_fence_digest",
         "extra_reference",
         "receipt_event_mismatch",
+        "unknown_bad_successor",
+        "unknown_job_switch",
         "bad_snapshot_binding",
         "bad_snapshot_budget",
     ] {
