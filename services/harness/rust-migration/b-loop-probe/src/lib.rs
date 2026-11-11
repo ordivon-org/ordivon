@@ -3,6 +3,7 @@
 //! This is not a PG writer, Agent loop, Provider or Runtime dispatcher.
 
 pub mod evidence;
+pub mod owner_effect_handoff;
 pub mod pg_domain_read;
 pub mod pg_tool_head;
 pub mod provider_head;

@@ -50,6 +50,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
 
     for label in (
         "prepared",
+        "owner_exec_prepared",
         "unknown_redacted",
         "stale_revision",
         "bad_fence_digest",
@@ -84,6 +85,38 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             )
         )
         binding = continuity.binding
+        owner_request = None
+        if label == "owner_exec_prepared":
+            from ordivon_harness.execution_binding import HarnessExecutionBinding
+            from ordivon_harness.ordivon.runtime_lowering import _build_workspace_exec_request
+
+            owner_binding = HarnessExecutionBinding(
+                harness_run_id=run_id,
+                workspace_ref="ws-r20-source-handoff",
+                runtime_references=(
+                    {"namespace": "ordivon.harness", "type": "harness_run", "id": run_id},
+                    {
+                        "namespace": "ordivon.harness",
+                        "type": "run_contract",
+                        "id": "contract:source-handoff",
+                        "digest": contract.digest,
+                    },
+                    {
+                        "namespace": "ordivon.harness",
+                        "type": "tool_grant",
+                        "id": "tool-grant:source-handoff",
+                        "digest": contract.tool_grant_digest,
+                    },
+                ),
+            )
+            owner_request = _build_workspace_exec_request(
+                owner_binding,
+                step_id="r20-owner-boundary",
+                executable="/usr/bin/printf",
+                args=("dry-source-only",),
+                cwd_relative=".",
+                wait_ms=0,
+            )
         intent = HarnessToolStepIntent(
             intent_id=f"harness-tool-step-intent:source-{label}",
             harness_run_id=run_id,
@@ -92,16 +125,29 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             assignment_digest=binding.assignment_digest,
             turn_id=f"turn:source-{label}",
             tool_call_id=f"tool-call:source-{label}",
-            tool_name="workspace.read",
+            tool_name="execute_opaque" if owner_request is not None else "workspace.read",
             tool_call_digest=canonical_digest({"call": label}),
-            runtime_operation="workspace.read",
-            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
-            client_request_id=f"runtime-client:source-{label}",
-            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            runtime_operation="workspace.exec" if owner_request is not None else "workspace.read",
+            runtime_arguments_digest=(
+                canonical_digest(owner_request)
+                if owner_request is not None
+                else canonical_digest({"relativePath": "README.md"})
+            ),
+            client_request_id=(
+                owner_request["clientRequestId"]
+                if owner_request is not None
+                else f"runtime-client:source-{label}"
+            ),
+            recovery_consequence=(
+                HarnessRecoveryConsequence.PROCESS_OR_EXTERNAL_EFFECT_POSSIBLE
+                if owner_request is not None
+                else HarnessRecoveryConsequence.OBSERVATION_ONLY
+            ),
             created_at_ms=clock(),
         )
         if label in {
             "prepared",
+            "owner_exec_prepared",
             "unknown_redacted",
             "stale_revision",
             "bad_fence_digest",
@@ -115,6 +161,16 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             assert current.intent == intent
             assert current.fence is not None
             continuity.assert_dispatch_fence_current(current.fence)
+            if owner_request is not None:
+                from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
+
+                manifest["rust_owner_handoff"] = {
+                    "runId": run_id,
+                    "originalRequest": owner_request,
+                    "fencedOwnerRequest": HarnessRuntimeBridge._with_dispatch_fence(
+                        owner_request, current.fence
+                    ),
+                }
             if label in {"unknown_redacted", "receipt_event_mismatch"}:
                 observation = {
                     "schemaVersion": 1,
@@ -324,7 +380,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 "revision": store.load_run(run_id).revision,
                 "preparedRevision": 2,
                 "expectedStanding": "unknown" if label == "unknown_redacted" else "prepared",
-                "preparedRevisionCurrent": label == "prepared",
+                "preparedRevisionCurrent": label in {"prepared", "owner_exec_prepared"},
             }
             continue
 

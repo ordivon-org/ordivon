@@ -45,6 +45,9 @@ pub struct ObservedToolHead {
     client_request_id: String,
     tool_call_id: String,
     consequence: String,
+    runtime_operation: String,
+    runtime_arguments_digest: String,
+    fence_id: String,
     standing: ToolHeadStanding,
 }
 impl ObservedToolHead {
@@ -74,6 +77,17 @@ impl ObservedToolHead {
     }
     pub fn recovery_consequence(&self) -> &str {
         &self.consequence
+    }
+    /// Frozen original request SHA from Python HarnessToolStepIntent.
+    /// It is NOT the digest of a Runtime-admitted normalized Job.
+    pub fn original_runtime_request_digest(&self) -> &str {
+        &self.runtime_arguments_digest
+    }
+    pub fn runtime_operation(&self) -> &str {
+        &self.runtime_operation
+    }
+    pub(crate) fn fence_id(&self) -> &str {
+        &self.fence_id
     }
     pub fn standing(&self) -> ToolHeadStanding {
         self.standing
@@ -379,7 +393,7 @@ fn qualify(read: &Readback, event: &RunEvent) -> Result<ObservedToolHead, ToolHe
         .ok_or(ToolHeadError::Invalid("Event data"))?;
     // Event schema is exact: null and missing are not interchangeable, even
     // though serde Option alone would accept an omitted field.
-    let (intent_digest, intent_ref, fence_digest, standing, prepared_revision) = {
+    let (intent_digest, intent_ref, fence_digest, standing, prepared_revision, fence_id) = {
         let intent_ref_raw = data
             .field("toolStepIntentObjectDigest")
             .and_then(|v| v.as_str())
@@ -646,6 +660,7 @@ fn qualify(read: &Readback, event: &RunEvent) -> Result<ObservedToolHead, ToolHe
             canonical_fence,
             standing,
             fence.run_revision,
+            fence.fence_id,
         )
     };
     // Keep only useful typed facts and no CAS/Tool arguments or authority token.
@@ -659,6 +674,9 @@ fn qualify(read: &Readback, event: &RunEvent) -> Result<ObservedToolHead, ToolHe
         client_request_id: intent_ref.client_request_id.clone(),
         tool_call_id: intent_ref.tool_call_id.clone(),
         consequence: intent_ref.recovery_consequence.clone(),
+        runtime_operation: intent_ref.runtime_operation.clone(),
+        runtime_arguments_digest: intent_ref.runtime_arguments_digest.clone(),
+        fence_id,
         standing,
     })
 }

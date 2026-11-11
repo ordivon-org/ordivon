@@ -312,3 +312,31 @@ Snapshot; B rejects it as a Tool Head without misclassifying the generic
 Journal as corrupt. A separate real PG18 negative changes the hidden
 remainingBudget from object to array while preserving all CAS/Event digests.
 This is not a physical Dispatch Permit.
+
+## R20 — exact physical Owner handoff source qualification
+
+A Tool Intent is not executable authority. Python production
+EventSourcedRunContinuity.prepare_tool_step first commits the original Runtime
+request SHA and V2 DispatchFence, then the existing runtime_bridge validates
+that the actual outgoing request preserves every source field and adds
+only one exact ordivon.harness/dispatch_fence reference. Six independent
+real PG18 tests first proved a dangerous RED: post-Intent executable, args,
+clientRequestId, missing grant reference, forged Fence SHA, or a duplicate
+Fence could previously reach the Gateway execution.submit boundary.
+
+The B owner_effect_handoff::qualify_workspace_exec_owner_handoff is the
+read-only Rust consumer of the SAME Source contract, not a new executor,
+manager, SQL Store, Registry, Job authority, or Dispatch Permit. It uses
+A's byte-exact canonical representation and B's qualified ObservedToolHead
+to verify the original request digest and that the fenced outgoing request
+is byte-identical except one exact appended Fence. Genuine Python
+_build_workspace_exec_request plus real PG18 HarnessToolStepIntent and
+HarnessDispatchFenceV2 fixtures are consumed by Rust, with the same six
+adversarial changes and stale/UNKNOWN rejection. The Runner must still
+revalidate fresh Owner principal, current Run/Fence and native Runtime
+admission. This pure predicate is NOT evidence of a physical effect.
+
+The existing cross-owner scratch-PG18 driver runs the added test with
+HARNESS_B_TYPED_TOOL_HEAD=1. Ordinary Python Gateway effect tests cover
+the production send path and response-loss reconciliation without blindly
+redispatching UNKNOWN.
