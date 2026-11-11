@@ -10,6 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 // boundary instead of trusting a potentially stale/corrupted pointer.
 const PENDING_JOBS_SQL: &str = "SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id";
 
+const SCHEDULING_READBACK_SQL: &str = "SELECT j.execution_plan_json,a.state,EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active'),j.desired_state,j.resolution FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,(SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id WHERE j.job_id=$1";
+
 /// Immutable PG candidate snapshot. Dominant shares are rescored after every
 /// successful allocation; execution plans need not be queried or decoded again.
 struct PendingCandidate {
@@ -141,6 +143,26 @@ fn next_candidate(
                 .then_with(|| a.order.cmp(&b.order))
         })
         .map(|(index, _)| index)
+}
+
+// Testable projection: there is no durable, cause-specific placement
+// result in PG, so readback must not pretend to know why Allocation waits.
+pub(super) fn scheduling_readback(
+    request: ResourceScheduling,
+    attempt_state: Option<&str>,
+    desired_state: &str,
+    resolution: Option<&str>,
+    allocated: bool,
+) -> serde_json::Value {
+    let pending = attempt_state == Some("accepted")
+        && desired_state == "run"
+        && resolution.is_none()
+        && !allocated;
+    json!({
+        "state": if allocated {"allocated"} else if pending {"pending"} else {"released"},
+        "request": request,
+        "pendingReason": if pending {Some("cause_unobserved")} else {None}
+    })
 }
 
 impl PgRuntime {
@@ -379,12 +401,23 @@ impl PgRuntime {
             return Ok(value);
         };
         let mut db = self.store()?;
-        let row=db.client.query_one("SELECT j.execution_plan_json,a.state,EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active') FROM jobs j JOIN attempts a ON a.job_id=j.job_id WHERE j.job_id=$1 ORDER BY a.attempt_number DESC LIMIT 1",&[&id]).map_err(io)?;
+        let row = db
+            .client
+            .query_one(SCHEDULING_READBACK_SQL, &[&id])
+            .map_err(io)?;
         let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(0))?;
-        let s = self.scheduling_contract(&plan)?;
-        let state: String = row.get(1);
+        let spec = self.scheduling_contract(&plan)?;
+        let attempt_state: Option<String> = row.get(1);
         let allocated: bool = row.get(2);
-        value["scheduling"] = json!({"state":if allocated{"allocated"}else if state=="accepted"{"pending"}else{"released"},"request":s,"pendingReason":if state=="accepted"&&!allocated{Some("waiting_for_resources_pressure_or_workspace_lease")}else{None}});
+        let desired: String = row.get(3);
+        let resolution: Option<String> = row.get(4);
+        value["scheduling"] = scheduling_readback(
+            spec,
+            attempt_state.as_deref(),
+            &desired,
+            resolution.as_deref(),
+            allocated,
+        );
         Ok(value)
     }
     /// One dedicated PG notification connection; a bounded timeout re-observes
@@ -669,5 +702,52 @@ mod scheduler_candidate_tests {
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].get::<_, String>(0), "job-a");
         assert_eq!(found[0].get::<_, String>(3), "attempt-a");
+    }
+
+    #[test]
+    fn scheduler_readback_does_not_invent_placement_failure_cause() {
+        let req = ResourceScheduling::default();
+        let pending = scheduling_readback(req.clone(), Some("accepted"), "run", None, false);
+        assert_eq!(pending["state"], "pending");
+        assert_eq!(pending["pendingReason"], "cause_unobserved");
+
+        let cancelled =
+            scheduling_readback(req.clone(), Some("accepted"), "cancelled", None, false);
+        assert_eq!(cancelled["state"], "released");
+        assert!(cancelled["pendingReason"].is_null());
+        let resolved =
+            scheduling_readback(req.clone(), Some("accepted"), "run", Some("lost"), false);
+        assert_eq!(resolved["state"], "released");
+        let starting = scheduling_readback(req.clone(), Some("starting"), "run", None, false);
+        assert_eq!(starting["state"], "released");
+        let allocated = scheduling_readback(req, Some("running"), "run", None, true);
+        assert_eq!(allocated["state"], "allocated");
+        assert!(allocated["pendingReason"].is_null());
+    }
+
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
+        let dsn =
+            std::env::var("ORDIVON_PG_TEST_DSN").expect("explicit disposable PG DSN required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (
+               job_id text PRIMARY KEY, execution_plan_json text,
+               current_attempt_id text, desired_state text, resolution text
+             );
+             CREATE TEMP TABLE attempts (
+               attempt_id text PRIMARY KEY, job_id text, attempt_number bigint, state text
+             );
+             CREATE TEMP TABLE job_allocations (attempt_id text, state text);
+             INSERT INTO jobs VALUES ('job-r3','{}','attempt-current','run',NULL);
+             INSERT INTO attempts VALUES ('attempt-current','job-r3',1,'accepted'),
+                 ('attempt-later','job-r3',2,'running');",
+        )
+        .unwrap();
+        let row = db.query_one(SCHEDULING_READBACK_SQL, &[&"job-r3"]).unwrap();
+        assert_eq!(row.get::<_, Option<String>>(1).as_deref(), Some("accepted"));
+        assert_eq!(row.get::<_, String>(3), "run");
+        assert!(row.get::<_, Option<String>>(4).is_none());
     }
 }
