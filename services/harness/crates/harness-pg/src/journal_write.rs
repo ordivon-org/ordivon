@@ -3,7 +3,10 @@
 //! Lost commit responses are UNKNOWN until exact Event-ID reconciliation.
 
 use super::lease::{check_schema, LeaseError, RunLease};
-use super::{decode_cas, run_projection, transition, valid_schema, ReadError};
+use super::{
+    contract_semantics, decode_cas, run_projection, transition, valid_schema, ReadError,
+    RunProjection, CONTRACT_KIND,
+};
 use ordivon_harness_core::{canonical_bytes, digest_bytes, CanonicalDocument, CanonicalError};
 use postgres::{Client, Transaction};
 use std::{collections::BTreeSet, fmt};
@@ -162,6 +165,49 @@ fn cas_require(tx: &mut Transaction<'_>, d: &str, kind: &str, len: i64) -> Resul
     )?;
     Ok(())
 }
+/// Reuse the Reader's ONE versioned Contract semantic validator under the
+/// SAME locked Run transaction. CAS hashes and lease identity alone are not
+/// proof that a Python-invalid Contract can be extended by the Rust Writer.
+/// O(1) source Contract lookup; never scan/re-implement the Journal parser.
+fn require_current_run_contract(
+    tx: &mut Transaction<'_>,
+    current: &RunProjection,
+) -> Result<(), WriteError> {
+    if current.contract_digest != current.contract_object_digest {
+        return Err(WriteError::Read(ReadError::Corruption(
+            "Run Contract digest vs stored object digest differs".into(),
+        )));
+    }
+    let row = tx
+        .query_opt(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+            &[&current.contract_object_digest],
+        )?
+        .ok_or_else(|| {
+            WriteError::Read(ReadError::Corruption("Run Contract object missing".into()))
+        })?;
+    let contract = decode_cas(
+        &current.contract_object_digest,
+        CONTRACT_KIND,
+        &row.get::<_, String>("kind"),
+        row.get::<_, i64>("byte_length"),
+        &row.get::<_, Vec<u8>>("content"),
+    )?;
+    contract_semantics::validate_contract(&contract)?;
+    for (key, expected) in [
+        ("harnessRunId", current.harness_run_id.as_str()),
+        ("callerId", current.caller_id.as_str()),
+        ("callerRunRef", current.caller_run_ref.as_str()),
+    ] {
+        if contract.field(key).and_then(|value| value.as_str()) != Some(expected) {
+            return Err(WriteError::Read(ReadError::Corruption(format!(
+                "Run Contract vs projection differs at {key}"
+            ))));
+        }
+    }
+    Ok(())
+}
+
 fn exact(
     tx: &mut Transaction<'_>,
     run: &str,
@@ -308,6 +354,7 @@ pub fn append_events(
         )?
         .ok_or_else(|| WriteError::MissingRun(run.into()))?;
     let current = run_projection(&row)?;
+    require_current_run_contract(&mut tx, &current)?;
     let lookup: Vec<_> = events.iter().map(|e| e.event_id.clone()).collect();
     let found = tx.query(
         "SELECT event_id FROM run_events WHERE event_id=ANY($1::text[])",

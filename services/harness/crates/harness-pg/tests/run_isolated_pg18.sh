@@ -97,3 +97,15 @@ if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
     services/harness/rust-migration/b-loop-probe/tests/pg_provider_v4_python_store.py verify-native
 fi
+
+# Independent optional Writer semantic gate falsification, not production.
+if [[ "$(printenv HARNESS_WRITER_CONTRACT_FALSIFY || true)" == 1 ]]; then
+  if [[ "$(printenv HARNESS_CONSUMER_FALSIFY_CONTRACT || true)" != 1 ]]; then
+    echo "Writer Contract falsifier requires Python-invalid Contract corpus" >&2
+    exit 2
+  fi
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" cargo test \
+    --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-pg --test pg_writer_contract_gate \
+    -- --ignored --nocapture
+fi
