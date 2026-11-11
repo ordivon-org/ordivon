@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import replace
 import json
 import os
+import sys
 from pathlib import Path
 
 from anc_canonical import digest_bytes
@@ -31,6 +32,22 @@ dsn = os.environ["HARNESS_RUST_TEST_PG_DSN"]
 schema = os.environ["HARNESS_RUST_TEST_SCHEMA"]
 path = Path(os.environ["HARNESS_RUST_TEST_FIXTURE_PATH"])
 assert schema.startswith("hpg_rust_isolated_a_")
+
+if len(sys.argv) > 1 and sys.argv[1] == "verify-native":
+    fixture = json.loads(path.read_text(encoding="utf-8"))
+    native = fixture["rust_native_provider"]
+    with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
+        store.validate_run_history(native["runId"])
+        run = store.load_run(native["runId"])
+        assert run.revision == 4
+        for entry in native["events"]:
+            assert any(
+                event.event_id == entry["eventId"]
+                and event.event_kind == entry["eventKind"]
+                for event in store.list_run_events(native["runId"])
+            )
+    print("PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_JOURNAL_PASS")
+    sys.exit(0)
 all_cases = json.loads(path.read_text(encoding="utf-8"))
 base_run = all_cases["no_tool"]["runId"]
 cases = {}
@@ -227,6 +244,114 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             "expectedResultDigest": latest.result_digest,
             "sourceVersion": 3 if scenario == "v3_legacy" else 4,
         }
+
+    # The decisive cross-owner consumer: Python *only* authors legitimate
+    # Contract/State/ProviderCallV4 CAS documents. Rust must acquire the
+    # one native Lease, atomically commit all three Provider Event transitions,
+    # then recover the UNKNOWN head from A's verified PG references.
+    # No Python append_event and no external Provider transport occurs here.
+    native_id = "harness-run:test-pg-native-provider-unknown"
+    native = replace(
+        base,
+        harness_run_id=native_id,
+        caller_run_ref="test-run-native-provider-unknown",
+    )
+    assert store.create_run(native).value == "created"
+    native_state = HarnessRunState(
+        messages=(), observations=(), remaining_budget={"maxTurns": 2},
+        requested_model_id=native.requested_model_id,
+        effective_model_id=None,
+    )
+    native_state_ref = store.put_object(
+        native_state.to_dict(native_id), kind="harness-run-state"
+    )
+    native_source_ref = store.put_object(
+        {"kind": "test-only-native-provider-source", "runId": native_id},
+        kind="test-provider-source",
+    )
+    native_call_id = "provider-call:test-native-rust-writer"
+    native_failure = HarnessProviderCallFailureReceipt(
+        provider_call_id=native_call_id,
+        request_digest=id_digest("native-provider-request"),
+        provider_request_digest=id_digest("native-provider-transport-request"),
+        failure_code="provider_transport_failed",
+        dispatch_safety="dispatch_ambiguous",
+        detail="Synthetic unknown; no Provider API was contacted",
+    )
+    native_failure_ref = store.put_object(
+        native_failure.to_dict(), kind="harness-provider-call-failure"
+    )
+    native_events = []
+    prior = None
+    for status, when in (
+        (HarnessProviderCallStatus.CLAIMED, 1010),
+        (HarnessProviderCallStatus.DISPATCHING, 1011),
+        (HarnessProviderCallStatus.UNKNOWN, 1012),
+    ):
+        record = build_provider_call_record_v4(
+            provider_call_id=native_call_id,
+            harness_run_id=native_id,
+            binding_digest=id_digest("native-provider-binding"),
+            source_kind=HarnessProviderCallSource.ASSIGNMENT,
+            source_digest=native_source_ref.digest,
+            source_object_digest=native_source_ref.digest,
+            state_object_digest=native_state_ref.digest,
+            turn_id="turn:test-native-provider",
+            turn_sequence=1,
+            request_digest=native_failure.request_digest,
+            request_object_digest=None,
+            provider_request_digest=native_failure.provider_request_digest,
+            adapter_id=native.adapter_id,
+            requested_model_id=native.requested_model_id,
+            holder_id="test-holder:native-provider",
+            generation=1,
+            status=status,
+            result_digest=None,
+            result_object_digest=None,
+            failure_digest=(
+                native_failure.digest
+                if status is HarnessProviderCallStatus.UNKNOWN else None
+            ),
+            failure_object_digest=(
+                native_failure_ref.digest
+                if status is HarnessProviderCallStatus.UNKNOWN else None
+            ),
+            previous_record_digest=prior.digest if prior is not None else None,
+            issued_at_ms=1009,
+            expires_at_ms=50000,
+            recorded_at_ms=when,
+        )
+        record_ref = store.put_object(
+            record.to_dict(), kind="harness-provider-call-record"
+        )
+        references = [record_ref, native_state_ref]
+        if status is HarnessProviderCallStatus.UNKNOWN:
+            references.append(native_failure_ref)
+        data = {
+            "providerCallRecordDigest": record.digest,
+            "providerCallRecordObjectDigest": record_ref.digest,
+            "stateObjectDigest": native_state_ref.digest,
+            "requestObjectDigest": None,
+            "resultObjectDigest": None,
+            "failureObjectDigest": (
+                native_failure_ref.digest
+                if status is HarnessProviderCallStatus.UNKNOWN else None
+            ),
+        }
+        native_events.append({
+            "eventId": f"event:rust-native-provider-{status.value}",
+            "eventKind": f"harness.provider-call-{status.value}",
+            "recordedAtMs": when,
+            "data": data,
+            "references": [item.to_dict() for item in references],
+        })
+        prior = record
+    all_cases["rust_native_provider"] = {
+        "runId": native_id,
+        "expectedRecordDigest": prior.digest,
+        "events": native_events,
+    }
+
 all_cases["provider_records"] = cases
 path.write_text(json.dumps(all_cases, ensure_ascii=False, sort_keys=True), encoding="utf-8")
 print("PYTHON_PG_REAL_PROVIDER_V4_EVENT_REFERENCES_READY", len(cases))

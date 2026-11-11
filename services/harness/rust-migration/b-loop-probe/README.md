@@ -170,3 +170,54 @@ this Harness tree. Do not replace them with hand-copied expected behavior.
 
 Independent C consumer adversarial review is still required before PR/main
 promotion. Keep the one Host Space/Topic/Work and one A PG authority.
+
+## One authoritative PG Journal / Provider recovery SourceCut (integration)
+
+The A PG Writer/Lease contribution and B Provider/Tool/Agent-loop consumers
+are integrated **in one three-crate Cargo workspace** without changing the
+Python v1 PostgreSQL schema or introducing a second Store. A's single
+`read_run_readonly` owns Contract/CAS/Journal verification; the shared
+`VerifiedReferenceLink {event_id,digest,kind,byte_length}` and the narrowly
+exposed `VerifiedProviderReference` project already verified CAS references.
+A's `append_events` owns the atomic Journal transaction and exact Run Lease
+fence; B derives only read-only Provider/Model/Tool observations.
+
+Test the **same scratch PG18 database** with all known consumers enabled,
+from repository root:
+
+```sh
+HARNESS_CONSUMER_FALSIFY_CONTRACT=1 \
+HARNESS_PG_NATIVE_LEASE=1 \
+HARNESS_PG_NATIVE_WRITER=1 \
+HARNESS_B_BOUND_PG_DOMAIN=1 \
+bash services/harness/crates/harness-pg/tests/run_isolated_pg18.sh
+```
+
+New cross-language test in `pg_provider_head`:
+
+1. Python `PostgresHarnessStore` creates a legitimate no-Tool Contract and
+   Provider V4 Claimed/Dispatching/UNKNOWN CAS objects and FailureReceipt,
+   **without appending the three Provider events**.
+2. A's native Rust `acquire_run_lease` / `append_events` atomically records
+   three Event payloads, reference edges, Run revision and lease consumption
+   in one real PG18 transaction. No actual Provider HTTP request occurs.
+3. The writer connection is closed. The SELECT-only `observe_exact_batch`
+   and `read_run_readonly` confirm the same three events and Run revision 4.
+   B `inspect_pg_provider_head` recovers the identical Python V4 UNKNOWN head
+   with `RetainUnknownAndReconcile` and exact Provider record SHA digest.
+4. A's exact replay returns `Admission::Existing` without duplicate Events;
+   altered payload is rejected, and Python `validate_run_history` plus
+   `list_run_events` verify the same Run after Rust writes.
+
+The source fixture is in `pg_provider_v4_python_store.py` and reuses the
+same existing disposable PG18 test runner. No second cluster, codec, schema
+or global Tool catalog is introduced.
+
+**Limits:** `dispatching`/`unknown` Journal states do not prove an external
+Provider request was sent. `ExactCommitted` proves only the specific Journal
+batch exists. Run snapshot, Run Lease and Journal append are **not** a
+durable physical-effect/dispatch permit; they cannot by themselves establish
+at-most-once physical effects or replace downstream Receipt/UNKNOWN
+reconciliation. A owner and original C-seat must review before production
+Rust takeover. Native `create_run`, Provider HTTP and old v3 compatibility
+remain open separate gates.

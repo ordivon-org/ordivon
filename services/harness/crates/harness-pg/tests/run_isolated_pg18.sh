@@ -54,6 +54,31 @@ if [[ "${HARNESS_CONSUMER_FALSIFY_CONTRACT:-}" == 1 ]]; then
     -p ordivon-harness-pg --test contract_semantic_falsifier -- --ignored --nocapture
 fi
 
+# Test-only contribution to the existing A-owned PG v1 Store/Lease port.
+# This uses the SAME disposable PostgreSQL18 cluster and Python Store schema.
+if [[ "${HARNESS_PG_NATIVE_LEASE:-}" == 1 ]]; then
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
+    services/harness/crates/harness-pg/tests/lease_python_store.py prepare
+  export HARNESS_RUST_TEST_PG_READONLY_DSN="$HARNESS_RUST_TEST_PG_DSN"
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" cargo test \
+    --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-pg --test pg_lease_live native_run_lease_owner_race_revision_expiry_cross_language -- --ignored --nocapture
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
+    services/harness/crates/harness-pg/tests/lease_python_store.py verify
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" cargo test \
+    --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-pg --test pg_lease_live python_journal_consumed_rust_native_lease_then_rust_replay -- --ignored --nocapture
+  echo 'PG18_RUST_LEASE_PYTHON_JOURNAL_CROSS_CONSUMER_PASS'
+fi
+
+# Optional real PG18 source->Rust native Event Writer->Python legacy reader.
+if [[ "$(printenv HARNESS_PG_NATIVE_WRITER || true)" == 1 ]]; then
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python     services/harness/crates/harness-pg/tests/journal_writer_python_store.py prepare
+  export HARNESS_RUST_TEST_PG_READONLY_DSN="$HARNESS_RUST_TEST_PG_DSN"
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" cargo test     --manifest-path services/harness/Cargo.toml --locked --offline     -p ordivon-harness-pg --test pg_writer_live -- --ignored --nocapture --test-threads=1
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python     services/harness/crates/harness-pg/tests/journal_writer_python_store.py verify
+  echo PG18_NATIVE_RUST_WRITER_PYTHON_STORE_INTEROP_PASS
+fi
 # B consumer extension: reuse this SAME disposable A-owned PG instance.
 # Opt-in only: no second PG bootstrap, Schema owner, writer, or Tool effect.
 if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
@@ -63,6 +88,12 @@ if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
     -p ordivon-harness-loop-b-probe --test pg_domain_readback -- --ignored --nocapture
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
     services/harness/rust-migration/b-loop-probe/tests/pg_provider_v4_python_store.py
-  cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
-    -p ordivon-harness-loop-b-probe --test pg_provider_head -- --ignored --nocapture
+  # The native Writer test uses the same PG source fixtures but requires
+  # a separate test-authorized writer DSN; all Provider reads still use
+  # rust_readonly. No physical Provider/Runtime requests are sent.
+  HARNESS_RUST_TEST_PG_WRITER_DSN="$writer_dsn" \
+    cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+      -p ordivon-harness-loop-b-probe --test pg_provider_head -- --ignored --nocapture
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
+    services/harness/rust-migration/b-loop-probe/tests/pg_provider_v4_python_store.py verify-native
 fi

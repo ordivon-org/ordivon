@@ -1,9 +1,13 @@
-//! Read-only verified observation of the EXISTING PostgreSQL Harness schema v1.
+//! Existing PostgreSQL Harness schema v1: verified immutable Journal readback,
+//! plus separate Run Lease and atomic Journal admission ports.
 //!
-//! No CREATE/UPDATE/DELETE, lease acquisition, duplicate writer, or schema migration.
-//! The caller controls a PostgreSQL role with read-only permissions and the DSN.
-//! A single REPEATABLE READ / READ ONLY transaction binds the projection,
-//! immutable CAS bytes, and committed Journal event chain to one PG snapshot.
+//! read_run_readonly remains SELECT-only and requires a read-only PG role:
+//! one REPEATABLE READ snapshot binds the Run, CAS and Journal. The lease module
+//! uses exactly the existing Python Store schema and row locks, without schema
+//! creation or a second Registry. The Journal writer uses the same transaction
+//! and lease fencing law as the Python v1 Store. Neither readback, lease nor
+//! Journal admission confers Tool execution authority, Provider delivery or
+//! semantic effect completion.
 
 #![forbid(unsafe_code)]
 
@@ -12,6 +16,10 @@ use std::fmt;
 
 /// Pure read-only semantic validation; no Provider, Tool or writer authority.
 pub mod contract_semantics;
+/// One atomic v1 PostgreSQL Journal Writer port, never physical Tool dispatch.
+pub mod journal_write;
+/// Native PostgreSQL v1 Run lease port; not a dispatch permission.
+pub mod lease;
 
 use ordivon_harness_core::{
     canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalError,
@@ -99,6 +107,7 @@ pub struct VerifiedReferenceLink {
     event_id: String,
     digest: String,
     kind: String,
+    byte_length: i64,
 }
 impl VerifiedReferenceLink {
     pub fn event_id(&self) -> &str {
@@ -109,6 +118,9 @@ impl VerifiedReferenceLink {
     }
     pub fn kind(&self) -> &str {
         &self.kind
+    }
+    pub fn byte_length(&self) -> i64 {
+        self.byte_length
     }
 }
 impl VerifiedProviderReference {
@@ -473,6 +485,7 @@ pub fn read_run_readonly(
                         event_id: event_id.clone(),
                         digest: digest.clone(),
                         kind: kind.clone(),
+                        byte_length: len,
                     });
                     if kind == "harness-provider-call-record" {
                         provider_record_references.push(VerifiedProviderReference {
