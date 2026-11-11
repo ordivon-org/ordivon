@@ -69,12 +69,19 @@ class Intent:
     decided_at: datetime = DECIDED
 
 
-def project(events, intent, order_id):
+def project(events, intent, order_id, expected_identity):
+    # Bind the event to the independently queried native Cache and Strategy,
+    # not merely the client-order ID present in the event itself.
+    if set(expected_identity) != {"account_id", "trader_id", "strategy_id", "venue_order_id"}:
+        raise ValueError("missing native identity scope")
+    if any(not value or value == "None" for value in expected_identity.values()):
+        raise ValueError("native order/account identity is not yet established")
     buys, seen, total = [], set(), 0
     for event in events:
         if (not isinstance(event, OrderFilled) or event.instrument_id != intent.instrument_id
                 or event.client_order_id != order_id or event.order_side != OrderSide.BUY
-                or event.currency != USD or event.commission.currency != USD):
+                or event.currency != USD or event.commission.currency != USD
+                or any(str(getattr(event, key)) != value for key, value in expected_identity.items())):
             raise ValueError("unbound Equity USD buy fill")
         identity = str(event.trade_id)
         qty = Decimal(str(event.last_qty))
@@ -141,7 +148,15 @@ def run_episode(fee="0.00", *, opening=True, cash="1000.00", ask="110.02"):
                          for t, bid, offer in quotes])
         engine.add_strategy(strategy)
         engine.run()
-        buys = project(strategy.events, intent, strategy.order_id)
+        if strategy.order_id is None:
+            raise ValueError("no qualified opening order")
+        expected_identity = {
+            "account_id": str(engine.cache.account_id(venue)),
+            "trader_id": str(strategy.trader_id),
+            "strategy_id": str(strategy.strategy_id),
+            "venue_order_id": str(engine.cache.venue_order_id(strategy.order_id)),
+        }
+        buys = project(strategy.events, intent, strategy.order_id, expected_identity)
         previous = value_session(None, PaperSession(PREVIOUS, None, minor(cash), 0, {}, ()))
         paper = value_session(previous, PaperSession(SESSION, PREVIOUS, 0, 0, {"SPY": 11200}, buys))
         native_cash = minor(engine.portfolio.account(venue).balance_total(USD).as_decimal())
@@ -164,7 +179,8 @@ def run_episode(fee="0.00", *, opening=True, cash="1000.00", ask="110.02"):
                 "events": [OrderFilled.to_dict(e) for e in strategy.events],
                 "paper": asdict(paper), "nativeCashMinor": native_cash, "nativeNavMinor": native_nav,
                 "holidayPayableMinor": holiday.payable_minor,
-                "settlementCashMinor": settled.cash_minor, "settlementDate": SETTLEMENT.isoformat()}
+                "settlementCashMinor": settled.cash_minor, "settlementDate": SETTLEMENT.isoformat(),
+                "expectedIdentity": expected_identity}
     finally:
         engine.dispose()
 

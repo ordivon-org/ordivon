@@ -92,11 +92,18 @@ def test_rc9_synthetic_equity_paper_consumer(monkeypatch):
     intent = eq.Intent(eq.InstrumentId.from_str(event["instrument_id"]))
     order_id = ClientOrderId(event["client_order_id"])
     real = OrderFilled.from_dict(event)
+    scope = result["expectedIdentity"]
+    assert scope["account_id"] == event["account_id"]
+    assert scope["trader_id"] == event["trader_id"]
+    assert scope["strategy_id"] == event["strategy_id"]
+    assert scope["venue_order_id"] == event["venue_order_id"]
     with pytest.raises(ValueError, match="duplicate"):
-        eq.project([real, real], intent, order_id)
-    # Explicitly corrupted copies of observed native events test admission only.
+        eq.project([real, real], intent, order_id, scope)
+    # Explicitly corrupted copies of native events test admission only.
     for change in ({"commission": "1.23 EUR"}, {"last_qty": "0.5"},
                    {"last_qty": "3"}, {"last_px": "110.021"},
-                   {"ts_event": eq.ns(eq.OPEN) + 1}, {"client_order_id": "wrong"}):
+                   {"ts_event": eq.ns(eq.OPEN) + 1}, {"client_order_id": "wrong"},
+                   {"account_id": "OTHER-001"}, {"trader_id": "OTHER-001"},
+                   {"strategy_id": "OTHER-001"}, {"venue_order_id": "OTHER-001"}):
         with pytest.raises(ValueError):
-            eq.project([OrderFilled.from_dict(event | change)], intent, order_id)
+            eq.project([OrderFilled.from_dict(event | change)], intent, order_id, scope)
