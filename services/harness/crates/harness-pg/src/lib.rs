@@ -1,11 +1,13 @@
 //! Existing PostgreSQL Harness schema v1: verified immutable Journal readback,
-//! plus a separately scoped Run lease port for eventual native writer admission.
+//! plus separate Run Lease and atomic Journal admission ports.
 //!
 //! read_run_readonly remains SELECT-only and requires a read-only PG role:
 //! one REPEATABLE READ snapshot binds the Run, CAS and Journal. The lease module
 //! uses exactly the existing Python Store schema and row locks, without schema
-//! creation or a second Registry. Neither a readback nor a lease confers Tool
-//! execution authority, durable dispatch-fence rights or effect completion.
+//! creation or a second Registry. The Journal writer uses the same transaction
+//! and lease fencing law as the Python v1 Store. Neither readback, lease nor
+//! Journal admission confers Tool execution authority, Provider delivery or
+//! semantic effect completion.
 
 #![forbid(unsafe_code)]
 
@@ -14,6 +16,8 @@ use std::fmt;
 
 /// Pure read-only semantic validation; no Provider, Tool or writer authority.
 pub mod contract_semantics;
+/// One atomic v1 PostgreSQL Journal Writer port, never physical Tool dispatch.
+pub mod journal_write;
 /// Native PostgreSQL v1 Run lease port; not a dispatch permission.
 pub mod lease;
 
@@ -87,11 +91,26 @@ pub struct RunEvent {
     pub recorded_at_ms: i64,
 }
 
+/// One immutable non-payload CAS reference verified in the same PostgreSQL
+/// snapshot as the Run Journal and its versioned Contract. These are data
+/// facts, not a Tool/Provider authorization, dispatch permit, or result receipt.
+#[derive(Debug, Clone)]
+pub struct VerifiedCasReference {
+    pub event_id: String,
+    pub digest: String,
+    pub kind: String,
+    pub byte_length: i64,
+    pub content: CanonicalDocument,
+}
+
 #[derive(Debug, Clone)]
 pub struct Readback {
     pub projection: RunProjection,
     pub contract: CanonicalDocument,
     pub events: Vec<RunEvent>,
+    /// Reuses the already-fetched, CAS-verified reference edge values; no
+    /// separate object query or cross-snapshot lookup is necessary.
+    pub references: Vec<VerifiedCasReference>,
 }
 
 fn corrupted(message: impl Into<String>) -> ReadError {
@@ -403,6 +422,7 @@ pub fn read_run_readonly(
         .map(|e| (e.event_id.as_str(), e.payload_digest.as_str()))
         .collect();
     let mut payload_edges = BTreeSet::new();
+    let mut references = Vec::new();
     for row in edges {
         let event_id: String = row.get("event_id");
         let digest: String = row.get("digest");
@@ -422,7 +442,16 @@ pub fn read_run_readonly(
         let content: Option<Vec<u8>> = row.get("object_content");
         match (kind, len, content) {
             (Some(kind), Some(len), Some(bytes)) => {
-                decode_cas(&digest, &kind, &kind, len, &bytes)?;
+                let content = decode_cas(&digest, &kind, &kind, len, &bytes)?;
+                if role == "reference" {
+                    references.push(VerifiedCasReference {
+                        event_id: event_id.clone(),
+                        digest: digest.clone(),
+                        kind,
+                        byte_length: len,
+                        content,
+                    });
+                }
             }
             _ => return Err(corrupted("CAS reference edge target missing")),
         }
@@ -435,6 +464,7 @@ pub fn read_run_readonly(
         projection,
         contract,
         events,
+        references,
     })
 }
 

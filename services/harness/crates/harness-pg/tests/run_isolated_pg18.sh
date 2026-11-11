@@ -70,3 +70,12 @@ if [[ "${HARNESS_PG_NATIVE_LEASE:-}" == 1 ]]; then
     -p ordivon-harness-pg --test pg_lease_live python_journal_consumed_rust_native_lease_then_rust_replay -- --ignored --nocapture
   echo 'PG18_RUST_LEASE_PYTHON_JOURNAL_CROSS_CONSUMER_PASS'
 fi
+
+# Optional real PG18 source->Rust native Event Writer->Python legacy reader.
+if [[ "$(printenv HARNESS_PG_NATIVE_WRITER || true)" == 1 ]]; then
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python     services/harness/crates/harness-pg/tests/journal_writer_python_store.py prepare
+  export HARNESS_RUST_TEST_PG_READONLY_DSN="$HARNESS_RUST_TEST_PG_DSN"
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" cargo test     --manifest-path services/harness/Cargo.toml --locked --offline     -p ordivon-harness-pg --test pg_writer_live -- --ignored --nocapture --test-threads=1
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python     services/harness/crates/harness-pg/tests/journal_writer_python_store.py verify
+  echo PG18_NATIVE_RUST_WRITER_PYTHON_STORE_INTEROP_PASS
+fi

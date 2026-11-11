@@ -80,7 +80,7 @@ impl RunLease {
     }
 }
 
-fn check_schema(tx: &mut Transaction<'_>, schema: &str) -> Result<(), LeaseError> {
+pub(crate) fn check_schema(tx: &mut Transaction<'_>, schema: &str) -> Result<(), LeaseError> {
     if !valid_schema(schema) {
         return Err(LeaseError::InvalidSchema);
     }

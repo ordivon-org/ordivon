@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.95"
 license = "Apache-2.0"
 publish = false
-description = "Existing PostgreSQL v1 Journal readback and native Run lease port for Rust Harness"
+description = "Existing PostgreSQL v1 Run reader, native Lease and atomic Journal Writer"
 
 [dependencies]
 ordivon-harness-core = { path = "../harness-core" }
