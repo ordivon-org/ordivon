@@ -3,6 +3,7 @@
 Requires disposable PG18 schema13. The Rust Social PG tests have already
 committed the fixtures before this script executes. Does not touch prod.
 """
+
 from __future__ import annotations
 
 import os

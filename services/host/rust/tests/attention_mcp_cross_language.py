@@ -3,6 +3,7 @@
 Only invoked from a script that seeds brand-new PostgreSQL 18 and applies Host
 schema 13. Never invokes the production Host or external service endpoints.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,9 +16,9 @@ from typing import Any
 import psycopg
 
 from ordivon_host_v2.attention_store import AttentionStore
+from ordivon_host_v2.collaboration_inputs import MessageInput, MessageRelationInput
 from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.mcp_domain_errors import _domain_error_payload
-from ordivon_host_v2.collaboration_inputs import MessageInput, MessageRelationInput
 from ordivon_host_v2.mcp_tool_registration import _request_id
 from ordivon_host_v2.social_store import SocialStore
 
@@ -27,7 +28,9 @@ assert dsn == os.environ["ORDIVON_HOST_V2_DSN"], "refusing mismatched production
 assert "127.0.0.1:" in dsn or "localhost:" in dsn, "disposable loopback PG only"
 
 suffix = uuid.uuid4().hex[:12]
-actor, space, topic = (f"{kind}:test:host-rust-attention-b:{suffix}" for kind in ("actor", "space", "topic"))
+actor, space, topic = (
+    f"{kind}:test:host-rust-attention-b:{suffix}" for kind in ("actor", "space", "topic")
+)
 with psycopg.connect(dsn) as conn:
     conn.execute(
         "INSERT INTO actor_refs(actor_ref,actor_kind) VALUES (%s,'agent')",
@@ -178,7 +181,9 @@ try:
     rust_late = call("attention.delta", {"actorRef": actor, "afterSequence": high})
     python_late = attention.delta(actor, after_sequence=high)
     assert rust_late == python_late, (rust_late, python_late)
-    assert len(rust_late["events"]) == 1 and rust_late["events"][0]["eventKind"] == "message_relation"
+    assert (
+        len(rust_late["events"]) == 1 and rust_late["events"][0]["eventKind"] == "message_relation"
+    )
 
     # Missing record, out-of-horizon cursor, and invalid budget must never
     # become false successful MCP results; do not overclaim Python error text parity.
