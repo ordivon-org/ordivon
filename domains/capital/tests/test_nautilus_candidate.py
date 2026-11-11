@@ -107,3 +107,136 @@ def test_rc9_synthetic_equity_paper_consumer(monkeypatch):
                    {"strategy_id": "OTHER-001"}, {"venue_order_id": "OTHER-001"}):
         with pytest.raises(ValueError):
             eq.project([OrderFilled.from_dict(event | change)], intent, order_id, scope)
+
+
+
+@pytest.mark.provider_qualification
+def test_rc9_equity_orderfilled_persists_in_real_postgres_paper_close(monkeypatch):
+    # Physical integration only: no DSN means no persistence proof.
+    # The test DSN MUST reference a disposable, dedicated ordivon_paper DB.
+    dsn = os.environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("independent disposable ordivon_paper PostgreSQL is required")
+
+    from dataclasses import replace
+    from hashlib import sha256
+    from uuid import uuid4
+
+    import psycopg
+    from nautilus_trader.model import ClientOrderId, OrderFilled
+
+    from ordivon_capital.accounting.paper_close import PaperBuy, PaperSession
+    from ordivon_capital.accounting.postgres_ledger import PostgresAccountingLedger
+    from ordivon_capital.accounting.postgres_paper_close import (
+        PostgresPaperClose,
+        read_committed_paper_close,
+        read_latest_committed_paper_close,
+    )
+    from ordivon_capital.accounting.substrate import stable_accounting_id
+
+    monkeypatch.syspath_prepend(str(ROOT / "tools/nautilus_rc4"))
+    import equity_paper_qualification as eq
+
+    native = eq.run_episode("1.23")
+    assert native["synthetic"] is True
+    assert native["providerVersion"] == "2.0.0rc9"
+    assert len(native["fills"]) == len(native["events"]) == 1
+    assert native["fills"][0]["fill_id"] == native["events"][0]["trade_id"]
+    # Rebind the observed upstream event through the same identity-qualified
+    # projection: no manual fill, copied bar open, or trusted JSON price.
+    event = native["events"][0]
+    native_fill = OrderFilled.from_dict(event)
+    intent = eq.Intent(eq.InstrumentId.from_str(event["instrument_id"]))
+    buys = eq.project(
+        [native_fill], intent, ClientOrderId(event["client_order_id"]),
+        native["expectedIdentity"],
+    )
+    assert len(buys) == 1
+    buy = buys[0]
+    assert buy == PaperBuy(**native["fills"][0])
+    assert buy.price_minor == 11002 and buy.fee_minor == 123
+    account = "native-etf-" + uuid4().hex
+    opened = PaperSession(eq.PREVIOUS, None, 100000, 0, {}, ())
+    trade = PaperSession(eq.SESSION, eq.PREVIOUS, 0, 0, {"SPY": 11200}, (buy,))
+    holiday = PaperSession(eq.BANK_HOLIDAY, eq.SESSION, 0, 0, {"SPY": 11200}, ())
+    settled = PaperSession(eq.SETTLEMENT, eq.BANK_HOLIDAY, 0, 0, {"SPY": 11200}, ())
+    calendar_digest = sha256(eq.CALENDAR).hexdigest()
+    calendar = {"calendar_bytes": eq.CALENDAR, "calendar_sha256": calendar_digest}
+
+    def account_id(*parts):
+        return stable_accounting_id(
+            "ordivon-capital:paper-close:usd:v1", account, *parts,
+        )
+
+    def persisted_rows():
+        # Only the dedicated disposable PG DB. Read-only snapshot proves
+        # replay/readback does not silently create another financial row.
+        with psycopg.connect(dsn) as db:
+            db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            return tuple(
+                db.execute(statement).fetchall()
+                for statement in (
+                    "SELECT * FROM ordivon_paper.daily_close ORDER BY account_key, session",
+                    "SELECT * FROM ordivon_capital.accounts ORDER BY id",
+                    "SELECT * FROM ordivon_capital.transfers ORDER BY id",
+                )
+            )
+
+    store = PostgresPaperClose(dsn)
+    initial = store.close_session(account, opened, **calendar)
+    executed = store.close_session(account, trade, **calendar)
+    assert executed["valuation"]["nav_minor"] == native["nativeNavMinor"] == 100273
+    assert executed["valuation"]["payable_minor"] == 22127
+    assert executed["valuation"]["cash_minor"] == 100000
+    assert executed["market_evidence"]["standing"] == "CALLER_SUPPLIED_MARKS"
+    assert executed["execution_evidence"]["calendar_sha256"] == calendar_digest
+    assert executed["execution_evidence"]["clearing_days"]["2026-11-11"] is False
+    assert executed["execution_evidence"]["settlement_date"] == "2026-11-12"
+    assert executed["previous_request_sha256"] == initial["request_sha256"]
+    assert executed["previous_receipt_sha256"]
+
+    ledger = PostgresAccountingLedger(dsn)
+    settlement_id = account_id("settle", buy.fill_id)
+    assert ledger.transfer(settlement_id) is None
+    # Read-only receipt verification and a fresh connection: no duplicate
+    # credit/debit on an exact replay of the same upstream fill.
+    assert read_committed_paper_close(dsn, account, eq.SESSION) == executed
+    before_replay = persisted_rows()
+    assert PostgresPaperClose(dsn).close_session(account, trade, **calendar) == executed
+    assert persisted_rows() == before_replay
+    on_holiday = store.close_session(account, holiday, **calendar)
+    assert on_holiday["valuation"]["payable_minor"] == 22127
+    assert on_holiday["valuation"]["cash_minor"] == 100000
+    assert ledger.transfer(settlement_id) is None
+    final = PostgresPaperClose(dsn).close_session(account, settled, **calendar)
+    assert final["valuation"]["payable_minor"] == 0
+    assert final["valuation"]["cash_minor"] == native["nativeCashMinor"] == 77873
+    assert final["valuation"]["nav_minor"] == native["nativeNavMinor"]
+    assert read_latest_committed_paper_close(dsn, account) == final
+    assert read_committed_paper_close(dsn, account, eq.SESSION) == executed
+
+    posted = ledger.transfer(settlement_id)
+    assert posted is not None
+    assert posted.operation == "POST" and posted.status == "POSTED"
+    assert posted.amount == buy.cost_minor == 22127
+    assert posted.pending_id == account_id("buy", buy.fill_id)
+    cash = ledger.account(account_id("cash"))
+    assert cash.credits_posted - cash.debits_posted == native["nativeCashMinor"]
+    assert cash.debits_pending == 0
+
+    before_replay = persisted_rows()
+    assert PostgresPaperClose(dsn).close_session(account, settled, **calendar) == final
+    assert persisted_rows() == before_replay
+    # The PostgreSQL client is re-created, but this is not a server restart
+    # claim; an independent physical-restart qualification is run separately.
+
+    # Old committed economics must reject a changed mark or fee, not silently
+    # overwrite the receipt/ledger head after later settlement.
+    with pytest.raises(ValueError, match="conflicting inputs"):
+        store.close_session(account, replace(trade, marks={"SPY": 11300}), **calendar)
+    with pytest.raises(ValueError, match="conflicting inputs"):
+        store.close_session(
+            account, replace(trade, buys=(replace(buy, fee_minor=124),)), **calendar,
+        )
+    assert read_latest_committed_paper_close(dsn, account) == final
+    assert persisted_rows() == before_replay
