@@ -81,29 +81,47 @@ tasks:
     cmds:
       - /usr/local/libexec/network-v2/supply-chain-ready
 
+  consumer:supply-chain:process-fresh:
+    desc: Observe native running process/config creation order independently of installed SourceCut
+    cmds:
+      - python3 scripts/native-sourcecut.py --unit-process-file network-v2-supply-chain-egress.service /etc/network-v2/supply-chain/egress.json /usr/bin/sing-box '["run","-c"]'
+
   consumer:supply-chain:converge:
-    desc: Observe, materialize only on proven DRIFT, start on MATCH and separately verify the consumer
+    desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
       - task: consumer:supply-chain:validate
       - |
-        verdict="$(task --silent consumer:supply-chain:classify)" || {
+        set -eu
+        source_state="$(task --silent consumer:supply-chain:classify)" || {
           echo 'supply-chain SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
         }
-        case "$verdict" in
-          MATCH)
+        process_state="$(task --silent consumer:supply-chain:process-fresh)" || {
+          echo 'supply-chain running generation UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        case "$source_state/$process_state" in
+          MATCH/MATCH)
             systemctl start network-v2-supply-chain.target
             ;;
-          DRIFT)
+          MATCH/DRIFT)
+            # Already-installed source was not consumed after an interrupted
+            # previous release: restart only this owner's units, never VPN.
+            systemctl restart network-v2-supply-chain.target
+            ;;
+          DRIFT/MATCH|DRIFT/DRIFT)
             task --silent consumer:supply-chain:materialize
             task --silent consumer:supply-chain:sourcecut
             systemctl restart network-v2-supply-chain.target
             ;;
           *)
-            echo 'supply-chain SourceCut invalid: refusing converge effects' >&2
+            echo 'supply-chain SourceCut/process admission unknown: refusing converge effects' >&2
             exit 2
             ;;
         esac
+        systemctl is-active --quiet network-v2-supply-chain-egress.service
+        task --silent consumer:supply-chain:sourcecut
+        test "$(task --silent consumer:supply-chain:process-fresh)" = MATCH
       - task: consumer:supply-chain:ready
 
   consumer:supply-chain:docker-rebind:

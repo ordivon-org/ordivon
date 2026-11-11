@@ -8,13 +8,17 @@ runtime lifecycle.  A failed observation is NEVER installation permission.
 from __future__ import annotations
 
 import argparse
+import re
+import shlex
 import glob
 import hashlib
+import json
 import os
 from pathlib import Path
 import stat
 import subprocess
 import sys
+import time
 
 
 class Unknown(RuntimeError):
@@ -109,6 +113,149 @@ def systemd(*args: str) -> tuple[int, str]:
     return proc.returncode, output
 
 
+
+def systemd_bus(*args: str) -> tuple[str, str]:
+    """Observe the existing native systemd D-Bus owner, never invoke an action."""
+    try:
+        result = subprocess.run(
+            ["busctl", "--system", *args], capture_output=True,
+            text=True, check=False, timeout=8,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise Unknown(f"systemd process observation unavailable: {exc}") from exc
+    if result.returncode != 0:
+        raise Unknown("systemd process observation failed")
+    try:
+        fields = shlex.split(result.stdout.strip())
+    except ValueError as exc:
+        raise Unknown("malformed systemd process observation") from exc
+    if len(fields) != 2:
+        raise Unknown("unexpected systemd process observation")
+    return fields[0], fields[1]
+
+
+def running_unit_stale(
+    unit: str, path: str, expected_executable: str, expected_pre_config_args: str
+) -> bool:
+    """Conservative process birth-order witness, never an in-memory config digest.
+
+    Caller binds an exact executable and argv invocation. These consumers
+    use static sing-box run -c FILE units. Running process older
+    than the installed file => a restart was lost or the file was changed.
+    Inactive service has no loaded generation and can be started normally.
+    """
+    if not re.fullmatch(r"[A-Za-z0-9_.@:-]+\.service", unit):
+        raise Unknown("unit-process-file must select a native service")
+    target = Path(path)
+    executable = Path(expected_executable)
+    if not target.is_absolute() or not executable.is_absolute():
+        raise Unknown("unit-process-file config and executable must be absolute")
+    try:
+        expected_args = json.loads(expected_pre_config_args)
+    except (TypeError, ValueError) as exc:
+        raise Unknown("unit-process-file argv declaration is malformed") from exc
+    if (not isinstance(expected_args, list) or not expected_args
+        or not all(isinstance(arg, str) and arg for arg in expected_args)):
+        raise Unknown("unit-process-file requires an exact nonempty argv contract")
+    try:
+        exe_before = executable.stat()
+    except OSError as exc:
+        raise Unknown(f"expected runtime executable unreadable: {exc}") from exc
+    if not stat.S_ISREG(exe_before.st_mode):
+        raise Unknown("expected runtime executable is not a regular file")
+    identity = file_digest(target, destination=True)
+    if identity is None:
+        return True  # Known missing target: ordinary first installation.
+    first = target.lstat()
+    if not stat.S_ISREG(first.st_mode):
+        raise Unknown("installed consumer file is not regular")
+    try:
+        kind, object_path = systemd_bus(
+            "call", "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+            "org.freedesktop.systemd1.Manager", "GetUnit", "s", unit,
+        )
+    except Unknown:
+        # A crash after copying config but before installing the service
+        # leaves a fully matching file with no loaded unit. Distinguish an
+        # observed native "not-found" from a transport outage; never treat
+        # a DBus error by itself as permission to install.
+        rc, load_state = systemd(
+            "show", unit, "--property=LoadState", "--value",
+        )
+        if rc == 0 and load_state == "not-found":
+            return True
+        raise
+    if kind != "o" or not re.fullmatch(r"/[A-Za-z0-9_./-]+", object_path):
+        raise Unknown("untrusted systemd unit object identity")
+
+    def read_property(interface: str, property_name: str, kind: str) -> str:
+        got_kind, value = systemd_bus(
+            "get-property", "org.freedesktop.systemd1", object_path,
+            interface, property_name,
+        )
+        if got_kind != kind:
+            raise Unknown(f"unexpected systemd {property_name} property type")
+        return value
+
+    def snapshot() -> tuple[str, int, int]:
+        state = read_property("org.freedesktop.systemd1.Unit", "ActiveState", "s")
+        pid = read_property("org.freedesktop.systemd1.Service", "MainPID", "u")
+        born = read_property(
+            "org.freedesktop.systemd1.Service", "ExecMainStartTimestamp", "t",
+        )
+        if not pid.isdecimal() or not born.isdecimal():
+            raise Unknown("invalid systemd main process identity or epoch")
+        return state, int(pid), int(born)
+
+    before = snapshot()
+    state, pid, born_us = before
+    if state not in {"active", "inactive"}:
+        raise Unknown(f"service is neither active nor inactive: {unit}")
+    if state == "active":
+        if pid <= 0 or born_us <= 0:
+            raise Unknown("active service lacks a main PID or creation timestamp")
+        try:
+            cmdline = Path(f"/proc/{pid}/cmdline").read_bytes().rstrip(b"\x00").split(b"\x00")
+            actual_exe = Path(f"/proc/{pid}/exe").stat()
+        except OSError as exc:
+            raise Unknown(f"main process identity unreadable: {exc}") from exc
+        required_argv = [
+            os.fsencode(arg) for arg in [*expected_args, str(target)]
+        ]
+        if not cmdline or cmdline[1:] != required_argv:
+            raise Unknown("systemd main process argv differs from declared config invocation")
+        if ((actual_exe.st_dev, actual_exe.st_ino)
+            != (exe_before.st_dev, exe_before.st_ino)):
+            raise Unknown("running process executable differs from declared executable")
+    elif pid != 0:
+        raise Unknown("inactive systemd service unexpectedly has an active PID")
+    second = target.lstat()
+    if ((first.st_dev, first.st_ino, first.st_size,
+         first.st_mtime_ns, first.st_ctime_ns)
+        != (second.st_dev, second.st_ino, second.st_size,
+            second.st_mtime_ns, second.st_ctime_ns)):
+        raise Unknown("installed config changed during process observation")
+    if snapshot() != before:
+        raise Unknown("systemd main process changed during observation")
+    try:
+        exe_after = executable.stat()
+    except OSError as exc:
+        raise Unknown(f"expected runtime executable became unreadable: {exc}") from exc
+    if ((exe_before.st_dev, exe_before.st_ino, exe_before.st_mtime_ns)
+        != (exe_after.st_dev, exe_after.st_ino, exe_after.st_mtime_ns)):
+        raise Unknown("runtime executable identity changed during observation")
+    if state == "inactive":
+        return False
+    file_change_ns = max(second.st_mtime_ns, second.st_ctime_ns)
+    born_ns = born_us * 1000
+    now = time.time_ns()
+    if born_ns > now + 1_000_000_000 or file_change_ns > now + 1_000_000_000:
+        raise Unknown("systemd or installed file timestamp is in the future")
+    if abs(file_change_ns - born_ns) <= 1_000_000:
+        raise Unknown("process creation and file change have ambiguous order")
+    return born_ns < file_change_ns
+
+
 def classify(args: argparse.Namespace) -> str:
     drift = False
     missing_units: set[str] = set()
@@ -134,7 +281,8 @@ def classify(args: argparse.Namespace) -> str:
             raise Unknown(f"source glob has no matches: {pattern}")
         for candidate in paths:
             mappings.append((candidate, target_dir + Path(candidate).name))
-    if not any((args.file, args.glob, args.absent, args.unit_enabled, args.unit_loaded)):
+    if not any((args.file, args.glob, args.absent, args.unit_enabled,
+                args.unit_loaded, args.unit_process_file)):
         raise Unknown("empty SourceCut admission is not evidence")
     targets = {dest for _, dest in mappings}
     if installed_modes.keys() - targets:
@@ -178,6 +326,8 @@ def classify(args: argparse.Namespace) -> str:
             raise Unknown(f"could not establish unit loaded state: {unit}")
         if observed == "yes":
             drift = True
+    for unit, installed, executable, argv_contract in args.unit_process_file:
+        drift |= running_unit_stale(unit, installed, executable, argv_contract)
     return "DRIFT" if drift else "MATCH"
 
 
@@ -193,6 +343,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--unit-enabled", nargs=2, action="append", default=[],
                         metavar=("UNIT", "EXPECTED"))
     parser.add_argument("--unit-loaded", action="append", default=[], metavar="UNIT")
+    parser.add_argument("--unit-process-file", nargs=4, action="append", default=[],
+                        metavar=("UNIT", "INSTALLED_CONFIG", "EXECUTABLE", "ARGV_BEFORE_CONFIG"))
     args = parser.parse_args(argv)
     try:
         print(classify(args))

@@ -208,6 +208,75 @@ Use the existing Runtime/Artifact natural owner for any future durable release
 bundle. A healthy external endpoint does not replace SourceCut, and a
 matching SourceCut does not replace a consumer's real ready/verify.
 
+## Running process is a separate release dimension (R12)
+
+An isolated native Go Task negative control reproduced a **post-install /
+pre-restart crash** for all five fixed-configuration sing-box owners (Claude,
+Finance, Supply Chain, X Reality, Chat Ingress): all new installed bytes MATCH,
+but the old process is still active. The previous converge ran systemctl start,
+which does not replace an already active process; a successful Task return was
+not proof of a new loaded configuration.
+
+R12 makes two independent, three-valued observations before effects:
+
+| Installed SourceCut | Running process birth-order witness | Allowed effect |
+| --- | --- | --- |
+| MATCH | MATCH | Idempotent start; no installation or restart |
+| MATCH | DRIFT | Owner-only target restart; **no redundant installation** |
+| DRIFT | MATCH or DRIFT | Existing owner materialization, local restart, then re-observe both |
+| UNKNOWN or other axis UNKNOWN | Any | No installation, restart, or guessed rollback |
+
+The same native sourcecut.py adds the read-only unit-process-file probe.
+It uses systemd's existing system D-Bus MainPID and
+ExecMainStartTimestamp (realtime microseconds), the /proc/PID/exe device/inode
+matching the declared /usr/bin/sing-box executable, and the exact
+/proc/PID/cmdline argv suffix matching run -c ABSOLUTE_CONFIG.
+The real installed file's mtime/ctime and double-read unit/file identity
+reject a stale or changing observation. For these five static
+Type=simple sing-box services, a process created
+**before** a subsequent installed file metadata change is proven too old;
+its owner restart was missed or an independent owner rewrote its config.
+The file SourceCut remains separate from this process freshness check.
+Malformed systemd replies, changed unit/PID, wrong executable inode,
+non-matching complete invocation, symlinks, invalid clock ordering and
+unavailable unit identity return UNKNOWN. When an installed config exists
+but systemd independently confirms LoadState=not-found, a partially installed
+first release returns DRIFT instead of treating the missing service as
+an unknowable transport failure.
+
+X Reality previously had no PartOf dependency on its target, so even a
+systemctl restart network-v2-x-reality.target could leave its egress service
+untouched. R12 binds that service to its natural target using the native
+PartOf directive. After each convergence, the owner confirms its sing-box
+service is active, rechecks installed SourceCut, and rechecks process
+birth order; interrupted work is detectable on the next invocation.
+
+**Evidence scope:** source-bound Z3 proves two-axis effect-selection under
+successful-action assumptions and proves the old MATCH/old-process
+counterexample. The actual Go Task executable was used for 40 disposable,
+credential-free positive/negative owner cases. The systemd D-Bus observation
+was read against the five live Linux processes without restarting them.
+
+This is a **restart-loss recovery bound**, not a claim that file birth order
+cryptographically proves a process's in-memory config bytes. It assumes
+native systemd owns the observed Type=simple main process, sing-box consumes
+the named file on startup, and the process/file timestamps share an
+unambiguous realtime epoch. Clock steps or metadata manipulation can defeat
+a timestamp-only inference; independent application-layer loaded-digest
+evidence remains an open requirement. A multi-file crash can still leave
+partially installed content until the next safely admitted reconciliation;
+durable generation/rollback across /etc/network-v2, /etc/systemd/system and
+/usr/local/libexec needs an independently qualified Runtime/Artifact or
+OS-native generation owner, not a Network-only transaction daemon. The
+current Runtime structured release interface is for Runtime self-release,
+not a generic Network publish permission.
+
+Upstream native authorities:
+- https://freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html
+- https://freedesktop.org/software/systemd/man/latest/systemd.unit.html
+- https://www.freedesktop.org/software/systemd/man/latest/systemctl.html
+- https://nix.dev/manual/nix/2.34/package-management/profiles
+
 ## Classification rules
 
 ```text
