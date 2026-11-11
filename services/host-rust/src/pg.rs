@@ -1,14 +1,14 @@
 //! PostgreSQL schema gate and a read-only Host summary projection.
-//! This first slice intentionally uses one connection per diagnostic request;
-//! a mature bounded connection pool is a cutover prerequisite, not implied here.
+//! Bounded pooled PostgreSQL connections are used for each transaction.
+use crate::attention::{self, TargetKind};
 use crate::work::{self, CommitSnapshot, CreateWork, ListWorks};
+use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
-use tokio_postgres::{Client, NoTls};
+use tokio_postgres::NoTls;
 
 pub const REQUIRED_SCHEMA: i32 = 13;
 
@@ -22,30 +22,137 @@ pub enum HostDbError {
     MissingSchema,
     #[error("Work transaction: {0}")]
     Work(#[from] work::WorkError),
+    #[error("Attention transaction: {0}")]
+    Attention(#[from] attention::AttentionError),
     #[error("Clock before Unix epoch")]
     Clock,
+    #[error("PostgreSQL connection pool: {0}")]
+    Pool(String),
 }
 
 #[derive(Clone)]
 pub struct HostPg {
-    dsn: Arc<str>,
+    pool: Pool,
 }
 
 impl HostPg {
-    pub fn new(dsn: impl Into<String>) -> Self {
-        Self {
-            dsn: Arc::from(dsn.into()),
-        }
+    /// Preserve the legacy deployment's pool-size knob and hard bounds.
+    pub fn try_new(dsn: impl Into<String>) -> Result<Self, HostDbError> {
+        let limit = match std::env::var("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE") {
+            Ok(raw) => raw.parse::<usize>().map_err(|_| {
+                HostDbError::Pool("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE must be an integer".into())
+            })?,
+            Err(std::env::VarError::NotPresent) => 8,
+            Err(_) => return Err(HostDbError::Pool("invalid pool-size environment".into())),
+        };
+        Self::with_pool_limit(dsn.into(), limit)
     }
 
-    async fn connect(&self) -> Result<Client, HostDbError> {
-        let (client, connection) = tokio_postgres::connect(&self.dsn, NoTls).await?;
-        tokio::spawn(async move {
-            if let Err(error) = connection.await {
-                eprintln!("Host PostgreSQL session ended: {error}");
-            }
-        });
-        Ok(client)
+    fn with_pool_limit(dsn: String, limit: usize) -> Result<Self, HostDbError> {
+        if !(1..=64).contains(&limit) {
+            return Err(HostDbError::Pool("pool max size must be in [1,64]".into()));
+        }
+        let config: tokio_postgres::Config = dsn.parse()?;
+        let manager = Manager::from_config(
+            config,
+            NoTls,
+            ManagerConfig {
+                recycling_method: RecyclingMethod::Fast,
+            },
+        );
+        let pool = Pool::builder(manager)
+            .max_size(limit)
+            .runtime(deadpool_postgres::Runtime::Tokio1)
+            .wait_timeout(Some(std::time::Duration::from_secs(5)))
+            .build()
+            .map_err(|error| HostDbError::Pool(error.to_string()))?;
+        Ok(Self { pool })
+    }
+
+    async fn connect(&self) -> Result<deadpool_postgres::Object, HostDbError> {
+        self.pool
+            .get()
+            .await
+            .map_err(|error| HostDbError::Pool(error.to_string()))
+    }
+
+    pub async fn subscription_follow(
+        &self,
+        actor: &str,
+        kind: TargetKind,
+        target: &str,
+        request_id: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(attention::follow(&mut client, actor, kind, target, request_id).await?)
+    }
+
+    pub async fn subscription_unfollow(
+        &self,
+        actor: &str,
+        kind: TargetKind,
+        target: &str,
+        request_id: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(attention::unfollow(&mut client, actor, kind, target, request_id).await?)
+    }
+
+    pub async fn subscription_list(
+        &self,
+        actor: &str,
+        kind: Option<TargetKind>,
+        after: Option<(&str, &str)>,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(
+            attention::list_subscriptions(&mut client, actor, kind, after, limit, max_bytes)
+                .await?,
+        )
+    }
+
+    pub async fn attention_get(
+        &self,
+        actor: &str,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(attention::get(&mut client, actor, limit, max_bytes).await?)
+    }
+
+    pub async fn attention_delta(
+        &self,
+        actor: &str,
+        after: i64,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(attention::delta(&mut client, actor, after, limit, max_bytes).await?)
+    }
+
+    pub async fn attention_reentry(
+        &self,
+        actor: &str,
+        after: Option<i64>,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(attention::reentry(&mut client, actor, after, limit, max_bytes).await?)
+    }
+
+    pub async fn attention_ack(
+        &self,
+        actor: &str,
+        cursor: i64,
+        request_id: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(attention::ack(&mut client, actor, cursor, request_id).await?)
     }
 
     pub async fn work_get(
@@ -193,6 +300,18 @@ pub struct HostAuthority {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bounded_pool_is_constructible_without_database_access() {
+        let host = HostPg::with_pool_limit(
+            "host=127.0.0.1 user=nonexistent dbname=nonexistent".into(),
+            2,
+        )
+        .expect("pool setup does not connect");
+        assert_eq!(host.pool.status().max_size, 2);
+        assert!(HostPg::with_pool_limit("host=localhost".into(), 0).is_err());
+        assert!(HostPg::with_pool_limit("host=localhost".into(), 65).is_err());
+    }
+
     #[test]
     fn summary_wire_names_match_python_host() {
         let wire = serde_json::to_value(HostSummary {

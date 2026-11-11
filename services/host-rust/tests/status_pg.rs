@@ -12,7 +12,7 @@ async fn summary_comes_from_same_real_postgres_authority() {
         dsn.contains("127.0.0.1") || dsn.contains("localhost"),
         "test DSN must point to isolated loopback PG"
     );
-    let pg = HostPg::new(dsn);
+    let pg = HostPg::try_new(dsn).expect("pool configuration");
     assert_eq!(pg.check_schema().await.expect("PG schema"), REQUIRED_SCHEMA);
     let summary = pg.summary().await.expect("Host summary");
     assert_eq!(summary.authority.journal_schema, REQUIRED_SCHEMA);

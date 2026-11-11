@@ -18,7 +18,7 @@ fn loopback_bind(host: &str, port: u16) -> Result<SocketAddr, &'static str> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dsn = std::env::var("ORDIVON_HOST_V2_DSN")?;
-    let pg = HostPg::new(dsn);
+    let pg = HostPg::try_new(dsn)?;
     pg.check_schema().await?;
     let server = HostMcp::new(pg);
     let transport = std::env::var("ORDIVON_HOST_V2_TRANSPORT").unwrap_or_else(|_| "stdio".into());

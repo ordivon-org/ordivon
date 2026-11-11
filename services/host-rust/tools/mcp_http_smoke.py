@@ -122,7 +122,12 @@ try:
     assert notify_status == 202, notify_status
     _, listed, _ = post("tools/list", {}, 2, session)
     names = [t["name"] for t in listed["result"]["tools"]]
-    assert names == ["host.status", "work.create", "work.get", "work.list", "work.snapshot.commit"], names
+    assert names == [
+        "attention.ack", "attention.delta", "attention.get", "attention.reentry",
+        "host.status", "subscription.follow", "subscription.list",
+        "subscription.unfollow", "work.create", "work.get", "work.list",
+        "work.snapshot.commit"
+    ], names
     _, work, _ = post(
         "tools/call",
         {"name": "work.get", "arguments": {"workRef": "work:test:rust-mcp-stdio"}},

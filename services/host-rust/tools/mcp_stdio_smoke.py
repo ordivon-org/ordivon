@@ -51,7 +51,12 @@ try:
     assert initialized["serverInfo"]["name"]
     request("notifications/initialized")
     names = [tool["name"] for tool in request("tools/list", {}, 2)["tools"]]
-    assert names == ["host.status", "work.create", "work.get", "work.list", "work.snapshot.commit"], names
+    assert names == [
+        "attention.ack", "attention.delta", "attention.get", "attention.reentry",
+        "host.status", "subscription.follow", "subscription.list",
+        "subscription.unfollow", "work.create", "work.get", "work.list",
+        "work.snapshot.commit"
+    ], names
     ok = request("tools/call", {"name": "host.status", "arguments": {"detail": "summary"}}, 3)
     data = ok.get("structuredContent")
     assert data is not None, ok
@@ -119,6 +124,44 @@ try:
     assert new_ref in {
         item["workRef"] for item in listing["structuredContent"]["works"]
     }, listing
+    # C-owned MCP bridge exercises B's existing transaction-safe domain API.
+    follow = request(
+        "tools/call",
+        {"name": "subscription.follow", "arguments": {
+            "actorRef": "actor:test:rust-mcp", "targetKind": "work", "targetRef": new_ref
+        }},
+        13,
+    )
+    assert follow["structuredContent"]["admission"] in {"committed", "existing"}, follow
+    subscriptions = request(
+        "tools/call",
+        {"name": "subscription.list", "arguments": {"actorRef": "actor:test:rust-mcp"}},
+        14,
+    )
+    assert new_ref in {
+        item["targetRef"] for item in subscriptions["structuredContent"]["subscriptions"]
+    }, subscriptions
+    for i, name, args in (
+        (15, "attention.get", {"actorRef": "actor:test:rust-mcp"}),
+        (16, "attention.delta", {"actorRef": "actor:test:rust-mcp", "afterSequence": 0}),
+        (17, "attention.reentry", {"actorRef": "actor:test:rust-mcp", "afterSequence": 0}),
+    ):
+        response = request("tools/call", {"name": name, "arguments": args}, i)
+        assert response.get("structuredContent"), (name, response)
+    ack = request(
+        "tools/call",
+        {"name": "attention.ack", "arguments": {"actorRef": "actor:test:rust-mcp", "cursor": 0}},
+        18,
+    )
+    assert ack.get("structuredContent"), ack
+    unfollow = request(
+        "tools/call",
+        {"name": "subscription.unfollow", "arguments": {
+            "actorRef": "actor:test:rust-mcp", "targetKind": "work", "targetRef": new_ref
+        }},
+        19,
+    )
+    assert unfollow["structuredContent"]["admission"] in {"committed", "existing"}, unfollow
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"

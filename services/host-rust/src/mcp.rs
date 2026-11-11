@@ -9,6 +9,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use crate::attention::{self, TargetKind};
 use crate::pg::HostPg;
 use crate::work::{self, WorkSnapshot, WorkState};
 
@@ -190,6 +191,103 @@ fn structured(value: Value) -> CallToolResult {
     CallToolResult::structured(value)
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum TargetKindWire {
+    Work,
+    Space,
+    Topic,
+}
+
+impl From<TargetKindWire> for TargetKind {
+    fn from(value: TargetKindWire) -> Self {
+        match value {
+            TargetKindWire::Work => TargetKind::Work,
+            TargetKindWire::Space => TargetKind::Space,
+            TargetKindWire::Topic => TargetKind::Topic,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SubscriptionChangeRequest {
+    pub actor_ref: String,
+    pub target_kind: TargetKindWire,
+    pub target_ref: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SubscriptionListRequest {
+    pub actor_ref: String,
+    #[serde(default)]
+    pub target_kind: Option<TargetKindWire>,
+    #[serde(default)]
+    pub after_target_kind: Option<String>,
+    #[serde(default)]
+    pub after_target_ref: Option<String>,
+    #[serde(default = "subscription_list_limit")]
+    pub limit: i64,
+    #[serde(default = "attention_max_bytes")]
+    pub max_bytes: usize,
+}
+
+const fn subscription_list_limit() -> i64 {
+    200
+}
+const fn attention_limit() -> i64 {
+    100
+}
+const fn attention_max_bytes() -> usize {
+    262_144
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AttentionGetRequest {
+    pub actor_ref: String,
+    #[serde(default = "attention_limit")]
+    pub limit: i64,
+    #[serde(default = "attention_max_bytes")]
+    pub max_bytes: usize,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AttentionDeltaRequest {
+    pub actor_ref: String,
+    pub after_sequence: i64,
+    #[serde(default = "attention_limit")]
+    pub limit: i64,
+    #[serde(default = "attention_max_bytes")]
+    pub max_bytes: usize,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AttentionReentryRequest {
+    pub actor_ref: String,
+    #[serde(default)]
+    pub after_sequence: Option<i64>,
+    #[serde(default = "attention_limit")]
+    pub limit: i64,
+    #[serde(default = "attention_max_bytes")]
+    pub max_bytes: usize,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AttentionAckRequest {
+    pub actor_ref: String,
+    pub cursor: i64,
+}
+
+fn attention_request_id(prefix: &str, payload: &Value) -> Result<String, work::WorkError> {
+    let digest = work::canonical_digest(payload)?;
+    Ok(format!("{prefix}:{}", digest.trim_start_matches("sha256:")))
+}
+
 #[derive(Clone)]
 pub struct HostMcp {
     pg: Arc<HostPg>,
@@ -220,6 +318,181 @@ impl HostMcp {
                 Err(error) => tool_error(error),
             },
             Err(error) => tool_error(error),
+        }
+    }
+
+    #[tool(
+        name = "subscription.follow",
+        description = "Follow a Host Work, Space, or Topic as current desired state."
+    )]
+    async fn subscription_follow(
+        &self,
+        Parameters(request): Parameters<SubscriptionChangeRequest>,
+    ) -> CallToolResult {
+        let payload = json!({"actorRef":request.actor_ref,"targetKind":attention::TargetKind::from(request.target_kind).as_str(),"targetRef":request.target_ref});
+        let id = match attention_request_id("subscription-follow", &payload) {
+            Ok(id) => id,
+            Err(e) => return tool_error(e),
+        };
+        match self
+            .pg
+            .subscription_follow(
+                &request.actor_ref,
+                request.target_kind.into(),
+                &request.target_ref,
+                &id,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => tool_error(e),
+        }
+    }
+
+    #[tool(
+        name = "subscription.unfollow",
+        description = "Remove a current Host subscription without replaying an old desired state."
+    )]
+    async fn subscription_unfollow(
+        &self,
+        Parameters(request): Parameters<SubscriptionChangeRequest>,
+    ) -> CallToolResult {
+        let payload = json!({"actorRef":request.actor_ref,"targetKind":TargetKind::from(request.target_kind).as_str(),"targetRef":request.target_ref});
+        let id = match attention_request_id("subscription-unfollow", &payload) {
+            Ok(id) => id,
+            Err(e) => return tool_error(e),
+        };
+        match self
+            .pg
+            .subscription_unfollow(
+                &request.actor_ref,
+                request.target_kind.into(),
+                &request.target_ref,
+                &id,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => tool_error(e),
+        }
+    }
+
+    #[tool(
+        name = "subscription.list",
+        description = "Bounded read-only subscriptions with stable cursor pagination."
+    )]
+    async fn subscription_list(
+        &self,
+        Parameters(request): Parameters<SubscriptionListRequest>,
+    ) -> CallToolResult {
+        let after = match (
+            request.after_target_kind.as_deref(),
+            request.after_target_ref.as_deref(),
+        ) {
+            (None, None) => None,
+            (Some(k), Some(r)) => Some((k, r)),
+            _ => return tool_error("afterTargetKind and afterTargetRef must be supplied together"),
+        };
+        match self
+            .pg
+            .subscription_list(
+                &request.actor_ref,
+                request.target_kind.map(TargetKind::from),
+                after,
+                request.limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => tool_error(e),
+        }
+    }
+
+    #[tool(
+        name = "attention.get",
+        description = "Read a bounded current-state Attention delta from this actor's acknowledged cursor."
+    )]
+    async fn attention_get(
+        &self,
+        Parameters(request): Parameters<AttentionGetRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .attention_get(&request.actor_ref, request.limit, request.max_bytes)
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => tool_error(e),
+        }
+    }
+
+    #[tool(
+        name = "attention.delta",
+        description = "Read an ordered bounded Attention delta from one snapshot."
+    )]
+    async fn attention_delta(
+        &self,
+        Parameters(request): Parameters<AttentionDeltaRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .attention_delta(
+                &request.actor_ref,
+                request.after_sequence,
+                request.limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => tool_error(e),
+        }
+    }
+
+    #[tool(
+        name = "attention.reentry",
+        description = "Read grouped navigation from a bounded Attention snapshot."
+    )]
+    async fn attention_reentry(
+        &self,
+        Parameters(request): Parameters<AttentionReentryRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .attention_reentry(
+                &request.actor_ref,
+                request.after_sequence,
+                request.limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => tool_error(e),
+        }
+    }
+
+    #[tool(
+        name = "attention.ack",
+        description = "Acknowledge a monotone Attention cursor after the consumer has processed its page."
+    )]
+    async fn attention_ack(
+        &self,
+        Parameters(request): Parameters<AttentionAckRequest>,
+    ) -> CallToolResult {
+        let payload = json!({"actorRef":request.actor_ref,"cursor":request.cursor});
+        let id = match attention_request_id("attention-ack", &payload) {
+            Ok(id) => id,
+            Err(e) => return tool_error(e),
+        };
+        match self
+            .pg
+            .attention_ack(&request.actor_ref, request.cursor, &id)
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => tool_error(e),
         }
     }
 
@@ -351,7 +624,14 @@ mod tests {
         assert_eq!(
             names,
             vec![
+                "attention.ack",
+                "attention.delta",
+                "attention.get",
+                "attention.reentry",
                 "host.status",
+                "subscription.follow",
+                "subscription.list",
+                "subscription.unfollow",
                 "work.create",
                 "work.get",
                 "work.list",
