@@ -521,7 +521,10 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         "execution.get",
                         {"operationRef": north_ref, "waitMs": 1500},
                     )
-                    assert not got.is_error
+                    assert not got.is_error, (
+                        "Owner job.observe refused current native Job: "
+                        f"{got.structured_content}"
+                    )
                     if got.structured_content["terminal"]:
                         break
                 assert got.structured_content["terminal"]

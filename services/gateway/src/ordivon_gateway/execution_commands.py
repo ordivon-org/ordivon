@@ -83,8 +83,8 @@ class ExecutionCommandMethods:
             ("stderrLimitBytes", stderr_limit_bytes),
         ):
             if value is not None:
-                if type(value) is not int or value <= 0:
-                    raise GatewayError(f"{field} must be a positive JSON integer")
+                if type(value) is not int or not 1 <= value <= 2**64 - 1:
+                    raise GatewayError(f"{field} must be a positive JSON integer within u64")
                 execution[field] = value
         if authority_references is not None:
             if any(not isinstance(item, dict) for item in authority_references):

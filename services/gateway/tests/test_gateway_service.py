@@ -232,7 +232,7 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
 
 
 @pytest.mark.parametrize("field", ("stdout_limit_bytes", "stderr_limit_bytes"))
-@pytest.mark.parametrize("invalid", (0, -1, True, 1.0, "1048576"))
+@pytest.mark.parametrize("invalid", (0, -1, True, 1.0, "1048576", 2**65))
 def test_execution_output_limit_invalid_must_fail_before_owner_call(
     field: str, invalid: object
 ) -> None:
