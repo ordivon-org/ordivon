@@ -86,5 +86,108 @@ class FinanceR3AgentBBoundaryTests(unittest.TestCase):
         self.assertNotEqual(execution_nav, theoretical_close_to_close_nav)
 
 
+
+class _NativeEvent:
+    def __init__(self, record: dict):
+        self.record = record
+
+    def to_dict(self):
+        return deepcopy(self.record)
+
+
+class OrderFilled(_NativeEvent):
+    pass
+
+
+class OrderInitialized(_NativeEvent):
+    pass
+
+
+class _NativeOrder:
+    def __init__(self, client_id, events):
+        self.client_order_id = client_id
+        self._events = events
+
+    def events(self):
+        return self._events
+
+
+class _NativeCache:
+    def __init__(self, orders):
+        self._orders = orders
+
+    def orders(self):
+        return self._orders
+
+
+class _NativeNode:
+    def __init__(self, scenario, native_orders=None):
+        self.scenario = scenario
+        self._orders = native_orders if native_orders is not None else [
+            _NativeOrder("C-1", [
+                OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-1"}),
+                OrderFilled(scenario["order_events"][0]),
+            ])
+        ]
+
+    def generate_orders_report(self, config_id):
+        if config_id != "RUN-1":
+            raise KeyError("unknown native run")
+        return self.scenario["orders"]
+
+    def generate_fills_report(self, config_id):
+        if config_id != "RUN-1":
+            raise KeyError("unknown native run")
+        return self.scenario["fills"]
+
+    def get_engine_cache(self, config_id):
+        if config_id != "RUN-1":
+            raise KeyError("unknown native run")
+        return _NativeCache(self._orders)
+
+
+class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
+    def test_retained_native_run_can_witness_next_open_paper(self):
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        node = _NativeNode(e)
+        args = {key: value for key, value in e.items() if key not in ("orders", "fills", "order_events")}
+        result = next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+        self.assertEqual(result.buys[0].fill_id, "nautilus-paper:A-001:T-1")
+        self.assertEqual(result.buys[0].cost_minor, 100012)
+
+    def test_report_cannot_drop_an_order_retained_in_native_cache(self):
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        node = _NativeNode(e)
+        node._orders.append(_NativeOrder("C-2", [
+            OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-2"}),
+        ]))
+        args = {key: value for key, value in e.items() if key not in ("orders", "fills", "order_events")}
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "inventories disagree"):
+            next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+
+    def test_incomplete_event_history_and_disposed_engine_fail_closed(self):
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        args = {key: value for key, value in e.items() if key not in ("orders", "fills", "order_events")}
+        node = _NativeNode(e)
+        node._orders[0]._events.pop()
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "event history"):
+            next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+        node._orders.clear()
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "empty native cache"):
+            next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+
+    def test_native_event_is_proven_to_belong_to_cached_order(self):
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        node = _NativeNode(e)
+        node._orders[0]._events[1].record["client_order_id"] = "C-OTHER"
+        args = {key: value for key, value in e.items() if key not in ("orders", "fills", "order_events")}
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "different cached order"):
+            next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+
+
 if __name__ == "__main__":
     unittest.main()

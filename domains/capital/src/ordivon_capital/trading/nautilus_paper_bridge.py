@@ -271,3 +271,92 @@ def next_open_paper_session(
         reserve_contribution_minor=reserve_contribution_minor,
         marks=dict(marks_minor), buys=tuple(buys), sells=tuple(sells),
     )
+
+
+def next_open_native_paper_session(
+    *,
+    node: Any,
+    run_config_id: Any,
+    session: date,
+    previous_session: date,
+    expected_account_id: str,
+    opens_at: datetime,
+    previous_close_at: datetime,
+    settlement_date: date,
+    decisions_by_order: Mapping[str, datetime],
+    instrument_symbols: Mapping[str, str],
+    marks_minor: Mapping[str, int],
+    contribution_minor: int = 0,
+    reserve_contribution_minor: int = 0,
+) -> PaperSession:
+    """Consume reports and the complete *retained native engine-cache* order history.
+
+    Reports and order events are read from the same BacktestNode/run_config_id
+    rather than accepted as independently caller-filtered collections. Engine
+    state must be retained with dispose_on_completion=False. This witnesses only
+    the current simulated engine cache; it does NOT attest external venue
+    completeness, data availability, model validity, or PG account authorization.
+    """
+    try:
+        orders_report = node.generate_orders_report(run_config_id)
+        fills_report = node.generate_fills_report(run_config_id)
+        cache = node.get_engine_cache(run_config_id)
+        cached_orders = cache.orders()
+    except (AttributeError, KeyError, LookupError, ValueError, TypeError) as exc:
+        raise NautilusPaperBridgeError("native run reports and engine cache unavailable") from exc
+
+    orders = _report_rows(orders_report, "native orders")
+    fills = _report_rows(fills_report, "native fills")
+    if not cached_orders or not orders:
+        # An empty disposed engine looks like a valid zero-order run; do not
+        # silently promote that absence to evidence of no execution.
+        raise NautilusPaperBridgeError("empty native cache cannot witness order history")
+
+    cached_ids: set[str] = set()
+    native_events: list[Mapping[str, Any]] = []
+    for native_order in cached_orders:
+        client_id = str(getattr(native_order, "client_order_id", ""))
+        if not client_id or client_id in cached_ids:
+            raise NautilusPaperBridgeError("native cache has empty or duplicate order identity")
+        cached_ids.add(client_id)
+        try:
+            events = native_order.events()
+        except (AttributeError, ValueError, TypeError) as exc:
+            raise NautilusPaperBridgeError("native order event history unavailable") from exc
+        if not events:
+            raise NautilusPaperBridgeError("native order has no events")
+        for event in events:
+            try:
+                record = event.to_dict()
+            except (AttributeError, ValueError, TypeError) as exc:
+                raise NautilusPaperBridgeError("native order event projection unavailable") from exc
+            if not isinstance(record, Mapping):
+                raise NautilusPaperBridgeError("native event must project to a mapping")
+            if _required(record, "type") != type(event).__name__:
+                raise NautilusPaperBridgeError("native event type and runtime object disagree")
+            if _required(record, "client_order_id") != client_id:
+                raise NautilusPaperBridgeError("native event belongs to a different cached order")
+            native_events.append(record)
+
+    report_ids = [_required(order, "client_order_id") for order in orders]
+    if len(report_ids) != len(set(report_ids)) or set(report_ids) != cached_ids:
+        raise NautilusPaperBridgeError("native report and cache order inventories disagree")
+    # Every report fill and every cached OrderFilled must agree in the base bridge.
+    # It also rejects native correction/void events, off-open executions,
+    # fractional shares, unsupported money and mixed account scopes.
+    return next_open_paper_session(
+        session=session,
+        previous_session=previous_session,
+        expected_account_id=expected_account_id,
+        opens_at=opens_at,
+        previous_close_at=previous_close_at,
+        settlement_date=settlement_date,
+        orders=orders,
+        decisions_by_order=decisions_by_order,
+        fills=fills,
+        order_events=native_events,
+        instrument_symbols=instrument_symbols,
+        marks_minor=marks_minor,
+        contribution_minor=contribution_minor,
+        reserve_contribution_minor=reserve_contribution_minor,
+    )
