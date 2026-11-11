@@ -22,6 +22,7 @@ def episode():
         "session": SESSION,
         "previous_session": PREV,
         "opens_at": OPEN,
+        "previous_close_at": datetime(2026, 11, 9, 21, 0, tzinfo=UTC),
         "settlement_date": date(2026, 11, 12),
         "orders": [{
             "client_order_id": "C-1", "account_id": "A-001",
@@ -152,6 +153,12 @@ class NautilusPaperBridgeTests(unittest.TestCase):
         e["orders"][0]["ts_init"] = OPEN
         day = next_open_paper_session(**e)
         self.assertEqual(day.buys[0].decided_at, ORDER_AT)
+
+    def test_previous_close_data_cannot_drive_preclose_investment_decision(self):
+        e = episode()
+        e["decisions_by_order"]["C-1"] = datetime(2026, 11, 9, 18, 0, tzinfo=UTC)
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "scope"):
+            next_open_paper_session(**e)
 
     def test_missing_or_future_investment_decision_fails(self):
         e = episode()

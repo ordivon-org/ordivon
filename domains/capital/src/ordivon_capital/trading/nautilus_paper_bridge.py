@@ -103,6 +103,7 @@ def next_open_paper_session(
     session: date,
     previous_session: date,
     opens_at: datetime,
+    previous_close_at: datetime,
     settlement_date: date,
     orders: Sequence[Mapping[str, Any]],
     decisions_by_order: Mapping[str, datetime],
@@ -129,6 +130,9 @@ def next_open_paper_session(
     if type(settlement_date) is not date or settlement_date <= session:
         raise NautilusPaperBridgeError("settlement must follow trade session")
     opening = _instant(opens_at, "opens_at")
+    prior_close = _instant(previous_close_at, "previous_close_at")
+    if (prior_close.astimezone(_NY).date() != previous_session or prior_close >= opening):
+        raise NautilusPaperBridgeError("previous close must precede next session open")
     if opening.astimezone(_NY).date() != session:
         raise NautilusPaperBridgeError("open instant must belong to trade session")
     if order_events is None:
@@ -194,7 +198,8 @@ def next_open_paper_session(
         if client_id not in decisions_by_order:
             raise NautilusPaperBridgeError("missing upstream investment decision time")
         decision_time = _instant(decisions_by_order[client_id], "decision_at")
-        if (fill_time != opening or decision_time > order_init or order_init > fill_time
+        if (fill_time != opening or decision_time < prior_close
+            or decision_time > order_init or order_init > fill_time
             or decision_time.astimezone(_NY).date() != previous_session):
             raise NautilusPaperBridgeError("outside prior-session-decision/next-open fill scope")
         side = _required(row, "order_side")
