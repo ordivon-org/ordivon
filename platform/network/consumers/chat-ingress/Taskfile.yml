@@ -74,29 +74,47 @@ tasks:
     cmds:
       - /usr/local/libexec/network-v2/chat-ingress-ready
 
+  consumer:chat-ingress:process-fresh:
+    desc: Observe native running process/config creation order independently of installed SourceCut
+    cmds:
+      - python3 scripts/native-sourcecut.py --unit-process-file network-v2-chat-ingress-proxy.service /etc/network-v2/chat-ingress/sing-box.json /usr/bin/sing-box '["run","-c"]'
+
   consumer:chat-ingress:converge:
-    desc: Start on MATCH, materialize/restart only on proved local DRIFT, then verify real client traffic
+    desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
       - task: consumer:chat-ingress:validate
       - |
-        verdict="$(task --silent consumer:chat-ingress:classify)" || {
+        set -eu
+        source_state="$(task --silent consumer:chat-ingress:classify)" || {
           echo 'chat-ingress SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
         }
-        case "$verdict" in
-          MATCH)
+        process_state="$(task --silent consumer:chat-ingress:process-fresh)" || {
+          echo 'chat-ingress running generation UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        case "$source_state/$process_state" in
+          MATCH/MATCH)
             systemctl start network-v2-chat-ingress.target
             ;;
-          DRIFT)
+          MATCH/DRIFT)
+            # Already-installed source was not consumed after an interrupted
+            # previous release: restart only this owner's units, never VPN.
+            systemctl restart network-v2-chat-ingress.target
+            ;;
+          DRIFT/MATCH|DRIFT/DRIFT)
             task --silent consumer:chat-ingress:materialize
             task --silent consumer:chat-ingress:sourcecut
             systemctl restart network-v2-chat-ingress.target
             ;;
           *)
-            echo 'chat-ingress SourceCut invalid: refusing converge effects' >&2
+            echo 'chat-ingress SourceCut/process admission unknown: refusing converge effects' >&2
             exit 2
             ;;
         esac
+        systemctl is-active --quiet network-v2-chat-ingress-proxy.service
+        task --silent consumer:chat-ingress:sourcecut
+        test "$(task --silent consumer:chat-ingress:process-fresh)" = MATCH
       - task: consumer:chat-ingress:verify
 
   consumer:chat-ingress:verify:

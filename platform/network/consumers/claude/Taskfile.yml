@@ -87,31 +87,50 @@ tasks:
     cmds:
       - /usr/local/libexec/network-v2/claude-ready
 
+  consumer:claude:process-fresh:
+    desc: Observe native running process/config creation order independently of installed SourceCut
+    cmds:
+      - python3 scripts/native-sourcecut.py --unit-process-file network-v2-claude-proxy.service /etc/network-v2/claude/sing-box.json /usr/bin/sing-box '["run","-c"]'
+
   consumer:claude:converge:
-    desc: Observe, materialize only on proven DRIFT, start on MATCH and separately verify the consumer
+    desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
       - task: consumer:claude:validate
       - |
-        verdict="$(task --silent consumer:claude:classify)" || {
+        set -eu
+        source_state="$(task --silent consumer:claude:classify)" || {
           echo 'claude SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
         }
-        case "$verdict" in
-          MATCH)
+        process_state="$(task --silent consumer:claude:process-fresh)" || {
+          echo 'claude running generation UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        case "$source_state/$process_state" in
+          MATCH/MATCH)
             systemctl start network-v2-claude.target
             systemctl start network-v2-claude-client.target
             ;;
-          DRIFT)
+          MATCH/DRIFT)
+            # Already-installed source was not consumed after an interrupted
+            # previous release: restart only this owner's units, never VPN.
+            systemctl restart network-v2-claude.target
+            systemctl restart network-v2-claude-client.target
+            ;;
+          DRIFT/MATCH|DRIFT/DRIFT)
             task --silent consumer:claude:materialize
             task --silent consumer:claude:sourcecut
             systemctl restart network-v2-claude.target
             systemctl restart network-v2-claude-client.target
             ;;
           *)
-            echo 'claude SourceCut invalid: refusing converge effects' >&2
+            echo 'claude SourceCut/process admission unknown: refusing converge effects' >&2
             exit 2
             ;;
         esac
+        systemctl is-active --quiet network-v2-claude-proxy.service
+        task --silent consumer:claude:sourcecut
+        test "$(task --silent consumer:claude:process-fresh)" = MATCH
       - task: consumer:claude:verify
 
   consumer:claude:verify:

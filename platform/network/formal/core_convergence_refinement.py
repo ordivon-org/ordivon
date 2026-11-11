@@ -123,10 +123,26 @@ def admit_implementation() -> dict:
         assert ":materialize" not in before_cmds, owner
         if "install -" in materialize:
             assert materialize.index("task --silent " + owner + ":classify") < materialize.index("install -"), owner
-        assert "case \"$verdict\" in" in consumer_converge, owner
-        assert "MATCH)" in consumer_converge and "DRIFT)" in consumer_converge, owner
-        match_branch = consumer_converge.split("MATCH)", 1)[1].split("DRIFT)", 1)[0]
-        assert "systemctl restart " not in match_branch and "install -" not in match_branch, owner
+        if subdir != "browserless":
+            assert 'case "$source_state/$process_state" in' in consumer_converge, owner
+            assert "MATCH/MATCH)" in consumer_converge, owner
+            assert "MATCH/DRIFT)" in consumer_converge, owner
+            assert "DRIFT/MATCH|DRIFT/DRIFT)" in consumer_converge, owner
+            match_branch = consumer_converge.split("MATCH/MATCH)", 1)[1].split(
+                "MATCH/DRIFT)", 1)[0]
+            assert "systemctl restart " not in match_branch, owner
+            running = section(other, owner + ":process-fresh")
+            assert "--unit-process-file " in running, owner
+            assert '/usr/bin/sing-box \'["run","-c"]\'' in running, owner
+            assert "scripts/native-sourcecut.py" in running, owner
+            assert "task --silent " + owner + ":process-fresh" in consumer_converge, owner
+            assert "systemctl is-active --quiet network-v2-" in consumer_converge, owner
+        else:
+            assert 'case "$verdict" in' in consumer_converge, owner
+            assert "MATCH)" in consumer_converge and "DRIFT)" in consumer_converge, owner
+            match_branch = consumer_converge.split("MATCH)", 1)[1].split(
+                "DRIFT)", 1)[0]
+            assert "systemctl restart " not in match_branch, owner
         assert "task --silent " + owner + ":sourcecut" in consumer_converge, owner
         assert "task --silent " + owner + ":materialize" in consumer_converge, owner
         if subdir == "browserless":
@@ -146,6 +162,20 @@ def admit_implementation() -> dict:
         original = (ROOT / "consumers" / subdir / "Taskfile.yml").read_text()
         for label in preserved:
             assert "  consumer:" + subdir + ":" + label + ":\n" in original
+    # A Target restart is NOT a child service restart without PartOf=.
+    # Source must explicitly bind each static sing-box child to its target.
+    for name, unit in (
+        ("claude", "network-v2-claude-proxy.service"),
+        ("finance", "network-v2-finance-egress.service"),
+        ("supply-chain", "network-v2-supply-chain-egress.service"),
+        ("x-reality", "network-v2-x-reality-egress.service"),
+        ("chat-ingress", "network-v2-chat-ingress-proxy.service"),
+    ):
+        service = (ROOT / "consumers" / name / "systemd" / unit).read_text()
+        assert "Type=simple" in service, name
+        assert "ExecStart=/usr/bin/sing-box run -c " in service, name
+        assert "PartOf=network-v2-" + name + ".target" in service, name
+
     assert "systemctl restart network-v2-r0.target" in install  # only on actual drift
     assert "task: core:install" in activation
     assert "systemctl start network-v2-r0.target" in activation
@@ -157,6 +187,8 @@ def admit_implementation() -> dict:
     assert [converge.index(step) for step in steps] == sorted(converge.index(step) for step in steps)
     return {"localCompareCalls": classifier.count("compare "), "consumerCount": 3 + len(r11_owners),
              "r11ConsumerOwners": [owner for _, owner in r11_owners],
+             "r12ProcessGenerationConsumers": [owner for subdir, owner in r11_owners
+                 if subdir != "browserless"],
             "convergeSteps": list(steps)}
 
 
@@ -225,6 +257,42 @@ def prove() -> dict:
     bad.add(admissible, local == MATCH, shared == UNKNOWN, bad_composition)
     assert bad.check() == z3.sat
 
+    # R12 two-axis source/installed versus process-generation selection.
+    # The process axis binds systemd main PID, real executable inode and exact
+    # argv run -c CONFIG, plus birth order relative to config ctime/mtime.
+    # It remains a creation-order witness, NOT an in-memory policy digest.
+    installed, running = z3.Ints("r12_installed r12_running")
+    allowed = z3.And(
+        z3.Or(installed == MATCH, installed == DRIFT, installed == UNKNOWN),
+        z3.Or(running == MATCH, running == DRIFT, running == UNKNOWN),
+    )
+    qualified = z3.And(installed != UNKNOWN, running != UNKNOWN)
+    install_r12 = z3.And(qualified, installed == DRIFT)
+    restart_r12 = z3.And(qualified, z3.Or(installed == DRIFT, running == DRIFT))
+    start_r12 = z3.And(qualified, installed == MATCH, running == MATCH)
+    loaded_claims = {
+        "loaded_stale_with_installed_match_restarts_without_reinstall": z3.Implies(
+            z3.And(installed == MATCH, running == DRIFT),
+            z3.And(restart_r12, z3.Not(install_r12), z3.Not(start_r12))),
+        "both_match_never_reinstall_or_restart": z3.Implies(
+            z3.And(installed == MATCH, running == MATCH),
+            z3.And(start_r12, z3.Not(restart_r12), z3.Not(install_r12))),
+        "file_drift_requires_reinstall_and_owner_restart": z3.Implies(
+            z3.And(installed == DRIFT, running != UNKNOWN),
+            z3.And(install_r12, restart_r12)),
+        "any_unknown_blocks_owner_effects": z3.Implies(
+            z3.Or(installed == UNKNOWN, running == UNKNOWN),
+            z3.And(z3.Not(install_r12), z3.Not(restart_r12), z3.Not(start_r12))),
+    }
+    for label, claim in loaded_claims.items():
+        solver = z3.Solver()
+        solver.add(allowed, z3.Not(claim))
+        assert solver.check() == z3.unsat, "process generation proof failed: " + label
+    historical = z3.Solver()
+    historical.add(allowed, installed == MATCH, running == DRIFT,
+                   z3.Not(installed == DRIFT))  # R11 lost restart after crash
+    assert historical.check() == z3.sat
+
     # Actual historical bug: Boolean Task status conflated any nonzero
     # observation (including UNKNOWN) with DRIFT and admitted writes.
     legacy_install = sourcecut != MATCH
@@ -241,11 +309,12 @@ def prove() -> dict:
         "kind": "ordivon.network.core-sourcecut-convergence-proof",
         "standing": "SOURCE_BOUND_SYMBOLIC_SELECTION_PROVED",
         "z3Version": z3.get_version_string(),
-        "provedProperties": list(statements) + list(composition_claims),
+        "provedProperties": list(statements) + list(composition_claims) + list(loaded_claims),
         "negativeControls": [
             "Boolean SourceCut fail means install even when observation UNKNOWN",
             "external endpoint failure triggers legacy installer with matching SourceCut",
             "Boolean composition permits installation when shared SourceCut is UNKNOWN",
+            "Post-install/pre-restart crash leaves source MATCH but running old",
         ],
         "sourceAdmission": admission,
         "sourcecutStates": ["MATCH", "DRIFT", "UNKNOWN"],
