@@ -299,7 +299,25 @@ impl PgRuntime {
             created_at_ms: now()?,
             expected_source_sha256: self.config.source_sha256.clone(),
         };
-        let job = match db.admit(&input).map_err(pg)? {
+        // Planning is intentionally outside the coarse PG admission lock:
+        // Git/source hashing is potentially expensive. The exact Workspace
+        // lifetime identity MUST nonetheless be rebound after acquiring the
+        // same global lock as workspace.close/open/mutate, before INSERT jobs.
+        // The native Runner separately verifies frozen source/readset bytes
+        // before physical execution; this cheap fence prevents an orphaned
+        // durable Job when the Workspace was closed or replaced meanwhile.
+        let workspace_guard = || {
+            let current = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
+                .map_err(|_| PgAdmissionError::WorkspaceStale)?;
+            if current != record {
+                return Err(PgAdmissionError::WorkspaceStale);
+            }
+            Ok(())
+        };
+        let job = match db
+            .admit_with_workspace_guard(&input, &workspace_guard)
+            .map_err(pg)?
+        {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,
         };
         let _ = self.schedule_pending_jobs();

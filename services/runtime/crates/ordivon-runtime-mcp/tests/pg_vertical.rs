@@ -1393,6 +1393,183 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     eprintln!("real PostgreSQL + HTTP MCP verified; native initial launch outcome: {exec}");
 }
 
+/// A real native MCP process can snapshot a Git Workspace before entering PG
+/// admission, while another MCP process closes the Workspace in between.
+/// The Git wrapper pauses AFTER the last source-state Git ls-files --others
+/// finishes, so it does not fake source contents or alter the git operation.
+/// Only the exact PG admission linearization guard can prevent an orphaned Job.
+#[test]
+#[ignore = "launches disposable PostgreSQL18, two native HTTP MCP services and real Git"]
+fn fresh_pg_mcp_run_rejects_workspace_closed_after_source_plan_before_admit() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let normal_endpoint = fixture.endpoint();
+    let id = format!("ws-prelock-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &normal_endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":id,
+            "sourceRepo":repo,
+            "sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    let shim_dir = fixture.root.join("shim");
+    let barrier = fixture.root.join("prelock_barrier");
+    fs::create_dir_all(&shim_dir).unwrap();
+    fs::create_dir_all(&barrier).unwrap();
+    // A second MCP process alone inherits this PATH; the normal MCP and Git
+    // close operation continue to use the actual installed git executable.
+    let shim = shim_dir.join("git");
+    fs::write(
+        &shim,
+        r#"#!/bin/sh
+printf '%s\n' "$*" >> "$ORDIVON_TEST_GIT_BARRIER/invocations"
+if [ "$4" = "ls-files" ] && [ "$5" = "--others" ]; then
+    /usr/bin/git "$@" > "$ORDIVON_TEST_GIT_BARRIER/real-git-output"
+    result=$?
+    if [ "$result" -ne 0 ]; then exit "$result"; fi
+    : > "$ORDIVON_TEST_GIT_BARRIER/entered"
+    n=0
+    while [ ! -f "$ORDIVON_TEST_GIT_BARRIER/release" ]; do
+      if [ "$n" -gt 300 ]; then exit 73; fi
+      n=$((n + 1))
+      sleep 0.05
+    done
+    cat "$ORDIVON_TEST_GIT_BARRIER/real-git-output"
+    exit 0
+fi
+exec /usr/bin/git "$@"
+"#,
+    )
+    .unwrap();
+    fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(listener);
+    let runner = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("ordivon-runtime-runner");
+    assert!(runner.is_file(), "native Runner binary required");
+    let path = format!("{}:{}", shim_dir.display(), std::env::var("PATH").unwrap());
+    let log = fs::File::create(fixture.root.join("barrier-endpoint.log")).unwrap();
+    let child = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"))
+        .env(
+            "ORDIVON_PG_DSN",
+            format!(
+                "host={} user=runtime_app dbname=postgres",
+                fixture.root.display()
+            ),
+        )
+        .env("ORDIVON_PG_SCHEMA", "fresh")
+        .env("ORDIVON_PG_SOURCE_SHA256", "a".repeat(64))
+        .env("ORDIVON_PG_STORE_ROOT", fixture.root.join("store"))
+        .env("ORDIVON_PG_RUNNER", runner)
+        .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
+        .env("ORDIVON_PG_BIND", addr.to_string())
+        .env("ORDIVON_PG_TOKEN", "p".repeat(32))
+        .env("ORDIVON_PG_PRINCIPAL", "pg-consumer")
+        .env("ORDIVON_TEST_GIT_BARRIER", &barrier)
+        .env("PATH", path)
+        .stdout(Stdio::null())
+        .stderr(log)
+        .spawn()
+        .unwrap();
+    struct EndpointGuard(Child);
+    impl Drop for EndpointGuard {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let _endpoint_guard = EndpointGuard(child);
+    let deadline = Instant::now() + Duration::from_secs(12);
+    while std::net::TcpStream::connect(addr).is_err() {
+        assert!(
+            Instant::now() < deadline,
+            "2nd native MCP service failed to start: {}",
+            fs::read_to_string(fixture.root.join("barrier-endpoint.log")).unwrap()
+        );
+        thread::sleep(Duration::from_millis(25));
+    }
+    let isolated_endpoint = format!("http://{addr}/mcp");
+    let request_id = format!("pg-source-prelock-{}", Uuid::now_v7());
+    let id_for_job = id.clone();
+    let thread = thread::spawn(move || {
+        call(
+            &isolated_endpoint,
+            "workspace.exec",
+            json!({
+                "clientRequestId":request_id,
+                "execution":{
+                    "workspaceId":id_for_job,"cwdRelative":".",
+                    "executable":"/usr/bin/true","args":[],
+                    "timeoutMs":10000
+                },
+                "waitMs":0
+            }),
+        )
+    });
+    let entered = barrier.join("entered");
+    let wait_until = Instant::now() + Duration::from_secs(12);
+    while !entered.exists() {
+        if thread.is_finished() {
+            panic!(
+                "Job finished before physical source barrier: {}; shim invocations: {}",
+                thread.join().unwrap(),
+                fs::read_to_string(barrier.join("invocations")).unwrap_or_default()
+            );
+        }
+        assert!(
+            Instant::now() < wait_until,
+            "Job did not reach Git barrier: {}\nShim invocations: {}",
+            fs::read_to_string(fixture.root.join("barrier-endpoint.log")).unwrap(),
+            fs::read_to_string(barrier.join("invocations")).unwrap_or_default()
+        );
+        thread::sleep(Duration::from_millis(25));
+    }
+
+    let closed = call(
+        &normal_endpoint,
+        "workspace.close",
+        json!({
+            "workspaceId":id,"consumerReleased":true
+        }),
+    );
+    assert_ne!(
+        closed["isError"], true,
+        "close must be physically permitted before the Job obtains PG admission: {closed}"
+    );
+    assert_eq!(closed["structuredContent"]["removed"], true, "{closed}");
+    // The historical plan's complete Git observations are now returned, and
+    // control proceeds to its actual PostgreSQL admission stage.
+    fs::write(barrier.join("release"), b"resume").unwrap();
+    let result = thread.join().unwrap();
+    let count: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM jobs WHERE workspace_id=$1", &[&id])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        count, 0,
+        "Job must not be durably admitted for the physically closed Workspace; result={result}"
+    );
+    assert_eq!(
+        result["isError"], true,
+        "closed Workspace must fail admission: {result}"
+    );
+    assert!(
+        result.to_string().contains("WORKSPACE_STATE_MISMATCH"),
+        "post-lock physical identity mismatch needs exact error, not a successful launch: {result}"
+    );
+}
+
 /// End-to-end native PostgreSQL application regression for the lock/snapshot
 /// boundary: a real PgAdmissionStore.admit() transaction is queued AHEAD of
 /// Workspace.close() while a third session holds the shared global advisory
