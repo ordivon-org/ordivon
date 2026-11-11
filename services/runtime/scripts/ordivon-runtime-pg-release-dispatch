@@ -18,6 +18,24 @@ import ordivon_runtime_pg_operator as operator
 
 _SAFE_SERVICE = re.compile(r"^ordivon-[A-Za-z0-9-]+[.]service$")
 
+# A PG Runtime release always publishes BOTH native executable consumers.
+# Reject subsets before connecting to PostgreSQL or issuing a dispatch:
+# a qualified PG MainPID without the actual Runner is not a release.
+_REQUIRED_NATIVE_BINARIES = frozenset({
+    "ordivon-runtime-pg", "ordivon-runtime-runner",
+})
+
+
+def require_complete_native_binary_set(binaries: object) -> None:
+    if (
+        not isinstance(binaries, list)
+        or len(binaries) != len(_REQUIRED_NATIVE_BINARIES)
+        or not all(isinstance(name, str) for name in binaries)
+        or set(binaries) != _REQUIRED_NATIVE_BINARIES
+    ):
+        raise RuntimeError("complete native PG and Runner release binary set required")
+
+
 
 def load_owner_config(path: Path) -> dict[str, object]:
     if not path.is_absolute() or path.is_symlink() or not path.is_file():
@@ -38,13 +56,7 @@ def load_owner_config(path: Path) -> dict[str, object]:
             raise RuntimeError(f"invalid independently configured {name}")
     if not _SAFE_SERVICE.fullmatch(value["service"]):
         raise RuntimeError("operator service is not a safe systemd name")
-    if not isinstance(value["binaries"], list) or not value["binaries"]:
-        raise RuntimeError("qualified artifact list required")
-    if not all(
-        isinstance(binary, str) and binary in {"ordivon-runtime-pg", "ordivon-runtime-runner"}
-        for binary in value["binaries"]
-    ):
-        raise RuntimeError("unexpected PG release binary")
+    require_complete_native_binary_set(value["binaries"])
     if not isinstance(value["requiredTools"], list) or not all(
         isinstance(tool, str) and tool in {"runtime.describe", "job.observe", "release.get", "release.apply"}
         for tool in value["requiredTools"]
@@ -60,6 +72,7 @@ def release_effect_to_args(
 ) -> argparse.Namespace:
     # The selected row is the durable intent identity, not an agent-supplied
     # filesystem path or service name. All host authority is operator-owned.
+    require_complete_native_binary_set(config["binaries"])
     commit = operator.qualify(row["commit_revision"], operator.COMMIT, "release commit")
     effect = operator.qualify(row["effect_id"], operator.EFFECT, "effect ID")
     candidate = config["sourceRepo"] / "target" / "ordivon-release-candidates" / commit / "release"
@@ -93,6 +106,8 @@ def release_effect_to_args(
 
 
 def sweep(config: dict[str, object]) -> int:
+    # This importable native entry must not bypass main()'s file qualification.
+    require_complete_native_binary_set(config["binaries"])
     dsn = os.environ.get("ORDIVON_PG_RELEASE_OPERATOR_DSN", "")
     if not dsn:
         raise RuntimeError("independent PG operator DSN is unavailable")
