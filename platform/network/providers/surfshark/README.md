@@ -29,3 +29,12 @@ history if an investigation actually requires it. No Network application
 consumer may instantiate the shared provider WireGuard private key in a
 second simultaneous session. Finance, Claude, Supply Chain and Codex own
 their own destination policies but share the one admitted carrier.
+
+## Read-only live exit catalog discovery
+
+The existing provider:gluetun:eligible-exits Task enumerates the running
+Gluetun Surfshark WireGuard server catalog, excluding Japan and South Korea,
+without changing the physical session or maintaining a second catalog.
+It includes the catalog timestamp so an old snapshot cannot be mistaken for
+real-time reachable alternatives. Country choices are still governed by the
+Gluetun native selector and must pass loaded-profile and consumer verification.
