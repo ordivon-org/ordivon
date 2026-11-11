@@ -41,6 +41,92 @@ def test_official_client_reads_private_bearer_at_call_time(tmp_path):
         client._request_headers()
 
 
+def test_official_client_lists_all_mcp_tool_pages(monkeypatch):
+    """MCP 2.3.0 Client.list_tools() returns only one pagination page."""
+    from types import SimpleNamespace
+
+    seen = []
+
+    class FakeTool:
+        def __init__(self, name):
+            self.name = name
+
+        def model_dump(self, **kwargs):
+            return {"name": self.name, "inputSchema": {"type": "object"}}
+
+    class HTTP:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+    class MCPClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def list_tools(self, *, cursor=None):
+            seen.append(cursor)
+            if cursor is None:
+                return SimpleNamespace(tools=(FakeTool("system.describe"),), next_cursor="next")
+            assert cursor == "next"
+            return SimpleNamespace(tools=(FakeTool("capability.describe"),), next_cursor=None)
+
+    monkeypatch.setattr(
+        OfficialMcpClient,
+        "_sdk",
+        staticmethod(lambda: (MCPClient, lambda **kwargs: HTTP(), lambda *args, **kwargs: object())),
+    )
+    client = OfficialMcpClient(LoopbackMcpEndpoint("http://127.0.0.1:8899/mcp"))
+    names = tuple(tool["name"] for tool in client.list_tools())
+    assert names == ("system.describe", "capability.describe")
+    assert seen == [None, "next"]
+
+
+def test_official_client_rejects_repeated_mcp_page_cursor(monkeypatch):
+    from types import SimpleNamespace
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    seen = []
+
+    class HTTP:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+    class MCPClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def list_tools(self, *, cursor=None):
+            seen.append(cursor)
+            return SimpleNamespace(tools=(), next_cursor="repeat")
+
+    monkeypatch.setattr(
+        OfficialMcpClient,
+        "_sdk",
+        staticmethod(lambda: (MCPClient, lambda **kwargs: HTTP(), lambda *args, **kwargs: object())),
+    )
+    client = OfficialMcpClient(LoopbackMcpEndpoint("http://127.0.0.1:8899/mcp"))
+    with pytest.raises(ToolBridgeError, match="repeated"):
+        client.list_tools()
+    assert seen == [None, "repeat"]
+
+
 def test_official_mcp_http_client_preserves_unstructured_native_tool_error():
     """Real official MCP HTTP owner->client contract, including later recovery."""
     import asyncio

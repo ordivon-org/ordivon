@@ -115,9 +115,36 @@ class OfficialMcpClient:
                 raise_exceptions=False,
                 read_timeout_seconds=self.timeout_seconds,
             ) as client:
-                result = await client.list_tools()
+                tools = []
+                seen_cursors: set[str] = set()
+                cursor: str | None = None
+                while True:
+                    # MCP 2.3.0 exposes one page per call; never silently drop
+                    # granted Tools that happen to be on later pages.
+                    page = await client.list_tools(cursor=cursor)
+                    tools.extend(page.tools)
+                    next_cursor = page.next_cursor
+                    if next_cursor is None:
+                        break
+                    if not isinstance(next_cursor, str):
+                        raise ToolBridgeError(
+                            "MCP tools/list returned an invalid pagination cursor",
+                            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                        )
+                    if next_cursor in seen_cursors:
+                        raise ToolBridgeError(
+                            "MCP tools/list repeated a pagination cursor",
+                            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                        )
+                    if len(seen_cursors) >= 255:
+                        raise ToolBridgeError(
+                            "MCP tools/list exceeded the bounded page budget",
+                            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                        )
+                    seen_cursors.add(next_cursor)
+                    cursor = next_cursor
         values: list[dict[str, JsonValue]] = []
-        for tool in result.tools:
+        for tool in tools:
             value = tool.model_dump(mode="json", by_alias=True, exclude_none=True)
             validate_json_value(value)
             values.append(value)
