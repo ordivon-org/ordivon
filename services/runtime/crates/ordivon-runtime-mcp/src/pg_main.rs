@@ -51,6 +51,23 @@ where
     Ok(())
 }
 
+/// An unexpected loss of the HTTP listener must fail the entire service even
+/// if a synchronous scheduler call never unblocks. Tokio waits indefinitely
+/// for started spawn_blocking tasks on Runtime drop, so simply propagating the
+/// error out of #[tokio::main] cannot guarantee systemd will see process exit.
+/// The existing PG Journal/Runner owns durable native effects; this controller
+/// must stop and let systemd restart rather than impersonate a live service.
+#[cfg(target_os = "linux")]
+fn finish_pg_control_plane(
+    result: Result<(), Box<dyn std::error::Error>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if let Err(error) = &result {
+        eprintln!("PG Runtime control plane failed; exiting for systemd restart: {error}");
+        std::process::exit(1);
+    }
+    result
+}
+
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -168,7 +185,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             signal_shutdown.store(true, Ordering::Release);
         })
         .into_future();
-    supervise_pg_service(shutdown, scheduler_task, server).await
+    finish_pg_control_plane(supervise_pg_service(shutdown, scheduler_task, server).await)
 }
 #[cfg(not(target_os = "linux"))]
 fn main() {
@@ -178,7 +195,7 @@ fn main() {
 
 #[cfg(all(test, target_os = "linux"))]
 mod scheduler_supervision_tests {
-    use super::{scheduler_exit_result, supervise_pg_service};
+    use super::{finish_pg_control_plane, scheduler_exit_result, supervise_pg_service};
     use std::sync::{atomic::AtomicBool, Arc};
 
     #[tokio::test]
@@ -225,6 +242,81 @@ mod scheduler_supervision_tests {
         assert!(supervise_pg_service(shutdown, scheduler, listener)
             .await
             .is_err());
+    }
+
+    #[test]
+    fn fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler() {
+        use std::process::{Command, Stdio};
+        use std::time::{Duration, Instant};
+
+        const ENV: &str = "ORDIVON_TEST_FATAL_PG_CONTROL_EXIT";
+        if let Ok(mode) = std::env::var(ENV) {
+            let runtime = tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            let result = runtime.block_on(async {
+                let (started_tx, started_rx) = std::sync::mpsc::channel();
+                // The blocking task has actually started and intentionally does
+                // not finish. The child process is always reaped by its parent.
+                tokio::task::spawn_blocking(move || {
+                    let _ = started_tx.send(());
+                    loop {
+                        std::thread::park();
+                    }
+                });
+                started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+                let error: Box<dyn std::error::Error> = "synthetic listener failure".into();
+                if mode == "fatal" {
+                    finish_pg_control_plane(Err(error))
+                } else {
+                    Err(error)
+                }
+            });
+            let _ = result;
+            drop(runtime); // The uncorrected control path waits forever here.
+            return;
+        }
+        let run = |mode: &str| {
+            Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "scheduler_supervision_tests::fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler",
+                    "--nocapture",
+                ])
+                .env(ENV, mode)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap()
+        };
+        let mut uncorrected = run("return");
+        std::thread::sleep(Duration::from_millis(400));
+        assert!(
+            uncorrected.try_wait().unwrap().is_none(),
+            "returning Err from tokio::main alone is not an exit"
+        );
+        uncorrected.kill().unwrap();
+        uncorrected.wait().unwrap();
+
+        let mut corrected = run("fatal");
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if let Some(status) = corrected.try_wait().unwrap() {
+                assert_eq!(
+                    status.code(),
+                    Some(1),
+                    "fatal supervision must exit nonzero"
+                );
+                break;
+            }
+            if Instant::now() > deadline {
+                corrected.kill().unwrap();
+                corrected.wait().unwrap();
+                panic!("fatal supervisor did not exit while scheduler was blocked");
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
     }
 
     #[tokio::test]
