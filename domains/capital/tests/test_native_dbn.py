@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import struct
 from compression import zstd
 from decimal import localcontext
 from pathlib import Path
@@ -92,10 +93,29 @@ def test_official_native_decoder_rejects_partial_dbn_and_truncated_zstd_frame():
     for corrupted, error in (
         (DBN[:-1], "truncated or invalid"),
         (zstd.compress(original[:-1]), "incomplete final record"),
-        (zstd.compress(original[:-80]), "record limit"),
     ):
         with pytest.raises(ValueError, match=error):
             read(dbn_bytes=corrupted, expected_dbn_sha256=hashlib.sha256(corrupted).hexdigest())
+    # Dropping an entire valid DBN record leaves a structurally valid stream.
+    # Without independent acquisition proof, the missing history is UNKNOWN,
+    # not something the DBN metadata query maximum can detect.
+    shortened = zstd.compress(original[:-80])
+    raw_only = read(dbn_bytes=shortened, expected_dbn_sha256=hashlib.sha256(shortened).hexdigest())
+    assert len(raw_only.quotes) == 1 and "PIT_UNVERIFIED" in raw_only.standing
+
+
+def test_upstream_query_limit_is_maximum_and_native_panic_is_contained():
+    original = zstd.decompress(DBN)
+    extended_query = bytearray(original)
+    struct.pack_into("<Q", extended_query, 42, 100)
+    complete = zstd.compress(extended_query)
+    assert len(read(dbn_bytes=complete, expected_dbn_sha256=hashlib.sha256(complete).hexdigest()).quotes) == 2
+
+    invalid_record = bytearray(original)
+    invalid_record[360] = 4  # MBP-1 record of 16 bytes cannot hold 80-byte struct.
+    corrupted = zstd.compress(invalid_record)
+    with pytest.raises(ValueError, match="upstream native DBN decoder rejected"):
+        read(dbn_bytes=corrupted, expected_dbn_sha256=hashlib.sha256(corrupted).hexdigest())
 
 
 def test_compressed_input_cannot_evade_predecode_resource_budget():
@@ -114,6 +134,7 @@ def test_subpenny_gate_is_independent_of_decimal_caller_context():
 
     with localcontext() as context:
         context.prec = 5
+        context.Emax = 2
         assert price_usd_cents_exact(Price.from_str("110.020000000")) == 11002
         with pytest.raises(ValueError, match="exactly representable"):
             price_usd_cents_exact(Price.from_str("110.000000001"))

@@ -11,7 +11,7 @@ import hashlib
 import tempfile
 import time
 from compression.zstd import ZstdError, ZstdFile
-from decimal import Decimal, localcontext
+from decimal import Context, Decimal, localcontext
 from io import BytesIO
 from pathlib import Path
 from typing import NamedTuple
@@ -86,8 +86,15 @@ def _native_bounded_records(dbn_bytes: bytes) -> tuple[MBP1Msg, ...]:
     decoder = DBNDecoder(compression=Compression.NONE)
     try:
         records = decoder.write_and_decode(decoded_bytes)
-    except DBNError as error:
-        raise ValueError("DBN native structural decoder rejected input") from error
+    except BaseException as error:
+        if isinstance(error, DBNError):
+            raise ValueError("DBN native structural decoder rejected input") from error
+        # databento-dbn 0.73.0 uses a PyO3 PanicException for some invalid
+        # MBP-1 record lengths. Contain precisely that Rust boundary failure;
+        # do not swallow SystemExit, KeyboardInterrupt or other BaseExceptions.
+        if type(error).__module__ == "pyo3_runtime" and type(error).__name__ == "PanicException":
+            raise ValueError("upstream native DBN decoder rejected malformed record") from error
+        raise
     if decoder.buffer():
         raise ValueError("DBN contains an incomplete final record")
     if not records or not isinstance(records[0], Metadata):
@@ -98,10 +105,9 @@ def _native_bounded_records(dbn_bytes: bytes) -> tuple[MBP1Msg, ...]:
     if (not 0 < len(messages) <= _MAX_QUOTES
             or any(not isinstance(msg, MBP1Msg) for msg in messages)):
         raise ValueError("DBN native MBP-1 record count or type is unqualified")
-    # A provider-supplied limit can prove a missing suffix for bounded fixtures;
-    # where absent, only structural EOF (NOT full historical coverage) is known.
-    if records[0].limit is not None and records[0].limit != len(messages):
-        raise ValueError("DBN native metadata record limit does not match decoded input")
+    # Metadata.limit is the MAXIMUM queried record count, not an exact count.
+    # Even a well-formed DBN stream cannot prove complete historical coverage.
+    # Never convert that UNKNOWN source-completeness fact into a true claim.
     return messages
 
 
@@ -159,8 +165,7 @@ def decode_mbp1_quotes(
     # Do not leak Cython QuoteTick objects into a supposedly immutable fact:
     # upstream QuoteTick.__setstate__ can mutate native prices/timestamps.
     quote_facts = []
-    with localcontext() as context:
-        context.prec = 80
+    with localcontext(Context(prec=80)):
         for row, raw in zip(observed, native_records):
             bid_nano = int(Decimal(str(row.bid_price)) * 1_000_000_000)
             ask_nano = int(Decimal(str(row.ask_price)) * 1_000_000_000)
@@ -191,8 +196,7 @@ def price_usd_cents_exact(price) -> int:
     # Ambient decimal precision can round 110.000000001 to 110.00 before
     # validation. Force sufficient precision and start from the exact native
     # 9-decimal string; never inspect a rounded 2-decimal Price.
-    with localcontext() as context:
-        context.prec = 80
+    with localcontext(Context(prec=80)):
         numeric = Decimal(str(price))
         cents = numeric * Decimal(100)
     if (
