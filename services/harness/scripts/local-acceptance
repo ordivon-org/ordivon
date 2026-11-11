@@ -41,6 +41,10 @@ case "$mode" in
     printf '%s\n' 'local acceptance contract: present' 'run with: scripts/local-acceptance run'
     ;;
   run)
+    if [[ -z "${HARNESS_PG_TEST_DSN:-}" ]]; then
+      echo 'HARNESS_PG_TEST_DSN is required for local acceptance (PG-only)' >&2
+      exit 2
+    fi
     ORDIVON_OWNER_ENV_DIR="$env_dir" "$owner_environment" bootstrap
     uv_bin=$(cd "$repo" && "${MISE_BIN:-mise}" which uv)
     ORDIVON_OWNER_ENV_DIR="$env_dir" "$owner_environment" doctor
