@@ -22,6 +22,9 @@ class LocalEvidenceBinding:
     path_property: str
     digest_property: str
     owner_root: Path
+    # Optional because Bitol ODPS 1.1 permits unversioned ports. None
+    # preserves the legacy behavior: require a unique port name.
+    port_version: str | None = None
 
 
 def _property(props: list[Any], key: str) -> str:
@@ -49,10 +52,23 @@ def qualified_local_distribution(
     if binding.product_id != product["id"]:
         raise ValueError("binding refers to another owner product")
     ports = product["outputPorts"]
+    if binding.port_version is not None and (
+        not isinstance(binding.port_version, str) or not binding.port_version.strip()
+    ):
+        raise ValueError("binding port version must be a nonempty string")
     selected = [
-        i for i, port in enumerate(ports) if port.get("name") == binding.port_name
+        i
+        for i, port in enumerate(ports)
+        if port.get("name") == binding.port_name
+        and (
+            binding.port_version is None or port.get("version") == binding.port_version
+        )
     ]
     if len(selected) != 1:
+        if binding.port_version is not None:
+            raise ValueError(
+                "binding requires exactly one named output port at requested version"
+            )
         raise ValueError("binding requires exactly one named output port")
     index = selected[0]
     if ports[index].get("type") not in ("file/json", "file/parquet", "file/csv"):

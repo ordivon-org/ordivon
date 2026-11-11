@@ -9,7 +9,7 @@ Recursive LEGO R2.1 contracts and shared formal toolchain already exist at
 
 | Stage | Source | Proven or observed | Explicit non-claim |
 | --- | --- | --- | --- |
-| Specification | `formal/DataProduct.lean` | Optional digest observations and `(id, version)` registry identities | SHA-256 collision resistance and factual truth |
+| Specification | `formal/DataProduct.lean` | Optional digest observations, selected admission, exact output-port (name, optional version) abstract selection/frame law, and `(id, version)` product identity uniqueness | Python selector equivalence, source bytes and domain factual truth |
 | Model and proof | Lean 4.35 kernel | Missing digest => UNKNOWN; VERIFIED requires two matching observations; FALSIFIED requires distinct observations; a unique product registry stays unique on admission | Python installed-code correctness |
 | Implementation candidate | `src/ordivon_data/verification.py` | Pure `digest_verdict` with PEP 316 contracts; CrossHair 0.0.112 / Z3 searches symbolic executions | CrossHair bounded search is not a theorem |
 | File/consumer refinement | `src/ordivon_data/catalog.py` and `tests/test_catalog.py` | Real file SHA-256 read-back, deliberate digest mismatch, unavailable/out-of-scope UNKNOWN; product ID-version reject | Atomicity against concurrent file changes; universal URI/JSON-LD semantics |
@@ -17,6 +17,37 @@ Recursive LEGO R2.1 contracts and shared formal toolchain already exist at
 
 Formal command: `mise run data:formal:verify`.
 Native integration: `mise run data:verify`.
+
+### Selected-port refinement (R1)
+
+`selectedAdmissible` proves that a requested nonempty list of abstract
+observations cannot pass if any requested verdict is UNKNOWN or FALSIFIED.
+Its *input list is assumed already selected by exact product/version/port
+identity*; the theorem does not prove that Python's lookup is correct.
+The implementation is `scripts/inspect_federation.py --require-port`,
+with a real CLI counterexample in `tests/test_odps_projection.py`:
+the selected manifest is VERIFIED, an unrelated Parquet port is FALSIFIED,
+selected exit is 0, both findings remain visible, while whole-catalog and
+ungated inspection exit 2. A selected mismatch still exits 2 and a missing
+selected port still exits 3. The Research consumer verifies manifest bytes
+and an independent analysis receipt; it never infers business acceptance
+from a Data CLI exit. This separates abstract proof, implementation
+behavior, producer evidence, and downstream semantic acceptance.
+
+### Version-qualified Research refinement (R2)
+
+`exactPortVerdict` in `formal/DataProduct.lean` now models exact output
+selection on `(name, Option version)`: a unique matching entry yields its
+verdict, missing/duplicate matches yield no admissible verdict, and adding an
+entry with an unrelated key preserves the selected result. It is an abstract
+finite-list proof, **not** an automatic refinement proof of Python.
+`src/ordivon_data/local_evidence.py` gives a consumer the optional
+`port_version` field; unversioned callers retain name-only selection when
+unique. The Research `deliver_research.py` consumer independently requires
+manifest port `1.0.0`, and selects the matching projected `dcat:version`.
+Native negative tests demonstrate that replacing v1 by v2 rejects the input,
+while adding same-name v2 alongside a valid v1 does not block v1.
+No claim of physical immutability, rights, generalization or Finance adoption.
 The formal task explicitly uses Ordivon's existing pinned Lean tool group and
 CrossHair's standard PEP 316 implementation; no private theorem kernel or DSL.
 

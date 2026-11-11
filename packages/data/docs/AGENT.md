@@ -59,7 +59,10 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    zero exit in discovery mode as a product-integrity admission. Use
    `--verify-local --require-verified` when requiring real byte evidence;
    exit 3 means UNKNOWN/not established, while exit 2 means a conflicting
-   digest or invalid catalog. For a consumer bound to one stable output-port
+   digest or invalid catalog. In a selected-port gate, only a selected
+   FALSIFIED distribution vetoes that consumer; unrelated mismatches remain
+   reported and still fail a whole-catalog gate. Structural catalog errors
+   are never scoped away. For a consumer bound to one stable output-port
    identity, use `--verify-local --require-port PRODUCT_ID PRODUCT_VERSION
    DISTRIBUTION_URN`. A selected-port PASS does not establish a global
    product PASS or permission to publish. The unmaterialized Episode Parquet
