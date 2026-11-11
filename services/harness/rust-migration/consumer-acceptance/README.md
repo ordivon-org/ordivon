@@ -16,6 +16,31 @@ On fresh disposable PostgreSQL 18.6 the original five Python Store → Rust read
 
 Run the independent PG falsifier in an isolated Linux toolchain with `HARNESS_CONSUMER_FALSIFY_CONTRACT=1 bash services/harness/crates/harness-pg/tests/run_isolated_pg18.sh`. Run the Python source differential with `cargo test --manifest-path services/harness/Cargo.toml --locked --offline -p ordivon-harness-pg --test contract_source_parity -- --nocapture`. The PG harness fixture creates a fresh private cluster under `/tmp` and does not consult production PG DSNs.
 
+## Independent B review of A Contract gate against complete reviewer corpus
+
+A separate isolated A+B integration source uses B's clean Model ToolCall commit
+`1fdf10ff55ba7da106f5ae531460dbfbd90fdb58` as its base, then cherry-picks
+A's original P0 regression test and complete Contract semantic validator (A
+source `5990ae6db497` and `4e543a5d2e19f36b494ce8004083d54e5851bdf2`).
+This combines A's **one** canonical/PG implementation with B's Provider v4,
+Domain ToolSurface, Model ToolCall and Evidence consumers in the existing
+single Cargo workspace; it is **not** another PG Writer.
+
+The B reviewer overlaid the *unmodified final test-only files* from the
+independent consumer's original `20a07cfb2cfa9db20c45cc614a230afc8c30fb55`
+commit: one disposable-PG fixture, the opt-in Rust test and the runner.
+The same 24 SHA256-consistent but semantically invalid Contracts that Rust
+previously misaccepted were **all rejected**, while all 10 legitimately
+Python-admitted v1/v2 Contracts were **accepted**. Original PG18.6 5/5 still
+passed with SELECT-only role (`INSERT/UPDATE=f|f`), and combined root Cargo
+fmt/test --locked --offline / strict clippy succeeded. Exact B integration
+Runtime job: `job-01a1c8b8-567e-751f-b89b-ec94934c56d5`.
+
+This is independent source-level acceptance of this **finite** corpus and
+Cargo compatibility, not full historical-domain equivalence and not original
+C-seat signoff. The normal tests skip opt-in PG semantic cases; use the
+explicit `HARNESS_CONSUMER_FALSIFY_CONTRACT=1` form above for this gate.
+
 ## Qualification limits
 
 The result is **source-only Rust readback qualification** for the tested Python Contract domain. A complete historical Run also requires accurate event payload semantics, Provider/Tool effect lifecycle, privacy exposure, independent consumer acceptance and actual Runtime/Host continuity. Independent agent C has not yet supplied acceptance. Native Rust PG Writer/lease/fence, Provider/Tool dispatch, genuine effect reconciliation and production cutover are **not** implemented or authorized here. Keep the one A-owned GitHub PR #2085 **Draft**, do not merge/deploy based on this test alone.
