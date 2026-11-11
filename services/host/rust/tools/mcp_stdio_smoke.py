@@ -60,9 +60,13 @@ try:
         "host.status",
         "message.post",
         "message.relation.add",
+        "space.create",
+        "space.get",
+        "space.participation.set",
         "subscription.follow",
         "subscription.list",
         "subscription.unfollow",
+        "topic.create",
         "topic.cursor.ack",
         "topic.cursor.get",
         "topic.resume",
@@ -297,6 +301,91 @@ try:
     assert bad_kind["isError"] is True,bad_kind
     assert bad_kind["structuredContent"]["error"]["code"]=="CONFLICT",bad_kind
     print("MCP_ACTOR_DECLARE_PASS new=committed replay=existing conflicting_kind=rejected")
+    # R5: All first collaboration resources originate from Rust MCP rather
+    # than Python seeding an already-existing Space/Topic. Domain receipts
+    # and rows are later independently recovered with the original Python Host.
+    r5_actor = "actor:test:rust-mcp-r5-first"
+    r5_space = "space:test:rust-mcp-r5-first"
+    r5_topic = "topic:test:rust-mcp-r5-first"
+    r5_message = "message:test:rust-mcp-r5-first"
+    actor = request("tools/call",{"name":"actor.declare","arguments":{
+        "actorRef":r5_actor,"actorKind":"agent",
+    }},40)
+    assert actor["structuredContent"]["admission"]=="committed",actor
+    original_space = {"spaceRef":r5_space,"purpose":"新 Agent 的 Rust MCP 原生协作 🧩",
+                      "actorRef":r5_actor,"subjectRefs":["subject:zeta","subject:alpha"]}
+    space = request("tools/call",{"name":"space.create","arguments":original_space},41)
+    space_data = space["structuredContent"]
+    assert space_data["admission"]=="committed",space
+    assert space_data["subjectRefs"]==["subject:alpha","subject:zeta"],space
+    duplicate = request("tools/call",{"name":"space.create","arguments":original_space},42)
+    assert duplicate["structuredContent"]["admission"]=="existing",duplicate
+    assert duplicate["structuredContent"]["createdAt"]==space_data["createdAt"],duplicate
+    early_space = request("tools/call",{"name":"space.get","arguments":{
+        "spaceRef":r5_space,
+    }},43)
+    assert early_space["structuredContent"]["participantCount"]==0,early_space
+    assert early_space["structuredContent"]["topicCount"]==0,early_space
+    topic_args={"topicRef":r5_topic,"spaceRef":r5_space,
+                "title":"由 Rust MCP 原生创建的会话 🧩","actorRef":r5_actor}
+    topic=request("tools/call",{"name":"topic.create","arguments":topic_args},44)
+    assert topic["structuredContent"]["admission"]=="committed",topic
+    assert topic["structuredContent"]["state"]=="open",topic
+    same_topic=request("tools/call",{"name":"topic.create","arguments":topic_args},45)
+    assert same_topic["structuredContent"]["admission"]=="existing",same_topic
+    joined_args={"spaceRef":r5_space,"actorRef":r5_actor,"standing":"joined"}
+    joined=request("tools/call",{"name":"space.participation.set","arguments":joined_args},46)
+    assert joined["structuredContent"]["standing"]=="joined",joined
+    left=request("tools/call",{"name":"space.participation.set","arguments":{
+        **joined_args,"standing":"left",
+    }},47)
+    assert left["structuredContent"]["standing"]=="left",left
+    joined_again=request("tools/call",{"name":"space.participation.set","arguments":joined_args},48)
+    assert joined_again["structuredContent"]["standing"]=="joined",joined_again
+    # Stale desired-state hash must not replay a former joined result after a
+    # left transition; no command-receipt mapping for membership.
+    assert joined_again["structuredContent"]["updatedAt"]>=left["structuredContent"]["updatedAt"]
+    current_space=request("tools/call",{"name":"space.get","arguments":{
+        "spaceRef":r5_space,"participantLimit":200,"topicLimit":200,"maxBytes":2097152
+    }},49)
+    sp=current_space["structuredContent"]
+    assert sp["participantCount"]==1 and sp["participants"][0]["standing"]=="joined",sp
+    assert sp["topicCount"]==1 and sp["topics"][0]["topicRef"]==r5_topic,sp
+    new_message_args={
+        "messageRef":r5_message,"spaceRef":r5_space,"topicRef":r5_topic,
+        "authorActorRef":r5_actor,
+        "body":"新 Agent 从零创建协作世界，真实 Rust MCP↔Python Host 🌍",
+        "recordedAtMs":1700000000222,"messageKind":"finding",
+    }
+    posted=request("tools/call",{"name":"message.post","arguments":new_message_args},50)
+    assert posted["structuredContent"]["admission"]=="committed",posted
+    discovered=request("tools/call",{"name":"topic.resume","arguments":{
+        "topicRef":r5_topic,"afterSequence":0
+    }},51)
+    assert [m["messageRef"] for m in discovered["structuredContent"]["messages"]]==[r5_message],discovered
+    conflict=request("tools/call",{"name":"space.create","arguments":{
+        **original_space,"purpose":"different initial semantics"
+    }},52)
+    assert conflict.get("structuredContent",{}).get("error",{}).get("code")=="CONFLICT",conflict
+    wrong_topic=request("tools/call",{"name":"topic.create","arguments":{
+        **topic_args,"title":"wrong original title"
+    }},53)
+    assert wrong_topic.get("structuredContent",{}).get("error",{}).get("code")=="CONFLICT",wrong_topic
+    bad_space=request("tools/call",{"name":"space.create","arguments":{
+        **original_space,"spaceRef":"space:invalid ",
+    }},54)
+    assert bad_space.get("structuredContent",{}).get("error",{}).get("code")=="INVALID_ARGUMENT",bad_space
+    duplicate_subject=request("tools/call",{"name":"space.create","arguments":{
+        **original_space,"spaceRef":"space:test:rust-mcp-r5-duplicate-subject",
+        "subjectRefs":["subject:same","subject:same"]
+    }},55)
+    assert duplicate_subject.get("structuredContent",{}).get("error",{}).get("code")=="INVALID_ARGUMENT",duplicate_subject
+    missing_actor=request("tools/call",{"name":"space.create","arguments":{
+        **original_space,"spaceRef":"space:test:rust-mcp-r5-no-actor",
+        "actorRef":"actor:test:not-declared"
+    }},56)
+    assert missing_actor.get("structuredContent",{}).get("error",{}).get("code")=="NOT_FOUND",missing_actor
+    print("MCP_NATIVE_COLLAB_R5_PASS actor=1 space=1 topic=1 participation=joined-left-joined message=1 resume=1 exact_replay=2 invalid=2 conflict=2 missing=1")
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"
