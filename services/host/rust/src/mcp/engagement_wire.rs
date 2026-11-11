@@ -1,7 +1,8 @@
 //! Versioned, typed northbound MCP contracts for A-owned Work Engagement.
 //!
-//! The action is decoded by A's original Rust serde/domain type; schema-only
-//! mirrors below describe the wire and response, not another state machine.
+//! A's actual Work domain Serde types ALSO own the JSON Schema for
+//! action/phase/delivery/review/engagement. Only MCP-specific response
+//! envelopes are declared here; no duplicate command enum or state machine.
 //! No extra Work table/queue or Python runtime dependency is introduced.
 #![allow(dead_code)]
 use std::sync::Arc;
@@ -11,7 +12,7 @@ use rmcp::model::JsonObject;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::work::engagement::{EngagementAction, Phase};
+use crate::work::engagement::{EngagementAction, Phase, WorkEngagement};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -21,66 +22,13 @@ pub struct AdvanceRequest {
     pub actor_ref: String,
     /// Explicit caller intent ID: real response loss must preserve reply identity.
     pub client_request_id: String,
-    #[schemars(with = "ActionShape")]
     pub action: EngagementAction,
-}
-
-#[derive(JsonSchema)]
-#[serde(
-    tag = "type",
-    rename_all = "snake_case",
-    rename_all_fields = "camelCase"
-)]
-enum ActionShape {
-    Offer {
-        consumer_actor_ref: String,
-        acceptance_criteria: Vec<String>,
-    },
-    Claim,
-    Release {
-        reason: String,
-    },
-    Submit {
-        claim_epoch: i64,
-        delivery_ref: String,
-        summary: String,
-        output_refs: Vec<String>,
-        evidence_refs: Vec<String>,
-    },
-    Review {
-        claim_epoch: i64,
-        decision: ReviewDecisionShape,
-        rationale: String,
-        verification_refs: Vec<String>,
-    },
-    Cancel {
-        reason: String,
-    },
-}
-
-#[derive(JsonSchema)]
-#[serde(rename_all = "snake_case")]
-enum ReviewDecisionShape {
-    Accepted,
-    Returned,
-}
-
-#[derive(JsonSchema)]
-#[serde(rename_all = "snake_case")]
-enum PhaseShape {
-    Offered,
-    Claimed,
-    Submitted,
-    Returned,
-    Accepted,
-    Cancelled,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ListRequest {
     #[serde(default)]
-    #[schemars(with = "Option<PhaseShape>")]
     pub phase: Option<Phase>,
     #[serde(default)]
     pub assignee_actor_ref: Option<String>,
@@ -120,43 +68,6 @@ enum ReceiptAdmission {
 
 #[derive(JsonSchema)]
 #[serde(rename_all = "camelCase")]
-struct DeliveryShape {
-    delivery_ref: String,
-    summary: String,
-    output_refs: Vec<String>,
-    evidence_refs: Vec<String>,
-}
-
-#[derive(JsonSchema)]
-#[serde(rename_all = "camelCase")]
-struct ReviewShape {
-    decision: ReviewDecisionShape,
-    rationale: String,
-    verification_refs: Vec<String>,
-}
-
-/// The versioned immutable payload stored by A's existing Work Snapshot CAS.
-#[derive(JsonSchema)]
-#[serde(rename_all = "camelCase")]
-struct EngagementShape {
-    schema_version: u8,
-    phase: PhaseShape,
-    requested_by_actor_ref: String,
-    consumer_actor_ref: String,
-    acceptance_criteria: Vec<String>,
-    claim_epoch: i64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    assignee_actor_ref: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    delivery: Option<DeliveryShape>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    review: Option<ReviewShape>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    transition_note: Option<String>,
-}
-
-#[derive(JsonSchema)]
-#[serde(rename_all = "camelCase")]
 struct WorkSnapshotEngagedShape {
     objective: String,
     frontier: String,
@@ -166,7 +77,7 @@ struct WorkSnapshotEngagedShape {
     constraints: Vec<String>,
     next_actions: Vec<String>,
     reference_refs: Vec<String>,
-    engagement: EngagementShape,
+    engagement: WorkEngagement,
 }
 
 #[derive(JsonSchema)]
@@ -198,7 +109,7 @@ struct EngagementListItem {
     revision: i64,
     snapshot_digest: String,
     updated_at: String,
-    engagement: EngagementShape,
+    engagement: WorkEngagement,
 }
 
 #[derive(JsonSchema)]

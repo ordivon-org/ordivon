@@ -4,6 +4,7 @@
 //! process ownership, an Artifact blob store, or proof that a physical effect
 //! happened. Every transition writes one immutable Work snapshot and receipt.
 use chrono::{DateTime, Utc};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio_postgres::{types::Json, Client, IsolationLevel};
@@ -15,7 +16,7 @@ use super::{
 
 const MAX_SAFE_JSON_INT: i64 = 9_007_199_254_740_991;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
     Offered,
@@ -26,14 +27,14 @@ pub enum Phase {
     Cancelled,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ReviewDecision {
     Accepted,
     Returned,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Delivery {
     pub delivery_ref: String,
@@ -42,7 +43,7 @@ pub struct Delivery {
     pub evidence_refs: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Review {
     pub decision: ReviewDecision,
@@ -53,7 +54,7 @@ pub struct Review {
 /// The contract lives inside the existing immutable work_snapshots.payload.
 /// Historical snapshots preserve every offer, claim, returned delivery, etc.
 /// Missing 'engagement' is the original pre-migration Work representation.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkEngagement {
     pub schema_version: u8,
@@ -74,7 +75,7 @@ pub struct WorkEngagement {
 
 /// One explicit accountability event, *not* a Runtime dispatch request.
 /// Serde variant tagging is the sole command representation.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(
     tag = "type",
     rename_all = "snake_case",
