@@ -613,6 +613,179 @@ pub async fn add_message_relation(
     Ok(result)
 }
 
+/// Bounded, integrity-checked Topic resume using a single repeatable-read
+/// PostgreSQL snapshot. This is the same pagination/byte-budget contract as
+/// Python SocialTopicReadQueries.resume_topic, not a synthetic event stream.
+pub async fn resume_topic(
+    client: &mut Client,
+    topic_ref: &str,
+    after_sequence: i64,
+    limit: i64,
+    max_bytes: usize,
+) -> Result<Value> {
+    const MIN_MESSAGE_BYTES: usize = 131_072;
+    const MAX_BYTES: usize = 4_194_304;
+    if !(1..=500).contains(&limit) {
+        return Err(SocialError::Invalid("limit must be in [1,500]".into()));
+    }
+    if after_sequence < 0 {
+        return Err(SocialError::Invalid(
+            "after_sequence must be non-negative".into(),
+        ));
+    }
+    if !(MIN_MESSAGE_BYTES..=MAX_BYTES).contains(&max_bytes) {
+        return Err(SocialError::Invalid(format!(
+            "max_bytes must be in [{MIN_MESSAGE_BYTES},{MAX_BYTES}]"
+        )));
+    }
+    let tx = client
+        .build_transaction()
+        .isolation_level(tokio_postgres::IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .await?;
+    let topic = tx
+        .query_opt(
+            "SELECT topic_ref,space_ref,title,state FROM topics WHERE topic_ref=$1",
+            &[&topic_ref],
+        )
+        .await?
+        .ok_or_else(|| SocialError::NotFound(format!("topic {topic_ref}")))?;
+    let topic_wire = json!({
+        "topicRef":topic.get::<_,String>("topic_ref"),
+        "spaceRef":topic.get::<_,String>("space_ref"),
+        "title":topic.get::<_,String>("title"),
+        "state":topic.get::<_,String>("state"),
+    });
+    let rows = tx
+        .query(
+            &format!(
+                "SELECT {MESSAGE_FIELDS} FROM messages \
+                 WHERE topic_ref=$1 AND sequence>$2 ORDER BY sequence LIMIT $3"
+            ),
+            &[&topic_ref, &after_sequence, &(limit + 1)],
+        )
+        .await?;
+    let sql_more = rows.len() > limit as usize;
+    // Python verifies the digests of ALL SQL candidates before byte trimming.
+    // Checking only the emitted prefix would hide corruption in a fetched row
+    // that does not fit in this response's max_bytes envelope.
+    let mut candidates = Vec::new();
+    for row in rows.iter().take(limit as usize) {
+        let stored: String = row.get("message_digest");
+        if message_digest_from_row(row)? != stored {
+            return Err(SocialError::Integrity(
+                "durable message content digest differs".into(),
+            ));
+        }
+        let msg = json!({
+            "sequence":row.get::<_,i64>("sequence"),
+            "messageRef":row.get::<_,String>("message_ref"),
+            "authorActorRef":row.get::<_,String>("author_actor_ref"),
+            "messageKind":row.get::<_,String>("message_kind"),
+            "body":row.get::<_,String>("body"),
+            "messageDigest":stored,
+            "recordedAtMs":row.get::<_,i64>("recorded_at_ms"),
+            "createdAt":exact_time(row.get("created_at"),row.get("created_tz"))?,
+        });
+        candidates.push(msg);
+    }
+    let mut messages = Vec::new();
+    let mut byte_more = false;
+    for msg in candidates {
+        let mut candidate = messages.clone();
+        candidate.push(msg.clone());
+        if crate::attention::canonical(&resume_envelope(
+            &topic_wire,
+            after_sequence,
+            candidate,
+            true,
+        ))?
+        .len()
+            > max_bytes
+        {
+            if messages.is_empty() {
+                return Err(SocialError::Invalid(
+                    "max_bytes cannot fit one legal item plus response envelope".into(),
+                ));
+            }
+            byte_more = true;
+            break;
+        }
+        messages.push(msg);
+    }
+    let result = resume_envelope(&topic_wire, after_sequence, messages, sql_more || byte_more);
+    tx.commit().await?;
+    Ok(result)
+}
+
+fn resume_envelope(
+    topic: &Value,
+    after_sequence: i64,
+    messages: Vec<Value>,
+    has_more: bool,
+) -> Value {
+    let next = messages
+        .last()
+        .and_then(|message| message["sequence"].as_i64())
+        .unwrap_or(after_sequence);
+    json!({
+        "schemaVersion":1,
+        "kind":"ordivon.host-topic-resume",
+        "topic":topic,
+        "messages":messages,
+        "hasMore":has_more,
+        "nextAfterSequence":next,
+        "truthBoundary":"bounded topic conversation only; message claims require owner-native verification",
+    })
+}
+
+/// The topic consumption cursor is distinct from Attention's global change
+/// cursor. It does not certify semantic acceptance of the message contents.
+pub async fn get_topic_cursor(
+    client: &mut Client,
+    actor_ref: &str,
+    topic_ref: &str,
+) -> Result<Value> {
+    let tx = client
+        .build_transaction()
+        .isolation_level(tokio_postgres::IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .await?;
+    require_actor(&tx, actor_ref).await?;
+    if tx
+        .query_opt("SELECT 1 FROM topics WHERE topic_ref=$1", &[&topic_ref])
+        .await?
+        .is_none()
+    {
+        return Err(SocialError::NotFound(format!("topic {topic_ref}")));
+    }
+    let current = tx
+        .query_opt(
+            "SELECT cursor FROM topic_consumption_cursors \
+             WHERE actor_ref=$1 AND topic_ref=$2",
+            &[&actor_ref, &topic_ref],
+        )
+        .await?
+        .map(|r| r.get::<_, i64>("cursor"))
+        .unwrap_or(0);
+    let high: i64 = tx
+        .query_one(
+            "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=$1",
+            &[&topic_ref],
+        )
+        .await?
+        .get("high");
+    tx.commit().await?;
+    Ok(json!({
+        "schemaVersion":1,"kind":"ordivon.host-topic-cursor",
+        "actorRef":actor_ref,"topicRef":topic_ref,
+        "cursor":current,"topicHighSequence":high,
+        "truthBoundary":"topic navigation cursor only; not evidence of semantic acceptance"
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

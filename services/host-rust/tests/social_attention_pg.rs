@@ -378,3 +378,116 @@ async fn concurrent_post_and_close_have_one_linearization() {
         .get("n");
     assert!((state == "open" && count == 1) || (state == "closed" && count == 0));
 }
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18, full Host Alembic schema13, HOST_RUST_TEST_DSN"]
+async fn topic_resume_pagination_and_consumption_cursor_match_python_contract() {
+    let mut db = connect().await;
+    db.batch_execute("SET TIME ZONE 'Asia/Shanghai'")
+        .await
+        .unwrap();
+    let (actor, space, topic) = seed(&db, "resume-r2").await;
+    let msg1 = input("resume-r2-first", &actor, &space, &topic, "第一页 🧩");
+    let msg2 = input("resume-r2-second", &actor, &space, &topic, "第二页 🧭");
+    let first = social::post_message(&mut db, &msg1).await.unwrap();
+    let second = social::post_message(&mut db, &msg2).await.unwrap();
+
+    let cursor_before = social::get_topic_cursor(&mut db, &actor, &topic)
+        .await
+        .unwrap();
+    assert_eq!(cursor_before["cursor"], 0);
+    assert_eq!(cursor_before["topicHighSequence"], second["sequence"]);
+
+    let first_page = social::resume_topic(&mut db, &topic, 0, 1, 131_072)
+        .await
+        .unwrap();
+    assert_eq!(first_page["hasMore"], true);
+    assert_eq!(first_page["messages"].as_array().unwrap().len(), 1);
+    assert_eq!(first_page["messages"][0]["messageRef"], first["messageRef"]);
+    assert_eq!(
+        first_page["messages"][0]["messageDigest"],
+        first["messageDigest"]
+    );
+    assert_eq!(first_page["messages"][0]["body"], "第一页 🧩");
+    assert!(first_page["messages"][0]["createdAt"]
+        .as_str()
+        .unwrap()
+        .ends_with("+08:00"));
+    let next = first_page["nextAfterSequence"].as_i64().unwrap();
+    let last_page = social::resume_topic(&mut db, &topic, next, 50, 524_288)
+        .await
+        .unwrap();
+    assert_eq!(last_page["hasMore"], false);
+    assert_eq!(last_page["messages"][0]["messageRef"], second["messageRef"]);
+    assert_eq!(last_page["nextAfterSequence"], second["sequence"]);
+
+    let ack = social::ack_topic_cursor(
+        &mut db,
+        &actor,
+        &topic,
+        next,
+        "request:host-rust-b:resume-r2-ack",
+    )
+    .await
+    .unwrap();
+    assert_eq!(ack["previousCursor"], 0);
+    let cursor_after = social::get_topic_cursor(&mut db, &actor, &topic)
+        .await
+        .unwrap();
+    assert_eq!(cursor_after["cursor"], next);
+    assert_eq!(cursor_after["topicHighSequence"], second["sequence"]);
+
+    assert!(social::resume_topic(&mut db, &topic, 0, 0, 524_288)
+        .await
+        .is_err());
+    assert!(social::resume_topic(&mut db, &topic, 0, 1, 131_071)
+        .await
+        .is_err());
+    assert!(social::resume_topic(&mut db, &topic, -1, 1, 524_288)
+        .await
+        .is_err());
+
+    let exhausted = social::resume_topic(
+        &mut db,
+        &topic,
+        second["sequence"].as_i64().unwrap(),
+        50,
+        524_288,
+    )
+    .await
+    .unwrap();
+    assert_eq!(exhausted["messages"], json!([]));
+    assert_eq!(exhausted["hasMore"], false);
+}
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18, full Host Alembic schema13, HOST_RUST_TEST_DSN"]
+async fn topic_resume_detects_corruption_in_fetched_but_byte_trimmed_message() {
+    let mut db = connect().await;
+    let (actor, space, topic) = seed(&db, "digest-trim-r2").await;
+    let first = input(
+        "digest-trim-r2-first",
+        &actor,
+        &space,
+        &topic,
+        "small first",
+    );
+    let second = input(
+        "digest-trim-r2-second",
+        &actor,
+        &space,
+        &topic,
+        &"汉".repeat(50_000),
+    );
+    social::post_message(&mut db, &first).await.unwrap();
+    social::post_message(&mut db, &second).await.unwrap();
+    // Deliberate isolated-database corruption: Python verifies all fetched
+    // SQL rows before applying response byte trimming. Rust must do the same.
+    db.execute(
+        "UPDATE messages SET message_digest=$1 WHERE message_ref=$2",
+        &[&format!("sha256:{}", "0".repeat(64)), &second.message_ref],
+    )
+    .await
+    .unwrap();
+    let result = social::resume_topic(&mut db, &topic, 0, 2, 131_072).await;
+    assert!(matches!(result, Err(social::SocialError::Integrity(_))));
+}
