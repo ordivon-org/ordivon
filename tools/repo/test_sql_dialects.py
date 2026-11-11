@@ -85,11 +85,10 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertNotIn(retired, current)
         self.assertNotIn(retired, SQLITE_LEGACY_SOURCE_CALLS)
 
-    def test_legacy_debt_includes_unfenced_domain_gateway_and_workstation_owners(self):
+    def test_legacy_debt_includes_unfenced_domain_and_harness_owners(self):
         current = tracked_owner_sqlite_calls(ROOT)
         # Each is a real tracked and currently differently qualified consumer.
         for name in (
-            "platform/workstation/scripts/host_historical_projection.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
             "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",
         ):

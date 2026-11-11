@@ -57,8 +57,6 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # RW12 source-only immutable SQLite snapshot importer into a NON-AUTHORITATIVE PG stage.
     # Retire this one-shot reader after native Rust PostgreSQL consumer promotion.
     'services/runtime/scripts/postgres_registry_stage.py': 1,
-    # Retired Host v1 historical read/projection tools, not current Host v2 state.
-    'platform/workstation/scripts/host_historical_projection.py': 2,
     # Experimental stand-alone local sources, not admitted production PG state.
     'services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py': 1,
     'apps/chaoxing-autosign/chaoxing_mvp/ledger.py': 1,
