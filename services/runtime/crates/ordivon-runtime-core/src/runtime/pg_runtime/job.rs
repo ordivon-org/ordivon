@@ -39,10 +39,9 @@ impl PgRuntime {
             || e.execution_profile != ExecutionProfile::TrustedLocal
             || e.windows_context.is_some()
             || e.windows_authority != WindowsAuthority::Limited
-            || !e.foreign_references.is_empty()
         {
             return Err(RuntimeError::invalid(
-                "PG vertical supports a trusted_local local_linux execution (only Host Dependency bindings supported)",
+                "PG vertical supports trusted_local local_linux execution only",
                 "execution",
             ));
         }
@@ -170,7 +169,12 @@ impl PgRuntime {
             windows_authority: e.windows_authority,
             windows_context: None,
             windows_execution_context: None,
-            foreign_references: vec![],
+            // ForeignReference is an externally supplied identity/correlation
+            // commitment, NEVER a credential or an authorization to dispatch.
+            // Structural uniqueness is checked by the shared Runtime validator,
+            // request identity hashes it, and the PG plan freezes it verbatim
+            // for the native Runner and later terminal evidence.
+            foreign_references: e.foreign_references.clone(),
             host_dependencies,
             input_set_id: None,
             effective_inputs: vec![],
