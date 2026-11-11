@@ -33,8 +33,8 @@ description = "Native R7 study evaluator/selftest from Game owner"
 run = "uv run --with check-jsonschema==0.38.0 python research/autonomous-interest-r7/protocol_selftest.py"
 
 [tasks."test:agent-episode"]
-description = "Exercise a real Godot room scene through bounded Agent action/observation JSON after editor import"
-run = "python3 examples/room-encounter/agent_episode_acceptance.py"
+description = "Import then exercise the native Godot room scene and bounded Agent action/observation JSON, including clean checkouts"
+run = "godot --headless --path examples/room-encounter --editor --import && python3 examples/room-encounter/agent_episode_acceptance.py"
 
 
 [tasks."test:bevy"]
@@ -140,10 +140,10 @@ run = """
 set -euo pipefail
 mise run factory:validate:bevy
 mise run build:bevy
-test -s examples/orbit-collector/target/debug/orbit-collector
+test -s examples/orbit-collector/target/debug/ordivon-orbit-collector
 printf 'GAME_FACTORY_SOURCE_SHA='
 git rev-parse HEAD
-sha256sum examples/orbit-collector/target/debug/orbit-collector
+sha256sum examples/orbit-collector/target/debug/ordivon-orbit-collector
 echo GAME_FACTORY_BEVY_NATIVE_BUILD_READY_NOT_PACKAGED
 """
 
@@ -155,8 +155,8 @@ godot --headless --path examples/beacon-relay --editor --import > /tmp/ordivon-g
 output="$(godot --headless --path examples/beacon-relay --script res://acceptance.gd 2>&1)"
 printf '%s\\n' "$output"
 grep -q '^GAME_BEACON_RELAY_PASS assertions=' <<< "$output"
-if grep -Eq 'SCRIPT ERROR|Parser Error|GAME_BEACON_RELAY_FAIL' <<< "$output"; then
-  echo "GAME_BEACON_NATIVE_REJECTED_SCRIPT_ERROR" >&2
+if grep -Eq 'SCRIPT ERROR|Parser Error|GAME_BEACON_RELAY_FAIL|ObjectDB instances were leaked|resources still in use at exit|(^|[[:space:]])ERROR:' <<< "$output"; then
+  echo "GAME_BEACON_NATIVE_REJECTED_ENGINE_DIAGNOSTIC" >&2
   exit 1
 fi
 """
@@ -186,4 +186,17 @@ printf 'GAME_FACTORY_SOURCE_SHA='
 git rev-parse HEAD
 sha256sum "$target/beacon-relay-linux-x86_64.tar.gz" "$target/beacon-relay-windows-x86_64.zip"
 echo GAME_FACTORY_BEACON_PACKAGES_READY
+"""
+
+# The native Bevy product is packaged without inventing another game build engine.
+[tasks."test:orbit-package-contract"]
+description = "Linux-native Orbit package negative contract: missing graphics tools cannot yield READY"
+run = "python3 scripts/test_orbit_package_contract.py"
+
+[tasks."factory:package:orbit-linux"]
+description = "Test, build and distribute the actual locked Bevy Orbit Collector Linux product"
+run = """
+set -euo pipefail
+mise run factory:build:bevy
+bash scripts/package_orbit_linux.sh
 """

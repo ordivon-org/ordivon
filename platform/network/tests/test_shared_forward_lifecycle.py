@@ -171,9 +171,26 @@ def test_native_verify_checks_loaded_systemd_not_only_installed_bytes():
     assert "--property=Wants --value" in verify
     assert "--property=After --value" in verify
     assert "--property=ExecStart --value" in verify
+    assert "--property=ExecReload --value" in verify
     assert "--property=ExecStop --value" in verify
     assert "/usr/local/libexec/network-v2/shared-egress-forward ensure" in verify
     assert "SHARED_EGRESS_LOADED_UNITS=PASS" in verify
+
+
+def test_systemd_reload_converges_forwarding_without_restart_cascade():
+    unit = (ROOT / "substrates/shared-egress/systemd/network-v2-browserless-forward.service").read_text()
+    quadlet = (ROOT / "providers/gluetun/quadlet/network-v2-gluetun-owned.container").read_text()
+    task = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
+    assert "Requires=network-v2-browserless-netns.service network-v2-browserless-forward.service" in quadlet
+    assert "ExecReload=/usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-forward ensure" in unit
+    assert "ExecStop=" not in unit
+    reload_task = task.split("  substrate:shared-egress:reload:", 1)[1].split(
+        "  substrate:shared-egress:netns:verify:", 1
+    )[0]
+    assert "systemctl reload network-v2-browserless-forward.service" in reload_task
+    assert "systemctl restart" not in reload_task
+    assert "cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service" in reload_task
+    assert "substrate:shared-egress:kernel:verify" in reload_task
 
 
 def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
@@ -184,9 +201,7 @@ def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
     assert text.count(helper) == 1
     assert text.index(helper) < text.index(unit)
     byte_check = "cmp -s substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"
-    assert text.count(byte_check) == 2
-
-
+    assert text.count(byte_check) == 3
 
 def test_native_live_idempotence_acceptance_reuses_without_restart():
     tasks = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()

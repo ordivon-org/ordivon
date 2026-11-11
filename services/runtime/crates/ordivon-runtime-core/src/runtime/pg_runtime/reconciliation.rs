@@ -5,6 +5,17 @@ use super::*;
 /// Runner publishes result.json after completing its command; systemctl/cgroup
 /// probes between an earlier file check and LOST commit can otherwise miss a
 /// result that was durably written during the probes.
+/// Match the PG Job-list recovery projection: a nonterminal issued Attempt
+/// requiring a native startup, stop, or recovery witness must never be
+/// advertised as recovery-free. A healthy running Job remains ordinary work.
+fn needs_recovery_observation(state: AttemptState, terminal: bool) -> bool {
+    !terminal
+        && matches!(
+            state,
+            AttemptState::Starting | AttemptState::Stopping | AttemptState::Recovering
+        )
+}
+
 fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
     match fs::symlink_metadata(path.join("result.json")) {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(true),
@@ -12,6 +23,139 @@ fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
         Ok(_) => Err(error("Runner result path is not a regular file")),
         Err(err) => Err(io(err)),
     }
+}
+
+/// One reconciliation epoch has a fixed upper sort key. Fresh jobs beyond
+/// this bound wait for the next epoch instead of continually extending the
+/// current scan and starving an older unresolved job.
+/// PostgreSQL state, not this in-memory cursor, remains the authority.
+fn latest_reconciliation_key(
+    client: &mut postgres::Client,
+    cancelled_only: bool,
+) -> Result<Option<(i64, String)>, postgres::Error> {
+    const SQL: &str = r#"
+        SELECT j.created_at_ms, j.job_id
+        FROM jobs j
+        JOIN attempts a ON a.attempt_id = j.current_attempt_id
+          AND a.job_id = j.job_id
+        WHERE j.resolution IS NULL
+          AND (j.desired_state = 'cancelled'
+               OR (NOT $1 AND a.state IN ('starting','running','stopping','recovering')))
+        ORDER BY j.created_at_ms DESC, j.job_id DESC
+        LIMIT 1
+    "#;
+    Ok(client
+        .query_opt(SQL, &[&cancelled_only])?
+        .map(|row| (row.get::<_, i64>(0), row.get::<_, String>(1))))
+}
+
+/// A bounded keyset page never crosses the epoch fence. A newly inserted
+/// backdated row can be observed during a later epoch; an epoch is not a
+/// repeatable-read snapshot, and the key is not a PostgreSQL commit sequence.
+fn scan_reconciliation_page(
+    client: &mut postgres::Client,
+    limit: u32,
+    cancelled_only: bool,
+    cursor: Option<&(i64, String)>,
+    upper_fence: &(i64, String),
+) -> Result<Vec<postgres::Row>, postgres::Error> {
+    const SQL: &str = r#"
+        SELECT j.job_id, j.principal, j.desired_state, j.created_at_ms
+        FROM jobs j
+        JOIN attempts a ON a.attempt_id = j.current_attempt_id
+          AND a.job_id = j.job_id
+        WHERE j.resolution IS NULL
+          AND (j.desired_state = 'cancelled'
+               OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering')))
+          AND ($3::BIGINT IS NULL
+               OR (j.created_at_ms, j.job_id) > ($3::BIGINT, $4::TEXT))
+          AND (j.created_at_ms, j.job_id) <= ($5::BIGINT, $6::TEXT)
+        ORDER BY j.created_at_ms, j.job_id
+        LIMIT $1
+    "#;
+    let (at, id) = cursor
+        .map(|(at, id)| (Some(*at), Some(id.as_str())))
+        .unwrap_or((None, None));
+    client.query(
+        SQL,
+        &[
+            &i64::from(limit),
+            &cancelled_only,
+            &at,
+            &id,
+            &upper_fence.0,
+            &upper_fence.1,
+        ],
+    )
+}
+
+/// A partial page or reaching the exact epoch upper fence completes a sweep.
+/// Reset both fields together so a new epoch can include freshly arrived jobs.
+type ReconciliationNextPage = (Option<(i64, String)>, Option<(i64, String)>);
+
+fn next_reconciliation_cursor(
+    pending: &[postgres::Row],
+    limit: u32,
+    upper_fence: &(i64, String),
+) -> ReconciliationNextPage {
+    let Some(last) = pending.last() else {
+        return (None, None);
+    };
+    let key = (last.get::<_, i64>(3), last.get::<_, String>(0));
+    // Use equality, not Rust's lexical >=: a PostgreSQL text collation can
+    // order job_id strings differently from Rust's bytewise String order.
+    if pending.len() < limit as usize || key == *upper_fence {
+        (None, None)
+    } else {
+        (Some(key), Some(upper_fence.clone()))
+    }
+}
+
+/// Version-stamped cursor/fence progress guards against concurrent scans and
+/// ABA even when an epoch wraps to an earlier row or to None.
+fn advance_reconciliation_cursor(
+    slot: &mut ReconciliationCursor,
+    observed_generation: u64,
+    next_key: Option<(i64, String)>,
+    next_upper_fence: Option<(i64, String)>,
+) -> bool {
+    if slot.generation != observed_generation {
+        return false;
+    }
+    let Some(generation) = slot.generation.checked_add(1) else {
+        return false;
+    };
+    slot.key = next_key;
+    slot.upper_fence = next_upper_fence;
+    slot.generation = generation;
+    true
+}
+
+/// Active Runner logs are an evolving preview, not a committed Artifact.
+/// Seek directly to the requested window instead of reading up to the full
+/// output ceiling on every Job observation. Terminal logs use the independent
+/// Artifact digest check in project() and must still verify all committed bytes.
+fn active_log_window(
+    path: &Path,
+    output_ceiling: u64,
+    offset: Option<u64>,
+    limit: u64,
+) -> RuntimeResult<(Vec<u8>, u64, u64, u64)> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let mut file = fs::File::open(path).map_err(io)?;
+    let available = file.seek(SeekFrom::End(0)).map_err(io)?;
+    if available > output_ceiling {
+        return Err(error("output exceeds retained ceiling"));
+    }
+    let begin = offset
+        .unwrap_or(available.saturating_sub(limit))
+        .min(available);
+    let end = begin.saturating_add(limit).min(available);
+    file.seek(SeekFrom::Start(begin)).map_err(io)?;
+    let mut window = vec![0; usize::try_from(end - begin).map_err(io)?];
+    file.read_exact(&mut window).map_err(io)?;
+    Ok((window, begin, end, available))
 }
 
 impl PgRuntime {
@@ -33,10 +177,57 @@ impl PgRuntime {
             return Err(RuntimeError::invalid("limit must be 1..100", "limit"));
         }
         let mut db = self.store()?;
-        let pending = db.client.query(
-            "SELECT j.job_id,j.principal,j.desired_state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND (j.desired_state='cancelled' OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering'))) ORDER BY j.created_at_ms,j.job_id LIMIT $1",
-            &[&i64::from(limit),&cancelled_only],
-        ).map_err(io)?;
+        // The oldest unresolved jobs can stay blocked on uncertain native
+        // evidence indefinitely. A fixed LIMIT on the oldest rows prevents
+        // later jobs from ever being reconciled. Use finite upper-fenced
+        // keyset epochs, with independent cursors for cancellation and
+        // general recovery; never let newly arriving Jobs extend an epoch. Never hold a cursor mutex across DB or
+        // native OS calls.
+        let previous = {
+            let cursors = self
+                .reconciliation_cursors
+                .lock()
+                .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
+            if cancelled_only {
+                cursors.cancelled.clone()
+            } else {
+                cursors.issued.clone()
+            }
+        };
+        // Only the first page of each epoch takes a new upper bound. The
+        // subsequent bounded pages use that same fence even if new Jobs
+        // arrive continuously; stale concurrent scans cannot rewrite it.
+        let upper_fence = match previous.upper_fence.clone() {
+            Some(key) => Some(key),
+            None => latest_reconciliation_key(&mut db.client, cancelled_only).map_err(io)?,
+        };
+        let pending = match upper_fence.as_ref() {
+            Some(upper) => scan_reconciliation_page(
+                &mut db.client,
+                limit,
+                cancelled_only,
+                previous.key.as_ref(),
+                upper,
+            )
+            .map_err(io)?,
+            None => Vec::new(),
+        };
+        let (next_key, next_upper_fence) = match upper_fence.as_ref() {
+            Some(upper) => next_reconciliation_cursor(&pending, limit, upper),
+            None => (None, None),
+        };
+        let mut cursors = self
+            .reconciliation_cursors
+            .lock()
+            .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
+        let slot = if cancelled_only {
+            &mut cursors.cancelled
+        } else {
+            &mut cursors.issued
+        };
+        let _ =
+            advance_reconciliation_cursor(slot, previous.generation, next_key, next_upper_fence);
+        drop(cursors);
         drop(db);
         let mut terminal = 0_u32;
         let mut errors = 0_u32;
@@ -631,7 +822,7 @@ impl PgRuntime {
             && rows
                 .iter()
                 .any(|row| row.get::<_, String>(1) == "execution_result");
-        let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":if terminal {"committed"} else {"in_progress"},"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":!terminal && a.state==AttemptState::Starting,"semanticCompletionEvaluated":false,"resultAvailable":result_available,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
+        let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":if terminal {"committed"} else {"in_progress"},"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":needs_recovery_observation(a.state, terminal),"semanticCompletionEvaluated":false,"resultAvailable":result_available,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
         for (kind, limit, offset) in [
             ("stdout", request.stdout_tail_bytes, request.stdout_offset),
             ("stderr", request.stderr_tail_bytes, request.stderr_offset),
@@ -644,27 +835,26 @@ impl PgRuntime {
             }
             let path = Path::new(&a.bundle_path).join(format!("{kind}.log"));
             if path.exists() {
-                let bytes = {
-                    use std::io::Read;
-                    let file = fs::File::open(path).map_err(io)?;
-                    let mut bytes = vec![];
-                    file.take(self.config.executor.max_output_bytes + 1)
-                        .read_to_end(&mut bytes)
-                        .map_err(io)?;
-                    if bytes.len() as u64 > self.config.executor.max_output_bytes {
-                        return Err(error("output exceeds retained ceiling"));
-                    }
-                    bytes
-                };
-                let begin = offset
-                    .unwrap_or((bytes.len() as u64).saturating_sub(limit))
-                    .min(bytes.len() as u64) as usize;
-                let end = (begin as u64 + limit).min(bytes.len() as u64) as usize;
-                if terminal {
-                    // Terminal stdout/stderr are registered evidence, not a
-                    // mutable preview. Reuse the same PostgreSQL digest/size
-                    // commitment enforced by artifact.read, on the very bytes
-                    // returned to the Agent.
+                let (window, begin, end, available) = if terminal {
+                    // The terminal log is immutable evidence. Verify the entire
+                    // exact file against PostgreSQL before returning any bytes.
+                    let bytes = {
+                        use std::io::Read;
+                        let file = fs::File::open(&path).map_err(io)?;
+                        let mut bytes = vec![];
+                        file.take(self.config.executor.max_output_bytes + 1)
+                            .read_to_end(&mut bytes)
+                            .map_err(io)?;
+                        if bytes.len() as u64 > self.config.executor.max_output_bytes {
+                            return Err(error("output exceeds retained ceiling"));
+                        }
+                        bytes
+                    };
+                    let available = bytes.len() as u64;
+                    let begin = offset
+                        .unwrap_or(available.saturating_sub(limit))
+                        .min(available);
+                    let end = begin.saturating_add(limit).min(available);
                     let expected = rows
                         .iter()
                         .find(|row| row.get::<_, String>(1) == kind)
@@ -680,12 +870,20 @@ impl PgRuntime {
                             false,
                         ));
                     }
-                }
-                value[format!("{kind}Tail")] = json!(String::from_utf8_lossy(&bytes[begin..end]));
+                    (
+                        bytes[begin as usize..end as usize].to_vec(),
+                        begin,
+                        end,
+                        available,
+                    )
+                } else {
+                    active_log_window(&path, self.config.executor.max_output_bytes, offset, limit)?
+                };
+                value[format!("{kind}Tail")] = json!(String::from_utf8_lossy(&window));
                 value[format!("{kind}Offset")] = json!(begin);
                 value[format!("{kind}NextOffset")] = json!(end);
-                value[format!("{kind}AvailableBytes")] = json!(bytes.len());
-                value[format!("{kind}Eof")] = json!(end == bytes.len());
+                value[format!("{kind}AvailableBytes")] = json!(available);
+                value[format!("{kind}Eof")] = json!(end == available);
             } else if terminal {
                 return Err(error("terminal output Artifact file missing"));
             }
@@ -735,5 +933,300 @@ mod late_runner_result_tests {
         std::os::unix::fs::symlink("/dev/null", root.join("result.json")).unwrap();
         assert!(runner_result_still_absent(&root).is_err());
         fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod scan_fairness_tests {
+    use super::*;
+
+    #[test]
+    fn stale_scan_cannot_regress_fence_after_concurrent_advance_and_aba() {
+        let x = (10, "job-010".to_string());
+        let y = (110, "job-110".to_string());
+        let z = (210, "job-210".to_string());
+        let mut cursor = ReconciliationCursor {
+            key: Some(x.clone()),
+            upper_fence: Some(z.clone()),
+            generation: 0,
+        };
+        let stale = cursor.clone();
+        assert!(advance_reconciliation_cursor(
+            &mut cursor,
+            0,
+            Some(y.clone()),
+            Some(z.clone())
+        ));
+        assert!(advance_reconciliation_cursor(
+            &mut cursor,
+            1,
+            Some(z.clone()),
+            Some(z.clone())
+        ));
+        assert!(!advance_reconciliation_cursor(
+            &mut cursor,
+            stale.generation,
+            None,
+            None
+        ));
+        assert_eq!(cursor.key, Some(z.clone()));
+        assert_eq!(cursor.upper_fence, Some(z.clone()));
+
+        // Exact fence reached: the next epoch starts at the oldest row.
+        assert!(advance_reconciliation_cursor(&mut cursor, 2, None, None));
+        let old_reset = cursor.clone();
+        assert!(advance_reconciliation_cursor(
+            &mut cursor,
+            3,
+            Some(x.clone()),
+            Some(z.clone())
+        ));
+        assert!(advance_reconciliation_cursor(&mut cursor, 4, None, None));
+        assert!(!advance_reconciliation_cursor(
+            &mut cursor,
+            old_reset.generation,
+            Some(y),
+            Some(z)
+        ));
+        assert!(cursor.key.is_none());
+        assert!(cursor.upper_fence.is_none());
+    }
+
+    /// PostgreSQL allows current_attempt_id to refer to an Attempt belonging
+    /// to another Job; a foreign key on attempts.job_id does not close this
+    /// inverse identity edge. Recovery must not borrow another Job's state.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_recovery_rejects_cross_job_attempt_binding() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("use a dedicated disposable PostgreSQL cluster");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (
+                job_id text PRIMARY KEY, principal text, desired_state text,
+                resolution text, current_attempt_id text, created_at_ms bigint
+             );
+             CREATE TEMP TABLE attempts (
+                attempt_id text PRIMARY KEY, job_id text NOT NULL, state text
+             );
+             INSERT INTO jobs VALUES
+               ('job-a','owner','run',NULL,'attempt-a',1),
+               ('job-b','owner','run',NULL,'attempt-a',2);
+             INSERT INTO attempts VALUES ('attempt-a','job-a','running');",
+        )
+        .unwrap();
+        // The adversarial job-b references a real Attempt, but it belongs to
+        // job-a; both the epoch fence and the page selector must reject it.
+        let newest = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(newest.1, "job-a");
+        let page = scan_reconciliation_page(&mut db, 100, false, None, &newest).unwrap();
+        assert_eq!(page.len(), 1);
+        assert_eq!(page[0].get::<_, String>(0), "job-a");
+        db.execute(
+            "UPDATE jobs SET desired_state='cancelled' WHERE job_id='job-b'",
+            &[],
+        )
+        .unwrap();
+        let cancelled = latest_reconciliation_key(&mut db, true).unwrap();
+        assert!(
+            cancelled.is_none(),
+            "cancelled lane also requires attempt ownership"
+        );
+    }
+
+    /// Real SQL and >100 unresolved Jobs in an explicitly disposable PG.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_scan_advances_beyond_blocked_oldest_page() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("use a dedicated disposable PostgreSQL cluster");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (job_id text, principal text, desired_state text, \
+                resolution text, current_attempt_id text, created_at_ms bigint); \
+             CREATE TEMP TABLE attempts (attempt_id text, job_id text, state text); \
+             INSERT INTO jobs \
+                SELECT 'job-' || lpad(n::text,3,'0'), 'owner', 'run', NULL, \
+                       'attempt-' || n, n::bigint \
+                FROM generate_series(1,101) n; \
+             INSERT INTO attempts \
+                SELECT 'attempt-' || n, 'job-' || lpad(n::text,3,'0'), 'running' \
+                FROM generate_series(1,101) n;",
+        )
+        .unwrap();
+        let upper = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(upper.1, "job-101");
+        let first = scan_reconciliation_page(&mut db, 100, false, None, &upper).unwrap();
+        assert_eq!(first.len(), 100);
+        assert_eq!(first.last().unwrap().get::<_, String>(0), "job-100");
+        let (next, same_fence) = next_reconciliation_cursor(&first, 100, &upper);
+        assert_eq!(same_fence.as_ref(), Some(&upper));
+        let second = scan_reconciliation_page(&mut db, 100, false, next.as_ref(), &upper).unwrap();
+        assert_eq!(second.len(), 1);
+        assert_eq!(second[0].get::<_, String>(0), "job-101");
+        assert_eq!(
+            next_reconciliation_cursor(&second, 100, &upper),
+            (None, None)
+        );
+
+        db.batch_execute(
+            "INSERT INTO jobs VALUES ('job-102','owner','run',NULL,'attempt-102',102);
+             INSERT INTO attempts VALUES ('attempt-102','job-102','running');",
+        )
+        .unwrap();
+        let fresh_upper = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        let revisited = scan_reconciliation_page(&mut db, 100, false, None, &fresh_upper).unwrap();
+        assert_eq!(revisited[0].get::<_, String>(0), "job-001");
+
+        db.execute(
+            "UPDATE jobs SET desired_state='cancelled' WHERE job_id IN ('job-004','job-101')",
+            &[],
+        )
+        .unwrap();
+        let cancelled_upper = latest_reconciliation_key(&mut db, true).unwrap().unwrap();
+        let cancelled =
+            scan_reconciliation_page(&mut db, 100, true, None, &cancelled_upper).unwrap();
+        assert_eq!(cancelled.len(), 2);
+        assert_eq!(cancelled[0].get::<_, String>(0), "job-004");
+        assert_eq!(cancelled[1].get::<_, String>(0), "job-101");
+    }
+
+    /// Every tick admits MORE than a full page of newer eligible Jobs.
+    /// The previous short-page solution never wraps in this workload.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_sustained_full_pages_cannot_starve_oldest_epoch() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("use a dedicated disposable PostgreSQL cluster");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (job_id text, principal text, desired_state text, \
+                resolution text, current_attempt_id text, created_at_ms bigint); \
+             CREATE TEMP TABLE attempts (attempt_id text, job_id text, state text); \
+             INSERT INTO jobs \
+                SELECT 'job-' || lpad(n::text,4,'0'), 'owner', 'run', NULL, \
+                       'attempt-' || n, n::bigint \
+                FROM generate_series(1,300) n; \
+             INSERT INTO attempts \
+                SELECT 'attempt-' || n, 'job-' || lpad(n::text,4,'0'), 'running' \
+                FROM generate_series(1,300) n;",
+        )
+        .unwrap();
+        let original_fence = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(original_fence.1, "job-0300");
+        let mut cursor: Option<(i64, String)> = None;
+        for page in 0..3 {
+            let rows =
+                scan_reconciliation_page(&mut db, 100, false, cursor.as_ref(), &original_fence)
+                    .unwrap();
+            assert_eq!(rows.len(), 100, "all three original epoch pages are full");
+            assert_eq!(
+                rows[0].get::<_, String>(0),
+                format!("job-{:04}", 1 + page * 100)
+            );
+            let (next, fence) = next_reconciliation_cursor(&rows, 100, &original_fence);
+            assert_eq!(fence.is_some(), page != 2);
+            cursor = next;
+            // A fresh 150 eligible Jobs after EVERY full page. Their sort
+            // keys exceed original_fence and cannot prolong this epoch.
+            let start = 301 + page * 150;
+            let end = start + 149;
+            db.batch_execute(&format!(
+                "INSERT INTO jobs SELECT 'job-' || lpad(n::text,4,'0'), \
+                    'owner','run',NULL,'attempt-' || n,n::bigint \
+                   FROM generate_series({start},{end}) n; \
+                 INSERT INTO attempts SELECT 'attempt-' || n, \
+                      'job-' || lpad(n::text,4,'0'),'running' \
+                   FROM generate_series({start},{end}) n;"
+            ))
+            .unwrap();
+        }
+        assert!(cursor.is_none(), "the full last page closes the epoch");
+        // Directly falsify the old unbounded keyset behaviour in this same
+        // real PostgreSQL: its next page would follow freshly admitted Jobs,
+        // instead of revisiting the unresolved oldest row.
+        let old_next: String = db
+            .query_one(
+                "SELECT j.job_id FROM jobs j JOIN attempts a                  ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id                  WHERE j.resolution IS NULL AND a.state='running'                  AND (j.created_at_ms,j.job_id) > (300,'job-0300')                  ORDER BY j.created_at_ms,j.job_id LIMIT 1",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(old_next, "job-0301");
+        let fresh_fence = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(fresh_fence.1, "job-0750");
+        let revisited = scan_reconciliation_page(&mut db, 100, false, None, &fresh_fence).unwrap();
+        assert_eq!(
+            revisited[0].get::<_, String>(0),
+            "job-0001",
+            "continuous >=limit arrivals cannot prevent the oldest retry"
+        );
+    }
+}
+
+#[cfg(test)]
+mod active_log_window_tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn active_log_tail_and_incremental_offsets_preserve_observation_contract() {
+        let path =
+            std::env::temp_dir().join(format!("ordivon-pg-active-log-{}", uuid::Uuid::now_v7()));
+        let mut initial = vec![b'x'; 1024 * 1024];
+        initial.extend_from_slice(b"first");
+        fs::write(&path, &initial).unwrap();
+        let ceiling = (initial.len() + 16) as u64;
+
+        let (tail, begin, end, available) = active_log_window(&path, ceiling, None, 5).unwrap();
+        assert_eq!(tail, b"first");
+        assert_eq!(end, available);
+        assert_eq!(end - begin, 5);
+
+        let mut file = fs::OpenOptions::new().append(true).open(&path).unwrap();
+        file.write_all(b"second").unwrap();
+        drop(file);
+        let (delta, delta_begin, delta_end, later) =
+            active_log_window(&path, ceiling, Some(end), 16).unwrap();
+        assert_eq!(delta, b"second");
+        assert_eq!(delta_begin, end);
+        assert_eq!(delta_end, later);
+
+        let (empty, start, next, total) =
+            active_log_window(&path, ceiling, Some(later + 100), 16).unwrap();
+        assert!(empty.is_empty());
+        assert_eq!((start, next, total), (later, later, later));
+
+        assert!(active_log_window(&path, 16, None, 5).is_err());
+        fs::remove_file(path).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod recovery_projection_contract_tests {
+    use super::*;
+
+    #[test]
+    fn nonterminal_native_transition_requires_reconciliation() {
+        for state in [
+            AttemptState::Starting,
+            AttemptState::Stopping,
+            AttemptState::Recovering,
+        ] {
+            assert!(needs_recovery_observation(state, false));
+            assert!(!needs_recovery_observation(state, true));
+        }
+        for state in [
+            AttemptState::Accepted,
+            AttemptState::Running,
+            AttemptState::Succeeded,
+            AttemptState::Failed,
+            AttemptState::TimedOut,
+            AttemptState::Cancelled,
+            AttemptState::Lost,
+            AttemptState::Orphaned,
+        ] {
+            assert!(!needs_recovery_observation(state, false));
+        }
     }
 }

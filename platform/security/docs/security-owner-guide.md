@@ -151,3 +151,49 @@ Before a future verified-consequence outcome is valid, the natural producing Own
 ## Naming and retirement policy
 
 Prefer: `authorization`, `authentication`, `attestations`, `provenance`, `threat-model`, `security-observation`, `resource`, `principal`, `policy-decision`. Avoid `range-*` for generic effect decisions, unqualified `security-check` and a second custom `findings` model. Keep public versioned paths/names stable until their consumers are migrated; internal source semantics and provider-native formats take priority over cosmetic renames.
+
+
+## November 10 implementation update: source-bound consumer seams
+
+- Agent Admission's raw Rego entrypoint now validates admission-critical fields
+  before selecting a decision. A missing effect budget or step-up risk threshold
+  must never fall through to admitted; the public Python contract also retains
+  its JSON Schema boundary.
+- Resource prefixes are path-segment scopes at Security, Web Store and the
+  Agent Admission Lab. /canary/notes permits itself and descendants, not
+  /canary/notes-private. This preserves the existing Grant payload format.
+- Web calls the existing Security-owned evaluator asynchronously, with
+  bounded child lifetime and output. This is a responsiveness improvement,
+  not proof of lower end-to-end request latency.
+- Security VSA issuance builds content-addressed reference generations before
+  atomically publishing the final VSA pointer. The VSA remains unsigned;
+  referenced local report paths are not immutable Artifact SourceCuts.
+- Browser LKG reseal publishes complete immutable per-carrier generations
+  before switching a single indexed LKG pointer. The old multi-file
+  try/rollback writer has been retired.
+- Evidence, provenance and VSA file digests use bounded streaming reads,
+  lowering peak hashing memory without upgrading source/signature authority.
+
+### November 10 S1 scope-and-effect consumer refinement
+
+- For the current Agent Grant v1 profile, resourcePrefixes and effect.resource
+  are **Owner-qualified canonical absolute paths**, not raw URLs or filesystem
+  paths. Segment matching rejects dot segments, doubled separators, backslashes,
+  percent escapes, query/fragment suffixes and ASCII control characters.
+  A future non-path identity requires a versioned contract.
+- Raw Rego admission remains defined as DENY / invalid-input even when an entire
+  identity section is absent. The public Python evaluator independently rejects
+  schema-invalid input before invoking the policy.
+- Web and Lab stores reject noncanonical Grant coordinates and revalidate the
+  persisted Grant, Agent/Principal, audience, action, effect type and concrete
+  materialized resource within their existing effect transactions. Exact
+  committed replays do not consume a second budget or approval.
+- The Security owner native verify runs a finite OPA / real WebStore / real Lab
+  GrantStore scope refinement corpus. This is not a universal theorem or
+  deployed PEP acceptance; the consumers retain native TypeScript checks.
+
+Consumer-owned follow-ups remain: scan immutable Artifact SourceCuts, qualify
+Rust/TypeScript/Python-aware scanner profiles against actual release inputs,
+measure Web/Gateway policy latency under concurrency, and prove deployed PEP
+coverage plus model-to-code refinement. Provider selection alone does not
+justify new services, duplicate policy engines or premature lab retirement.

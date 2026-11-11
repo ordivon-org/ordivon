@@ -32,6 +32,14 @@ This guide is a **consumer index**, not a second tool catalog or a new execution
 
 A LEGO is described by `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`: inputs/outputs, owned state, pre/postconditions, invariant, possible effects, cost/capacity, uncertainty, provenance, and decomposition. Each entry must distinguish **specification**, **model/validator**, and **installed implementation**. The implementation and physical model are not proven equivalent merely because they share a name.
 
+## Workspace lifecycle and current stock audit
+
+The existing WorkspaceConsumerCloseR1 TLA models and native Runtime provider
+remain unchanged. Current stock-only source audit, refactor decisions and
+recorded evidence are in the repository-root path `docs/architecture/audits/2026-11-10-brownfield/AUDIT_SCOPE.md`.
+Earlier consumer-expansion plans are historical and do not authorize new
+runtime features, tests or interfaces.
+
 ## Capability LEGOs — current native consumers
 
 | Capability | Source / actual owner | Preconditions and observable postcondition | Mature substrate / evidence |

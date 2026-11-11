@@ -17,6 +17,7 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 from ordivon_host_v2.attention_store import AttentionStore
+from ordivon_host_v2.canonical_json import canonical_bytes
 from ordivon_host_v2.collaboration_inputs import MessageInput, MessageKind, SpaceInput, TopicInput
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
@@ -136,3 +137,47 @@ def test_get_delta_and_reentry_each_use_one_database_checkout() -> None:
     assert reader.count == 2
     assert any(item["navigationRef"] == topic for item in reader.reentry(actor)["items"])
     assert reader.count == 3
+
+
+def test_reentry_byte_fit_does_not_rerun_delta_sql() -> None:
+    """100 legal delta-shaped rows fit 16 KiB, but their grouped re-entry page does not."""
+    assert DSN
+    actor, _, _, _ = _fixture()
+    events = [
+        {
+            "changeSequence": i + 1,
+            "eventKind": "message",
+            "sourceRef": "m",
+            "contextRef": "t",
+            "reasons": ["mentioned"],
+            "navigationKind": "topic",
+            "navigationRef": f"t{i:03d}",
+        }
+        for i in range(100)
+    ]
+
+    class InstrumentedProjection(AttentionStore):
+        calls = 0
+
+        def _delta_in_tx(self, conn, actor_ref, *, after_sequence, limit, max_bytes):
+            self.calls += 1
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-attention-delta-r1",
+                "actorRef": actor_ref,
+                "afterSequence": after_sequence,
+                "snapshotHighSequence": 100,
+                "events": events,
+                "hasMore": False,
+                "nextAfterSequence": 100,
+                "rankingApplied": False,
+                "truthBoundary": "rebuildable navigation",
+            }
+
+    reader = InstrumentedProjection(DSN)
+    result = reader.reentry(actor, after_sequence=0, limit=100, max_bytes=16_384)
+    assert reader.calls == 1
+    assert 0 < result["rawEventCount"] < len(events)
+    assert result["hasMore"] is True
+    assert result["nextAfterSequence"] == result["rawEventCount"]
+    assert len(canonical_bytes(result)) <= 16_384

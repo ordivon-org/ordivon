@@ -13,3 +13,6 @@ EnvironmentFile=/etc/network-v2/browserless/provider.env
 # Do not delete-and-reinsert live exceptions on restart or stop.
 # Physical retirement is an explicit operation after all consumers quiesce.
 ExecStart=/usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-forward ensure
+# Use reload for routine rule reconciliation. Restarting this required unit
+# cascades to the Gluetun Quadlet and interrupts the physical VPN session.
+ExecReload=/usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-forward ensure

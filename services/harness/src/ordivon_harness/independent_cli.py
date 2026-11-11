@@ -23,8 +23,6 @@ from .store import HarnessRunStatus
 
 def dispatch(args, *, clock_ms) -> dict[str, object]:
     command = args.command
-    if args.state_root is not None:
-        raise ValueError("--state-root is retired; Harness uses PostgreSQL only")
     dsn, schema = configured_postgres()
 
     def store_factory() -> PostgresHarnessStore:
@@ -85,7 +83,7 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
         messages = _load_messages(args)
         if not messages:
             raise ValueError("independent run requires at least one input message")
-        handle = HarnessAgentRun.create_postgres(
+        handle = HarnessAgentRun.create(
             dsn,
             schema,
             contract,
@@ -107,7 +105,7 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
         with store_factory() as store:
             return _execution_value(execution, schema=schema, store=store)
     if command == "resume":
-        handle = HarnessAgentRun.open_postgres(
+        handle = HarnessAgentRun.open(
             dsn,
             schema,
             args.harness_run_id,

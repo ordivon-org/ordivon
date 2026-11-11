@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 export interface WebConfig {
   readonly host: string;
   readonly port: number;
@@ -15,7 +17,8 @@ export interface WebConfig {
 function integerEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
-  const value = Number.parseInt(raw, 10);
+  // parseInt accepts trailing garbage (e.g. "8080oops") as a valid port.
+  const value = /^[0-9]+$/.test(raw) ? Number(raw) : NaN;
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new Error(name + " must be a positive integer");
   }
@@ -35,7 +38,7 @@ export function loadConfig(): WebConfig {
     rpName: process.env.ORDIVON_WEB_RP_NAME ?? "Ordivon",
     databasePath:
       process.env.ORDIVON_WEB_DB ??
-      new URL("../.web.sqlite3", import.meta.url).pathname,
+      fileURLToPath(new URL("../.web.sqlite3", import.meta.url)),
     ...(process.env.ORDIVON_WEB_BOOTSTRAP_ENROLLMENT_TOKEN === undefined
       ? {}
       : {

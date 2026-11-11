@@ -12,6 +12,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Align Workspace close continuation and packaged clean-carrier retention to 4 hours, matching installed hourly PostgreSQL reclaim. Active Job, Git dependency, and dirty-source owner disposition remain independent native preconditions. A source change is not an installed release.
+
 - Added an independently privileged PostgreSQL-native Runtime release operator path on top of the mature Runtime deployer's immutable candidate, atomic file copy, systemd, MCP Catalog and rollback primitives. The PostgreSQL release-effect identity, release/epoch qualification, one operator dispatch event, durable receipt and PG terminal evidence now have a physical installation/refinement test; generic Runtime Jobs never dispatch ReleaseEffect work, and a forged result.json cannot commit a successful release. This does not expose or install PG release.apply on live Runtime nodes.
 
 - PostgreSQL Runtime now has a release-specific, operator-qualified **internal** atomic Job+ReleaseEffect admission primitive with exact request replay before mutable release authority checks, receipt-binding digests and a fail-closed generic Runner dispatch/cancel fence. Only the separate release reader is exposed in PG MCP; the PG-specific installer and public release.apply remain unavailable. Disposable PG/systemd tests prove no-effect on absent operator qualification, consistent exactly-once admission, revocation-safe replay and no generic systemd launch.

@@ -22,12 +22,7 @@ from ordivon_composition import (
 )
 from ordivon_composition.cross_domain_binding_r3 import resolve_repo_file, validate_binding
 
-
-def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise CircuitContractError(f"{path}: root must be an object")
-    return value
+from .cognitive_circuit_r1 import _load_json
 
 
 def _read(path: Path) -> str:

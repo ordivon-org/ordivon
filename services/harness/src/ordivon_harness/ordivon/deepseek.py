@@ -2,13 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import http.client
 import os
 import stat
 import threading
-import urllib.error
 import urllib.parse
-import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -185,53 +182,6 @@ class DeepSeekTransport(Protocol):
         timeout_seconds: float,
         max_response_bytes: int,
     ) -> bytes: ...
-
-
-class UrllibDeepSeekTransport:
-    def post(
-        self,
-        url: str,
-        *,
-        headers: dict[str, str],
-        body: bytes,
-        timeout_seconds: float,
-        max_response_bytes: int,
-    ) -> bytes:
-        request = urllib.request.Request(url, data=body, method="POST", headers=headers)
-        try:
-            with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-                raw = response.read(max_response_bytes + 1)
-        except urllib.error.HTTPError as error:
-            detail = error.read(8_192).decode("utf-8", errors="replace")
-            if error.code in {408, 504}:
-                failure_code = AgentTurnFailureCode.TIMEOUT
-            elif error.code == 429 or error.code >= 500:
-                failure_code = AgentTurnFailureCode.UNAVAILABLE
-            else:
-                failure_code = AgentTurnFailureCode.REJECTED
-            raise AgentTurnAdapterError(
-                f"DeepSeek returned HTTP {error.code}: {detail}",
-                failure_code=failure_code,
-                dispatch_safety=AgentTurnDispatchSafety.PROVIDER_REJECTED,
-            ) from error
-        except urllib.error.URLError as error:
-            raise AgentTurnAdapterError(
-                f"DeepSeek connection failed: {error.reason}",
-                failure_code=AgentTurnFailureCode.TRANSPORT_FAILED,
-            ) from error
-        except TimeoutError as error:
-            raise AgentTurnAdapterError(
-                "DeepSeek request timed out",
-                failure_code=AgentTurnFailureCode.TIMEOUT,
-            ) from error
-        except (OSError, http.client.HTTPException) as error:
-            raise AgentTurnAdapterError(
-                f"DeepSeek connection failed: {error}",
-                failure_code=AgentTurnFailureCode.TRANSPORT_FAILED,
-            ) from error
-        if len(raw) > max_response_bytes:
-            raise AgentTurnAdapterError("DeepSeek response exceeds the configured byte bound")
-        return raw
 
 
 def _validated_loopback_https_proxy(value: str | None) -> str | None:

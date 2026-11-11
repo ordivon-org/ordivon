@@ -2,6 +2,17 @@ name: Game Factory native previews
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "domains/game/mise.toml"
+      - "domains/game/examples/room-encounter/**"
+      - "domains/game/examples/beacon-relay/**"
+      - "domains/game/examples/native-composition/**"
+      - "domains/game/examples/kenney-visual-composition/**"
+      - "domains/game/AGENTS.md"
+      - "domains/game/docs/agent-execution-contract-spec.md"
+      - "domains/game/docs/agent-execution-implementation-plan.md"
+      - ".github/workflows/game-factory.yml"
   push:
     branches: [main]
     paths:
@@ -20,7 +31,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  native-g11-contract:
+    name: Godot clean-checkout native consumer acceptance
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install existing Mise task runner
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.9.12
+          install: false
+          cache: true
+
+      - name: Install pinned Godot engine
+        working-directory: domains/game
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: mise install
+
+      - name: Verify Godot composition, G11, visuals and Beacon consumers
+        working-directory: domains/game
+        run: |
+          set -euo pipefail
+          test ! -d examples/room-encounter/.godot
+          mise run test:agent-episode
+          mise run test:beacon
+          mise run test:native
+          mise run test:visual-native
+
   native-preview:
+    if: github.event_name != 'pull_request'
     name: Godot ${{ matrix.game }} factory product
     runs-on: ubuntu-24.04
     strategy:

@@ -113,7 +113,16 @@ class ArtifactBindingAuthorityTests(unittest.TestCase):
                 binding = registry.resolve(profile_id, "verify")
                 self.assertTrue(binding.snapshot_inputs)
                 self.assertTrue(binding.require_claim_results)
-        self.assertFalse(registry.resolve("still-image-svg-static-r1", "verify").snapshot_inputs)
+        for profile_id in (
+            "audio-ogg-vorbis-r1",
+            "moving-image-matroska-ffv1-v3-r1",
+            "still-image-svg-static-r1",
+        ):
+            with self.subTest(profile=profile_id):
+                binding = registry.resolve(profile_id, "verify")
+                self.assertTrue(binding.snapshot_inputs)
+                self.assertFalse(binding.require_claim_results)
+        self.assertFalse(registry.resolve("design-2d-tiled-tmj-object-map-r1", "verify").snapshot_inputs)
 
     def test_registry_rejects_non_boolean_snapshot_configuration(self):
         with tempfile.TemporaryDirectory() as d:

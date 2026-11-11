@@ -757,6 +757,18 @@ check_workspace_consumer_close() {
     -config WorkspaceConsumerCloseR1.cfg WorkspaceConsumerCloseR1.tla)
 }
 
+check_workspace_consumer_close_liveness() {
+  verify_jar
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceConsumerCloseR1.liveness.cfg WorkspaceConsumerCloseR1.tla)
+}
+
+check_workspace_consumer_close_r2_candidate() {
+  verify_jar
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceConsumerCloseR1.r2-candidate.cfg WorkspaceConsumerCloseR1.tla)
+}
+
 workspace_close_expect_named_counterexample() {
   local folder="$1" config="$2" property="$3" label="$4"
   local output="$folder/result.log" result
@@ -776,17 +788,41 @@ workspace_close_expect_named_counterexample() {
   echo "Workspace consumer close $label negative control PASS: $property"
 }
 
+workspace_close_expect_temporal_counterexample() {
+  local folder="$1" config="$2" label="$3"
+  local output="$folder/result.log" result
+  set +e
+  (cd "$folder"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config "$config" WorkspaceConsumerCloseR1.tla) > "$output" 2>&1
+  result=$?
+  set -e
+  if [[ "$result" -ne 13 ]] ||
+      ! grep -Fxq 'Error: Temporal properties were violated.' "$output" ||
+      ! grep -Fxq 'Error: The following behavior constitutes a counter-example:' "$output" ||
+      ! grep -Eq '^State [1-9][0-9]*:' "$output" ||
+      ! grep -Eq '^State [1-9][0-9]*: Stuttering$' "$output"; then
+    echo "Workspace consumer close $label temporal negative control FAILED" >&2
+    tail -50 "$output" >&2
+    exit 1
+  fi
+  echo "Workspace consumer close $label temporal negative control PASS"
+}
+
 check_workspace_consumer_close_counterexamples() {
   verify_jar
   (
     tmp_dir=$(mktemp -d -t ordivon-workspace-close-XXXXXX)
     trap 'rm -rf -- "$tmp_dir"' EXIT
-    for kind in reachability unguarded spoofed; do
+    for kind in reachability unguarded spoofed ageonly fairness r2unguarded r2fairness r2reachable; do
       mkdir "$tmp_dir/$kind"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.tla" "$tmp_dir/$kind/"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.cfg" "$tmp_dir/$kind/"
     done
     cp "$ROOT/formal/WorkspaceConsumerCloseR1.reachability.cfg" "$tmp_dir/reachability/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.liveness.cfg" "$tmp_dir/fairness/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.r2-candidate.cfg" "$tmp_dir/r2unguarded/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.r2-candidate.cfg" "$tmp_dir/r2fairness/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.r2-candidate.cfg" "$tmp_dir/r2reachable/"
     workspace_close_expect_named_counterexample "$tmp_dir/reachability" \
       WorkspaceConsumerCloseR1.reachability.cfg ClosedUnreachable reachable
 
@@ -798,9 +834,15 @@ root = Path(sys.argv[1])
 model = "WorkspaceConsumerCloseR1.tla"
 source = (root / "unguarded" / model).read_text(encoding="utf-8")
 guard = '    /\\ (released \\/ age = "expired")\n'
-assert source.count(guard) == 1, "close guard drift"
+close_start = source.index("Close ==\n")
+close_end = source.index("\nNext ==\n", close_start)
+close_transition = source[close_start:close_end]
+assert close_transition.count(guard) == 1, "close guard drift"
 (root / "unguarded" / model).write_text(
-    source.replace(guard, "", 1), encoding="utf-8"
+    source[:close_start]
+    + close_transition.replace(guard, "", 1)
+    + source[close_end:],
+    encoding="utf-8",
 )
 
 source = (root / "spoofed" / model).read_text(encoding="utf-8")
@@ -815,12 +857,80 @@ content = cfg.read_text(encoding="utf-8")
 qualification = "INVARIANT ReleasedAssumesConsumerFinished\n"
 assert content.count(qualification) == 1
 cfg.write_text(content.replace(qualification, "", 1), encoding="utf-8")
+
+# Model-space known gap: age expiry alone can still close an active consumer.
+cfg = root / "ageonly" / "WorkspaceConsumerCloseR1.cfg"
+cfg_source = cfg.read_text(encoding="utf-8")
+ending = "CHECK_DEADLOCK FALSE\n"
+assert cfg_source.count(ending) == 1
+cfg.write_text(
+    cfg_source.replace(ending, "INVARIANT ExpiredActiveConsumerCannotBeClosed\n" + ending, 1),
+    encoding="utf-8",
+)
+
+# Liveness is conditional on fairness. Deleting that assumption must
+# yield a real infinite-stuttering trace instead of a vacuous PASS.
+model_path = root / "fairness" / model
+source = model_path.read_text(encoding="utf-8")
+fair = "FairCloseSpec == Spec /\\ WF_vars(Close)"
+assert source.count(fair) == 1, "close fairness contract drift"
+model_path.write_text(source.replace(fair, "FairCloseSpec == Spec", 1), encoding="utf-8")
+
+# The R2 candidate MUST be sensitive to its consumer-confirmation guard.
+# Restrict the mutation to this action, not the earlier consumer event
+# or the historical R1 Close action.
+model_path = root / "r2unguarded" / model
+source = model_path.read_text(encoding="utf-8")
+start = source.index("R2CandidateClose ==\n")
+end = source.index("\nNextR2Candidate ==\n", start)
+action = source[start:end]
+guard = '    /\\ consumer = "finished"\n'
+assert action.count(guard) == 1, "R2 candidate close guard drift"
+model_path.write_text(
+    source[:start] + action.replace(guard, "", 1) + source[end:],
+    encoding="utf-8",
+)
+
+# The second R2 control prevents a vacuous progress claim from
+# passing merely because the scheduler is free to stutter forever.
+model_path = root / "r2fairness" / model
+source = model_path.read_text(encoding="utf-8")
+fair = "FairR2CandidateSpec == R2CandidateSpec /\\ WF_vars(R2CandidateClose)"
+assert source.count(fair) == 1, "R2 candidate fairness drift"
+model_path.write_text(
+    source.replace(fair, "FairR2CandidateSpec == R2CandidateSpec", 1),
+    encoding="utf-8",
+)
+
+# Non-vacuity: R2 must actually close a fresh Workspace after a
+# finished-and-released consumer, without waiting for the age limit.
+cfg = root / "r2reachable" / "WorkspaceConsumerCloseR1.r2-candidate.cfg"
+content = cfg.read_text(encoding="utf-8")
+assert content.count("SPECIFICATION FairR2CandidateSpec\n") == 1
+assert content.count("CHECK_DEADLOCK FALSE\n") == 1
+cfg.write_text(
+    content.replace("SPECIFICATION FairR2CandidateSpec\n",
+                    "SPECIFICATION R2CandidateSpec\n", 1)
+           .replace("CHECK_DEADLOCK FALSE\n",
+                    "INVARIANT R2CandidateFreshReleasedCloseUnreachable\nCHECK_DEADLOCK FALSE\n", 1),
+    encoding="utf-8",
+)
 PY_WORKSPACE_CLOSE
     workspace_close_expect_named_counterexample "$tmp_dir/unguarded" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed unguarded
     # Scope counterexample: a claimed release is not authenticated consumer truth.
     workspace_close_expect_named_counterexample "$tmp_dir/spoofed" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed spoofed
+    workspace_close_expect_named_counterexample "$tmp_dir/ageonly" \
+      WorkspaceConsumerCloseR1.cfg ExpiredActiveConsumerCannotBeClosed age-only-active-consumer
+    workspace_close_expect_temporal_counterexample "$tmp_dir/fairness" \
+      WorkspaceConsumerCloseR1.liveness.cfg fairness-removed
+    workspace_close_expect_named_counterexample "$tmp_dir/r2reachable" \
+      WorkspaceConsumerCloseR1.r2-candidate.cfg R2CandidateFreshReleasedCloseUnreachable r2-fresh-release-reachable
+    workspace_close_expect_named_counterexample "$tmp_dir/r2unguarded" \
+      WorkspaceConsumerCloseR1.r2-candidate.cfg R2CandidateClosedConsumerFinished r2-active-consumer
+    workspace_close_expect_temporal_counterexample "$tmp_dir/r2fairness" \
+      WorkspaceConsumerCloseR1.r2-candidate.cfg r2-fairness-removed
   )
 }
 
@@ -871,7 +981,7 @@ case "${1:-check}" in
   check-dispatch) check_runtime_dispatch ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_runtime_resource_queue ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_runtime_resource_queue ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
   falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_runtime_resource_queue ;;
   *)

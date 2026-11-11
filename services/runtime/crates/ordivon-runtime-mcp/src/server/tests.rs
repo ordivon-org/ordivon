@@ -2169,6 +2169,7 @@ fn workspace_open_output_schema_exposes_success_and_error_contract() {
     );
     for expected in [
         "sourceRevision",
+        "retentionNotice",
         "error",
         "runtime_core",
         "mcp_adapter",

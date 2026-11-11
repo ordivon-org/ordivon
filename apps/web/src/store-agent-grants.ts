@@ -16,6 +16,18 @@ type AuditSink = (
   detail: unknown,
 ) => void;
 
+function canonicalScopePath(value: string): boolean {
+  return value.startsWith("/") &&
+    !value.includes("//") &&
+    !/[\\%?#\u0000-\u001f\u007f]/.test(value) &&
+    !/(^|\/)\.{1,2}(\/|$)/.test(value);
+}
+
+export function scopeContains(prefix: string, resource: string): boolean {
+  return canonicalScopePath(prefix) && canonicalScopePath(resource) &&
+    (resource === prefix || resource.startsWith(prefix.endsWith("/") ? prefix : prefix + "/"));
+}
+
 export class AgentGrantStore {
   private readonly db: DatabaseSync;
   private readonly audit: AuditSink;
@@ -26,6 +38,10 @@ export class AgentGrantStore {
   }
 
   createAgentGrant(input: AgentGrantCreate, now: number): AgentGrantSnapshot {
+    if (input.resourcePrefixes.length === 0 || input.resourcePrefixes.some((p) => !canonicalScopePath(p))) {
+      throw new WebProblem(422, "invalid-agent-grant-scope", "Invalid Agent Grant scope",
+        "Resource prefixes must be canonical absolute paths.");
+    }
     const digest = grantDigest(input);
     this.db
       .prepare(`
@@ -129,7 +145,7 @@ export class AgentGrantStore {
       .filter(
         (grant) =>
           grant.allowedActions.includes(action) &&
-          grant.resourcePrefixes.some((prefix) => resource.startsWith(prefix)),
+          grant.resourcePrefixes.some((prefix) => scopeContains(prefix, resource)),
       );
     if (matches.length === 0) {
       throw new WebProblem(

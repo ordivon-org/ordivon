@@ -286,6 +286,72 @@ mod tests {
     }
 
     #[test]
+    fn native_ecs_final_goal_and_restart_are_consistent_with_rules_and_hud() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(TimeUpdateStrategy::FixedTimesteps(1))
+            .add_plugins(OrbitCollectorPlugin);
+        app.update();
+
+        // Move all actual Goal entities onto the Player: this is a bounded
+        // ECS consumer exercise, not a second implementation of game rules.
+        {
+            let world = app.world_mut();
+            let mut goals = world.query_filtered::<&mut Transform, With<Goal>>();
+            for mut goal in goals.iter_mut(world) {
+                goal.translation = Vec3::new(0.0, -95.0, 1.0);
+            }
+        }
+        app.update();
+        assert_eq!(app.world().resource::<GameRun>().rules.phase(), Phase::Won);
+        assert_eq!(
+            app.world().resource::<GameRun>().rules.collected(),
+            GOALS.len()
+        );
+        {
+            let world = app.world_mut();
+            assert_eq!(
+                world
+                    .query_filtered::<Entity, With<Goal>>()
+                    .iter(world)
+                    .count(),
+                0
+            );
+            let mut labels = world.query_filtered::<&Text, With<StatusText>>();
+            assert!(labels.single(world).unwrap().0.contains("YOU WON!"));
+        }
+
+        // No remaining goals may be consumed again while the game is terminal.
+        app.update();
+        assert_eq!(app.world().resource::<GameRun>().rules.phase(), Phase::Won);
+        assert_eq!(
+            app.world().resource::<GameRun>().rules.collected(),
+            GOALS.len()
+        );
+
+        // Exercise the same native keyboard resource the real game consumes.
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::KeyR);
+        app.update();
+        let restored = &app.world().resource::<GameRun>().rules;
+        assert_eq!(restored.phase(), Phase::Playing);
+        assert_eq!(restored.collected(), 0);
+        assert_eq!(restored.lives(), INITIAL_LIVES);
+        let world = app.world_mut();
+        assert_eq!(
+            world
+                .query_filtered::<Entity, With<Goal>>()
+                .iter(world)
+                .count(),
+            GOALS.len(),
+        );
+        let mut labels = world.query_filtered::<&Text, With<StatusText>>();
+        assert!(labels.single(world).unwrap().0.contains("0/5"));
+    }
+
+    #[test]
     fn recipe_goal_count_matches_state_goal() {
         let run = GameRun::default();
         assert_eq!(run.rules.target(), GOALS.len());

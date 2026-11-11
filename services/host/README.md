@@ -17,7 +17,7 @@ Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_hos
 ## Tests with mature upstream tools
 
 The public canonical-JSON boundary has a real [Hypothesis](https://github.com/HypothesisWorks/hypothesis)
-property/regression test in `tests/test_canonical_property.py`. Run the local
+property/regression test in `tests/test_canonical_json_property.py`. Run the local
 Owner's native `mise run test:focused`; select any existing pytest node with
 `HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused`.
 Both tasks invoke installed pytest directly, not a new harness.

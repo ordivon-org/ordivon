@@ -99,10 +99,14 @@ impl PgRuntime {
     pub fn executor_config(&self) -> UniversalExecutorConfig {
         self.config.executor.clone()
     }
-    /// Read-only, source-bound projection of a fresh-epoch Git Workspace.
-    pub fn get_workspace(
+    /// Read-only, source-bound projection. A list page has its own batched
+    /// PostgreSQL readback; an exact get retains its own authoritative lookup.
+    /// The cheap list projection must never compute a digest and then discard it.
+    fn get_workspace_projected(
         &self,
         request: &RuntimeWorkspaceGetRequest,
+        include_source_state_digest: bool,
+        known_active_jobs: Option<Vec<String>>,
     ) -> RuntimeResult<serde_json::Value> {
         if request.schema_version != 1 {
             return Err(RuntimeError::invalid(
@@ -112,26 +116,49 @@ impl PgRuntime {
         }
         let record = universal::load_workspace_record(&self.config.executor, &request.workspace_id)
             .map_err(super::super::error::map_universal_error)?;
-        // Reuse the canonical Git status-v2 snapshot already consumed by the
-        // installed Runtime. HEAD revision, attached/detached mode and dirty
-        // state are one physical observation, not two speculative probes.
         let (head, head_mode, dirty) =
             universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
                 .map_err(super::super::error::map_universal_error)?;
-        let digest =
-            universal::workspace_source_state_digest(&self.config.executor, &request.workspace_id)
-                .map_err(io)?;
-        let mut db = self.store()?;
-        let jobs=db.client.query(
-            "SELECT job_id FROM jobs WHERE workspace_id=$1 AND resolution IS NULL ORDER BY created_at_ms DESC",
-            &[&record.workspace_id]
-        ).map_err(io)?.iter().map(|r|r.get::<_,String>(0)).collect::<Vec<_>>();
-        Ok(json!({
-            "workspaceId":record.workspace_id,"sourceRepo":record.source_repo,
-            "sourceRevision":record.source_revision,"currentHeadRevision":head,
-            "createdAtMs":record.created_unix_ms,"headMode":head_mode.as_str(),
-            "dirty":dirty,"sourceStateDigest":digest,"activeJobIds":jobs
-        }))
+        let jobs = if let Some(known) = known_active_jobs {
+            known
+        } else {
+            let mut db = self.store()?;
+            db.client
+                .query(
+                    "SELECT job_id FROM jobs WHERE workspace_id=$1 AND resolution IS NULL ORDER BY created_at_ms DESC",
+                    &[&record.workspace_id],
+                )
+                .map_err(io)?
+                .iter()
+                .map(|row| row.get::<_, String>(0))
+                .collect::<Vec<_>>()
+        };
+        let mut result = json!({
+            "workspaceId":record.workspace_id,
+            "sourceRepo":record.source_repo,
+            "sourceRevision":record.source_revision,
+            "currentHeadRevision":head,
+            "createdAtMs":record.created_unix_ms,
+            "headMode":head_mode.as_str(),
+            "dirty":dirty,
+            "activeJobIds":jobs,
+        });
+        if include_source_state_digest {
+            result["sourceStateDigest"] = json!(universal::workspace_source_state_digest(
+                &self.config.executor,
+                &request.workspace_id
+            )
+            .map_err(io)?);
+        }
+        Ok(result)
+    }
+
+    /// Precise get retains the complete source digest and exact Job readback.
+    pub fn get_workspace(
+        &self,
+        request: &RuntimeWorkspaceGetRequest,
+    ) -> RuntimeResult<serde_json::Value> {
+        self.get_workspace_projected(request, true, None)
     }
     /// Fresh PG workspaces only; historical SQLite Workspace registries are deliberately absent.
     pub fn list_workspaces(
@@ -148,7 +175,7 @@ impl PgRuntime {
         // corrupt candidates would falsely imply that the Workspace is absent.
         let inventory = universal::list_open_workspace_record_inventory(&self.config.executor)
             .map_err(super::super::error::map_universal_error)?;
-        let issues = inventory
+        let mut issues = inventory
             .issues
             .into_iter()
             .map(|issue| {
@@ -162,48 +189,97 @@ impl PgRuntime {
                 })
             })
             .collect::<Vec<_>>();
-        let mut all = Vec::new();
-        for record in inventory.records {
-            // Projection failures must not masquerade as a complete inventory.
-            let mut value = self.get_workspace(&RuntimeWorkspaceGetRequest {
-                schema_version: 1,
-                workspace_id: record.workspace_id,
-            })?;
-            if !request.include_source_state_digest {
-                value
-                    .as_object_mut()
-                    .expect("workspace projection")
-                    .remove("sourceStateDigest");
-            }
-            all.push(value);
+        if let Some(cursor) = &request.cursor {
+            universal::validate_id(&cursor.workspace_id, "cursor.workspaceId")
+                .map_err(super::super::error::map_universal_error)?;
         }
-        all.sort_by(|a, b| {
-            let x = a["createdAtMs"].as_u64().unwrap_or(0);
-            let y = b["createdAtMs"].as_u64().unwrap_or(0);
-            y.cmp(&x).then_with(|| {
-                a["workspaceId"]
-                    .as_str()
-                    .unwrap_or("")
-                    .cmp(b["workspaceId"].as_str().unwrap_or(""))
-            })
+        // Page physical records *before* invoking Git/PG projections. The former
+        // implementation inspected every open Workspace, even for limit=1;
+        // one damaged old Worktree or expensive source hash could fail or stall
+        // the entire list, preventing an Agent from seeing the healthy page.
+        let mut records = inventory.records;
+        records.sort_by(|a, b| {
+            b.created_unix_ms
+                .cmp(&a.created_unix_ms)
+                .then_with(|| a.workspace_id.cmp(&b.workspace_id))
         });
         if let Some(cursor) = &request.cursor {
-            all.retain(|v| {
-                let at = v["createdAtMs"].as_u64().unwrap_or(0);
-                let id = v["workspaceId"].as_str().unwrap_or("");
-                at < cursor.created_at_ms
-                    || (at == cursor.created_at_ms && id > cursor.workspace_id.as_str())
+            records.retain(|record| {
+                record.created_unix_ms < u128::from(cursor.created_at_ms)
+                    || (record.created_unix_ms == u128::from(cursor.created_at_ms)
+                        && record.workspace_id.as_str() > cursor.workspace_id.as_str())
             });
         }
-        let more = all.len() > request.limit as usize;
-        all.truncate(request.limit as usize);
+        let more = records.len() > request.limit as usize;
+        records.truncate(request.limit as usize);
+        // Advance over the physical page, not just projected successes, so a
+        // corrupt Git checkout cannot trap callers on an identical cursor.
         let next_cursor = if more {
-            all.last()
-                .map(|v| json!({"createdAtMs":v["createdAtMs"],"workspaceId":v["workspaceId"]}))
+            records.last().map(|record| {
+                json!({
+                    "createdAtMs": record.created_unix_ms,
+                    "workspaceId": record.workspace_id
+                })
+            })
         } else {
             None
         };
-        Ok(json!({"workspaces":all,"nextCursor":next_cursor,"issues":issues}))
+        // One PostgreSQL readback for the selected page, rather than one new
+        // connection, qualification check, and SQL query per Workspace.
+        // This is a projection of one PG observation, not a claim that Git
+        // and PostgreSQL participate in the same physical snapshot.
+        let ids = records
+            .iter()
+            .map(|record| record.workspace_id.clone())
+            .collect::<Vec<_>>();
+        let mut active_jobs: std::collections::BTreeMap<String, Vec<String>> =
+            std::collections::BTreeMap::new();
+        if !ids.is_empty() {
+            let mut db = self.store()?;
+            for row in db
+                .client
+                .query(
+                    "SELECT workspace_id,job_id FROM jobs WHERE resolution IS NULL AND workspace_id = ANY($1::TEXT[]) ORDER BY created_at_ms DESC",
+                    &[&ids],
+                )
+                .map_err(io)?
+            {
+                active_jobs
+                    .entry(row.get::<_, String>(0))
+                    .or_default()
+                    .push(row.get::<_, String>(1));
+            }
+        }
+        let mut workspaces = Vec::with_capacity(records.len());
+        for record in records {
+            let workspace_id = record.workspace_id;
+            let jobs = active_jobs.remove(&workspace_id).unwrap_or_default();
+            match self.get_workspace_projected(
+                &RuntimeWorkspaceGetRequest {
+                    schema_version: 1,
+                    workspace_id: workspace_id.clone(),
+                },
+                request.include_source_state_digest,
+                Some(jobs),
+            ) {
+                Ok(value) => {
+                    workspaces.push(value);
+                }
+                Err(error) if error.is_reconciliation_fatal() => return Err(error),
+                Err(error) => issues.push(json!({
+                    "workspaceId": workspace_id,
+                    "stage": "projection",
+                    "code": error.code.as_str(),
+                    "message": error.message,
+                    "retryable": error.retryable
+                })),
+            }
+        }
+        Ok(json!({
+            "workspaces": workspaces,
+            "nextCursor": next_cursor,
+            "issues": issues
+        }))
     }
     pub fn open_workspace(
         &self,
@@ -219,9 +295,13 @@ impl PgRuntime {
         tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
             .map_err(io)?;
         self.require_qualified_writer_tx(&mut tx)?;
-        let result = universal::create_git_workspace(&self.config.executor, request)
+        let mut result = universal::create_git_workspace(&self.config.executor, request)
             .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.open")?;
+        result.retention_notice = Some(
+            "PG Runtime Workspace is temporary: systemd runs native cleanup hourly.              After at least 4 hours of inactivity since the latest Runtime Job,              a Workspace may be automatically closed if the last Job succeeded,              its Git commit is included in origin/main, no active Job or process              uses it, and Git has no tracked or untracked changes.              Save deliverables in Git/Artifact storage; do not treat this Workspace              as durable. If more work is needed, create/reopen a fresh Workspace."
+                .to_string(),
+        );
         Ok(result)
     }
 }

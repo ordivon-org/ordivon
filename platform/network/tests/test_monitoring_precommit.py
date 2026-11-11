@@ -312,8 +312,15 @@ def test_native_prometheus_fragments_preserve_complete_owner_job_graph() -> None
     """Native fragments, not a custom registry, are the remaining consumer owners."""
     owner = _load()
     jobs = owner._all_scrape_jobs(ROOT / "config")
-    assert len(jobs) == 16
-    assert len({job["job_name"] for job in jobs}) == 16
+    by_name = {job["job_name"]: job for job in jobs}
+    assert len(jobs) == len(by_name) == 18
+    direct = by_name["blackbox-http-ipv4"]
+    carrier = by_name["blackbox-path-reference-carrier"]
+    alternate = by_name["blackbox-http-ipv4-alternate"]
+    assert direct["static_configs"] == carrier["static_configs"]
+    assert alternate["static_configs"] != direct["static_configs"]
+    assert alternate["params"] == direct["params"] == {"module": ["http_2xx_ipv4"]}
+    assert carrier["params"] == {"module": ["http_vpn_2xx_ipv4"]}
     paths = owner._fragment_paths(ROOT / "config")
     assert {path.stem for path in paths} == {
         "claude", "codex", "finance", "model-provider", "supply-chain"
@@ -371,7 +378,7 @@ def test_native_prometheus_loaded_target_oracle_detects_counterexamples(
             "scrapeUrl": url,
         })
     target_data = {"data": {"activeTargets": active}}
-    assert owner.verify_loaded_active_targets(ROOT / "config", pool_data, target_data) == 16
+    assert owner.verify_loaded_active_targets(ROOT / "config", pool_data, target_data) == len(declared)
     pool_data = copy.deepcopy(pool_data)
     target_data = copy.deepcopy(target_data)
     if mutation == "missing-pool":

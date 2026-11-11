@@ -25,7 +25,6 @@
 | `artifact-delivery/` | Schemas, profiles, bindings, locks, examples and acceptance fixtures |
 | `scripts/` | Family-specific verifier CLIs, Agent entrypoints, Temporal and tool adapters |
 | `planning/` | R2 LEGO candidate decomposition, proofs/pressure experiments |
-| `registry/` | Dated Artifact closure evidence, **not** Runtime PostgreSQL registry |
 | `config/`, `systemd/` | Configuration and service manifests; **not** active-state evidence |
 | `tests/` | Owner-native tests; `docs/` | Source-bound studies and historical acceptance |
 
@@ -53,6 +52,41 @@ outputs, primary renderer), **not** a proof that all v1 gates equal all
 v2 evidence requirements. Build/Verify bindings also reject stale source
 registries and ambiguous provider standing data. Reference:
 `docs/ARTIFACT_PROFILE_AUTHORITY_REFINEMENT_R1.md`.
+
+## Outcome-first delivery: a live, bounded customer operation
+
+Artifact now supports one **direct, outcome-first** operation without asking the
+caller to choose a Profile, a Pandoc invocation, HTML validators, or a browser:
+convert a supplied Markdown source into one **self-contained offline HTML file**.
+The execution is local and uses the already-installed Pandoc, Nu Html Checker,
+Playwright Chromium + Firefox and axe. This is deliberately **not** a new
+workflow framework, file registry or full Web deployment promise.
+
+From this Owner directory, with a real Markdown input and an authorized
+destination on the same execution host:
+
+```bash
+uv run python scripts/artifact_deliver_html.py \
+  --source /absolute/path/to/brief.md \
+  --destination /absolute/path/to/delivered-page.html \
+  --language en
+```
+
+The command refuses to publish if Pandoc, the HTML conformance checker,
+Chromium, Firefox or automated accessibility checks fail. It publishes
+already-verified bytes without overwriting an unrelated file, then opens the
+**actual delivered path** in the target browsers and binds the readback SHA-256
+to the output. An adjacent `*.delivery.json` records the exact scope and
+non-claims. Use `--replace` explicitly when replacing an existing different
+artifact is intended. Agents can request `artifact_deliver_html_propose`
+from the existing Artifact Agent Surface and let Runtime execute its plan.
+No second execution system or mandatory trust/OCI stage is introduced.
+
+**Boundary:** this establishes local offline HTML technical acceptance, not
+remote web-origin publication, Human content quality, WebKit acceptance or
+source-side auxiliary-resource provenance. A production website must be tested
+through its *deployed* URL separately. Other format families keep their
+native specialized delivery paths until independently qualified.
 
 ## Human guide: produce or verify one real outcome
 
@@ -170,19 +204,42 @@ Qualify an upstream project against exact user-facing acceptance and negative ca
 ## Cleanup, naming and retirement
 
 - The name of a Profile, Python import path, schema, Temporal route, service, lock or provider is a consumer contract, not decoration. Prefer standard semantics; rename only with explicit compatibility/refinement evidence and consumer readback.
-- The audited `scripts/artifact_r2_mailbox.py` + `config/artifact-r2-mailbox-r1.json` belong conceptually to transport, not Artifact standing. Their test and historical references exist; installed/dynamic consumers remain unclosed. Audit before removal or transfer.
+- The 2026-11-10 source-stock audit retired the historical four-file custom Cloudflare R2 mailbox (script, operator config, transfer schema, self-test). No installed worker or current Artifact operation/Domain caller was found. The R2 planning source had classified it DO_NOT_PROMOTE; Git history preserves all bytes. Future transport belongs to its natural Network/Provider owner when demanded. The existing rclone installation covers generic S3 copy/list but is NOT proven equivalent for Cloudflare temporary credentials, SigV4 presigning or TTL.
 - `docs/ARTIFACT_REDECOMPOSITION_R1.md` still references a historical `artifact_delivery.py` CLI **absent** from this source cut; do not infer it is current code.
 - The A1–A14 historical decomposition-wave documents had no text-path consumers in the audited tracked source and are removed from this isolated source candidate; their bytes remain retrievable from the base Git revision. A15 remains because the R2 plan references it. This source-retirement evidence does not establish the absence of external/dynamic consumers.
+- The full source-stock review and 425-file pre-cleanup metadata inventory are in docs/ARTIFACT_STOCK_MODERNIZATION_SPEC_R21.md and docs/ARTIFACT_STOCK_BASELINE_LEDGER_20261110.tsv. These are dated review records, not a second current capability registry. Eleven old unlinked family/pressure report files and the prototype-only EvidenceObservation adapter/self-test also exited the active tree; production verifiers and currently consumed formats remain unchanged.
 - Caches (`.venv`, `__pycache__`, `.pytest_cache`) should be cleaned only with native local project tools after verifying ownership. Never recursively delete system files, active Runtime Workspaces, source materials or another Owner's state.
 - Stop decomposition when further files only add glue. Existing semantic seams and consumer-accepted native tools take priority over a prettier directory tree.
 
 **Independent input snapshot qualification:** binding `snapshotInputs=true`
-now expressly controls exact private byte staging, separately from
-`requireClaimResults`. FLAC/WAVE/PNG retain both qualifications; the
-single-file Parquet verifier now freezes its Parquet and separate JSON contract
-inputs even though its legacy claim coverage remains incomplete. Parquet
-`status=PASS` still does **not** imply `profileVerificationComplete=true`.
-Formats with sidecars or other relative file dependencies remain
-`ADMISSION_DIGEST_ONLY` until the complete input graph can be committed and
-tested without disrupting family-native references. The snapshot lifetime is
-one verification invocation, not consumer readback or installed-tool identity.
+controls exact private byte staging separately from `requireClaimResults`.
+The seven verified single-file bindings are FLAC, WAVE, PNG, Parquet,
+Ogg/Vorbis, Matroska/FFV1 and bounded static SVG. Each native verifier receives the committed
+subject bytes and, where required, a separately committed JSON contract.
+Only FLAC/WAVE/PNG additionally require complete claim-level evidence;
+Parquet/Ogg/Matroska/SVG retain legacy native PASS without promoting
+`profileVerificationComplete`. `tests/test_artifact_input_snapshot.py`
+includes a native-dispatch replacement regression for Ogg and Matroska.
+
+The other 12 bindings remain `ADMISSION_DIGEST_ONLY` until their actual
+dependency closures and family verifiers are qualified. In particular,
+relative tile-set/model/include references, optional external glTF
+resources, native application state and SQLite auxiliary files cannot safely
+be assumed absent merely because the primary input has a digest. Freeze
+only a format's proven dependency set rather than copying every source
+into a new universal CAS. The snapshot lifetime is one verification
+invocation, **not** source-path continuity or later consumer readback.
+
+### Consumer-rooted execution seams (source observation, 2026-11-10)
+
+| Source entry/consumer | Actual path | Acceptance authority |
+| --- | --- | --- |
+| Agent proposal | `scripts/artifact_agent_surface.py` → `scripts/artifact_verify.py` → binding → native verifier | Artifact service reports only bounded technical evidence; Runtime owns physical execution |
+| Existing-file consumers | `tests/test_artifact_consumer_acceptance.py` creates real WAVE/FLAC/PNG/Parquet and separately reads native output after service verification | Test readers demonstrate technical consumption, not production Game/Media/Finance acceptance |
+| Build/packaging | `artifact_operations/providers/direct_python.py` delegates native build/verification; optional `scripts/artifact_temporal_workflow.py` sequences operations | Package completion is not destination publication |
+| Local HTML delivery | `scripts/artifact_deliver_html.py` builds and validates, then reads back the delivered path with real browsers | Local browser technical acceptance, not remote website or content-quality acceptance |
+| Media capability index | `capabilities/media/src/ordivon_studio/creative_index_artifact.py` reads Artifact Profile, Shadow Binding and consumer-acceptance records | Existing source consumer: migrate before retiring those files |
+
+This is a current **source-path map**, not proof of installed deployment,
+active job routing, or a final business consumer. The source/subject identity
+fix for Ogg/Matroska does not change any of those independent boundaries.

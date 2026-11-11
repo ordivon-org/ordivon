@@ -12,6 +12,7 @@ use serde_json::json;
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -25,9 +26,26 @@ pub struct PgRuntimeConfig {
     pub executor: UniversalExecutorConfig,
 }
 
+/// Per-process progress cursors for bounded background reconciliation scans.
+/// They are hints, never durable execution authority: after a restart the scan
+/// restarts at the beginning, and ordinary Job state stays in PostgreSQL.
+#[derive(Clone, Default)]
+struct ReconciliationCursor {
+    key: Option<(i64, String)>,
+    upper_fence: Option<(i64, String)>,
+    generation: u64,
+}
+
+#[derive(Default)]
+struct ReconciliationCursors {
+    issued: ReconciliationCursor,
+    cancelled: ReconciliationCursor,
+}
+
 #[derive(Clone)]
 pub struct PgRuntime {
     config: PgRuntimeConfig,
+    reconciliation_cursors: Arc<Mutex<ReconciliationCursors>>,
 }
 
 fn error(message: impl Into<String>) -> RuntimeError {
@@ -95,7 +113,10 @@ impl PgRuntime {
                 "sourceSha256",
             ));
         }
-        let runtime = Self { config };
+        let runtime = Self {
+            config,
+            reconciliation_cursors: Arc::new(Mutex::new(ReconciliationCursors::default())),
+        };
         // Fail closed before advertising a live MCP endpoint. Schema existence is
         // NOT permission to admit new Jobs. Qualification is an external,
         // operator-owned PG record and must match the exact configured source.

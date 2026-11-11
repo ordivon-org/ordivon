@@ -164,5 +164,116 @@ class SnapshotIdentityTests(unittest.TestCase):
             self.assertFalse((directory / "evidence").exists())
 
 
+    def test_legacy_self_contained_media_uses_committed_bytes(self):
+        """Single-file Ogg/Matroska must not verify a replaced subject or contract."""
+        for profile_id, suffix in (
+            ("audio-ogg-vorbis-r1", ".ogg"),
+            ("moving-image-matroska-ffv1-v3-r1", ".mkv"),
+        ):
+            with self.subTest(profile=profile_id), tempfile.TemporaryDirectory() as root:
+                directory = Path(root)
+                subject = directory / ("media" + suffix)
+                contract = directory / "contract.json"
+                initial_subject = b"media-bytes-bound-to-request"
+                initial_contract = b'{"contractVersion":1}'
+                subject.write_bytes(initial_subject)
+                contract.write_bytes(initial_contract)
+                profile = ROOT / "artifact-delivery/shadow-v2/examples" / f"{profile_id}-v2.json"
+                self.assertTrue(profile.is_file(), profile)
+                request = {
+                    "schemaVersion": 1,
+                    "kind": "artifact-verification-request",
+                    "requestId": "snapshot-legacy-" + profile_id,
+                    "profile": {"id": profile_id, "path": str(profile), "sha256": digest(profile.read_bytes())},
+                    "subject": {"path": str(subject), "sha256": digest(initial_subject)},
+                    "objectContract": {"path": str(contract), "sha256": digest(initial_contract)},
+                    "evidenceDirectory": str(directory / "evidence"),
+                }
+                request_path = directory / "request.json"
+                request_path.write_text(json.dumps(request))
+                observed: list[Path] = []
+
+                def load_after_staging(_relative: str, _name: str):
+                    # Mutate original paths precisely between admission and execution.
+                    subject.write_bytes(b"replacement-media")
+                    contract.write_bytes(b"replacement-contract")
+
+                    def verifier(actual_subject: Path, actual_contract: Path, _evidence_dir: Path):
+                        observed.extend((actual_subject, actual_contract))
+                        self.assertEqual(actual_subject.read_bytes(), initial_subject)
+                        self.assertEqual(actual_contract.read_bytes(), initial_contract)
+                        return {
+                            "status": "PASS",
+                            "profileId": profile_id,
+                            "artifact": {
+                                "sha256": digest(actual_subject.read_bytes()),
+                                "size": actual_subject.stat().st_size,
+                            },
+                            "contract": {"sha256": digest(actual_contract.read_bytes())},
+                            "failures": [],
+                        }
+                    return verifier, "f" * 64
+
+                with mock.patch.object(SERVICE, "load_function", side_effect=load_after_staging):
+                    result = SERVICE.verify_request(request_path)
+                self.assertEqual(result["status"], "PASS", result)
+                self.assertEqual(result["inputIdentity"]["subject"], "EXACT_BYTES_SNAPSHOT")
+                self.assertEqual(result["inputIdentity"]["objectContract"], "EXACT_BYTES_SNAPSHOT")
+                self.assertFalse(result["profileVerificationComplete"])
+                self.assertEqual(len(observed), 2)
+                self.assertTrue(all(not p.exists() for p in observed))
+
+
+    def test_static_svg_replacement_uses_snapshot(self):
+        """The bounded, no-external-reference SVG profile is single-file."""
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            subject = directory / "icon.svg"
+            original = (
+                b'<svg xmlns="http://www.w3.org/2000/svg" width="4" '
+                b'height="4" viewBox="0 0 4 4"><rect width="4" height="4"/></svg>'
+            )
+            subject.write_bytes(original)
+            profile = ROOT / "artifact-delivery/shadow-v2/examples/still-image-svg-static-r1-v2.json"
+            request = {
+                "schemaVersion": 1, "kind": "artifact-verification-request",
+                "requestId": "snapshot-static-svg",
+                "profile": {
+                    "id": "still-image-svg-static-r1", "path": str(profile),
+                    "sha256": digest(profile.read_bytes()),
+                },
+                "subject": {"path": str(subject), "sha256": digest(original)},
+                "evidenceDirectory": str(directory / "evidence"),
+            }
+            request_path = directory / "request.json"
+            request_path.write_text(json.dumps(request))
+            seen: list[Path] = []
+
+            def load_after_staging(_relative: str, _name: str):
+                subject.write_bytes(b"replaced-svg-source")
+
+                def verifier(staged_subject: Path, _evidence_dir: Path):
+                    seen.append(staged_subject)
+                    self.assertEqual(staged_subject.read_bytes(), original)
+                    return {
+                        "status": "PASS", "profileId": "still-image-svg-static-r1",
+                        "artifact": {
+                            "sha256": digest(staged_subject.read_bytes()),
+                            "size": staged_subject.stat().st_size,
+                        },
+                        "failures": [],
+                    }
+                return verifier, "f" * 64
+
+            with mock.patch.object(SERVICE, "load_function", side_effect=load_after_staging):
+                result = SERVICE.verify_request(request_path)
+            self.assertEqual(result["status"], "PASS", result)
+            self.assertEqual(result["inputIdentity"]["subject"], "EXACT_BYTES_SNAPSHOT")
+            self.assertEqual(result["inputIdentity"]["objectContract"], "NOT_APPLICABLE")
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertEqual(len(seen), 1)
+            self.assertFalse(seen[0].exists())
+
+
 if __name__ == "__main__":
     unittest.main()

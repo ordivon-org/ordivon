@@ -10,8 +10,7 @@
       "services/runtime/docs/runtime.md",
       "services/runtime/docs/status.md",
       "services/runtime/docs/effect-kernel.md",
-      "services/runtime/docs/operations.md",
-      "services/runtime/planning/EXECUTION_FABRIC_R1_ROADMAP.md"
+      "services/runtime/docs/operations.md"
     ]
   },
   "nodes": [
@@ -1200,7 +1199,7 @@
         "PHASE L3 RETIRE: after cross-process real-world readback and post-restart recovery acceptance, retire inactive SQLite writers, redundant branches and obsolete switch/dual-database glue by exact consumer-through and native deletion checks. Keep source backups until restore obligations are proven; no blind cleanup and no permanent bidirectional switch manager.",
         "FORMAL COMPOSITION: refine the existing single-owner RuntimePgCutoverR1 state machine with WindowsPgReady, WindowsControlReady, LinuxQuiesced and LinuxPgReady observations; require LinuxPgReady => WindowsPgReady /\\ WindowsControlReady /\\ LinuxQuiesced /\\ LinuxParityCertified; never have old/new writer authority for the same Runtime simultaneously, and never rollback a committed independent PG effect. Check named counterexamples for early Linux promotion, control-session loss, stale revision, unequal parity, orphaned Attempt and concurrent installed writer. A TLC PASS is scoped to the encoded finite model, not proof of SCM/wsl/Rust/PG physical implementation.",
         "STOP CONDITIONS: no independent PG availability, nonmatching original SourceCut, unknown unique committed Job/effect, noncanonical session/principal/executable identity, ambiguous Windows-to-Linux control reachability, failed physical parity, multiple live writers, missing Native Owner test or failed GitHub protected CI => do not promote. Record typed UNKNOWN and retain recoverable source until the exact problem is resolved.",
-        "DATA_RETENTION_UNPROVEN/CONSUMER_CLOSURE: before any Runtime SQLite-to-PostgreSQL import, run the existing-owner read-only source-bound pg_retention_census.py and qualify the union of unresolved Jobs, running/recovery Attempts and unreleased Reservations; terminal Jobs, events, artifacts and old idempotency keys are NOT automatically copied or deleted without an executable replay/observability/effect consumer and any applicable retention obligation. Zero-row tables require no row transfer; old schema_migrations describe the SQLite format, not rows of a new PostgreSQL schema. Count-only census has no authority to certify PG physical cutover or destructive retirement.",
+        "2026-11-10 CURRENT OWNER DECISION (supersedes historical W0-L3 import requirements): Runtime PostgreSQL cold cutover need not migrate, restore, back up, count, or preserve legacy SQLite Job/Attempt/Artifact/idempotency history; certify installed native PG writer, OS/Gateway consumers and no concurrent old SQLite writer. Historical pg_retention_census migration aid and its tests were retired with no runtime invocation consumers.",
         "R19 is admitted only as a partial source challenger: its bounded admission/cancel/no-Artifact-terminal operations require an exact-source fresh-schema PG18 physical PASS; every UNKNOWN/blocked Registry operation prevents installed cutover."
       ],
       "evidence": [
@@ -1217,8 +1216,6 @@
         "W0 PostgreSQL transport witness (2026-10-26): Windows Runtime limited service token NT SERVICE/OrdivonRuntimeR6Candidate completed TCP connection to 127.0.0.1:14550; PostgreSQL listens within WSL. TCP reachability is not SQL role/schema/authentication, PG Registry durability, or independence from terminating WSL.",
         "W0 Windows Registry witness (2026-10-26): limited Windows service token read ORDIVON_REGISTRY_ROOT (4 immediate files) and ORDIVON_STORE_ROOT, and runtime env contained no configured PostgreSQL Registry backend key; installed Rust Registry still depends on rusqlite. No secret config values collected, no state migrated.",
         "W2 control witness (2026-10-26): native Windows Runtime active_user ZYCXFYH/16663 invoked wsl.exe -d archlinux -u root, returned uid 0 and active Linux ordivon-runtime.service status. Service limited identity failed to resolve that user WSL distro (WSL_E_DISTRO_NOT_FOUND). Session longevity, logout/restart continuity, and any stop/start effect remain UNVERIFIED.",
-        "services/runtime/scripts/pg_retention_census.py: bounded read-only SQLite source snapshot, sanitized row/cohort counts and unconditional STOP for PG cutover.",
-        "services/runtime/scripts/tests/test_pg_retention_census.py: synthetic live, terminal-but-reserved, recovery-required, orphan, missing schema and literal reserved filename cases.",
         "crates/ordivon-runtime-core/src/pg_admission.rs: feature-gated native PostgreSQL challenger, intentionally not consumed by installed Engine.",
         "mise.toml test:postgres-registry:physical: explicit DSN-gated physical PG18 qualification; normal tests cannot silently convert missing PG into PASS."
       ],

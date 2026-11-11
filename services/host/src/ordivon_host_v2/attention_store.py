@@ -28,7 +28,10 @@ class AttentionStore(AttentionReadProjections, HostPostgresConnections):
         # unfollow must not make a same-payload follow replay an obsolete historical receipt.
         _ = client_request_id
         with self._connect() as conn, conn.transaction():
-            self._require_actor(conn, actor_ref)
+            # Serialize opposing desired-state commands for the same actor.
+            # Without this arbiter, a competing unfollow can remove the row
+            # between INSERT ... ON CONFLICT DO NOTHING and its fallback SELECT.
+            self._lock_actor(conn, actor_ref)
             self._require_target(conn, target_kind, target_ref)
             row = conn.execute(
                 "INSERT INTO subscriptions(actor_ref,target_kind,target_ref) VALUES (%s,%s,%s) "
@@ -69,7 +72,7 @@ class AttentionStore(AttentionReadProjections, HostPostgresConnections):
         # Desired-state command; deleting an absent natural key is already replay-safe.
         _ = client_request_id
         with self._connect() as conn, conn.transaction():
-            self._require_actor(conn, actor_ref)
+            self._lock_actor(conn, actor_ref)
             deleted = conn.execute(
                 "DELETE FROM subscriptions WHERE actor_ref=%s AND target_kind=%s AND target_ref=%s "
                 "RETURNING actor_ref",
@@ -131,6 +134,21 @@ class AttentionStore(AttentionReadProjections, HostPostgresConnections):
             }
             record_command_receipt(conn, client_request_id, "attention.ack", request_digest, result)
             return result
+
+    @staticmethod
+    def _lock_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:
+        """Order follow/unfollow for one ActorRef using an existing PostgreSQL row.
+
+        Neither a synthetic advisory-lock key nor a subscription tombstone table
+        is required. Different actors may still update concurrently.
+        """
+        if (
+            conn.execute(
+                "SELECT 1 FROM actor_refs WHERE actor_ref=%s FOR UPDATE", (actor_ref,)
+            ).fetchone()
+            is None
+        ):
+            raise ActorRefNotFound(actor_ref)
 
     @staticmethod
     def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:

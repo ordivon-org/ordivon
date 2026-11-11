@@ -4,6 +4,8 @@ Follow root AGENTS.md. The current Game direction is the source-to-playable-arti
 
 Every Game work unit should bind a real product/consumer brief, the selected native engine and component sources, exact assembly seams, a whole-game outcome, an executable acceptance and the deliverable. If none exists, SKIP or DELETE the unconsumed custom work.
 
+For a consequential G11 Agent episode or acceptance-entry change, use [the source-bound execution contract](docs/agent-execution-contract-spec.md) and its [exact implementation plan](docs/agent-execution-implementation-plan.md) **only for the affected consumer**. The Game-native `mise` task and existing G11 R2.1 remain the implementation and acceptance carriers; the documents are not a new gate for unrelated work.
+
 **Default order: DELETE custom without consumers → REUSE mature source/engine skills → COMPOSE through native interfaces → implement only the missing game-specific glue.** Godot owns Scenes/Resources/Signals/Input/ConfigFile/export; Bevy owns App/Plugin/ECS and Rust builds. Media, Artifact, Runtime, Harness, Distribution and Security retain their natural effects. Do not create a universal Game engine, workflow scheduler, registry, or test-farm service.
 
 ## Conveyor

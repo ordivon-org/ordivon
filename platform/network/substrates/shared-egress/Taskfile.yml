@@ -34,6 +34,17 @@ tasks:
       - systemctl daemon-reload
       - systemctl enable network-v2-browserless.target
 
+  substrate:shared-egress:reload:
+    desc: Reconcile shared FORWARD rules through systemd reload without restarting dependent Gluetun
+    deps: [substrate:shared-egress:validate]
+    cmds:
+      - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
+      - cmp -s substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward
+      - systemctl is-active --quiet network-v2-browserless-forward.service
+      - systemctl show network-v2-browserless-forward.service --property=ExecReload --value | grep -F '/usr/local/libexec/network-v2/shared-egress-forward ensure' >/dev/null
+      - systemctl reload network-v2-browserless-forward.service
+      - task: substrate:shared-egress:kernel:verify
+
   substrate:shared-egress:netns:verify:
     desc: Verify the existing namespace, paired veth interfaces, addresses, link flags, and no default route
     cmds:
@@ -94,6 +105,7 @@ tasks:
         netns_after=$(systemctl show network-v2-browserless-netns.service --property=After --value)
         case "$netns_wants $netns_after" in *network-online.target*) echo 'unexpected network-online dependency' >&2; exit 1;; esac
         systemctl show network-v2-browserless-forward.service --property=ExecStart --value | grep -F '/usr/local/libexec/network-v2/shared-egress-forward ensure' >/dev/null
+        systemctl show network-v2-browserless-forward.service --property=ExecReload --value | grep -F '/usr/local/libexec/network-v2/shared-egress-forward ensure' >/dev/null
         test -z "$(systemctl show network-v2-browserless-forward.service --property=ExecStartPre --value)"
         test -z "$(systemctl show network-v2-browserless-forward.service --property=ExecStop --value)"
         echo 'SHARED_EGRESS_LOADED_UNITS=PASS'

@@ -58,3 +58,34 @@ DEVELOPMENT/JUDGE generalization claim follows. Retain HOLD until a real
 agent task with actionable episode-level content, independent holdout, frozen
 intervention, comparable compute budgets and an independent output oracle is
 run.
+
+
+## Outcome-first Research decision handoff (actual)
+
+Run from the repository root:
+
+    python3 studies/experimental-episodes/experiments/evidence-consumer-pilot-r1/deliver_research.py --output /tmp/episode-research-decision.json
+
+The Research Owner delegates its required manifest to Data's existing
+producer-origin binding and physical byte verifier, reopens exact bytes
+and checks the independent analysis receipt. The output is a business
+HOLD decision with a source-bound machine receipt, or DATA_NOT_DELIVERED
+when evidence is missing or forged. No manual product ID or SHA choice is
+needed. The implementation and source corruption tests are recorded in
+test_deliver_research.py; delivery-20261109.json is one observed result.
+This does not prove task-level Agent memory learning or full Data autonomy.
+
+## Genuine task-outcome comparison
+
+The preregistered task-level follow-up is task_outcome_pilot.py. It reuses
+the native Harness HARNESS-REPO-REPAIR-001 Task, three-trial QA gate, isolated
+original fixture, hidden verifier, and existing Codex CLI. The informational
+difference is the existing Episode aggregate only, never fabricated raw
+Agent experience.
+
+Four actual model invocations and all verdicts are saved as
+task-outcomes-20261109.json and reported in TASK_OUTCOME_RESULTS_20261109.md.
+Every run passed the visible tests and created the completion artifact;
+all four failed the externally hidden verifier. Consequently the study
+did NOT observe a task-success uplift from providing historical aggregates.
+It does not prove that relevant experience examples could never help.

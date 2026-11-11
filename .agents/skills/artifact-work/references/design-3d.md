@@ -22,4 +22,4 @@ Valid glTF may still fail the object-specific topology/bounds contract. Consumer
 
 ## Source evidence
 
-`/root/projects/ordivon/capabilities/artifact/docs/ARTIFACT_FAMILY_DESIGN_3D_R1.md`
+[Historical family evidence](../../../../capabilities/artifact/docs/ARTIFACT_FAMILY_DESIGN_3D_R1.md)

@@ -10,6 +10,7 @@ import argparse
 import base64
 import configparser
 import ipaddress
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -19,8 +20,9 @@ WG_CONFIG = Path("/etc/network-v2/browserless/nv2blwg.conf")
 BASE_ENV = Path("/etc/network-v2/gluetun/serialized-candidate.env")
 NATIVE_ENV = Path("/etc/network-v2/gluetun/serialized-native.env")
 SECRET = "network-v2-gluetun-surfshark-wgkey"
+CONTAINER = "network-v2-gluetun-owned-r1"
 REGION = "Asia Pacific"
-COUNTRIES = "Singapore,Japan"
+COUNTRIES = "Singapore"
 
 PRESERVED = (
     "HTTPPROXY",
@@ -127,6 +129,59 @@ def materialize(private_key: str, generated: str, output: Path) -> None:
             os.unlink(path)
 
 
+
+def verify_loaded_env(expected: str, loaded: list[str]) -> None:
+    """Check the loaded OCI environment, not just the file used on next restart.
+
+    Compare only keys emitted by this source and reject hidden narrower server
+    filters. Never expose inspected environment values, including credentials.
+    """
+    expected_values = dict(line.split("=", 1) for line in expected.splitlines())
+    extra_server_filters = {
+        "SERVER_CITIES", "SERVER_HOSTNAMES", "SERVER_NAMES", "SERVER_CATEGORIES"
+    }
+    relevant = expected_values.keys() | extra_server_filters
+    observed: dict[str, str] = {}
+    for item in loaded:
+        key, sep, value = item.partition("=")
+        if not sep or key not in relevant:
+            continue
+        if key in observed:
+            raise ValueError(f"Duplicate loaded Gluetun key: {key}")
+        observed[key] = value
+    mismatches = sorted(
+        key for key, value in expected_values.items() if observed.get(key) != value
+    )
+    unexpected = sorted(key for key in extra_server_filters if observed.get(key))
+    if mismatches or unexpected:
+        keys = ", ".join(mismatches + unexpected)
+        raise ValueError(f"Gluetun selected running configuration differs: {keys}")
+
+
+def verify_running_container(expected: str) -> None:
+    # One Podman inspection reads the active state and selected loaded config
+    # from the same container object. No private Env values go to stdout/logs.
+    inspected = subprocess.run(
+        [
+            "/usr/bin/podman", "inspect", "-f",
+            "{{.State.Running}} {{json .Config.Env}}", CONTAINER,
+        ],
+        check=True, capture_output=True, text=True, timeout=20,
+    )
+    running, separator, payload = inspected.stdout.strip().partition(" ")
+    if running != "true" or not separator:
+        raise SystemExit("Selected Gluetun container is not running")
+    try:
+        loaded = json.loads(payload)
+    except json.JSONDecodeError:
+        raise SystemExit("Cannot decode selected Gluetun loaded environment") from None
+    if not isinstance(loaded, list) or not all(isinstance(x, str) for x in loaded):
+        raise SystemExit("Invalid selected Gluetun loaded environment shape")
+    try:
+        verify_loaded_env(expected, loaded)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from None
+
 def main() -> None:
     arg = argparse.ArgumentParser()
     choices = arg.add_mutually_exclusive_group(required=True)
@@ -149,9 +204,10 @@ def main() -> None:
             ["/usr/bin/podman", "secret", "inspect", SECRET],
             check=True, capture_output=True,
         )
+        verify_running_container(env)
     print(
         "native_profile=" + ("APPLIED" if args.apply else "VERIFIED" if args.verify else "VALID")
-        + " provider=surfshark wireguard=eligible region=Asia_Pacific countries=Singapore,Japan key=REDACTED"
+        + f" provider=surfshark wireguard=eligible region=Asia_Pacific countries={COUNTRIES} key=REDACTED"
     )
 
 

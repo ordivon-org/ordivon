@@ -5,7 +5,7 @@
       "forceCloseDirtyAfterRetention": false,
       "forceCloseUnintegratedAfterRetention": true,
       "maxLifetimeHours": 48,
-      "retentionHours": 24,
+      "retentionHours": 4,
       "dirtyRetentionHours": 48
     },
     "pinned": {
@@ -20,7 +20,7 @@
       "forceCloseDirtyAfterRetention": false,
       "forceCloseUnintegratedAfterRetention": true,
       "maxLifetimeHours": 48,
-      "retentionHours": 24,
+      "retentionHours": 4,
       "dirtyRetentionHours": 48
     }
   },

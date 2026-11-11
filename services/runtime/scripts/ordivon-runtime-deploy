@@ -34,6 +34,7 @@ DEFAULT_OPERATOR_ARTIFACTS = (
     ("ordivon-runtime-deploy", "scripts/ordivon-runtime-deploy", 0o755, "operator"),
     ("ordivon-runtime-lifecycle", "scripts/ordivon-runtime-lifecycle", 0o755, "operator"),
     ("ordivon-runtime-reclaim", "scripts/ordivon-runtime-reclaim", 0o755, "operator"),
+    ("ordivon-runtime-pg-reclaim", "scripts/ordivon-runtime-pg-reclaim", 0o755, "operator"),
     ("ordivon-runtime-cache", "scripts/ordivon-runtime-cache", 0o755, "operator"),
     ("ordivon-runtime-status", "scripts/ordivon-runtime-status", 0o755, "operator"),
     (

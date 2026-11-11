@@ -1005,6 +1005,31 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         inventoried["structuredContent"]["workspaces"][0]["workspaceId"],
         "ws-pg-consumer"
     );
+    assert!(
+        inventoried["structuredContent"]["workspaces"][0]
+            .get("sourceStateDigest")
+            .is_none(),
+        "lightweight list must omit the optional digest: {inventoried}"
+    );
+    let exact = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":"ws-pg-consumer"}),
+    );
+    let inventoried_with_digest = call(
+        &endpoint,
+        "workspace.list",
+        json!({"limit":10, "includeSourceStateDigest":true}),
+    );
+    assert_ne!(
+        inventoried_with_digest["isError"], true,
+        "{inventoried_with_digest}"
+    );
+    assert_eq!(
+        inventoried_with_digest["structuredContent"]["workspaces"][0]["sourceStateDigest"],
+        exact["structuredContent"]["sourceStateDigest"],
+        "opt-in list digest must use the same canonical workspace source observation"
+    );
     // PG must preserve the existing native Runtime inventory uncertainty contract:
     // an invalid physical Workspace must not vanish as if it never existed.
     fs::create_dir(fixture.root.join("store/workspaces/invalid current id")).unwrap();
@@ -1023,6 +1048,60 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
             })),
         "PG Workspace inventory falsely hid an invalid physical candidate: {inventory_with_issue}"
     );
+    // Real PG MCP regression: list(limit=1) must not inspect every older
+    // Workspace or fail the entire page because one Git checkout is corrupt.
+    // Its physical cursor must still advance past an unprojectable record.
+    let broken_open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-00-corrupt-list","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(broken_open["isError"], true, "{broken_open}");
+    let broken_git = fixture
+        .root
+        .join("store/workspaces/ws-00-corrupt-list/.git");
+    let original_git = fs::read(&broken_git).expect("Git worktree metadata file");
+    fs::write(&broken_git, "gitdir: /nonexistent/broken-workspace-list\n").unwrap();
+    let broken_page = call(&endpoint, "workspace.list", json!({"limit":1}));
+    assert_ne!(broken_page["isError"], true, "{broken_page}");
+    assert_eq!(
+        broken_page["structuredContent"]["workspaces"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0,
+        "invalid page must not silently claim a healthy Workspace: {broken_page}"
+    );
+    assert!(
+        broken_page["structuredContent"]["issues"]
+            .as_array()
+            .is_some_and(|issues| issues.iter().any(|issue| {
+                issue["workspaceId"] == "ws-00-corrupt-list" && issue["stage"] == "projection"
+            })),
+        "PG list must explicitly report a local projection failure: {broken_page}"
+    );
+    let page_cursor = broken_page["structuredContent"]["nextCursor"].clone();
+    assert!(
+        page_cursor.is_object(),
+        "broken page must advance: {broken_page}"
+    );
+    let healthy_page = call(
+        &endpoint,
+        "workspace.list",
+        json!({"limit":1, "cursor":page_cursor}),
+    );
+    assert_ne!(healthy_page["isError"], true, "{healthy_page}");
+    assert_eq!(
+        healthy_page["structuredContent"]["workspaces"][0]["workspaceId"], "ws-pg-consumer",
+        "next page must remain visible after a corrupt earlier Workspace"
+    );
+    fs::write(&broken_git, original_git).unwrap();
+    let broken_close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":"ws-00-corrupt-list","consumerReleased":true}),
+    );
+    assert_ne!(broken_close["isError"], true, "{broken_close}");
     let text = call(
         &endpoint,
         "workspace.read",
