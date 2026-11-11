@@ -116,11 +116,20 @@ pub enum ProviderFailureTextField {
 /// the single A-owned PG read-only snapshot. B evaluates domain semantics
 /// from this narrow projection; A never exports the potentially sensitive
 /// raw failure 'detail' string or an arbitrary CAS object for this purpose.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct VerifiedProviderFailureReference {
     event_id: String,
     digest: String,
     value: CanonicalDocument,
+}
+impl fmt::Debug for VerifiedProviderFailureReference {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("VerifiedProviderFailureReference")
+            .field("event_id", &self.event_id)
+            .field("digest", &self.digest)
+            .field("value", &"<private failure detail redacted>")
+            .finish()
+    }
 }
 impl VerifiedProviderFailureReference {
     pub fn event_id(&self) -> &str {
@@ -776,6 +785,25 @@ mod tests {
         assert!(record.contains("value: \"<redacted>\""));
         assert!(!record.contains(token));
         assert!(record.contains("harness-tool-step-intent"));
+    }
+
+    #[test]
+    fn provider_failure_debug_must_not_expose_private_receipt_detail() {
+        let receipt = VerifiedProviderFailureReference {
+            event_id: "event:test-privacy".to_owned(),
+            digest: "sha256:test-only".to_owned(),
+            value: loads_strict(
+                r#"{"detail":"TEST_ONLY_PRIVATE_RECEIPT_TOKEN","failureCode":"provider_failed"}"#,
+            )
+            .unwrap(),
+        };
+        let log = format!("{receipt:?}");
+        assert!(log.contains("event:test-privacy"));
+        assert!(log.contains("sha256:test-only"));
+        assert!(
+            !log.contains("TEST_ONLY_PRIVATE_RECEIPT_TOKEN"),
+            "Debug must never print raw Provider failure detail"
+        );
     }
 
     #[test]

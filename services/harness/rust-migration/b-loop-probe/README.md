@@ -278,7 +278,9 @@ The sole A PG Reader now projects only official Provider FailureReceipt
 reference objects through VerifiedProviderFailureReference. It exposes
 CAS identity, non-sensitive typed fields and a yes/no detail-validity fact;
 it DOES NOT expose the potentially sensitive raw failure detail nor any
-State/Request/Result body. This is part of the SAME CAS decode loop and
+State/Request/Result body. A unit test also proves the public reference's
+`Debug` representation redacts its internal private detail, avoiding an
+accidental log-output bypass. This is part of the SAME CAS decode loop and
 READ ONLY snapshot: no new SQL, Store, table, codec or global registry.
 
 B validates the Python-specified FailureReceipt structure and its full
