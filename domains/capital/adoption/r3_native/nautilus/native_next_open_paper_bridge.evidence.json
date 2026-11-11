@@ -1,6 +1,6 @@
 {
   "kind": "ordivon.finance.r3.next-open-native-bridge-read-only",
-  "peer_bridge_committed_source": "9f7f948af44233c862b10e34741859bc3cf2c122",
+  "peer_bridge_committed_source": null,
   "provider_capture_sha256": "bce793b53f97c5081e7a9b4b9d4a8b03a574977f25054eac42a55dcda9907a30",
   "upstream_portfolio_intent_qualified": false,
   "admitted_PG_execution": false,
@@ -28,5 +28,15 @@
   "source_is_historically_PIT": false,
   "PG_effect": "NONE",
   "gap_above_limit_refused_by_native_venue": true,
-  "next_open_price_shock_plus_10_unchanged_order_side_qty": true
+  "next_open_price_shock_plus_10_unchanged_order_side_qty": true,
+  "bridge_source_mode": "integrated",
+  "bridge_source_sha256": "bcfd85800b629caac7b85ae0ebd377dbecffd6cf8aa079f74f4f4901749af10d",
+  "native_terminal_cancel_zero_fill_is_a_real_proven_no_effect": true,
+  "native_zero_fill_paper_nav_minor": 1000000,
+  "native_limit_ioc_positive_and_cancel_job_id": "job-01a1cbb4-0ae0-7621-928f-a2816cfa7096",
+  "pure_contract_unit_test_count": 30,
+  "fixture_content_identity": "git_blob_bea945d370123b4b0f42e3a8e4bc5e60faeda120",
+  "simulation_git_replica_source_cut": "b91fdda2a1b137b239d962a9179e3b4fbdde1489",
+  "simulation_git_replica_is_historical_authority": false,
+  "economic_performance_qualified": false
 }

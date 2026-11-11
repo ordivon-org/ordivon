@@ -5,15 +5,17 @@ bridge by default; optional historical peer source is read by exact Git ID.
 The simulated instruction is immutable Git bytes, NOT investment authority.
 """
 from __future__ import annotations
-from datetime import date, datetime, time
-from dataclasses import replace
-from decimal import Decimal
-from hashlib import sha256
+
 import json
-from pathlib import Path
+import os
 import runpy
 import subprocess
 import sys
+from dataclasses import replace
+from datetime import date, datetime, time
+from decimal import Decimal
+from hashlib import sha256
+from pathlib import Path
 from types import ModuleType
 from zoneinfo import ZoneInfo
 
@@ -267,6 +269,7 @@ print("NATIVE_GIT_INSTRUCTION_FALSIFICATION_PASS",
 # Counterfactual scenarios may alter synthetic NEXT-OPEN quote prices,
 # NEVER the immutable Cboe source capture or committed instruction.
 import os
+
 old_scenario = os.environ.get("ORDIVON_FINANCE_R3_SIMULATION_SCENARIO")
 old_shock = os.environ.get("ORDIVON_FINANCE_R3_TEST_OPEN_SHOCK_USD")
 try:

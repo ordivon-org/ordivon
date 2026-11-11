@@ -3,27 +3,43 @@
 This is not historical PIT, authorized PortfolioIntent, PG posting or live trading.
 """
 from __future__ import annotations
-from datetime import datetime, time, timezone
-from decimal import Decimal
-from hashlib import sha256
-from pathlib import Path
-from zoneinfo import ZoneInfo
+
 import csv
-from io import StringIO
 import json
 import os
 import subprocess
+from datetime import UTC, datetime, time
+from decimal import Decimal
+from hashlib import sha256
+from io import StringIO
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from nautilus_trader.backtest import BacktestNode
 from nautilus_trader.common import LogLevel
 from nautilus_trader.config import (
-    BacktestDataConfig, BacktestEngineConfig, BacktestRunConfig,
-    BacktestVenueConfig, DataCatalogConfig, LoggerConfig
+    BacktestDataConfig,
+    BacktestEngineConfig,
+    BacktestRunConfig,
+    BacktestVenueConfig,
+    DataCatalogConfig,
+    LoggerConfig,
 )
 from nautilus_trader.execution import DefaultFillModel, MakerTakerFeeModel
 from nautilus_trader.model import (
-    AccountType, BookType, Currency, Equity, InstrumentId, NautilusDataType,
-    OmsType, Price, Quantity, QuoteTick, Symbol, OrderSide, TimeInForce
+    AccountType,
+    BookType,
+    Currency,
+    Equity,
+    InstrumentId,
+    NautilusDataType,
+    OmsType,
+    OrderSide,
+    Price,
+    Quantity,
+    QuoteTick,
+    Symbol,
+    TimeInForce,
 )
 from nautilus_trader.persistence import ParquetDataCatalog
 from nautilus_trader.trading import Strategy, StrategyConfig
@@ -135,7 +151,7 @@ ny=ZoneInfo("America/New_York")
 def nanos(date, hour,minute,second=0):
     return int(datetime.combine(
         datetime.fromisoformat(date).date(),time(hour,minute,second),ny
-    ).astimezone(timezone.utc).timestamp()*1_000_000_000)
+    ).astimezone(UTC).timestamp()*1_000_000_000)
 
 prev_decision_ns=nanos(prev_date,16,1)
 next_open_ns=nanos(next_date,9,30)

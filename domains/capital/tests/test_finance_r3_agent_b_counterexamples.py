@@ -225,6 +225,7 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
 
     def test_native_canceled_order_without_fills_is_verified_zero_economic_effect(self):
         import pandas as pd
+
         from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
         e = episode()
         e["fills"] = []
@@ -243,6 +244,7 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
 
     def test_native_unfinished_order_cannot_be_silently_booked_as_zero_fill(self):
         import pandas as pd
+
         from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
         e = episode()
         e["fills"] = []
@@ -259,6 +261,7 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
 
     def test_native_canceled_report_requires_cached_cancel_event(self):
         import pandas as pd
+
         from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
         e = episode()
         e["fills"] = []
