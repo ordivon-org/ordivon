@@ -12,7 +12,44 @@ use serde_json::{json, Value};
 use crate::attention::{self, TargetKind};
 use crate::pg::{HostDbError, HostPg};
 use crate::social::{self, AddMessageRelation, PostMessage};
-use crate::work::{self, WorkSnapshot, WorkState};
+use crate::work::{self, ActorDeclare, WorkSnapshot, WorkState};
+
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ActorKindWire {
+    Unknown,
+    Human,
+    Agent,
+    Service,
+    Organization,
+}
+impl ActorKindWire {
+    fn domain(self) -> work::ActorKind {
+        match self {
+            Self::Unknown => work::ActorKind::Unknown,
+            Self::Human => work::ActorKind::Human,
+            Self::Agent => work::ActorKind::Agent,
+            Self::Service => work::ActorKind::Service,
+            Self::Organization => work::ActorKind::Organization,
+        }
+    }
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Human => "human",
+            Self::Agent => "agent",
+            Self::Service => "service",
+            Self::Organization => "organization",
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ActorDeclareRequest {
+    pub actor_ref: String,
+    pub actor_kind: ActorKindWire,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -578,6 +615,33 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "actor.declare",
+        description = "Declare a stable Host ActorRef with immutable kind and an idempotent PG receipt; not authorization."
+    )]
+    async fn actor_declare(
+        &self,
+        Parameters(request): Parameters<ActorDeclareRequest>,
+    ) -> CallToolResult {
+        // Python ActorRefInput.model_dump(mode="json") hashes snake_case fields.
+        let payload = json!({
+            "actor_ref":request.actor_ref,"actor_kind":request.actor_kind.as_str()
+        });
+        let id = match attention_request_id("actor-declare", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("actor.declare", e),
+        };
+        let cmd = ActorDeclare {
+            actor_ref: request.actor_ref,
+            actor_kind: request.actor_kind.domain(),
+            client_request_id: id,
+        };
+        match self.pg.actor_declare(&cmd).await {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("actor.declare", e),
+        }
+    }
+
+    #[tool(
         name = "host.status",
         description = "Read actual PostgreSQL-backed Host status; staging Rust currently supports detail=summary only."
     )]
@@ -1123,6 +1187,7 @@ mod tests {
         assert_eq!(
             names,
             vec![
+                "actor.declare",
                 "attention.ack",
                 "attention.delta",
                 "attention.get",

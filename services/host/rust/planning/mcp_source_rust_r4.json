@@ -2,10 +2,9 @@
   "kind": "ordivon.host-mcp-source-rust-differential",
   "metadataBytes": {
     "python": 45453,
-    "rust": 9850
+    "rust": 10308
   },
   "missingRustTools": [
-    "actor.declare",
     "host.pool.stats",
     "message.get",
     "message.relation.list",
@@ -20,8 +19,14 @@
     "topic.list"
   ],
   "pythonTools": 31,
-  "rustTools": 18,
+  "rustTools": 19,
   "schemaDifferences": {
+    "actor.declare": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
     "attention.ack": {
       "hasOutputSchema": {
         "python": true,
@@ -177,7 +182,7 @@
   "sourceEpoch": 6,
   "toolsWithDescriptions": {
     "python": 2,
-    "rust": 18
+    "rust": 19
   },
   "toolsWithOutputSchema": {
     "python": 31,

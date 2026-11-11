@@ -96,4 +96,21 @@ else:
         ).fetchone()
         assert row is not None, "Rust Work.create identity differs from original Python MCP"
         assert row[0] == "work.create" and row[1]["workRef"] == new_ref, row
+    actor_value = ActorRefInput(
+        actor_ref="actor:test:rust-mcp-declared",
+        actor_kind=ActorKind.AGENT,
+    )
+    original_id = _request_id("actor-declare", actor_value.model_dump(mode="json"))
+    with psycopg.connect(dsn) as conn:
+        row = conn.execute(
+            "SELECT operation,response FROM command_receipts WHERE client_request_id=%s",
+            (original_id,),
+        ).fetchone()
+        assert row is not None and row[0] == "actor.declare", row
+        actor_rust_response = row[1]
+        assert actor_rust_response["actorKind"] == "agent", actor_rust_response
+    actor_python_replay = store.declare_actor(actor_value, client_request_id=original_id)
+    assert actor_python_replay["admission"] == "existing", actor_python_replay
+    assert actor_python_replay["createdAt"] == actor_rust_response["createdAt"]
+    print("PYTHON_MCP_ACTOR_DECLARATION_PARITY_PASS receipt=EXACT replay=existing")
     print("PYTHON_HOST_READBACK_PASS work_revision=2 terminal=completed receipt_identity=EXACT")

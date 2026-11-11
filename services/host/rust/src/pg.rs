@@ -2,7 +2,7 @@
 //! Bounded pooled PostgreSQL connections are used for each transaction.
 use crate::attention::{self, TargetKind};
 use crate::social::{self, AddMessageRelation, PostMessage, TopicState};
-use crate::work::{self, CommitSnapshot, CreateWork, ListWorks};
+use crate::work::{self, ActorDeclare, CommitSnapshot, CreateWork, ListWorks};
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use serde::Serialize;
 use serde_json::Value;
@@ -222,6 +222,13 @@ impl HostPg {
     ) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(social::add_message_relation(&mut client, value, request_id).await?)
+    }
+
+    /// Delegate actor reference declaration to A's original-PG-compatible
+    /// Work implementation. An ActorRef is a label, not authentication.
+    pub async fn actor_declare(&self, command: &ActorDeclare) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(work::declare_actor(&mut client, command).await?)
     }
 
     pub async fn work_get(

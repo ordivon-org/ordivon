@@ -52,6 +52,7 @@ try:
     request("notifications/initialized")
     names = [tool["name"] for tool in request("tools/list", {}, 2)["tools"]]
     assert names == [
+        "actor.declare",
         "attention.ack",
         "attention.delta",
         "attention.get",
@@ -284,6 +285,18 @@ try:
         original_message,new_message,
     ],retained
     print("MCP_SOCIAL_CONTINUITY_PASS python_seed=1 rust_message=1 relation=1 cursor_ack=1 cas_close=1 negative_conflict=3")
+    actor_args={"actorRef":"actor:test:rust-mcp-declared","actorKind":"agent"}
+    declared = request("tools/call",{"name":"actor.declare","arguments":actor_args},37)
+    assert declared["structuredContent"]["admission"] == "committed",declared
+    replay = request("tools/call",{"name":"actor.declare","arguments":actor_args},38)
+    assert replay["structuredContent"]["admission"] == "existing",replay
+    assert replay["structuredContent"]["createdAt"] == declared["structuredContent"]["createdAt"]
+    bad_kind = request("tools/call",{"name":"actor.declare","arguments":{
+        **actor_args,"actorKind":"human",
+    }},39)
+    assert bad_kind["isError"] is True,bad_kind
+    assert bad_kind["structuredContent"]["error"]["code"]=="CONFLICT",bad_kind
+    print("MCP_ACTOR_DECLARE_PASS new=committed replay=existing conflicting_kind=rejected")
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"

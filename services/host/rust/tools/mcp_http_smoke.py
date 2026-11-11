@@ -123,6 +123,7 @@ try:
     _, listed, _ = post("tools/list", {}, 2, session)
     names = [t["name"] for t in listed["result"]["tools"]]
     assert names == [
+        "actor.declare",
         "attention.ack",
         "attention.delta",
         "attention.get",

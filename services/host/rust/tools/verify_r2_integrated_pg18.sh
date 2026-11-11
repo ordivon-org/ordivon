@@ -35,7 +35,9 @@ echo "PG18_DISPOSABLE_CONNECTION_PASS"
 echo "ALEMBIC_SCHEMA13_PASS"
 cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test status_pg -- --ignored --test-threads=1
 cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test work_pg -- --ignored --test-threads=1
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/actor_python_parity.py")
 cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test social_attention_pg -- --ignored --test-threads=1
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/social_native_python_replay.py")
 echo "R2_WORK_SOCIAL_ATTENTION_PG18_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/python_oracle.py" seed "$oracle")
 export HOST_RUST_PYTHON_ORACLE_PATH="$oracle"
@@ -43,6 +45,7 @@ cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --tes
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/python_oracle.py" verify)
 echo "R2_PYTHON_RUST_BIDIRECTIONAL_PASS"
 cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --quiet
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/attention_mcp_cross_language.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/audit_mcp_surface.py" \
   --rust-bin "$root/services/host/rust/target/debug/ordivon-host-rust" \
   --source-manifest "$root/services/host/mcp-surface.json" \
