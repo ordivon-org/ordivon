@@ -123,10 +123,24 @@ try:
     _, listed, _ = post("tools/list", {}, 2, session)
     names = [t["name"] for t in listed["result"]["tools"]]
     assert names == [
-        "attention.ack", "attention.delta", "attention.get", "attention.reentry",
-        "host.status", "subscription.follow", "subscription.list",
-        "subscription.unfollow", "work.create", "work.get", "work.list",
-        "work.snapshot.commit"
+        "attention.ack",
+        "attention.delta",
+        "attention.get",
+        "attention.reentry",
+        "host.status",
+        "message.post",
+        "message.relation.add",
+        "subscription.follow",
+        "subscription.list",
+        "subscription.unfollow",
+        "topic.cursor.ack",
+        "topic.cursor.get",
+        "topic.resume",
+        "topic.state.set",
+        "work.create",
+        "work.get",
+        "work.list",
+        "work.snapshot.commit",
     ], names
     _, work, _ = post(
         "tools/call",
@@ -151,6 +165,14 @@ try:
     assert "work:test:rust-mcp-created" in {
         item["workRef"] for item in listing["result"]["structuredContent"]["works"]
     }, listing
+    _, resumed, _ = post(
+        "tools/call",
+        {"name":"topic.resume","arguments":{"topicRef":"topic:test:rust-mcp-social","afterSequence":0}},
+        6, session,
+    )
+    assert [m["messageRef"] for m in resumed["result"]["structuredContent"]["messages"]]==[
+        "message:test:rust-mcp-python-seed","message:test:rust-mcp-social-rust"
+    ],resumed
     print(f"MCP_STREAMABLE_HTTP_PASS loopback=127.0.0.1 tools={len(names)} work_revision=2")
 finally:
     server.terminate()
