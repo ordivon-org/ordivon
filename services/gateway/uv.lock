@@ -442,7 +442,7 @@ wheels = [
 
 [[package]]
 name = "ordivon-gateway"
-version = "0.10.8"
+version = "0.10.9"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },

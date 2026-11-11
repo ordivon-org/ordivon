@@ -229,6 +229,8 @@ def build_server(
         context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
+        stdoutLimitBytes: int | None = None,
+        stderrLimitBytes: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
@@ -246,6 +248,8 @@ def build_server(
                 context=context,
                 env=env,
                 timeout_ms=timeoutMs,
+                stdout_limit_bytes=stdoutLimitBytes,
+                stderr_limit_bytes=stderrLimitBytes,
                 authority_references=authorityReferences,
             )
         )
