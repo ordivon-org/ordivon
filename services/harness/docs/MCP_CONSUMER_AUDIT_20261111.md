@@ -52,6 +52,13 @@
    - Two RED tests for second-page omission and repeated pagination cursor: job-01a1c8b1-ded8-73e7-953a-59aac00e4fb0.
    - GREEN uses the official SDK cursor parameter, rejects repeated/malformed cursors and bounds page traversal to 256 pages. No custom MCP implementation.
 
+5. P0 real SDK second-page output-schema validation can silently disappear:
+   - Native pinned MCP 2.3.0 HTTP fixture registers two tools with paginated tools/list. The second tool advertises JSON Schema allowing string values only, but a crafted read-only response provides {"wrong": true}.
+   - The real official Client call_tool sent exactly one tool call, re-listed only the first page after the completed call, logged 'Tool capability_describe not listed by server, cannot validate any structured content', then returned (False, {"bad": True}) as if valid. Native repro Job job-01a1c8e4-23a7-7770-9920-90b5b83f6722.
+   - A real MCP-over-HTTP RED test reproduces invalid post-call success: job-01a1c8e4-d779-7083-b629-9bb3745586a4.
+   - GREEN reuses the same SDK-native complete page walker inside each call's active Client session, before Tool call. This provides the installed SDK with second-page outputSchema, not a custom validator. Valid second-page returns succeed. Invalid typed response is rejected by official SDK validation, with exactly one physical call and no retry. If the tool disappears from the refreshed catalog, the bridge raises a typed protocol error before any call. Native GREEN job-01a1c8e6-5bce-77cd-9a43-2c366a97410f (18 focused tests + Ruff).
+   - SDK cleanup wraps a post-call schema RuntimeError in ExceptionGroup; that is post-effect UNKNOWN for physical effects, not evidence to retry. Current plugin bridge is observation-only; these tests do not authorize physical effect dispatch.
+
 ## Unresolved / avoid premature 'optimization'
 
 1. P1 Gateway installed-Runtime schema workaround: upstream.py routes a finite Linux PG business tool set through public typed send_request instead of high-level Client.call_tool because the installed Runtime advertised a stale output schema. It includes effectful workspace.exec/job.cancel as well as read calls. The code explicitly does not retry effects. Remove this temporary branch only after the natural Runtime Owner deploys the correct output schema and a Gateway native SDK test proves no post-call false errors. Do not remove it blind or route effects to another owner.

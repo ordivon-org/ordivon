@@ -127,6 +127,116 @@ def test_official_client_rejects_repeated_mcp_page_cursor(monkeypatch):
     assert seen == [None, "repeat"]
 
 
+def test_official_client_reads_two_pages_from_real_mcp_http_server():
+    """Actual MCP 2.3.0 wire, unlike mocked page-returning Client objects."""
+    import asyncio
+    import socket
+    import threading
+    import time
+
+    import uvicorn
+    from mcp import types
+    from mcp.server import MCPServer
+
+    owner = MCPServer("ordivon-mcp-paged-list-consumer")
+
+    @owner.tool()
+    def system_describe() -> dict[str, str]:
+        return {"role": "first"}
+
+    @owner.tool()
+    def capability_describe() -> dict[str, str]:
+        return {"role": "second"}
+
+    pages = []
+    bad_output = [False]
+    hide_second = [False]
+
+    async def paged_tools(context, params: types.PaginatedRequestParams):
+        pages.append(params.cursor)
+        all_tools = await owner.list_tools()
+        assert len(all_tools) == 2
+        by_name = {tool.name: tool for tool in all_tools}
+        if params.cursor is None:
+            return types.ListToolsResult(
+                tools=[by_name["system_describe"]],
+                next_cursor=None if hide_second[0] else "page-two",
+            )
+        if params.cursor == "page-two":
+            return types.ListToolsResult(tools=[by_name["capability_describe"]])
+        raise AssertionError("unexpected tools/list cursor")
+
+    # Official SDK Server's public request-handler API is exercised on a local
+    # in-process HTTP owner. The MCPServer adapter normally serves a one-page
+    # list, so the test fixture splits that list at the *actual protocol layer*.
+    owner._lowlevel_server.add_request_handler(
+        "tools/list", types.PaginatedRequestParams, paged_tools
+    )
+    invoked = []
+
+    async def malformed_second_page_result(context, params: types.CallToolRequestParams):
+        invoked.append(params.name)
+        # The actual second-page Tool schema requires str values, not bool.
+        result = {"wrong": True} if bad_output[0] else {"role": "second"}
+        return types.CallToolResult(
+            is_error=False,
+            content=[types.TextContent(type="text", text="owner result")],
+            structured_content=result,
+        )
+
+    owner._lowlevel_server.add_request_handler(
+        "tools/call", types.CallToolRequestParams, malformed_second_page_result
+    )
+    app = owner.streamable_http_app(stateless_http=True, json_response=True)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", log_level="error"))
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(8)
+    port = sock.getsockname()[1]
+    thread = threading.Thread(
+        target=lambda: asyncio.run(server.serve(sockets=[sock])), daemon=True
+    )
+    thread.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert server.started, "MCP server failed to start"
+        client = OfficialMcpClient(LoopbackMcpEndpoint(f"http://127.0.0.1:{port}/mcp"))
+        names = tuple(tool["name"] for tool in client.list_tools())
+        assert names == ("system_describe", "capability_describe")
+        assert pages == [None, "page-two"]
+        # A new MCP ClientSession must learn second-page schema BEFORE calling.
+        # Ordinary valid results still pass SDK-native output-schema validation.
+        assert client.call_tool("capability_describe", {}) == (
+            False, {"role": "second"}
+        )
+        bad_output[0] = True
+        # Without preflight, high-level SDK lists only the first page AFTER
+        # tools/call, logs that the tool is missing, and silently returns the
+        # malformed boolean output as success. On actual HTTP transports,
+        # session cleanup wraps the source RuntimeError in an ExceptionGroup.
+        with pytest.raises(BaseExceptionGroup) as caught:
+            client.call_tool("capability_describe", {})
+        assert "Invalid structured content returned" in repr(
+            caught.value.subgroup(RuntimeError)
+        )
+        assert invoked == ["capability_describe", "capability_describe"]
+
+        # A previously visible second-page tool may disappear before a later
+        # call: reject before any physical call, never trust the old listing.
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+        hide_second[0] = True
+        with pytest.raises(ToolBridgeError, match="missing from tools/list"):
+            client.call_tool("capability_describe", {})
+        assert invoked == ["capability_describe", "capability_describe"]
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        sock.close()
+        assert not thread.is_alive()
+
+
 def test_official_mcp_http_client_preserves_unstructured_native_tool_error():
     """Real official MCP HTTP owner->client contract, including later recovery."""
     import asyncio

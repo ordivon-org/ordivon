@@ -105,6 +105,45 @@ class OfficialMcpClient:
             ) from exc
         return Client, create_mcp_http_client, streamable_http_client
 
+    @staticmethod
+    async def _collect_tool_pages(client: Any) -> tuple[Any, ...]:
+        """Use SDK-native pagination and seed this session's output schemas."""
+        tools = []
+        seen_cursors: set[str] = set()
+        cursor: str | None = None
+        while True:
+            page = await client.list_tools(cursor=cursor)
+            tools.extend(page.tools)
+            next_cursor = page.next_cursor
+            if next_cursor is None:
+                break
+            if not isinstance(next_cursor, str):
+                raise ToolBridgeError(
+                    "MCP tools/list returned an invalid pagination cursor",
+                    kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                )
+            if next_cursor in seen_cursors:
+                raise ToolBridgeError(
+                    "MCP tools/list repeated a pagination cursor",
+                    kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                )
+            if len(seen_cursors) >= 255:
+                raise ToolBridgeError(
+                    "MCP tools/list exceeded the bounded page budget",
+                    kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                )
+            seen_cursors.add(next_cursor)
+            cursor = next_cursor
+        # Avoid making a malformed page sequence authoritative for SDK's
+        # per-tool schema validator. This is protocol validation, not a grant.
+        names = [tool.name for tool in tools]
+        if len(names) != len(set(names)):
+            raise ToolBridgeError(
+                "MCP tools/list returned duplicate tool names across pages",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
+        return tuple(tools)
+
     async def _list_tools(self) -> tuple[dict[str, JsonValue], ...]:
         Client, create_mcp_http_client, streamable_http_client = self._sdk()
         async with create_mcp_http_client(headers=self._request_headers(), auth=self.auth) as http_client:
@@ -115,34 +154,7 @@ class OfficialMcpClient:
                 raise_exceptions=False,
                 read_timeout_seconds=self.timeout_seconds,
             ) as client:
-                tools = []
-                seen_cursors: set[str] = set()
-                cursor: str | None = None
-                while True:
-                    # MCP 2.3.0 exposes one page per call; never silently drop
-                    # granted Tools that happen to be on later pages.
-                    page = await client.list_tools(cursor=cursor)
-                    tools.extend(page.tools)
-                    next_cursor = page.next_cursor
-                    if next_cursor is None:
-                        break
-                    if not isinstance(next_cursor, str):
-                        raise ToolBridgeError(
-                            "MCP tools/list returned an invalid pagination cursor",
-                            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
-                        )
-                    if next_cursor in seen_cursors:
-                        raise ToolBridgeError(
-                            "MCP tools/list repeated a pagination cursor",
-                            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
-                        )
-                    if len(seen_cursors) >= 255:
-                        raise ToolBridgeError(
-                            "MCP tools/list exceeded the bounded page budget",
-                            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
-                        )
-                    seen_cursors.add(next_cursor)
-                    cursor = next_cursor
+                tools = await self._collect_tool_pages(client)
         values: list[dict[str, JsonValue]] = []
         for tool in tools:
             value = tool.model_dump(mode="json", by_alias=True, exclude_none=True)
@@ -165,7 +177,23 @@ class OfficialMcpClient:
                 raise_exceptions=False,
                 read_timeout_seconds=self.timeout_seconds,
             ) as client:
-                result = await client.call_tool(name, arguments)
+                # The SDK's call_tool() may validate output only against the
+                # FIRST tools/list page. A second-page Tool can otherwise
+                # return malformed structured content without an exception.
+                # Load ALL pages into the same session BEFORE any Tool call;
+                # never retry an effect after a post-call schema failure.
+                visible_tools = await self._collect_tool_pages(client)
+                listed = any(tool.name == name for tool in visible_tools)
+                if listed:
+                    result = await client.call_tool(name, arguments)
+        if not listed:
+            # Raise after SDK session cleanup: an exception thrown inside
+            # the task-group context is wrapped in a noisy ExceptionGroup.
+            # No Tool effect was sent in the missing-listing case.
+            raise ToolBridgeError(
+                f"MCP Tool {name} is missing from tools/list",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
         content = result.structured_content
         if result.is_error and not isinstance(content, dict):
             # Official MCP 2.x permits text-only Tool errors; this is a
