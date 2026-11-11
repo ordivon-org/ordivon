@@ -48,6 +48,8 @@ if [[ "${HARNESS_CONSUMER_FALSIFY_CONTRACT:-}" == 1 ]]; then
     services/harness/rust-migration/consumer-acceptance/make_invalid_contract_fixture.py
   export HARNESS_RUST_TEST_INVALID_CONTRACT_CASES="$(python3 -c \
     'import json,sys;cases=json.load(open(sys.argv[1]))["invalid_contract_cases"];print(chr(10).join(k+"|"+v for k,v in sorted(cases.items())))' "$ROOT/fixture.json")"
+  export HARNESS_RUST_TEST_VALID_CONTRACT_CASES="$(python3 -c \
+    'import json,sys;cases=json.load(open(sys.argv[1]))["positive_contract_cases"];print(chr(10).join(k+"|"+v for k,v in sorted(cases.items())))' "$ROOT/fixture.json")"
   cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
     -p ordivon-harness-pg --test contract_semantic_falsifier -- --ignored --nocapture
 fi

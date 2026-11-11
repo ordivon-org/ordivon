@@ -93,9 +93,86 @@ def semantic_counterexamples(valid_contract: dict) -> list[tuple[str, dict]]:
     return cases
 
 
+def semantic_positive_variants(valid_contract: dict) -> list[tuple[str, dict]]:
+    '''Valid legacy/current cases that an over-strict Rust port must keep.'''
+    cases: list[tuple[str, dict]] = []
+
+    def add(name: str, field: str, value: object) -> None:
+        item = deepcopy(valid_contract)
+        item[field] = value
+        cases.append((name, item))
+
+    add("bounded_private_model", "privacy", {
+        "contentPolicy": "bounded-private-content",
+        "allowModelContent": True,
+        "allowToolContent": False,
+    })
+    add("bounded_private_tool", "privacy", {
+        "contentPolicy": "bounded-private-content",
+        "allowModelContent": False,
+        "allowToolContent": True,
+    })
+    add("unicode_model_and_adapter", "requestedModelId", "model:测试-🧩")
+    add("large_2048_digit_budget", "budget", {
+        "maxTurns": 2,
+        "countUpperBound": int("8" * 2048),
+    })
+    add("structured_current_schema", "completionContract", {
+        "mode": "structured-result-v1",
+        "resultSchema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {"status": {"type": "string"}},
+            "required": ["status"],
+            "additionalProperties": False,
+        },
+    })
+    add("structured_legacy_profile", "completionContract", {
+        "mode": "structured-result-v1",
+        "conformancePolicy": "local-json-schema-draft-2020-12-profile-v1",
+        "resultSchema": {
+            "type": "object",
+            "properties": {"count": {"type": "integer", "minimum": 0}},
+            "additionalProperties": False,
+        },
+    })
+    add("v1_none_correlation", "schemaVersion", 1)
+    cases[-1][1]["correlation"] = {
+        "traceparent": None, "tracestate": None, "links": [],
+    }
+    add("v1_real_traceparent", "schemaVersion", 1)
+    cases[-1][1]["correlation"] = {
+        "traceparent": "00-" + "1234567890abcdef" * 2 + "-1234567890abcdef-01",
+        "tracestate": "vendor=value",
+        "links": [{
+            "ref": "test:trace-related",
+            "kind": "test-only",
+            "digest": valid_contract["toolCatalogDigest"],
+        }],
+    }
+    add("valid_source_and_prior_artifact", "sourceRefs", [{
+        "ref": "test:source-file", "kind": "test-only",
+        "digest": valid_contract["toolCatalogDigest"],
+    }])
+    cases[-1][1]["priorArtifactRefs"] = [{
+        "ref": "artifact:prior-file", "kind": "test-only",
+        "digest": valid_contract["toolCatalogDigest"],
+    }]
+    add("valid_deadline", "deadlineMs", valid_contract["createdAtMs"] + 7000)
+    return cases
+
+
 with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
     valid = store.load_run(fixtures["valid"])
     template = store.get_object(valid.contract_object_digest, expected_kind="harness-run-contract")
+    positive_cases: dict[str, str] = {}
+    for name, variant in semantic_positive_variants(template):
+        variant["harnessRunId"] = "harness-run:test-rust-pg-valid-" + name
+        variant["callerRunRef"] = "test-run-valid-" + name
+        contract = HarnessRunContract.from_dict(variant)
+        assert store.create_run(contract).value == "created"
+        store.validate_run_history(contract.harness_run_id)
+        positive_cases[name] = contract.harness_run_id
     specs: list[tuple[str, str, dict, str, str, str]] = []
     for name, _ in semantic_counterexamples(template):
         template_run = deepcopy(template)
@@ -179,6 +256,7 @@ with psycopg.connect(dsn, autocommit=True) as connection:
             assert len(store.list_run_events(run_id)) == run.revision == 1
         print(f"PYTHON_SEMANTIC_REJECTION={len(cases)}/{len(cases)}")
 
+fixtures["positive_contract_cases"] = positive_cases
 fixtures["invalid_contract"] = cases["provider_empty"]
 fixtures["invalid_contract_cases"] = cases
 path.write_text(json.dumps(fixtures, sort_keys=True), encoding="utf-8")

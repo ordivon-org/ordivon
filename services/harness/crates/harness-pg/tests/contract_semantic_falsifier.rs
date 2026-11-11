@@ -39,3 +39,27 @@ fn rejects_digested_but_semantically_invalid_legacy_contracts() {
         accepted.len()
     );
 }
+
+#[test]
+#[ignore = "opt-in positive source consumer corpus, scratch PG18 only"]
+fn accepts_source_valid_versioned_legacy_and_current_contracts() {
+    let dsn = std::env::var("HARNESS_RUST_TEST_PG_DSN").expect("isolated PG DSN");
+    let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").expect("scratch PG schema");
+    let cases = std::env::var("HARNESS_RUST_TEST_VALID_CONTRACT_CASES")
+        .expect("Python source-validated positive cases");
+    let mut client = postgres::Client::connect(&dsn, postgres::NoTls).expect("PG");
+    let mut checked = 0;
+    let mut rejected = Vec::new();
+    for line in cases.lines() {
+        let (name, run_id) = line.split_once('|').expect("name|run ID");
+        checked += 1;
+        if let Err(error) = read_run_readonly(&mut client, &schema, run_id) {
+            rejected.push(format!("{name} -> {error}"));
+        }
+    }
+    assert!(checked >= 10, "positive cases incomplete: {checked}");
+    assert!(
+        rejected.is_empty(),
+        "Rust rejected legitimate Python Contracts: {rejected:?}"
+    );
+}
