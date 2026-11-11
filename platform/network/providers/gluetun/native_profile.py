@@ -22,6 +22,9 @@ NATIVE_ENV = Path("/etc/network-v2/gluetun/serialized-native.env")
 SECRET = "network-v2-gluetun-surfshark-wgkey"
 CONTAINER = "network-v2-gluetun-owned-r1"
 SELECTOR_POLICY = Path(__file__).resolve().parent / "config/exit-selector.json"
+# This value is also asserted against the natural Podman Quadlet Owner below.
+LOADED_WG_SECRETFILE = "/run/secrets/surfshark-wgkey"
+
 
 PRESERVED = (
     "HTTPPROXY",
@@ -77,7 +80,15 @@ def parse_selector_policy(raw: str) -> dict[str, list[str]]:
     Selected countries are transport candidates, never proof that an upstream
     application accepts that public egress or that a catalog IP is healthy.
     """
-    value = json.loads(raw)
+    def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"Duplicate Gluetun selector key: {key}")
+            result[key] = value
+        return result
+
+    value = json.loads(raw, object_pairs_hook=reject_duplicate_keys)
     fields = {"regions", "selectedCountries", "excludedCountries"}
     if not isinstance(value, dict) or set(value) != fields:
         raise ValueError("Gluetun selector policy fields differ")
@@ -197,7 +208,22 @@ def verify_loaded_env(expected: str, loaded: list[str]) -> None:
     extra_server_filters = {
         "SERVER_CITIES", "SERVER_HOSTNAMES", "SERVER_NAMES", "SERVER_CATEGORIES"
     }
-    relevant = expected_values.keys() | extra_server_filters
+    # An extra explicit endpoint or plaintext key in the running container can
+    # silently bypass native Surfshark server selection even when the selected
+    # country and region match. These keys are never emitted by the source
+    # profile; Gluetun receives the WireGuard key via the Quadlet-mounted Secret.
+    forbidden_identity_overrides = {
+        "WIREGUARD_ENDPOINT_IP", "WIREGUARD_ENDPOINT_PORT",
+        "WIREGUARD_PUBLIC_KEY", "WIREGUARD_PRIVATE_KEY",
+        "WIREGUARD_PRESHARED_KEY",
+    }
+    loaded_only_expected = {
+        "WIREGUARD_PRIVATE_KEY_SECRETFILE": LOADED_WG_SECRETFILE,
+    }
+    relevant = (
+        expected_values.keys() | extra_server_filters |
+        forbidden_identity_overrides | loaded_only_expected.keys()
+    )
     observed: dict[str, str] = {}
     for item in loaded:
         key, sep, value = item.partition("=")
@@ -207,9 +233,13 @@ def verify_loaded_env(expected: str, loaded: list[str]) -> None:
             raise ValueError(f"Duplicate loaded Gluetun key: {key}")
         observed[key] = value
     mismatches = sorted(
-        key for key, value in expected_values.items() if observed.get(key) != value
+        key for key, value in (expected_values | loaded_only_expected).items()
+        if observed.get(key) != value
     )
-    unexpected = sorted(key for key in extra_server_filters if observed.get(key))
+    unexpected = sorted(
+        key for key in extra_server_filters | forbidden_identity_overrides
+        if observed.get(key)
+    )
     if mismatches or unexpected:
         keys = ", ".join(mismatches + unexpected)
         raise ValueError(f"Gluetun selected running configuration differs: {keys}")
