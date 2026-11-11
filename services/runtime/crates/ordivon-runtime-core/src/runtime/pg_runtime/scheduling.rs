@@ -165,6 +165,64 @@ pub(super) fn scheduling_readback(
     })
 }
 
+/// Native controller read errors mean UNKNOWN, never an unschedulable verdict.
+fn native_resource_error(message: impl std::fmt::Display) -> RuntimeError {
+    RuntimeError::new(
+        RuntimeErrorCode::ToolFailed,
+        format!("native scheduling resource observation unavailable: {message}"),
+        Some("scheduling.resources"),
+        true,
+    )
+}
+
+/// An OS supply visibility error applies node-wide; unlike an isolated
+/// Job reconciliation failure, it must reach the scheduler's error channel.
+fn is_native_resource_observation(error: &RuntimeError) -> bool {
+    error.code == RuntimeErrorCode::ToolFailed
+        && error.field.as_deref() == Some("scheduling.resources")
+}
+
+/// A *missing unit directory* is an unstarted (or removed) cgroup and thus
+/// contributes no observed usage. The committed PG Allocation still reserves
+/// its full resource request. An existing unit with missing/corrupt controller
+/// files is UNKNOWN and must not be interpreted as zero usage.
+///
+/// Read each cgroup file directly in the normal path: only an ENOENT triggers
+/// an extra directory check, avoiding a per-allocation metadata round trip.
+fn unspent_native_allocation(group: &Path, request: &ResourceRequest) -> RuntimeResult<(u64, u64)> {
+    let read_current = |name: &str| -> RuntimeResult<Option<u64>> {
+        let path = group.join(name);
+        match fs::read_to_string(&path) {
+            Ok(value) => value
+                .trim()
+                .parse::<u64>()
+                .map(Some)
+                .map_err(|e| native_resource_error(format!("{}: {e}", path.display()))),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                match fs::symlink_metadata(group) {
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+                    Ok(_) => Err(native_resource_error(format!(
+                        "{} missing from existing cgroup",
+                        path.display()
+                    ))),
+                    Err(e) => Err(native_resource_error(format!("{}: {e}", group.display()))),
+                }
+            }
+            Err(e) => Err(native_resource_error(format!("{}: {e}", path.display()))),
+        }
+    };
+    let Some(memory) = read_current("memory.current")? else {
+        return Ok((request.memory_bytes, u64::from(request.pids)));
+    };
+    let Some(pids) = read_current("pids.current")? else {
+        return Ok((request.memory_bytes, u64::from(request.pids)));
+    };
+    Ok((
+        request.memory_bytes.saturating_sub(memory),
+        u64::from(request.pids).saturating_sub(pids),
+    ))
+}
+
 impl PgRuntime {
     pub(super) fn scheduling_contract(
         &self,
@@ -214,10 +272,8 @@ impl PgRuntime {
             tx.commit().map_err(io)?;
             return Ok(true);
         }
-        let node = match NodeResources::observe() {
-            Ok(v) => v,
-            Err(_) => return Ok(false),
-        };
+        let node = NodeResources::observe()
+            .map_err(|e| native_resource_error(e).with_operation_id(&a.job_id))?;
         if !node.pressure_allows(&spec.resources) {
             return Ok(false);
         }
@@ -237,19 +293,10 @@ impl PgRuntime {
             let attempt: String = row.get(0);
             let group = Path::new("/sys/fs/cgroup/system.slice")
                 .join(format!("ordivon-pg-{attempt}.service"));
-            let observed = |name: &str| {
-                fs::read_to_string(group.join(name))
-                    .ok()
-                    .and_then(|v| v.trim().parse::<u64>().ok())
-                    .unwrap_or(0)
-            };
-            unspent_memory = unspent_memory.saturating_add(
-                resources
-                    .memory_bytes
-                    .saturating_sub(observed("memory.current")),
-            );
-            unspent_pids = unspent_pids
-                .saturating_add(u64::from(resources.pids).saturating_sub(observed("pids.current")));
+            let (memory, pids) = unspent_native_allocation(&group, &resources)
+                .map_err(|e| e.with_operation_id(&a.job_id))?;
+            unspent_memory = unspent_memory.saturating_add(memory);
+            unspent_pids = unspent_pids.saturating_add(pids);
         }
         let reserve = (node.memory_total_bytes / 20).max(64 * 1024 * 1024);
         if !crate::resource_fit::fits(
@@ -286,7 +333,7 @@ impl PgRuntime {
         if candidates.is_empty() {
             return Ok(json!({"considered":0,"attempted":0}));
         }
-        let node = NodeResources::observe().map_err(error)?;
+        let node = NodeResources::observe().map_err(native_resource_error)?;
         let active = db
             .client
             .query(
@@ -355,7 +402,12 @@ impl PgRuntime {
                 ..
             } = candidate;
             self.authorize(&mut db, &job, &principal)?;
-            if self.reconcile_inner(&mut db, &job, true).is_ok() {
+            let reconciled = match self.reconcile_inner(&mut db, &job, true) {
+                Ok(()) => true,
+                Err(error) if is_native_resource_observation(&error) => return Err(error),
+                Err(_) => false,
+            };
+            if reconciled {
                 let active: bool = db
                     .client
                     .query_one(
@@ -500,6 +552,83 @@ mod scheduler_candidate_tests {
             memory_pressure: 0.0,
             io_pressure: 0.0,
         }
+    }
+
+    #[test]
+    fn missing_node_observation_is_not_resource_infeasible() {
+        let error = native_resource_error("missing /proc/pressure/memory");
+        assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
+        assert!(error.retryable);
+        assert!(is_native_resource_observation(&error));
+        // Per-Job Tool failures and known constraints do not abort this
+        // scheduler batch; only the native node visibility gap does.
+        assert!(!is_native_resource_observation(&RuntimeError::new(
+            RuntimeErrorCode::ToolFailed,
+            "runner error",
+            Some("execution"),
+            true,
+        )));
+        assert!(!is_native_resource_observation(&RuntimeError::new(
+            RuntimeErrorCode::ConcurrencyLimit,
+            "capacity exhausted",
+            Some("scheduling.resources"),
+            true,
+        )));
+        assert!(!error
+            .message
+            .contains("resource pressure or workspace lease"));
+    }
+
+    #[test]
+    fn native_allocation_missing_controller_is_unknown_not_zero_usage() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-pg-native-observation-{}",
+            uuid::Uuid::now_v7()
+        ));
+        fs::create_dir(&root).unwrap();
+        let group = root.join("ordivon-pg-attempt.service");
+        fs::create_dir(&group).unwrap();
+        fs::write(group.join("memory.current"), "128\n").unwrap();
+        let request = ResourceRequest {
+            memory_bytes: 1024,
+            pids: 16,
+            ..Default::default()
+        };
+        let error = unspent_native_allocation(&group, &request)
+            .expect_err("missing pids.current is UNKNOWN, not zero usage");
+        assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn native_allocation_missing_unit_reserves_full_budget_but_malformed_is_unknown() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-pg-native-observation-{}",
+            uuid::Uuid::now_v7()
+        ));
+        fs::create_dir(&root).unwrap();
+        let group = root.join("not-yet-started.service");
+        let request = ResourceRequest {
+            memory_bytes: 1024,
+            pids: 16,
+            ..Default::default()
+        };
+        assert_eq!(
+            unspent_native_allocation(&group, &request).unwrap(),
+            (1024, 16)
+        );
+        fs::create_dir(&group).unwrap();
+        fs::write(group.join("memory.current"), "malformed\n").unwrap();
+        fs::write(group.join("pids.current"), "3\n").unwrap();
+        let error = unspent_native_allocation(&group, &request)
+            .expect_err("bad controller output must preserve UNKNOWN");
+        assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
+        fs::write(group.join("memory.current"), "128\n").unwrap();
+        assert_eq!(
+            unspent_native_allocation(&group, &request).unwrap(),
+            (896, 13)
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
