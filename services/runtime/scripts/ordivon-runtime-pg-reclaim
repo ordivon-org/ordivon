@@ -7,6 +7,7 @@ delete physical Workspace files directly or infer domain acceptance from Job exi
 from __future__ import annotations
 
 import argparse
+import re
 import fcntl
 import json
 import os
@@ -14,9 +15,104 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from urllib.parse import quote
 import time
 
 from mcp_probe import connect_compatible, load_environment_file
+
+# This is the *installed* PG Workspace carrier, not the retired SQLite
+# registry. The existing operator-owned retention policy is read-only input:
+# no implicit enablement of unintegrated deletion if it is absent or disabled.
+WORKSPACE_ROOT = Path("/var/lib/ordivon/pg-candidate/workspaces")
+RETAINED_HEAD_REF = re.compile(r"^sha256:([0-9a-f]{64})$")
+
+
+def _retention_policy(path: Path | None) -> dict | None:
+    if path is None:
+        return None
+    if not path.is_absolute() or not path.is_file() or path.is_symlink():
+        raise ValueError("retention policy must be an installed absolute regular file")
+    policy = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(policy, dict) or type(policy.get("schemaVersion")) is not int or policy["schemaVersion"] != 1:
+        raise ValueError("unsupported retention policy schema")
+    classes = policy.get("classes")
+    if not isinstance(classes, dict) or policy.get("defaultClass") not in classes:
+        raise ValueError("retention policy has no valid default class")
+    for value in classes.values():
+        if not isinstance(value, dict):
+            raise ValueError("invalid retention class")
+        hours = value.get("retentionHours")
+        if hours is not None and (type(hours) not in (float, int) or not 0 <= hours <= 8760):
+            raise ValueError("invalid retention class hours")
+        if type(value.get("forceCloseUnintegratedAfterRetention", False)) is not bool:
+            raise ValueError("invalid unintegrated retention authority")
+    rules = policy.get("rules", [])
+    if not isinstance(rules, list):
+        raise ValueError("invalid retention policy rules")
+    for rule in rules:
+        if not isinstance(rule, dict) or rule.get("class") not in classes:
+            raise ValueError("invalid retention policy rule class")
+        if sum(isinstance(rule.get(k), str) for k in ("workspaceId", "prefix")) != 1:
+            raise ValueError("retention rule requires exactly one selector")
+    return policy
+
+
+def _workspace_retention(
+    policy: dict | None, workspace_id: str, cli_min_age_hours: float
+) -> tuple[int | None, bool]:
+    # Existing PG behavior stays fail-closed when no explicit policy is bound.
+    if policy is None:
+        return int(cli_min_age_hours * 3600 * 1000), False
+    name = policy["defaultClass"]
+    for rule in policy.get("rules", []):
+        if rule.get("workspaceId") == workspace_id or (
+            isinstance(rule.get("prefix"), str) and workspace_id.startswith(rule["prefix"])
+        ):
+            name = rule["class"]
+            break
+    value = policy["classes"][name]
+    hours = value.get("retentionHours")
+    if hours is None:
+        return None, False  # pinned is not a deletion candidate
+    return int(max(cli_min_age_hours, float(hours)) * 3600 * 1000), (
+        value.get("forceCloseUnintegratedAfterRetention") is True
+    )
+
+
+def _preserve_unintegrated_head(
+    repo: Path, workspace_id: str, head: str, source_digest: str
+) -> dict[str, str]:
+    # Reuse the existing lifecycle Git reference namespace, rather than
+    # inventing a backup database or relying on a detached worktree HEAD.
+    match = RETAINED_HEAD_REF.fullmatch(source_digest)
+    if match is None or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,95}", workspace_id):
+        raise RuntimeError("unintegrated Workspace has invalid source identity")
+    if not re.fullmatch(r"[0-9a-f]{40}", head):
+        raise RuntimeError("unintegrated Workspace HEAD is not a commit OID")
+    found = _git(repo, "rev-parse", "--verify", f"{head}^{{commit}}")
+    if found.returncode or found.stdout.strip() != head:
+        raise RuntimeError("unintegrated Workspace HEAD is unavailable")
+    ref = f"refs/ordivon/retention/{quote(workspace_id, safe='-._')}/{match.group(1)}"
+    prior = _git(repo, "rev-parse", "--verify", "--quiet", ref)
+    if prior.returncode == 0:
+        if prior.stdout.strip() != head:
+            raise RuntimeError("retained Workspace ref collides with a different commit")
+        disposition = "existing"
+    else:
+        write = _git(repo, "update-ref", ref, head, "0" * 40)
+        if write.returncode:
+            replay = _git(repo, "rev-parse", "--verify", "--quiet", ref)
+            if replay.returncode or replay.stdout.strip() != head:
+                raise RuntimeError("could not preserve unintegrated Git HEAD")
+            disposition = "existing"
+        else:
+            disposition = "created"
+    readback = _git(repo, "rev-parse", "--verify", f"{ref}^{{commit}}")
+    if readback.returncode or readback.stdout.strip() != head:
+        raise RuntimeError("unintegrated retention ref was not durably readable")
+    return {"workspaceId": workspace_id, "retentionRef": ref,
+            "retentionCommit": head, "disposition": disposition,
+            "truthRole": "physical-recovery-ref-not-semantic-completion"}
 
 def _git(repo: Path, *args: str, timeout: float = 10) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -75,6 +171,16 @@ def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]
             rows = connection.execute(query).fetchall()
     return {row[0]: (row[1], row[2], row[3]) for row in rows}
 
+def _unintegrated_head(repo: Path, head: str) -> bool | None:
+    """0 is integrated, 1 is unintegrated, 128/timeout is UNKNOWN, not FALSE."""
+    observed = _git(repo, "merge-base", "--is-ancestor", head, "origin/main")
+    if observed.returncode == 0:
+        return False
+    if observed.returncode == 1:
+        return True
+    return None
+
+
 def eligible(
     *,
     now_ms: int,
@@ -125,43 +231,74 @@ def _store_receipt(root: Path, data: dict) -> str:
 def run(args: argparse.Namespace) -> dict:
     env = load_environment_file(args.env_file)
     repo, root = args.source_repo.resolve(), args.workspace_root.resolve()
-    if root != Path("/var/lib/ordivon/pg-candidate/workspaces"):
+    if root != WORKSPACE_ROOT:
         raise ValueError("PG Runtime must own the exact Workspace root")
     if not (repo / ".git").exists() and not (repo / ".git").is_file():
         raise ValueError("sourceRepo is not a Git authority")
     if args.min_age_hours < 1 or args.min_age_hours > 168:
         raise ValueError("retention hours must be between 1 and 168")
+    policy = _retention_policy(args.policy_file)
     recent = _jobs(env)
     now = int(time.time() * 1000)
-    cutoff = int(args.min_age_hours * 3600 * 1000)
     cwd = _active_process_cwds(root)
-    results = {"checked": 0, "eligible": 0, "closed": [], "skipped": {}, "errors": []}
+    results = {
+        "checked": 0, "eligible": 0, "closed": [], "preserved": [],
+        "skipped": {}, "errors": [], "retentionPolicy": (
+            "operator-installed" if policy is not None else "legacy-merged-only"
+        ),
+        "semanticCompletionEvaluated": False,
+    }
     def skip(why: str) -> None:
         results["skipped"][why] = results["skipped"].get(why, 0) + 1
+    worktrees = _worktrees(repo, root)
+    registered_ids = {path.name for path, _ in worktrees}
+    # Directories without a Git worktree identity are NOT deletion candidates.
+    # Report their cardinality so persistent orphans cannot disappear from
+    # resource-cost accounting just because this adapter cannot close them.
+    unregistered = sorted(
+        path.name for path in root.iterdir()
+        if path.is_dir() and not path.is_symlink()
+        and path.name not in registered_ids
+    )
+    results["unregisteredDirectoryCount"] = len(unregistered)
+    results["unregisteredDirectorySample"] = unregistered[:10]
+    results["unregisteredDirectoryTruthBoundary"] = (
+        "outside this sourceRepo Git worktree inventory, not proven orphan; never auto-delete"
+    )
     candidates = []
-    for path, head in _worktrees(repo, root):
+    for path, head in worktrees:
         results["checked"] += 1
         if any(item == str(path) or item.startswith(str(path)+"/") for item in cwd):
             skip("process_cwd_active");continue
-        # Linux ctime is used only as a conservative first-stage cheap filter.
-        # The Runtime-created and Job timestamps determine actual retention age.
-        if path.stat().st_ctime * 1000 > now - cutoff:
+        retention_ms, unintegrated_allowed = _workspace_retention(
+            policy, path.name, args.min_age_hours
+        )
+        if retention_ms is None:
+            skip("policy_pinned");continue
+        # Linux ctime is used only as a cheap filter; Runtime record and
+        # last durable PG Job ultimately qualify any physical Workspace close.
+        if path.stat().st_ctime * 1000 > now - retention_ms:
             skip("directory_recently_changed");continue
         info = recent.get(path.name)
         if info is None:
             skip("no_terminal_job_evidence");continue
         last_ms,resolution,nonterminal = info
-        if nonterminal or resolution != "succeeded" or last_ms > now - cutoff:
+        if nonterminal or resolution != "succeeded" or last_ms > now - retention_ms:
             skip("job_not_old_and_terminal_success");continue
-        if _git(repo, "merge-base", "--is-ancestor", head, "origin/main").returncode:
+        unintegrated = _unintegrated_head(repo, head)
+        if unintegrated is None:
+            skip("git_membership_unknown");continue
+        if unintegrated and not unintegrated_allowed:
             skip("head_not_in_main");continue
         status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
         if status.returncode or status.stdout.strip():
             skip("dirty_or_git_error");continue
-        candidates.append((path, head, info))
+        candidates.append((path, head, info, retention_ms, unintegrated))
+    results["unregisteredDirectoryDeletionEnabled"] = False
     if not args.apply:
         results["eligible"] = len(candidates)
-        results["candidates"] = [p.name for p,_,_ in candidates[:args.limit]]
+        results["eligibleUnintegrated"] = sum(item[4] for item in candidates)
+        results["candidates"] = [p.name for p,_,_,_,_ in candidates[:args.limit]]
         return results
     os.environ["no_proxy"] = "127.0.0.1,localhost"
     client = connect_compatible(
@@ -170,7 +307,7 @@ def run(args: argparse.Namespace) -> dict:
         client_name="ordivon-runtime-pg-reclaim",
         timeout=20.0,
     )
-    for path, head, info in candidates[:args.limit]:
+    for path, head, info, retention_ms, unintegrated in candidates[:args.limit]:
         try:
             workspace = client.call_tool("workspace.get", {"workspaceId":path.name,"schemaVersion":1})
             if (workspace.get("workspaceId") != path.name or workspace.get("dirty") is not False
@@ -180,18 +317,38 @@ def run(args: argparse.Namespace) -> dict:
                 or not eligible(
                     now_ms=now,created_ms=workspace.get("createdAtMs"),
                     latest_job_ms=info[0], latest_resolution=info[1],
-                    unresolved=info[2], min_age_ms=cutoff,
+                    unresolved=info[2], min_age_ms=retention_ms,
                 )):
                 skip("runtime_authority_not_eligible");continue
             digest=workspace.get("sourceStateDigest")
             if not isinstance(digest,str) or not digest.startswith("sha256:"):
                 skip("missing_source_digest");continue
             # Recheck Git and never force. Runtime checks held Jobs/dependents.
-            if _git(repo,"merge-base","--is-ancestor",head,"origin/main").returncode:
+            currently_unintegrated = _unintegrated_head(repo, head)
+            if currently_unintegrated is None:
+                skip("git_membership_unknown");continue
+            if currently_unintegrated and not unintegrated:
                 skip("git_changed_at_close");continue
+            # An operator can revoke/extend retention permission while this
+            # bounded sweep runs. Consume the installed file again before
+            # the first irreversible preservation/close effect.
+            current_policy = _retention_policy(args.policy_file)
+            current_age, current_unintegrated_allowed = _workspace_retention(
+                current_policy, path.name, args.min_age_hours
+            )
+            if (current_age is None or current_age > retention_ms
+                    or (currently_unintegrated and not current_unintegrated_allowed)):
+                skip("retention_policy_changed");continue
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
             if current_git_status.returncode or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
+            # An unmerged HEAD is valuable source. Preserve it in the
+            # existing Git retention namespace BEFORE any native close effect.
+            if currently_unintegrated:
+                result = _preserve_unintegrated_head(
+                    repo, path.name, head, digest
+                )
+                results["preserved"].append(result)
             closed = client.call_tool(
                 "workspace.close",
                 {"schemaVersion":1,"workspaceId":path.name,"force":False,
@@ -204,6 +361,7 @@ def run(args: argparse.Namespace) -> dict:
         except Exception as error:
             results["errors"].append({"workspaceId":path.name,"errorType":type(error).__name__})
     results["eligible"] = len(candidates)
+    results["eligibleUnintegrated"] = sum(item[4] for item in candidates)
     return results
 
 def main() -> int:
@@ -214,6 +372,10 @@ def main() -> int:
     parser.add_argument("--receipt-root",required=True,type=Path)
     parser.add_argument("--lock-file",required=True,type=Path)
     parser.add_argument("--min-age-hours",type=float,default=24)
+    parser.add_argument(
+        "--policy-file", type=Path, default=None,
+        help="Existing operator-controlled Workspace retention JSON; absent means merged-only",
+    )
     parser.add_argument("--limit",type=int,default=25)
     parser.add_argument("--apply",action="store_true")
     args=parser.parse_args()
