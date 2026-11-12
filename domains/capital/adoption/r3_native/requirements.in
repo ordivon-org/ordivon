@@ -1,0 +1,4 @@
+openbb-cboe==2.0.0
+openbb-nasdaq==2.0.0
+pyqlib==0.9.7
+pyportfolioopt==1.6.0

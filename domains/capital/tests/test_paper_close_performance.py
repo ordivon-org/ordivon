@@ -127,6 +127,9 @@ def test_funding_neutral_gain_uses_accounting_nav_and_risk_oracle():
     assert report["simplePeriodReturnDecimal"] == "0.001727272727272727"
     assert report["riskStanding"] == "RISK_BUDGET_INCOMPLETE"
     assert report["marketSha256"] == snapshot.sha256
+    assert report["marketCapturedAt"] == snapshot.captured_at.isoformat()
+    assert report["marketValuationAsOf"] == snapshot.decision_at.isoformat()
+    assert report["historicalPointInTimeStanding"] == "UNKNOWN_NOT_INDEPENDENTLY_VERIFIED"
     assert report["accountingPersistenceReverified"] is False
     assert report["sourceProviderAuthenticityIndependentlyVerified"] is False
     assert report["realMoneyOrdersAuthorized"] is False

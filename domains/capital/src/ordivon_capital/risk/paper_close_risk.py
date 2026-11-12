@@ -178,6 +178,11 @@ def review_paper_close_risk(
         "standing": "RISK_BUDGET_" + limit["standing"],
         "mode": "PAPER",
         "session": session,
+        # Economic session is NOT the time at which this operator-bound
+        # market snapshot became known. Propagate both original Markets
+        # clocks without turning retrospective evidence into historical PIT.
+        "marketCapturedAt": snapshot.captured_at.isoformat(),
+        "marketValuationAsOf": snapshot.decision_at.isoformat(),
         "accountKey": key,
         "accountingRequestSha256": digest,
         "accountingPersistenceReverified": False,

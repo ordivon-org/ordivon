@@ -515,6 +515,7 @@
       "id": "trading-execution-reconciliation",
       "sourcePatterns": [
         "src/ordivon_capital/trading/execution_reconciliation.py",
+        "src/ordivon_capital/trading/nautilus_paper_bridge.py",
         "tools/nautilus_rc4/nonlive_effect_qualification.py"
       ],
       "ownerClasses": [
