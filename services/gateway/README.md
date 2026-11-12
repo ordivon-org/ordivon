@@ -125,15 +125,28 @@ remain server-derived. The accepted v3 AuthZEN decision is not an Agent Grant
 or proof of physical bytes. The existing stdio lane has a different local OS
 trust boundary and is **not** claimed to use HTTP ingress/PDP authentication.
 
-This PEP is **not a global Gateway security gate**: it qualifies only Runtime
-Artifact reads. `capability.search`, Host collaboration, execution submit,
-cancel and observations are not newly authorized by this specific PEP; their
-natural Owner and verified-operation fences must be independently reviewed.
-The real installed service profile, PDP availability and complete PEP coverage
-are UNKNOWN until deployment observation. Native consumer:
-`tests/test_capability_authz_middleware.py`. Abstract model:
-`formal/GatewayCapabilityAuthzR1.tla`. Model safety, source-code
-behavior and installed release remain separate evidence grades.
+**Original Host read/write PEP (compatibility release):** Reuses the same
+Security AuthZEN middleware for the 16 original Host read and 13 original
+Host write tools on verified HTTP ingress, with canonical request binding,
+actual Owner selectors and an explicit global-read distinction. For
+message.post, the real author is authorActorRef; an ignored caller actorRef
+never becomes writer authority. Without an installed Security PDP, all
+qualified Host reads/writes DENY. A service bearer is not a grant to any
+claimed Actor. Source coverage is checked against the real MCP SDK tool
+surface. This release deliberately does not register Rust-only
+work.engagement tools. They remain in the separate Rust Host draft PR.
+The independent installed Security AuthZEN/OPA policy must provide
+operator-provisioned Principal-to-Actor grants with exact tool/resource
+scope before Gateway rollout, and actual allow/deny consumers must pass.
+
+This is **not a global Gateway security gate**. Execution submit/cancel,
+Skills and other Owner capabilities remain separately qualified; STDIO
+uses the existing local OS trust boundary rather than HTTP Principal/PDP.
+The installed Gateway SourceCut and downstream Owner authorization remain
+separate acceptance obligations. Native consumers include the original
+capability middleware tests, scoped Host read tests, source-surface coverage
+and real TCP ingress tests. The Gateway finite-state model is not a proof
+of Python implementation or installed production behavior.
 
 ## HTTP execution identity cannot downgrade to STDIO (2026-11-08)
 
