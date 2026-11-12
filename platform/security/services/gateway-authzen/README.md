@@ -61,6 +61,22 @@ the AuthZEN object identity; Security never trusts an injected Actor claim.
 This is explicit trusted policy data, never a value from an MCP Tool argument
 or Host actor.declare. The original Runtime Artifact allow rule is retained.
 
+For a principal that intentionally operates multiple Agents, Security can
+optionally use a trusted, explicit role=operator grant and
+delegatedActorPrefixes (for example agent:chatgpt:). The default grant
+continues to bind **one exact** actorRef. Operator prefixes must each end
+in a colon segment boundary, have a nonempty suffix, and are evaluated only
+inside the authorized Principal/issuer/expiry/tool/resource/action fences.
+The scope of namespacePrefixes, exactRefs, allowedTools and
+allowUnscopedReads remains independent and mandatory. This is the
+existing OPA role/attribute-based decision engine, not a second IAM.
+The operator role delegates the ability to use those Actor identities; it
+does **not** prove which autonomous Agent generated the request. Do not
+provision the elevated role based on an MCP-supplied actorRef or a mere
+observed message author. In production, bind it only to a positively
+identified, trusted project-operator Principal; log/review changes and
+test revocation through the installed PDP.
+
 Production rules: grant provisioning, Principal-to-Actor delegation evidence,
 scope, issue/expiry/revocation and release must be authorized and audited by
 the real operator. The systemd LoadCredential source is copied at unit start;

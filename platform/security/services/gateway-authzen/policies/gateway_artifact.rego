@@ -195,18 +195,38 @@ host_scope_granted(grant, ref) if {
 # never the unfiltered global inbox or another Actor's inbox.
 host_inbox_granted(grant) if {
   p := input.resource.properties
-  p.requestedAssigneeActorRef == grant.actorRef
+  host_actor_matches(grant, p.requestedAssigneeActorRef)
   p.requestedConsumerActorRef == null
 }
 host_inbox_granted(grant) if {
   p := input.resource.properties
-  p.requestedConsumerActorRef == grant.actorRef
+  host_actor_matches(grant, p.requestedConsumerActorRef)
   p.requestedAssigneeActorRef == null
 }
 host_inbox_granted(grant) if {
   p := input.resource.properties
-  p.requestedConsumerActorRef == grant.actorRef
-  p.requestedAssigneeActorRef == grant.actorRef
+  host_actor_matches(grant, p.requestedConsumerActorRef)
+  host_actor_matches(grant, p.requestedAssigneeActorRef)
+}
+
+# A named Agent grant remains exact by default. A separately provisioned
+# operator role may delegate bounded Actor namespace prefixes to one verified
+# Principal. These prefixes exist ONLY in trusted Security policy data; MCP
+# payload fields and opaque Actor declarations cannot create a grant.
+host_actor_matches(grant, actor_ref) if {
+  is_string(actor_ref)
+  actor_ref == grant.actorRef
+}
+host_actor_matches(grant, actor_ref) if {
+  grant.role == "operator"
+  is_array(grant.delegatedActorPrefixes)
+  is_string(actor_ref)
+  some prefix in grant.delegatedActorPrefixes
+  is_string(prefix)
+  count(prefix) >= 6
+  endswith(prefix, ":")
+  startswith(actor_ref, prefix)
+  count(actor_ref) > count(prefix)
 }
 
 # Resource-scoped reads are qualified against the same trusted operator
@@ -215,7 +235,7 @@ host_inbox_granted(grant) if {
 # provisions allowUnscopedReads for the specific Tool.
 host_read_selector_granted(grant, field, value) if {
   field == "actorRef"
-  value == grant.actorRef
+  host_actor_matches(grant, value)
 }
 host_read_selector_granted(grant, field, value) if {
   field in {"workRef", "spaceRef", "topicRef", "messageRef", "subjectRef"}
@@ -246,7 +266,7 @@ host_actor_granted(grant) if {
 }
 host_actor_granted(grant) if {
   input.action.name != "host.work.engagement.list"
-  input.resource.properties.claimedActorRef == grant.actorRef
+  host_actor_matches(grant, input.resource.properties.claimedActorRef)
   tool := input.action.properties.gatewayTool
   scope_ref := host_scope(tool, input.resource.properties)
   host_scope_granted(grant, scope_ref)

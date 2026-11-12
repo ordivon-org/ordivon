@@ -496,3 +496,138 @@ def test_operator_grants_cover_entire_real_host_read_surface(policy_endpoint, to
     grant["allowedTools"] = [name for name in grant["allowedTools"] if name != tool]
     path.write_text(json.dumps(grant_data([grant])))
     assert evaluate(policy_endpoint, read_payload(tool=tool, selectors=selectors)) is False
+
+
+def provisioned_operator_grant() -> dict:
+    """A named trusted Principal managing a bounded Agent namespace."""
+    grant = policy_grant()
+    grant.update(
+        {
+            "role": "operator",
+            "delegatedActorPrefixes": ["agent:chatgpt:", "actor:agent:"],
+            "allowedTools": grant["allowedTools"]
+            + [
+                "topic.resume",
+                "host.status",
+                "work.list",
+                "attention.reentry",
+                "subscription.list",
+            ],
+            "namespacePrefixes": grant["namespacePrefixes"]
+            + ["topic:project:", "agent:chatgpt:", "actor:agent:"],
+            "allowUnscopedReads": True,
+        }
+    )
+    return grant
+
+
+@pytest.mark.parametrize(
+    "tool,actor,ref",
+    [
+        ("work.create", "agent:chatgpt:gpt6-one", "work:project:two"),
+        ("message.post", "actor:agent:gpt6-other", "topic:project:one"),
+        ("work.create", "actor:agent:gpt6-other", "work:project:one"),
+    ],
+)
+def test_provisioned_operator_grant_accepts_multiple_agent_actors(
+    policy_endpoint, tool, actor, ref
+) -> None:
+    _, _, path = policy_endpoint
+    path.write_text(json.dumps(grant_data([provisioned_operator_grant()])))
+    request = legacy_payload(tool=tool, ref=ref)
+    request["resource"]["properties"]["claimedActorRef"] = actor
+    assert evaluate(policy_endpoint, request) is True
+
+
+def test_operator_can_read_agent_scoped_attention_and_engagement_without_global_inbox(
+    policy_endpoint,
+) -> None:
+    _, _, path = policy_endpoint
+    grant = provisioned_operator_grant()
+    path.write_text(json.dumps(grant_data([grant])))
+    assert evaluate(
+        policy_endpoint,
+        read_payload(tool="attention.reentry", selectors={"actorRef": "agent:chatgpt:gpt6-one"}),
+    )
+    assert evaluate(policy_endpoint, inbox_payload(consumer="actor:agent:gpt6-other"))
+    assert evaluate(policy_endpoint, read_payload(tool="host.status"))
+    grant["allowUnscopedReads"] = False
+    path.write_text(json.dumps(grant_data([grant])))
+    assert evaluate(policy_endpoint, read_payload(tool="host.status")) is False
+
+
+@pytest.mark.parametrize(
+    "mutate_grant,actor,ref",
+    [
+        (lambda g: g.pop("role"), "agent:chatgpt:gpt6-one", "work:project:two"),
+        (lambda g: g.update(role="viewer"), "agent:chatgpt:gpt6-one", "work:project:two"),
+        (
+            lambda g: g.update(delegatedActorPrefixes=[]),
+            "agent:chatgpt:gpt6-one",
+            "work:project:two",
+        ),
+        (
+            lambda g: g.update(delegatedActorPrefixes=["agent:chatgpt"]),
+            "agent:chatgpt:gpt6-one",
+            "work:project:two",
+        ),
+        (
+            lambda g: g.update(delegatedActorPrefixes=[""]),
+            "agent:chatgpt:gpt6-one",
+            "work:project:two",
+        ),
+        (lambda g: g.update(active=False), "agent:chatgpt:gpt6-one", "work:project:two"),
+        (
+            lambda g: g.update(expiresAtEpochSeconds=int(time.time()) - 1),
+            "agent:chatgpt:gpt6-one",
+            "work:project:two",
+        ),
+        (lambda g: g.update(namespacePrefixes=[]), "agent:chatgpt:gpt6-one", "work:project:two"),
+        (lambda g: None, "agent:unrelated:other", "work:project:two"),
+        (lambda g: None, "agent:chatgptx:fake", "work:project:two"),
+        (lambda g: None, "agent:chatgpt:gpt6-one", "work:foreign:secret"),
+    ],
+)
+def test_operator_delegation_remains_bound_to_trusted_role_actor_tool_resource_and_time(
+    policy_endpoint, mutate_grant, actor, ref
+) -> None:
+    _, _, path = policy_endpoint
+    grant = provisioned_operator_grant()
+    mutate_grant(grant)
+    path.write_text(json.dumps(grant_data([grant])))
+    request = legacy_payload(tool="work.create", ref=ref)
+    request["resource"]["properties"]["claimedActorRef"] = actor
+    assert evaluate(policy_endpoint, request) is False
+
+
+def test_operator_claim_injected_into_mcp_request_does_not_upgrade_normal_grant(
+    policy_endpoint,
+) -> None:
+    _, _, path = policy_endpoint
+    path.write_text(json.dumps(grant_data([policy_grant()])))
+    req = legacy_payload()
+    req["resource"]["properties"]["claimedActorRef"] = "agent:chatgpt:gpt6-one"
+    req["resource"]["properties"]["role"] = "operator"
+    req["resource"]["properties"]["delegatedActorPrefixes"] = ["agent:chatgpt:"]
+    assert evaluate(policy_endpoint, req) is False
+
+
+def test_cf_access_operator_delegation_is_verified_issuer_and_exact_principal_bound(
+    policy_endpoint,
+) -> None:
+    _, _, path = policy_endpoint
+    grant = provisioned_operator_grant()
+    principal = "principal:cf-access:" + ("b" * 64)
+    issuer = "https://example-issuer.test"
+    grant.update(principalId=principal, issuer=issuer)
+    path.write_text(json.dumps(grant_data([grant])))
+    request = legacy_payload(ref="work:project:two")
+    request["subject"]["id"] = principal
+    request["subject"]["properties"]["issuer"] = issuer
+    request["resource"]["properties"]["claimedActorRef"] = "agent:chatgpt:gpt6-one"
+    assert evaluate(policy_endpoint, request) is True
+    request["subject"]["id"] = "principal:cf-access:" + ("c" * 64)
+    assert evaluate(policy_endpoint, request) is False
+    request["subject"]["id"] = principal
+    request["subject"]["properties"]["issuer"] = "https://imposter.test"
+    assert evaluate(policy_endpoint, request) is False
