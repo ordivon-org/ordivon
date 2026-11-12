@@ -179,7 +179,13 @@ def build_server(
     server.middleware.append(GatewayAuditMiddleware())
     if require_http_execution_identity:
         server.middleware.append(GatewayHTTPIngressGuard())
-    if capability_authorizer is not None or protect_artifact_reads:
+    # Verified HTTP Host reads and writes must reach the existing Security PEP
+    # even when the PDP is not configured (fail closed, not bearer=actor).
+    if (
+        capability_authorizer is not None
+        or protect_artifact_reads
+        or require_http_execution_identity
+    ):
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
     @server.tool(name="system.describe")

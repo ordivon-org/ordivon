@@ -109,8 +109,37 @@ def test_live_mcp_sdk_surface_has_complete_reviewed_security_projection() -> Non
         )
         assert needs_verified_ingress(name) == (name not in PUBLIC_METADATA_TOOLS)
         assert entry["gatewayObjectPep"] == (
-            "runtime-artifact-authzen" if name == "artifact.read" else "none"
+            "runtime-artifact-authzen"
+            if name == "artifact.read"
+            else (
+                "host-legacy-write-authzen"
+                if entry["routeOwner"] == "host" and entry["operation"] == "write"
+                else (
+                    "host-legacy-read-authzen"
+                    if entry["routeOwner"] == "host" and entry["operation"] == "read"
+                    else "none"
+                )
+            )
         )
+        if entry["gatewayObjectPep"] == "host-legacy-write-authzen":
+            # The projected evidence must be checked against the *actual*
+            # application PEP contract, not only a manually classified JSON.
+            from ordivon_gateway.capability_authz import resolve_authorization_target
+
+            claimed = (
+                {"authorActorRef": "actor:test:claim"}
+                if name == "message.post"
+                else {"actorRef": "actor:test:claim"}
+            )
+            target = resolve_authorization_target(name, claimed)
+            assert target is not None
+            assert target.capability == "host.legacy-write"
+        if entry["gatewayObjectPep"] == "host-legacy-read-authzen":
+            from ordivon_gateway.capability_authz import resolve_authorization_target
+
+            target = resolve_authorization_target(name, {})
+            assert target is not None
+            assert target.capability == "host.legacy-read"
         assert entry["routeOwner"] in {"gateway", "host", "runtime", "skills"}
         assert entry["operation"] in {"metadata", "read", "write", "execute"}
         if entry["operation"] in {"write", "execute"}:

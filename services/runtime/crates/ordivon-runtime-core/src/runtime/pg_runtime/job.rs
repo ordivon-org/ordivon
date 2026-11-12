@@ -18,6 +18,68 @@ fn preserve_committed_job_identity<T>(
     observed.map_err(|error| error.with_operation_id(job_id))
 }
 
+// Resolve the existing native Runtime Cargo build-cache LEGO at PG admission.
+// User-supplied CARGO_TARGET_DIR remains explicit; defaults are recorded in
+// the immutable PG plan rather than silently changed only at physical launch.
+fn pg_private_cargo_environment(
+    mut environment: std::collections::BTreeMap<String, String>,
+    preserve_harness_fenced_request: bool,
+) -> std::collections::BTreeMap<String, String> {
+    // The same-PG Harness issuer guard authenticates the exact original
+    // physical request. An implicit Runtime-owned environment default would
+    // change its immutable digest and incorrectly deny a legitimate Tool Job.
+    // Keep the exact source-authored environment when carrying a Harness dispatch fence; an
+    // explicitly supplied build target is already covered by the source
+    // digest and remains available. Ordinary PG Jobs reuse the native cache.
+    if !preserve_harness_fenced_request {
+        environment
+            .entry("CARGO_TARGET_DIR".to_string())
+            .or_insert_with(|| {
+                crate::runtime::engine::TRUSTED_BUILD_TARGET_PRESENTATION.to_string()
+            });
+    }
+    environment
+}
+
+#[cfg(test)]
+mod cargo_issuer_environment_tests {
+    use super::pg_private_cargo_environment;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn issuer_bound_private_cargo_environment_keeps_exact_source_env() {
+        let original = BTreeMap::from([("LANG".to_owned(), "C".to_owned())]);
+        assert_eq!(
+            pg_private_cargo_environment(original.clone(), true),
+            original
+        );
+        let explicit = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/proc/self/fd/198".to_owned(),
+        )]);
+        assert_eq!(
+            pg_private_cargo_environment(explicit.clone(), true),
+            explicit
+        );
+    }
+
+    #[test]
+    fn ordinary_pg_job_reuses_native_private_cargo_default_without_overriding_explicit() {
+        let empty = BTreeMap::new();
+        assert_eq!(
+            pg_private_cargo_environment(empty, false)["CARGO_TARGET_DIR"],
+            "/proc/self/fd/198"
+        );
+        let explicit = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/custom/agent/target".to_owned(),
+        )]);
+        assert_eq!(
+            pg_private_cargo_environment(explicit.clone(), false),
+            explicit
+        );
+    }
+}
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
         super::engine::validate_resource_run_proposal_structure(proposal)?;
@@ -41,6 +103,14 @@ impl PgRuntime {
             );
         }
         let e = &proposal.execution;
+        // ForeignReferences are not authorization. A real Harness dispatch
+        // fence is only a source-owned exact-physical-intent indicator: do not
+        // modify its environment before the actual issuer authority check.
+        // A caller can at most opt out of a cache default via this hint.
+        let preserve_harness_fenced_request = e.foreign_references.iter().any(|reference| {
+            reference.namespace == "ordivon.harness" && reference.reference_type == "dispatch_fence"
+        });
+
         if e.execution_target != ExecutionTarget::LocalLinux
             || e.execution_profile != ExecutionProfile::TrustedLocal
             || e.windows_context.is_some()
@@ -144,7 +214,10 @@ impl PgRuntime {
                 executable_digest: universal::sha256_file(&path).map_err(io)?,
                 args: step.args.clone(),
                 cwd: cwd.to_string_lossy().into_owned(),
-                env: step.env.clone(),
+                env: pg_private_cargo_environment(
+                    step.env.clone(),
+                    preserve_harness_fenced_request,
+                ),
                 timeout_ms: ceiling,
                 continue_on_error: step.continue_on_error,
             });
@@ -173,7 +246,7 @@ impl PgRuntime {
             executable_digest: universal::sha256_file(&executable).map_err(io)?,
             args: e.args.clone(),
             cwd: cwd.to_string_lossy().into_owned(),
-            env: e.env.clone(),
+            env: pg_private_cargo_environment(e.env.clone(), preserve_harness_fenced_request),
             timeout_ms: timeout,
             stdout_limit_bytes: stdout,
             stderr_limit_bytes: stderr,
