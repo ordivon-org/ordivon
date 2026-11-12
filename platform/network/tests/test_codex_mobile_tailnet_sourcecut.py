@@ -24,12 +24,7 @@ def test_codex_policy_admits_only_bounded_provider_https():
     assert (upstream["type"], upstream["server"], upstream["server_port"]) == (
         "http", "10.252.246.2", 19680
     )
-    rules = policy["route"]["rules"]
-    assert rules[0]["port"] == [443]
-    assert rules[0]["network"] == ["tcp"]
-    assert rules[0]["outbound"] == upstream["tag"]
-    assert {"chatgpt.com", "auth.openai.com", "persistent.oaistatic.com"} <= set(rules[0]["domain"])
-    assert rules[-1] == {"action": "reject"}
+    assert policy["route"] == {"rules": [], "final": upstream["tag"]}
 
 
 def test_codex_relay_and_denial_path_wiring():
@@ -39,7 +34,7 @@ def test_codex_relay_and_denial_path_wiring():
     assert "-l 127.0.0.1:19982" in relay
     assert "127.0.0.1:19980" in relay
     assert "NetworkNamespacePath=/run/netns/nv2-browserless-prod" in proxy
-    assert "unknown_rc" in ready
+    assert "example.com/" in ready
 
 
 def test_mobile_tracks_provider_network_identity_and_exit_advertisement():

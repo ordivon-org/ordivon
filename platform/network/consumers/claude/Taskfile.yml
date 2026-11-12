@@ -8,12 +8,7 @@ tasks:
       - /usr/bin/systemd-analyze verify consumers/claude/systemd/network-v2-claude-proxy.service consumers/claude/systemd/network-v2-claude-relay.service consumers/claude/systemd/network-v2-claude.target consumers/claude/systemd/network-v2-claude-client-netns.service consumers/claude/systemd/network-v2-claude-client-bridge.service consumers/claude/systemd/network-v2-claude-client.target
       - /usr/bin/bash -n consumers/claude/ready.sh
       - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.claude-egress" and .listen=={"host":"127.0.0.1","port":19481,"protocol":"http"} and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-shared-egress.target" and .directFallback==false' consumers/claude/config/authority.json >/dev/null
-      - |
-        set -eu
-        declared=$(jq -cS '.allowedHttpsDomains|sort' consumers/claude/config/authority.json)
-        enforced=$(jq -cS '.route.rules[] | select(.action=="route") | .domain|sort' consumers/claude/config/sing-box.json)
-        test "$declared" = "$enforced"
-        jq -e '.route.rules[-1].action=="reject" and (.route.rules[] | select(.action=="route") | .port)==[443] and (.route.rules[] | select(.action=="route") | .network)==["tcp"] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and (.route.rules[] | select(.action=="route") | .outbound)=="provider-carrier" and (has("dns")|not)' consumers/claude/config/sing-box.json >/dev/null
+      - jq -e '.route=={"rules":[],"final":"provider-carrier"} and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and (has("dns")|not)' consumers/claude/config/sing-box.json >/dev/null
 
   consumer:claude:classify:
     desc: Prove source/installed/loaded MATCH or DRIFT; UNKNOWN cannot authorize installation or restart

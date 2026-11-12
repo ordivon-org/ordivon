@@ -69,6 +69,9 @@ def test_readiness_requires_https_tunnel_and_no_direct_bypass(
             "    receipt = '401 ' + os.environ['X_CONNECT_STATUS']\n"
             "    print(receipt if any('%{http_connect}' in arg for arg in args) else '401', end='')\n"
             "    sys.exit(0)\n"
+            "if any('example.com/' in x for x in args):\n"
+            "    print('200 200 0.4', end='')\n"
+            "    sys.exit(0)\n"
             "sys.exit(7)\n"
         ),
     }
@@ -105,5 +108,5 @@ def test_readiness_requires_https_tunnel_and_no_direct_bypass(
         payload = json.loads(result.stdout)
         assert payload["standing"] == "READY"
         assert payload["xHttpStatus"] == 401
-        assert payload["unknownDestination"] == "REJECTED"
+        assert payload["unknownDestination"] == "ORIGIN_PROVED"
         assert payload["directFallback"] is False

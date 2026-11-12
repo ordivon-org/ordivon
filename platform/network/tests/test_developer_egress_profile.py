@@ -12,7 +12,7 @@ PROXY = "http://10.252.246.2:19680"
 
 
 def _source_profile(**env_additions: str) -> dict[str, str]:
-    env = {"PATH": "/usr/local/bin:/usr/bin:/bin", **env_additions}
+    env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", **env_additions}
     command = (
         'source "$1"; '
         'printf "HTTPS_PROXY=%s\\n" "$HTTPS_PROXY"; '
@@ -53,12 +53,12 @@ def test_python_urllib_bypasses_private_provider_without_self_proxying() -> None
     result = subprocess.run(
         [sys.executable, "-c", script],
         check=True, capture_output=True, text=True,
-        env={"PATH": "/usr/bin:/bin", **exported},
+        env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", **exported},
     )
     assert json.loads(result.stdout) == {"carrier": True, "external": False}
 
 
-def test_default_shell_uses_existing_network_provider() -> None:
+def test_explicit_optin_shell_uses_existing_network_provider() -> None:
     env = _source_profile()
     assert env["HTTPS_PROXY"] == PROXY
     assert env["HTTP_PROXY"] == PROXY
@@ -72,7 +72,7 @@ def test_model_client_receives_existing_loopback_provider_without_changing_globa
         ["/usr/bin/bash", "--noprofile", "--norc", "-c",
          'source "$1"; printf "%s|%s" "$HTTPS_PROXY" "$ORDIVON_MODEL_PROVIDER_HTTPS_PROXY"',
          "--", str(PROFILE)],
-        env={"PATH": "/usr/local/bin:/usr/bin:/bin"},
+        env={"PATH": "/usr/local/bin:/usr/bin:/bin", "ORDIVON_DEV_VPN": "on"},
         capture_output=True, text=True, check=True,
     )
     assert result.stdout == PROXY + "|http://127.0.0.1:19881"
@@ -93,7 +93,7 @@ def test_disable_option_leaves_existing_transport_unmodified() -> None:
 
 
 def test_repeated_login_does_not_duplicate_private_exclusions() -> None:
-    env = {"PATH": "/usr/local/bin:/usr/bin:/bin"}
+    env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "ORDIVON_DEV_VPN": "on"}
     command = 'source "$1"; source "$1"; printf "%s\\n" "$NO_PROXY"'
     proc = subprocess.run(
         ["/usr/bin/bash", "--noprofile", "--norc", "-c", command, "--", str(PROFILE)],
@@ -129,6 +129,7 @@ def test_conflicting_proxy_case_aliases_have_one_effective_route() -> None:
 def test_case_alias_normalization_is_idempotent_across_login_shells() -> None:
     env = {
         "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "ORDIVON_DEV_VPN": "on",
         "HTTPS_PROXY": "http://upper.invalid:8811",
         "https_proxy": "http://lower.invalid:8822",
         "NO_PROXY": "upper.internal",
@@ -159,7 +160,7 @@ def _capture_network_env(**env_additions: str) -> subprocess.CompletedProcess[st
         check=False,
         capture_output=True,
         text=True,
-        env={"PATH": "/usr/bin:/bin", **env_additions},
+        env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", **env_additions},
     )
 
 
@@ -203,7 +204,7 @@ def test_ignored_cidr_profile_failure_preserves_other_private_bypasses() -> None
     for excluded in ("0.0.0.0/0", "::/0", " 0.0.0.0/0 "):
         result = subprocess.run(
             ["/usr/bin/bash", "--noprofile", "--norc", "-c", command, "--", str(PROFILE)],
-            env={"PATH": "/usr/bin:/bin", "no_proxy": f"{excluded},registry.private.internal"},
+            env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", "no_proxy": f"{excluded},registry.private.internal"},
             check=True, capture_output=True, text=True,
         )
         values = dict(line.split("=", 1) for line in result.stdout.splitlines())
@@ -231,7 +232,7 @@ def test_ignored_wildcard_error_cannot_leave_direct_bypass_environment() -> None
     )
     result = subprocess.run(
         ["/usr/bin/bash", "--noprofile", "--norc", "-c", command, "--", str(PROFILE)],
-        env={"PATH": "/usr/bin:/bin", "no_proxy": "*"},
+        env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", "no_proxy": "*"},
         capture_output=True,
         text=True,
         check=True,
@@ -293,7 +294,7 @@ def test_public_https_connect_is_routed_to_exact_proxy_and_fails_closed(tmp_path
         try:
             result = subprocess.run(
                 ["/usr/bin/bash", "--noprofile", "--norc", "-c", command, "--", str(candidate)],
-                env={"PATH": "/usr/local/bin:/usr/bin:/bin"},
+                env={"PATH": "/usr/local/bin:/usr/bin:/bin", "ORDIVON_DEV_VPN": "on"},
                 text=True, capture_output=True, check=False, timeout=7,
             )
         finally:
@@ -336,7 +337,7 @@ def test_private_loopback_bypasses_unavailable_provider_without_public_fallback(
     assert result.stdout == "204"
 
 def _execute_with_profile(*args: str, **env_additions: str) -> subprocess.CompletedProcess[str]:
-    env = {"PATH": "/usr/local/bin:/usr/bin:/bin", **env_additions}
+    env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", **env_additions}
     return subprocess.run(
         ["/usr/bin/bash", str(PROFILE), "--", *args],
         check=False,
@@ -389,7 +390,7 @@ def test_direct_profile_execution_without_command_fails_instead_of_false_success
         text=True,
         capture_output=True,
         timeout=10,
-        env={"PATH": "/usr/local/bin:/usr/bin:/bin"},
+        env={"PATH": "/usr/local/bin:/usr/bin:/bin", "ORDIVON_DEV_VPN": "on"},
     )
     assert result.returncode != 0
     assert "usage" in result.stderr.lower()
@@ -430,8 +431,7 @@ def test_ignored_profile_failure_preserves_safe_exclusions_and_never_bypasses_pu
         )
         result = subprocess.run(
             ["/usr/bin/bash", "--noprofile", "--norc", "-c", command, "--", str(PROFILE)],
-            env={
-                "PATH": "/usr/bin:/bin",
+            env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on",
                 "NO_PROXY": "registry.alpha.internal",
                 "no_proxy": f"{unsafe},registry.beta.internal",
             },
@@ -452,7 +452,7 @@ def test_ignored_profile_failure_preserves_safe_exclusions_and_never_bypasses_pu
         )
         consumer = subprocess.run(
             ["/usr/bin/python3", "-c", program],
-            env={"PATH": "/usr/bin:/bin", **values},
+            env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", **values},
             check=True,
             capture_output=True,
             text=True,
@@ -496,7 +496,7 @@ def test_nonlogin_python_https_consumes_selected_proxy_and_fails_closed(tmp_path
                      "urllib.request.urlopen('https://consumer-network-contract.example.invalid/', timeout=3);"
                      "print('DIRECT_FALLBACK_FALSE_GREEN')"),
                 ],
-                env={"PATH": "/usr/local/bin:/usr/bin:/bin"},
+                env={"PATH": "/usr/local/bin:/usr/bin:/bin", "ORDIVON_DEV_VPN": "on"},
                 text=True, capture_output=True, check=False, timeout=7,
             )
         finally:
@@ -647,7 +647,7 @@ def test_undeclared_cidr_no_proxy_cannot_direct_bypass_vpn(wide_bypass: str) -> 
             "/usr/bin/bash", "--noprofile", "--norc", "-c",
             'source "$1" || :; printf "%s" "$no_proxy"', "--", str(PROFILE),
         ],
-        env={"PATH": "/usr/bin:/bin", "no_proxy": wide_bypass},
+        env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", "no_proxy": wide_bypass},
         capture_output=True, text=True, check=True,
     )
     assert wide_bypass not in ignored.stdout.split(",")
@@ -696,8 +696,7 @@ def test_ignored_public_bypass_error_never_leaves_public_direct_route() -> None:
     )
     r = subprocess.run(
         ["/usr/bin/bash", "--noprofile", "--norc", "-c", script, "--", str(PROFILE)],
-        env={
-            "PATH": "/usr/bin:/bin",
+        env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on",
             "NO_PROXY": "api.github.com,build.internal",
             "no_proxy": ".com,localhost",
         },
@@ -733,7 +732,7 @@ def test_systemd_env_rejects_inherited_proxies_without_partial_output() -> None:
     ):
         result = subprocess.run(
             ["/usr/bin/bash", str(PROFILE), "--systemd-env"],
-            env={"PATH": "/usr/bin:/bin", **wrong},
+            env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", **wrong},
             text=True, capture_output=True, check=False, timeout=10,
         )
         assert result.returncode != 0, wrong
@@ -743,7 +742,7 @@ def test_systemd_env_rejects_inherited_proxies_without_partial_output() -> None:
 def test_systemd_env_uses_canonical_provider_and_private_bypass() -> None:
     result = subprocess.run(
         ["/usr/bin/bash", str(PROFILE), "--systemd-env"],
-        env={"PATH": "/usr/bin:/bin", "NO_PROXY": "localhost,127.0.0.1"},
+        env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", "NO_PROXY": "localhost,127.0.0.1"},
         text=True, capture_output=True, check=False, timeout=10,
     )
     assert result.returncode == 0, result.stderr
@@ -772,9 +771,26 @@ def test_runtime_envfile_rejects_non_literal_values_without_partial_output() -> 
     for name, value in cases:
         result = subprocess.run(
             ["/usr/bin/bash", str(PROFILE), "--systemd-env"],
-            env={"PATH": "/usr/bin:/bin", name: value},
+            env={"PATH": "/usr/bin:/bin", "ORDIVON_DEV_VPN": "on", name: value},
             capture_output=True, text=True, check=False,
         )
         assert result.returncode != 0, name
         assert result.stdout == "", name
         assert "INJECTED_ROUTE" not in result.stderr, name
+
+
+def test_default_interactive_shell_injects_no_proxy_and_preserves_caller_choice():
+    command = ('source "$1"; '
+               'printf "HTTPS_PROXY=%s\\n" "$HTTPS_PROXY"; '
+               'printf "HTTP_PROXY=%s\\n" "$HTTP_PROXY"')
+    ordinary = subprocess.run(
+        ["/usr/bin/bash", "--noprofile", "--norc", "-c", command, "--", str(PROFILE)],
+        env={"PATH": "/usr/bin:/bin"}, capture_output=True, text=True, check=True,
+    )
+    assert ordinary.stdout == "HTTPS_PROXY=\nHTTP_PROXY=\n"
+    caller = subprocess.run(
+        ["/usr/bin/bash", "--noprofile", "--norc", "-c", command, "--", str(PROFILE)],
+        env={"PATH": "/usr/bin:/bin", "HTTPS_PROXY": "http://127.0.0.1:8999"},
+        capture_output=True, text=True, check=True,
+    )
+    assert "HTTPS_PROXY=http://127.0.0.1:8999\n" in caller.stdout

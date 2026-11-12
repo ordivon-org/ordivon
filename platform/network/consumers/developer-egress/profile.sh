@@ -102,8 +102,9 @@ if [ "${ORDIVON_DEV_VPN:-off}" != "off" ] || [[ "${1:-}" == "--systemd-env" ]]; 
 else
     # Interactive tools are unrestricted by default. Explicit opt-in to the
     # shared provider remains available with ORDIVON_DEV_VPN=on.
-    unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
-    unset ORDIVON_MODEL_PROVIDER_HTTPS_PROXY
+    # No Ordivon proxy injection in the open mode. Do not clobber an explicit
+    # caller-selected proxy: an opt-in transport remains the caller's choice.
+    :
 fi
 
 # Reuse the same scoped Network-v2 proxy for non-login Agent/Runtime tools:
