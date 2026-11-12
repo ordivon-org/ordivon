@@ -314,6 +314,14 @@ def run(args: argparse.Namespace) -> dict:
         status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
         if status.returncode or status.stdout.strip():
             skip("dirty_or_git_error");continue
+        # A non-forced Git worktree removal can delete ignored files too.
+        # Do not infer that generated-looking files are disposable.
+        ignored = _git(
+            path, "ls-files", "--others", "--ignored",
+            "--exclude-standard", "--directory", "-z",
+        )
+        if ignored.returncode or ignored.stdout:
+            skip("ignored_files_or_git_error");continue
         candidates.append((path, head, info, retention_ms, unintegrated))
     results["unregisteredDirectoryDeletionEnabled"] = False
     if not args.apply:
@@ -364,6 +372,12 @@ def run(args: argparse.Namespace) -> dict:
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
             if current_git_status.returncode or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
+            current_ignored = _git(
+                path, "ls-files", "--others", "--ignored",
+                "--exclude-standard", "--directory", "-z",
+            )
+            if current_ignored.returncode or current_ignored.stdout:
+                skip("ignored_files_at_close");continue
             # A process can enter a Workspace after the initial sweep CWD
             # census. Refresh this bounded Linux readset before any close.
             # This remains an advisory guard: native PG/systemd owns the
