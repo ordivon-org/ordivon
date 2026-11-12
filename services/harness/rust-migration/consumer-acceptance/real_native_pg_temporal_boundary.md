@@ -152,3 +152,53 @@ actual native Plan. No new Registry is needed.
 
 The original A/C Harness owners, Runtime physical effect owner, and Gateway
 owner must independently review this exact candidate before promotion.
+
+## R25: a single wire source fact across Gateway aliases and real SDK receipts
+
+**One source and one consumer, not a new authority.** The candidate integrates the
+existing Harness Gateway receipt identity validation with the R22–R24 original
+Harness PostgreSQL Intent/Fence -> Gateway MCP -> native Runtime PostgreSQL18
+Job -> systemd Runner -> immutable UNKNOWN/OBSERVED receipt chain.
+
+The additional opt-in gate
+ORDIVON_GATEWAY_PG_E2E_HARNESS_ADAPTER=1 uses the actual existing Gateway
+native PG acceptance test and production GatewayMcpRuntimeAdapter as a
+consumer. A test-only thread-safe synchronous/async SDK bridge forwards the
+already-committed, exact original workspace.exec identity to the
+in-process northbound official MCP SDK client, which calls Gateway and the
+real downstream HTTP Runtime service. It does not invent or create a second
+physical Runtime Job. The adapter's submit, recovery resolve and terminal
+observe each bind the same native Job, capability, operation reference and
+source clientRequestId; native PG readback verifies DISPATCH_ISSUED remains one.
+
+The same test also injects one **synthetic** contradictory ownerId alias
+*after* the real SDK has returned an otherwise legitimate physical Owner
+receipt. This is a consumer trust-boundary falsifier, not an assertion that
+the real Gateway currently emits contradictory wire fields. The Harness
+adapter must reject it **before** retaining either ephemeral Job identity
+map; the physical Owner still has exactly one dispatch.
+
+The root fault is source ambiguity: the existing shared _gateway_field
+projection silently picked snake_case when both snake_case and camelCase
+were present but contradicted each other. This affects execution.submit,
+execution.resolve, execution.get and execution.cancel, not just owner_id.
+It must reject incompatible **JSON types** as well as unequal values
+because Python False == 0 and True == 1 are not valid JSON identity
+equivalences. The entire solution is one source decoder and one use
+of it for owner_id, not four duplicate validators or any extra Cache,
+Registry, or State machine.
+
+Source-only differential tests prove 18 incompatible alias payloads were
+accepted before the shared fix and fail closed after; four redundant,
+equal-value alias cases stay compatible. Existing production Gateway
+snake_case source, canonical EventSourcedRunContinuity and Runtime contracts
+remain unchanged. A complete private PG18 native acceptance plus all
+Gateway/Harness tests must be rerun on the same **exact committed source
+revision** before any PR promotion.
+
+**Still unsupported**: This alias/identity work does not authenticate a
+caller-minted foreignReference, validate Issuer-current authorization for a
+new physical Job or establish a receiver-side Spawn fencing protocol.
+The opt-in native E2E continues to retain the real stale-Fence physical
+counterexample and the distinct post-revocation historical exact-replay
+positive control.

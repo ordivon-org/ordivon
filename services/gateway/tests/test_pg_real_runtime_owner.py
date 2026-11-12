@@ -623,6 +623,127 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         f"source={(source_stdout, source_stderr)}, "
                         f"owner={(runtime_stdout, runtime_stderr)}"
                     )
+
+                    if os.getenv("ORDIVON_GATEWAY_PG_E2E_HARNESS_ADAPTER") == "1":
+                        # Consume the ACTUAL typed SDK's Gateway HTTP/Runtime
+                        # Owner receipts through the *production* Harness
+                        # adapter. These bytes originate in real PG Job and
+                        # systemd Runner, not the Harness fake MCP fixture.
+                        # Reuse the already-committed Job: NO second dispatch.
+                        from ordivon_harness.agent_plugin import AgentPluginMcpComponent
+                        from ordivon_harness.plugin_gateway_effect import (
+                            GatewayMcpRuntimeAdapter,
+                            PluginGatewayExecutionGrant,
+                        )
+
+                        loop = asyncio.get_running_loop()
+
+                        class RealSdkHarnessMcpPort:
+                            def __init__(self, *, shadow_owner_alias: bool = False):
+                                self.shadow_owner_alias = shadow_owner_alias
+
+                            def call_tool(self, name, arguments):
+                                # Production Harness port is synchronous; the
+                                # official MCP Client is async. This *test-only*
+                                # thread adapter keeps the existing Gateway
+                                # SDK session and Runtime authority unchanged.
+                                response = asyncio.run_coroutine_threadsafe(
+                                    agent.call_tool(name, arguments),
+                                    loop,
+                                ).result(timeout=35)
+                                assert isinstance(response.structured_content, dict)
+                                payload = response.structured_content
+                                if self.shadow_owner_alias and name == "execution.submit":
+                                    # After ACTUAL native SDK response, inject a
+                                    # second contradictory alias. This is an
+                                    # adversarial protocol-consumer boundary,
+                                    # NOT a claim the official Gateway emits it.
+                                    payload = {**payload, "ownerId": "runtime.windows"}
+                                return response.is_error, payload
+
+                        real_component = AgentPluginMcpComponent(
+                            name="real-pg-gateway-sdk",
+                            transport="streamable-http",
+                            url="https://gateway.local.invalid/mcp",
+                        )
+                        real_grant = PluginGatewayExecutionGrant(
+                            capability="execution.linux",
+                            workspace_id="ws-gateway-native",
+                            executable_allowlist=("/usr/bin/printf",),
+                        )
+                        harness_adapter = GatewayMcpRuntimeAdapter(
+                            real_component,
+                            RealSdkHarnessMcpPort(),
+                            real_grant,
+                        )
+                        real_request = {
+                            "clientRequestId": agent_request,
+                            "execution": source_manifest["execution"],
+                        }
+                        true_owner_submit = await asyncio.to_thread(
+                            harness_adapter.call_tool,
+                            "workspace.exec",
+                            real_request,
+                        )
+                        assert true_owner_submit["jobId"] == native_job_id
+                        true_owner_resolution = await asyncio.to_thread(
+                            harness_adapter.call_tool,
+                            "task.list",
+                            {
+                                "clientRequestId": agent_request,
+                                "workspaceId": "ws-gateway-native",
+                            },
+                        )
+                        assert true_owner_resolution["jobs"] == [
+                            {
+                                "jobId": native_job_id,
+                                "clientRequestId": agent_request,
+                                "workspaceId": "ws-gateway-native",
+                            }
+                        ]
+                        true_owner_observed = await asyncio.to_thread(
+                            harness_adapter.call_tool,
+                            "task.observe",
+                            {"jobId": native_job_id, "waitMs": 0},
+                        )
+                        assert true_owner_observed["jobId"] == native_job_id
+                        assert true_owner_observed["executionTerminal"] is True
+                        assert true_owner_observed["deliveryDisposition"] == "committed"
+                        assert true_owner_observed["resultAvailable"] is True
+                        assert true_owner_observed["semanticCompletionEvaluated"] is False
+                        assert harness_adapter._operation_refs == {native_job_id: north_ref}
+                        assert harness_adapter._operation_requests == {native_job_id: agent_request}
+                        from ordivon_harness.runtime_port import HarnessRuntimeClientError
+
+                        adversarial_adapter = GatewayMcpRuntimeAdapter(
+                            real_component,
+                            RealSdkHarnessMcpPort(shadow_owner_alias=True),
+                            real_grant,
+                        )
+                        with pytest.raises(HarnessRuntimeClientError, match="conflicting"):
+                            await asyncio.to_thread(
+                                adversarial_adapter.call_tool,
+                                "workspace.exec",
+                                real_request,
+                            )
+                        # Even a genuine Owner reply cannot be bound to
+                        # an internally contradictory foreign source claim.
+                        assert adversarial_adapter._operation_refs == {}
+                        assert adversarial_adapter._operation_requests == {}
+                        native_dispatch_after_harness_adapter = psql(
+                            "SELECT count(*) FROM fresh.job_events e JOIN fresh.jobs j "
+                            "ON e.job_id=j.job_id WHERE e.event_type='DISPATCH_ISSUED' "
+                            f"AND j.principal='pg-consumer' AND j.client_request_id='{agent_request}'"
+                        ).strip()
+                        assert native_dispatch_after_harness_adapter == "1"
+                        print(
+                            "R25_ACTUAL_GATEWAY_SDK_TO_HARNESS_RECEIPT_ADAPTER"
+                            "_SAME_NATIVE_PG_JOB_NO_SECOND_DISPATCH"
+                        )
+                        print(
+                            "R25_REAL_NATIVE_SDK_RECEIPT_WITH_INJECTED_CONFLICTING"
+                            "_OWNER_ALIAS_REJECTED_BEFORE_JOB_BINDING"
+                        )
                     # Deliberately discard the original submit response as the
                     # Harness observation. Source already wrote UNKNOWN; the
                     # ONLY recovery input is the true Owner's resolved Job,
