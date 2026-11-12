@@ -32,15 +32,7 @@ class QuantitativeInventoryValidationError(ValueError):
 
 
 def assert_quantitative_inventory_schema_identity(schema_path: Path) -> None:
-    # Pin the committed LF Git content rather than the checkout's OS EOL.
-    # Only CRLF->LF is canonicalized; standalone CR and actual changed
-    # contract bytes still fail the same independently pinned SHA-256.
-    canonical = schema_path.read_bytes().replace(b"\r\n", b"\n")
-    if b"\r" in canonical:
-        raise QuantitativeInventoryValidationError(
-            "quantitative inventory schema has invalid bare CR"
-        )
-    digest = hashlib.sha256(canonical).hexdigest()
+    digest = hashlib.sha256(schema_path.read_bytes()).hexdigest()
     if digest != QUANTITATIVE_INVENTORY_SCHEMA_SHA256:
         raise QuantitativeInventoryValidationError(
             "quantitative inventory schema changed; requalification required"

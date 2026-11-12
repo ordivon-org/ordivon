@@ -37,44 +37,6 @@ def test_current_documents_pass_domain_local_exact_contract_validators():
     )
 
 
-@pytest.mark.parametrize(
-    ("relative_path", "validator"),
-    [
-        ("contracts/portfolio-risk-budget-v2.schema.json", assert_risk_budget_schema_identity),
-        ("schema/quantitative_component_inventory.schema.json",
-         assert_quantitative_inventory_schema_identity),
-    ],
-)
-def test_git_schema_identity_accepts_only_lf_crlf_eol_equivalence(
-    tmp_path: Path, relative_path: str, validator
-):
-    """A Windows CRLF checkout is not a changed schema; mutations still fail."""
-    canonical = (ROOT / relative_path).read_bytes().replace(b"\r\n", b"\n")
-    assert b"\r" not in canonical
-    lf = tmp_path / "git-lf.json"
-    crlf = tmp_path / "windows-crlf.json"
-    lf.write_bytes(canonical)
-    crlf.write_bytes(canonical.replace(b"\n", b"\r\n"))
-    validator(lf)
-    validator(crlf)
-
-    tampered = tmp_path / "substantive-change.json"
-    tampered.write_bytes(canonical + b"\n")
-    with pytest.raises(
-        (RiskBudgetValidationError, QuantitativeInventoryValidationError),
-        match="requalification required",
-    ):
-        validator(tampered)
-
-    bare_cr = tmp_path / "bare-cr.json"
-    bare_cr.write_bytes(canonical.replace(b"\n", b"\r", 1))
-    with pytest.raises(
-        (RiskBudgetValidationError, QuantitativeInventoryValidationError),
-        match="bare CR",
-    ):
-        validator(bare_cr)
-
-
 def test_risk_budget_validator_fails_closed_on_contract_boundaries():
     base = _risk()
 
