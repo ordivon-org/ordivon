@@ -39,6 +39,42 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 6. Read `artifact.read` and verify the retained output and evidence standing. If outcome is `lost`, `orphaned`, `unknown`, or delivery uncertain, do not translate it into `failed` or silently redispatch an effect-opaque operation.
 7. Check `workspace.diff`, `workspace.get`, and domain-specific acceptance. Close via `workspace.close` only when no consumer remains.
 
+## Preserve consumer-valued output before Workspace release
+
+A Git-clean Workspace is **not** evidence that all its output is disposable.
+Git's ordinary dirty/untracked checks exclude ignored paths (for example
+target/ and __pycache__/). Even **workspace.close(force=false)** can remove
+ignored files along with the worktree. The **consumerReleased=true** field is
+the caller's declaration of relinquishing the Workspace, **not** proof of
+output delivery, external-consumer consent, or absent external file handles.
+
+Use the **existing** carrier appropriate to the actual consumer, before close:
+
+1. For source changes, commit and integrate the required Git work; prove the
+   intended commit remains reachable independently of the Workspace.
+2. For **bounded execution evidence**, read the registered Job/Attempt Artifact
+   using **artifact.read** or **artifact.content**, check its retained/truncated
+   standing and actual consumer meaning, and keep the Job/Artifact identity.
+   Such Artifacts survive ordinary Workspace close while their owning Runtime
+   Registry is retained; stdout capture is **not** a general large-file
+   publication or permanent preservation mechanism.
+3. For consumer-valued ignored files or larger/binary outputs, publish through
+   the existing Artifact capability or the destination's mature native API;
+   **read back the destination object** and check that it is usable before
+   declaring the source Workspace expendable. Merely having a path,
+   a successful producer exit, or a producer-side receipt is insufficient.
+4. Only after the actual consumer no longer needs the Workspace, check its
+   active/held Job and dependent-Workspace state, then use **workspace.close**
+   with **force=false**, **consumerReleased=true**, and the
+   **expectedSourceStateDigest** returned by **workspace.get**. Check the
+   closure disposition; **removed** establishes worktree removal, **not**
+   immediate disk reclamation when external file handles or cache remain.
+
+Ignored build caches may be intentionally disposable; ignored **deliverables**
+are not automatically disposable. Avoid globally blocking all ignored paths
+(which would indefinitely retain build caches), and do not create another GC,
+publication registry, or evidence serializer for this boundary.
+
 ## Operating boundaries
 
 - Linux and Windows are independently native Runtime providers. Do not use a Linux node as an implicit Windows runner, or guess an elevated token.
