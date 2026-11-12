@@ -210,3 +210,26 @@ multi-country fallback requires a separate qualified Carrier. Ordered mode
 cycles through candidate connections on successive reconnects; it is not an
 independent VPN, proof of endpoint health, or proactive failback when SG
 recovers. Do not use a host-direct fallback for VPN-only consumers.
+
+
+### DNS measurement planes (operational interpretation)
+
+The host network DNSproxy serves 127.0.0.1:25353 and uses direct UDP/53
+Cloudflare and Google upstreams. Blackbox probes named
+`blackbox-dns-upstream-cloudflare` and `...-google` run in the **host**
+network namespace; their legacy alert names do **not** measure VPN DoT.
+Prometheus annotates the legacy alerts with
+`observation_plane=host_direct_udp53` to prevent false Gluetun restarts.
+
+The actual Gluetun VPN DNS uses DoT/853 inside the Gluetun container
+network namespace. The existing native `provider:gluetun:verify` includes
+a one-shot `provider:gluetun:dns-consumer`: inspect the *running* Podman
+container's PID, enter that network namespace with util-linux `nsenter`,
+and use mature `dig` against its local 127.0.0.1:53 to require real
+example.com A and AAAA answers. This tests the consumer's actual local
+DNS **effect** without another daemon, sidecar, privileged listening socket,
+or host-direct VPN fallback. Because answers may be served from Gluetun's
+cache or filtering layers, passing does **not** prove each encrypted upstream
+is working, a particular iOS device selected the Exit Node, or public WAN
+failover occurred. The independent shared-carrier HTTPS probe remains a
+separate business effect.

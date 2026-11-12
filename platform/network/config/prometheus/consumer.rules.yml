@@ -35,9 +35,10 @@ groups:
           severity: warning
         annotations:
           summary: Local DNS A/AAAA address resolution is unavailable
-      # A failed Cloudflare probe with Google healthy is a degraded *replica*,
-      # not an unavailable DNS service. Alert only when both actual upstream
-      # observations are fresh and neither can resolve an address.
+      # These blackbox targets are HOST-DIRECT UDP/53, not Gluetun VPN DoT/853.
+      # Do not use them as evidence to restart the VPN or fail over its carrier.
+      # Preserve legacy alertnames for existing external consumers, but label
+      # the actual observation plane explicitly to prevent attribution errors.
       - alert: NetworkDNSUpstreamUnavailable
         expr: >-
           (sum(probe_success{job=~"blackbox-dns-upstream-(cloudflare|google)"}) == 0)
@@ -46,8 +47,9 @@ groups:
         for: 2m
         labels:
           severity: warning
+          observation_plane: host_direct_udp53
         annotations:
-          summary: Both observed DNS upstreams cannot return an address record
+          summary: Both host-direct UDP/53 DNS upstream probes failed; VPN DoT state is unknown
       - alert: NetworkDNSUpstreamDegraded
         expr: >-
           (sum(probe_success{job=~"blackbox-dns-upstream-(cloudflare|google)"}) == 1)
@@ -56,8 +58,9 @@ groups:
         for: 5m
         labels:
           severity: info
+          observation_plane: host_direct_udp53
         annotations:
-          summary: One DNS upstream cannot resolve; the other remains available
+          summary: One host-direct UDP/53 DNS upstream failed; not evidence of VPN DoT failure
       # Missing or stale samples are UNKNOWN, never proof that both endpoints
       # failed or proof that the surviving resolver is healthy.
       - alert: NetworkDNSUpstreamEvidenceMissing
@@ -66,8 +69,9 @@ groups:
         for: 2m
         labels:
           severity: warning
+          observation_plane: host_direct_udp53
         annotations:
-          summary: One or both DNS upstream health observations are stale or absent
+          summary: One or both host-direct UDP/53 DNS observations are missing
 
       # Entire class: deny false READY on any scoped end-to-end consumer.
       - alert: NetworkScopedConsumerUnavailable
