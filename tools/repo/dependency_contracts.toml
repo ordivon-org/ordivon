@@ -2,6 +2,10 @@ schema_version = 1
 kind = "ordivon.repo-owner-dependency-contracts"
 truth_role = "repository-boundary-policy-not-domain-authority"
 scan_mode = "active-source-literal-seams"
+# The existing Owner boundary checker also parses active Python AST imports
+# against Owner-owned src/<package>/__init__.py roots. Public Python import
+# exceptions require this same exact source_glob + full module + contract_ref;
+# a comment or longer module prefix cannot qualify a private import.
 
 # Source globs match complete, slash-delimited path segments; '*' cannot cross directories.
 # These declarations authorize only the named literal seam in the named source files.
@@ -226,3 +230,52 @@ source_glob = "packages/data/tests/test_odps_projection.py"
 allowed_fragment = "domains/capital/"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "packages/data/docs/FORMAL_VERIFICATION.md"
+
+# The first concrete Finance outcome contract consumes an actual Capital CLI
+# source in a Composition test only; no generic finance gate authority transfer.
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/scripts/strategic_contribution_brief.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/src/ordivon_capital/portfolio/strategic_contribution.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/examples/strategic_contribution_r1.json"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+# Finance's freeze/assess research protocol is consumed in one bounded
+# Composition test, without a reverse business dependency or broker authority.
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_research_frozen_consumer.py"
+allowed_fragment = "domains/capital/scripts/finance_lego.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_research_frozen_consumer.py"
+allowed_fragment = "domains/capital/src/ordivon_capital/research/experiment_protocol.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"

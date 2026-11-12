@@ -121,7 +121,13 @@ impl PgRuntime {
                 "cwdRelative":cwd_relative,
                 "durationMs":end.saturating_sub(started.unwrap_or(at)),
                 "resultAvailable":finished.is_some() && r.get::<_,bool>(15),
-                "scheduling":{"state":if r.get::<_,bool>(16){"allocated"}else if finished.is_none(){"pending"}else{"released"},"request":self.scheduling_contract(&plan)?},
+                "scheduling": super::scheduling::scheduling_readback(
+                    self.scheduling_contract(&plan)?,
+                    attempt_state.as_deref(),
+                    &r.get::<_, String>(5),
+                    resolution.as_deref(),
+                    r.get::<_, bool>(16),
+                ),
                 "artifactsAvailable":count>0,"artifactCount":count,
             }));
         }

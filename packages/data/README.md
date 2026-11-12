@@ -5,6 +5,25 @@ interoperability without taking custody of Research, Finance, Runtime, Artifact,
 Preservation or external-provider truth. This is a source package, **not** a
 second warehouse, scheduler, data registry, or universal data-product ontology.
 
+## Outcome-first business acceptance: one live consumer, no new platform
+
+Data supplies verified information requested by an Outcome Owner, not
+standalone success indicators. A human specifies the business goal; Research
+decides the science and Data selects/verifies the source without asking humans
+to run its CLIs. The current task-local Research implementation is
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1/deliver_research.py.
+It consumes the existing source-owned Episode manifest through the Data
+projector, binding and file inspector, then independently checks the Research
+analysis receipt before issuing a concrete HOLD promotion decision. A missing,
+tampered or contradictory required source returns DATA_NOT_DELIVERED.
+
+This is only one demonstrably closed consumer information handoff; it does
+not verify the unmaterialized Parquet port, create a universal autonomous Data
+service, or establish Agent learning success. Research owns the decision;
+Runtime, Artifact, Preservation and source Owners retain their natural
+authorities. Consumer acceptance and counterexamples are exercised by
+the normal data:verify CI task, which invokes the task-local Research tests.
+
 ## Existing production and evidence
 
 - Research owns scientific dataset definitions, estimands and study outputs.
@@ -145,7 +164,6 @@ Never persist this ephemeral local URI as the canonical cross-host identity.
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).
 - [Human workflow](docs/HUMAN.md)
 - [Agent workflow](docs/AGENT.md)
-- [Directory audit and decisions](docs/AUDIT_2026-11-07.md)
 - [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
 - [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
 - Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.

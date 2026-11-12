@@ -1,6 +1,7 @@
 [Unit]
 Description=Network v2 X Reality exact API egress authority
 Wants=network-v2-gluetun-owned-adapter.service
+PartOf=network-v2-x-reality.target
 After=network-v2-gluetun-owned-adapter.service
 
 [Service]

@@ -407,7 +407,7 @@ The apply command is a policy executor, not a timer. Scheduling is intentionally
 
 ### Policy-driven lifecycle
 
-The low-level reclaim command remains the clean/stale release executor. `ordivon-runtime-lifecycle` adds the installed disposable-carrier retention policy without creating another Workspace database or querying Registry tables directly. It derives inactivity from Workspace creation plus the Runtime-projected latest durable Job/Attempt activity, while the absolute lifetime remains anchored to Workspace creation. The packaged `ephemeral` and `review` classes use a 24-hour inactivity lease for clean carriers and a separate 48-hour dirty review threshold. The 48-hour maximum lifetime is informational for dirty carriers, not permission for an unconfirmed forced close, because both dirty and max-lifetime force-close defaults are disabled. Active or held Jobs and explicitly `pinned` Workspaces remain protected regardless of age. Clean-but-unintegrated carriers may close only through the existing preservation and receipted `workspace.close` / reclaim boundary; dirty carriers require a separately authorized owner disposition before any force-close; `unknown` and `orphan_directory` identities stay on repair/quarantine paths because their target identity is not proven. Exact/prefix rules, not naming conventions, select non-default classes.
+The low-level reclaim command remains the clean/stale release executor. `ordivon-runtime-lifecycle` adds the installed disposable-carrier retention policy without creating another Workspace database or querying Registry tables directly. It derives inactivity from Workspace creation plus the Runtime-projected latest durable Job/Attempt activity, while the absolute lifetime remains anchored to Workspace creation. The packaged `ephemeral` and `review` classes use a 4-hour inactivity lease for clean carriers and a separate 48-hour dirty review threshold. The 48-hour maximum lifetime is informational for dirty carriers, not permission for an unconfirmed forced close, because both dirty and max-lifetime force-close defaults are disabled. Active or held Jobs and explicitly `pinned` Workspaces remain protected regardless of age. Clean-but-unintegrated carriers may close only through the existing preservation and receipted `workspace.close` / reclaim boundary; dirty carriers require a separately authorized owner disposition before any force-close; `unknown` and `orphan_directory` identities stay on repair/quarantine paths because their target identity is not proven. Exact/prefix rules, not naming conventions, select non-default classes.
 
 ```bash
 scripts/ordivon-runtime-lifecycle inspect \
@@ -426,7 +426,7 @@ scripts/ordivon-runtime-lifecycle sweep \
   --confirm-policy APPLY_WORKSPACE_RETENTION_POLICY --pretty
 ```
 
-The packaged timer runs the Runtime lifecycle service hourly with a small randomized delay. Each run first applies the mature low-level reclaim path to clean `closable` Workspaces at 24 hours, then runs policy-driven lifecycle handling for the remaining classes, then runs cache maintenance. Clean and clean-but-unintegrated carriers become policy-eligible after 24 hours of inactivity; packaged dirty carriers are *not* automatically eligible at 48 hours, and hard lifetime cannot override their owner-disposition requirement. Active or held Jobs and explicitly pinned Workspaces remain protected. Clean-but-unintegrated closures use the Runtime `workspace.close` boundary after source preservation. A dirty close requires an explicit disposition outside the automatic packaged lifecycle; neither case permits direct filesystem deletion. `unknown` and `orphan_directory` identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Lifecycle exit 1 is a service failure rather than an accepted systemd success; exit 2 remains the accepted partial-maintenance status.
+The packaged timer runs the Runtime lifecycle service hourly with a small randomized delay. Each run first applies the mature low-level reclaim path to clean `closable` Workspaces at 4 hours, then runs policy-driven lifecycle handling for the remaining classes, then runs cache maintenance. Clean and clean-but-unintegrated carriers become policy-eligible after 4 hours of inactivity; packaged dirty carriers are *not* automatically eligible at 48 hours, and hard lifetime cannot override their owner-disposition requirement. Active or held Jobs and explicitly pinned Workspaces remain protected. Clean-but-unintegrated closures use the Runtime `workspace.close` boundary after source preservation. A dirty close requires an explicit disposition outside the automatic packaged lifecycle; neither case permits direct filesystem deletion. `unknown` and `orphan_directory` identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Lifecycle exit 1 is a service failure rather than an accepted systemd success; exit 2 remains the accepted partial-maintenance status.
 
 The low-level reclaim apply path also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the low-level clean/stale removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
 
@@ -568,6 +568,54 @@ scripts/ordivon-runtime-status --diagnose --json \
 The dashboard reports elapsed, output-idle, and progress-idle time as mechanical freshness only. It does not label a silent Job `stuck`, infer semantic completion, or turn display state into Runtime truth. Job tokens use the distinguishing suffix of the durable Job ID because UUIDv7 prefixes are deliberately time-correlated and therefore poor terminal identifiers.
 
 The JSON schema reports separate `health` and `maintenance` states. The deployment projection names the current `releaseEvent` and `releaseDisposition`; a successful explicit rollback supersedes the forward deployment for installed-artifact truth. Exit code `1` is reserved for operational health failures such as service, deployment, Registry, recovery, exact release-artifact inconsistency, or a rollback whose restored artifact set is known but whose coherent source Commit cannot be proven. Maintenance findings such as a stale dirty Workspace produce top-level `status=attention` but retain exit code `0`; automation must inspect `maintenanceAction` when maintenance policy should gate a workflow. Compatibility observations remain advisory deletion evidence: an unreadable or truncated trace, unknown rollback protocol, or incomplete observation window blocks deletion but does not create a health incident. Exit code `2` remains reserved for an invalid invocation or unreadable mandatory input.
+
+## Independent PostgreSQL ReleaseEffect handoff (opt-in, source-only)
+
+A running PostgreSQL Runtime's normal Runner MUST NOT execute a self-release.
+The native PG MCP adapter accepts a release only after both the qualified
+PostgreSQL release record and a running, configured
+ordivon-runtime-pg-release-dispatch.timer are observed. Without these
+conditions release.apply is absent from the actual PG MCP Tool catalog,
+and runtime.describe.structuredReleaseConfigured remains false.
+The existing release.get remains read-only throughout.
+
+The release request contains only clientRequestId, Workspace ID, exact Git
+owner commit, candidate manifest SHA-256 and expected MCP Tool count.
+Runtime validates the clean Workspace and its actual source identity, then
+commits the Job + ReleaseEffect in one PostgreSQL transaction. It never runs
+the release as a general-purpose Workspace command. Exact replay resolves
+the original intent BEFORE new candidate validation.
+
+The independent consumer scripts/ordivon-runtime-pg-release-dispatch
+is a privileged one-shot, driven by the standard native systemd timer
+and service in packaging/systemd/. It reads at most one pending release from
+qualified PostgreSQL, uses a root-owned Operator JSON configuration,
+and invokes the already-tested ordivon-runtime-pg-operator for that exact
+committed effect. PostgreSQL dispatch and immutable receipt semantics
+guard replay, unknown commit, restart recovery, rollback and readback.
+No additional Registry, workflow engine or scheduler is introduced.
+
+Production installation is NOT performed by checking in this source.
+Install the exact source operator and dispatcher under
+/usr/local/libexec/ordivon/, install the hash-locked Python venv, and set
+root-owned independent Operator env/config under /etc/ordivon/. The PG
+Operator DSN and allowed service list are never sent by an MCP caller.
+The Runtime app role must not be able to alter the qualification stage.
+
+After the independent release stage is qualified and the systemd timer
+is installed and running, configure the actual PG Runtime service with:
+
+    ORDIVON_PG_RELEASE_SOURCE_REPO=/root/projects/ordivon/services/runtime
+    ORDIVON_PG_RELEASE_OPERATOR_BIN=/usr/local/libexec/ordivon/ordivon-runtime-pg-operator
+    ORDIVON_PG_RELEASE_RECEIPT_ROOT=/var/lib/ordivon/release-receipts
+    ORDIVON_PG_RELEASE_DISPATCH_TIMER=ordivon-runtime-pg-release-dispatch.timer
+
+These are sample values only, NOT proof of an installed service. Before
+activating a live node, perform disposable PG/systemd whole-chain tests:
+exact admission, durable dispatcher wake-up, native service replacement,
+separate HTTP MCP release.get, source/binary Tool digests, restart and
+rollback. The Windows R6 SQLite backend is NOT addressed by this Linux
+systemd release path.
 
 ## PostgreSQL-native operator release evidence (source, not production rollout)
 

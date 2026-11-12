@@ -88,6 +88,16 @@ The native Task materializes the helper before its Unit and verifies
 installed-byte equality. Deliberate final removal requires quiescing
 all consumers and an explicit operator-owned retirement action.
 
+**Live reload boundary (observed on 2026-11-09):** the Gluetun Quadlet
+`Requires=network-v2-browserless-forward.service`. Restarting the forwarding
+unit itself therefore propagated through systemd to a Gluetun provider restart,
+and the Tailnet Exit reconnected. Non-deleting iptables rules do **not**
+prevent this application outage. For routine forward-rule reconciliation, use
+`task substrate:shared-egress:reload` after source/install byte parity;
+it invokes native `systemctl reload` and the synchronous `ExecReload=... ensure`
+without stopping the required unit. Do not use `systemctl restart` as a live
+idempotence test while its production Provider remains dependent on it.
+
 This reduces the restart interruption path but does not prove cross-process
 atomicity between discovery and rule insertion. Docker/other concurrent
 iptables writers remain an external stability assumption, with the exact
@@ -136,3 +146,28 @@ exceptions and real allowed HTTPS Carrier consequences.
 This follows the Linux network namespace lifetime model and the
 non-destructive resource persistence approach in systemd-networkd;
 it does not claim that networkd itself owns these manually-placed veths.
+
+
+## Live idempotence acceptance without a Provider restart (2026-11-09)
+
+Use the owner-native command below to verify existing shared Docker forwarding
+rules can be reused without changing the real VPN lifecycle:
+
+    mise exec task@3.54.0 -- task substrate:shared-egress:forward:idempotence
+
+The task independently verifies installed source, loaded systemd state,
+kernel rules and Carrier readiness; invokes the already-installed
+shared-egress-forward helper in `ensure` mode only after both rules have been
+verified present; requires `SHARED_EGRESS_FORWARD_REUSED=PASS`; compares
+main PIDs of Gluetun, its Adapter, Mobile Exit, Finance and Codex before
+and after; and repeats the whole shared-egress source/consumer check. A
+missing or mismatched rule fails before `ensure` can add anything.
+
+Do **not** use `systemctl restart network-v2-gluetun-owned.target` or a
+restart of the shared Browserless/Network Target to claim forwarding
+idempotence: such a transaction tests the outage behavior of a live
+Provider, not the forwarding helper. During the 2026-11-09 13:25 CST
+production attempt, a Target restart stopped the Gluetun container,
+its Adapter, and Mobile Exit; all subsequently recovered. Intentional
+Provider restart/cold-start experiments belong in an isolated test
+environment with independent consumer proof.

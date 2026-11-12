@@ -12,10 +12,47 @@ tasks:
       - /usr/bin/systemd-analyze verify consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service consumers/chat-ingress/systemd/network-v2-chat-ingress.target
       - /usr/bin/bash -n consumers/chat-ingress/ready.sh
 
+  consumer:chat-ingress:classify:
+    desc: Prove source/installed/loaded MATCH or DRIFT; UNKNOWN cannot authorize installation or restart
+    cmds:
+      - |
+        python3 scripts/native-sourcecut.py \
+          --file consumers/chat-ingress/config/egress.json /etc/network-v2/chat-ingress/egress.json \
+          --file consumers/chat-ingress/config/sing-box.json /etc/network-v2/chat-ingress/sing-box.json \
+          --file consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service /etc/systemd/system/network-v2-chat-ingress-proxy.service \
+          --file consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service /etc/systemd/system/network-v2-chat-ingress-relay.service \
+          --file consumers/chat-ingress/systemd/network-v2-chat-ingress.target /etc/systemd/system/network-v2-chat-ingress.target \
+          --file consumers/chat-ingress/ready.sh /usr/local/libexec/network-v2/chat-ingress-ready \
+          --mode /usr/local/libexec/network-v2/chat-ingress-ready 0755 \
+          --unit-enabled network-v2-chat-ingress.target enabled \
+          --unit-loaded network-v2-chat-ingress-proxy.service \
+          --unit-loaded network-v2-chat-ingress-relay.service \
+          --unit-loaded network-v2-chat-ingress.target
+
+  consumer:chat-ingress:sourcecut:
+    desc: Require exact local SourceCut MATCH independently of external network health
+    cmds:
+      - |
+        verdict="$(task --silent consumer:chat-ingress:classify)" || exit 2
+        test "$verdict" = MATCH
+
   consumer:chat-ingress:materialize:
     desc: Materialize ChatIngress source into /etc without changing host routing or starting the target
     deps: [consumer:chat-ingress:validate]
+    # A Boolean Go Task status is a skip hint; the first effect command
+    # independently reclassifies UNKNOWN versus a witnessed DRIFT.
+    status:
+      - task consumer:chat-ingress:sourcecut
     cmds:
+      - |
+        verdict="$(task --silent consumer:chat-ingress:classify)" || {
+          echo 'chat-ingress SourceCut UNKNOWN: refusing materialization' >&2
+          exit 2
+        }
+        test "$verdict" = DRIFT || {
+          echo 'chat-ingress SourceCut not provably DRIFT: refusing materialization' >&2
+          exit 2
+        }
       - install -d -m 0755 /etc/network-v2/chat-ingress
       - install -m 0644 consumers/chat-ingress/config/egress.json /etc/network-v2/chat-ingress/egress.json
       - install -m 0644 consumers/chat-ingress/config/sing-box.json /etc/network-v2/chat-ingress/sing-box.json
@@ -36,6 +73,59 @@ tasks:
     desc: Prove ChatIngress loopback relay and provider reachability without provider SEND
     cmds:
       - /usr/local/libexec/network-v2/chat-ingress-ready
+
+  consumer:chat-ingress:process-fresh:
+    desc: Observe native running process/config creation order independently of installed SourceCut
+    cmds:
+      - python3 scripts/native-sourcecut.py --unit-process-file network-v2-chat-ingress-proxy.service /etc/network-v2/chat-ingress/sing-box.json /usr/bin/sing-box '["run","-c"]'
+
+  consumer:chat-ingress:converge:
+    desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
+    cmds:
+      - |
+        if flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock /bin/sh -s <<'NETWORK_V2_CONVERGE'; then
+        set -eu
+        task --silent consumer:chat-ingress:validate
+        source_state="$(task --silent consumer:chat-ingress:classify)" || {
+          echo 'chat-ingress SourceCut UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        process_state="$(task --silent consumer:chat-ingress:process-fresh)" || {
+          echo 'chat-ingress running generation UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        case "$source_state/$process_state" in
+          MATCH/MATCH)
+            systemctl start network-v2-chat-ingress.target
+            ;;
+          MATCH/DRIFT)
+            # Already-installed source was not consumed after an interrupted
+            # previous release: restart only this owner's units, never VPN.
+            systemctl restart network-v2-chat-ingress.target
+            ;;
+          DRIFT/MATCH|DRIFT/DRIFT)
+            task --silent consumer:chat-ingress:materialize
+            task --silent consumer:chat-ingress:sourcecut
+            systemctl restart network-v2-chat-ingress.target
+            ;;
+          *)
+            echo 'chat-ingress SourceCut/process admission unknown: refusing converge effects' >&2
+            exit 2
+            ;;
+        esac
+        systemctl is-active --quiet network-v2-chat-ingress-proxy.service
+        task --silent consumer:chat-ingress:sourcecut
+        test "$(task --silent consumer:chat-ingress:process-fresh)" = MATCH
+        task --silent consumer:chat-ingress:verify
+        NETWORK_V2_CONVERGE
+          :
+        else
+          result=$?
+          if test "$result" -eq 75; then
+            echo 'UNKNOWN: a Network converge is already in progress; refusing overlapping effects' >&2
+          fi
+          exit "$result"
+        fi
 
   consumer:chat-ingress:verify:
     desc: Verify installed ChatIngress unit/authority SourceCut and real consumer readiness

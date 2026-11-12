@@ -6,7 +6,7 @@ fn require_recent_workspace_consumer_release(
     created_unix_ms: u128,
     consumer_released: bool,
 ) -> Result<(), UniversalExecError> {
-    const CONTINUATION_HOLD_MS: u128 = 24 * 60 * 60 * 1000;
+    const CONTINUATION_HOLD_MS: u128 = 4 * 60 * 60 * 1000;
     if !consumer_released && now_unix_ms()? < created_unix_ms.saturating_add(CONTINUATION_HOLD_MS) {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::WorkspaceStateMismatch,

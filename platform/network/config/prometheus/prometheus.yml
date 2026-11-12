@@ -43,6 +43,46 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: 127.0.0.1:29115
+  # A second origin distinguishes a single-target failure from direct IPv4 loss.
+  - job_name: blackbox-http-ipv4-alternate
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - http_2xx_ipv4
+    static_configs:
+      - targets:
+          - https://www.apple.com/library/test/success.html
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Pair with blackbox-http-ipv4 for a same-origin direct/carrier comparison.
+  - job_name: blackbox-path-reference-carrier
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - http_vpn_2xx_ipv4
+    static_configs:
+      - targets:
+          - https://example.com/
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
   - job_name: blackbox-dns-a
     metrics_path: /probe
     params:

@@ -1575,6 +1575,80 @@ exit 0
         self.assertEqual(len(release_mise), 1)
         self.assertIs(release_mise[0]["with"]["cache"], False)
 
+    def test_runtime_release_subject_count_matches_native_deployer(self) -> None:
+        """Tagged release must attest exactly the canonical native set.
+
+        This is a real workflow execution test, not an assertion that a magic
+        numeric literal appears in its YAML text.
+        """
+        import ast
+        import hashlib
+        import os
+        import yaml
+
+        source = ast.parse(
+            (ROOT / "services/runtime/scripts/ordivon-runtime-deploy").read_text()
+        )
+        values = {}
+        for node in source.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                    ):
+                        values[target.id] = ast.literal_eval(node.value)
+        self.assertEqual(set(values), {"DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"})
+        names = [*values["DEFAULT_BINARIES"], *(x[0] for x in values["DEFAULT_OPERATOR_ARTIFACTS"])]
+        self.assertEqual(len(names), len(set(names)))
+
+        release = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        steps = {step["name"]: step for step in release["jobs"]["runtime-release"]["steps"]}
+        stage = steps["Materialize exact attestation subjects and checksums"]["run"]
+        verify = steps["Verify signed canonical Runtime release attestations"]["run"]
+        self.assertNotIn("len(artifacts) != 13", stage)
+        self.assertNotIn('test "' + chr(36) + '{#subjects[@]}" -eq 13', verify)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "ordivon-runtime-tagged-release"
+            package.mkdir()
+            payloads = root / "payloads"
+            payloads.mkdir()
+            artifacts = []
+            for index, name in enumerate(names):
+                path = payloads / name
+                path.write_bytes(f"native-{name}-{index}".encode())
+                mode = 0o644 if name.endswith(".py") else 0o755
+                path.chmod(mode)
+                artifacts.append({
+                    "name": name, "kind": "support" if name.endswith(".py") else "operator",
+                    "mode": mode, "path": str(path), "bytes": path.stat().st_size,
+                    "digest": "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
+                })
+            manifest = {"sourceOwnerPrefix": "services/runtime", "artifacts": artifacts}
+            manifest_path = package / "candidate-manifest.json"
+            env = dict(os.environ, RUNNER_TEMP=str(root))
+
+            def run_stage(data):
+                manifest_path.write_text(json.dumps(data), encoding="utf-8")
+                return subprocess.run(
+                    ["bash", "-c", stage], cwd=ROOT, env=env, capture_output=True,
+                    text=True, timeout=25, check=False,
+                )
+
+            result = run_stage(manifest)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            actual = {p.name for p in (package / "attest-subjects").iterdir()}
+            self.assertEqual(actual, set(names))
+            self.assertNotEqual(run_stage({**manifest, "artifacts": artifacts[:-1]}).returncode, 0)
+            self.assertNotEqual(run_stage({**manifest, "artifacts": artifacts + [artifacts[0]]}).returncode, 0)
+            malicious = {**artifacts[0], "name": "unapproved-extra"}
+            self.assertNotEqual(run_stage({**manifest, "artifacts": artifacts + [malicious]}).returncode, 0)
+            corrupt = [{**artifacts[0], "digest": "sha256:" + "0"*64}, *artifacts[1:]]
+            self.assertNotEqual(run_stage({**manifest, "artifacts": corrupt}).returncode, 0)
+
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
         import os
@@ -1597,8 +1671,13 @@ exit 0
             root = Path(directory)
             stage = root / "ordivon-runtime-tagged-release" / "attest-subjects"
             stage.mkdir(parents=True)
-            for i in range(12):
+            for i in range(14):
                 (stage / f"component-{i:02d}").write_bytes(bytes([i]))
+            (stage.parent / "candidate-manifest.json").write_text(
+                json.dumps({"artifacts": [
+                    {"name": p.name} for p in sorted(stage.iterdir())
+                ]}), encoding="utf-8"
+            )
             bindir = root / "bin"
             bindir.mkdir()
             verifier = bindir / "gh"
@@ -1629,7 +1708,7 @@ exit 0
                 json.loads(line) for line in Path(env["GH_VERIFY_LOG"])
                 .read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(len(calls), 24)
+            self.assertEqual(len(calls), 28)
             targets = {str(path) for path in stage.iterdir()}
             for predicate in ("https://slsa.dev/provenance/v1", "https://spdx.dev/Document/v2.3"):
                 matches = [x for x in calls if x[x.index("--predicate-type")+1] == predicate]

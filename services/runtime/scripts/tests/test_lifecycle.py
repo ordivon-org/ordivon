@@ -205,7 +205,7 @@ class LifecycleTests(unittest.TestCase):
                     definition = source["classes"][name]
                     self.assertIs(definition["forceCloseDirtyAfterRetention"], False)
                     self.assertIs(definition["forceCloseAfterMaxLifetime"], False)
-                    self.assertEqual(definition["retentionHours"], 24)
+                    self.assertEqual(definition["retentionHours"], 4)
                     old = int(time.time() * 1000) - 100 * 3_600_000
                     standing = self.module["_policy_standing_from_registry"](
                         {"classification": "blocked_dirty", "createdUnixMs": old, **definition},
@@ -650,7 +650,7 @@ class LifecycleTests(unittest.TestCase):
         by_id = {item["workspaceId"]: item for item in report["candidates"]}
         self.assertEqual(by_id["ws-alpha"]["lastActivityUnixMs"], 2)
         self.assertEqual(by_id["ws-alpha"]["activityMarker"], "sha256:" + "a" * 64)
-        self.assertEqual(by_id["ws-alpha"]["retentionHours"], 24.0)
+        self.assertEqual(by_id["ws-alpha"]["retentionHours"], 4.0)
         self.assertEqual(by_id["ws-beta"]["retentionHours"], 48.0)
 
     def test_open_record_accepts_identity_derived_from_record_location(self) -> None:
@@ -1469,39 +1469,32 @@ class LifecycleTests(unittest.TestCase):
                 self.assertFalse(called)
         globals_["reclaim_apply_selected"] = original_reclaim
 
-    def test_packaged_lifecycle_unit_only_invokes_supported_lifecycle_commands(self) -> None:
+    def test_packaged_lifecycle_uses_native_pg_workspace_reclaimer(self) -> None:
         unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
             encoding="utf-8"
         )
-        marker = "/ordivon-runtime-lifecycle "
-        commands = [
-            line.split(marker, 1)[1].split()[0]
-            for line in unit.splitlines()
-            if marker in line
-        ]
-        self.assertTrue(commands)
-        lifecycle_line = next(
-            line for line in unit.splitlines() if "/ordivon-runtime-lifecycle sweep " in line
-        )
-        self.assertNotIn("--measure-bytes", lifecycle_line)
-        self.assertIn("SuccessExitStatus=2", unit)
-        self.assertNotIn("SuccessExitStatus=1 2", unit)
-        self.assertIn("--minimum-age-hours 24 --classification closable", unit)
+        starts = [line for line in unit.splitlines() if line.startswith("ExecStart=")]
+        self.assertEqual(len(starts), 1)
+        self.assertIn("/ordivon-runtime-pg-reclaim --apply ", starts[0])
+        self.assertIn("--min-age-hours 4 --limit 25", starts[0])
+        self.assertIn("--workspace-root /var/lib/ordivon/pg-candidate/workspaces", starts[0])
+        self.assertNotIn("registry.sqlite3", unit)
+        self.assertNotIn("/ordivon-runtime-lifecycle sweep ", unit)
         timer = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.timer").read_text(
             encoding="utf-8"
         )
         self.assertIn("OnCalendar=hourly", timer)
         self.assertIn("Persistent=true", timer)
         help_result = subprocess.run(
-            [sys.executable, "scripts/ordivon-runtime-lifecycle", "--help"],
+            [sys.executable, "scripts/ordivon-runtime-pg-reclaim", "--help"],
             cwd=REPO,
             check=True,
             text=True,
             capture_output=True,
         )
-        for command in commands:
-            self.assertIn(command, help_result.stdout)
-        self.assertNotIn("inputs-sweep", commands)
+        self.assertIn("--apply", help_result.stdout)
+        self.assertIn("--min-age-hours", help_result.stdout)
+        self.assertIn("--workspace-root", help_result.stdout)
 
     def test_inspect_applies_retention_class_and_last_activity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1546,7 +1539,7 @@ class LifecycleTests(unittest.TestCase):
             report = json.loads(result.stdout)
             item = report["candidates"][0]
             self.assertEqual(item["retentionClass"], "ephemeral")
-            self.assertEqual(item["retentionHours"], 24.0)
+            self.assertEqual(item["retentionHours"], 4.0)
             self.assertEqual(item["lastActivityUnixMs"], 2_000)
             self.assertEqual(item["retentionBasisUnixMs"], 2_000)
             self.assertTrue(item["policyEligible"])
@@ -2542,7 +2535,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_default_policy_reclaims_clean_but_preserves_dirty_without_owner_disposition(self) -> None:
         ephemeral = self.module["DEFAULT_POLICY"]["classes"]["ephemeral"]
-        self.assertEqual(ephemeral["retentionHours"], 24.0)
+        self.assertEqual(ephemeral["retentionHours"], 4.0)
         self.assertEqual(ephemeral["dirtyRetentionHours"], 48.0)
         self.assertEqual(ephemeral["maxLifetimeHours"], 48.0)
         self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])
@@ -2556,7 +2549,7 @@ class LifecycleTests(unittest.TestCase):
             )
         )
         ephemeral = policy["classes"]["ephemeral"]
-        self.assertEqual(ephemeral["retentionHours"], 24)
+        self.assertEqual(ephemeral["retentionHours"], 4)
         self.assertEqual(ephemeral["dirtyRetentionHours"], 48)
         self.assertEqual(ephemeral["maxLifetimeHours"], 48)
         self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])

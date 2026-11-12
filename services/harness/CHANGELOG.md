@@ -23,6 +23,9 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- promoted the existing PostgreSQL HarnessAgentRun.create/open(dsn, schema, ...) to the sole supported Python Agent Run entrypoints, aligned the independent CLI and PG consumer tests, and removed the two obsolete SQLite Agent Run entrypoints and the state-root fallback. Historical Python API consumer tests now target isolated real PostgreSQL schemas. The still-separate legacy SQLite Store and Browserless consumers require further retirement. No old runtime data is migrated, and neither entrypoint silently selects SQLite.
+
+
 - sealed Harness-native ToolProgram Action admission against schema-valid nested JSON mutation and detached public serialization from its authority bytes; both live execution and recovery now reject post-admission drift before another Tool effect. Shared continuity Tool-event validation now depends on the neutral HarnessStore port, not the legacy SQLite-specific type; no new persistence or migration layer was introduced.
 
 - extended the H2 Gateway effect adapter with cooperative control cancellation: the generic Runtime bridge now has an opt-in owner cancellation hook, Gateway-backed Runs issue `execution.cancel` only after a durable owner Job handle exists, and non-terminal acknowledgements remain `cancel-requested` / `cancel_unknown` until later reconciliation proves a terminal state;

@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-24
+updated: 2026-11-09
 summary: Current maturity claim for Harness as an independent durable cognitive execution substrate, with supported cognition, Provider and Tool continuity, composition, verification, and known limits.
 evidence_status: verified
 readiness: READY
@@ -30,7 +30,7 @@ related:
 
 ## Current state
 
-Ordivon Harness is an independent caller-neutral **durable cognitive execution substrate for bounded Agent Runs**. The Harness SQLite Journal/CAS is the current Run writer. The supported CLI authority is the independent Harness path; the former Host-backed Store/Runner/cutover path was removed.
+Ordivon Harness is an independent caller-neutral **durable cognitive execution substrate for bounded Agent Runs**. The first-party CLI uses the PostgreSQL Journal/CAS only; a separate direct Python SQLite API remains legacy pending final consumer migration. The supported CLI authority is the independent Harness path; the former Host-backed Store/Runner/cutover path was removed.
 
 This page states current maturity. It does not replay the research sequence that produced it. Exact experiments and receipts remain available through the linked canonical research documents and [`../evidence/index.json`](../evidence/index.json).
 
@@ -39,7 +39,7 @@ This page states current maturity. It does not replay the research sequence that
 ### Run authority and continuity
 
 - `HarnessRunContract` binds one immutable attempt to caller/objective/context, Provider/Adapter/model, Tool catalog/grants, budget, privacy, completion contract and correlation identity.
-- SQLite Journal/CAS owns durable Run events, Provider Calls, Tool intents/receipts, leases, revisions, snapshots, recovery evidence and retained objects.
+- The PostgreSQL CLI Store owns the admitted CLI Run events, Provider Calls, Tool intents/receipts, leases, revisions, snapshots, recovery evidence and retained objects; SQLite historical state is not automatically migrated into the new PG epoch; production Run admission uses PostgreSQL.
 - Provider and Tool response loss is recovered from exact durable identity. UNKNOWN is not silently converted into success, failure, or safe redispatch.
 - Run Receipt and `CompletionProposal` remain bounded-Run evidence for the caller/domain; they are not final Task/domain acceptance.
 
@@ -63,7 +63,7 @@ This page states current maturity. It does not replay the research sequence that
 
 ### Supported composition
 
-- `HarnessAgentRun` is the recommended Python state-root execution handle for normal create/open/run/resume composition.
+- `HarnessAgentRun` is the recommended Python Run handle; production PG entrypoints are create(dsn, schema, ...) and open(dsn, schema, ...); the old state-root public API is retired.
 - Capability truth has three explicit stages: package-installed mechanisms, immutable Run-admitted Contract/Binding authority, and exact turn-admitted `AgentTurnRequest` actions. Earlier stages never imply later stages.
 - the former aggregate installed-capability catalog and workbench read model are retired; supported execution profiles expose exact source-owned digests directly, durable `inspect` is the single retained-state view, and in-process `explain()` reports only the composition it can validate.
 - the former task-conditioned lexical capability-discovery/descriptor layer is retired; Harness keeps no generic capability search/ranking ontology.
@@ -128,9 +128,9 @@ Repository acceptance includes the main deterministic suite, isolated Ruff, docu
 ## Operator check
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness doctor
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness doctor
 ```
 
 For operation/recovery detail see [`OPERATIONS.md`](OPERATIONS.md). For public API and upgrade boundaries see [`COMPATIBILITY.md`](COMPATIBILITY.md). For exact document ownership see [`authority.md`](authority.md).

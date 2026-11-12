@@ -37,6 +37,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Historical provenance belongs to its registration SourceCut. A path
+      # migration must not rewrite it simply to make paths resolve at HEAD.
+      - name: Preserve Authority registration history across Git changes
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
+            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
+            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
+          esac
+          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
+          fi
+
       - name: Network - acquire verified Python via official GitHub API
         shell: bash
         env:
@@ -662,6 +686,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Historical provenance belongs to its registration SourceCut. A path
+      # migration must not rewrite it simply to make paths resolve at HEAD.
+      - name: Preserve Authority registration history across Git changes
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
+            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
+            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
+          esac
+          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
+          fi
+
       - name: Network - acquire verified Python via official GitHub API
         shell: bash
         env:
@@ -770,6 +818,30 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      # Historical provenance belongs to its registration SourceCut. A path
+      # migration must not rewrite it simply to make paths resolve at HEAD.
+      - name: Preserve Authority registration history across Git changes
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
+            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
+            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
+          esac
+          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
+          fi
 
       - name: Network - acquire verified Python via official GitHub API
         shell: bash
@@ -1062,6 +1134,19 @@ jobs:
               # Real Paper and general Ledger consumers were both verified.
               ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              mise run "$task" </dev/null
+              # Reuse this already-running native PG18 service for the pinned
+              # Nautilus/Databento source-to-Paper subset. Ordinary provider
+              # tests depend on external credentials; this bounded subset does
+              # not. Fail if its physical PG consumer would be silently skipped.
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG=1 \
+              mise --cd domains/capital run verify:nonlive:nautilus </dev/null
+            elif [[ "$task" == "harness:queue" ]]; then
+              # Reuse disposable CI PostgreSQL, admitting only isolated Harness
+              # test schemas; no production state or SQLite migration.
+              # The DSN makes the PG consumers actual tests, not skipped tests.
+              HARNESS_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               mise run "$task" </dev/null
             else
               mise run "$task" </dev/null

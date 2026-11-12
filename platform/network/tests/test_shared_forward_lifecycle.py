@@ -171,9 +171,26 @@ def test_native_verify_checks_loaded_systemd_not_only_installed_bytes():
     assert "--property=Wants --value" in verify
     assert "--property=After --value" in verify
     assert "--property=ExecStart --value" in verify
+    assert "--property=ExecReload --value" in verify
     assert "--property=ExecStop --value" in verify
     assert "/usr/local/libexec/network-v2/shared-egress-forward ensure" in verify
     assert "SHARED_EGRESS_LOADED_UNITS=PASS" in verify
+
+
+def test_systemd_reload_converges_forwarding_without_restart_cascade():
+    unit = (ROOT / "substrates/shared-egress/systemd/network-v2-browserless-forward.service").read_text()
+    quadlet = (ROOT / "providers/gluetun/quadlet/network-v2-gluetun-owned.container").read_text()
+    task = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
+    assert "Requires=network-v2-browserless-netns.service network-v2-browserless-forward.service" in quadlet
+    assert "ExecReload=/usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-forward ensure" in unit
+    assert "ExecStop=" not in unit
+    reload_task = task.split("  substrate:shared-egress:reload:", 1)[1].split(
+        "  substrate:shared-egress:netns:verify:", 1
+    )[0]
+    assert "systemctl reload network-v2-browserless-forward.service" in reload_task
+    assert "systemctl restart" not in reload_task
+    assert "cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service" in reload_task
+    assert "substrate:shared-egress:kernel:verify" in reload_task
 
 
 def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
@@ -184,4 +201,25 @@ def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
     assert text.count(helper) == 1
     assert text.index(helper) < text.index(unit)
     byte_check = "cmp -s substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"
+    # The new trivalent classifier owns the third independent SourceCut
+    # comparison; raw cmp remains in live reload and verify consumers.
     assert text.count(byte_check) == 2
+    classifier_check = "compare substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"
+    assert text.count(classifier_check) == 1
+
+def test_native_live_idempotence_acceptance_reuses_without_restart():
+    tasks = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
+    section = tasks.split("  substrate:shared-egress:forward:idempotence:\n", 1)[1]
+    assert section.count("task: substrate:shared-egress:verify") == 2
+    assert "/usr/local/libexec/network-v2/shared-egress-forward ensure" in section
+    assert 'SHARED_EGRESS_FORWARD_REUSED=PASS' in section
+    assert 'SHARED_EGRESS_FORWARD_IDEMPOTENCE_NO_RESTART=PASS' in section
+    assert 'before=$(generation)' in section
+    assert 'after=$(generation)' in section
+    assert 'test "$before" = "$after"' in section
+    assert "network-v2-gluetun-owned.service" in section
+    assert "network-v2-mobile-tailnet-exit.service" in section
+    assert "network-v2-codex-proxy.service" in section
+    for forbidden in ("systemctl restart", "systemctl stop", "systemctl try-restart",
+                      "podman restart", "iptables-legacy -D", "ip netns del"):
+        assert forbidden not in section

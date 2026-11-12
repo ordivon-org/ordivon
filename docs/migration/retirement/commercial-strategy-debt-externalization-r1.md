@@ -29,7 +29,7 @@ The following conflations are explicitly retired:
 
 Company-specific current facts and unresolved strategic choices live in:
 
-`docs/COMMERCIAL_STRATEGY_CURRENT_FACTS_R1.md`
+`docs/architecture/COMMERCIAL_STRATEGY_CURRENT_FACTS_R1.md`
 
 This file is deliberately prose/current-facts rather than a new database, strategy engine, scorecard or ontology.
 

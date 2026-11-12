@@ -6,8 +6,8 @@ Before a non-trivial change, read [`README.md`](README.md) and [`AGENTS.md`](AGE
 
 ## Workflow
 
-1. Open an issue first for anything beyond a small fix.
-2. Fork, branch from `main`, and make the change inside the natural owner directory.
+1. Reuse an existing Issue, Host Work or source-bound task; open a new Issue when it materially helps discovery or coordination.
+2. Work in the natural owner directory in an isolated Runtime Workspace or Git worktree based on current `main`. External contributors may fork; never edit the shared primary checkout as scratch.
 3. Run that owner's native verification (`mise tasks ls` in the owner directory lists it).
 4. For changes that touch repository mechanics, also run `mise run repo:ci` from the repository root.
 5. Open a pull request against `main` and fill in the template.
@@ -20,7 +20,7 @@ Before a non-trivial change, read [`README.md`](README.md) and [`AGENTS.md`](AGE
 - Do not unify lockfiles, environments or releases across owners as a cleanup shortcut.
 - Report verification honestly: SKIP, NOT_RUN and ENV_BLOCKED are not PASS.
 - Never commit secrets. CI runs gitleaks and a tracked-secrets check.
-- Do not add large binaries (video, archives, rendered media) to Git. Ask in the issue where they should live.
+- Keep large generated binaries outside Git; preserve only Owner-qualified source assets or test fixtures with a real consumer, license and repository policy. Media, Artifact or Distribution own their output and delivery.
 
 ## Dependency updates
 

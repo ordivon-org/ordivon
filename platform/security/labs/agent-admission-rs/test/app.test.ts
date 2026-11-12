@@ -235,3 +235,104 @@ test("a committed effect cannot be replayed by a different authenticated Agent",
   assert.equal(body.error, "effect_actor_mismatch");
   store.close();
 });
+
+test("Grant paths cannot match sibling path names", () => {
+  const store = new GrantStore(":memory:");
+  store.createGrant({
+    grantId: "grant:path-segment",
+    principalId: "principal:user-123",
+    agentId: "oauth-client:agent-research-17",
+    audience,
+    allowedActions: ["comment.create"],
+    resourcePrefixes: ["/comments"],
+    expiresAtEpochSeconds: 2_000_000_000,
+    maxRiskClass: "R3",
+    stepUpAtOrAbove: "R4",
+    remainingEffects: 2,
+  });
+  assert.equal(
+    store.resolveUniqueGrant("oauth-client:agent-research-17", audience, "comment.create", "/comments", 1_800_000_000).grantId,
+    "grant:path-segment",
+  );
+  assert.equal(
+    store.resolveUniqueGrant("oauth-client:agent-research-17", audience, "comment.create", "/comments/article-42", 1_800_000_000).grantId,
+    "grant:path-segment",
+  );
+  assert.throws(
+    () => store.resolveUniqueGrant("oauth-client:agent-research-17", audience, "comment.create", "/comments-private", 1_800_000_000),
+    /No active delegation grant/,
+  );
+  store.close();
+});
+
+
+test("native GrantStore rejects path normalization aliases before admission", () => {
+  const store = new GrantStore(":memory:");
+  const base = {
+    grantId: "grant:scope", principalId: "principal:proof",
+    agentId: "agent:proof", audience, allowedActions: ["comment.create"],
+    resourcePrefixes: ["/comments/"], expiresAtEpochSeconds: 2000000000,
+    maxRiskClass: "R3" as const, stepUpAtOrAbove: "R4" as const,
+    remainingEffects: 2,
+  };
+  store.createGrant(base);
+  for (const resource of [
+    "/comments/../account", "/comments/%2e%2e/account",
+    "/comments//child", "/comments/./child",
+    "/comments/child?admin=true", "/comments/child#private",
+    "/comments\\..\\account", "/comments/\nadmin",
+  ]) {
+    assert.throws(() => store.resolveUniqueGrant(
+      "agent:proof", audience, "comment.create", resource, 1800000000,
+    ), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "grant_not_found",
+      resource);
+  }
+  for (const prefix of ["/comments/../", "/comments//", "/comments%", "comments"]) {
+    assert.throws(() => store.createGrant({
+      ...base, grantId: "grant:invalid:" + prefix, resourcePrefixes: [prefix],
+    }), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "invalid_grant",
+      prefix);
+  }
+  assert.equal(store.resolveUniqueGrant(
+    "agent:proof", audience, "comment.create", "/comments/article", 1800000000,
+  ).grantId, base.grantId);
+  store.close();
+});
+
+
+test("Lab commit PEP refuses changed materialized target, action, Principal and audience", () => {
+  const store = new GrantStore(":memory:");
+  const grant = store.createGrant({
+    grantId: "grant:commit-pep", principalId: "principal:proof",
+    agentId: "agent:proof", audience, allowedActions: ["comment.create"],
+    resourcePrefixes: ["/comments/42"], expiresAtEpochSeconds: 2000000000,
+    maxRiskClass: "R3", stepUpAtOrAbove: "R4", remainingEffects: 1,
+  });
+  const effect = {
+    effectId: id("commit-pep"), effectDigest: id("commit-pep-content"),
+    action: "comment.create", resource: "/comments/42", audience,
+    riskClass: "R2" as const, effectType: "website.comment.create",
+  };
+  const reject = (candidate: typeof effect, articleId: string, selected = grant) => {
+    assert.throws(() => store.commitComment(selected, candidate, articleId,
+      "payload", 1800000000),
+      (error: unknown) =>
+        error instanceof Error && "code" in error && error.code === "effect_not_authorized",
+    );
+    assert.equal(store.getGrant(grant.grantId).remainingEffects, 1);
+  };
+  reject(effect, "43");
+  reject({ ...effect, resource: "/comments/43" }, "43");
+  reject({ ...effect, resource: "/comments/../42" }, "../42");
+  reject({ ...effect, audience: "https://other.example" }, "42");
+  reject({ ...effect, action: "comment.delete" }, "42");
+  reject({ ...effect, effectType: "website.comment.delete" }, "42");
+  reject(effect, "42", { ...grant, principalId: "principal:forged" });
+  const committed = store.commitComment(grant, effect, "42", "payload", 1800000000);
+  assert.equal(committed.replayed, false);
+  assert.equal(committed.receipt.articleId, "42");
+  assert.equal(store.getGrant(grant.grantId).remainingEffects, 0);
+  store.close();
+});

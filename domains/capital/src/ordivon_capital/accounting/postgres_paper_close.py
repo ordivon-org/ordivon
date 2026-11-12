@@ -29,6 +29,13 @@ def _calendar_conflict(left: dict, right: dict) -> bool:
     return any(left[day] != right[day] for day in left.keys() & right.keys())
 
 
+def _receipt_sha256(receipt: dict) -> str:
+    """Canonical receipt commitment, independent of the caller request digest."""
+    return hashlib.sha256(
+        json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
 class _PaperLedger(PostgresAccountingLedger):
     def _connect(self) -> Connection:
         db = super()._connect()
@@ -167,15 +174,28 @@ class PostgresPaperClose:
             if existing:
                 if existing[0] != digest:
                     raise ValueError("conflicting inputs for an already closed paper session")
-                return existing[1]
+                later = db.execute(
+                    "SELECT 1 FROM ordivon_paper.daily_close "
+                    "WHERE account_key = %s AND session > %s LIMIT 1",
+                    (account_key, day.session),
+                ).fetchone()
+                return _read_committed_paper_receipt(
+                    db, account_key, day.session, verify_head_ledger=not later,
+                )
             head = db.execute(
                 "SELECT session, request_sha256, receipt FROM ordivon_paper.daily_close WHERE account_key = %s "
                 "ORDER BY session DESC LIMIT 1", (account_key,),
             ).fetchone()
-            previous = (
-                PaperValuation(**(head[2]["valuation"] | {"session": head[0]}))
-                if head else None
-            )
+            if head:
+                # Never build a new economic period upon an unverified account head.
+                verified_head = _read_committed_paper_receipt(
+                    db, account_key, head[0], verify_head_ledger=True,
+                )
+                previous = PaperValuation(
+                    **(verified_head["valuation"] | {"session": head[0]})
+                )
+            else:
+                previous = None
             if head and evidence is not None:
                 prior_receipt = head[2]
                 prior_calendar = prior_receipt.get("execution_evidence", {})
@@ -208,6 +228,8 @@ class PostgresPaperClose:
                 "mode": "PAPER",
                 "request_sha256": digest,
                 "previous_request_sha256": head[1] if head else None,
+                # The predecessor *receipt*, not merely its input, is bound.
+                "previous_receipt_sha256": _receipt_sha256(head[2]) if head else None,
                 "account_key": account_key,
                 "market_evidence": market_evidence,
                 **execution,
@@ -289,8 +311,14 @@ def _validate_paper_read_scope(paper_dsn: str, account_key: str) -> None:
         raise ValueError("invalid paper account key")
 
 
-def _read_committed_paper_receipt(db: Connection, account_key: str, session: date) -> dict:
-    """Validate one committed receipt and its immediate predecessor in one snapshot."""
+def _read_committed_paper_receipt(
+    db: Connection, account_key: str, session: date, *, verify_head_ledger: bool = False,
+) -> dict:
+    """Validate the current receipt, predecessor binding and optional ledger head.
+
+    New receipts bind their previous receipt bytes. Old receipts without that
+    field retain the earlier, weaker immediate-transition validation.
+    """
     row = db.execute(
         "SELECT request_sha256, request, receipt FROM ordivon_paper.daily_close "
         "WHERE account_key = %s AND session = %s",
@@ -299,12 +327,14 @@ def _read_committed_paper_receipt(db: Connection, account_key: str, session: dat
     if row is None:
         raise ValueError("no committed paper receipt for requested account session")
     prior = db.execute(
-        "SELECT request_sha256 FROM ordivon_paper.daily_close "
+        "SELECT request_sha256, receipt, session FROM ordivon_paper.daily_close "
         "WHERE account_key = %s AND session < %s ORDER BY session DESC LIMIT 1",
         (account_key, session),
     ).fetchone()
     previous_digest = prior[0] if prior else None
     digest, request, receipt = row
+    if type(request) is not dict or type(receipt) is not dict:
+        raise ValueError("committed paper receipt and stored request disagree")
     recomputed = hashlib.sha256(
         json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -313,6 +343,11 @@ def _read_committed_paper_receipt(db: Connection, account_key: str, session: dat
         or receipt.get("schema_version") != 1
         or receipt.get("request_sha256") != digest
         or receipt.get("previous_request_sha256") != previous_digest
+        or (
+            "previous_receipt_sha256" in receipt
+            and receipt["previous_receipt_sha256"]
+            != (_receipt_sha256(prior[1]) if prior else None)
+        )
         or receipt.get("account_key") != account_key
         or receipt.get("mode") != "PAPER"
         or request.get("session") != session.isoformat()
@@ -323,6 +358,45 @@ def _read_committed_paper_receipt(db: Connection, account_key: str, session: dat
             != request.get("contribution_minor")
     ):
         raise ValueError("committed paper receipt and stored request disagree")
+
+    # The receipt is not authoritative merely because its input digest still
+    # matches: recompute the *whole* stored valuation from the committed
+    # request and the preceding close.  In particular, protected cash, shares
+    # and NAV must not be independently mutable accounting facts.
+    try:
+        previous = (
+            PaperValuation(**(prior[1]["valuation"] | {"session": prior[2]}))
+            if prior else None
+        )
+        day = decode_session({
+            key: value for key, value in request.items()
+            if key not in {"market_evidence", "execution_evidence"}
+        })
+        expected_valuation = asdict(value_session(previous, day))
+        expected_valuation["session"] = session.isoformat()
+        if not day.sells and not (previous and previous.pending_sales):
+            for key in ("pending_sales", "sale_settlement_dates", "receivable_minor"):
+                expected_valuation.pop(key)
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise ValueError("committed paper receipt and stored request disagree") from exc
+    if receipt.get("valuation") != expected_valuation:
+        raise ValueError("committed paper receipt and stored request disagree")
+    if verify_head_ledger:
+        # Historical closes are not the current PG cash balance.
+        cash_id = stable_accounting_id(
+            "ordivon-capital:paper-close:usd:v1", account_key, "cash"
+        )
+        try:
+            cash = PostgresAccountingLedger._account_in_transaction(db, cash_id)
+            valuation = receipt["valuation"]
+            if (
+                cash.credits_posted - cash.debits_posted != valuation["cash_minor"]
+                or cash.debits_pending != valuation["payable_minor"]
+                or cash.credits_pending != valuation.get("receivable_minor", 0)
+            ):
+                raise ValueError("paper cash ledger disagrees with committed head")
+        except KeyError as exc:
+            raise ValueError("paper cash ledger account is missing") from exc
     return receipt
 
 
@@ -341,16 +415,19 @@ def _read_paper_close(
             ):
                 raise ValueError("paper readback requires dedicated ordivon_paper database")
             PostgresPaperClose._verify_receipt_table(db, lock=False)
+            head = db.execute(
+                "SELECT session FROM ordivon_paper.daily_close "
+                "WHERE account_key = %s ORDER BY session DESC LIMIT 1",
+                (account_key,),
+            ).fetchone()
             if session is None:
-                head = db.execute(
-                    "SELECT session FROM ordivon_paper.daily_close "
-                    "WHERE account_key = %s ORDER BY session DESC LIMIT 1",
-                    (account_key,),
-                ).fetchone()
                 if head is None:
                     return None
                 session = head[0]
-            return _read_committed_paper_receipt(db, account_key, session)
+            return _read_committed_paper_receipt(
+                db, account_key, session,
+                verify_head_ledger=bool(head and head[0] == session),
+            )
     except psycopg.Error as exc:
         raise ValueError("paper database readback unavailable") from exc
 

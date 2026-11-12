@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""One durable PG ReleaseEffect consumer, invoked by a native systemd timer.
+
+The unprivileged Runtime HTTP service admits only immutable PostgreSQL intent.
+This independently configured host-operator process owns the physical release.
+It never invents candidate identity or retries a potentially committed effect.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+import ordivon_runtime_pg_operator as operator
+
+_SAFE_SERVICE = re.compile(r"^ordivon-[A-Za-z0-9-]+[.]service$")
+
+# A PG Runtime release always publishes BOTH native executable consumers.
+# Reject subsets before connecting to PostgreSQL or issuing a dispatch:
+# a qualified PG MainPID without the actual Runner is not a release.
+_REQUIRED_NATIVE_BINARIES = frozenset({
+    "ordivon-runtime-pg", "ordivon-runtime-runner",
+})
+
+
+def require_complete_native_binary_set(binaries: object) -> None:
+    if (
+        not isinstance(binaries, list)
+        or len(binaries) != len(_REQUIRED_NATIVE_BINARIES)
+        or not all(isinstance(name, str) for name in binaries)
+        or set(binaries) != _REQUIRED_NATIVE_BINARIES
+    ):
+        raise RuntimeError("complete native PG and Runner release binary set required")
+
+
+
+def load_owner_config(path: Path) -> dict[str, object]:
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        raise RuntimeError("operator config must be an absolute regular file")
+    metadata = path.stat()
+    if metadata.st_uid != 0 or metadata.st_mode & 0o022:
+        raise RuntimeError("operator config must be root-owned and not group/world writable")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    required = {
+        "sourceRepo", "installDir", "envFile", "receiptRoot", "service",
+        "lockFile", "pgSchema", "sourceSha256", "binaries", "requiredTools",
+    }
+    if not isinstance(value, dict) or not required.issubset(value):
+        raise RuntimeError("operator config is incomplete")
+    for name in ("sourceRepo", "installDir", "envFile", "receiptRoot", "lockFile"):
+        value[name] = Path(value[name])
+        if not value[name].is_absolute() or ".." in value[name].parts:
+            raise RuntimeError(f"invalid independently configured {name}")
+    if not _SAFE_SERVICE.fullmatch(value["service"]):
+        raise RuntimeError("operator service is not a safe systemd name")
+    require_complete_native_binary_set(value["binaries"])
+    if not isinstance(value["requiredTools"], list) or not all(
+        isinstance(tool, str) and tool in {"runtime.describe", "job.observe", "release.get", "release.apply"}
+        for tool in value["requiredTools"]
+    ):
+        raise RuntimeError("invalid PG release Tool precondition")
+    operator.qualify(value["pgSchema"], operator.SCHEMA, "PG schema")
+    operator.qualify(value["sourceSha256"], re.compile("^[a-f0-9]{64}$"), "writer source")
+    return value
+
+
+def release_effect_to_args(
+    config: dict[str, object], row: dict[str, object],
+) -> argparse.Namespace:
+    # The selected row is the durable intent identity, not an agent-supplied
+    # filesystem path or service name. All host authority is operator-owned.
+    require_complete_native_binary_set(config["binaries"])
+    commit = operator.qualify(row["commit_revision"], operator.COMMIT, "release commit")
+    effect = operator.qualify(row["effect_id"], operator.EFFECT, "effect ID")
+    candidate = config["sourceRepo"] / "target" / "ordivon-release-candidates" / commit / "release"
+    return argparse.Namespace(
+        pg_dsn=os.environ["ORDIVON_PG_RELEASE_OPERATOR_DSN"],
+        pg_schema=config["pgSchema"],
+        source_sha256=config["sourceSha256"],
+        principal=row["principal"],
+        client_request_id=row["client_request_id"],
+        effect_id=effect,
+        commit=commit,
+        confirm_commit=commit,
+        candidate_manifest_digest=row["candidate_manifest_digest"],
+        expected_tool_count=int(row["expected_tool_count"]),
+        source_repo=config["sourceRepo"],
+        candidate_dir=candidate,
+        candidate_manifest=candidate / "ordivon-deployment-manifest.json",
+        install_dir=config["installDir"],
+        receipt_root=config["receiptRoot"],
+        env_file=config["envFile"],
+        service=config["service"],
+        required_tools=config["requiredTools"],
+        binaries=config["binaries"],
+        require_ref=config.get("requiredRef", "origin/main"),
+        drain_seconds=float(config.get("drainSeconds", 30)),
+        wait_seconds=float(config.get("waitSeconds", 60)),
+        lock_file=config["lockFile"],
+        systemctl=Path("/usr/bin/systemctl"),
+        git=Path("/usr/bin/git"),
+    )
+
+
+def sweep(config: dict[str, object]) -> int:
+    # This importable native entry must not bypass main()'s file qualification.
+    require_complete_native_binary_set(config["binaries"])
+    dsn = os.environ.get("ORDIVON_PG_RELEASE_OPERATOR_DSN", "")
+    if not dsn:
+        raise RuntimeError("independent PG operator DSN is unavailable")
+    # No release intent means no systemd or file mutations.
+    with operator.pg_connection(dsn, config["pgSchema"]) as conn:
+        operator.qualified_operator(conn, config["sourceSha256"], lock=False)
+        rows = conn.execute(
+            "SELECT j.principal,j.client_request_id,r.effect_id,r.commit_revision,"
+            "r.candidate_manifest_digest,r.expected_tool_count "
+            "FROM jobs j JOIN job_runtime_release_effects r ON r.job_id=j.job_id "
+            "WHERE j.resolution IS NULL ORDER BY j.created_at_ms,j.job_id LIMIT 2"
+        ).fetchall()
+    if len(rows) > 1:
+        raise RuntimeError("more than one pending PG Runtime ReleaseEffect")
+    if not rows:
+        print(json.dumps({"pending": 0, "effect": "none"}))
+        return 0
+    args = release_effect_to_args(config, rows[0])
+    result = operator.apply_release(args)
+    print(json.dumps({
+        "pending": 1, "effectId": args.effect_id, "status": result["status"],
+        "pgTerminal": result.get("pgTerminal"),
+    }, sort_keys=True))
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, required=True)
+    args = parser.parse_args()
+    return sweep(load_owner_config(args.config))
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print(f"PG ReleaseEffect dispatch: {exc}", file=sys.stderr)
+        raise SystemExit(1)

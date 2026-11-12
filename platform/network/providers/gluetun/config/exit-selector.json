@@ -1,0 +1,5 @@
+{
+  "regions": ["Asia Pacific"],
+  "selectedCountries": ["Singapore"],
+  "excludedCountries": ["Japan", "South Korea"]
+}

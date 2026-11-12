@@ -12,6 +12,7 @@ use serde_json::json;
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -25,22 +26,115 @@ pub struct PgRuntimeConfig {
     pub executor: UniversalExecutorConfig,
 }
 
+/// Per-process progress cursors for bounded background reconciliation scans.
+/// They are hints, never durable execution authority: after a restart the scan
+/// restarts at the beginning, and ordinary Job state stays in PostgreSQL.
+#[derive(Clone, Default)]
+struct ReconciliationCursor {
+    key: Option<(i64, String)>,
+    upper_fence: Option<(i64, String)>,
+    generation: u64,
+}
+
+#[derive(Default)]
+struct ReconciliationCursors {
+    issued: ReconciliationCursor,
+    cancelled: ReconciliationCursor,
+}
+
 #[derive(Clone)]
 pub struct PgRuntime {
     config: PgRuntimeConfig,
+    reconciliation_cursors: Arc<Mutex<ReconciliationCursors>>,
 }
 
 fn error(message: impl Into<String>) -> RuntimeError {
     RuntimeError::new(RuntimeErrorCode::RegistryUnavailable, message, None, false)
 }
+// A PostgreSQL serialization/deadlock abort has a definite failed transaction,
+// not a permanently unavailable Registry. Distinguish it at the shared
+// PgAdmissionError boundary. Never replay an already admitted Job: MCP retains
+// its committed operationId and the reconcile_first retry contract.
+fn transient_pg_transaction_abort(code: Option<&postgres::error::SqlState>) -> bool {
+    code.is_some_and(|code| {
+        code == &postgres::error::SqlState::T_R_SERIALIZATION_FAILURE
+            || code == &postgres::error::SqlState::T_R_DEADLOCK_DETECTED
+    })
+}
+
 fn pg(e: PgAdmissionError) -> RuntimeError {
-    let code = match e {
-        PgAdmissionError::IdempotencyConflict => RuntimeErrorCode::IdempotencyConflict,
-        PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
-        PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
-        _ => RuntimeErrorCode::RegistryUnavailable,
+    let aborted = matches!(
+        &e,
+        PgAdmissionError::Database(err) if transient_pg_transaction_abort(err.code())
+    );
+    let code = if aborted {
+        RuntimeErrorCode::RegistryBusy
+    } else {
+        match &e {
+            PgAdmissionError::IdempotencyConflict => RuntimeErrorCode::IdempotencyConflict,
+            PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
+            PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
+            PgAdmissionError::WorkspaceStale => RuntimeErrorCode::WorkspaceStateMismatch,
+            _ => RuntimeErrorCode::RegistryUnavailable,
+        }
     };
-    RuntimeError::new(code, format!("PostgreSQL Runtime: {e:?}"), None, false)
+    let mut error = RuntimeError::new(code, format!("PostgreSQL Runtime: {e:?}"), None, aborted);
+    if aborted {
+        error.retry_after_ms = Some(250);
+    }
+    error
+}
+
+#[cfg(test)]
+mod pg_transaction_error_contract_tests {
+    use super::*;
+
+    #[test]
+    fn only_true_postgres_transaction_aborts_are_transient() {
+        use postgres::error::SqlState;
+        for code in [
+            &SqlState::T_R_SERIALIZATION_FAILURE,
+            &SqlState::T_R_DEADLOCK_DETECTED,
+        ] {
+            assert!(transient_pg_transaction_abort(Some(code)));
+        }
+        assert!(!transient_pg_transaction_abort(Some(
+            &SqlState::UNIQUE_VIOLATION
+        )));
+        assert!(!transient_pg_transaction_abort(Some(
+            &SqlState::UNDEFINED_TABLE
+        )));
+        assert!(!transient_pg_transaction_abort(None));
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_abort_is_registry_busy_not_permanent_unavailable() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit disposable PostgreSQL connection required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (state, busy) in [
+            ("40001", true),  // actual server serialization abort
+            ("40P01", true),  // actual server deadlock abort
+            ("23505", false), // unrelated integrity violation
+        ] {
+            let actual = db
+                .batch_execute(&format!(
+                    "DO $$ BEGIN RAISE EXCEPTION SQLSTATE '{state}'; END $$;"
+                ))
+                .unwrap_err();
+            let mapped = pg(PgAdmissionError::Database(actual));
+            if busy {
+                assert_eq!(mapped.code, RuntimeErrorCode::RegistryBusy);
+                assert!(mapped.retryable);
+                assert_eq!(mapped.retry_after_ms, Some(250));
+            } else {
+                assert_eq!(mapped.code, RuntimeErrorCode::RegistryUnavailable);
+                assert!(!mapped.retryable);
+                assert_eq!(mapped.retry_after_ms, None);
+            }
+        }
+    }
 }
 fn io(e: impl std::fmt::Display) -> RuntimeError {
     error(e.to_string())
@@ -95,7 +189,10 @@ impl PgRuntime {
                 "sourceSha256",
             ));
         }
-        let runtime = Self { config };
+        let runtime = Self {
+            config,
+            reconciliation_cursors: Arc::new(Mutex::new(ReconciliationCursors::default())),
+        };
         // Fail closed before advertising a live MCP endpoint. Schema existence is
         // NOT permission to admit new Jobs. Qualification is an external,
         // operator-owned PG record and must match the exact configured source.

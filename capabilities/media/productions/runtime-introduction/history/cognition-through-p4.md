@@ -4,27 +4,27 @@
 
 # Runtime Introduction — production cognition
 
-Status: active production decision record
-Protocol: [`../../research/expression/protocol.md`](../../research/expression/protocol.md)
-Profiles: [`motion-video`](../../research/expression/profiles/motion-video.md) + [`writing`](../../research/expression/profiles/writing.md)
+Status: frozen P2/P3/P4 record; the active decision is in [cognition.md](../cognition.md)
+Protocol: [expression protocol](../../../research/expression/protocol.md)
+Profiles: [`motion-video`](../../../research/expression/profiles/motion-video.md) + [`writing`](../../../research/expression/profiles/writing.md)
 
-This file records the **current creative judgment needed to continue the work**. It is **not a second Production manifest**. Physical and factual authority remains in the Production, Claim, Asset, TimedText, Receipt, Timeline, archive, and owning Runtime sources.
+This file preserves the creative judgments made through P4; [cognition.md](../cognition.md) carries the current decision. It is **not a second Production manifest**. Physical and factual authority remains in the Production, Claim, Asset, TimedText, Receipt, Timeline, archive, and owning Runtime sources.
 
 ## FRAME
 
 **Target experience.** A technically literate viewer should understand one bounded proposition: after uncertain response delivery, reliable Agent execution needs durable operation identity, recoverable evidence, and an exact reviewed-state cleanup boundary. Runtime is not presented as a generic command runner or complete autonomous Agent platform.
 
-**Primary proof.** One current live trajectory remains authoritative: exact source → guarded Patch → durable Job and recorded Attempt → observe progress → exact request replay recovers the same recorded Job → inspect bounded terminal evidence and structured diff → compare-and-close the exact reviewed Workspace state.
+**Primary proof at the time.** The selected live trajectory was: exact source → guarded Patch → durable Job and recorded Attempt → observe progress → exact request replay recovers the same recorded Job → inspect bounded terminal evidence and structured diff → compare-and-close the exact reviewed Workspace state.
 
-**Current P2 gate.** The landscape output is no longer missing audio. P2 asks a narrower question: does the exact picture+narration candidate have enough evidence to move from `rendered / review` to `approved`, or is a human-response uncertainty still material?
+**P2 gate at the time.** The landscape output is no longer missing audio. P2 asked a narrower question: does the exact picture+narration candidate have enough evidence to move from `rendered / review` to `approved`, or is a human-response uncertainty still material?
 
 ## BIND
 
-**Runtime authority.** Product claims remain bound to Runtime revision `5dd206c74a2b9151fb0a87579ba2200aaf892633`. [`evidence/runtime-demo.receipt.json`](evidence/runtime-demo.receipt.json), digest `sha256:c612500db2312fc956e0b9dc801853aab3ae31f7f182f3cce6a7649c02ccdbe1`, remains the selected execution proof.
+**Runtime authority.** Product claims remain bound to Runtime revision `5dd206c74a2b9151fb0a87579ba2200aaf892633`. [`evidence/runtime-demo.receipt.json`](../evidence/runtime-demo.receipt.json), digest `sha256:c612500db2312fc956e0b9dc801853aab3ae31f7f182f3cce6a7649c02ccdbe1`, remains the selected execution proof.
 
-**Narration authority.** [`timed-text/narration.en.json`](timed-text/narration.en.json) owns the current nine English cue texts and timing. [`evidence/narration-sapi.receipt.json`](evidence/narration-sapi.receipt.json) records the selected workstation-local voice materialization: Windows System.Speech, `Microsoft Zira Desktop`, rate `1`, exact cue-fit measurements, repeated exact-output evidence, technical audio facts, and the explicit human-response boundary.
+**Narration authority.** [`timed-text/narration.en.json`](../timed-text/narration.en.json) owns the current nine English cue texts and timing. [`evidence/narration-sapi.receipt.json`](../evidence/narration-sapi.receipt.json) records the selected workstation-local voice materialization: Windows System.Speech, `Microsoft Zira Desktop`, rate `1`, exact cue-fit measurements, repeated exact-output evidence, technical audio facts, and the explicit human-response boundary.
 
-**Byte authority.** Selected picture, narration, and muxed candidate bytes are stored and verified in the local content-addressed cache under `/mnt/d/OrdivonStudio/cache/objects/sha256/...`. P4 additionally retains independently redownload-verified copies in the private Cloudflare R2 bucket `ordivon-artifacts`; [`evidence/r2-replica.receipt.json`](evidence/r2-replica.receipt.json) records the exact object keys and destructive local-loss restore acceptance. An Asset digest without recoverable bytes at the failure boundary being claimed is not sufficient durability evidence.
+**Byte authority.** Selected picture, narration, and muxed candidate bytes are stored and verified in the local content-addressed cache under `/mnt/d/OrdivonStudio/cache/objects/sha256/...`. P4 additionally retains independently redownload-verified copies in the private Cloudflare R2 bucket `ordivon-artifacts`; [`evidence/r2-replica.receipt.json`](../evidence/r2-replica.receipt.json) records the exact object keys and destructive local-loss restore acceptance. An Asset digest without recoverable bytes at the failure boundary being claimed is not sufficient durability evidence.
 
 ## EXPRESS
 
@@ -72,7 +72,7 @@ Three selected exact artifacts now exist and are archived:
    - two independent muxes produced byte-identical output
    - archive key `objects/sha256/7d/7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430`
 
-[`timeline/assembly.v2.otio`](timeline/assembly.v2.otio) is the active A/V review snapshot. v1 remains the prior picture-only milestone; v0 remains historical placeholder assembly evidence.
+[`timeline/assembly.v2.otio`](../timeline/assembly.v2.otio) is the active A/V review snapshot. v1 remains the prior picture-only milestone; v0 remains historical placeholder assembly evidence.
 
 ## AUDIT
 
@@ -113,7 +113,7 @@ voice naturalness / human response  → conditional human audition
 
 ## DECIDE
 
-**Current decision for `runtime-film-en-landscape`: keep `rendered / review`; do not promote to `approved` or `published`.**
+**P4 decision for `runtime-film-en-landscape`: keep `rendered / review`; do not promote to `approved` or `published`.**
 
 This is materially stronger than P1. The current output digest now identifies a complete, recoverable picture+narration candidate rather than a silent picture master. Selected picture, narration stem, and final mux are archived locally by exact digest and independently redownload-verified from private R2; destructive local-CAS-loss restore is proven for the picture master. Cue fit, A/V structure, color/video facts, audio stream facts, loudness/peak, and deterministic rebuild/mux behavior are also established.
 
