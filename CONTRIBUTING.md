@@ -10,7 +10,19 @@ Before a non-trivial change, read [`README.md`](README.md) and [`AGENTS.md`](AGE
 2. Work in the natural owner directory in an isolated Runtime Workspace or Git worktree based on current `main`. External contributors may fork; never edit the shared primary checkout as scratch.
 3. Run that owner's native verification (`mise tasks ls` in the owner directory lists it).
 4. For changes that touch repository mechanics, also run `mise run repo:ci` from the repository root.
-5. Open a pull request against `main` and fill in the template.
+5. Open a pull request against main and fill in the existing PR template's
+   consumer/acceptance and engineering-resource review. Use brief, reasoned
+   N/A entries where a dimension is immaterial to the actual change.
+6. Before merging each PR, obtain an actual independent review by at least
+   one other participating Agent, not the author using a different branch or
+   merely a shared GitHub login. Record the reviewing Agent, exact HEAD,
+   concrete counterexample or consumer readback, and its GitHub review or
+   existing Host Topic / Runtime Job evidence. PENDING and CHANGES_REQUESTED
+   are not approvals: repair all material findings, and require a fresh
+   independent PASS on the updated HEAD. Author self-review or CI PASS
+   cannot substitute for that independent audit.
+   Reuse GitHub native reviews and the existing Host Space rather than a
+   custom review registry, a fabricated Owner Agent, or a new CI gate.
 
 ## Ground rules
 
