@@ -782,17 +782,53 @@ impl PgRuntime {
             {
                 return Ok(());
             }
+            // CollectMode=inactive retains a *failed* transient even after
+            // systemd has killed its cgroup. Do not reset-failed first: its
+            // invocation identity is valuable evidence until PG commits LOST.
+            // Only the exact Runner start + same systemd InvocationID + no
+            // MainPID can authorize the failed/removed classification.
+            let bound_failed_unit = runner_start.as_ref().is_some_and(|start| {
+                super::native_stop::failed_unit_matches_runner(
+                    properties.get("LoadState").map(String::as_str),
+                    properties.get("ActiveState").map(String::as_str),
+                    properties.get("InvocationID").map(String::as_str),
+                    &start.invocation_id,
+                    properties.get("MainPID").map(String::as_str),
+                )
+            });
             if super::native_stop::decide_native_stop(
                 super::platform::unit_is_active(&properties),
                 super::platform::unit_has_pending_job(&properties),
                 properties
                     .get("LoadState")
                     .is_some_and(|state| state == "not-found"),
+                bound_failed_unit,
                 runner_start.is_some(),
                 population,
             ) != super::native_stop::NativeStopDecision::CommitLost
             {
                 return Ok(());
+            }
+            // A failed-but-retained Unit can be queried again while the cgroup
+            // is gone. Confirm it still owns the same invocation and is still
+            // failed, not a different process launched under the same name.
+            if bound_failed_unit {
+                let recheck = super::platform::systemctl_show(&a.unit_name)?;
+                if !super::native_stop::failed_unit_matches_runner(
+                    recheck.get("LoadState").map(String::as_str),
+                    recheck.get("ActiveState").map(String::as_str),
+                    recheck.get("InvocationID").map(String::as_str),
+                    runner_start
+                        .as_ref()
+                        .map(|start| start.invocation_id.as_str())
+                        .unwrap_or(""),
+                    recheck.get("MainPID").map(String::as_str),
+                ) || super::platform::unit_has_pending_job(&recheck)
+                    || super::platform::cgroup_population(cgroup)?
+                        != super::platform::CgroupPopulation::Removed
+                {
+                    return Ok(());
+                }
             }
             // Kernel cgroup quiescence proves the bound process tree is gone.
             // Without a Runner result the execution outcome remains LOST,
@@ -810,6 +846,8 @@ impl PgRuntime {
                 "runnerStartObserved": runner_start.is_some(),
                 "runnerStartDigest": runner_start_digest,
                 "nativeCgroupState": population.as_str(),
+                "failedUnitInvocationBound": bound_failed_unit,
+                "nativeUnitResult": properties.get("Result"),
                 "kernelCgroupPopulated": population.observed_population(),
                 "kernelCgroupRemoved": removed,
                 "finishedAtMs": now()?,
