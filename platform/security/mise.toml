@@ -18,6 +18,13 @@ uv run --frozen --python 3.15.1 python scripts/validate_threat_model_binding.py 
 # Exactly one installed, owner-pinned OPA version. Never resolve via
 # ambient /usr/bin/opa, duplicate provider snapshots or a Docker daemon.
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test -v --fail-on-empty policies
+# Security-owned AuthZEN PDP must qualify its actual OPA decision and
+# adversarial HTTP consumers in the ordinary Security owner CI. This nested
+# locked package does not add dependencies to the Security evidence core.
+uv run --locked --project services/gateway-authzen --group dev ruff check services/gateway-authzen
+uv run --locked --project services/gateway-authzen --group dev ruff format --check services/gateway-authzen
+uv run --locked --project services/gateway-authzen --group dev python -m pytest -q services/gateway-authzen/tests
+MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa check --strict services/gateway-authzen/policies/gateway_artifact.rego
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """
 
