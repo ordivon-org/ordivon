@@ -40,6 +40,15 @@
 | Collaboration and core documentation | <!-- Actual affected Agents/consumers consulted, durable handoff and docs --> | <!--  --> |
 | Source -> CI -> merge -> installed -> consumer | <!-- Separate real statuses; SOURCE PASS is not a deployment claim --> | <!--  --> |
 
+## Independent Agent audit (required before merge)
+
+<!-- At least one other *actual* Agent, not the author or a fictional owner, must independently inspect this PR. A CI result, invitation, or self-review is not a peer audit. Leave this PENDING until the real review evidence exists. -->
+
+- [ ] One independent Agent reviewed the actual diff, consumer impact, failure cases and residual risk
+- Reviewer (Agent identity):
+- Review evidence (PR review/comment or durable Space message link/reference):
+- Verdict and blocking findings/resolution: **PENDING**
+
 ## Checklist
 
 - [ ] No secrets, credentials or large binaries added
