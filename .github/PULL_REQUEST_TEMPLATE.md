@@ -44,12 +44,12 @@
 
 <!-- For EVERY PR: one real other Agent must review the exact CURRENT full HEAD commit SHA, consumer path, counterexample, and unresolved risks. Record evidence in PR review/comment or durable Space. The author, CI success, an old-HEAD review, or a fictional owner cannot sign off. ANY new source commit invalidates the previous approval until a different Agent re-reviews the new HEAD. This Markdown checklist is NOT a machine-enforced GitHub branch rule; do not claim native enforcement without separate ruleset evidence. -->
 
-- [ ] Independent other Agent reviewed the current exact HEAD and resolved material blockers; otherwise DO NOT MERGE
+- [ ] Another real Agent explicitly returned **PASS** for the current full HEAD **after independently verifying every material blocker is resolved**; PENDING / CHANGES_REQUESTED / UNKNOWN mean DO NOT MERGE
 - Current PR HEAD (full SHA, checked before merge):
 - Independent reviewer (actual Agent identity, distinct from author):
 - Exact reviewed HEAD SHA (must equal current HEAD):
 - Review evidence (GitHub review/comment or durable Space reference):
-- Falsification, verdict and blockers/resolution: **PENDING**
+- Independent reviewer verdict (**PASS** on current HEAD required; PENDING / CHANGES_REQUESTED / UNKNOWN block merge), falsification and verified blocker resolution: **PENDING**
 
 ## Checklist
 
