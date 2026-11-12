@@ -63,11 +63,13 @@ def must_be_disposable_pg() -> str:
     assert actual is not None
     observed_path = str(Path(actual[2]).resolve()).lower().replace("/", "\\")
     expected_path = str(Path(expected).resolve()).lower().replace("/", "\\")
+    marker = Path(expected).parent / ".finance-r3-disposable-pg18"
+    test_root_qualified = marker.is_file() and marker.read_text(encoding="utf-8").strip() == "ORDIVON_FINANCE_R3_DISPOSABLE_TEST_ONLY"
     if (actual[0] != "ordivon_paper"
         or actual[1] != "sandbox_finance_r3"
         or actual[3] != 55491
         or observed_path != expected_path
-        or "financer3agenta_sandboxpg18_20261112" not in expected_path):
+        or not test_root_qualified):
         raise RuntimeError("PG data-directory authority is not the isolated test cluster")
     return dsn
 

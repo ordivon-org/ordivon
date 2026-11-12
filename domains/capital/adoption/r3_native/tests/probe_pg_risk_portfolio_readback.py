@@ -39,7 +39,8 @@ def strictly_disposable_dsn():
         ).fetchone()
     assert database == "ordivon_paper"
     assert str(Path(data_dir).resolve()).lower() == str(Path(bound).resolve()).lower()
-    assert "FinanceR3AgentA_SandboxPG18_20261112".lower() in str(bound).lower()
+    marker = Path(bound).parent / ".finance-r3-disposable-pg18"
+    assert marker.is_file() and marker.read_text(encoding="utf-8").strip() == "ORDIVON_FINANCE_R3_DISPOSABLE_TEST_ONLY"
     return dsn
 
 
