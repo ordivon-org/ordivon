@@ -15,7 +15,7 @@ from pathlib import Path
 # Set MLflow authority BEFORE importing Qlib/its MLflow integration. Otherwise
 # even a read-only experiment can create a default ./mlruns under caller CWD.
 ROOT = Path(__file__).resolve().parent
-OUT = ROOT / "output"
+OUT = Path(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR", str(ROOT / "output"))).resolve()
 OUT.mkdir(exist_ok=True)
 os.chdir(ROOT)
 os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"  # isolated reproducibility proof only; production uses existing PG tracking authority
@@ -33,8 +33,15 @@ from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.dataset.loader import StaticDataLoader
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord, SigAnaRecord
+from qlib.workflow.task.utils import TimeAdjuster
+from qlib.workflow.task.gen import trunc_segments
 
 SYMBOLS = ("SPY", "QQQ", "IWM")
+# The legacy one-session output is the default; longer horizons are
+# read-only retrospective research experiments, NEVER order authority.
+HOLD_SESSIONS = int(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_HOLD_SESSIONS", "1"))
+if HOLD_SESSIONS not in (1, 5, 20):
+    raise ValueError("Research holding-horizon options are 1, 5 or 20 sessions")
 START = "2023-01-01"
 END = "2026-10-31"
 # A pinned normalized capture is an offline reproducibility input only; it
@@ -126,12 +133,12 @@ for symbol in SYMBOLS:
         "HILO": ((x["high"] - x["low"]) / close).to_numpy(),
         "VOL5": (vol / vol.rolling(5).mean() - 1.0).to_numpy(),
     }, index=index)
-    # A post-T-close decision filled at next-session OPEN is exposed to
-    # next-session OPEN -> CLOSE price change, not T close -> T+1 close.
-    # This is a *research label* only, not proof of opening fill quality.
+    # Decision after T close, enter T+1 OPEN, exit T+H CLOSE.
+    # Match the cross-session Paper holding period before testing skill;
+    # no point-in-time execution or source rights are implied by a label.
     next_open = x["open"].astype(float).shift(-1)
     label = pd.DataFrame({
-        "LABEL0": (close.shift(-1) / next_open - 1.0).to_numpy()
+        "LABEL0": (close.shift(-HOLD_SESSIONS) / next_open - 1.0).to_numpy()
     }, index=index)
     frames.append(pd.concat({"feature": feature, "label": label}, axis=1))
     prices[symbol] = pd.Series(close.to_numpy(), index=dates, name=symbol)
@@ -147,14 +154,29 @@ provider_root.mkdir(exist_ok=True)
 qlib.init(provider_uri=str(provider_root), region=REG_US)
 loader = StaticDataLoader(data)
 handler = DataHandlerLP(instruments=None, data_loader=loader)
-dataset = DatasetH(
-    handler=handler,
-    segments={
-        "train": ("2023-02-01", "2024-12-30"),
-        "valid": ("2025-01-01", "2025-09-29"),
-        "test": ("2025-10-01", "2026-10-29"),
-    },
-)
+segments = {
+    "train": ("2023-02-01", "2024-12-30"),
+    "valid": ("2025-01-01", "2025-09-29"),
+    "test": ("2025-10-01", "2026-10-29"),
+}
+if HOLD_SESSIONS > 1:
+    # Reuse Qlib TimeAdjuster/trunc_segments with this OFFLINE capture's
+    # actual exchange-session calendar (D.calendar is not installed for the
+    # isolated StaticDataLoader). This is not a new calendar engine.
+    exchange_sessions = data.index.get_level_values("datetime").unique().sort_values()
+    native_calendar = TimeAdjuster.__new__(TimeAdjuster)
+    native_calendar._future = False
+    native_calendar.cals = list(exchange_sessions)
+    segments = native_calendar.align_seg(segments)
+    trunc_segments(native_calendar, segments, HOLD_SESSIONS + 1, test_key="test")
+    train_valid = {"train": segments["train"], "valid": segments["valid"]}
+    trunc_segments(native_calendar, train_valid, HOLD_SESSIONS + 1, test_key="valid")
+    segments["train"] = train_valid["train"]
+    index_by_session = {day: pos for pos, day in enumerate(exchange_sessions)}
+    for older, newer in (("train", "valid"), ("valid", "test")):
+        if index_by_session[segments[older][1]] + HOLD_SESSIONS >= index_by_session[segments[newer][0]]:
+            raise ValueError(f"Research target leaks future labels across {older}/{newer}")
+dataset = DatasetH(handler=handler, segments=segments)
 train = dataset.prepare("train", col_set=["feature", "label"])
 valid = dataset.prepare("valid", col_set=["feature", "label"])
 test = dataset.prepare("test", col_set=["feature", "label"])
@@ -218,6 +240,14 @@ if (
 ):
     raise ValueError("Test-signal measurement requires finite nonempty OOS rows")
 train_mean = float(historical_train.mean())
+# Each ETF's own prior-only unconditional mean is an additional inexpensive
+# baseline. A model beating a zero vector alone is not predictive alpha.
+per_instrument_train_mean = train["label"].iloc[:, 0].groupby(level="instrument").mean()
+instrument_train_baseline = np.array([
+    per_instrument_train_mean[instrument]
+    for instrument in actual_test.index.get_level_values("instrument")
+], dtype=float)
+per_instrument_train_mse = float(np.mean((realized - instrument_train_baseline) ** 2))
 model_mse = float(np.mean((realized - forecast_values) ** 2))
 zero_mse = float(np.mean(realized**2))
 train_mean_mse = float(np.mean((realized - train_mean) ** 2))
@@ -225,13 +255,22 @@ if min(zero_mse, train_mean_mse) <= 0:
     raise ValueError("Degenerate realized labels cannot establish forecast skill")
 skill = {
     "standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
-    "horizon": "decision_after_T_close_entry_at_T_plus_1_open_exit_at_T_plus_1_close",
+    "horizon": f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD_SESSIONS}_close",
+    "holding_sessions": HOLD_SESSIONS,
+    "purged_overlapping_train_validation_labels": HOLD_SESSIONS > 1,
+    "approx_nonoverlapping_test_blocks": int(np.ceil(
+        len(actual_test.index.get_level_values("datetime").unique()) / HOLD_SESSIONS
+    )),
     "sample_rows": int(len(realized)),
     "sample_sessions": int(len(actual_test.index.get_level_values("datetime").unique())),
     "asset_universe": list(SYMBOLS),
     "model_mse": model_mse,
     "zero_return_baseline_mse": zero_mse,
     "train_only_mean_baseline_mse": train_mean_mse,
+    "train_only_each_instrument_mean_mse": per_instrument_train_mse,
+    "model_mse_reduction_vs_each_instrument_mean": float(
+        1.0 - model_mse / per_instrument_train_mse
+    ),
     "model_mse_reduction_vs_zero": float(1.0 - model_mse / zero_mse),
     "model_mse_reduction_vs_train_only_mean": float(1.0 - model_mse / train_mean_mse),
     # A purely empirical OOS dominance check, NOT trading authorization.
@@ -244,11 +283,12 @@ skill = {
     },
     "prices_from_historical_backfill": True,
     "transaction_costs_and_market_impact_modeled": False,
-    # The real Capital Paper state machine processes sells against holdings
-    # carried INTO the session, then today's buys. It cannot liquidate a
-    # same-day 09:30 entry at the 16:00 close. Even excellent intraday IC
-    # therefore cannot validate the current multi-session investment path.
+    # An actual Research-derived SELL order is still missing from this
+    # consumer, even when the multi-session Paper state can represent it.
     "paper_buy_and_hold_consumer_horizon_compatible": False,
+    # A multi-session holding is representable as successive PaperSessions
+    # with a later sell, but no real research-driven exit order exists yet.
+    "multi_session_holding_state_representable": HOLD_SESSIONS > 1,
     "profitable_executable_strategy_demonstrated": False,
 }
 prediction_snapshot = OUT / "qlib_test_predictions.csv"
@@ -288,10 +328,21 @@ result = {
     "optimizer_input_kind": "trailing_120_session_sample_covariance",
     "optimizer_policy_eligible": False,
     "forecast": {
-        "kind": "uncalibrated_next_session_open_to_close_fractional_regression",
-        "predicted_next_open_to_close_fractional_returns": {k: float(v) for k, v in expected_daily.items()},
-        "target_horizon": "new_entry_next_session_open_to_close",
+        "kind": (
+            "uncalibrated_next_session_open_to_close_fractional_regression"
+            if HOLD_SESSIONS == 1 else "uncalibrated_multisession_holding_return"
+        ),
+        **{(
+            "predicted_next_open_to_close_fractional_returns"
+            if HOLD_SESSIONS == 1 else "predicted_next_open_to_holding_exit_fractional_returns"
+        ): {k: float(v) for k, v in expected_daily.items()}},
+        "target_horizon": (
+            "new_entry_next_session_open_to_close"
+            if HOLD_SESSIONS == 1 else f"next_session_open_to_T_plus_{HOLD_SESSIONS}_close"
+        ),
+        "holding_sessions": HOLD_SESSIONS,
         "paper_buy_and_hold_consumer_horizon_compatible": False,
+        "multi_session_holding_state_representable": HOLD_SESSIONS > 1,
         "signal_first_available": "UNKNOWN (source backfilled, EOD fields required)",
         "point_in_time_eligible": False,
         "calibrated_conditional_distribution": False,
