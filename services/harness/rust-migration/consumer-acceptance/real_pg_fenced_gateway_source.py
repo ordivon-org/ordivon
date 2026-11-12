@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import time
 
 from anc_canonical import canonical_digest
 from ordivon_harness.core_contracts import (
@@ -40,7 +41,15 @@ run_id = "harness-run:r22-" + secrets.token_hex(9)
 
 class Clock:
     def __init__(self) -> None:
-        self.current = 20_000
+        # The issuer-current real PG admission profile must use an actual
+        # cluster-comparable clock. Historical R22 fixtures keep synthetic time.
+        self.current = (
+            int(time.time() * 1000) - (
+                31_000 if os.getenv("ORDIVON_R25_EXPIRED_ISSUER") == "1" else 1
+            )
+            if os.getenv("ORDIVON_R25_REAL_EPOCH_ISSUER") == "1"
+            else 20_000
+        )
 
     def __call__(self) -> int:
         self.current += 1
@@ -140,7 +149,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
         recovery_consequence=HarnessRecoveryConsequence.PROCESS_OR_EXTERNAL_EFFECT_POSSIBLE,
         created_at_ms=clock(),
     )
-    continuity.prepare_tool_step(intent)
+    continuity.prepare_tool_step(intent, original_request=original)
     actual = continuity.load_current_tool_step()
     assert actual.intent == intent
     assert actual.receipt is None

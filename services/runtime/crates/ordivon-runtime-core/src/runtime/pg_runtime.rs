@@ -23,6 +23,8 @@ pub struct PgRuntimeConfig {
     pub dsn: String,
     pub schema: String,
     pub source_sha256: String,
+    /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
+    pub harness_issuer_schema: Option<String>,
     pub executor: UniversalExecutorConfig,
 }
 
@@ -63,6 +65,7 @@ fn transient_pg_transaction_abort(code: Option<&postgres::error::SqlState>) -> b
 }
 
 fn pg(e: PgAdmissionError) -> RuntimeError {
+    let issuer_not_current = matches!(&e, PgAdmissionError::IssuerNotCurrent);
     let aborted = matches!(
         &e,
         PgAdmissionError::Database(err) if transient_pg_transaction_abort(err.code())
@@ -75,10 +78,16 @@ fn pg(e: PgAdmissionError) -> RuntimeError {
             PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
             PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
             PgAdmissionError::WorkspaceStale => RuntimeErrorCode::WorkspaceStateMismatch,
+            PgAdmissionError::IssuerNotCurrent => RuntimeErrorCode::AuthorizationDenied,
             _ => RuntimeErrorCode::RegistryUnavailable,
         }
     };
-    let mut error = RuntimeError::new(code, format!("PostgreSQL Runtime: {e:?}"), None, aborted);
+    let mut error = RuntimeError::new(
+        code,
+        format!("PostgreSQL Runtime: {e:?}"),
+        issuer_not_current.then_some("execution.foreignReferences"),
+        aborted,
+    );
     if aborted {
         error.retry_after_ms = Some(250);
     }

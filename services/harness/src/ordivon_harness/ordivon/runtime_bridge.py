@@ -713,7 +713,10 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             recovery_consequence=self.recovery_consequence,
             created_at_ms=self.run_store.clock_ms(),
         )
-        self.run_store.prepare_tool_step(intent)
+        self.run_store.prepare_tool_step(
+            intent,
+            original_request=request if operation == "workspace.exec" else None,
+        )
         current = self.run_store.load_current_tool_step()
         if current.intent != intent or current.fence is None:
             raise ToolBridgeError(

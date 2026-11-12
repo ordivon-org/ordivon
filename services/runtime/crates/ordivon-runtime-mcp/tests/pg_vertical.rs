@@ -1789,6 +1789,7 @@ fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -1971,6 +1972,7 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -2785,6 +2787,7 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("self-qualified-attempt"),
             workspace_root: None,
@@ -2839,6 +2842,7 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         dsn,
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("session-authority-candidate"),
             workspace_root: None,

@@ -51,6 +51,15 @@ impl PgRuntime {
                 "execution",
             ));
         }
+        // A current Issuer must not authorize unrelated physical steps/budgets.
+        if self.config.harness_issuer_schema.is_some()
+            && (!e.steps.is_empty() || !e.host_dependencies.is_empty() || !e.budget.is_empty())
+        {
+            return Err(RuntimeError::invalid(
+                "issuer-fenced execution does not authorize custom budget/steps/host prerequisites",
+                "execution",
+            ));
+        }
         // Reuse the installed Runtime validator. The committed PG plan
         // freezes the exact file set before native dispatch.
         let host_dependencies = super::host_dependency::validate_bindings(
@@ -325,7 +334,11 @@ impl PgRuntime {
             Ok(())
         };
         let job = match db
-            .admit_with_workspace_guard(&input, &workspace_guard)
+            .admit_with_workspace_guard(
+                &input,
+                &workspace_guard,
+                self.config.harness_issuer_schema.as_deref(),
+            )
             .map_err(pg)?
         {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,

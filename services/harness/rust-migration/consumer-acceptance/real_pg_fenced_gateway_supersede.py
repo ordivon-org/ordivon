@@ -11,6 +11,9 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import time
+from contextlib import nullcontext
+from pathlib import Path
 
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.run_store_port import HarnessSuperseded
@@ -25,7 +28,15 @@ refs = json.loads(os.environ["ORDIVON_R22_EXPECT_REFS_JSON"])
 assert len(refs) == 4
 
 with PostgresHarnessStore(dsn, schema="harness_r22_source", initialize=False) as store:
-    source = EventSourcedRunContinuity.open(store, run_id, clock_ms=lambda: 10**12)
+    actual_now = (
+        max(
+            int(time.time() * 1000),
+            store.load_run(run_id).updated_at_ms,
+        )
+        if os.getenv("ORDIVON_R25_REAL_EPOCH_ISSUER") == "1"
+        else 10**12
+    )
+    source = EventSourcedRunContinuity.open(store, run_id, clock_ms=lambda: actual_now)
     prepared = source.load_current_tool_step()
     after_settlement = os.getenv("ORDIVON_R24_POST_RECEIPT_REVOKE") == "1"
     if after_settlement:
@@ -45,35 +56,58 @@ with PostgresHarnessStore(dsn, schema="harness_r22_source", initialize=False) as
     original_generation = prepared.fence.authority_generation
     preexisting_revision = store.load_run(run_id).revision
     if after_settlement:
-        # UNKNOWN->OBSERVED already appended later historical events. The
-        # original authority generation is therefore NOT the current Run
-        # revision, even before the explicit revocation write.
+        # A prior UNKNOWN-to-confirmed receipt adds immutable Run events:
+        # authority for a new Job is no longer at the old Fence generation.
         assert preexisting_revision >= original_generation
     else:
         assert preexisting_revision == original_generation
-    now_ms = 1_000_000_000_100 if after_settlement else 10**12
-    lease = store.acquire_run_lease(
-        run_id,
-        owner_id="test:r22-supersede",
-        ttl_ms=30_000,
-        now_ms=now_ms,
-        expected_run_revision=preexisting_revision,
+    gate_ready = os.getenv("ORDIVON_R25_REVOKE_PENDING")
+    gate_release = os.getenv("ORDIVON_R25_REVOKE_RELEASE")
+    assert bool(gate_ready) == bool(gate_release)
+    # Historical post-receipt tests use original deterministic clock.
+    # Same-PG issuer tests use current real PG wall time for physical TTL.
+    now_ms = (
+        actual_now
+        if os.getenv("ORDIVON_R25_REAL_EPOCH_ISSUER") == "1"
+        else (1_000_000_000_100 if after_settlement else 10**12)
     )
-    store.append_events(
-        harness_run_id=run_id,
-        expected_revision=lease.run_revision,
-        lease=lease,
-        lease_checked_at_ms=now_ms,
-        events=(
-            HarnessEventWrite(
-                event_id="event:r22-revision-advanced-" + secrets.token_hex(9),
-                event_kind="harness.trace-recorded",
-                data={"testOnly": "Run revision advanced after original pre-call Fence check"},
-                recorded_at_ms=now_ms,
+    with store.connection.transaction() if gate_ready else nullcontext():
+        lease = store.acquire_run_lease(
+            run_id,
+            owner_id="test:r22-supersede",
+            ttl_ms=30_000,
+            now_ms=now_ms,
+            expected_run_revision=preexisting_revision,
+        )
+        stopping = os.getenv("ORDIVON_R25_SOURCE_STOP") == "1"
+        store.append_events(
+            harness_run_id=run_id,
+            expected_revision=lease.run_revision,
+            lease=lease,
+            lease_checked_at_ms=now_ms,
+            events=(
+                HarnessEventWrite(
+                    event_id="event:r22-revision-advanced-" + secrets.token_hex(9),
+                    event_kind=("harness.run-stopped" if stopping else "harness.trace-recorded"),
+                    data={
+                        "testOnly": (
+                            "Run stopped after original pre-call Fence check"
+                            if stopping
+                            else "Run revision advanced after original pre-call Fence check"
+                        )
+                    },
+                    recorded_at_ms=now_ms,
+                ),
             ),
-        ),
-    )
-    store.validate_run_history(run_id)
+        )
+        store.validate_run_history(run_id)
+        if gate_ready:
+            Path(gate_ready).touch()
+            deadline = time.monotonic() + 20
+            while not Path(gate_release).exists():
+                if time.monotonic() > deadline:
+                    raise TimeoutError("R25 private PG issuer writer commit gate expired")
+                time.sleep(0.025)
     latest = store.load_run(run_id).revision
     assert latest == preexisting_revision + 1
     if after_settlement:
