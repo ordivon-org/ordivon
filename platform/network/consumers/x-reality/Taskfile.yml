@@ -80,9 +80,10 @@ tasks:
   consumer:x-reality:converge:
     desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
-      - task: consumer:x-reality:validate
       - |
+        if flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock /bin/sh -s <<'NETWORK_V2_CONVERGE'; then
         set -eu
+        task --silent consumer:x-reality:validate
         source_state="$(task --silent consumer:x-reality:classify)" || {
           echo 'x-reality SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
@@ -113,7 +114,16 @@ tasks:
         systemctl is-active --quiet network-v2-x-reality-egress.service
         task --silent consumer:x-reality:sourcecut
         test "$(task --silent consumer:x-reality:process-fresh)" = MATCH
-      - task: consumer:x-reality:ready
+        task --silent consumer:x-reality:ready
+        NETWORK_V2_CONVERGE
+          :
+        else
+          result=$?
+          if test "$result" -eq 75; then
+            echo 'UNKNOWN: a Network converge is already in progress; refusing overlapping effects' >&2
+          fi
+          exit "$result"
+        fi
 
   consumer:x-reality:verify:
     desc: Verify deployed X authority bytes, live transport consequence and carrier fail-closed semantics

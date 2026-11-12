@@ -89,9 +89,10 @@ tasks:
   consumer:supply-chain:converge:
     desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
-      - task: consumer:supply-chain:validate
       - |
+        if flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock /bin/sh -s <<'NETWORK_V2_CONVERGE'; then
         set -eu
+        task --silent consumer:supply-chain:validate
         source_state="$(task --silent consumer:supply-chain:classify)" || {
           echo 'supply-chain SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
@@ -122,7 +123,16 @@ tasks:
         systemctl is-active --quiet network-v2-supply-chain-egress.service
         task --silent consumer:supply-chain:sourcecut
         test "$(task --silent consumer:supply-chain:process-fresh)" = MATCH
-      - task: consumer:supply-chain:ready
+        task --silent consumer:supply-chain:ready
+        NETWORK_V2_CONVERGE
+          :
+        else
+          result=$?
+          if test "$result" -eq 75; then
+            echo 'UNKNOWN: a Network converge is already in progress; refusing overlapping effects' >&2
+          fi
+          exit "$result"
+        fi
 
   consumer:supply-chain:docker-rebind:
     desc: Rebind Docker from the retired Public-Web proxy, prove container recovery, and replay the pinned OPA pull

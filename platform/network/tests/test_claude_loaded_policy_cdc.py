@@ -31,8 +31,12 @@ def test_claude_proxy_waits_for_substrate_not_inactive_legacy_dns() -> None:
 def test_claude_converge_proves_loaded_policy_not_only_transport() -> None:
     converge = _task("converge")
     verify = _task("verify")
-    assert "task: consumer:claude:verify" in converge
-    assert "task: consumer:claude:ready" not in converge
+    # The real loaded-policy acceptance remains part of converge, but now
+    # runs inside the native flock critical section, not after releasing it.
+    assert "task --silent consumer:claude:verify" in converge
+    assert converge.index("flock -n -E 75") < converge.index("task --silent consumer:claude:verify")
+    assert converge.index("task --silent consumer:claude:verify") < converge.index("NETWORK_V2_CONVERGE\n")
+    assert "task --silent consumer:claude:ready" not in converge
     for unit in ("network-v2-claude-proxy.service", "network-v2-claude-relay.service"):
         assert (
             f'test "$(systemctl show --value -p PartOf {unit})" = network-v2-claude.target'
