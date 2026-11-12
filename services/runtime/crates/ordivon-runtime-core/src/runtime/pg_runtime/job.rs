@@ -18,6 +18,18 @@ fn preserve_committed_job_identity<T>(
     observed.map_err(|error| error.with_operation_id(job_id))
 }
 
+// Resolve the existing native Runtime Cargo build-cache LEGO at PG admission.
+// User-supplied CARGO_TARGET_DIR remains explicit; defaults are recorded in
+// the immutable PG plan rather than silently changed only at physical launch.
+fn pg_private_cargo_environment(
+    mut environment: std::collections::BTreeMap<String, String>,
+) -> std::collections::BTreeMap<String, String> {
+    environment
+        .entry("CARGO_TARGET_DIR".to_string())
+        .or_insert_with(|| crate::runtime::engine::TRUSTED_BUILD_TARGET_PRESENTATION.to_string());
+    environment
+}
+
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
         super::engine::validate_resource_run_proposal_structure(proposal)?;
@@ -135,7 +147,7 @@ impl PgRuntime {
                 executable_digest: universal::sha256_file(&path).map_err(io)?,
                 args: step.args.clone(),
                 cwd: cwd.to_string_lossy().into_owned(),
-                env: step.env.clone(),
+                env: pg_private_cargo_environment(step.env.clone()),
                 timeout_ms: ceiling,
                 continue_on_error: step.continue_on_error,
             });
@@ -164,7 +176,7 @@ impl PgRuntime {
             executable_digest: universal::sha256_file(&executable).map_err(io)?,
             args: e.args.clone(),
             cwd: cwd.to_string_lossy().into_owned(),
-            env: e.env.clone(),
+            env: pg_private_cargo_environment(e.env.clone()),
             timeout_ms: timeout,
             stdout_limit_bytes: stdout,
             stderr_limit_bytes: stderr,
