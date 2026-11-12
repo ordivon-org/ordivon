@@ -255,7 +255,11 @@ if min(zero_mse, train_mean_mse) <= 0:
     raise ValueError("Degenerate realized labels cannot establish forecast skill")
 skill = {
     "standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
-    "horizon": f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD_SESSIONS}_close",
+    "horizon": (
+        "decision_after_T_close_entry_at_T_plus_1_open_exit_at_T_plus_1_close"
+        if HOLD_SESSIONS == 1
+        else f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD_SESSIONS}_close"
+    ),
     "holding_sessions": HOLD_SESSIONS,
     "purged_overlapping_train_validation_labels": HOLD_SESSIONS > 1,
     "approx_nonoverlapping_test_blocks": int(np.ceil(
