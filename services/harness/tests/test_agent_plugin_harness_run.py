@@ -197,7 +197,8 @@ def test_harness_agent_run_consumes_plugin_skill_and_gateway_observation_tool(pg
         clock = FixedClock()
 
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge=bridge,
@@ -249,3 +250,75 @@ def test_harness_agent_run_consumes_plugin_skill_and_gateway_observation_tool(pg
             == bridge.catalog_digest
         )
         assert explanation["processLocal"]["customToolBridge"]["grantDigest"] == bridge.grant_digest
+
+
+def test_harness_agent_run_rejects_mcp_tool_drift_before_real_observation(pg_schema) -> None:
+    """Actual PG-backed Agent Loop must not consume a stale MCP ToolSpec."""
+
+    class DriftingGateway(GatewayFixtureClient):
+        def __init__(self) -> None:
+            super().__init__()
+            self.catalog_reads = 0
+
+        def list_tools(self):
+            self.catalog_reads += 1
+            tools = list(super().list_tools())
+            # Admission #1 and early Run validation #2 are unchanged; the
+            # Owner's tool schema changes between Turn planning and dispatch.
+            if self.catalog_reads >= 3:
+                tools[0]["inputSchema"] = {
+                    "type": "object",
+                    "properties": {"changed": {"type": "string"}},
+                }
+            return tuple(tools)
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        _write_plugin(root)
+        plugin = AgentPluginComposition.load(root)
+        gateway = DriftingGateway()
+        bridge = PluginMcpObservationBridge(
+            plugin.mcp("ordivon-gateway"), gateway, allowed_tools=("system.describe",)
+        )
+        contract = _contract(bridge)
+        tool_turn = AgentTurnResult(
+            model_call_id="model-call:plugin-drift",
+            model_id=ScriptedTurnAdapter.model_id,
+            content="inspect the originally admitted tool",
+            tool_calls=(
+                AgentToolCall(
+                    tool_call_id="tool-call:plugin-drift",
+                    name="system.describe",
+                    arguments={},
+                ),
+            ),
+            conclusion=None,
+            usage={"inputTokens": 1, "outputTokens": 1},
+            finish_reason="tool_calls",
+            raw_response_digest=_digest("drift-tool-turn"),
+        )
+        adapter = ScriptedTurnAdapter((tool_turn,))
+        clock = FixedClock()
+        run = HarnessAgentRun.create(
+            pg_schema[0],
+            pg_schema[1],
+            contract,
+            lambda _contract: adapter,
+            tool_bridge=bridge,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        result = run.run(({"role": "user", "content": "inspect Gateway"},))
+        stopped = [
+            event.payload
+            for event in result.loop_result.trace.events
+            if event.kind == "run_stopped"
+        ]
+        assert result.loop_result.stop_code.value == "invalid_tool_call", (
+            result.loop_result.stop_code.value,
+            stopped,
+            gateway.catalog_reads,
+        )
+        assert any("catalog drifted" in str(row.get("detail", "")) for row in stopped)
+        assert gateway.catalog_reads >= 3
+        assert gateway.calls == []  # No physical Tool Call was sent.

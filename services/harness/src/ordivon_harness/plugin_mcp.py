@@ -12,11 +12,8 @@ OBSERVATION_ONLY_GATEWAY_TOOLS = frozenset(
     {
         "system.describe",
         "capability.describe",
-        "continuity.get",
-        "continuity.list",
     }
 )
-
 
 
 class PluginMcpObservationBridge:
@@ -34,7 +31,9 @@ class PluginMcpObservationBridge:
         *,
         allowed_tools: tuple[str, ...] | None = None,
     ) -> None:
-        requested = tuple(sorted(allowed_tools or OBSERVATION_ONLY_GATEWAY_TOOLS))
+        requested = tuple(
+            sorted(OBSERVATION_ONLY_GATEWAY_TOOLS if allowed_tools is None else allowed_tools)
+        )
         if not requested or len(requested) != len(set(requested)):
             raise ValueError("Plugin MCP observation Tool grant must be non-empty and unique")
         forbidden = set(requested) - OBSERVATION_ONLY_GATEWAY_TOOLS
@@ -56,6 +55,11 @@ class PluginMcpObservationBridge:
                 )
             if name not in requested:
                 continue
+            if name in definitions:
+                raise ToolBridgeError(
+                    f"MCP tools/list returned duplicate granted Tool: {name}",
+                    kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                )
             definitions[name] = AgentToolDefinition(
                 name=name,
                 description=description if isinstance(description, str) and description else name,
@@ -106,6 +110,11 @@ class PluginMcpObservationBridge:
                     "MCP tools/list returned an invalid granted Tool definition",
                     kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
                 )
+            if name in current:
+                raise ToolBridgeError(
+                    f"MCP tools/list returned duplicate granted Tool: {name}",
+                    kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                )
             definition = AgentToolDefinition(
                 name=name,
                 description=description if isinstance(description, str) and description else name,
@@ -134,6 +143,10 @@ class PluginMcpObservationBridge:
                 f"Agent Plugin MCP Tool arguments are invalid: {call.argument_error}",
                 kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
             )
+        # Admission's model-visible ToolSpec is only a snapshot. Recheck the
+        # originally granted catalog *before* any owner request, including
+        # observation-only calls; the loop does not invoke this method itself.
+        self.validate_runtime_catalog()
         try:
             is_error, content = self.client.call_tool(call.name, call.arguments)
         except ToolBridgeError:
