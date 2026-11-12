@@ -1040,11 +1040,14 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
 
-    def test_security_change_expands_to_harness_and_web_component(self) -> None:
+    def test_security_change_expands_to_actual_gateway_harness_web_consumers(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
+        # The native Gateway PG acceptance now imports real Harness API in
+        # exactly one declared test-only dependency seam. This is a genuine
+        # downstream test consumer, not an invented authority/production edge.
         self.assertEqual(
             plan["verificationOwners"],
-            ["harness", "security", "web"],
+            ["gateway", "harness", "security", "web"],
         )
         self.assertIn("harness:verify", plan["verifyTasks"])
         self.assertIn("harness:queue", plan["queueVerifyTasks"])
