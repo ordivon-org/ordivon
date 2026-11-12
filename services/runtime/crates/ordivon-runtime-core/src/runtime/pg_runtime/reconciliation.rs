@@ -471,7 +471,24 @@ impl PgRuntime {
                 workspace_id: plan.workspace_id.clone(),
                 workspace_path: plan.workspace_path.clone(),
                 workspace_source_digest: plan.workspace_source_digest.clone(),
-                build_target_backing: None,
+                build_target_backing: if plan.env.get("CARGO_TARGET_DIR").map(String::as_str)
+                    == Some(super::engine::TRUSTED_BUILD_TARGET_PRESENTATION)
+                    || plan.steps.iter().any(|step| {
+                        step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+                            == Some(super::engine::TRUSTED_BUILD_TARGET_PRESENTATION)
+                    }) {
+                    // The already-supported Runner fd 198 is backed by a per-Workspace
+                    // Runtime-managed build cache, not by Git source or a new cache daemon.
+                    let backing = self
+                        .config
+                        .executor
+                        .workspace_build_cache_path(&plan.workspace_id)
+                        .join("cargo");
+                    fs::create_dir_all(&backing).map_err(io)?;
+                    Some(backing.to_string_lossy().into_owned())
+                } else {
+                    None
+                },
                 input_presentation_root: None,
                 input_commitments: vec![],
                 host_dependencies: plan

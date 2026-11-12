@@ -129,13 +129,20 @@ impl PgRuntime {
                 cumulative_step_budget.checked_add(ceiling).ok_or_else(|| {
                     RuntimeError::invalid("plan step budget overflow", "execution.steps")
                 })?;
+            // Reuse the Universal Runner's workspace-private Cargo target instead of
+            // letting an ordinary PG Job fill a Git-ignored target/ under the source tree.
+            // Step environments are independent of job.env in the existing Runner.
+            let mut step_env = step.env.clone();
+            step_env
+                .entry("CARGO_TARGET_DIR".to_string())
+                .or_insert_with(|| super::engine::TRUSTED_BUILD_TARGET_PRESENTATION.to_string());
             frozen_steps.push(RuntimeExecutionStep {
                 id: step.id.clone(),
                 executable: path.to_string_lossy().into_owned(),
                 executable_digest: universal::sha256_file(&path).map_err(io)?,
                 args: step.args.clone(),
                 cwd: cwd.to_string_lossy().into_owned(),
-                env: step.env.clone(),
+                env: step_env,
                 timeout_ms: ceiling,
                 continue_on_error: step.continue_on_error,
             });
@@ -153,6 +160,10 @@ impl PgRuntime {
                 "execution.timeoutMs",
             ));
         }
+        let mut execution_env = e.env.clone();
+        execution_env
+            .entry("CARGO_TARGET_DIR".to_string())
+            .or_insert_with(|| super::engine::TRUSTED_BUILD_TARGET_PRESENTATION.to_string());
         let mut plan = RuntimeExecutionPlan {
             schema_version: 1,
             workspace_id: e.workspace_id.clone(),
@@ -164,7 +175,7 @@ impl PgRuntime {
             executable_digest: universal::sha256_file(&executable).map_err(io)?,
             args: e.args.clone(),
             cwd: cwd.to_string_lossy().into_owned(),
-            env: e.env.clone(),
+            env: execution_env,
             timeout_ms: timeout,
             stdout_limit_bytes: stdout,
             stderr_limit_bytes: stderr,

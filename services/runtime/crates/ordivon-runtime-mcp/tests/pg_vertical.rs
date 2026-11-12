@@ -3457,3 +3457,123 @@ fn resource_queue_owner_fairness_and_idle_borrowing() {
         thread::sleep(Duration::from_millis(100));
     }
 }
+
+/// A PG Job and PG execution plan should reuse the same private Cargo-target
+/// capability as the Universal engine: large rebuildable output belongs in the
+/// Runtime build cache, not Git-ignored target/ inside the source Workspace.
+/// Explicit user-selected target paths remain authoritative.
+#[test]
+#[ignore = "launches disposable PostgreSQL18, native HTTP MCP, and real Runner"]
+fn pg_runtime_reuses_universal_private_cargo_target_without_hiding_user_override() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let wsid = format!("ws-pg-cargo-target-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":wsid,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let workspace = fixture.root.join("store/workspaces").join(&wsid);
+    let private_target = fixture
+        .root
+        .join("store/cache/build")
+        .join(&wsid)
+        .join("cargo");
+    let marker_script = "import os,pathlib; p=pathlib.Path(os.environ['CARGO_TARGET_DIR']); p.mkdir(parents=True,exist_ok=True); (p/'pg-cargo-marker').write_text('PRIVATE'); print('CARGO_TARGET='+str(p))";
+    let one = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":format!("single-cargo-{}",Uuid::now_v7()),
+            "execution":{"workspaceId":wsid,"executable":"/usr/bin/python3",
+                "args":["-c",marker_script],"cwdRelative":".","timeoutMs":10000},
+            "waitMs":12000,"stdoutTailBytes":2048}),
+    );
+    assert_ne!(one["isError"], true, "{one}");
+    assert_eq!(
+        one["structuredContent"]["executionDisposition"], "succeeded",
+        "{one}"
+    );
+    assert!(
+        one["structuredContent"]["stdoutTail"]
+            .as_str()
+            .unwrap_or("")
+            .contains("CARGO_TARGET=/proc/self/fd/198"),
+        "{one}"
+    );
+    assert_eq!(
+        fs::read_to_string(private_target.join("pg-cargo-marker")).unwrap(),
+        "PRIVATE"
+    );
+    assert!(
+        !workspace.join("target").exists(),
+        "Cargo output must not block Git Workspace retention"
+    );
+    let one_id = one["structuredContent"]["jobId"].as_str().unwrap();
+    let frozen: String = fixture
+        .db
+        .query_one(
+            "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&one_id],
+        )
+        .unwrap()
+        .get(0);
+    let frozen: Value = serde_json::from_str(&frozen).unwrap();
+    assert_eq!(frozen["env"]["CARGO_TARGET_DIR"], "/proc/self/fd/198");
+
+    let multi = call(
+        &endpoint,
+        "workspace.execPlan",
+        json!({"clientRequestId":format!("plan-cargo-{}",Uuid::now_v7()),
+            "execution":{"workspaceId":wsid,"steps":[
+                {"id":"cache","executable":"/usr/bin/python3",
+                 "args":["-c",marker_script],"cwdRelative":".","timeoutMs":10000}
+            ]},"waitMs":12000,"stdoutTailBytes":2048}),
+    );
+    assert_ne!(multi["isError"], true, "{multi}");
+    assert_eq!(
+        multi["structuredContent"]["executionDisposition"], "succeeded",
+        "{multi}"
+    );
+    let plan_id = multi["structuredContent"]["jobId"].as_str().unwrap();
+    let plan_json: String = fixture
+        .db
+        .query_one(
+            "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&plan_id],
+        )
+        .unwrap()
+        .get(0);
+    let plan: Value = serde_json::from_str(&plan_json).unwrap();
+    assert_eq!(
+        plan["steps"][0]["env"]["CARGO_TARGET_DIR"],
+        "/proc/self/fd/198"
+    );
+    assert_eq!(
+        fs::read_to_string(private_target.join("pg-cargo-marker")).unwrap(),
+        "PRIVATE"
+    );
+    assert!(!workspace.join("target").exists());
+
+    let explicit_target = fixture.root.join("user-directed-cargo-target");
+    let user = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":format!("explicit-cargo-{}",Uuid::now_v7()),
+            "execution":{"workspaceId":wsid,"executable":"/usr/bin/python3",
+                "args":["-c",marker_script],"cwdRelative":".","timeoutMs":10000,
+                "env":{"CARGO_TARGET_DIR":explicit_target.to_string_lossy()}},
+            "waitMs":12000,"stdoutTailBytes":2048}),
+    );
+    assert_ne!(user["isError"], true, "{user}");
+    assert_eq!(
+        user["structuredContent"]["executionDisposition"], "succeeded",
+        "{user}"
+    );
+    assert_eq!(
+        fs::read_to_string(explicit_target.join("pg-cargo-marker")).unwrap(),
+        "PRIVATE"
+    );
+    assert!(!workspace.join("target").exists());
+}

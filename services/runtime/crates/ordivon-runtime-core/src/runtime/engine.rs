@@ -84,7 +84,7 @@ const DEFAULT_EXECUTION_HOME: &str = "/root";
 const STALE_PREPARED_INPUT_AGE_MS: u64 = 60_000;
 const WINDOWS_NATIVE_OUTER_DEADLINE_GRACE_MS: u64 = 5_000;
 const HOST_DEPENDENCY_CONTINUITY_SCOPE: &str = "runtime_host_namespace_path_witness";
-const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
+pub(crate) const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const WINDOWS_INPUT_PRESENTATION_COMPONENTS: [&str; 1] = ["OrdivonImmutableInputs"];
 const CONTAINED_RUNTIME_ENVIRONMENT: [&str; 15] = [
     "HOME",
