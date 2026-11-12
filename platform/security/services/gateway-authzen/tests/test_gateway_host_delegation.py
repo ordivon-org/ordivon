@@ -339,3 +339,160 @@ def test_real_host_relation_and_subscription_wire_scopes_not_ignored_fields(
     wrong_relation = copy.deepcopy(relation)
     wrong_relation["resource"]["properties"]["sourceMessageRef"] = "message:foreign:outside"
     assert evaluate(policy_endpoint, wrong_relation) is False
+
+
+# Host R18 read target is produced by the existing Gateway AuthZEN PEP, not by
+# the caller. This independent Security fixture verifies the wire contract.
+def read_payload(*, tool: str, selectors: dict | None = None, sha: str = "f" * 64) -> dict:
+    selectors = selectors or {}
+    return base_payload(
+        capability="host.legacy-read",
+        tool=tool,
+        resource={
+            "type": "ordivon.host.legacy-read-request",
+            "id": f"host-legacy-read:v1:{enc(tool)}.{sha}",
+            "properties": {
+                "identityContract": "ordivon.host-legacy-read-resource.v1",
+                "toolName": tool,
+                "requestSha256": sha,
+                "requestedSelectors": selectors,
+                "unscoped": not selectors,
+            },
+        },
+    )
+
+
+def set_read_grant(policy_endpoint, *, global_reads: bool = False):
+    _, _, path = policy_endpoint
+    grant = policy_grant()
+    grant["allowedTools"] += [
+        "work.get",
+        "work.list",
+        "space.get",
+        "space.list",
+        "topic.resume",
+        "topic.cursor.get",
+        "message.search",
+        "attention.reentry",
+        "subscription.list",
+    ]
+    if global_reads:
+        grant["allowUnscopedReads"] = True
+    path.write_text(json.dumps(grant_data([grant])))
+    return grant
+
+
+@pytest.mark.parametrize(
+    "tool,selectors",
+    [
+        ("work.get", {"workRef": "work:project:one"}),
+        ("work.get", {"workRef": "work:project:two"}),
+        ("topic.resume", {"topicRef": "topic:project:one"}),
+        (
+            "topic.cursor.get",
+            {"topicRef": "topic:project:one", "actorRef": "actor:project:delegate"},
+        ),
+        ("message.search", {"topicRef": "topic:project:one"}),
+        ("attention.reentry", {"actorRef": "actor:project:delegate"}),
+        ("subscription.list", {"actorRef": "actor:project:delegate"}),
+        ("space.list", {"actorRef": "actor:project:delegate"}),
+    ],
+)
+def test_host_read_valid_principal_actor_and_scoped_resource_allow(
+    policy_endpoint, tool, selectors
+) -> None:
+    set_read_grant(policy_endpoint)
+    assert evaluate(policy_endpoint, read_payload(tool=tool, selectors=selectors)) is True
+
+
+@pytest.mark.parametrize(
+    "tool,selectors",
+    [
+        ("work.get", {"workRef": "work:outside:one"}),
+        ("topic.resume", {"topicRef": "topic:outside:one"}),
+        ("attention.reentry", {"actorRef": "actor:other:claim"}),
+        (
+            "topic.cursor.get",
+            {"topicRef": "topic:outside:one", "actorRef": "actor:project:delegate"},
+        ),
+        ("message.search", {"topicRef": "topic:project:one", "spaceRef": "space:outside:one"}),
+        ("work.get", {"actorRef": "actor:project:delegate"}),
+        ("work.list", {}),
+        ("message.search", {}),
+    ],
+)
+def test_host_read_rejects_foreign_scope_actor_spoof_or_global_scan(
+    policy_endpoint, tool, selectors
+) -> None:
+    set_read_grant(policy_endpoint)
+    assert evaluate(policy_endpoint, read_payload(tool=tool, selectors=selectors)) is False
+
+
+def test_host_global_read_requires_explicit_active_operator_grant(policy_endpoint) -> None:
+    set_read_grant(policy_endpoint, global_reads=True)
+    for tool in ("work.list", "message.search"):
+        assert evaluate(policy_endpoint, read_payload(tool=tool)) is True
+    _, _, path = policy_endpoint
+    bad = policy_grant()
+    bad["allowUnscopedReads"] = True
+    bad["allowedTools"] += ["work.list"]
+    bad["active"] = False
+    path.write_text(json.dumps(grant_data([bad])))
+    assert evaluate(policy_endpoint, read_payload(tool="work.list")) is False
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda p: p["resource"]["properties"].update(unscoped=True),
+        lambda p: p["resource"]["properties"].update(requestSha256="not-sha"),
+        lambda p: p["resource"].update(id="host-legacy-read:v1:wrong-tool.f"),
+        lambda p: p["resource"]["properties"].update(
+            requestedSelectors={"unknownRef": "work:project:one"}
+        ),
+        lambda p: p["action"]["properties"].update(gatewayTool="topic.resume"),
+    ],
+)
+def test_host_read_forgeries_cannot_be_authorized(policy_endpoint, mutate) -> None:
+    set_read_grant(policy_endpoint)
+    payload = read_payload(tool="work.get", selectors={"workRef": "work:project:one"})
+    mutate(payload)
+    assert evaluate(policy_endpoint, payload) is False
+
+
+@pytest.mark.parametrize(
+    "tool,selectors",
+    [
+        ("host.status", {}),
+        ("work.get", {"workRef": "work:project:one"}),
+        ("work.list", {}),
+        ("space.get", {"spaceRef": "space:project:one"}),
+        ("space.list", {"actorRef": "actor:project:delegate"}),
+        ("space.participation.list", {"spaceRef": "space:project:one"}),
+        ("space.subject.list", {"spaceRef": "space:project:one"}),
+        (
+            "topic.cursor.get",
+            {"topicRef": "topic:project:one", "actorRef": "actor:project:delegate"},
+        ),
+        ("topic.list", {"spaceRef": "space:project:one"}),
+        ("topic.resume", {"topicRef": "topic:project:one"}),
+        ("message.search", {"topicRef": "topic:project:one"}),
+        ("message.relation.list", {"messageRef": "message:project:one"}),
+        ("subscription.list", {"actorRef": "actor:project:delegate"}),
+        ("attention.get", {"actorRef": "actor:project:delegate"}),
+        ("attention.delta", {"actorRef": "actor:project:delegate"}),
+        ("attention.reentry", {"actorRef": "actor:project:delegate"}),
+    ],
+)
+def test_operator_grants_cover_entire_real_host_read_surface(policy_endpoint, tool, selectors):
+    grant = set_read_grant(policy_endpoint, global_reads=True)
+    _, _, path = policy_endpoint
+    grant["allowedTools"].append(tool)
+    grant["exactRefs"] += ["space:project:one", "message:project:one"]
+    path.write_text(json.dumps(grant_data([grant])))
+    assert evaluate(policy_endpoint, read_payload(tool=tool, selectors=selectors)) is True
+
+    # Removing this one tool's authority must deny even a perfectly scoped read.
+    grant["allowedTools"] = [name for name in grant["allowedTools"] if name != tool]
+    path.write_text(json.dumps(grant_data([grant])))
+    assert evaluate(policy_endpoint, read_payload(tool=tool, selectors=selectors)) is False

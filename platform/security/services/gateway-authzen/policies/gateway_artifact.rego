@@ -85,6 +85,69 @@ host_target_ok if {
   input.resource.properties.identityContract == "ordivon.host-engagement-request-resource.v1"
 }
 
+# R18: existing AuthZEN+OPA grants also mediate original Host reads.
+# The Gateway derives these selectors from the *real* read Tool; the caller
+# cannot use an ignored actorRef as an authentication or scope shortcut.
+host_read_selector_fields := {
+  "host.status": [],
+  "work.get": ["workRef"],
+  "work.list": [],
+  "space.get": ["spaceRef"],
+  "space.list": ["actorRef", "subjectRef"],
+  "space.participation.list": ["spaceRef"],
+  "space.subject.list": ["spaceRef"],
+  "topic.cursor.get": ["actorRef", "topicRef"],
+  "topic.list": ["spaceRef"],
+  "topic.resume": ["topicRef"],
+  "message.search": ["spaceRef", "topicRef"],
+  "message.relation.list": ["messageRef"],
+  "subscription.list": ["actorRef"],
+  "attention.get": ["actorRef"],
+  "attention.delta": ["actorRef"],
+  "attention.reentry": ["actorRef"],
+}
+
+host_read_required_fields := {
+  "work.get": ["workRef"],
+  "space.get": ["spaceRef"],
+  "space.participation.list": ["spaceRef"],
+  "space.subject.list": ["spaceRef"],
+  "topic.cursor.get": ["actorRef", "topicRef"],
+  "topic.list": ["spaceRef"],
+  "topic.resume": ["topicRef"],
+  "message.relation.list": ["messageRef"],
+  "subscription.list": ["actorRef"],
+  "attention.get": ["actorRef"],
+  "attention.delta": ["actorRef"],
+  "attention.reentry": ["actorRef"],
+}
+
+host_target_ok if {
+  input.action.name == "host.legacy-read"
+  p := input.resource.properties
+  input.resource.type == "ordivon.host.legacy-read-request"
+  p.identityContract == "ordivon.host-legacy-read-resource.v1"
+  p.toolName == input.action.properties.gatewayTool
+  is_string(p.requestSha256)
+  regex.match("^[0-9a-f]{64}$", p.requestSha256)
+  is_object(p.requestedSelectors)
+  is_boolean(p.unscoped)
+  p.unscoped == (count(p.requestedSelectors) == 0)
+  allowed := host_read_selector_fields[p.toolName]
+  every field, value in p.requestedSelectors {
+    field in allowed
+    is_string(value)
+    count(value) > 2
+  }
+  required := object.get(host_read_required_fields, p.toolName, [])
+  every field in required {
+    is_string(p.requestedSelectors[field])
+  }
+  input.resource.id == sprintf("host-legacy-read:v1:%s.%s", [
+    trim(base64url.encode(p.toolName), "="), p.requestSha256
+  ])
+}
+
 # The field used for authorization is determined by the *actual Owner tool*,
 # never by a second caller-supplied actorRef/resourceRef that the Owner ignores.
 host_scope(tool, props) := ref if {
@@ -144,6 +207,37 @@ host_inbox_granted(grant) if {
   p := input.resource.properties
   p.requestedConsumerActorRef == grant.actorRef
   p.requestedAssigneeActorRef == grant.actorRef
+}
+
+# Resource-scoped reads are qualified against the same trusted operator
+# Actor Grant as writes. Every provided selector must be admitted. A Principal
+# may inspect the whole Host inventory only when the operator explicitly
+# provisions allowUnscopedReads for the specific Tool.
+host_read_selector_granted(grant, field, value) if {
+  field == "actorRef"
+  value == grant.actorRef
+}
+host_read_selector_granted(grant, field, value) if {
+  field in {"workRef", "spaceRef", "topicRef", "messageRef", "subjectRef"}
+  host_scope_granted(grant, value)
+}
+
+host_read_scope_granted(grant) if {
+  input.resource.properties.unscoped == true
+  grant.allowUnscopedReads == true
+}
+host_read_scope_granted(grant) if {
+  p := input.resource.properties
+  p.unscoped == false
+  count(p.requestedSelectors) > 0
+  every field, value in p.requestedSelectors {
+    host_read_selector_granted(grant, field, value)
+  }
+}
+
+host_actor_granted(grant) if {
+  input.action.name == "host.legacy-read"
+  host_read_scope_granted(grant)
 }
 
 host_actor_granted(grant) if {
