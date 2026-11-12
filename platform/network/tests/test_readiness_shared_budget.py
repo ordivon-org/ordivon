@@ -185,15 +185,16 @@ def test_supply_chain_positive_transport_requires_connect_and_allowed_origin_sta
     probed_hosts = [_logged_target_host(line) for line in calls]
     allowed_hosts = {
         "registry-1.docker.io", "auth.docker.io", "gcr.io",
-        "us-central1-docker.pkg.dev", "docker.elastic.co",
+        "us-central1-docker.pkg.dev", "docker.elastic.co", "example.com",
     }
     assert set(probed_hosts).issubset(allowed_hosts)
     if expected_ready:
         assert proc.returncode == 0, (proc.stdout, proc.stderr, calls)
         payload = json.loads(proc.stdout)
         assert payload["standing"] == "READY"
-        assert payload["scope"] == "allowed-origin-https-only"
-        assert payload["unknownDestination"] == "NOT_EVALUATED"
+        assert payload["scope"] == "open-tcp-connect-through-existing-carrier"
+        assert payload["unknownDestination"] == "ORIGIN_PROVED"
+        assert payload["openHttpStatus"] == 200
         assert payload["directFallback"] == "NOT_EVALUATED"
         assert payload["registryHttpStatus"] == 200
         assert set(probed_hosts) == allowed_hosts

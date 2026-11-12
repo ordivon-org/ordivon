@@ -21,27 +21,7 @@
     }
   ],
   "route": {
-    "rules": [
-      {
-        "inbound": [
-          "discord-api"
-        ],
-        "domain": [
-          "discord.com",
-          "gateway.discord.gg",
-          "cdn.discordapp.com",
-          "media.discordapp.net"
-        ],
-        "port": 443,
-        "network": [
-          "tcp"
-        ],
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "action": "reject"
-      }
-    ]
+    "rules": [],
+    "final": "provider-carrier"
   }
 }

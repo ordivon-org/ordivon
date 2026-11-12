@@ -6,8 +6,8 @@ tasks:
     cmds:
       - /usr/bin/sing-box check -c consumers/finance/config/egress.json
       - jq -e '.inbounds|length==9' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and any(.route.rules[]; (.inbound? // [])==["finance-binance-wallet"] and .domain=="api.binance.com" and .port==443 and .action=="route" and .outbound=="provider-carrier")' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'any(.route.rules[]; (.inbound? // [])==["finance-us-treasury-public"] and .domain=="home.treasury.gov" and .outbound=="public-direct") and any(.route.rules[]; (.inbound? // [])==["finance-fred-public-csv"] and .domain=="fred.stlouisfed.org" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and .route.final=="provider-carrier" and (.route.rules|length)==2' consumers/finance/config/egress.json >/dev/null
+      - jq -e '([.route.rules[]|select(.action=="route" and .outbound=="public-direct" and ((.inbound|length)==1))|.inbound[0]]|sort)==["finance-fred-public-csv","finance-us-treasury-public"] and all(.route.rules[]; (keys|sort)==["action","inbound","outbound"])' consumers/finance/config/egress.json >/dev/null
       - jq -e '.outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680},{"type":"direct","tag":"public-direct"}] and (has("dns")|not) and (has("services")|not)' consumers/finance/config/egress.json >/dev/null
       - jq -e 'all(.route.rules[]; ((.outbound? // "") != "provider-auto"))' consumers/finance/config/egress.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target

@@ -21,35 +21,7 @@
     }
   ],
   "route": {
-    "rules": [
-      {
-        "inbound": [
-          "supply-chain-oci"
-        ],
-        "domain": [
-          "registry-1.docker.io",
-          "registry.docker.io",
-          "auth.docker.io",
-          "production.cloudflare.docker.com",
-          "production.cloudfront.docker.com",
-          "docker.elastic.co",
-          "gcr.io"
-        ],
-        "domain_suffix": [
-          "r2.cloudflarestorage.com",
-          "gcr.io",
-          "pkg.dev"
-        ],
-        "port": 443,
-        "network": [
-          "tcp"
-        ],
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "action": "reject"
-      }
-    ]
+    "rules": [],
+    "final": "provider-carrier"
   }
 }

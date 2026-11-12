@@ -47,8 +47,8 @@ auth_code=$(probe 'https://auth.docker.io/token?service=registry.docker.io&scope
 gcr_code=$(probe https://gcr.io/v2/ '200|401')
 artifact_code=$(probe https://us-central1-docker.pkg.dev/v2/ '200|401')
 elastic_code=$(probe https://docker.elastic.co/v2/ '200|401')
-# Allowed OCI HTTPS origins are checked above. Rejection/no-forwarding must
-# be witnessed independently by consumer:supply-chain:verify against the
-# actual loaded and installed sing-box policy and carrier.
+# Open Carrier must also transport an unrelated HTTPS origin with
+# a real origin response, not merely a CONNECT reply.
+open_http=$(probe https://example.com/ '200')
 ((SECONDS < readiness_deadline)) || { echo 'Supply-Chain readiness total deadline expired' >&2; exit 1; }
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.supply-chain-readiness","standing":"READY","scope":"allowed-origin-https-only","proxy":"%s","registryHttpStatus":%s,"authHttpStatus":%s,"gcrHttpStatus":%s,"artifactRegistryHttpStatus":%s,"elasticHttpStatus":%s,"unknownDestination":"NOT_EVALUATED","directFallback":"NOT_EVALUATED"}\n' "$proxy" "$registry_code" "$auth_code" "$gcr_code" "$artifact_code" "$elastic_code"
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.supply-chain-readiness","standing":"READY","scope":"open-tcp-connect-through-existing-carrier","proxy":"%s","registryHttpStatus":%s,"authHttpStatus":%s,"gcrHttpStatus":%s,"artifactRegistryHttpStatus":%s,"elasticHttpStatus":%s,"unknownDestination":"ORIGIN_PROVED","openHttpStatus":%s,"directFallback":"NOT_EVALUATED"}\n' "$proxy" "$registry_code" "$auth_code" "$gcr_code" "$artifact_code" "$elastic_code" "$open_http"

@@ -99,9 +99,7 @@ def parse_selector_policy(raw: str) -> dict[str, list[str]]:
         raise ValueError("Only upstream-native ordered selection mode is supported")
     for field in fields:
         entries = value[field]
-        if not isinstance(entries, list) or (
-            not entries and (field == "selectedCountries" or (field == "regions" and not ordered))
-        ):
+        if not isinstance(entries, list):
             raise ValueError(f"Invalid {field} selector list")
         if not all(
             isinstance(x, str)
@@ -157,7 +155,8 @@ def generate_env(
         selectors.append(
             f'SERVER_REGIONS={render_native_selector(selector["regions"], preserve_legacy_region=True)}'
         )
-    selectors.append(f'SERVER_COUNTRIES={render_native_selector(selector["selectedCountries"])}')
+    if selector["selectedCountries"]:
+        selectors.append(f'SERVER_COUNTRIES={render_native_selector(selector["selectedCountries"])}')
     if selector.get("selectionMode") == "ordered":
         selectors.append("SERVER_SELECTION_MODE=ordered")
     config = [
@@ -181,6 +180,9 @@ def generate_env(
         # Native Gluetun encrypted DNS, without the legacy DoH SourceCut.
         "DNS_UPSTREAM_RESOLVER_TYPE=dot",
         "DNS_UPSTREAM_RESOLVERS=cloudflare,google",
+        # Temporary open-connectivity phase: disable upstream optional malware-domain block.
+        # Keep authenticated DoT upstream transport unchanged.
+        "BLOCK_MALICIOUS=off",
     ]
     for key in PRESERVED:
         if key in inherited:
@@ -230,8 +232,8 @@ def verify_loaded_env(expected: str, loaded: list[str]) -> None:
     """
     expected_values = dict(line.split("=", 1) for line in expected.splitlines())
     extra_server_filters = {
-        "SERVER_CITIES", "SERVER_HOSTNAMES", "SERVER_NAMES", "SERVER_CATEGORIES",
-        "SERVER_REGIONS", "SERVER_SELECTION_MODE",
+        "SERVER_COUNTRIES", "SERVER_CITIES", "SERVER_HOSTNAMES", "SERVER_NAMES",
+        "SERVER_CATEGORIES", "SERVER_REGIONS", "SERVER_SELECTION_MODE",
     }
     # An extra explicit endpoint or plaintext key in the running container can
     # silently bypass native Surfshark server selection even when the selected
@@ -331,7 +333,7 @@ def main() -> None:
     # selector file which could change between generation and observation.
     emitted = dict(line.split("=", 1) for line in env.splitlines())
     regions = emitted.get("SERVER_REGIONS", "").strip('"')
-    countries = emitted["SERVER_COUNTRIES"].strip('"')
+    countries = emitted.get("SERVER_COUNTRIES", "*").strip('"')
     print(
         "native_profile=" + ("APPLIED" if args.apply else "VERIFIED" if args.verify else "VALID")
         + " provider=surfshark wireguard=eligible"

@@ -65,11 +65,6 @@ probe cerebras https://api.cerebras.ai/v1/models
 probe nvidia https://integrate.api.nvidia.com/v1/models
 probe bigmodel https://open.bigmodel.cn/api/paas/v4/models
 
-set +e
-curl -q -4 -sS -o /dev/null --proxy "$proxy" --noproxy "" \
-  --connect-timeout 2 --max-time 5 https://example.com/ >/dev/null 2>&1
-unknown_rc=$?
-set -e
-[ "$unknown_rc" -ne 0 ]
+probe open_public_origin https://example.com/
 
-printf '%s\n' '{"schemaVersion":1,"kind":"ordivon.network-v2.model-provider-readiness","standing":"READY","proxy":"http://127.0.0.1:19881","unknownDestination":"REJECTED","directFallback":false,"credentialMaterialized":false}'
+printf '%s\n' '{"schemaVersion":1,"kind":"ordivon.network-v2.model-provider-readiness","standing":"READY","proxy":"http://127.0.0.1:19881","unknownDestination":"ORIGIN_PROVED","directFallback":false,"credentialMaterialized":false}'

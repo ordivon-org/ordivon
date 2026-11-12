@@ -18,7 +18,7 @@ def test_claude_egress_is_scoped_to_the_single_shared_http_carrier() -> None:
     assert policy["outbounds"] == [
         {"type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680}
     ]
-    assert policy["route"]["rules"][-1] == {"action": "reject"}
+    assert policy["route"] == {"rules": [], "final": "provider-carrier"}
     assert "dns" not in policy
 
 
