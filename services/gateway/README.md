@@ -100,6 +100,30 @@ B01 is intentionally small. The public schema avoids fast-moving closed enums su
 For `execution.windows`, Gateway accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
 
 
+## Cloudflare Access machine identities
+
+Gateway continues to validate the Cloudflare Access application JWT using
+the configured issuer, audience, RS256 signature, trusted JWKS key and expiry.
+Interactive Access JWTs retain the original v1 non-empty-sub Principal mapping,
+so existing human grants do not change.
+
+Official Cloudflare service-token application JWTs instead use an empty sub
+and the signed common_name Client ID. Gateway now projects these through
+a separate domain-separated SHA-256 input into the same existing AuthZEN
+Principal format. Neither an empty anonymous subject, an unrelated org
+token, nor a malformed Client ID qualifies; failed signature/issuer/audience
+verification always denies. Service-token identity remains stable across
+secret rotations that preserve its Client ID. Cloudflare documentation:
+https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/application-token/
+
+**Identity is not delegation.** A verified Cloudflare service token still
+requires a trusted explicit Security AuthZEN Principal-to-Actor/tool/resource
+grant. Multiple autonomous Agents using the same Client ID cannot be
+independently distinguished by this mechanism; use separate Cloudflare
+service-token credentials per workload before assigning separate Actors.
+The existing shared local Harness Bearer similarly proves only one
+machine Principal, not the identity of each calling Agent.
+
 ## HTTP Artifact Policy Enforcement — source contract, 2026-11-08
 
 The normal CLI `main()` previously called `build_server(gateway)` without
