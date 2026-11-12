@@ -132,6 +132,9 @@ impl Fixture {
         self.endpoint_for_principal("pg-consumer")
     }
     fn endpoint_for_principal(&mut self, principal: &str) -> String {
+        self.endpoint_with_release(principal, false)
+    }
+    fn endpoint_with_release(&mut self, principal: &str, qualified_release: bool) -> String {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let bind = listener.local_addr().unwrap();
         drop(listener);
@@ -149,28 +152,54 @@ impl Fixture {
             runner.display()
         );
         let output = fs::File::create(self.root.join("endpoint.log")).unwrap();
-        self.endpoint = Some(
-            Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"))
-                .env(
-                    "ORDIVON_PG_DSN",
-                    format!(
-                        "host={} user=runtime_app dbname=postgres",
-                        self.root.display()
-                    ),
+        let mut endpoint = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"));
+        endpoint
+            .env(
+                "ORDIVON_PG_DSN",
+                format!(
+                    "host={} user=runtime_app dbname=postgres",
+                    self.root.display()
+                ),
+            )
+            .env("ORDIVON_PG_SCHEMA", "fresh")
+            .env("ORDIVON_PG_SOURCE_SHA256", "a".repeat(64))
+            .env("ORDIVON_PG_STORE_ROOT", self.root.join("store"))
+            .env("ORDIVON_PG_RUNNER", runner)
+            .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
+            .env("ORDIVON_PG_BIND", bind.to_string())
+            .env("ORDIVON_PG_TOKEN", "p".repeat(32))
+            .env("ORDIVON_PG_PRINCIPAL", principal)
+            .stdout(Stdio::null())
+            .stderr(output);
+        if qualified_release {
+            let source = self.root.join("release-source");
+            let receipts = self.root.join("receipts");
+            fs::create_dir(&source).unwrap();
+            fs::create_dir(&receipts).unwrap();
+            let operator = self.root.join("operator");
+            fs::write(
+                &operator,
+                "#!/bin/sh
+exit 0
+",
+            )
+            .unwrap();
+            self.db
+                .execute(
+                    "INSERT INTO fresh._stage_control VALUES ('release','QUALIFIED_RELEASE',$1,true)",
+                    &[&"a".repeat(64)],
                 )
-                .env("ORDIVON_PG_SCHEMA", "fresh")
-                .env("ORDIVON_PG_SOURCE_SHA256", "a".repeat(64))
-                .env("ORDIVON_PG_STORE_ROOT", self.root.join("store"))
-                .env("ORDIVON_PG_RUNNER", runner)
-                .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
-                .env("ORDIVON_PG_BIND", bind.to_string())
-                .env("ORDIVON_PG_TOKEN", "p".repeat(32))
-                .env("ORDIVON_PG_PRINCIPAL", principal)
-                .stdout(Stdio::null())
-                .stderr(output)
-                .spawn()
-                .unwrap(),
-        );
+                .unwrap();
+            endpoint
+                .env("ORDIVON_PG_RELEASE_SOURCE_REPO", &source)
+                .env("ORDIVON_PG_RELEASE_OPERATOR_BIN", &operator)
+                .env("ORDIVON_PG_RELEASE_RECEIPT_ROOT", &receipts)
+                .env(
+                    "ORDIVON_PG_RELEASE_DISPATCH_TIMER",
+                    "ordivon-pg-disposable-test.timer",
+                );
+        }
+        self.endpoint = Some(endpoint.spawn().unwrap());
         let deadline = Instant::now() + Duration::from_secs(10);
         while std::net::TcpStream::connect(bind).is_err() {
             assert!(
@@ -328,6 +357,32 @@ fn committed_observation_retry_never_reclassifies_uncommitted_effect() {
         }
         assert_eq!(committed_40001_job_id(&mutant), None, "{mutant}");
     }
+}
+
+/// Production regression: the real PG release row must be examined while
+/// #[tokio::main] drives startup and async MCP catalog/tool handlers.
+#[test]
+#[ignore = "launches disposable PG18 and native MCP with qualified release configuration"]
+fn qualified_pg_release_does_not_nest_tokio_on_startup_or_mcp_calls() {
+    let mut fixture = Fixture::new();
+    let endpoint = fixture.endpoint_with_release("qualified-release", true);
+    let listed = rpc(&endpoint, "tools/list", json!({}));
+    let names = listed["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|item| item["name"].as_str())
+        .collect::<Vec<_>>();
+    assert!(names.contains(&"release.get"), "{listed}");
+    assert!(
+        !names.contains(&"release.apply"),
+        "synthetic timer must not become release authority"
+    );
+    let described = call(&endpoint, "runtime.describe", json!({}));
+    assert_eq!(
+        described["structuredContent"]["structuredReleaseConfigured"], false,
+        "{described}"
+    );
 }
 
 /// A real PG+MCP contract test: an ordinary executed Job is NOT a Release
