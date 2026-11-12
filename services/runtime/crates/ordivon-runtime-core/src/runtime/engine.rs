@@ -285,7 +285,7 @@ pub struct Runtime {
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
-    workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    workspace_headroom: Vec<WorkspaceHeadroomConfig>,
     topology_lock: Arc<Mutex<()>>,
     workspace_leases: WorkspaceLeaseTable,
     control_terminal_lock: Arc<Mutex<()>>,

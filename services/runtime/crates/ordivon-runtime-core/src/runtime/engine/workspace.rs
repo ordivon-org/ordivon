@@ -37,16 +37,17 @@ fn filesystem_available_bytes(_path: &Path) -> RuntimeResult<u64> {
 
 impl Runtime {
     fn ensure_workspace_headroom(&self) -> RuntimeResult<()> {
-        let Some(headroom) = self.workspace_headroom.as_ref() else { return Ok(()); };
-        let available = filesystem_available_bytes(&headroom.path)?;
-        if available < headroom.minimum_free_bytes {
-            let mut error = RuntimeError::new(
-                RuntimeErrorCode::WorkspaceCapacityExceeded,
-                format!("workspace carrier headroom below configured minimum: path={} availableBytes={} minimumFreeBytes={}",
-                    headroom.path.display(), available, headroom.minimum_free_bytes),
-                Some("workspaceHeadroom"), true);
-            error.retry_after_ms = Some(60_000);
-            return Err(error);
+        for headroom in &self.workspace_headroom {
+            let available = filesystem_available_bytes(&headroom.path)?;
+            if available < headroom.minimum_free_bytes {
+                let mut error = RuntimeError::new(
+                    RuntimeErrorCode::WorkspaceCapacityExceeded,
+                    format!("workspace carrier headroom below configured minimum: path={} availableBytes={} minimumFreeBytes={}",
+                        headroom.path.display(), available, headroom.minimum_free_bytes),
+                    Some("workspaceHeadroom"), true);
+                error.retry_after_ms = Some(60_000);
+                return Err(error);
+            }
         }
         Ok(())
     }

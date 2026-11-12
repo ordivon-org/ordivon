@@ -62,6 +62,24 @@ impl Runtime {
         default_runtime_ms: u64,
         workspace_headroom: Option<WorkspaceHeadroomConfig>,
     ) -> RuntimeResult<Self> {
+        Self::new_with_authorities_default_runtime_and_workspace_headrooms(
+            config,
+            input_authorities,
+            credential_authorities,
+            default_runtime_ms,
+            workspace_headroom.into_iter().collect(),
+        )
+    }
+
+    /// Each independent filesystem must pass before a new Workspace is admitted.
+    /// Preserve the single-carrier constructor for existing callers.
+    pub fn new_with_authorities_default_runtime_and_workspace_headrooms(
+        config: RuntimeConfig,
+        input_authorities: Vec<InputAuthority>,
+        credential_authorities: Vec<CredentialAuthority>,
+        default_runtime_ms: u64,
+        workspace_headroom: Vec<WorkspaceHeadroomConfig>,
+    ) -> RuntimeResult<Self> {
         super::validate_logical_id(&config.node_id, "nodeId")?;
         config.executor.validate().map_err(map_universal_error)?;
         if default_runtime_ms == 0 || default_runtime_ms > config.executor.max_runtime_ms {
@@ -79,7 +97,7 @@ impl Runtime {
         if let Some(windows) = &config.windows {
             windows.validate()?;
         }
-        if let Some(headroom) = workspace_headroom.as_ref() {
+        for headroom in &workspace_headroom {
             if !headroom.path.is_absolute() {
                 return Err(RuntimeError::invalid("workspace headroom path must be absolute", "workspaceHeadroom.path"));
             }
