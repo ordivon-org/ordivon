@@ -1586,6 +1586,379 @@ fn native_pg_harness_dispatch_fence_is_frozen_identity_not_authority() {
     );
 }
 
+/// A real native MCP process can snapshot a Git Workspace before entering PG
+/// admission, while another MCP process closes the Workspace in between.
+/// The Git wrapper pauses AFTER the last source-state Git ls-files --others
+/// finishes, so it does not fake source contents or alter the git operation.
+/// Only the exact PG admission linearization guard can prevent an orphaned Job.
+#[test]
+#[ignore = "launches disposable PostgreSQL18, two native HTTP MCP services and real Git"]
+fn fresh_pg_mcp_run_rejects_workspace_closed_after_source_plan_before_admit() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let normal_endpoint = fixture.endpoint();
+    let id = format!("ws-prelock-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &normal_endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":id,
+            "sourceRepo":repo,
+            "sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    let shim_dir = fixture.root.join("shim");
+    let barrier = fixture.root.join("prelock_barrier");
+    fs::create_dir_all(&shim_dir).unwrap();
+    fs::create_dir_all(&barrier).unwrap();
+    // A second MCP process alone inherits this PATH; the normal MCP and Git
+    // close operation continue to use the actual installed git executable.
+    let shim = shim_dir.join("git");
+    fs::write(
+        &shim,
+        r#"#!/bin/sh
+printf '%s\n' "$*" >> "$ORDIVON_TEST_GIT_BARRIER/invocations"
+if [ "$4" = "ls-files" ] && [ "$5" = "--others" ]; then
+    /usr/bin/git "$@" > "$ORDIVON_TEST_GIT_BARRIER/real-git-output"
+    result=$?
+    if [ "$result" -ne 0 ]; then exit "$result"; fi
+    : > "$ORDIVON_TEST_GIT_BARRIER/entered"
+    n=0
+    while [ ! -f "$ORDIVON_TEST_GIT_BARRIER/release" ]; do
+      if [ "$n" -gt 300 ]; then exit 73; fi
+      n=$((n + 1))
+      sleep 0.05
+    done
+    cat "$ORDIVON_TEST_GIT_BARRIER/real-git-output"
+    exit 0
+fi
+exec /usr/bin/git "$@"
+"#,
+    )
+    .unwrap();
+    fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(listener);
+    let runner = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("ordivon-runtime-runner");
+    assert!(runner.is_file(), "native Runner binary required");
+    let path = format!("{}:{}", shim_dir.display(), std::env::var("PATH").unwrap());
+    let log = fs::File::create(fixture.root.join("barrier-endpoint.log")).unwrap();
+    let child = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"))
+        .env(
+            "ORDIVON_PG_DSN",
+            format!(
+                "host={} user=runtime_app dbname=postgres",
+                fixture.root.display()
+            ),
+        )
+        .env("ORDIVON_PG_SCHEMA", "fresh")
+        .env("ORDIVON_PG_SOURCE_SHA256", "a".repeat(64))
+        .env("ORDIVON_PG_STORE_ROOT", fixture.root.join("store"))
+        .env("ORDIVON_PG_RUNNER", runner)
+        .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
+        .env("ORDIVON_PG_BIND", addr.to_string())
+        .env("ORDIVON_PG_TOKEN", "p".repeat(32))
+        .env("ORDIVON_PG_PRINCIPAL", "pg-consumer")
+        .env("ORDIVON_TEST_GIT_BARRIER", &barrier)
+        .env("PATH", path)
+        .stdout(Stdio::null())
+        .stderr(log)
+        .spawn()
+        .unwrap();
+    struct EndpointGuard(Child);
+    impl Drop for EndpointGuard {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let _endpoint_guard = EndpointGuard(child);
+    let deadline = Instant::now() + Duration::from_secs(12);
+    while std::net::TcpStream::connect(addr).is_err() {
+        assert!(
+            Instant::now() < deadline,
+            "2nd native MCP service failed to start: {}",
+            fs::read_to_string(fixture.root.join("barrier-endpoint.log")).unwrap()
+        );
+        thread::sleep(Duration::from_millis(25));
+    }
+    let isolated_endpoint = format!("http://{addr}/mcp");
+    let request_id = format!("pg-source-prelock-{}", Uuid::now_v7());
+    let id_for_job = id.clone();
+    let thread = thread::spawn(move || {
+        call(
+            &isolated_endpoint,
+            "workspace.exec",
+            json!({
+                "clientRequestId":request_id,
+                "execution":{
+                    "workspaceId":id_for_job,"cwdRelative":".",
+                    "executable":"/usr/bin/true","args":[],
+                    "timeoutMs":10000
+                },
+                "waitMs":0
+            }),
+        )
+    });
+    let entered = barrier.join("entered");
+    let wait_until = Instant::now() + Duration::from_secs(12);
+    while !entered.exists() {
+        if thread.is_finished() {
+            panic!(
+                "Job finished before physical source barrier: {}; shim invocations: {}",
+                thread.join().unwrap(),
+                fs::read_to_string(barrier.join("invocations")).unwrap_or_default()
+            );
+        }
+        assert!(
+            Instant::now() < wait_until,
+            "Job did not reach Git barrier: {}\nShim invocations: {}",
+            fs::read_to_string(fixture.root.join("barrier-endpoint.log")).unwrap(),
+            fs::read_to_string(barrier.join("invocations")).unwrap_or_default()
+        );
+        thread::sleep(Duration::from_millis(25));
+    }
+
+    let closed = call(
+        &normal_endpoint,
+        "workspace.close",
+        json!({
+            "workspaceId":id,"consumerReleased":true
+        }),
+    );
+    assert_ne!(
+        closed["isError"], true,
+        "close must be physically permitted before the Job obtains PG admission: {closed}"
+    );
+    assert_eq!(closed["structuredContent"]["removed"], true, "{closed}");
+    // The historical plan's complete Git observations are now returned, and
+    // control proceeds to its actual PostgreSQL admission stage.
+    fs::write(barrier.join("release"), b"resume").unwrap();
+    let result = thread.join().unwrap();
+    let count: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM jobs WHERE workspace_id=$1", &[&id])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        count, 0,
+        "Job must not be durably admitted for the physically closed Workspace; result={result}"
+    );
+    assert_eq!(
+        result["isError"], true,
+        "closed Workspace must fail admission: {result}"
+    );
+    assert!(
+        result.to_string().contains("WORKSPACE_STATE_MISMATCH"),
+        "post-lock physical identity mismatch needs exact error, not a successful launch: {result}"
+    );
+}
+
+/// End-to-end native PostgreSQL application regression for the lock/snapshot
+/// boundary: a real PgAdmissionStore.admit() transaction is queued AHEAD of
+/// Workspace.close() while a third session holds the shared global advisory
+/// lock. Once admission commits, close must observe the new accepted Job and
+/// preserve the actual Git worktree. Under old SERIALIZABLE Workspace
+/// transactions the snapshot was pinned BEFORE acquiring the lock, so close
+/// could physically remove a Workspace with a newly accepted active consumer.
+#[test]
+#[ignore = "launches an isolated native PostgreSQL cluster and real Git worktree"]
+fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock() {
+    use ordivon_runtime_core::{
+        pg_admission::{PgAdmissionInput, PgAdmissionOutcome, PgAdmissionStore},
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceCloseRequest,
+    };
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let workspace_id = format!("ws-r2-lock-{}", Uuid::now_v7().simple());
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    })
+    .unwrap();
+    runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .unwrap();
+
+    let job_id = format!("job-{}", Uuid::now_v7());
+    let attempt_id = format!("attempt-{}", Uuid::now_v7());
+    let input = PgAdmissionInput {
+        job_id: job_id.clone(),
+        attempt_id: attempt_id.clone(),
+        reservation_id: format!("reservation-{}", Uuid::now_v7()),
+        principal: "pg-consumer".into(),
+        client_request_id: format!("ws-r2-lease-race-{}", Uuid::now_v7()),
+        request_digest: format!("sha256:{}", "b".repeat(64)),
+        operation_digest: format!("sha256:{}", "c".repeat(64)),
+        workspace_id: workspace_id.clone(),
+        workspace_snapshot_json: "{}".into(),
+        execution_plan_json: "{}".into(),
+        execution_plan_digest: format!("sha256:{}", "d".repeat(64)),
+        launch_token_digest: format!("sha256:{}", "e".repeat(64)),
+        bundle_path: fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&attempt_id)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{attempt_id}.service"),
+        global_limit: 4,
+        created_at_ms: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let app_dsn = format!(
+        "host={} user=runtime_app dbname=postgres",
+        fixture.root.display()
+    );
+    let mut probe = Client::connect(
+        &format!(
+            "host={} user=postgres dbname=postgres",
+            fixture.root.display()
+        ),
+        NoTls,
+    )
+    .unwrap();
+    // Fixture::new() qualifies an isolated schema, but a fresh superuser
+    // connection begins on public; explicitly scope the lease readback.
+    probe.batch_execute("SET search_path TO fresh").unwrap();
+    let mut holder = fixture
+        .db
+        .build_transaction()
+        .isolation_level(postgres::IsolationLevel::Serializable)
+        .start()
+        .unwrap();
+    holder
+        .query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+        .unwrap();
+    holder
+        .query_one(
+            "SELECT state FROM _stage_control WHERE id='source' FOR UPDATE",
+            &[],
+        )
+        .unwrap();
+
+    // The two separate codepaths genuinely queue on the SAME global PG lock.
+    let (admit_started, admit_rx) = std::sync::mpsc::sync_channel(1);
+    let admission = thread::spawn(move || {
+        let mut db = PgAdmissionStore::connect(&app_dsn, "fresh").unwrap();
+        admit_started.send(()).unwrap();
+        db.admit(&input)
+    });
+    admit_rx.recv_timeout(Duration::from_secs(4)).unwrap();
+
+    let waiters = |probe: &mut Client| -> i64 {
+        probe
+            .query_one(
+                "SELECT count(*) FROM pg_stat_activity \
+             WHERE wait_event_type='Lock' AND wait_event='advisory'",
+                &[],
+            )
+            .unwrap()
+            .get(0)
+    };
+    let wait_until = |probe: &mut Client, count: i64| {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while waiters(probe) < count {
+            assert!(
+                Instant::now() < deadline,
+                "expected real PG advisory lock wait"
+            );
+            thread::sleep(Duration::from_millis(20));
+        }
+    };
+    wait_until(&mut probe, 1);
+
+    let runtime_for_close = runtime.clone();
+    let id_for_close = workspace_id.clone();
+    let (close_started, close_rx) = std::sync::mpsc::sync_channel(1);
+    let closer = thread::spawn(move || {
+        close_started.send(()).unwrap();
+        runtime_for_close.close_workspace(&WorkspaceCloseRequest {
+            schema_version: 1,
+            workspace_id: id_for_close,
+            force: false,
+            consumer_released: true,
+            expected_source_state_digest: None,
+        })
+    });
+    close_rx.recv_timeout(Duration::from_secs(4)).unwrap();
+    wait_until(&mut probe, 2);
+    // Required global order: holder -> genuine admission -> Workspace.close.
+    holder.commit().unwrap();
+    assert!(
+        matches!(
+            admission.join().unwrap().unwrap(),
+            PgAdmissionOutcome::Created(_)
+        ),
+        "first waiter must durably commit real PG Job and active reservation"
+    );
+    let denied = closer.join().unwrap().expect_err(
+        "Workspace.close must not physically remove a Workspace whose Job committed while it waited on the advisory lock"
+    );
+    assert_eq!(
+        denied.code.as_str(), "CONCURRENCY_LIMIT",
+        "close must see the newly committed Job (rather than a stale SERIALIZABLE snapshot): {denied:?}"
+    );
+    let count: i64 = probe
+        .query_one(
+            "SELECT count(*) FROM jobs j JOIN attempts a ON a.job_id=j.job_id \
+         JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id \
+         WHERE j.job_id=$1 AND j.workspace_id=$2 AND j.resolution IS NULL \
+           AND r.state='active'",
+            &[&job_id, &workspace_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        count, 1,
+        "native admission must actually own an active PG lease"
+    );
+    let workspace_root = fixture.root.join("store/workspaces").join(&workspace_id);
+    assert!(workspace_root.is_dir(), "real Git worktree must remain");
+    assert!(
+        runtime
+            .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
+                schema_version: 1,
+                workspace_id,
+            })
+            .is_ok(),
+        "Git Workspace identity and source must survive the rejected close"
+    );
+}
+
 #[test]
 #[ignore = "launches an isolated native PostgreSQL cluster"]
 fn postgres_runtime_startup_requires_exact_qualified_writer() {

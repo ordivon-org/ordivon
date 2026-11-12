@@ -1,6 +1,12 @@
 //! PostgreSQL Runtime Job admission, observation, cancellation, and projection.
 use super::*;
 
+// Direct PostgreSQL Client reads must not erase SQLSTATE through io(Display).
+// Keep the one shared PgAdmissionError taxonomy used by Recovery and admission.
+fn pg_read_error(error: postgres::Error) -> RuntimeError {
+    pg(PgAdmissionError::Database(error))
+}
+
 // Once PG has durably admitted this Job (including an exact idempotent replay),
 // a later observation failure cannot retract the committed operation identity.
 // The existing MCP error projection uses this witness to demand reconciliation
@@ -26,7 +32,7 @@ impl PgRuntime {
         let identity = super::types::proposal_request_identity_digest(proposal)?;
         let mut db = self.store()?;
         // Replay before consulting mutable Workspace/executable state or policy.
-        if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(io)? {
+        if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(pg_read_error)? {
             if row.get::<_,String>(1)!=identity { return Err(pg(PgAdmissionError::IdempotencyConflict)); }
             let committed_job: String = row.get(0);
             return preserve_committed_job_identity(
@@ -303,7 +309,25 @@ impl PgRuntime {
             created_at_ms: now()?,
             expected_source_sha256: self.config.source_sha256.clone(),
         };
-        let job = match db.admit(&input).map_err(pg)? {
+        // Planning is intentionally outside the coarse PG admission lock:
+        // Git/source hashing is potentially expensive. The exact Workspace
+        // lifetime identity MUST nonetheless be rebound after acquiring the
+        // same global lock as workspace.close/open/mutate, before INSERT jobs.
+        // The native Runner separately verifies frozen source/readset bytes
+        // before physical execution; this cheap fence prevents an orphaned
+        // durable Job when the Workspace was closed or replaced meanwhile.
+        let workspace_guard = || {
+            let current = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
+                .map_err(|_| PgAdmissionError::WorkspaceStale)?;
+            if current != record {
+                return Err(PgAdmissionError::WorkspaceStale);
+            }
+            Ok(())
+        };
+        let job = match db
+            .admit_with_workspace_guard(&input, &workspace_guard)
+            .map_err(pg)?
+        {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,
         };
         let _ = self.schedule_pending_jobs();
@@ -393,7 +417,7 @@ impl PgRuntime {
                 use postgres::fallible_iterator::FallibleIterator;
                 db.client
                     .batch_execute("LISTEN ordivon_runtime_schedule")
-                    .map_err(io)
+                    .map_err(pg_read_error)
                     .map_err(|e| e.with_operation_id(&request.job_id))?;
                 let wait = deadline
                     .saturating_duration_since(Instant::now())
@@ -403,7 +427,7 @@ impl PgRuntime {
                     .notifications()
                     .timeout_iter(wait)
                     .next()
-                    .map_err(io)
+                    .map_err(pg_read_error)
                     .map_err(|e| e.with_operation_id(&request.job_id))?;
             } else if let Some(attempt_id) = value.attempt_id.as_deref() {
                 let bundle = self
@@ -450,7 +474,7 @@ impl PgRuntime {
                 "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)",
                 &[&request.job_id],
             )
-            .map_err(io)
+            .map_err(pg_read_error)
             .map_err(|e| e.with_operation_id(&request.job_id))?
             .get(0);
         if is_release {
@@ -548,15 +572,15 @@ impl PgRuntime {
             PgJobReadback::Observed(s) => s,
             _ => return Err(error("inconclusive PG lifecycle")),
         };
-        let (a, p, operation) = self.attempt(&mut db, job)?;
+        let (a, p, operation) = self.readback_attempt(&mut db, &snapshot)?;
         let j = db
             .client
             .query_one(
                 "SELECT client_request_id,created_at_ms FROM jobs WHERE job_id=$1",
                 &[&job],
             )
-            .map_err(io)?;
-        let counts=db.client.query_one("SELECT count(*),COALESCE(sum(byte_length),0)::bigint,count(*) FILTER(WHERE truncated) FROM artifacts WHERE job_id=$1",&[&job]).map_err(io)?;
+            .map_err(pg_read_error)?;
+        let counts=db.client.query_one("SELECT count(*),COALESCE(sum(byte_length),0)::bigint,count(*) FILTER(WHERE truncated) FROM artifacts WHERE job_id=$1",&[&job]).map_err(pg_read_error)?;
         let mut by_kind = std::collections::BTreeMap::new();
         for row in db
             .client
@@ -564,11 +588,11 @@ impl PgRuntime {
                 "SELECT kind,count(*) FROM artifacts WHERE job_id=$1 GROUP BY kind",
                 &[&job],
             )
-            .map_err(io)?
+            .map_err(pg_read_error)?
         {
             by_kind.insert(row.get(0), row.get::<_, i64>(1) as u64);
         }
-        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(io)?;
+        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(pg_read_error)?;
         let created = j.get::<_, i64>(1) as u64;
         let mut previous = created;
         let timeline = events
@@ -600,7 +624,7 @@ impl PgRuntime {
                 "SELECT exit_code FROM attempts WHERE attempt_id=$1",
                 &[&a.attempt_id],
             )
-            .map_err(io)?
+            .map_err(pg_read_error)?
             .get(0);
         Ok(RuntimeJobInspection {
             schema_version: 2,
@@ -629,7 +653,7 @@ impl PgRuntime {
             },
             attempts: vec![RuntimeInspectionAttempt {
                 attempt_id: a.attempt_id,
-                attempt_number: 1,
+                attempt_number: a.attempt_number,
                 state: a.state,
                 termination_intent: a.termination_intent,
                 created_at_ms: a.created_at_ms,
@@ -678,5 +702,35 @@ mod committed_observation_tests {
             preserve_committed_job_identity("job-exact", Ok::<_, RuntimeError>(7)).unwrap(),
             7
         );
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_direct_job_queries_preserve_sqlstate_and_exact_operation_id() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit disposable PostgreSQL server required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (state, expected) in [
+            ("40001", RuntimeErrorCode::RegistryBusy),
+            ("40P01", RuntimeErrorCode::RegistryBusy),
+            ("23505", RuntimeErrorCode::RegistryUnavailable),
+        ] {
+            let postgres_error = db
+                .batch_execute(&format!(
+                    "DO $$ BEGIN RAISE EXCEPTION SQLSTATE '{state}'; END $$;"
+                ))
+                .unwrap_err();
+            let failed: RuntimeResult<()> = Err(pg_read_error(postgres_error));
+            let observed =
+                preserve_committed_job_identity("job-real-direct-PG", failed).unwrap_err();
+            assert_eq!(observed.code, expected, "SQLSTATE {state}");
+            assert_eq!(observed.operation_id.as_deref(), Some("job-real-direct-PG"));
+            if expected == RuntimeErrorCode::RegistryBusy {
+                assert!(observed.retryable);
+                assert_eq!(observed.retry_after_ms, Some(250));
+            } else {
+                assert!(!observed.retryable);
+            }
+        }
     }
 }

@@ -6,10 +6,16 @@ tasks:
     cmds:
       - bash -n providers/gluetun/identity-exclusive.sh
       - python3 -c 'import ast; ast.parse(open("providers/gluetun/native_profile.py").read())'
+      - python3 -c 'import importlib.util; s=importlib.util.spec_from_file_location("native", "providers/gluetun/native_profile.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.read_selector_policy()'
       - grep -q '^Environment=WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
       - sing-box check -c providers/gluetun/config/carrier-adapter.json
       - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
       - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      # Current provider-owned disposable netns is safer than an unqualified
+      # persistent Pod with public default route before native VPN kill switch.
+      # A stable Pod requires a separately proved pre-WG fail-closed path.
+      - grep -qx '^Network=network-v2-gluetun-owned.network$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      - '! grep -Eq "^[[:space:]]*Pod=" providers/gluetun/quadlet/network-v2-gluetun-owned.container'
       - grep -q '^Secret=network-v2-gluetun-surfshark-wgkey,type=mount,target=surfshark-wgkey$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
 
   provider:gluetun:native:prepare:
@@ -46,3 +52,37 @@ tasks:
         test "$code" = 200 && test "$tunnel" = 200 && test -z "$extra"
         jq -ce '(.ip|type=="string") and (.country|type=="string")' "$tmp" >/dev/null
         jq -c '{kind:"ordivon.network-v2.provider-egress-observation",standing:"OBSERVED_NOT_READINESS",source:"ipinfo.io",ip,country,org}' "$tmp"
+
+
+  provider:gluetun:eligible-exits:
+    desc: Read native Surfshark WireGuard catalog, source-selected countries and excluded inventory without claiming live health
+    cmds:
+      - |
+        set -euo pipefail
+        /usr/bin/podman exec network-v2-gluetun-owned-r1 cat /gluetun/servers.json |
+          /usr/bin/jq --slurpfile policy providers/gluetun/config/exit-selector.json -er '
+            $policy[0] as $selection
+            | .surfshark as $provider
+            | ($provider.servers
+               | map(select(.vpn == "wireguard" and
+                   (.country as $c | $selection.excludedCountries | index($c) | not)))) as $candidates
+            | ($candidates
+               | map(select(
+                   (.country as $c | $selection.selectedCountries | index($c) != null) and
+                   (.region as $r | $selection.regions | index($r) != null)))) as $selected
+            | if ($provider.timestamp | type) != "number"
+                  or ($candidates | length) == 0
+                  or ([$selected[].country] | unique | length) != ($selection.selectedCountries | length)
+              then error("invalid catalog or selected Surfshark country has no eligible WireGuard record")
+              else
+                "standing=CATALOG_ONLY_NOT_HEALTH",
+                "catalog_timestamp_utc=\($provider.timestamp | todateiso8601)",
+                "catalog_age_days=\(((now-$provider.timestamp)/86400)|floor)",
+                "wireguard_candidate_records=\($candidates|length)",
+                "wireguard_candidate_ips=\([$candidates[].ips[]]|unique|length)",
+                "selected_records=\($selected|length)",
+                "selected_ips=\([$selected[].ips[]]|unique|length)",
+                "candidate_countries=\([$candidates[].country]|unique|length)",
+                ($candidates|group_by(.country)[]|"\(.[0].country)\t\(length)")
+              end
+          '

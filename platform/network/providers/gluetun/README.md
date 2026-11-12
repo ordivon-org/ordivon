@@ -28,6 +28,17 @@ identity-exclusive.sh and the systemd recovery units live under systemd/.
 Credentials stay outside Git. The native Gluetun healthchecker handles
 in-tunnel reconnects; Network systemd reconciliation handles cold-start units.
 Use task provider:gluetun:verify to inspect installed source and consumer result.
+The same verification now checks the running Podman container's selected loaded
+non-secret environment against the source-generated profile; an edited env file
+without a provider restart is **not** a successful deployment. Unexpected
+hostname/city/category filters **and** loaded WireGuard endpoint/key overrides
+fail closed, without printing credentials. The loaded container must use the
+Quadlet-owned `WIREGUARD_PRIVATE_KEY_SECRETFILE`; a matching
+`SERVER_COUNTRIES` value alone cannot prove the selected WireGuard identity
+and server pool are unmodified. The JSON selector rejects duplicate keys
+instead of silently accepting the last occurrence. These are source-to-loaded
+admission witnesses, not proof that an external endpoint is reachable.
+
 
 ## Optional IPinfo witness
 
@@ -41,12 +52,24 @@ background poller and preserves Gluetun-native health recovery.
 
 The production Quadlet now uses Gluetun native `VPN_SERVICE_PROVIDER=surfshark`
 with WireGuard, rather than a pinned Custom WireGuard peer endpoint. Its
-server selector is constrained to `SERVER_REGIONS=Asia Pacific` and
-`SERVER_COUNTRIES=Singapore,Japan`. The installed Gluetun image exposes 20
-WireGuard location records in those two countries; this bounded set meets
-the current shared-consumer network acceptance, including Claude. The entire
-Asia Pacific region contains 50 records but includes outlets which did not
-pass every consumer acceptance. A reachable VPN endpoint alone is insufficient.
+server selector is constrained by the source-owned declarative
+`providers/gluetun/config/exit-selector.json`. The current selection is
+`SERVER_REGIONS=Asia Pacific` and `SERVER_COUNTRIES=Singapore`, matching the
+installed SourceCut. The policy also declares excluded Japan/South Korea
+locations, which the existing `provider:gluetun:eligible-exits` Task consumes
+instead of maintaining a second exclusion list. The latter reads the native
+Gluetun catalog and now distinguishes all nonexcluded candidate records/IPs
+from the smaller selected country set; its result is `CATALOG_ONLY_NOT_HEALTH`,
+not proof that any IP can carry actual consumer traffic.
+
+To widen the pool, update only that source selector and use Gluetun's native
+`SERVER_COUNTRIES`/`SERVER_REGIONS` filtering; do not introduce a custom
+endpoint scheduler. Before a live cutover, establish every shared consumer's
+allowed exit country and prove the selected countries have usable DNS, HTTPS,
+provider identity and consumer effects. Run the existing native provider
+SourceCut verification and controlled physical rollout separately. Changing the
+policy file alone must make --verify fail against a still-running old profile.
+A reachable candidate does not prove a consumer permits that exit country.
 
 Native Gluetun owns its own healthchecks, VPN reconnect and server selection.
 The official server catalog updates at `UPDATER_PERIOD=480h`; the systemd
@@ -107,3 +130,45 @@ https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/firewall.md
 
 The source generator and the production 0600 native env are distinct
 SourceCuts. A syntactically valid file does not prove Tailscale route use.
+
+## Upstream server catalog persistence (SourceCut requirement)
+
+The Quadlet source binds a root-only host directory at
+/var/lib/network-v2/gluetun to the upstream /gluetun directory. Its native
+systemd ExecStartPre creates that directory before the provider process starts.
+This preserves Gluetun's built-in servers.json updates across Podman container
+replacements; it does not introduce an Ordivon updater, second WireGuard
+session, credential file or new proxy.
+
+A changed Quadlet is not an installed effect: inspect actual native generator,
+deployed Quadlet, loaded unit and service preimage before a controlled single-
+session restart, and verify the current Gluetun profile plus real consumers
+afterward. Upstream UPDATER_MIN_RATIO admission remains independent; persisting
+an outdated cache alone cannot make a rejected server update successful.
+
+
+## Upstream v3.41.3 Surfshark updater ratio (2026-11-11)
+
+The pinned Gluetun v3.41.3 native updater compares provider fetch results
+against the transport-expanded built-in server count. In the current selected
+Surfshark catalog there are 363 protocol records, corresponding to 185 unique
+physical hostnames (178 WireGuard records). With the upstream default
+UPDATER_MIN_RATIO=0.8, its admission gate requests 290 hostnames, while the
+real Surfshark fetch returns 185: it rejects an otherwise complete hostname
+set and enters 5-second retry cycles. These facts were independently checked
+against qdm12/gluetun tag v3.41.3 and the official gluetun-servers repository.
+
+The native UPDATER_MIN_RATIO=0.51 makes the pinned upstream integer admission
+threshold int(0.51*363) = 185. A fetch of 184 is still rejected; this is the
+strictest two-decimal setting compatible with the 185-hostname current census.
+A matching count does not prove matching server identities or working endpoints.
+Do not treat this as a general endorsement of fewer servers.
+The source/loaded fingerprint, country restriction, current server identities,
+DNS, and downstream consumer probes remain separately necessary.
+
+The current released binary does not yet implement the newer
+UPDATER_PREFER_DIRECT_DOWNLOAD option described in the upstream master docs;
+do not set unsupported flags or introduce a custom server updater. Revisit
+this explicit ratio when adopting a newer official release or if the provider
+hostname-to-record mapping changes. The live provider must not be restarted
+by a source-only PR.

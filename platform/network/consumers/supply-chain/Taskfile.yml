@@ -14,10 +14,50 @@ tasks:
       - '! grep -R --exclude=Taskfile.yml -F "10.254.177.2:19381" consumers/supply-chain'
       - '! grep -R -F "provider-auto" consumers/supply-chain/config'
 
+  consumer:supply-chain:classify:
+    desc: Prove source/installed/loaded MATCH or DRIFT; UNKNOWN cannot authorize installation or restart
+    cmds:
+      - |
+        python3 scripts/native-sourcecut.py \
+          --file consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json \
+          --file consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json \
+          --file consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service \
+          --file consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target \
+          --file consumers/supply-chain/ready.sh /usr/local/libexec/network-v2/supply-chain-ready \
+          --mode /usr/local/libexec/network-v2/supply-chain-ready 0755 \
+          --file consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf \
+          --absent /etc/network-v2/supply-chain/provider-endpoints.json \
+          --absent /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf \
+          --unit-enabled network-v2-supply-chain.target enabled \
+          --unit-loaded network-v2-supply-chain-egress.service \
+          --unit-loaded network-v2-supply-chain.target \
+          --unit-loaded docker.service
+
+  consumer:supply-chain:sourcecut:
+    desc: Require exact local SourceCut MATCH independently of external network health
+    cmds:
+      - |
+        verdict="$(task --silent consumer:supply-chain:classify)" || exit 2
+        test "$verdict" = MATCH
+
   consumer:supply-chain:materialize:
     desc: Materialize OCI authority and Docker proxy binding over the shared provider carrier without restarting Docker
-    deps: [consumer:browserless:provider-carrier:materialize, consumer:supply-chain:validate]
+    deps: [consumer:supply-chain:validate]
+    # A Boolean Go Task status is a skip hint; the first effect command
+    # independently reclassifies UNKNOWN versus a witnessed DRIFT.
+    status:
+      - task consumer:supply-chain:sourcecut
     cmds:
+      - |
+        verdict="$(task --silent consumer:supply-chain:classify)" || {
+          echo 'supply-chain SourceCut UNKNOWN: refusing materialization' >&2
+          exit 2
+        }
+        test "$verdict" = DRIFT || {
+          echo 'supply-chain SourceCut not provably DRIFT: refusing materialization' >&2
+          exit 2
+        }
+      - task: consumer:browserless:provider-carrier:materialize
       - install -d -m 0755 /etc/network-v2/supply-chain /etc/systemd/system/docker.service.d /usr/local/libexec/network-v2
       - install -m 0644 consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
       - install -m 0644 consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
@@ -41,11 +81,47 @@ tasks:
     cmds:
       - /usr/local/libexec/network-v2/supply-chain-ready
 
-  consumer:supply-chain:converge:
-    desc: Converge exact Supply-Chain proxy bytes without restarting Docker
+  consumer:supply-chain:process-fresh:
+    desc: Observe native running process/config creation order independently of installed SourceCut
     cmds:
-      - task: consumer:supply-chain:materialize
-      - systemctl restart network-v2-supply-chain.target
+      - python3 scripts/native-sourcecut.py --unit-process-file network-v2-supply-chain-egress.service /etc/network-v2/supply-chain/egress.json /usr/bin/sing-box '["run","-c"]'
+
+  consumer:supply-chain:converge:
+    desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
+    cmds:
+      - task: consumer:supply-chain:validate
+      - |
+        set -eu
+        source_state="$(task --silent consumer:supply-chain:classify)" || {
+          echo 'supply-chain SourceCut UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        process_state="$(task --silent consumer:supply-chain:process-fresh)" || {
+          echo 'supply-chain running generation UNKNOWN: refusing converge effects' >&2
+          exit 2
+        }
+        case "$source_state/$process_state" in
+          MATCH/MATCH)
+            systemctl start network-v2-supply-chain.target
+            ;;
+          MATCH/DRIFT)
+            # Already-installed source was not consumed after an interrupted
+            # previous release: restart only this owner's units, never VPN.
+            systemctl restart network-v2-supply-chain.target
+            ;;
+          DRIFT/MATCH|DRIFT/DRIFT)
+            task --silent consumer:supply-chain:materialize
+            task --silent consumer:supply-chain:sourcecut
+            systemctl restart network-v2-supply-chain.target
+            ;;
+          *)
+            echo 'supply-chain SourceCut/process admission unknown: refusing converge effects' >&2
+            exit 2
+            ;;
+        esac
+        systemctl is-active --quiet network-v2-supply-chain-egress.service
+        task --silent consumer:supply-chain:sourcecut
+        test "$(task --silent consumer:supply-chain:process-fresh)" = MATCH
       - task: consumer:supply-chain:ready
 
   consumer:supply-chain:docker-rebind:

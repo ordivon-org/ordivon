@@ -48,7 +48,11 @@ def test_mobile_tracks_provider_network_identity_and_exit_advertisement():
     assert 'nsenter -t "$provider_pid" -n' in runner
     assert "--tun=userspace-networking" in runner
     assert "set --advertise-exit-node" in runner
-    assert 'current_provider_pid" != "$provider_pid"' in runner
+    assert '"/proc/$provider_pid/ns/net" -ef "/proc/$child/ns/net"' in runner
+    # Physical namespace identity must not require a Podman inspect every second.
+    while_body = runner.split('while kill -0 "$child" 2>/dev/null; do', 1)[1]
+    assert "provider_pid)" not in while_body
+    assert "podman inspect" not in while_body
     assert "trap cleanup EXIT INT TERM" in runner
 
 
@@ -63,6 +67,82 @@ def test_mobile_ready_requires_admin_approval_and_upstream():
         "healthcheck",
     ):
         assert word in ready
+
+
+def test_mobile_convergence_uses_sourcecut_not_external_health_to_select_restart():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:sourcecut:" in tasks
+    assert "consumer:mobile-tailnet-exit:materialize:" in tasks
+    assert "consumer:mobile-tailnet-exit:converge:" in tasks
+    sourcecut = tasks.split("consumer:mobile-tailnet-exit:sourcecut:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:materialize:", 1
+    )[0]
+    assert "consumer:mobile-tailnet-exit:classify" in sourcecut
+    assert "test \"$verdict\" = MATCH" in sourcecut
+    classifier = tasks.split("consumer:mobile-tailnet-exit:classify:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:sourcecut:", 1
+    )[0]
+    assert "cmp -s" in classifier
+    assert "NeedDaemonReload" in classifier
+    assert not any(x in classifier for x in ("curl ", "dig ", "systemctl start ", "systemctl restart "))
+    install = tasks.split("consumer:mobile-tailnet-exit:materialize:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:converge:", 1
+    )[0]
+    assert "status:" in install
+    assert "consumer:mobile-tailnet-exit:sourcecut" in install
+    converge = tasks.split("consumer:mobile-tailnet-exit:converge:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:ready:", 1
+    )[0]
+    assert "systemctl start network-v2-mobile-tailnet-exit.service" in converge
+    assert "systemctl restart network-v2-mobile-tailnet-exit.service" in converge
+    assert "consumer:mobile-tailnet-exit:sourcecut" in converge
+    assert "case \"$verdict\" in" in converge
+    assert "MATCH)" in converge and "DRIFT)" in converge
+    assert converge.index("systemctl start network-v2-mobile-tailnet-exit.service") < converge.index("systemctl restart network-v2-mobile-tailnet-exit.service")
+    assert "consumer:mobile-tailnet-exit:verify" in converge
+    assert "network-v2-gluetun-owned.service" not in converge
+
+
+def test_mobile_sourcecut_classifies_unknown_separately_from_drift():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:classify:" in tasks
+    classify = tasks.split("consumer:mobile-tailnet-exit:classify:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:sourcecut:", 1
+    )[0]
+    assert "UNKNOWN" in classify and "DRIFT" in classify and "MATCH" in classify
+    assert "cmp -s" in classify and "case" in classify
+    assert "NeedDaemonReload" in classify
+    assert "exit 2" in classify
+    materialize = tasks.split("consumer:mobile-tailnet-exit:materialize:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:converge:", 1
+    )[0]
+    converge = tasks.split("consumer:mobile-tailnet-exit:converge:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:ready:", 1
+    )[0]
+    # A failed classifier must stop before the first file write or restart.
+    assert "consumer:mobile-tailnet-exit:classify" in materialize
+    assert "consumer:mobile-tailnet-exit:classify" in converge
+    assert "DRIFT)" in converge and "MATCH)" in converge and "*)" in converge
+    assert converge.index("consumer:mobile-tailnet-exit:classify") < converge.index(
+        "systemctl restart network-v2-mobile-tailnet-exit.service"
+    )
+
+
+def test_mobile_native_readiness_has_bounded_rejoin_and_no_provider_restart():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:ready:" in tasks
+    assert "/usr/bin/timeout" in tasks
+    assert "/usr/local/libexec/network-v2/mobile-tailnet-exit-ready" in tasks
+    assert "consumer:mobile-tailnet-exit:verify:" in tasks
+    assert "- task: consumer:mobile-tailnet-exit:ready" in tasks
+    assert "systemctl restart network-v2-gluetun-owned" not in tasks
+
+    # No unqualified persistent-Pod netns migration until native pre-WG
+    # fail-closed egress is independently admitted.
+    provider = (ROOT / "providers" / "gluetun" / "quadlet"
+                / "network-v2-gluetun-owned.container").read_text()
+    assert "Pod=" not in provider
+    assert "Network=network-v2-gluetun-owned.network" in provider
 
 
 def test_mobile_systemd_uses_bounded_native_backoff():
