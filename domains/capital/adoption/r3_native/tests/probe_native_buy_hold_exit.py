@@ -312,11 +312,13 @@ for day in (entry_date, exit_date):
     if len(ids) != 1:
         raise RuntimeError("Native order source did not yield unique daily order")
 
-state = value_session(None, PaperSession(
+opening_session = PaperSession(
     session=date.fromisoformat(sessions[start]), previous_session=None,
     contribution_minor=1_000_000, reserve_contribution_minor=900_000,
     marks={}, buys=(),
-))
+)
+paper_sessions = [opening_session]
+state = value_session(None, opening_session)
 for i in range(entry_index, exit_index + 2):
     day = sessions[i]
     if day in by_day:
@@ -329,6 +331,7 @@ for i in range(entry_index, exit_index + 2):
             marks={SYMBOL: cents(lookup[day]["close"])} if i < exit_index else {},
             buys=(),
         )
+    paper_sessions.append(session)
     state = value_session(state, session)
     if i == entry_index and not NO_ENTRY and state.positions != {SYMBOL: 1}:
         raise AssertionError("Native buy did not become Paper position")
