@@ -2,9 +2,9 @@ groups:
   - name: network-v2-vpn-consumer
     rules:
       # An active HTTP listener is not proof of a usable Gluetun VPN.
-      # Track consecutive application failures, including absent scrape data.
+      # Report only a sampled application failure; missing evidence is a separate alert.
       - alert: NetworkVPNPyPIUnavailable
-        expr: (probe_success{job="blackbox-vpn-pypi"} == 0) or absent(probe_success{job="blackbox-vpn-pypi"})
+        expr: probe_success{job="blackbox-vpn-pypi"} == 0
         for: 2m
         labels:
           severity: warning
@@ -12,7 +12,7 @@ groups:
           summary: Shared VPN proxy cannot complete the PyPI HTTPS consumer
       # A ready package-index carrier does not prove model APIs are reachable.
       - alert: NetworkVPNModelProviderUnavailable
-        expr: (probe_success{job="blackbox-vpn-model-provider"} == 0) or absent(probe_success{job="blackbox-vpn-model-provider"})
+        expr: probe_success{job="blackbox-vpn-model-provider"} == 0
         for: 2m
         labels:
           severity: warning
@@ -20,16 +20,16 @@ groups:
           summary: Scoped production model-provider proxy cannot reach the public API
       # One venue can fail even while PyPI, models and other venues are healthy.
       - alert: NetworkVPNFinancePublicUnavailable
-        expr: (probe_success{job=~"blackbox-vpn-finance-(okx|binance-usdm)"} == 0) or absent(probe_success{job="blackbox-vpn-finance-okx"}) or absent(probe_success{job="blackbox-vpn-finance-binance-usdm"})
+        expr: probe_success{job=~"blackbox-vpn-finance-(okx|binance-usdm)"} == 0
         for: 2m
         labels:
           severity: warning
         annotations:
           summary: Scoped Finance public-data API consumer is unavailable
-      # DNS NOERROR is not sufficient: blackbox validates a real A/AAAA
-      # answer. Treat missing probes as unavailable rather than healthy.
+      # DNS NOERROR is not sufficient: Blackbox validates a real A/AAAA
+      # answer. Missing observations are UNKNOWN, never DNS failure.
       - alert: NetworkDNSAddressUnavailable
-        expr: (probe_success{job=~"blackbox-dns-a|blackbox-dns-aaaa"} == 0) or absent(probe_success{job="blackbox-dns-a"}) or absent(probe_success{job="blackbox-dns-aaaa"})
+        expr: probe_success{job=~"blackbox-dns-a|blackbox-dns-aaaa"} == 0
         for: 2m
         labels:
           severity: warning
@@ -39,6 +39,30 @@ groups:
       # Do not use them as evidence to restart the VPN or fail over its carrier.
       # Preserve legacy alertnames for existing external consumers, but label
       # the actual observation plane explicitly to prevent attribution errors.
+      # UNKNOWN != FALSE: an absent application probe is a telemetry gap,
+      # not evidence that its VPN, DNS or destination actually failed.
+      # All jobs below are native single-target source-declared scrape jobs.
+      # This alerts on missing evidence without changing physical carrier state.
+      - alert: NetworkConsumerEvidenceMissing
+        expr: >-
+          absent(probe_success{job="blackbox-vpn-pypi"})
+          or absent(probe_success{job="blackbox-vpn-model-provider"})
+          or absent(probe_success{job="blackbox-vpn-finance-okx"})
+          or absent(probe_success{job="blackbox-vpn-finance-binance-usdm"})
+          or absent(probe_success{job="blackbox-dns-a"})
+          or absent(probe_success{job="blackbox-dns-aaaa"})
+          or absent(probe_success{job="blackbox-scoped-codex-mcp"})
+          or absent(probe_success{job="blackbox-scoped-codex-access"})
+          or absent(probe_success{job="blackbox-scoped-claude-api"})
+          or absent(probe_success{job="blackbox-scoped-supply-chain"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Consumer probe evidence is missing; service health UNKNOWN, not failed
+      # A failed Cloudflare probe with Google healthy is a degraded *replica*,
+      # not an unavailable DNS service. Alert only when both actual upstream
+      # observations are fresh and neither can resolve an address.
       - alert: NetworkDNSUpstreamUnavailable
         expr: >-
           (sum(probe_success{job=~"blackbox-dns-upstream-(cloudflare|google)"}) == 0)
@@ -73,9 +97,9 @@ groups:
         annotations:
           summary: One or both host-direct UDP/53 DNS observations are missing
 
-      # Entire class: deny false READY on any scoped end-to-end consumer.
+      # A measured end-to-end consumer failure is distinct from missing telemetry.
       - alert: NetworkScopedConsumerUnavailable
-        expr: (probe_success{job=~"blackbox-scoped-(codex-mcp|codex-access|claude-api|supply-chain)"} == 0) or absent(probe_success{job="blackbox-scoped-codex-mcp"}) or absent(probe_success{job="blackbox-scoped-codex-access"}) or absent(probe_success{job="blackbox-scoped-claude-api"}) or absent(probe_success{job="blackbox-scoped-supply-chain"})
+        expr: probe_success{job=~"blackbox-scoped-(codex-mcp|codex-access|claude-api|supply-chain)"} == 0
         for: 2m
         labels:
           severity: warning
@@ -85,7 +109,7 @@ groups:
       # differently scoped end-to-end HTTPS probes failing concurrently is
       # stronger evidence of a shared path incident than any one alone.
       # All three one-minute scrapes must have age <90s; missing scrapes remain UNKNOWN here and are
-      # handled by their existing individual absent()/unavailable alerts.
+      # reported separately by NetworkConsumerEvidenceMissing (not an outage).
       - alert: NetworkCorrelatedConsumerOutage
         expr: >-
           (sum(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 0)
