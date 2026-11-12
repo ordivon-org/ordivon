@@ -30,6 +30,41 @@ class HostStatusOwner:
         return {"schemaVersion": 3, "kind": "ordivon.host-status"}
 
 
+class SourceAuthZenStub:
+    """Test-only PDP response, never evidence of an installed Security grant."""
+
+    outcome = "ALLOW"
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def authorize(self, **kwargs):
+        self.calls.append(kwargs)
+        if self.outcome == "UNAVAILABLE":
+            raise RuntimeError("test-PDP unavailable")
+        permitted = self.outcome == "ALLOW"
+        return {
+            "schemaVersion": 3,
+            "kind": "ordivon.security.gateway-capability-authz",
+            "principalId": kwargs["principal_id"],
+            "issuer": kwargs["issuer"],
+            "requestedCapability": kwargs["requested_capability"],
+            "requestedResource": kwargs["requested_resource"],
+            "qualificationTarget": True,
+            "authorizationProfile": "interactive-principal-authzen",
+            "outcome": self.outcome,
+            "reason": "test-PDP",
+            "authorizationEvidence": {
+                "standard": "openid-authzen-authorization-api-1.0",
+                "requestId": "test-trace",
+                "responseRequestId": "test-trace",
+                "decision": permitted,
+            },
+            "authorityProjection": None,
+            "effectAdmission": None,
+        }
+
+
 def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(tmp_path) -> None:
     """A transport-authenticated local Principal, not Tool args, gates Host forwarding."""
     secret = tmp_path / "gateway-bearer"
@@ -38,9 +73,11 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(tmp_
 
     async def verify() -> None:
         owner = HostStatusOwner()
+        policy = SourceAuthZenStub()
         app = build_http_app(
             build_server(
                 service=GatewayService(owner),
+                capability_authorizer=policy,
                 require_http_execution_identity=True,
                 protect_artifact_reads=True,
             ),
@@ -86,13 +123,31 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(tmp_
                     raise_exceptions=False,
                 ) as client:
                     listed = await client.list_tools()
-                    assert len(listed.tools) == 38
+                    assert "host.status" in {tool.name for tool in listed.tools}
                     result = await client.call_tool("host.status", {})
                     assert result.is_error is False
                     assert result.structured_content == {
                         "schemaVersion": 3,
                         "kind": "ordivon.host-status",
                     }
+                    assert owner.calls == [("host", "host.status")]
+                    assert policy.calls[0]["requested_capability"] == "host.legacy-read"
+                    assert policy.calls[0]["requested_resource"]["properties"]["unscoped"] is True
+                    assert policy.calls[0]["principal_id"] == ("principal:local-service:harness")
+
+                    # A valid HTTP service bearer is not enough to bypass PDP.
+                    policy.outcome = "DENY"
+                    denied = await client.call_tool("host.status", {})
+                    assert denied.is_error is True
+                    assert denied.structured_content["error"]["code"] == ("CAPABILITY_AUTHZ_DENIED")
+                    assert owner.calls == [("host", "host.status")]
+
+                    policy.outcome = "UNAVAILABLE"
+                    missing = await client.call_tool("host.status", {})
+                    assert missing.is_error is True
+                    assert missing.structured_content["error"]["code"] == (
+                        "CAPABILITY_AUTHZ_UNAVAILABLE"
+                    )
                     assert owner.calls == [("host", "host.status")]
         finally:
             server.should_exit = True

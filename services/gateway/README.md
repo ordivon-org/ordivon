@@ -139,9 +139,19 @@ qualification unless explicitly classified as read-only. The finite default
 Host source surface is cross-checked against `enforcement-surface.json`;
 this projection is not a runtime authorization database.
 
-This is **not a global Gateway security gate**. Original Host **read** tools
-still rely on verified HTTP ingress and their natural Owner; they are not
-asserted to have per-resource authorization. Runtime execution submit/cancel
+R16 Host read qualification: the existing AuthZEN middleware now also mediates
+all 16 original Host read routes in verified HTTP mode. Its requested object
+selectors are derived only from the real route contract (not an injected
+ActorRef); every other parameter, including revision/pagination/filter, is
+bound into the canonical request digest. Unscoped inventories are explicitly
+tagged for the PDP. A valid service bearer is **not** Principal-to-Actor or
+resource authorization. Without a configured Security PDP, Host reads also
+fail closed; production deployment therefore requires a real authorized
+Principal/Actor positive consumer, negative cross-object consumer, and
+operator-validated read policy BEFORE cutover. The source tests use artificial
+decisions and do not establish an installed policy.
+
+This is **not a global Gateway security gate**. Runtime execution submit/cancel
 and other Owner capabilities remain separately scoped. The legacy stdio
 profile continues to have a different trusted-local boundary, not HTTP/PDP
 identity. The installed Security PDP has not been proven to grant any lawful

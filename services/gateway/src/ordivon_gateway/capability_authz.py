@@ -231,6 +231,87 @@ _HOST_READ_ONLY_TOOLS = frozenset(
 )
 
 
+# Authorization selectors are derived from the *actual* read interface. Extra
+# caller-supplied fields cannot impersonate an Actor or narrow an Owner query.
+# A query without a recognized object selector is explicitly global and
+# requires the PDP to grant that breadth (e.g., work.list or host.status).
+_HOST_READ_SELECTORS: dict[str, tuple[str, ...]] = {
+    "host.status": (),
+    "work.get": ("workRef",),
+    "work.list": (),
+    "space.get": ("spaceRef",),
+    "space.list": ("actorRef", "subjectRef"),
+    "space.participation.list": ("spaceRef",),
+    "space.subject.list": ("spaceRef",),
+    "topic.cursor.get": ("actorRef", "topicRef"),
+    "topic.list": ("spaceRef",),
+    "topic.resume": ("topicRef",),
+    "message.search": ("spaceRef", "topicRef"),
+    "message.relation.list": ("messageRef",),
+    "subscription.list": ("actorRef",),
+    "attention.get": ("actorRef",),
+    "attention.delta": ("actorRef",),
+    "attention.reentry": ("actorRef",),
+}
+
+
+def _host_request_sha256(arguments: Mapping[str, Any], *, capability: str, action: str) -> str:
+    """Bind the complete request, including paging/filter fields, to one PDP ALLOW."""
+    try:
+        canonical = json.dumps(
+            arguments,
+            ensure_ascii=False,
+            sort_keys=True,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            f"Host {action} requires a JSON-compatible request.",
+            capability=capability,
+        ) from exc
+    if len(canonical) > 4_194_304:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            f"Host {action} request exceeds maximum authorization budget.",
+            capability=capability,
+        )
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _legacy_host_read_target(
+    tool_name: str, arguments: Mapping[str, Any]
+) -> HostAccountabilityAuthorizationTarget | None:
+    """Complete mediation of Host reads by the existing AuthZEN PEP.
+
+    The resource is an untrusted requested target, NEVER a claim that the
+    Principal owns a supplied ActorRef or object. Broad scans are explicit.
+    """
+    fields = _HOST_READ_SELECTORS.get(tool_name)
+    if fields is None:
+        return None
+    capability = "host.legacy-read"
+    selectors: dict[str, str] = {}
+    for field in fields:
+        value = arguments.get(field)
+        if value is not None:
+            selectors[field] = _qualified_host_reference(value, field, capability=capability)
+    digest = _host_request_sha256(arguments, capability=capability, action="read")
+    return HostAccountabilityAuthorizationTarget(
+        capability=capability,
+        resource_type="ordivon.host.legacy-read-request",
+        resource_id="host-legacy-read:v1:" + _base64url_text(tool_name) + "." + digest,
+        attributes={
+            "identityContract": "ordivon.host-legacy-read-resource.v1",
+            "toolName": tool_name,
+            "requestSha256": digest,
+            "requestedSelectors": selectors,
+            "unscoped": not selectors,
+        },
+    )
+
+
 def _legacy_host_mutation_target(
     tool_name: str, arguments: Mapping[str, Any]
 ) -> HostAccountabilityAuthorizationTarget | None:
@@ -255,27 +336,7 @@ def _legacy_host_mutation_target(
         "authorActorRef" if tool_name == "message.post" else "actorRef",
         capability="host.legacy-write",
     )
-    try:
-        canonical = json.dumps(
-            arguments,
-            ensure_ascii=False,
-            sort_keys=True,
-            allow_nan=False,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise CapabilityAuthorizationTargetError(
-            "CAPABILITY_AUTHZ_TARGET_INVALID",
-            "Host mutation requires a JSON-compatible request.",
-            capability="host.legacy-write",
-        ) from exc
-    if len(canonical) > 4_194_304:
-        raise CapabilityAuthorizationTargetError(
-            "CAPABILITY_AUTHZ_TARGET_INVALID",
-            "Host mutation request exceeds maximum authorization budget.",
-            capability="host.legacy-write",
-        )
-    digest = hashlib.sha256(canonical).hexdigest()
+    digest = _host_request_sha256(arguments, capability="host.legacy-write", action="mutation")
     return HostAccountabilityAuthorizationTarget(
         capability="host.legacy-write",
         resource_type="ordivon.host.legacy-write-request",
@@ -369,6 +430,9 @@ def resolve_authorization_target(
     engagement = _resolve_work_engagement_target(tool_name, arguments)
     if engagement is not None:
         return engagement
+    legacy_read = _legacy_host_read_target(tool_name, arguments)
+    if legacy_read is not None:
+        return legacy_read
     legacy_mutation = _legacy_host_mutation_target(tool_name, arguments)
     if legacy_mutation is not None:
         return legacy_mutation

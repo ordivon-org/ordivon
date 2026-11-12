@@ -32,7 +32,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -40,7 +40,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -48,7 +48,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -112,7 +112,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -136,7 +136,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -144,7 +144,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -160,7 +160,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -168,7 +168,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -176,7 +176,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -192,7 +192,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -208,7 +208,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -248,7 +248,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -256,7 +256,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -264,7 +264,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -288,7 +288,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -296,7 +296,7 @@
       "routeOwner": "host",
       "operation": "read",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-read-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
