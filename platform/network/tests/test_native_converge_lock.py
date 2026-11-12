@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import re
+import shutil
 import signal
 import subprocess
 import time
@@ -64,8 +65,15 @@ def fixture(tmp: Path, owner: str, *, shared_lock: Path) -> tuple[Path, dict[str
 
 
 def command(owner: str) -> list[str]:
-    return ["/usr/bin/mise", "exec", "task@3.54.0", "--",
-            "task", "--silent", "consumer:" + owner + ":converge"]
+    """Use the CI runner's installed toolchain, never a machine-specific path."""
+    name = "consumer:" + owner + ":converge"
+    native_task = shutil.which("task")
+    if native_task:
+        return [native_task, "--silent", name]
+    native_mise = shutil.which("mise")
+    if native_mise:
+        return [native_mise, "exec", "task@3.54.0", "--", "task", "--silent", name]
+    pytest.skip("native Go Task/mise is unavailable on this test platform")
 
 
 @pytest.mark.parametrize("owner", OWNERS)
