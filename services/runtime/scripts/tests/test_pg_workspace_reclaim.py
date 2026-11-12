@@ -202,6 +202,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
     def run_operator_plan(self, *, allow: bool, apply: bool = False,
                           pinned: bool = False, revoke_during_get: bool = False,
                           process_enters_during_get: bool = False,
+                          ignored_emerges_during_get: bool = False,
                           close_transport_uncertain: bool = False):
         import argparse
         from unittest.mock import patch
@@ -230,6 +231,9 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 if name == "workspace.get":
                     if process_enters_during_get:
                         process_cwd_after_get.append(str(self.enclosing.workspace / "source"))
+                    if ignored_emerges_during_get:
+                        (self.enclosing.workspace / "ignored-cache").mkdir(exist_ok=True)
+                        (self.enclosing.workspace / "ignored-cache" / "result").write_text("keep")
                     if revoke_during_get:
                         policy_path.write_text(
                             __import__("json").dumps({
@@ -295,6 +299,30 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         pinned, _ = self.run_operator_plan(allow=True, pinned=True)
         self.assertEqual(pinned["eligible"], 0)
         self.assertEqual(pinned["skipped"].get("policy_pinned"), 1)
+
+    def test_ignored_workspace_output_never_qualifies_for_deletion(self):
+        # Git status --porcelain reports clean, but ordinary worktree remove
+        # would still remove this cache or data under ignore rules.
+        exclude = self.repo / ".git" / "info" / "exclude"
+        exclude.write_text(exclude.read_text() + "\nignored-cache/\n")
+        (self.workspace / "ignored-cache").mkdir()
+        (self.workspace / "ignored-cache" / "result").write_text("valuable ignored bytes")
+        report, client = self.run_operator_plan(allow=True, apply=True)
+        self.assertEqual(client.calls, [])
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(report["skipped"].get("ignored_files_or_git_error"), 1)
+        self.assertTrue((self.workspace / "ignored-cache" / "result").exists())
+
+    def test_ignored_output_created_during_sweep_blocks_native_close(self):
+        exclude = self.repo / ".git" / "info" / "exclude"
+        exclude.write_text(exclude.read_text() + "\nignored-cache/\n")
+        report, client = self.run_operator_plan(
+            allow=True, apply=True, ignored_emerges_during_get=True
+        )
+        self.assertEqual(client.calls, ["workspace.get"])
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(report["skipped"].get("ignored_files_at_close"), 1)
+        self.assertTrue((self.workspace / "ignored-cache" / "result").exists())
 
     def test_process_enters_workspace_after_scan_and_prevents_close(self):
         report, client = self.run_operator_plan(
