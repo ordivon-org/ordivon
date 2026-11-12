@@ -52,6 +52,39 @@ Owner consumer comparison in a disposable fixture, with an independently sourced
 
 Actual Repo governance consumer: tools/repo/exhaustive_coverage.py. The experiment demonstrated equivalent scoped read-only output but native Git supplies prunable facts with no demonstrated Worktrunk counterpart. **Decision: KEEP_NATIVE_GIT.**
 
+Official GitHub Radar source continuity: the script attempts all three official Trending
+windows independently. A successful subset produces **partial official evidence**, with
+`sourceCoverage.observedWindows`, `failedWindows`, `unobservedWindows`,
+`failureNotes` and `complete=false`; a total official-source failure produces
+no candidate snapshot. Failed means an actual attempted window failed, while
+unobserved means no such attempt is evidenced in a pinned input. A partial
+snapshot is neither full Trending coverage nor permission to use a third-party
+mirror silently. Runtime Job success does not prove the human report or
+consumer qualification completed.
+
+### Review contract for changes to this Catalog discovery path
+
+For each proposed PR, record **a concrete observation or UNKNOWN** for all
+ten dimensions below; use the existing PR body and Space review rather than a
+new approval database or separate checklist engine. At least one **other
+actual Agent** must independently review source/evidence and submit an
+accept/revise/reject finding with a specific counterexample or tested boundary
+before the PR is considered qualified to merge. No reply is **PENDING**, not
+approval. Review is not installed/domain truth.
+
+| Dimension | Minimum discriminating question |
+|---|---|
+| Business target / consumer | Which real human report or downstream evaluator improves? |
+| Acceptance / falsifier | Which positive and negative outcome changes? |
+| Source / installation | Which current SourceCut, upstream and installed version were actually inspected? |
+| Contracts / effect boundary | Does the change preserve DISCOVERY_ONLY and existing consumers? |
+| Correctness / data quality | Are official total, new-star windows and UNKNOWN kept distinct? |
+| Performance / resources | Are network calls, CPU, memory, disk and context use bounded? |
+| Recovery / observability | Do partial and total upstream outages remain diagnosable and recoverable? |
+| Reuse / ecosystem / compliance | Why reuse rather than another parser, registry or new framework? Which license/supply-chain constraints matter? |
+| Maintenance / evolution | Is it owner-local, on the current Python/Rust/TypeScript stack and cheap to update? |
+| Formal refinement / review | What invariant was tested? What independent counterexample or rejection was recorded? |
+
 ## LEGO collection and mature source strategy
 
 Capability candidates: GitHub source discovery and metadata (gh api); native Git worktree inspection; Worktrunk UX inventory; web-content extraction; semantic desktop control; security audit tooling. These are distinct candidates, not pre-registered formal LEGOs.

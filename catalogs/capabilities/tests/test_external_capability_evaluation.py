@@ -138,6 +138,66 @@ class RadarTests(unittest.TestCase):
         h='<article class="Box-row"><h2><a href="/max-sixty/worktrunk">Worktrunk</a></h2><span>546 stars today</span></article>'
         self.assertEqual(parse_trending(h,"daily")[0]["newStars"],546)
 
+
+    def test_partial_official_pages_keep_verified_candidates_and_failures(self):
+        # Simulate a real reachable official source on two windows and one failed window.
+        # A failed weekly page must not erase verified daily/monthly candidates.
+        import subprocess
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+
+        labels = {"daily": "today", "monthly": "this month"}
+
+        def official_curl(args, **_kwargs):
+            window = args[-1].split("=")[-1]
+            if window == "weekly":
+                return subprocess.CompletedProcess(args, 7, stdout=b"", stderr=b"origin timeout")
+            html = ('<article class="Box-row"><h2><a href="/example/' + window +
+                    '">Project</a></h2><span>7 stars ' + labels[window] +
+                    '</span></article>').encode() + b" " * 1500
+            return subprocess.CompletedProcess(args, 0, stdout=html, stderr=b"")
+
+        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
+                "github_radar_incremental.fetch_json",
+                return_value={"apiStatus": "OK", "totalStars": 42, "licenseMetadata": "MIT"}):
+            observed = live_observation(1)
+        self.assertEqual([w["window"] for w in observed["windows"]], ["daily", "monthly"])
+        self.assertIn("weekly", observed["windowFailures"])
+        result = normalize(observed, set())
+        self.assertEqual(result["sourceCoverage"]["observedWindows"], ["daily", "monthly"])
+        self.assertEqual(result["sourceCoverage"]["failedWindows"], ["weekly"])
+        self.assertEqual(result["sourceCoverage"]["unobservedWindows"], [])
+        self.assertFalse(result["sourceCoverage"]["complete"])
+        self.assertEqual(len(result["candidates"]), 2)
+        self.assertTrue(all(c["adoptionStanding"] == "DISCOVERY_ONLY" for c in result["candidates"]))
+
+    def test_no_empty_pinned_page_can_claim_official_coverage(self):
+        empty = self.example()
+        empty["windows"] = []
+        with self.assertRaisesRegex(ValueError, "no official Trending window observation"):
+            normalize(empty, set())
+        partial = self.example()
+        partial["windows"][0]["entries"] = []
+        with self.assertRaisesRegex(ValueError, "empty official Trending window observation"):
+            normalize(partial, set())
+
+    def test_unobserved_window_is_not_falsely_reported_as_failed(self):
+        raw = self.example()
+        raw["windows"] = raw["windows"][:1]
+        result = normalize(raw, set())
+        self.assertEqual(result["sourceCoverage"]["observedWindows"], ["daily"])
+        self.assertEqual(result["sourceCoverage"]["failedWindows"], [])
+        self.assertEqual(result["sourceCoverage"]["unobservedWindows"], ["weekly", "monthly"])
+
+    def test_all_official_pages_fail_without_fake_snapshot(self):
+        import subprocess
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+        failed = subprocess.CompletedProcess([], 7, stdout=b"", stderr=b"origin offline")
+        with patch("github_radar_incremental.subprocess.run", return_value=failed):
+            with self.assertRaisesRegex(RuntimeError, "all official GitHub Trending windows failed"):
+                live_observation(2)
+
     def test_history_has_horizon_and_ignores_untrusted_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             d=Path(tmp)

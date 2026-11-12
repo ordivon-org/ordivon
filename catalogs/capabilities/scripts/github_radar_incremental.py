@@ -95,27 +95,39 @@ def fetch_json(repo: str) -> dict:
 def live_observation(limit: int) -> dict:
     observed = datetime.now(timezone.utc).isoformat()
     windows = []
+    failures: dict[str, str] = {}
     repos: set[str] = set()
+    # Try all three official pages. A temporary failure in one window must not
+    # discard verified observations from the others or masquerade as full coverage.
     for win in WINDOWS:
         url = GH + "/trending?since=" + win
-        response = subprocess.run(
-            ["curl", "--fail", "--location", "--silent", "--show-error",
-             "--connect-timeout", "10", "--max-time", "45", "--retry", "2",
-             "--user-agent", "Mozilla/5.0 Ordivon-Radar/1.0", url],
-            capture_output=True, timeout=130)
-        if response.returncode != 0 or len(response.stdout) < 1000:
-            raise RuntimeError("official GitHub Trending " + win + " failed: " +
-                               response.stderr.decode("utf-8", errors="replace")[-250:])
-        body = response.stdout[:2_000_000].decode("utf-8", errors="replace")
-        records = parse_trending(body, win)[:limit]
-        windows.append({"window": win, "sourceUrl": url, "retrievedAt": datetime.now(timezone.utc).isoformat(),
+        try:
+            response = subprocess.run(
+                ["curl", "--fail", "--location", "--silent", "--show-error",
+                 "--connect-timeout", "10", "--max-time", "45", "--retry", "2",
+                 "--user-agent", "Mozilla/5.0 Ordivon-Radar/1.0", url],
+                capture_output=True, timeout=130)
+            if response.returncode != 0 or len(response.stdout) < 1000:
+                raise RuntimeError(
+                    "official GitHub Trending " + win + " fetch failed: " +
+                    response.stderr.decode("utf-8", errors="replace")[-250:])
+            body = response.stdout[:2_000_000].decode("utf-8", errors="replace")
+            records = parse_trending(body, win)[:limit]
+        except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as exc:
+            failures[win] = str(exc)[:300]
+            continue
+        windows.append({"window": win, "sourceUrl": url,
+                        "retrievedAt": datetime.now(timezone.utc).isoformat(),
                         "sourceBodySha256": "sha256:" + hashlib.sha256(response.stdout).hexdigest(),
                         "entries": records})
         repos.update(x["repo"] for x in records)
+    if not windows:
+        raise RuntimeError("all official GitHub Trending windows failed: " +
+                           "; ".join(win + ": " + failures[win] for win in WINDOWS))
     return {"kind": "ordivon.github-trending-observation-r1", "snapshotDay": observed[:10],
             "observedAt": observed, "origin": "github-official-trending-pages",
-            "windows": windows, "repositories": {r: fetch_json(r) for r in sorted(repos)}}
-
+            "windows": windows, "windowFailures": failures,
+            "repositories": {r: fetch_json(r) for r in sorted(repos)}}
 
 def previous_repositories(history: Path, today: date, out: Path) -> set[str]:
     seen: set[str] = set()
@@ -141,8 +153,20 @@ def normalize(raw: dict, history: set[str]) -> dict:
     if raw.get("kind") != "ordivon.github-trending-observation-r1":
         raise ValueError("input is not a declared GitHub Trending observation")
     day = date.fromisoformat(raw["snapshotDay"])
+    if not raw.get("windows"):
+        raise ValueError("no official Trending window observation")
     indexed: dict[str, dict] = {}
+    observed_windows: set[str] = set()
+    failures = raw.get("windowFailures", {})
+    if (not isinstance(failures, dict) or
+            any(k not in WINDOWS or not isinstance(v, str) or not v for k, v in failures.items())):
+        raise ValueError("invalid source window failure details")
     for window in raw["windows"]:
+        if not window.get("entries"):
+            raise ValueError("empty official Trending window observation")
+        if window["window"] in observed_windows:
+            raise ValueError("duplicate official Trending window")
+        observed_windows.add(window["window"])
         win = window["window"]
         if win not in WINDOWS or window.get("sourceUrl") != GH + "/trending?since=" + win:
             raise ValueError("not an official window URL")
@@ -158,6 +182,15 @@ def normalize(raw: dict, history: set[str]) -> dict:
             c["officialTrending"].append({"window": win, "stars": gain, "label": item.get("sourceWindowLabel"),
                                            "sourceUrl": window["sourceUrl"], "retrievedAt": window["retrievedAt"],
                                            "sourceBodySha256": window.get("sourceBodySha256")})
+    if observed_windows.intersection(failures):
+        raise ValueError("source window cannot be observed and failed")
+    coverage = {
+        "observedWindows": [w for w in WINDOWS if w in observed_windows],
+        "failedWindows": [w for w in WINDOWS if w in failures],
+        "unobservedWindows": [w for w in WINDOWS if w not in observed_windows and w not in failures],
+        "complete": observed_windows == set(WINDOWS),
+        "failureNotes": {w: failures[w] for w in WINDOWS if w in failures},
+    }
     for repo, value in indexed.items():
         api = raw.get("repositories", {}).get(repo, {})
         value["totalStars"] = api.get("totalStars")
@@ -175,6 +208,7 @@ def normalize(raw: dict, history: set[str]) -> dict:
         value["adoptionStanding"] = "DISCOVERY_ONLY"
     return {"kind": "ordivon.github-radar-candidates-r1", "snapshotDay": day.isoformat(),
             "observedAt": raw["observedAt"], "origin": raw["origin"],
+            "sourceCoverage": coverage,
             "candidates": [indexed[k] for k in sorted(indexed)],
             "nonClaims": ["Official Trending display windows are not UTC rolling windows",
                           "No arbitrary GitHub API historical star delta inferred",
@@ -199,7 +233,8 @@ def main() -> int:
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(args.output), "candidateCount": len(result["candidates"]),
                       "repeatCount": sum(x["repeatedWithin7Days"] for x in result["candidates"]),
-                      "standing": "DISCOVERY_ONLY"}))
+                      "standing": "DISCOVERY_ONLY",
+                      "sourceCoverage": result["sourceCoverage"]}))
     return 0
 
 
