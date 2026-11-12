@@ -37,3 +37,37 @@
 - Existing Portfolio PassiveBenchmark and StrategicContribution regression: 82 native Windows pure-Python cases passed. Two legacy cases require a POSIX shell launcher and fail Windows WinError 193; they are not counted as passed, and require supported Linux integration replay.
 - Optimized interpreter negative: the new economic probe rejects Python -O before model/data evaluation, verified via a separate native Windows Runtime job. This does not confer economic authority.
 - Independent agent acceptance still PENDING.
+
+## R8: native Qlib holding horizon and economic-consumer independent review
+
+Agent A independently reviewed Agent B's exact source commit 93c052eebd089a07d8f5c4e401c712c28f897f2f, cherry-picked with original B author as 33e10ca9d6ec236cbd7d92bc8ac85b869a0156d3. The native H1/H5/H20 Qlib experiment, existing Portfolio budget and passive-benchmark consumers were re-executed, without new ML/OMS/ledger/strategy dependency.
+
+Actual RED: B H1 changed a pre-existing signal_quality.horizon string while preserving 816 prediction rows/MSE; the previous test-only Portfolio economic consumer rejected it in job-01a1cf3c-c6fb-75b0-b0fa-0be326e92de6. A restored exactly the H1 previous consumer contract and retained new H5/H20 horizons. Native Qlib H1 and all three economic consumers then passed in job-01a1cf3d-e31d-7661-a63a-f74f0c13dfaa.
+
+Predeclared strategy: at every Hth test decision date, select the ETF with maximum native Qlib OOS score, enter at next-session OPEN, exit at T+H CLOSE. Horizons H5/H20 are separate fixed experiments, not selected after their test P&L is seen. Each comparison uses the same disjoint entry/exit windows, $1000 hypothetical fractional-share capital and $9000 protected cash. SPY/QQQ/IWM baselines are fixed-symbol exposures within exactly those windows, NOT uninterrupted buy-and-hold. Both sides use identical zero costs or hypothetical symmetric 10bps per window.
+
+| Economic result on $1000 investment sleeve | 5-session (54 windows) | 20-session (13 windows) |
+| --- | ---: | ---: |
+| Model - same-window SPY | -$74.405879 | -$35.674754 |
+| Model - same-window 3 ETF equal weights | -$107.796963 | -$47.286237 |
+| Model - same-window fixed IWM | -$94.504420 | exactly $0.00 |
+| Model - same-window fixed QQQ | -$146.768972 | -$101.685896 |
+| Model - SPY with both assumed 10bps/window | -$70.492614 | -$35.213754 |
+| Model-selected ETFs | IWM36, QQQ14, SPY4 | IWM13, QQQ0, SPY0 |
+
+The H20 policy never changes its selected instrument. Its economic outcome exactly equals the fixed IWM policy on all 13 nonoverlapping windows, so no conditional allocation advantage is demonstrated. These outcomes use retrospective unadjusted market OHLCV and assumed fractional shares, not realizable fills. Model MSE improves vs train-mean by only 0.1654% (H5) / 0.2332% (H20), with negative cross-asset IC and low independent sample count. NO model-driven PortfolioIntent or trading is justified.
+
+| PR required dimension | Status and evidence |
+| --- | --- |
+| Business outcome | PASS scoped negative result: model does not beat simple economic baselines; reject promotion |
+| Core consumers/boundaries | Native Qlib -> same existing Portfolio PassiveBenchmark and StrategicContribution; no orders/PG |
+| Financial correctness & input data | H dates use T+1 OPEN to T+H CLOSE and no overlap; PIT, price adjustment, rights, dividends UNKNOWN |
+| Reuse vs custom | Qlib native TimeAdjuster and segments; existing Portfolio replay; no duplicated optimization or execution engine |
+| Performance/memory/disk | 3 native Qlib modes ~19s; each generated 333-343KB ignored output; 853MB free RAM snapshot, zero remaining test Python processes; sustained RSS/leak UNKNOWN |
+| Reliability/recovery/observability | Actual H1 contract break caught and repaired with independent native rerun; label equality and no-overlap checked; no external effects |
+| Supply chain/security/standards | No new packages, credentials, licensing or real investor authority; existing locked Python research components used, vendor redistribution UNKNOWN |
+| Formal/refinement | Future-label purge from B; T+H labels matched actual bars, disjoint exposure; H20 model/fixed-IWM economic identity established |
+| Long-term evolution/technical debt | One existing experimental consumer extended; no new service/MLflow manager/OMS; retain test only while used as regression |
+| Real other-Agent audit | A audited B 93c and found H1 break; A final integrated fix and economic extension still need another real Agent review, PENDING |
+
+Reproduction: set ORDIVON_FINANCE_R3_RESEARCH_HOLD_SESSIONS=1/5/20 and distinct ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR; run native etf_qlib_consumer.py with the original private capture; then run existing tests/probe_qlib_paper_horizon.py against each output. Machine result: qlib_disjoint_horizon.evidence.json. Standing: RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY. Historical PIT, true order cost, corporate actions, dividend treatment, integer lot and capital authorization not admitted.

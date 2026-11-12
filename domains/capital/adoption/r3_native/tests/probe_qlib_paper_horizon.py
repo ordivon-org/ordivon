@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 from collections import Counter
 from datetime import date
@@ -27,15 +28,165 @@ sys.path.insert(0, str(ROOT.parents[1] / "src"))
 from ordivon_capital.portfolio.passive_benchmark import replay_passive_benchmark
 from ordivon_capital.portfolio.strategic_contribution import plan_strategic_contribution
 
-OUT = ROOT / "output"
+OUT = Path(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR", str(ROOT / "output"))).resolve()
 SYMBOLS = ("IWM", "QQQ", "SPY")
 ZERO = "0"
 OPENING = "1000"  # investment sleeve only; $9,000 remains protected cash
 
 
+
+def run_multisession(report: dict, hold: int) -> dict:
+    """Compare pre-fixed, disjoint H-session holdings using existing Portfolio.
+
+    These are hypothetical fractional-share market-price proxies, not orders,
+    authenticated historical execution, licensed source PIT, or validated alpha.
+    """
+    assert hold in (5, 20)
+    skill = report["signal_quality"]
+    assert skill["holding_sessions"] == hold
+    assert skill["purged_overlapping_train_validation_labels"] is True
+    assert skill["multi_session_holding_state_representable"] is True
+    assert report["forecast"]["point_in_time_eligible"] is False
+    assert report["portfolio_target"] is None
+
+    allocation = plan_strategic_contribution({
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.portfolio.strategic-contribution-request",
+        "currency": "USD",
+        "cashMinor": 1_000_000,
+        "protectedReserveMinor": 900_000,
+        "contributionMinor": 100_000,
+        "holdingsMinor": {symbol: 0 for symbol in SYMBOLS},
+        "targetWeightsBps": {"IWM": 0, "QQQ": 0, "SPY": 10_000},
+    })
+    assert allocation["allocationsMinor"]["SPY"] == 100_000
+    assert allocation["executionAuthorized"] is False
+
+    predictions = pd.read_csv(OUT / "qlib_test_predictions.csv").set_index(
+        ["datetime", "instrument"]
+    ).iloc[:, 0]
+    labels = pd.read_parquet(OUT / "qlib_static_dataset.parquet")["label"]["LABEL0"]
+    assert len(predictions) == skill["sample_rows"]
+    bars = {
+        sym: pd.read_csv(OUT / f"openbb_cboe_{sym}_normalized.csv")
+        .set_index("session_date").sort_index()
+        for sym in SYMBOLS
+    }
+    sessions = list(bars["SPY"].index)
+    assert all(list(bars[sym].index) == sessions for sym in SYMBOLS)
+    index_of = {day: i for i, day in enumerate(sessions)}
+    all_decisions = sorted(set(predictions.index.get_level_values("datetime")))
+    assert len(all_decisions) == skill["sample_sessions"]
+    # The cadence is fixed solely by the declared holding horizon, never
+    # selected by comparing observed model or baseline returns on this test.
+    decisions = all_decisions[::hold]
+    chosen = Counter()
+    periods = []
+    previous_exit = None
+    for decision in decisions:
+        idx = index_of[decision]
+        entry = sessions[idx + 1]
+        exit_day = sessions[idx + hold]
+        assert previous_exit is None or previous_exit < entry
+        previous_exit = exit_day
+        predicted = {sym: float(predictions.loc[(decision, sym)]) for sym in SYMBOLS}
+        assert all(math.isfinite(x) for x in predicted.values())
+        # Score ranking, not realized returns, selects the next exposure.
+        winner = min(SYMBOLS, key=lambda sym: (-predicted[sym], sym))
+        chosen[winner] += 1
+        observed = {}
+        for sym in SYMBOLS:
+            start_px = Decimal(str(bars[sym].loc[entry, "open"]))
+            end_px = Decimal(str(bars[sym].loc[exit_day, "close"]))
+            ret = end_px / start_px - 1
+            assert abs(float(ret) - float(labels.loc[(decision, sym)])) < 1e-10
+            observed[sym] = ret
+        periods.append({
+            "decision": decision, "entry": entry, "exit": exit_day,
+            "winner": winner, "model": observed[winner],
+            "spy": observed["SPY"],
+            "qqq": observed["QQQ"],
+            "iwm": observed["IWM"],
+            "equal": sum(observed.values(), Decimal(0)) / len(SYMBOLS),
+        })
+
+    def compare(reference: str, *, model_cost: str = "0",
+                reference_cost: str = "0") -> dict:
+        cashflows = [{
+            "periodEndAt": row["exit"] + "T23:59:00+00:00",
+            "depositAtStart": ZERO,
+            "strategyGrossReturn": str(row["model"]),
+            "benchmarkGrossReturn": str(row[reference]),
+            "strategyExpenseFractionAtStart": model_cost,
+            "benchmarkExpenseFractionAtStart": reference_cost,
+            "strategyFixedFeeAtStart": ZERO,
+            "benchmarkFixedFeeAtStart": ZERO,
+        } for row in periods]
+        ans = replay_passive_benchmark(
+            opening_balance=OPENING, currency="USD", periods=cashflows
+        )
+        assert ans["capitalAuthority"] == "NONE"
+        assert ans["periodCount"] == len(periods)
+        return ans
+
+    result = {
+        "kind": "ordivon.finance.r3.qlib-disjoint-holding-economic-counterexample",
+        "standing": "RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
+        "source_forecast_skill": skill,
+        "holding_sessions": hold,
+        "precommitted_selection_cadence": f"every_{hold}_test_decision_sessions",
+        "disjoint_exposure_periods": len(periods),
+        "nonoverlap_dates": [{
+            "decision": p["decision"], "entry": p["entry"],
+            "exit": p["exit"], "selected": p["winner"]
+        } for p in periods],
+        "chosen_assets": dict(sorted(chosen.items())),
+        "distinct_assets_selected": len(chosen),
+        "conditional_asset_rotation_observed": len(chosen) > 1,
+        "benchmark_exposure": "same_nonoverlapping_entry_open_exit_close_windows_flat_between_windows",
+        "investment_sleeve_minor": 100_000,
+        "protected_cash_minor": 900_000,
+        "fractional_shares_assumed": True,
+        "source_historical_PIT": False,
+        "fully_executable_strategy_proven": False,
+        "PortfolioIntent_admitted": False,
+        "PG_or_broker_effects": "NONE",
+        "actual_ohlcv_adjustments_and_fees_qualified": False,
+        "model_vs_fixed_spy_zero_cost": compare("spy"),
+        "model_vs_fixed_qqq_zero_cost": compare("qqq"),
+        "model_vs_fixed_iwm_zero_cost": compare("iwm"),
+        "model_vs_fixed_equal_zero_cost": compare("equal"),
+        # Both alternatives enter at T+1 open and exit T+H close on the
+        # SAME precommitted schedule, so both pay the same assumed cost.
+        # Not continuous SPY buy-and-hold or measured transaction fees.
+        "model_vs_spy_symmetric_10bps_per_period": compare(
+            "spy", model_cost="0.001", reference_cost="0.001"
+        ),
+    }
+    (OUT / "qlib_disjoint_holding_economic_result.json").write_text(
+        json.dumps(result, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+    )
+    print("R3_QLIB_DISJOINT_HOLDING_ECONOMIC_CONSUMER_PASS",
+          json.dumps({
+              "h": hold, "periods": len(periods),
+              "selected": result["chosen_assets"],
+              "model_minus_fixed_SPY": result["model_vs_fixed_spy_zero_cost"]["terminalWealthDifference"],
+              "model_minus_equal": result["model_vs_fixed_equal_zero_cost"]["terminalWealthDifference"],
+              "model_minus_fixed_IWM": result["model_vs_fixed_iwm_zero_cost"]["terminalWealthDifference"],
+              "model_minus_fixed_QQQ": result["model_vs_fixed_qqq_zero_cost"]["terminalWealthDifference"],
+              "distinct_assets_selected": result["distinct_assets_selected"],
+              "symmetric_10bps_cost_minus_same_window_SPY": result[
+                  "model_vs_spy_symmetric_10bps_per_period"
+              ]["terminalWealthDifference"],
+              "capital_authorized": False,
+          }, sort_keys=True))
+    return result
+
 def run() -> dict:
     report = json.loads((OUT / "native_study_result.json").read_text(encoding="utf-8"))
     skill = report["signal_quality"]
+    if skill.get("holding_sessions", 1) in (5, 20):
+        return run_multisession(report, skill["holding_sessions"])
     assert skill["standing"] == "RETROSPECTIVE_BACKFILL_TEST_ONLY"
     assert skill["horizon"] == (
         "decision_after_T_close_entry_at_T_plus_1_open_exit_at_T_plus_1_close"
