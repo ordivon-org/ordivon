@@ -1,3 +1,93 @@
+// Write a physical-effect intent into the EXISTING Workspace identity record
+// before invoking Git. A crash in between is then recoverable without a second
+// Registry, a new executor, or trusting an arbitrary unrecorded directory.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct OpeningWorkspaceRecord {
+    schema_version: u32,
+    state: String,
+    source_repo: String,
+    source_revision: String,
+    requested_revision: String,
+    created_unix_ms: u128,
+}
+
+fn unfinished_open_error(reason: &str) -> UniversalExecError {
+    UniversalExecError::new(
+        UniversalExecErrorCode::MetadataCorrupt,
+        format!("Workspace opening cannot be reconciled safely: {reason}"),
+        Some("workspaceId"),
+        false,
+    )
+}
+
+// The persisted intent is necessary but not sufficient. Git must prove the
+// exact detached worktree remains registered in the same source and is clean.
+fn managed_physical_target(target: &Path) -> Result<PathBuf, UniversalExecError> {
+    let parent = target.parent()
+        .ok_or_else(|| unfinished_open_error("managed Workspace parent is missing"))?;
+    let name = target.file_name()
+        .ok_or_else(|| unfinished_open_error("managed Workspace ID is missing"))?;
+    Ok(canonical_directory(parent, "workspaceRoot")?.join(name))
+}
+
+// The configured store root may be a symbolic alias, but the final Workspace
+// directory itself must be a real directory inside the canonical managed root.
+fn verified_interrupted_open(
+    source: &Path,
+    target: &Path,
+    revision: &str,
+) -> Result<PathBuf, UniversalExecError> {
+    let metadata = fs::symlink_metadata(target)
+        .map_err(|_| unfinished_open_error("target directory is not observable"))?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(unfinished_open_error("target is not a regular directory"));
+    }
+    let actual = canonical_directory(target, "workspacePath")?;
+    if actual != managed_physical_target(target)? {
+        return Err(unfinished_open_error("target escaped its canonical managed path"));
+    }
+    let entries = git_output_bytes(source, ["worktree", "list", "--porcelain", "-z"])?;
+    let mut registered = false;
+    for item in entries.split(|b| *b == 0).collect::<Vec<_>>().split(|entry| entry.is_empty()) {
+        let mut location = false;
+        let mut head = false;
+        let mut detached = false;
+        let mut unsafe_registration = false;
+        for line in item.iter().copied() {
+            if let Some(path) = line.strip_prefix(b"worktree ") {
+                location = path == actual.as_os_str().as_encoded_bytes();
+            } else if let Some(commit) = line.strip_prefix(b"HEAD ") {
+                head = commit == revision.as_bytes();
+            } else if line == b"detached" {
+                detached = true;
+            } else if line.starts_with(b"locked") || line.starts_with(b"prunable") {
+                unsafe_registration = true;
+            }
+        }
+        if location {
+            registered = head && detached && !unsafe_registration;
+            break;
+        }
+    }
+    if !registered {
+        return Err(unfinished_open_error("Git does not register the expected detached worktree"));
+    }
+    let actual_head = git_output(&actual, ["rev-parse", "HEAD"])?;
+    let actual_common_dir = git_output(&actual, ["rev-parse", "--path-format=absolute", "--git-common-dir"])?;
+    let source_common_dir = git_output(source, ["rev-parse", "--path-format=absolute", "--git-common-dir"])?;
+    if actual_head.trim() != revision || actual_common_dir.trim() != source_common_dir.trim() {
+        return Err(unfinished_open_error("actual Git HEAD or repository binding differs"));
+    }
+    if !git_output_bytes(
+        &actual,
+        ["status", "--porcelain=v1", "--untracked-files=all", "--ignored=matching"],
+    )?.is_empty() {
+        return Err(unfinished_open_error("worktree contains changes or ignored/untracked files"));
+    }
+    Ok(actual)
+}
+
 pub(crate) fn create_git_workspace_record(
     config: &UniversalExecutorConfig,
     request: &GitWorkspaceCreateRequest,
@@ -6,75 +96,109 @@ pub(crate) fn create_git_workspace_record(
     request.validate_shape()?;
     let target = config.workspace_path(&request.workspace_id);
     let record_path = config.workspace_record_path(&request.workspace_id);
-    if record_path.exists() {
-        return Err(UniversalExecError::new(
-            UniversalExecErrorCode::WorkspaceExists,
-            "workspace already exists",
-            Some("workspaceId"),
-            false,
-        ));
-    }
-    if target.exists() {
-        // A Git worktree can be physically created before its atomic Workspace
-        // identity record is published. Distinguish a killed/partial open
-        // from a normal duplicate; neither adopt nor remove unowned bytes.
-        return Err(UniversalExecError::new(
-            UniversalExecErrorCode::MetadataCorrupt,
-            "workspace directory exists without an identity record",
-            Some("workspaceId"),
-            false,
-        ));
-    }
     let source_repo = canonical_directory(Path::new(&request.source_repo), "sourceRepo")?;
-    let revision = resolve_git_commit(&source_repo, &request.source_revision)?;
-    if revision.len() != 40 && revision.len() != 64 {
-        return Err(UniversalExecError::new(
-            UniversalExecErrorCode::RevisionNotFound,
-            "source revision did not resolve to a commit",
-            Some("sourceRevision"),
-            false,
-        ));
-    }
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(&source_repo)
-        .args(["worktree", "add", "--detach"])
-        .arg(&target)
-        .arg(&revision)
-        .output()
-        .map_err(|error| tool_unavailable("git worktree add", error))?;
-    if !output.status.success() {
-        return Err(tool_failed("git worktree add", &output.stderr));
-    }
-    let canonical_target = canonical_directory(&target, "workspacePath")?;
-    let actual_revision = git_output(&canonical_target, ["rev-parse", "HEAD"])?;
-    if actual_revision.trim() != revision {
-        let _ = remove_git_worktree(&source_repo, &canonical_target, true);
-        return Err(UniversalExecError::new(
-            UniversalExecErrorCode::RevisionMismatch,
-            "created workspace HEAD does not match requested revision",
-            Some("sourceRevision"),
-            false,
-        ));
-    }
-    if let (Some(uid), Some(gid)) = (config.workspace_uid, config.workspace_gid) {
-        if let Err(error) = transfer_workspace_ownership(&canonical_target, uid, gid) {
-            let _ = remove_git_worktree(&source_repo, &canonical_target, true);
-            return Err(error);
+    let resuming_opening = record_path.exists();
+    let opening = if resuming_opening {
+        let content = read_workspace_record_bytes(&record_path)?;
+        let value: serde_json::Value = serde_json::from_slice(&content)
+            .map_err(|_| unfinished_open_error("existing identity is unreadable"))?;
+        if value.get("state").and_then(serde_json::Value::as_str) != Some("opening") {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::WorkspaceExists,
+                "workspace already exists",
+                Some("workspaceId"),
+                false,
+            ));
         }
+        let existing: OpeningWorkspaceRecord = serde_json::from_value(value)
+            .map_err(|_| unfinished_open_error("opening intent is malformed"))?;
+        if existing.schema_version != UNIVERSAL_EXEC_SCHEMA_VERSION
+            || existing.source_repo != source_repo.to_string_lossy()
+            || existing.requested_revision != request.source_revision
+        {
+            return Err(unfinished_open_error("request does not match the durable opening intent"));
+        }
+        existing
+    } else {
+        if target.exists() {
+            return Err(unfinished_open_error("directory exists without a durable opening intent"));
+        }
+        // Resolve the symbolic ref exactly ONCE, at the original intent.
+        // Retrying HEAD after source branches move must recover the recorded
+        // physical revision, never rebind an accepted effect to a new source.
+        let revision = resolve_git_commit(&source_repo, &request.source_revision)?;
+        if revision.len() != 40 && revision.len() != 64 {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::RevisionNotFound,
+                "source revision did not resolve to a commit",
+                Some("sourceRevision"),
+                false,
+            ));
+        }
+        let opening = OpeningWorkspaceRecord {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            state: "opening".to_string(),
+            source_repo: source_repo.to_string_lossy().into_owned(),
+            source_revision: revision,
+            requested_revision: request.source_revision.clone(),
+            created_unix_ms: now_unix_ms()?,
+        };
+        write_json_atomic(&record_path, &opening)?;
+        opening
+    };
+    let revision = opening.source_revision.clone();
+    let canonical_target = if target.exists() {
+        if !resuming_opening {
+            return Err(unfinished_open_error("unrecorded physical worktree appeared during opening"));
+        }
+        verified_interrupted_open(&source_repo, &target, &revision)?
+    } else {
+        // A missing physical directory is safe to create only when Git also
+        // has no still-registered, possibly interrupted worktree at that path.
+        if resuming_opening {
+            let inventory = git_output_bytes(&source_repo, ["worktree", "list", "--porcelain", "-z"])?;
+            let physical_target = managed_physical_target(&target)?;
+            if inventory.split(|b| *b == 0).any(|line| {
+                line.strip_prefix(b"worktree ") == Some(physical_target.as_os_str().as_encoded_bytes())
+            }) {
+                return Err(unfinished_open_error("Git still registers an absent worktree"));
+            }
+        }
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&source_repo)
+            .args(["worktree", "add", "--detach"])
+            .arg(&target)
+            .arg(&revision)
+            .output()
+            .map_err(|error| tool_unavailable("git worktree add", error))?;
+        if !output.status.success() {
+            return Err(tool_failed("git worktree add", &output.stderr));
+        }
+        // Git itself completed a fresh native add. Keep the normal hot path
+        // to the established HEAD check; expensive porcelain/status checks
+        // are reserved for a resumed UNKNOWN physical effect.
+        let created = canonical_directory(&target, "workspacePath")?;
+        if created != managed_physical_target(&target)? {
+            return Err(unfinished_open_error("new worktree escaped managed workspace root"));
+        }
+        if git_output(&created, ["rev-parse", "HEAD"])?.trim() != revision {
+            return Err(unfinished_open_error("created worktree HEAD differs from intent"));
+        }
+        created
+    };
+    if let (Some(uid), Some(gid)) = (config.workspace_uid, config.workspace_gid) {
+        transfer_workspace_ownership(&canonical_target, uid, gid)?;
     }
     let record = WorkspaceRecord {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         workspace_id: request.workspace_id.clone(),
-        source_repo: source_repo.to_string_lossy().into_owned(),
-        source_revision: revision,
+        source_repo: opening.source_repo,
+        source_revision: opening.source_revision,
         workspace_path: canonical_target.to_string_lossy().into_owned(),
-        created_unix_ms: now_unix_ms()?,
+        created_unix_ms: opening.created_unix_ms,
     };
-    if let Err(error) = write_json_atomic(&record_path, &record) {
-        let _ = remove_git_worktree(&source_repo, &canonical_target, true);
-        return Err(error);
-    }
+    write_json_atomic(&record_path, &record)?;
     Ok(record)
 }
 
@@ -225,6 +349,13 @@ fn decode_open_workspace_record(
     workspace_id: &str,
 ) -> Result<WorkspaceRecord, UniversalExecError> {
     let mut record: WorkspaceRecord = serde_json::from_slice(bytes).map_err(|error| {
+        if serde_json::from_slice::<serde_json::Value>(bytes)
+            .ok()
+            .and_then(|value| value.get("state").and_then(|state| state.as_str()).map(str::to_owned))
+            .as_deref() == Some("opening")
+        {
+            return unfinished_open_error("durable opening is unfinished; retry exact original workspace.open with the same workspaceId");
+        }
         UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,
             format!("invalid workspace record: {error}"),
