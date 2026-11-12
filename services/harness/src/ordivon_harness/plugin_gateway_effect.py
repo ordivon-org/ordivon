@@ -325,8 +325,10 @@ class GatewayMcpRuntimeAdapter:
             gateway_args["context"] = self.grant.context
         if "env" in execution:
             gateway_args["env"] = execution["env"]
-        if "timeoutMs" in execution:
-            gateway_args["timeoutMs"] = execution["timeoutMs"]
+        # Validate the materialized output ceilings BEFORE the final, already
+        # qualified timeout projection -> physical Owner dispatch frame.
+        # All output validation remains fail-closed, and this does not move
+        # any physical effect ahead of Source Intent checks.
         for field in ("stdoutLimitBytes", "stderrLimitBytes"):
             if field in execution:
                 value = execution[field]
@@ -335,6 +337,8 @@ class GatewayMcpRuntimeAdapter:
                         f"Gateway execution lowering has invalid {field} u64 bound"
                     )
                 gateway_args[field] = value
+        if "timeoutMs" in execution:
+            gateway_args["timeoutMs"] = execution["timeoutMs"]
 
         receipt = self._call("execution.submit", gateway_args)
         operation_ref = _required_text(
