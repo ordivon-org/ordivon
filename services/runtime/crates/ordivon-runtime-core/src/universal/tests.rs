@@ -2651,6 +2651,79 @@ fn runner_rejects_undeclared_input_directory_before_spawning_target() {
 }
 
 #[test]
+fn workspace_close_force_false_preserves_gitignored_private_results() {
+    let sandbox = Sandbox::new("close-ignored-private-research");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    fs::write(source.join(".gitignore"), "ignored_results/\n*.secret\n").unwrap();
+    run_git(&source, ["add", ".gitignore"]);
+    run_git(
+        &source,
+        ["commit", "-qm", "gitignore reproducible-only outputs"],
+    );
+
+    let config = sandbox.config();
+    let id = "workspace-with-ignored-private-results";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let worktree = config.workspace_path(id);
+    let private = worktree
+        .join("ignored_results")
+        .join("unique-research-data.txt");
+    fs::create_dir_all(private.parent().unwrap()).unwrap();
+    fs::write(&private, "DO_NOT_DELETE_PRIVATE_DATA").unwrap();
+    fs::write(worktree.join("key.secret"), "DO_NOT_DELETE_PRIVATE_KEY").unwrap();
+    assert_eq!(
+        git_text(
+            &worktree,
+            ["status", "--porcelain=v1", "--untracked-files=normal"]
+        ),
+        ""
+    );
+    let request = WorkspaceCloseRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: id.to_string(),
+        force: false,
+        consumer_released: true,
+        expected_source_state_digest: None,
+    };
+    let rejected = remove_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(rejected.code, UniversalExecErrorCode::WorkspaceDirty);
+    assert!(
+        rejected.message.contains("ignored_results") || rejected.message.contains("key.secret"),
+        "native close must report the real excluded content: {}",
+        rejected.message
+    );
+    assert_eq!(
+        fs::read_to_string(&private).unwrap(),
+        "DO_NOT_DELETE_PRIVATE_DATA"
+    );
+    assert_eq!(
+        fs::read_to_string(worktree.join("key.secret")).unwrap(),
+        "DO_NOT_DELETE_PRIVATE_KEY"
+    );
+
+    let authorized = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            force: true,
+            ..request
+        },
+    )
+    .unwrap();
+    assert!(authorized.removed);
+    assert!(!worktree.exists());
+}
+
+#[test]
 fn workspace_close_rejects_dirty_state_unless_force_is_explicit() {
     let sandbox = Sandbox::new("safe-close");
     let source = sandbox.root.join("source");

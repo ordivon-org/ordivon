@@ -13,6 +13,50 @@ use super::*;
 const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
     postgres::IsolationLevel::ReadCommitted;
 
+// An automated collector does not have evidence that the consumer released
+// its Workspace merely because the final Job exited successfully. The native
+// PG owner must re-read latest activity INSIDE the same admission/close fence,
+// not trust the sweep's earlier global SQL snapshot. Explicit
+// consumerReleased=true remains the caller's separate release assertion.
+const WORKSPACE_JOB_CONTINUATION_HOLD_MS: i64 = 4 * 60 * 60 * 1000;
+
+// Read committed AFTER the shared admission lock, so a recently completed
+// Job no longer listed in activeJobIds still retains the Workspace long
+// enough for consumers to inspect artifacts and source.
+// Reuse existing PG jobs/attempts/events, with no additional registry/table.
+fn require_recent_pg_job_consumer_continuation(
+    tx: &mut postgres::Transaction<'_>,
+    workspace_id: &str,
+) -> RuntimeResult<()> {
+    let row = tx
+        .query_one(
+            "WITH owned_jobs AS (
+                SELECT job_id, created_at_ms FROM jobs WHERE workspace_id=$1
+            )
+            SELECT GREATEST(
+                COALESCE((SELECT MAX(created_at_ms) FROM owned_jobs),0),
+                COALESCE((SELECT MAX(a.finished_at_ms) FROM attempts a
+                          JOIN owned_jobs j ON j.job_id=a.job_id),0),
+                COALESCE((SELECT MAX(e.observed_at_ms) FROM job_events e
+                          JOIN owned_jobs j ON j.job_id=e.job_id),0)
+            ),
+            (EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::bigint",
+            &[&workspace_id],
+        )
+        .map_err(io)?;
+    let last_job_activity_ms: i64 = row.get(0);
+    let now_ms: i64 = row.get(1);
+    if last_job_activity_ms > now_ms.saturating_sub(WORKSPACE_JOB_CONTINUATION_HOLD_MS) {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::WorkspaceStateMismatch,
+            "Workspace has recent PG Job activity inside the consumer continuation window; an explicit consumerReleased is required before close",
+            Some("consumerReleased"),
+            true,
+        ));
+    }
+    Ok(())
+}
+
 // The same PG consumer definition must govern Workspace mutation/close
 // admission AND workspace.get/list projections. A resolved Job can still own
 // an active or held_orphaned Attempt reservation: projecting only unresolved
@@ -71,6 +115,13 @@ impl PgRuntime {
                 Some("workspaceId"),
                 false,
             ));
+        }
+        if !request.consumer_released {
+            // The external lifecycle script's initial PG snapshot is
+            // advisory only: a Job can start and complete during the scan.
+            // This guard shares the native admission lock with workspace.close
+            // and must precede any Git/worktree effect.
+            require_recent_pg_job_consumer_continuation(&mut tx, &request.workspace_id)?;
         }
         let dependents =
             universal::workspace_cleanup_dependents(&self.config.executor, &request.workspace_id)

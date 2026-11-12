@@ -39,6 +39,50 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 6. Read `artifact.read` and verify the retained output and evidence standing. If outcome is `lost`, `orphaned`, `unknown`, or delivery uncertain, do not translate it into `failed` or silently redispatch an effect-opaque operation.
 7. Check `workspace.diff`, `workspace.get`, and domain-specific acceptance. Close via `workspace.close` only when no consumer remains.
 
+## Preserve consumer-valued output before Workspace release
+
+Git-clean is **not** equivalent to disposable. Git ignores build caches and
+potentially valuable outputs in paths such as target/ and __pycache__/.
+Even **workspace.close(force=false)** may remove ignored files. The
+**consumerReleased=true** flag is a caller assertion, not identity proof,
+consumer consent, delivery evidence, or proof that external readers are gone.
+
+Use the **existing** carrier appropriate to the real consumer:
+
+1. For source changes, integrate the required Git commit and independently
+   read back its reachable contents before releasing the Workspace.
+2. For **bounded execution evidence**, inspect the registered Job/Attempt
+   Artifact with **artifact.read** or **artifact.content** before close. Check
+   its actual bytes, meaning, and **truncated=false**; if missing or truncated,
+   or the output must outlive the owning Runtime Registry, use step 3 instead.
+   Job Artifacts are retained only with that Registry, not a general file
+   publishing service or an indefinite archive. A successful process exit or
+   an Artifact's presence does not prove domain semantic success.
+3. For **consumer-valued** ignored files, large/binary outputs, or longer
+   retention, publish using the existing Artifact capability or the
+   destination's mature native API, then **read back the destination object**
+   and verify it is usable. Classify an ignored path by the actual consumer:
+   if acceptance or another actor still references it, or it is costly or
+   impossible to regenerate, treat it as a deliverable until handed off.
+   Cache-shaped path names alone are not evidence that output can be deleted.
+   If the consumer or preservation requirement is unknown, do not assert
+   release; resolve that uncertainty rather than blocking every cache.
+4. Confirm known readers/writers, external consumers, dependent Workspaces,
+   and active/held Jobs are finished. Runtime's Job/lease checks cannot
+   prove the absence of arbitrary foreign processes or open file handles;
+   if a known consumer is unresolved, **do not release**. Then request
+   **workspace.close(force=false, consumerReleased=true)** with the
+   **expectedSourceStateDigest** from **workspace.get**. Verify the reported
+   closure disposition and, for bounded Job evidence, read the same Artifact
+   again **after close**. Post-close readback detects retention failure;
+   it does **not** replace the pre-close durable handoff when that is needed.
+   **removed** means the worktree was retired, not that all external file
+   handles or cached disk blocks disappeared immediately.
+
+Delete disposable build caches through the established Workspace lifecycle;
+preserve actual deliverables through their natural Git/Artifact consumers.
+Do not add a second GC, publication registry, or evidence serializer.
+
 ## Operating boundaries
 
 - Linux and Windows are independently native Runtime providers. Do not use a Linux node as an implicit Windows runner, or guess an elevated token.

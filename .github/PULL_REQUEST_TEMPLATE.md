@@ -1,38 +1,58 @@
-## User outcome and acceptance
+## What and why
 
-State the **real user/business outcome**, original failure or feature, affected
-consumer chain, the exact acceptance test, and the source/runtime evidence.
-Link to an issue, Space discussion, or independently reproducible observation.
-Mark unknowns **UNKNOWN**, not success or failure.
+<!-- The change and its reason, in a few sentences. Link the issue. -->
 
-| Engineering dimension | Evidence, decision, and remaining risk (or **N/A — reason**) |
+## Owner
+
+<!-- Natural owner directory, for example services/runtime. Cross-owner changes: name each owner and the contract used. -->
+
+## Change type
+
+- [ ] Semantic change
+- [ ] Source relocation only (no semantic change)
+- [ ] Repository mechanics (`tools/`, `.github/`, root files)
+- [ ] Documentation
+
+## Verification
+
+<!-- Exact commands and results. Use PASS, FAIL, SKIP, NOT_RUN or ENV_BLOCKED; only PASS counts as verified. -->
+
+| Command | Result |
 | --- | --- |
-| Outcome / acceptance | User-visible outcome; before/after; executable acceptance |
-| End-to-end consumer chain | Input → authority → physical effect → receipt → actual consumer; dependencies and boundary |
-| Correctness / data quality | Invariants, transactional limits, failure counterexamples; no fabricated success |
-| Capacity / performance | Critical-path latency/throughput or measured budget; expected overhead |
-| Resource costs / Workspace leaks | Job/Workspace memory, disk, handles, cleanup, long-running recovery; measurement or N/A |
-| Reliability / failure recovery | Abort, timeouts, retry/UNKNOWN, isolation, cancellation, rollback, non-idempotent effects |
-| Debuggability / observability / audit | Operators can reconstruct who did what, when, by which source and physical receipt |
-| Architecture / LEGO reuse | Mature project/config reused; DELETE-CUSTOM→REUSE→COMPOSE; no duplicate Store/state machine |
-| Evolution / technical debt | Change surface, compatibility, migration/retirement; test and doc ownership |
-| Security / external compliance | Permissions, data privacy, relevant standard/legal obligations; explicit scope |
-| Dependency / supply-chain safety | Existing updater/lockfile, upstream provenance, license and deploy closure |
-| Formal methods / independent falsification | Contracts and refinement boundaries; red→green and independent counterexamples |
-| Deployment and rollback | Source vs installed vs running; rollback and user-impact boundary |
-| **Independent Agent review — required** | **Other actual participant's identity, review link, exact revision, verdict and unresolved findings. PENDING means not reviewed.** |
+|  |  |
 
-**Scope of verification:** State which checks ran against this exact revision,
-which required external services/roles, what was skipped, and what remains
-UNKNOWN. Never equate a green unit test, hash, document, schema or JSON shape
-with production effect or business completion.
+## Engineering review (all PRs; risk-tiered)
 
-**Independence:** The reviewer must not be this PR's sole author. Record a
-real review on GitHub or an attributable existing Space message; do not invent
-a role/person, create a signoff-only Agent, or mark the gate complete based on
-a self-review. Keep a Draft PR until substantive review and required tests
-are actually complete.
+<!-- Complete the rows relevant to this PR. For irrelevant rows use N/A with a consumer-based reason; unknown is NOT failure or success. Keep concrete evidence, budgets, and counterexamples rather than hashes/format ceremonies. Do not assign fictional owner Agents. -->
 
-**Review economy:** Keep each cell to one concrete sentence or one test/trace
-link. N/A must give a reason; don't create synthetic metrics, ritual checklists,
-extra approval layers, or byte/hash exercises unrelated to business outcomes.
+| Review axis | Decision / acceptance criterion | Evidence, cost, remaining risk or N/A reason |
+| --- | --- | --- |
+| Business outcome | <!-- User-visible result and measurable acceptance --> | <!--  --> |
+| Consumer path and boundaries | <!-- Entry -> state/effect -> receipt -> downstream; API/contracts changed --> | <!--  --> |
+| Correctness and data quality | <!-- Authoritative source, UNKNOWN handling, invariants --> | <!--  --> |
+| Performance and efficiency budget | <!-- p95/p99 latency, throughput, bottleneck/DB-lock budget --> | <!--  --> |
+| Total resources | <!-- CPU, anon RSS vs page cache, I/O, disk, process/workspace lifetime, $ cost --> | <!--  --> |
+| Reliability and fault handling | <!-- Crash/cancel/restart, stale actor, UNKNOWN/receipt/replay, rollback --> | <!--  --> |
+| Debuggability, observability, audit | <!-- How an operator reproduces and traces a failure end-to-end --> | <!--  --> |
+| Reuse, modularity, long-term evolution | <!-- Mature LEGO reused/changed, contracts and technical debt retired --> | <!--  --> |
+| Dependencies, supply chain, security, compliance | <!-- Rust/Python/TS ecosystem, pinned deps, trust boundary, applicable standards --> | <!--  --> |
+| Formal refinement and core tests | <!-- Critical invariant/counterexample, native or model evidence, gaps --> | <!--  --> |
+| Collaboration and core documentation | <!-- Actual affected Agents/consumers consulted, durable handoff and docs --> | <!--  --> |
+| Source -> CI -> merge -> installed -> consumer | <!-- Separate real statuses; SOURCE PASS is not a deployment claim --> | <!--  --> |
+
+## Independent Agent audit (required process gate before merge)
+
+<!-- For EVERY PR: one real other Agent must review the exact CURRENT full HEAD commit SHA, consumer path, counterexample, and unresolved risks. Record evidence in PR review/comment or durable Space. The author, CI success, an old-HEAD review, or a fictional owner cannot sign off. ANY new source commit invalidates the previous approval until a different Agent re-reviews the new HEAD. This Markdown checklist is NOT a machine-enforced GitHub branch rule; do not claim native enforcement without separate ruleset evidence. -->
+
+- [ ] Another real Agent explicitly returned **PASS** for the current full HEAD **after independently verifying every material blocker is resolved**; PENDING / CHANGES_REQUESTED / UNKNOWN mean DO NOT MERGE
+- Current PR HEAD (full SHA, checked before merge):
+- Independent reviewer (actual Agent identity, distinct from author):
+- Exact reviewed HEAD SHA (must equal current HEAD):
+- Review evidence (GitHub review/comment or durable Space reference):
+- Independent reviewer verdict (**PASS** on current HEAD required; PENDING / CHANGES_REQUESTED / UNKNOWN block merge), falsification and verified blocker resolution: **PENDING**
+
+## Checklist
+
+- [ ] No secrets, credentials or large binaries added
+- [ ] No imports of another owner's internals
+- [ ] Relocation and semantic changes are not mixed

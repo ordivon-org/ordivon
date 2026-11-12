@@ -1531,7 +1531,14 @@ exit 0
             policy = policies[0]
             self.assertLess(steps.index(installer), steps.index(policy))
             self.assertIn("set -euo pipefail", policy["run"])
-            self.assertIn("mise -C services/runtime exec -- cargo deny", policy["run"])
+            self.assertIn(
+                f"mise -C services/runtime exec rust@{toolchain} -- cargo deny",
+                policy["run"],
+            )
+            self.assertNotIn(
+                "mise -C services/runtime exec -- cargo deny",
+                policy["run"],
+            )
             self.assertIn("--config deny.toml check", policy["run"])
             self.assertIn("--manifest-path Cargo.toml", policy["run"])
             self.assertIn("--config deny.toml", policy["run"])

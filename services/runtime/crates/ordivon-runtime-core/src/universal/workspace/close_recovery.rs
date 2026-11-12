@@ -19,14 +19,23 @@ fn require_recent_workspace_consumer_release(
 }
 
 #[cfg(target_os = "linux")]
-fn installed_systemd_workspace_consumers(
-    workspace_id: &str,
+fn installed_systemd_workspace_consumers_at(
+    workspace_path: &Path,
     roots: &[&Path],
 ) -> Result<Vec<String>, UniversalExecError> {
     const MAX_UNIT_BYTES: u64 = 1024 * 1024;
     const MAX_ENTRIES: usize = 65536;
     const MAX_DEPTH: usize = 12;
-    let prefix = format!("/var/lib/ordivon/runtime/workspaces/{workspace_id}");
+    if !workspace_path.is_absolute() {
+        return Err(external_unit_inspection_error("Workspace consumer path is not absolute"));
+    }
+    let workspace_id = workspace_path.file_name().and_then(|name| name.to_str())
+        .ok_or_else(|| external_unit_inspection_error("Workspace ID is invalid"))?;
+    let prefix = workspace_path.to_string_lossy().into_owned();
+    let template_parent = workspace_path.parent()
+        .ok_or_else(|| external_unit_inspection_error("Workspace root is invalid"))?;
+    let template_i = format!("{}/%i", template_parent.display());
+    let template_unescaped = format!("{}/%I", template_parent.display());
     let mut matches = Vec::new();
     let mut observed_entries = 0_usize;
     let mut pending = Vec::new();
@@ -185,8 +194,7 @@ fn installed_systemd_workspace_consumers(
                     return false;
                 }
                 if instance_alias && (
-                    line.contains("/var/lib/ordivon/runtime/workspaces/%i")
-                    || line.contains("/var/lib/ordivon/runtime/workspaces/%I")
+                    line.contains(&template_i) || line.contains(&template_unescaped)
                 ) {
                     // For installed agent@ws-id.service, systemd expands %i
                     // to ws-id; a literal-only source search misses it.
@@ -218,16 +226,19 @@ fn installed_systemd_workspace_consumers(
 // already-unlinked unit source. Query the native read-only manager projection;
 // this is an additional bounded fence, never a completeness/TOCTOU proof.
 #[cfg(target_os = "linux")]
-fn manager_unit_consumers(
+fn manager_unit_consumers_at(
     properties: &str,
-    workspace_id: &str,
+    workspace_path: &Path,
     expected_names: &[String],
 ) -> Result<Vec<String>, UniversalExecError> {
     use std::collections::HashSet;
     let expected: HashSet<&str> = expected_names.iter().map(String::as_str).collect();
     let mut seen = HashSet::new();
     let mut hits = Vec::new();
-    let prefix = format!("/var/lib/ordivon/runtime/workspaces/{workspace_id}");
+    if !workspace_path.is_absolute() {
+        return Err(external_unit_inspection_error("Workspace consumer path is not absolute"));
+    }
+    let prefix = workspace_path.to_string_lossy().into_owned();
     for unit in properties.split("\n\n").filter(|unit| !unit.trim().is_empty()) {
         let mut name = None;
         let mut state = None;
@@ -294,7 +305,7 @@ fn manager_read_only_query(args: &[&str]) -> Result<String, UniversalExecError> 
 }
 
 #[cfg(target_os = "linux")]
-fn ensure_no_loaded_manager_consumer(workspace_id: &str) -> Result<(), UniversalExecError> {
+fn ensure_no_loaded_manager_consumer_at(workspace_path: &Path) -> Result<(), UniversalExecError> {
     // The system manager does not exist in non-systemd PID1 environments.
     // User manager / arbitrary process readsets remain outside this check.
     if !Path::new("/run/systemd/system").is_dir() {
@@ -326,7 +337,7 @@ fn ensure_no_loaded_manager_consumer(workspace_id: &str) -> Result<(), Universal
     ];
     args.extend(names.iter().map(String::as_str));
     let properties = manager_read_only_query(&args)?;
-    let consumers = manager_unit_consumers(&properties, workspace_id, &names)?;
+    let consumers = manager_unit_consumers_at(&properties, workspace_path, &names)?;
     if !consumers.is_empty() {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::WorkspaceStateMismatch,
@@ -336,6 +347,39 @@ fn ensure_no_loaded_manager_consumer(workspace_id: &str) -> Result<(), Universal
         ));
     }
     Ok(())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+fn legacy_test_workspace(workspace_id: &str) -> std::path::PathBuf {
+    Path::new("/var/lib/ordivon/runtime/workspaces").join(workspace_id)
+}
+
+#[cfg(all(test, target_os = "linux"))]
+fn installed_systemd_workspace_consumers(
+    workspace_id: &str, roots: &[&Path],
+) -> Result<Vec<String>, UniversalExecError> {
+    installed_systemd_workspace_consumers_at(&legacy_test_workspace(workspace_id), roots)
+}
+
+#[cfg(all(test, target_os = "linux"))]
+fn manager_unit_consumers(
+    properties: &str, workspace_id: &str, expected_names: &[String],
+) -> Result<Vec<String>, UniversalExecError> {
+    manager_unit_consumers_at(
+        properties, &legacy_test_workspace(workspace_id), expected_names
+    )
+}
+
+#[cfg(all(test, target_os = "linux"))]
+fn ensure_no_loaded_manager_consumer(workspace_id: &str) -> Result<(), UniversalExecError> {
+    ensure_no_loaded_manager_consumer_at(&legacy_test_workspace(workspace_id))
+}
+
+#[cfg(all(test, target_os = "linux"))]
+fn ensure_no_installed_systemd_consumer(
+    workspace_id: &str, roots: &[&Path],
+) -> Result<(), UniversalExecError> {
+    ensure_no_installed_systemd_consumer_at(&legacy_test_workspace(workspace_id), roots)
 }
 
 #[cfg(target_os = "linux")]
@@ -349,11 +393,11 @@ fn external_unit_inspection_error(reason: &str) -> UniversalExecError {
 }
 
 #[cfg(target_os = "linux")]
-fn ensure_no_installed_systemd_consumer(
-    workspace_id: &str,
+fn ensure_no_installed_systemd_consumer_at(
+    workspace_path: &Path,
     roots: &[&Path],
 ) -> Result<(), UniversalExecError> {
-    let matches = installed_systemd_workspace_consumers(workspace_id, roots)?;
+    let matches = installed_systemd_workspace_consumers_at(workspace_path, roots)?;
     if matches.is_empty() {
         return Ok(());
     }
@@ -432,8 +476,8 @@ pub(crate) fn remove_git_workspace(
 
     #[cfg(target_os = "linux")]
     if target.exists() {
-        ensure_no_installed_systemd_consumer(
-            &request.workspace_id,
+        ensure_no_installed_systemd_consumer_at(
+            &target,
             &[
                 Path::new("/etc/systemd/system.control"),
                 Path::new("/run/systemd/system.control"),
@@ -449,15 +493,11 @@ pub(crate) fn remove_git_workspace(
                 Path::new("/run/systemd/generator.late"),
             ],
         )?;
-        // Both manager property matching and installed-unit parsing above
-        // address this exact production Workspace path namespace. A test or
-        // alternative configured workspace root cannot be retained by that
-        // particular path: do not impose a global PID1 query on unrelated
-        // temporary Git worktree closures.
-        if target
-            == Path::new("/var/lib/ordivon/runtime/workspaces").join(&request.workspace_id)
-        {
-            ensure_no_loaded_manager_consumer(&request.workspace_id)?;
+        // The manager must use the actual configured/bound PG Workspace path,
+        // not an obsolete static Legacy Runtime path. Avoid imposing global
+        // PID1 queries on unrelated /tmp CI fixture workspaces.
+        if target.starts_with(Path::new("/var/lib/ordivon")) {
+            ensure_no_loaded_manager_consumer_at(&target)?;
         }
     }
 
@@ -1309,6 +1349,41 @@ mod installed_unit_consumer_tests {
         // the exact native probe must handle names beginning with a dash.
         ensure_no_loaded_manager_consumer("ws-nonexistent-ordivon-gpt6-probe-20261101")
             .expect("no unrelated loaded manager consumer");
+    }
+
+    #[test]
+    fn pg_native_workspace_consumer_uses_bound_path_and_exact_instance() {
+        let temp = TestUnitRoot::new();
+        let root = temp.path().join("units");
+        fs::create_dir_all(&root).unwrap();
+        let expected = Path::new("/var/lib/ordivon/pg-candidate/workspaces/ws-pg");
+        let neighbor = Path::new("/var/lib/ordivon/pg-candidate/workspaces/ws-pg-copy");
+        let service = root.join("pg-runner.service");
+        fs::write(
+            &service,
+            format!("[Service]\nWorkingDirectory={neighbor:?}\n"),
+        ).unwrap();
+        assert!(installed_systemd_workspace_consumers_at(expected, &[&root]).unwrap().is_empty());
+        fs::write(
+            &service,
+            format!("[Service]\nExecStart=/bin/sh {}/run.sh\n", expected.display()),
+        ).unwrap();
+        let hits = installed_systemd_workspace_consumers_at(expected, &[&root]).unwrap();
+        assert_eq!(hits, vec![service.display().to_string()]);
+        assert!(ensure_no_installed_systemd_consumer_at(expected, &[&root]).is_err());
+        let names = vec!["transient-pg.service".to_string()];
+        let manager = format!(
+            "Id=transient-pg.service\nLoadState=loaded\nWorkingDirectory={}\n\n",
+            expected.display()
+        );
+        assert_eq!(manager_unit_consumers_at(&manager, expected, &names).unwrap(), names);
+        assert!(manager_unit_consumers_at(&manager, neighbor, &names).unwrap().is_empty());
+        let template = root.join("runner@ws-pg.service");
+        fs::write(&template,
+            "[Service]\nWorkingDirectory=/var/lib/ordivon/pg-candidate/workspaces/%i\n"
+        ).unwrap();
+        assert!(installed_systemd_workspace_consumers_at(expected, &[&root])
+            .unwrap().contains(&template.display().to_string()));
     }
 
     #[test]

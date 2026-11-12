@@ -210,3 +210,52 @@ multi-country fallback requires a separate qualified Carrier. Ordered mode
 cycles through candidate connections on successive reconnects; it is not an
 independent VPN, proof of endpoint health, or proactive failback when SG
 recovers. Do not use a host-direct fallback for VPN-only consumers.
+
+
+### DNS measurement planes (operational interpretation)
+
+The host network DNSproxy serves 127.0.0.1:25353 and uses direct UDP/53
+Cloudflare and Google upstreams. Blackbox probes named
+`blackbox-dns-upstream-cloudflare` and `...-google` run in the **host**
+network namespace; their legacy alert names do **not** measure VPN DoT.
+Prometheus annotates the legacy alerts with
+`observation_plane=host_direct_udp53` to prevent false Gluetun restarts.
+
+The actual Gluetun VPN DNS uses DoT/853 inside the Gluetun container
+network namespace. The existing native `provider:gluetun:verify` includes
+a one-shot `provider:gluetun:dns-consumer`: inspect the *running* Podman
+container's PID, enter that network namespace with util-linux `nsenter`,
+and use mature `dig` against its local 127.0.0.1:53 to require real
+example.com A and AAAA answers. This tests the consumer's actual local
+DNS **effect** without another daemon, sidecar, privileged listening socket,
+or host-direct VPN fallback. Because answers may be served from Gluetun's
+cache or filtering layers, passing does **not** prove each encrypted upstream
+is working, a particular iOS device selected the Exit Node, or public WAN
+failover occurred. The independent shared-carrier HTTPS probe remains a
+separate business effect.
+
+
+### Native DoT upstream attribution (separate from cached consumer DNS)
+
+The existing provider:gluetun:verify now reuses BIND 9.20 dig's TLS
+certificate validation and Linux util-linux nsenter inside the actual
+running Gluetun Podman network namespace. It derives the **configured**
+DNS_UPSTREAM_RESOLVER_TYPE and DNS_UPSTREAM_RESOLVERS from that container's
+existing metadata and tests the qualified native provider endpoints:
+Cloudflare (1.1.1.1:853, cloudflare-dns.com) and Google
+(8.8.8.8:853, dns.google). No extra sidecar, daemon, registry, credential,
+connection selector, or new network path is introduced.
+
+Unlike the local 127.0.0.1:53 consumer check, this makes a new TLS+DNS
+request to the remote source with CA validation and an expected hostname.
+An answer is mandatory: BIND dig may return exit status 0 even when TLS
+peer certificate validation fails. One upstream failed but another returned
+a valid A answer is **DEGRADED**, not complete DNS failure. Zero successful
+upstreams or an unrecognized currently configured resolver fails the
+readiness check, without automatically restarting or reconfiguring VPN.
+
+This is a point-in-time, explicitly scoped observation, not assurance
+that Gluetun internally selected exactly the same upstream, that every
+future query succeeds, or that an iPhone/iPad used its expected Exit Node.
+Provider DNS consumer answers, remote DoT transport, carrier HTTPS
+readiness, and device-origin receipts remain distinct evidence.
