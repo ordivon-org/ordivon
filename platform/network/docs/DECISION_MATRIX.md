@@ -280,6 +280,50 @@ Upstream native authorities:
 - https://www.freedesktop.org/software/systemd/man/latest/systemctl.html
 - https://nix.dev/manual/nix/2.34/package-management/profiles
 
+## Native publication concurrency fence (R13)
+
+R12 separates installed SourceCut from the running sing-box process
+birth-order witness, but two independent agents can still interleave
+check/install/restart/verify. Five original Go Task converge handlers
+were run simultaneously in isolated shadow Taskfiles: without an OS lock,
+both invocations entered materialization; different consumers also raced
+through the shared systemd manager.
+
+R13 reuses util-linux flock(1) in command-wrapper mode, not a new
+Registry, Network daemon, watchdog or release manager. Five fixed
+Type=simple sing-box consumers use one native shared lock file at
+/run/lock/ordivon-network-v2-converge.lock. The locked command wraps
+the original ordered native Go Task validation, SourceCut/process
+classification, materialization, local restart, loaded readback and
+real consumer ready/verify. A competing converge exits 75 with an
+explicit UNKNOWN before any source write or systemctl effect.
+
+The lock is OS-held, not a cached Boolean or stale PID file. The
+kernel releases it after the complete foreground process group exits.
+Real Go Task two-process fixtures prove same-owner and cross-owner
+exclusion and successful reacquisition after killing the first process
+group. Go Task's portable shell does not accept exec 9> redirects:
+the supported native util-linux flock command-wrapper form is used.
+
+Scope limitations are intentional. The five public converge entrypoints
+are serialized, but directly callable materialize tasks, Core, Shared,
+Mobile and external writers do not automatically participate. flock
+is not a multi-file crash-atomic commit or durable generation: a crash
+can still leave a partially installed bundle. SourceCut and loaded
+evidence must be reobserved before another effect. Nor does this
+prove sing-box in-memory policy digest, iOS real Exit Node selection,
+DNS client traffic, Windows active app egress or other unsampled paths.
+
+The next cross-system improvement should close standalone materialize
+and other direct writer bypasses with one *native* publication
+admission contract, without adding a second network manager or
+replicating per-consumer locks. A broad replacement still needs
+recovery/rollback qualification and a verified consumer inventory.
+
+Upstream mechanisms:
+- https://kernel.googlesource.com/pub/scm/utils/util-linux/util-linux/+/master/sys-utils/flock.1.adoc
+- https://taskfile.dev/docs/guide/dependencies
+
 ## Classification rules
 
 ```text

@@ -95,9 +95,10 @@ tasks:
   consumer:claude:converge:
     desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
-      - task: consumer:claude:validate
       - |
+        if flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock /bin/sh -s <<'NETWORK_V2_CONVERGE'; then
         set -eu
+        task --silent consumer:claude:validate
         source_state="$(task --silent consumer:claude:classify)" || {
           echo 'claude SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
@@ -131,7 +132,16 @@ tasks:
         systemctl is-active --quiet network-v2-claude-proxy.service
         task --silent consumer:claude:sourcecut
         test "$(task --silent consumer:claude:process-fresh)" = MATCH
-      - task: consumer:claude:verify
+        task --silent consumer:claude:verify
+        NETWORK_V2_CONVERGE
+          :
+        else
+          result=$?
+          if test "$result" -eq 75; then
+            echo 'UNKNOWN: a Network converge is already in progress; refusing overlapping effects' >&2
+          fi
+          exit "$result"
+        fi
 
   consumer:claude:verify:
     desc: Verify exact deployed Claude authority/client bytes and live consequence readiness
