@@ -249,10 +249,28 @@ fn workspace_dirty_paths(workspace: &Path) -> Result<Vec<String>, UniversalExecE
         workspace,
         ["ls-files", "--others", "--exclude-standard", "-z"],
     )?;
+    // Git's non-forced worktree remove MAY DELETE ignored files. They are
+    // absent from the tracked/untracked view above and cannot be recovered
+    // from a Git rescue ref. Use Git's own ignore rules rather than assuming
+    // build output or research data are disposable. --directory keeps large
+    // ignored trees (e.g. target/, node_modules/) bounded to one observation
+    // per ignored directory instead of enumerating every child.
+    let ignored = git_output_bytes(
+        workspace,
+        [
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "--directory",
+            "-z",
+        ],
+    )?;
     let mut paths = Vec::new();
     for raw in tracked
         .split(|byte| *byte == 0)
         .chain(untracked.split(|byte| *byte == 0))
+        .chain(ignored.split(|byte| *byte == 0))
     {
         if raw.is_empty() {
             continue;
