@@ -1763,6 +1763,134 @@ exec /usr/bin/git "$@"
     );
 }
 
+/// A source-clean Workspace can have zero active Jobs after a newly
+/// completed Job. The original Python lifecycle pre-scan is NOT a durable
+/// quiet-period proof. Native close must recheck the last PG Job activity
+/// while holding its existing advisory lock and refuse the physical Git
+/// removal despite consumerReleased=false.
+#[test]
+#[ignore = "launches an isolated PostgreSQL18 cluster and native Git worktree"]
+fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
+    use ordivon_runtime_core::{
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceCloseRequest,
+    };
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let workspace_id = format!("ws-quiet-recheck-{}", Uuid::now_v7().simple());
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    })
+    .unwrap();
+    runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .unwrap();
+
+    // Give the physical carrier an old creation time: otherwise the
+    // universal 4h workspace-creation guard would mask the missing PG
+    // last-Job guard, and the test would falsely pass on the wrong reason.
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let record_file = fixture
+        .root
+        .join("store/workspace-records")
+        .join(format!("{workspace_id}.json"));
+    let mut record: Value = serde_json::from_slice(&fs::read(&record_file).unwrap()).unwrap();
+    assert!(record["createdUnixMs"].is_number());
+    record["createdUnixMs"] = json!(now_ms - 7 * 60 * 60 * 1000);
+    fs::write(&record_file, serde_json::to_vec(&record).unwrap()).unwrap();
+
+    // A terminally successful Job was admitted after the reclaimer's
+    // hypothetical earlier PG scan. There are no active leases left; Git
+    // HEAD and source digest remain unchanged. Prior native close would
+    // REMOVE this still-consumed Workspace after the old creation grace.
+    let job_id = format!("job-{}", Uuid::now_v7());
+    let request_id = format!("pg-recent-terminal-{}", Uuid::now_v7());
+    fixture
+        .db
+        .execute(
+            "INSERT INTO jobs (
+            job_id,principal,client_request_id,request_digest,operation_digest,
+            workspace_id,workspace_snapshot_json,execution_plan_json,
+            execution_plan_digest,created_at_ms,desired_state,resolution
+         ) VALUES ($1,'quiet-consumer',$2,'sha256:request','sha256:effect',
+                   $3,'{}','{}','sha256:plan',$4,'run','succeeded')",
+            &[&job_id, &request_id, &workspace_id, &now_ms],
+        )
+        .unwrap();
+
+    let visible = runtime
+        .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+        })
+        .unwrap();
+    assert_eq!(
+        visible["activeJobIds"],
+        json!([]),
+        "the Job has truly completed, and active-only readback is empty"
+    );
+
+    let denied = runtime
+        .close_workspace(&WorkspaceCloseRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            force: false,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        })
+        .expect_err(
+            "the PG-native lock must reject a recently completed Job even when activeJobIds=[]",
+        );
+    assert_eq!(
+        denied.code.as_str(),
+        "WORKSPACE_STATE_MISMATCH",
+        "{denied:?}"
+    );
+    assert_eq!(denied.field.as_deref(), Some("consumerReleased"));
+    assert!(
+        denied.message.contains("recent PG Job activity"),
+        "{denied:?}"
+    );
+    assert!(
+        fixture
+            .root
+            .join("store/workspaces")
+            .join(&workspace_id)
+            .is_dir(),
+        "source Git Workspace must survive the native PG close refusal"
+    );
+    assert!(runtime
+        .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
+            schema_version: 1,
+            workspace_id,
+        })
+        .is_ok());
+}
+
 /// End-to-end native PostgreSQL application regression for the lock/snapshot
 /// boundary: a real PgAdmissionStore.admit() transaction is queued AHEAD of
 /// Workspace.close() while a third session holds the shared global advisory

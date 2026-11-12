@@ -659,8 +659,11 @@ jobs:
           set -euo pipefail
           # Existing Runtime Owner controls its exact Rust 1.99.1 toolchain.
           # Preserve the existing policy and manifest; no pass-through skip.
+          # Explicitly select Rust: a bare mise exec also cold-installs the
+          # unrelated PowerShell/nextest tools from Runtime mise.toml.
+          # Those GitHub API fetches must not gate Rust supply-chain verification.
           # cargo-deny common flags precede the "check" subcommand.
-          mise -C services/runtime exec -- cargo deny \
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
             --manifest-path Cargo.toml \
             --config deny.toml check
 

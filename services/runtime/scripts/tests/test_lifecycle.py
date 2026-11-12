@@ -1476,6 +1476,7 @@ class LifecycleTests(unittest.TestCase):
         starts = [line for line in unit.splitlines() if line.startswith("ExecStart=")]
         self.assertEqual(len(starts), 1)
         self.assertIn("/ordivon-runtime-pg-reclaim --apply ", starts[0])
+        self.assertIn("--policy-file /etc/ordivon/workspace-retention.json", starts[0])
         self.assertIn("--min-age-hours 4 --limit 25", starts[0])
         self.assertIn("--workspace-root /var/lib/ordivon/pg-candidate/workspaces", starts[0])
         self.assertNotIn("registry.sqlite3", unit)

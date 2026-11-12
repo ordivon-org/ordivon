@@ -95,8 +95,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Select only the pinned Rust toolchain. A bare mise exec also
+          # installs unrelated PowerShell/nextest tools from Runtime mise.toml,
+          # introducing GitHub API rate-limit failure before cargo-deny runs.
           # cargo-deny common flags precede the "check" subcommand.
-          mise -C services/runtime exec -- cargo deny \
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
             --manifest-path Cargo.toml \
             --config deny.toml check
 
