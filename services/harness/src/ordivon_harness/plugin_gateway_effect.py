@@ -142,6 +142,17 @@ def _required_text(value: object, label: str) -> str:
 
 
 def _gateway_field(payload: dict[str, JsonValue], snake: str, camel: str) -> JsonValue | None:
+    # A single source observation must not express two contradictory facts
+    # merely by including both valid wire spellings. All four Gateway
+    # execution endpoints share this one decoder; no extra state/authority.
+    if snake in payload and camel in payload:
+        primary, secondary = payload[snake], payload[camel]
+        # JSON boolean and integer tokens never mean the same thing:
+        # Python's False == 0 / True == 1 cannot stand in as wire identity.
+        if type(primary) is not type(secondary) or primary != secondary:
+            raise HarnessRuntimeClientError(
+                f"Gateway {snake}/{camel} has conflicting source aliases"
+            )
     if snake in payload:
         return payload[snake]
     return payload.get(camel)
@@ -165,9 +176,7 @@ def _gateway_delivery_disposition(
     if value is None and allow_missing:
         return "in_progress"
     if not isinstance(value, str) or value not in _GATEWAY_DELIVERY_DISPOSITIONS:
-        raise HarnessRuntimeClientError(
-            "Gateway deliveryDisposition is missing or invalid"
-        )
+        raise HarnessRuntimeClientError("Gateway deliveryDisposition is missing or invalid")
     return value
 
 
@@ -208,7 +217,7 @@ class GatewayMcpRuntimeAdapter:
         expected = f"ordivon-exec:v1:{owner}:{native_id}"
         if (
             payload.get("capability") != self.grant.capability
-            or payload.get("owner_id", payload.get("ownerId")) != owner
+            or _gateway_field(payload, "owner_id", "ownerId") != owner
             or _gateway_field(payload, "operation_ref", "operationRef") != operation_ref
             or operation_ref != expected
         ):
@@ -282,9 +291,15 @@ class GatewayMcpRuntimeAdapter:
         # Reject unmatched future Runtime capabilities BEFORE owner dispatch
         # instead of silently weakening budget, prerequisites, context, steps.
         allowed_execution = {
-            "workspaceId", "executable", "args", "cwdRelative",
-            "foreignReferences", "env", "timeoutMs",
-            "stdoutLimitBytes", "stderrLimitBytes",
+            "workspaceId",
+            "executable",
+            "args",
+            "cwdRelative",
+            "foreignReferences",
+            "env",
+            "timeoutMs",
+            "stdoutLimitBytes",
+            "stderrLimitBytes",
         }
         unsupported = set(execution) - allowed_execution
         if unsupported:
