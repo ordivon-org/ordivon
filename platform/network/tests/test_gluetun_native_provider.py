@@ -260,7 +260,9 @@ def test_gluetun_dot_upstream_observes_actual_provider_namespace_and_certificate
     assert 'DNS_UPSTREAM_RESOLVER_TYPE=' in t and 'DNS_UPSTREAM_RESOLVERS=' in t
     assert 'nsenter --target' in t
     assert '+tls +tls-ca +tls-hostname=' in t
-    assert 'cloudflare-dns.com' in t and 'dns.google' in t
+    native_source_lines = {line.strip() for line in t.splitlines()}
+    assert 'cloudflare) address=1.1.1.1; hostname=cloudflare-dns.com ;;' in native_source_lines
+    assert 'google) address=8.8.8.8; hostname=dns.google ;;' in native_source_lines
     assert 'VPN_NAMESPACE_DOT_UPSTREAM_DEGRADED' in t
     assert 'VPN_NAMESPACE_DOT_UPSTREAMS_UNAVAILABLE_OR_UNKNOWN' in t
     assert 'grep -Eq' in t and 'healthy=$((healthy + 1))' in t
