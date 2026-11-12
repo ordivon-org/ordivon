@@ -132,7 +132,7 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 
 ### 多个应用同时断网时如何定位
 
-从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：它只在 PyPI、Codex 与 Claude **三路每分钟 HTTPS 探针最近 90 秒都有样本、并持续两分钟同时失败**时成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席则须查看已有的单独 `absent()` 告警，不能把缺测当作成功或失败。
+从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：它只在 PyPI、Codex 与 Claude **三路每分钟 HTTPS 探针最近 90 秒都有样本、并持续两分钟同时失败**时成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席须查看 `NetworkConsumerEvidenceMissing`（观测缺失），而非把无样本解释为 NetworkVPN/Scoped `Unavailable` 的实测失败；不能把缺测当作成功或失败。
 
     curl -fsS http://127.0.0.1:29090/api/v1/alerts |
       jq '.data.alerts[] | select(.labels.alertname=="NetworkCorrelatedConsumerOutage")'
