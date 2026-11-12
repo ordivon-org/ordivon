@@ -21,26 +21,7 @@
     }
   ],
   "route": {
-    "rules": [
-      {
-        "inbound": [
-          "chat-ingress"
-        ],
-        "network": [
-          "tcp"
-        ],
-        "domain": [
-          "chatgpt.com"
-        ],
-        "port": [
-          443
-        ],
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "action": "reject"
-      }
-    ]
+    "rules": [],
+    "final": "provider-carrier"
   }
 }
