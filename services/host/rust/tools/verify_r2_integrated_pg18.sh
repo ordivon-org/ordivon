@@ -60,12 +60,17 @@ cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --tes
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/python_oracle.py" verify)
 echo "R2_PYTHON_RUST_BIDIRECTIONAL_PASS"
 cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --quiet
+export HOST_RUST_BINARY
+HOST_RUST_BINARY="$(bash "$root/services/host/rust/tools/rust_binary_path.sh")"
+test -x "$HOST_RUST_BINARY"
+echo "R2_CARGO_BINARY_PATH_QUALIFIED"
+
 # A missing credential must never start an unrestricted HTTP listener.
 set +e
 env -u ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE \
   ORDIVON_HOST_V2_TRANSPORT=streamable-http ORDIVON_HOST_V2_HOST=127.0.0.1 \
   ORDIVON_HOST_V2_PORT=0 \
-  timeout 5s "$root/services/host/rust/target/debug/ordivon-host-rust" >/dev/null 2>&1
+  timeout 5s "$HOST_RUST_BINARY" >/dev/null 2>&1
 missing_owner_rc=$?
 set -e
 if [[ $missing_owner_rc == 0 || $missing_owner_rc == 124 ]]; then
@@ -73,10 +78,10 @@ if [[ $missing_owner_rc == 0 || $missing_owner_rc == 124 ]]; then
   exit 8
 fi
 echo "R10_HOST_HTTP_MISSING_OWNER_CREDENTIAL_FAIL_CLOSED_PASS"
-(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/attention_mcp_cross_language.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/attention_mcp_cross_language.py" "$HOST_RUST_BINARY")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/sync_python_output_contracts.py" --check)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/audit_mcp_surface.py" \
-  --rust-bin "$root/services/host/rust/target/debug/ordivon-host-rust" \
+  --rust-bin "$HOST_RUST_BINARY" \
   --source-manifest "$root/services/host/mcp-surface.json" \
   --extension work.engagement.advance --extension work.engagement.list \
   --report "$root/services/host/rust/planning/mcp_source_rust_r7.json")
@@ -86,14 +91,14 @@ echo "R7_MCP_SOURCE_VS_NATIVE_EXTENSIONS_TYPED_PARITY_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" seed "$doctor_oracle")
 export HOST_RUST_DOCTOR_ORACLE_PATH="$doctor_oracle"
 export HOST_RUST_READ_SEARCH_ORACLE_PATH="$read_search_oracle"
-(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_stdio_smoke.py" "$HOST_RUST_BINARY")
 export HOST_RUST_ENGAGEMENT_OBSERVED_PATH="$engagement_oracle"
-(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_engagement_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_engagement_stdio_smoke.py" "$HOST_RUST_BINARY")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_native_collaboration_oracle.py")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" verify)
-(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_http_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_http_smoke.py" "$HOST_RUST_BINARY")
 # Gateway's real MCP SDK transport + actual Rust HTTP owner + real disposable PG,
 # after Rust's own MCP integration has seeded and checked all direct results.
 bash "$root/tools/repo/run_host_gateway_rust_consumer.sh"
