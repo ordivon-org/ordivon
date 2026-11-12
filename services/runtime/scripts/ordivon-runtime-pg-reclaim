@@ -308,6 +308,7 @@ def run(args: argparse.Namespace) -> dict:
         timeout=20.0,
     )
     for path, head, info, retention_ms, unintegrated in candidates[:args.limit]:
+        close_requested = False
         try:
             workspace = client.call_tool("workspace.get", {"workspaceId":path.name,"schemaVersion":1})
             if (workspace.get("workspaceId") != path.name or workspace.get("dirty") is not False
@@ -342,6 +343,15 @@ def run(args: argparse.Namespace) -> dict:
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
             if current_git_status.returncode or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
+            # A process can enter a Workspace after the initial sweep CWD
+            # census. Refresh this bounded Linux readset before any close.
+            # This remains an advisory guard: native PG/systemd owns the
+            # stronger physical consumer and active-lease checks.
+            if any(
+                item == str(path) or item.startswith(str(path) + "/")
+                for item in _active_process_cwds(root)
+            ):
+                skip("process_cwd_active_at_close");continue
             # An unmerged HEAD is valuable source. Preserve it in the
             # existing Git retention namespace BEFORE any native close effect.
             if currently_unintegrated:
@@ -349,6 +359,7 @@ def run(args: argparse.Namespace) -> dict:
                     repo, path.name, head, digest
                 )
                 results["preserved"].append(result)
+            close_requested = True
             closed = client.call_tool(
                 "workspace.close",
                 {"schemaVersion":1,"workspaceId":path.name,"force":False,
@@ -362,7 +373,21 @@ def run(args: argparse.Namespace) -> dict:
                 raise RuntimeError("Runtime did not confirm closed disposition")
             results["closed"].append(path.name)
         except Exception as error:
-            results["errors"].append({"workspaceId":path.name,"errorType":type(error).__name__})
+            # Source preservation may have succeeded even when transport
+            # fails. A post-request error cannot prove native removal did
+            # NOT happen. Publish an actionable truthful receipt; never
+            # blindly reissue close or announce physical deletion.
+            results["errors"].append({
+                "workspaceId": path.name,
+                "errorType": type(error).__name__,
+                "nativeCloseRequested": close_requested,
+                "physicalCloseStanding": "UNKNOWN" if close_requested else "NOT_REQUESTED",
+                "recoveryRequired": close_requested,
+                "nextProtocolStep": (
+                    "RECONCILE_NATIVE_WORKSPACE_GET_OR_CLOSED_TOMBSTONE"
+                    if close_requested else "RECHECK_SOURCE_AND_POLICY"
+                ),
+            })
     results["eligible"] = len(candidates)
     results["eligibleUnintegrated"] = sum(item[4] for item in candidates)
     return results

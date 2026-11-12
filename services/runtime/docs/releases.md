@@ -207,9 +207,16 @@ the native Workspace close. Native Runtime remains the sole close authority
 and rechecks PG active Jobs, dependents, source digest, installed consumers,
 and worktree state. The adapter passes consumerReleased=false instead of
 inventing evidence of a semantic consumer release: native Runtime owns the
-age-based continuation boundary and retains any rejected close. No direct
-directory delete or deletion on UNKNOWN. The close receipt is physical
-carrier evidence, not semantic task completion.
+age-based continuation boundary and retains any rejected close. The PG
+native close now also checks the **latest PG Job activity under the existing
+admission advisory lock**: a resolved, recently completed Job with zero
+active leases is not an idle Workspace merely because the collector started
+its scan before that Job. Native systemd file and manager checks use the
+**actual configured Workspace path**, including the PG carrier, rather than
+the old SQLite-era path. No direct directory delete or deletion on UNKNOWN.
+A native close timeout is reported as UNKNOWN/recoveryRequired, with the
+retained Git ref and native Workspace/tombstone reconciliation step. The
+close receipt is physical carrier evidence, not semantic task completion.
 Each sweep separately reports skipped classifications, eligible unintegrated
 Workspace count, preserved refs and directories outside this source repository's
 Git worktree inventory. Those directories may belong to other source repositories

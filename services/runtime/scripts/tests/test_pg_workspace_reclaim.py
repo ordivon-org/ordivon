@@ -174,7 +174,9 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             self.assertIsNone(mod._unintegrated_head(self.repo, self.head))
 
     def run_operator_plan(self, *, allow: bool, apply: bool = False,
-                          pinned: bool = False, revoke_during_get: bool = False):
+                          pinned: bool = False, revoke_during_get: bool = False,
+                          process_enters_during_get: bool = False,
+                          close_transport_uncertain: bool = False):
         import argparse
         from unittest.mock import patch
         import time
@@ -200,6 +202,8 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             def call_tool(self, name, parameters):
                 self.calls.append(name)
                 if name == "workspace.get":
+                    if process_enters_during_get:
+                        process_cwd_after_get.append(str(self.enclosing.workspace / "source"))
                     if revoke_during_get:
                         policy_path.write_text(
                             __import__("json").dumps({
@@ -224,6 +228,8 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                     assert parameters["force"] is False
                     assert parameters["consumerReleased"] is False
                     assert parameters["expectedSourceStateDigest"] == "sha256:" + "f" * 64
+                    if close_transport_uncertain:
+                        raise TimeoutError("the test transport has no effect receipt")
                     self.enclosing.git(
                         "worktree", "remove", str(self.enclosing.workspace),
                     )
@@ -231,6 +237,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 raise AssertionError("unexpected call")
 
         client = RecordingRuntimeClient(self)
+        process_cwd_after_get = []
         with (
             patch.object(mod, "WORKSPACE_ROOT", self.workspaces.resolve()),
             patch.object(
@@ -242,7 +249,8 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                     future_ms - 5 * 3600 * 1000, "succeeded", 0
                 )
             }),
-            patch.object(mod, "_active_process_cwds", return_value=[]),
+            patch.object(mod, "_active_process_cwds",
+                         side_effect=lambda _: process_cwd_after_get.copy()),
             patch.object(mod.time, "time", return_value=future_ms / 1000),
             patch.object(mod, "connect_compatible", return_value=client),
         ):
@@ -261,6 +269,30 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         pinned, _ = self.run_operator_plan(allow=True, pinned=True)
         self.assertEqual(pinned["eligible"], 0)
         self.assertEqual(pinned["skipped"].get("policy_pinned"), 1)
+
+    def test_process_enters_workspace_after_scan_and_prevents_close(self):
+        report, client = self.run_operator_plan(
+            allow=True, apply=True, process_enters_during_get=True
+        )
+        self.assertEqual(client.calls, ["workspace.get"])
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(report["preserved"], [])
+        self.assertEqual(report["skipped"].get("process_cwd_active_at_close"), 1)
+        self.assertTrue(self.workspace.exists())
+
+    def test_native_close_timeout_keeps_accurate_unknown_and_preserved_head(self):
+        report, client = self.run_operator_plan(
+            allow=True, apply=True, close_transport_uncertain=True
+        )
+        self.assertEqual(client.calls, ["workspace.get", "workspace.close"])
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(len(report["errors"]), 1)
+        self.assertEqual(report["errors"][0]["physicalCloseStanding"], "UNKNOWN")
+        self.assertTrue(report["errors"][0]["recoveryRequired"])
+        self.assertEqual(len(report["preserved"]), 1)
+        self.assertEqual(
+            self.git("rev-parse", report["preserved"][0]["retentionRef"]), self.head
+        )
 
     def test_operator_revocation_during_sweep_prevents_closure(self):
         report, client = self.run_operator_plan(
