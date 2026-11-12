@@ -26,9 +26,16 @@ class HostGatewayProvisioningTests(unittest.TestCase):
                 encoding="utf-8",
             )
             uv.chmod(0o755)
+            # This test checks provisioning order, not whether CI built Rust.
+            # Supply an executable fixture so cold CI never depends on Cargo's
+            # target_dir, private fd paths, or a prebuilt Host binary.
+            rust_binary = root / "ordivon-host-rust"
+            rust_binary.write_text("#!/usr/bin/bash\nexit 0\n", encoding="utf-8")
+            rust_binary.chmod(0o755)
             env = dict(os.environ)
             env["PATH"] = str(root) + os.pathsep + env["PATH"]
             env["UV_FAKE_LOG"] = str(log)
+            env["HOST_RUST_BINARY"] = str(rust_binary)
             subprocess.run(
                 ["/usr/bin/bash", str(RUNNER)],
                 cwd=ROOT,
