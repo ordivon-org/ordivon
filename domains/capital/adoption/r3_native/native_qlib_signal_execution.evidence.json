@@ -1,0 +1,154 @@
+{
+  "B_original_exact_source_independent_audit": {
+    "job_id": "job-01a1cf97-01bc-7f80-b452-015353972898",
+    "native_fills": 2,
+    "original_commit": "46f8c46051ea9ac9c9379eef282198e20f70d79c",
+    "paper_cash_minor": 1000304,
+    "scope": "PASS simulation-only, no native research signal in unmodified B source"
+  },
+  "account_consumer": "existing PaperSession/value_session after strict next_open_paper_session",
+  "actual_postgres_effects": "NONE",
+  "cases": {
+    "cancelled_entry_h5_iwm": {
+      "cash_gain_usd": "0",
+      "decision_day": "2025-10-01",
+      "forced_signal_intervention": false,
+      "holding_sessions": 5,
+      "instrument": "IWM",
+      "native_fill_count": 0,
+      "native_order_count": 1,
+      "open_positions": 0,
+      "paper_cash_minor": 1000000,
+      "protected_cash_minor": 900000,
+      "score_model_input": {
+        "IWM": 0.003152724599468392,
+        "QQQ": 0.003152724599468392,
+        "SPY": 0.003152724599468392
+      }
+    },
+    "counterfactual_h20_qqq": {
+      "cash_gain_usd": "25.04",
+      "decision_day": "2025-10-01",
+      "forced_signal_intervention": true,
+      "holding_sessions": 20,
+      "instrument": "QQQ",
+      "native_fill_count": 2,
+      "native_order_count": 2,
+      "open_positions": 0,
+      "paper_cash_minor": 1002504,
+      "protected_cash_minor": 900000,
+      "score_model_input": {
+        "IWM": 0.016516410007006266,
+        "QQQ": 1.0165164100070063,
+        "SPY": 0.016516410007006266
+      }
+    },
+    "counterfactual_h5_spy": {
+      "cash_gain_usd": "3.04",
+      "decision_day": "2025-10-01",
+      "forced_signal_intervention": true,
+      "holding_sessions": 5,
+      "instrument": "SPY",
+      "native_fill_count": 2,
+      "native_order_count": 2,
+      "open_positions": 0,
+      "paper_cash_minor": 1000304,
+      "protected_cash_minor": 900000,
+      "score_model_input": {
+        "IWM": 0.003152724599468392,
+        "QQQ": 0.003152724599468392,
+        "SPY": 1.0031527245994685
+      }
+    },
+    "qlib_h20_iwm": {
+      "cash_gain_usd": "2.30",
+      "decision_day": "2025-10-01",
+      "forced_signal_intervention": false,
+      "holding_sessions": 20,
+      "instrument": "IWM",
+      "native_fill_count": 2,
+      "native_order_count": 2,
+      "open_positions": 0,
+      "paper_cash_minor": 1000230,
+      "protected_cash_minor": 900000,
+      "score_model_input": {
+        "IWM": 0.016516410007006266,
+        "QQQ": 0.016516410007006266,
+        "SPY": 0.016516410007006266
+      }
+    },
+    "qlib_h5_iwm": {
+      "cash_gain_usd": "3.24",
+      "decision_day": "2025-10-01",
+      "forced_signal_intervention": false,
+      "holding_sessions": 5,
+      "instrument": "IWM",
+      "native_fill_count": 2,
+      "native_order_count": 2,
+      "open_positions": 0,
+      "paper_cash_minor": 1000324,
+      "protected_cash_minor": 900000,
+      "score_model_input": {
+        "IWM": 0.003152724599468392,
+        "QQQ": 0.003152724599468392,
+        "SPY": 0.003152724599468392
+      }
+    },
+    "qlib_h5_qqq": {
+      "cash_gain_usd": "-0.26",
+      "decision_day": "2025-10-15",
+      "forced_signal_intervention": false,
+      "holding_sessions": 5,
+      "instrument": "QQQ",
+      "native_fill_count": 2,
+      "native_order_count": 2,
+      "open_positions": 0,
+      "paper_cash_minor": 999974,
+      "protected_cash_minor": 900000,
+      "score_model_input": {
+        "IWM": 0.003152724599468392,
+        "QQQ": 0.0038986211132704487,
+        "SPY": 0.0038986211132704487
+      }
+    },
+    "qlib_h5_spy": {
+      "cash_gain_usd": "-11.64",
+      "decision_day": "2025-12-11",
+      "forced_signal_intervention": false,
+      "holding_sessions": 5,
+      "instrument": "SPY",
+      "native_fill_count": 2,
+      "native_order_count": 2,
+      "open_positions": 0,
+      "paper_cash_minor": 998836,
+      "protected_cash_minor": 900000,
+      "score_model_input": {
+        "IWM": 0.003152724599468392,
+        "QQQ": 0.002780531279921831,
+        "SPY": 0.0031866587768650365
+      }
+    }
+  },
+  "execution_gate_is_model_profit_or_alpha": false,
+  "initial_account_cash_minor": 1000000,
+  "integer_shares": 1,
+  "kind": "ordivon.finance.r3.qlib-signal-to-native-simulation-proof",
+  "market_data_historical_PIT_certified": false,
+  "native_cancelled_exit": {
+    "exit_code": 1,
+    "job_id": "job-01a1cf8e-74ae-75f3-aad1-fb6e50bafe07",
+    "reason": "native SELL IOC canceled / open position not flattened",
+    "successful_paper_terminal_receipt_exists": false,
+    "test_case": "signal_native_h5_no_exit"
+  },
+  "native_order_consumer": "existing NautilusTrader BacktestNode, LIMIT IOC, on_order_filled and Cache",
+  "portfolio_capital_consumer": "existing plan_strategic_contribution",
+  "protected_reserve_minor": 900000,
+  "real_broker_effects": "NONE",
+  "research_target_exit_T_plus_H_close_equals_native_exit_T_plus_H_plus_1_open": false,
+  "source_Qlib": "native Qlib0.9.7/OOS DatasetH/LightGBM signals on later-captured OpenBB normalized Cboe bars",
+  "standing": "EXECUTABLE_PAPER_SIMULATION_ONLY",
+  "test_price_basis": "synthetic bid/ask around historical EOD OPEN/CLOSE",
+  "true_live_market_fills_certified": false,
+  "vendor_corporate_actions_and_rights_certified": false
+}

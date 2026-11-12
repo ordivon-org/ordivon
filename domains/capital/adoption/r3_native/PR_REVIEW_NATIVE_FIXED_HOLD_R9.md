@@ -81,3 +81,39 @@ ORDIVON_FINANCE_R3_TEST_NO_EXIT=1 for fault scenarios.
 Run the existing test-only consumer at
 domains/capital/adoption/r3_native/tests/probe_native_buy_hold_exit.py.
 Do not use optimized Python mode or real credentials.
+
+## R10 · Actual Qlib-score-driven executable Paper simulation (Agent A)
+
+Acceptance was changed by the user: **execution now matters, research outperformance does not**. Never reject a simulation merely because its predicted return is poor or a test strategy loses money. Continue to distinguish SIMULATION_ONLY from live authority, and preserve economic source/PIT uncertainty.
+
+Original fully native scenario source is B exact Git 46f8c46051ea9ac9c9379eef282198e20f70d79c, independently replayed by another actual Agent A in Windows Job job-01a1cf97-01bc-7f80-b452-015353972898 exit0: native SPY BUY1 $670.45, SELL1 $673.51, fee $0.02, existing Paper cash $10,003.04, zero native open positions. It remains a test-only fixed SPY policy; the A integration below reuses that source directly rather than creating a new OMS, ledger or strategy runner.
+
+Agent A's actual compositional change: use the output of the real existing Qlib0.9.7 DatasetH/LightGBM OOS prediction for a requested historical decision date, select the maximum-score ETF with fixed alphabetical tie-breaking, feed that symbol to the **existing** Capital Portfolio strategic contribution sleeve ($1000 available, $9000 protected), and execute the already existing NautilusTrader Strategy/BacktestNode/LimitIOC BUY/HOLD/SELL with mature `next_open_paper_session` + `value_session` for each historical session. The actual symbol/cost/Paper holdings change with Qlib's input; quantity remains fixed at exactly one whole share. No alpha/market-performance threshold applies.
+
+| Native true-model decision (no score intervention) | Selected instrument | Native buy -> sell | Pure Paper final cash |
+| --- | --- | --- | ---: |
+| 2025-10-01 / H5 | IWM | 242.99 -> 246.23, fee 0.00 | $10,003.24 |
+| 2025-10-15 / H5 | QQQ | 605.11 -> 604.87, fee 0.02 | $9,999.74 |
+| 2025-12-11 / H5 | SPY | 688.18 -> 676.56, fee 0.02 | $9,988.36 |
+| 2025-10-01 / H20 | IWM | 242.99 -> 245.29, fee 0.00 | $10,002.30 |
+
+Actual Windows Runtime Jobs: H5 IWM job-01a1cf88-a8bd-7241-9d9e-6acbc450ee37 (also final re-test job-01a1cf9a-5590-7320-a610-67a62864d8da), H20 IWM job-01a1cf89-fa32-70f1-94d3-6539cf071cd8, natural H5 QQQ job-01a1cf94-a599-7a13-ab25-de9e69f20861, natural H5 SPY job-01a1cf95-702b-7e90-8fe8-b91e046e0998; all exit0, two native filled orders, no native or Paper open positions, reserve9000 retained and Paper receivable settled. Losing scenarios intentionally still execute.
+
+Independent intervention/cancellation counterexamples: `ORDIVON_FINANCE_R3_TEST_FORCE_ASSET=SPY/QQQ` clearly marks a *test intervention*, not real Qlib output, and changes the native instrument/fill and Paper cash (jobs job-01a1cf8a-d0d1-70d2-b202-7a94406ec5bb and job-01a1cf8c-15b7-7423-b184-ac30bdad9515, exit0). Native BUY IOC canceled -> 0 fills/no SELL/cash unchanged $10000 (job-01a1cf8d-4da2-7930-8db4-21eb7075ca9a, exit0). Native SELL IOC canceled -> original position remains and source raises, exit1, NO successful result (job-01a1cf8e-74ae-75f3-aad1-fb6e50bafe07). A real duplicate run to a pre-existing successful output directory explicitly fails *before running native effects* (job-01a1cf9a-d847-7920-a78a-05c323e7d50b, exit1).
+
+| Required PR dimension | Evidence / standing |
+| --- | --- |
+| Business goal | PASS scoped: real Qlib scores determine symbol, native OrderFilled/OrderCanceled and existing Paper cash; no alpha prerequisite. |
+| Core consumer/authority | Existing Qlib -> existing Portfolio allocation -> existing Nautilus BacktestNode -> Trading bridge -> pure Paper. No broker/PG/live capital. |
+| Economic correctness/data | Valid native quote simulation, real event/cash reconciliation, reserve intact and exit-failure not accepted. Historical capture PIT, dividends, corporate actions, true L1 and full costs UNKNOWN. |
+| Mature external reuse | Qlib0.9.7, NautilusTrader2.0rc9, Portfolio, bridge and Paper; selective cherry-pick B exact source. No new optimizer, execution engine, registry or dependency. |
+| Performance/memory/resource | Small bounded one-share replay, isolated outputs, no persistent service; long-term peak RSS, throughput SLA, workspace leak and GC UNKNOWN. |
+| Reliability and observability | Native orders/fills/cache and Paper output, fresh-run output guard, entry cancellation and failed exit tests. No false terminal success. |
+| Security/supply chain/standards | Private capture, simulation only, no new dependencies, no credentials/production DSN; vendor use license, broker and regulatory obligations UNKNOWN. |
+| Formal/refinement | Native fills must imply recorded Portfolio symbol, whole-share budget, matching Paper positions/cash, canceled order cannot produce imaginary fill; Qlib historical PIT unqualified. |
+| Long-term evolution/technical debt | Extend existing B 349LOC test-only Native driver with a narrow model selection, no second Strategy/OMS. Long-running multi-day event streaming into production PG not yet implemented. |
+| Other real-Agent review | A independently reviewed B original exact46f8; this modified A source requires actual B/Coordinator new commit audit and has NOT YET PASSED independent review. |
+
+**Important economic target gap:** the original Qlib 5/20-session label is next OPEN to T+H CLOSE, while the native executable policy exits at T+H+1 OPEN; this code uses the forecasts only as symbol selection, not as correctly calibrated returns. This semantic difference must not be called prediction-to-return equivalence. Another Agent B independently is building an opt-in native Qlib NEXT_OPEN-target with upstream Qlib TimeAdjuster; reuse that existing commit when verified, rather than implementing new research training here.
+
+Machine evidence: `native_qlib_signal_execution.evidence.json`. All economic effects are retrospective SYNTHETIC Paper; real orders, actual PG writes and capital authorization NONE. The original model on 2025-10-01 ties all three symbols; IWM is the deterministic alphabetical tie break, not a demonstrated dynamic edge. Historical model decisions were not actually deployed in 2025.

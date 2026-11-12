@@ -1,7 +1,7 @@
-"""Native Nautilus buy/hold/exit -> existing Paper valuation. SIMULATION ONLY.
+"""Real Qlib OOS score -> existing Portfolio budget -> native Nautilus/Paper.
 
-The fixed SPY hold policy is declared BEFORE the synthetic bars. No model
-signal, broker adapter, new OMS, PG writer, or historical PIT claim.
+Executable *simulation*, using frozen model output, not alpha evidence,
+historically proven PIT, real broker authority or production PG posting.
 """
 from __future__ import annotations
 
@@ -41,12 +41,45 @@ if HOLD not in (5, 20):
     raise ValueError("Only preregistered 5/20-session research hypotheses are tested")
 NO_ENTRY = os.environ.get("ORDIVON_FINANCE_R3_TEST_NO_ENTRY") == "1"
 NO_EXIT = os.environ.get("ORDIVON_FINANCE_R3_TEST_NO_EXIT") == "1"
-SOURCE = Path(os.environ["ORDIVON_FINANCE_R3_SPY_CSV"])
+# The research output is actually produced by the installed Qlib 0.9.7
+# DatasetH/LightGBM/Recorder, and it determines the native instrument.
+# No fabricated score or strategy event passes as a model prediction.
+DECISION_DAY = os.environ.get("ORDIVON_FINANCE_R3_DECISION_DAY", "2025-10-01")
+RESEARCH = Path(os.environ["ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR"])
+MODEL_STUDY = json.loads((RESEARCH / "native_study_result.json").read_text(encoding="utf-8"))
+if (MODEL_STUDY.get("signal_quality", {}).get("holding_sessions") != HOLD
+        or MODEL_STUDY.get("portfolio_target") is not None
+        or MODEL_STUDY.get("forecast", {}).get("point_in_time_eligible") is not False):
+    raise RuntimeError("Qlib study not the requested simulation-only holding horizon")
+with (RESEARCH / "qlib_test_predictions.csv").open(newline="", encoding="utf-8") as fp:
+    signal_rows = [
+        row for row in csv.DictReader(fp) if row["datetime"] == DECISION_DAY
+    ]
+if len(signal_rows) != 3 or {r["instrument"] for r in signal_rows} != {"IWM", "QQQ", "SPY"}:
+    raise RuntimeError("Qlib predicted test day/ETF universe not exact")
+from math import isfinite
+scores = {r["instrument"]: float(next(v for k, v in r.items()
+                                  if k not in {"datetime", "instrument"}))
+          for r in signal_rows}
+if not all(isfinite(v) for v in scores.values()):
+    raise RuntimeError("Qlib decision contains nonfinite OOS scores")
+# Explicit adversarial *test-only* score intervention, never represented as
+# real Qlib output. Tests that changing a decision changes the native fill.
+override = os.environ.get("ORDIVON_FINANCE_R3_TEST_FORCE_ASSET")
+if override is not None:
+    if override not in scores:
+        raise ValueError("Counterfactual must use an existing captured ETF")
+    scores[override] = max(scores.values()) + 1.0
+SYMBOL = min(scores, key=lambda sym: (-scores[sym], sym))
+SOURCE = Path(os.environ["ORDIVON_FINANCE_R3_CAPTURE_DIR"]) / f"openbb_cboe_{SYMBOL}_normalized.csv"
 MANIFEST = Path(os.environ["ORDIVON_FINANCE_R3_SOURCE_MANIFEST"])
 OUT = Path(os.environ["ORDIVON_FINANCE_R3_RUN_OUT_DIR"])
+# Never mistake a prior successful Paper receipt for this failed/new run.
+if OUT.is_dir() and any(OUT.iterdir()):
+    raise RuntimeError("Native Paper simulation requires a fresh empty output directory")
 OUT.mkdir(parents=True, exist_ok=True)
 # Reuse existing Portfolio economic budget, not a second position sizer.
-# This is a read-only plan: the supplied SPY target never confers order rights.
+# This is a read-only plan: the Qlib-selected ETF does not grant order rights.
 allocation = plan_strategic_contribution({
     "schemaVersion": 1,
     "kind": "ordivon.finance.portfolio.strategic-contribution-request",
@@ -54,10 +87,10 @@ allocation = plan_strategic_contribution({
     "cashMinor": 1_000_000,
     "protectedReserveMinor": 900_000,
     "contributionMinor": 100_000,
-    "holdingsMinor": {"SPY": 0},
-    "targetWeightsBps": {"SPY": 10_000},
+    "holdingsMinor": {SYMBOL: 0},
+    "targetWeightsBps": {SYMBOL: 10_000},
 })
-if (allocation["allocationsMinor"]["SPY"] != 100_000
+if (allocation["allocationsMinor"][SYMBOL] != 100_000
         or allocation["protectedReserveMinor"] != 900_000
         or allocation["executionAuthorized"] is not False):
     raise RuntimeError("Existing Portfolio sleeve/reserve was not preserved")
@@ -66,16 +99,16 @@ if (allocation["allocationsMinor"]["SPY"] != 100_000
 # external data acquisition or historical PIT attestation is introduced.
 source_bytes = SOURCE.read_bytes()
 manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-spy_receipts = [
+asset_receipts = [
     r for r in manifest.get("provider_receipts", [])
-    if r.get("symbol") == "SPY" and r.get("provider") == "cboe"
+    if r.get("symbol") == SYMBOL and r.get("provider") == "cboe"
 ]
-if len(spy_receipts) != 1 or spy_receipts[0].get("normalized_sha256") != sha256(source_bytes).hexdigest():
-    raise ValueError("SPY source differs from the existing admitted historical capture")
+if len(asset_receipts) != 1 or asset_receipts[0].get("normalized_sha256") != sha256(source_bytes).hexdigest():
+    raise ValueError("QLib-selected ETF source differs from the captured provider evidence")
 rows = list(csv.DictReader(StringIO(source_bytes.decode("utf-8"))))
 sessions = [row["session_date"] for row in rows]
 lookup = {row["session_date"]: row for row in rows}
-start = sessions.index("2025-10-01")
+start = sessions.index(DECISION_DAY)
 entry_index = start + 1
 exit_index = entry_index + HOLD  # Hold H FULL sessions; exit NEXT OPEN.
 if exit_index + 1 >= len(sessions):
@@ -94,8 +127,8 @@ def cents(decimal):
     return int((Decimal(str(decimal)) * 100).to_integral_exact())
 
 instrument = Equity(
-    instrument_id=InstrumentId.from_str("SPY.SIM"),
-    raw_symbol=Symbol("SPY"), currency=Currency.from_str("USD"),
+    instrument_id=InstrumentId.from_str(f"{SYMBOL}.SIM"),
+    raw_symbol=Symbol(SYMBOL), currency=Currency.from_str("USD"),
     price_precision=2, price_increment=Price.from_str("0.01"),
     lot_size=Quantity.from_int(1), ts_event=0, ts_init=0,
 )
@@ -269,8 +302,8 @@ for day in (entry_date, exit_date):
         fills=f,
         order_events=[event for event in events
                       if str(event["client_order_id"]) in ids],
-        instrument_symbols={"SPY.SIM": "SPY"},
-        marks_minor={"SPY": cents(lookup[day]["close"])} if day != exit_date else {},
+        instrument_symbols={f"{SYMBOL}.SIM": SYMBOL},
+        marks_minor={SYMBOL: cents(lookup[day]["close"])} if day != exit_date else {},
     )
     if len(ids) != 1:
         raise RuntimeError("Native order source did not yield unique daily order")
@@ -289,11 +322,11 @@ for i in range(entry_index, exit_index + 2):
             session=date.fromisoformat(day),
             previous_session=date.fromisoformat(sessions[i - 1]),
             contribution_minor=0, reserve_contribution_minor=0,
-            marks={"SPY": cents(lookup[day]["close"])} if i < exit_index else {},
+            marks={SYMBOL: cents(lookup[day]["close"])} if i < exit_index else {},
             buys=(),
         )
     state = value_session(state, session)
-    if i == entry_index and not NO_ENTRY and state.positions != {"SPY": 1}:
+    if i == entry_index and not NO_ENTRY and state.positions != {SYMBOL: 1}:
         raise AssertionError("Native buy did not become Paper position")
     if i == exit_index and not NO_ENTRY and (state.positions or len(state.pending_sales) != 1):
         raise AssertionError("Native exit did not become Paper receivable")
@@ -315,7 +348,16 @@ else:
 if state.cash_minor != cents(expected_cash):
     raise AssertionError("Nautilus two-leg cash economics diverged from native Paper")
 standing = {
-    "kind": "ordivon.finance.r3.nautilus-fixed-holding-native-economic-probe",
+    "kind": "ordivon.finance.r3.qlib-signal-native-paper-executable",
+    "research_horizon_signal_source": ("native_Qlib_0.9.7_OOS_score" if override is None else "EXPLICIT_TEST_INTERVENTION_ON_NATIVE_QLIB_SCORE"),
+    "research_model_sample_decision": DECISION_DAY,
+    "native_entry_session": entry_date,
+    "native_exit_session": exit_date,
+    "signal_scores": scores,
+    "selected_instrument": SYMBOL,
+    "test_counterfactual_score_intervention": override is not None,
+    "historically_precommitted_model_decision": False,
+    "Qlib_target_vs_native_exit_event_identical": False,
     "standing": "SIMULATION_ONLY_NON_PIT_NOT_CAPITAL_AUTHORIZED",
     "horizon_complete_sessions": HOLD,
     "source_capture": "OpenBB Cboe retrospective unadjusted OHLCV",
@@ -335,7 +377,7 @@ standing = {
     "policy_rule_fixed_before_native_backtest": True,
     "policy_rule_historically_precommitted": False,
     "no_entry_cancelled_exit_suppressed": NO_ENTRY,
-    "portfolio_cash_sleeve_minor": allocation["allocationsMinor"]["SPY"],
+    "portfolio_cash_sleeve_minor": allocation["allocationsMinor"][SYMBOL],
     "portfolio_automatic_execution_authorized": allocation["executionAuthorized"],
     "historical_point_in_time_qualified": False,
     "execution_quotes_real": False,
