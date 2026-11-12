@@ -4,6 +4,7 @@ from __future__ import annotations
 from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_loader
 from pathlib import Path
+import os
 import sys
 import unittest
 
@@ -124,6 +125,31 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         config = mod._retention_policy(self.policy_file(True))
         self.assertEqual(mod._workspace_retention(config, self.workspace.name, 8),
                          (28_800_000, True))
+
+    def test_installed_policy_requires_controlled_file_and_directory(self):
+        """A world-writable policy cannot authorize deleting unpublished work."""
+        path = self.policy_file(True)
+        self.assertTrue(mod._workspace_retention(
+            mod._retention_policy(path), self.workspace.name, 4
+        )[1])
+        try:
+            path.chmod(0o666)
+            with self.assertRaisesRegex(ValueError, "retention policy"):
+                mod._retention_policy(path)
+            path.chmod(0o644)
+            path.parent.chmod(0o777)
+            with self.assertRaisesRegex(ValueError, "retention policy"):
+                mod._retention_policy(path)
+        finally:
+            path.parent.chmod(0o700)
+            path.chmod(0o644)
+        if os.geteuid() == 0:
+            try:
+                os.chown(path, 65534, -1)
+                with self.assertRaisesRegex(ValueError, "retention policy"):
+                    mod._retention_policy(path)
+            finally:
+                os.chown(path, 0, -1)
 
     def test_malformed_operator_policy_blocks_instead_of_falling_back(self):
         invalid = self.root / "policy.json"

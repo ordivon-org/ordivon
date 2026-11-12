@@ -11,6 +11,7 @@ import re
 import fcntl
 import json
 import os
+import stat
 from pathlib import Path
 import subprocess
 import sys
@@ -32,6 +33,26 @@ def _retention_policy(path: Path | None) -> dict | None:
         return None
     if not path.is_absolute() or not path.is_file() or path.is_symlink():
         raise ValueError("retention policy must be an installed absolute regular file")
+    # The policy can authorize removing irreplaceable unmerged Workspace output.
+    # Reuse OS DAC: only the executing operator may own/write it. A root-owned
+    # sticky ancestor (e.g. /tmp in native tests) cannot be used to replace a
+    # root-owned child; ordinary writable ancestors cannot be trusted.
+    operator_uid = os.geteuid()
+    for component in (path, *path.parents):
+        entry = component.lstat()
+        is_file = component == path
+        if is_file:
+            if not stat.S_ISREG(entry.st_mode) or entry.st_uid != operator_uid:
+                raise ValueError("retention policy must be owned by its executor")
+            if entry.st_mode & (stat.S_IWGRP | stat.S_IWOTH):
+                raise ValueError("retention policy must not be writable by others")
+        else:
+            if not stat.S_ISDIR(entry.st_mode) or entry.st_uid not in (0, operator_uid):
+                raise ValueError("retention policy directory has foreign ownership")
+            writable = entry.st_mode & (stat.S_IWGRP | stat.S_IWOTH)
+            root_sticky = entry.st_uid == 0 and entry.st_mode & stat.S_ISVTX
+            if writable and not root_sticky:
+                raise ValueError("retention policy directory is writable by others")
     policy = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(policy, dict) or type(policy.get("schemaVersion")) is not int or policy["schemaVersion"] != 1:
         raise ValueError("unsupported retention policy schema")
