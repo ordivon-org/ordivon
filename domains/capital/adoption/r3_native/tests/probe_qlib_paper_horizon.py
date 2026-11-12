@@ -1,8 +1,10 @@
 """Existing Finance passive-benchmark consumer over the real Qlib OOS test sessions.
 
-Test-only economic thought experiment. Qlib T forecasts next session open->close.
-Daily flat-at-close switching is NOT executable by the current Paper state
-machine (which buys and carries positions across sessions). No orders or PG.
+Test-only economic thought experiment. Legacy H1 forecasts next open->close;
+new opt-in H5/H20 can forecast entry next OPEN->exit later OPEN, matching
+the fixed native holding exit event, NOT its actual orders or fill prices.
+Legacy intraday switching is NOT executable by the current Paper state
+machine. No order authority, actual orders, or PG write is created here.
 Historical Cboe prices were captured AFTER these test dates: NOT PIT.
 """
 from __future__ import annotations
@@ -46,6 +48,11 @@ def run_multisession(report: dict, hold: int) -> dict:
     assert skill["holding_sessions"] == hold
     assert skill["purged_overlapping_train_validation_labels"] is True
     assert skill["multi_session_holding_state_representable"] is True
+    exit_price = skill.get("exit_price_kind", "close")
+    assert exit_price in ("close", "next_open")
+    if exit_price == "next_open":
+        assert skill["label_forward_sessions"] == hold + 1
+        assert skill["matches_native_fixed_holding_exit_event"] is True
     assert report["forecast"]["point_in_time_eligible"] is False
     assert report["portfolio_target"] is None
 
@@ -86,8 +93,11 @@ def run_multisession(report: dict, hold: int) -> dict:
     for decision in decisions:
         idx = index_of[decision]
         entry = sessions[idx + 1]
-        exit_day = sessions[idx + hold]
-        assert previous_exit is None or previous_exit < entry
+        # Reuse the same Portfolio benchmark for the exit event that the
+        # native strategy ACTUALLY trades. Consecutive OPEN windows may
+        # share the boundary open; they never overlap in exposure time.
+        exit_day = sessions[idx + hold + (exit_price == "next_open")]
+        assert previous_exit is None or previous_exit <= entry
         previous_exit = exit_day
         predicted = {sym: float(predictions.loc[(decision, sym)]) for sym in SYMBOLS}
         assert all(math.isfinite(x) for x in predicted.values())
@@ -97,7 +107,7 @@ def run_multisession(report: dict, hold: int) -> dict:
         observed = {}
         for sym in SYMBOLS:
             start_px = Decimal(str(bars[sym].loc[entry, "open"]))
-            end_px = Decimal(str(bars[sym].loc[exit_day, "close"]))
+            end_px = Decimal(str(bars[sym].loc[exit_day, "open" if exit_price == "next_open" else "close"]))
             ret = end_px / start_px - 1
             assert abs(float(ret) - float(labels.loc[(decision, sym)])) < 1e-10
             observed[sym] = ret
@@ -134,6 +144,8 @@ def run_multisession(report: dict, hold: int) -> dict:
         "standing": "RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
         "source_forecast_skill": skill,
         "holding_sessions": hold,
+        "exit_price_kind": exit_price,
+        "native_fixed_holding_economic_event_matched": exit_price == "next_open",
         "precommitted_selection_cadence": f"every_{hold}_test_decision_sessions",
         "disjoint_exposure_periods": len(periods),
         "nonoverlap_dates": [{
@@ -143,7 +155,11 @@ def run_multisession(report: dict, hold: int) -> dict:
         "chosen_assets": dict(sorted(chosen.items())),
         "distinct_assets_selected": len(chosen),
         "conditional_asset_rotation_observed": len(chosen) > 1,
-        "benchmark_exposure": "same_nonoverlapping_entry_open_exit_close_windows_flat_between_windows",
+        "benchmark_exposure": (
+            "same_nonoverlapping_entry_open_exit_next_open_windows"
+            if exit_price == "next_open"
+            else "same_nonoverlapping_entry_open_exit_close_windows_flat_between_windows"
+        ),
         "investment_sleeve_minor": 100_000,
         "protected_cash_minor": 900_000,
         "fractional_shares_assumed": True,
@@ -156,8 +172,8 @@ def run_multisession(report: dict, hold: int) -> dict:
         "model_vs_fixed_qqq_zero_cost": compare("qqq"),
         "model_vs_fixed_iwm_zero_cost": compare("iwm"),
         "model_vs_fixed_equal_zero_cost": compare("equal"),
-        # Both alternatives enter at T+1 open and exit T+H close on the
-        # SAME precommitted schedule, so both pay the same assumed cost.
+        # Alternatives share the same declared entry/exit events, so the
+        # identical illustrative cost convention is applied to BOTH.
         # Not continuous SPY buy-and-hold or measured transaction fees.
         "model_vs_spy_symmetric_10bps_per_period": compare(
             "spy", model_cost="0.001", reference_cost="0.001"

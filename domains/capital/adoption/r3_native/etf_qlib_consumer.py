@@ -42,6 +42,14 @@ SYMBOLS = ("SPY", "QQQ", "IWM")
 HOLD_SESSIONS = int(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_HOLD_SESSIONS", "1"))
 if HOLD_SESSIONS not in (1, 5, 20):
     raise ValueError("Research holding-horizon options are 1, 5 or 20 sessions")
+# Keep every existing close-exit replay unchanged. An opt-in next-open
+# exit uses the EXACT economic event consumed by native Nautilus and Paper.
+EXIT_PRICE = os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_EXIT_PRICE", "close")
+if EXIT_PRICE not in ("close", "next_open") or (HOLD_SESSIONS == 1 and EXIT_PRICE != "close"):
+    raise ValueError("Open exit requires a 5/20-session experimental holding")
+# Decision at T close -> buy T+1 OPEN -> hold H complete sessions ->
+# next-open sell at T+H+1. Train/valid split must not see that exit OPEN.
+LABEL_FORWARD_SESSIONS = HOLD_SESSIONS + (EXIT_PRICE == "next_open")
 START = "2023-01-01"
 END = "2026-10-31"
 # A pinned normalized capture is an offline reproducibility input only; it
@@ -133,12 +141,13 @@ for symbol in SYMBOLS:
         "HILO": ((x["high"] - x["low"]) / close).to_numpy(),
         "VOL5": (vol / vol.rolling(5).mean() - 1.0).to_numpy(),
     }, index=index)
-    # Decision after T close, enter T+1 OPEN, exit T+H CLOSE.
-    # Match the cross-session Paper holding period before testing skill;
-    # no point-in-time execution or source rights are implied by a label.
+    # The target must match the strategy's ACTUAL closing economic event.
+    # Closing-price research remains the default for backwards compatibility.
+    # Native buy/HOLD/exit sells T+H+1 OPEN (not T+H CLOSE).
     next_open = x["open"].astype(float).shift(-1)
+    exit_marks = x["open"].astype(float) if EXIT_PRICE == "next_open" else close
     label = pd.DataFrame({
-        "LABEL0": (close.shift(-HOLD_SESSIONS) / next_open - 1.0).to_numpy()
+        "LABEL0": (exit_marks.shift(-LABEL_FORWARD_SESSIONS) / next_open - 1.0).to_numpy()
     }, index=index)
     frames.append(pd.concat({"feature": feature, "label": label}, axis=1))
     prices[symbol] = pd.Series(close.to_numpy(), index=dates, name=symbol)
@@ -168,13 +177,13 @@ if HOLD_SESSIONS > 1:
     native_calendar._future = False
     native_calendar.cals = list(exchange_sessions)
     segments = native_calendar.align_seg(segments)
-    trunc_segments(native_calendar, segments, HOLD_SESSIONS + 1, test_key="test")
+    trunc_segments(native_calendar, segments, LABEL_FORWARD_SESSIONS + 1, test_key="test")
     train_valid = {"train": segments["train"], "valid": segments["valid"]}
-    trunc_segments(native_calendar, train_valid, HOLD_SESSIONS + 1, test_key="valid")
+    trunc_segments(native_calendar, train_valid, LABEL_FORWARD_SESSIONS + 1, test_key="valid")
     segments["train"] = train_valid["train"]
     index_by_session = {day: pos for pos, day in enumerate(exchange_sessions)}
     for older, newer in (("train", "valid"), ("valid", "test")):
-        if index_by_session[segments[older][1]] + HOLD_SESSIONS >= index_by_session[segments[newer][0]]:
+        if index_by_session[segments[older][1]] + LABEL_FORWARD_SESSIONS >= index_by_session[segments[newer][0]]:
             raise ValueError(f"Research target leaks future labels across {older}/{newer}")
 dataset = DatasetH(handler=handler, segments=segments)
 train = dataset.prepare("train", col_set=["feature", "label"])
@@ -258,8 +267,15 @@ skill = {
     "horizon": (
         "decision_after_T_close_entry_at_T_plus_1_open_exit_at_T_plus_1_close"
         if HOLD_SESSIONS == 1
-        else f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD_SESSIONS}_close"
+        else (
+            f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD_SESSIONS + 1}_open"
+            if EXIT_PRICE == "next_open"
+            else f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD_SESSIONS}_close"
+        )
     ),
+    "exit_price_kind": EXIT_PRICE,
+    "label_forward_sessions": LABEL_FORWARD_SESSIONS,
+    "matches_native_fixed_holding_exit_event": EXIT_PRICE == "next_open",
     "holding_sessions": HOLD_SESSIONS,
     "purged_overlapping_train_validation_labels": HOLD_SESSIONS > 1,
     "approx_nonoverlapping_test_blocks": int(np.ceil(
@@ -296,7 +312,10 @@ skill = {
     "profitable_executable_strategy_demonstrated": False,
 }
 prediction_snapshot = OUT / "qlib_test_predictions.csv"
-predictions.to_csv(prediction_snapshot, header=["predicted_next_open_to_close_fractional_return"])
+predictions.to_csv(prediction_snapshot, header=[
+    "predicted_next_open_to_next_open_fractional_return"
+    if EXIT_PRICE == "next_open" else "predicted_next_open_to_close_fractional_return"
+])
 pred_table = predictions.unstack("instrument").dropna()
 decision_at = pd.Timestamp(pred_table.index.max())
 expected_daily = pred_table.loc[decision_at].reindex(SYMBOLS).astype(float)
@@ -342,8 +361,15 @@ result = {
         ): {k: float(v) for k, v in expected_daily.items()}},
         "target_horizon": (
             "new_entry_next_session_open_to_close"
-            if HOLD_SESSIONS == 1 else f"next_session_open_to_T_plus_{HOLD_SESSIONS}_close"
+            if HOLD_SESSIONS == 1
+            else (
+                f"next_session_open_to_T_plus_{HOLD_SESSIONS + 1}_open"
+                if EXIT_PRICE == "next_open"
+                else f"next_session_open_to_T_plus_{HOLD_SESSIONS}_close"
+            )
         ),
+        "exit_price_kind": EXIT_PRICE,
+        "native_strategy_exit_event_matches_target": EXIT_PRICE == "next_open",
         "holding_sessions": HOLD_SESSIONS,
         "paper_buy_and_hold_consumer_horizon_compatible": False,
         "multi_session_holding_state_representable": HOLD_SESSIONS > 1,
