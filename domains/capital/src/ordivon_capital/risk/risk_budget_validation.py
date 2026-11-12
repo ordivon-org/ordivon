@@ -19,7 +19,18 @@ class RiskBudgetValidationError(ValueError):
 
 
 def assert_risk_budget_schema_identity(schema_path: Path) -> None:
-    digest = hashlib.sha256(schema_path.read_bytes()).hexdigest()
+    # The pinned digest is of the committed LF Git blob. On Windows Git
+    # checkouts the identical JSON file can have CRLF: hashing the local
+    # representation rejects an unchanged source contract as tampering.
+    # Normalize ONLY CRLF to LF; a bare CR or any substantive byte change
+    # still fails the exact independent digest pin.
+    worktree_bytes = schema_path.read_bytes()
+    canonical = worktree_bytes.replace(b"\r\n", b"\n")
+    if b"\r" in canonical:
+        raise RiskBudgetValidationError(
+            "portfolio risk budget schema has invalid bare CR"
+        )
+    digest = hashlib.sha256(canonical).hexdigest()
     if digest != RISK_BUDGET_SCHEMA_SHA256:
         raise RiskBudgetValidationError(
             "portfolio risk budget schema changed; requalification required"
