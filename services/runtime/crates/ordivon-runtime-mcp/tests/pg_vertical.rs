@@ -288,7 +288,10 @@ fn committed_40001_job_id(result: &Value) -> Option<&str> {
     if result.get("isError")?.as_bool() != Some(true)
         || error.get("commitState")?.as_str() != Some("committed")
         || error.get("retryClass")?.as_str() != Some("reconcile_first")
-        || error.get("code")?.as_str() != Some("REGISTRY_UNAVAILABLE")
+        || !matches!(
+            error.get("code")?.as_str()?,
+            "REGISTRY_BUSY" | "REGISTRY_UNAVAILABLE"
+        )
         || !error.get("message")?.as_str()?.contains("E40001")
     {
         return None;
@@ -343,7 +346,13 @@ fn committed_observation_retry_never_reclassifies_uncommitted_effect() {
         "code":"REGISTRY_UNAVAILABLE","operationId":"job-known",
         "message":"PostgreSQL: SqlState(E40001)"
     }}});
-    assert_eq!(committed_40001_job_id(&value), Some("job-known"));
+    // Current PostgreSQL 40001 is REGISTRY_BUSY; historical adapters may
+    // project REGISTRY_UNAVAILABLE. Only committed E40001 is safe to observe.
+    for code in ["REGISTRY_BUSY", "REGISTRY_UNAVAILABLE"] {
+        let mut variant = value.clone();
+        variant["structuredContent"]["error"]["code"] = json!(code);
+        assert_eq!(committed_40001_job_id(&variant), Some("job-known"));
+    }
     for replacement in [
         json!({"commitState":"not_committed"}),
         json!({"retryClass":"safe_same_request"}),
@@ -1875,9 +1884,7 @@ fn pg_workspace_open_fails_on_either_carrier_before_git_effect() {
             source_repo: repo.to_string_lossy().into_owned(),
             source_revision: "HEAD".into(),
         });
-        let error = result
-            .err()
-            .expect("guest or host floor must reject PG open");
+        let error = result.expect_err("guest or host floor must reject PG open");
         assert_eq!(
             error.code,
             ordivon_runtime_core::RuntimeErrorCode::WorkspaceCapacityExceeded,
