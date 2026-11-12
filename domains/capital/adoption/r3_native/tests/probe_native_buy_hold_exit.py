@@ -71,7 +71,13 @@ if (MODEL_STUDY.get("signal_quality", {}).get("exit_price_kind") != "next_open"
         or MODEL_STUDY.get("signal_quality", {}).get("matches_native_fixed_holding_exit_event") is not True
         or MODEL_STUDY.get("forecast", {}).get("native_strategy_exit_event_matches_target") is not True):
     raise RuntimeError("Qlib exit label must match native T+H+1 OPEN sale")
-with (RESEARCH / "qlib_test_predictions.csv").open(newline="", encoding="utf-8") as fp:
+# Producer and consumer must observe the SAME exact prediction bytes. A
+# rewritten CSV is not an OOS Qlib model result merely because the market
+# input capture and study metadata remain unchanged.
+prediction_bytes = (RESEARCH / "qlib_test_predictions.csv").read_bytes()
+if MODEL_STUDY.get("qlib_prediction_sha256") != sha256(prediction_bytes).hexdigest():
+    raise RuntimeError("Qlib prediction snapshot does not match recorded study")
+with StringIO(prediction_bytes.decode("utf-8")) as fp:
     signal_rows = [
         row for row in csv.DictReader(fp) if row["datetime"] == DECISION_DAY
     ]

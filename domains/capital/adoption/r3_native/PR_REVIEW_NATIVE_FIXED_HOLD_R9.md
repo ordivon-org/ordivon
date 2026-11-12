@@ -138,3 +138,40 @@ Matched-mode cancellation and negative verification: native IOC BUY canceled →
 Ten-dimensional PR check in final state: business deliverable PASS simulation execution without profit gate; consumers PASS for Native Qlib→Portfolio sleeve→Native engine→pure Paper (no PG or broker); financial semantics PASS for matched OPEN-exit event, but PIT, real market quotes, dividends, corporate actions, vendor rights and capital identity remain UNKNOWN; mature modules reused, no new Rust/TS/Python dependency/OMS/ledger/scheduler; actual native bounded runs completed, but sustained RSS, Workspace GC/lifetime and service throughput UNKNOWN; retries/canceled exit fail closed, no incorrect paid-out success; native order/cache/cash/recorded source evidence available; exact formal counterexamples prove no fill on failed buy and no success on failed sell, but no full strategy theorem; long-term reduce test-only 349LOC after an actual supported production consumer supersedes it; independent Agent B or Coordinator review of this new A source still PENDING, and no Github PR/production CI pass is claimed. This work never touches a production PG DSN, broker adapter or real capital.
 
 Full machine summary updated in `native_qlib_signal_execution.evidence.json`. Previous CLOSE label tests preserved as legacy evidence but are **not** accepted as current qualified economic contract. User explicitly removed a profitability prerequisite, not requirements to preserve source/capital truth.
+
+## 2026-11-13 prediction output authority falsifier (P0 repaired, SIMULATION_ONLY)
+
+The R10 model-to-order consumer checked market source hashes but accepted a
+rewritten Qlib prediction CSV as genuine OOS score. Actual negative input:
+on 2025-10-14 one private copied IWM score was changed to 1.5, with original
+model manifest and Cboe captures unchanged. The PRE-FIX native consumer
+selected IWM (rather than natural SPY), produced two native SIM fills, and
+still stated native_Qlib_0.9.7_OOS_score; Windows Runtime Job
+job-01a1d09c-a955-71d3-ac47-38bb5bdfb77e exit0. This falsified
+the consumer's model-score-source authority, not its simulated fills.
+
+Minimal repair: Qlib's own producer records the sha256 of the exact
+qlib_test_predictions.csv beside its native study; existing native consumer
+pins that file once, checks the study's matching prediction digest before
+any success receipt or native order, and parses the pinned bytes. No new
+framework/OMS/ledger/data provider. A focused existing native_nonlive
+pytest lane checks an isolated rewritten prediction is refused.
+
+After exact cross-host source synchronization the installed Qlib0.9.7 native
+producer reran H5=801 and H20=756 OOS rows, Job
+job-01a1d0a1-2b92-7843-a139-069d7f9db750 exit0. Unmodified genuine
+model scores selected QQQ, SPY and IWM in Nautilus/Paper, Job
+job-01a1d0a2-dcb6-7ce0-8e54-2ecca05b0b4a exit0. The rewritten CSV
+was now explicitly rejected before a native successful receipt, Job
+job-01a1d0a3-778a-77c2-b5d1-b1652ef081c4 exit0. Actual native/PG18
+full financial consumer was replayed under exactly patched source for
+H5/SPY, H20/IWM and H5 canceled entry, 8/23/8 daily committed receipts,
+physical PG stop/restart and exact readback PASS, Job
+job-01a1d0a4-5f19-7913-9be9-293c7afdb2e0 exit0. PG stopped.
+Native CI regression Job job-01a1d0a6-5294-75c9-a2c5-0b377f6b4e9d exit0.
+
+Scope: LOCAL STUDY CO-ARTIFACT CONSISTENCY, not independent authentication
+against jointly forged study+CSV, verified vendor PIT, model alpha, real
+capital mandate, broker permissions or production PG effects. Older local
+studies missing the new field are rejected for native execution until rerun
+through the same mature Qlib producer.

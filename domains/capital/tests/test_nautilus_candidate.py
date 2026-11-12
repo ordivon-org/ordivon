@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import unittest
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -245,3 +246,55 @@ def test_rc9_equity_orderfilled_persists_in_real_postgres_paper_close(monkeypatc
         )
     assert read_latest_committed_paper_close(dsn, account) == final
     assert persisted_rows() == before_replay
+
+
+
+@pytest.mark.native_nonlive
+def test_qlib_prediction_snapshot_cannot_claim_original_model_after_rewrite(tmp_path):
+    # This is a source-to-consumer authority boundary, not a strategy test.
+    study = tmp_path / "native_study_result.json"
+    original = (
+        b"datetime,instrument,predicted_next_open_to_next_open_fractional_return\n"
+        b"2025-10-01,IWM,0.01\n"
+        b"2025-10-01,QQQ,0.02\n"
+        b"2025-10-01,SPY,0.03\n"
+    )
+    study.write_text(
+        json.dumps({
+            "signal_quality": {
+                "holding_sessions": 5,
+                "exit_price_kind": "next_open",
+                "matches_native_fixed_holding_exit_event": True,
+            },
+            "portfolio_target": None,
+            "forecast": {
+                "point_in_time_eligible": False,
+                "native_strategy_exit_event_matches_target": True,
+            },
+            "qlib_prediction_sha256": sha256(original).hexdigest(),
+        }),
+        encoding="utf-8",
+    )
+    tampered = original.replace(b"IWM,0.01", b"IWM,0.90")
+    assert tampered != original
+    (tmp_path / "qlib_test_predictions.csv").write_bytes(tampered)
+    output = tmp_path / "native_output"
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "adoption/r3_native/tests/probe_native_buy_hold_exit.py"),
+        ],
+        cwd=ROOT,
+        env=os.environ | {
+            "PYTHONPATH": str(ROOT / "src"),
+            "ORDIVON_FINANCE_R3_HOLD_SESSIONS": "5",
+            "ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR": str(tmp_path),
+            "ORDIVON_FINANCE_R3_RUN_OUT_DIR": str(output),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode != 0
+    assert "Qlib prediction snapshot does not match recorded study" in proc.stderr
+    assert not (output / "native_holding_result.json").exists()

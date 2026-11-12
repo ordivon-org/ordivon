@@ -316,6 +316,9 @@ predictions.to_csv(prediction_snapshot, header=[
     "predicted_next_open_to_next_open_fractional_return"
     if EXIT_PRICE == "next_open" else "predicted_next_open_to_close_fractional_return"
 ])
+# Bind the exact Qlib-generated OOS prediction bytes to the study receipt.
+# Local artifact consistency, NOT independent proof of historical PIT or model skill.
+prediction_digest = sha256(prediction_snapshot.read_bytes()).hexdigest()
 pred_table = predictions.unstack("instrument").dropna()
 decision_at = pd.Timestamp(pred_table.index.max())
 expected_daily = pred_table.loc[decision_at].reindex(SYMBOLS).astype(float)
@@ -345,6 +348,7 @@ result = {
     "qlib_split_rows": {"train": len(train), "valid": len(valid), "test": len(test)},
     "qlib_recorder_id": str(recorder_id),
     "qlib_prediction_rows": len(predictions),
+    "qlib_prediction_sha256": prediction_digest,
     "signal_quality": skill,
     "optim_date": str(decision_at.date()),
     "native_math_only_min_variance_weights": {k: float(v) for k, v in weights.items()},
