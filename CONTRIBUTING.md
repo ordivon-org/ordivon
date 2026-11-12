@@ -10,7 +10,10 @@ Before a non-trivial change, read [`README.md`](README.md) and [`AGENTS.md`](AGE
 2. Work in the natural owner directory in an isolated Runtime Workspace or Git worktree based on current `main`. External contributors may fork; never edit the shared primary checkout as scratch.
 3. Run that owner's native verification (`mise tasks ls` in the owner directory lists it).
 4. For changes that touch repository mechanics, also run `mise run repo:ci` from the repository root.
-5. Open a pull request against `main` and fill in the template.
+5. Open a pull request against `main` and fill in the existing template, including actual business/consumer acceptance, resource and Workspace lifecycle costs, and explicit UNKNOWN where no evidence exists.
+6. Before merge, obtain a substantive independent audit from at least one **different, actual Agent**. Link the Host message or GitHub review and state what it challenged and what remains open. A review request or self-check is not a completed audit.
+
+The pull request template records evidence but does not itself enforce review. Use GitHub's native required-review rulesets/branch protection when configured; do not add another custom approval or policy engine. GitHub account approval and Host cross-Agent source audit have different evidence and should not be misrepresented as interchangeable.
 
 ## Ground rules
 
