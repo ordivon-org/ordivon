@@ -35,8 +35,20 @@ impl PgRuntimeServer {
             || !config.dispatcher_timer.starts_with("ordivon-")
             || !config.dispatcher_timer.ends_with(".timer")
             || !config.dispatcher_timer.bytes().all(|b|b.is_ascii_alphanumeric()||matches!(b,b'-'|b'.'))
-            || !self.runtime.release_qualified().unwrap_or(false)
         { return false; }
+        // Synchronous postgres starts its own Tokio runtime when establishing
+        // a connection. Tool catalogs are read both from async MCP handlers
+        // and from the Tokio-driven PG binary startup path. Do not connect on
+        // a Tokio worker: one shared boundary covers all those consumers.
+        let qualified = if tokio::runtime::Handle::try_current().is_ok() {
+            let runtime = self.runtime.clone();
+            std::thread::spawn(move || runtime.release_qualified().unwrap_or(false))
+                .join()
+                .unwrap_or(false)
+        } else {
+            self.runtime.release_qualified().unwrap_or(false)
+        };
+        if !qualified { return false; }
         std::process::Command::new("/usr/bin/systemctl")
             .args(["is-active","--quiet",&config.dispatcher_timer])
             .status().is_ok_and(|status| status.success())
