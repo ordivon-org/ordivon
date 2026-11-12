@@ -12,6 +12,7 @@ import shutil
 import signal
 import subprocess
 import time
+import tomllib
 
 import pytest
 
@@ -146,3 +147,8 @@ def test_different_consumers_share_the_same_publish_lock(tmp_path: Path) -> None
         if first.poll() is None:
             os.killpg(first.pid, signal.SIGKILL)
         first.communicate(timeout=7)
+
+
+def test_native_task_toolchain_pinned_for_ci() -> None:
+    config = tomllib.loads((ROOT / "mise.toml").read_text())
+    assert config["tools"]["task"] == "3.54.0"
