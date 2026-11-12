@@ -35,9 +35,27 @@ fn filesystem_available_bytes(_path: &Path) -> RuntimeResult<u64> {
         Some("workspaceHeadroom.path"), false))
 }
 
-impl Runtime {
-    fn ensure_workspace_headroom(&self) -> RuntimeResult<()> {
-        let Some(headroom) = self.workspace_headroom.as_ref() else { return Ok(()); };
+pub(super) fn validate_workspace_headroom(headrooms: &[WorkspaceHeadroomConfig]) -> RuntimeResult<()> {
+    for headroom in headrooms {
+        if !headroom.path.is_absolute() {
+            return Err(RuntimeError::invalid(
+                "workspace headroom path must be absolute",
+                "workspaceHeadroom.path",
+            ));
+        }
+        if headroom.minimum_free_bytes == 0 {
+            return Err(RuntimeError::invalid(
+                "workspace minimum free bytes must be positive",
+                "workspaceHeadroom.minimumFreeBytes",
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Shared physical capacity gate for legacy and current PG Workspace.open.
+pub(super) fn ensure_workspace_headroom(headrooms: &[WorkspaceHeadroomConfig]) -> RuntimeResult<()> {
+    for headroom in headrooms {
         let available = filesystem_available_bytes(&headroom.path)?;
         if available < headroom.minimum_free_bytes {
             let mut error = RuntimeError::new(
@@ -48,7 +66,13 @@ impl Runtime {
             error.retry_after_ms = Some(60_000);
             return Err(error);
         }
-        Ok(())
+    }
+    Ok(())
+}
+
+impl Runtime {
+    fn ensure_workspace_headroom(&self) -> RuntimeResult<()> {
+        ensure_workspace_headroom(&self.workspace_headroom)
     }
 
     pub fn open_workspace(

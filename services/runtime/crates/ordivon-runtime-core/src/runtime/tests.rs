@@ -953,6 +953,76 @@ fn run_git_command(directory: &Path, args: &[&str]) {
 }
 
 #[test]
+fn workspace_headroom_checks_both_independent_carriers() {
+    let sandbox = Sandbox::new("workspace-dual-headroom-guard", 5_000);
+    let host_path = sandbox.root.join("host-carrier");
+    let guest_path = sandbox.root.join("guest-carrier");
+    fs::create_dir_all(&host_path).unwrap();
+    fs::create_dir_all(&guest_path).unwrap();
+
+    let guarded = Runtime::new_with_authorities_default_runtime_and_workspace_headrooms(
+        runtime_config(&sandbox),
+        Vec::new(),
+        Vec::new(),
+        60_000,
+        vec![
+            WorkspaceHeadroomConfig {
+                path: host_path.clone(),
+                minimum_free_bytes: 1,
+            },
+            WorkspaceHeadroomConfig {
+                path: guest_path.clone(),
+                minimum_free_bytes: u64::MAX,
+            },
+        ],
+    )
+    .unwrap();
+
+    let error = guarded
+        .open_workspace(&crate::GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: "workspace-dual-carrier-rejected".to_string(),
+            source_repo: sandbox.root.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        })
+        .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::WorkspaceCapacityExceeded);
+    assert_eq!(error.field.as_deref(), Some("workspaceHeadroom"));
+    assert!(error
+        .message
+        .contains(&guest_path.to_string_lossy().to_string()));
+    assert!(!error
+        .message
+        .contains(&host_path.to_string_lossy().to_string()));
+}
+
+#[test]
+fn workspace_headroom_rejects_invalid_secondary_path_on_construction() {
+    let sandbox = Sandbox::new("workspace-dual-headroom-invalid", 5_000);
+    let result = Runtime::new_with_authorities_default_runtime_and_workspace_headrooms(
+        runtime_config(&sandbox),
+        Vec::new(),
+        Vec::new(),
+        60_000,
+        vec![
+            WorkspaceHeadroomConfig {
+                path: sandbox.root.clone(),
+                minimum_free_bytes: 1,
+            },
+            WorkspaceHeadroomConfig {
+                path: PathBuf::from("relative-guest-carrier"),
+                minimum_free_bytes: 1,
+            },
+        ],
+    );
+    let error = match result {
+        Ok(_) => panic!("relative additional headroom path must be rejected"),
+        Err(error) => error,
+    };
+    assert_eq!(error.field.as_deref(), Some("workspaceHeadroom.path"));
+}
+
+#[test]
 fn workspace_headroom_guard_blocks_new_open_but_not_close() {
     let sandbox = Sandbox::new("workspace-headroom-guard", 5_000);
     let source = sandbox.root.join("workspace-source");
