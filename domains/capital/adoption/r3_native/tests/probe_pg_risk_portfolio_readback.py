@@ -12,6 +12,11 @@ import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+# Optimized Python removes assertion-based economic/provenance checks.
+# This TEST-ONLY runner must never create a PG effect without them.
+if sys.flags.optimize:
+    raise RuntimeError("Finance R3 native acceptance requires non-optimized Python")
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT.parents[1] / "src"))
 

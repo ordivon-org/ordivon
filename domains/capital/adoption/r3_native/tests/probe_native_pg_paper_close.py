@@ -17,6 +17,11 @@ from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
+
+# Optimized Python removes assertion-based economic/provenance checks.
+# This TEST-ONLY runner must never create a PG effect without them.
+if sys.flags.optimize:
+    raise RuntimeError("Finance R3 native acceptance requires non-optimized Python")
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,7 +65,8 @@ def must_be_disposable_pg() -> str:
             "select current_database(), current_user, "
             "current_setting('data_directory'), inet_server_port()"
         ).fetchone()
-    assert actual is not None
+    if actual is None:
+        raise RuntimeError("sandbox PostgreSQL did not return a data-directory identity")
     observed_path = str(Path(actual[2]).resolve()).lower().replace("/", "\\")
     expected_path = str(Path(expected).resolve()).lower().replace("/", "\\")
     marker = Path(expected).parent / ".finance-r3-disposable-pg18"

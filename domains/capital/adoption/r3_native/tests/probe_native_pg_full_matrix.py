@@ -14,6 +14,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Optimized Python removes assertion-based economic/provenance checks.
+# This TEST-ONLY runner must never create a PG effect without them.
+if sys.flags.optimize:
+    raise RuntimeError("Finance R3 native acceptance requires non-optimized Python")
+
 HERE = Path(__file__).resolve()
 ROOT = HERE.parents[1]
 PG_ROOT = Path(os.environ["ORDIVON_FINANCE_R3_PG_SANDBOX_ROOT"]).resolve()
@@ -28,13 +33,17 @@ DSN = "host=127.0.0.1 port=55491 dbname=ordivon_paper user=sandbox_finance_r3 co
 sandbox_marker = PG_ROOT / ".finance-r3-disposable-pg18"
 if not sandbox_marker.is_file() or sandbox_marker.read_text(encoding="utf-8").strip() != "ORDIVON_FINANCE_R3_DISPOSABLE_TEST_ONLY":
     raise RuntimeError("explicit disposable Finance R3 PostgreSQL test root marker required")
-assert PG_ROOT.is_dir() and ORIGINAL_DATA.is_file()
-assert all(x.is_file() for x in (
+if not PG_ROOT.is_dir() or not ORIGINAL_DATA.is_file():
+    raise RuntimeError("missing explicitly selected disposable PG root or checked test capture")
+if not all(x.is_file() for x in (
     NATIVE, RISK, PG_BIN / "pg_ctl.exe", PG_BIN / "initdb.exe",
     PG_BIN / "createdb.exe", PG_BIN / "dropdb.exe", PG_BIN / "psql.exe",
-))
-assert (PG_ROOT / "pyclient315" / "site" / "psycopg").is_dir()
-assert (PG_ROOT / "pyclient" / "psycopg").is_dir()
+)):
+    raise RuntimeError("required native PG18/Python binaries are not installed")
+if not (PG_ROOT / "pyclient315" / "site" / "psycopg").is_dir():
+    raise RuntimeError("native Python 3.15 test psycopg client not installed")
+if not (PG_ROOT / "pyclient" / "psycopg").is_dir():
+    raise RuntimeError("scientific Python 3.11 test psycopg client not installed")
 
 def call(*args: str, env: dict[str, str] | None = None) -> None:
     cmd = [str(x) for x in args]
