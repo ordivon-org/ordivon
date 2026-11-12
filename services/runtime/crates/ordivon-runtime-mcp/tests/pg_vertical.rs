@@ -1786,6 +1786,7 @@ fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
