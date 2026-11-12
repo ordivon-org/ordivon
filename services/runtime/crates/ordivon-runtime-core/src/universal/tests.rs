@@ -187,6 +187,259 @@ fn abandoned_git_worktree_without_workspace_identity_is_not_a_normal_duplicate()
 }
 
 #[test]
+fn interrupted_open_reuses_durable_intent_and_real_git_without_second_add() {
+    let sandbox = Sandbox::new("workspace-open-physical-replay");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let workspace_id = "workspace-opening-reconcile";
+    let target = config.workspace_path(workspace_id);
+    let record = config.workspace_record_path(workspace_id);
+    let revision = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert!(revision.status.success());
+    let commit = String::from_utf8(revision.stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
+    let request = GitWorkspaceCreateRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: workspace_id.to_string(),
+        source_repo: source.to_string_lossy().into_owned(),
+        source_revision: commit.clone(),
+    };
+    write_json_atomic(
+        &record,
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": commit,
+            "requestedRevision": commit,
+            "createdUnixMs": 54321
+        }),
+    )
+    .unwrap();
+    // An actual Git worktree add happened before this process disappeared.
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    let before = fs::read(target.join(".git")).unwrap();
+    let opened = create_git_workspace(&config, &request).unwrap();
+    assert_eq!(opened.source_revision, commit);
+    assert_eq!(fs::read(target.join(".git")).unwrap(), before);
+    let recovered = load_workspace_record(&config, workspace_id).unwrap();
+    assert_eq!(recovered.created_unix_ms, 54321);
+    assert_eq!(recovered.source_revision, commit);
+    let duplicate = create_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(duplicate.code, UniversalExecErrorCode::WorkspaceExists);
+}
+
+#[test]
+fn interrupted_open_intent_without_git_effect_can_finish_on_same_request() {
+    let sandbox = Sandbox::new("workspace-open-intent-only");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let id = "workspace-open-intent-only";
+    let commit = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    let commit = String::from_utf8(commit.stdout).unwrap().trim().to_string();
+    write_json_atomic(
+        &config.workspace_record_path(id),
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": commit,
+            "requestedRevision": commit,
+            "createdUnixMs": 99
+        }),
+    )
+    .unwrap();
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: commit.clone(),
+        },
+    )
+    .unwrap();
+    assert!(config.workspace_path(id).is_dir());
+    assert_eq!(
+        load_workspace_record(&config, id).unwrap().created_unix_ms,
+        99
+    );
+}
+
+#[test]
+fn interrupted_open_wrong_source_or_dirty_git_is_not_adopted() {
+    let sandbox = Sandbox::new("workspace-open-reject-untrusted");
+    let source = sandbox.root.join("source");
+    let foreign = sandbox.root.join("foreign");
+    init_git_repo(&source);
+    init_git_repo(&foreign);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let id = "workspace-open-reject-untrusted";
+    let target = config.workspace_path(id);
+    let commit = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    let commit = String::from_utf8(commit.stdout).unwrap().trim().to_string();
+    write_json_atomic(
+        &config.workspace_record_path(id),
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": commit,
+            "requestedRevision": commit,
+            "createdUnixMs": 123
+        }),
+    )
+    .unwrap();
+    run_git(
+        &foreign,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    let request = GitWorkspaceCreateRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: id.to_string(),
+        source_repo: source.to_string_lossy().into_owned(),
+        source_revision: commit.clone(),
+    };
+    let error = create_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(target.exists());
+    assert!(config.workspace_record_path(id).exists());
+    run_git(
+        &foreign,
+        ["worktree", "remove", "--force", target.to_str().unwrap()],
+    );
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    fs::write(target.join("unexpected-untracked.txt"), b"unowned data").unwrap();
+    let error = create_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(target.join("unexpected-untracked.txt").exists());
+    // An altered request cannot reuse even a valid pre-recorded opening.
+    let mut other_request = request;
+    other_request.source_revision = "a different branch".to_string();
+    let error = create_git_workspace(&config, &other_request).unwrap_err();
+    assert!(matches!(
+        error.code,
+        UniversalExecErrorCode::RevisionNotFound | UniversalExecErrorCode::MetadataCorrupt
+    ));
+    assert!(target.is_dir());
+}
+
+#[test]
+fn interrupted_open_retains_original_head_even_after_source_branch_moves() {
+    let sandbox = Sandbox::new("workspace-open-head-moved");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let id = "workspace-open-head-moved";
+    let old_head = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    let old_head = String::from_utf8(old_head.stdout)
+        .unwrap()
+        .trim()
+        .to_string();
+    write_json_atomic(
+        &config.workspace_record_path(id),
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": old_head,
+            "requestedRevision": "HEAD",
+            "createdUnixMs": 41
+        }),
+    )
+    .unwrap();
+    let target = config.workspace_path(id);
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    // The caller lost the response. The source then advanced before retry.
+    fs::write(source.join("next.txt"), b"new source generation").unwrap();
+    run_git(&source, ["add", "next.txt"]);
+    run_git(&source, ["commit", "-qm", "move HEAD"]);
+    let new_head = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert_ne!(old_head, String::from_utf8(new_head.stdout).unwrap().trim());
+    let recovered = create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    assert_eq!(recovered.source_revision, old_head);
+    assert_eq!(
+        load_workspace_record(&config, id).unwrap().source_revision,
+        old_head
+    );
+}
+
+#[test]
 fn workspace_open_non_git_source_is_not_misclassified_as_revision() {
     let sandbox = Sandbox::new("workspace-non-git-source");
     let source = sandbox.root.join("source");

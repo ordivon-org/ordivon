@@ -356,7 +356,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.open",
-        description = "Resolve a local revision and create one detached Git Workspace. On PostgreSQL Linux Runtime, the successful open response includes a 4-hour inactivity lifecycle warning: publish deliverables before the hourly cleanup can close a clean, completed, merged Workspace. Omit workspaceId for a server-generated immutable ws-* handle; provide an explicit unique workspaceId when deterministic response-loss reconciliation matters. Repeating workspace.open is not an idempotent replay: after an uncertain response, use workspace.get on the explicit ID. This tool does not fetch remote refs.",
+        description = "Resolve a local revision and create one detached Git Workspace. On PostgreSQL Linux Runtime, the successful open response includes a 4-hour inactivity lifecycle warning: publish deliverables before the hourly cleanup can close a clean, completed, merged Workspace. Omit workspaceId for a server-generated immutable ws-* handle; provide an explicit unique workspaceId when deterministic response-loss reconciliation matters. Repeating workspace.open is not a general idempotent replay: after an uncertain response, first use workspace.get on the explicit ID. If it reports an unfinished durable opening, the exact original workspace.open request with that ID can reconcile the pre-recorded Git operation; unrecorded or mismatched physical directories remain rejected. This tool does not fetch remote refs.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<CompactWorkspaceOpenResult>>(),
         annotations(
             title = "Open isolated workspace",
