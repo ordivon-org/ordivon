@@ -21,24 +21,7 @@
     }
   ],
   "route": {
-    "rules": [
-      {
-        "inbound": [
-          "x-reality-api"
-        ],
-        "domain": [
-          "api.x.com"
-        ],
-        "port": 443,
-        "network": [
-          "tcp"
-        ],
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "action": "reject"
-      }
-    ]
+    "rules": [],
+    "final": "provider-carrier"
   }
 }

@@ -288,7 +288,10 @@ fn committed_40001_job_id(result: &Value) -> Option<&str> {
     if result.get("isError")?.as_bool() != Some(true)
         || error.get("commitState")?.as_str() != Some("committed")
         || error.get("retryClass")?.as_str() != Some("reconcile_first")
-        || error.get("code")?.as_str() != Some("REGISTRY_UNAVAILABLE")
+        || !matches!(
+            error.get("code")?.as_str()?,
+            "REGISTRY_BUSY" | "REGISTRY_UNAVAILABLE"
+        )
         || !error.get("message")?.as_str()?.contains("E40001")
     {
         return None;
@@ -343,7 +346,13 @@ fn committed_observation_retry_never_reclassifies_uncommitted_effect() {
         "code":"REGISTRY_UNAVAILABLE","operationId":"job-known",
         "message":"PostgreSQL: SqlState(E40001)"
     }}});
-    assert_eq!(committed_40001_job_id(&value), Some("job-known"));
+    // Current PostgreSQL 40001 is REGISTRY_BUSY; historical adapters may
+    // project REGISTRY_UNAVAILABLE. Only committed E40001 is safe to observe.
+    for code in ["REGISTRY_BUSY", "REGISTRY_UNAVAILABLE"] {
+        let mut variant = value.clone();
+        variant["structuredContent"]["error"]["code"] = json!(code);
+        assert_eq!(committed_40001_job_id(&variant), Some("job-known"));
+    }
     for replacement in [
         json!({"commitState":"not_committed"}),
         json!({"retryClass":"safe_same_request"}),
@@ -1823,6 +1832,92 @@ exec /usr/bin/git "$@"
 /// quiet-period proof. Native close must recheck the last PG Job activity
 /// while holding its existing advisory lock and refuse the physical Git
 /// removal despite consumerReleased=false.
+/// The actual production PostgreSQL Workspace.open must apply both carrier
+/// budgets while holding its native PG Workspace-effect lock. Legacy Runtime
+/// unit tests cannot prove this separate owner path.
+#[test]
+#[ignore = "launches an isolated PostgreSQL18 cluster and native Git worktree"]
+fn pg_workspace_open_fails_on_either_carrier_before_git_effect() {
+    use ordivon_runtime_core::{
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceHeadroomConfig,
+    };
+
+    let fixture = Fixture::new();
+    let repo = fixture.repo();
+    let path = fixture.root.clone();
+    let baseline = PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    };
+    let threshold = |minimum_free_bytes| WorkspaceHeadroomConfig {
+        path: path.clone(),
+        minimum_free_bytes,
+    };
+    for (first_minimum, second_minimum, rejected) in
+        [(u64::MAX, 1_u64, "first"), (1_u64, u64::MAX, "second")]
+    {
+        let runtime = PgRuntime::new(PgRuntimeConfig {
+            workspace_headroom: vec![threshold(first_minimum), threshold(second_minimum)],
+            ..baseline.clone()
+        })
+        .unwrap();
+        let workspace_id = format!("pg-guard-{}-{}", rejected, Uuid::now_v7().simple());
+        let result = runtime.open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        });
+        let error = result.expect_err("guest or host floor must reject PG open");
+        assert_eq!(
+            error.code,
+            ordivon_runtime_core::RuntimeErrorCode::WorkspaceCapacityExceeded,
+            "{rejected} carrier should independently deny PG open: {error}"
+        );
+        assert!(!fixture
+            .root
+            .join("store/workspaces")
+            .join(&workspace_id)
+            .exists());
+    }
+
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        workspace_headroom: vec![threshold(1), threshold(1)],
+        ..baseline
+    })
+    .unwrap();
+    let admitted = runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: format!("pg-guard-valid-{}", Uuid::now_v7().simple()),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .expect("both carrier floors satisfied must preserve real PG workspace.open");
+    assert!(fixture
+        .root
+        .join("store/workspaces")
+        .join(&admitted.workspace_id)
+        .is_dir());
+}
+
 #[test]
 #[ignore = "launches an isolated PostgreSQL18 cluster and native Git worktree"]
 fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
@@ -1842,6 +1937,7 @@ fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -1974,6 +2070,7 @@ fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -2157,6 +2254,7 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -2417,6 +2515,178 @@ fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
         !cache.exists(),
         "native close must reclaim workspace-private build cache"
     );
+}
+
+#[test]
+#[ignore = "real PostgreSQL18 + transient systemd timeout; verified LOST without reset-failed"]
+fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
+    struct TestUnitCleanup(String);
+    impl Drop for TestUnitCleanup {
+        fn drop(&mut self) {
+            // Only clean the disposable UUID-scoped unit created by this test.
+            // A RED test must not leave a stopped failed unit behind.
+            let _ = Command::new("systemctl").args(["stop", &self.0]).output();
+            let _ = Command::new("systemctl")
+                .args(["reset-failed", &self.0])
+                .output();
+        }
+    }
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-failed-transient","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    // Force a *systemd* timeout while Runner is unable to write result.json.
+    // This is the exact production counterexample: CollectMode=inactive keeps
+    // a failed Unit loaded even though its kernel cgroup has been removed.
+    let admitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-failed-transient-exact-runner",
+               "execution":{"workspaceId":"ws-pg-failed-transient",
+                            "executable":"/usr/bin/sleep","args":["60"],
+                            "cwdRelative":".","timeoutMs":9000},
+               "waitMs":0}),
+    );
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    let job_id = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .expect("exact committed PG Job")
+        .to_owned();
+    let (bundle, unit): (String, String) = {
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT bundle_path,unit_name FROM attempts WHERE job_id=$1",
+                &[&job_id],
+            )
+            .unwrap();
+        (row.get(0), row.get(1))
+    };
+    assert!(
+        unit.starts_with("ordivon-pg-attempt-") && unit.ends_with(".service"),
+        "only UUID-scoped disposable PG unit may be stopped: {unit}"
+    );
+    let _cleanup = TestUnitCleanup(unit.clone());
+    let start_file = PathBuf::from(&bundle).join("runner-start.json");
+    let start_deadline = Instant::now() + Duration::from_secs(8);
+    while !start_file.is_file() && Instant::now() < start_deadline {
+        thread::sleep(Duration::from_millis(30));
+    }
+    assert!(
+        start_file.is_file(),
+        "real Runner start witness is required"
+    );
+    let start: Value = serde_json::from_slice(&fs::read(&start_file).unwrap()).unwrap();
+    assert_eq!(start["jobId"], job_id);
+    assert_eq!(start["unitName"], unit);
+    assert_eq!(
+        start["controlGroup"],
+        format!("/system.slice/{unit}"),
+        "exact cgroup identity required"
+    );
+
+    // Freeze only this test Runner's main PID. systemd RuntimeMaxSec then
+    // terminates its whole cgroup; no user command is restarted or reissued.
+    let frozen = Command::new("systemctl")
+        .args(["kill", "--signal=STOP", "--kill-whom=main", &unit])
+        .output()
+        .unwrap();
+    assert!(
+        frozen.status.success(),
+        "freeze only the disposable Runner: {}",
+        String::from_utf8_lossy(&frozen.stderr)
+    );
+
+    let deadline = Instant::now() + Duration::from_secs(42);
+    let final_observation = loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId": job_id, "waitMs": 2000, "stdoutTailBytes":500}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            break observed;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "failed retained systemd Unit left PG Job running: {observed}"
+        );
+        thread::sleep(Duration::from_millis(150));
+    };
+    assert_eq!(
+        final_observation["structuredContent"]["executionDisposition"],
+        "lost",
+        "a dead Runner without result.json can only become LOST, never success: {final_observation}"
+    );
+    assert_eq!(
+        final_observation["structuredContent"]["resultAvailable"],
+        false
+    );
+    assert!(
+        !PathBuf::from(&bundle).join("result.json").exists(),
+        "this case specifically requires OS-only recovery"
+    );
+    let receipt: Value = serde_json::from_slice(
+        &fs::read(PathBuf::from(&bundle).join("native-stop-evidence.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(receipt["terminalState"], "lost");
+    assert_eq!(
+        receipt["failedUnitInvocationBound"], true,
+        "identity-bound failed retained systemd Unit must be the actual reason for convergence: {receipt}"
+    );
+    assert_eq!(receipt["activeState"], "failed");
+    assert_eq!(receipt["loadState"], "loaded");
+    assert_eq!(receipt["nativeCgroupState"], "removed");
+    assert_eq!(receipt["kernelCgroupRemoved"], true);
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT r.state FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$1",
+            &[&job_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reservation, "released");
+    let count: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(count, 1, "native recovery must not relaunch the attempt");
+
+    // The systemd failed Unit must be retained until the PG terminal commit,
+    // then unloaded by the EXISTING terminal-only cleanup, not by the
+    // disposable test's Drop guard. Otherwise the root incident is merely
+    // shifted from leaked PG reservations to leaked supervisor failed units.
+    let unloaded_deadline = Instant::now() + Duration::from_secs(4);
+    loop {
+        let unit_state = Command::new("systemctl")
+            .args(["show", &unit, "--property=LoadState"])
+            .output()
+            .unwrap();
+        assert!(unit_state.status.success());
+        let state = String::from_utf8_lossy(&unit_state.stdout);
+        if state.trim() == "LoadState=not-found" {
+            break;
+        }
+        assert!(
+            Instant::now() < unloaded_deadline,
+            "committed LOST must release the failed transient Unit too: {state}"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
 }
 
 #[test]
@@ -3105,6 +3375,7 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("self-qualified-attempt"),
             workspace_root: None,
@@ -3160,6 +3431,7 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("session-authority-candidate"),
             workspace_root: None,

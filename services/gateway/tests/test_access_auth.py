@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -172,3 +173,86 @@ def test_loopback_bearer_is_authenticated_without_weakening_remote_cloudflare(tm
     assert seen[-1]["state"]["ordivon_access_issuer"] == "ordivon-local-service"
     assert asyncio.run(call("192.0.2.10", "x" * 64)) == 403
     assert asyncio.run(call("127.0.0.1", "wrong" * 16)) == 403
+
+
+def test_cloudflare_service_token_signed_empty_sub_maps_to_distinct_workload_principal() -> None:
+    """Cloudflare service tokens have empty signed sub and signed common_name."""
+    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    config = CloudflareAccessConfig(
+        issuer="https://team.cloudflareaccess.com",
+        audience="aud-1",
+        jwks_url="https://team.cloudflareaccess.com/cdn-cgi/access/certs",
+    )
+    verifier = CloudflareAccessVerifier(
+        config, key_resolver=StaticKeyResolver(private.public_key())
+    )
+
+    def issue(
+        *, subject: str = "", kind: str = "app", common_name: object = "agent-a.access"
+    ) -> str:
+        claims: dict[str, Any] = {
+            "iss": config.issuer,
+            "aud": [config.audience],
+            "sub": subject,
+            "type": kind,
+            "iat": int(time.time()) - 1,
+            "exp": int(time.time()) + 300,
+        }
+        if common_name is not None:
+            claims["common_name"] = common_name
+        return jwt.encode(claims, private, algorithm="RS256", headers={"kid": "test-key"})
+
+    first = verifier.verify_identity(issue())
+    same = verifier.verify_identity(issue())
+    different = verifier.verify_identity(issue(common_name="agent-b.access"))
+    human = verifier.verify_identity(issue(subject="service-token:agent-a.access"))
+    assert first.issuer == config.issuer
+    assert first.principal.startswith("principal:cf-access:")
+    assert first.principal == same.principal
+    assert first.principal != different.principal
+    # Domain separation prevents signed human sub strings colliding with service identity.
+    assert first.principal != human.principal
+    assert first.subject == "service-token:agent-a.access"
+
+    # A CF Access human subject keeps the preexisting principal derivation.
+    legacy = hashlib.sha256(
+        b"ordivon-gateway-cf-access-principal-v1\0" + config.issuer.encode() + b"\0" + b"human-7"
+    ).hexdigest()
+    assert verifier.verify_identity(issue(subject="human-7")).principal == (
+        f"principal:cf-access:{legacy}"
+    )
+
+    for invalid in (
+        issue(common_name=None),
+        issue(common_name=""),
+        issue(common_name="bad id"),
+        issue(common_name="x"),
+        issue(common_name=9),
+        issue(kind="org"),
+        issue(subject="  "),
+    ):
+        try:
+            verifier.verify_identity(invalid)
+        except AccessAuthError:
+            pass
+        else:
+            raise AssertionError("unqualified service-token identity must be denied")
+
+    # Signature and audience checks are required for service identities as for humans.
+    hostile = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    claims = {
+        "iss": config.issuer,
+        "aud": [config.audience],
+        "sub": "",
+        "type": "app",
+        "common_name": "agent-a.access",
+        "iat": int(time.time()) - 1,
+        "exp": int(time.time()) + 300,
+    }
+    signed_wrong_key = jwt.encode(claims, hostile, algorithm="RS256", headers={"kid": "test-key"})
+    try:
+        verifier.verify_identity(signed_wrong_key)
+    except AccessAuthError:
+        pass
+    else:
+        raise AssertionError("untrusted service-token signing key must be denied")

@@ -26,6 +26,8 @@ pub struct PgRuntimeConfig {
     /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
     pub harness_issuer_schema: Option<String>,
     pub executor: UniversalExecutorConfig,
+    /// Existing physical carrier guards shared with Runtime::workspace.open.
+    pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
 }
 
 /// Per-process progress cursors for bounded background reconciliation scans.
@@ -190,6 +192,7 @@ impl PgRuntime {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
+        super::engine::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
         {

@@ -36,21 +36,9 @@ https_probe() {
 chatgpt_code=$(https_probe https://chatgpt.com/ no) || exit 21
 assets_code=$(https_probe https://persistent.oaistatic.com/ yes) || exit 22
 
-# Explicit negative witness: a disallowed destination must never complete
-# TLS or reach an origin, even if a nested proxy emits CONNECT 200.
-set +e
-denied_receipt=$(curl -q -4 --noproxy "" -x "$proxy" -I -sS \
-  --connect-timeout 3 --max-time 7 -o /dev/null \
-  -w '%{http_code} %{http_connect} %{time_appconnect}' \
-  https://example.com/ 2>/dev/null)
-unknown_rc=$?
-set -e
-read -r denied_code denied_tunnel denied_tls denied_extra <<< "$denied_receipt"
-test "$unknown_rc" -ne 0
-test "$denied_code" = 000
-[[ "$denied_tunnel" == 200 || "$denied_tunnel" == 403 ]]
-test -z "$denied_extra"
-[[ "$denied_tls" =~ ^0([.]0+)?$ ]]
+# A formerly unknown public HTTPS origin now has to reach a real origin over
+# the SAME provider tunnel; CONNECT=200 without TLS is not accepted.
+open_code=$(https_probe https://example.com/ no) || exit 23
 
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.codex-readiness","standing":"READY","chatgptHttp":%s,"cdnHttp":%s,"proxy":"%s","unknownDestination":"REJECTED","applicationProcessEgress":"UNKNOWN","directFallback":false,"providerEffectAttempted":false}\n' \
-  "$chatgpt_code" "$assets_code" "$proxy"
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.codex-readiness","standing":"READY","chatgptHttp":%s,"cdnHttp":%s,"proxy":"%s","unknownDestination":"ORIGIN_PROVED","openHttp":%s,"applicationProcessEgress":"UNKNOWN","directFallback":false,"providerEffectAttempted":false}\n' \
+  "$chatgpt_code" "$assets_code" "$proxy" "$open_code"

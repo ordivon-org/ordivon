@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import logging
 import os
+import re
 import stat
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -84,6 +85,20 @@ def _principal(issuer: str, subject: str) -> str:
     return f"principal:cf-access:{digest.hexdigest()}"
 
 
+# Cloudflare service-token JWTs have empty signed sub and signed common_name.
+# A separate hash domain prevents collision with user subjects.
+_SERVICE_CLIENT_ID = re.compile(r"[A-Za-z0-9._-]{8,255}\Z")
+
+
+def _service_principal(issuer: str, client_id: str) -> str:
+    digest = hashlib.sha256()
+    digest.update(b"ordivon-gateway-cf-access-service-principal-v1\0")
+    digest.update(issuer.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(client_id.encode("utf-8"))
+    return f"principal:cf-access:{digest.hexdigest()}"
+
+
 class CloudflareAccessVerifier:
     def __init__(
         self,
@@ -122,13 +137,30 @@ class CloudflareAccessVerifier:
             raise AccessAuthError("invalid Cloudflare Access assertion") from exc
 
         subject = claims.get("sub")
-        if not isinstance(subject, str) or not subject.strip():
+        if not isinstance(subject, str):
             raise AccessAuthError("Cloudflare Access assertion has no usable subject")
-        subject = subject.strip()
+        if subject:
+            if not subject.strip():
+                raise AccessAuthError("Cloudflare Access assertion has no usable subject")
+            subject = subject.strip()
+            return VerifiedAccessIdentity(
+                issuer=self._config.issuer,
+                subject=subject,
+                principal=_principal(self._config.issuer, subject),
+            )
+        # A service-token app JWT uses signed common_name as its Client ID.
+        # No actor claim is inferred; Security grants remain explicit.
+        client_id = claims.get("common_name")
+        if (
+            claims.get("type") != "app"
+            or not isinstance(client_id, str)
+            or _SERVICE_CLIENT_ID.fullmatch(client_id) is None
+        ):
+            raise AccessAuthError("Cloudflare Access assertion has no usable service identity")
         return VerifiedAccessIdentity(
             issuer=self._config.issuer,
-            subject=subject,
-            principal=_principal(self._config.issuer, subject),
+            subject="service-token:" + client_id,
+            principal=_service_principal(self._config.issuer, client_id),
         )
 
 

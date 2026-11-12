@@ -22,7 +22,18 @@ NETWORK = Path(__file__).resolve().parents[2]
 ROOT = Path("/etc/network-v2")
 NAMESPACE = "nv2-browserless-prod"
 CARRIER_PORT = 19680
-CASES = ("codex", "discord", "model-provider", "supply-chain", "x-reality", "claude", "chat-ingress")
+CASES = ("codex", "discord", "model-provider", "supply-chain", "x-reality",
+         "claude", "chat-ingress", "windows-real-chrome")
+BUSINESS_ORIGIN = {
+    "codex": "chatgpt.com",
+    "discord": "discord.com",
+    "model-provider": "api.deepseek.com",
+    "supply-chain": "registry-1.docker.io",
+    "x-reality": "api.x.com",
+    "claude": "api.anthropic.com",
+    "chat-ingress": "chatgpt.com",
+    "windows-real-chrome": "example.com",
+}
 # CONNECT targets can contain bracketed IPv6 literals, not only DNS/IPv4.
 # Missing this case makes a leaking IPv6 CONNECT invisible to the Carrier spy.
 CONNECT_AUTHORITY = re.compile(r"CONNECT\s+(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+):(\d+)\s+HTTP/1")
@@ -43,24 +54,21 @@ def pid(unit: str) -> int:
 
 
 def contract(name: str) -> dict:
-    filename = "sing-box.json" if name in ("codex", "claude", "chat-ingress") else "egress.json"
+    filename = "sing-box.json" if name in ("codex", "claude", "chat-ingress", "windows-real-chrome") else "egress.json"
     source = NETWORK / "consumers" / name / "config" / filename
     installed = ROOT / name / filename
     b = source.read_bytes()
     if b != installed.read_bytes():
         raise AssertionError(f"{name}: installed SourceCut diverges")
     config = json.loads(b)
-    if config["route"]["rules"][-1] != {"action": "reject"}:
-        raise AssertionError(f"{name}: no terminal reject rule")
+    if config["route"] != {"rules": [], "final": "provider-carrier"}:
+        raise AssertionError(f"{name}: expected open Carrier route")
     if config["outbounds"] != [{
         "type": "http", "tag": "provider-carrier",
         "server": "10.252.246.2", "server_port": CARRIER_PORT
     }]:
         raise AssertionError(f"{name}: physical carrier contract changed")
-    host = config["route"]["rules"][0]["domain"][0]
-    ports = config["route"]["rules"][0]["port"]
-    if ports not in (443, [443]):
-        raise AssertionError(f"{name}: expected scoped TLS port")
+    host = BUSINESS_ORIGIN[name]  # Business sample, NOT a route allowlist.
     if name == "codex":
         relay = (NETWORK / "consumers/codex/systemd/network-v2-codex-relay.service").read_text()
         match = re.search(r"systemd-socket-activate -l 127\.0\.0\.1:(\d+)", relay)
@@ -82,11 +90,17 @@ def contract(name: str) -> dict:
             port = int(match.group(1))
             proxy_host = "127.0.0.1"
             probe_namespace = None
+    elif name == "windows-real-chrome":
+        assert config["inbounds"][0]["listen"] == "127.0.0.1"
+        relay = (NETWORK / "consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service").read_text()
+        assert "systemd-socket-activate -l 127.0.0.1:19781" in relay
+        port = 19781
     else:
         assert config["inbounds"][0]["listen"] == "127.0.0.1"
         port = int(config["inbounds"][0]["listen_port"])
     unit = (
         "network-v2-codex-proxy.service" if name == "codex"
+        else "network-v2-windows-real-chrome-proxy.service" if name == "windows-real-chrome"
         else f"network-v2-{name}-proxy.service" if name in ("claude", "chat-ingress")
         else f"network-v2-{name}-egress.service"
     )
@@ -94,7 +108,7 @@ def contract(name: str) -> dict:
         "consumer": name, "proxyPort": port, "allowedHost": host,
         "proxyHost": proxy_host if name in ("claude", "chat-ingress") else "127.0.0.1",
         "probeNamespace": probe_namespace if name in ("claude", "chat-ingress") else None,
-        "sensor": "namespace" if name in ("codex", "claude", "chat-ingress") else "host",
+         "sensor": "namespace" if name in ("codex", "claude", "chat-ingress", "windows-real-chrome") else "host",
         "sourceSha256": hashlib.sha256(b).hexdigest(),
         "unit": unit, "pid": pid(unit),
     }
@@ -168,13 +182,13 @@ def run(names: list[str]) -> dict:
             observer.assert_live()
         for c in data:
             observer = observers[c["sensor"]]
-            forbidden = f"ns2-{c['consumer']}-{os.getpid()}.example.com"
+            # Independent new origin MUST be forwarded and complete TLS.
+            # For unserviceable ports and IP literals, observe the native
+            # outbound CONNECT attempt; remote TLS success isn't guaranteed.
             for scenario, target in (
-                ("allowed", f"{c['allowedHost']}:443"),
-                ("unknown-host", f"{forbidden}:443"),
-                ("wrong-port", f"{c['allowedHost']}:444"),
-                # Literal targets bypass DNS-name allowlisting; both families
-                # must produce no upstream Carrier CONNECT.
+                ("business-origin", f"{c['allowedHost']}:443"),
+                ("independent-public", "example.com:443"),
+                ("other-port", f"{c['allowedHost']}:444"),
                 ("ipv4-literal", "1.1.1.1:443"),
                 ("ipv6-literal", "[2606:4700:4700::1111]:443"),
             ):
@@ -191,16 +205,23 @@ def run(names: list[str]) -> dict:
                     timeout=11)
                 time.sleep(0.3)
                 forwarded = observer.count(target) - before
-                accepted = forwarded > 0 and result.returncode == 0
-                # The sing-box native listener can acknowledge CONNECT 200
-                # before terminating a rejected route. A nonzero curl exit
-                # AND zero observed upstream delivery are both required.
-                rejected = forwarded == 0 and result.returncode != 0
+                pieces = result.stdout.strip().split("/")
+                origin_completed = (
+                    len(pieces) == 2 and pieces[0] == "200"
+                    and pieces[1].isdigit() and int(pieces[1]) >= 200
+                    and result.returncode == 0
+                )
+                # Two positive end-to-end origin receipts; the other three
+                # cases prove only non-default network forwarding attempts.
+                admitted = forwarded > 0 and (
+                    origin_completed if scenario in (
+                        "business-origin", "independent-public") else True
+                )
                 observations.append({
                     "consumer": c["consumer"], "scenario": scenario,
                     "observer": c["sensor"], "forwardedConnects": forwarded,
                     "proxyAndOriginHttp": result.stdout, "curlExit": result.returncode,
-                    "pass": accepted if scenario == "allowed" else rejected,
+                     "pass": admitted, "originCompleted": origin_completed,
                 })
         time.sleep(0.7)
         for observer in observers.values():
@@ -211,7 +232,7 @@ def run(names: list[str]) -> dict:
     for c in data:
         if pid(c["unit"]) != c["pid"]:
             raise AssertionError(f"{c['consumer']}: process replaced during witness")
-        filename = "sing-box.json" if c["consumer"] in ("codex", "claude", "chat-ingress") else "egress.json"
+        filename = "sing-box.json" if c["consumer"] in ("codex", "claude", "chat-ingress", "windows-real-chrome") else "egress.json"
         source = NETWORK / "consumers" / c["consumer"] / "config" / filename
         installed = ROOT / c["consumer"] / filename
         if source.read_bytes() != installed.read_bytes() or (
@@ -224,8 +245,8 @@ def run(names: list[str]) -> dict:
         "schemaVersion": 1,
         "kind": "ordivon.network-v2.ns2-live-carrier-witness",
         "standing": "PASS" if all(x["pass"] for x in observations) else "FAIL",
-        "scope": "sampled scoped HTTP CONNECT (DNS names, IPv4/IPv6 IP literals) -> shared Carrier; not IPv6 transport path",
-        "unproved": ["DNS/DoH indirect exits", "IPv6 direct/UDP egress", "Finance direct exception",
+         "scope": "sampled open HTTP CONNECT via Carrier: two HTTPS origins plus non-default ports and IP-literal forwarding attempts",
+         "unproved": ["DNS/DoH indirect exits", "remote IPv6 delivery and UDP egress", "Finance direct exception",
                      "all local app process binding", "loaded memory policy digest"],
         "observedAtUtc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "providerPidStable": True, "consumerCount": len(data),

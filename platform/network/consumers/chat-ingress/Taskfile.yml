@@ -8,7 +8,7 @@ tasks:
       - /usr/bin/sing-box check -c consumers/chat-ingress/config/sing-box.json
       - |
         set -eu
-        jq -e '.inbounds==[{"type":"mixed","tag":"chat-ingress","listen":"127.0.0.1","listen_port":19080}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules==[{"inbound":["chat-ingress"],"network":["tcp"],"domain":["chatgpt.com"],"port":[443],"action":"route","outbound":"provider-carrier"},{"action":"reject"}] and (has("dns")|not)' consumers/chat-ingress/config/sing-box.json >/dev/null
+        jq -e '.inbounds==[{"type":"mixed","tag":"chat-ingress","listen":"127.0.0.1","listen_port":19080}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route=={"rules":[],"final":"provider-carrier"} and (has("dns")|not)' consumers/chat-ingress/config/sing-box.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service consumers/chat-ingress/systemd/network-v2-chat-ingress.target
       - /usr/bin/bash -n consumers/chat-ingress/ready.sh
 

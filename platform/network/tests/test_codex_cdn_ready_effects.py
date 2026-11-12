@@ -31,7 +31,7 @@ elif 'persistent.oaistatic.com/' in url:
         sys.exit(35)
     sys.stdout.write('404 200 0.4')
 elif 'example.com/' in url:
-    if case=='unknown_admitted':
+    if case!='unknown_tls_failure':
         sys.stdout.write('200 200 0.4')
     else:
         sys.stdout.write('000 200 0.000000')
@@ -63,18 +63,19 @@ def invoke(bin_dir: Path, case: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_real_protocol_contract_accepts_tls_and_explicit_denial(fake_commands: Path):
+def test_real_protocol_contract_accepts_tls_and_open_origin(fake_commands: Path):
     result = invoke(fake_commands, "ready")
     assert result.returncode == 0, result.stderr
     receipt = json.loads(result.stdout)
     assert receipt["standing"] == "READY"
     assert receipt["chatgptHttp"] == 200
     assert receipt["cdnHttp"] == 404
-    assert receipt["unknownDestination"] == "REJECTED"
+    assert receipt["unknownDestination"] == "ORIGIN_PROVED"
+    assert receipt["openHttp"] == 200
     assert receipt["applicationProcessEgress"] == "UNKNOWN"
 
 
-@pytest.mark.parametrize("case", ["cdn_tls_failure", "chatgpt_denied", "unknown_admitted"])
+@pytest.mark.parametrize("case", ["cdn_tls_failure", "chatgpt_denied", "unknown_tls_failure"])
 def test_live_witness_rejects_failed_cdn_origin_or_policy(case: str, fake_commands: Path):
     result = invoke(fake_commands, case)
     assert result.returncode != 0
