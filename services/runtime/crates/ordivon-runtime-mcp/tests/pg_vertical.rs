@@ -2417,6 +2417,178 @@ fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
 }
 
 #[test]
+#[ignore = "real PostgreSQL18 + transient systemd timeout; verified LOST without reset-failed"]
+fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
+    struct TestUnitCleanup(String);
+    impl Drop for TestUnitCleanup {
+        fn drop(&mut self) {
+            // Only clean the disposable UUID-scoped unit created by this test.
+            // A RED test must not leave a stopped failed unit behind.
+            let _ = Command::new("systemctl").args(["stop", &self.0]).output();
+            let _ = Command::new("systemctl")
+                .args(["reset-failed", &self.0])
+                .output();
+        }
+    }
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-failed-transient","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    // Force a *systemd* timeout while Runner is unable to write result.json.
+    // This is the exact production counterexample: CollectMode=inactive keeps
+    // a failed Unit loaded even though its kernel cgroup has been removed.
+    let admitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-failed-transient-exact-runner",
+               "execution":{"workspaceId":"ws-pg-failed-transient",
+                            "executable":"/usr/bin/sleep","args":["60"],
+                            "cwdRelative":".","timeoutMs":9000},
+               "waitMs":0}),
+    );
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    let job_id = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .expect("exact committed PG Job")
+        .to_owned();
+    let (bundle, unit): (String, String) = {
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT bundle_path,unit_name FROM attempts WHERE job_id=$1",
+                &[&job_id],
+            )
+            .unwrap();
+        (row.get(0), row.get(1))
+    };
+    assert!(
+        unit.starts_with("ordivon-pg-attempt-") && unit.ends_with(".service"),
+        "only UUID-scoped disposable PG unit may be stopped: {unit}"
+    );
+    let _cleanup = TestUnitCleanup(unit.clone());
+    let start_file = PathBuf::from(&bundle).join("runner-start.json");
+    let start_deadline = Instant::now() + Duration::from_secs(8);
+    while !start_file.is_file() && Instant::now() < start_deadline {
+        thread::sleep(Duration::from_millis(30));
+    }
+    assert!(
+        start_file.is_file(),
+        "real Runner start witness is required"
+    );
+    let start: Value = serde_json::from_slice(&fs::read(&start_file).unwrap()).unwrap();
+    assert_eq!(start["jobId"], job_id);
+    assert_eq!(start["unitName"], unit);
+    assert_eq!(
+        start["controlGroup"],
+        format!("/system.slice/{unit}"),
+        "exact cgroup identity required"
+    );
+
+    // Freeze only this test Runner's main PID. systemd RuntimeMaxSec then
+    // terminates its whole cgroup; no user command is restarted or reissued.
+    let frozen = Command::new("systemctl")
+        .args(["kill", "--signal=STOP", "--kill-whom=main", &unit])
+        .output()
+        .unwrap();
+    assert!(
+        frozen.status.success(),
+        "freeze only the disposable Runner: {}",
+        String::from_utf8_lossy(&frozen.stderr)
+    );
+
+    let deadline = Instant::now() + Duration::from_secs(42);
+    let final_observation = loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId": job_id, "waitMs": 2000, "stdoutTailBytes":500}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            break observed;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "failed retained systemd Unit left PG Job running: {observed}"
+        );
+        thread::sleep(Duration::from_millis(150));
+    };
+    assert_eq!(
+        final_observation["structuredContent"]["executionDisposition"],
+        "lost",
+        "a dead Runner without result.json can only become LOST, never success: {final_observation}"
+    );
+    assert_eq!(
+        final_observation["structuredContent"]["resultAvailable"],
+        false
+    );
+    assert!(
+        !PathBuf::from(&bundle).join("result.json").exists(),
+        "this case specifically requires OS-only recovery"
+    );
+    let receipt: Value = serde_json::from_slice(
+        &fs::read(PathBuf::from(&bundle).join("native-stop-evidence.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(receipt["terminalState"], "lost");
+    assert_eq!(
+        receipt["failedUnitInvocationBound"], true,
+        "identity-bound failed retained systemd Unit must be the actual reason for convergence: {receipt}"
+    );
+    assert_eq!(receipt["activeState"], "failed");
+    assert_eq!(receipt["loadState"], "loaded");
+    assert_eq!(receipt["nativeCgroupState"], "removed");
+    assert_eq!(receipt["kernelCgroupRemoved"], true);
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT r.state FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$1",
+            &[&job_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reservation, "released");
+    let count: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(count, 1, "native recovery must not relaunch the attempt");
+
+    // The systemd failed Unit must be retained until the PG terminal commit,
+    // then unloaded by the EXISTING terminal-only cleanup, not by the
+    // disposable test's Drop guard. Otherwise the root incident is merely
+    // shifted from leaked PG reservations to leaked supervisor failed units.
+    let unloaded_deadline = Instant::now() + Duration::from_secs(4);
+    loop {
+        let unit_state = Command::new("systemctl")
+            .args(["show", &unit, "--property=LoadState"])
+            .output()
+            .unwrap();
+        assert!(unit_state.status.success());
+        let state = String::from_utf8_lossy(&unit_state.stdout);
+        if state.trim() == "LoadState=not-found" {
+            break;
+        }
+        assert!(
+            Instant::now() < unloaded_deadline,
+            "committed LOST must release the failed transient Unit too: {state}"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
+#[test]
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();
