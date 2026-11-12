@@ -221,6 +221,9 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                         "sourceStateDigest": "sha256:" + "f" * 64,
                     }
                 if name == "workspace.close":
+                    assert parameters["force"] is False
+                    assert parameters["consumerReleased"] is False
+                    assert parameters["expectedSourceStateDigest"] == "sha256:" + "f" * 64
                     self.enclosing.git(
                         "worktree", "remove", str(self.enclosing.workspace),
                     )

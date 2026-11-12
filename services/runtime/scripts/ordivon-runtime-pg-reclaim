@@ -352,7 +352,10 @@ def run(args: argparse.Namespace) -> dict:
             closed = client.call_tool(
                 "workspace.close",
                 {"schemaVersion":1,"workspaceId":path.name,"force":False,
-                 "consumerReleased":True,
+                 # A quiet successful Job is NOT evidence of a semantic
+                 # consumer release. After the >=4h continuation grace the
+                 # Runtime can close without asserting consumerReleased=true.
+                 "consumerReleased":False,
                  "expectedSourceStateDigest":digest},
             )
             if closed.get("closureDisposition") not in ("removed","already_closed"):

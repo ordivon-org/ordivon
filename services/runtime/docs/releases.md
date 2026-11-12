@@ -205,8 +205,11 @@ forceCloseUnintegratedAfterRetention=true on its selected class. The existing
 Git namespace refs/ordivon/retention preserves the exact source commit before
 the native Workspace close. Native Runtime remains the sole close authority
 and rechecks PG active Jobs, dependents, source digest, installed consumers,
-and worktree state. No direct directory delete or deletion on UNKNOWN. The
-close receipt is physical carrier evidence, not semantic task completion.
+and worktree state. The adapter passes consumerReleased=false instead of
+inventing evidence of a semantic consumer release: native Runtime owns the
+age-based continuation boundary and retains any rejected close. No direct
+directory delete or deletion on UNKNOWN. The close receipt is physical
+carrier evidence, not semantic task completion.
 Each sweep separately reports skipped classifications, eligible unintegrated
 Workspace count, preserved refs and directories outside this source repository's
 Git worktree inventory. Those directories may belong to other source repositories
