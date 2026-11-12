@@ -23,11 +23,30 @@ tasks:
     cmds:
       - python3 providers/gluetun/native_profile.py --apply
 
+  provider:gluetun:dns-consumer:
+    desc: Query Gluetun local DNS A/AAAA from its real running VPN network namespace; cacheable consumer evidence, NOT proof that each DoT upstream is healthy
+    cmds:
+      - |
+        set -euo pipefail
+        pid=$(/usr/bin/podman inspect network-v2-gluetun-owned-r1 | /usr/bin/jq -er '.[0] | select(.State.Running == true) | .State.Pid | select(type == "number" and . > 1)')
+        test -r "/proc/$pid/ns/net"
+        for rr in A AAAA; do
+          answer=$(/usr/bin/nsenter --target "$pid" --net /usr/bin/dig +time=2 +tries=1 +short @127.0.0.1 example.com "$rr")
+          test -n "$answer"
+          case "$rr" in
+            A) printf '%s\n' "$answer" | /usr/bin/grep -Eq '^[0-9]+(\.[0-9]+){3}$' ;;
+            AAAA) printf '%s\n' "$answer" | /usr/bin/grep -Eq '^[[:xdigit:]:]+$' ;;
+          esac
+        done
+        echo 'standing=VPN_NAMESPACE_GLUETUN_LOCAL_DNS_A_AAAA_READY'
+        echo 'scope=consumer_answer_not_independent_DoT_upstream_or_device_origin'
+
   provider:gluetun:verify:
-    desc: Verify deployed Gluetun SourceCut and real shared-provider HTTPS path
+    desc: Verify deployed Gluetun SourceCut and real shared-provider HTTPS/DNS paths
     deps: [provider:gluetun:validate]
     cmds:
       - python3 providers/gluetun/native_profile.py --verify
+      - task provider:gluetun:dns-consumer
       - cmp -s providers/gluetun/identity-exclusive.sh /usr/local/libexec/network-v2/provider-identity-exclusive
       - cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
       - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned.target /etc/systemd/system/network-v2-gluetun-owned.target

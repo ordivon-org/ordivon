@@ -234,3 +234,19 @@ def test_upstream_ordered_country_preview_preserves_native_provider_and_fail_clo
     ):
         with pytest.raises(ValueError):
             native.parse_selector_policy(__import__("json").dumps(invalid))
+
+
+
+def test_provider_uses_native_vpn_namespace_dns_consumer_not_host_udp_probe():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    task = (root / "providers/gluetun/Taskfile.yml").read_text()
+    assert "provider:gluetun:dns-consumer:" in task
+    assert "podman inspect network-v2-gluetun-owned-r1" in task
+    assert "/usr/bin/nsenter --target" in task
+    assert "@127.0.0.1 example.com" in task
+    assert "for rr in A AAAA" in task
+    assert "task provider:gluetun:dns-consumer" in task
+    rules = (root / "config/prometheus/consumer.rules.yml").read_text()
+    assert rules.count("observation_plane: host_direct_udp53") == 3
+    assert "VPN DoT state is unknown" in rules
