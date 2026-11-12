@@ -86,12 +86,13 @@ def test_authorized_public_direct_does_not_become_vpn_lane():
         m.validate_contract(data, data)
 
 
-def test_unknown_origin_cannot_be_routed_as_authorized_business():
+def test_unapproved_finance_direct_lane_is_not_silently_installed():
     m = module()
     raw = json.loads(m.SOURCE.read_text())
-    for entry in raw["route"]["rules"]:
-        if entry.get("inbound") == ["finance-okx"]:
-            entry["domain"] = "other.example"
+    raw["route"]["rules"].append({
+        "inbound": ["finance-okx"], "action": "route",
+        "outbound": "public-direct",
+    })
     with pytest.raises(ValueError, match="SAMPLE_ROUTE_NOT_INSTALLED"):
         data = json.dumps(raw).encode()
         m.validate_contract(data, data)

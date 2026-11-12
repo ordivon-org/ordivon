@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "mode": "temporary-open-tcp-connect",
+  "defaultOutbound": "provider-carrier",
+  "consumers": [
+    "chat-ingress",
+    "claude",
+    "codex",
+    "discord",
+    "finance",
+    "model-provider",
+    "supply-chain",
+    "windows-real-chrome",
+    "x-reality"
+  ],
+  "publicDirectInbounds": {
+    "finance": [
+      "finance-fred-public-csv",
+      "finance-us-treasury-public"
+    ]
+  }
+}

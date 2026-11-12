@@ -4,7 +4,7 @@
 # another WireGuard session or change the host default route.
 # Explicit caller proxy settings win. Applies only to login-shell tooling,
 # not to managed systemd/network service transport.
-if [ "${ORDIVON_DEV_VPN:-auto}" != "off" ]; then
+if [ "${ORDIVON_DEV_VPN:-off}" != "off" ] || [[ "${1:-}" == "--systemd-env" ]]; then
     _ordivon_dev_proxy="http://10.252.246.2:19680"
     # curl and Python prefer lowercase proxy aliases when both are supplied.
     # Normalize once so subprocesses cannot choose contradictory transports.
@@ -99,6 +99,12 @@ if [ "${ORDIVON_DEV_VPN:-auto}" != "off" ]; then
         fi
     fi
     unset _ordivon_dev_proxy _ordivon_private_no_proxy _ordivon_no_proxy_source _ordivon_no_proxy_parts _ordivon_no_proxy_merged _ordivon_no_proxy_part _ordivon_no_proxy_unsafe
+else
+    # Interactive tools are unrestricted by default. Explicit opt-in to the
+    # shared provider remains available with ORDIVON_DEV_VPN=on.
+    # No Ordivon proxy injection in the open mode. Do not clobber an explicit
+    # caller-selected proxy: an opt-in transport remains the caller's choice.
+    :
 fi
 
 # Reuse the same scoped Network-v2 proxy for non-login Agent/Runtime tools:

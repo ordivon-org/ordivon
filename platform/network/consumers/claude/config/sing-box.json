@@ -1,19 +1,27 @@
 {
   "$schema": "https://sing-box.sagernet.org/schema.json",
-  "log": {"level": "warn", "timestamp": true},
-  "inbounds": [{"type": "http", "tag": "claude-egress", "listen": "127.0.0.1", "listen_port": 19480}],
-  "outbounds": [{"type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680}],
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "claude-egress",
+      "listen": "127.0.0.1",
+      "listen_port": 19480
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "http",
+      "tag": "provider-carrier",
+      "server": "10.252.246.2",
+      "server_port": 19680
+    }
+  ],
   "route": {
-    "rules": [
-      {
-        "inbound": ["claude-egress"],
-        "network": ["tcp"],
-        "domain": ["api.anthropic.com","claude.ai","claude.com","platform.claude.com","downloads.claude.ai","code.claude.com"],
-        "port": [443],
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {"action": "reject"}
-    ]
+    "rules": [],
+    "final": "provider-carrier"
   }
 }
