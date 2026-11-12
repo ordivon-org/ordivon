@@ -9,6 +9,8 @@ use uuid::Uuid;
 
 #[path = "pg_dispatch.rs"]
 mod dispatch;
+#[path = "pg_issuer_guard.rs"]
+mod issuer;
 pub use dispatch::{PgBundleReady, PgDispatchIssued};
 
 #[derive(Debug)]
@@ -21,6 +23,7 @@ pub enum PgAdmissionError {
     /// Workspace physical identity changed after a Job was planned, but before
     /// its PG admission acquired the global effect/admission lock.
     WorkspaceStale,
+    IssuerNotCurrent,
     Blocked,
     UnknownCommit,
     Database(postgres::Error),
@@ -456,12 +459,12 @@ impl PgAdmissionStore {
         {
             return Err(PgAdmissionError::InvalidInput);
         }
-        self.admit_inner(input, Some((&binding, &digest)), None)
+        self.admit_inner(input, Some((&binding, &digest)), None, None)
     }
 
     /// One atomic admission. No dispatch/terminal/repair effect is authorized.
     pub fn admit(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
-        self.admit_inner(i, None, None)
+        self.admit_inner(i, None, None, None)
     }
 
     /// Bind the physical Workspace identity at the actual durable Job
@@ -473,8 +476,13 @@ impl PgAdmissionStore {
         &mut self,
         i: &PgAdmissionInput,
         guard: &dyn Fn() -> Result<(), PgAdmissionError>,
+        issuer_schema: Option<&str>,
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
-        self.admit_inner(i, None, Some(guard))
+        if issuer_schema.is_some_and(|schema| !exact_schema(schema)) {
+            return Err(PgAdmissionError::Unqualified);
+        }
+        // Reuse ONE transaction for both Workspace lifecycle and issuer currentness.
+        self.admit_inner(i, None, Some(guard), issuer_schema)
     }
 
     fn admit_inner(
@@ -482,13 +490,14 @@ impl PgAdmissionStore {
         i: &PgAdmissionInput,
         release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
         guard: Option<&dyn Fn() -> Result<(), PgAdmissionError>>,
+        issuer_schema: Option<&str>,
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         // PostgreSQL SERIALIZABLE can abort at a row lock while the scheduler
         // updates its qualified epoch or an adjacent state transition. Retry
         // only an explicitly failed, pre-COMMIT transaction: its effects
         // have rolled back. Never replay an UNKNOWN COMMIT acknowledgement.
         retry_aborted_transaction(
-            || self.admit_once(i, release, guard),
+            || self.admit_once(i, release, guard, issuer_schema),
             |e| {
                 matches!(
                     e,
@@ -506,6 +515,7 @@ impl PgAdmissionStore {
         i: &PgAdmissionInput,
         release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
         guard: Option<&dyn Fn() -> Result<(), PgAdmissionError>>,
+        issuer_schema: Option<&str>,
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         i.validate()?;
         let mut tx = self
@@ -563,6 +573,10 @@ impl PgAdmissionStore {
             }
             tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
             return Ok(PgAdmissionOutcome::Existing(job_id));
+        }
+        // Exact historical replay above is not a new physical Job grant.
+        if let Some(schema) = issuer_schema {
+            issuer::require_current_harness_issuer_for_new_job(&mut tx, i, schema)?;
         }
         if release.is_some() {
             // release is a separately operator-qualified capability.

@@ -30,6 +30,8 @@ class ExecutionCommandMethods:
         context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeout_ms: int | None = None,
+        stdout_limit_bytes: int | None = None,
+        stderr_limit_bytes: int | None = None,
         authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
         route = self._routes.get(capability)
@@ -73,6 +75,17 @@ class ExecutionCommandMethods:
             execution["env"] = dict(env)
         if timeout_ms is not None:
             execution["timeoutMs"] = timeout_ms
+        # Native Runtime already owns the actual allowed output-size bound.
+        # Gateway must not silently change the caller's frozen physical
+        # request to Runtime's wider defaults when the issuer specified caps.
+        for field, value in (
+            ("stdoutLimitBytes", stdout_limit_bytes),
+            ("stderrLimitBytes", stderr_limit_bytes),
+        ):
+            if value is not None:
+                if type(value) is not int or not 1 <= value <= 2**64 - 1:
+                    raise GatewayError(f"{field} must be a positive JSON integer within u64")
+                execution[field] = value
         if authority_references is not None:
             if any(not isinstance(item, dict) for item in authority_references):
                 raise GatewayError("authorityReferences must contain objects")

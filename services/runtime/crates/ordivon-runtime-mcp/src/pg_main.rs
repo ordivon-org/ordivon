@@ -162,6 +162,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
         source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,
+        harness_issuer_schema: std::env::var("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")
+            .ok()
+            .filter(|s| !s.is_empty()),
         workspace_headroom,
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),

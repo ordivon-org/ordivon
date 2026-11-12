@@ -144,6 +144,8 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
             assert "string" in str(context_schema)
             assert "object" in str(context_schema)
             assert "enum" not in submit["properties"]["capability"]
+            assert "stdoutLimitBytes" in submit["properties"]
+            assert "stderrLimitBytes" in submit["properties"]
 
     asyncio.run(scenario())
 
@@ -192,6 +194,8 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
             cwd_relative=".",
             context="contained_local",
             timeout_ms=30_000,
+            stdout_limit_bytes=262_144,
+            stderr_limit_bytes=131_072,
             authority_references=[
                 {
                     "namespace": "ordivon.harness",
@@ -214,6 +218,8 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
     execution = payload["execution"]
     assert execution["executionTarget"] == "local_linux"
     assert execution["executionProfile"] == "contained_local"
+    assert execution["stdoutLimitBytes"] == 262_144
+    assert execution["stderrLimitBytes"] == 131_072
     assert "windowsAuthority" not in execution
     assert execution["foreignReferences"] == [
         {
@@ -223,6 +229,27 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
             "digest": "sha256:fence",
         }
     ]
+
+
+@pytest.mark.parametrize("field", ("stdout_limit_bytes", "stderr_limit_bytes"))
+@pytest.mark.parametrize("invalid", (0, -1, True, 1.0, "1048576", 2**65))
+def test_execution_output_limit_invalid_must_fail_before_owner_call(
+    field: str, invalid: object
+) -> None:
+    """Caller-selected physical byte ceilings are not approximate values."""
+    caller = FakeOwnerCaller()
+    with pytest.raises(GatewayError, match="positive JSON integer"):
+        asyncio.run(
+            GatewayService(caller).execution_submit(
+                capability="execution.linux",
+                request_id="req:source-bound",
+                workspace_id="ws-source-bound",
+                executable="/usr/bin/printf",
+                args=["hello"],
+                **{field: invalid},
+            )
+        )
+    assert caller.calls == []
 
 
 def test_execution_submit_windows_context_routes_legacy_or_structured_without_interpretation() -> (

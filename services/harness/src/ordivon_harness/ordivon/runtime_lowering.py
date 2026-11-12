@@ -12,6 +12,11 @@ from .model import AgentToolCall
 from .tool_errors import ToolBridgeError, ToolBridgeErrorKind
 
 
+# One Harness owner default used by both direct Runtime and Gateway lowering:
+# missing caller budget must never silently become a wider Runtime release default.
+DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES = 262_144
+
+
 RUNTIME_SEARCH_EXECUTABLES: dict[str, str] = {
     "bash": "/bin/bash",
     "awk": "/usr/bin/awk",
@@ -46,8 +51,8 @@ def _build_workspace_exec_request(
     cwd_relative: str = ".",
     env: dict[str, str] | None = None,
     timeout_ms: int = 30_000,
-    stdout_limit_bytes: int = 262_144,
-    stderr_limit_bytes: int = 262_144,
+    stdout_limit_bytes: int = DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES,
+    stderr_limit_bytes: int = DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES,
     wait_ms: int = 0,
     stdout_tail_bytes: int = 8_192,
     stderr_tail_bytes: int = 8_192,
@@ -517,10 +522,10 @@ def lower_runtime_tool(
                 env=dict(raw_env),
                 timeout_ms=_optional_int(arguments, "timeoutMs", 30_000),
                 stdout_limit_bytes=_optional_int(
-                    arguments, "stdoutLimitBytes", 262_144
+                    arguments, "stdoutLimitBytes", DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES
                 ),
                 stderr_limit_bytes=_optional_int(
-                    arguments, "stderrLimitBytes", 262_144
+                    arguments, "stderrLimitBytes", DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES
                 ),
                 wait_ms=_optional_int(arguments, "waitMs", 0),
                 stdout_tail_bytes=_optional_int(

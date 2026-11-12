@@ -93,6 +93,62 @@ _MAX_EVENT_BATCH = 256
 _SCHEMA_NAME = re.compile(r"[a-z][a-z0-9_]{0,62}\Z")
 
 
+# Issuer-owned PostgreSQL SECURITY DEFINER predicate. It only exports the
+# current Tool-prepared Event payload and associated Fence CAS bytes, while
+# holding runs FOR SHARE until the caller's Job transaction COMMIT. The
+# Runtime service SQL role needs EXECUTE, NOT issuer table SELECT or UPDATE.
+_ISSUER_ADMISSION_FUNCTION = """
+CREATE OR REPLACE FUNCTION {schema}.harness_current_dispatch_cut(
+    p_run_id text, p_revision bigint, p_fence_digest text
+)
+RETURNS TABLE(
+    event_kind text, payload_digest text, payload_kind text,
+    payload_len bigint, payload_content bytea,
+    fence_kind text, fence_len bigint, fence_content bytea,
+    intent_digest text, intent_kind text, intent_len bigint, intent_content bytea
+)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog
+AS $source$
+DECLARE
+    locked_status text;
+    locked_revision bigint;
+BEGIN
+    SELECT r.status,r.revision INTO locked_status,locked_revision
+      FROM {schema}.runs r WHERE r.harness_run_id=p_run_id FOR SHARE;
+    IF NOT FOUND OR locked_status != 'active'
+       OR locked_revision != p_revision THEN
+        RETURN;
+    END IF;
+    RETURN QUERY
+    SELECT e.event_kind,e.payload_digest,p.kind,p.byte_length,p.content,
+           f.kind,f.byte_length,f.content,
+           i.digest,i.kind,i.byte_length,i.content
+      FROM {schema}.run_events e
+      JOIN {schema}.objects p ON p.digest=e.payload_digest
+      JOIN {schema}.run_object_refs refs
+        ON refs.event_id=e.event_id AND refs.role='reference'
+      JOIN {schema}.objects f ON f.digest=refs.digest
+      JOIN {schema}.objects i ON i.digest=(
+        convert_from(p.content,'UTF8')::jsonb
+        #>> '{{data,toolStepIntentObjectDigest}}'
+      )
+     WHERE e.harness_run_id=p_run_id AND e.run_revision=p_revision
+       AND e.event_kind='harness.tool-step-prepared'
+       AND f.digest=p_fence_digest
+       AND f.kind='harness-dispatch-fence'
+       AND i.kind='harness-tool-step-intent'
+       AND EXISTS (
+         SELECT 1 FROM {schema}.run_object_refs link
+          WHERE link.event_id=e.event_id AND link.role='reference'
+            AND link.digest=i.digest
+       );
+END
+$source$;
+REVOKE ALL ON FUNCTION {schema}.harness_current_dispatch_cut(text,bigint,text)
+FROM PUBLIC;
+"""
+
+
 def configured_postgres() -> tuple[str, str]:
     """The owner default is PG-only. No SQLite state-root or import fallback."""
     # Preserve the already-published Harness PG CLI authority while retiring
@@ -152,6 +208,11 @@ class PostgresHarnessStore:
                 # constant, and the caller controls the owning SQL role.
                 with self.connection.transaction():
                     self.connection.execute(_SCHEMA)
+                    self.connection.execute(
+                        sql.SQL(_ISSUER_ADMISSION_FUNCTION).format(
+                            schema=sql.Identifier(schema)
+                        )
+                    )
             row = self.connection.execute(
                 "SELECT value FROM schema_info WHERE key='schema_version'"
             ).fetchone()
