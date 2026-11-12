@@ -246,6 +246,238 @@ def _adapter(timeout_ms: int | None = 5_000) -> ScriptedTurnAdapter:
     )
 
 
+def test_effect_gateway_factory_rejects_duplicate_required_tool_names() -> None:
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    class DuplicateRequired(GatewayExecutionFixture):
+        def list_tools(self):
+            tools = super().list_tools()
+            duplicate = dict(tools[0])
+            duplicate["inputSchema"] = {"type": "object", "maxProperties": 0}
+            return (*tools, duplicate)
+
+    with pytest.raises(ToolBridgeError, match="duplicate"):
+        _factory(DuplicateRequired())
+
+
+def test_effect_gateway_runtime_validation_rejects_duplicate_required_tool_names(
+    pg_schema,
+) -> None:
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    class DuplicateAfterAdmission(GatewayExecutionFixture):
+        def __init__(self):
+            super().__init__()
+            self.duplicated = False
+
+        def list_tools(self):
+            tools = super().list_tools()
+            if self.duplicated:
+                return (*tools, dict(tools[-1]))
+            return tools
+
+    client = DuplicateAfterAdmission()
+    factory = _factory(client)
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        contract,
+        lambda _: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        bridge = factory.build(contract, continuity)
+        bridge.validate_runtime_catalog()
+        client.duplicated = True
+        with pytest.raises(ToolBridgeError, match="duplicate"):
+            bridge.validate_runtime_catalog()
+
+
+def test_effect_gateway_rejects_tool_schema_drift_after_run_preflight_before_intent(
+    pg_schema,
+) -> None:
+    class MutatedAfterLoopCheck(GatewayExecutionFixture):
+        def __init__(self):
+            super().__init__()
+            self.list_calls = 0
+
+        def list_tools(self):
+            self.list_calls += 1
+            tools = list(super().list_tools())
+            if self.list_calls >= 3:
+                tools[0]["inputSchema"] = {"type": "object", "maxProperties": 0}
+            return tuple(tools)
+
+    client = MutatedAfterLoopCheck()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "invalid_tool_call", (
+        result.loop_result.stop_code.value,
+        [e.payload for e in result.loop_result.trace.events if e.kind == "run_stopped"],
+    )
+    assert client.list_calls >= 3
+    assert client.calls == []
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+        # A stale MCP schema is rejected before any prepared durable effect.
+        with pytest.raises(KeyError, match="no current Tool Step"):
+            continuity.load_current_tool_step()
+
+
+def test_effect_gateway_catalog_transport_loss_before_intent_is_typed_and_non_dispatching(
+    pg_schema,
+) -> None:
+    class ListTransportLoss(GatewayExecutionFixture):
+        def __init__(self):
+            super().__init__()
+            self.catalog_reads = 0
+
+        def list_tools(self):
+            self.catalog_reads += 1
+            if self.catalog_reads >= 3:
+                raise ConnectionError("MCP catalog session lost before ToolStep intent")
+            return super().list_tools()
+
+    client = ListTransportLoss()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "invalid_tool_call", (
+        result.loop_result.stop_code.value,
+        client.catalog_reads,
+        [e.payload for e in result.loop_result.trace.events if e.kind == "run_stopped"],
+    )
+    assert client.catalog_reads >= 3
+    assert client.calls == []
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+        with pytest.raises(KeyError, match="no current Tool Step"):
+            continuity.load_current_tool_step()
+
+
+def test_effect_gateway_real_mcp_http_schema_drift_before_pg_intent_never_dispatches(
+    pg_schema,
+) -> None:
+    """SDK-native Streamable HTTP tool catalog changes between two real Run stages."""
+    import asyncio
+    import socket
+    import threading
+    import time
+
+    import uvicorn
+    from mcp import types
+    from mcp.server import MCPServer
+
+    from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
+
+    owner = MCPServer("h2-native-gateway-mcp-catalog-drift")
+    tool_names = ("execution.submit", "execution.get", "execution.resolve", "execution.cancel")
+
+    for tool_name in tool_names:
+
+        @owner.tool(name=tool_name)
+        def owner_execution_tool(arguments: dict | None = None) -> dict[str, str]:
+            return {"owner": "simulation", "requested": str(arguments)}
+
+    listing_count = [0]
+    dispatched = []
+
+    async def list_current_tools(context, params: types.PaginatedRequestParams):
+        listing_count[0] += 1
+        all_tools = list(await owner.list_tools())
+        assert {tool.name for tool in all_tools} == set(tool_names)
+        if listing_count[0] >= 3:
+            all_tools = [
+                tool.model_copy(update={"input_schema": {"type": "object", "maxProperties": 0}})
+                if tool.name == "execution.submit"
+                else tool
+                for tool in all_tools
+            ]
+        return types.ListToolsResult(tools=all_tools)
+
+    async def call_never_expected(context, params: types.CallToolRequestParams):
+        dispatched.append(params.name)
+        return types.CallToolResult(
+            content=[types.TextContent(type="text", text="unexpected owner call")],
+            structured_content={"unexpected": True},
+        )
+
+    owner._lowlevel_server.add_request_handler(
+        "tools/list", types.PaginatedRequestParams, list_current_tools
+    )
+    owner._lowlevel_server.add_request_handler(
+        "tools/call", types.CallToolRequestParams, call_never_expected
+    )
+    app = owner.streamable_http_app(stateless_http=True, json_response=True)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", log_level="error"))
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(8)
+    port = sock.getsockname()[1]
+    thread = threading.Thread(target=lambda: asyncio.run(server.serve(sockets=[sock])), daemon=True)
+    thread.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert server.started
+        # Real local transport is distinct from the canonical Plugin's
+        # externally declared HTTPS endpoint. This fixture does not authorize
+        # Runtime physical execution or use a production Gateway.
+        client = OfficialMcpClient(LoopbackMcpEndpoint(f"http://127.0.0.1:{port}/mcp"))
+        factory = _factory(client)
+        clock = FixedClock()
+        run = HarnessAgentRun.create(
+            pg_schema[0],
+            pg_schema[1],
+            _contract(factory),
+            lambda _: _adapter(),
+            tool_bridge_factory=factory,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        result = run.run(())
+        assert listing_count[0] >= 3
+        assert result.loop_result.stop_code.value == "invalid_tool_call", (
+            result.loop_result.stop_code.value,
+            [e.payload for e in result.loop_result.trace.events if e.kind == "run_stopped"],
+        )
+        assert dispatched == []
+        with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+            continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+            with pytest.raises(KeyError, match="no current Tool Step"):
+                continuity.load_current_tool_step()
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        sock.close()
+        assert not thread.is_alive()
+
+
 def test_omitted_timeout_is_bounded_by_actual_harness_grant(pg_schema) -> None:
     """A valid optional tool input must not acquire Runtime's wider default."""
     with tempfile.TemporaryDirectory():
@@ -253,7 +485,8 @@ def test_omitted_timeout_is_bounded_by_actual_harness_grant(pg_schema) -> None:
         factory = _factory(client)  # exact caller grant: 10,000ms
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(timeout_ms=None),
             tool_bridge_factory=factory,
@@ -292,7 +525,8 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         contract = _contract(factory)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -332,7 +566,8 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, 
         factory = _factory(client)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -353,7 +588,8 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_sc
         clock = FixedClock()
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -403,7 +639,8 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_sc
         client.call_tool = forged_resolution  # type: ignore[method-assign]
         factory = _factory(client)
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -478,12 +715,17 @@ def test_gateway_operation_ref_cannot_attach_to_a_different_job() -> None:
     client = GatewayExecutionFixture()
     factory = _factory(client)
     adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+
     def submit(request_id: str) -> dict:
         return {
             "clientRequestId": request_id,
-            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
-                          "executable": "/usr/bin/rg"},
+            "execution": {
+                "workspaceId": "ws-plugin-h2",
+                "foreignReferences": [],
+                "executable": "/usr/bin/rg",
+            },
         }
+
     original_job = client.native_id
     adapter.call_tool("workspace.exec", submit("request:one"))
     client.native_id = "job-alias"
@@ -497,6 +739,7 @@ def test_gateway_operation_ref_cannot_attach_to_a_different_job() -> None:
 def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: str) -> None:
     client = GatewayExecutionFixture()
     original = client.call_tool
+
     def forged(name, arguments):
         is_error, receipt = original(name, arguments)
         if name == "execution.submit":
@@ -506,15 +749,22 @@ def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: 
             else:
                 receipt.pop("state")
         return is_error, receipt
+
     client.call_tool = forged
     factory = _factory(client)
     adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
     with pytest.raises(HarnessRuntimeClientError):
-        adapter.call_tool("workspace.exec", {
-            "clientRequestId": "request:untrusted",
-            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
-                          "executable": "/usr/bin/rg"},
-        })
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:untrusted",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "foreignReferences": [],
+                    "executable": "/usr/bin/rg",
+                },
+            },
+        )
     assert adapter._operation_refs == {}
     assert adapter._operation_requests == {}
 
@@ -528,7 +778,8 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation(pg_sc
         contract = _contract(factory)
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -670,7 +921,8 @@ def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object, p
     with tempfile.TemporaryDirectory():
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: adapter,
             tool_bridge_factory=factory,

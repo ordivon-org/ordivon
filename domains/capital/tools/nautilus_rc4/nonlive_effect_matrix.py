@@ -8,6 +8,7 @@ import nautilus_trader
 from nautilus_trader.backtest import BacktestEngine
 from nautilus_trader.common import LogLevel
 from nautilus_trader.config import BacktestEngineConfig, LoggerConfig, StrategyConfig
+from nautilus_trader.execution import MakerTakerFeeModel
 from nautilus_trader.model import (
     AccountType,
     Bar,
@@ -99,6 +100,17 @@ def _frame(df):
     return json.loads(df.reset_index().to_json(orient="records", date_format="iso"))
 
 
+def _fee_model():
+    # rc4 inherits declared instrument schedule, matching its old implicit default.
+    # rc9 requires an explicit venue fee model; use declared frictionless mechanics
+    # only for this lifecycle qualification, never as an economic cost assumption.
+    if nautilus_trader.__version__ == "2.0.0rc4":
+        return MakerTakerFeeModel()
+    if nautilus_trader.__version__ == "2.0.0rc9":
+        return MakerTakerFeeModel(Decimal("0"), Decimal("0"))
+    raise RuntimeError("Nautilus fee model behavior is unqualified for this version")
+
+
 def run_episode(scenario: str) -> dict[str, Any]:
     instrument = TestInstrumentProvider.btcusdt_binance()
     venue = Venue("BINANCE")
@@ -110,6 +122,7 @@ def run_episode(scenario: str) -> dict[str, Any]:
         oms_type=OmsType.NETTING,
         account_type=AccountType.CASH,
         starting_balances=[Money.from_str(starting)],
+        fee_model=_fee_model(),
         liquidity_consumption=(scenario == "PARTIAL_FILL_SLICES"),
     )
     engine.add_instrument(instrument)

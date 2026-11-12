@@ -659,8 +659,11 @@ jobs:
           set -euo pipefail
           # Existing Runtime Owner controls its exact Rust 1.99.1 toolchain.
           # Preserve the existing policy and manifest; no pass-through skip.
+          # Explicitly select Rust: a bare mise exec also cold-installs the
+          # unrelated PowerShell/nextest tools from Runtime mise.toml.
+          # Those GitHub API fetches must not gate Rust supply-chain verification.
           # cargo-deny common flags precede the "check" subcommand.
-          mise -C services/runtime exec -- cargo deny \
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
             --manifest-path Cargo.toml \
             --config deny.toml check
 
@@ -1135,6 +1138,13 @@ jobs:
               ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               mise run "$task" </dev/null
+              # Reuse this already-running native PG18 service for the pinned
+              # Nautilus/Databento source-to-Paper subset. Ordinary provider
+              # tests depend on external credentials; this bounded subset does
+              # not. Fail if its physical PG consumer would be silently skipped.
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG=1 \
+              mise --cd domains/capital run verify:nonlive:nautilus </dev/null
             elif [[ "$task" == "harness:queue" ]]; then
               # Reuse disposable CI PostgreSQL, admitting only isolated Harness
               # test schemas; no production state or SQLite migration.

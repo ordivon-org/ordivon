@@ -1,0 +1,384 @@
+{
+  "kind": "ordivon.github-radar-candidates-r1",
+  "snapshotDay": "2026-11-12",
+  "observedAt": "2026-11-12T08:38:56.733634+00:00",
+  "origin": "github-official-trending-pages",
+  "sourceCoverage": {
+    "observedWindows": [
+      "daily",
+      "weekly",
+      "monthly"
+    ],
+    "failedWindows": [],
+    "unobservedWindows": [],
+    "complete": true,
+    "failureNotes": {}
+  },
+  "candidates": [
+    {
+      "repo": "GoogleChrome/modern-web-guidance-src",
+      "url": "https://github.com/GoogleChrome/modern-web-guidance-src",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 159,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-12T08:39:00.499244+00:00",
+          "sourceBodySha256": "sha256:9f250e0d168c4c562b314e4744bf49efa668c037dec56b3a09af66b9facd38fe"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 2063,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-12T03:40:40Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "NVIDIA/auto-ontology",
+      "url": "https://github.com/NVIDIA/auto-ontology",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 7947,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-12T08:39:06.172466+00:00",
+          "sourceBodySha256": "sha256:6eb8d909daf4261365d0cac695755a6738416215914b474c3867afb454510309"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 12019,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-11T14:31:18Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": true,
+      "recommendationDisposition": "REVIEW_CHANGE_BEFORE_REPEAT",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "Nutlope/hallmark",
+      "url": "https://github.com/Nutlope/hallmark",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 23478,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-12T08:39:10.537248+00:00",
+          "sourceBodySha256": "sha256:e46b5a369bd99cdf759aea648124ca33d8a37eb0950a8a86ea7e9985d1a643da"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 53631,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-11T11:56:16Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": true,
+      "recommendationDisposition": "REVIEW_CHANGE_BEFORE_REPEAT",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "ZhuLinsen/daily_stock_analysis",
+      "url": "https://github.com/ZhuLinsen/daily_stock_analysis",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 278,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-12T08:39:00.499244+00:00",
+          "sourceBodySha256": "sha256:9f250e0d168c4c562b314e4744bf49efa668c037dec56b3a09af66b9facd38fe"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 70815,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-12T07:59:38Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "addyosmani/agent-skills",
+      "url": "https://github.com/addyosmani/agent-skills",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 787,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-12T08:39:00.499244+00:00",
+          "sourceBodySha256": "sha256:9f250e0d168c4c562b314e4744bf49efa668c037dec56b3a09af66b9facd38fe"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 116210,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-01T19:24:49Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "anthropics/skills",
+      "url": "https://github.com/anthropics/skills",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 5738,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-12T08:39:06.172466+00:00",
+          "sourceBodySha256": "sha256:6eb8d909daf4261365d0cac695755a6738416215914b474c3867afb454510309"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 193354,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": null,
+      "metadataCurrentness": "2026-11-06T22:32:32Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "cloudflare/security-audit-skill",
+      "url": "https://github.com/cloudflare/security-audit-skill",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 42138,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-12T08:39:10.537248+00:00",
+          "sourceBodySha256": "sha256:e46b5a369bd99cdf759aea648124ca33d8a37eb0950a8a86ea7e9985d1a643da"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 70622,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-09-14T19:29:02Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": true,
+      "recommendationDisposition": "REVIEW_CHANGE_BEFORE_REPEAT",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "meta/astryx",
+      "url": "https://github.com/meta/astryx",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 2776,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-12T08:39:00.499244+00:00",
+          "sourceBodySha256": "sha256:9f250e0d168c4c562b314e4744bf49efa668c037dec56b3a09af66b9facd38fe"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 25658,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-12T08:38:58Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "milind-soni/OpenMausBot",
+      "url": "https://github.com/milind-soni/OpenMausBot",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 9257,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-12T08:39:06.172466+00:00",
+          "sourceBodySha256": "sha256:6eb8d909daf4261365d0cac695755a6738416215914b474c3867afb454510309"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 21437,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-12T07:08:53Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "morluto/rea",
+      "url": "https://github.com/morluto/rea",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 366818,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-12T08:39:10.537248+00:00",
+          "sourceBodySha256": "sha256:e46b5a369bd99cdf759aea648124ca33d8a37eb0950a8a86ea7e9985d1a643da"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 453652,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-12T08:27:31Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": true,
+      "recommendationDisposition": "REVIEW_CHANGE_BEFORE_REPEAT",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "pingdotgg/t3code",
+      "url": "https://github.com/pingdotgg/t3code",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 29814,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-12T08:39:10.537248+00:00",
+          "sourceBodySha256": "sha256:e46b5a369bd99cdf759aea648124ca33d8a37eb0950a8a86ea7e9985d1a643da"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 57486,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-12T08:33:28Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": true,
+      "recommendationDisposition": "REVIEW_CHANGE_BEFORE_REPEAT",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "shadcn/improve",
+      "url": "https://github.com/shadcn/improve",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 361,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-12T08:39:00.499244+00:00",
+          "sourceBodySha256": "sha256:9f250e0d168c4c562b314e4744bf49efa668c037dec56b3a09af66b9facd38fe"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 11227,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-09-12T11:29:28Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "thedotmack/claude-mem",
+      "url": "https://github.com/thedotmack/claude-mem",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 17247,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-12T08:39:10.537248+00:00",
+          "sourceBodySha256": "sha256:e46b5a369bd99cdf759aea648124ca33d8a37eb0950a8a86ea7e9985d1a643da"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 116345,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-12T08:04:02Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": true,
+      "recommendationDisposition": "REVIEW_CHANGE_BEFORE_REPEAT",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "vercel-labs/agent-browser",
+      "url": "https://github.com/vercel-labs/agent-browser",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 4183,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-12T08:39:06.172466+00:00",
+          "sourceBodySha256": "sha256:6eb8d909daf4261365d0cac695755a6738416215914b474c3867afb454510309"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 50088,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-12T07:39:18Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "vercel-labs/agent-desktop",
+      "url": "https://github.com/vercel-labs/agent-desktop",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 7772,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-12T08:39:06.172466+00:00",
+          "sourceBodySha256": "sha256:6eb8d909daf4261365d0cac695755a6738416215914b474c3867afb454510309"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 22361,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-11T06:09:45Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    }
+  ],
+  "nonClaims": [
+    "Official Trending display windows are not UTC rolling windows",
+    "No arbitrary GitHub API historical star delta inferred",
+    "Discovery candidates do not confer software installation or adoption"
+  ]
+}

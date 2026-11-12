@@ -17,14 +17,36 @@ action_granted if {
 
 # Grant prefixes refer to path segments, not arbitrary string prefixes.
 # "/articles" covers "/articles" and "/articles/42", not "/articles-private".
-resource_granted if {
-	some prefix in input.grant.resourcePrefixes
-	input.effect.resource == prefix
+# A Grant resource is an Owner-qualified canonical absolute path, not an
+# untrusted URL or filesystem input. A path-segment prefix has no authority
+# over lexical normalization aliases (dot segments, percent encoding, etc.).
+canonical_scope_path(value) if {
+	is_string(value)
+	startswith(value, "/")
+	not contains(value, "//")
+	not contains(value, "\\")
+	not contains(value, "%")
+	not contains(value, "?")
+	not contains(value, "#")
+	not regex.match("(^|/)\\.{1,2}(/|$)", value)
+	not regex.match("[[:cntrl:]]", value)
+}
+
+scope_contains(prefix, resource) if {
+	canonical_scope_path(prefix)
+	canonical_scope_path(resource)
+	resource == prefix
+}
+
+scope_contains(prefix, resource) if {
+	canonical_scope_path(prefix)
+	canonical_scope_path(resource)
+	startswith(resource, concat("", [trim_suffix(prefix, "/"), "/"]))
 }
 
 resource_granted if {
 	some prefix in input.grant.resourcePrefixes
-	startswith(input.effect.resource, concat("", [trim_suffix(prefix, "/"), "/"]))
+	scope_contains(prefix, input.effect.resource)
 }
 
 nonempty_string(value) if {
@@ -75,8 +97,7 @@ decision_input_valid if {
 	is_array(input.grant.resourcePrefixes)
 	count(input.grant.resourcePrefixes) > 0
 	every prefix in input.grant.resourcePrefixes {
-		is_string(prefix)
-		startswith(prefix, "/")
+		canonical_scope_path(prefix)
 	}
 	count({prefix | some prefix in input.grant.resourcePrefixes}) == count(input.grant.resourcePrefixes)
 	natural_number(input.grant.expiresAtEpochSeconds)
@@ -88,8 +109,7 @@ decision_input_valid if {
 	qualified_sha256(input.effect.effectId)
 	qualified_sha256(input.effect.effectDigest)
 	nonempty_string(input.effect.action)
-	nonempty_string(input.effect.resource)
-	startswith(input.effect.resource, "/")
+	canonical_scope_path(input.effect.resource)
 	nonempty_string(input.effect.audience)
 	input.effect.riskClass in object.keys(risk_rank)
 	nonempty_string(input.effect.effectType)
@@ -291,13 +311,23 @@ authority_projection := null if {
 	reason != "admitted"
 }
 
+# Invalid direct inputs still produce a complete DENY decision, even when
+# a whole input section is absent. Preserve stable null subjects for DENY.
+safe_input_id(section, field) := value if {
+	is_object(input)
+	entry := object.get(input, section, null)
+	is_object(entry)
+	value := object.get(entry, field, null)
+	is_string(value)
+} else := null
+
 decision := {
 	"schemaVersion": 1,
 	"kind": "ordivon.security.agent-admission",
-	"principalId": input.principal.principalId,
-	"agentId": input.agent.agentId,
-	"grantId": input.grant.grantId,
-	"effectId": input.effect.effectId,
+	"principalId": safe_input_id("principal", "principalId"),
+	"agentId": safe_input_id("agent", "agentId"),
+	"grantId": safe_input_id("grant", "grantId"),
+	"effectId": safe_input_id("effect", "effectId"),
 	"outcome": outcome,
 	"reason": reason,
 	"authorityProjection": authority_projection,

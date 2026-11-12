@@ -90,7 +90,7 @@ _ACCOUNTABILITY_ACTIONS = frozenset({"offer", "claim", "release", "submit", "rev
 
 
 def _qualified_host_reference(
-    value: object, field: str, *, capability: str = "host.work.engagement"
+    value: object, field: str, *, capability: str = "host.legacy-read"
 ) -> str:
     if (
         not isinstance(value, str)
@@ -101,7 +101,7 @@ def _qualified_host_reference(
     ):
         raise CapabilityAuthorizationTargetError(
             "CAPABILITY_AUTHZ_TARGET_INVALID",
-            f"Work accountability requires a qualified {field}.",
+            f"Host authorization requires a qualified {field}.",
             capability=capability,
         )
     return value

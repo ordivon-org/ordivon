@@ -64,6 +64,7 @@ tasks:
       - prometheus-blackbox-exporter --config.file=config/blackbox/blackbox.yml --config.check
       - promtool check config config/prometheus/prometheus.yml
       - promtool check rules config/prometheus/consumer.rules.yml
+      - promtool test rules tests/fixtures/consumer-prometheus-alerts.test.yml
       - python3 scripts/monitoring-sourcecut-preflight.py --source config --check-edges
       - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
 
@@ -72,28 +73,84 @@ tasks:
     desc: Validate core plus optional provider and consumer profiles without changing live state
     deps: [core:validate, consumer:claude:validate, consumer:chat-ingress:validate, substrate:shared-egress:validate, provider:surfshark:validate, provider:gluetun:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:codex:validate, consumer:mobile-tailnet-exit:validate, consumer:discord:validate, consumer:model-provider:validate, consumer:windows-real-chrome:validate]
 
-  core:sourcecut:
-    desc: Verify installed generic Core config/Unit byte identity and enablement without remote health probes
+  core:classify:
+    desc: Distinguish provable Core installed DRIFT from MATCH and UNKNOWN before any restart or configuration write
     cmds:
-      - cmp -s systemd/network-v2-r0.target /etc/systemd/system/network-v2-r0.target
-      - cmp -s systemd/network-v2-dnsproxy.service /etc/systemd/system/network-v2-dnsproxy.service
-      - cmp -s systemd/network-v2-singbox.service /etc/systemd/system/network-v2-singbox.service
-      - cmp -s systemd/network-v2-blackbox.service /etc/systemd/system/network-v2-blackbox.service
-      - cmp -s systemd/network-v2-prometheus.service /etc/systemd/system/network-v2-prometheus.service
-      - cmp -s config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
-      - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
-      - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
-      - cmp -s config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
       - |
+        set -u
+        drift=0
+        unknown() { echo UNKNOWN >&2; exit 2; }
+        compare() {
+          source="$1"
+          installed="$2"
+          test -f "$source" && test -r "$source" || unknown
+          if test -L "$installed"; then unknown; fi
+          if ! test -e "$installed"; then
+            parent="$(dirname "$installed")"
+            test -d "$parent" && test -x "$parent" || unknown
+            drift=1
+            return 0
+          fi
+          test -f "$installed" && test -r "$installed" || unknown
+          if cmp -s "$source" "$installed"; then
+            return 0
+          else
+            comparison_rc="$?"
+            case "$comparison_rc" in
+              1) drift=1 ;;
+              *) unknown ;;
+            esac
+          fi
+        }
+        enabled() {
+          unit="$1"
+          expected="$2"
+          if unit_state="$(systemctl is-enabled "$unit" 2>/dev/null)"; then
+            unit_rc=0
+          else
+            unit_rc="$?"
+          fi
+          case "$unit_rc" in 0|1) ;; *) unknown ;; esac
+          case "$unit_state" in
+            enabled|enabled-runtime|disabled|masked|static|indirect|alias|linked|linked-runtime) ;;
+            *) unknown ;;
+          esac
+          test "$unit_state" = "$expected" || drift=1
+        }
+        compare systemd/network-v2-r0.target /etc/systemd/system/network-v2-r0.target
+        compare systemd/network-v2-dnsproxy.service /etc/systemd/system/network-v2-dnsproxy.service
+        compare systemd/network-v2-singbox.service /etc/systemd/system/network-v2-singbox.service
+        compare systemd/network-v2-blackbox.service /etc/systemd/system/network-v2-blackbox.service
+        compare systemd/network-v2-prometheus.service /etc/systemd/system/network-v2-prometheus.service
+        compare config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
+        compare config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
+        compare config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+        compare config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
         for fragment in config/prometheus/consumers/*.yml; do
-          cmp -s "$fragment" /etc/network-v2/prometheus/consumers/"$(basename "$fragment")" || exit 1
+          test -f "$fragment" || unknown
+          compare "$fragment" "/etc/network-v2/prometheus/consumers/$(basename "$fragment")"
         done
-      - cmp -s config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
-      - systemctl is-enabled --quiet network-v2-r0.target
-      - test "$(systemctl is-enabled network-v2-dnsproxy.service 2>/dev/null || true)" = disabled
-      - test "$(systemctl is-enabled network-v2-singbox.service 2>/dev/null || true)" = disabled
-      - test "$(systemctl is-enabled network-v2-blackbox.service 2>/dev/null || true)" = disabled
-      - test "$(systemctl is-enabled network-v2-prometheus.service 2>/dev/null || true)" = disabled
+        compare config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
+        enabled network-v2-r0.target enabled
+        enabled network-v2-dnsproxy.service disabled
+        enabled network-v2-singbox.service disabled
+        enabled network-v2-blackbox.service disabled
+        enabled network-v2-prometheus.service disabled
+        # Installed bytes can match while systemd still holds a stale unit.
+        # A failed systemd readback is UNKNOWN, never a restart admission.
+        for unit in network-v2-r0.target network-v2-dnsproxy.service network-v2-singbox.service network-v2-blackbox.service network-v2-prometheus.service; do
+          reload="$(systemctl show "$unit" --property=NeedDaemonReload --value)" || unknown
+          case "$reload" in no) ;; yes) drift=1 ;; *) unknown ;; esac
+        done
+        if test "$drift" -eq 0; then echo MATCH; else echo DRIFT; fi
+
+  core:sourcecut:
+    desc: Verify Core SourceCut only when native classifier proves installed byte/enablement MATCH
+    cmds:
+      - |
+        verdict="$(task --silent core:classify)" || exit 2
+        test "$verdict" = MATCH
+
   core:install:
     desc: Materialize only when the installed generic SourceCut differs; no upstream health prerequisite
     # Configuration drift alone admits installation; upstream health failures do not.
@@ -101,6 +158,17 @@ tasks:
     status:
       - task core:sourcecut
     cmds:
+      # Native Go Task status is Boolean, so neither status failure nor
+      # an unreadable systemd observation authorizes installation.
+      - |
+        verdict="$(task --silent core:classify)" || {
+          echo 'core SourceCut UNKNOWN: refusing installation' >&2
+          exit 2
+        }
+        test "$verdict" = DRIFT || {
+          echo 'core SourceCut not provably DRIFT: refusing installation' >&2
+          exit 2
+        }
       - task: core:validate
       - /usr/bin/python3 scripts/monitoring-sourcecut-preflight.py --source config --live /etc/network-v2
       - install -d -m 0755 /etc/network-v2/sing-box /etc/network-v2/blackbox /etc/network-v2/prometheus
