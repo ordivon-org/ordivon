@@ -32,7 +32,7 @@ from qlib.data.dataset import DatasetH
 from qlib.data.dataset.handler import DataHandlerLP
 from qlib.data.dataset.loader import StaticDataLoader
 from qlib.workflow import R
-from qlib.workflow.record_temp import SignalRecord
+from qlib.workflow.record_temp import SignalRecord, SigAnaRecord
 
 SYMBOLS = ("SPY", "QQQ", "IWM")
 START = "2023-01-01"
@@ -181,6 +181,11 @@ with R.start(experiment_name="ordivon_finance_r3_openbb_qlib_native_etf"):
     model.fit(dataset)
     recorder = R.get_recorder()
     SignalRecord(model=model, dataset=dataset, recorder=recorder).generate()
+    # Qlib's mature signal-evaluation recorder computes test-segment daily
+    # cross-sectional IC/RankIC. With only three ETFs it has high sampling
+    # noise; never equate that number with an executable strategy or alpha.
+    SigAnaRecord(recorder=recorder, ana_long_short=False).generate()
+    native_signal_metrics = recorder.list_metrics()
     predictions = model.predict(dataset, segment="test")
     recorder_id = getattr(recorder, "id", None)
     if recorder_id is None and hasattr(recorder, "info"):
@@ -188,6 +193,64 @@ with R.start(experiment_name="ordivon_finance_r3_openbb_qlib_native_etf"):
 
 if isinstance(predictions, pd.DataFrame):
     predictions = predictions.iloc[:, 0]
+# Evaluate the ACTUAL out-of-sample open-to-close target, not the in-sample
+# fit loss or a hypothetical same-close/next-close execution shortcut.
+# The zero predictor and a TRAIN-only unconditional mean are conservative
+# nontrading baselines. This measures retrospective predictive skill only.
+actual_test = dataset.prepare("test", col_set="label").iloc[:, 0].astype(float)
+predicted_test = predictions.astype(float)
+if actual_test.index.has_duplicates or predicted_test.index.has_duplicates:
+    raise ValueError("Duplicate test sample index prevents OOS evaluation")
+if not actual_test.index.equals(predicted_test.index):
+    # Both representations must refer to exactly the same sessions/assets:
+    # missing or reordered predictions may silently inflate scores.
+    if len(actual_test) != len(predicted_test) or set(actual_test.index) != set(predicted_test.index):
+        raise ValueError("Qlib predictions and realized labels have different test samples")
+    predicted_test = predicted_test.reindex(actual_test.index)
+realized = actual_test.to_numpy(dtype=float)
+forecast_values = predicted_test.to_numpy(dtype=float)
+historical_train = train["label"].iloc[:, 0].to_numpy(dtype=float)
+if (
+    len(realized) < 50
+    or not np.isfinite(realized).all()
+    or not np.isfinite(forecast_values).all()
+    or not np.isfinite(historical_train).all()
+):
+    raise ValueError("Test-signal measurement requires finite nonempty OOS rows")
+train_mean = float(historical_train.mean())
+model_mse = float(np.mean((realized - forecast_values) ** 2))
+zero_mse = float(np.mean(realized**2))
+train_mean_mse = float(np.mean((realized - train_mean) ** 2))
+if min(zero_mse, train_mean_mse) <= 0:
+    raise ValueError("Degenerate realized labels cannot establish forecast skill")
+skill = {
+    "standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
+    "horizon": "decision_after_T_close_entry_at_T_plus_1_open_exit_at_T_plus_1_close",
+    "sample_rows": int(len(realized)),
+    "sample_sessions": int(len(actual_test.index.get_level_values("datetime").unique())),
+    "asset_universe": list(SYMBOLS),
+    "model_mse": model_mse,
+    "zero_return_baseline_mse": zero_mse,
+    "train_only_mean_baseline_mse": train_mean_mse,
+    "model_mse_reduction_vs_zero": float(1.0 - model_mse / zero_mse),
+    "model_mse_reduction_vs_train_only_mean": float(1.0 - model_mse / train_mean_mse),
+    # A purely empirical OOS dominance check, NOT trading authorization.
+    "outperforms_both_unconditional_baselines": bool(
+        model_mse < zero_mse and model_mse < train_mean_mse
+    ),
+    "qlib_native_signal_analysis_metrics": {
+        key: float(value) for key, value in native_signal_metrics.items()
+        if key in ("IC", "ICIR", "Rank IC", "Rank ICIR")
+    },
+    "prices_from_historical_backfill": True,
+    "transaction_costs_and_market_impact_modeled": False,
+    # The real Capital Paper state machine processes sells against holdings
+    # carried INTO the session, then today's buys. It cannot liquidate a
+    # same-day 09:30 entry at the 16:00 close. Even excellent intraday IC
+    # therefore cannot validate the current multi-session investment path.
+    "paper_buy_and_hold_consumer_horizon_compatible": False,
+    "profitable_executable_strategy_demonstrated": False,
+}
 prediction_snapshot = OUT / "qlib_test_predictions.csv"
 predictions.to_csv(prediction_snapshot, header=["predicted_next_open_to_close_fractional_return"])
 pred_table = predictions.unstack("instrument").dropna()
@@ -219,6 +282,7 @@ result = {
     "qlib_split_rows": {"train": len(train), "valid": len(valid), "test": len(test)},
     "qlib_recorder_id": str(recorder_id),
     "qlib_prediction_rows": len(predictions),
+    "signal_quality": skill,
     "optim_date": str(decision_at.date()),
     "native_math_only_min_variance_weights": {k: float(v) for k, v in weights.items()},
     "optimizer_input_kind": "trailing_120_session_sample_covariance",
@@ -227,6 +291,7 @@ result = {
         "kind": "uncalibrated_next_session_open_to_close_fractional_regression",
         "predicted_next_open_to_close_fractional_returns": {k: float(v) for k, v in expected_daily.items()},
         "target_horizon": "new_entry_next_session_open_to_close",
+        "paper_buy_and_hold_consumer_horizon_compatible": False,
         "signal_first_available": "UNKNOWN (source backfilled, EOD fields required)",
         "point_in_time_eligible": False,
         "calibrated_conditional_distribution": False,
