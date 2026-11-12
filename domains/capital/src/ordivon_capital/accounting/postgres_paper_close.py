@@ -21,6 +21,9 @@ from .postgres_ledger import PostgresAccountingLedger
 from .substrate import AccountingAccount, LedgerApplyStatus, stable_accounting_id
 
 
+_PAPER_USD_LEDGER_NAMESPACE = "ordivon-capital:paper-close:usd:v1"
+
+
 def _iso(value: date | datetime) -> str:
     return value.isoformat()
 
@@ -230,7 +233,7 @@ class PostgresPaperClose:
         previous: PaperValuation | None, valuation: PaperValuation,
     ) -> None:
         def identity(*parts: str) -> int:
-            return stable_accounting_id("ordivon-capital:paper-close:usd:v1", key, *parts)
+            return stable_accounting_id(_PAPER_USD_LEDGER_NAMESPACE, key, *parts)
 
         buy_ids = {fill.fill_id for fill in day.buys}
         sell_ids = {fill.fill_id for fill in day.sells}
@@ -299,11 +302,11 @@ def _read_committed_paper_receipt(db: Connection, account_key: str, session: dat
     if row is None:
         raise ValueError("no committed paper receipt for requested account session")
     prior = db.execute(
-        "SELECT request_sha256 FROM ordivon_paper.daily_close "
+        "SELECT session, request_sha256, receipt FROM ordivon_paper.daily_close "
         "WHERE account_key = %s AND session < %s ORDER BY session DESC LIMIT 1",
         (account_key, session),
     ).fetchone()
-    previous_digest = prior[0] if prior else None
+    previous_digest = prior[1] if prior else None
     digest, request, receipt = row
     recomputed = hashlib.sha256(
         json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
@@ -323,6 +326,49 @@ def _read_committed_paper_receipt(db: Connection, account_key: str, session: dat
             != request.get("contribution_minor")
     ):
         raise ValueError("committed paper receipt and stored request disagree")
+    # The request digest authenticates only the frozen REQUEST, not the
+    # independently stored valuation JSON. Re-run Accounting's one owner
+    # transition against the previous committed head in this SAME PG
+    # REPEATABLE READ snapshot. Otherwise cash and NAV could both drift by
+    # the same amount while every digest and superficial balance equation
+    # remains unchanged, and Risk would consume a false receipt as fact.
+    try:
+        previous = None
+        if prior is not None:
+            prior_day, prior_digest, prior_receipt = prior
+            if (
+                prior_receipt["request_sha256"] != prior_digest
+                or prior_receipt["account_key"] != account_key
+                or prior_receipt["valuation"]["session"] != prior_day.isoformat()
+            ):
+                raise ValueError("previous paper receipt identity disagrees")
+            previous = PaperValuation(
+                **(prior_receipt["valuation"] | {"session": prior_day})
+            )
+        day = decode_session({
+            key: value for key, value in request.items()
+            if key not in {"market_evidence", "execution_evidence"}
+        })
+        expected = asdict(value_session(previous, day))
+        expected["session"] = session.isoformat()
+        stored = receipt["valuation"]
+        if type(stored) is not dict:
+            raise ValueError("paper valuation must be an object")
+        # Legacy buy-only receipts omitted the three sell-receivable
+        # fields as a GROUP; preserve that stored identity exactly.
+        legacy_fields = ("pending_sales", "sale_settlement_dates", "receivable_minor")
+        missing = {name for name in legacy_fields if name not in stored}
+        if missing == set(legacy_fields):
+            if expected["pending_sales"] or expected["sale_settlement_dates"] or expected["receivable_minor"]:
+                raise ValueError("legacy receipt omitted active receivables")
+            for name in legacy_fields:
+                del expected[name]
+        elif missing:
+            raise ValueError("partially omitted paper settlement fields")
+        if stored != expected:
+            raise ValueError("stored valuation differs from recomputed economics")
+    except (KeyError, TypeError, ValueError, AttributeError, OverflowError) as exc:
+        raise ValueError("committed paper valuation and stored request disagree") from exc
     return receipt
 
 
@@ -341,16 +387,39 @@ def _read_paper_close(
             ):
                 raise ValueError("paper readback requires dedicated ordivon_paper database")
             PostgresPaperClose._verify_receipt_table(db, lock=False)
+            # The same repeatable-read snapshot identifies whether this is
+            # the CURRENT head. Historical receipts cannot be compared to
+            # present-day ledger balances after later cash settlements.
+            head = db.execute(
+                "SELECT session FROM ordivon_paper.daily_close "
+                "WHERE account_key = %s ORDER BY session DESC LIMIT 1",
+                (account_key,),
+            ).fetchone()
             if session is None:
-                head = db.execute(
-                    "SELECT session FROM ordivon_paper.daily_close "
-                    "WHERE account_key = %s ORDER BY session DESC LIMIT 1",
-                    (account_key,),
-                ).fetchone()
                 if head is None:
                     return None
                 session = head[0]
-            return _read_committed_paper_receipt(db, account_key, session)
+            receipt = _read_committed_paper_receipt(db, account_key, session)
+            if head is not None and head[0] == session:
+                cash_id = stable_accounting_id(
+                    _PAPER_USD_LEDGER_NAMESPACE, account_key, "cash",
+                )
+                try:
+                    cash_state = PostgresAccountingLedger._account_in_transaction(
+                        db, cash_id,
+                    )
+                except KeyError as exc:
+                    raise ValueError("committed paper ledger cash account unavailable") from exc
+                valuation = receipt["valuation"]
+                if (
+                    cash_state.credits_posted - cash_state.debits_posted
+                    != valuation["cash_minor"]
+                    or cash_state.debits_pending != valuation["payable_minor"]
+                    or cash_state.credits_pending
+                    != valuation.get("receivable_minor", 0)
+                ):
+                    raise ValueError("committed paper ledger and valuation disagree")
+            return receipt
     except psycopg.Error as exc:
         raise ValueError("paper database readback unavailable") from exc
 
