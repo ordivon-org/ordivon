@@ -2284,6 +2284,139 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
 }
 
 #[test]
+#[ignore = "requires disposable PostgreSQL 18 and native systemd Runner"]
+fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
+    let mut fixture = Fixture::new();
+    let source = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let id = "ws-pg-private-cargo";
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":id,"sourceRepo":source,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    // Exercise the real PG admission -> systemd Runner -> physical filesystem,
+    // not a mock plan or a pre-set CARGO_TARGET_DIR from the caller.
+    let script = "import os\nfrom pathlib import Path\np=Path(os.environ['CARGO_TARGET_DIR'])\np.mkdir(parents=True,exist_ok=True)\n(p/'pg-private-marker').write_text('PRIVATE_ONLY')\nprint(os.environ['CARGO_TARGET_DIR'])\n";
+    let result = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-private-cargo-physical",
+              "execution":{"workspaceId":id,"executable":"/usr/bin/python3",
+                           "args":["-c",script],"cwdRelative":".","timeoutMs":10000},
+              "waitMs":15000,"stdoutTailBytes":1024}),
+    );
+    assert_ne!(result["isError"], true, "{result}");
+    assert_eq!(
+        result["structuredContent"]["executionDisposition"], "succeeded",
+        "private build target must be a physically usable native Runner FD: {result}"
+    );
+    assert_eq!(
+        result["structuredContent"]["stdoutTail"]
+            .as_str()
+            .map(str::trim),
+        Some("/proc/self/fd/198"),
+    );
+    let cache = fixture
+        .root
+        .join("store/cache/build")
+        .join(id)
+        .join("cargo");
+    assert_eq!(
+        fs::read_to_string(cache.join("pg-private-marker")).unwrap(),
+        "PRIVATE_ONLY"
+    );
+    assert!(
+        !fixture
+            .root
+            .join("store/workspaces")
+            .join(id)
+            .join("target")
+            .exists(),
+        "tool output must not land in Git-ignored source worktree target/"
+    );
+    // A multi-step PG plan must project the same private target into each
+    // Runner step, not only into its job-wide environment.
+    let plan_result = call(
+        &endpoint,
+        "workspace.execPlan",
+        json!({"clientRequestId":"pg-private-cargo-multi-step",
+              "execution":{"workspaceId":id,"steps":[
+                  {"id":"first","executable":"/usr/bin/python3","cwdRelative":".",
+                   "args":["-c","import os; from pathlib import Path; (Path(os.environ['CARGO_TARGET_DIR'])/'multi-first').write_text('FIRST')"],
+                   "timeoutMs":10000},
+                  {"id":"second","executable":"/usr/bin/python3","cwdRelative":".",
+                   "args":["-c","import os; from pathlib import Path; (Path(os.environ['CARGO_TARGET_DIR'])/'multi-second').write_text('SECOND')"],
+                   "timeoutMs":10000}
+              ]},"waitMs":25000}),
+    );
+    assert_ne!(plan_result["isError"], true, "{plan_result}");
+    assert_eq!(
+        plan_result["structuredContent"]["executionDisposition"], "succeeded",
+        "{plan_result}"
+    );
+    assert_eq!(
+        fs::read_to_string(cache.join("multi-first")).unwrap(),
+        "FIRST"
+    );
+    assert_eq!(
+        fs::read_to_string(cache.join("multi-second")).unwrap(),
+        "SECOND"
+    );
+    let plan_id = plan_result["structuredContent"]["jobId"].as_str().unwrap();
+    let frozen: String = fixture
+        .db
+        .query_one(
+            "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&plan_id],
+        )
+        .unwrap()
+        .get(0);
+    let plan: Value = serde_json::from_str(&frozen).unwrap();
+    for step in plan["steps"].as_array().unwrap() {
+        assert_eq!(step["env"]["CARGO_TARGET_DIR"], "/proc/self/fd/198");
+    }
+    // An explicitly authored path is a real execution input, not a default
+    // the Runtime may silently replace.
+    let overridden = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-private-cargo-custom-explicit",
+              "execution":{"workspaceId":id,"executable":"/usr/bin/python3",
+                           "args":["-c","import os; print(os.environ['CARGO_TARGET_DIR'])"],
+                           "env":{"CARGO_TARGET_DIR":"EXPLICIT_AGENT_VALUE"},
+                           "cwdRelative":".","timeoutMs":10000},
+              "waitMs":15000}),
+    );
+    assert_ne!(overridden["isError"], true, "{overridden}");
+    assert_eq!(
+        overridden["structuredContent"]["executionDisposition"], "succeeded",
+        "{overridden}"
+    );
+    assert_eq!(
+        overridden["structuredContent"]["stdoutTail"]
+            .as_str()
+            .map(str::trim),
+        Some("EXPLICIT_AGENT_VALUE")
+    );
+
+    // The pre-existing native close already owns private-cache reclamation.
+    let closed = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":id,"force":false,"consumerReleased":true}),
+    );
+    assert_ne!(closed["isError"], true, "{closed}");
+    assert_eq!(closed["structuredContent"]["removed"], true);
+    assert!(
+        !cache.exists(),
+        "native close must reclaim workspace-private build cache"
+    );
+}
+
+#[test]
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();

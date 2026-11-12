@@ -449,6 +449,29 @@ impl PgRuntime {
             if universal::sha256_bytes(token.as_bytes()) != a.launch_token_digest {
                 return Err(error("launch token mismatch"));
             }
+            // Reuse the existing native Runner FD presentation and Workspace-
+            // private cache. The PG plan already froze the effective env at
+            // admission; reconstruct only its deterministic physical backing.
+            // Old committed plans without the FD keep their original behavior.
+            let build_target_backing =
+                if crate::runtime::engine::requires_private_cargo_build_target(&plan) {
+                    let backing = self
+                        .config
+                        .executor
+                        .workspace_build_cache_path(&plan.workspace_id)
+                        .join("cargo");
+                    fs::create_dir_all(&backing).map_err(|error| {
+                        RuntimeError::new(
+                            RuntimeErrorCode::IoError,
+                            format!("prepare Workspace-private Cargo cache: {error}"),
+                            Some("workspaceId"),
+                            false,
+                        )
+                    })?;
+                    Some(backing.to_string_lossy().into_owned())
+                } else {
+                    None
+                };
             if !self.claim_resources(db, &a, &plan)? {
                 return Ok(());
             }
@@ -471,7 +494,7 @@ impl PgRuntime {
                 workspace_id: plan.workspace_id.clone(),
                 workspace_path: plan.workspace_path.clone(),
                 workspace_source_digest: plan.workspace_source_digest.clone(),
-                build_target_backing: None,
+                build_target_backing,
                 input_presentation_root: None,
                 input_commitments: vec![],
                 host_dependencies: plan
