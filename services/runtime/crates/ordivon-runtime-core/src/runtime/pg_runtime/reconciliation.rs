@@ -719,6 +719,10 @@ impl PgRuntime {
                 .collect::<Vec<_>>();
             db.commit_terminal_with_artifacts(&input, &artifacts)
                 .map_err(pg)?;
+            // Reuse Universal Runtime's existing terminal-only systemd cleanup.
+            // Preserve the failed Unit/InvocationID until the durable PG
+            // terminal+Artifact+reservation transaction has committed.
+            super::platform::release_terminal_unit(&a.unit_name);
         } else if !a.state.is_terminal() {
             // The kernel may have terminated the systemd-owned process tree
             // before Runner could write result.json. A missing result file is
@@ -935,6 +939,10 @@ impl PgRuntime {
             // not proof of a successful arbitrary external effect.
             db.commit_terminal_with_artifacts(&terminal, &[artifact])
                 .map_err(pg)?;
+            // Only now may systemd forget a failed transient. This ordering
+            // keeps its positive failure/InvocationID evidence available for
+            // the irreversible LOST decision and its durable receipt.
+            super::platform::release_terminal_unit(&a.unit_name);
         }
         Ok(())
     }

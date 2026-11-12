@@ -2564,6 +2564,28 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
         .unwrap()
         .get(0);
     assert_eq!(count, 1, "native recovery must not relaunch the attempt");
+
+    // The systemd failed Unit must be retained until the PG terminal commit,
+    // then unloaded by the EXISTING terminal-only cleanup, not by the
+    // disposable test's Drop guard. Otherwise the root incident is merely
+    // shifted from leaked PG reservations to leaked supervisor failed units.
+    let unloaded_deadline = Instant::now() + Duration::from_secs(4);
+    loop {
+        let unit_state = Command::new("systemctl")
+            .args(["show", &unit, "--property=LoadState"])
+            .output()
+            .unwrap();
+        assert!(unit_state.status.success());
+        let state = String::from_utf8_lossy(&unit_state.stdout);
+        if state.trim() == "LoadState=not-found" {
+            break;
+        }
+        assert!(
+            Instant::now() < unloaded_deadline,
+            "committed LOST must release the failed transient Unit too: {state}"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
 }
 
 #[test]
