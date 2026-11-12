@@ -25,3 +25,35 @@ platform/security/services/gateway-authzen --group dev python -m pytest
 platform/security/services/gateway-authzen/tests -q, plus opa check --strict.
 
 No live credentials or issuer-specific deployments belong in Git.
+
+## Host Actor delegation — reuse existing trusted OPA policy data
+
+The same gateway_artifact.rego, AuthZEN HTTP endpoint, OPA process and systemd
+LoadCredential policy-data file also qualify Host state-changing operations
+and Actor-filtered Work Engagement inbox queries. There is no new policy
+daemon, Identity DB or Agent-issued authorization API. With no
+operator-provisioned Host grant the answer is DENY, even for an authenticated
+Gateway machine bearer.
+
+An authorized Security operator may add an array under the existing policy
+data key ordivon.security.gateway_host_actor_grants. Each grant has:
+active, principalId, issuer, actorRef, notBeforeEpochSeconds,
+expiresAtEpochSeconds, allowedTools, allowedActions, exactRefs, and
+namespacePrefixes. A namespace prefix must end in a colon boundary
+(such as work:project:) rather than being an unqualified substring.
+
+The decision requires exact verified Principal, issuer, claimed Actor,
+actual Owner tool, permitted resource and, for versioned Work, allowed
+submit/review/etc action. For a relation the target is separately checked.
+Inbox queries must be filtered to that Actor; global or foreign queries DENY.
+This is explicit trusted policy data, never a value from an MCP Tool argument
+or Host actor.declare. The original Runtime Artifact allow rule is retained.
+
+Production rules: grant provisioning, Principal-to-Actor delegation evidence,
+scope, issue/expiry/revocation and release must be authorized and audited by
+the real operator. The systemd LoadCredential source is copied at unit start;
+changing the source file requires controlled credential reload and readback
+before a revocation is trusted. No real grant or deployment credentials are
+included here. The native OPA + Starlette HTTP tests use only disposable,
+test-owned policy-data files. Installed HTTPS ALLOW/DENY, legitimate Agent
+grant, and actual Host PG receipt still require separate production evidence.

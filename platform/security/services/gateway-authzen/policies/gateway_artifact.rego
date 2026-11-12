@@ -50,3 +50,154 @@ allow if {
   input.action.properties.gatewayTool == "artifact.read"
   valid_resource
 }
+
+# Host policy: reuse the existing AuthZEN evaluation and OPA policy-data file.
+# The JSON is supplied by the Security operator through the already
+# LoadCredential-backed policy_data path, NEVER by the MCP caller or Gateway
+# Tool arguments. No grants in the file => no Host ALLOW.
+#
+# This intentionally does not mint/attest an Agent identity. It permits a
+# verified ingress Principal to act as the exact ActorRef only when a trusted
+# operator-provisioned, still-valid delegation binds the tool and resource.
+host_target_ok if {
+  input.action.name == "host.legacy-write"
+  p := input.resource.properties
+  input.resource.type == "ordivon.host.legacy-write-request"
+  p.identityContract == "ordivon.host-legacy-write-resource.v1"
+  p.toolName == input.action.properties.gatewayTool
+  is_string(p.claimedActorRef)
+}
+
+host_target_ok if {
+  input.action.name == "host.work.engagement.advance"
+  input.action.properties.gatewayTool == "work.engagement.advance"
+  input.resource.type == "ordivon.host.work-engagement"
+  input.resource.properties.identityContract == "ordivon.host-engagement-request-resource.v1"
+  is_string(input.resource.properties.claimedActorRef)
+  is_string(input.resource.properties.workRef)
+  is_string(input.resource.properties.actionType)
+}
+
+host_target_ok if {
+  input.action.name == "host.work.engagement.list"
+  input.action.properties.gatewayTool == "work.engagement.list"
+  input.resource.type == "ordivon.host.work-engagement-inbox"
+  input.resource.properties.identityContract == "ordivon.host-engagement-request-resource.v1"
+}
+
+# The field used for authorization is determined by the *actual Owner tool*,
+# never by a second caller-supplied actorRef/resourceRef that the Owner ignores.
+host_scope(tool, props) := ref if {
+  tool in {"work.create", "work.snapshot.commit", "work.engagement.advance"}
+  ref := props.workRef
+}
+host_scope(tool, props) := ref if {
+  tool in {"space.create", "space.participation.set"}
+  ref := props.spaceRef
+}
+host_scope(tool, props) := ref if {
+  tool in {"topic.create", "topic.cursor.ack", "topic.state.set", "message.post"}
+  ref := props.topicRef
+}
+host_scope(tool, props) := ref if {
+  tool in {"subscription.follow", "subscription.unfollow"}
+  ref := props.targetRef
+}
+host_scope(tool, props) := ref if {
+  tool in {"actor.declare", "attention.ack"}
+  ref := props.claimedActorRef
+}
+host_scope(tool, props) := ref if {
+  tool == "message.relation.add"
+  ref := props.sourceMessageRef
+}
+
+host_scope_granted(grant, ref) if {
+  is_string(ref)
+  count(ref) > 0
+  some exact_ref in grant.exactRefs
+  is_string(exact_ref)
+  exact_ref == ref
+}
+host_scope_granted(grant, ref) if {
+  is_string(ref)
+  some prefix in grant.namespacePrefixes
+  is_string(prefix)
+  count(prefix) >= 6
+  endswith(prefix, ":")
+  startswith(ref, prefix)
+}
+
+# A filtered inbox may only return Works for the explicitly delegated Actor,
+# never the unfiltered global inbox or another Actor's inbox.
+host_inbox_granted(grant) if {
+  p := input.resource.properties
+  p.requestedAssigneeActorRef == grant.actorRef
+  p.requestedConsumerActorRef == null
+}
+host_inbox_granted(grant) if {
+  p := input.resource.properties
+  p.requestedConsumerActorRef == grant.actorRef
+  p.requestedAssigneeActorRef == null
+}
+host_inbox_granted(grant) if {
+  p := input.resource.properties
+  p.requestedConsumerActorRef == grant.actorRef
+  p.requestedAssigneeActorRef == grant.actorRef
+}
+
+host_actor_granted(grant) if {
+  input.action.name == "host.work.engagement.list"
+  host_inbox_granted(grant)
+}
+host_actor_granted(grant) if {
+  input.action.name != "host.work.engagement.list"
+  input.resource.properties.claimedActorRef == grant.actorRef
+  tool := input.action.properties.gatewayTool
+  scope_ref := host_scope(tool, input.resource.properties)
+  host_scope_granted(grant, scope_ref)
+  # A relationship cannot link a delegated source into an unrelated object
+  # unless the target is also within the operator-approved resource scope.
+  host_relation_target_granted(grant, tool)
+}
+
+host_relation_target_granted(_, tool) if {
+  tool != "message.relation.add"
+}
+host_relation_target_granted(grant, tool) if {
+  tool == "message.relation.add"
+  host_scope_granted(grant, input.resource.properties.targetRef)
+}
+
+host_action_granted(_) if {
+  input.action.name != "host.work.engagement.advance"
+}
+host_action_granted(grant) if {
+  input.action.name == "host.work.engagement.advance"
+  action_type := input.resource.properties.actionType
+  action_type in grant.allowedActions
+}
+
+valid_host_delegation if {
+  valid_issuer
+  host_target_ok
+  some grant in data.ordivon.security.gateway_host_actor_grants
+  grant.active == true
+  grant.principalId == input.subject.id
+  grant.issuer == input.subject.properties.issuer
+  is_string(grant.actorRef)
+  grant.actorRef != ""
+  is_number(grant.notBeforeEpochSeconds)
+  is_number(grant.expiresAtEpochSeconds)
+  now := time.now_ns() / 1000000000
+  grant.notBeforeEpochSeconds <= now
+  now < grant.expiresAtEpochSeconds
+  is_array(grant.allowedTools)
+  input.action.properties.gatewayTool in grant.allowedTools
+  host_actor_granted(grant)
+  host_action_granted(grant)
+}
+
+allow if {
+  valid_host_delegation
+}
