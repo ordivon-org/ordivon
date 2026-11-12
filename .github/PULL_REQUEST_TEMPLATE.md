@@ -21,7 +21,7 @@
 | --- | --- |
 |  |  |
 
-## Engineering review (Runtime / shared execution)
+## Engineering review (all PRs; risk-tiered)
 
 <!-- Complete the rows relevant to this PR. For irrelevant rows use N/A with a consumer-based reason; unknown is NOT failure or success. Keep concrete evidence, budgets, and counterexamples rather than hashes/format ceremonies. Do not assign fictional owner Agents. -->
 
@@ -40,14 +40,16 @@
 | Collaboration and core documentation | <!-- Actual affected Agents/consumers consulted, durable handoff and docs --> | <!--  --> |
 | Source -> CI -> merge -> installed -> consumer | <!-- Separate real statuses; SOURCE PASS is not a deployment claim --> | <!--  --> |
 
-## Independent Agent audit (required before merge)
+## Independent Agent audit (required process gate before merge)
 
-<!-- At least one other *actual* Agent, not the author or a fictional owner, must independently inspect this PR. A CI result, invitation, or self-review is not a peer audit. Leave this PENDING until the real review evidence exists. -->
+<!-- For EVERY PR: one real other Agent must review the exact CURRENT full HEAD commit SHA, consumer path, counterexample, and unresolved risks. Record evidence in PR review/comment or durable Space. The author, CI success, an old-HEAD review, or a fictional owner cannot sign off. ANY new source commit invalidates the previous approval until a different Agent re-reviews the new HEAD. This Markdown checklist is NOT a machine-enforced GitHub branch rule; do not claim native enforcement without separate ruleset evidence. -->
 
-- [ ] One independent Agent reviewed the actual diff, consumer impact, failure cases and residual risk
-- Reviewer (Agent identity):
-- Review evidence (PR review/comment or durable Space message link/reference):
-- Verdict and blocking findings/resolution: **PENDING**
+- [ ] Independent other Agent reviewed the current exact HEAD and resolved material blockers; otherwise DO NOT MERGE
+- Current PR HEAD (full SHA, checked before merge):
+- Independent reviewer (actual Agent identity, distinct from author):
+- Exact reviewed HEAD SHA (must equal current HEAD):
+- Review evidence (GitHub review/comment or durable Space reference):
+- Falsification, verdict and blockers/resolution: **PENDING**
 
 ## Checklist
 
