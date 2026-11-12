@@ -198,6 +198,76 @@ class RadarTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "all official GitHub Trending windows failed"):
                 live_observation(2)
 
+    def test_trending_html_void_elements_do_not_silently_drop_cards(self):
+        first = ('<article class="Box-row"><img src="placeholder.png">'
+                 '<h2><a href="/example/first">First</a></h2>'
+                 '<span>41 stars today</span></article>')
+        second = ('<article class="Box-row"><h2><a href="/example/second">'
+                  'Second</a></h2><wbr><span>32 stars today</span></article>')
+        cards = parse_trending(first + second, "daily")
+        self.assertEqual([c["repo"] for c in cards], ["example/first", "example/second"])
+        self.assertEqual([c["newStars"] for c in cards], [41, 32])
+
+    def test_trending_cards_without_repo_and_unterminated_cards_fail_closed(self):
+        good = ('<article class="Box-row"><h2><a href="/example/valid">'
+                'Valid</a></h2><span>9 stars today</span></article>')
+        wrong = '<article class="Box-row"><h2>Missing repo</h2></article>'
+        with self.assertRaisesRegex(ValueError, "unparseable"):
+            parse_trending(good + wrong, "daily")
+        with self.assertRaisesRegex(ValueError, "unterminated"):
+            parse_trending(good + '<article class="Box-row"><h2>Incomplete', "daily")
+
+    def test_live_three_windows_keep_all_cards_with_void_elements(self):
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+        import subprocess
+
+        label = {"daily": "today", "weekly": "this week", "monthly": "this month"}
+        def official_curl(args, **_kwargs):
+            win = args[-1].split("=")[-1]
+            first = (f'<article class="Box-row"><img src="x">'
+                     f'<h2><a href="/audit/first-{win}">First</a></h2>'
+                     f'<span>8 stars {label[win]}</span></article>')
+            second = (f'<article class="Box-row"><h2><a href="/audit/second-{win}">'
+                      f'Second</a></h2><wbr><span>5 stars {label[win]}</span></article>')
+            return subprocess.CompletedProcess(
+                args, 0, stdout=(first + second + " " * 1500).encode(), stderr=b"")
+
+        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
+                "github_radar_incremental.fetch_json",
+                return_value={"apiStatus": "OK", "totalStars": 100}):
+            raw = live_observation(10)
+        result = normalize(raw, set())
+        self.assertEqual(len(result["candidates"]), 6)
+        self.assertEqual(len(result["sourceCoverage"]["observedWindows"]), 3)
+        self.assertTrue(result["sourceCoverage"]["complete"])
+
+    def test_live_one_unparseable_window_is_not_full_coverage(self):
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+        import subprocess
+
+        def official_curl(args, **_kwargs):
+            win = args[-1].split("=")[-1]
+            if win == "weekly":
+                page = ('<article class="Box-row"><h2><a href="/audit/valid">'
+                        'Valid</a></h2><span>2 stars this week</span></article>'
+                        '<article class="Box-row"><h2>No repository</h2></article>')
+            else:
+                label = {"daily": "today", "monthly": "this month"}[win]
+                page = (f'<article class="Box-row"><h2><a href="/audit/{win}">'
+                        f'{win}</a></h2><span>2 stars {label}</span></article>')
+            return subprocess.CompletedProcess(
+                args, 0, stdout=(page + " " * 1500).encode(), stderr=b"")
+        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
+                "github_radar_incremental.fetch_json",
+                return_value={"apiStatus": "OK", "totalStars": 10}):
+            raw = live_observation(10)
+        coverage = normalize(raw, set())["sourceCoverage"]
+        self.assertEqual(coverage["observedWindows"], ["daily", "monthly"])
+        self.assertEqual(coverage["failedWindows"], ["weekly"])
+        self.assertFalse(coverage["complete"])
+
     def test_history_has_horizon_and_ignores_untrusted_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             d=Path(tmp)

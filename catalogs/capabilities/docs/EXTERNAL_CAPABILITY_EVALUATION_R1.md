@@ -59,8 +59,15 @@ windows independently. A successful subset produces **partial official evidence*
 no candidate snapshot. Failed means an actual attempted window failed, while
 unobserved means no such attempt is evidenced in a pinned input. A partial
 snapshot is neither full Trending coverage nor permission to use a third-party
-mirror silently. Runtime Job success does not prove the human report or
-consumer qualification completed.
+mirror silently. `complete=true` means all three official source windows
+were fetched and their observed `article.Box-row` cards parsed without a
+detected malformed card; it does **not** claim that every possible GitHub
+repository was listed, or that downstream human reporting succeeded. A card
+whose repository cannot be extracted or an unterminated article rejects its
+window instead of silently dropping it. The retained `metadataCurrentness`
+field is GitHub's repository `pushed_at` (last source push), **not** the
+metadata API request timestamp. Runtime Job success does not prove the human
+report or consumer qualification completed.
 
 ### Review contract for changes to this Catalog discovery path
 
