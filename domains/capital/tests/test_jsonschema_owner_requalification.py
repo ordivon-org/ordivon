@@ -100,7 +100,7 @@ def test_jsonschema_is_not_a_current_runtime_dependency():
     pyproject = (ROOT / "pyproject.toml").read_text()
     capability_check = (ROOT / "scripts/check-capabilities").read_text()
     current_source = "\n".join(
-        path.read_text()
+        path.read_text(encoding="utf-8")
         for path in (ROOT / "src/ordivon_capital").rglob("*.py")
     )
     assert "jsonschema" not in pyproject

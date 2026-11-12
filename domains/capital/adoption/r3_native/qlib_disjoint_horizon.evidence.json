@@ -1,0 +1,103 @@
+{
+  "OOS_predictions_are_not_portfolio_expected_returns": true,
+  "actual_trading_liquidity_spread_and_fees_verified": false,
+  "corporate_actions_verified": false,
+  "decision": "DO_NOT_PROMOTE_TO_PORTFOLIO_INTENT_OR_NATIVE_ORDERS",
+  "dividend_reinvestment_qualified": false,
+  "economic_comparisons": {
+    "1": {
+      "Paper_same_day_sell_supported": false,
+      "decision_sessions": 272,
+      "hypothetical_daily_flat_strategy_only": true,
+      "model_minus_intraday_spy_dollars": "-21.2409289799834857167511275"
+    },
+    "20": {
+      "disjoint_holding_windows": 13,
+      "distinct_assets_selected": 1,
+      "fixed_policy_rule": "highest_OOS_QLib_score_at_prior_close_on_every_Hth_test_decision",
+      "fractional_shares_only": true,
+      "model_minus_same_window_IWM_dollars": "0.000000000000000000000000",
+      "model_minus_same_window_QQQ_dollars": "-101.685895612774231425681279",
+      "model_minus_same_window_SPY_dollars": "-35.674753722502693404959915",
+      "model_minus_same_window_SPY_symmetric_10bps_scenario_dollars": "-35.213754377382545625264672",
+      "model_minus_same_window_equal_weight_dollars": "-47.286236719172731308083537",
+      "overnight_flat_gaps_exist_between_windows": true,
+      "same_exposure_schedule_for_both_alternatives": true,
+      "selected_assets": {
+        "IWM": 13
+      },
+      "strategy_authorized": false,
+      "trading_costs_observed": false
+    },
+    "5": {
+      "disjoint_holding_windows": 54,
+      "distinct_assets_selected": 3,
+      "fixed_policy_rule": "highest_OOS_QLib_score_at_prior_close_on_every_Hth_test_decision",
+      "fractional_shares_only": true,
+      "model_minus_same_window_IWM_dollars": "-94.504420397973837900681012",
+      "model_minus_same_window_QQQ_dollars": "-146.768971957680424547854343",
+      "model_minus_same_window_SPY_dollars": "-74.405878879014103967771562",
+      "model_minus_same_window_SPY_symmetric_10bps_scenario_dollars": "-70.492613966336354434694331",
+      "model_minus_same_window_equal_weight_dollars": "-107.796962930722181601365951",
+      "overnight_flat_gaps_exist_between_windows": true,
+      "same_exposure_schedule_for_both_alternatives": true,
+      "selected_assets": {
+        "IWM": 36,
+        "QQQ": 14,
+        "SPY": 4
+      },
+      "strategy_authorized": false,
+      "trading_costs_observed": false
+    }
+  },
+  "historical_point_in_time_data_admitted": false,
+  "invariant_H1_previous_downstream_horizon_string_restored": true,
+  "investment_sleeve_minor": 100000,
+  "kind": "ordivon.finance.r3.independent-matched-horizon-economic-evaluation",
+  "model_comparative_skill_demonstrated": false,
+  "origin": "Agent A independently reran B native Qlib H1/H5/H20 and composed existing Capital PassiveBenchmark",
+  "protected_cash_minor": 900000,
+  "real_orders_or_PG_effects": "NONE",
+  "research_source": "B committed 93c052eebd089a07d8f5c4e401c712c28f897f2f cherry-picked with author preserved",
+  "signal_quality": {
+    "1": {
+      "approx_nonoverlapping_test_blocks": 272,
+      "dataset_sha256": "e14deedead6efe85f0c460466cffd965d78d23c66b6a1704912e13c8b2113435",
+      "economically_authorized": false,
+      "model_mse": 7.513403553302489e-05,
+      "research_standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
+      "rows": 816,
+      "test_sessions": 272,
+      "train_only_asset_mse": 7.51277265189323e-05,
+      "train_only_mean_mse": 7.500849427233077e-05,
+      "zero_mse": 7.499782568905879e-05
+    },
+    "20": {
+      "approx_nonoverlapping_test_blocks": 13,
+      "dataset_sha256": "1e3cc0ce8ca7ee72aed2631aaa027c9cfe327771d65f5e400e05ba9727350003",
+      "economically_authorized": false,
+      "model_mse": 0.0019577160710015588,
+      "research_standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
+      "rows": 759,
+      "test_sessions": 253,
+      "train_only_asset_mse": 0.001979113050781792,
+      "train_only_mean_mse": 0.001962292187574837,
+      "zero_mse": 0.0020818537199416335
+    },
+    "5": {
+      "approx_nonoverlapping_test_blocks": 54,
+      "dataset_sha256": "0d1487ea0ebee7e9f2ceea133f2ed7edeb040b4f32a59becc7b54c71e43277e9",
+      "economically_authorized": false,
+      "model_mse": 0.00045016364849159794,
+      "research_standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
+      "rows": 804,
+      "test_sessions": 268,
+      "train_only_asset_mse": 0.0004530530059794045,
+      "train_only_mean_mse": 0.00045090961482128177,
+      "zero_mse": 0.00045568066151008307
+    }
+  },
+  "simulated_total_capital_minor": 1000000,
+  "standing": "RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
+  "statistical_limitation": "H20 has 13 disjoint windows, repeated 5/20 OOS inspection, no multiple-testing controlled confidence"
+}

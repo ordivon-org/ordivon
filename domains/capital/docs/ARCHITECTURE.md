@@ -227,3 +227,28 @@ by a retrospective paper replay or by this repository.
 unreferenced as execution/acceptance contracts; retain current source
 contracts and observed consumers instead of updating long historical
 status paragraphs every time one vendor version or network route changes.
+
+## Finance R3 isolated scientific/native Paper qualification (2026-11-12)
+
+The existing `adoption/r3_native/` subtree is a **research and disposable-test**
+consumer of mature OpenBB, Qlib, NautilusTrader, Riskfolio and PostgreSQL
+capabilities. It does not declare these packages canonical production owners,
+and it does not replace Capital's existing Trading OMS, Accounting ledger,
+Portfolio or Security authorization. Logical LEGO responsibilities are not
+service or mandatory agent boundaries.
+
+The Qlib H5/H20 next-open labels and Nautilus simulated BUY/HOLD/SELL are
+economically time-aligned for the fixed historical test, and the same Paper
+Session inputs are replayed through `PostgresPaperClose` in a disposable test
+instance with physical stop/restart and receipt readback. These tests consume
+retrospectively collected, unadjusted ETF bars and test-only synthetic quote
+spreads / caller-supplied valuation marks. They do not prove historical
+point-in-time availability, source redistribution rights, calibrated forecasts,
+production account binding, real brokerage effects, or investment authority.
+
+**Accounting authority remains in `src/ordivon_capital/accounting/`:** the
+canonical PostgreSQL Paper reader validates predecessor receipt commitments,
+recomputes the persisted valuation and compares head cash to the ledger; no
+research-side weaker implementation may replace these controls. Review
+`adoption/r3_native/PR_REVIEW_NATIVE_PG_R5.md` for precise native Jobs and
+remaining UNKNOWNs. An isolated test is not a deployment or live-money grant.
