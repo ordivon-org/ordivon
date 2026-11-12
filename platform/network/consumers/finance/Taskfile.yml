@@ -83,9 +83,10 @@ tasks:
   consumer:finance:converge:
     desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
-      - task: consumer:finance:validate
       - |
+        if flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock /bin/sh -s <<'NETWORK_V2_CONVERGE'; then
         set -eu
+        task --silent consumer:finance:validate
         source_state="$(task --silent consumer:finance:classify)" || {
           echo 'finance SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
@@ -116,7 +117,16 @@ tasks:
         systemctl is-active --quiet network-v2-finance-egress.service
         task --silent consumer:finance:sourcecut
         test "$(task --silent consumer:finance:process-fresh)" = MATCH
-      - task: consumer:finance:ready
+        task --silent consumer:finance:ready
+        NETWORK_V2_CONVERGE
+          :
+        else
+          result=$?
+          if test "$result" -eq 75; then
+            echo 'UNKNOWN: a Network converge is already in progress; refusing overlapping effects' >&2
+          fi
+          exit "$result"
+        fi
 
   consumer:finance:verify:
     desc: Prove deployed nine-lane policy and real read-only Finance consequences without restarting shared Provider

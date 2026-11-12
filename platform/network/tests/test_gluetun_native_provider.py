@@ -184,3 +184,53 @@ def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
     ]:
         with pytest.raises(ValueError):
             native.parse_selector_policy(__import__("json").dumps(invalid))
+
+
+
+def test_upstream_ordered_country_preview_preserves_native_provider_and_fail_closed_admission():
+    policy = native.read_selector_policy()
+    preview = {
+        **policy,
+        "regions": [],
+        "selectedCountries": ["Singapore", "Malaysia", "Hong Kong", "Thailand", "Taiwan"],
+        "selectionMode": "ordered",
+    }
+    inherited = native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n")
+    selected = native.generate_env(inherited, "10.64.200.9/16", preview)
+    assert "SERVER_COUNTRIES=Singapore,Malaysia,Hong Kong,Thailand,Taiwan" in selected
+    assert "SERVER_SELECTION_MODE=ordered" in selected
+    assert "SERVER_REGIONS=" not in selected
+    assert "VPN_SERVICE_PROVIDER=surfshark" in selected
+    assert "WIREGUARD_ENDPOINT_IP" not in selected
+    assert "WIREGUARD_PUBLIC_KEY" not in selected
+    assert "WIREGUARD_PRIVATE_KEY" not in selected
+    default = native.generate_env(inherited, "10.64.200.9/16")
+    assert "SERVER_SELECTION_MODE" not in default
+    assert 'SERVER_REGIONS="Asia Pacific"' in default
+    assert "SERVER_COUNTRIES=Singapore\n" in default
+
+    # A country-priority source must not mistakenly report the live single
+    # country / legacy stable OCI as already conformant.
+    live = default.splitlines() + [
+        f"WIREGUARD_PRIVATE_KEY_SECRETFILE={native.LOADED_WG_SECRETFILE}"
+    ]
+    with pytest.raises(ValueError, match="SERVER_"):
+        native.verify_loaded_env(selected, live)
+    with pytest.raises(ValueError, match="SERVER_SELECTION_MODE"):
+        native.verify_loaded_env(default, live + ["SERVER_SELECTION_MODE=ordered"])
+    with pytest.raises(ValueError, match="SERVER_REGIONS"):
+        native.verify_loaded_env(selected, selected.splitlines() + [
+            "SERVER_REGIONS=Asia Pacific",
+            f"WIREGUARD_PRIVATE_KEY_SECRETFILE={native.LOADED_WG_SECRETFILE}",
+        ])
+    # All these are invalid upstream-native priority claims, not reasons to
+    # introduce a separate endpoint scheduler.
+    for invalid in (
+        {**preview, "regions": ["Asia Pacific"]},
+        {**preview, "selectedCountries": ["Singapore"]},
+        {**preview, "selectionMode": "random"},
+        {**preview, "selectionMode": "highest-signal"},
+        {**preview, "selectedCountries": ["Singapore", "Japan"]},
+    ):
+        with pytest.raises(ValueError):
+            native.parse_selector_policy(__import__("json").dumps(invalid))

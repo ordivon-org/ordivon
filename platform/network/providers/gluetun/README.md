@@ -172,3 +172,41 @@ do not set unsupported flags or introduce a custom server updater. Revisit
 this explicit ratio when adopting a newer official release or if the provider
 hostname-to-record mapping changes. The live provider must not be restarted
 by a source-only PR.
+
+
+### Native multi-country ordered fallback — qualified preview, NOT live
+
+Gluetun's **official upstream master** contains `SERVER_SELECTION_MODE=ordered`
+(from the upstream 2026-09-11 server-selection change). The current production
+stable **v3.41.3** has no such implementation. The native selector can now
+accept an optional source-only `selectionMode: ordered`, with two or more
+`selectedCountries` in priority order and `regions: []`. For example:
+
+```json
+{
+  "regions": [],
+  "selectedCountries": ["Singapore", "Malaysia", "Hong Kong", "Thailand", "Taiwan"],
+  "excludedCountries": ["Japan", "South Korea"],
+  "selectionMode": "ordered"
+}
+```
+
+This is **a preview, not permission to change the production Exit Node's
+country**. Gluetun's upstream tier ranking prioritizes regions above countries;
+leaving `regions: ["Asia Pacific"]` would silently defeat country priority,
+so the policy rejects it. The existing source-owned candidate-catalog Task
+also works when regions are empty, and remains CATALOG_ONLY_NOT_HEALTH.
+The native generator does not append the unsupported mode for the current
+singleton Singapore policy; a source-only preview can use `--check
+--selector-policy PATH`, while `--apply` additionally refuses ordered mode
+unless explicitly passed `--allow-ordered-apply`.
+
+Before a production cutover, qualify a pinned immutable upstream image
+supporting ordered mode, each consumer's actual allowed egress countries
+(including iOS/Finance), native DNS/HTTPS through every fallback country,
+real source/installed/loaded effect, and a return path. A single shared Gluetun
+can only have **one exit country at a time**; if iOS must remain SG-only,
+multi-country fallback requires a separate qualified Carrier. Ordered mode
+cycles through candidate connections on successive reconnects; it is not an
+independent VPN, proof of endpoint health, or proactive failback when SG
+recovers. Do not use a host-direct fallback for VPN-only consumers.

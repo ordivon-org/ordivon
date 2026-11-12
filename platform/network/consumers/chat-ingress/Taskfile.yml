@@ -82,9 +82,10 @@ tasks:
   consumer:chat-ingress:converge:
     desc: Separate installed SourceCut from active sing-box process generation; recover an interrupted restart
     cmds:
-      - task: consumer:chat-ingress:validate
       - |
+        if flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock /bin/sh -s <<'NETWORK_V2_CONVERGE'; then
         set -eu
+        task --silent consumer:chat-ingress:validate
         source_state="$(task --silent consumer:chat-ingress:classify)" || {
           echo 'chat-ingress SourceCut UNKNOWN: refusing converge effects' >&2
           exit 2
@@ -115,7 +116,16 @@ tasks:
         systemctl is-active --quiet network-v2-chat-ingress-proxy.service
         task --silent consumer:chat-ingress:sourcecut
         test "$(task --silent consumer:chat-ingress:process-fresh)" = MATCH
-      - task: consumer:chat-ingress:verify
+        task --silent consumer:chat-ingress:verify
+        NETWORK_V2_CONVERGE
+          :
+        else
+          result=$?
+          if test "$result" -eq 75; then
+            echo 'UNKNOWN: a Network converge is already in progress; refusing overlapping effects' >&2
+          fi
+          exit "$result"
+        fi
 
   consumer:chat-ingress:verify:
     desc: Verify installed ChatIngress unit/authority SourceCut and real consumer readiness

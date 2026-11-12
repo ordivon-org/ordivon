@@ -124,6 +124,26 @@ def admit_implementation() -> dict:
         if "install -" in materialize:
             assert materialize.index("task --silent " + owner + ":classify") < materialize.index("install -"), owner
         if subdir != "browserless":
+            # R13: five fixed sing-box scopes reuse ONE native Linux flock
+            # during the complete native converge/verify critical section.
+            # This is source-bound to the Go Task handler; the kernel-backed
+            # mutex semantics and crash cleanup are independently exercised
+            # by actual parallel Go Task processes, not assumed by Z3.
+            lock_call = (
+                "flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock"
+            )
+            assert consumer_converge.count(lock_call) == 1, owner
+            assert consumer_converge.index(lock_call) < consumer_converge.index(
+                'source_state="$(task --silent '
+            ), owner
+            assert 'NETWORK_V2_CONVERGE' in consumer_converge, owner
+            assert 'task --silent ' + owner + ':validate' in consumer_converge
+            post = owner + (":verify" if subdir in ("claude", "chat-ingress")
+                            else ":ready")
+            assert 'task --silent ' + post in consumer_converge, owner
+            assert consumer_converge.index(
+                'task --silent ' + post
+            ) < consumer_converge.index('NETWORK_V2_CONVERGE\n'), owner
             assert 'case "$source_state/$process_state" in' in consumer_converge, owner
             assert "MATCH/MATCH)" in consumer_converge, owner
             assert "MATCH/DRIFT)" in consumer_converge, owner
@@ -189,6 +209,7 @@ def admit_implementation() -> dict:
              "r11ConsumerOwners": [owner for _, owner in r11_owners],
              "r12ProcessGenerationConsumers": [owner for subdir, owner in r11_owners
                  if subdir != "browserless"],
+             "r13NativeFlockGuardedConverges": 5,
             "convergeSteps": list(steps)}
 
 
