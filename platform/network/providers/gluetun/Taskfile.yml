@@ -69,7 +69,8 @@ tasks:
             | ($candidates
                | map(select(
                    (.country as $c | $selection.selectedCountries | index($c) != null) and
-                   (.region as $r | $selection.regions | index($r) != null)))) as $selected
+                   (.region as $r | (($selection.regions | length) == 0 or
+                     ($selection.regions | index($r) != null)))))) as $selected
             | if ($provider.timestamp | type) != "number"
                   or ($candidates | length) == 0
                   or ([$selected[].country] | unique | length) != ($selection.selectedCountries | length)

@@ -90,11 +90,18 @@ def parse_selector_policy(raw: str) -> dict[str, list[str]]:
 
     value = json.loads(raw, object_pairs_hook=reject_duplicate_keys)
     fields = {"regions", "selectedCountries", "excludedCountries"}
-    if not isinstance(value, dict) or set(value) != fields:
+    if not isinstance(value, dict) or not fields <= set(value) or (
+        set(value) - fields - {"selectionMode"}
+    ):
         raise ValueError("Gluetun selector policy fields differ")
+    ordered = value.get("selectionMode") == "ordered"
+    if "selectionMode" in value and not ordered:
+        raise ValueError("Only upstream-native ordered selection mode is supported")
     for field in fields:
         entries = value[field]
-        if not isinstance(entries, list) or (field != "excludedCountries" and not entries):
+        if not isinstance(entries, list) or (
+            not entries and (field == "selectedCountries" or (field == "regions" and not ordered))
+        ):
             raise ValueError(f"Invalid {field} selector list")
         if not all(
             isinstance(x, str)
@@ -108,6 +115,13 @@ def parse_selector_policy(raw: str) -> dict[str, list[str]]:
             raise ValueError(f"Duplicate {field} selector")
     if set(value["selectedCountries"]) & set(value["excludedCountries"]):
         raise ValueError("Selected Gluetun country is excluded")
+    if ordered:
+        # Gluetun's native priority is hostnames > cities > REGIONS >
+        # COUNTRIES. A region filter would mask the country order.
+        if value["regions"]:
+            raise ValueError("Ordered country fallback requires no region filter")
+        if len(value["selectedCountries"]) < 2:
+            raise ValueError("Ordered country fallback needs at least two countries")
     return value
 
 
@@ -135,12 +149,22 @@ def generate_env(
         selector = read_selector_policy()
     else:
         selector = parse_selector_policy(json.dumps(selector))
+    # v3.41.3 default source stays byte-for-byte unchanged. The optional
+    # ordered mode is an upstream Gluetun feature (currently unreleased);
+    # it is a source-only preview until a proven supporting OCI is promoted.
+    selectors = []
+    if selector["regions"]:
+        selectors.append(
+            f'SERVER_REGIONS={render_native_selector(selector["regions"], preserve_legacy_region=True)}'
+        )
+    selectors.append(f'SERVER_COUNTRIES={render_native_selector(selector["selectedCountries"])}')
+    if selector.get("selectionMode") == "ordered":
+        selectors.append("SERVER_SELECTION_MODE=ordered")
     config = [
         "VPN_SERVICE_PROVIDER=surfshark",
         "VPN_TYPE=wireguard",
         f"WIREGUARD_ADDRESSES={interface_address}",
-        f'SERVER_REGIONS={render_native_selector(selector["regions"], preserve_legacy_region=True)}',
-        f'SERVER_COUNTRIES={render_native_selector(selector["selectedCountries"])}',
+        *selectors,
         "UPDATER_PERIOD=480h",
         # Pinned Gluetun 3.41.3 compares 185 unique Surfshark hostname fetches
         # against 363 transport-expanded stored records. int(0.51*363)=185,
@@ -206,7 +230,8 @@ def verify_loaded_env(expected: str, loaded: list[str]) -> None:
     """
     expected_values = dict(line.split("=", 1) for line in expected.splitlines())
     extra_server_filters = {
-        "SERVER_CITIES", "SERVER_HOSTNAMES", "SERVER_NAMES", "SERVER_CATEGORIES"
+        "SERVER_CITIES", "SERVER_HOSTNAMES", "SERVER_NAMES", "SERVER_CATEGORIES",
+        "SERVER_REGIONS", "SERVER_SELECTION_MODE",
     }
     # An extra explicit endpoint or plaintext key in the running container can
     # silently bypass native Surfshark server selection even when the selected
@@ -238,7 +263,7 @@ def verify_loaded_env(expected: str, loaded: list[str]) -> None:
     )
     unexpected = sorted(
         key for key in extra_server_filters | forbidden_identity_overrides
-        if observed.get(key)
+        if key not in expected_values and observed.get(key)
     )
     if mismatches or unexpected:
         keys = ", ".join(mismatches + unexpected)
@@ -279,9 +304,18 @@ def main() -> None:
     arg.add_argument("--base-env", type=Path, default=BASE_ENV)
     arg.add_argument("--native-env", type=Path, default=NATIVE_ENV)
     arg.add_argument("--selector-policy", type=Path, default=SELECTOR_POLICY)
+    arg.add_argument(
+        "--allow-ordered-apply", action="store_true",
+        help="Explicitly allow applying a tested upstream ordered-capable image profile",
+    )
     args = arg.parse_args()
     private_key, env = stage(args.wireguard, args.base_env, args.selector_policy)
     if args.apply:
+        if "SERVER_SELECTION_MODE=ordered" in env and not args.allow_ordered_apply:
+            raise SystemExit(
+                "Ordered preview requires an explicitly qualified upstream OCI image "
+                "and --allow-ordered-apply; unchanged stable v3.41.3 ignores this mode"
+            )
         materialize(private_key, env, args.native_env)
     if args.verify:
         if args.native_env.read_text() != env:
@@ -296,7 +330,7 @@ def main() -> None:
     # Report the exact bytes staged for admission, never a second read of the
     # selector file which could change between generation and observation.
     emitted = dict(line.split("=", 1) for line in env.splitlines())
-    regions = emitted["SERVER_REGIONS"].strip('"')
+    regions = emitted.get("SERVER_REGIONS", "").strip('"')
     countries = emitted["SERVER_COUNTRIES"].strip('"')
     print(
         "native_profile=" + ("APPLIED" if args.apply else "VERIFIED" if args.verify else "VALID")
