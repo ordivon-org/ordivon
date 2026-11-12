@@ -249,6 +249,9 @@ def test_rc9_equity_orderfilled_persists_in_real_postgres_paper_close(monkeypatc
 
 
 
+# Upstream Nautilus is an OPTIONAL native qualification dependency.
+# Ordinary Capital tests must not silently require the nonlive extra.
+@pytest.mark.provider_qualification
 @pytest.mark.native_nonlive
 def test_qlib_prediction_snapshot_cannot_claim_original_model_after_rewrite(tmp_path):
     # This is a source-to-consumer authority boundary, not a strategy test.
