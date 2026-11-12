@@ -51,6 +51,10 @@ if (MODEL_STUDY.get("signal_quality", {}).get("holding_sessions") != HOLD
         or MODEL_STUDY.get("portfolio_target") is not None
         or MODEL_STUDY.get("forecast", {}).get("point_in_time_eligible") is not False):
     raise RuntimeError("Qlib study not the requested simulation-only holding horizon")
+if (MODEL_STUDY.get("signal_quality", {}).get("exit_price_kind") != "next_open"
+        or MODEL_STUDY.get("signal_quality", {}).get("matches_native_fixed_holding_exit_event") is not True
+        or MODEL_STUDY.get("forecast", {}).get("native_strategy_exit_event_matches_target") is not True):
+    raise RuntimeError("Qlib exit label must match native T+H+1 OPEN sale")
 with (RESEARCH / "qlib_test_predictions.csv").open(newline="", encoding="utf-8") as fp:
     signal_rows = [
         row for row in csv.DictReader(fp) if row["datetime"] == DECISION_DAY
@@ -357,7 +361,8 @@ standing = {
     "selected_instrument": SYMBOL,
     "test_counterfactual_score_intervention": override is not None,
     "historically_precommitted_model_decision": False,
-    "Qlib_target_vs_native_exit_event_identical": False,
+    "Qlib_target_vs_native_exit_event_identical": True,
+    "Qlib_research_target_horizon": MODEL_STUDY["signal_quality"]["horizon"],
     "standing": "SIMULATION_ONLY_NON_PIT_NOT_CAPITAL_AUTHORIZED",
     "horizon_complete_sessions": HOLD,
     "source_capture": "OpenBB Cboe retrospective unadjusted OHLCV",
