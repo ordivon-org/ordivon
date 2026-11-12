@@ -97,14 +97,7 @@ impl Runtime {
         if let Some(windows) = &config.windows {
             windows.validate()?;
         }
-        for headroom in &workspace_headroom {
-            if !headroom.path.is_absolute() {
-                return Err(RuntimeError::invalid("workspace headroom path must be absolute", "workspaceHeadroom.path"));
-            }
-            if headroom.minimum_free_bytes == 0 {
-                return Err(RuntimeError::invalid("workspace minimum free bytes must be positive", "workspaceHeadroom.minimumFreeBytes"));
-            }
-        }
+        validate_workspace_headroom(&workspace_headroom)?;
         if config.startup_grace_ms == 0 {
             return Err(RuntimeError::invalid(
                 "startupGraceMs must be positive",

@@ -1823,6 +1823,93 @@ exec /usr/bin/git "$@"
 /// quiet-period proof. Native close must recheck the last PG Job activity
 /// while holding its existing advisory lock and refuse the physical Git
 /// removal despite consumerReleased=false.
+/// The actual production PostgreSQL Workspace.open must apply both carrier
+/// budgets while holding its native PG Workspace-effect lock. Legacy Runtime
+/// unit tests cannot prove this separate owner path.
+#[test]
+#[ignore = "launches an isolated PostgreSQL18 cluster and native Git worktree"]
+fn pg_workspace_open_fails_on_either_carrier_before_git_effect() {
+    use ordivon_runtime_core::{
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceHeadroomConfig,
+    };
+
+    let fixture = Fixture::new();
+    let repo = fixture.repo();
+    let path = fixture.root.clone();
+    let baseline = PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        workspace_headroom: Vec::new(),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    };
+    let threshold = |minimum_free_bytes| WorkspaceHeadroomConfig {
+        path: path.clone(),
+        minimum_free_bytes,
+    };
+    for (first_minimum, second_minimum, rejected) in
+        [(u64::MAX, 1_u64, "first"), (1_u64, u64::MAX, "second")]
+    {
+        let runtime = PgRuntime::new(PgRuntimeConfig {
+            workspace_headroom: vec![threshold(first_minimum), threshold(second_minimum)],
+            ..baseline.clone()
+        })
+        .unwrap();
+        let workspace_id = format!("pg-guard-{}-{}", rejected, Uuid::now_v7().simple());
+        let result = runtime.open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        });
+        let error = result
+            .err()
+            .expect("guest or host floor must reject PG open");
+        assert_eq!(
+            error.code,
+            ordivon_runtime_core::RuntimeErrorCode::WorkspaceCapacityExceeded,
+            "{rejected} carrier should independently deny PG open: {error}"
+        );
+        assert!(!fixture
+            .root
+            .join("store/workspaces")
+            .join(&workspace_id)
+            .exists());
+    }
+
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        workspace_headroom: vec![threshold(1), threshold(1)],
+        ..baseline
+    })
+    .unwrap();
+    let admitted = runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: format!("pg-guard-valid-{}", Uuid::now_v7().simple()),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .expect("both carrier floors satisfied must preserve real PG workspace.open");
+    assert!(fixture
+        .root
+        .join("store/workspaces")
+        .join(&admitted.workspace_id)
+        .is_dir());
+}
+
 #[test]
 #[ignore = "launches an isolated PostgreSQL18 cluster and native Git worktree"]
 fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
@@ -1841,6 +1928,7 @@ fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -1972,6 +2060,7 @@ fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -2154,6 +2243,7 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -3101,6 +3191,7 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("self-qualified-attempt"),
             workspace_root: None,
@@ -3155,6 +3246,7 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         dsn,
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("session-authority-candidate"),
             workspace_root: None,
