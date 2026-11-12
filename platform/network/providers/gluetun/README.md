@@ -233,3 +233,29 @@ cache or filtering layers, passing does **not** prove each encrypted upstream
 is working, a particular iOS device selected the Exit Node, or public WAN
 failover occurred. The independent shared-carrier HTTPS probe remains a
 separate business effect.
+
+
+### Native DoT upstream attribution (separate from cached consumer DNS)
+
+The existing provider:gluetun:verify now reuses BIND 9.20 dig's TLS
+certificate validation and Linux util-linux nsenter inside the actual
+running Gluetun Podman network namespace. It derives the **configured**
+DNS_UPSTREAM_RESOLVER_TYPE and DNS_UPSTREAM_RESOLVERS from that container's
+existing metadata and tests the qualified native provider endpoints:
+Cloudflare (1.1.1.1:853, cloudflare-dns.com) and Google
+(8.8.8.8:853, dns.google). No extra sidecar, daemon, registry, credential,
+connection selector, or new network path is introduced.
+
+Unlike the local 127.0.0.1:53 consumer check, this makes a new TLS+DNS
+request to the remote source with CA validation and an expected hostname.
+An answer is mandatory: BIND dig may return exit status 0 even when TLS
+peer certificate validation fails. One upstream failed but another returned
+a valid A answer is **DEGRADED**, not complete DNS failure. Zero successful
+upstreams or an unrecognized currently configured resolver fails the
+readiness check, without automatically restarting or reconfiguring VPN.
+
+This is a point-in-time, explicitly scoped observation, not assurance
+that Gluetun internally selected exactly the same upstream, that every
+future query succeeds, or that an iPhone/iPad used its expected Exit Node.
+Provider DNS consumer answers, remote DoT transport, carrier HTTPS
+readiness, and device-origin receipts remain distinct evidence.

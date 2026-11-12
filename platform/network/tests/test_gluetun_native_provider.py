@@ -250,3 +250,19 @@ def test_provider_uses_native_vpn_namespace_dns_consumer_not_host_udp_probe():
     rules = (root / "config/prometheus/consumer.rules.yml").read_text()
     assert rules.count("observation_plane: host_direct_udp53") == 3
     assert "VPN DoT state is unknown" in rules
+
+
+def test_gluetun_dot_upstream_observes_actual_provider_namespace_and_certificate():
+    from pathlib import Path
+    t = (Path(__file__).resolve().parents[1] / 'providers/gluetun/Taskfile.yml').read_text()
+    assert 'provider:gluetun:dns-dot-upstreams:' in t
+    assert 'task provider:gluetun:dns-dot-upstreams' in t
+    assert 'DNS_UPSTREAM_RESOLVER_TYPE=' in t and 'DNS_UPSTREAM_RESOLVERS=' in t
+    assert 'nsenter --target' in t
+    assert '+tls +tls-ca +tls-hostname=' in t
+    native_source_lines = {line.strip() for line in t.splitlines()}
+    assert 'cloudflare) address=1.1.1.1; hostname=cloudflare-dns.com ;;' in native_source_lines
+    assert 'google) address=8.8.8.8; hostname=dns.google ;;' in native_source_lines
+    assert 'VPN_NAMESPACE_DOT_UPSTREAM_DEGRADED' in t
+    assert 'VPN_NAMESPACE_DOT_UPSTREAMS_UNAVAILABLE_OR_UNKNOWN' in t
+    assert 'grep -Eq' in t and 'healthy=$((healthy + 1))' in t
