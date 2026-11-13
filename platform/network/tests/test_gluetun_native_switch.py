@@ -157,3 +157,18 @@ def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
         {"provider":{"server_selection":{"countries":["Mexico"]}}},
         {"provider":{"server_selection":{"countries":["North Macedonia"]}}},
     ]
+
+
+def test_recover_benign_policy_hold_is_process_success_but_auth_unknown_is_failure(monkeypatch,capsys):
+    monkeypatch.setattr(sys,"argv",["native_switch.py","--recover"])
+    monkeypatch.setattr(switch,"guarded_recover",
+      lambda:{"standing":"HOLD_WORKING_ACTIVE","effectAttempted":False})
+    assert switch.main()==0
+    assert "HOLD_WORKING_ACTIVE" in capsys.readouterr().out
+    monkeypatch.setattr(switch,"guarded_recover",
+      lambda:{"standing":"HOLD_NATIVE_API_NOT_READY","effectAttempted":False})
+    assert switch.main()==1
+    assert "HOLD_NATIVE_API_NOT_READY" in capsys.readouterr().out
+    monkeypatch.setattr(switch,"guarded_recover",
+      lambda:{"standing":"NATIVE_SWITCH_FAILED","effectAttempted":True})
+    assert switch.main()==1
