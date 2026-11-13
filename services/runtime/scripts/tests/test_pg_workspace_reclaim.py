@@ -203,7 +203,8 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           pinned: bool = False, revoke_during_get: bool = False,
                           process_enters_during_get: bool = False,
                           ignored_emerges_during_get: bool = False,
-                          close_transport_uncertain: bool = False):
+                          close_transport_uncertain: bool = False,
+                          integration_ref: str = "refs/remotes/origin/main"):
         import argparse
         from unittest.mock import patch
         import time
@@ -218,6 +219,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             limit=25,
             apply=apply,
             policy_file=policy_path,
+            integration_ref=integration_ref,
         )
         # Isolated PG projection only. Real Git worktrees, status, commits and
         # durable retention refs are used. Native PG close is a separate owner.
@@ -299,6 +301,54 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         pinned, _ = self.run_operator_plan(allow=True, pinned=True)
         self.assertEqual(pinned["eligible"], 0)
         self.assertEqual(pinned["skipped"].get("policy_pinned"), 1)
+
+    def test_local_only_main_proves_integrated_source_without_origin(self):
+        # Research and Paper2 use local Git repositories without origin/main.
+        self.git("update-ref", "refs/heads/main", self.head)
+        self.git("update-ref", "-d", "refs/remotes/origin/main")
+        report, _ = self.run_operator_plan(
+            allow=False, integration_ref="refs/heads/main"
+        )
+        self.assertEqual(report["eligible"], 1)
+        self.assertEqual(report["eligibleUnintegrated"], 0)
+        self.assertEqual(report["candidates"], [self.workspace.name])
+        with self.assertRaisesRegex(ValueError, "configured GC integration ref"):
+            self.run_operator_plan(allow=False)
+
+    def test_local_main_cannot_override_repository_with_remote(self):
+        self.git("remote", "add", "origin", "file:///unreachable-test")
+        with self.assertRaisesRegex(ValueError, "without remotes"):
+            self.run_operator_plan(
+                allow=False, integration_ref="refs/heads/main"
+            )
+        self.assertTrue(self.workspace.exists())
+
+    def test_local_main_does_not_license_unmerged_source(self):
+        self.git("update-ref", "-d", "refs/remotes/origin/main")
+        report, _ = self.run_operator_plan(
+            allow=False, integration_ref="refs/heads/main"
+        )
+        self.assertEqual(report["eligible"], 0)
+        self.assertEqual(report["skipped"].get("head_not_in_main"), 1)
+
+    def test_installed_service_source_scans_three_git_roots(self):
+        unit = (Path(__file__).resolve().parents[2] /
+                "packaging/systemd/ordivon-runtime-lifecycle.service").read_text()
+        starts = [line for line in unit.splitlines()
+                  if line.startswith("ExecStart=")]
+        self.assertEqual(len(starts), 3)
+        self.assertIn("--source-repo /root/projects/ordivon ",
+                      starts[0])
+        self.assertIn("--source-repo /root/projects/ordivon-research-v2 ",
+                      starts[1])
+        self.assertIn("--source-repo /root/projects/ordivon-paper2 ",
+                      starts[2])
+        for line in starts:
+            self.assertIn("--policy-file /etc/ordivon/workspace-retention.json ", line)
+        for line in starts[1:]:
+            self.assertIn("--integration-ref refs/heads/main ", line)
+            self.assertIn("--min-age-hours 4 ", line)
+            self.assertNotIn("--force", line)
 
     def test_ignored_workspace_output_never_qualifies_for_deletion(self):
         # Git status --porcelain reports clean, but ordinary worktree remove
