@@ -66,6 +66,17 @@ automatically equivalent to a PASS on this SHA. Do not rerun unchanged
 TLA+ models/negative controls without affected inputs, and do not equate
 formal source proof with installed/physical effect evidence.
 
+For concrete GitHub Actions Check Run results use the already existing
+GitHub CLI and the bounded read-only native consumer first:
+
+    python3 tools/repo/evidence_validity.py --current-sha FULL_SHA --check-name root-verification
+
+Add --prior-sha FULL_ANCESTOR_SHA only when the current check is absent and
+changed-source impact would change the decision. The check-receipt decision
+can reuse a same-SHA check outcome without replay. It never asserts formal
+or installed proof reuse across Git commits. Do not create a second CI
+scheduler or run another verification Job after a same-SHA accepted receipt.
+
 In handoffs report REUSED_EXISTING_EVIDENCE separately from NEWLY_VERIFIED,
 UNKNOWN and FALSIFIED. Prioritize new business/consumer capabilities over
 repeated verification of unchanged claims.

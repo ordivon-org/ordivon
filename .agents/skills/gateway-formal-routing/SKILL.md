@@ -30,6 +30,13 @@ source conformance -> real consumer -> installed candidate proof.
 1. Bind the intended property, natural consumer, current Git SourceCut and
    previous evidence receipt including its verifier/toolchain and assumptions.
    Read exact PR head SHA and already completed native CI/Owner/Formal checks.
+   Before manually rerunning a completed GitHub check, query
+   tools/repo/evidence_validity.py with the exact --current-sha and
+   --check-name root-verification. The actual GitHub Check Run metadata
+   plus existing native Owner source impact are reusable evidence inputs.
+   existingCheckReceiptReusable is strictly same-SHA Check Run outcome;
+   proofReuseAdmissible remains false for broader formal/external claims.
+
    Do NOT execute a verifier merely because another Agent turn began.
 2. Use the existing tools/repo/convergence_plan.py changed-source Owner
    selection and check_architecture_docs.py --agent-impact to locate affected
