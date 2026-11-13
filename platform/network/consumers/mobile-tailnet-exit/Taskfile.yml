@@ -6,7 +6,8 @@ tasks:
     cmds:
       - bash -n consumers/mobile-tailnet-exit/run.sh
       - python3 -c 'import ast; ast.parse(open("consumers/mobile-tailnet-exit/ready.py").read())'
-      - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
+      - sing-box check -c consumers/mobile-tailnet-exit/config/underlay-derp-connect.json
+      - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-derp-underlay.service
 
   consumer:mobile-tailnet-exit:classify:
     desc: Classify exact Mobile source/install/systemd state as MATCH, DRIFT, or UNKNOWN before any physical effect
@@ -47,13 +48,17 @@ tasks:
         compare consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
         compare consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
         compare consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
+        compare consumers/mobile-tailnet-exit/config/underlay-derp-connect.json /etc/network-v2/mobile-tailnet-exit/underlay-derp-connect.json
+        compare consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-derp-underlay.service /etc/systemd/system/network-v2-mobile-tailnet-derp-underlay.service
         # A failed systemd query cannot be interpreted as an outdated unit.
-        unit_reload="$(systemctl show network-v2-mobile-tailnet-exit.service --property=NeedDaemonReload --value)" || unknown
-        case "$unit_reload" in
-          no) ;;
-          yes) drift=1 ;;
-          *) unknown ;;
-        esac
+        for unit in network-v2-mobile-tailnet-exit.service network-v2-mobile-tailnet-derp-underlay.service; do
+          unit_reload="$(systemctl show "$unit" --property=NeedDaemonReload --value)" || unknown
+          case "$unit_reload" in
+            no) ;;
+            yes) drift=1 ;;
+            *) unknown ;;
+          esac
+        done
         if test "$drift" -eq 0; then
           echo MATCH
         else
@@ -84,7 +89,7 @@ tasks:
           DRIFT) ;;
           *) echo 'mobile SourceCut invalid: refusing materialization' >&2; exit 2 ;;
         esac
-        install -d -m 0755 /usr/local/libexec/network-v2
+        install -d -m 0755 /usr/local/libexec/network-v2 /etc/network-v2/mobile-tailnet-exit
         atomic_install() {
           source="$1"
           destination="$2"
@@ -99,6 +104,8 @@ tasks:
         }
         atomic_install consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run 0755
         atomic_install consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready 0755
+        atomic_install consumers/mobile-tailnet-exit/config/underlay-derp-connect.json /etc/network-v2/mobile-tailnet-exit/underlay-derp-connect.json 0644
+        atomic_install consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-derp-underlay.service /etc/systemd/system/network-v2-mobile-tailnet-derp-underlay.service 0644
         atomic_install consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service 0644
         systemctl daemon-reload
         task --silent consumer:mobile-tailnet-exit:sourcecut
@@ -116,12 +123,14 @@ tasks:
         case "$verdict" in
           MATCH)
             # A running service is untouched by transient VPN/DNS errors.
+            systemctl start network-v2-mobile-tailnet-derp-underlay.service
             systemctl start network-v2-mobile-tailnet-exit.service
             ;;
           DRIFT)
             # The only restart admission is a witnessed source/install delta.
             task --silent consumer:mobile-tailnet-exit:materialize
             task --silent consumer:mobile-tailnet-exit:sourcecut
+            systemctl restart network-v2-mobile-tailnet-derp-underlay.service
             systemctl restart network-v2-mobile-tailnet-exit.service
             ;;
           *)
@@ -151,4 +160,8 @@ tasks:
       - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
       - cmp -s consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
       - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
+      - cmp -s consumers/mobile-tailnet-exit/config/underlay-derp-connect.json /etc/network-v2/mobile-tailnet-exit/underlay-derp-connect.json
+      - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-derp-underlay.service /etc/systemd/system/network-v2-mobile-tailnet-derp-underlay.service
+      - systemctl is-active --quiet network-v2-mobile-tailnet-derp-underlay.service
+      - ss -ltn '( sport = :19690 )' | grep -q '10.253.239.1:19690'
       - task: consumer:mobile-tailnet-exit:ready
