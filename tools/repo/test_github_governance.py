@@ -400,7 +400,7 @@ exit 0
         self.assertIn("sha256sum", function)
         self.assertIn("--max-time 55", function)
         cases = (
-            ("apt.postgresql.org", "download.postgresql.org"),
+            ("apt.postgresql.org", "apt-archive.postgresql.org"),
             ("github.com/osquery", "pkg.osquery.io"),
         )
         for primary, alternate in cases:
