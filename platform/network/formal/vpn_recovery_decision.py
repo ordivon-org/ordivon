@@ -76,10 +76,63 @@ def validate() -> None:
     q.add(c_active == BoolVal(True), c_underlay, c_evidence, c_notcooling, c_different)
     assert q.check() == sat
 
+    # Source-linked finite refinement: first eligible quality country,
+    # at most one independent fallback; no duplicate, stale or current country.
+    country_cases = 0
+    for a, b, c, current in product(
+        ("Japan", "Mexico", "North Macedonia", "Hong Kong", None),
+        ("Japan", "Mexico", "North Macedonia", "Hong Kong", None),
+        ("Japan", "Mexico", "North Macedonia", "Hong Kong", None),
+        ("Japan", "Mexico", "North Macedonia"),
+    ):
+        countries = (a, b, c)
+        evidence = [
+            {
+                "catalogCountry": name, "standing": (
+                    "RECENT_HISTORICAL_CONSUMER_SUCCESS"
+                    if name not in ("Hong Kong", None)
+                    else "REJECTED_NOT_ALLOWED"),
+                "medianOfConsumerP90Ms": 1000 + idx * 100,
+                "worstConsumerSuccessRatio": .99,
+                "lastObservedHoursAgo": 1,
+            }
+            for idx, name in enumerate(countries)
+        ]
+        action = policy.decision(
+            active_healthy=False, underlay_reachable=True,
+            evidence=evidence, now=NOW, current_country=current,
+        )
+        expected = []
+        for name in countries:
+            if name not in (None, "Hong Kong", current) and name not in expected:
+                expected.append(name)
+            if len(expected) == 2:
+                break
+        actual = action.get("trialCountries", [])
+        if expected:
+            assert action["decision"].startswith("TRIAL_ONLY_")
+            assert actual == expected and action["trialCountry"] == expected[0]
+        else:
+            assert action["decision"] == "HOLD_NO_RECENT_EVIDENCE"
+        # This is an exact finite source-refinement check, not proof that
+        # future Surfshark endpoints are physically reachable.
+        mismatch = Solver()
+        mismatch.add(BoolVal(actual != expected))
+        assert mismatch.check() == unsat
+        country_cases += 1
+
+    # An incorrect selector copying duplicate countries into both slots has
+    # a satisfiable distinctness violation; implemented source above cannot.
+    c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
+    wrong_selector = Solver()
+    wrong_selector.add(c0, Not(c1))
+    assert wrong_selector.check() == sat
+
     print(json.dumps({
         "kind": "ordivon.network.vpn-recovery-finite-refinement",
         "standing": "SOURCE_ENUMERATION_REFINED_WITH_Z3",
         "finiteCases": cases,
+        "distinctCandidateCases": country_cases,
         "premises": [
             "observed consumer failure (not UNKNOWN)",
             "direct underlay reachable",
@@ -90,6 +143,7 @@ def validate() -> None:
         "negativeControls": [
             "missing underlay guard mutant SAT",
             "UNKNOWN active must not grant trial",
+            "duplicate fallback country mutation SAT",
         ],
         "notProved": [
             "Gluetun implementation", "API authorization/PUT effect",

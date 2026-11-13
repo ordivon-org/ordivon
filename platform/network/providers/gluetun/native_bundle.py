@@ -43,7 +43,7 @@ def validate_source() -> dict[str, object]:
     clause = f"ExecStartPost=/usr/bin/python3 {EFFECT} --recover"
     if content.splitlines().count(clause) != 1:
         raise ValueError("Native reconcile does not invoke exactly one official-switch consumer")
-    if "TimeoutStartSec=3min" not in content:
+    if "TimeoutStartSec=4min" not in content:
         raise ValueError("Native one-shot timeout cannot cover bounded recovery trial")
     if content.count("ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service") != 1:
         raise ValueError("Original provider/adapter native start contract missing")

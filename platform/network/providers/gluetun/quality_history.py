@@ -190,10 +190,20 @@ def decision(
         -float(row.get("worstConsumerSuccessRatio", 0)),
         float(row.get("lastObservedHoursAgo", 1000000)),
     ))
+    # Only unique countries: multiple segments for one failed country must not
+    # consume all recovery attempts and starve a distinct successful country.
+    distinct = []
+    for row in candidates:
+        if row["catalogCountry"] not in {x["country"] for x in distinct}:
+            distinct.append({"country": row["catalogCountry"],
+                             "historicalHostname": row.get("catalogHostname")})
+        if len(distinct) == 2:
+            break
     return {
         "decision": "TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-        "trialCountry": candidates[0]["catalogCountry"],
-        "historicalCatalogHostname": candidates[0].get("catalogHostname"),
+        "trialCountry": distinct[0]["country"],
+        "trialCountries": [row["country"] for row in distinct],
+        "historicalCatalogHostname": distinct[0]["historicalHostname"],
         "certifiedHotStandbyCount": 0,
     }
 
@@ -217,12 +227,42 @@ def recent_failure_witness(now: datetime) -> bool | None:
     Missing or stale time-series evidence is UNKNOWN, not FALSE.
     """
     start = now - timedelta(minutes=7)
-    rows = parse_matrix(http_query("probe_success", start, now),
-                        "probe_success", start, now)
-    samples = [rows.get(job, [])[-3:] for job in JOBS]
-    if any(len(a) < 3 for a in samples):
+    rows = http_query("probe_success", start, now)
+    by_job: dict[str, list[tuple[float, int]]] = {}
+    for row in rows:
+        job = row.get("metric", {}).get("job", "")
+        if job not in JOBS:
+            continue
+        # More than one distinct instance for a single lane means our
+        # source identity is ambiguous; do not arbitrarily pick a series.
+        if job in by_job:
+            return None
+        samples: list[tuple[float, int]] = []
+        for ts, raw in row.get("values", []):
+            try:
+                stamp = float(ts)
+                val = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if val in (0.0, 1.0) and start.timestamp() <= stamp <= now.timestamp():
+                samples.append((stamp, int(val)))
+        by_job[job] = sorted(samples)
+    if any(len(by_job.get(job, [])) < 3 for job in JOBS):
         return None
-    return all(all(v == 0 for v in samples_for_job) for samples_for_job in samples)
+    windows = [by_job[job][-3:] for job in JOBS]
+    for values in windows:
+        times = [row[0] for row in values]
+        # Monitor silence must never become a fresh VPN failure; require
+        # three distinct scrape evaluations and a recent last measurement.
+        if (len(set(times)) != 3 or
+            now.timestamp() - times[-1] > 150 or
+            now.timestamp() - times[0] > 300):
+            return None
+    # All lanes must refer to a comparable observation window; accepting
+    # disjoint epochs would fabricate correlated failure.
+    if max(x[-1][0] for x in windows) - min(x[-1][0] for x in windows) > 90:
+        return None
+    return all(all(v == 0 for _, v in values) for values in windows)
 
 
 def current_catalog_country(catalog: str) -> str | None:
@@ -260,26 +300,37 @@ def observe(*, hours: int) -> dict[str, object]:
         log, endpoint_countries(catalog), now, endpoint_hostnames(catalog),
     ) if s.country in allowed and s.minutes >= 18][-8:]
     results: list[dict[str, object]] = []
-    for segment in relevant:
-        start = segment.start + WARMUP
-        end = segment.end - timedelta(minutes=1)
-        success = parse_matrix(http_query("probe_success", start, end), "probe_success", start, end)
-        duration = parse_matrix(http_query("probe_duration_seconds", start, end), "probe_duration_seconds", start, end)
-        results.append(qualify(segment, success, duration, now, allowed))
+    if relevant:
+        # Query the monitoring service just twice, rather than 2*8
+        # individual range requests when several historical nodes exist.
+        # This keeps the outage-time decision path bounded under latency.
+        earliest = min(segment.start + WARMUP for segment in relevant)
+        latest = max(segment.end - timedelta(minutes=1) for segment in relevant)
+        successes = http_query("probe_success", earliest, latest)
+        durations = http_query("probe_duration_seconds", earliest, latest)
+        for segment in relevant:
+            start = segment.start + WARMUP
+            end = segment.end - timedelta(minutes=1)
+            success = parse_matrix(successes, "probe_success", start, end)
+            duration = parse_matrix(durations, "probe_duration_seconds", start, end)
+            results.append(qualify(segment, success, duration, now, allowed))
     # Live evidence is distinct from the historical trend. Do not infer
     # active failure from a missing metric or merely an older journal session.
     import observe_active
-    try:
-        live = observe_active.observe()
-    except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
-        live = {"standing": "UNKNOWN_CONSUMER_PROBE_INCOMPLETE"}
+    failed_sample = recent_failure_witness(now)
+    if failed_sample is True:
+        # When the 3-lane fresh failure is already proved, 3 more sequential
+        # external HTTPS timeouts cannot add useful evidence to triage.
+        # The switcher independently rechecks consumers at the action edge.
+        live = {"standing": "OBSERVED_CORRELATED_CONSUMER_FAILURE"}
+        active_ok: bool | None = False
+    else:
+        try:
+            live = observe_active.observe()
+        except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
+            live = {"standing": "UNKNOWN_CONSUMER_PROBE_INCOMPLETE"}
+        active_ok = True if live.get("standing") == "QUALIFIED_ACTIVE_SAMPLE" else None
     observed = live.get("standing")
-    active_ok = True if observed == "QUALIFIED_ACTIVE_SAMPLE" else None
-    failed_sample: bool | None = None
-    if active_ok is not True:
-        failed_sample = recent_failure_witness(now)
-        if failed_sample is True:
-            active_ok = False
     catalog_identity = live.get("currentCatalogCountry")
     if catalog_identity is None:
         try:
@@ -305,8 +356,9 @@ def observe(*, hours: int) -> dict[str, object]:
         evidence=results, now=now,
         current_country=catalog_identity,
     )
-    if active_ok is False and catalog_identity is None:
-        plan = {"decision": "HOLD_ACTIVE_ENDPOINT_UNKNOWN", "trialCountry": None}
+    # A lost kernel WG endpoint is an expected symptom of a genuine outage.
+    # Safe action still requires authorized native API readback of the prior
+    # settings, a fresh three-lane failure, and independent healthy underlay.
     return {
         "kind": "ordivon.network.gluetun-country-history",
         "observationUtc": now.isoformat(),

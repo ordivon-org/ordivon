@@ -18,4 +18,4 @@ ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service network-v2-g
 # consumers exit early without any Provider GET/PUT or WAN probe.
 ExecStartPost=/usr/bin/python3 /usr/local/libexec/network-v2/gluetun-native/native_switch.py --recover
 # Explicitly includes the maximum guarded native API trial and rollback.
-TimeoutStartSec=3min
+TimeoutStartSec=4min

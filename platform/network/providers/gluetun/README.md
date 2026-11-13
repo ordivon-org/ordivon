@@ -59,9 +59,15 @@ Gluetun control settings GET in the live Gluetun network namespace. The
 pinned Gluetun v3.41.3 accepts an authenticated HTTP PUT to
 `/v1/vpn/settings` with exactly
 `{"provider":{"server_selection":{"countries":["Japan"]}}}`.
-The production settings GET currently returns HTTP 401, and
-`/gluetun/auth/config.toml` is absent: no automated switch is authorized
-or deployed just by merging this source. **Do not** substitute
+Production update (2026-11-14): the protected API role was installed
+root-only (0600), loaded by the **existing** Gluetun provider, and the
+authenticated `GET /v1/vpn/settings` now returns HTTP 200; an unauthenticated
+GET still returns HTTP 401. Native source parses Gluetun's lowercase country
+names and returns canonical allowed-country identities. The official PUT
+performed a real MY→North Macedonia→MY round trip: consumer-qualified
+end-to-end 6.35s out / 6.50s back, same Gluetun PID, no extra VPN session.
+**These are real roundtrip trial receipts, not an outage TTR guarantee.**
+Do not substitute
 `HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE={"auth":"none"}`.
 
 The native adapter expects a root-only pre-installed TOML role named
@@ -81,10 +87,11 @@ or without authenticated API access. A permitted historical country is
 only a **trial**, not a current certified standby. If its consumer/TLS tests
 do not pass after a bounded period, native settings selection is returned
 to its previous source; this cannot resurrect original TCP sessions or
-guarantee the former exact Surfshark endpoint IP. Production automatic
-triggering should be attached to the EXISTING two-minute systemd reconcile
-only after end-to-end authorization and negative fault trials. The source
-module alone is not active automation.
+guarantee the former exact Surfshark endpoint IP. Production automatic triggering **was installed on the existing two-minute
+systemd reconciler** after PR #2181 merged (2026-11-14), and both a manual
+systemd start and repeated automatic healthy no-op runs were observed.
+This is activated native logic; real unattended failure-triggered failover
+time is still UNKNOWN.
 
 ## Active bounded recovery consumer on existing systemd timer
 
@@ -101,8 +108,8 @@ Codex and PyPI. When all three consumers are healthy or the observations
 are UNKNOWN, it exits 0 immediately without costly whole-history scans,
 extra HTTPS requests or any API GET/PUT. Only a fresh correlated failure
 enters the bounded live quality/history/underlay and official authenticated
-Gluetun API trial. The timer's `TimeoutStartSec=3min` accommodates the
-native bounded API trial and selection rollback.
+Gluetun API trial. The timer's `TimeoutStartSec=4min` accommodates the
+two distinct bounded API trials and selection rollback.
 
 `task provider:gluetun:native-bundle:validate` checks source only;
 `...:install` checks source-vs-loaded Gluetun configuration and an actually
@@ -140,10 +147,36 @@ VPN failure.
   A country trial succeeding for Claude/Codex/PyPI does NOT imply that
   Finance or mobile device traffic can use it.
 - **Recovery trigger**: existing Gluetun health-restart remains authoritative
-  for tunnel recovery. This module's `native-recover` is a source-prepared
-  bounded one-shot fallback only; the existing two-minute provider systemd
-  timer is not yet wired to it. Wiring requires authorized API settings,
-  consumer fault injection and safe rollback/restart in a maintenance window.
+  for tunnel recovery. The existing two-minute provider systemd timer **is
+  now wired to** `native-recover`; its repeated active healthy results are
+  `HOLD_CONSUMER_HEALTHY_OR_PARTIAL` with no effect. Failover uses at most
+  two distinct recently successful country candidates, only after the
+  existing real three-lane sample witness (three fresh, timestamp-aligned
+  Blackbox results per lane) plus healthy independent underlay. Neither
+  temporary monitor silence nor a missing kernel endpoint alone authorizes
+  or blocks the proven failure action. Official native API readback verifies
+  attempted changes and selection restoration. No claim of hot standby.
+
+### Recovery decision and partial failures
+
+The production fast gate consumes **existing Prometheus data**; it checks
+unique Claude, Codex and PyPI series, three distinct aligned evaluation
+timestamps, and a recent last sample. A monitored endpoint may return
+HTTP 401/404 successfully at the transport layer; these are deliberately
+not a provider failure. Monitor silence or conflicting series => UNKNOWN
+and no VPN mutation. Only sustained correlated 3-lane failures proceed.
+
+The native one-shot ranks countries using the recent successful consumer
+sessions and attempts **up to two distinct permitted countries** in order
+within one bounded recovery; repeated sessions of the same country are
+deduplicated, so one known-bad first preference does not starve the next
+candidate. It does not claim any candidate currently alive. Each candidate
+must pass actual new kernel endpoint and HTTPS-origin/TLS checks; failure
+moves to the second candidate, and exhaustion attempts the prior native
+selection with authenticated GET readback. Restoring a selection filter
+does **not** imply restored sessions or successful consumer traffic.
+Cooldown remains ten minutes between auto-triggered recovery runs.
+Never select Hong Kong.
 
 ## Historical consumer quality — native evidence, never fictitious hot spares
 
