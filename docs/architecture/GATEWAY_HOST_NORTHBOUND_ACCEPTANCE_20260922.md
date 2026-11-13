@@ -1,5 +1,8 @@
 # Gateway → Host Northbound Acceptance — 2026-09-22
 
+> **Historical source-qualified acceptance (2026-09-22), not the current MCP surface.** Its 15-Tool continuity/collaboration design predates the PostgreSQL Host Work/Space/Topic 38-Tool Gateway source and the current Core candidate. Use a current installed Gateway MCP tools/list and GATEWAY_PUBLIC_CORE_CONSUMERS_R1.md for 2026-11-13 decisions.
+
+
 Status: **SERVER DEPLOYED / LIVE OWNER PATH ACCEPTED / CLIENT CATALOG REFRESH PENDING**
 
 ## Purpose
