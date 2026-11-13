@@ -135,6 +135,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
     }
     let auth = pg_auth::PgAuth::from_env(&token)?;
+    let issuer_schema = pg_auth::optional_env("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
+    let harness_bearer_file = pg_auth::optional_env("ORDIVON_PG_HARNESS_TOKEN_FILE")?;
+    let harness_principal = pg_auth::optional_env("ORDIVON_PG_HARNESS_PRINCIPAL")?;
+    // The dedicated profile must be complete. Bare issuer_schema retains the
+    // already-tested, isolated legacy all-Job mode; it must not be installed
+    // on a shared endpoint that also accepts ordinary execution requests.
+    let isolated_harness = match (harness_bearer_file, harness_principal) {
+        (None, None) => None,
+        (Some(file), Some(principal)) => {
+            if principal == required("ORDIVON_PG_PRINCIPAL")?
+                || principal.is_empty()
+                || principal.trim() != principal
+                || principal.len() > 256
+            {
+                return Err("Harness principal must be distinct, nonempty and trimmed".into());
+            }
+            let schema = issuer_schema
+                .clone()
+                .ok_or("dedicated Harness ingress requires ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
+            let dedicated = auth.dedicated_harness_from_file(std::path::Path::new(&file))?;
+            Some((dedicated, principal, schema))
+        }
+        _ => {
+            return Err(
+                "dedicated Harness token file and principal must be configured together".into(),
+            )
+        }
+    };
     // The PG native binary must consume the same two carrier budgets as the
     // legacy entrypoint. Never mistake a legacy MCP compile for PG coverage.
     let headroom_pair = |path_key: &str, minimum_key: &str| {
@@ -162,9 +190,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
         source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,
-        harness_issuer_schema: std::env::var("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")
-            .ok()
-            .filter(|s| !s.is_empty()),
+        // A dedicated authenticated Harness route uses its own cloned
+        // PgRuntime configuration (same source/database/Runner, one scheduler).
+        // Normal /mcp Job admissions retain their original execution contract.
+        harness_issuer_schema: if isolated_harness.is_none() {
+            issuer_schema.clone()
+        } else {
+            None
+        },
         workspace_headroom,
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
@@ -179,7 +212,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             max_output_bytes: 4 * 1024 * 1024,
         },
     };
+    let issuer_runtime_config = isolated_harness
+        .as_ref()
+        .map(|(_, _, schema)| PgRuntimeConfig {
+            harness_issuer_schema: Some(schema.clone()),
+            ..config.clone()
+        });
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;
+    // The issuer view is a second IN-PROCESS port into the same PG and
+    // shared native Runner, never a second scheduler, registry or service.
+    let harness_runtime = if let Some(config) = issuer_runtime_config {
+        Some(tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??)
+    } else {
+        None
+    };
     // Native administration runs independently of ordinary execution admission.
     // The CLI can repair exact committed cancellations even when all slots are held.
     let arguments: Vec<String> = std::env::args().skip(1).collect();
@@ -219,6 +265,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         release,
     );
+    let dedicated_server = match (harness_runtime, isolated_harness.as_ref()) {
+        (Some(runtime), Some((_, principal, _))) => Some(PgRuntimeServer::new(
+            runtime,
+            ExecutionContext {
+                principal: principal.clone(),
+                global_limit: 0,
+            },
+        )),
+        (None, None) => None,
+        _ => return Err("incomplete Harness Runtime source/ingress binding".into()),
+    };
     let mut transport = StreamableHttpServerConfig::default();
     if let Some(hosts) = pg_auth::optional_env("ORDIVON_PG_ALLOWED_HOSTS_JSON")? {
         transport
@@ -227,14 +284,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let configured_tool_count = server.configured_tool_count();
     let service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
-        StreamableHttpService::new(move || Ok(server.clone()), Default::default(), transport);
-    let app = axum::Router::new()
-        .nest_service("/mcp", service)
+        StreamableHttpService::new(
+            move || Ok(server.clone()),
+            Default::default(),
+            transport.clone(),
+        );
+    let mut app = axum::Router::new().nest_service("/mcp", service);
+    if let Some(harness_server) = dedicated_server {
+        let harness_service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
+            StreamableHttpService::new(
+                move || Ok(harness_server.clone()),
+                Default::default(),
+                transport.clone(),
+            );
+        app = app.nest_service("/harness/mcp", harness_service);
+    }
+    let harness_auth = isolated_harness.map(|(auth, _, _)| auth);
+    let app = app
         .layer(axum::middleware::from_fn(
             move |request: axum::extract::Request, next: axum::middleware::Next| {
                 let auth = auth.clone();
+                let harness_auth = harness_auth.clone();
                 async move {
-                    if auth.authorized(request.headers()).await {
+                    let path = request.uri().path();
+                    let protected = path == "/harness/mcp" || path.starts_with("/harness/mcp/");
+                    let admitted = if protected {
+                        match harness_auth {
+                            Some(harness) => harness.authorized(request.headers()).await,
+                            None => false,
+                        }
+                    } else {
+                        auth.authorized(request.headers()).await
+                    };
+                    if admitted {
                         next.run(request).await
                     } else {
                         axum::response::Response::builder()

@@ -166,7 +166,10 @@ class ExecutionObservationMethods:
         return ExecutionObservation(
             operation_ref=operation_ref,
             capability=(
-                "execution.windows" if owner_id == "runtime.windows" else "execution.linux"
+                {
+                    "runtime.windows": "execution.windows",
+                    "runtime.harness": "execution.harness",
+                }.get(owner_id, "execution.linux")
             ),
             owner_id=owner_id,
             native_id=observed_native_id,

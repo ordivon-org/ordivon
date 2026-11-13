@@ -85,6 +85,28 @@ impl PgAuth {
         })
     }
 
+    /// A separate, operator-supplied secret for a Harness-only HTTP ingress.
+    /// No remote/Access bearer may impersonate this principal. Reuse the
+    /// existing private-token-file checks; no new identity database.
+    pub(crate) fn dedicated_harness_from_file(
+        &self,
+        path: &Path,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let token = read_remote_token(path)?;
+        let authorization = format!("Bearer {token}");
+        if constant_time_eq(authorization.as_bytes(), self.local.as_bytes())
+            || self
+                .remote
+                .as_deref()
+                .is_some_and(|value| constant_time_eq(authorization.as_bytes(), value.as_bytes()))
+        {
+            return Err(
+                "Harness ingress bearer must differ from all regular Runtime bearers".into(),
+            );
+        }
+        Self::new(&token, None, None)
+    }
+
     pub(crate) async fn authorized(&self, headers: &HeaderMap) -> bool {
         let supplied = headers
             .get(header::AUTHORIZATION)
@@ -151,6 +173,34 @@ mod tests {
             "forged.header.signature".parse().unwrap(),
         );
         assert!(!auth.authorized(&headers).await);
+    }
+    #[tokio::test]
+    async fn dedicated_issuer_bearer_never_authorizes_regular_or_remote_tokens() {
+        let local = "l".repeat(32);
+        let remote = "r".repeat(32);
+        let harness = "h".repeat(32);
+        let ordinary = PgAuth::new(&local, Some(&remote), None).unwrap();
+        let path = std::env::temp_dir().join(format!("pg-harness-route-{}", uuid::Uuid::now_v7()));
+        fs::write(&path, &harness).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+        let dedicated = ordinary.dedicated_harness_from_file(&path).unwrap();
+
+        for (token, normal, restricted) in [
+            (&local, true, false),
+            (&remote, true, false),
+            (&harness, false, true),
+        ] {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::AUTHORIZATION,
+                format!("Bearer {token}").parse().unwrap(),
+            );
+            assert_eq!(ordinary.authorized(&headers).await, normal);
+            assert_eq!(dedicated.authorized(&headers).await, restricted);
+        }
+        fs::write(&path, &local).unwrap();
+        assert!(ordinary.dedicated_harness_from_file(&path).is_err());
+        fs::remove_file(&path).unwrap();
     }
     #[test]
     fn shared_local_and_remote_secret_is_rejected() {

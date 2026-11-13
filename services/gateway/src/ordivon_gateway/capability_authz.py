@@ -274,7 +274,7 @@ AuthorizationTargetResolver = Callable[
     CapabilityAuthorizationTarget | HostAccountabilityAuthorizationTarget | None,
 ]
 
-_RUNTIME_ARTIFACT_OWNERS = frozenset({"runtime.linux", "runtime.windows"})
+_RUNTIME_ARTIFACT_OWNERS = frozenset({"runtime.linux", "runtime.windows", "runtime.harness"})
 
 
 def _base64url_text(value: str) -> str:

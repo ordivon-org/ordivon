@@ -24,6 +24,6 @@ def parse_execution_ref(value: str) -> tuple[str, str]:
         owner_id, native_id = rest.rsplit(":", 1)
     except ValueError as exc:
         raise GatewayError("invalid execution operationRef") from exc
-    if owner_id not in {"runtime.linux", "runtime.windows"} or not native_id:
+    if owner_id not in {"runtime.linux", "runtime.windows", "runtime.harness"} or not native_id:
         raise GatewayError("unsupported execution operationRef owner")
     return owner_id, native_id

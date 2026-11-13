@@ -151,6 +151,9 @@ impl PgRuntimeServer {
         let execution=self.execution.clone();
         let release=self.release.clone();
         let annotation_runtime=runtime.clone();
+        // A Job ID alone must not cause a schema-invalid response. Reuse the
+        // exact qualified MCP output-schema tool set from pg_output_contract.
+        let annotate_job_scheduling = pg_scheduling_success_definition(&name).is_some();
         let result=tokio::task::spawn_blocking(move || -> Result<serde_json::Value, ToolError> {
             fn parse<T: serde::de::DeserializeOwned>(v: serde_json::Value) -> Result<T,ToolError> {
                 serde_json::from_value(v).map_err(|e|ToolError::invalid(e.to_string(),"arguments"))
@@ -320,10 +323,14 @@ impl PgRuntimeServer {
         }).await.map_err(|e|McpError::internal_error(e.to_string(),None))?;
         match result {
             Ok(value) => {
-                let runtime=annotation_runtime;
-                let value=tokio::task::spawn_blocking(move||runtime.annotate_scheduling(value)).await
-                    .map_err(|e|McpError::internal_error(e.to_string(),None))?
-                    .map_err(|e|McpError::internal_error(e.to_string(),None))?;
+                let value=if annotate_job_scheduling {
+                    let runtime=annotation_runtime;
+                    tokio::task::spawn_blocking(move||runtime.annotate_scheduling(value)).await
+                        .map_err(|e|McpError::internal_error(e.to_string(),None))?
+                        .map_err(|e|McpError::internal_error(e.to_string(),None))?
+                } else {
+                    value
+                };
                 Ok(CallToolResult::structured(value))
             },
             Err(e) => Ok(CallToolResult::structured_error(json!({"error":e}))),
