@@ -138,7 +138,8 @@ tasks:
             | if ($provider.timestamp | type) != "number"
                   or ($candidates | length) == 0
                   or ([$selected[].country] | unique | length) != ($selection.selectedCountries | length)
-              then error("invalid catalog or selected Surfshark country has no eligible WireGuard record")
+                  or (([$candidates[].country] | unique | sort) != ($selection.selectedCountries | sort))
+              then error("native catalog must match all nonexcluded source-selected Surfshark countries")
               else
                 "standing=CATALOG_ONLY_NOT_HEALTH",
                 "catalog_timestamp_utc=\($provider.timestamp | todateiso8601)",
