@@ -159,7 +159,9 @@ def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
     ]
 
 
-def test_recover_benign_policy_hold_is_process_success_but_auth_unknown_is_failure(monkeypatch,capsys):
+def test_recover_benign_policy_hold_is_process_success_but_auth_unknown_is_failure(monkeypatch,capsys,tmp_path):
+    # Non-root GitHub CI must never open the production /run lock path.
+    monkeypatch.setattr(switch,"LOCK",tmp_path/"native-recover.lock")
     monkeypatch.setattr(sys,"argv",["native_switch.py","--recover"])
     monkeypatch.setattr(switch,"guarded_recover",
       lambda:{"standing":"HOLD_WORKING_ACTIVE","effectAttempted":False})
