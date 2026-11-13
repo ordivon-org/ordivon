@@ -47,23 +47,28 @@ def validate_contract(source_bytes: bytes, installed_bytes: bytes) -> dict[str, 
         {"type": "direct", "tag": "public-direct"},
     ]:
         raise ValueError("OUTBOUND_CONTRACT_CHANGED")
-    if cfg["route"]["rules"][-1] != {"action": "reject"}:
-        raise ValueError("TERMINAL_DENY_MISSING")
+    route = cfg.get("route")
+    if not isinstance(route, dict) or route.get("final") != "provider-carrier":
+        raise ValueError("OPEN_PROVIDER_DEFAULT_MISSING")
     ports = {x["tag"]: int(x["listen_port"]) for x in cfg["inbounds"]
              if x.get("listen") == "127.0.0.1"}
-    rules = cfg["route"]["rules"][:-1]
-    for _id, tag, host, dstport, _path, route in SAMPLES:
-        candidates = [
-            x for x in rules if x.get("inbound") == [tag]
-            and x.get("action") == "route"
-        ]
-        if (len(candidates) != 1 or candidates[0].get("domain") != host
-                or candidates[0].get("port") != dstport
-                or candidates[0].get("outbound") != route
-                or tag not in ports or not 1 <= ports[tag] <= 65535):
-            raise ValueError("SAMPLE_ROUTE_NOT_INSTALLED")
-    if len(ports) != 9 or len(rules) != 9:
+    if len(ports) != 9 or len(cfg["inbounds"]) != 9:
         raise ValueError("NINE_FINANCE_LANES_REQUIRED")
+    expected_direct = {"finance-us-treasury-public", "finance-fred-public-csv"}
+    direct = route.get("rules")
+    if not isinstance(direct, list) or len(direct) != 2 or (
+        {tuple(x.get("inbound", [])) for x in direct}
+        != {(tag,) for tag in expected_direct}
+    ) or any(x.get("outbound") != "public-direct"
+             or x.get("action") != "route"
+             or set(x) != {"inbound", "action", "outbound"} for x in direct):
+        raise ValueError("SAMPLE_ROUTE_NOT_INSTALLED")
+    # Business sample endpoints stay independent of open networking.
+    for _id, tag, host, dstport, _path, expected in SAMPLES:
+        actual = ("public-direct" if tag in expected_direct else "provider-carrier")
+        if (tag not in ports or not 1 <= ports[tag] <= 65535
+                or dstport != 443 or actual != expected):
+            raise ValueError("SAMPLE_ROUTE_NOT_INSTALLED")
     return ports
 
 

@@ -137,6 +137,8 @@ class GatewayService:
         context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeout_ms: int | None = None,
+        stdout_limit_bytes: int | None = None,
+        stderr_limit_bytes: int | None = None,
         authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
         return await self._execution.execution_submit(
@@ -149,6 +151,8 @@ class GatewayService:
             context=context,
             env=env,
             timeout_ms=timeout_ms,
+            stdout_limit_bytes=stdout_limit_bytes,
+            stderr_limit_bytes=stderr_limit_bytes,
             authority_references=authority_references,
         )
 

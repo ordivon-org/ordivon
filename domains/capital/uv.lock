@@ -134,6 +134,7 @@ research = [
 ]
 test = [
     { name = "numpy" },
+    { name = "pandas" },
     { name = "pyarrow" },
     { name = "pytest" },
     { name = "ruff" },
@@ -161,6 +162,7 @@ research = [
 ]
 test = [
     { name = "numpy", specifier = "==2.5.3" },
+    { name = "pandas", specifier = "==3.1.1" },
     { name = "pyarrow", specifier = "==26.0.0" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.17.2" },

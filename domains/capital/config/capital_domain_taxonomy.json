@@ -46,6 +46,7 @@
       "binance_usdm_provider.py",
       "execution_feasibility.py",
       "paper_fill_calendar.py",
+      "nautilus_paper_bridge.py",
       "execution_reconciliation.py",
       "fix44_projection.py",
       "okx_readonly_client.py",

@@ -18,6 +18,7 @@ from ..protocol import (
     HarnessToolStepIntent,
     HarnessToolStepReceipt,
     HarnessToolStepStatus,
+    tool_receipt_successor_allowed,
 )
 from ..run_state import HarnessRunState, state_from_dict
 from ..working_view import (
@@ -2134,8 +2135,28 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         )
         return active.state
 
-    def prepare_tool_step(self, intent: HarnessToolStepIntent) -> StoredHarnessRunSnapshot:
+    def prepare_tool_step(
+        self,
+        intent: HarnessToolStepIntent,
+        *,
+        original_request: dict[str, JsonValue] | None = None,
+    ) -> StoredHarnessRunSnapshot:
         require_tool_intent_binding(intent, self.harness_run_id, self.binding)
+        physical_execution_digest = None
+        if original_request is not None:
+            validate_json_value(original_request)
+            execution = original_request.get("execution")
+            if (
+                intent.runtime_operation != "workspace.exec"
+                or canonical_digest(original_request) != intent.runtime_arguments_digest
+                or original_request.get("clientRequestId") != intent.client_request_id
+                or not isinstance(execution, dict)
+            ):
+                raise ValueError("Harness original frozen physical request differs from Intent")
+            # Privacy first: never persist raw args/env/tool input. This
+            # digest commits the FULL exact original physical execution
+            # projection already bound by the canonical Tool Intent.
+            physical_execution_digest = canonical_digest(execution)
         state = self._require_state()
         observed_revision = self.store.load_run(self.harness_run_id).revision
         try:
@@ -2191,6 +2212,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 "previousReceiptObjectDigest": None,
                 "observationObjectDigest": None,
             }
+            if physical_execution_digest is not None:
+                data["physicalExecutionDigest"] = physical_execution_digest
             self._append_event(
                 lease=lease,
                 event_kind="harness.tool-step-prepared",
@@ -2248,8 +2271,11 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             expected_previous = None if previous is None else previous.digest
             if receipt.previous_receipt_digest != expected_previous:
                 raise ValueError("Tool Step Receipt predecessor differs from current history")
-            if previous is not None and previous.terminal:
-                raise ValueError("terminal Tool Step Receipt cannot be superseded")
+            if previous is not None and not tool_receipt_successor_allowed(previous, receipt):
+                raise ValueError(
+                    "terminal Tool Step Receipt cannot be superseded without "
+                    "source-bound UNKNOWN Owner reconciliation"
+                )
             receipt_object = self.store.put_object(
                 receipt.to_dict(), kind="harness-tool-step-receipt"
             )
@@ -2426,7 +2452,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             if (
                 previous_receipt.digest != receipt.previous_receipt_digest
                 or previous_receipt.intent_digest != intent.digest
-                or previous_receipt.terminal
+                or not tool_receipt_successor_allowed(previous_receipt, receipt)
             ):
                 raise ValueError("Tool Step Receipt predecessor chain is invalid")
         return StoredHarnessToolStep(

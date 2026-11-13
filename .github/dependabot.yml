@@ -28,6 +28,7 @@ updates:
   - package-ecosystem: cargo
     directories:
       - "/domains/game/examples/orbit-collector"
+      - "/services/harness"
       - "/services/runtime"
       - "/services/host/rust"
     schedule:

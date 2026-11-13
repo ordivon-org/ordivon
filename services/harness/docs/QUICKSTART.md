@@ -336,3 +336,19 @@ Harness does not maintain a generic `recover` command or write a second Recovery
 ## Python API
 
 Use `ordivon_harness.api` for applications. Advanced persistence/continuity composition imports the explicit caller-neutral owner modules directly; the duplicate `ordivon_harness.core` aggregation facade is retired, and the current package does not ship a Host-specific external adapter.
+
+### Durable Tool physical handoff — source boundary
+
+Harness persists the exact original Runtime request digest in the Tool
+Intent before dispatch. For workspace.exec, it appends one V2 DispatchFence
+reference only after the Run Store has committed the prepared Event.
+Immediately before calling the existing Runtime/Gateway adapter, the
+_require_exact_owner_effect_handoff guard checks the original request SHA
+against the durable Intent and checks that outgoing request differs
+ONLY by that exact Fence reference. This guards post-Journal lowering,
+adapter and reference drift. It does NOT grant execution, renew an expired
+Fence, replace Runtime's principal-scoped (principal, clientRequestId)
+durable idempotency key, imply that job.observe means physical success,
+or permit blind retry after UNKNOWN. The Rust migration's read-only
+matching consumer is b-loop-probe::owner_effect_handoff and consumes
+the same Python/PG18 fixture. Physical Owner admission remains separate.

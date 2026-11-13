@@ -131,6 +131,34 @@ allowed_fragment = "platform/security/contracts/agent-request-verifier-v1"
 kind = "TEST_ONLY_ENVIRONMENT_BINDING"
 contract_ref = "platform/security/contracts/agent-request-verifier-v1/README.md"
 
+# An actual end-to-end Gateway acceptance test exercises the public
+# Harness adapter through the real Gateway SDK and native Runtime PG.
+# This is test-only: no production dependency, alternative Store, or
+# delegation of physical authority to the Gateway or Harness.
+[[seams]]
+from_owner = "gateway"
+to_owner = "harness"
+source_glob = "services/gateway/tests/test_pg_real_runtime_owner.py"
+allowed_fragment = "ordivon_harness.agent_plugin"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/rust-migration/consumer-acceptance/real_native_pg_temporal_boundary.md"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "harness"
+source_glob = "services/gateway/tests/test_pg_real_runtime_owner.py"
+allowed_fragment = "ordivon_harness.plugin_gateway_effect"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/rust-migration/consumer-acceptance/real_native_pg_temporal_boundary.md"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "harness"
+source_glob = "services/gateway/tests/test_pg_real_runtime_owner.py"
+allowed_fragment = "ordivon_harness.runtime_port"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/rust-migration/consumer-acceptance/real_native_pg_temporal_boundary.md"
+
 # Harness consumes only Runtime's SHA-verified public upstream checker.
 [[seams]]
 from_owner = "harness"

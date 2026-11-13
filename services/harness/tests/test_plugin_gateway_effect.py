@@ -546,6 +546,8 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert submit["workspaceId"] == "ws-plugin-h2"
         assert submit["executable"] == "/usr/bin/rg"
         assert submit["timeoutMs"] == 5_000  # explicitly admitted value is unchanged
+        assert submit["stdoutLimitBytes"] == 262_144
+        assert submit["stderrLimitBytes"] == 262_144
         assert submit["requestId"].startswith("request:harness-gateway:")
 
 
@@ -578,6 +580,75 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, 
         assert result.loop_result.stop_code.value == "runtime_unknown"
         names = [name for name, _ in client.calls]
         assert names == ["execution.submit", "execution.resolve"]
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    (
+        "executable",
+        "arguments",
+        "client_request_id",
+        "omit_run_contract_grant",
+        "wrong_fence_digest",
+        "duplicate_fence",
+    ),
+)
+def test_durable_effect_handoff_rejects_post_intent_mutation_before_owner_call(
+    tamper: str, pg_schema, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Real PG18 Intent/Fence must bind exact physical request, not merely its ID.
+
+    This is a malicious/buggy gateway adapter's handoff mutation, not a model
+    permission test: the frozen physical request has already been journaled.
+    No execution.submit may occur if its bytes or the bound fence drift.
+    """
+    from ordivon_harness.plugin_gateway_effect import PluginGatewayExecutionBridge
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    original = PluginGatewayExecutionBridge._with_dispatch_fence
+
+    def mutate_after_preparation(request, fence):
+        result = original(request, fence)
+        execution = dict(result["execution"])
+        refs = [dict(value) for value in execution["foreignReferences"]]
+        if tamper == "executable":
+            execution["executable"] = "/usr/bin/false"
+        elif tamper == "arguments":
+            execution["args"] = ["forged", "."]
+        elif tamper == "client_request_id":
+            result["clientRequestId"] = "request:forged-after-prepare"
+        elif tamper == "omit_run_contract_grant":
+            refs = [value for value in refs if value.get("type") != "tool_grant"]
+        elif tamper == "wrong_fence_digest":
+            refs[-1]["digest"] = canonical_digest({"forged": "fence"})
+        elif tamper == "duplicate_fence":
+            refs.append(dict(refs[-1]))
+        execution["foreignReferences"] = refs
+        result["execution"] = execution
+        return result
+
+    monkeypatch.setattr(
+        PluginGatewayExecutionBridge, "_with_dispatch_fence", staticmethod(mutate_after_preparation)
+    )
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    try:
+        run.run(())
+    except ToolBridgeError:
+        pass
+    assert not [name for name, _ in client.calls if name == "execution.submit"], (
+        f"{tamper}: a request different from committed Tool Intent reached its Owner"
+    )
 
 
 def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_schema) -> None:
@@ -651,6 +722,86 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_sc
         assert result.loop_result.stop_code.value == "runtime_unknown"
         names = [name for name, _ in client.calls]
         assert names == ["execution.submit", "execution.resolve"]
+
+
+@pytest.mark.parametrize("field", ("stdoutLimitBytes", "stderrLimitBytes"))
+@pytest.mark.parametrize("invalid", (True, 0, -1, 1.0, "262144"))
+def test_gateway_adapter_refuses_non_integer_native_output_caps_before_owner_call(
+    field: str, invalid: object
+) -> None:
+    """An invalid caller output bound must not be silently defaulted."""
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    execution = {
+        "workspaceId": "ws-plugin-h2",
+        "foreignReferences": [],
+        "executable": "/usr/bin/rg",
+        "args": ["needle"],
+        "cwdRelative": ".",
+        field: invalid,
+    }
+    with pytest.raises(HarnessRuntimeClientError, match="invalid"):
+        adapter.call_tool(
+            "workspace.exec",
+            {"clientRequestId": "request:output-bound", "execution": execution},
+        )
+    assert client.calls == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("budget", {"memoryBytes": 500_000_000}),
+        ("hostDependencies", []),
+        ("steps", [{"id": "first"}]),
+        ("executionTarget", "windows_native"),
+        ("executionProfile", "contained_local"),
+        ("windowsAuthority", "active_user"),
+        ("stdin", "uncommitted"),
+    ),
+)
+def test_gateway_refuses_frozen_physical_fields_it_cannot_represent(
+    field: str, value: object
+) -> None:
+    """Fail before Owner call; no silent request corruption at the adapter."""
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    with pytest.raises(HarnessRuntimeClientError, match="cannot faithfully lower"):
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:physical-unsupported",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "executable": "/usr/bin/rg",
+                    "foreignReferences": [],
+                    field: value,
+                },
+            },
+        )
+    assert client.calls == []
+
+
+def test_gateway_refuses_frozen_native_output_bound_outside_u64() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    with pytest.raises(HarnessRuntimeClientError, match="invalid stdoutLimitBytes"):
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:physical-overflow",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "executable": "/usr/bin/rg",
+                    "foreignReferences": [],
+                    "stdoutLimitBytes": 2**65,
+                },
+            },
+        )
+    assert client.calls == []
 
 
 def test_gateway_native_job_identity_cannot_rebind_to_another_request() -> None:
@@ -954,3 +1105,338 @@ def test_canonical_json_timeout_input_is_narrower_than_json_schema_numeric_integ
             name="execution.submit",
             arguments=raw,
         )
+
+
+@pytest.mark.parametrize(
+    ("path", "mutation"),
+    [
+        ("submit", "unhashable_list"),
+        ("submit", "unhashable_dict"),
+        ("submit", "wrong_owner"),
+        ("submit", "wrong_capability"),
+        ("submit", "wrong_operation_job"),
+        ("observe", "unhashable_list"),
+        ("observe", "unhashable_dict"),
+        ("observe", "wrong_owner"),
+        ("observe", "wrong_capability"),
+        ("observe", "wrong_operation_job"),
+        ("resolve", "wrong_owner"),
+        ("resolve", "wrong_operation_job"),
+        ("cancel", "wrong_owner"),
+        ("cancel", "wrong_operation_job"),
+    ],
+)
+def test_gateway_owner_receipt_identity_and_type_boundary_fails_closed(
+    path: str, mutation: str
+) -> None:
+    """A Gateway payload's fields must describe ONE owner Job before attachment.
+
+    This test replays the production adapter with a malicious/buggy source
+    response. The effect is already handled by the Owner; none of these
+    negative cases permits a new physical dispatch or attaches foreign
+    Job evidence to the saved Harness request.
+    """
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+
+    def tamper(name, arguments):
+        is_error, payload = original(name, arguments)
+        expected_tool = {
+            "submit": "execution.submit",
+            "observe": "execution.get",
+            "resolve": "execution.resolve",
+            "cancel": "execution.cancel",
+        }[path]
+        if name == expected_tool:
+            payload = dict(payload)
+            if mutation == "unhashable_list":
+                payload["delivery_disposition"] = ["committed"]
+            elif mutation == "unhashable_dict":
+                payload["delivery_disposition"] = {"state": "committed"}
+            elif mutation == "wrong_owner":
+                payload["owner_id"] = "runtime.windows"
+            elif mutation == "wrong_capability":
+                payload["capability"] = "execution.windows"
+            elif mutation == "wrong_operation_job":
+                payload["operation_ref"] = "ordivon-exec:v1:runtime.linux:job:foreign"
+        return is_error, payload
+
+    client.call_tool = tamper  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    request_id = "request:owner-evidence"
+    submission = {
+        "clientRequestId": request_id,
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle", "."],
+        },
+    }
+    if path == "submit":
+        with pytest.raises(HarnessRuntimeClientError):
+            adapter.call_tool("workspace.exec", submission)
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    elif path == "resolve":
+        with pytest.raises(HarnessRuntimeClientError):
+            adapter.call_tool(
+                "task.list",
+                {"workspaceId": "ws-plugin-h2", "clientRequestId": request_id},
+            )
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    else:
+        # A trusted earlier request was observed, so only the later
+        # untrusted Owner observation/cancel result is changed.
+        adapter._operation_refs[client.native_id] = client.operation_ref
+        adapter._operation_requests[client.native_id] = request_id
+        if path == "observe":
+            with pytest.raises(HarnessRuntimeClientError):
+                adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+        else:
+            with pytest.raises(HarnessRuntimeClientError):
+                adapter.cancel_job(client.native_id)
+        assert adapter._operation_refs == {client.native_id: client.operation_ref}
+        assert adapter._operation_requests == {client.native_id: request_id}
+
+
+@pytest.mark.parametrize(
+    ("path", "shadow_field", "shadow_value"),
+    (
+        ("submit", "ownerId", "runtime.windows"),
+        ("submit", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("submit", "nativeId", "job-unrelated"),
+        ("submit", "deliveryDisposition", "unknown"),
+        ("resolve", "ownerId", "runtime.windows"),
+        ("resolve", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("resolve", "nativeId", "job-unrelated"),
+        ("resolve", "workspaceId", "ws-unrelated"),
+        ("observe", "ownerId", "runtime.windows"),
+        ("observe", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("observe", "nativeId", "job-unrelated"),
+        ("observe", "deliveryDisposition", "unknown"),
+        # Python considers 0 == False; JSON does not. Both aliases present
+        # with unequal token TYPES are a source contradiction, not equality.
+        ("observe", "artifactCount", False),
+        ("observe", "recoveryRequired", 0),
+        ("cancel", "ownerId", "runtime.windows"),
+        ("cancel", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("cancel", "nativeId", "job-unrelated"),
+        ("cancel", "deliveryDisposition", "unknown"),
+    ),
+)
+def test_gateway_owner_shadow_alias_conflict_must_not_bind_foreign_job(
+    path: str, shadow_field: str, shadow_value: str
+) -> None:
+    """Both valid wire aliases with conflicting values cannot express one Owner fact.
+
+    This falsifies the shared source decoder, not just one endpoint's
+    validation. Exact existing snake_case Gateway receipts stay admissible.
+    """
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+    operation_name = {
+        "submit": "execution.submit",
+        "resolve": "execution.resolve",
+        "observe": "execution.get",
+        "cancel": "execution.cancel",
+    }[path]
+
+    def shadow(name, arguments):
+        is_error, payload = original(name, arguments)
+        if name == operation_name:
+            payload = {**payload, shadow_field: shadow_value}
+        return is_error, payload
+
+    client.call_tool = shadow  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    request_id = "request:shadow-owner"
+    submission = {
+        "clientRequestId": request_id,
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle", "."],
+        },
+    }
+    if path == "submit":
+        with pytest.raises(HarnessRuntimeClientError, match="conflicting"):
+            adapter.call_tool("workspace.exec", submission)
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    elif path == "resolve":
+        with pytest.raises(HarnessRuntimeClientError, match="conflicting"):
+            adapter.call_tool(
+                "task.list",
+                {"workspaceId": "ws-plugin-h2", "clientRequestId": request_id},
+            )
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    else:
+        adapter._operation_refs[client.native_id] = client.operation_ref
+        adapter._operation_requests[client.native_id] = request_id
+        with pytest.raises(HarnessRuntimeClientError, match="conflicting"):
+            if path == "observe":
+                adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+            else:
+                adapter.cancel_job(client.native_id)
+        assert adapter._operation_refs == {client.native_id: client.operation_ref}
+        assert adapter._operation_requests == {client.native_id: request_id}
+
+
+@pytest.mark.parametrize("path", ("submit", "resolve", "observe", "cancel"))
+def test_gateway_equal_wire_aliases_preserve_one_source_fact(path: str) -> None:
+    """A redundant alias with an identical JSON value is not schema drift."""
+    client = GatewayExecutionFixture()
+    base = client.call_tool
+    endpoint = {
+        "submit": "execution.submit",
+        "resolve": "execution.resolve",
+        "observe": "execution.get",
+        "cancel": "execution.cancel",
+    }[path]
+
+    def equal_wire_aliases(name, arguments):
+        is_error, payload = base(name, arguments)
+        if name == endpoint:
+            payload = {
+                **payload,
+                "ownerId": payload["owner_id"],
+                "nativeId": payload["native_id"],
+                "operationRef": payload["operation_ref"],
+            }
+        return is_error, payload
+
+    client.call_tool = equal_wire_aliases  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    request_id = "request:equal-owner-source"
+    if path == "submit":
+        reply = adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": request_id,
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "foreignReferences": [],
+                    "executable": "/usr/bin/rg",
+                },
+            },
+        )
+        assert reply["jobId"] == client.native_id
+    elif path == "resolve":
+        reply = adapter.call_tool(
+            "task.list",
+            {"workspaceId": "ws-plugin-h2", "clientRequestId": request_id},
+        )
+        assert reply["jobs"][0]["jobId"] == client.native_id
+    else:
+        adapter._operation_refs[client.native_id] = client.operation_ref
+        adapter._operation_requests[client.native_id] = request_id
+        if path == "observe":
+            reply = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+            assert reply["jobId"] == client.native_id
+        else:
+            _, reply = adapter.cancel_job(client.native_id)
+            assert reply["jobId"] == client.native_id
+
+
+@pytest.mark.parametrize("path", ("submit_nonterminal", "submit_terminal", "cancel"))
+def test_gateway_owner_optional_delivery_is_still_source_compatible(path: str) -> None:
+    """The Gateway DTO permits None; a present malformed value must not pass."""
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+
+    def source_optional(name, arguments):
+        is_error, payload = original(name, arguments)
+        payload = dict(payload)
+        if name == "execution.submit":
+            payload["delivery_disposition"] = None
+            if path == "submit_terminal":
+                payload["terminal"] = True
+                payload["state"] = "succeeded"
+        if name == "execution.cancel":
+            payload["delivery_disposition"] = None
+        return is_error, payload
+
+    client.call_tool = source_optional  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    source_request = {
+        "clientRequestId": "request:source-optional",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+        },
+    }
+    first = adapter.call_tool("workspace.exec", source_request)
+    if path == "submit_nonterminal":
+        assert first["deliveryDisposition"] == "in_progress"
+    elif path == "submit_terminal":
+        assert first["deliveryDisposition"] == "committed"
+        assert first["resultAvailable"] is True
+    else:
+        result, payload = adapter.cancel_job(client.native_id)
+        assert result == "cancel-requested"
+        assert payload["jobId"] == client.native_id
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    ("wrong_owner", "wrong_capability", "wrong_operation_job", "unhashable_delivery"),
+)
+def test_real_pg_harness_stays_unknown_when_gateway_owner_identity_cannot_be_proven(
+    tamper: str, pg_schema
+) -> None:
+    """Actual Python Harness Postgres source never attaches a foreign Job receipt.
+
+    This test deliberately does NOT execute a physical Owner effect. A real
+    Gateway with Runtime Owner credential is a separate authorization
+    boundary. The source PG Run/Intent and UNKNOWN recovery are real.
+    """
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+
+    def forge(name, arguments):
+        is_error, payload = original(name, arguments)
+        if name in {"execution.submit", "execution.resolve"}:
+            payload = dict(payload)
+            if tamper == "wrong_owner":
+                payload["owner_id"] = "runtime.windows"
+            elif tamper == "wrong_capability":
+                payload["capability"] = "execution.windows"
+            elif tamper == "wrong_operation_job":
+                payload["operation_ref"] = "ordivon-exec:v1:runtime.linux:job:other"
+            elif name == "execution.submit":
+                payload["delivery_disposition"] = ["committed"]
+            else:
+                payload["owner_id"] = "runtime.windows"
+        return is_error, payload
+
+    client.call_tool = forge  # type: ignore[method-assign]
+    factory = _factory(client)
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=FixedClock(),
+        monotonic_ms=FixedClock(),
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "runtime_unknown"
+    names = [name for name, _ in client.calls]
+    assert names.count("execution.submit") == 1
+    assert names.count("execution.resolve") == 1
+    assert "execution.get" not in names
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+        step = continuity.load_current_tool_step()
+        assert step.fence is not None
+        assert step.receipt is None or step.receipt.status.value != "observed"

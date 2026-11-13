@@ -7,7 +7,7 @@ tasks:
     cmds:
       - /usr/bin/sing-box check -c consumers/x-reality/config/egress.json
       - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.x-reality-egress" and .listen=={"host":"127.0.0.1","port":19681,"protocol":"http"} and .allowedHttpsDomains==["api.x.com"] and .directFallback==false and .authenticationAuthority.separate==true and .authenticationAuthority.transportConsumerOwnsCredential==false and .authenticationAuthority.userContextProven==false' consumers/x-reality/config/authority.json >/dev/null
-      - jq -e '.inbounds==[{"type":"http","tag":"x-reality-api","listen":"127.0.0.1","listen_port":19681}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject"' consumers/x-reality/config/egress.json >/dev/null
+      - jq -e '.inbounds==[{"type":"http","tag":"x-reality-api","listen":"127.0.0.1","listen_port":19681}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route=={"rules":[],"final":"provider-carrier"}' consumers/x-reality/config/egress.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/x-reality/systemd/network-v2-x-reality-egress.service consumers/x-reality/systemd/network-v2-x-reality.target
       - /usr/bin/bash -n consumers/x-reality/ready.sh
 

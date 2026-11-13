@@ -45,11 +45,11 @@ test "$ws_status" = '101 200'
 jq -e '(.op == 10) and (.d.heartbeat_interval | type == "number" and . > 0)' \
   "$ws_receipt_dir/hello.json" >/dev/null
 
-set +e
-curl -q --noproxy '' -4 -sS -o /dev/null --proxy "$proxy" \
-  --connect-timeout 2 --max-time 5 https://example.com/ >/dev/null 2>&1
-unknown_rc=$?
-set -e
-test "$unknown_rc" -ne 0
+# After the Discord WebSocket Hello, prove a separate public HTTPS origin
+# reaches the same Carrier. Native CONNECT alone is insufficient.
+open_receipt=$(curl -q --noproxy '' -4 -sS -I -o /dev/null   --proxy "$proxy" --connect-timeout 4 --max-time 12   -w '%{http_code} %{http_connect} %{time_appconnect}' https://example.com/)
+read -r open_http open_connect open_tls extra <<< "$open_receipt"
+[[ "$open_http" =~ ^2[0-9]{2}$ && "$open_connect" == 200 && -z "$extra" ]]
+awk -v tls="$open_tls" 'BEGIN{exit !(tls > 0)}'
 
-printf '%s\n' '{"schemaVersion":1,"kind":"ordivon.network-v2.discord-readiness","standing":"READY","proxy":"http://127.0.0.1:19981","gatewayDiscovery":"PASS","gatewayHost":"gateway.discord.gg","gatewayHello":"PASS","unknownDestination":"REJECTED","directFallback":false,"credentialMaterialized":false}'
+printf '%s\n' '{"schemaVersion":1,"kind":"ordivon.network-v2.discord-readiness","standing":"READY","proxy":"http://127.0.0.1:19981","gatewayDiscovery":"PASS","gatewayHost":"gateway.discord.gg","gatewayHello":"PASS","unknownDestination":"ORIGIN_PROVED","directFallback":false,"credentialMaterialized":false}'

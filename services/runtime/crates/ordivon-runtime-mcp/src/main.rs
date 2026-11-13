@@ -1006,6 +1006,26 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             )
         }
     };
+    let guest_headroom = match (
+        optional_env("ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH")?,
+        optional_env("ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES")?,
+    ) {
+        (None, None) => None,
+        (Some(path), Some(minimum_free_bytes)) => Some(WorkspaceHeadroomConfig {
+            path: PathBuf::from(path),
+            minimum_free_bytes: minimum_free_bytes.parse()?,
+        }),
+        _ => {
+            return Err(
+                "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH and ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES must be configured together"
+                    .into(),
+            )
+        }
+    };
+    let workspace_headroom: Vec<WorkspaceHeadroomConfig> = workspace_headroom
+        .into_iter()
+        .chain(guest_headroom)
+        .collect();
     let node_id = std::env::var("ORDIVON_NODE_ID").unwrap_or_else(|_| {
         if cfg!(windows) {
             "windows-local".to_string()

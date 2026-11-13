@@ -119,14 +119,19 @@ class OwnerBoundaryTests(unittest.TestCase):
         self.assertEqual(len(observed), 1)
         self.assertEqual(observed[0].to_owner, "gateway")
 
-    def test_current_declared_source_consumers_are_literal_matched(self) -> None:
-        """This is a bounded source-text witness, not live consumer semantics."""
+    def test_current_declared_source_consumers_are_exact_source_matched(self) -> None:
+        """Reuse the production scanner's literal AND Python import consumer graph."""
         findings = []
-        for path in MODULE.tracked_active_files():
+        active = MODULE.tracked_active_files()
+        packages = MODULE.python_package_owners(active, OWNERS)
+        for path in active:
             if MODULE.owner_for_path(path, OWNERS) is None:
                 continue
             source = (MODULE.ROOT / path).read_text(encoding="utf-8", errors="ignore")
             findings.extend(MODULE.findings_for_text(path, source, OWNERS))
+            findings.extend(
+                MODULE.python_import_findings_for_text(path, source, OWNERS, packages)
+            )
         witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
         self.assertEqual(set(witnessed), set(SEAMS))
         self.assertTrue(all(witnessed.values()))

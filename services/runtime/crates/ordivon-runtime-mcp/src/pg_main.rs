@@ -69,6 +69,52 @@ fn finish_pg_control_plane(
 }
 
 #[cfg(target_os = "linux")]
+fn parse_pg_headroom_pair(
+    path_key: &str,
+    minimum_key: &str,
+    path: Option<String>,
+    minimum: Option<String>,
+) -> Result<Option<ordivon_runtime_core::WorkspaceHeadroomConfig>, Box<dyn std::error::Error>> {
+    match (path, minimum) {
+        (None, None) => Ok(None),
+        (Some(path), Some(minimum)) => Ok(Some(ordivon_runtime_core::WorkspaceHeadroomConfig {
+            path: std::path::PathBuf::from(path),
+            minimum_free_bytes: minimum.parse()?,
+        })),
+        _ => Err(std::io::Error::other(format!(
+            "{path_key} and {minimum_key} must be configured together"
+        ))
+        .into()),
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod headroom_configuration_tests {
+    use super::parse_pg_headroom_pair;
+
+    #[test]
+    fn pg_native_entry_rejects_unpaired_or_non_numeric_guest_capacity() {
+        let parse = |path: Option<&str>, bytes: Option<&str>| {
+            parse_pg_headroom_pair(
+                "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH",
+                "ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES",
+                path.map(str::to_owned),
+                bytes.map(str::to_owned),
+            )
+        };
+        assert!(parse(Some("/var/lib/ordivon"), None).is_err());
+        assert!(parse(None, Some("21474836480")).is_err());
+        assert!(parse(Some("/var/lib/ordivon"), Some("twenty-gb")).is_err());
+        assert!(parse(None, None).unwrap().is_none());
+        let valid = parse(Some("/var/lib/ordivon"), Some("21474836480"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(valid.path, std::path::PathBuf::from("/var/lib/ordivon"));
+        assert_eq!(valid.minimum_free_bytes, 21474836480);
+    }
+}
+
+#[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use ordivon_runtime_core::{PgRuntime, PgRuntimeConfig, UniversalExecutorConfig};
@@ -89,10 +135,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
     }
     let auth = pg_auth::PgAuth::from_env(&token)?;
+    // The PG native binary must consume the same two carrier budgets as the
+    // legacy entrypoint. Never mistake a legacy MCP compile for PG coverage.
+    let headroom_pair = |path_key: &str, minimum_key: &str| {
+        parse_pg_headroom_pair(
+            path_key,
+            minimum_key,
+            pg_auth::optional_env(path_key)?,
+            pg_auth::optional_env(minimum_key)?,
+        )
+    };
+    let workspace_headroom = [
+        headroom_pair(
+            "ORDIVON_WORKSPACE_HEADROOM_PATH",
+            "ORDIVON_WORKSPACE_MIN_FREE_BYTES",
+        )?,
+        headroom_pair(
+            "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH",
+            "ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES",
+        )?,
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
     let config = PgRuntimeConfig {
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
         source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,
+        harness_issuer_schema: std::env::var("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")
+            .ok()
+            .filter(|s| !s.is_empty()),
+        workspace_headroom,
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
             workspace_root: None,
