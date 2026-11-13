@@ -102,3 +102,24 @@ For release, compare candidate and current ACTIVE profile input/output
 schema digests and verify actual installed profile by live tools/list.
 Source, formal, installed candidate and external-client claims must
 stay separate. Do not delete native tests because finite TLA+ passed.
+
+
+## AuthZEN installed-service acceptance and evidence boundary
+
+A source-isolated candidate can register the exact 22 Collaboration
+tools while returning CAPABILITY_AUTHZ_UNAVAILABLE for Host reads:
+this alone does not distinguish a missing systemd credential context,
+CA trust, a real PDP outage, or a real denial. The mature Gateway
+private-file loader requires CREDENTIALS_DIRECTORY for an approved
+0440 systemd credential. Verify the runtime context without showing
+or exporting credential contents. The synthetic AuthZEN binding test
+covers this cross-module contract; existing upstream credential
+tests already establish the file-mode semantics. Do not repeatedly
+retest those unchanged properties without a downstream impact.
+
+Treat installed Full Principal readback, candidate synthetic PDP,
+candidate real PDP, and external Plugin user acceptance as distinct
+proof obligations. Do not silently assume any of the latter three
+from a successful Full read. Real candidate Security checks must
+use an approved installed service identity; UNKNOWN does not
+become FALSE.

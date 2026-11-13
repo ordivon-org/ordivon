@@ -168,7 +168,7 @@ def build_server(
     surface: Literal["full", "core", "collaboration"] = "full",
 ) -> MCPServer:
     if surface not in {"full", "core", "collaboration"}:
-        raise ValueError("Gateway surface must be full or core")
+        raise ValueError("Gateway surface must be full, core, or collaboration")
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
     @asynccontextmanager

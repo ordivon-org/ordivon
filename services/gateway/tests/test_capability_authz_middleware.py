@@ -465,6 +465,37 @@ def test_gateway_authzen_env_requires_paired_private_token_file(
     assert adapter._bearer_token_provider() == "t" * 48
 
 
+def test_gateway_authzen_systemd_credential_binding(monkeypatch, tmp_path: Path) -> None:
+    """An actual 0440 credential needs the OS-provided systemd directory.
+
+    A disposable Workspace copying ORDIVON_* alone cannot reproduce the
+    service credential authority. Use synthetic bytes, never live secrets.
+    """
+    from ordivon_gateway.authzen_authorizer import AuthZenPrincipalAuthorizer
+    from ordivon_gateway.mcp_server import _capability_authorizer_from_env
+    from ordivon_gateway.upstream import OwnerCallError
+
+    directory = tmp_path / "credentials"
+    directory.mkdir(mode=0o700)
+    credential = directory / "gateway-authzen.token"
+    credential.write_text("synthetic-authzen-token-only-for-test", encoding="utf-8")
+    credential.chmod(0o440)
+    monkeypatch.setenv(
+        "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT",
+        "https://pdp.example.test/access/v1/evaluation",
+    )
+    monkeypatch.setenv("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", str(credential))
+    monkeypatch.delenv("CREDENTIALS_DIRECTORY", raising=False)
+
+    authorizer = _capability_authorizer_from_env()
+    assert isinstance(authorizer, AuthZenPrincipalAuthorizer)
+    with pytest.raises(OwnerCallError, match="must not be group/world accessible"):
+        authorizer._bearer_token_provider()
+
+    monkeypatch.setenv("CREDENTIALS_DIRECTORY", str(directory))
+    assert authorizer._bearer_token_provider() == "synthetic-authzen-token-only-for-test"
+
+
 def _host_allow(
     tool: str,
     resource: dict[str, Any],

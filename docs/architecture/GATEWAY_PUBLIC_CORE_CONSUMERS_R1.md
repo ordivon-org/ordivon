@@ -52,7 +52,8 @@ Source tool functions, Host PEP and real Owner authority remain independent.
 | Fetch results | artifact.read | Runtime PG | Artifact AuthZEN and native evidence |
 | Create Space/Topic | Collaboration: space.create, topic.create | Host Social | Existing Host mutation with Security PEP |
 | Full returning-Agent reentry | Collaboration: space.get, attention.reentry | Host Social/Attention | Exact task-space-reentry Skill dependency |
-| Actor bootstrap | Collaboration: actor.declare | Host Work | Existing Security-bound mutation; not identity impersonation |\n| Subscription and advanced management | Full/Owner only | Host | Deliberately hidden from public profiles |
+| Actor bootstrap | Collaboration: actor.declare | Host Work | Existing Security-bound mutation; not identity impersonation |
+| Subscription and advanced management | Full/Owner only | Host | Deliberately hidden from public profiles |
 | Research composition resolve | NOT CORE | Skills/Research | Not a general runtime planner |
 | Agent semantic Run | NOT INSTALLED | Harness PG | Await verified Rust Run owner |
 
@@ -97,6 +98,47 @@ selection accuracy, latency, or real Agent business-success evidence.
 
 Old September 2026 Gateway Host acceptance and its 15-tool list are
 historical snapshots, NOT current production Work/Space/Topic truth.
+
+## Live evidence update — 2026-11-14 (read-only)
+
+- Installed Gateway 0.10.8 has 38 Full Tools, epoch 9, and the active
+  symlink targets release 9f98468fc81385fe0361e8fbd624ea289b227932.
+  The real process has Cloudflare Access, local Bearer, and AuthZEN config.
+  Configuration presence alone is not an actual Security permit.
+- The existing local-service Principal completed real HTTP SDK tools/list
+  (38 tools), space.list and host.status. One historical Work pointer
+  returned NOT_FOUND; this is not a successful Work read.
+- The connected external MCP tool interface completed bounded read-only
+  space.list -> topic.list -> topic.resume and
+  work.list -> work.get against the installed Full Gateway. This is
+  actual existing Agent consumer behavior, not proof that a Core or
+  Collaboration catalog has refreshed.
+- An isolated candidate 0.11.0 Collaboration process returned the exact
+  22 native SDK Tools and rejected an unlisted name. Its protected Host
+  reads returned CAPABILITY_AUTHZ_UNAVAILABLE. The test environment
+  had copied project configuration without the systemd
+  CREDENTIALS_DIRECTORY, and therefore the existing strict loader
+  correctly rejected the real systemd AuthZEN credential mode 0440.
+  Restoring the OS credential-directory context was independently
+  shown to satisfy the private loader. The installed service also has
+  request CA trust config. This is a test-identity/environment gap,
+  not evidence that the PDP denied the Actor or that candidate
+  production Owner forwarding succeeded.
+- A further credential-bearing candidate test was unavailable in this
+  execution environment. Never copy production credential bytes to
+  ad-hoc Workspaces, loosen permissions, or substitute fabricated
+  PDP ALLOW. A formally admitted candidate service identity and
+  actual external Cloudflare user Principal are distinct tests.
+- Installed Full Gateway execution.resolve of a known read-only
+  Workspace Job returned found with the exact original OperationRef;
+  execution.get observed terminal succeeded and five Artifacts.
+  This establishes that installed Full recovery read path for the
+  connected Principal, not that candidate 0.11.0 is installed.
+
+Acceptance classification: installed Full read/recovery = OBSERVED.
+Candidate SDK and synthetic PDP = SOURCE_VERIFIED. Candidate real
+PDP/Host grant, external client refresh, and production promotion =
+UNKNOWN. Do not merge these evidence levels.
 
 ## P0 promotion gates
 
