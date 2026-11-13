@@ -232,7 +232,10 @@ def decide(
         check_name=check_name,
     )
     past = None
-    if prior_sha and prior_sha != current_sha and _standing(current) != "PASS":
+    # A current pending/failed result already determines this Check Run's
+    # standing. Do not query an older provider result that could error and
+    # falsely obscure a real current failure or in-flight Job.
+    if prior_sha and prior_sha != current_sha and _standing(current) == "ABSENT":
         past = _select_check(
             _provider_checks(gh, repo, prior_sha),
             sha=prior_sha,

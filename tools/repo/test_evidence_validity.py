@@ -335,3 +335,27 @@ def test_duplicated_provider_page_id_fails_closed():
 def test_other_repo_with_matching_git_oid_is_not_a_valid_issuer():
     with pytest.raises(ValueError, match="canonical Ordivon"):
         module.decide(repo="untrusted/repo", current_sha=CURRENT, github=provider())
+
+
+def test_existing_nonpass_never_needs_older_provider_lookup():
+    class CurrentOnly:
+        calls = 0
+
+        def api(self, endpoint):
+            self.calls += 1
+            if PREVIOUS in endpoint:
+                raise AssertionError("current failure must not depend on old provider")
+            return {
+                "total_count": 1,
+                "check_runs": [dict(GOOD, status="in_progress", conclusion=None)],
+            }
+
+    github = CurrentOnly()
+    result = module.decide(
+        repo=module.DEFAULT_REPOSITORY,
+        current_sha=CURRENT,
+        prior_sha=PREVIOUS,
+        github=github,
+    )
+    assert result["disposition"] == "OBSERVE_EXISTING_RUN"
+    assert github.calls == 1
