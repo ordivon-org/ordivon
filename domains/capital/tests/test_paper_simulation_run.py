@@ -30,13 +30,13 @@ def _bundle(root: Path) -> dict[str, Path]:
         )
     ]
     buy = PaperBuy(
-        "native-buy-one", "SPY", 1, 66_679, 1,
+        "nautilus-paper:SIM-001:native-buy-one", "SPY", 1, 66_679, 1,
         datetime.fromisoformat("2025-10-14T16:01:00-04:00"),
         datetime.fromisoformat("2025-10-15T09:30:00-04:00"),
         days[2],
     )
     sell = PaperSell(
-        "native-sell-one", "SPY", 1, 67_198, 1,
+        "nautilus-paper:SIM-001:native-sell-one", "SPY", 1, 67_198, 1,
         datetime.fromisoformat("2025-10-21T16:01:00-04:00"),
         datetime.fromisoformat("2025-10-22T09:30:00-04:00"),
         days[7],
@@ -97,6 +97,24 @@ def _bundle(root: Path) -> dict[str, Path]:
         "native_entry_session": "2025-10-15",
         "native_exit_session": "2025-10-22",
         "native_fill_count": 2,
+        "native_order_count": 2,
+        "native_fill_claims": [
+            {
+                "side": side,
+                "fill_id": fill.fill_id.removeprefix("nautilus-paper:SIM-001:"),
+                "symbol": fill.symbol,
+                "shares": fill.shares,
+                "price_minor": fill.price_minor,
+                "fee_minor": fill.fee_minor,
+                "filled_at": fill.filled_at.isoformat(),
+            }
+            for side, fill in (("BUY", buy), ("SELL", sell))
+        ],
+        "buy_price": "666.79",
+        "sell_price": "671.98",
+        "fee_total": "0.02",
+        "net_cash_gain_usd": "5.17",
+        "no_entry_cancelled_exit_suppressed": False,
         "last_paper_cash_minor": state.cash_minor,
         "protected_cash_minor": 900_000,
         "paper_sessions_sha256": sha256(sessions_bytes).hexdigest(),
@@ -112,6 +130,78 @@ def _bundle(root: Path) -> dict[str, Path]:
         target.write_bytes(content)
         out[name] = target
     return out
+
+
+def test_native_economic_prices_cannot_be_rewritten_at_both_legs(
+    tmp_path, monkeypatch,
+):
+    # Before fixing the consumer, the final cash is unchanged and native
+    # session-byte hash can be co-edited, so both wrong fill prices were accepted.
+    bundle = _bundle(tmp_path)
+    import ordivon_capital.accounting.paper_simulation_run as runner
+
+    sessions = json.loads(bundle["sessions"].read_text())
+    sessions[1]["buys"][0]["price_minor"] += 100
+    sessions[-2]["sells"][0]["price_minor"] += 100
+    altered = json.dumps(sessions, sort_keys=True).encode()
+    bundle["sessions"].write_bytes(altered)
+    native = json.loads(bundle["native"].read_text())
+    native["paper_sessions_sha256"] = sha256(altered).hexdigest()
+    bundle["native"].write_text(json.dumps(native))
+
+    def _should_not_reach_pg(_dsn):
+        raise ReachedPostgres("bad fill prices passed preflight")
+
+    monkeypatch.setattr(runner, "PostgresPaperClose", _should_not_reach_pg)
+    with pytest.raises(ValueError, match="native execution economics disagree"):
+        run_simulated_paper("never-connect", **bundle)
+
+
+@pytest.mark.parametrize("mutation", ("balanced_fees", "fill_timestamp", "native_summary_fee"))
+def test_native_fill_fee_time_and_summary_remain_bound_before_pg(
+    tmp_path, monkeypatch, mutation,
+):
+    bundle = _bundle(tmp_path)
+    import ordivon_capital.accounting.paper_simulation_run as runner
+    days = json.loads(bundle["sessions"].read_text())
+    native = json.loads(bundle["native"].read_text())
+    if mutation == "balanced_fees":
+        days[1]["buys"][0]["fee_minor"] += 1
+        days[-2]["sells"][0]["fee_minor"] -= 1
+    elif mutation == "fill_timestamp":
+        days[1]["buys"][0]["filled_at"] = "2025-10-15T09:30:01-04:00"
+    else:
+        native["fee_total"] = "0.03"
+    data = json.dumps(days, sort_keys=True).encode()
+    bundle["sessions"].write_bytes(data)
+    native["paper_sessions_sha256"] = sha256(data).hexdigest()
+    bundle["native"].write_text(json.dumps(native))
+    monkeypatch.setattr(
+        runner, "PostgresPaperClose",
+        lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("false fill reached PG")),
+    )
+    with pytest.raises(ValueError, match="native execution economics disagree"):
+        run_simulated_paper("never-connect", **bundle)
+
+
+def test_native_fill_identity_cannot_be_forged_when_session_digest_is_updated(
+    tmp_path, monkeypatch,
+):
+    bundle = _bundle(tmp_path)
+    import ordivon_capital.accounting.paper_simulation_run as runner
+    days = json.loads(bundle["sessions"].read_text())
+    days[1]["buys"][0]["fill_id"] = "FAKE-NONNAUTILUS-TRADE"
+    altered = json.dumps(days, sort_keys=True).encode()
+    bundle["sessions"].write_bytes(altered)
+    native = json.loads(bundle["native"].read_text())
+    native["paper_sessions_sha256"] = sha256(altered).hexdigest()
+    bundle["native"].write_text(json.dumps(native))
+    monkeypatch.setattr(
+        runner, "PostgresPaperClose",
+        lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("forged ID reached PG")),
+    )
+    with pytest.raises(ValueError, match="native execution economics disagree"):
+        run_simulated_paper("never-connect", **bundle)
 
 
 class ReachedPostgres(Exception):
