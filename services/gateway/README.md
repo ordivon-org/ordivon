@@ -13,7 +13,7 @@ production startup remains full until actual external consumer migration.
   operations, not a new domain API or a generic invoke dispatcher.
 - The remaining Host object-management, topic cursor, Actor declaration,
   subscription, maintenance, and Research composition routes are not
-  registered in Core. The natural Owner APIs remain intact for legitimate
+  available in Core after SDK-native removal. The natural Owner APIs remain intact for legitimate
   internal and specialist consumers.
 - Core is static per process. Unlisted tools are not callable through
   that MCP server. This is NOT an authorization grant, a per-session
@@ -26,6 +26,10 @@ production startup remains full until actual external consumer migration.
   as mcp-surface-core.json. Set ORDIVON_GATEWAY_SURFACE_PROFILE=core
   for BOTH release preflight and the actual service process. The
   default is full; unsupported values fail startup/preflight.
+  If the installed release offers two profiles, verify its actually active
+  profile and set ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE for the install
+  preflight. Never compare Core against an unrelated current Full manifest.
+
 - No second Gateway process, new Handler Registry, SQLite persistence,
   Tool retry mechanism, credentials, or Plugin packaging system is added.
 

@@ -150,3 +150,55 @@ def test_release_preflight_checks_explicit_core_profile() -> None:
     assert "mcp-surface-core.json" in installer
     assert "mcp-surface-core.json" in verifier
     assert "build_server(surface=SURFACE_PROFILE)" in verifier
+
+
+def test_all_hidden_core_tools_fail_without_reaching_owner() -> None:
+    """Exhaustively falsify tool-name guessing against the effective Core SDK."""
+    owner = HostOwner()
+    full = asyncio.run(_names("full"))
+    hidden = sorted(full - CORE_PUBLIC_TOOLS)
+    assert len(hidden) == 21
+
+    async def scenario() -> None:
+        async with Client(
+            build_server(GatewayService(owner), surface="core"), raise_exceptions=False
+        ) as client:
+            for name in hidden:
+                result = await client.call_tool(name, {})
+                assert result.is_error, name
+                assert "Unknown tool" in str(result.content), name
+
+    asyncio.run(scenario())
+    assert owner.calls == []
+
+
+def test_release_requires_active_profile_qualification(tmp_path: Path) -> None:
+    """A two-profile installed release never implies its running public ABI."""
+    import os
+    import subprocess
+
+    repo = ROOT.parents[1]
+    installed = tmp_path / "releases" / "old"
+    installed.mkdir(parents=True)
+    (installed / "mcp-surface-core.json").write_text("{}")
+    (installed / "mcp-surface.json").write_text("{}")
+    (tmp_path / "current").symlink_to(installed, target_is_directory=True)
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    env = os.environ.copy()
+    env.pop("ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE", None)
+    env["ORDIVON_GATEWAY_SURFACE_PROFILE"] = "core"
+    result = subprocess.run(
+        [
+            "bash",
+            str(ROOT / "packaging/install_release.sh"),
+            str(repo),
+            revision,
+            str(tmp_path),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 2, (result.stdout, result.stderr)
+    assert "require verified ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE" in result.stderr

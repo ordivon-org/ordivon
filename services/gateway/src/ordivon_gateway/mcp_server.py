@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from importlib.metadata import version as package_version
 from typing import Any, Literal
@@ -23,7 +24,11 @@ from .access_auth import (
 )
 from .audit import GatewayAuditMiddleware
 from .authzen_authorizer import AuthZenPrincipalAuthorizer
-from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
+from .capability_authz import (
+    CapabilityAuthorizer,
+    GatewayCapabilityAuthorizationMiddleware,
+    resolve_authorization_target,
+)
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
@@ -37,7 +42,7 @@ from .contracts import (
 from .host_tools import register_host_tools
 from .http_ingress_guard import GatewayHTTPIngressGuard
 from .service import GatewayError, GatewayService
-from .tool_visibility import CORE_PUBLIC_TOOLS, expose_tool
+from .tool_visibility import CORE_PUBLIC_TOOLS, retain_core_tools
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
 
@@ -164,7 +169,6 @@ def build_server(
 ) -> MCPServer:
     if surface not in {"full", "core"}:
         raise ValueError("Gateway surface must be full or core")
-    visible_tools = CORE_PUBLIC_TOOLS if surface == "core" else None
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
     @asynccontextmanager
@@ -191,17 +195,29 @@ def build_server(
         or protect_artifact_reads
         or require_http_execution_identity
     ):
-        server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
+        # Core tools are removed with the official SDK before serving.
+        # Avoid invoking a remote PDP for a memorized hidden Tool name:
+        # middleware runs before the SDK's eventual Unknown Tool dispatch.
+        def visible_authorization_target(tool_name: str, arguments: Mapping[str, Any]):
+            if surface == "core" and tool_name not in CORE_PUBLIC_TOOLS:
+                return None
+            return resolve_authorization_target(tool_name, arguments)
 
-    @expose_tool(server, "system.describe", visible_tools)
+        server.middleware.append(
+            GatewayCapabilityAuthorizationMiddleware(
+                capability_authorizer, target_resolver=visible_authorization_target
+            )
+        )
+
+    @server.tool(name="system.describe")
     def system_describe() -> SystemDescription:
         return gateway.system_describe()
 
-    @expose_tool(server, "capability.describe", visible_tools)
+    @server.tool(name="capability.describe")
     async def capability_describe(capability: str | None = None) -> CapabilityProjection:
         return await gateway.capability_describe(capability)
 
-    @expose_tool(server, "capability.search", visible_tools)
+    @server.tool(name="capability.search")
     async def capability_search(
         query: str,
         category: str | None = None,
@@ -217,7 +233,7 @@ def build_server(
             include_unavailable=includeUnavailable,
         )
 
-    @expose_tool(server, "capability.resolve", visible_tools)
+    @server.tool(name="capability.resolve")
     async def capability_resolve(
         capability: str,
         workspaceId: str | None = None,
@@ -328,7 +344,9 @@ def build_server(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    register_host_tools(server, gateway, _owner_boundary, visible_tools)
+    register_host_tools(server, gateway, _owner_boundary)
+    if surface == "core":
+        retain_core_tools(server)
 
     return server
 

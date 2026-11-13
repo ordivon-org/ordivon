@@ -385,6 +385,21 @@ for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'     
   printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
   printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
 done
+java -cp "$jar" tla2sany.SANY GatewayToolVisibilityR1.tla
+for profile in core full; do
+  visible_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config "GatewayToolVisibilityR1.$profile.cfg" GatewayToolVisibilityR1.tla)
+  printf '%s\n' "$visible_positive" | grep -F 'Model checking completed. No error has been found.'
+done
+for check in 'GatewayToolVisibilityR1.reachability.cfg:NeverForwarded' 'GatewayToolVisibilityR1.unsafe.cfg:ForwardedOnlyActive'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayToolVisibilityR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+done
 """
 
 [tasks."chaoxing:verify"]

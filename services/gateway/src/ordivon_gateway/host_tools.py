@@ -19,11 +19,10 @@ def register_host_tools(
     server: MCPServer,
     gateway: GatewayService,
     owner_boundary: Callable[[Awaitable[Any]], Awaitable[Any]],
-    visible_tools: frozenset[str] | None = None,
 ) -> None:
     async def _host(tool_name: str, arguments: dict[str, Any]) -> Any:
         return await owner_boundary(gateway.social_work_call(tool_name, arguments))
 
-    register_host_work_tools(server, _host, visible_tools)
-    register_host_social_tools(server, _host, visible_tools)
-    register_host_attention_tools(server, _host, visible_tools)
+    register_host_work_tools(server, _host)
+    register_host_social_tools(server, _host)
+    register_host_attention_tools(server, _host)

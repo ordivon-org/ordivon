@@ -79,3 +79,24 @@ Validate exact Owner semantics through independent real loopback RPCs, not
 only mocked connector calls; do not infer production latency from loopback.
 Preserve long-running Runtime Jobs on HTTP cancellation; never blindly replay
 an execution submission after uncertain delivery.
+
+
+## Public MCP Tool visibility R1
+
+Reuse normal Host registrars and official MCP SDK remove_tool. The
+thought LEGO is information hiding plus explicit falsification; the
+logic LEGO is a static Core/Full allowed-name projection. The
+ability LEGO is the SDK's registered tools and pre-publication removal,
+not a new policy engine, tool protocol or Host decorator.
+
+Run GatewayToolVisibilityR1.tla via gateway:formal:verify with both
+safe Core/Full configs and expected reachable/unsafe counterexamples.
+Run SDK negative calls for all 21 hidden tools; run real local TCP
+Core/Full + fake AuthZEN positive and negative tests independently.
+Middleware can run before SDK unknown-tool dispatch, so hidden Core
+names must not cause authorization probes.
+
+For release, compare candidate and current ACTIVE profile input/output
+schema digests and verify actual installed profile by live tools/list.
+Source, formal, installed candidate and external-client claims must
+stay separate. Do not delete native tests because finite TLA+ passed.

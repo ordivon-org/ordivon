@@ -6,12 +6,14 @@ import asyncio
 import socket
 
 import httpx2
+import pytest
 import uvicorn
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
 from ordivon_gateway.mcp_server import build_http_app, build_server
 from ordivon_gateway.service import GatewayService
+from ordivon_gateway.tool_visibility import CORE_PUBLIC_TOOLS
 
 
 class HostStatusOwner:
@@ -26,6 +28,8 @@ class HostStatusOwner:
 
     async def call_tool(self, owner: str, tool: str, args: dict) -> dict:
         self.calls.append((owner, tool))
+        if (owner, tool) == ("host", "work.get"):
+            return {"schemaVersion": 3, "kind": "ordivon.host-work", "workRef": args["workRef"]}
         assert (owner, tool) == ("host", "host.status")
         return {"schemaVersion": 3, "kind": "ordivon.host-status"}
 
@@ -65,7 +69,16 @@ class SourceAuthZenStub:
         }
 
 
-def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(tmp_path) -> None:
+@pytest.mark.parametrize(
+    ("surface", "tool_name", "tool_args"),
+    [
+        ("full", "host.status", {}),
+        ("core", "work.get", {"workRef": "work:core-tcp"}),
+    ],
+)
+def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(
+    tmp_path, surface: str, tool_name: str, tool_args: dict
+) -> None:
     """A transport-authenticated local Principal, not Tool args, gates Host forwarding."""
     secret = tmp_path / "gateway-bearer"
     secret.write_text("X" * 64, encoding="utf-8")
@@ -80,6 +93,7 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(tmp_
                 capability_authorizer=policy,
                 require_http_execution_identity=True,
                 protect_artifact_reads=True,
+                surface=surface,
             ),
             host="127.0.0.1",
             path="/mcp",
@@ -123,32 +137,43 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(tmp_
                     raise_exceptions=False,
                 ) as client:
                     listed = await client.list_tools()
-                    assert "host.status" in {tool.name for tool in listed.tools}
-                    result = await client.call_tool("host.status", {})
+                    advertised = {item.name for item in listed.tools}
+                    if surface == "core":
+                        assert advertised == CORE_PUBLIC_TOOLS
+                        assert "host.status" not in advertised
+                        hidden = await client.call_tool("host.status", {})
+                        assert hidden.is_error is True
+                        assert owner.calls == []
+                        assert policy.calls == [], "hidden Core Tool must not probe PDP"
+                    else:
+                        assert "host.status" in advertised
+                    result = await client.call_tool(tool_name, tool_args)
                     assert result.is_error is False
-                    assert result.structured_content == {
-                        "schemaVersion": 3,
-                        "kind": "ordivon.host-status",
-                    }
-                    assert owner.calls == [("host", "host.status")]
+                    assert result.structured_content["kind"] == (
+                        "ordivon.host-work" if surface == "core" else "ordivon.host-status"
+                    )
+                    assert owner.calls == [("host", tool_name)]
                     assert policy.calls[0]["requested_capability"] == "host.legacy-read"
-                    assert policy.calls[0]["requested_resource"]["properties"]["unscoped"] is True
+                    resource = policy.calls[0]["requested_resource"]["properties"]
+                    assert resource["unscoped"] is (surface == "full")
+                    if surface == "core":
+                        assert resource["requestedSelectors"] == {"workRef": "work:core-tcp"}
                     assert policy.calls[0]["principal_id"] == ("principal:local-service:harness")
 
                     # A valid HTTP service bearer is not enough to bypass PDP.
                     policy.outcome = "DENY"
-                    denied = await client.call_tool("host.status", {})
+                    denied = await client.call_tool(tool_name, tool_args)
                     assert denied.is_error is True
                     assert denied.structured_content["error"]["code"] == ("CAPABILITY_AUTHZ_DENIED")
-                    assert owner.calls == [("host", "host.status")]
+                    assert owner.calls == [("host", tool_name)]
 
                     policy.outcome = "UNAVAILABLE"
-                    missing = await client.call_tool("host.status", {})
+                    missing = await client.call_tool(tool_name, tool_args)
                     assert missing.is_error is True
                     assert missing.structured_content["error"]["code"] == (
                         "CAPABILITY_AUTHZ_UNAVAILABLE"
                     )
-                    assert owner.calls == [("host", "host.status")]
+                    assert owner.calls == [("host", tool_name)]
         finally:
             server.should_exit = True
             await asyncio.wait_for(serving, timeout=12)

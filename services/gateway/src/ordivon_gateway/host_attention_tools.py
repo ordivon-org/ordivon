@@ -8,15 +8,13 @@ from typing import Any, Literal
 from mcp.server import MCPServer
 
 from .host_tool_contracts import HostCollectionBytes
-from .tool_visibility import expose_tool
 
 
 def register_host_attention_tools(
     server: MCPServer,
     _host: Callable[[str, dict[str, Any]], Awaitable[Any]],
-    visible_tools: frozenset[str] | None = None,
 ) -> None:
-    @expose_tool(server, "subscription.follow", visible_tools)
+    @server.tool(name="subscription.follow")
     async def subscription_follow(
         actorRef: str, targetKind: Literal["work", "space", "topic"], targetRef: str
     ) -> dict[str, Any]:
@@ -29,7 +27,7 @@ def register_host_attention_tools(
             },
         )
 
-    @expose_tool(server, "subscription.list", visible_tools)
+    @server.tool(name="subscription.list")
     async def subscription_list(
         actorRef: str,
         targetKind: Literal["work", "space", "topic"] | None = None,
@@ -50,7 +48,7 @@ def register_host_attention_tools(
             },
         )
 
-    @expose_tool(server, "subscription.unfollow", visible_tools)
+    @server.tool(name="subscription.unfollow")
     async def subscription_unfollow(
         actorRef: str, targetKind: Literal["work", "space", "topic"], targetRef: str
     ) -> dict[str, Any]:
@@ -63,7 +61,7 @@ def register_host_attention_tools(
             },
         )
 
-    @expose_tool(server, "attention.get", visible_tools)
+    @server.tool(name="attention.get")
     async def attention_get(
         actorRef: str, limit: int = 100, maxBytes: HostCollectionBytes = 262_144
     ) -> dict[str, Any]:
@@ -71,7 +69,7 @@ def register_host_attention_tools(
             "attention.get", {"actorRef": actorRef, "limit": limit, "maxBytes": maxBytes}
         )
 
-    @expose_tool(server, "attention.delta", visible_tools)
+    @server.tool(name="attention.delta")
     async def attention_delta(
         actorRef: str, afterSequence: int, limit: int = 100, maxBytes: HostCollectionBytes = 262_144
     ) -> dict[str, Any]:
@@ -85,7 +83,7 @@ def register_host_attention_tools(
             },
         )
 
-    @expose_tool(server, "attention.reentry", visible_tools)
+    @server.tool(name="attention.reentry")
     async def attention_reentry(
         actorRef: str,
         afterSequence: int | None = None,
@@ -102,6 +100,6 @@ def register_host_attention_tools(
             },
         )
 
-    @expose_tool(server, "attention.ack", visible_tools)
+    @server.tool(name="attention.ack")
     async def attention_ack(actorRef: str, cursor: int) -> dict[str, Any]:
         return await _host("attention.ack", {"actorRef": actorRef, "cursor": cursor})

@@ -201,3 +201,20 @@ the same service credential through the MCP SDK's native Bearer middleware.
 Configure both ends before enabling the authenticated Host HTTP release.
 The transport credential does **not** establish a caller's human or Agent
 identity or grant object-level Host authorization.
+
+## Public Core: consumer and native SDK guidance
+
+The canonical Agent Plugin still points to one Gateway MCP endpoint.
+Full is the production default. Core has 17 tools, selected explicitly.
+Register original Host/Runtime tools then use SDK MCPServer.remove_tool
+before publishing Gateway, instead of wrapping Host decorators or
+creating a second Tool registry. Original Host Tool names still bind
+the current Security AuthZEN policy. Hidden requests must neither
+reach an Owner nor trigger remote PDP authorization.
+
+For Tool edits, inspect SDK tools/list and tools/call, input/output
+schema digests, GatewayToolVisibilityR1 positive/negative formal checks,
+protected TCP ingress, and natural Owner consumers. A finite model does
+not prove deployed HTTP, Security or physical effects. Do not enable
+live Core before service profile and client catalog refresh are
+independently verified. See docs/architecture/GATEWAY_PUBLIC_CORE_CONSUMERS_R1.md.

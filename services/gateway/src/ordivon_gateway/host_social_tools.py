@@ -9,15 +9,13 @@ from mcp.server import MCPServer
 from pydantic import Field
 
 from .host_tool_contracts import HostCollectionBytes, HostMessageBytes
-from .tool_visibility import expose_tool
 
 
 def register_host_social_tools(
     server: MCPServer,
     _host: Callable[[str, dict[str, Any]], Awaitable[Any]],
-    visible_tools: frozenset[str] | None = None,
 ) -> None:
-    @expose_tool(server, "space.create", visible_tools)
+    @server.tool(name="space.create")
     async def space_create(
         spaceRef: str, purpose: str, actorRef: str, subjectRefs: list[str] | None = None
     ) -> dict[str, Any]:
@@ -31,7 +29,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "space.get", visible_tools)
+    @server.tool(name="space.get")
     async def space_get(
         spaceRef: str,
         participantLimit: int = 200,
@@ -48,7 +46,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "space.list", visible_tools)
+    @server.tool(name="space.list")
     async def space_list(
         actorRef: str | None = None,
         subjectRef: str | None = None,
@@ -69,7 +67,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "space.subject.list", visible_tools)
+    @server.tool(name="space.subject.list")
     async def space_subject_list(
         spaceRef: str,
         afterSubjectRef: str | None = None,
@@ -86,7 +84,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "space.participation.list", visible_tools)
+    @server.tool(name="space.participation.list")
     async def space_participation_list(
         spaceRef: str,
         afterActorRef: str | None = None,
@@ -103,7 +101,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "space.participation.set", visible_tools)
+    @server.tool(name="space.participation.set")
     async def space_participation_set(
         spaceRef: str, actorRef: str, standing: Literal["joined", "left", "observer"]
     ) -> dict[str, Any]:
@@ -116,7 +114,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "topic.create", visible_tools)
+    @server.tool(name="topic.create")
     async def topic_create(
         topicRef: str, spaceRef: str, title: str, actorRef: str
     ) -> dict[str, Any]:
@@ -130,7 +128,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "topic.state.set", visible_tools)
+    @server.tool(name="topic.state.set")
     async def topic_state_set(
         topicRef: str,
         actorRef: str,
@@ -149,7 +147,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "topic.list", visible_tools)
+    @server.tool(name="topic.list")
     async def topic_list(
         spaceRef: str,
         afterTopicRef: str | None = None,
@@ -166,17 +164,17 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "topic.cursor.get", visible_tools)
+    @server.tool(name="topic.cursor.get")
     async def topic_cursor_get(actorRef: str, topicRef: str) -> dict[str, Any]:
         return await _host("topic.cursor.get", {"actorRef": actorRef, "topicRef": topicRef})
 
-    @expose_tool(server, "topic.cursor.ack", visible_tools)
+    @server.tool(name="topic.cursor.ack")
     async def topic_cursor_ack(actorRef: str, topicRef: str, cursor: int) -> dict[str, Any]:
         return await _host(
             "topic.cursor.ack", {"actorRef": actorRef, "topicRef": topicRef, "cursor": cursor}
         )
 
-    @expose_tool(server, "topic.resume", visible_tools)
+    @server.tool(name="topic.resume")
     async def topic_resume(
         topicRef: str,
         afterSequence: int = 0,
@@ -193,7 +191,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "message.post", visible_tools)
+    @server.tool(name="message.post")
     async def message_post(
         messageRef: str,
         spaceRef: str,
@@ -218,7 +216,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "message.search", visible_tools)
+    @server.tool(name="message.search")
     async def message_search(
         query: str,
         spaceRef: str | None = None,
@@ -239,7 +237,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "message.relation.add", visible_tools)
+    @server.tool(name="message.relation.add")
     async def message_relation_add(
         sourceMessageRef: str,
         relation: Literal[
@@ -258,7 +256,7 @@ def register_host_social_tools(
             },
         )
 
-    @expose_tool(server, "message.relation.list", visible_tools)
+    @server.tool(name="message.relation.list")
     async def message_relation_list(
         messageRef: str,
         direction: Literal["outgoing", "incoming", "both"] = "both",
