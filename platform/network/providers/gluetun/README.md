@@ -86,6 +86,40 @@ triggering should be attached to the EXISTING two-minute systemd reconcile
 only after end-to-end authorization and negative fault trials. The source
 module alone is not active automation.
 
+## Active bounded recovery consumer on existing systemd timer
+
+The already installed `network-v2-gluetun-owned-reconcile.timer` runs its
+native oneshot service every two minutes. The selected source adds exactly one
+`ExecStartPost` action to that same service:
+`/usr/bin/python3 /usr/local/libexec/network-v2/gluetun-native/native_switch.py --recover`.
+No new daemon, timer, WireGuard interface or proxy is created. The native
+Gluetun internal healthcheck remains responsible for prompt tunnel reconnect;
+our existing systemd timer is only a secondary quality-aware escalation.
+
+The one-shot first reads existing Prometheus Blackbox samples for Claude,
+Codex and PyPI. When all three consumers are healthy or the observations
+are UNKNOWN, it exits 0 immediately without costly whole-history scans,
+extra HTTPS requests or any API GET/PUT. Only a fresh correlated failure
+enters the bounded live quality/history/underlay and official authenticated
+Gluetun API trial. The timer's `TimeoutStartSec=3min` accommodates the
+native bounded API trial and selection rollback.
+
+`task provider:gluetun:native-bundle:validate` checks source only;
+`...:install` checks source-vs-loaded Gluetun configuration and an actually
+authorized upstream API GET, copies only the required nonsecret Python
+modules and two geographic policy JSONs to the root-owned libexec tree,
+then installs the existing updated oneshot unit and performs
+`systemctl daemon-reload`. It does not restart Gluetun, Tailscale or
+other consumers. `...:verify` proves exact source/installed file and
+systemd loaded-equivalence. The API key remains in the separate existing
+root-only mounted `/var/lib/network-v2/gluetun/auth/config.toml`.
+
+Do not call this a verified fast switchover until a real outage and
+actual consumer recovery time have been observed. Native Gluetun session
+replacement can interrupt TCP connections and rotate physical IP/country.
+A healthy no-op and missing monitor metrics remain distinct from genuine
+VPN failure.
+
 ## VPN selection consumer graph (actually measured versus pending)
 
 - **Decision evidence only**: Gluetun kernel WireGuard endpoint/country/hostname,

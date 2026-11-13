@@ -51,6 +51,7 @@ def test_snapshot_requires_active_wireguard_surfshark_and_bounded_countries():
 def test_current_healthy_never_authorizes_switch(monkeypatch):
     class NoApi:
         pass
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
     monkeypatch.setattr(switch.quality,"observe",
         lambda hours: {"recommended":{"decision":"HOLD_WORKING_ACTIVE","trialCountry":None}})
     monkeypatch.setattr(switch,"api_call",lambda *a,**kw: (_ for _ in ()).throw(AssertionError("API should not be called")))
@@ -181,3 +182,25 @@ def test_recover_benign_policy_hold_is_process_success_but_auth_unknown_is_failu
     monkeypatch.setattr(switch,"guarded_recover",
       lambda:{"standing":"NATIVE_SWITCH_FAILED","effectAttempted":True})
     assert switch.main()==1
+
+def test_systemd_health_gate_does_not_collect_full_history_when_green(monkeypatch):
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch.quality, "observe",
+        lambda **kw: (_ for _ in ()).throw(AssertionError("history should not load")))
+    monkeypatch.setattr(switch, "api_call",
+        lambda *a, **kw: (_ for _ in ()).throw(AssertionError("API should not open")))
+    result=switch.guarded_recover()
+    assert result["standing"] == "HOLD_CONSUMER_HEALTHY_OR_PARTIAL"
+    assert result["effectAttempted"] is False
+
+
+def test_systemd_blackbox_missing_is_hold_unknown_not_vpn_failure(monkeypatch):
+    monkeypatch.setattr(switch.quality, "recent_failure_witness",
+        lambda now: (_ for _ in ()).throw(OSError("PROMETHEUS_TEMPORARILY_DOWN")))
+    monkeypatch.setattr(switch.quality, "observe",
+        lambda **kw: (_ for _ in ()).throw(AssertionError("history should not load")))
+    monkeypatch.setattr(switch, "api_call",
+        lambda *a, **kw: (_ for _ in ()).throw(AssertionError("API should not open")))
+    result=switch.guarded_recover()
+    assert result["standing"] == "HOLD_CONSUMER_OBSERVATION_UNKNOWN"
+    assert result["effectAttempted"] is False

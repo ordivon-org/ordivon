@@ -196,6 +196,17 @@ def initial_preflight() -> dict:
 
 
 def guarded_recover() -> dict:
+    # An existing Prometheus 3-lane Blackbox witness is a much cheaper trigger
+    # than resampling a fully healthy VPN every two-minute systemd invocation.
+    # Only three observed failures in all lanes justify the slower real checks.
+    try:
+        recent = quality.recent_failure_witness(datetime.now(timezone.utc))
+    except (OSError, ValueError):
+        recent = None
+    if recent is not True:
+        return {"standing": ("HOLD_CONSUMER_HEALTHY_OR_PARTIAL" if recent is False
+                             else "HOLD_CONSUMER_OBSERVATION_UNKNOWN"),
+                "effectAttempted": False}
     # A one-shot guarded native settings change, not a second autonomous
     # provider or an unconditional "speed optimization" when users are healthy.
     allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
