@@ -16,7 +16,7 @@ mandatory workflow. The rules below govern consequential changes.
 
 
 1. Work inside the natural owner directory.
-2. Run that owner's native verification before claiming completion.
+2. Read prior exact-SourceCut verification receipts and the affected consumer/change scope BEFORE rerunning tests. Reuse existing scoped PASS evidence when its assumptions and inputs remain qualified. Run affected Owner-native verification only for newly required, invalidated or missing claims; distinguish reused PASS from a freshly executed PASS.
 3. Do not import another owner's internals merely because they are in the same Git tree.
 4. Cross-owner effects use the producing/consuming owners' explicit contracts.
 5. Root tooling may orchestrate checks but may not redefine owner truth.
@@ -34,6 +34,41 @@ mandatory workflow. The rules below govern consequential changes.
 14. **Proof and tests:** first state the property, assumptions, failure modes, current source/implementation and affected consumer. Select only relevant formal/model checking, implementation refinement, property/state-machine, differential/consumer-contract, integration/read-back, fault-injection/replay and Agent trajectory/holdout evaluations. Match tools to the Owner, not a universal checklist; see the testing guide. A model PASS does not prove code refinement; a test PASS does not prove universal correctness; a Runtime/Agent success does not establish domain completion.
 15. **Agent decision evidence:** distinguish OBSERVED, DECLARED, DERIVED, VERIFIED, UNKNOWN and FALSIFIED with provenance and currentness. Treat hypotheses and predictions as candidates; consider rival explanations and value of further evidence where material. A model belief, Skill read, evidence graph or Tool discovery never confers effect authority. Finish real work with implementation or justified subtraction, actual execution/observation, affected verification and repair; report explicit remaining UNKNOWN rather than fictitious success.
 16. **Integration discipline:** compare current main, relevant branches/PRs and actual consumers before retaining changes. For cross-Owner or PR-sized work, exchange evidence and counterexamples in the existing Space when useful; a message or Owner opinion is not a proof or a permission gate. Prefer the smallest verified contribution and retire superseded code rather than accumulating parallel implementations.
+
+## Evidence-reuse / incremental verification admission
+
+**A new Agent turn is not a new verification obligation.** First identify the
+claim, formal/consumer scope, source revision, verifier/toolchain, environment
+assumptions and previous accepted receipt. A status question or conceptual
+design task does not by itself authorize re-running proof, replay or CI.
+
+- REUSE_SCOPED: a prior accepted PASS covers the same immutable SourceCut,
+  exact claim, verifier and assumptions. Read the receipt and keep its
+  original evidence date. Installed/external facts require separately
+  qualified generation, principal and currentness; source equality alone
+  never certifies current production behavior.
+- AFFECTED_RECHECK: changed inputs, contracts, owner APIs, verifier
+  assumptions or actual consumers intersect the proof's qualified
+  dependency/readset. Select the minimum new obligation, not every historic
+  test. Use the existing tools/repo/convergence_plan.py for Owner/CI queue
+  and check_architecture_docs.py --agent-impact for declared LEGO impact.
+- UNKNOWN_DEPENDENCY: missing evidence, unresolved dynamic/non-Git consumers,
+  incomplete proof readset, or a non-ancestral comparison. Investigate the
+  missing edge first. The existing declared source impact always reports
+  proofReuseAdmissible=false; NO_DECLARED_HIT is NOT a proof reuse grant.
+- FALSIFIED: a scoped counterexample changes the standing of the affected
+  claim; unrelated verified claims remain available.
+
+The repository already has affected_owners.py, convergence_plan.py,
+ci_owner_shards.py and GitHub Owner CI checks. Reuse them instead of building
+a competing selector or database. A prior CI PASS on another SHA is not
+automatically equivalent to a PASS on this SHA. Do not rerun unchanged
+TLA+ models/negative controls without affected inputs, and do not equate
+formal source proof with installed/physical effect evidence.
+
+In handoffs report REUSED_EXISTING_EVIDENCE separately from NEWLY_VERIFIED,
+UNKNOWN and FALSIFIED. Prioritize new business/consumer capabilities over
+repeated verification of unchanged claims.
 
 ## Evidence-backed detailed reporting and handoffs
 

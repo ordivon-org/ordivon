@@ -27,23 +27,34 @@ unfold: specification -> TLA+ model -> model check/negative controls ->
 source conformance -> real consumer -> installed candidate proof.
 
 ## Agent procedure
-1. Bind exact Git SourceCut; inspect services/gateway/AGENTS.md, README.md,
-   mcp-surface.json and the routing/consumer source graph.
-2. Run mise run gateway:formal:verify using an exact digest-checked TLA+ JAR.
-   Positive model passes; reachability intentionally violates NeverForward;
-   unsafe routing intentionally violates ForwardedImpliesExactRoute.
-3. Run Python finite implementation checker at
-   services/gateway/formal/check_routing_conformance.py. This is bounded
-   exploration, never a universal theorem.
-4. Run mise run gateway:verify and Gateway -> Runtime/Host native
-   readback for operations with physical effects. Compare package/tool
-   surface to the actually installed candidate.
-5. Record SPECIFIED, MODEL_VERIFIED, BOUNDED_IMPLEMENTATION_CHECKED,
-   SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED separately. UNKNOWN is
-   never FALSE and never PROVEN.
-6. Retire sample tests only when the exact property has sufficiently strong
-   refinement evidence. Preserve native network, auth, deployment and Owner
-   effect verification where abstract models are insufficient.
+1. Bind the intended property, natural consumer, current Git SourceCut and
+   previous evidence receipt including its verifier/toolchain and assumptions.
+   Read exact PR head SHA and already completed native CI/Owner/Formal checks.
+   Do NOT execute a verifier merely because another Agent turn began.
+2. Use the existing tools/repo/convergence_plan.py changed-source Owner
+   selection and check_architecture_docs.py --agent-impact to locate affected
+   declared consumers. Neither projection alone admits formal proof reuse:
+   partial/dynamic readsets and non-Git assumptions retain UNKNOWN.
+3. If source, proof scope and assumptions still match the accepted receipt,
+   report REUSED_SCOPED_EVIDENCE without rerunning. If a proof dependency,
+   model, checker, assumption or novel consumer obligation changed, run only
+   the affected formal/model check and relevant negative control. The
+   unchanged GatewayToolVisibility/Routing/Observation/AuthZEN models
+   require no new TLC replay.
+4. Run bounded Python route conformance and the relevant native Gateway
+   consumer tests only for impacted implementation/readset or an explicit
+   fresh release gate. Run full gateway:verify when Gateway behavior
+   changed and the existing CI source selection has not yet qualified it;
+   do not duplicate an exact completed CI PASS.
+5. Require live installed Gateway -> Runtime/Host readback only when the
+   decision involves actual installed generation, identity, external
+   assumptions or physical effects. An older real observation remains
+   historical evidence, not automatically current state.
+6. Report REUSED_SCOPED_EVIDENCE, NEWLY_VERIFIED, AFFECTED_RECHECK,
+   UNKNOWN_DEPENDENCY and FALSIFIED separately. No Git-only source delta,
+   missing consumer observation, or no-hit result can authorize false proof
+   reuse. Retire redundant tests only when a stronger validated refinement
+   covers the same actual consumer claim.
 
 ## Human
 Review the claim/evidence ledger before using a candidate release. Reuse
