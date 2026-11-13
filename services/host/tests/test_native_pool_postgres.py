@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -141,8 +142,10 @@ def test_one_pool_serves_mcp_work_social_attention_and_status() -> None:
 
 
 @pytest.mark.parametrize("transport", ["stdio", "streamable-http"])
-def test_mcp_process_owns_and_closes_pool(monkeypatch: pytest.MonkeyPatch, transport: str) -> None:
-    """Native pool lifecycle is fenced by server.run for either transport."""
+def test_mcp_process_owns_and_closes_pool(
+    monkeypatch: pytest.MonkeyPatch, transport: str, tmp_path: Path,
+) -> None:
+    """Native pool encloses STDIO or authenticated HTTP and closes on exit."""
     from ordivon_host_v2 import mcp_server
 
     events: list[object] = []
@@ -162,6 +165,10 @@ def test_mcp_process_owns_and_closes_pool(monkeypatch: pytest.MonkeyPatch, trans
         def run(self, **kwargs: object) -> None:
             events.append(("run", kwargs))
 
+        def streamable_http_app(self, **kwargs: object) -> object:
+            events.append(("app", kwargs))
+            return object()
+
     def fake_build_server(dsn: str, *, pool: FakePool) -> FakeServer:
         assert dsn == "postgresql://invalid.invalid/unused"
         events.append(("bound", pool))
@@ -172,16 +179,38 @@ def test_mcp_process_owns_and_closes_pool(monkeypatch: pytest.MonkeyPatch, trans
     monkeypatch.setenv("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE", "2")
     monkeypatch.setattr(mcp_server, "ConnectionPool", FakePool)
     monkeypatch.setattr(mcp_server, "build_server", fake_build_server)
+    if transport == "streamable-http":
+        credential = tmp_path / "host-bearer"
+        credential.write_text("t" * 48, encoding="utf-8")
+        credential.chmod(0o600)
+        monkeypatch.setenv("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE", str(credential))
+
+        def fake_protect(app: object, *, credential_file: str, resource_url: str) -> object:
+            assert credential_file == str(credential)
+            assert resource_url == "http://127.0.0.1:8898/mcp"
+            events.append(("protect", app))
+            return app
+
+        def fake_serve(app: object, *, host: str, port: int, log_level: str) -> None:
+            assert host == "127.0.0.1" and port == 8898 and log_level == "info"
+            events.append(("serve", app))
+
+        monkeypatch.setattr(mcp_server, "protect_host_http_app", fake_protect)
+        monkeypatch.setattr(mcp_server.uvicorn, "run", fake_serve)
     mcp_server.main()
 
     assert events[1] == "open"
     assert events[2][0] == "bound"
-    assert events[3][0] == "run"
-    assert events[4] == "close"
     assert events[0][1]["max_size"] == 2
     assert events[0][1]["open"] is False
-    if transport == "streamable-http":
-        assert events[3][1]["transport"] == "streamable-http"
+    if transport == "stdio":
+        assert events[3][0] == "run"
+        assert events[4] == "close"
+    else:
+        assert [e[0] for e in events[3:-1]] == ["app", "protect", "serve"]
+        assert events[3][1]["stateless_http"] is True
+        assert events[4][1] is events[5][1]
+        assert events[-1] == "close"
 
 
 @pytest.mark.parametrize("invalid", ["0", "-1", "65"])
