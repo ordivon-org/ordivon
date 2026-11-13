@@ -51,6 +51,7 @@ ROOT = Path(__file__).resolve().parent
 OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schema.json"
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
+AGENT_HOST_ACTION_SCHEMA = ROOT / "schemas" / "agent-host-verification-action-v1.schema.json"
 
 
 def _load_task_local_json_list(path: Path) -> list[Any]:
@@ -819,6 +820,8 @@ def main() -> int:
     except (OSError, json.JSONDecodeError, CircuitContractError) as exc:
         raise SystemExit(f"verification obligation R1 failed: {exc}") from exc
 
+    if args.command in {"agent-host-actions", "agent-host-source-actions"}:
+        _validate_schema(result, AGENT_HOST_ACTION_SCHEMA, "Host Agent action projection")
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 

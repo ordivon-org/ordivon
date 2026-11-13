@@ -1,51 +1,59 @@
 # Host Agent verification knowledge — task-local R1 consumer
 
 Status: **source-only non-authoritative composition / no installed or owner-proof claim**.
-Source owner: Composition's existing \`select_impacted_obligations\`.
+Source owner: Composition's existing `select_impacted_obligations`.
 Direct consumer: an Agent/Harness reading **Host's current WorkSnapshot**.
 This is deliberately **not** a new Host tool, proof registry, verification executor,
 database table, job scheduler, cache server, or identity service.
 
 ## The business defect
 
-A Host Work currently holds human-readable \`established\`, \`unresolved\`,
-\`nextActions\` and \`referenceRefs\`. Those fields do not encode proof
+A Host Work currently holds human-readable `established`, `unresolved`,
+`nextActions` and `referenceRefs`. Those fields do not encode proof
 dependency closure. After a new Git SourceCut or Agent conversation, repeating
 every Host/Rust/PG18 test feels safe but wastes time, and it does not establish
 foreign-owner live/current validity. An old proof statement alone never proves
 the current target still matches its preconditions.
 
 The existing Composition C04 selector already computes:
-\`RECHECK_REQUIRED / UNKNOWN / REUSE_CANDIDATE\`.
+`RECHECK_REQUIRED / UNKNOWN / REUSE_CANDIDATE`.
 Do **not** create a competing invalidation engine.
 
 ## R1 Agent read-only bridge (still supported)
 
-\`project_host_agent_verification_actions\` accepts the current native Host
-\`work.get\` response, the exact **task-local** Composition proof graph, a
+`project_host_agent_verification_actions` accepts the current native Host
+`work.get` response, the exact **task-local** Composition proof graph, a
 changedRefs/unknownRefs delta, optional previous graph, and optional proofRefs
-that **must already be in** the Work's current \`referenceRefs\`.
+that **must already be in** the Work's current `referenceRefs`.
 
 It calls the existing selector, never trusts a caller-supplied impact status:
 
 | Composition finding | Agent decision | Side effect |
 | --- | --- | --- |
-| \`RECHECK_REQUIRED\` | \`RECHECK_NAMED_CONSUMER\` | Suggest **only** the impacted verifier/consumer, no execution |
-| \`UNKNOWN\` | \`QUALIFY_DEPENDENCIES_NOT_RERUN\` | Read source/Owner assumptions, never default to whole-suite run |
-| \`REUSE_CANDIDATE\` with known proof ref | \`READ_EXISTING_OWNER_PROOF\` | Read/check original Owner evidence, **not** a new test |
-| \`REUSE_CANDIDATE\` without ref | \`LOCATE_PRIOR_OWNER_PROOF\` | Locate natural Owner receipt, **not** a new test |
+| `RECHECK_REQUIRED` | `RECHECK_NAMED_CONSUMER` | Suggest **only** the impacted verifier/consumer, no execution |
+| `UNKNOWN` | `QUALIFY_DEPENDENCIES_NOT_RERUN` | Read source/Owner assumptions, never default to whole-suite run |
+| `REUSE_CANDIDATE` with known proof ref | `READ_EXISTING_OWNER_PROOF` | Read/check original Owner evidence, **not** a new test |
+| `REUSE_CANDIDATE` without ref | `LOCATE_PRIOR_OWNER_PROOF` | Locate natural Owner receipt, **not** a new test |
 
-The output is a non-executing \`ordivon.agent-host-verification-action-projection\`.
-It has \`workRef\`, exact \`expectedRevision\`, inherited impact \`basisDigest\`,
+The output is a non-executing `ordivon.agent-host-verification-action-projection`.
+
+The CLI result is checked by the existing Draft202012 validator against
+`src/ordivon_composition/schemas/agent-host-verification-action-v1.schema.json`.
+The strict schema refuses impossible impact-standing/Agent-decision pairs,
+`proofVerifiedByProjection=true`, `wholeSuiteRecheckRequested=true`,
+an eligible CAS with no legacy WorkSnapshot, or a caller asserting
+`ownerCertifiedReadsetClosure=true`. This is a typed interface check, not
+a proof that the natural Owner's dependencies or historical receipt are valid.
+It has `workRef`, exact `expectedRevision`, inherited impact `basisDigest`,
 per-proof action, summary and **an optional canonical eight-field legacy
-\`proposedWorkSnapshot\`**. That proposal replaces *only* prior
-\`verification-impact:\` prefixed \`nextActions\`, preserves established and
+`proposedWorkSnapshot`**. That proposal replaces *only* prior
+`verification-impact:` prefixed `nextActions`, preserves established and
 unresolved claims, keeps existing proof references, and adds one bounded
 "prior evidence lookup — don't rerun" summary for unaffected candidates.
-A subsequent Agent can read these actions via ordinary \`work.get\`.
+A subsequent Agent can read these actions via ordinary `work.get`.
 
 The caller may, *separately*, supply the proposed snapshot to the existing
-\`work.snapshot.commit\` CAS tool with authenticated ActorRef and
+`work.snapshot.commit` CAS tool with authenticated ActorRef and
 clientRequestId. This bridge does not write any Host state and never builds a
 second durable proof store. Terminal Works, Rust Engagement snapshots and
 unrepresentable legacy shapes get **no** commit proposal.
@@ -93,19 +101,19 @@ The original `agent-host-actions` graph mode remains available for non-Git
 changes and typed environment/effect observations. R2 shares its one
 renderer: it is a **second input route**, not a second algorithm or state
 store. The previous 9 targeted R1 tests are retained; only four new
-R2 scenarios (including actual Git CLI and tampered source) are added.
+R2 scenarios plus one strict typed-output negative test (including actual Git CLI and tampered source) are added.
 
 ### Existing CLI
 
-From \`packages/composition\` using the already-installed native environment:
+From `packages/composition` using the already-installed native environment:
 
-\`\`\`bash
+```bash
 uv run python -m ordivon_composition.verification_obligation_r1 \
   agent-host-actions /path/to/work-get.json /path/to/task-local-graph.json \
   /path/to/changed-refs.json \
   --unknown-refs /path/to/unknown-refs.json \
   --proof-refs /path/to/work-existing-proof-refs.json
-\`\`\`
+```
 
 The CLI only reads files and prints JSON; **do not launch a Runtime Job merely
 to read a file**. Use the existing Harness/Runtime capability when a real task
@@ -116,7 +124,7 @@ authenticate caller-supplied JSON or certify an installed binary by itself.
 
 ## LEGO 2.1 and thought modules
 
-\`ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)\`
+`ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)`
 
 - **I:** current typed Work response, finite task-local authority/proof graph,
   changed/unknown refs, existing Work proof references, optional prior graph.
@@ -129,14 +137,14 @@ authenticate caller-supplied JSON or certify an installed binary by itself.
   precondition **not** asserted here.
 - **post:** changed obligations yield scoped recheck candidates; unknowns
   yield qualification; other candidates yield existing-proof lookup.
-- **inv:** \`REUSE_CANDIDATE != VERIFIED\`;
-  \`UNKNOWN != FALSE\`; \`automaticVerifierExecution == false\`;
-  only \`verification-impact:\` action entries may be replaced;
+- **inv:** `REUSE_CANDIDATE != VERIFIED`;
+  `UNKNOWN != FALSE`; `automaticVerifierExecution == false`;
+  only `verification-impact:` action entries may be replaced;
   established evidence and existing references are preserved.
 - **eff:** no external effect, no Host write, no verification run.
 - **c:** bounded O(|vertices|+|edges|) Composition existing worklist plus
   O(number of Host actions); runtime/Token metrics not measured.
-- **epsilon:** \`UNKNOWN\` for missing Owner closure, dynamics, installation
+- **epsilon:** `UNKNOWN` for missing Owner closure, dynamics, installation
   and live state; no unfounded global success rate.
 - **prov:** exact source path, Git SourceCut and task-local impact basis;
   natural Owner proof references still require authenticated readback.
@@ -157,9 +165,9 @@ unchanged), task-local Python adapter (new), focused tests (new).
 
 ## Explicitly incomplete
 
-1. \`REUSE_CANDIDATE\` still requires a real Owner verifier outcome and
+1. `REUSE_CANDIDATE` still requires a real Owner verifier outcome and
    preconditions before anyone says VERIFIED/NO_RECHECK in an authoritative
-   sense. Fake proofRefs and a caller's \`dependenciesComplete=true\` do not
+   sense. Fake proofRefs and a caller's `dependenciesComplete=true` do not
    satisfy that requirement.
 2. This is **not installed through Gateway**. Actual Agent/Harness consumers
    and a peer-reviewed SourceCut remain necessary before claiming real
@@ -175,8 +183,8 @@ unchanged), task-local Python adapter (new), focused tests (new).
 
 ## Bounded acceptance — no repeated full validation
 
-Only run \`uv run pytest -q tests/test_host_agent_verification_actions.py\`
-and targeted \`ruff\`/JSON/architecture contracts after a change limited
+Only run `uv run pytest -q tests/test_host_agent_verification_actions.py`
+and targeted `ruff`/JSON/architecture contracts after a change limited
 to this adapter. Existing C04/PG18/Security/Rust proofs remain **prior
 evidence** unless their own relevant readsets change.
 

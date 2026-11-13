@@ -240,7 +240,7 @@
         "S": "No new persistence; Host owns current WorkSnapshot, Git owns SourceCut, each natural Owner owns verifier receipts and live evidence; task-local Composition projection is rebuildable",
         "pre": "Native Git reporter and CLI recomputation bind exact SourceCut and scoped path members; Owner source readset completeness is caller-declared and NOT certified; old verifier receipt and currentness separate",
         "post": "Only impacted obligations become recheck proposals, unindexed/unknown sources become qualification requests, unaffected candidates trigger prior-proof read rather than rerun; Host established/unresolved/referenceRefs unchanged",
-        "inv": "REUSE_CANDIDATE is never VERIFIED; UNKNOWN is never FALSE; no automatic verifier execution; nextActions are stable under replay; Rust Engagement/terminal Work never receives legacy CAS proposal; Direct Git source route and manual graph route use exactly one C04 selection family and one Agent action renderer; changedRefs report cannot bypass native Git CLI requalification",
+        "inv": "REUSE_CANDIDATE is never VERIFIED; UNKNOWN is never FALSE; no automatic verifier execution; nextActions are stable under replay; Rust Engagement/terminal Work never receives legacy CAS proposal; Direct Git source route and manual graph route use exactly one C04 selection family and one Agent action renderer; changedRefs report cannot bypass native Git CLI requalification; strict Draft202012 source action output rejects false proofVerifiedByProjection, impossible status/decision combinations and caller-certified Owner closure",
         "eff": "None. Read-only analysis and pure optional proposed legacy WorkSnapshot. Any Host CAS, Runtime execution or real Owner proof admission is a separate consumer-authorized effect",
         "c": "O(V+E) existing Composition impact fixed-point plus O(Host nextActions); installed Agent latency and tokens UNKNOWN",
         "epsilon": "UNKNOWN(reason=owner proof authenticity, dynamic/negative dependency closure, installed currentness and live policy not qualified; obligation=separate native Owner readback before claiming VERIFIED)",
@@ -251,13 +251,14 @@
           "packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md",
           "services/host/src/ordivon_host_v2/work_inputs.py",
           "tools/repo/source_history_legos.py",
-          "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "packages/composition/src/ordivon_composition/schemas/agent-host-verification-action-v1.schema.json"
         ],
         "unfold": "Agent Host work.get → native Git Owner source_history_legos immutable delta + natural Owner readset → existing Composition readset bridge / C04 impacted selector → shared Agent action renderer → optional Host work.snapshot.commit under separate CAS authorization → next Agent Work current read"
       },
       "evidence": {
         "tier": "SOURCE_NATIVE_GIT_IMMUTABLE_DELTA_REQUALIFIED_TARGETED_CLI_TESTED",
-        "completionClaim": "Direct actual Git SourceCut/readset→Agent Work action CLI and anti-forgery tested, previous R1 graph path preserved; Owner proof acceptance, real Host CAS and installed Gateway consumers not established",
+        "completionClaim": "Direct actual Git SourceCut/readset→Agent Work action CLI and anti-forgery tested, previous R1 graph path preserved; Owner proof acceptance, real Host CAS and installed Gateway consumers not established; typed JSON Schema negative tests refuse fabricated Owner/Verifier PASS",
         "installedCurrentness": "UNKNOWN",
         "ownerCertifiedDependencyClosure": "UNKNOWN",
         "automaticRerun": "NEVER"

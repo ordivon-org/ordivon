@@ -19,7 +19,10 @@ capability discovery, seam-specific verification, workflow state, or domain trut
   for real Git SourceCut/readset inputs use `agent-host-source-actions` with native
   Git report requalification (still not Owner-certified proof acceptance).
   It produces an optional legacy Host Work CAS snapshot proposal without
-  executing tests or converting candidate reuse into verified proof. See
+  executing tests or converting candidate reuse into verified proof.
+  The result is validated by a strict versioned JSON Schema at
+  `schemas/agent-host-verification-action-v1.schema.json`. It forbids
+  inconsistent action/status combinations and fake verifier acceptance. See
   [Agent evidence applicability R1](docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md).
 
 ## Non-claims

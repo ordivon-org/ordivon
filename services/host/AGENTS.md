@@ -33,6 +33,8 @@ Owner-proof lookup**, unknown dependencies generate **qualification**, and
 actual changed dependencies generate **only scoped recheck candidates**.
 The projection may propose an eight-field legacy `work.snapshot.commit`
 CAS payload which embeds next Agent actions; no Host schema/table is added.
+Composition now validates both Agent action CLI outputs using a strict Draft202012
+JSON Schema; impossible status→action pairs and false verifier-PASS claims are rejected.
 Never promote `REUSE_CANDIDATE` to VERIFIED or trust unauthenticated proof
 references. No new Runtime Job is needed for an unchanged Owner receipt.
 Source: [Composition consumer R1](../../packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md).

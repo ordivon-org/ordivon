@@ -12,7 +12,7 @@ import sys
 
 import pytest
 
-from ordivon_composition.cognitive_circuit_r1 import CircuitContractError
+from ordivon_composition.cognitive_circuit_r1 import CircuitContractError, _validate_schema
 from ordivon_composition.host_agent_verification_actions import (
     project_host_agent_source_readset_actions,
     project_host_agent_verification_actions,
@@ -397,3 +397,41 @@ def test_native_git_owner_cli_to_agent_current_work_readset_and_negative(tmp_pat
     denied = subprocess.run(cmd, text=True, capture_output=True, timeout=30)
     assert denied.returncode != 0
     assert "exact current Git scope" in denied.stderr
+
+
+def test_typed_agent_action_schema_rejects_false_proofs_and_impossible_decisions():
+    from pathlib import Path
+
+    schema = (
+        Path(__file__).resolve().parents[1]
+        / "src/ordivon_composition/schemas/agent-host-verification-action-v1.schema.json"
+    )
+    valid = project()
+    _validate_schema(valid, schema, "Host Agent action projection")
+    changed = json.loads(json.dumps(valid))
+    changed["actions"][0]["proofVerifiedByProjection"] = True
+    with pytest.raises(CircuitContractError):
+        _validate_schema(changed, schema, "Host Agent action projection")
+    changed = json.loads(json.dumps(valid))
+    changed["actions"][0]["agentDecision"] = "READ_EXISTING_OWNER_PROOF"
+    with pytest.raises(CircuitContractError):
+        _validate_schema(changed, schema, "Host Agent action projection")
+    changed = json.loads(json.dumps(valid))
+    changed["summary"]["wholeSuiteRecheckRequested"] = True
+    with pytest.raises(CircuitContractError):
+        _validate_schema(changed, schema, "Host Agent action projection")
+    changed = json.loads(json.dumps(valid))
+    changed["proposedHostCommitEligible"] = True
+    changed["proposedWorkSnapshot"] = None
+    with pytest.raises(CircuitContractError):
+        _validate_schema(changed, schema, "Host Agent action projection")
+
+    # Direct native Git readset mode is the same output interface.
+    native, readset = source_readset_fixture()
+    source = project_host_agent_source_readset_actions(
+        work=work_fixture(), git_source_delta=native, source_readset_evidence=readset
+    )
+    _validate_schema(source, schema, "Host Agent source action projection")
+    source["sourceReadsetScope"]["ownerCertifiedReadsetClosure"] = True
+    with pytest.raises(CircuitContractError):
+        _validate_schema(source, schema, "Host Agent source action projection")
