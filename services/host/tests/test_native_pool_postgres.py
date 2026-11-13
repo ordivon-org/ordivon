@@ -183,7 +183,7 @@ def test_mcp_process_owns_and_closes_pool(
         credential = tmp_path / "host-bearer"
         credential.write_text("t" * 48, encoding="utf-8")
         credential.chmod(0o600)
-        monkeypatch.setenv("ORDIVON_HOST_V2_BEARER_TOKEN_FILE", str(credential))
+        monkeypatch.setenv("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE", str(credential))
 
         def fake_protect(app: object, *, credential_file: str, resource_url: str) -> object:
             assert credential_file == str(credential)

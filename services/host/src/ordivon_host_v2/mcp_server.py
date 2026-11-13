@@ -104,9 +104,9 @@ def main() -> None:
         )
         # HTTP identity is enforced by Host itself; Gateway checks alone are
         # insufficient for an independently reachable loopback listener.
-        credential_file = os.environ.get("ORDIVON_HOST_V2_BEARER_TOKEN_FILE", "").strip()
+        credential_file = os.environ.get("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE", "").strip()
         if not credential_file:
-            raise RuntimeError("Host HTTP requires ORDIVON_HOST_V2_BEARER_TOKEN_FILE")
+            raise RuntimeError("Host HTTP requires ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE")
         resource_host = "127.0.0.1" if host == "localhost" else host
         host_literal = f"[{resource_host}]" if ":" in resource_host else resource_host
         resource_url = f"http://{host_literal}:{port}{path}"

@@ -29,7 +29,7 @@ For a change or cleanup, inspect the *exact real consumers*, PostgreSQL dependen
 
 **Human:** Host's native Streamable HTTP endpoint now uses the official
 MCP/Starlette bearer middleware. Configure
-\`ORDIVON_HOST_V2_BEARER_TOKEN_FILE\` as a private absolute credential file;
+\`ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE\` as a private absolute credential file;
 configure Gateway's \`ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE\` with the
 same credential bytes before activating the candidate. A systemd
 \`LoadCredentialEncrypted\` source is preferred over copying a secret into a

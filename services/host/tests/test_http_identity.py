@@ -201,8 +201,8 @@ def test_http_cli_refuses_missing_credential_before_network_bind(
 
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
     monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid-host-test-dsn")
-    monkeypatch.delenv("ORDIVON_HOST_V2_BEARER_TOKEN_FILE", raising=False)
-    with pytest.raises(RuntimeError, match="ORDIVON_HOST_V2_BEARER_TOKEN_FILE"):
+    monkeypatch.delenv("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE", raising=False)
+    with pytest.raises(RuntimeError, match="ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE"):
         main()
 
 
@@ -231,7 +231,7 @@ def test_host_http_main_installs_native_bearer_gate(
     credential, _resource = provision(tmp_path)
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
     monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid-host-test-dsn")
-    monkeypatch.setenv("ORDIVON_HOST_V2_BEARER_TOKEN_FILE", str(credential))
+    monkeypatch.setenv("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE", str(credential))
     observed = {}
 
     def capture_server(app, *, host, port, log_level):
