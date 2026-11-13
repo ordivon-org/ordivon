@@ -39,7 +39,8 @@ def test_wireguard_materialization_is_native_and_does_not_expose_private_key():
     assert "VPN_SERVICE_PROVIDER=surfshark" in env
     assert "WIREGUARD_ADDRESSES=10.64.200.9/16" in env
     assert "SERVER_REGIONS=" not in env
-    assert "SERVER_COUNTRIES=" not in env
+    assert "SERVER_COUNTRIES=" in env
+    assert "Hong Kong" not in env
     assert "UPDATER_PERIOD=480h" in env
     assert "UPDATER_MIN_RATIO=0.51" in env
     # Existing Gluetun-native LAN route retains on-LAN Tailnet directness.
@@ -143,19 +144,31 @@ def test_running_gluetun_loaded_settings_match_selected_native_sourcecut():
 
 def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
     policy = native.read_selector_policy()
-    assert policy == {
-        "regions": [],
-        "selectedCountries": [],
-        "excludedCountries": [],
-    }
+    assert policy["regions"] == []
+    assert policy["excludedCountries"] == ["Hong Kong"]
+    assert len(policy["selectedCountries"]) == 99
+    assert len(set(policy["selectedCountries"])) == 99
+    assert "Hong Kong" not in policy["selectedCountries"]
+    assert {"Singapore", "Japan", "South Korea", "Germany", "United States"} <= set(policy["selectedCountries"])
+    env_actual = native.generate_env(
+        native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"),
+        "10.64.200.9/16",
+    )
+    country_line = next(line for line in env_actual.splitlines() if line.startswith("SERVER_COUNTRIES="))
+    assert "Hong Kong" not in country_line
+    assert len(country_line.removeprefix("SERVER_COUNTRIES=").split(",")) == 99
+    with pytest.raises(ValueError, match="requires a positive Gluetun"):
+        native.parse_selector_policy(__import__("json").dumps({
+            "regions": [], "selectedCountries": [], "excludedCountries": ["Hong Kong"],
+        }))
     inherited = native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n")
     expanded = {
         **policy,
-        "selectedCountries": ["Singapore", "Hong Kong", "Malaysia"],
+        "selectedCountries": ["Singapore", "Japan", "Malaysia"],
     }
     rendered = native.generate_env(inherited, "10.64.200.9/16", expanded)
     assert "SERVER_REGIONS=" not in rendered
-    assert "SERVER_COUNTRIES=Singapore,Hong Kong,Malaysia" in rendered
+    assert "SERVER_COUNTRIES=Singapore,Japan,Malaysia" in rendered
     assert "WIREGUARD_ENDPOINT_IP" not in rendered
 
     # JSON duplicate keys must never silently replace approved country or
@@ -188,12 +201,12 @@ def test_upstream_ordered_country_preview_preserves_native_provider_and_fail_clo
     preview = {
         **policy,
         "regions": [],
-        "selectedCountries": ["Singapore", "Malaysia", "Hong Kong", "Thailand", "Taiwan"],
+        "selectedCountries": ["Singapore", "Malaysia", "Japan", "Thailand", "Taiwan"],
         "selectionMode": "ordered",
     }
     inherited = native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n")
     selected = native.generate_env(inherited, "10.64.200.9/16", preview)
-    assert "SERVER_COUNTRIES=Singapore,Malaysia,Hong Kong,Thailand,Taiwan" in selected
+    assert "SERVER_COUNTRIES=Singapore,Malaysia,Japan,Thailand,Taiwan" in selected
     assert "SERVER_SELECTION_MODE=ordered" in selected
     assert "SERVER_REGIONS=" not in selected
     assert "VPN_SERVICE_PROVIDER=surfshark" in selected
@@ -203,7 +216,8 @@ def test_upstream_ordered_country_preview_preserves_native_provider_and_fail_clo
     default = native.generate_env(inherited, "10.64.200.9/16")
     assert "SERVER_SELECTION_MODE" not in default
     assert "SERVER_REGIONS=" not in default
-    assert "SERVER_COUNTRIES=" not in default
+    assert "SERVER_COUNTRIES=" in default
+    assert "Hong Kong" not in default
 
     # A country-priority source must not mistakenly report the live single
     # country / legacy stable OCI as already conformant.

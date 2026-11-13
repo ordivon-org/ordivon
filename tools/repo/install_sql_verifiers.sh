@@ -41,7 +41,7 @@ download \
  'https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.6-1.pgdg24.04+2_amd64.deb' \
  "$scratch/pg-client18.6.deb" \
  'b9d10d99a73bf7aa375be2fe36626c40499cfdf553d0ad174674a88a1b256b43' \
- 'https://download.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.6-1.pgdg24.04+2_amd64.deb'
+ 'https://apt-archive.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.6-1.pgdg24.04+2_amd64.deb'
 download \
  'https://github.com/osquery/osquery/releases/download/5.23.1/osquery_5.23.1-1.linux_amd64.deb' \
  "$scratch/osquery_5.23.1-1.linux_amd64.deb" \
