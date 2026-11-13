@@ -63,6 +63,34 @@ A CREATED Run is executed with `run`. A PAUSED Run requires `resume`. A terminal
 
 Multiple workers may open the same PostgreSQL Harness schema, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
 
+## Agent semantic proof reuse before discretionary verifier execution
+
+For an Agent continuing a **semantic Work** (distinct from a Harness Run),
+first read the current Host `work.get` and its Owner evidence references.
+A new Git SourceCut, restarted Agent or different conversation is **not by
+itself** permission to rerun all old verification jobs. The source-only
+Composition consumer `agent-host-source-actions` can combine the native
+`tools/repo/source_history_legos.py` scoped Git delta with Owner-declared
+readsets to produce machine-typed actions for the Agent:
+
+- `RECHECK_NAMED_CONSUMER`: only the affected obligation's verifier is a
+  candidate for a new execution, after normal Harness/Runtime admission.
+- `QUALIFY_DEPENDENCIES_NOT_RERUN`: read back missing dependency/negative
+  consumer witnesses, **do not automatically execute** verifiers.
+- `READ_EXISTING_OWNER_PROOF` or `LOCATE_PRIOR_OWNER_PROOF`: re-use
+  natural Owner evidence only after authenticating its scope/currentness.
+  `REUSE_CANDIDATE` is never itself `VERIFIED`.
+
+When files are added/removed in the Git scope, the existing Composition C04
+selector conservatively carries **UNKNOWN** for old positive readsets until
+their negative/glob/dynamic dependency closure is qualified. The versioned
+Agent action JSON Schema explicitly forbids false proof admission and
+whole-suite replay flags. This is a **source-level optional consumer path**;
+it is not installed in Harness execution policy and must not block a live
+Run, override native Runtime receipt status, or impersonate an actual Owner
+verifier. See
+`packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md`.
+
 ## Provider recovery
 
 Retained Provider Call status controls the next action. A safely failed pre-dispatch call may be retried within budget. A lost response after durable completion is replayed from Store. Ambiguous dispatch remains UNKNOWN until reconciled; transport loss is not implicit redispatch permission.
