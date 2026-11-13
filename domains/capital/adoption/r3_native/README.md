@@ -87,6 +87,10 @@ those exact-by-digest outputs and the Qlib study/predictions in another
 process, without re-running native Nautilus. Its stable r3sim_... key is
 simulation-run-specific, not a real customer mapping. The original
 PostgreSQL Paper accounting ledger owns all financial daily effects.
+The original native fill-report-derived native_fill_claims in the outcome
+is reconciled to Paper fills including mature account-scoped trade ID,
+price, fee, quantity and timestamp. Terminal cash equality alone is
+insufficient: balancing buy/sell price or fee errors is explicitly refused.
 See docs/FINANCE_PAPER_INVESTMENT_R1.md for invocation, PIT/rights limits,
 physical PG acceptance and replay. Never promote this producer or
 retrospective study to an authorized live strategy.

@@ -11,7 +11,8 @@ import csv
 import hashlib
 import json
 import re
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from io import StringIO
 from os import environ
 from pathlib import Path
@@ -31,6 +32,19 @@ def _digest(raw: bytes) -> str:
 def _read(path: Path) -> tuple[dict | list, str]:
     raw = path.read_bytes()
     return json.loads(raw), _digest(raw)
+
+
+def _native_usd_minor(raw: object) -> int:
+    """Exact cents, never floating point or rounded inferred execution costs."""
+    if type(raw) is not str:
+        raise ValueError("native execution economics disagree")
+    try:
+        cents = Decimal(raw) * 100
+    except InvalidOperation as exc:
+        raise ValueError("native execution economics disagree") from exc
+    if not cents.is_finite() or cents != cents.to_integral_value():
+        raise ValueError("native execution economics disagree")
+    return int(cents)
 
 
 def run_simulated_paper(
@@ -168,6 +182,74 @@ def run_simulated_paper(
         or (fills == 0 and state.cash_minor != 1_000_000)
     ):
         raise ValueError("native simulation and Paper batch economic identities disagree")
+
+    # A valid terminal net amount DOES NOT prove the individual native
+    # execution events were faithfully projected. False buy/sell prices can
+    # cancel economically; source each event to native Nautilus fill report
+    # exposed by the same genuine producer, not to account summary alone.
+    native_claims = outcome.get("native_fill_claims")
+    if type(native_claims) is not list or len(native_claims) != fills:
+        raise ValueError("native execution economics disagree")
+    actual_fills = [
+        {
+            "side": side,
+            "fill_id": fill.fill_id,
+            "symbol": fill.symbol,
+            "shares": fill.shares,
+            "price_minor": fill.price_minor,
+            "fee_minor": fill.fee_minor,
+            "filled_at": fill.filled_at,
+        }
+        for day in decoded
+        for side, values in (("BUY", day.buys), ("SELL", day.sells))
+        for fill in values
+    ]
+    try:
+        claimed = [
+            {
+                "side": claim["side"],
+                # Reuse the mature Nautilus→Paper bridge's account-scoped ID,
+                # rather than mistaking the raw native trade_id for Paper ID.
+                "fill_id": f'nautilus-paper:SIM-001:{claim["fill_id"]}',
+                "symbol": claim["symbol"],
+                "shares": claim["shares"],
+                "price_minor": claim["price_minor"],
+                "fee_minor": claim["fee_minor"],
+                "filled_at": datetime.fromisoformat(claim["filled_at"]),
+            }
+            for claim in native_claims
+        ]
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ValueError("native execution economics disagree") from exc
+    if (
+        sorted(claimed, key=lambda r: (r["side"], r["fill_id"]))
+        != sorted(actual_fills, key=lambda r: (r["side"], r["fill_id"]))
+        or any(
+            (type(row["shares"]) is not int
+             or type(row["price_minor"]) is not int
+             or type(row["fee_minor"]) is not int
+             or row["filled_at"].utcoffset() is None)
+            for row in claimed
+        )
+        or outcome.get("native_order_count") != (1 if fills == 0 else 2)
+        or outcome.get("no_entry_cancelled_exit_suppressed") is not (fills == 0)
+        or _native_usd_minor(outcome.get("fee_total"))
+            != sum(row["fee_minor"] for row in actual_fills)
+        or _native_usd_minor(outcome.get("net_cash_gain_usd"))
+            != state.cash_minor - 1_000_000
+    ):
+        raise ValueError("native execution economics disagree")
+    if fills == 2:
+        buy = next(row for row in actual_fills if row["side"] == "BUY")
+        sell = next(row for row in actual_fills if row["side"] == "SELL")
+        if (
+            buy["shares"] != 1 or sell["shares"] != 1
+            or _native_usd_minor(outcome.get("buy_price")) != buy["price_minor"]
+            or _native_usd_minor(outcome.get("sell_price")) != sell["price_minor"]
+        ):
+            raise ValueError("native execution economics disagree")
+    elif outcome.get("buy_price") is not None or outcome.get("sell_price") is not None:
+        raise ValueError("native execution economics disagree")
 
     # The account is derived, NEVER mapped from a user/broker account string.
     evidence = {

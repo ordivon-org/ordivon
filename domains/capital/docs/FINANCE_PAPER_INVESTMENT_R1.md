@@ -260,6 +260,20 @@ digest AND receipt and checked in independent read-only account consumers.
 The Qlib/native source bytes are co-produced evidence, not a third-party
 cryptographic signature.
 
+The original Nautilus BacktestNode fill report is now a separate direct
+producer of the narrow native_fill_claims inside the same native outcome.
+The consumer checks each raw native trade ID, side, instrument, integer
+quantity, exact minor-unit execution price and USD fee, and UTC execution
+instant against the corresponding PaperFill. It reuses the pre-existing
+nautilus_paper_bridge account scope mapping:
+native trade_id T-... => Paper fill_id nautilus-paper:SIM-001:T-...
+The native total fee, cash delta, buy and sell prices and order count
+must also agree. This closes the RED example where both Paper prices can
+be increased by $1, or fees redistributed between legs, without changing
+terminal cash or the co-produced PaperSession hash. Changing the Native
+claim and the Paper session together remains caller-coordination risk,
+not independently signed market truth.
+
 This is an ordered sequence of EXISTING per-day PostgreSQL serializable
 transactions, NOT an atomic multi-day transaction. A crash can leave a
 committed prefix; rerun the EXACT same four inputs to safely replay and

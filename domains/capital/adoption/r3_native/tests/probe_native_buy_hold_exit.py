@@ -401,6 +401,20 @@ standing = {
     "native_engine": "NautilusTrader BacktestNode Strategy/OrderFilled native",
     "native_order_count": len(order_rows),
     "native_fill_count": len(fill_rows),
+    # Independently source each Paper economic event to Nautilus's ACTUAL
+    # BacktestNode native fill report, not a replay of Paper's own projection.
+    "native_fill_claims": [
+        {
+            "side": str(row["order_side"]),
+            "fill_id": str(row["trade_id"]),
+            "symbol": SYMBOL,
+            "shares": int(Decimal(str(row["last_qty"]))),
+            "price_minor": cents(Decimal(str(row["last_px"]))),
+            "fee_minor": cents(Decimal(str(row["commission"]).split()[0])),
+            "filled_at": row["ts_event"].isoformat(),
+        }
+        for row in fill_rows
+    ],
     "native_open_position_count": len(open_native_positions),
     "buy_price": str(price_buy) if price_buy is not None else None,
     "sell_price": str(price_sell) if price_sell is not None else None,
