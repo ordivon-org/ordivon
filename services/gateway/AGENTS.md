@@ -201,3 +201,39 @@ the same service credential through the MCP SDK's native Bearer middleware.
 Configure both ends before enabling the authenticated Host HTTP release.
 The transport credential does **not** establish a caller's human or Agent
 identity or grant object-level Host authorization.
+
+## Public Core: consumer and native SDK guidance
+
+The canonical Agent Plugin still points to one Gateway MCP endpoint.
+Full remains the production default. Core has 17 tools; optional
+Collaboration adds five real Agent-task consumers (22 tools).
+During Gateway SDK lifespan use official MCPServer.list_tools and
+remove_tool to project the exact process-static public allowlist, including
+excluding unrecognized future Tool registrations. Do not wrap Host
+decorators or create a second Tool registry. Original Host Tool names still bind
+the current Security AuthZEN policy. Hidden requests must neither
+reach an Owner nor trigger remote PDP authorization.
+
+For Tool edits, inspect SDK tools/list and tools/call, input/output
+schema digests, GatewayToolVisibilityR1 positive/negative formal checks,
+protected TCP ingress, and natural Owner consumers. A finite model does
+not prove deployed HTTP, Security or physical effects. Do not enable
+live Core or Collaboration before service profile, specialist endpoint
+routing and client catalog refresh are
+independently verified. See docs/architecture/GATEWAY_PUBLIC_CORE_CONSUMERS_R1.md.
+
+
+## Candidate Security credential-context boundary (2026-11-14)
+
+When testing the Gateway under a genuine systemd service context,
+do not interpret CAPABILITY_AUTHZ_UNAVAILABLE from an arbitrary Runtime
+Workspace as proof of a production PDP denial. A systemd credential
+with mode 0440 is valid under CREDENTIALS_DIRECTORY and correctly
+rejected by the shared private-file reader if the OS context is
+missing. The actual service also may supply a CA trust bundle.
+Never copy production credential bytes into test Workspaces, relax
+the file mode just to make a test pass, or substitute an unverified
+test Principal for a real user. Reuse the existing loader and
+native MCP SDK; a synthetic credential test covers this binding.
+For installed acceptance use only the approved service identity,
+and keep candidate real PDP/Host claims UNKNOWN otherwise.

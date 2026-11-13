@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import os
 from importlib.metadata import version
 from pathlib import Path
 
@@ -11,6 +12,15 @@ from mcp import Client
 from ordivon_gateway.mcp_server import build_server
 
 SURFACE_PATH = Path(__file__).resolve().parents[2] / "mcp-surface.json"
+SURFACE_PROFILE = os.environ.get("ORDIVON_GATEWAY_SURFACE_PROFILE", "full")
+SURFACE_MANIFESTS = {
+    "full": "mcp-surface.json",
+    "core": "mcp-surface-core.json",
+    "collaboration": "mcp-surface-collaboration.json",
+}
+if SURFACE_PROFILE not in SURFACE_MANIFESTS:
+    raise SystemExit("Gateway surface profile must be full, core, or collaboration")
+SURFACE_PATH = SURFACE_PATH.with_name(SURFACE_MANIFESTS[SURFACE_PROFILE])
 SURFACE = json.loads(SURFACE_PATH.read_text(encoding="utf-8"))
 EXPECTED_VERSION = SURFACE["packageVersion"]
 EXPECTED = list(SURFACE["tools"])
@@ -39,7 +49,7 @@ def native_tool_contract_digest(tools: list) -> str:
 
 
 async def main() -> None:
-    async with Client(build_server(), raise_exceptions=True) as client:
+    async with Client(build_server(surface=SURFACE_PROFILE), raise_exceptions=True) as client:
         listed = await client.list_tools()
         names = sorted(tool.name for tool in listed.tools)
         contract_digest = native_tool_contract_digest(listed.tools)

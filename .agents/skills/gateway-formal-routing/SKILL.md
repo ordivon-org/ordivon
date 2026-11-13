@@ -79,3 +79,47 @@ Validate exact Owner semantics through independent real loopback RPCs, not
 only mocked connector calls; do not infer production latency from loopback.
 Preserve long-running Runtime Jobs on HTTP cancellation; never blindly replay
 an execution submission after uncertain delivery.
+
+
+## Public MCP Tool visibility R1
+
+Reuse normal Host registrars and official MCP SDK list_tools/remove_tool during pre-service lifespan. The
+thought LEGO is information hiding plus explicit falsification; the
+logic LEGO is a static Core subset Collaboration subset Full allowed-name projection. The
+ability LEGO is the SDK's registered tools and pre-publication removal,
+not a new policy engine, tool protocol or Host decorator.
+
+Run GatewayToolVisibilityR1.tla via gateway:formal:verify with
+safe Core/Collaboration/Full configs and expected reachable/unsafe counterexamples.
+Run SDK negative calls for all 21 Core-hidden tools, inject a
+future unrecognized tool, and verify a missing required tool refuses
+startup. Test Collaboration's 10-step Owner SDK consumer workflow, then
+real local TCP Core/Collaboration/Full with fake AuthZEN separately.
+Middleware can run before SDK unknown-tool dispatch, so any
+public-profile-hidden name must not cause authorization probes.
+
+For release, compare candidate and current ACTIVE profile input/output
+schema digests and verify actual installed profile by live tools/list.
+Source, formal, installed candidate and external-client claims must
+stay separate. Do not delete native tests because finite TLA+ passed.
+
+
+## AuthZEN installed-service acceptance and evidence boundary
+
+A source-isolated candidate can register the exact 22 Collaboration
+tools while returning CAPABILITY_AUTHZ_UNAVAILABLE for Host reads:
+this alone does not distinguish a missing systemd credential context,
+CA trust, a real PDP outage, or a real denial. The mature Gateway
+private-file loader requires CREDENTIALS_DIRECTORY for an approved
+0440 systemd credential. Verify the runtime context without showing
+or exporting credential contents. The synthetic AuthZEN binding test
+covers this cross-module contract; existing upstream credential
+tests already establish the file-mode semantics. Do not repeatedly
+retest those unchanged properties without a downstream impact.
+
+Treat installed Full Principal readback, candidate synthetic PDP,
+candidate real PDP, and external Plugin user acceptance as distinct
+proof obligations. Do not silently assume any of the latter three
+from a successful Full read. Real candidate Security checks must
+use an approved installed service identity; UNKNOWN does not
+become FALSE.

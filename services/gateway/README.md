@@ -1,5 +1,56 @@
 # Ordivon Gateway
 
+## Progressive public MCP surfaces: Core / Collaboration (candidate)
+
+The existing ordivon-control-plane Agent Plugin already connects to one
+Gateway HTTPS MCP endpoint. Gateway 0.11.0 supports process-selected
+Full (38), Core (17), and Collaboration (22) MCP surfaces. Normal
+production startup remains full until actual external consumer migration.
+
+- Public Core consists of capability search, Work continuity, existing
+  collaboration search/post, Attention change/ack, and exact Runtime
+  execution/receipt/Artifact operations. It reuses verified existing Owner
+  operations, not a new domain API or a generic invoke dispatcher.
+- Collaboration adds five real Host consumer methods to Core:
+  actor.declare, space.create, space.get, topic.create, attention.reentry.
+  The task-space-reentry Skill requires space.get and attention.reentry,
+  while first-time collaboration requires Actor/Space/Topic bootstrap.
+- Host advanced administration, subscriptions, topic cursor management and
+  Research resolution remain in Full or their natural Owner APIs.
+  No natural-owner state or contract is copied into Gateway.
+- Core and Collaboration are static per process. During MCP SDK lifespan,
+  the server uses official list_tools/remove_tool to drop every actual
+  registered tool not in the selected profile, including unknown future
+  registrations. Missing required tools refuse startup. Hidden tools are
+  neither callable nor authorized through the selected MCP server. This is NOT an authorization grant, a per-session
+  mutable Tool registry, or an Agent Run completion claim.
+- Public Host read/write tools retain their original names so the
+  existing Security AuthZEN object-level binding remains exact.
+  Changing those names without independently qualifying the Security
+  contract would create an unsafe authorization gap.
+- Each surface has a separate SDK-verified manifest and input/output
+  contract digest. Select ORDIVON_GATEWAY_SURFACE_PROFILE=core or
+  =collaboration for BOTH release preflight and service startup. The
+  default is full; unsupported values fail startup/preflight.
+  If the installed release offers multiple profiles, verify its actually active
+  profile and set ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE for the install
+  preflight. Never compare Core against an unrelated current Full manifest.
+
+- No second Gateway process, new Handler Registry, SQLite persistence,
+  Tool retry mechanism, credentials, or Plugin packaging system is added.
+  One HTTP endpoint serves exactly one process-selected profile; this source
+  patch does not deploy multiple endpoints or impersonate an Agent-specific
+  scope. A simultaneous specialist endpoint would require an independently
+  qualified authenticated deployment.
+
+Before promoting Core or Collaboration on the Plugin-facing endpoint, verify the installed
+service identity, real HTTP tools/list, denied hidden tools, Host read/write
+Security grants, the natural Owner effect, and client catalog refresh.
+Test an entire Work read/commit, collaboration search/post, and execution
+submit/resolve/observe/Artifact delivery as the actual external Principal.
+These source tests do not claim that deployment or client refresh happened.
+
+
 Thin, non-authoritative northbound MCP adapter over Ordivon natural owners.
 
 Gateway owns only:

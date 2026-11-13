@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.mcp-tool-surface",
   "service": "ordivon-gateway",
-  "packageVersion": "0.10.9",
+  "packageVersion": "0.11.0",
   "surfaceEpoch": 10,
   "tools": [
     "actor.declare",

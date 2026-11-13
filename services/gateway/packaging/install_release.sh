@@ -34,10 +34,38 @@ if [ ! -d "$RELEASE" ]; then
   trap - EXIT
 fi
 
+# Compare the candidate to the CURRENT active public ABI, never Core against
+# an unrelated Full manifest. The release files alone cannot prove which
+# profile a running two-profile service selected.
+SURFACE_PROFILE="$(printenv ORDIVON_GATEWAY_SURFACE_PROFILE || true)"
+CURRENT_PROFILE="$(printenv ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE || true)"
+if [ -z "$SURFACE_PROFILE" ]; then SURFACE_PROFILE=full; fi
+case "$SURFACE_PROFILE" in
+  full) CANDIDATE_MANIFEST="$RELEASE/mcp-surface.json" ;;
+  core) CANDIDATE_MANIFEST="$RELEASE/mcp-surface-core.json" ;;
+  collaboration) CANDIDATE_MANIFEST="$RELEASE/mcp-surface-collaboration.json" ;;
+  *) echo "Gateway surface profile must be full, core, or collaboration" >&2; exit 2 ;;
+esac
+if [ -e "$PREFIX/current" ] && [ -f "$PREFIX/current/mcp-surface-core.json" ] \
+   && [ -z "$CURRENT_PROFILE" ]; then
+  echo "installed Gateway supports multiple profiles: require verified ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE" >&2
+  exit 2
+fi
+if [ -z "$CURRENT_PROFILE" ]; then CURRENT_PROFILE=full; fi
+case "$CURRENT_PROFILE" in
+  full) CURRENT_MANIFEST="$PREFIX/current/mcp-surface.json" ;;
+  core) CURRENT_MANIFEST="$PREFIX/current/mcp-surface-core.json" ;;
+  collaboration) CURRENT_MANIFEST="$PREFIX/current/mcp-surface-collaboration.json" ;;
+  *) echo "current Gateway surface profile must be full, core, or collaboration" >&2; exit 2 ;;
+esac
+if [ -e "$PREFIX/current" ] && [ ! -f "$CURRENT_MANIFEST" ]; then
+  echo "current Gateway active profile manifest is absent" >&2
+  exit 2
+fi
 /usr/bin/python3 "$SCRIPT_DIR/verify_tool_surface.py" \
-  "$RELEASE/mcp-surface.json" \
+  "$CANDIDATE_MANIFEST" \
   "$RELEASE/pyproject.toml" \
-  "$PREFIX/current/mcp-surface.json"
+  "$CURRENT_MANIFEST"
 
 if [ ! -f "$RELEASE/.python-version" ]; then
   echo "release is missing .python-version" >&2

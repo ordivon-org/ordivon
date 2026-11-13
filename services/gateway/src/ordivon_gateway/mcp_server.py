@@ -3,9 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from importlib.metadata import version as package_version
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
 import uvicorn
@@ -23,7 +24,11 @@ from .access_auth import (
 )
 from .audit import GatewayAuditMiddleware
 from .authzen_authorizer import AuthZenPrincipalAuthorizer
-from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
+from .capability_authz import (
+    CapabilityAuthorizer,
+    GatewayCapabilityAuthorizationMiddleware,
+    resolve_authorization_target,
+)
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
@@ -37,6 +42,7 @@ from .contracts import (
 from .host_tools import register_host_tools
 from .http_ingress_guard import GatewayHTTPIngressGuard
 from .service import GatewayError, GatewayService
+from .tool_visibility import PUBLIC_TOOL_PROFILES, project_registered_tools
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
 
@@ -159,11 +165,18 @@ def build_server(
     capability_authorizer: CapabilityAuthorizer | None = None,
     protect_artifact_reads: bool = False,
     require_http_execution_identity: bool = False,
+    surface: Literal["full", "core", "collaboration"] = "full",
 ) -> MCPServer:
+    if surface not in {"full", "core", "collaboration"}:
+        raise ValueError("Gateway surface must be full, core, or collaboration")
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
     @asynccontextmanager
     async def gateway_lifespan(_server):
+        # Official SDK registration is authoritative, not a guessed hidden
+        # list. Project once before servicing any MCP client request.
+        if surface != "full":
+            await project_registered_tools(_server, PUBLIC_TOOL_PROFILES[surface])
         try:
             yield {}
         finally:
@@ -186,7 +199,19 @@ def build_server(
         or protect_artifact_reads
         or require_http_execution_identity
     ):
-        server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
+        # Core tools are removed with the official SDK before serving.
+        # Avoid invoking a remote PDP for a memorized hidden Tool name:
+        # middleware runs before the SDK's eventual Unknown Tool dispatch.
+        def visible_authorization_target(tool_name: str, arguments: Mapping[str, Any]):
+            if surface != "full" and tool_name not in PUBLIC_TOOL_PROFILES[surface]:
+                return None
+            return resolve_authorization_target(tool_name, arguments)
+
+        server.middleware.append(
+            GatewayCapabilityAuthorizationMiddleware(
+                capability_authorizer, target_resolver=visible_authorization_target
+            )
+        )
 
     @server.tool(name="system.describe")
     def system_describe() -> SystemDescription:
@@ -458,12 +483,16 @@ def _capability_authorizer_from_env() -> CapabilityAuthorizer | None:
 def main() -> None:
     _reject_retired_worker_database_config()
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
+    surface_profile = os.environ.get("ORDIVON_GATEWAY_SURFACE_PROFILE", "full")
+    if surface_profile not in {"full", "core", "collaboration"}:
+        raise RuntimeError("ORDIVON_GATEWAY_SURFACE_PROFILE must be full, core, or collaboration")
     gateway = GatewayService(McpOwnerCaller.from_env())
     server = build_server(
         gateway,
         capability_authorizer=_capability_authorizer_from_env(),
         protect_artifact_reads=(transport == "streamable-http"),
         require_http_execution_identity=(transport == "streamable-http"),
+        surface=surface_profile,
     )
     if transport == "stdio":
         server.run()
