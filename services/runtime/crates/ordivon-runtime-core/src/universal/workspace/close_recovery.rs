@@ -418,6 +418,8 @@ pub(crate) fn remove_git_workspace(
 ) -> Result<WorkspaceCloseResult, UniversalExecError> {
     request.validate_shape()?;
     config.ensure_store()?;
+    // Do not unlink the only durable recovery intent while a batch is partial.
+    ensure_workspace_mutation_quiescent(config, &request.workspace_id)?;
     let record_path = config.workspace_record_path(&request.workspace_id);
     let target = config.workspace_path(&request.workspace_id);
 

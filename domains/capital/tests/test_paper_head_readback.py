@@ -271,3 +271,35 @@ def test_pg_replay_rejects_corrupt_existing_receipt():
         )
     with pytest.raises(ValueError, match="stored request disagree"):
         store.close_session(key, day)
+
+
+def test_simulation_run_claim_is_durably_bound_to_paper_request_and_receipt():
+    """A forged run/Native provenance on a PG receipt must fail exact readback."""
+    dsn = os.environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PostgreSQL required for the real-run provenance check")
+    key = "sim-readback-" + uuid4().hex
+    day = date(2026, 1, 8)
+    evidence = {
+        "standing": "SIMULATION_ONLY_CALLER_DECLARED",
+        "native_account": "SIM-001",
+        "model_study_sha256": "a" * 64,
+        "prediction_sha256": "b" * 64,
+        "native_result_sha256": "c" * 64,
+        "sessions_sha256": "d" * 64,
+    }
+    receipt = PostgresPaperClose(dsn).close_session(
+        key, PaperSession(day, None, 1_000_000, 900_000, {}, ()),
+        simulation_evidence=evidence,
+    )
+    assert receipt["simulation_evidence"] == evidence
+    assert read_latest_committed_paper_close(dsn, key) == receipt
+    with psycopg.connect(dsn) as db:
+        db.execute(
+            "UPDATE ordivon_paper.daily_close SET receipt = jsonb_set("
+            "receipt, '{simulation_evidence,standing}', '\"FORGED_PIT\"'::jsonb) "
+            "WHERE account_key = %s AND session = %s",
+            (key, day),
+        )
+    with pytest.raises(ValueError, match="stored request disagree"):
+        read_latest_committed_paper_close(dsn, key)

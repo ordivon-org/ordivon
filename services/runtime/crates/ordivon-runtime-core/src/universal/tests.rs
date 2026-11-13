@@ -4256,6 +4256,188 @@ fn workspace_batch_mutation_preflights_before_writing() {
 }
 
 #[test]
+fn workspace_batch_crash_after_first_file_exact_replay_and_close_fence() {
+    let sandbox = Sandbox::new("batch-crash-after-first");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let id = "workspace-batch-crash";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let before = "baseline\n";
+    let after = "baseline\naccepted\n";
+    let added = "print('committed once')\n";
+    let request = WorkspaceMutateRequest {
+        schema_version: 1,
+        workspace_id: id.to_string(),
+        mutations: vec![
+            WorkspaceMutation {
+                relative_path: "README.md".to_string(),
+                mode: WorkspaceMutationMode::Append,
+                content: "accepted\n".to_string(),
+                expected_digest: Some(sha256_bytes(before.as_bytes())),
+                expected_text: None,
+            },
+            WorkspaceMutation {
+                relative_path: "tool.py".to_string(),
+                mode: WorkspaceMutationMode::Write,
+                content: added.to_string(),
+                expected_digest: None,
+                expected_text: None,
+            },
+        ],
+    };
+    // Crash state is generated from the exact preflight intent schema: durable
+    // pending descriptor, first atomic file done, second file not created.
+    let journal = serde_json::json!({
+        "schemaVersion": 1,
+        "workspaceId": id,
+        "requestDigest": sha256_bytes(&serde_json::to_vec(&request).unwrap()),
+        "entries": [
+            {"relativePath":"README.md", "beforeContent":before,
+             "beforeDigest":sha256_bytes(before.as_bytes()),
+             "afterContent":after, "afterDigest":sha256_bytes(after.as_bytes())},
+            {"relativePath":"tool.py", "beforeContent":null,
+             "beforeDigest":null,
+             "afterContent":added, "afterDigest":sha256_bytes(added.as_bytes())}
+        ]
+    });
+    let intent = config
+        .workspace_cache_path(id)
+        .join("pending-mutation-v1.json");
+    write_json_atomic(&intent, &journal).unwrap();
+    fs::write(config.workspace_path(id).join("README.md"), after).unwrap();
+    assert!(!config.workspace_path(id).join("tool.py").exists());
+
+    let different = WorkspaceMutateRequest {
+        mutations: vec![WorkspaceMutation {
+            content: "NOT THE SAME REQUEST".to_string(),
+            ..request.mutations[0].clone()
+        }],
+        ..request.clone()
+    };
+    assert_eq!(
+        mutate_workspace(&config, &different).unwrap_err().code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert_eq!(
+        remove_git_workspace(
+            &config,
+            &WorkspaceCloseRequest {
+                schema_version: 1,
+                workspace_id: id.to_string(),
+                expected_source_state_digest: None,
+                force: false,
+                consumer_released: true
+            }
+        )
+        .unwrap_err()
+        .code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert!(!config.workspace_path(id).join("tool.py").exists());
+    assert!(intent.exists());
+
+    let recovered = mutate_workspace(&config, &request).unwrap();
+    assert_eq!(recovered.mutations.len(), 2);
+    assert_eq!(
+        recovered.mutations[0].after_digest,
+        sha256_bytes(after.as_bytes())
+    );
+    assert_eq!(
+        fs::read_to_string(config.workspace_path(id).join("README.md")).unwrap(),
+        after
+    );
+    assert_eq!(
+        fs::read_to_string(config.workspace_path(id).join("tool.py")).unwrap(),
+        added
+    );
+    assert!(!intent.exists(), "all-file readback clears durable intent");
+}
+
+#[test]
+fn workspace_batch_crash_external_drift_keeps_intent_and_preserves_bytes() {
+    let sandbox = Sandbox::new("batch-crash-drift");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let id = "workspace-batch-drift";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let request = WorkspaceMutateRequest {
+        schema_version: 1,
+        workspace_id: id.to_string(),
+        mutations: vec![WorkspaceMutation {
+            relative_path: "README.md".to_string(),
+            mode: WorkspaceMutationMode::Append,
+            content: "intent\n".to_string(),
+            expected_digest: Some(sha256_bytes(b"baseline\n")),
+            expected_text: None,
+        }],
+    };
+    let after = "baseline\nintent\n";
+    let journal = serde_json::json!({
+        "schemaVersion":1,
+        "workspaceId":id,
+        "requestDigest":sha256_bytes(&serde_json::to_vec(&request).unwrap()),
+        "entries":[{
+            "relativePath":"README.md", "beforeContent":"baseline\n",
+            "beforeDigest":sha256_bytes(b"baseline\n"),
+            "afterContent":after, "afterDigest":sha256_bytes(after.as_bytes())
+        }]
+    });
+    let intent = config
+        .workspace_cache_path(id)
+        .join("pending-mutation-v1.json");
+    write_json_atomic(&intent, &journal).unwrap();
+    let drift = "foreign writer must not be overwritten\n";
+    fs::write(config.workspace_path(id).join("README.md"), drift).unwrap();
+
+    assert_eq!(
+        mutate_workspace(&config, &request).unwrap_err().code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert_eq!(
+        fs::read_to_string(config.workspace_path(id).join("README.md")).unwrap(),
+        drift
+    );
+    assert!(intent.exists());
+    // External bytes cannot be adopted or destroyed in order to fake recovery.
+    assert_eq!(
+        remove_git_workspace(
+            &config,
+            &WorkspaceCloseRequest {
+                schema_version: 1,
+                workspace_id: id.to_string(),
+                expected_source_state_digest: None,
+                force: true,
+                consumer_released: true
+            }
+        )
+        .unwrap_err()
+        .code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert!(config.workspace_path(id).exists());
+}
+
+#[test]
 fn workspace_slice_returns_full_digest_and_utf8_safe_range() {
     let sandbox = Sandbox::new("slice");
     let source = sandbox.root.join("source");

@@ -1,0 +1,89 @@
+version: '3'
+
+tasks:
+  observability:systemd:validate:
+    desc: Qualify existing package-native systemd Collector and exact alert rules, without effects
+    cmds:
+      - test -x /usr/bin/prometheus-node-exporter
+      - id node_exporter
+      - promtool check config config/prometheus/prometheus.yml
+      - promtool check rules config/prometheus/consumer.rules.yml
+      - promtool test rules tests/fixtures/systemd-target-alert.test.yml
+      - python3 scripts/monitoring-sourcecut-preflight.py --source config --check-edges
+
+  observability:systemd:sourcecut:
+    desc: Compare package exporter and loaded native Prometheus against exact source
+    cmds:
+      - cmp -s config/prometheus/node-exporter.env /etc/conf.d/prometheus-node-exporter
+      - cmp -s config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
+      - cmp -s config/prometheus/consumers/systemd-targets.yml /etc/network-v2/prometheus/consumers/systemd-targets.yml
+      - systemctl is-enabled --quiet prometheus-node-exporter.service
+      - systemctl is-active --quiet prometheus-node-exporter.service
+      - systemctl is-active --quiet network-v2-prometheus.service
+      - python3 scripts/monitoring-sourcecut-preflight.py --live /etc/network-v2 --check-loaded-prometheus
+      - |
+        # Native metrics reflect six systemd units, not a custom health boolean.
+        curl -q --noproxy '*' --fail --silent --show-error --max-time 7 http://127.0.0.1:29100/metrics |
+          awk '/^node_systemd_unit_state[{]name="network-v2-/ {if (match($0, /name="[^"]+"/)) seen[substr($0, RSTART, RLENGTH)] = 1} END {for (n in seen) count++; exit(count == 6 ? 0 : 1)}'
+      - |
+        curl -q --noproxy '*' --fail --silent --show-error --max-time 6 http://127.0.0.1:29090/api/v1/rules |
+          jq -e '[.data.groups[].rules[] | select(.name=="NetworkConsumerTargetDesynchronized" or .name=="NetworkSystemdCollectorUnavailable")] | length == 2' >/dev/null
+
+  observability:systemd:converge:
+    desc: Reuse distro node_exporter and SIGHUP native Prometheus, never restart shared VPN
+    deps: [observability:systemd:validate]
+    cmds:
+      - |
+        if flock -n -E 75 /run/lock/ordivon-network-v2-converge.lock /bin/sh -s <<'NATIVE_SYSTEMD_OBSERVABILITY'; then
+        set -eu
+        envfile=/etc/conf.d/prometheus-node-exporter
+        src=config/prometheus/node-exporter.env
+        old='NODE_EXPORTER_ARGS="--web.listen-address=127.0.0.1:29100"'
+        if ! cmp -s "$src" "$envfile"; then
+          # The existing package EnvFile must match its known production
+          # preimage, not an unknown externally owned exporter configuration.
+          test -f "$envfile" && test "$(cat "$envfile")" = "$old" || {
+            echo 'UNKNOWN: package exporter EnvFile has foreign changes' >&2
+            exit 2
+          }
+          test "$(systemctl is-active prometheus-node-exporter.service || true)" = inactive || {
+            echo 'UNKNOWN: exporter active with different launch arguments' >&2
+            exit 2
+          }
+          install -m 0644 "$src" "$envfile"
+        fi
+
+        # Start only the native distro exporter, never mutate VPN/Tailscale.
+        systemctl enable --now prometheus-node-exporter.service
+        curl -q --noproxy '*' --fail --silent --show-error --retry 6 --retry-delay 1 --retry-connrefused --max-time 6           http://127.0.0.1:29100/metrics >/dev/null
+
+        # Exact Prometheus rules + standalone native consumer fragment.
+        install -m 0644 config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
+        install -m 0644 config/prometheus/consumers/systemd-targets.yml /etc/network-v2/prometheus/consumers/systemd-targets.yml
+        promtool check config /etc/network-v2/prometheus/prometheus.yml
+        promtool check rules /etc/network-v2/prometheus/consumer.rules.yml
+
+        # Prometheus supports SIGHUP reload; preserve its service PID/TSDB.
+        systemctl kill --kill-who=main --signal=HUP network-v2-prometheus.service
+        loaded=0
+        for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+          if python3 scripts/monitoring-sourcecut-preflight.py               --live /etc/network-v2 --check-loaded-prometheus >/dev/null 2>&1; then
+            loaded=1
+            break
+          fi
+          sleep 2
+        done
+        test "$loaded" = 1 || {
+          echo 'UNKNOWN: native Prometheus loaded graph did not converge' >&2
+          exit 3
+        }
+        task --silent observability:systemd:sourcecut
+        NATIVE_SYSTEMD_OBSERVABILITY
+          :
+        else
+          result=$?
+          if test "$result" -eq 75; then
+            echo 'UNKNOWN: another Network native converge is running' >&2
+          fi
+          exit "$result"
+        fi

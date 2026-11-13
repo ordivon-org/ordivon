@@ -117,6 +117,26 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 
 源码发布走仓库现有的 GitHub PR、必需 CI、合并队列；只有合并之后再进行生产读回，才算实际发布完成。
 
+### 2026-11-13 Windows/WSL 生产路径核验
+
+本次真实检查发现 Windows WLAN 和 USB RNDIS 虽然同时 Up，但都经
+`192.168.0.1` 网关及相同的网关 MAC `5C-7D-AE-44-90-1D`。
+两张网络接口不构成两条已经验证的独立 ISP/物理运营商出口；
+不应把任意接口切换或 Gluetun Endpoint 轮换报告成完成了物理高可用。
+
+交互用户 Chrome 有原生固定代理 `127.0.0.1:19781` 策略。
+Codex 当前开启 `respect_system_proxy=true`，需要分别检查
+Windows 用户级系统代理是否启用以及真实应用 HTTPS 是否成功。
+2026-11-13 已在单个交互会话内恢复 `ProxyEnable=1` 并完成
+WinINet 代理读回和 Windows HTTPS 测试；这不是重启后的持久性证明。
+
+历史登录启动项 `Ordivon-VPN-Bridge.cmd` 曾启动自研直连 CONNECT
+代理 `127.0.0.1:18081`，而非经 Gluetun 的 VPN Carrier。
+因没有发现实时连接及当前源码、安装脚本、已检查代理策略的消费者，
+本轮已可逆地禁用启动项并停止监听进程。历史脚本原文件仍保留，
+不可把未覆盖的外部调用者直接当作不存在。后续优先验证现代原生
+`19781` 路径，不要恢复旧直连桥。
+
 ## 四、出问题时先找谁
 
 | 表现 | 先检查 | 真正的 Owner |
@@ -167,3 +187,23 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 先执行 `task core:sourcecut` 检查配置；再用 `task core:verify` 检查 DNS、HTTPS 与监控。
 正常收敛使用 `task core:converge`：源码匹配时不重复安装，已经运行的 systemd 服务不重启，外部网络故障由各自成熟的服务恢复机制处理。
 形式化检查：`mise run formal-core-convergence`；共享 Target 表示精化：`mise run formal-shared-egress-alias`。这两项仅证明指定的源码逻辑，不能代替真实公网访问验收。
+
+
+### Native systemd Target state monitoring
+
+After the Node Exporter systemd Collector and Prometheus fragment are
+admitted, run the existing Network Task command
+task observability:systemd:converge. This uses the distribution's
+prometheus-node-exporter.service (unprivileged node_exporter user),
+only six selected Target/service units, and Prometheus native SIGHUP
+reload without restarting VPN, Finance or Tailnet. The specific
+NetworkConsumerTargetDesynchronized rule joins active egress services
+against missing/inactive Targets and the separate
+NetworkSystemdCollectorUnavailable rule detects lost monitoring.
+A Target intentionally stopped with PartOf= will stop the service,
+so it is not falsely attributed to a running consumer.
+
+These are observable Prometheus alert states, not delivered human
+notifications. Until a real, user-authorized Alertmanager receiver
+is connected, Prometheus may fire locally but no external FIRING or
+RESOLVED delivery receipt is proven. See Issue #1916.

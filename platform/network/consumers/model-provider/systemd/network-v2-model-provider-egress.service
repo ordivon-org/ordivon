@@ -1,6 +1,7 @@
 [Unit]
 Description=Network v2 Model Provider exact API egress authority
 PartOf=network-v2-model-provider.target
+Upholds=network-v2-model-provider.target
 
 [Service]
 Type=simple

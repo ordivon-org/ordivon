@@ -49,7 +49,7 @@ class ExecutionCommandMethods:
             "cwdRelative": cwd_relative,
             "executionTarget": route.execution_target,
         }
-        if route.owner_id == "runtime.linux":
+        if route.owner_id in {"runtime.linux", "runtime.harness"}:
             if isinstance(context, dict):
                 raise GatewayError("execution.linux context must be a provider-defined string")
             execution["executionProfile"] = context or route.default_context
@@ -128,7 +128,10 @@ class ExecutionCommandMethods:
         return ExecutionReceipt(
             operation_ref=operation_ref,
             capability=(
-                "execution.windows" if owner_id == "runtime.windows" else "execution.linux"
+                {
+                    "runtime.windows": "execution.windows",
+                    "runtime.harness": "execution.harness",
+                }.get(owner_id, "execution.linux")
             ),
             owner_id=owner_id,
             native_id=observed_native_id,

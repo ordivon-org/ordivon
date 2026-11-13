@@ -29,6 +29,7 @@ from .upstream import OwnerToolCaller
 _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",
     "runtime.windows": "physical execution owner",
+    "runtime.harness": "issuer-fenced execution profile of the Linux Runtime owner",
     "host": "external semantic continuity owner",
     "skills": "procedural Skill discovery and exact binding owner",
     "research.composition": "non-authoritative Research composition metadata",

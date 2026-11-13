@@ -1,0 +1,49 @@
+rule_files:
+  - ../../config/prometheus/consumer.rules.yml
+
+evaluation_interval: 1m
+tests:
+  # Exact production failure: egress service is active, Target is not.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="network-node-systemd",instance="127.0.0.1:29100"}'
+        values: '1 1 1 1 1'
+      - series: 'node_systemd_unit_state{job="network-node-systemd",instance="127.0.0.1:29100",name="network-v2-model-provider-egress.service",state="active",type="simple"}'
+        values: '1 1 1 1 1'
+      - series: 'node_systemd_unit_state{job="network-node-systemd",instance="127.0.0.1:29100",name="network-v2-model-provider.target",state="active",type=""}'
+        values: '0 0 1 1 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: NetworkConsumerTargetDesynchronized
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              consumer: model-provider
+              job: network-node-systemd
+              instance: 127.0.0.1:29100
+              name: network-v2-model-provider-egress.service
+              state: active
+              type: simple
+            exp_annotations:
+              summary: Consumer proxy service is active but its enabled systemd Target is not
+      - eval_time: 3m
+        alertname: NetworkConsumerTargetDesynchronized
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: NetworkSystemdCollectorUnavailable
+        exp_alerts: []
+  # When the collector goes away, don't mark state UNKNOWN as healthy.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="network-node-systemd",instance="127.0.0.1:29100"}'
+        values: '0 0 0 0'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: NetworkSystemdCollectorUnavailable
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: network-node-systemd
+              instance: 127.0.0.1:29100
+            exp_annotations:
+              summary: Native systemd unit-state collector is unavailable; Target readiness is unobserved

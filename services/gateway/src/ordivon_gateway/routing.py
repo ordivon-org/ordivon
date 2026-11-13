@@ -33,6 +33,25 @@ def default_routes() -> dict[str, CapabilityRoute]:
             execution_target="local_linux",
             default_context="trusted_local",
         ),
+        # A distinct authenticated PostgreSQL Runtime principal/endpoint for
+        # Harness-issuer-bound effects. The physical owner remains Runtime;
+        # it shares PG/Runner with execution.linux, not an independent Registry.
+        # When not configured, capability discovery reports unavailable.
+        CapabilityRoute(
+            capability="execution.harness",
+            owner_id="runtime.harness",
+            category="execution",
+            owner_tool="workspace.exec",
+            context_mode="provider-defined-string",
+            truth_boundary=(
+                "Same PostgreSQL Runtime and native Runner; dedicated authenticated "
+                "Harness principal requires current issuer before NEW Job admission."
+            ),
+            description="Execute issuer-authorized Harness Tool effects through Runtime.",
+            tags=("execution", "harness", "issuer", "runtime"),
+            execution_target="local_linux",
+            default_context="trusted_local",
+        ),
         CapabilityRoute(
             capability="execution.windows",
             owner_id="runtime.windows",

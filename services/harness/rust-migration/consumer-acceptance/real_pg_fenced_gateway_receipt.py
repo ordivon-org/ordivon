@@ -84,7 +84,10 @@ with PostgresHarnessStore(dsn, schema="harness_r22_source", initialize=False) as
             ).fetchone()
             assert row is not None
             principal, request_id, plan_json, resolution = row
-            assert principal == "pg-consumer"
+            # Native Runtime chooses a principal from the authenticated ingress
+            # profile; a caller-supplied Job ID cannot stand in for identity.
+            expected_principal = os.getenv("ORDIVON_R22_OWNER_PRINCIPAL", "pg-consumer")
+            assert principal == expected_principal
             if request_id != expected_request:
                 raise ValueError("OWNER_SOURCE_IDENTITY_MISMATCH: runtime clientRequestId differs")
             assert resolution == "succeeded"

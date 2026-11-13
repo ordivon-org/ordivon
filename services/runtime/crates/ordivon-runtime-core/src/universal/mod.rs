@@ -15,6 +15,7 @@ pub use fsutil::{
     ENVIRONMENT_VARIABLE_NAME_PATTERN, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
     WORKSPACE_ID_PATTERN,
 };
+pub(crate) use mutation::ensure_workspace_mutation_quiescent;
 pub use mutation::mutate_workspace;
 pub(crate) use mutation::read_workspace_slice;
 pub(crate) use projection::create_git_workspace;

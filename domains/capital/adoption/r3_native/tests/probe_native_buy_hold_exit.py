@@ -9,6 +9,7 @@ import csv
 import json
 import os
 import sys
+from dataclasses import asdict
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from hashlib import sha256
@@ -62,7 +63,8 @@ NO_EXIT = os.environ.get("ORDIVON_FINANCE_R3_TEST_NO_EXIT") == "1"
 # No fabricated score or strategy event passes as a model prediction.
 DECISION_DAY = os.environ.get("ORDIVON_FINANCE_R3_DECISION_DAY", "2025-10-01")
 RESEARCH = Path(os.environ["ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR"])
-MODEL_STUDY = json.loads((RESEARCH / "native_study_result.json").read_text(encoding="utf-8"))
+study_bytes = (RESEARCH / "native_study_result.json").read_bytes()
+MODEL_STUDY = json.loads(study_bytes)
 if (MODEL_STUDY.get("signal_quality", {}).get("holding_sessions") != HOLD
         or MODEL_STUDY.get("portfolio_target") is not None
         or MODEL_STUDY.get("forecast", {}).get("point_in_time_eligible") is not False):
@@ -381,6 +383,9 @@ standing = {
     "kind": "ordivon.finance.r3.qlib-signal-native-paper-executable",
     "research_horizon_signal_source": ("native_Qlib_0.9.7_OOS_score" if override is None else "EXPLICIT_TEST_INTERVENTION_ON_NATIVE_QLIB_SCORE"),
     "research_model_sample_decision": DECISION_DAY,
+    "model_study_sha256": sha256(study_bytes).hexdigest(),
+    "model_prediction_sha256": sha256(prediction_bytes).hexdigest(),
+    "native_account": "SIM-001",
     "native_entry_session": entry_date,
     "native_exit_session": exit_date,
     "signal_scores": scores,
@@ -396,6 +401,20 @@ standing = {
     "native_engine": "NautilusTrader BacktestNode Strategy/OrderFilled native",
     "native_order_count": len(order_rows),
     "native_fill_count": len(fill_rows),
+    # Independently source each Paper economic event to Nautilus's ACTUAL
+    # BacktestNode native fill report, not a replay of Paper's own projection.
+    "native_fill_claims": [
+        {
+            "side": str(row["order_side"]),
+            "fill_id": str(row["trade_id"]),
+            "symbol": SYMBOL,
+            "shares": int(Decimal(str(row["last_qty"]))),
+            "price_minor": cents(Decimal(str(row["last_px"]))),
+            "fee_minor": cents(Decimal(str(row["commission"]).split()[0])),
+            "filled_at": row["ts_event"].isoformat(),
+        }
+        for row in fill_rows
+    ],
     "native_open_position_count": len(open_native_positions),
     "buy_price": str(price_buy) if price_buy is not None else None,
     "sell_price": str(price_sell) if price_sell is not None else None,
@@ -416,7 +435,16 @@ standing = {
     "portfolio_intent_admitted": False,
     "real_broker_or_PG_effect": "NONE",
 }
+# The native result pins its co-produced multi-session Paper input bytes.
+# A caller may not change an intermediate mark or fill while keeping the
+# same genuine native result. This is NOT a provider-signed attestation.
+serialized_sessions = json.dumps(
+    [asdict(day) for day in paper_sessions],
+    default=lambda value: value.isoformat(), sort_keys=True, indent=2,
+).encode("utf-8")
+standing["paper_sessions_sha256"] = sha256(serialized_sessions).hexdigest()
 (OUT / "native_holding_result.json").write_text(
     json.dumps(standing, indent=2), encoding="utf-8"
 )
+(OUT / "paper_sessions.json").write_bytes(serialized_sessions)
 print("NATIVE_MATURE_BUY_HOLD_SELL_REFINEMENT", json.dumps(standing))

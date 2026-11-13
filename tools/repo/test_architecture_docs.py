@@ -143,6 +143,18 @@ def test_deployed_capability_set_is_exact() -> None:
         module.validate_deployed_graph(value)
 
 
+def test_current_harness_route_does_not_rewrite_historical_deployment() -> None:
+    deployed = graph()
+    source_routes = module.route_capabilities(
+        (ROOT / "services/gateway/src/ordivon_gateway/routing.py").read_text(encoding="utf-8")
+    )
+    module.validate_deployed_graph(deployed)
+    assert deployed["status"] == "HISTORICAL_DEPLOYED_SNAPSHOT_20260928"
+    assert set(deployed["routers"]["capabilityRouter"]["capabilities"]) == module.EXPECTED_CAPABILITIES
+    assert source_routes == module.EXPECTED_SOURCE_CAPABILITIES
+    assert source_routes - module.EXPECTED_CAPABILITIES == {"execution.harness"}
+
+
 def test_default_plugin_rejects_direct_owner_servers() -> None:
     value = {
         "mcpServers": {
