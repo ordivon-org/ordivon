@@ -538,8 +538,11 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert result.loop_result.stop_code.value == "candidate_completed"
         assert observed_pre_dispatch["checked"] is True
         names = [name for name, _ in client.calls]
-        assert names == ["execution.submit", "execution.get"]
+        assert names == ["execution.submit", "execution.get", "execution.resolve"]
         assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[2][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[2][1]["capability"] == "execution.linux"
+        assert names.count("execution.submit") == 1
         assert client.calls[1][1]["capability"] == "execution.linux"
         submit = client.calls[0][1]
         assert submit["capability"] == "execution.linux"
@@ -671,11 +674,16 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_sc
 
         assert result.loop_result.stop_code.value == "candidate_completed"
         names = [name for name, _ in client.calls]
-        assert names == ["execution.submit", "execution.resolve", "execution.get"]
-        assert client.calls[2][1]["requestId"] == client.calls[0][1]["requestId"]
-        assert client.calls[2][1]["capability"] == "execution.linux"
+        assert names == [
+            "execution.submit",
+            "execution.resolve",
+            "execution.get",
+            "execution.resolve",
+        ]
+        for index in (1, 2, 3):
+            assert client.calls[index][1]["requestId"] == client.calls[0][1]["requestId"]
+            assert client.calls[index][1]["capability"] == "execution.linux"
         assert names.count("execution.submit") == 1
-        assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
 
         with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
             continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
