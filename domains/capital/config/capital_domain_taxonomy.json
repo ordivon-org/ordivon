@@ -58,6 +58,7 @@
     "portfolio": [
       "portfolio_counterfactuals.py",
       "strategic_contribution.py",
+      "paper_contribution_plan.py",
       "paper_investment.py",
       "passive_benchmark.py",
       "paper_vintage.py",
