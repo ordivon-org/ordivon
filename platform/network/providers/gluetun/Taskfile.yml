@@ -124,31 +124,36 @@ tasks:
       - |
         set -euo pipefail
         /usr/bin/podman exec network-v2-gluetun-owned-r1 cat /gluetun/servers.json |
-          /usr/bin/jq --slurpfile policy providers/gluetun/config/exit-selector.json -er '
-            $policy[0] as $selection
+          /usr/bin/jq --slurpfile allow providers/gluetun/config/exit-allowlist.json --slurpfile selection providers/gluetun/config/exit-selector.json -er '
+            $allow[0] as $policy
+            | $selection[0] as $choice
+            | (if $choice.selectedCountries == "allAllowed"
+                then $policy.allowedCountries else $choice.selectedCountries end) as $pool
             | .surfshark as $provider
-            | ($provider.servers
-               | map(select(.vpn == "wireguard" and
-                   (.country as $c | $selection.excludedCountries | index($c) | not)))) as $candidates
-            | ($candidates
-               | map(select(
-                   (.country as $c | $selection.selectedCountries | index($c) != null) and
-                   (.region as $r | (($selection.regions | length) == 0 or
-                     ($selection.regions | index($r) != null)))))) as $selected
+            | ($provider.servers | map(select(.vpn == "wireguard"))) as $catalog
+            | ($catalog | map(select(.country as $c |
+                $policy.excludedCountries | index($c) | not))) as $permitted
+            | ($permitted | map(select(
+                (.country as $c | $pool | index($c) != null) and
+                (.region as $r | (($choice.regions | length) == 0 or
+                  ($choice.regions | index($r) != null)))))) as $selected
             | if ($provider.timestamp | type) != "number"
-                  or ($candidates | length) == 0
-                  or ([$selected[].country] | unique | length) != ($selection.selectedCountries | length)
-                  or (([$candidates[].country] | unique | sort) != ($selection.selectedCountries | sort))
-              then error("native catalog must match all nonexcluded source-selected Surfshark countries")
+                  or ($permitted | length) == 0
+                  or ($selected | length) == 0
+                  or (([$permitted[].country] | unique | sort) != ($policy.allowedCountries | sort))
+                  or ([$selected[].country] | unique | length) != ($pool | length)
+                  or (($pool | map(. as $c | ($policy.allowedCountries | index($c)) == null)) | any)
+              then error("native catalog/allowed/candidate set mismatch")
               else
                 "standing=CATALOG_ONLY_NOT_HEALTH",
                 "catalog_timestamp_utc=\($provider.timestamp | todateiso8601)",
                 "catalog_age_days=\(((now-$provider.timestamp)/86400)|floor)",
-                "wireguard_candidate_records=\($candidates|length)",
-                "wireguard_candidate_ips=\([$candidates[].ips[]]|unique|length)",
+                "wireguard_allowed_records=\($permitted|length)",
+                "wireguard_allowed_ips=\([$permitted[].ips[]]|unique|length)",
                 "selected_records=\($selected|length)",
                 "selected_ips=\([$selected[].ips[]]|unique|length)",
-                "candidate_countries=\([$candidates[].country]|unique|length)",
-                ($candidates|group_by(.country)[]|"\(.[0].country)\t\(length)")
+                "allowed_countries=\([$permitted[].country]|unique|length)",
+                "candidate_countries=\($pool|length)",
+                ($selected|group_by(.country)[]|"\(.[0].country)\t\(length)")
               end
           '

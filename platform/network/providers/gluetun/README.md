@@ -51,19 +51,23 @@ background poller and preserves Gluetun-native health recovery.
 ## Native Surfshark mode — selected physical provider
 
 The production Quadlet uses Gluetun native Surfshark WireGuard.
-The source-owned country selector is providers/gluetun/config/exit-selector.json.
-Hong Kong is the only excluded country; the other 99 countries and territories
-in the actual installed Surfshark WireGuard catalog are positively listed as
-SERVER_COUNTRIES (177 of 178 WireGuard records). SERVER_REGIONS is absent;
-Japan, South Korea, Singapore and all other catalog countries are allowed.
+Two immutable semantic sources distinguish *permission* from *selection*:
+`providers/gluetun/config/exit-allowlist.json` permits the actual 99 non-Hong-Kong
+Surfshark WireGuard countries and excludes Hong Kong; its positive list must
+continue matching the nonexcluded official catalog.
+`providers/gluetun/config/exit-selector.json` is the candidate-country
+filter. The initial `"selectedCountries": "allAllowed"` preserves the exact
+previous 99-country production environment; a named country subset is allowed
+only when it belongs to the permission list. Neither catalog membership nor
+candidate admission proves a currently successful endpoint. The provider must
+still observe actual consumer VPN readiness.
 
-Gluetun v3.41.3 has a positive country filter, not a negative exclusion filter.
-Merely declaring excludedCountries without positive selectedCountries permits
-Hong Kong, so source validation rejects excluded-only policies. The native
-catalog evidence Task rejects a positive list that fails to cover every
-nonexcluded catalog country; after an upstream catalog expansion, regenerate
-the list before the next rollout. Gluetun itself owns endpoint selection,
-health checks and reconnects, with no new custom endpoint scheduler.
+Gluetun v3.41.3 supports positive country filters, not a negative filter.
+Source and native catalog validation reject excluded, unknown, duplicate or
+empty candidate pools; even an excluded-only permission would accidentally
+permit Hong Kong and is rejected. After an upstream catalog expansion, qualify
+the updated permission source before the next rollout. Gluetun owns selection,
+health checks and reconnects; this split adds no endpoint scheduler.
 
 A policy file change does not affect the running container. Source validation,
 0600 environment materialization, controlled restart, loaded OCI SourceCut and
@@ -178,15 +182,15 @@ by a source-only PR.
 
 Gluetun's **official upstream master** contains `SERVER_SELECTION_MODE=ordered`
 (from the upstream 2026-09-11 server-selection change). The current production
-stable **v3.41.3** has no such implementation. The native selector can now
-accept an optional source-only `selectionMode: ordered`, with two or more
-`selectedCountries` in priority order and `regions: []`. For example:
+stable **v3.41.3** has no such implementation. The candidate source can accept an optional source-only
+`selectionMode: ordered`, with two or more `selectedCountries`
+in priority order and `regions: []`, independently of the immutable
+non-Hong-Kong permission source. For example:
 
 ```json
 {
   "regions": [],
   "selectedCountries": ["Singapore", "Malaysia", "Thailand", "Taiwan", "Australia"],
-  "excludedCountries": ["Hong Kong"],
   "selectionMode": "ordered"
 }
 ```
