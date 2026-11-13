@@ -313,7 +313,13 @@ def test_native_prometheus_fragments_preserve_complete_owner_job_graph() -> None
     owner = _load()
     jobs = owner._all_scrape_jobs(ROOT / "config")
     by_name = {job["job_name"]: job for job in jobs}
-    assert len(jobs) == len(by_name) == 18
+    assert len(jobs) == len(by_name) == 19
+    systemd = by_name["network-node-systemd"]
+    assert systemd["static_configs"] == [{"targets": ["127.0.0.1:29100"]}]
+    assert systemd["scrape_interval"] == "15s"
+    assert systemd["scrape_timeout"] == "5s"
+    assert systemd.get("params") is None
+
     direct = by_name["blackbox-http-ipv4"]
     carrier = by_name["blackbox-path-reference-carrier"]
     alternate = by_name["blackbox-http-ipv4-alternate"]
@@ -323,7 +329,7 @@ def test_native_prometheus_fragments_preserve_complete_owner_job_graph() -> None
     assert carrier["params"] == {"module": ["http_vpn_2xx_ipv4"]}
     paths = owner._fragment_paths(ROOT / "config")
     assert {path.stem for path in paths} == {
-        "claude", "codex", "finance", "model-provider", "supply-chain"
+        "claude", "codex", "finance", "model-provider", "supply-chain", "systemd-targets"
     }
 
 

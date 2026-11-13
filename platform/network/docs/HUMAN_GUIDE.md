@@ -167,3 +167,23 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 先执行 `task core:sourcecut` 检查配置；再用 `task core:verify` 检查 DNS、HTTPS 与监控。
 正常收敛使用 `task core:converge`：源码匹配时不重复安装，已经运行的 systemd 服务不重启，外部网络故障由各自成熟的服务恢复机制处理。
 形式化检查：`mise run formal-core-convergence`；共享 Target 表示精化：`mise run formal-shared-egress-alias`。这两项仅证明指定的源码逻辑，不能代替真实公网访问验收。
+
+
+### Native systemd Target state monitoring
+
+After the Node Exporter systemd Collector and Prometheus fragment are
+admitted, run the existing Network Task command
+task observability:systemd:converge. This uses the distribution's
+prometheus-node-exporter.service (unprivileged node_exporter user),
+only six selected Target/service units, and Prometheus native SIGHUP
+reload without restarting VPN, Finance or Tailnet. The specific
+NetworkConsumerTargetDesynchronized rule joins active egress services
+against missing/inactive Targets and the separate
+NetworkSystemdCollectorUnavailable rule detects lost monitoring.
+A Target intentionally stopped with PartOf= will stop the service,
+so it is not falsely attributed to a running consumer.
+
+These are observable Prometheus alert states, not delivered human
+notifications. Until a real, user-authorized Alertmanager receiver
+is connected, Prometheus may fire locally but no external FIRING or
+RESOLVED delivery receipt is proven. See Issue #1916.

@@ -138,3 +138,33 @@ groups:
           severity: warning
         annotations:
           summary: Scoped consumer HTTPS probe is nearing its timeout
+      # A running proxy process and healthy HTTPS blackbox can hide an
+      # enabled but inactive systemd Target. Join only the source-bound three
+      # affected consumer pairs; if the Target metric disappears, service-active
+      # still detects the split. A deliberately stopped Target also stops its
+      # PartOf service, so there is no positive source for this rule.
+      - alert: NetworkConsumerTargetDesynchronized
+        expr: >-
+          label_replace(
+            node_systemd_unit_state{job="network-node-systemd",state="active",name=~"network-v2-(model-provider|supply-chain|x-reality)-egress[.]service"} == 1,
+            "consumer","$1","name","network-v2-(.*)-egress[.]service"
+          )
+          unless on(consumer)
+          label_replace(
+            node_systemd_unit_state{job="network-node-systemd",state="active",name=~"network-v2-(model-provider|supply-chain|x-reality)[.]target"} == 1,
+            "consumer","$1","name","network-v2-(.*)[.]target"
+          )
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Consumer proxy service is active but its enabled systemd Target is not
+      # The detector itself is not a receipt: missing node_exporter samples
+      # must not silently make all other Target alerts look green.
+      - alert: NetworkSystemdCollectorUnavailable
+        expr: (up{job="network-node-systemd"} == 0) or absent(up{job="network-node-systemd"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Native systemd unit-state collector is unavailable; Target readiness is unobserved

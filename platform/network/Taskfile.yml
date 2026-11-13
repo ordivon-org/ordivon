@@ -55,6 +55,9 @@ includes:
   windows-real-chrome:
     taskfile: ./consumers/windows-real-chrome/Taskfile.yml
     flatten: true
+  systemd-observability:
+    taskfile: ./observability/Taskfile.yml
+    flatten: true
 
 tasks:
   core:validate:
@@ -65,6 +68,7 @@ tasks:
       - promtool check config config/prometheus/prometheus.yml
       - promtool check rules config/prometheus/consumer.rules.yml
       - promtool test rules tests/fixtures/consumer-prometheus-alerts.test.yml
+      - promtool test rules tests/fixtures/systemd-target-alert.test.yml
       - python3 scripts/monitoring-sourcecut-preflight.py --source config --check-edges
       - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
 
