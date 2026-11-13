@@ -260,8 +260,12 @@ jobs:
           fi
           printf 'formal=%s\n' "$formal" >> "$GITHUB_OUTPUT"
           gateway_formal=false
-          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            # Explicit human-requested full qualification includes Gateway TLC.
             gateway_formal=true
+          elif [[ "$EVENT_NAME" == "schedule" ]]; then
+            # Weekly unchanged-source checks must not replay the same model.
+            gateway_formal=false
           elif [[ ! -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
             # Missing exact Git delta must not be mistaken for no Gateway changes.
             gateway_formal=true

@@ -518,6 +518,8 @@ exit 0
         gateway = steps["Verify changed Gateway formal model"]
         self.assertIn("from affected_owners import requires_gateway_formal_verification", selection)
         self.assertIn("gateway_formal", selection)
+        self.assertIn('elif [[ "$EVENT_NAME" == "schedule" ]]; then', selection)
+        self.assertIn("Weekly unchanged-source checks must not replay", selection)
         self.assertEqual(gateway["if"], "steps.affected.outputs.gateway_formal == 'true'")
         self.assertEqual(gateway["run"].count("mise run gateway:formal:verify"), 1)
         self.assertIn("(cd services/runtime && scripts/tla-formal bootstrap)", gateway["run"])
