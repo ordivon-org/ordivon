@@ -148,22 +148,27 @@ class HostV2(HostPostgresConnections):
                     f"incomplete={receipt_bad}",
                 )
 
-                if detail in {"integrity", "history"}:
-                    history_bad = int(
-                        conn.execute(
-                            "SELECT count(*) AS value FROM ("
-                            "SELECT w.work_ref,w.current_revision,count(s.revision) AS snapshots,"
-                            "min(s.revision) AS rmin,max(s.revision) AS rmax "
-                            "FROM works w LEFT JOIN work_snapshots s USING(work_ref) "
-                            "GROUP BY w.work_ref,w.current_revision"
-                            ") x WHERE snapshots<>current_revision OR rmin<>1 OR rmax<>current_revision"
-                        ).fetchone()["value"]
+                # A Work is healthy when its CURRENT revision and bytes are valid.
+                # Old snapshot revisions are optional retention, not a liveness contract.
+                current_payload_bad = 0
+                with conn.cursor(name="host_current_snapshot_digest_scan") as cursor:
+                    cursor.itersize = 128
+                    cursor.execute(
+                        "SELECT s.snapshot_digest,s.payload FROM works w JOIN work_snapshots s "
+                        "ON s.work_ref=w.work_ref AND s.revision=w.current_revision"
                     )
-                    add_check(
-                        "work.snapshot_history_contiguous",
-                        history_bad == 0,
-                        f"invalidWorks={history_bad}",
-                    )
+                    for row in cursor:
+                        payload = row["payload"]
+                        if (
+                            not isinstance(payload, dict)
+                            or canonical_digest(payload) != row["snapshot_digest"]
+                        ):
+                            current_payload_bad += 1
+                add_check(
+                    "work.current_snapshot_payload_digest",
+                    current_payload_bad == 0,
+                    f"invalid={current_payload_bad}",
+                )
                 if detail == "history":
                     digest_bad = 0
                     # Stream history through Psycopg's native server cursor.
