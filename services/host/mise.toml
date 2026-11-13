@@ -12,6 +12,7 @@ uv run ruff check .
 mise run formal:reply-source
 mise run formal:work-graph
 mise run formal:dag-theorem
+mise run formal:engagement
 mise run formal:unicode-search
 uv run python -m pytest
 (cd rust && cargo fmt --all --check && cargo test --locked --all-targets && cargo clippy --locked --all-targets -- -D warnings)
@@ -78,6 +79,28 @@ repo_root="$(git rev-parse --show-toplevel)"
 (cd "$repo_root/tools/formal" && /usr/bin/mise install github:leanprover/lean4 && /usr/bin/mise exec -- lean ../../services/host/formal/HostWorkDAG.lean)
 """
 
+
+
+[tasks."formal:engagement"]
+description = "Axiom-free Lean Agent Work Engagement acceptance safety (abstract; PG18/Gateway refines)"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+output="$(cd "$repo_root/tools/formal" && /usr/bin/mise install github:leanprover/lean4 >/dev/null && /usr/bin/mise exec -- lean ../../services/host/formal/HostEngagement.lean)"
+printf '%s\n' "$output"
+# Lean can compile a theorem that uses sorry/propext. Refuse to claim
+# axiom-free if any of the five independent statements has hidden axioms.
+if printf '%s\n' "$output" | grep -E 'depends on axioms|sorryAx|propext'; then
+  echo 'HOST_ENGAGEMENT_ABSTRACT_PROOF_HAS_AXIOMS' >&2
+  exit 1
+fi
+count="$(printf '%s\n' "$output" | grep -c 'does not depend on any axioms' || true)"
+if [ "$count" -ne 5 ]; then
+  echo "HOST_ENGAGEMENT_ABSTRACT_PROOF_INCOMPLETE: $count/5" >&2
+  exit 1
+fi
+echo HOST_ENGAGEMENT_FORMAL_ACCEPTANCE_SAFETY_PASS
+"""
 
 [tasks."formal:unicode-search"]
 description = "Axiom-free Lean 4 necessary-filter and exact-refinement theorem for Host CJK Unicode n-grams"

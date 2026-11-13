@@ -205,5 +205,73 @@
     "retiredVocabulary": [
       "Task/Checkpoint/Board referred to retired pre-Social-Work-Fabric modules; current Work snapshots and social journal are not claims of old API compatibility."
     ]
-  }
+  },
+  "consumerCompositions": [
+    {
+      "id": "AGENT-COMPOSITE-01",
+      "kind": "agent-information-terminal-composition-not-second-authority",
+      "directConsumer": "Authenticated Agent using Gateway official MCP and Host semantic continuity",
+      "businessScenario": "Discover delegated Work without Work subscription; claim/submit; post Topic evidence; disconnect; resume via Attention+Topic; acknowledge both clocks; consumer review and get committed Work",
+      "thoughtModules": [
+        "Assume-guarantee composition",
+        "Formal-first with separate source/PG/installed evidence",
+        "Evidence-first",
+        "Owner-native foreign reference revalidation",
+        "CQRS/read-projection separation"
+      ],
+      "logicModules": [
+        "WorkEngagement",
+        "AgentDiscovery",
+        "WorkCurrentSnapshot",
+        "SocialTopicMessage",
+        "AttentionChangeHorizon",
+        "TopicConsumptionCursor",
+        "GatewayIdentityAndAuthorization",
+        "RecoveryAcknowledgement"
+      ],
+      "capabilityRefs": [
+        "K01",
+        "K02",
+        "K03",
+        "C01",
+        "P01",
+        "P02"
+      ],
+      "status": "DECLARED_AND_DISPOSABLE_CONSUMER_VERIFIED_NOT_INSTALLED",
+      "contract": {
+        "I": "typed WorkRef, ActorRef(s), TopicRef, phase action, Work expectedRevision, ClientRequestId, two distinct cursors, authenticated MCP session and policy decision",
+        "O": "work.currentRevision/Engagement status, Topic message page, Attention reentry, independent ACK receipts, typed failed authorization without Host Work mutation",
+        "S": "Host PG schema13 WorkSnapshot+Message+Subscription+TopicConsumptionCursor+AttentionCursor; Gateway/Security are external policy and transport owners",
+        "pre": "Test: real official Gateway/Owner MCP, test-only exact Principal/Actor/Work policy, live disposable PG18; production: real trusted Principal→Actor grant and installed matching releases are mandatory, not proven",
+        "post": "Review.Accepted commits only with submitted matching claimEpoch/evidence; restarted ClientSession reads actual Work; Topic and Attention acknowledgements progress in separate sequence domains",
+        "inv": "Only one Work CAS winner per expected revision; forged Actor denied before upstream; Agent cannot infer real external effect from Work/Message; current payload digest and revision remain valid",
+        "eff": "Only isolated Host PostgreSQL Work, Message, Subscription and Cursor effects; no Runtime Job, production grant, actual Artifact or domain completion",
+        "c": "UNKNOWN(reason=real Agent p50/p95 latency, tools and token payload under deployed workload unmeasured; obligation=measure at installed consumer)",
+        "epsilon": "UNKNOWN(reason=installed Security grant, real distinct Principal delegation, production release/failure bound and foreign evidence not verified; obligation=native owner and Agent readback)",
+        "prov": [
+          "services/gateway/tests/native_rust_host_consumer_smoke.py",
+          "tools/repo/run_host_gateway_rust_consumer.sh",
+          "services/host/rust/tools/verify_r2_integrated_pg18.sh",
+          "services/host/formal/HostEngagement.lean",
+          "services/host/rust/tests/work_engagement_pg.rs"
+        ],
+        "unfold": "Agent MCP ClientSession → verified Gateway HTTP ingress → test-only Scoped PDP → Gateway Host OwnerEndpoint → real Rust MCP HTTP → PostgreSQL CAS/Message/Cursors → new Agent MCP ClientSession read and ACK"
+      },
+      "evidence": {
+        "tier": "DISPOSABLE_PG18_REAL_MCP_COMPOSITION",
+        "completionClaim": "Work/Social/Attention/Engagement actual source integration only",
+        "sourceCut": "working-tree candidate; requires exact clean commit and re-verification",
+        "installedCurrentness": "UNKNOWN",
+        "productionSecurityGrants": "NOT_VERIFIED",
+        "externalArtifactTruth": "NOT_VERIFIED"
+      },
+      "releaseBlockers": [
+        "Production Principal-to-Actor grants",
+        "Distinct Agent Principal credential separation",
+        "Gateway and Host installed release currentness",
+        "Native installed consumer read/deny recovery",
+        "Real effect/Artifact verification owned elsewhere"
+      ]
+    }
+  ]
 }

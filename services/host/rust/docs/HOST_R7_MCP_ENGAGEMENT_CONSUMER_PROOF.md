@@ -25,6 +25,56 @@ Rust Host Streamable HTTP now fails startup without ORDIVON_HOST_V2_OWNER_BEARER
 
 The PG18 integration creates a random private fixture file and runs the official Rust HTTP owner and actual Gateway McpOwnerCaller using that same credential; valid Gateway-to-Rust success/error payloads pass. Uncredentialed direct local tool calls cannot reach work.engagement.advance. **This is only service-to-service authentication.** It deliberately does not map the verified Gateway ingress Principal to actorRef, or prove that an Artifact/Runtime reference is valid. The Gateway PEP/real Security PDP must enforce those *additional* authorities before externally exposing the two Work Engagement tools. A response reporting Accepted remains an internally recorded consumer declaration, not proof of external effect.
 
+## R11 cross-LEGO Agent information-terminal consumer (isolated real PG18)
+
+The existing `tools/repo/run_host_gateway_rust_consumer.sh` invokes
+`services/gateway/tests/native_rust_host_consumer_smoke.py` with a real
+loopback Rust HTTP Host, the official Gateway MCP SDK/OwnerEndpoint and
+Host's original Alembic schema13 on one disposable PostgreSQL 18.
+
+Beyond the earlier read-only Gateway parity smoke, that same consumer now
+tests a *second authenticated Gateway HTTP session* with the existing
+Gateway AuthZEN PEP and an explicit **test-only, exact Work/Actor/action PDP**.
+All Work mutations travel through true MCP calls and Rust PostgreSQL
+transactions. Work setup and Topic follow are seeded by the native Owner
+SDK as test preconditions, not falsely reported as authenticated Agent
+mutation. The consumer performs:
+
+`Offer → unsubscribed Work engagement.list → reject forged Claim →
+ Claim → Submit → Message.post → disconnect MCP → fresh MCP session →
+ attention.reentry → topic.resume → topic.cursor.ack → attention.ack →
+ reject forged Review → consumer Review.Accepted → Work.get Completed`.
+
+The subscription is Topic-scoped; the reviewer has no Work subscription.
+This demonstrates that Work engagement discovery and Attention navigation
+are separate, complementary needs, not duplicate inbox tables. Reconnecting
+does not require replaying a history of all old Work revisions.
+
+The observed test-only authorization permits a single local service
+Principal to act as three *explicitly enumerated* test ActorRefs by specific
+operation and WorkRef. It does **not** prove independent Agent credentials,
+production Security/OPA grants, private Space confidentiality or genuine
+Artifact/Runtime effects. A successful response without that installed
+grant cannot authorize a production cutover.
+
+### Formal-to-implementation refinement boundary
+
+`formal/HostEngagement.lean` models unbounded claim epochs, phase
+transitions, designated consumer review and required evidence. The native
+`mise run formal:engagement` gate confirms five axiom-free theorems,
+including a negative fabricated-Accepted state witness. This is an
+abstract transition-system safety proof, **not** a proof that Rust's
+`work/engagement.rs`, SQL CAS, Gateway middleware or Security PDP
+implements the model. The existing `work_engagement_pg.rs`, official
+MCP Engagement smoke and this true Gateway→Rust→PG18 consumer are the
+necessary bounded refinement/falsification tests. Production installed
+and distinct-Principal verification remain separate RED release gates.
+
+The canonical owner/consumer composition is declared once in
+`planning/lego-plan-r3.json` as `AGENT-COMPOSITE-01`; no second
+routing/LEGO registry, task database, custom message bus or workflow
+runtime is introduced.
+
 ## Mandatory red release gates
 1. **ActorRef is a Host label, not authenticated identity.** These staging tools take `actorRef` supplied by the caller; a trusted Gateway/Security principal binding and per-consumer authorization are required before exposing mutating actions to untrusted traffic. ClaimEpoch fences Host responsibility only, not Runtime effects.
 2. **Notifications are not covered.** `work.engagement.list` supports explicit pull-based reentry without requiring subscription; it does not retroactively deliver push notifications or invent old Attention events. B can independently falsify consumer discovery and decide whether any *new actual consumer* needs a separate notification improvement.
