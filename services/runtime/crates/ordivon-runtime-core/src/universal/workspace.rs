@@ -14,11 +14,11 @@ use std::process::{Child, Command, Stdio};
 use std::thread::{self, JoinHandle};
 
 use super::{
-    canonical_directory, invalid, io_error, now_unix_ms, open_directory_nofollow,
-    open_regular_file_beneath, parse_sha256_digest, sha256_bytes, sha256_file,
-    validate_relative_path, write_bytes_atomic, write_json_atomic, GitWorkspaceCreateRequest,
-    UniversalExecError, UniversalExecErrorCode, UniversalExecutorConfig, WorkspaceChangeCursor,
-    WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
+    canonical_directory, ensure_workspace_mutation_quiescent, invalid, io_error, now_unix_ms,
+    open_directory_nofollow, open_regular_file_beneath, parse_sha256_digest, sha256_bytes,
+    sha256_file, validate_relative_path, write_bytes_atomic, write_json_atomic,
+    GitWorkspaceCreateRequest, UniversalExecError, UniversalExecErrorCode, UniversalExecutorConfig,
+    WorkspaceChangeCursor, WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
     WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
     WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
     WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceFileMetadata,

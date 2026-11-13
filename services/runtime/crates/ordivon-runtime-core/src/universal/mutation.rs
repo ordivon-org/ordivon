@@ -1,21 +1,286 @@
-use std::fs::File;
-use std::io::Read;
+//! Crash-recoverable Workspace file batches using the existing private Workspace cache.
+//! This is a durable physical intent, not a second Workspace/Job authority.
+//! The existing PG Workspace effect lock serializes entry points; individual
+//! files are still atomically replaced, never misrepresented as a filesystem transaction.
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Write};
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    load_workspace_record, preflight_workspace_write_path, read_workspace_text,
-    remove_workspace_file, write_workspace_text, UniversalExecError, UniversalExecErrorCode,
-    UniversalExecutorConfig, WorkspaceMutateRequest, WorkspaceMutateResult, WorkspaceMutationMode,
-    WorkspaceMutationResult, WorkspaceReadRequest, WorkspaceWriteRequest, WorkspaceWriteResult,
+    io_error, load_workspace_record, preflight_workspace_write_path, read_workspace_text,
+    remove_workspace_file, sha256_bytes, sync_directory, write_workspace_text, UniversalExecError,
+    UniversalExecErrorCode, UniversalExecutorConfig, WorkspaceMutateRequest, WorkspaceMutateResult,
+    WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest, WorkspaceWriteRequest,
     MAX_WORKSPACE_IO_BYTES,
 };
 
+const BATCH_INTENT_FILE: &str = "pending-mutation-v1.json";
+const MAX_BATCH_INTENT_BYTES: u64 = 64 * 1024 * 1024;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PendingBatch {
+    schema_version: u32,
+    workspace_id: String,
+    request_digest: String,
+    entries: Vec<PreparedMutation>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct PreparedMutation {
     relative_path: String,
     before_content: Option<String>,
     before_digest: Option<String>,
     after_content: String,
+    after_digest: String,
+}
+
+fn incomplete(message: impl Into<String>) -> UniversalExecError {
+    UniversalExecError::new(
+        UniversalExecErrorCode::WorkspaceMutationIncomplete,
+        message,
+        Some("mutations"),
+        false,
+    )
+}
+
+fn pending_path(config: &UniversalExecutorConfig, workspace_id: &str) -> std::path::PathBuf {
+    config
+        .workspace_cache_path(workspace_id)
+        .join(BATCH_INTENT_FILE)
+}
+
+/// Used within the existing PostgreSQL admission/Workspace-effect fence.
+/// A pending batch must never become an implicitly authorized Job or close.
+pub(crate) fn ensure_workspace_mutation_quiescent(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+) -> Result<(), UniversalExecError> {
+    let path = pending_path(config, workspace_id);
+    match fs::symlink_metadata(&path) {
+        Ok(_) => Err(incomplete(format!(
+            "Workspace has an unfinished file batch at {}; replay the exact workspace.mutate request first",
+            path.display()
+        ))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        // A corrupted private-cache parent is not evidence of a batch.
+        // Preserve the established IO_ERROR and fail closed before deletion.
+        Err(error) if error.kind() == std::io::ErrorKind::NotADirectory => {
+            Err(io_error(&path, "inspect Workspace private cache", error))
+        }
+        Err(error) => Err(incomplete(format!(
+            "cannot inspect pending Workspace batch: {error}"
+        ))),
+    }
+}
+
+fn publish_pending_exclusive(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+    bytes: &[u8],
+) -> Result<(), UniversalExecError> {
+    let path = pending_path(config, workspace_id);
+    let parent = path.parent().expect("private Workspace cache has a parent");
+    fs::create_dir_all(parent).map_err(|e| incomplete(format!("batch intent directory: {e}")))?;
+    let stage = parent.join(format!(".pending-mutation-{}", uuid::Uuid::now_v7()));
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&stage)
+        .map_err(|e| incomplete(format!("batch intent staging: {e}")))?;
+    if let Err(error) = file.write_all(bytes).and_then(|()| file.sync_all()) {
+        let _ = fs::remove_file(&stage);
+        return Err(incomplete(format!(
+            "batch intent staging not durable: {error}"
+        )));
+    }
+    drop(file);
+    // Exclusive hard-link publish cannot overwrite a concurrent unfinished
+    // batch. POSIX rename with replace_existing=false does not offer this.
+    let result = fs::hard_link(&stage, &path);
+    let _ = fs::remove_file(&stage);
+    match result {
+        Ok(()) => sync_directory(parent)
+            .map_err(|e| incomplete(format!("batch intent publication durability unknown: {e}"))),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Err(incomplete(
+            "a concurrent Workspace batch already owns the durable intent",
+        )),
+        Err(error) => Err(incomplete(format!(
+            "cannot publish exclusive batch intent: {error}"
+        ))),
+    }
+}
+
+fn mutation_request_digest(request: &WorkspaceMutateRequest) -> Result<String, UniversalExecError> {
+    let bytes = serde_json::to_vec(request).map_err(|error| {
+        incomplete(format!(
+            "cannot encode immutable Workspace mutation request: {error}"
+        ))
+    })?;
+    Ok(sha256_bytes(&bytes))
+}
+
+fn read_pending(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+) -> Result<Option<PendingBatch>, UniversalExecError> {
+    let path = pending_path(config, workspace_id);
+    let metadata = match fs::symlink_metadata(&path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(incomplete(format!("cannot inspect batch intent: {error}"))),
+    };
+    if !metadata.file_type().is_file() || metadata.len() > MAX_BATCH_INTENT_BYTES {
+        return Err(incomplete("batch intent is not a bounded regular file"));
+    }
+    let mut bytes = Vec::with_capacity(metadata.len() as usize);
+    File::open(&path)
+        .and_then(|mut f| f.read_to_end(&mut bytes))
+        .map_err(|error| incomplete(format!("cannot read batch intent: {error}")))?;
+    let batch: PendingBatch = serde_json::from_slice(&bytes)
+        .map_err(|error| incomplete(format!("invalid batch intent: {error}")))?;
+    if batch.schema_version != 1
+        || batch.workspace_id != workspace_id
+        || batch.entries.is_empty()
+        || batch.entries.iter().any(|entry| {
+            entry.before_digest
+                != entry
+                    .before_content
+                    .as_ref()
+                    .map(|c| sha256_bytes(c.as_bytes()))
+                || entry.after_digest != sha256_bytes(entry.after_content.as_bytes())
+        })
+    {
+        return Err(incomplete(
+            "batch intent identity or content digest mismatch",
+        ));
+    }
+    let mut unique = std::collections::BTreeSet::new();
+    for entry in &batch.entries {
+        super::validate_relative_path(&entry.relative_path, "relativePath")?;
+        if !unique.insert(&entry.relative_path) {
+            return Err(incomplete("batch intent contains duplicate paths"));
+        }
+    }
+    Ok(Some(batch))
+}
+
+fn finish_pending(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+) -> Result<(), UniversalExecError> {
+    let path = pending_path(config, workspace_id);
+    fs::remove_file(&path).map_err(|error| {
+        incomplete(format!(
+            "batch files are reconciled, but intent unlink failed: {error}"
+        ))
+    })?;
+    if let Some(parent) = path.parent() {
+        sync_directory(parent).map_err(|error| {
+            incomplete(format!(
+                "batch intent unlink durability is unknown: {error}"
+            ))
+        })?;
+    }
+    Ok(())
+}
+
+fn observed_content(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+    relative_path: &str,
+) -> Result<Option<String>, UniversalExecError> {
+    let record = load_workspace_record(config, workspace_id)?;
+    let path = preflight_workspace_write_path(&record, relative_path)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    read_workspace_text(
+        config,
+        &WorkspaceReadRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.to_owned(),
+            relative_path: relative_path.to_owned(),
+            max_bytes: MAX_WORKSPACE_IO_BYTES,
+        },
+    )
+    .map(|read| Some(read.content))
+}
+
+fn apply_pending(
+    config: &UniversalExecutorConfig,
+    batch: &PendingBatch,
+) -> Result<WorkspaceMutateResult, UniversalExecError> {
+    let mut results = Vec::with_capacity(batch.entries.len());
+    for entry in &batch.entries {
+        let current = observed_content(config, &batch.workspace_id, &entry.relative_path)?;
+        let actual_digest = current.as_ref().map(|s| sha256_bytes(s.as_bytes()));
+        if actual_digest != Some(entry.after_digest.clone()) {
+            if actual_digest != entry.before_digest {
+                return Err(incomplete(format!(
+                    "batch physical path {} is neither original nor intended; preserve evidence",
+                    entry.relative_path
+                )));
+            }
+            let written = write_workspace_text(
+                config,
+                &WorkspaceWriteRequest {
+                    schema_version: 1,
+                    workspace_id: batch.workspace_id.clone(),
+                    relative_path: entry.relative_path.clone(),
+                    content: entry.after_content.clone(),
+                    expected_digest: entry.before_digest.clone(),
+                },
+            )?;
+            if written.after_digest != entry.after_digest {
+                return Err(incomplete("batch physical digest changed during write"));
+            }
+        }
+        results.push(WorkspaceMutationResult {
+            relative_path: entry.relative_path.clone(),
+            after_digest: entry.after_digest.clone(),
+            byte_length: entry.after_content.len() as u64,
+        });
+    }
+    Ok(WorkspaceMutateResult { mutations: results })
+}
+
+fn rollback_pending(
+    config: &UniversalExecutorConfig,
+    batch: &PendingBatch,
+) -> Result<(), UniversalExecError> {
+    let record = load_workspace_record(config, &batch.workspace_id)?;
+    for entry in batch.entries.iter().rev() {
+        let current = observed_content(config, &batch.workspace_id, &entry.relative_path)?;
+        let actual_digest = current.as_ref().map(|s| sha256_bytes(s.as_bytes()));
+        if actual_digest == entry.before_digest {
+            continue;
+        }
+        if actual_digest != Some(entry.after_digest.clone()) {
+            return Err(incomplete(format!(
+                "batch rollback cannot prove ownership of {}",
+                entry.relative_path
+            )));
+        }
+        if let Some(before) = &entry.before_content {
+            write_workspace_text(
+                config,
+                &WorkspaceWriteRequest {
+                    schema_version: 1,
+                    workspace_id: batch.workspace_id.clone(),
+                    relative_path: entry.relative_path.clone(),
+                    content: before.clone(),
+                    expected_digest: Some(entry.after_digest.clone()),
+                },
+            )?;
+        } else {
+            remove_workspace_file(&record, &entry.relative_path)?;
+        }
+    }
+    Ok(())
 }
 
 pub fn mutate_workspace(
@@ -23,6 +288,18 @@ pub fn mutate_workspace(
     request: &WorkspaceMutateRequest,
 ) -> Result<WorkspaceMutateResult, UniversalExecError> {
     request.validate_shape()?;
+    let request_digest = mutation_request_digest(request)?;
+    if let Some(pending) = read_pending(config, &request.workspace_id)? {
+        if pending.request_digest != request_digest {
+            return Err(incomplete(
+                "a different Workspace batch remains unfinished; only the exact original request may reconcile it",
+            ));
+        }
+        let result = apply_pending(config, &pending)?;
+        finish_pending(config, &request.workspace_id)?;
+        return Ok(result);
+    }
+
     let record = load_workspace_record(config, &request.workspace_id)?;
     let mut prepared = Vec::with_capacity(request.mutations.len());
     for (mutation_index, mutation) in request.mutations.iter().enumerate() {
@@ -114,76 +391,45 @@ pub fn mutate_workspace(
             relative_path: mutation.relative_path.clone(),
             before_content,
             before_digest,
+            after_digest: sha256_bytes(after_content.as_bytes()),
             after_content,
         });
     }
-    let mut results = Vec::with_capacity(prepared.len());
-    for (index, mutation) in prepared.iter().enumerate() {
-        let outcome = write_workspace_text(
-            config,
-            &WorkspaceWriteRequest {
-                schema_version: request.schema_version,
-                workspace_id: request.workspace_id.clone(),
-                relative_path: mutation.relative_path.clone(),
-                content: mutation.after_content.clone(),
-                expected_digest: mutation.before_digest.clone(),
-            },
-        );
-        match outcome {
-            Ok(result) => results.push(result),
-            Err(error) => {
-                rollback(config, request, &record, &prepared[..index], &results)?;
-                return Err(error);
-            }
+    let batch = PendingBatch {
+        schema_version: 1,
+        workspace_id: request.workspace_id.clone(),
+        request_digest,
+        entries: prepared,
+    };
+    let serialized = serde_json::to_vec(&batch)
+        .map_err(|error| incomplete(format!("cannot encode durable batch intent: {error}")))?;
+    if serialized.len() as u64 > MAX_BATCH_INTENT_BYTES {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::OutputLimitExceeded,
+            "batch intent exceeds 64 MiB private Workspace budget",
+            Some("mutations"),
+            false,
+        ));
+    }
+    // Durable before ANY physical file replacement. No extra PG table or Job ID.
+    publish_pending_exclusive(config, &request.workspace_id, &serialized)?;
+    match apply_pending(config, &batch) {
+        Ok(result) => {
+            finish_pending(config, &request.workspace_id)?;
+            Ok(result)
+        }
+        Err(error) => {
+            // Preserve the original caught-error rollback contract. If the
+            // physical state is ambiguous, retain the journal for exact replay.
+            rollback_pending(config, &batch).map_err(|recovery| {
+                incomplete(format!(
+                    "batch write failed ({error}) and physical rollback is incomplete ({recovery})"
+                ))
+            })?;
+            finish_pending(config, &request.workspace_id)?;
+            Err(error)
         }
     }
-    Ok(WorkspaceMutateResult {
-        mutations: results
-            .into_iter()
-            .map(|result| WorkspaceMutationResult {
-                relative_path: result.relative_path,
-                after_digest: result.after_digest,
-                byte_length: result.byte_length,
-            })
-            .collect(),
-    })
-}
-fn rollback(
-    config: &UniversalExecutorConfig,
-    request: &WorkspaceMutateRequest,
-    record: &super::WorkspaceRecord,
-    applied: &[PreparedMutation],
-    results: &[WorkspaceWriteResult],
-) -> Result<(), UniversalExecError> {
-    for (mutation, result) in applied.iter().zip(results).rev() {
-        let restored = if let Some(content) = &mutation.before_content {
-            write_workspace_text(
-                config,
-                &WorkspaceWriteRequest {
-                    schema_version: request.schema_version,
-                    workspace_id: request.workspace_id.clone(),
-                    relative_path: mutation.relative_path.clone(),
-                    content: content.clone(),
-                    expected_digest: Some(result.after_digest.clone()),
-                },
-            )
-            .map(|_| ())
-        } else {
-            remove_workspace_file(record, &mutation.relative_path)
-        };
-        if let Err(error) = restored {
-            return Err(UniversalExecError::new(
-                UniversalExecErrorCode::WorkspaceMutationIncomplete,
-                format!(
-                    "batch mutation failed and rollback of {} also failed: {error}",
-                    mutation.relative_path
-                ),
-                Some("mutations"),
-                false,
-            ));
-        }
-    }
-    Ok(())
 }
 
 pub(crate) fn read_workspace_slice(

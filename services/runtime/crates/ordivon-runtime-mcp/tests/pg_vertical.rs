@@ -866,6 +866,130 @@ fn pg_release_effect_atomic_admission_and_generic_dispatch_fence() {
 }
 
 #[test]
+#[ignore = "launches disposable PostgreSQL18, real HTTP MCP and Git physical files"]
+fn pg_native_mutation_crash_intent_fences_new_jobs_and_close_until_exact_replay() {
+    use sha2::Digest as _;
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let id = "ws-pg-batch-crash";
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let request = json!({
+        "workspaceId":id,
+        "mutations":[
+            {"mode":"WRITE","relativePath":"first.txt","content":"first-committed"},
+            {"mode":"WRITE","relativePath":"second.txt","content":"second-committed"}
+        ]
+    });
+    let typed: ordivon_runtime_core::WorkspaceMutateRequest =
+        serde_json::from_value(request.clone()).unwrap();
+    let digest = |v: &[u8]| format!("sha256:{}", hex::encode(sha2::Sha256::digest(v)));
+    let request_digest = digest(&serde_json::to_vec(&typed).unwrap());
+    let intent = fixture
+        .root
+        .join("store/cache/workspaces")
+        .join(id)
+        .join("pending-mutation-v1.json");
+    fs::create_dir_all(intent.parent().unwrap()).unwrap();
+    let pending = json!({
+        "schemaVersion":1,"workspaceId":id,"requestDigest":request_digest,
+        "entries":[
+            {"relativePath":"first.txt","beforeContent":null,"beforeDigest":null,
+             "afterContent":"first-committed","afterDigest":digest(b"first-committed")},
+            {"relativePath":"second.txt","beforeContent":null,"beforeDigest":null,
+             "afterContent":"second-committed","afterDigest":digest(b"second-committed")}
+        ]
+    });
+    fs::write(&intent, serde_json::to_vec(&pending).unwrap()).unwrap();
+    fs::File::open(&intent).unwrap().sync_all().unwrap();
+    let worktree = fixture.root.join("store/workspaces").join(id);
+    fs::write(worktree.join("first.txt"), "first-committed").unwrap();
+    assert!(!worktree.join("second.txt").exists());
+    assert!(intent.is_file());
+
+    let denied_close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":id,"consumerReleased":true,"force":true}),
+    );
+    assert_eq!(
+        denied_close["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "{denied_close}"
+    );
+    let denied_job = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-batch-crash-job-must-not-be-admitted",
+            "execution":{"workspaceId":id,"cwdRelative":".","executable":"/usr/bin/true",
+            "timeoutMs":10000},"waitMs":0}),
+    );
+    assert_eq!(denied_job["isError"], true, "{denied_job}");
+    assert_eq!(
+        denied_job["structuredContent"]["error"]["code"], "WORKSPACE_STATE_MISMATCH",
+        "{denied_job}"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM jobs WHERE client_request_id='pg-batch-crash-job-must-not-be-admitted'",
+                &[],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+    let another = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":id,"mutations":[
+            {"mode":"WRITE","relativePath":"unrelated.txt","content":"NO"}
+        ]}),
+    );
+    assert_eq!(
+        another["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "{another}"
+    );
+    assert!(intent.is_file());
+    assert!(!worktree.join("unrelated.txt").exists());
+
+    let recovered = call(&endpoint, "workspace.mutate", request);
+    assert_ne!(recovered["isError"], true, "{recovered}");
+    assert_eq!(
+        fs::read_to_string(worktree.join("first.txt")).unwrap(),
+        "first-committed"
+    );
+    assert_eq!(
+        fs::read_to_string(worktree.join("second.txt")).unwrap(),
+        "second-committed"
+    );
+    assert!(!intent.exists());
+    // Only after the physical batch completed may the same PG Job admission
+    // owner issue a new execution. A failed prior attempt was never persisted.
+    let allowed = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-batch-crash-job-after-recovery",
+            "execution":{"workspaceId":id,"cwdRelative":".","executable":"/usr/bin/true",
+            "timeoutMs":10000},"waitMs":0}),
+    );
+    assert_ne!(allowed["isError"], true, "{allowed}");
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+}
+
+#[test]
 #[ignore = "launches a disposable native PostgreSQL cluster; run explicitly"]
 fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     let mut fixture = Fixture::new();
