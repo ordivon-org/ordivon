@@ -185,8 +185,8 @@ accept an optional source-only `selectionMode: ordered`, with two or more
 ```json
 {
   "regions": [],
-  "selectedCountries": ["Singapore", "Malaysia", "Hong Kong", "Thailand", "Taiwan"],
-  "excludedCountries": ["Japan", "South Korea"],
+  "selectedCountries": ["Singapore", "Malaysia", "Thailand", "Taiwan", "Australia"],
+  "excludedCountries": ["Hong Kong"],
   "selectionMode": "ordered"
 }
 ```
@@ -197,7 +197,7 @@ leaving `regions: ["Asia Pacific"]` would silently defeat country priority,
 so the policy rejects it. The existing source-owned candidate-catalog Task
 also works when regions are empty, and remains CATALOG_ONLY_NOT_HEALTH.
 The native generator does not append the unsupported mode for the current
-singleton Singapore policy; a source-only preview can use `--check
+non-Hong-Kong production selector; a source-only preview can use `--check
 --selector-policy PATH`, while `--apply` additionally refuses ordered mode
 unless explicitly passed `--allow-ordered-apply`.
 
@@ -205,11 +205,12 @@ Before a production cutover, qualify a pinned immutable upstream image
 supporting ordered mode, each consumer's actual allowed egress countries
 (including iOS/Finance), native DNS/HTTPS through every fallback country,
 real source/installed/loaded effect, and a return path. A single shared Gluetun
-can only have **one exit country at a time**; if iOS must remain SG-only,
-multi-country fallback requires a separate qualified Carrier. Ordered mode
-cycles through candidate connections on successive reconnects; it is not an
-independent VPN, proof of endpoint health, or proactive failback when SG
-recovers. Do not use a host-direct fallback for VPN-only consumers.
+can only have **one exit country at a time**; if any consumer requires a
+fixed country, multi-country fallback cannot be shared with that consumer
+without a separate qualified Carrier. Ordered mode cycles through candidate
+connections on successive reconnects; it is not an independent VPN, proof
+of endpoint health, or proactive failback when a preferred country recovers.
+Do not use a host-direct fallback for VPN-only consumers.
 
 
 ### DNS measurement planes (operational interpretation)

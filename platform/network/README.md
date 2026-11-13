@@ -81,11 +81,14 @@ deployed SourceCut and real consumer consequences separately.
 Generic core tasks do not depend on provider or consumer profiles.
 Old round evidence is recoverable in Git and is not retained as current documentation.
 The selected Gluetun Quadlet owns the single physical provider session.
-The physical mode now uses native Surfshark WireGuard server selection
-for the currently selected Singapore SourceCut, with a Podman Secret and
-official Gluetun health recovery. Its source selector is owned by the Gluetun
-provider; other catalog countries are candidates, not automatically authorized
-consumer exits. See `providers/gluetun/README.md` for the physical SourceCut.
+The physical mode uses one native Surfshark WireGuard session, a Podman Secret
+and Gluetun's own health recovery. The current provider selector admits the
+catalog's non-Hong-Kong countries (with no region override), rather than the
+historical Singapore-only policy. Multiple eligible endpoints are NOT
+independent physical underlays or proven healthy exits. The Gluetun provider
+owns this selector; consumer-specific exit constraints and actual public
+geography need separate evidence. See `providers/gluetun/README.md` for the
+physical SourceCut.
 Codex and mobile Tailscale Exit Node keep separate readiness contracts.
 
 ## Public workflow

@@ -47,8 +47,11 @@ rather than creating a second mobile agent:
    Using Exit Node=true, and the exact expected exit-node name.
 2. From that same device, open https://ipinfo.io/json and compare its
    actual public IP with the **contemporaneous**, Gluetun-native provider
-   public IP (VPN addresses can change). The expected provider country is SG.
-   This is a device-origin receipt, not a server curl substituted for it.
+   public IP (VPN addresses can change). The current provider selector excludes
+   Hong Kong, but does not promise Singapore or any single fixed country.
+   Check that each device's actual country is permitted by its own consumer
+   requirements; an UNKNOWN country is not evidence of compliance. This is
+   a device-origin receipt, not a server curl substituted for it.
 3. Test ordinary HTTPS hostname resolution on that same device. Record
    whether DNS succeeds, and distinguish normal domain-name lookups from
    special-use names or intentional DNS filtering. Repeat on Wi-Fi and
