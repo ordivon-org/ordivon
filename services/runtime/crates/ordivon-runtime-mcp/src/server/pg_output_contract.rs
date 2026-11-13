@@ -28,17 +28,26 @@ struct PgJobSchedulingReadback {
     pending_reason: Option<PgSchedulingPendingReason>,
 }
 
+/// The one source of truth for which MCP Tool success schemas actually
+/// permit a PG scheduling facet. In particular artifact.read has a jobId
+/// but its closed ArtifactReadResult schema does NOT contain scheduling.
+fn pg_scheduling_success_definition(name: &str) -> Option<&'static str> {
+    match name {
+        "workspace.exec" | "workspace.execPlan" | "job.observe" | "job.cancel" => {
+            Some("JobObservation")
+        }
+        "job.list" => Some("RuntimeJobSummary"),
+        "job.get" => Some("RuntimeJobInspection"),
+        _ => None,
+    }
+}
+
 /// Extend only the exact PG success projections that contain the scheduler's
 /// own readback. Retain the SDK's original error branch and closed object
 /// contract; never set additionalProperties=true to suppress schema failures.
 fn qualify_pg_scheduling_output_schema(tool: &mut Tool) {
-    let definition = match tool.name.as_ref() {
-        "workspace.exec" | "workspace.execPlan" | "job.observe" | "job.cancel" => {
-            "JobObservation"
-        }
-        "job.list" => "RuntimeJobSummary",
-        "job.get" => "RuntimeJobInspection",
-        _ => return,
+    let Some(definition) = pg_scheduling_success_definition(tool.name.as_ref()) else {
+        return;
     };
     let mut schema = tool
         .output_schema
@@ -192,6 +201,42 @@ mod pg_scheduling_output_contract_tests {
         assert!(serde_json::from_value::<PgJobSchedulingReadback>(bad_state).is_err());
         let unknown_field = json!({"state":"released","request":request,"proof":true});
         assert!(serde_json::from_value::<PgJobSchedulingReadback>(unknown_field).is_err());
+    }
+
+    #[test]
+    fn scheduling_output_gate_rejects_unrelated_job_identity_and_artifact_response() {
+        for tool in [
+            "artifact.read",
+            "artifact.content",
+            "workspace.get",
+            "workspace.close",
+            "release.get",
+            "runtime.describe",
+        ] {
+            assert_eq!(pg_scheduling_success_definition(tool), None, "{tool}");
+        }
+        for tool in [
+            "workspace.exec",
+            "workspace.execPlan",
+            "job.observe",
+            "job.cancel",
+            "job.list",
+            "job.get",
+        ] {
+            assert!(pg_scheduling_success_definition(tool).is_some(), "{tool}");
+        }
+        // An artifact contains the real Job ID, but it is not a Job
+        // scheduling readback. Do not widen its official SDK output schema.
+        let ordinary = RuntimeServer::tool_router()
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "artifact.read")
+            .unwrap();
+        let pg = PgRuntimeServer::catalog()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "artifact.read")
+            .unwrap();
+        assert_eq!(ordinary.output_schema, pg.output_schema);
     }
 
     #[test]

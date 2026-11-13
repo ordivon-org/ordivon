@@ -202,6 +202,14 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         tokenfile.write_text(token)
         tokenfile.chmod(0o600)
         assert stat.S_IMODE(tokenfile.stat().st_mode) == 0o600
+        issuer_isolated = os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ISOLATED") == "1"
+        if issuer_isolated:
+            assert os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ADMISSION") == "1"
+            harness_tokenfile = root / "harness-private-bearer"
+            harness_tokenfile.write_text(secrets.token_urlsafe(40))
+            harness_tokenfile.chmod(0o600)
+        else:
+            harness_tokenfile = None
 
         # Private-test-only launcher barrier, not a replacement Runner.
         # Native Runtime attests the true Runner binary as executionProvider:
@@ -255,9 +263,13 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
             }
         )
         if os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ADMISSION") == "1":
-            # Explicit same-cluster issuer qualification. This test endpoint
-            # requires every NEW Job to carry a live Harness PG source record.
+            # Same cluster and issuer, with either legacy strict whole-endpoint
+            # policy or the distinct authenticated Harness route.
             env["ORDIVON_PG_HARNESS_ISSUER_SCHEMA"] = "harness_r22_source"
+            if issuer_isolated:
+                assert harness_tokenfile is not None
+                env["ORDIVON_PG_HARNESS_TOKEN_FILE"] = str(harness_tokenfile)
+                env["ORDIVON_PG_HARNESS_PRINCIPAL"] = "harness-native-test"
         if dispatch_gate:
             # Only this disposable owner process sees the PATH tool barrier.
             # No installed Runtime, global PATH or native Runner is changed.
@@ -344,14 +356,37 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
             return json.loads(verified.stdout.strip().splitlines()[-1])
 
         async def scenario() -> None:
-            caller = McpOwnerCaller(
-                {
-                    "runtime.linux": OwnerEndpoint(
-                        url=f"http://127.0.0.1:{port}/mcp",
-                        bearer_token_file=str(tokenfile),
+            endpoints = {
+                "runtime.linux": OwnerEndpoint(
+                    url=f"http://127.0.0.1:{port}/mcp",
+                    bearer_token_file=str(tokenfile),
+                )
+            }
+            if issuer_isolated:
+                assert harness_tokenfile is not None
+                endpoints["runtime.harness"] = OwnerEndpoint(
+                    url=f"http://127.0.0.1:{port}/harness/mcp",
+                    bearer_token_file=str(harness_tokenfile),
+                )
+                # The two physical ingress profiles must not share a Bearer:
+                # a valid normal credential cannot become a Harness authority.
+                import urllib.error
+                import urllib.request
+
+                for endpoint, wrong_token in [
+                    ("/harness/mcp", token),
+                    ("/mcp", harness_tokenfile.read_text()),
+                ]:
+                    request = urllib.request.Request(
+                        f"http://127.0.0.1:{port}{endpoint}",
+                        data=b"{}",
+                        method="POST",
+                        headers={"Authorization": f"Bearer {wrong_token}"},
                     )
-                }
-            )
+                    with pytest.raises(urllib.error.HTTPError) as denied:
+                        urllib.request.urlopen(request, timeout=2)
+                    assert denied.value.code == 401
+            caller = McpOwnerCaller(endpoints)
             gateway = GatewayService(caller)
             # The native Gateway capability discovery must consume PG runtime.describe,
             # not infer provider readiness merely because its route exists.
@@ -369,12 +404,34 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                 },
             )
             assert workspace["workspaceId"] == "ws-gateway-native"
+            if issuer_isolated:
+                projection = await gateway.capability_describe("execution.harness")
+                assert projection.capabilities[0].available is True
+                ordinary = await gateway.execution_submit(
+                    capability="execution.linux",
+                    request_id="r26-ordinary-unfenced",
+                    workspace_id="ws-gateway-native",
+                    executable="/usr/bin/printf",
+                    args=["R26_ORDINARY_RUNTIME_NOT_BLOCKED"],
+                )
+                assert ordinary.owner_id == "runtime.linux"
+                for _ in range(30):
+                    ordinary_seen = await gateway.execution_get(
+                        ordinary.operation_ref, wait_ms=1500
+                    )
+                    if ordinary_seen.terminal:
+                        break
+                assert ordinary_seen.terminal and ordinary_seen.exit_code == 0
+                print("R26_SAME_PG_DISTINCT_PRINCIPAL_NORMAL_UNFENCED_REAL_JOB_SUCCEEDED")
+
             if issuer_bound:
                 async with Client(build_server(gateway), raise_exceptions=True) as agent:
 
                     def native_request(source: dict) -> dict:
                         return {
-                            "capability": "execution.linux",
+                            "capability": (
+                                "execution.harness" if issuer_isolated else "execution.linux"
+                            ),
                             "requestId": source["clientRequestId"],
                             "workspaceId": "ws-gateway-native",
                             "executable": "/usr/bin/printf",
@@ -448,6 +505,173 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     )
                     print("R25_SAME_PG_ISSUER_CURRENT_NEW_NATIVE_JOB_ADMITTED")
 
+                    if issuer_isolated:
+                        bound_ref = valid.structured_content["operation_ref"]
+                        assert bound_ref == f"ordivon-exec:v1:runtime.harness:{actual_job}"
+                        resolved_owner = await gateway.execution_resolve(
+                            capability="execution.harness",
+                            request_id=valid_source["clientRequestId"],
+                        )
+                        assert resolved_owner.native_id == actual_job
+                        assert resolved_owner.operation_ref == bound_ref
+                        assert resolved_owner.workspace_id == "ws-gateway-native"
+                        fetched = await gateway.execution_get(bound_ref, wait_ms=0)
+                        assert fetched.native_id == actual_job
+                        assert fetched.capability == "execution.harness"
+                        assert fetched.terminal is True
+                        assert fetched.execution_disposition == "succeeded"
+                        assert fetched.artifact_ids
+                        chunks = [
+                            await gateway.artifact_read(bound_ref, artifact_id, max_bytes=65536)
+                            for artifact_id in fetched.artifact_ids
+                        ]
+                        assert all(chunk.native_id == actual_job for chunk in chunks)
+                        assert any(
+                            "R25_VALID_ISSUER_PG_NATIVE" in chunk.content for chunk in chunks
+                        )
+                        print("R26_AUTHENTICATED_GATEWAY_RECOVERY_AND_ARTIFACT_REAL_OWNER")
+
+                    if issuer_isolated:
+                        # A terminal Runner Job is not a DomainResult. Exercise
+                        # the existing UNKNOWN→Owner Receipt journal consumer
+                        # against the independently authenticated Harness PG Job.
+                        original_refs = json.dumps(valid_source["foreignReferences"])
+                        lost_response = verified_harness_source(
+                            "unknown",
+                            ORDIVON_R22_EXPECT_RUN=valid_source["runId"],
+                            ORDIVON_R22_EXPECT_REQUEST=valid_source["clientRequestId"],
+                            ORDIVON_R22_EXPECT_REFS_JSON=original_refs,
+                        )
+                        assert lost_response["standing"] == "UNKNOWN"
+                        verified_owner_result = await caller.call_tool(
+                            "runtime.harness",
+                            "job.get",
+                            {"jobId": actual_job},
+                        )
+                        assert verified_owner_result["job"]["jobId"] == actual_job
+                        assert (
+                            verified_owner_result["job"]["clientRequestId"]
+                            == (valid_source["clientRequestId"])
+                        )
+                        assert verified_owner_result["job"]["resolution"] == "succeeded"
+                        assert verified_owner_result["job"]["semanticCompletionEvaluated"] is False
+                        assert verified_owner_result["attempts"][-1]["exitCode"] == 0
+                        # Source SQL is authoritative for physical dispatch.
+                        # Inspection.episodes is a bounded diagnostic and may
+                        # report 0 even when PG events retain DISPATCH_ISSUED.
+                        assert (
+                            psql(
+                                "SELECT count(*) FROM fresh.job_events "
+                                f"WHERE job_id='{actual_job}' AND event_type='DISPATCH_ISSUED'"
+                            ).strip()
+                            == "1"
+                        )
+                        # The native observation is the actual Owner Receipt;
+                        # inspection corroborates exact identity and attempts.
+                        native_observed = await caller.call_tool(
+                            "runtime.harness",
+                            "job.observe",
+                            {"jobId": actual_job, "waitMs": 0},
+                        )
+                        assert native_observed["jobId"] == actual_job
+                        assert native_observed["executionTerminal"] is True
+                        assert native_observed["deliveryDisposition"] == "committed"
+                        assert native_observed["exitCode"] == 0
+                        reconciled = verified_harness_source(
+                            "reconcile",
+                            ORDIVON_R22_EXPECT_RUN=valid_source["runId"],
+                            ORDIVON_R22_EXPECT_REQUEST=valid_source["clientRequestId"],
+                            ORDIVON_R22_EXPECT_REFS_JSON=original_refs,
+                            ORDIVON_R22_OWNER_JOB=actual_job,
+                            ORDIVON_R22_OWNER_OBSERVATION=json.dumps(
+                                {
+                                    "jobId": actual_job,
+                                    "clientRequestId": verified_owner_result["job"][
+                                        "clientRequestId"
+                                    ],
+                                    "executionTerminal": native_observed["executionTerminal"],
+                                    "deliveryDisposition": native_observed["deliveryDisposition"],
+                                    "exitCode": native_observed["exitCode"],
+                                }
+                            ),
+                            ORDIVON_R22_OWNER_PRINCIPAL="harness-native-test",
+                        )
+                        assert reconciled["standing"] == "OWNER_CONFIRMED_RECEIPT"
+                        assert reconciled["jobId"] == actual_job
+                        assert reconciled["dispatchCount"] == 1
+                        assert reconciled["semanticCompletionEvaluated"] is False
+                        assert reconciled["previousReceiptDigest"] == lost_response["receiptDigest"]
+                        print("R26_AUTHENTICATED_SOURCE_UNKNOWN_TO_OWNER_RECEIPT_NO_DOMAIN_SUCCESS")
+                        # Native PG principal is credential-bound, not a
+                        # request field. A normal Runtime bearer must not read
+                        # the Harness-profile Job, even with its actual Job ID.
+                        with pytest.raises(OwnerCallError):
+                            await caller.call_tool(
+                                "runtime.linux", "job.get", {"jobId": actual_job}
+                            )
+                        print("R26_CROSS_PRINCIPAL_JOB_READ_REJECTED")
+                        # Existing Harness Gateway effect adapter must recognize
+                        # the dedicated physical owner alias and consume the
+                        # old immutable Job through the real MCP SDK, never
+                        # creating a second Runtime attempt on recovery.
+                        # Explicit checked-out Harness source for this
+                        # optional real-PG consumer; no global wheel fallback.
+                        import sys
+
+                        harness_source_path = str(source_root / "harness/src")
+                        if harness_source_path not in sys.path:
+                            sys.path.insert(0, harness_source_path)
+                        from ordivon_harness.agent_plugin import AgentPluginMcpComponent
+                        from ordivon_harness.plugin_gateway_effect import (
+                            GatewayMcpRuntimeAdapter,
+                            PluginGatewayExecutionGrant,
+                        )
+
+                        loop = asyncio.get_running_loop()
+
+                        class RealHarnessSdkPort:
+                            def call_tool(self, name, arguments):
+                                result = asyncio.run_coroutine_threadsafe(
+                                    agent.call_tool(name, arguments), loop
+                                ).result(timeout=35)
+                                assert isinstance(result.structured_content, dict)
+                                return result.is_error, result.structured_content
+
+                        adapter = GatewayMcpRuntimeAdapter(
+                            AgentPluginMcpComponent(
+                                name="r26-authenticated-harness-gateway",
+                                transport="streamable-http",
+                                url="https://gateway.local.invalid/mcp",
+                            ),
+                            RealHarnessSdkPort(),
+                            PluginGatewayExecutionGrant(
+                                capability="execution.harness",
+                                workspace_id="ws-gateway-native",
+                                executable_allowlist=("/usr/bin/printf",),
+                            ),
+                        )
+                        historical = await asyncio.to_thread(
+                            adapter.call_tool,
+                            "workspace.exec",
+                            {
+                                "clientRequestId": valid_source["clientRequestId"],
+                                "execution": {
+                                    **valid_source["execution"],
+                                    "foreignReferences": valid_source["foreignReferences"],
+                                },
+                            },
+                        )
+                        assert historical["jobId"] == actual_job
+                        assert historical["semanticCompletionEvaluated"] is False
+                        assert (
+                            psql(
+                                "SELECT count(*) FROM fresh.job_events "
+                                f"WHERE job_id='{actual_job}' AND event_type='DISPATCH_ISSUED'"
+                            ).strip()
+                            == "1"
+                        )
+                        print("R26_REAL_HARNESS_GATEWAY_EFFECT_ADAPTER_REPLAY_NO_REDISPATCH")
+
                     # Source revision changes AFTER original COMMIT. Historical
                     # exact replay still resolves the same Job, not a new effect.
                     advanced = verified_harness_source(
@@ -455,6 +679,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         ORDIVON_R22_EXPECT_RUN=valid_source["runId"],
                         ORDIVON_R22_EXPECT_REQUEST=valid_source["clientRequestId"],
                         ORDIVON_R22_EXPECT_REFS_JSON=json.dumps(valid_source["foreignReferences"]),
+                        **({"ORDIVON_R24_POST_RECEIPT_REVOKE": "1"} if issuer_isolated else {}),
                     )
                     assert advanced["currentRevision"] > advanced["preparedRevision"]
                     replay = await agent.call_tool("execution.submit", native_request(valid_source))

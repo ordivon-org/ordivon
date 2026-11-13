@@ -44,12 +44,17 @@ HISTORICAL = {
         "Historical standing: SUPERSEDED BY C02/D01 FOR CURRENT ENDPOINT TOPOLOGY",
 }
 
+# An immutable September 2026 historical deployment snapshot must not be
+# silently rewritten when current source introduces an uninstalled capability.
 EXPECTED_CAPABILITIES = {
     "artifact.runtime",
     "continuity.external",
     "execution.linux",
     "execution.windows",
 }
+# Current source routing exposes an opt-in issuer-fenced Runtime profile. It is
+# still not production availability: the owner endpoint and bearer must qualify.
+EXPECTED_SOURCE_CAPABILITIES = EXPECTED_CAPABILITIES | {"execution.harness"}
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
     'actor.declare',
@@ -2320,9 +2325,9 @@ def validate_repository(root: Path = ROOT) -> None:
     validate_plugin(_load_json(plugin))
 
     observed = route_capabilities(routes.read_text(encoding="utf-8"))
-    if observed != EXPECTED_CAPABILITIES:
+    if observed != EXPECTED_SOURCE_CAPABILITIES:
         raise ArchitectureDocsError(
-            f"Gateway route source differs from deployed graph: {sorted(observed)}"
+            f"Gateway route source differs from current source contract: {sorted(observed)}"
         )
 
     gateway_source = gateway_mcp.read_text(encoding="utf-8")

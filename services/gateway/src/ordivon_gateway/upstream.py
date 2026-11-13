@@ -193,6 +193,10 @@ class McpOwnerCaller:
                 "url": "ORDIVON_GATEWAY_LINUX_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE",
             },
+            "runtime.harness": {
+                "url": "ORDIVON_GATEWAY_HARNESS_RUNTIME_URL",
+                "bearer": "ORDIVON_GATEWAY_HARNESS_RUNTIME_BEARER_TOKEN_FILE",
+            },
             "runtime.windows": {
                 "url": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE",

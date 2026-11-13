@@ -120,3 +120,56 @@ TLS/role qualification, unknown commit reconciliation, all physical plan
 forms, installed binary identity, or semantic task success. True production
 promotion still needs independent source-HEAD review, a verified schema
 migration, deployment-specific evidence and rollback.
+
+## R26 — authenticated issuer profile on one existing PG Runtime
+
+The formal protected merge of PR #2085 is source commit
+5cb7f1536f20431c200cc90285286818e9df313f, NOT an installed release.
+The R25 isolated whole-process issuer mode denies ordinary unfenced Jobs and
+must not be enabled directly on the shared production Runtime service.
+
+R26 reuses exactly one Runtime process, PG writer schema, native Runner and
+scheduler, exposing two authenticated profiles. There is no second Registry
+or PostgreSQL data authority:
+- Existing /mcp retains existing local, remote and Access authentication,
+  ORDIVON_PG_PRINCIPAL and unfenced execution.linux behavior.
+- Dedicated /harness/mcp uses a DIFFERENT private-file Bearer set through
+  ORDIVON_PG_HARNESS_TOKEN_FILE and separate authenticated
+  ORDIVON_PG_HARNESS_PRINCIPAL, and requires
+  ORDIVON_PG_HARNESS_ISSUER_SCHEMA for source-current NEW Job admission.
+- Gateway execution.harness routes to owner key runtime.harness using
+  ORDIVON_GATEWAY_HARNESS_RUNTIME_URL and
+  ORDIVON_GATEWAY_HARNESS_RUNTIME_BEARER_TOKEN_FILE.
+  This is an endpoint/profile alias of the SAME physical Runtime, not a new
+  natural Owner service or an invented Agent identity. The two credentials
+  cannot authenticate the opposite ingress, and ordinary Principal cannot
+  inspect Harness Job IDs.
+- The issuer role needs schema USAGE and function EXECUTE only: NO access
+  to private source Run UPDATE or CAS SELECT. The token file must be a
+  regular private, non-symlink file and Harness Principal distinct from
+  the regular Runtime Principal.
+
+Real disposable PG18 regression adds the native issuer-isolated opt-in
+ORDIVON_GATEWAY_PG_E2E_ISSUER_ISOLATED=1 alongside the R25 source flags.
+It exercises normal unfenced real Job, cross-token HTTP401, real
+Harness SQL Run/Intent/Fence, Gateway SDK, native systemd Runner,
+original UNKNOWN -> authenticated Owner Receipt, real native artifacts,
+exact job replay and cross-principal denial, old revocation, expiry,
+physical-plan tampering and concurrent issuer row-lock tests. A physical
+success always retains semanticCompletionEvaluated=false; domain acceptance
+is separately owned by the domain, never inferred from Runner exit 0.
+
+Production acceptance remains UNKNOWN until qualified source install,
+Harness PG schema migration and read-only role permission proof, operator
+secret file placement, Gateway configured route, connector catalogue
+refresh, structured Runtime ReleaseEffect deployment receipt, main PID
+and Runner byte identities, original ordinary workload and new Harness
+consumer positive/negative checks, and rollback. Do not substitute
+generic workspace.exec for the root-qualified ReleaseEffect.
+
+Important limits: Admission-current only, NOT currentness at the later
+systemd spawn or ongoing revocation of an arbitrary side effect.
+An authorized ordinary caller still has the legacy execution.linux route;
+using execution.harness does not automatically revoke other actors' prior
+permissions. Gateway/Security must authorize which caller can request the
+dedicated route; foreignReferences cannot confer this authorization.
