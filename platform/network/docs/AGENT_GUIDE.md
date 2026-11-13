@@ -237,3 +237,20 @@ Never print Podman Secrets, full container environments, app tokens, credentials
 The documentation follows Diátaxis: how-to for Humans, contract/reference
 for Agents, and existing architecture for explanation. Do not add a fourth
 parallel reference corpus just to satisfy a directory taxonomy.
+
+
+### Enabled consumer Target lifecycle (Model Provider, Supply Chain, X Reality)
+
+These three enabled Targets can become inactive while their sing-box
+egress services remain active if services are started independently.
+PartOf= on the service propagates stopping/restarting the Target but
+does not activate the Target when the service alone starts. The native
+service Upholds= back to its Target closes that direction without a
+custom watchdog: while service active, systemd restores Target; when
+Target is intentionally stopped, PartOf= stops service and Upholds
+ceases. Qualified by native isolated systemd RED/GREEN experiment
+and tests/test_systemd_target_lifecycle.py. Do not enable a disabled
+consumer, do not restart the global Gluetun Provider, and do not use
+systemd unit active as an HTTP/TLS consumer-readiness substitute.
+Production must prove source == installed == systemd-loaded, then
+actual real consumer TLS consequence with original service PIDs stable.
