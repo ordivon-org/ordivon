@@ -549,8 +549,9 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             {"jobId": actual_job},
                         )
                         assert verified_owner_result["job"]["jobId"] == actual_job
-                        assert verified_owner_result["job"]["clientRequestId"] == (
-                            valid_source["clientRequestId"]
+                        assert (
+                            verified_owner_result["job"]["clientRequestId"]
+                            == (valid_source["clientRequestId"])
                         )
                         assert verified_owner_result["job"]["resolution"] == "succeeded"
                         assert verified_owner_result["job"]["semanticCompletionEvaluated"] is False
@@ -558,10 +559,13 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         # Source SQL is authoritative for physical dispatch.
                         # Inspection.episodes is a bounded diagnostic and may
                         # report 0 even when PG events retain DISPATCH_ISSUED.
-                        assert psql(
-                            "SELECT count(*) FROM fresh.job_events "
-                            f"WHERE job_id='{actual_job}' AND event_type='DISPATCH_ISSUED'"
-                        ).strip() == "1"
+                        assert (
+                            psql(
+                                "SELECT count(*) FROM fresh.job_events "
+                                f"WHERE job_id='{actual_job}' AND event_type='DISPATCH_ISSUED'"
+                            ).strip()
+                            == "1"
+                        )
                         # The native observation is the actual Owner Receipt;
                         # inspection corroborates exact identity and attempts.
                         native_observed = await caller.call_tool(
@@ -579,15 +583,17 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             ORDIVON_R22_EXPECT_REQUEST=valid_source["clientRequestId"],
                             ORDIVON_R22_EXPECT_REFS_JSON=original_refs,
                             ORDIVON_R22_OWNER_JOB=actual_job,
-                            ORDIVON_R22_OWNER_OBSERVATION=json.dumps({
-                                "jobId": actual_job,
-                                "clientRequestId": verified_owner_result["job"][
-                                    "clientRequestId"
-                                ],
-                                "executionTerminal": native_observed["executionTerminal"],
-                                "deliveryDisposition": native_observed["deliveryDisposition"],
-                                "exitCode": native_observed["exitCode"],
-                            }),
+                            ORDIVON_R22_OWNER_OBSERVATION=json.dumps(
+                                {
+                                    "jobId": actual_job,
+                                    "clientRequestId": verified_owner_result["job"][
+                                        "clientRequestId"
+                                    ],
+                                    "executionTerminal": native_observed["executionTerminal"],
+                                    "deliveryDisposition": native_observed["deliveryDisposition"],
+                                    "exitCode": native_observed["exitCode"],
+                                }
+                            ),
                             ORDIVON_R22_OWNER_PRINCIPAL="harness-native-test",
                         )
                         assert reconciled["standing"] == "OWNER_CONFIRMED_RECEIPT"
@@ -657,10 +663,13 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         )
                         assert historical["jobId"] == actual_job
                         assert historical["semanticCompletionEvaluated"] is False
-                        assert psql(
-                            "SELECT count(*) FROM fresh.job_events "
-                            f"WHERE job_id='{actual_job}' AND event_type='DISPATCH_ISSUED'"
-                        ).strip() == "1"
+                        assert (
+                            psql(
+                                "SELECT count(*) FROM fresh.job_events "
+                                f"WHERE job_id='{actual_job}' AND event_type='DISPATCH_ISSUED'"
+                            ).strip()
+                            == "1"
+                        )
                         print("R26_REAL_HARNESS_GATEWAY_EFFECT_ADAPTER_REPLAY_NO_REDISPATCH")
 
                     # Source revision changes AFTER original COMMIT. Historical
