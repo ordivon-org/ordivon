@@ -221,3 +221,57 @@ and a sell reusing a still-open buy payable. Consumer proof is the
 Accounting state transition plus the existing PostgreSQL close tests,
 rather than another mirror ledger, approval system or exhaustive
 mutation harness.
+
+## R3 Q1 reusable Qlib-native Paper batch consumer (simulation only, 2026-11-13)
+
+The accounting.paper_simulation_run module is an adapter over existing
+PostgresPaperClose.close_session and read_committed_paper_close, NOT a new
+OMS, valuation model, account database, order router, or scheduler.
+It consumes an independently executed Qlib OOS study and Nautilus backtest.
+The existing nonlive producer writes both native_holding_result.json and
+paper_sessions.json. Its native result binds the exact serialized session
+bytes through paper_sessions_sha256, checked before the PG session writer.
+
+Using private previously produced study and native output paths:
+
+    export ORDIVON_CAPITAL_PAPER_PG_DSN='host=127.0.0.1 ... dbname=ordivon_paper'
+    cd domains/capital
+    scripts/run-capability-python \
+      -m ordivon_capital.accounting.paper_simulation_run \
+      --study /private/research/native_study_result.json \
+      --predictions /private/research/qlib_test_predictions.csv \
+      --native /private/nonlive/native_holding_result.json \
+      --sessions /private/nonlive/paper_sessions.json
+
+The consumer checks Qlib output/model co-artifact consistency, unchanged
+native-exported Paper session bytes, model-score/selected instrument agreement,
+correct H5/H20 next-open dates, non-intervened terminal native outcome,
+matching buys/sells/canceled entry and Paper economics, initial $10k fiction,
+and protected $9k reserve. Source admission is intentionally
+SIMULATION_ONLY_CALLER_DECLARED; historical vendor PIT, redistribution rights,
+native code signing, alpha, live trades and real funding authorization
+remain UNKNOWN or NOT_ADMITTED.
+
+The account is automatically derived as r3sim_ plus a bounded SHA-256
+from this exact study, Qlib predictions, Native outcome and session bytes.
+No caller-provided broker/customer account is mapped to it. The shared
+simulation_evidence is stored in the original per-day durable PG request
+digest AND receipt and checked in independent read-only account consumers.
+The Qlib/native source bytes are co-produced evidence, not a third-party
+cryptographic signature.
+
+This is an ordered sequence of EXISTING per-day PostgreSQL serializable
+transactions, NOT an atomic multi-day transaction. A crash can leave a
+committed prefix; rerun the EXACT same four inputs to safely replay and
+finish it. Changed bytes create a distinct simulation-only account rather
+than rewriting the previous account. The consumer independently reads back
+each daily receipt and verifies the latest account head after completion.
+For standalone read-only inspection use the existing
+accounting.postgres_paper_close --account ACCOUNT --read-latest.
+
+Measured in an isolated PostgreSQL cluster: real Qlib H5/SPY, H20/IWM
+and canceled-entry H5 native Nautilus event outputs; 8/23/8 daily rows,
+physical stop/restart and exact readback for all three; partial four-day
+H5 prefix resumed to eight days; native cash / selected-instrument and
+co-produced intermediate-mark tamper negative cases. This is NOT a
+production broker deployment or prospective market-return demonstration.
