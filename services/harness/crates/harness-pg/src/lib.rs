@@ -5,6 +5,7 @@ pub mod journal_write;
 pub mod lease;
 mod projection;
 mod readback;
+pub mod run_create;
 pub use projection::{
     ProviderFailureTextField, ReadError, Readback, RunEvent, RunProjection,
     VerifiedProviderFailureReference, VerifiedProviderReference, VerifiedReferenceLink,
@@ -12,6 +13,7 @@ pub use projection::{
 };
 pub(crate) use readback::{corrupted, run_projection, transition, valid_schema, CONTRACT_KIND};
 pub use readback::{decode_cas, read_run_readonly};
+pub use run_create::create_run;
 
 #[cfg(test)]
 mod tests {

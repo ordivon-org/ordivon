@@ -1,62 +1,67 @@
-//! Native Run inspection: no Python process, no fallback to SQLite and no second Store.
+//! Rust-native PostgreSQL Run commands, never a Python process.
 #![forbid(unsafe_code)]
-
-use ordivon_harness_pg::read_run_readonly;
+use ordivon_harness_core::loads_strict;
+use ordivon_harness_pg::{create_run, read_run_readonly};
 use postgres::{Client, NoTls};
 use serde_json::json;
-use std::{env, error::Error, process::ExitCode};
+use std::{env, error::Error, fs, process::ExitCode};
 
 fn execute() -> Result<(), Box<dyn Error>> {
     let mut args = env::args().skip(1);
     let action = args
         .next()
-        .ok_or("usage: ordivon-harness <status|inspect> RUN_ID")?;
-    if action != "status" && action != "inspect" {
-        return Err(format!("unknown Harness operation: {action}").into());
+        .ok_or("usage: ordivon-harness <create CONTRACT_FILE|status RUN_ID|inspect RUN_ID>")?;
+    if !matches!(action.as_str(), "create" | "status" | "inspect") {
+        return Err(format!("unknown native Harness command: {action}").into());
     }
-    let run_id = args.next().ok_or("missing RUN_ID")?;
-    if run_id.is_empty() || args.next().is_some() {
-        return Err("expected exactly one nonempty RUN_ID".into());
+    let input = args.next().ok_or("missing command argument")?;
+    if input.is_empty() || args.next().is_some() {
+        return Err("expected exactly one argument".into());
     }
     let dsn = env::var("HARNESS_PG_DSN")?;
-    let schema = env::var("HARNESS_PG_SCHEMA").unwrap_or_else(|_| "harness".to_owned());
-    let mut connection = Client::connect(&dsn, NoTls)?;
-    let evidence = read_run_readonly(&mut connection, &schema, &run_id)?;
-    let p = evidence.projection;
-    let mut output = json!({
-        "runId": p.harness_run_id,
-        "revision": p.revision,
-        "status": p.status,
-        "contractDigest": p.contract_digest,
-        "eventCount": evidence.events.len(),
-        "terminalEventId": p.terminal_event_id
+    let schema = env::var("HARNESS_PG_SCHEMA").unwrap_or_else(|_| "harness".into());
+    let mut db = Client::connect(&dsn, NoTls)?;
+    if action == "create" {
+        let contract = loads_strict(&fs::read_to_string(&input)?)?;
+        let outcome = create_run(&mut db, &schema, &contract)?;
+        println!(
+            "{}",
+            serde_json::to_string(&json!({
+                "admission":format!("{outcome:?}").to_lowercase(),
+                "runId":contract.field("harnessRunId").and_then(|v|v.as_str())
+            }))?
+        );
+        return Ok(());
+    }
+    let result = read_run_readonly(&mut db, &schema, &input)?;
+    let p = result.projection;
+    let mut obj = json!({
+      "runId":p.harness_run_id,"revision":p.revision,"status":p.status,
+      "contractDigest":p.contract_digest,"eventCount":result.events.len(),
+      "terminalEventId":p.terminal_event_id
     });
     if action == "inspect" {
-        output["events"] = serde_json::Value::Array(
-            evidence
+        obj["events"] = serde_json::Value::Array(
+            result
                 .events
                 .iter()
-                .map(|event| {
+                .map(|e| {
                     json!({
-                        "eventId": event.event_id,
-                        "sequence": event.sequence,
-                        "revision": event.run_revision,
-                        "kind": event.event_kind,
-                        "payloadDigest": event.payload_digest
+                        "eventId":e.event_id,"sequence":e.sequence,"revision":e.run_revision,
+                        "kind":e.event_kind,"payloadDigest":e.payload_digest
                     })
                 })
                 .collect(),
         );
     }
-    println!("{}", serde_json::to_string(&output)?);
+    println!("{}", serde_json::to_string(&obj)?);
     Ok(())
 }
-
 fn main() -> ExitCode {
     match execute() {
         Ok(()) => ExitCode::SUCCESS,
-        Err(error) => {
-            eprintln!("ordivon-harness: {error}");
+        Err(e) => {
+            eprintln!("ordivon-harness: {e}");
             ExitCode::FAILURE
         }
     }
