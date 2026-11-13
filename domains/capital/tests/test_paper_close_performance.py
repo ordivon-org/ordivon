@@ -321,6 +321,21 @@ def test_postgresql_committed_paper_close_readback_to_portfolio(tmp_path):
     assert result["accountingPersistenceReverified"] is True
     assert result["accountingReadbackMode"] == "POSTGRESQL_CURRENT_COMMITTED_REQUEST"
     assert result["fundingNeutralEconomicGainMinor"] == 1_900
+    markdown = subprocess.run(
+        p.args + ["--format", "markdown"],
+        env=os.environ | {
+            "PYTHONPATH": str(ROOT / "src"),
+            "ORDIVON_CAPITAL_PAPER_PG_DSN": dsn,
+        },
+        cwd=ROOT, capture_output=True, text=True, check=False,
+    )
+    assert markdown.returncode == 0, markdown.stderr
+    assert "专用 PostgreSQL 已提交收据，独立读回核验通过" in markdown.stdout
+    assert "扣除外部入金的投资损益：USD +19.00" in markdown.stdout
+    assert "风险状态：RISK_BUDGET_INCOMPLETE" in markdown.stdout
+    assert "历史 PIT 均未经独立认证" in markdown.stdout
+    assert "无真实金融写入权限" in markdown.stdout
+
 
 
 @pytest.mark.parametrize("rounding", [ROUND_UP, ROUND_DOWN])
@@ -332,3 +347,52 @@ def test_period_return_is_independent_of_callers_decimal_rounding(rounding):
             current_receipt=current, previous_receipt=previous, snapshot=snapshot
         )
     assert report["simplePeriodReturnDecimal"] == "0.001727272727272727"
+
+
+def test_human_paper_daily_brief_preserves_true_profit_and_evidence_boundaries():
+    from ordivon_capital.portfolio.paper_close_performance import (
+        render_paper_daily_markdown,
+    )
+    _, _, snapshot, previous, current, _, _ = _case()
+    report = summarize_paper_period(current_receipt=current, previous_receipt=previous, snapshot=snapshot)
+    displayed = render_paper_daily_markdown(report)
+    assert "期末净值：USD 11,019.00" in displayed
+    assert "本期外部入金：USD 1,000.00" in displayed
+    assert "扣除外部入金的投资损益：USD +19.00" in displayed
+    assert "非 GIPS" in displayed
+    assert "未验证实际 PostgreSQL 持久状态" in displayed
+    assert "风险状态：RISK_BUDGET_INCOMPLETE" in displayed
+    assert "历史 PIT 均未经独立认证" in displayed
+    for key, false_claim in (
+        ("capitalAuthority", "LIVE"),
+        ("realMoneyOrdersAuthorized", True),
+        ("historicalPointInTimeStanding", "QUALIFIED"),
+        ("sourceProviderAuthenticityIndependentlyVerified", True),
+    ):
+        forged = copy.deepcopy(report)
+        forged[key] = false_claim
+        with pytest.raises(PaperPerformanceError, match="unpromoted read-only"):
+            render_paper_daily_markdown(forged)
+
+
+def test_human_paper_daily_brief_genesis_never_invents_profit():
+    from ordivon_capital.portfolio.paper_close_performance import (
+        render_paper_daily_markdown,
+    )
+    _, _, _, previous, _, _, _ = _case()
+    _, _, snapshot = _market(day="2026-01-08")
+    previous["market_evidence"] = {
+        "standing": "OPERATOR_BOUND_MARKS", "sha256": snapshot.sha256,
+        "source_id": snapshot.source_id, "rights_ref": snapshot.rights_ref,
+        "corporate_actions_ref": snapshot.corporate_actions_ref,
+        "captured_at": snapshot.captured_at.isoformat(),
+        "valuation_as_of": snapshot.decision_at.isoformat(),
+        "session_closes": {
+            m.session_date: m.session_close_at.isoformat() for m in snapshot.marks
+        },
+        "instrument_ids": ["ETF"], "supersedes_sha256": None,
+    }
+    report = summarize_paper_period(current_receipt=previous, previous_receipt=None, snapshot=snapshot)
+    displayed = render_paper_daily_markdown(report)
+    assert "首次日结" in displayed
+    assert "扣除外部入金的投资损益" not in displayed

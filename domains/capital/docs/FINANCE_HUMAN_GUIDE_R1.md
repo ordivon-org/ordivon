@@ -361,3 +361,28 @@ CLI 和 Security Owner OPA 合同测试了研究角色委派、越权动作、
 **Human：** `postDecisionSessionDatesAligned=true` 只说明日历条件满足；`POST_DECISION_DATES_ALIGNED_SOURCE_UNVERIFIED` 不是“样本外数据已经可用”。当前返回的 `postDecisionHoldoutAvailable=false` 是刻意保留的证据边界。不可把回填日期或尚未发生的日期当成真实的未来收益观察。
 
 **Agent：** 先固定 `decision_boundary` 与 `session_timezone`，调用已有 Research 日历算子得到 `alignedCommonSessionDates`；再到现有 Markets 与 Research Owner 核验原始来源摘要、首次观测/发布时间、企业行动和真实评价时点。上述证据缺失时保持 UNKNOWN，不得宣称 PIT 验证、OOS 评价完成、经济优越性或实盘交易权限。禁止再建时间数据目录、专用证明服务或第二套研究执行器。
+
+
+### Paper 日结中文报告：普通用户日常使用
+
+原有 Portfolio 的 paper_close_performance 消费已提交的 PostgreSQL
+Paper 日结、独立 Markets 估值绑定和 Risk 结果；原有机器 JSON
+输出仍为默认。新增可选 --format markdown，不开发第二账本、
+新资产估值或新收益算法。
+
+从 domains/capital 目录调用现有脚本：
+
+    export ORDIVON_CAPITAL_PAPER_PG_DSN='...经核实的专用Paper测试或模拟数据库...'
+    scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+      --account PAPER_ACCOUNT --session YYYY-MM-DD \
+      --previous-session YYYY-MM-DD \
+      --snapshot /path/to/private-market-snapshot.json \
+      --binding /path/to/source-binding.json --format markdown
+
+先以 Accounting 原有 --read-latest 查询该账户，再传递真实的前次
+日结日期。首次日结不传 --previous-session，必须显示无法计算
+投资收益。中文报告清楚区分本期外部入金、净值与扣除入金后的投资
+损益；文件来源则明确“未验证 PostgreSQL”，已提交数据库收据
+才显示“持久读回”。简单期间收益假设外部入金在期初，不是 GIPS
+认证的时间加权收益或 IRR。风险预算 UNSET、市场提供者与权利
+UNKNOWN、历史 PIT 不明时不可报告风险通过或授予真实交易效果。
