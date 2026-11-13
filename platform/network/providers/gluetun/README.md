@@ -40,6 +40,97 @@ instead of silently accepting the last occurrence. These are source-to-loaded
 admission witnesses, not proof that an external endpoint is reachable.
 
 
+Native auth materialization is owned by the existing Provider:
+`task provider:gluetun:native-auth:validate` checks the official TOML
+roles from source (no secret), `native-auth:prepare` generates a 256-bit
+API key directly into the already-mounted protected host volume
+`/var/lib/network-v2/gluetun/auth/config.toml` without printing it, and
+`native-auth:verify` confirms owner-only permissions and exact route
+authority. Existing read-only Gluetun status endpoints stay public only
+inside the container loopback; VPN settings GET/PUT require the API key.
+Even successful preparation is only INSTALLED, not LOADED: the upstream
+Gluetun process requires a controlled restart for the role to take effect.
+Do not restart a healthy production tunnel merely to change these bytes.
+
+## Authenticated native Gluetun switch (fail-closed until configured)
+
+`task provider:gluetun:native-control-preflight` checks the genuine native
+Gluetun control settings GET in the live Gluetun network namespace. The
+pinned Gluetun v3.41.3 accepts an authenticated HTTP PUT to
+`/v1/vpn/settings` with exactly
+`{"provider":{"server_selection":{"countries":["Japan"]}}}`.
+The production settings GET currently returns HTTP 401, and
+`/gluetun/auth/config.toml` is absent: no automated switch is authorized
+or deployed just by merging this source. **Do not** substitute
+`HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE={"auth":"none"}`.
+
+The native adapter expects a root-only pre-installed TOML role named
+`ordivon-native-country-switch` with API-key authentication and precisely
+`GET /v1/vpn/settings` and `PUT /v1/vpn/settings` permissions; preserve the
+previous publicly consumed read-only status route separately. This must be
+qualified and atomically installed using the official Gluetun config before
+a controlled provider restart. No API key goes in Git or an env variable.
+A start-up config change to a running process is not effective until the
+official Gluetun process loads it. Keep HTTP control bound to container
+localhost (never publish it).
+
+`task provider:gluetun:native-recover` is a guarded, one-shot consumer of
+a real history+live-source report. It holds while consumers are healthy,
+while the physical underlay is down/unknown, during insufficient evidence,
+or without authenticated API access. A permitted historical country is
+only a **trial**, not a current certified standby. If its consumer/TLS tests
+do not pass after a bounded period, native settings selection is returned
+to its previous source; this cannot resurrect original TCP sessions or
+guarantee the former exact Surfshark endpoint IP. Production automatic
+triggering should be attached to the EXISTING two-minute systemd reconcile
+only after end-to-end authorization and negative fault trials. The source
+module alone is not active automation.
+
+## VPN selection consumer graph (actually measured versus pending)
+
+- **Decision evidence only**: Gluetun kernel WireGuard endpoint/country/hostname,
+  native historical journal timestamps, Prometheus Claude API, Codex MCP and
+  PyPI HTTPS/TLS consumer probes. A connected server hostname and multiple
+  valid IP addresses are not the same as independently live backup tunnels.
+- **Immediate failover impact**: the single Gluetun WireGuard endpoint feeds
+  the shared Carrier and scoped Claude/Codex/model-provider/Supply Chain/
+  Finance consumers, Windows Chrome proxy and the Tailscale mobile Exit Node.
+  Switching this one endpoint interrupts existing flows and changes public
+  network origin. No consumer should silently fall back to direct.
+- **Post-switch admission**: use `provider:gluetun:observe-active` first;
+  then the existing `consumer:claude:verify`, `consumer:codex:verify`,
+  `consumer:model-provider:verify`, `consumer:supply-chain:verify`,
+  `consumer:finance:verify`, `consumer:windows-real-chrome:verify`
+  and `consumer:mobile-tailnet-exit:verify` as relevant. The mobile
+  task proves only the server, not the actual iOS device public IP or DNS.
+  A country trial succeeding for Claude/Codex/PyPI does NOT imply that
+  Finance or mobile device traffic can use it.
+- **Recovery trigger**: existing Gluetun health-restart remains authoritative
+  for tunnel recovery. This module's `native-recover` is a source-prepared
+  bounded one-shot fallback only; the existing two-minute provider systemd
+  timer is not yet wired to it. Wiring requires authorized API settings,
+  consumer fault injection and safe rollback/restart in a maintenance window.
+
+## Historical consumer quality — native evidence, never fictitious hot spares
+
+Run `task provider:gluetun:quality-history` to correlate real native Gluetun
+WireGuard session dwell times and Prometheus Blackbox success/latency
+for Claude, Codex and PyPI. It uses only existing journalctl, the Surfshark
+catalog and existing Prometheus query_range. Disallowed catalog countries
+are excluded; startup warmup and incomplete observations cannot be silently
+treated as successful. Each qualified historical interval is explicitly
+`RECENT_HISTORICAL_CONSUMER_SUCCESS`, **not** `QUALIFIED_NOW_STANDBY`.
+There are zero certified hot standbys in a one-session architecture until
+another session has actually been verified independently.
+
+The pure decision policy holds a working active node, holds when active
+health or underlay is UNKNOWN, uses a cooldown and only recommends
+a bounded trial of a recent historical candidate after a demonstrated
+provider failure with a reachable physical underlay. It does not write
+an endpoint status database, configure Gluetun, or run periodically.
+Any native API effect must separately prove authorization, exact
+candidate policy and post-switch consumer recovery.
+
 ## Active endpoint qualification (single snapshot, no false standby claims)
 
 Use `task provider:gluetun:observe-active` to bind the existing native
