@@ -1440,3 +1440,77 @@ def test_real_pg_harness_stays_unknown_when_gateway_owner_identity_cannot_be_pro
         step = continuity.load_current_tool_step()
         assert step.fence is not None
         assert step.receipt is None or step.receipt.status.value != "observed"
+
+
+@pytest.mark.parametrize("forged", ["ws-another-agent", "", 1, False])
+def test_terminal_observation_rejects_wrong_runtime_workspace_resolution(forged: object) -> None:
+    class ForeignResolution(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                payload["workspace_id"] = forged
+            return error, payload
+
+    client = ForeignResolution()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    with pytest.raises(HarnessRuntimeClientError):
+        adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert [x[0] for x in client.calls] == ["execution.get", "execution.resolve"]
+
+
+def test_terminal_observation_absent_resolution_remains_unknown() -> None:
+    class MissingResolution(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                payload["resolution"] = "absent"
+            return error, payload
+
+    client = MissingResolution()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    result = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert result["executionTerminal"] is True
+    assert result["deliveryDisposition"] == "reconciliation_required"
+    assert result["recoveryRequired"] is True
+    assert result["resultAvailable"] is False
+
+
+def test_terminal_observation_confirms_original_grant_without_new_gateway_schema() -> None:
+    client = GatewayExecutionFixture()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    result = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert result["resultAvailable"] is True
+    assert not result["recoveryRequired"]
+    assert [x[0] for x in client.calls] == ["execution.get", "execution.resolve"]

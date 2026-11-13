@@ -67,6 +67,31 @@ runtime features, tests or interfaces.
 | Capacity and resource evidence | Use observed bounded execution limits and receipts; treat missing measurement as unknown | Invented resource accounting |
 | Consumer-reachable retirement | Delete only exact owner state for which current and scheduled consumers have been checked | Deleting by age, glob, name, or repository history alone |
 
+## Agent execution consumer bridge (source candidate 2026-11-13)
+
+The direct Runtime consumer is an Agent/Harness physical execution terminal;
+Research, Finance, and publication are downstream payloads, never Runtime
+semantic lifecycle authorities. The complete path is Agent Run -> fixed
+Workspace grant -> Gateway execution.submit/get -> Runtime PG Job/Attempt
+-> owner-confirmed Artifact -> Harness result -> separately verified
+consumer relinquishment -> Runtime fenced close.
+
+A Runtime Job reaching a terminal state is not proof of Agent Run completion.
+Gateway execution.resolve already returns an exact Runtime job.list
+clientRequestId / jobId / workspaceId binding. Harness now reuses this
+existing projection after each terminal execution.get: wrong Workspace
+rejects, absent request binding remains reconciliation_required instead
+of resultAvailable=true. The frozen public Gateway MCP schema stays intact.
+No new public tool, duplicate Run Registry, or GC was introduced.
+The source-only bounded GatewayAgentWorkspaceBindingR1 finite model lives
+under services/gateway/formal; exact source tests and a live PG owner observation
+are evidence for this narrow consumer link, NOT deployed refinement.
+
+Still unimplemented P0: a real Agent Run's long-lived Workspace ownership,
+durable outcome handoff, exact relinquishment evidence, and Gateway-issued
+native Workspace close. The current Runtime consumerReleased flag is only a
+caller assertion and the four-hour hold cannot prove an active Agent finished.
+
 ## Human usage
 
 For normal operator work, identify the endpoint and actual installed backend, inspect `runtime.describe`, `workspace.list`, `job.list`, and read the installed service/receipt. For physical execution use the established tool and then inspect its Job and Artifact. For maintenance, classify the exact state root as *active*, *quarantined/unknown*, or *consumer-free*. Prefer `git worktree remove` for worktree lifecycle and native systemd directory policy for service-managed directories. Use the existing release and rollback mechanism; never rename a live service to make the architecture diagram cleaner.

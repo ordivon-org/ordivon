@@ -403,6 +403,31 @@ are design obligations, not evidence that installed Runtime deleted a
 particular live consumer.
 
 
+## Agent-Run consumer: Gateway Workspace observation refinement (2026-11-13)
+
+The existing WorkspaceConsumerCloseR1 and R2 candidate continue to prove only
+bounded physical-close guards under an *assumed* trustworthy consumer. They do
+NOT prove the caller assertion consumerReleased=true.
+
+The distinct cross-owner Job-observation obligation is now modeled by
+services/gateway/formal/GatewayAgentWorkspaceBindingR1.tla and invoked by the
+existing gateway:formal:verify task. Existing Gateway execution.resolve
+projects Runtime job.list's request-to-Job-to-Workspace identity. Harness
+reuses this on terminal execution.get results and compares it with the fixed
+PluginGatewayExecutionGrant. Positive TLC checks exact matching, wrong-Workspace
+rejection, and UNKNOWN reconciliation. Two negative TLC profiles prove that
+acceptance remains reachable and accepting on Job terminality alone violates
+the owner-binding invariant.
+
+Source consumer: Harness plugin_gateway_effect.py. Existing Gateway
+execution_observations.py and ExecutionResolution.workspace_id remain unchanged.
+This finite model assumes Runtime job.list's identity is truthful and does NOT
+prove Runtime-to-TLA code refinement, HTTP principal authorization, Agent Run
+completion, deliverable preservation, consumer release, Windows parity, or
+installed correctness.
+Keep the existing Rust/PG/Gateway/Harness physical consumer tests alongside
+this abstract proof. Do not create another persistence ledger for the bridge.
+
 ## PostgreSQL R06 failed-cutover abort before PG authority (CEGAR)
 
 **Problem**: freezing the last SQLite writer is not proof that PostgreSQL
