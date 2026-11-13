@@ -435,3 +435,124 @@ def test_typed_agent_action_schema_rejects_false_proofs_and_impossible_decisions
     source["sourceReadsetScope"]["ownerCertifiedReadsetClosure"] = True
     with pytest.raises(CircuitContractError):
         _validate_schema(source, schema, "Host Agent source action projection")
+
+
+def test_scope_membership_delta_requires_negative_dependency_qualification():
+    delta, evidence = source_readset_fixture()
+    member = delta["sourceScopeRef"] + ":members:owner/"
+    delta["membershipRef"] = member
+    delta["membershipChanged"] = True
+    delta["authorityRefs"].append(member)
+    delta["changedRefs"].append(member)
+    result = project_host_agent_source_readset_actions(
+        work=work_fixture(),
+        git_source_delta=delta,
+        source_readset_evidence=evidence,
+    )
+    rows = {i["obligationId"]: i for i in result["actions"]}
+    assert rows["proof:cas"]["agentDecision"] == "RECHECK_NAMED_CONSUMER"
+    assert rows["proof:topic"]["agentDecision"] == "QUALIFY_DEPENDENCIES_NOT_RERUN"
+    assert (
+        result["sourceReadsetScope"]["membershipClosureQualification"]
+        == "UNKNOWN_NEGATIVE_DEPENDENCIES_AFTER_MEMBERSET_DELTA"
+    )
+    assert result["summary"]["wholeSuiteRecheckRequested"] is False
+
+    delta["membershipRef"] = "git:forged:other"
+    with pytest.raises(CircuitContractError, match="changed authority membershipRef"):
+        project_host_agent_source_readset_actions(
+            work=work_fixture(), git_source_delta=delta, source_readset_evidence=evidence
+        )
+
+
+def test_real_new_file_membership_prevents_unqualified_prior_proof_reuse(tmp_path):
+    """A newly added member is a possible NEGATIVE/dynamic dependency."""
+    from pathlib import Path
+
+    repo = tmp_path / "member-set"
+    repo.mkdir()
+    source_repo = Path(__file__).resolve().parents[3]
+
+    def git(*args: str):
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Member Test")
+    git("config", "user.email", "member-test@example.invalid")
+    (repo / "owner").mkdir()
+    (repo / "owner" / "stable.py").write_text("same\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    old = git("rev-parse", "HEAD")
+    (repo / "owner" / "new.py").write_text("new plugin consumer\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "add new possible consumer")
+    new = git("rev-parse", "HEAD")
+    native = subprocess.run(
+        [
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(repo),
+            "--left",
+            old,
+            "--right",
+            new,
+            "--impact-prefix",
+            "owner/",
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
+    )
+    delta = json.loads(native.stdout)
+    assert delta["membershipChanged"] is True
+    assert "owner/new.py" in delta["addedPaths"]
+    readset = {
+        "kind": "ordivon.source-readset-evidence",
+        "truthRole": "old-owner-positive-readset-test-only",
+        "sourceCut": new,
+        "scopePrefix": "owner/",
+        "items": [
+            {
+                "id": "proof:topic",
+                "sourcePaths": ["owner/stable.py"],
+                "dependenciesComplete": True,
+            },
+        ],
+        "dependencyQualification": "TEST_POSITIVE_ONLY_NOT_NEGATIVE_CLOSURE",
+        "proofReuseAdmissible": False,
+    }
+    work_file = tmp_path / "work.json"
+    delta_file = tmp_path / "delta.json"
+    readset_file = tmp_path / "readsets.json"
+    for path, value in (
+        (work_file, work_fixture()),
+        (delta_file, delta),
+        (readset_file, readset),
+    ):
+        path.write_text(json.dumps(value), encoding="utf-8")
+    cmd = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "agent-host-source-actions",
+        str(work_file),
+        str(delta_file),
+        str(readset_file),
+        "--repo",
+        str(repo),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    projection = json.loads(result.stdout)
+    assert projection["sourceReadsetScope"]["nativeGitRequalifiedByCLI"] is True
+    assert projection["actions"][0]["impactStanding"] == "UNKNOWN"
+    assert projection["actions"][0]["agentDecision"] == "QUALIFY_DEPENDENCIES_NOT_RERUN"
+    assert projection["summary"]["scopedRecheckCandidates"] == 0
+    assert projection["summary"]["wholeSuiteRecheckRequested"] is False
+    assert (
+        projection["sourceReadsetScope"]["membershipClosureQualification"]
+        == "UNKNOWN_NEGATIVE_DEPENDENCIES_AFTER_MEMBERSET_DELTA"
+    )

@@ -101,7 +101,8 @@
         "readsetDependencyQualification",
         "sourceReadsetProjectionDigest",
         "nativeGitRequalifiedByPureFunction",
-        "ownerCertifiedReadsetClosure"
+        "ownerCertifiedReadsetClosure",
+        "membershipClosureQualification"
       ],
       "properties": {
         "sourceCut": {
@@ -131,6 +132,12 @@
         },
         "nativeGitRequalifiedByCLI": {
           "const": true
+        },
+        "membershipClosureQualification": {
+          "enum": [
+            "UNKNOWN_NEGATIVE_DEPENDENCIES_AFTER_MEMBERSET_DELTA",
+            "NO_MEMBERSET_DELTA_OBSERVED_NOT_OWNER_CERTIFIED"
+          ]
         }
       }
     },

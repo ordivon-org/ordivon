@@ -234,6 +234,7 @@ def project_host_agent_source_readset_actions(
         "queryPrefix": source_impact["queryPrefix"],
         "sourceScopeRef": source_impact["sourceScopeRef"],
         "readsetDependencyQualification": source_impact["readsetDependencyQualification"],
+        "membershipClosureQualification": source_impact["membershipClosureQualification"],
         "sourceReadsetProjectionDigest": source_impact["projectionDigest"],
         "nativeGitRequalifiedByPureFunction": False,
         "ownerCertifiedReadsetClosure": False,

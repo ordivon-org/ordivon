@@ -90,6 +90,16 @@ uv run python -m ordivon_composition.verification_obligation_r1 \
   --repo /path/to/repo --proof-refs /path/to/existing-proof-refs.json
 ```
 
+**Negative dependency fence (R2 refinement).** An exact Git membership
+change (added/removed file under the scoped prefix) cannot be discharged by
+an old **positive** `sourcePaths` list. The existing C04 worklist now receives
+one unresolved membership-closure obligation and propagates `UNKNOWN` to
+unaffected candidate proofs. Known directly changed obligations remain
+`RECHECK_REQUIRED`. The Agent should qualify glob/dynamic/directory
+consumers first, **not** blindly replay a whole suite. Even when membership
+does not change, caller-asserted `dependenciesComplete=true` is still NOT
+a natural Owner certification.
+
 Output includes the precise `sourceReadsetScope` (SourceCut, scoped Git
 authority, native Git requalification via the **CLI**), and explicitly says
 `ownerCertifiedReadsetClosure=false`. Native Git proves **which committed

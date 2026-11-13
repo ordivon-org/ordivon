@@ -264,10 +264,34 @@ def select_source_readset_impacts(
             }
         )
 
+    # Native Git membership refs denote additions/removals under the scope.
+    # Positive sourcePaths alone do NOT close negative dependencies, glob
+    # membership, dynamic discovery or directory enumeration. When the set of
+    # files changes, an old proof whose listed paths did not change must
+    # become UNKNOWN rather than a candidate for unqualified evidence reuse.
+    # Reuse C04's existing conservative unindexed-unknown propagation, not
+    # a second reachability or invalidation algorithm.
+    membership_changed = git_source_delta.get("membershipChanged") is True
+    unknown_refs: list[str] = []
+    if membership_changed:
+        member_ref = git_source_delta.get("membershipRef")
+        if (
+            not isinstance(member_ref, str)
+            or member_ref not in git_source_delta["authorityRefs"]
+            or member_ref not in git_source_delta["changedRefs"]
+        ):
+            raise CircuitContractError(
+                "changed Git membership needs an exact changed authority membershipRef"
+            )
+        unknown_refs = [
+            f"{git_source_delta['sourceScopeRef']}:unknown-negative-membership-dependency"
+        ]
+
     selection = select_impacted_obligations(
         authority_refs=git_source_delta["authorityRefs"],
         obligations=obligations,
         changed_refs=git_source_delta["changedRefs"],
+        unknown_refs=unknown_refs,
     )
     result = {
         "kind": "ordivon.task-local-source-readset-impact",
@@ -276,11 +300,17 @@ def select_source_readset_impacts(
         "sourceScopeRef": git_source_delta["sourceScopeRef"],
         "queryPrefix": git_source_delta["queryPrefix"],
         "readsetDependencyQualification": evidence["dependencyQualification"],
+        "membershipClosureQualification": (
+            "UNKNOWN_NEGATIVE_DEPENDENCIES_AFTER_MEMBERSET_DELTA"
+            if membership_changed
+            else "NO_MEMBERSET_DELTA_OBSERVED_NOT_OWNER_CERTIFIED"
+        ),
         "selection": selection,
         "proofReuseAdmissible": False,
         "proofAcceptanceEstablished": False,
         "nonClaims": [
             "Owner readset evidence supplies positive dependency edges, not proof of complete dynamic/build/environment closure.",
+            "Added/removed Git members make unrelated positive-readset candidates UNKNOWN until negative/glob/dynamic consumer closure is qualified.",
             "REUSE_CANDIDATE remains a scheduling candidate and is never verifier PASS.",
             "No implementation refinement, installed currentness, effect authority, or domain acceptance is established.",
         ],
