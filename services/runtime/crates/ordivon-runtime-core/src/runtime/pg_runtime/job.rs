@@ -399,6 +399,8 @@ impl PgRuntime {
         // before physical execution; this cheap fence prevents an orphaned
         // durable Job when the Workspace was closed or replaced meanwhile.
         let workspace_guard = || {
+            universal::ensure_workspace_mutation_quiescent(&self.config.executor, &e.workspace_id)
+                .map_err(|_| PgAdmissionError::WorkspaceStale)?;
             let current = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
                 .map_err(|_| PgAdmissionError::WorkspaceStale)?;
             if current != record {
