@@ -113,6 +113,8 @@ class AccountingInstruction:
         else:
             if self.pending_id == 0:
                 raise AccountingMappingError("resolution requires pending_id")
+        if self.operation is AccountingOperation.POST_PENDING_TRANSFER and self.amount == 0:
+            raise AccountingMappingError("post pending transfer amount must be positive")
         if self.operation is AccountingOperation.VOID_PENDING_TRANSFER and self.amount != 0:
             raise AccountingMappingError("void pending transfer amount must be zero")
 
@@ -132,6 +134,7 @@ def resolution_instruction(
     binding: CapitalReservationBinding,
     operation: AccountingOperation | None,
     resolution_ref: str,
+    posted_amount: int | None = None,
 ) -> AccountingInstruction | None:
     if operation is None:
         return None
@@ -146,7 +149,19 @@ def resolution_instruction(
         raise AccountingMappingError("resolution_ref required")
     if resolution_ref == binding.reservation_ref:
         raise AccountingMappingError("resolution identity must differ from reservation identity")
-    amount = 0 if operation is AccountingOperation.VOID_PENDING_TRANSFER else binding.amount
+    # TigerBeetle-style one-time resolution: POST an exact amount and release
+    # the *entire unposted remainder* of the original pending reservation.
+    # This is not a streaming per-fill API; the caller must verify terminal
+    # economic facts and the settlement currency before selecting this value.
+    if operation is AccountingOperation.POST_PENDING_TRANSFER:
+        amount = binding.amount if posted_amount is None else posted_amount
+        _require_u128_nonzero("posted_amount", amount)
+        if amount > binding.amount:
+            raise AccountingMappingError("posted_amount exceeds pending reservation")
+    else:
+        if posted_amount is not None:
+            raise AccountingMappingError("posted_amount is only valid for POST")
+        amount = 0
     return AccountingInstruction(
         operation=operation,
         transfer_id=stable_accounting_id(

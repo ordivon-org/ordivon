@@ -47,6 +47,43 @@ Accounting PostgreSQL owns journal truth, Runtime owns Job/Attempt recovery.
    actual effect reconciliation and durable readback. Missing history
    stays UNKNOWN; no-fill cannot be inferred from a recent fills window.
 
+## Partial fill and reservation safety
+
+A provider-confirmed **partial** fill, including a partial fill followed by
+cancel, is real external economic effect but **not** sufficient to POST the
+entire precommitted PG reservation. Current Trading's bounded reconciliation
+returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION: retain the pending
+reservation and reconcile venue trade IDs, executed/remaining quantities and
+fees independently. Do not VOID or fully POST merely because an order was
+canceled, a positive fill appeared, or a Runtime Job completed. A fully filled
+order must match the committed original order quantity and include matching
+trade evidence; order-only FILLED status leaves accounting unresolved.
+Duplicate trade IDs or
+a reused client order ID associated with multiple venue orders prevent
+automatic settlement. This is a fail-closed boundary, not an implementation
+of a per-fill Accounting journal or automatic partial-reservation release.
+Escalate unresolved fills to evidence-based reconciliation, not replayed POST.
+
+### One-time terminal partial settlement, NOT a live effect grant
+
+Accounting provides the canonical resolution_instruction option
+posted_amount (strict positive integer, not exceeding reserved) for a
+single terminal POST_PENDING_TRANSFER. On successful PostgreSQL commit,
+the entire original pending reservation is cleared, the exact posted amount
+is booked, and the remainder is released. It cannot be posted a second time.
+This is one-time terminal resolution following the mature TigerBeetle two-phase
+transfer model, not a per-fill posting stream.
+
+**Do not call it directly from a Trading PARTIAL_EXECUTION_UNSETTLED result.**
+First prove the terminal venue order state and complete fill set, uniquely
+correlated venue trade identities, the settlement denomination, fees and
+the provider-confirmed amount converted into the original reservation's
+minor-unit currency. If any necessary fact remains UNKNOWN, preserve the
+pending reservation, do not post or void. An OKX Demo ACK, local FIX
+projection, synthetic replay or Runtime success does not provide that proof.
+This Skill does not assert that a provider-qualified terminal amount collector
+or automatic real-money settlement is installed.
+
 ## Human guidance
 
 This is OKX SPOT cash Demo only, never LIVE. Report account readiness,

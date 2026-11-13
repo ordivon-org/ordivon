@@ -56,3 +56,18 @@ def test_unknown_after_submission_retains():
     x = reconcile_unknown_after_submission(client_order_id="C1", quantity="1")
     assert x["reconciliation"]["standing"] == "UNKNOWN"
     assert x["reconciliation"]["reservationResolution"] == "NO_MUTATION"
+
+
+def test_nautilus_partial_fill_is_not_full_reservation_post():
+    x = reconcile_nautilus_episode(
+        episode(
+            "PARTIALLY_FILLED", filled="0.4",
+            fills=[{
+                "client_order_id": "C1", "venue_order_id": "V1",
+                "trade_id": "T-partial", "instrument_id": "BTCUSDT.BINANCE",
+                "last_qty": "0.4", "last_px": "50000",
+            }],
+        )
+    )
+    assert x["reconciliation"]["standing"] == "PARTIAL_EXECUTION_UNSETTLED"
+    assert x["reconciliation"]["reservationResolution"] == "NO_MUTATION"

@@ -392,14 +392,18 @@ class PostgresAccountingLedger:
                 return LedgerApplyStatus.PENDING_TRANSFER_ALREADY_VOIDED
             if (pdebit, pcredit) != (str(debit_account_id), str(credit_account_id)):
                 return LedgerApplyStatus.ID_CONFLICT
-            if operation == "POST" and amount != pamount:
+            if operation == "POST" and not (0 < amount <= pamount):
+                return LedgerApplyStatus.PENDING_TRANSFER_AMOUNT_MISMATCH
+            if operation == "VOID" and amount != 0:
                 return LedgerApplyStatus.PENDING_TRANSFER_AMOUNT_MISMATCH
             for direction, account in (
                 ("debits", debit_account_id), ("credits", credit_account_id)
             ):
+                # Resolve the entire original pending amount exactly once:
+                # a partial POST releases pamount - amount in the SAME txn.
                 posted = ", " + f"{direction}_posted={direction}_posted+%s" if operation == "POST" else ""
                 args = (
-                    (pamount, pamount, str(account))
+                    (pamount, amount, str(account))
                     if operation == "POST" else (pamount, str(account))
                 )
                 db.execute(

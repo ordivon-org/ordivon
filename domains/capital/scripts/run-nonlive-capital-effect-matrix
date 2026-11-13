@@ -94,6 +94,7 @@ with open_ledger() as ledger:
             operation=AccountingOperation.PENDING,
             amount=p.amount,
             pending_id=0,
+            status=p.status,
         )
         if resolution_name=="NO_MUTATION":
             history=DurableReservationHistory(binding,ReservationStanding.RESERVED)
@@ -115,6 +116,7 @@ with open_ledger() as ledger:
                 operation=operation,
                 amount=r.amount,
                 pending_id=r.pending_id,
+                status=r.status,
             )
             standing=(
                 ReservationStanding.CONSUMED
