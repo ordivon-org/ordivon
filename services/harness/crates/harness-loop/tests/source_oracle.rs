@@ -1,5 +1,5 @@
 //! Differential qualification: execute the existing Python source, not a copy.
-use ordivon_harness_loop_b_probe::{
+use ordivon_harness_loop::{
     observation_gate, select_tool_indices, Gate, GateLimits, ProgressCounters, ToolSelectionError,
 };
 use std::path::Path;

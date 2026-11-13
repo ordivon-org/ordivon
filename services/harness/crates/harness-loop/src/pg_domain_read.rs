@@ -343,7 +343,7 @@ fn validate_provider_failure_receipt(
         let value = receipt
             .source_text_field(field)
             .ok_or(Error::InvalidProviderFailureReceipt)?;
-        if !crate::python_text::valid_trimmed(value, max_bytes) {
+        if !crate::identity::valid_trimmed(value, max_bytes) {
             return Err(Error::InvalidProviderFailureReceipt);
         }
         Ok(value)

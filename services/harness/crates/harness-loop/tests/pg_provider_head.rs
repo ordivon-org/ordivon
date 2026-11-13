@@ -4,10 +4,10 @@
 use std::{fs, path::Path};
 
 use ordivon_harness_core::{loads_strict, CanonicalDocument, CanonicalRef};
-use ordivon_harness_loop_b_probe::pg_domain_read::{
+use ordivon_harness_loop::pg_domain_read::{
     inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError, PgProviderRecoveryError,
 };
-use ordivon_harness_loop_b_probe::provider_head::{ProviderStatus, RecoveryPosture};
+use ordivon_harness_loop::provider_head::{ProviderStatus, RecoveryPosture};
 use ordivon_harness_pg::{
     journal_write::{
         append_events, observe_exact_batch, Admission, EventWrite, JournalObservation, StoredRef,

@@ -153,7 +153,7 @@ pub enum RuntimeOwnerEvidenceError {
 fn trimmed(value: &str) -> bool {
     // Reuse the canonical Python str.strip-compatible boundary rather
     // than inventing another identity parser for Owner observations.
-    crate::python_text::valid_trimmed(value, usize::MAX)
+    crate::identity::valid_trimmed(value, usize::MAX)
 }
 /// Only the terminal page of a SINGLE-page Runtime task.list result is
 /// eligible. Multi-page recovery belongs to the existing Python Owner

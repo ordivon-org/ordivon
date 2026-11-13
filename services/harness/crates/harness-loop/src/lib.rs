@@ -1,178 +1,27 @@
-//! Pure Rust migration probe for existing Python Harness turn decisions.
-//! SourceCut: c2ab551a4c858d8a960a117eba66a0d9d9310a6a.
-//! This is not a PG writer, Agent loop, Provider or Runtime dispatcher.
+//! Native Harness execution decision kernel.
+//! Tool selection and progress accounting have independent state and tests.
 
 pub mod evidence;
+mod identity;
+pub mod native_loop;
+pub mod native_provider_http;
 pub mod owner_effect_handoff;
 pub mod pg_domain_read;
 pub mod pg_tool_head;
 pub mod provider_head;
-mod python_text;
 pub mod runtime_delivery;
+pub mod tool_arguments;
 pub mod tool_call;
 pub mod tool_surface;
 
-use std::collections::HashSet;
-use std::fmt;
+mod progress;
+mod tool_selection;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ToolSelectionError {
-    DuplicateSelectedNames,
-    OutsideAdmittedSurface(Vec<String>),
-}
-
-impl fmt::Display for ToolSelectionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DuplicateSelectedNames => write!(f, "Turn Tool Working Set names must be unique"),
-            Self::OutsideAdmittedSurface(names) => write!(
-                f,
-                "Turn Tool Working Set references Tools outside the admitted surface: {:?}",
-                names
-            ),
-        }
-    }
-}
-impl std::error::Error for ToolSelectionError {}
-
-/// Mirror select_turn_tool_working_set from turn_projection.py.
-/// Preserve admitted catalog order; never discover or authorize new Tools.
-pub fn select_tool_indices(
-    admitted_names: &[&str],
-    selected_names: Option<&[&str]>,
-) -> Result<Vec<usize>, ToolSelectionError> {
-    let Some(names) = selected_names else {
-        return Ok((0..admitted_names.len()).collect());
-    };
-    let selected: HashSet<&str> = names.iter().copied().collect();
-    if selected.len() != names.len() {
-        return Err(ToolSelectionError::DuplicateSelectedNames);
-    }
-    let available: HashSet<&str> = admitted_names.iter().copied().collect();
-    let mut missing: Vec<String> = selected
-        .difference(&available)
-        .map(|name| (*name).to_string())
-        .collect();
-    if !missing.is_empty() {
-        missing.sort();
-        return Err(ToolSelectionError::OutsideAdmittedSurface(missing));
-    }
-    Ok(admitted_names
-        .iter()
-        .enumerate()
-        .filter_map(|(i, name)| selected.contains(name).then_some(i))
-        .collect())
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct ProgressCounters {
-    pub no_progress_turns: u64,
-    pub observation_only_turns: u64,
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct GateLimits {
-    /// Zero disables the corresponding gate.
-    pub max_no_progress_turns: u64,
-    pub max_observation_only_turns: u64,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Gate {
-    NoProgress { turns: u64 },
-    ObservationOnly { turns: u64 },
-}
-
-impl Gate {
-    pub fn reason(self) -> String {
-        match self {
-            Self::NoProgress { turns } => format!(
-                "external observation gate closed after {turns} consecutive turns without a mutation, check, materially new bounded observation, or conclusion"
-            ),
-            Self::ObservationOnly { turns } => format!(
-                "external observation gate closed after {turns} consecutive observation-only turns without a mutation, check, or conclusion"
-            ),
-        }
-    }
-}
-
-/// Exact RunBudget.observation_gate_reason precedence, expressed as a pure rule.
-pub fn observation_gate(counters: ProgressCounters, limits: GateLimits) -> Option<Gate> {
-    if limits.max_no_progress_turns > 0
-        && counters.no_progress_turns >= limits.max_no_progress_turns
-    {
-        Some(Gate::NoProgress {
-            turns: counters.no_progress_turns,
-        })
-    } else if limits.max_observation_only_turns > 0
-        && counters.observation_only_turns >= limits.max_observation_only_turns
-    {
-        Some(Gate::ObservationOnly {
-            turns: counters.observation_only_turns,
-        })
-    } else {
-        None
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ProgressError {
-    CounterOverflow,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ProgressDecision {
-    pub observation_only: bool,
-    pub action_progress: bool,
-    pub new_evidence: bool,
-    pub counters: ProgressCounters,
-    pub gate: Option<Gate>,
-}
-
-/// Mirrors Python progress/counter/gate semantics only.
-/// Caller MUST provide just status==observed Tool names and an independently
-/// verified new_evidence flag from the unchanged evidence identity scorer.
-/// Unknown Tool outcomes do not magically become observed progress.
-pub fn decide_progress(
-    observed_names: &[&str],
-    observation_only_names: &[&str],
-    new_evidence: bool,
-    prior: ProgressCounters,
-    limits: GateLimits,
-) -> Result<ProgressDecision, ProgressError> {
-    let allowed: HashSet<&str> = observation_only_names.iter().copied().collect();
-    let observed: HashSet<&str> = observed_names.iter().copied().collect();
-    let observation_only =
-        !observed.is_empty() && observed.iter().all(|name| allowed.contains(name));
-    let action_progress = observed.iter().any(|name| !allowed.contains(name));
-
-    let counters = ProgressCounters {
-        observation_only_turns: if observation_only {
-            prior
-                .observation_only_turns
-                .checked_add(1)
-                .ok_or(ProgressError::CounterOverflow)?
-        } else {
-            0
-        },
-        no_progress_turns: if action_progress || new_evidence {
-            0
-        } else {
-            prior
-                .no_progress_turns
-                .checked_add(1)
-                .ok_or(ProgressError::CounterOverflow)?
-        },
-    };
-    let gate = observation_gate(counters, limits);
-    Ok(ProgressDecision {
-        observation_only,
-        action_progress,
-        new_evidence,
-        counters,
-        gate,
-    })
-}
+pub use progress::{
+    decide_progress, observation_gate, Gate, GateLimits, ProgressCounters, ProgressDecision,
+    ProgressError,
+};
+pub use tool_selection::{select_tool_indices, ToolSelectionError};
 
 #[cfg(test)]
 mod tests {

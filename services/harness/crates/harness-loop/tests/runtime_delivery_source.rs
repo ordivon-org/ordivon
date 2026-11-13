@@ -1,9 +1,7 @@
 //! Production Python Runtime Owner observation differential source oracle.
 //! No Runtime submission or physical dispatch in this test.
 use ordivon_harness_core::loads_strict;
-use ordivon_harness_loop_b_probe::runtime_delivery::{
-    interpret_runtime_delivery, RuntimeDeliveryError,
-};
+use ordivon_harness_loop::runtime_delivery::{interpret_runtime_delivery, RuntimeDeliveryError};
 use std::{path::Path, process::Command};
 fn unhex(input: &str) -> Vec<u8> {
     assert_eq!(input.len() % 2, 0);

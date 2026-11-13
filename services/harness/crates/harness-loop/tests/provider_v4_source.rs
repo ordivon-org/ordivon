@@ -1,7 +1,7 @@
 //! Differential verification of v4 Python ProviderRecord code against B's
 //! read-only Rust inspection, with A's sealed JSON codec as sole decoder.
 use ordivon_harness_core::{digest_bytes, loads_strict};
-use ordivon_harness_loop_b_probe::provider_head::{
+use ordivon_harness_loop::provider_head::{
     inspect_v4, ProviderRecordError, ProviderStatus, RecoveryPosture,
 };
 use std::path::Path;

@@ -3,10 +3,10 @@
 use std::{collections::HashSet, path::Path, process::Command};
 
 use ordivon_harness_core::{loads_strict, CanonicalDocument};
-use ordivon_harness_loop_b_probe::tool_call::{
+use ordivon_harness_loop::tool_call::{
     inspect_model_tool_call, preflight_domain_model_call, ModelToolCallStanding,
 };
-use ordivon_harness_loop_b_probe::tool_surface::project_domain_tool_surface;
+use ordivon_harness_loop::tool_surface::project_domain_tool_surface;
 
 fn unhex(input: &str) -> Vec<u8> {
     assert_eq!(input.len() % 2, 0);

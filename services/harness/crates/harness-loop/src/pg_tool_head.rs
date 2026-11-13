@@ -5,7 +5,7 @@
 //! Mature serde's exact typed decoding is ONLY semantic interpretation
 //! of A's already verified canonical JSON. Do not use serde to recompute CAS
 //! hashes, infer currentness after transaction, or dispatch a Runtime Job.
-use crate::python_text::valid_trimmed;
+use crate::identity::valid_trimmed;
 use ordivon_harness_core::{canonical_bytes, digest_bytes, CanonicalDocument};
 use ordivon_harness_pg::{read_run_readonly, ReadError, Readback, RunEvent, VerifiedToolReference};
 use postgres::Client;
