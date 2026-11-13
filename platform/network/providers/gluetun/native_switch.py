@@ -274,8 +274,16 @@ def main() -> int:
             result = {"standing": "HOLD_NATIVE_API_NOT_READY",
                       "reasonClass": type(e).__name__, "effectAttempted": False}
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY",
-                                      "NATIVE_SWITCH_CONSUMED") else 1
+    # Healthy/unknown hold is a successful NO-OP decision, not a service
+    # failure. Auth/effect failure remains nonzero for native systemd callers.
+    if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY", "NATIVE_SWITCH_CONSUMED"):
+        return 0
+    if args.recover and result.get("effectAttempted") is False and (
+        result["standing"].startswith("HOLD_")
+        and result["standing"] != "HOLD_NATIVE_API_NOT_READY"
+    ):
+        return 0
+    return 1
 
 
 if __name__ == "__main__":
