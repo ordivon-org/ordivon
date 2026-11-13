@@ -127,41 +127,7 @@ def _native_root_workflow_matches(root_check: dict[str, str], source_cut: str) -
     )
 
 
-def _native_harness_claim(claim_id: str, target_cut: str) -> dict[str, Any]:
-    """Compose the ORIGINAL Harness query; no copied currentness rules."""
-    native_cut = _source_cut(_git("rev-parse", "HEAD"))
-    if target_cut != native_cut:
-        return {
-            "claimId": claim_id,
-            "standing": "NOT_EVALUATED_DIFFERENT_CHECKOUT_SOURCE_CUT",
-            "sourceCut": native_cut,
-            "evidenceCurrent": False,
-        }
-    script = ROOT / "services/harness/scripts/check_evidence.py"
-    result = subprocess.run(
-        [sys.executable, str(script), "--query-claim", claim_id],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=50,
-    )
-    try:
-        typed = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return {"claimId": claim_id, "standing": "UNKNOWN_NATIVE_CHECKER_RESPONSE", "evidenceCurrent": False}
-    if (
-        not isinstance(typed, dict)
-        or typed.get("claimId") != claim_id
-        or typed.get("sourceCut") != target_cut
-        or typed.get("evidenceCurrent") not in (True, False)
-        or (result.returncode != 0 and typed.get("evidenceCurrent") is True)
-    ):
-        return {"claimId": claim_id, "standing": "UNKNOWN_NATIVE_CHECKER_RESPONSE", "evidenceCurrent": False}
-    return typed
-
-
-def assess(*, pr: int, owner: str, target: str = "HEAD", harness_claim: str | None = None) -> dict[str, Any]:
+def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
     owner_names = {item.name for item in affected_owners.OWNERS}
     if owner not in owner_names:
         raise ValueError("unknown natural verification Owner")
@@ -254,12 +220,7 @@ def assess(*, pr: int, owner: str, target: str = "HEAD", harness_claim: str | No
         "proofReuseAdmissible": False,
         "installedStanding": "UNKNOWN",
         "runtimeCallStanding": "UNKNOWN",
-        "harnessClaim": (_native_harness_claim(harness_claim, target_cut) if harness_claim is not None else None),
-        "harnessArchivedEvidenceStanding": (
-            "NATIVE_CHECKER_COMPOSED_SEPARATE_TRUTH"
-            if harness_claim is not None
-            else "NOT_ASSESSED_BY_THIS_SOURCE_CI_RECEIPT"
-        ),
+        "harnessArchivedEvidenceStanding": "SEPARATE_UPSTREAM_HARNESS_AUTHORITY",
         "truthBoundary": (
             "GitHub read-only exact-head CI check-run observation and canonical current "
             "source Owner impact ONLY. It cannot certify historical Harness evidence, "
@@ -274,10 +235,9 @@ def main() -> int:
     parser.add_argument("--pr", type=int, required=True)
     parser.add_argument("--owner", required=True)
     parser.add_argument("--target", default="HEAD", help="exact local target revision (default HEAD)")
-    parser.add_argument("--harness-claim", help="also ask the existing Harness evidence checker (read-only)")
     args = parser.parse_args()
     try:
-        report = assess(pr=args.pr, owner=args.owner, target=args.target, harness_claim=args.harness_claim)
+        report = assess(pr=args.pr, owner=args.owner, target=args.target)
     except (ValueError, OSError, json.JSONDecodeError, subprocess.SubprocessError) as exc:
         print(
             json.dumps(

@@ -185,10 +185,8 @@ original **exact commit**, the repo's native SourceCut/Owner closure
 # Do not call Runtime Job replay, TLC, or a physical canary as a substitute.
 python3 services/runtime/scripts/agent_evidence_admission.py --pr 2177 --owner runtime --target cc294b72700c9aa02c067f9962fab47359836af6
 
-# Query current checkout impact and one original Harness Claim in one read.
-python3 services/runtime/scripts/agent_evidence_admission.py --pr 2177 --owner runtime --harness-claim harness.runtime-correlation.h2
-
-# The same Harness claim remains owned by its existing checker.
+# The Agent/Harness consumer queries the independent Harness authority.
+# Runtime must not execute or import the higher-level Harness implementation.
 python3 services/harness/scripts/check_evidence.py --query-claim harness.runtime-correlation.h2
 ```
 
@@ -196,10 +194,10 @@ The Runtime query calls `gh api` read-only, requires official GitHub
 `root-verification` and exact-commit successful checks, then delegates
 SourceCut/consumer selection to the **existing** Owner planner. A missing,
 pending, ambiguous, failed, foreign or nonmatching receipt is UNKNOWN or
-not passed; it must not make a stale proof current. The Harness claim read
-does not promote archived `historical` to `verified`.
-Only its original native `check_evidence.py` may qualify current
-verified claims; different Git cut identities cannot be silently combined.
+not passed; it must not make a stale proof current. The Agent composes
+this Runtime source-CI query with the independently owned Harness claim
+read. It never promotes archived historical evidence into current verified
+evidence or makes Runtime depend on Harness. Different Git cuts remain separate.
 
 `EXACT_CUT_CI_OBSERVED` means **one source commit's CI passed**.
 It does NOT establish a production-installation receipt, closed dynamic

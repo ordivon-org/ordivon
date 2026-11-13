@@ -168,7 +168,7 @@ class EvidenceAdmissionTests(unittest.TestCase):
                     {"verificationOwners": ["gateway", "harness"]},
                 ],
             ),
-            patch.object(module.affected_owners, "changed_paths", return_value=("services/gateway/src/source.py",)),
+            patch.object(module.affected_owners, "changed_paths", return_value=("docs/architecture/EXAMPLE.md",)),
             patch.object(module.subprocess, "run", return_value=SimpleNamespace(returncode=0)),
         ):
             report = module.assess(pr=2177, owner="runtime", target=NEXT)
@@ -185,43 +185,6 @@ class EvidenceAdmissionTests(unittest.TestCase):
             report = module.assess(pr=2177, owner="runtime", target=NEXT)
         self.assertEqual(report["decision"], "UNKNOWN_SOURCE_RELATION")
         self.assertEqual(report["recommendedAction"], "QUALIFY_MISSING_SOURCE_RELATION_NOT_BLANKET_REPLAY")
-
-    def test_harness_claim_is_composed_from_original_checker_only(self):
-        with (
-            patch.object(module, "_github", side_effect=self.fake_github),
-            patch.object(module, "_git", side_effect=self.fake_git),
-            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
-            patch.object(
-                module,
-                "_native_harness_claim",
-                return_value={"claimId": "h2", "standing": "HISTORICAL_NOT_CURRENT", "evidenceCurrent": False},
-            ) as native,
-        ):
-            report = module.assess(pr=2177, owner="runtime", target=SHA, harness_claim="h2")
-        native.assert_called_once_with("h2", SHA)
-        self.assertEqual(report["harnessClaim"]["standing"], "HISTORICAL_NOT_CURRENT")
-        self.assertFalse(report["proofReuseAdmissible"])
-
-    def test_different_checkout_cannot_promote_harness_currentness(self):
-        with patch.object(module, "_git", return_value=NEXT):
-            report = module._native_harness_claim("h2", SHA)
-        self.assertEqual(report["standing"], "NOT_EVALUATED_DIFFERENT_CHECKOUT_SOURCE_CUT")
-        self.assertFalse(report["evidenceCurrent"])
-
-    def test_native_checker_rejects_success_claim_without_qualified_source(self):
-        with (
-            patch.object(module, "_git", return_value=SHA),
-            patch.object(
-                module.subprocess,
-                "run",
-                return_value=SimpleNamespace(
-                    stdout='{"claimId":"h2","sourceCut":"c","evidenceCurrent":true}', returncode=0
-                ),
-            ),
-        ):
-            report = module._native_harness_claim("h2", SHA)
-        self.assertEqual(report["standing"], "UNKNOWN_NATIVE_CHECKER_RESPONSE")
-        self.assertFalse(report["evidenceCurrent"])
 
     def test_rejects_unqualified_request_and_foreign_pr(self):
         with self.assertRaisesRegex(ValueError, "unknown natural"):
