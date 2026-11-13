@@ -289,3 +289,26 @@ physical stop/restart and exact readback for all three; partial four-day
 H5 prefix resumed to eight days; native cash / selected-instrument and
 co-produced intermediate-mark tamper negative cases. This is NOT a
 production broker deployment or prospective market-return demonstration.
+
+
+## Q1 Portfolio / Governance Paper-only scoped binding (2026-11-13)
+
+The original accounting.paper_simulation_run optionally consumes a private
+--mandate JSON. The existing Portfolio strategic_contribution component
+checks the model-selected asset allocation, its $1,000 maximum investment
+sleeve and $9,000 protected reserve. The original Governance
+enforce_non_live function evaluates the *installed* execution policy; no
+caller-supplied policy path, external financial write grant or live
+PortfolioIntent is allowed. The mandate digest and caller-declared virtual
+portfolio label are included in the existing PG request/receipt's
+simulation_evidence; different labels and source bytes create separate
+run-specific r3sim_... simulation accounts. No new PG schema is required.
+
+Unbound four-artifact legacy calls stay qualified as simulation-only but
+lack portfolio scope. The new label is NOT an authenticated user identity
+or canonical multi-run portfolio aggregate. Wrong funds/assets/lanes are
+rejected before PG; exact inputs replay existing per-day serializable
+commits after physical PostgreSQL restarts.
+
+See [FINANCE_GOLDEN_ROAD_R1.md](FINANCE_GOLDEN_ROAD_R1.md) for the complete
+no-money workflow, sample mandate, actual commands and PIT/Risk limitations.
