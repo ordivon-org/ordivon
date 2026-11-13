@@ -36,6 +36,13 @@ source conformance -> real consumer -> installed candidate proof.
    plus existing native Owner source impact are reusable evidence inputs.
    existingCheckReceiptReusable is strictly same-SHA Check Run outcome;
    proofReuseAdmissible remains false for broader formal/external claims.
+   If the decision specifically needs an original Formal execution receipt,
+   pass --prior-sha ORIGINAL_FORMAL_SHA --formal-source-delta
+   --fetch-historical-formal-report. It uses original GitHub Check Run
+   and official gh run download, verifies the original Git members and
+   retains UNKNOWN for dynamic/toolchain/installation assumptions.
+   No automatic solver rerun is triggered by missing/expired artifacts.
+
    For specific Formal source-input impact, add --prior-sha
    FULL_ANCESTOR_SHA --formal-source-delta to compare both historical
    declared SOURCE_FILES sets and exact Git modes/blobs without executing

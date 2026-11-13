@@ -148,3 +148,42 @@ models should not be rechecked every Agent turn.
 P2: Empirically measure duplicate checks avoided and false positive
 reuse as real Agent consumer metrics. Do not invent a percentage from
 synthetic test counts.
+
+
+## R3: retain the original Formal verification receipt (2026-11-14)
+
+Problem: tools/formal/verify.py already emits a complete bounded report
+covering pre/post sourceBlobs, qualified toolBinaries, Alloy/JVM resources,
+observed Z3 ELF dependency snapshot and actual positive/negative probes.
+The original GitHub CI validates it, but used to leave the evidence under
+RUNNER_TEMP. Future Agents could only see an opaque PASS check and often
+reran the proof unnecessarily.
+
+Delivery: CI now uploads the already validated report using pinned official
+actions/upload-artifact, named ordivon-core-formal-<workflow SHA>, after the
+existing Formal receipt validator succeeds. It runs only when native
+Formal was genuinely selected. Retention is 30 days; no new solver pass.
+
+Optional read-only Agent consumer:
+    python3 tools/repo/evidence_validity.py --current-sha CURRENT_SHA --prior-sha PRIOR_FORMAL_SHA --formal-source-delta --fetch-historical-formal-report
+
+This resolves the official prior root-verification Check Run, checks the
+linked GitHub workflow run repository and exact source SHA, then invokes
+mature gh run download into a disposable directory. The reader compares
+the historical report sourceCut/SOURCE_FILES set and Git blob modes/OIDs,
+PASS probe inventory and tool entrypoint record shapes without executing
+it. A caller-supplied local file may alternatively be examined with
+--historical-formal-report PATH, but remains untrusted local evidence.
+
+Standing CONTENT_MATCHES_DECLARED_GIT_SOURCE does NOT imply toolchain
+identity is currently unchanged. Dynamic dlopen/loader and non-Git input
+closure, original artifact-to-CI cryptographic linkage, installed status,
+implementation refinement and real consumer success all remain UNKNOWN.
+proofReuseAdmissible remains false. Unavailable or expired artifacts
+do not trigger a solver rerun.
+
+Harness architecture: this bounded verification-only evidence query is
+Agent/caller cognition. Generic workspace.exec also runs compilation,
+experiments, browser and physical tasks; it must not be silently suppressed
+by a historic proof success. A future strict no-dispatch admission requires
+one exact caller-declared verification intent and its natural owner.

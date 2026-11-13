@@ -627,6 +627,17 @@ jobs:
           print("Native Formal scoped verifier PASS; proof reuse remains unadmitted")
           PY
 
+      # Preserve the ALREADY VERIFIED native Formal producer receipt for
+      # later Agent/source consumers; do not re-run any solvers to recover it.
+      # This artifact is historical evidence, not current proof reuse.
+      - name: Publish scoped native Formal evidence receipt
+        if: steps.affected.outputs.formal == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ordivon-core-formal-${{ github.sha }}
+          path: ${{ runner.temp }}/ordivon-core-formal-report.json
+          if-no-files-found: error
+          retention-days: 30
 
       # Cache untrusted archive bytes, never install authority. The helper
       # rehashes every hit before extraction; non-Runtime jobs skip download.

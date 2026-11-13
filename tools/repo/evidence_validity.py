@@ -13,6 +13,7 @@ import ast
 import json
 import re
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -360,6 +361,180 @@ def declared_formal_source_delta(
     }
 
 
+def inspect_historical_formal_report(
+    *, repo: Path, source_sha: str, report: dict[str, Any]
+) -> dict[str, Any]:
+    """Bind local historical report contents to immutable Git inputs only.
+
+    This checks content consistency, NOT the claimed CI artifact's
+    authenticity, verifier execution, domain correctness or toolchain
+    equivalence. Those remain separate proof obligations.
+    """
+    source_sha = _exact_commit(source_sha)
+    if not isinstance(report, dict) or report.get("kind") != (
+        "source-scoped-native-formal-toolchain-check"
+    ):
+        raise ValueError("invalid native Formal report kind")
+    if report.get("sourceCut") != source_sha or report.get("status") != "PASS":
+        raise ValueError("historical Formal report source/status mismatch")
+    if (
+        report.get("proofReuseAdmissible") is not False
+        or report.get("sourceQualification") != "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST"
+        or report.get("toolQualification")
+        != "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
+    ):
+        raise ValueError("historical Formal report qualification unsupported")
+    files = _formal_declared_files(repo, source_sha)
+    blobs = report.get("sourceBlobs")
+    if not isinstance(blobs, dict) or set(blobs) != set(files):
+        raise ValueError("historical Formal report source membership mismatch")
+    tree = current_tree(repo, source_sha)
+    for path in files:
+        oid = blobs[path]
+        if not isinstance(oid, str) or tree.get(path) not in (
+            "100644:blob:" + oid,
+            "100755:blob:" + oid,
+        ):
+            raise ValueError("historical Formal report source blob mismatch")
+    probes = report.get("probes")
+    if (
+        not isinstance(probes, list)
+        or not probes
+        or type(report.get("count")) is not int
+        or report["count"] != len(probes)
+        or any(
+            not isinstance(probe, dict)
+            or probe.get("result") != "PASS"
+            or not isinstance(probe.get("probe"), str)
+            for probe in probes
+        )
+    ):
+        raise ValueError("historical Formal report probe inventory invalid")
+    tools = report.get("toolBinaries")
+    if not isinstance(tools, dict) or set(tools) != {
+        "lean",
+        "z3",
+        "cvc5",
+        "verus",
+        "dafny",
+        "kani",
+        "quint",
+        "alloy",
+    }:
+        raise ValueError("historical Formal report tool inventory mismatch")
+    for record in tools.values():
+        if (
+            not isinstance(record, dict)
+            or any(
+                not isinstance(record.get(field), str) or not record[field]
+                for field in ("path", "version", "sha256")
+            )
+            or not re.fullmatch(r"[0-9a-f]{64}", record["sha256"])
+        ):
+            raise ValueError("historical Formal report tool provenance invalid")
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.historical-formal-receipt-content-binding",
+        "sourceCut": source_sha,
+        "standing": "CONTENT_MATCHES_DECLARED_GIT_SOURCE",
+        "declaredSourcePaths": len(files),
+        "reportedProbeCount": len(probes),
+        "reportedToolEntrypoints": len(tools),
+        "artifactProvenance": "UNVERIFIED_LOCAL_INPUT",
+        "runtimeAndToolchainEquivalence": "UNKNOWN",
+        "proofReuseAdmissible": False,
+    }
+
+
+def inspect_historical_formal_report_file(
+    *, repo: Path, source_sha: str, path: Path
+) -> dict[str, Any]:
+    """Read bounded JSON downloaded from the official existing GitHub run."""
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 1048576:
+        raise ValueError("historical Formal report must be bounded regular file")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, UnicodeError) as exc:
+        raise ValueError("historical Formal report must contain valid JSON") from exc
+    return inspect_historical_formal_report(
+        repo=repo,
+        source_sha=source_sha,
+        report=payload,
+    )
+
+
+def fetch_original_formal_report(
+    *,
+    repo: str,
+    source_sha: str,
+    github: Gh | None = None,
+) -> dict[str, Any]:
+    """Use original GitHub Check Run and official gh run download (read-only).
+
+    There is no generic proof permission, no new Artifact REST downloader
+    and no verification dispatch. Source-blobs are checked after download.
+    """
+    source_sha = _exact_commit(source_sha)
+    if repo != DEFAULT_REPOSITORY:
+        raise ValueError("historical Formal report requires canonical repository")
+    gh = github or Gh(repo)
+    check = _select_check(
+        _provider_checks(gh, repo, source_sha),
+        sha=source_sha,
+        check_name="root-verification",
+    )
+    if _standing(check) != "PASS":
+        raise ValueError("historical Formal report requires prior successful check")
+    path = urlsplit(check["detailsUrl"]).path
+    match = re.fullmatch(
+        r"/ordivon-org/ordivon/actions/runs/([1-9][0-9]*)/job/[1-9][0-9]*",
+        path,
+    )
+    if match is None:
+        raise ValueError("historical Formal report run identity missing")
+    run_id = match.group(1)
+    # A Check Run's details URL must actually target this immutable Git
+    # SourceCut's workflow run, not merely a plausible GitHub URL.
+    run = gh.api(f"repos/{repo}/actions/runs/{run_id}")
+    if (
+        not isinstance(run, dict)
+        or run.get("id") != int(run_id)
+        or run.get("head_sha") != source_sha
+        or not isinstance(run.get("repository"), dict)
+        or run["repository"].get("full_name") != repo
+    ):
+        raise ValueError("historical Formal workflow run SourceCut mismatch")
+    name = "ordivon-core-formal-" + source_sha
+    with tempfile.TemporaryDirectory(prefix="ordivon-formal-evidence-") as directory:
+        subprocess.run(
+            [
+                "gh",
+                "run",
+                "download",
+                run_id,
+                "--repo",
+                repo,
+                "--name",
+                name,
+                "--dir",
+                directory,
+            ],
+            capture_output=True,
+            check=True,
+            timeout=75,
+        )
+        result = inspect_historical_formal_report_file(
+            repo=Path.cwd(),
+            source_sha=source_sha,
+            path=Path(directory) / "ordivon-core-formal-report.json",
+        )
+    result["originalCheckRunId"] = check["checkRunId"]
+    result["originalWorkflowRunId"] = run_id
+    result["githubArtifactName"] = name
+    result["artifactProvenance"] = "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+    return result
+
+
 def decide_with_optional_formal_source_delta(
     *,
     repo: str,
@@ -411,6 +586,16 @@ def main() -> int:
         action="store_true",
         help="also inspect the native Formal declared Git source-readset delta",
     )
+    parser.add_argument(
+        "--historical-formal-report",
+        type=Path,
+        help="locally downloaded Formal report JSON; source binding only",
+    )
+    parser.add_argument(
+        "--fetch-historical-formal-report",
+        action="store_true",
+        help="read existing GitHub Check Run and original published Formal report via gh CLI",
+    )
     args = parser.parse_args()
     try:
         result = decide_with_optional_formal_source_delta(
@@ -420,6 +605,43 @@ def main() -> int:
             check_name=args.check_name,
             include_formal_source_delta=args.formal_source_delta,
         )
+        if (
+            args.historical_formal_report is not None
+            or args.fetch_historical_formal_report
+        ):
+            try:
+                if not args.prior_sha or (
+                    args.historical_formal_report is not None
+                    and args.fetch_historical_formal_report
+                ):
+                    raise ValueError(
+                        "historical Formal receipt needs one source and --prior-sha"
+                    )
+                if args.fetch_historical_formal_report:
+                    report = fetch_original_formal_report(
+                        repo=args.repo,
+                        source_sha=args.prior_sha,
+                    )
+                else:
+                    report = inspect_historical_formal_report_file(
+                        repo=Path.cwd(),
+                        source_sha=args.prior_sha,
+                        path=args.historical_formal_report,
+                    )
+                result["historicalFormalReceipt"] = report
+            except (
+                OSError,
+                ValueError,
+                subprocess.CalledProcessError,
+                subprocess.TimeoutExpired,
+            ) as exc:
+                result["historicalFormalReceipt"] = {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.historical-formal-receipt-content-binding",
+                    "standing": "UNKNOWN_FORMAL_RECEIPT_CONTENT",
+                    "proofReuseAdmissible": False,
+                    "errorType": type(exc).__name__,
+                }
     except (
         OSError,
         ValueError,

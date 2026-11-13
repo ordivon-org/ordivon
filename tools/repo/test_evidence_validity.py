@@ -509,3 +509,231 @@ def test_newly_declared_formal_file_is_affected_not_unqualified(monkeypatch):
     assert result["standing"] == "CHANGED_DECLARED_SOURCE_INPUTS"
     assert "new/proof.lean" in result["changedDeclaredPaths"]
     assert result["proofReuseAdmissible"] is False
+
+
+def _synthetic_formal_report():
+    names = ("tools/formal/verify.py", "proof.lean")
+    report = {
+        "kind": "source-scoped-native-formal-toolchain-check",
+        "sourceCut": PREVIOUS,
+        "status": "PASS",
+        "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
+        "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
+        "proofReuseAdmissible": False,
+        "sourceBlobs": {names[0]: "1" * 40, names[1]: "2" * 40},
+        "probes": [{"probe": "Lean kernel R2.1", "result": "PASS", "rc": 0}],
+        "count": 1,
+        "toolBinaries": {
+            name: {
+                "path": "/opt/verified/" + name,
+                "version": "1.0",
+                "sha256": "a" * 64,
+            }
+            for name in (
+                "lean",
+                "z3",
+                "cvc5",
+                "verus",
+                "dafny",
+                "kani",
+                "quint",
+                "alloy",
+            )
+        },
+    }
+    return names, report
+
+
+def test_historical_formal_content_matches_exact_git_source_but_never_proof(
+    monkeypatch,
+):
+    names, report = _synthetic_formal_report()
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: names)
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {
+            names[0]: "100644:blob:" + "1" * 40,
+            names[1]: "100755:blob:" + "2" * 40,
+        },
+    )
+    result = module.inspect_historical_formal_report(
+        repo=Path("/repo"), source_sha=PREVIOUS, report=report
+    )
+    assert result["standing"] == "CONTENT_MATCHES_DECLARED_GIT_SOURCE"
+    assert result["reportedProbeCount"] == 1
+    assert result["reportedToolEntrypoints"] == 8
+    assert result["artifactProvenance"] == "UNVERIFIED_LOCAL_INPUT"
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_historical_formal_content_refuses_mutated_inputs_and_false_proof(monkeypatch):
+    names, good = _synthetic_formal_report()
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: names)
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {
+            names[0]: "100644:blob:" + "1" * 40,
+            names[1]: "100644:blob:" + "2" * 40,
+        },
+    )
+    import copy
+
+    for mutation in (
+        {"sourceCut": CURRENT},
+        {"status": "FAILED"},
+        {"proofReuseAdmissible": True},
+        {"count": 2},
+        {"sourceBlobs": {names[0]: "1" * 40}},
+        {"sourceBlobs": {names[0]: "1" * 40, names[1]: "3" * 40}},
+        {"probes": [{"probe": "Lean", "result": "FAIL"}]},
+        {"toolBinaries": {"z3": {"path": "x", "version": "v", "sha256": "a" * 64}}},
+    ):
+        altered = copy.deepcopy(good)
+        altered.update(mutation)
+        with pytest.raises(ValueError, match="historical Formal report"):
+            module.inspect_historical_formal_report(
+                repo=Path("/repo"), source_sha=PREVIOUS, report=altered
+            )
+
+
+def test_historical_formal_reader_refuses_symlink_and_large_file(monkeypatch, tmp_path):
+    report = tmp_path / "receipt.json"
+    report.write_text("{}", encoding="utf-8")
+    (tmp_path / "link.json").symlink_to(report)
+    with pytest.raises(ValueError, match="bounded regular file"):
+        module.inspect_historical_formal_report_file(
+            repo=tmp_path, source_sha=PREVIOUS, path=tmp_path / "link.json"
+        )
+    report.write_text("x" * 1048577, encoding="utf-8")
+    with pytest.raises(ValueError, match="bounded regular file"):
+        module.inspect_historical_formal_report_file(
+            repo=tmp_path, source_sha=PREVIOUS, path=report
+        )
+
+
+def test_ci_formal_receipt_published_only_after_existing_scoped_validator():
+    workflow = (
+        Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
+    ).read_text()
+    validation = (
+        'print("Native Formal scoped verifier PASS; proof reuse remains unadmitted")'
+    )
+    publishing = "- name: Publish scoped native Formal evidence receipt"
+    assert workflow.count(publishing) == 1
+    assert workflow.index(validation) < workflow.index(publishing)
+    selected = workflow.split(publishing, 1)[1].split("- name:", 1)[0]
+    assert "if: steps.affected.outputs.formal == 'true'" in selected
+    assert (
+        "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" in selected
+    )
+    assert "name: ordivon-core-formal-" + chr(36) + "{{ github.sha }}" in selected
+    assert "ordivon-core-formal-report.json" in selected
+    assert "if-no-files-found: error" in selected
+
+
+def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch):
+    names, report = _synthetic_formal_report()
+    check = dict(
+        GOOD,
+        head_sha=PREVIOUS,
+        details_url=("https://github.com/ordivon-org/ordivon/actions/runs/731/job/101"),
+    )
+
+    class VerifiedRunProvider:
+        def __init__(self):
+            self.queries = []
+
+        def api(self, endpoint):
+            self.queries.append(endpoint)
+            if "/commits/" in endpoint:
+                return {"total_count": 1, "check_runs": [check]}
+            assert endpoint == "repos/ordivon-org/ordivon/actions/runs/731"
+            return {
+                "id": 731,
+                "head_sha": PREVIOUS,
+                "repository": {"full_name": module.DEFAULT_REPOSITORY},
+            }
+
+    provider = VerifiedRunProvider()
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: names)
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {
+            names[0]: "100644:blob:" + "1" * 40,
+            names[1]: "100644:blob:" + "2" * 40,
+        },
+    )
+    cmds = []
+
+    def download(cmd, **kwargs):
+        cmds.append(cmd)
+        assert kwargs["check"] is True and kwargs["timeout"] == 75
+        directory = Path(cmd[cmd.index("--dir") + 1])
+        (directory / "ordivon-core-formal-report.json").write_text(
+            __import__("json").dumps(report), encoding="utf-8"
+        )
+        return Mock(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", download)
+    result = module.fetch_original_formal_report(
+        repo=module.DEFAULT_REPOSITORY,
+        source_sha=PREVIOUS,
+        github=provider,
+    )
+    assert result["standing"] == "CONTENT_MATCHES_DECLARED_GIT_SOURCE"
+    assert result["originalCheckRunId"] == 101
+    assert result["originalWorkflowRunId"] == "731"
+    assert result["githubArtifactName"] == "ordivon-core-formal-" + PREVIOUS
+    assert result["proofReuseAdmissible"] is False
+    assert result["artifactProvenance"] == "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+    assert cmds[0][:4] == ["gh", "run", "download", "731"]
+    assert len(provider.queries) == 2
+
+
+def test_fetch_formal_report_rejects_mismatched_provider_run_before_download(
+    monkeypatch,
+):
+    check = dict(
+        GOOD,
+        head_sha=PREVIOUS,
+        details_url=("https://github.com/ordivon-org/ordivon/actions/runs/731/job/101"),
+    )
+
+    class WrongRun:
+        def api(self, endpoint):
+            if "/commits/" in endpoint:
+                return {"total_count": 1, "check_runs": [check]}
+            return {
+                "id": 731,
+                "head_sha": CURRENT,
+                "repository": {"full_name": module.DEFAULT_REPOSITORY},
+            }
+
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        Mock(side_effect=AssertionError("must not download wrong run")),
+    )
+    with pytest.raises(ValueError, match="workflow run SourceCut mismatch"):
+        module.fetch_original_formal_report(
+            repo=module.DEFAULT_REPOSITORY,
+            source_sha=PREVIOUS,
+            github=WrongRun(),
+        )
+
+
+def test_fetch_formal_report_requires_prior_success_before_download(monkeypatch):
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        Mock(side_effect=AssertionError("must not download unverified run")),
+    )
+    with pytest.raises(ValueError, match="prior successful check"):
+        module.fetch_original_formal_report(
+            repo=module.DEFAULT_REPOSITORY,
+            source_sha=PREVIOUS,
+            github=provider(),
+        )

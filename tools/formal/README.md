@@ -46,3 +46,23 @@ The Quint Apalache backend v0.62.1 currently fails download in this
 environment: do not label Quint simulation as MODEL_VERIFIED.
 Rocq/Isabelle/other heavy proof ecosystems are separate options pending
 a reproducible installation source and an actually distinguishable consumer.
+
+
+## Historical Formal receipts for evidence-first Agents (2026-11-14)
+
+The existing Formal verifier already emits a source-qualified PASS JSON report
+with Git blobs, toolchain binary/resource hashes and model probe results.
+GitHub CI validates this exact report and now publishes it AFTER successful
+validation using its existing pinned official Artifact Action. Artifact name:
+ordivon-core-formal-<GitHub SHA>, retained 30 days. There is no new proof run.
+
+The read-only existing repository evidence consumer can use the original
+GitHub Check Run and official gh run download when explicitly requested:
+tools/repo/evidence_validity.py --prior-sha FULL_PROOF_ANCESTOR_SHA
+--current-sha FULL_CURRENT_SHA --formal-source-delta
+--fetch-historical-formal-report.
+
+The source-bound report is not a proof that an unchanged Git blob implies
+unchanged installed consumers, dynamic loader behavior or verifier toolchain
+across time. Those facts remain UNKNOWN, and proofReuseAdmissible remains
+false. An unselected, missing or expired report does not cause retries.

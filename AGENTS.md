@@ -75,7 +75,16 @@ Add --prior-sha FULL_ANCESTOR_SHA only when the current check is absent and
 changed-source impact would change the decision. For Formal Git input changes,
 add --formal-source-delta with two ancestral commits to compare the existing
 Formal producer's historical SOURCE_FILES modes/blobs without executing a
-proof. This is source input equivalence only; a toolchain/assumption/real
+proof.
+To inspect a historical Formal proof's ORIGINAL validated CI report, do not
+rerun the solvers. Opt in to the existing GitHub Check Run and pinned native
+artifact consumer with --prior-sha FULL_FORMAL_ANCESTOR_SHA,
+--formal-source-delta and --fetch-historical-formal-report. The exact
+root-verification Check Run and workflow SHA must be qualified. The artifact
+exists only for runs that actually selected Formal, succeeded and uploaded it
+(30-day retention). Missing artifacts are UNKNOWN, not authorization for
+generic Harness ToolBridge redispatch or cross-version proof reuse.
+ This is source input equivalence only; a toolchain/assumption/real
 consumer proof reuse or arbitrary Harness workspace.exec no-dispatch remains
 unqualified. The check-receipt decision can reuse a same-SHA check outcome
 without replay. It never asserts formal
