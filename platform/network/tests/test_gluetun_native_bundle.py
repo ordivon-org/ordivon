@@ -18,7 +18,7 @@ def test_reconciler_keeps_original_native_owner_and_one_recovery_consumer():
     data=bundle.SOURCE_SVC.read_text()
     assert "ExecStartPost=/usr/bin/python3 " in data
     assert "native_switch.py --recover" in data
-    assert "TimeoutStartSec=3min" in data
+    assert "TimeoutStartSec=4min" in data
     assert "new WireGuard" not in data
     assert "ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service" in data
 

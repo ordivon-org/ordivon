@@ -122,7 +122,7 @@ def test_guarded_native_switch_success_only_after_real_consumer_receipt(monkeypa
     monkeypatch.setattr(switch,"initial_preflight",lambda:{"standing":"NATIVE_API_AUTHORIZED_READONLY"})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
     monkeypatch.setattr(switch,"mark_attempt",lambda:None)
-    monkeypatch.setattr(switch.observer,"observe",lambda:active.pop(0))
+    monkeypatch.setattr(switch,"bounded_consumer_observe",lambda seconds=25:active.pop(0))
     monkeypatch.setattr(switch.time,"monotonic",lambda:100.0)
     def api(method,payload=None):
         calls.append((method,payload))
@@ -150,17 +150,18 @@ def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
     monkeypatch.setattr(switch,"initial_preflight",lambda:{})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
     monkeypatch.setattr(switch,"mark_attempt",lambda:None)
-    monkeypatch.setattr(switch.observer,"observe",lambda:{"standing":"NOT_QUALIFIED"})
-    monkeypatch.setattr(switch.time,"monotonic",iter((100.0,200.0)).__next__)
+    monkeypatch.setattr(switch,"bounded_consumer_observe",lambda seconds=25:{"standing":"NOT_QUALIFIED"})
+    monkeypatch.setattr(switch.time,"monotonic",
+                        iter((100.0,100.0,100.0,200.0)).__next__)
     def api(method,payload=None):
         calls.append((method,payload))
         if method=="GET":
-            return before if len([c for c in calls if c[0]=="GET"])==1 else after
+            return before if len([c for c in calls if c[0]=="GET"]) in (1,3) else after
         return {"status":200}
     monkeypatch.setattr(switch,"api_call",api)
     result=switch.guarded_recover()
     assert result["standing"]=="NATIVE_SWITCH_FAILED"
-    assert result["rollback"]=="REQUESTED"
+    assert result["rollback"]=="SELECTION_READBACK_VERIFIED"
     assert [c[1] for c in calls if c[0]=="PUT"]==[
         {"provider":{"server_selection":{"countries":["Mexico"]}}},
         {"provider":{"server_selection":{"countries":["North Macedonia"]}}},
@@ -204,3 +205,51 @@ def test_systemd_blackbox_missing_is_hold_unknown_not_vpn_failure(monkeypatch):
     result=switch.guarded_recover()
     assert result["standing"] == "HOLD_CONSUMER_OBSERVATION_UNKNOWN"
     assert result["effectAttempted"] is False
+
+
+def test_recovery_next_distinct_historical_country_after_first_fails(monkeypatch):
+    calls=[]
+    original={"type":"wireguard","provider":{"name":"surfshark",
+      "server_selection":{"countries":["Malaysia"],"regions":[]}}}
+    first={"type":"wireguard","provider":{"name":"surfshark",
+      "server_selection":{"countries":["North Macedonia"],"regions":[]}}}
+    second={"type":"wireguard","provider":{"name":"surfshark",
+      "server_selection":{"countries":["Mexico"],"regions":[]}}}
+    selection=[original]
+    monkeypatch.setattr(switch.quality,"observe",lambda hours:{
+        "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
+          "trialCountry":"North Macedonia","trialCountries":["North Macedonia","Mexico"]}})
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(switch,"initial_preflight",lambda:{})
+    monkeypatch.setattr(switch,"last_attempt",lambda:None)
+    monkeypatch.setattr(switch,"mark_attempt",lambda:None)
+    monkeypatch.setattr(switch,"bounded_consumer_observe",
+        lambda seconds=25:{"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"}
+              if len([c for c in calls if c[0]=="PUT"])>=2
+              else {"standing":"NOT_QUALIFIED"})
+    # First trial passes readback but fails the consumer timeout. Second
+    # remains within the original one-shot, and passes real consumer proof.
+    monkeypatch.setattr(switch.time,"monotonic",
+        iter((100.0,100.0,100.0,160.0,160.0,160.0,170.0,172.0)).__next__)
+    def api(method,payload=None):
+        calls.append((method,payload))
+        if method=="GET":return selection[0]
+        country=payload["provider"]["server_selection"]["countries"][0]
+        selection[0] = first if country=="North Macedonia" else second
+        return {"status":200}
+    monkeypatch.setattr(switch,"api_call",api)
+    result=switch.guarded_recover()
+    assert result["standing"]=="NATIVE_SWITCH_CONSUMED"
+    assert result["country"]=="Mexico"
+    assert result["countriesTried"]==["North Macedonia","Mexico"]
+    assert [c[1]["provider"]["server_selection"]["countries"] for c in calls if c[0]=="PUT"]==[
+        ["North Macedonia"],["Mexico"]]
+
+
+def test_bounded_consumer_probe_timeout_is_unknown_and_not_success(monkeypatch):
+    import subprocess
+    def timeout(*args,**kw):
+        assert kw["timeout"] in (20,25)
+        raise subprocess.TimeoutExpired(cmd=args[0],timeout=kw["timeout"])
+    monkeypatch.setattr(switch.subprocess,"run",timeout)
+    assert switch.bounded_consumer_observe(20)["standing"]=="UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"

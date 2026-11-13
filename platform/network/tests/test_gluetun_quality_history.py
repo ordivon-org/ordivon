@@ -94,3 +94,106 @@ def test_sparse_query_never_becomes_success():
     start=t()-timedelta(hours=1)
     r=[{"metric":{"job":history.JOBS[0]},"values":[[start.timestamp()+10,"1"],[start.timestamp()+20,"NaN"]]}]
     assert history.parse_matrix(r,"probe_success",start,t())[history.JOBS[0]]==[1.0]
+
+
+def test_recovery_candidates_are_distinct_countries_sorted_by_real_consumer_quality():
+    base={
+        "standing":"RECENT_HISTORICAL_CONSUMER_SUCCESS",
+        "worstConsumerSuccessRatio":.99,"lastObservedHoursAgo":2,
+    }
+    rows=[
+        dict(base,catalogCountry="Japan",catalogHostname="jp-tok.one",medianOfConsumerP90Ms=800),
+        dict(base,catalogCountry="Japan",catalogHostname="jp-tok.two",medianOfConsumerP90Ms=820),
+        dict(base,catalogCountry="Mexico",catalogHostname="mx-qro.one",medianOfConsumerP90Ms=1200),
+        dict(base,catalogCountry="Croatia",catalogHostname="hr-zag.one",medianOfConsumerP90Ms=1800),
+    ]
+    x=history.decision(active_healthy=False,underlay_reachable=True,now=t(),
+                       current_country="Croatia",evidence=rows)
+    assert x["trialCountries"]==["Japan","Mexico"]
+    assert x["trialCountry"]=="Japan"
+
+
+def test_last_three_samples_must_be_fresh_and_distinct(monkeypatch):
+    now=t()
+    def rows(stamps,values=(0,0,0),duplicate=False):
+        r=[{"metric":{"job":job,"instance":"unique-"+job},
+            "values":[[stamp,str(value)] for stamp,value in zip(stamps,values)]}
+            for job in history.JOBS]
+        return r + ([r[0]] if duplicate else [])
+    fresh=[now.timestamp()-120,now.timestamp()-60,now.timestamp()]
+    monkeypatch.setattr(history,"http_query",lambda *a:rows(fresh))
+    assert history.recent_failure_witness(now) is True
+    monkeypatch.setattr(history,"http_query",lambda *a:rows(fresh,values=(0,1,0)))
+    assert history.recent_failure_witness(now) is False
+    monkeypatch.setattr(history,"http_query",lambda *a:rows([now.timestamp()-370,now.timestamp()-310,now.timestamp()-250]))
+    assert history.recent_failure_witness(now) is None
+    monkeypatch.setattr(history,"http_query",lambda *a:rows([now.timestamp()-120]*3))
+    assert history.recent_failure_witness(now) is None
+    monkeypatch.setattr(history,"http_query",lambda *a:rows(fresh,duplicate=True))
+    assert history.recent_failure_witness(now) is None
+
+
+def test_bulk_history_uses_two_provider_queries_not_two_per_session(monkeypatch):
+    # The historical decision must stay bounded even when 8 real sessions
+    # are retained by the mature native journal / monitoring stack.
+    now=t()
+    segs=[history.Segment(now-timedelta(hours=n+1),
+                          now-timedelta(hours=n), "Mexico", "192.0.2.2")
+          for n in range(1,8)]
+    queries=[]
+    def query(metric,start,end):
+        queries.append((metric,start,end))
+        return []
+    class Result:
+        def __init__(self, stdout):
+            self.stdout=stdout
+    def run(args,**kwargs):
+        if args[:2] == ["/usr/bin/podman","exec"]:
+            return Result('{"surfshark":{"servers":[]}}')
+        if args[0]=="/usr/bin/journalctl":
+            return Result("")
+        raise AssertionError("unexpected subprocess")
+    monkeypatch.setattr(history.subprocess,"run",run)
+    monkeypatch.setattr(history,"segments",lambda *args,**kwargs:segs)
+    monkeypatch.setattr(history,"http_query",query)
+    monkeypatch.setattr(history,"recent_failure_witness",lambda now:False)
+    import observe_active
+    monkeypatch.setattr(observe_active,"observe",lambda:{"standing":"UNKNOWN"})
+    monkeypatch.setattr(history,"current_catalog_country",lambda catalog:None)
+    x=history.observe(hours=48)
+    assert x["recommended"]["decision"]=="HOLD_ACTIVE_HEALTH_UNKNOWN"
+    assert [q[0] for q in queries]==["probe_success","probe_duration_seconds"]
+
+
+def test_correlated_outage_can_try_allowed_history_even_without_kernel_endpoint(monkeypatch):
+    import observe_active
+    now=datetime.now(timezone.utc)
+    seg=history.Segment(now-timedelta(hours=2),now-timedelta(hours=1),
+                        "Mexico","192.0.2.99","mx-qro.example")
+    class Result:
+        def __init__(self,stdout):self.stdout=stdout
+        returncode=0
+    calls=[]
+    def stub_run(args,**kw):
+        calls.append(args[0])
+        if args[:2]==["/usr/bin/podman","exec"]:
+            return Result('{"surfshark":{"servers":[]}}')
+        if args[0]=="/usr/bin/journalctl":return Result("")
+        if args[0]=="/usr/bin/curl":return Result("200")
+        raise AssertionError("unexpected subprocess")
+    monkeypatch.setattr(history.subprocess,"run",stub_run)
+    monkeypatch.setattr(history,"segments",lambda *args,**kw:[seg])
+    monkeypatch.setattr(history,"http_query",lambda *args:[])
+    monkeypatch.setattr(history,"qualify",lambda *args:{
+        "catalogCountry":"Mexico","standing":"RECENT_HISTORICAL_CONSUMER_SUCCESS",
+        "medianOfConsumerP90Ms":1200,"worstConsumerSuccessRatio":.99,
+        "lastObservedHoursAgo":2})
+    monkeypatch.setattr(history,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(history,"current_catalog_country",lambda catalog:None)
+    monkeypatch.setattr(observe_active,"observe",
+        lambda: (_ for _ in ()).throw(AssertionError("Do not resample 3 HTTPS failures")))
+    x=history.observe(hours=24)
+    assert x["active"]["catalogCountry"] is None
+    assert x["recommended"]["trialCountry"]=="Mexico"
+    assert x["active"]["threeLaneConsecutiveFailure"] is True
+    assert "/usr/bin/curl" in calls
