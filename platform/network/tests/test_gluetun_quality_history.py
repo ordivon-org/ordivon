@@ -82,11 +82,11 @@ def test_recent_failure_requires_three_observed_consecutive_zeros(monkeypatch):
         return [{"metric":{"job":job},
                  "values":[[now.timestamp()-180+i*60,str(v)] for i,v in enumerate(values)]}
                 for job in history.JOBS]
-    monkeypatch.setattr(history,"http_query",lambda metric,start,end:fill([0,0,0]))
+    monkeypatch.setattr(history,"http_raw_samples",lambda metric,now:fill([0,0,0]))
     assert history.recent_failure_witness(now) is True
-    monkeypatch.setattr(history,"http_query",lambda metric,start,end:fill([0,1,0]))
+    monkeypatch.setattr(history,"http_raw_samples",lambda metric,now:fill([0,1,0]))
     assert history.recent_failure_witness(now) is False
-    monkeypatch.setattr(history,"http_query",lambda metric,start,end:fill([0,0]))
+    monkeypatch.setattr(history,"http_raw_samples",lambda metric,now:fill([0,0]))
     assert history.recent_failure_witness(now) is None
 
 
@@ -121,15 +121,15 @@ def test_last_three_samples_must_be_fresh_and_distinct(monkeypatch):
             for job in history.JOBS]
         return r + ([r[0]] if duplicate else [])
     fresh=[now.timestamp()-120,now.timestamp()-60,now.timestamp()]
-    monkeypatch.setattr(history,"http_query",lambda *a:rows(fresh))
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:rows(fresh))
     assert history.recent_failure_witness(now) is True
-    monkeypatch.setattr(history,"http_query",lambda *a:rows(fresh,values=(0,1,0)))
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:rows(fresh,values=(0,1,0)))
     assert history.recent_failure_witness(now) is False
-    monkeypatch.setattr(history,"http_query",lambda *a:rows([now.timestamp()-370,now.timestamp()-310,now.timestamp()-250]))
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:rows([now.timestamp()-370,now.timestamp()-310,now.timestamp()-250]))
     assert history.recent_failure_witness(now) is None
-    monkeypatch.setattr(history,"http_query",lambda *a:rows([now.timestamp()-120]*3))
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:rows([now.timestamp()-120]*3))
     assert history.recent_failure_witness(now) is None
-    monkeypatch.setattr(history,"http_query",lambda *a:rows(fresh,duplicate=True))
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:rows(fresh,duplicate=True))
     assert history.recent_failure_witness(now) is None
 
 
@@ -197,3 +197,39 @@ def test_correlated_outage_can_try_allowed_history_even_without_kernel_endpoint(
     assert x["recommended"]["trialCountry"]=="Mexico"
     assert x["active"]["threeLaneConsecutiveFailure"] is True
     assert "/usr/bin/curl" in calls
+
+
+def test_raw_failure_gate_queries_one_prometheus_range_vector_not_replayed_steps(monkeypatch):
+    from urllib.parse import urlsplit,parse_qs
+    import io,json
+    now=t()
+    calls=[]
+    class Wire:
+        def __enter__(self):return io.BytesIO(json.dumps({"status":"success","data":{
+          "resultType":"matrix","result":[{"metric":{"job":history.JOBS[0]},
+          "values":[[now.timestamp()-90,"0"],[now.timestamp()-30,"0"]]}]}}).encode())
+        def __exit__(self,*args):return False
+    def fake_urlopen(url,timeout):
+        calls.append(url)
+        return Wire()
+    monkeypatch.setattr(history,"urlopen",fake_urlopen)
+    rows=history.http_raw_samples("probe_success",now)
+    assert rows[0]["values"][-1][1]=="0"
+    assert len(calls)==1
+    parsed=urlsplit(calls[0])
+    assert parsed.path.endswith("/api/v1/query")
+    q=parse_qs(parsed.query)["query"][0]
+    assert "probe_success{" in q and q.endswith("[7m]")
+    assert "/query_range" not in calls[0]
+
+
+def test_suspended_prometheus_scrape_with_previous_zero_is_unknown(monkeypatch):
+    # PromQL query_range would evaluate the previous '0' at new step times.
+    # The native range-vector returns only its ORIGINAL timestamp.
+    now=t()
+    frozen=now.timestamp()-240
+    rows=[{"metric":{"job":job},
+           "values":[[frozen-120,"0"],[frozen-60,"0"],[frozen,"0"]]}
+          for job in history.JOBS]
+    monkeypatch.setattr(history,"http_raw_samples",lambda *args:rows)
+    assert history.recent_failure_witness(now) is None
