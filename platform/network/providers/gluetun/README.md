@@ -50,26 +50,26 @@ background poller and preserves Gluetun-native health recovery.
 
 ## Native Surfshark mode — selected physical provider
 
-The production Quadlet now uses Gluetun native `VPN_SERVICE_PROVIDER=surfshark`
-with WireGuard, rather than a pinned Custom WireGuard peer endpoint. Its
-server selector is constrained by the source-owned declarative
-`providers/gluetun/config/exit-selector.json`. The current selection is
-`SERVER_REGIONS=Asia Pacific` and `SERVER_COUNTRIES=Singapore`, matching the
-installed SourceCut. The policy also declares excluded Japan/South Korea
-locations, which the existing `provider:gluetun:eligible-exits` Task consumes
-instead of maintaining a second exclusion list. The latter reads the native
-Gluetun catalog and now distinguishes all nonexcluded candidate records/IPs
-from the smaller selected country set; its result is `CATALOG_ONLY_NOT_HEALTH`,
-not proof that any IP can carry actual consumer traffic.
+The production Quadlet uses Gluetun native Surfshark WireGuard.
+The source-owned country selector is providers/gluetun/config/exit-selector.json.
+Hong Kong is the only excluded country; the other 99 countries and territories
+in the actual installed Surfshark WireGuard catalog are positively listed as
+SERVER_COUNTRIES (177 of 178 WireGuard records). SERVER_REGIONS is absent;
+Japan, South Korea, Singapore and all other catalog countries are allowed.
 
-To widen the pool, update only that source selector and use Gluetun's native
-`SERVER_COUNTRIES`/`SERVER_REGIONS` filtering; do not introduce a custom
-endpoint scheduler. Before a live cutover, establish every shared consumer's
-allowed exit country and prove the selected countries have usable DNS, HTTPS,
-provider identity and consumer effects. Run the existing native provider
-SourceCut verification and controlled physical rollout separately. Changing the
-policy file alone must make --verify fail against a still-running old profile.
-A reachable candidate does not prove a consumer permits that exit country.
+Gluetun v3.41.3 has a positive country filter, not a negative exclusion filter.
+Merely declaring excludedCountries without positive selectedCountries permits
+Hong Kong, so source validation rejects excluded-only policies. The native
+catalog evidence Task rejects a positive list that fails to cover every
+nonexcluded catalog country; after an upstream catalog expansion, regenerate
+the list before the next rollout. Gluetun itself owns endpoint selection,
+health checks and reconnects, with no new custom endpoint scheduler.
+
+A policy file change does not affect the running container. Source validation,
+0600 environment materialization, controlled restart, loaded OCI SourceCut and
+real consumer readiness must all pass. A physical Provider restart may briefly
+interrupt Tailnet; Mobile must rebind to the new network namespace if needed.
+A catalog entry is not evidence of consumer reachability or public IP country.
 
 Native Gluetun owns its own healthchecks, VPN reconnect and server selection.
 The official server catalog updates at `UPDATER_PERIOD=480h`; the systemd

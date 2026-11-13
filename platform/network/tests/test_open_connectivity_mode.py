@@ -36,21 +36,26 @@ def test_public_origins_are_no_longer_subject_to_scoped_domain_allowlists(consum
         assert rules == []
 
 
-def test_unrestricted_country_selector_uses_existing_upstream_scheduling():
+def test_open_transport_excludes_only_hongkong_vpn_exit_country():
     spec = importlib.util.spec_from_file_location(
         "profile", ROOT / "providers" / "gluetun" / "native_profile.py"
     )
     assert spec and spec.loader
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
-    assert m.read_selector_policy() == {
-        "regions": [], "selectedCountries": [], "excludedCountries": [],
-    }
+    policy = m.read_selector_policy()
+    assert policy["regions"] == []
+    assert policy["excludedCountries"] == ["Hong Kong"]
+    assert len(policy["selectedCountries"]) == len(set(policy["selectedCountries"])) == 99
+    assert "Hong Kong" not in policy["selectedCountries"]
+    assert {"Singapore", "Japan", "South Korea", "Taiwan", "Germany", "United States"} <= set(policy["selectedCountries"])
     profile = m.generate_env(
         {"VPN_SERVICE_PROVIDER": "custom", "VPN_TYPE": "wireguard"},
         "10.64.100.1/16",
     )
-    assert "SERVER_COUNTRIES=" not in profile
+    selected = next(line.partition("=")[2] for line in profile.splitlines() if line.startswith("SERVER_COUNTRIES="))
+    assert len(selected.split(",")) == 99
+    assert "Hong Kong" not in selected.split(",")
     assert "SERVER_REGIONS=" not in profile
     assert "BLOCK_MALICIOUS=off" in profile
     assert "HEALTH_RESTART_VPN=on" in profile
