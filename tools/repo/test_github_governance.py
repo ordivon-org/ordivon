@@ -509,6 +509,20 @@ exit 0
         self.assertIn("mise run formal:verify", formal["run"])
         self.assertNotIn("GITHUB_TOKEN", steps["Verify affected owners"].get("env", {}))
 
+    def test_gateway_tlc_runs_only_for_source_selected_native_model_inputs(self) -> None:
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {step["name"]: step for step in required_ci_steps(workflow)}
+        selection = steps["Select affected owners"]["run"]
+        gateway = steps["Verify changed Gateway formal model"]
+        self.assertIn("from affected_owners import requires_gateway_formal_verification", selection)
+        self.assertIn("gateway_formal", selection)
+        self.assertEqual(gateway["if"], "steps.affected.outputs.gateway_formal == 'true'")
+        self.assertEqual(gateway["run"].count("mise run gateway:formal:verify"), 1)
+        self.assertIn("(cd services/runtime && scripts/tla-formal bootstrap)", gateway["run"])
+        self.assertIn("Scoped Gateway TLC PASS at $GITHUB_SHA", gateway["run"])
+
     def test_selected_formal_has_one_isolated_real_invocation_and_owner_failures_propagate(self) -> None:
         """Execute the real GitHub queue shell and dedicated Formal step."""
         import os

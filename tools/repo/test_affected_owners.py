@@ -79,6 +79,31 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertTrue(MODULE.requires_core_formal_verification(["mise.toml"]))
         self.assertFalse(MODULE.requires_core_formal_verification(["docs/mise.toml"]))
 
+    def test_gateway_formal_models_get_actual_scoped_tlc_gate(self) -> None:
+        select = MODULE.requires_gateway_formal_verification
+        for path in (
+            "mise.toml",
+            ".github/workflows/ci.yml",
+            "services/gateway/formal/GatewayRoutingR1.tla",
+            "services/gateway/formal/GatewayAgentWorkspaceBindingR1.unsafe.cfg",
+            "services/gateway/formal/verify.sh",
+            "services/runtime/formal/toolchain.lock.json",
+            "services/runtime/scripts/tla-formal",
+            "services/runtime/mise.toml",
+            "tools/repo/affected_owners.py",
+        ):
+            self.assertTrue(select([path]), path)
+        for path in (
+            "services/gateway/src/ordivon_gateway/service.py",
+            "services/gateway/README.md",
+            "services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+            "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+            "docs/architecture/example.md",
+        ):
+            self.assertFalse(select([path]), path)
+        with self.assertRaisesRegex(ValueError, "noncanonical"):
+            select(["services/gateway/formal/../test.yaml"])
+
     def test_core_formal_source_requires_real_proof_task_without_new_owner(self) -> None:
         verify = MODULE.requires_core_formal_verification
         self.assertTrue(verify(("tools/formal/Proof.rs",)))

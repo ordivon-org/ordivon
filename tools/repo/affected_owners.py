@@ -252,6 +252,26 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
         for path in paths
     )
 
+def requires_gateway_formal_verification(paths: Iterable[str]) -> bool:
+    """Qualify only actual Gateway TLC model/runner/tool inputs.
+
+    CI already obtains changed paths from the immutable Git SourceCut via
+    convergence_plan. This is an EXTRA native verifier admission, never a
+    substitute for the existing Owner closure or a proof-reuse claim.
+    """
+    return any(
+        (path := _normalize(raw)) in {
+            "mise.toml",
+            ".github/workflows/ci.yml",
+            "services/runtime/formal/toolchain.lock.json",
+            "services/runtime/scripts/tla-formal",
+            "services/runtime/mise.toml",
+            "tools/repo/affected_owners.py",
+        } or path.startswith("services/gateway/formal/")
+        for raw in paths
+    )
+
+
 def _source_git_env() -> dict[str, str]:
     """Use this repository's Git DAG, not a caller's foreign Git namespace."""
     return {

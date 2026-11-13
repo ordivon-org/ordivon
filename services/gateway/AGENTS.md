@@ -18,8 +18,7 @@ Harness owns Agent run, Security owns admission/PDP decisions.
 Pin Git revision. Compare released tool surface with live system.describe and
 the installed service. The root task gateway:formal:verify delegates to
 services/gateway/formal/verify.sh (the Gateway-owned source and model inputs).
-Run mise run gateway:formal:verify for TLC and the Python
-bounded routing checker; run mise run gateway:verify for native consumers.
+The required root CI selects this native task only when Gateway model or\nrunner/pinned TLC inputs change; ordinary Gateway edits retain the existing\nOwner verification without an additional model replay.\nRun mise run gateway:formal:verify for TLC and the Python\nbounded routing checker; run mise run gateway:verify for native consumers.
 Do not interpret a model-check result as deployed authorization proof.
 
 ## Agent
