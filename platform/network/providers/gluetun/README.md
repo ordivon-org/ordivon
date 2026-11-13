@@ -40,6 +40,26 @@ instead of silently accepting the last occurrence. These are source-to-loaded
 admission witnesses, not proof that an external endpoint is reachable.
 
 
+## Active endpoint qualification (single snapshot, no false standby claims)
+
+Use `task provider:gluetun:observe-active` to bind the existing native
+WireGuard kernel endpoint, Gluetun official catalog country and actual
+public Internet exit country to the SAME stable provider session. It checks
+the source/installed/loaded Gluetun SourceCut, native VPN status, both
+upstream HTTP CONNECT/TLS/origin business requests (example.com and GitHub)
+and a second endpoint read to reject mid-observation rotations. The public
+origin country may differ from the physical/catalog endpoint country.
+No peer key, secret or endpoint IP is emitted by this task.
+
+A `QUALIFIED_ACTIVE_SAMPLE` is a point-in-time active-provider witness, NOT
+a persistent SLA, ranked quality estimate, proven standby, or automated
+fast-failover decision. Unknown observations remain UNKNOWN; negative
+business evidence remains NOT_QUALIFIED. Even an active qualification
+reports `qualifiedStandbyCount=0` until independent actual standby traffic
+is verified. Reuse native Gluetun switching until that qualification
+exists; a historical unsuccessful random endpoint retry must not be
+treated as proof that the individual server is defective.
+
 ## Optional IPinfo witness
 
 `task provider:gluetun:observe-exit` performs a single explicitly proxied
