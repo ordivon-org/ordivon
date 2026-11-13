@@ -221,13 +221,34 @@ def http_query(metric: str, start: datetime, end: datetime) -> list[dict]:
     return data["data"]["result"]
 
 
+def http_raw_samples(metric: str, now: datetime) -> list[dict]:
+    """Return actual Prometheus scrape timestamps, NEVER query_range steps.
+
+    A query_range instant selector can repeat the final failed value for up
+    to the lookback delta after scraping stops. Query a range vector at one
+    instant to receive original raw sample times and distinguish silence.
+    """
+    if metric != "probe_success":
+        raise ValueError("Native failure admission accepts only probe_success")
+    expr = metric + '{job=~"' + "|".join(JOBS) + '"}[7m]'
+    url = PROM + "/api/v1/query?" + urlencode({
+        "query": expr, "time": now.timestamp(),
+    })
+    with urlopen(url, timeout=11) as response:
+        data = json.load(response)
+    if (data.get("status") != "success" or
+        data.get("data", {}).get("resultType") != "matrix"):
+        raise ValueError("Raw Prometheus range-vector observation invalid")
+    return data["data"]["result"]
+
+
 def recent_failure_witness(now: datetime) -> bool | None:
     """Require three actually sampled consecutive failures in all three lanes.
 
     Missing or stale time-series evidence is UNKNOWN, not FALSE.
     """
     start = now - timedelta(minutes=7)
-    rows = http_query("probe_success", start, now)
+    rows = http_raw_samples("probe_success", now)
     by_job: dict[str, list[tuple[float, int]]] = {}
     for row in rows:
         job = row.get("metric", {}).get("job", "")
