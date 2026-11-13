@@ -96,3 +96,64 @@ def test_cooldown_state_roundtrip(monkeypatch,tmp_path):
     switch.mark_attempt()
     assert switch.last_attempt() is not None
     assert not (f.stat().st_mode&0o077)
+
+
+def test_guarded_native_switch_success_only_after_real_consumer_receipt(monkeypatch):
+    from datetime import datetime,timezone
+    calls=[]
+    before={"type":"wireguard","provider":{"name":"surfshark",
+        "server_selection":{"countries":["North Macedonia"],"regions":[],"cities":[],"hostnames":[]}}}
+    after={"type":"wireguard","provider":{"name":"surfshark",
+        "server_selection":{"countries":["Mexico"],"regions":[],"cities":[],"hostnames":[]}}}
+    active=[{"standing":"NOT_QUALIFIED"},
+            {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"}]
+    monkeypatch.setattr(switch.quality,"observe",lambda hours:{
+        "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
+                       "trialCountry":"Mexico"}})
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(switch,"initial_preflight",lambda:{"standing":"NATIVE_API_AUTHORIZED_READONLY"})
+    monkeypatch.setattr(switch,"last_attempt",lambda:None)
+    monkeypatch.setattr(switch,"mark_attempt",lambda:None)
+    monkeypatch.setattr(switch.observer,"observe",lambda:active.pop(0))
+    monkeypatch.setattr(switch.time,"monotonic",lambda:100.0)
+    def api(method,payload=None):
+        calls.append((method,payload))
+        if method=="GET":
+            return before if len([c for c in calls if c[0]=="GET"])==1 else after
+        return {"status":200,"outcome":"settings updated"}
+    monkeypatch.setattr(switch,"api_call",api)
+    result=switch.guarded_recover()
+    assert result["standing"]=="NATIVE_SWITCH_CONSUMED"
+    assert result["country"]=="Mexico"
+    assert [c for c in calls if c[0]=="PUT"]==[
+        ("PUT",{"provider":{"server_selection":{"countries":["Mexico"]}}})]
+
+
+def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
+    calls=[]
+    before={"type":"wireguard","provider":{"name":"surfshark",
+        "server_selection":{"countries":["North Macedonia"],"regions":[]}}}
+    after={"type":"wireguard","provider":{"name":"surfshark",
+        "server_selection":{"countries":["Mexico"],"regions":[]}}}
+    monkeypatch.setattr(switch.quality,"observe",lambda hours:{
+        "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
+                       "trialCountry":"Mexico"}})
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(switch,"initial_preflight",lambda:{})
+    monkeypatch.setattr(switch,"last_attempt",lambda:None)
+    monkeypatch.setattr(switch,"mark_attempt",lambda:None)
+    monkeypatch.setattr(switch.observer,"observe",lambda:{"standing":"NOT_QUALIFIED"})
+    monkeypatch.setattr(switch.time,"monotonic",iter((100.0,200.0)).__next__)
+    def api(method,payload=None):
+        calls.append((method,payload))
+        if method=="GET":
+            return before if len([c for c in calls if c[0]=="GET"])==1 else after
+        return {"status":200}
+    monkeypatch.setattr(switch,"api_call",api)
+    result=switch.guarded_recover()
+    assert result["standing"]=="NATIVE_SWITCH_FAILED"
+    assert result["rollback"]=="REQUESTED"
+    assert [c[1] for c in calls if c[0]=="PUT"]==[
+        {"provider":{"server_selection":{"countries":["Mexico"]}}},
+        {"provider":{"server_selection":{"countries":["North Macedonia"]}}},
+    ]
