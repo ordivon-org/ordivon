@@ -22,6 +22,13 @@ def test_snapshot_requires_active_wireguard_surfshark_and_bounded_countries():
     model={"type":"wireguard","provider":{"name":"surfshark",
       "server_selection":{"countries":["Japan","Croatia"],"regions":[],"cities":[],"hostnames":[]}}}
     assert switch.selected_snapshot(model,{"Japan","Croatia"})["countries"]==["Japan","Croatia"]
+    # Physical upstream authenticated GET normalizes all configured names.
+    lower={**model,"provider":{**model["provider"],"server_selection":{
+      **model["provider"]["server_selection"],"countries":["japan","croatia"]}}}
+    assert switch.selected_snapshot(lower,{"Japan","Croatia"})["countries"]==["Japan","Croatia"]
+    mixed={**model,"provider":{**model["provider"],"server_selection":{
+      **model["provider"]["server_selection"],"countries":["JaPaN","croatia"]}}}
+    assert switch.selected_snapshot(mixed,{"Japan","Croatia"})["countries"]==["Japan","Croatia"]
     variants=[
       ({"type":"openvpn"},"different_vpn"),
       ({"provider":{"name":"other"}},"provider"),
@@ -157,3 +164,20 @@ def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
         {"provider":{"server_selection":{"countries":["Mexico"]}}},
         {"provider":{"server_selection":{"countries":["North Macedonia"]}}},
     ]
+
+
+def test_recover_benign_policy_hold_is_process_success_but_auth_unknown_is_failure(monkeypatch,capsys,tmp_path):
+    # Non-root GitHub CI must never open the production /run lock path.
+    monkeypatch.setattr(switch,"LOCK",tmp_path/"native-recover.lock")
+    monkeypatch.setattr(sys,"argv",["native_switch.py","--recover"])
+    monkeypatch.setattr(switch,"guarded_recover",
+      lambda:{"standing":"HOLD_WORKING_ACTIVE","effectAttempted":False})
+    assert switch.main()==0
+    assert "HOLD_WORKING_ACTIVE" in capsys.readouterr().out
+    monkeypatch.setattr(switch,"guarded_recover",
+      lambda:{"standing":"HOLD_NATIVE_API_NOT_READY","effectAttempted":False})
+    assert switch.main()==1
+    assert "HOLD_NATIVE_API_NOT_READY" in capsys.readouterr().out
+    monkeypatch.setattr(switch,"guarded_recover",
+      lambda:{"standing":"NATIVE_SWITCH_FAILED","effectAttempted":True})
+    assert switch.main()==1
