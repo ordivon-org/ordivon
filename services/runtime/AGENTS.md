@@ -54,3 +54,59 @@ Verification is **Formal-first, not test-count-first**. Use the existing Runtime
 Delete or consolidate a conventional test only when an actually executed proof covers its exact property and the relevant implementation refinement is established. Keep the single opt-in `pg_vertical` native systemd/PG test for cancellation, terminal evidence, capacity release and real deployment behavior; neither Kani nor TLC can prove Linux cgroup behavior. Never mark unrun checks PASS, skip formal counterexamples, or invent a new verification DSL. See `formal/README.md` for the traceability contract.
 
 Run the smallest checks that can invalidate the changed boundary. CI is the machine-owned default verification contract.
+
+
+## Evidence-first verification admission (mandatory for Agent work)
+
+**The default is REUSE an applicable existing result, not repeat a check.**
+Runtime serves Agent/Harness execution, not downstream domain judgment.
+Before starting a test, model check, history replay, hash audit, or native
+canary, name the **one new consumer decision** that depends on its result.
+Do not run a test simply because an earlier answer was UNKNOWN or because
+another Agent cannot recall the previous answer.
+
+For each decision, first read the **existing** authorities, without
+starting a Runtime Job merely to read a file:
+
+1. Claim/invariant and actual consumer; its exact scope and failure model.
+2. Previous source revision and existing proof/test/CI receipt with its
+   executable verifier identity and PASS/FAIL/UNKNOWN standing.
+3. Current exact Git SourceCut and changed input frontier. Reuse the
+   repository's `tools/repo/convergence_plan.py`,
+   `tools/repo/source_history_legos.py`, existing LEGO graph,
+   and `services/runtime/scripts/verify_formal_trace.py`; do **not**
+   create a second graph, proof registry, or test scheduler.
+4. Qualified non-Git inputs: toolchain and lockfiles, model assumptions,
+   relevant environment, caller/provider identity and actual consumers.
+   Installed/physical state requires its existing **current** owner receipt.
+5. Decision: `EXACT_CUT_ACCEPTED`, `SCOPED_SOURCE_UNCHANGED`,
+   `IMPACTED_RECHECK`, `UNKNOWN_DEPENDENCY`, or `NOT_RELEVANT`.
+   `EXACT_CUT_ACCEPTED` requires a real successful original receipt for
+   the same verifier and qualified scope; it is never derived from a graph
+   with `proofReuseAdmissible=false`.
+   `SCOPED_SOURCE_UNCHANGED` is **only source-level**, never a promotion
+   to semantic, deployed or physical PASS. `UNKNOWN_DEPENDENCY` asks
+   for the specific missing edge; it is **not** a blanket re-execute order.
+
+Run only an **impacted and material** original Owner verification task.
+A finished official GitHub CI check at an exact candidate commit need not
+be repeated in another Workspace at the same cut unless its executor
+environment/consumer obligation differs. For unchanged proofs, report
+the earlier receipt and the exact qualification boundary, then continue
+the Agent's productive task. Re-running a successful TLA+ counterexample,
+replay/backup audit, or whole-Owner suite without a newly changed premise
+does not produce new value.
+
+The current verifier selectors are intentionally conservative: changes to
+the root `mise.toml` fan out to all verification Owners. Treat such
+a case as a **selection-granularity debt**, not proof that every Owner's
+behavior changed. First move natural Owner task wiring to its own scope
+or establish a closed task input/output graph (Nx/Bazel style) with the
+existing CI maintainers; do not silently skip required protected checks.
+
+**Stop rule:** once the consumer question is answered by currently
+qualified existing evidence, do not initiate another verification cycle.
+A novel relevant delta, stale/failed receipt, changed assumption, or real
+new consumer may reopen the question. Report `SOURCE`,
+`MODEL`, `CODE_REFINED`, `INSTALLED`,
+and `PHYSICAL` independently.

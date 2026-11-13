@@ -73,6 +73,56 @@ For normal operator work, identify the endpoint and actual installed backend, in
 
 For code changes, use `cargo fmt`, `cargo check`, focused Rust tests, the repository's physical PG qualification tasks, and standard CI. The 2026-11-07 PG module extraction compiled and passed 7 explicitly enabled native PG/MCP/Runner integration tests; those tests are Linux-only and do not qualify a Windows backend.
 
+## Verification-validity LEGO: make existing evidence reusable
+
+The hardest missing **Agent consumer** seam is not another Workspace GC
+or model checker: it is the join between *a claim already verified*,
+*the exact assumptions/readset under which it was verified*,
+*a new Git/installed/environment delta*, and *the consumer decision*.
+Current project truth boundaries make this a partial capability:
+
+| Existing native capability | What is established | What it does not establish |
+| --- | --- | --- |
+| `tools/repo/source_history_legos.py` | Exact immutable Git membership/value delta | Model/code equivalence or dynamic readset |
+| `tools/repo/convergence_plan.py` and `affected_owners.py` | Current policy-selected verification Owner tasks | Whether a historical proof is still valid |
+| `tools/repo/check_architecture_docs.py` | Declared LEGO source/edge impact | Complete actual Agent/Runtime consumer graph |
+| `scripts/verify_formal_trace.py` | Positive Rust formal-test source edges and task impact | Closed compiler/runtime inputs; proof reuse remains false |
+| Harness `scripts/check_evidence.py` | Revision/dependency-scoped evidence currentness for qualifying `verified` entries | Runtime installed effects or unregistered claims |
+| GitHub CI and Runtime receipts | Exact commit test PASS and observed provider effect | Automatic transfer across revisions or environments |
+
+**Observed baseline (2026-11-14):** Harness evidence index contained
+94 `historical` records and **zero** records with
+`status=verified`. The selector treated a changed root
+`mise.toml` as `CROSS_CUTTING`,
+selecting 21 Owners for the inspected PR. These are empirical blockers,
+not authorizations to promote history to current proof.
+
+The target composition is:
+`Claim/Consumer -> existing evidence + SourceCut + assumption/readset ->
+delta closure -> impact verdict -> reuse qualified receipt OR run the
+smallest actually affected native task -> bind new receipt`.
+Use the existing CI/Artifact/Host/Git stores. A second Evidence DB,
+global Verifier service or repeated replay mechanism is not required.
+
+Only `EXACT_CUT_ACCEPTED` may inherit an existing qualified PASS
+at its specific cut and environment. `SCOPED_SOURCE_UNCHANGED`
+preserves source-only equality while all non-Git dimensions retain their
+old independent standing. `IMPACTED_RECHECK` selects the
+original affected test; `UNKNOWN_DEPENDENCY` identifies a
+missing edge and requires targeted consumer investigation, **not**
+automatic whole-system retesting. `NOT_RELEVANT` returns to
+the Agent's actual productive work.
+
+Thought LEGOs: assumption-guarantee compositional contracts (discharge
+premises across modules), incremental build action inputs (Bazel/Nx),
+typed evidence currentness, and value-of-information (stop checking
+when the expected decision delta is zero). Logic LEGOs: claim identity,
+dependency closure, change propagation, original receipt qualification,
+consumer admission, and selective execution. Capability LEGOs: existing
+Git SourceCut, Owner graph, Harness evidence checker, CI status, original
+Runtime formal toolchain, PG Job/Artifact receipt.
+See `services/runtime/AGENTS.md` for the operational rule.
+
 ## Agent usage
 
 1. Discover node capabilities before choosing commands; never guess permissions or backend by the endpoint name.
