@@ -947,6 +947,7 @@ dependencies = [
 name = "ordivon-harness-loop"
 version = "0.1.0"
 dependencies = [
+ "jsonschema",
  "ordivon-harness-core",
  "ordivon-harness-pg",
  "postgres",

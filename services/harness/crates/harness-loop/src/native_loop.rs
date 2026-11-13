@@ -1,12 +1,14 @@
 //! Bounded Rust Agent decision loop with explicit durable-admission boundaries.
 //! A trait is an owner port, not an old Python adapter or a substitute for PG.
 use crate::{
+    pg_domain_read::ObservedNoToolRun,
+    tool_arguments::validate_granted_tool_arguments,
     tool_call::{
         inspect_model_tool_call, preflight_domain_model_call, ModelToolCall, ModelToolCallStanding,
     },
     tool_surface::DomainToolSurface,
 };
-use ordivon_harness_core::CanonicalDocument;
+use ordivon_harness_core::{digest_bytes, CanonicalDocument};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
@@ -25,12 +27,29 @@ pub struct ToolObservation {
     pub call_id: String,
     pub name: String,
     pub owner_receipt_digest: String,
+    /// Provider-visible projection released by the authoritative Journal.
+    /// This is model data, not a Tool/Provider instruction or completion proof.
+    pub model_visible_content: Option<String>,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EffectResult {
     Observed { owner_receipt_digest: String },
     Unknown,
 }
+
+/// A successful physical owner receipt never implies permission to send raw
+/// Tool output to a model. Only the journal's privacy/evidence release port
+/// can select a bounded, digest-bound Provider-visible projection.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModelVisibleContent {
+    Redacted,
+    Released {
+        text: String,
+        content_digest: String,
+    },
+}
+
+const MAX_MODEL_VISIBLE_BYTES: usize = 65_536;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunResult {
     CompletionProposal(String),
@@ -41,8 +60,10 @@ pub enum RunResult {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunFault {
     InvalidBudget,
+    InactiveRun,
     InvalidProviderAction,
     InvalidModelTool,
+    InvalidToolArguments,
     DuplicateCallId,
     ToolNotGranted,
     TooManyToolCalls,
@@ -89,7 +110,7 @@ pub trait DurableJournal {
         turn: u32,
         grant: &AdmittedTool,
         result: &EffectResult,
-    ) -> Result<(), String>;
+    ) -> Result<ModelVisibleContent, String>;
     fn record_completion(&mut self, turn: u32, proposal: &str) -> Result<(), String>;
     fn record_pause(&mut self, turn: u32) -> Result<(), String>;
 }
@@ -103,8 +124,8 @@ pub struct NativeAgentLoop<'a, P: Provider, J: DurableJournal, E: EffectReceiver
     provider: &'a mut P,
     journal: &'a mut J,
     receiver: &'a mut E,
-    catalog: &'a CanonicalDocument,
-    surface: &'a DomainToolSurface,
+    catalog: Option<&'a CanonicalDocument>,
+    surface: Option<&'a DomainToolSurface>,
     max_turns: u32,
     max_tool_calls: u32,
 }
@@ -128,10 +149,40 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
             provider,
             journal,
             receiver,
-            catalog,
-            surface,
+            catalog: Some(catalog),
+            surface: Some(surface),
             max_turns,
             max_tool_calls,
+        })
+    }
+
+    /// Ordinary Provider-only Run: caller must supply an A-verified PG
+    /// no-Tool Contract projection. The result is a source identity check,
+    /// not a live lease or dispatch grant. DurableJournal must recheck live
+    /// Run authority before permitting any Provider request.
+    pub fn new_provider_only(
+        provider: &'a mut P,
+        journal: &'a mut J,
+        receiver: &'a mut E,
+        verified: &ObservedNoToolRun,
+        max_turns: u32,
+    ) -> Result<Self, RunFault> {
+        if max_turns == 0 {
+            return Err(RunFault::InvalidBudget);
+        }
+        if !matches!(verified.status(), "created" | "active")
+            || verified.model_visible_tool_count() != 0
+        {
+            return Err(RunFault::InactiveRun);
+        }
+        Ok(Self {
+            provider,
+            journal,
+            receiver,
+            catalog: None,
+            surface: None,
+            max_turns,
+            max_tool_calls: 0,
         })
     }
 
@@ -172,6 +223,11 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
                     if docs.is_empty() {
                         return Err(RunFault::InvalidProviderAction);
                     }
+                    let (Some(surface), Some(catalog)) = (self.surface, self.catalog) else {
+                        // A source-authenticated no-Tool Run must reject even
+                        // a model-hallucinated Tool call with zero physical effect.
+                        return Err(RunFault::ToolNotGranted);
+                    };
                     let n = u32::try_from(docs.len()).map_err(|_| RunFault::TooManyToolCalls)?;
                     if n > self.max_tool_calls.saturating_sub(total_calls) {
                         return Err(RunFault::TooManyToolCalls);
@@ -183,8 +239,8 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
                         let call =
                             inspect_model_tool_call(doc).map_err(|_| RunFault::InvalidModelTool)?;
                         match preflight_domain_model_call(
-                            self.surface,self.catalog,
-                            self.surface.catalog_digest(),self.surface.grant_digest(),
+                            surface,catalog,
+                            surface.catalog_digest(),surface.grant_digest(),
                             &call,&batch_seen
                         ).map_err(|_|RunFault::ToolNotGranted)?{
                             ModelToolCallStanding::DuplicateCallIdentity=>return Err(RunFault::DuplicateCallId),
@@ -192,6 +248,10 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
                             ModelToolCallStanding::NotOnVisibleGrantedToolSurface=>return Err(RunFault::ToolNotGranted),
                             ModelToolCallStanding::NeedsAuthenticatedContractAndDurableAdmission=>{}
                         }
+                        // Enforce frozen granted Tool parameter schema before any
+                        // batch effect; a model-proposed name is not authority.
+                        validate_granted_tool_arguments(surface, catalog, &call, doc)
+                            .map_err(|_| RunFault::InvalidToolArguments)?;
                         batch_seen.insert(call.tool_call_id().to_owned());
                         accepted.push(call);
                     }
@@ -210,26 +270,57 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
                             ));
                         }
                         let effect = self.receiver.execute(&grant, doc);
-                        self.journal
+                        if let EffectResult::Observed {
+                            owner_receipt_digest,
+                        } = &effect
+                        {
+                            if !valid_digest(owner_receipt_digest) {
+                                return Err(RunFault::Journal(
+                                    "unqualified owner receipt digest".into(),
+                                ));
+                            }
+                        }
+                        let released = self
+                            .journal
                             .record_effect(turn, &grant, &effect)
                             .map_err(RunFault::Journal)?;
                         match effect {
                             EffectResult::Unknown => {
+                                if released != ModelVisibleContent::Redacted {
+                                    return Err(RunFault::Journal(
+                                        "UNKNOWN effect must never release model content".into(),
+                                    ));
+                                }
                                 self.journal.record_pause(turn).map_err(RunFault::Journal)?;
                                 return Ok(RunResult::PausedUnknown);
                             }
                             EffectResult::Observed {
                                 owner_receipt_digest,
                             } => {
-                                if !valid_digest(&owner_receipt_digest) {
-                                    return Err(RunFault::Journal(
-                                        "unqualified owner receipt digest".into(),
-                                    ));
-                                }
+                                let model_visible_content = match released {
+                                    ModelVisibleContent::Redacted => None,
+                                    ModelVisibleContent::Released {
+                                        text,
+                                        content_digest,
+                                    } => {
+                                        // Owner-approved content is still untrusted model data.
+                                        // Verify its exact bytes before the NEXT Provider turn.
+                                        if text.is_empty()
+                                            || text.len() > MAX_MODEL_VISIBLE_BYTES
+                                            || digest_bytes(text.as_bytes()) != content_digest
+                                        {
+                                            return Err(RunFault::Journal(
+                                                "unqualified model-visible Tool projection".into(),
+                                            ));
+                                        }
+                                        Some(text)
+                                    }
+                                };
                                 observations.push(ToolObservation {
                                     call_id: call.tool_call_id().to_owned(),
                                     name: call.name().to_owned(),
                                     owner_receipt_digest,
+                                    model_visible_content,
                                 });
                             }
                         }
@@ -267,6 +358,7 @@ mod tests {
     struct Journal {
         steps: Vec<&'static str>,
         deny: &'static str,
+        release: Option<ModelVisibleContent>,
     }
     impl DurableJournal for Journal {
         fn prepare_provider(&mut self, _: u32) -> Result<(), String> {
@@ -293,9 +385,12 @@ mod tests {
             _: u32,
             _: &AdmittedTool,
             _: &EffectResult,
-        ) -> Result<(), String> {
+        ) -> Result<ModelVisibleContent, String> {
             self.steps.push("owner-recorded");
-            Ok(())
+            Ok(self
+                .release
+                .clone()
+                .unwrap_or(ModelVisibleContent::Redacted))
         }
         fn record_completion(&mut self, _: u32, _: &str) -> Result<(), String> {
             self.steps.push("proposal-recorded");
@@ -566,5 +661,130 @@ mod tests {
             .unwrap(),
             RunResult::NeedsInput
         );
+    }
+    #[test]
+    fn entire_batch_schema_preflight_blocks_all_effects_even_if_first_call_valid() {
+        let catalog = loads_strict(
+            r#"{
+            "schemaVersion":1,"kind":"ordivon.domain-tool-catalog",
+            "domainId":"domain:validation","revision":"r1","tools":[
+            {"name":"read","description":"Read","inputSchema":{
+                "type":"object","properties":{"count":{"type":"integer","minimum":1}},
+                "required":["count"],"additionalProperties":false
+            }}]}"#,
+        )
+        .unwrap();
+        let surface =
+            crate::tool_surface::project_domain_tool_surface(&catalog, &["read"]).unwrap();
+        let mut provider = Script(VecDeque::from([ProviderResult::Delivered(
+            ModelDecision::CallTools(vec![
+                loads_strict(
+                    r#"{"toolCallId":"call:first","name":"read","arguments":{"count":1}}"#,
+                )
+                .unwrap(),
+                loads_strict(
+                    r#"{"toolCallId":"call:second","name":"read","arguments":{"count":"bad"}}"#,
+                )
+                .unwrap(),
+            ]),
+        )]));
+        let mut journal = Journal::default();
+        let mut receiver = Receiver::default();
+        assert_eq!(
+            NativeAgentLoop::new(
+                &mut provider,
+                &mut journal,
+                &mut receiver,
+                &catalog,
+                &surface,
+                2,
+                2
+            )
+            .unwrap()
+            .run(),
+            Err(RunFault::InvalidToolArguments)
+        );
+        assert_eq!(receiver.calls, 0);
+        assert!(!journal.steps.contains(&"tool-admitted"));
+    }
+    #[test]
+    fn forged_or_oversized_provider_visible_tool_content_is_never_sent_to_model() {
+        let (catalog, grant) = fixtures();
+        for release in [
+            ModelVisibleContent::Released {
+                text: "Private content".into(),
+                content_digest: digest_bytes(b"unrelated"),
+            },
+            ModelVisibleContent::Released {
+                text: "z".repeat(MAX_MODEL_VISIBLE_BYTES + 1),
+                content_digest: digest_bytes("z".repeat(MAX_MODEL_VISIBLE_BYTES + 1).as_bytes()),
+            },
+        ] {
+            let mut provider = Script(VecDeque::from([
+                ProviderResult::Delivered(ModelDecision::CallTools(vec![call("call:1", "read")])),
+                ProviderResult::Delivered(ModelDecision::ProposeCompletion(
+                    "never observed".into(),
+                )),
+            ]));
+            let mut journal = Journal {
+                release: Some(release),
+                ..Default::default()
+            };
+            let mut receiver = Receiver::default();
+            assert_eq!(
+                NativeAgentLoop::new(
+                    &mut provider,
+                    &mut journal,
+                    &mut receiver,
+                    &catalog,
+                    &grant,
+                    3,
+                    1
+                )
+                .unwrap()
+                .run(),
+                Err(RunFault::Journal(
+                    "unqualified model-visible Tool projection".into()
+                ))
+            );
+            assert_eq!(receiver.calls, 1);
+            assert!(!journal.steps.contains(&"proposal-recorded"));
+        }
+    }
+
+    #[test]
+    fn unknown_effect_never_releases_any_provider_visible_content() {
+        let (catalog, grant) = fixtures();
+        let mut provider = Script(VecDeque::from([ProviderResult::Delivered(
+            ModelDecision::CallTools(vec![call("call:1", "read")]),
+        )]));
+        let mut journal = Journal {
+            release: Some(ModelVisibleContent::Released {
+                text: "fake knowledge".into(),
+                content_digest: digest_bytes(b"fake knowledge"),
+            }),
+            ..Default::default()
+        };
+        let mut receiver = Receiver {
+            unknown: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            NativeAgentLoop::new(
+                &mut provider,
+                &mut journal,
+                &mut receiver,
+                &catalog,
+                &grant,
+                2,
+                1
+            )
+            .unwrap()
+            .run(),
+            Err(RunFault::Journal(
+                "UNKNOWN effect must never release model content".into()
+            ))
+        );
+        assert_eq!(receiver.calls, 1);
     }
 }

@@ -121,3 +121,10 @@ if [[ "$(printenv HARNESS_B_TYPED_TOOL_HEAD || true)" == 1 ]]; then
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run     --project services/harness --offline --locked python     services/harness/crates/harness-loop/tests/pg_tool_head_python_store.py
   cargo test --manifest-path services/harness/Cargo.toml --locked --offline     -p ordivon-harness-loop --test pg_tool_head     -- --ignored --nocapture
 fi
+
+# Provider-only path: real Python PG18 NoTool Contract -> Rust HTTP -> native Loop.
+# Uses the same disposable PostgreSQL cluster; no production DSN.
+if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-loop --test native_pg_no_tool_http -- --ignored --nocapture
+fi

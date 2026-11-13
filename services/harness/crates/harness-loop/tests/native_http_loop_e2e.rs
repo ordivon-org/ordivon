@@ -4,8 +4,8 @@
 use ordivon_harness_core::{digest_bytes, loads_strict, CanonicalDocument};
 use ordivon_harness_loop::{
     native_loop::{
-        AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision, NativeAgentLoop,
-        RunResult,
+        AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision,
+        ModelVisibleContent, NativeAgentLoop, RunResult,
     },
     native_provider_http::HttpModelProvider,
     tool_call::ModelToolCall,
@@ -34,9 +34,18 @@ impl DurableJournal for TestJournal {
         self.0.push("tool-admitted");
         Ok(AdmittedTool::after_committed_intent(call))
     }
-    fn record_effect(&mut self, _: u32, _: &AdmittedTool, _: &EffectResult) -> Result<(), String> {
+    fn record_effect(
+        &mut self,
+        _: u32,
+        _: &AdmittedTool,
+        _: &EffectResult,
+    ) -> Result<ModelVisibleContent, String> {
         self.0.push("owner-effect-recorded");
-        Ok(())
+        let text = "Search result: answer is 42".to_owned();
+        Ok(ModelVisibleContent::Released {
+            content_digest: digest_bytes(text.as_bytes()),
+            text,
+        })
     }
     fn record_completion(&mut self, _: u32, _: &str) -> Result<(), String> {
         self.0.push("completion-proposed");
@@ -115,7 +124,9 @@ fn native_http_loop_full_two_turn_owner_receipt() {
                     .any(|m| m.get("role") == Some(&json!("tool"))
                         && m.get("content")
                             .and_then(Value::as_str)
-                            .is_some_and(|s| s.contains("sha256:"))));
+                            .is_some_and(|s| s.contains("sha256:")
+                                && s.contains("Search result: answer is 42")
+                                && s.contains("Untrusted Tool output"))));
                 assert!(messages
                     .iter()
                     .any(|m| m.get("role") == Some(&json!("assistant"))
