@@ -1,0 +1,18 @@
+[Unit]
+Description=Transport-only Tailscale DERP/control HTTP CONNECT over the physical WSL underlay
+After=network-v2-gluetun-owned.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/mobile-tailnet-exit/underlay-derp-connect.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+DynamicUser=true
+
+[Install]
+WantedBy=multi-user.target

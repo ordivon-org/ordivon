@@ -22,6 +22,7 @@ NATIVE_ENV = Path("/etc/network-v2/gluetun/serialized-native.env")
 SECRET = "network-v2-gluetun-surfshark-wgkey"
 CONTAINER = "network-v2-gluetun-owned-r1"
 SELECTOR_POLICY = Path(__file__).resolve().parent / "config/exit-selector.json"
+ALLOW_POLICY = Path(__file__).resolve().parent / "config/exit-allowlist.json"
 # This value is also asserted against the natural Podman Quadlet Owner below.
 LOADED_WG_SECRETFILE = "/run/secrets/surfshark-wgkey"
 
@@ -127,8 +128,70 @@ def parse_selector_policy(raw: str) -> dict[str, list[str]]:
     return value
 
 
-def read_selector_policy(path: Path = SELECTOR_POLICY) -> dict[str, list[str]]:
-    return parse_selector_policy(path.read_text(encoding="utf-8"))
+def _strict_json_mapping(raw: str, label: str) -> dict[str, object]:
+    def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        value: dict[str, object] = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError(f"Duplicate {label} key: {key}")
+            value[key] = item
+        return value
+
+    value = json.loads(raw, object_pairs_hook=reject_duplicate_keys)
+    if not isinstance(value, dict):
+        raise ValueError(f"Invalid {label} mapping")
+    return value
+
+
+def parse_allowed_policy(raw: str) -> dict[str, list[str]]:
+    """Geographic permission is NOT an endpoint's reachability or quality."""
+    value = _strict_json_mapping(raw, "Gluetun allowed-country")
+    if set(value) != {"allowedCountries", "excludedCountries"}:
+        raise ValueError("Gluetun allowed-country policy fields differ")
+    normalized = parse_selector_policy(json.dumps({
+        "regions": [],
+        "selectedCountries": value["allowedCountries"],
+        "excludedCountries": value["excludedCountries"],
+    }))
+    return {
+        "allowedCountries": normalized["selectedCountries"],
+        "excludedCountries": normalized["excludedCountries"],
+    }
+
+
+def parse_candidate_policy(
+    raw: str, allowed: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    """Only positive catalog filters; never confuse candidate with qualified."""
+    value = _strict_json_mapping(raw, "Gluetun candidate")
+    if not {"regions", "selectedCountries"} <= set(value) or (
+        set(value) - {"regions", "selectedCountries", "selectionMode"}
+    ):
+        raise ValueError("Gluetun candidate policy fields differ")
+    names = value["selectedCountries"]
+    if names == "allAllowed":
+        names = allowed["allowedCountries"]
+    if not isinstance(names, list) or not names:
+        raise ValueError("VPN candidate pool cannot be empty")
+    if any(not isinstance(name, str) for name in names):
+        raise ValueError("VPN candidate countries must be strings")
+    if not set(names) <= set(allowed["allowedCountries"]):
+        raise ValueError("VPN candidate is not in the allowed countries")
+    composed = {
+        "regions": value["regions"],
+        "selectedCountries": names,
+        "excludedCountries": allowed["excludedCountries"],
+    }
+    if "selectionMode" in value:
+        composed["selectionMode"] = value["selectionMode"]
+    return parse_selector_policy(json.dumps(composed))
+
+
+def read_selector_policy(
+    path: Path = SELECTOR_POLICY, allow_path: Path = ALLOW_POLICY,
+) -> dict[str, list[str]]:
+    allowed = parse_allowed_policy(allow_path.read_text(encoding="utf-8"))
+    return parse_candidate_policy(path.read_text(encoding="utf-8"), allowed)
 
 
 def render_native_selector(

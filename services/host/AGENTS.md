@@ -26,3 +26,47 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 Use `work.get → attention.reentry → topic.resume → owner-native reference readback → work.snapshot.commit → cursor acknowledgment` as needed. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.
 
 For a change or cleanup, inspect the *exact real consumers*, PostgreSQL dependencies, active Work/Topic/Subscription references, source cut and installed release. Do not delete business rows because they are old or appear redundant. Prefer an existing PostgreSQL/MCP/Alembic/Pydantic capability before implementing a custom one; add no duplicate registry or event bus. Keep code reshaping separate from contract changes, and publish verification outcomes accurately.
+
+## HTTP Host workload identity (source boundary)
+
+**Human:** Host's native Streamable HTTP endpoint now uses the official
+MCP/Starlette bearer middleware. Configure
+\`ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE\` as a private absolute credential file;
+configure Gateway's \`ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE\` with the
+same credential bytes before activating the candidate. A systemd
+\`LoadCredentialEncrypted\` source is preferred over copying a secret into a
+repo or environment. The HTTP listener fails before bind when the Host
+credential is absent or invalid. Never treat a loopback IP as authentication.
+Run the real SDK consumer \`tests/test_http_identity.py\`, followed by
+\`mise run host:verify\` and Gateway's native consumer tests. STDIO is a
+different operator-local trust boundary and remains unchanged.
+
+**Agent:** Authentication proves only the Gateway workload token; it
+does not establish a human/agent Principal, a Host Actor delegation, or
+resource-level policy authorization. Host remains the natural Owner of
+Work/Space/Topic/Message state. Inspect Gateway upstream service credential
+configuration, the actual installed Host HTTP app, and live rejected/accepted
+request outcomes before promoting \`HTTP_AUTHENTICATED\`. Until a real
+Security decision is bound to Host object/actor/effect, leave
+\`HOST_OBJECT_AUTHORIZATION=UNKNOWN\`. Do not advertise a fictitious OAuth
+issuer for the operator-local service token; for real federated OAuth use
+the upstream SDK's \`AuthSettings\` and IdP-backed verifier.
+
+## Host workload-credential FD continuity
+
+**Human:** the Host HTTP bearer credential is acquired from the service-private
+operator/systemd credential directory. Token verification re-reads the exact
+opened file descriptor per request with POSIX no-follow and nonblocking flags;
+regular-file mode, size and same-inode metadata continuity must hold before
+the native MCP/Starlette bearer middleware authenticates the Gateway workload.
+An unexpected FIFO or in-place mutation fails closed. This is M2M transport
+authentication only, never Human/Agent identity or object-level Actor/Grant
+authorization. The trusted credential directory is configured by the OS.
+
+**Agent:** exercise test_http_identity.py with the actual TokenVerifier and
+native Host HTTP app, then run host:verify. Rejection of substituted FIFO,
+mutable credential bytes and wrong service bearer must not be downgraded by
+an outer Gateway ALLOW. Distinguish Linux verified source behavior, unrun
+Windows source behavior (Host HTTP remains POSIX only), installed service
+credentials and authoritative Actor resource policy. Do not leak credential
+values into evidence.

@@ -125,7 +125,7 @@ def _fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, owner_error=Fa
             "runtime.windows": OwnerEndpoint(
                 "http://windows.test/mcp", bearer_token_file=str(token)
             ),
-            "host": OwnerEndpoint("http://host.test/mcp"),
+            "host": OwnerEndpoint("http://host.test/mcp", bearer_token_file=str(token)),
         }
     )
     return caller, events

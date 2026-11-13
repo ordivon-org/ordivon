@@ -192,9 +192,11 @@ def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]
             rows = connection.execute(query).fetchall()
     return {row[0]: (row[1], row[2], row[3]) for row in rows}
 
-def _unintegrated_head(repo: Path, head: str) -> bool | None:
-    """0 is integrated, 1 is unintegrated, 128/timeout is UNKNOWN, not FALSE."""
-    observed = _git(repo, "merge-base", "--is-ancestor", head, "origin/main")
+def _unintegrated_head(
+    repo: Path, head: str, integration_ref: str = "refs/remotes/origin/main"
+) -> bool | None:
+    """Only an explicit canonical Git ref can prove HEAD integration."""
+    observed = _git(repo, "merge-base", "--is-ancestor", head, integration_ref)
     if observed.returncode == 0:
         return False
     if observed.returncode == 1:
@@ -252,6 +254,16 @@ def _store_receipt(root: Path, data: dict) -> str:
 def run(args: argparse.Namespace) -> dict:
     env = load_environment_file(args.env_file)
     repo, root = args.source_repo.resolve(), args.workspace_root.resolve()
+    integration_ref = args.integration_ref
+    if integration_ref == "refs/heads/main":
+        # Local-only Research repositories have no origin/main; never trust
+        # local main as a deletion boundary for a configured remote.
+        remotes = _git(repo, "remote")
+        if remotes.returncode or remotes.stdout.strip():
+            raise ValueError("local main GC requires a repository without remotes")
+    resolved = _git(repo, "rev-parse", "--verify", integration_ref)
+    if resolved.returncode:
+        raise ValueError("configured GC integration ref is unavailable")
     if root != WORKSPACE_ROOT:
         raise ValueError("PG Runtime must own the exact Workspace root")
     if not (repo / ".git").exists() and not (repo / ".git").is_file():
@@ -306,7 +318,7 @@ def run(args: argparse.Namespace) -> dict:
         last_ms,resolution,nonterminal = info
         if nonterminal or resolution != "succeeded" or last_ms > now - retention_ms:
             skip("job_not_old_and_terminal_success");continue
-        unintegrated = _unintegrated_head(repo, head)
+        unintegrated = _unintegrated_head(repo, head, integration_ref)
         if unintegrated is None:
             skip("git_membership_unknown");continue
         if unintegrated and not unintegrated_allowed:
@@ -354,7 +366,7 @@ def run(args: argparse.Namespace) -> dict:
             if not isinstance(digest,str) or not digest.startswith("sha256:"):
                 skip("missing_source_digest");continue
             # Recheck Git and never force. Runtime checks held Jobs/dependents.
-            currently_unintegrated = _unintegrated_head(repo, head)
+            currently_unintegrated = _unintegrated_head(repo, head, integration_ref)
             if currently_unintegrated is None:
                 skip("git_membership_unknown");continue
             if currently_unintegrated and not unintegrated:
@@ -431,6 +443,12 @@ def main() -> int:
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file",required=True,type=Path)
     parser.add_argument("--source-repo",required=True,type=Path)
+    parser.add_argument(
+        "--integration-ref",
+        choices=("refs/remotes/origin/main", "refs/heads/main"),
+        default="refs/remotes/origin/main",
+        help="canonical Git main ref; local main only for repositories without remotes",
+    )
     parser.add_argument("--workspace-root",required=True,type=Path)
     parser.add_argument("--receipt-root",required=True,type=Path)
     parser.add_argument("--lock-file",required=True,type=Path)

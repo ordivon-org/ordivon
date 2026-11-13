@@ -42,6 +42,7 @@ def test_http_pool_auth_refreshes_rotated_owner_token(tmp_path: Path) -> None:
 
 def test_owner_rpc_uses_one_http_pool_for_concurrent_sessions_and_closes(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     """Each call negotiates its own MCP session; only HTTP sockets are shared."""
     created: list[object] = []
@@ -87,7 +88,12 @@ def test_owner_rpc_uses_one_http_pool_for_concurrent_sessions_and_closes(
     monkeypatch.setattr(upstream, "create_mcp_http_client", create_client)
     monkeypatch.setattr(upstream, "streamable_http_client", make_transport)
     monkeypatch.setattr(upstream, "Client", MCPClient)
-    caller = McpOwnerCaller({"host": OwnerEndpoint("http://owner.test/mcp")})
+    bearer = tmp_path / "host-bearer"
+    bearer.write_text("q" * 48, encoding="utf-8")
+    bearer.chmod(0o600)
+    caller = McpOwnerCaller(
+        {"host": OwnerEndpoint("http://owner.test/mcp", bearer_token_file=str(bearer))}
+    )
 
     async def verify() -> None:
         result = await asyncio.gather(
