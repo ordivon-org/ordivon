@@ -52,7 +52,7 @@ fn expect_string<'a>(
         .field(key)
         .and_then(CanonicalRef::as_str)
         .ok_or(ToolCallDecodeError::InvalidModelToolCall)?;
-    if !crate::python_text::valid_trimmed(value, max_bytes) {
+    if !crate::identity::valid_trimmed(value, max_bytes) {
         return Err(ToolCallDecodeError::InvalidModelToolCall);
     }
     Ok(value)

@@ -158,7 +158,7 @@ fn text(
     max_bytes: usize,
 ) -> Result<String, ProviderRecordError> {
     let value = value_text(document, key)?;
-    if !crate::python_text::valid_trimmed(&value, max_bytes)
+    if !crate::identity::valid_trimmed(&value, max_bytes)
         || prefix.is_some_and(|prefix| !value.starts_with(&format!("{prefix}:")))
     {
         return Err(ProviderRecordError::InvalidV4Record);

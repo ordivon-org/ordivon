@@ -1,7 +1,7 @@
 //! Source parity: Python DomainToolCatalog/_select/_granted_digest, using
 //! A's canonical bytes and B's existing selection logic without a new registry.
 use ordivon_harness_core::{loads_strict, CanonicalDocument};
-use ordivon_harness_loop_b_probe::tool_surface::{project_domain_tool_surface, ToolSurfaceError};
+use ordivon_harness_loop::tool_surface::{project_domain_tool_surface, ToolSurfaceError};
 use std::path::Path;
 use std::process::Command;
 

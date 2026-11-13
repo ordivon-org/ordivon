@@ -2,10 +2,8 @@
 //! Rust consumes identity-bearing evidence units; this test does not establish
 //! byte parity of the independent canonical codec or PG/Provider correctness.
 
-use ordivon_harness_loop_b_probe::evidence::{
-    evaluate_turn, EvidenceState, Observation, SearchUnit,
-};
-use ordivon_harness_loop_b_probe::{Gate, GateLimits, ProgressCounters};
+use ordivon_harness_loop::evidence::{evaluate_turn, EvidenceState, Observation, SearchUnit};
+use ordivon_harness_loop::{Gate, GateLimits, ProgressCounters};
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;

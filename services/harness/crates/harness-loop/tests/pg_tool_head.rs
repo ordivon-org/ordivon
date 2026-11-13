@@ -1,10 +1,8 @@
 //! One actual Python Tool Intent/Fence/Receipt CAS producer -> A PG18 verified
 //! readback -> B versioned Tool recovery semantics. No physical Runtime call.
 use ordivon_harness_core::loads_strict;
-use ordivon_harness_loop_b_probe::pg_tool_head::{
-    inspect_pg_tool_head, ToolHeadError, ToolHeadStanding,
-};
-use ordivon_harness_loop_b_probe::runtime_delivery::{
+use ordivon_harness_loop::pg_tool_head::{inspect_pg_tool_head, ToolHeadError, ToolHeadStanding};
+use ordivon_harness_loop::runtime_delivery::{
     interpret_qualified_runtime_observation, qualify_runtime_job_for_tool_head,
     RuntimeDeliveryDecision, RuntimeOwnerEvidenceError,
 };
@@ -184,7 +182,7 @@ fn python_pg_tool_source_intent_fence_receipt_and_unknown_are_distinct_from_disp
 #[ignore = "private A-owned PG18 + genuine Python owner request and fenced Intent"]
 fn python_pg_frozen_effect_request_and_fence_bound_byte_for_byte() {
     use ordivon_harness_core::{loads_strict, CanonicalDocument};
-    use ordivon_harness_loop_b_probe::owner_effect_handoff::{
+    use ordivon_harness_loop::owner_effect_handoff::{
         qualify_workspace_exec_owner_handoff, OwnerHandoffError,
     };
     let dsn = std::env::var("HARNESS_RUST_TEST_PG_DSN").unwrap();

@@ -2,7 +2,8 @@
 members = [
   "crates/harness-core",
   "crates/harness-pg",
-  "rust-migration/b-loop-probe",
+  "crates/harness-loop",
+  "crates/harness-cli",
 ]
 resolver = "2"
 

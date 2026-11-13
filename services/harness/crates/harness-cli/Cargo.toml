@@ -1,0 +1,17 @@
+[package]
+name = "ordivon-harness-cli"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+license = "Apache-2.0"
+publish = false
+description = "Native Rust command line for PostgreSQL Harness Run readback"
+
+[[bin]]
+name = "ordivon-harness"
+path = "src/main.rs"
+
+[dependencies]
+ordivon-harness-pg = { path = "../harness-pg" }
+postgres = "0.19.14"
+serde_json = "1"

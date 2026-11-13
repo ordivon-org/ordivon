@@ -77,7 +77,7 @@ impl DomainToolSurface {
 }
 
 fn valid_text(value: &str, max_bytes: usize, prefix: Option<&str>) -> bool {
-    crate::python_text::valid_trimmed(value, max_bytes)
+    crate::identity::valid_trimmed(value, max_bytes)
         && prefix.is_none_or(|prefix| value.starts_with(&format!("{prefix}:")))
 }
 

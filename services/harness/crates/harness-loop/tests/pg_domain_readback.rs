@@ -1,11 +1,11 @@
 //! Opt-in disposable PG18 test of A validated RunContract → B Tool Grant.
 //! No Tool execution and no production PG credentials are used.
 use ordivon_harness_core::{canonical_bytes, loads_strict, CanonicalDocument, CanonicalRef};
-use ordivon_harness_loop_b_probe::pg_domain_read::{
+use ordivon_harness_loop::pg_domain_read::{
     inspect_pg_domain_run, inspect_pg_no_tool_run, ExpectedModel, PgDomainInspectionError,
 };
-use ordivon_harness_loop_b_probe::tool_call::{inspect_model_tool_call, ModelToolCallStanding};
-use ordivon_harness_loop_b_probe::tool_surface::ToolSurfaceError;
+use ordivon_harness_loop::tool_call::{inspect_model_tool_call, ModelToolCallStanding};
+use ordivon_harness_loop::tool_surface::ToolSurfaceError;
 use ordivon_harness_pg::ReadError;
 use postgres::{Client, NoTls};
 use std::{collections::HashSet, fs};

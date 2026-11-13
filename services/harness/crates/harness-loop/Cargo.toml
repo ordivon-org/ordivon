@@ -1,6 +1,6 @@
 [package]
-name = "ordivon-harness-loop-b-probe"
-version = "0.0.0"
+name = "ordivon-harness-loop"
+version = "0.1.0"
 edition = "2021"
 publish = false
 
@@ -9,9 +9,9 @@ path = "src/lib.rs"
 
 [dependencies]
 # Reuse A's sealed canonical representation; no B-owned codec or Store.
-ordivon-harness-core = { path = "../../crates/harness-core" }
+ordivon-harness-core = { path = "../harness-core" }
 # Consume the only A-owned read-only PG Reader; no B-owned SQL or Writer.
-ordivon-harness-pg = { path = "../../crates/harness-pg" }
+ordivon-harness-pg = { path = "../harness-pg" }
 postgres = "0.19.14"
 
 serde = { version = "1", features = ["derive"] }

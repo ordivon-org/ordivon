@@ -83,19 +83,19 @@ fi
 # Opt-in only: no second PG bootstrap, Schema owner, writer, or Tool effect.
 if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
-    services/harness/rust-migration/b-loop-probe/tests/pg_domain_python_store.py
+    services/harness/crates/harness-loop/tests/pg_domain_python_store.py
   cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
-    -p ordivon-harness-loop-b-probe --test pg_domain_readback -- --ignored --nocapture
+    -p ordivon-harness-loop --test pg_domain_readback -- --ignored --nocapture
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
-    services/harness/rust-migration/b-loop-probe/tests/pg_provider_v4_python_store.py
+    services/harness/crates/harness-loop/tests/pg_provider_v4_python_store.py
   # The native Writer test uses the same PG source fixtures but requires
   # a separate test-authorized writer DSN; all Provider reads still use
   # rust_readonly. No physical Provider/Runtime requests are sent.
   HARNESS_RUST_TEST_PG_WRITER_DSN="$writer_dsn" \
     cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
-      -p ordivon-harness-loop-b-probe --test pg_provider_head -- --ignored --nocapture
+      -p ordivon-harness-loop --test pg_provider_head -- --ignored --nocapture
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
-    services/harness/rust-migration/b-loop-probe/tests/pg_provider_v4_python_store.py verify-native
+    services/harness/crates/harness-loop/tests/pg_provider_v4_python_store.py verify-native
 fi
 
 # Independent optional Writer semantic gate falsification, not production.
@@ -118,6 +118,6 @@ if [[ "$(printenv HARNESS_B_TYPED_TOOL_HEAD || true)" == 1 ]]; then
     echo "Typed Tool consumer requires B's existing PG source fixture" >&2
     exit 2
   fi
-  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run     --project services/harness --offline --locked python     services/harness/rust-migration/b-loop-probe/tests/pg_tool_head_python_store.py
-  cargo test --manifest-path services/harness/Cargo.toml --locked --offline     -p ordivon-harness-loop-b-probe --test pg_tool_head     -- --ignored --nocapture
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run     --project services/harness --offline --locked python     services/harness/crates/harness-loop/tests/pg_tool_head_python_store.py
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline     -p ordivon-harness-loop --test pg_tool_head     -- --ignored --nocapture
 fi
