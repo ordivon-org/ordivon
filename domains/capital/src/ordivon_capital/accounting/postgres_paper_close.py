@@ -100,6 +100,7 @@ class PostgresPaperClose:
         mark_snapshot: AdmittedEtfEodSnapshot | None = None,
         calendar_bytes: bytes | None = None,
         calendar_sha256: str | None = None,
+        simulation_evidence: dict | None = None,
     ) -> dict:
         """Close using inline fixture marks or the trusted output of Markets admission."""
         if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", account_key) is None:
@@ -129,6 +130,27 @@ class PostgresPaperClose:
                 "instrument_ids": sorted({mark.instrument_id for mark in mark_snapshot.marks}),
                 "supersedes_sha256": mark_snapshot.supersedes_sha256,
             }
+        # Caller-declared simulation identity: traceability, NEVER real-money or PIT authority.
+        # The same binding is stored in the PG request hash AND predecessor-bound receipt.
+        if simulation_evidence is not None:
+            if (
+                type(simulation_evidence) is not dict
+                or set(simulation_evidence) != {
+                    "standing", "native_account", "model_study_sha256",
+                    "prediction_sha256", "native_result_sha256", "sessions_sha256",
+                }
+                or simulation_evidence["standing"] != "SIMULATION_ONLY_CALLER_DECLARED"
+                or simulation_evidence["native_account"] != "SIM-001"
+                or any(
+                    type(simulation_evidence[key]) is not str
+                    or re.fullmatch(r"[a-f0-9]{64}", simulation_evidence[key]) is None
+                    for key in (
+                        "model_study_sha256", "prediction_sha256",
+                        "native_result_sha256", "sessions_sha256",
+                    )
+                )
+            ):
+                raise ValueError("invalid simulation-only research binding")
         execution = {}
         evidence = None
         if (calendar_bytes is None) != (calendar_sha256 is None):
@@ -158,12 +180,14 @@ class PostgresPaperClose:
                 # Preserve identity for previously admitted fixture requests.
                 del fill["settlement_date"]
         payload = json.dumps(
-            encoded_day | {"market_evidence": market_evidence} | execution,
+            encoded_day | {"market_evidence": market_evidence} | execution
+            | ({"simulation_evidence": simulation_evidence}
+               if simulation_evidence is not None else {}),
             default=_iso, sort_keys=True, separators=(",", ":"),
         )
         digest = hashlib.sha256(payload.encode()).hexdigest()
         request = json.loads(payload)
-        day = decode_session({key: value for key, value in request.items() if key not in {"market_evidence", "execution_evidence"}})
+        day = decode_session({key: value for key, value in request.items() if key not in {"market_evidence", "execution_evidence", "simulation_evidence"}})
 
         def close(db: Connection) -> dict:
             self._verify_receipt_table(db)
@@ -232,6 +256,8 @@ class PostgresPaperClose:
                 "previous_receipt_sha256": _receipt_sha256(head[2]) if head else None,
                 "account_key": account_key,
                 "market_evidence": market_evidence,
+                **({"simulation_evidence": simulation_evidence}
+                   if simulation_evidence is not None else {}),
                 **execution,
             }
             written = db.execute(
@@ -353,6 +379,7 @@ def _read_committed_paper_receipt(
         or request.get("session") != session.isoformat()
         or receipt.get("market_evidence") != request.get("market_evidence")
         or receipt.get("execution_evidence") != request.get("execution_evidence")
+        or receipt.get("simulation_evidence") != request.get("simulation_evidence")
         or receipt.get("valuation", {}).get("session") != session.isoformat()
         or receipt.get("valuation", {}).get("contribution_minor")
             != request.get("contribution_minor")
@@ -370,7 +397,7 @@ def _read_committed_paper_receipt(
         )
         day = decode_session({
             key: value for key, value in request.items()
-            if key not in {"market_evidence", "execution_evidence"}
+            if key not in {"market_evidence", "execution_evidence", "simulation_evidence"}
         })
         expected_valuation = asdict(value_session(previous, day))
         expected_valuation["session"] = session.isoformat()

@@ -98,7 +98,8 @@
       "postgres_ledger.py",
       "substrate.py",
       "paper_close.py",
-      "postgres_paper_close.py"
+      "postgres_paper_close.py",
+      "paper_simulation_run.py"
     ]
   },
   "dependencyRules": [

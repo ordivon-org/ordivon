@@ -113,6 +113,10 @@ def parse_selector_policy(raw: str) -> dict[str, list[str]]:
             raise ValueError(f"Duplicate {field} selector")
     if set(value["selectedCountries"]) & set(value["excludedCountries"]):
         raise ValueError("Selected Gluetun country is excluded")
+    # Gluetun v3.41 has positive country filtering only: excluded-only
+    # policies would silently permit every server including Hong Kong.
+    if value["excludedCountries"] and not value["selectedCountries"]:
+        raise ValueError("Excluded country requires a positive Gluetun country allowlist")
     if ordered:
         # Gluetun's native priority is hostnames > cities > REGIONS >
         # COUNTRIES. A region filter would mask the country order.
