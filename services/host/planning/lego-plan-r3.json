@@ -20,7 +20,7 @@
     },
     {
       "id": "K02",
-      "name": "CompleteWorkSnapshotHistory",
+      "name": "CurrentWorkSnapshotIntegrity",
       "owner": "Host",
       "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE"
     },

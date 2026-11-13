@@ -20,7 +20,7 @@ Canonical R2 objects:
 
 - `ActorRef`: stable Host reference; never authentication or authorization.
 - `Work`: semantic continuity root; revisioned; never Runtime execution truth.
-- `WorkSnapshot`: complete semantic state at one revision; CAS committed.
+- `WorkSnapshot`: complete semantic state at one revision; CAS committed. Only the current revision must remain stored; earlier revisions are optional retained history and must never be fabricated after pruning.
 - `Space`: social scope; participation never implies IAM or assignment.
 - `Topic`: named asynchronous conversation axis.
 - `Message`: append-only collaboration record ordered by Host message sequence.
