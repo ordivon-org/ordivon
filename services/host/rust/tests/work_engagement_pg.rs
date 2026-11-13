@@ -465,6 +465,22 @@ async fn release_reclaim_cancel_and_invalid_consumer_prove_no_phantom_success() 
     .await
     .unwrap();
     assert_eq!(new_claim["snapshot"]["engagement"]["claimEpoch"], 2);
+    assert!(matches!(
+        advance_engagement(
+            &mut client,
+            &action(
+                work,
+                5,
+                "actor:test:engagement-agent-b",
+                "unauthorized-cancel",
+                EngagementAction::Cancel {
+                    reason: "Self-cancel despite requester-only authority".into(),
+                },
+            )
+        )
+        .await,
+        Err(WorkError::Conflict(_))
+    ));
     let cancelled = advance_engagement(
         &mut client,
         &action(
@@ -495,7 +511,75 @@ async fn release_reclaim_cancel_and_invalid_consumer_prove_no_phantom_success() 
         .await,
         Err(WorkError::Conflict(_))
     ));
-    println!("R7_RELEASE_CANCEL_FENCING_LIVE_PG18_PASS");
+    // Second independent Work distinguishes the requester override from
+    // the assignee's voluntary release. The abstract Lean Step explicitly
+    // allows either caller, not everybody.
+    let second = "work:test:engagement:requester-release-r12";
+    new_work(&mut client, second).await;
+    advance_engagement(
+        &mut client,
+        &action(
+            second,
+            1,
+            "actor:test:engagement-requester",
+            "requester-release-offer",
+            offered(),
+        ),
+    )
+    .await
+    .unwrap();
+    advance_engagement(
+        &mut client,
+        &action(
+            second,
+            2,
+            "actor:test:engagement-agent-a",
+            "requester-release-claim",
+            EngagementAction::Claim,
+        ),
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        advance_engagement(
+            &mut client,
+            &action(
+                second,
+                3,
+                "actor:test:engagement-agent-b",
+                "third-party-release-denied",
+                EngagementAction::Release {
+                    reason: "Not requester nor assignee".into(),
+                },
+            )
+        )
+        .await,
+        Err(WorkError::Conflict(_))
+    ));
+    let requester_released = advance_engagement(
+        &mut client,
+        &action(
+            second,
+            3,
+            "actor:test:engagement-requester",
+            "requester-release",
+            EngagementAction::Release {
+                reason: "Reassign to another Agent".into(),
+            },
+        ),
+    )
+    .await
+    .unwrap();
+    assert_eq!(requester_released["revision"], 4);
+    assert_eq!(
+        requester_released["snapshot"]["engagement"]["phase"],
+        "offered"
+    );
+    assert_eq!(
+        requester_released["snapshot"]["engagement"]["claimEpoch"],
+        1
+    );
+    println!("R12_REQUESTER_OR_ASSIGNEE_RELEASE_AND_CANCEL_AUTHORIZATION_PG18_PASS");
 }
 
 #[tokio::test]

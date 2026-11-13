@@ -28,13 +28,19 @@ The PG18 integration creates a random private fixture file and runs the official
 ## R11 cross-LEGO Agent information-terminal consumer (isolated real PG18)
 
 The existing `tools/repo/run_host_gateway_rust_consumer.sh` invokes
-`services/gateway/tests/native_rust_host_consumer_smoke.py` with a real
+`services/gateway/tests/native_rust_host_consumer_smoke.py` (MCP/Gateway
+read-only transport smoke), which delegates the isolated Agent-specific
+Work/Social/Attention composition to
+`services/gateway/tests/native_rust_host_engagement_consumer.py` with a real
 loopback Rust HTTP Host, the official Gateway MCP SDK/OwnerEndpoint and
 Host's original Alembic schema13 on one disposable PostgreSQL 18.
 
 Beyond the earlier read-only Gateway parity smoke, that same consumer now
 tests a *second authenticated Gateway HTTP session* with the existing
-Gateway AuthZEN PEP and an explicit **test-only, exact Work/Actor/action PDP**.
+Gateway AuthZEN PEP, the **real Security Owner AuthZenPrincipalAuthorizer**, a
+live disposable loopback **AuthZEN HTTP / pinned OPA 1.21.4** provider and the
+original Rego policy supplied with **test-only exact Actor/Work/Action grants**.
+No mock Python policy decision or new custom authorization server remains.
 All Work mutations travel through true MCP calls and Rust PostgreSQL
 transactions. Work setup and Topic follow are seeded by the native Owner
 SDK as test preconditions, not falsely reported as authenticated Agent
@@ -50,19 +56,47 @@ This demonstrates that Work engagement discovery and Attention navigation
 are separate, complementary needs, not duplicate inbox tables. Reconnecting
 does not require replaying a history of all old Work revisions.
 
-The observed test-only authorization permits a single local service
-Principal to act as three *explicitly enumerated* test ActorRefs by specific
-operation and WorkRef. It does **not** prove independent Agent credentials,
+The observed Security policy engine authorizes a single local service
+Principal through three separate **test-owned, exact** ActorRef grants, each
+with tool, action, resource and expiry constraints. It first denies the Offer
+when policy grants are empty, rejects forged Claim/Review, then after the
+consumer's Accepted state revokes all test grants and verifies Work.get is
+denied while the original PostgreSQL Work revision stays unchanged.
+The OPA and AuthZEN service are production implementations; the grants,
+issuer fixture and listener are **disposable-only**, not installed credentials. It does **not** prove independent Agent credentials,
 production Security/OPA grants, private Space confidentiality or genuine
 Artifact/Runtime effects. A successful response without that installed
 grant cannot authorize a production cutover.
 
+### R12 three independently signed Principals (still disposable)
+
+One further official Gateway HTTP consumer uses the **existing**
+`CloudflareAccessVerifier` with three distinct signed RS256 test subjects and
+public-key verification, plus three separate test-owned Security OPA grants.
+Requester may Offer only, Worker may Claim/Submit only, Reviewer may query
+submitted Work and Accept only. The three independent MCP sessions reach the
+same real Rust Host with a distinct verified
+`principal:cf-access:<sha256>` at every request. A requester-provided
+Worker ActorRef and a Worker-provided Reviewer ActorRef both fail the real
+OPA policy before any Host update. A non-loopback ASGI client cannot reuse
+the local machine bearer; it must supply a valid signed Access JWT.
+
+This closes the **test-level distinct-Principal-to-Actor** composition gap,
+not the production identity gap: signatures, source policy data, test Agent
+subjects, certificates and Grant lifetimes are disposable fixtures. It does
+not establish installed Cloudflare credentials, production individual-Agent
+onboarding, live Security operator approval or actual external effects.
+
 ### Formal-to-implementation refinement boundary
 
-`formal/HostEngagement.lean` models unbounded claim epochs, phase
-transitions, designated consumer review and required evidence. The native
-`mise run formal:engagement` gate confirms five axiom-free theorems,
-including a negative fabricated-Accepted state witness. This is an
+`formal/HostEngagement.lean` now encodes the actual submitted **Action**
+(caller, asserted claimEpoch, review decision), requester and consumer identities,
+the JSON-safe claim epoch upper bound and the distinct requester/assignee
+release rule. The native `mise run formal:engagement` gate confirms **nine**
+axiom-free theorems, including caller/supplied epoch constraints, requester-only
+cancel, claim clearing old delivery and a negative fabricated-Accepted witness.
+The original Rust PostgreSQL18 consumer test also checks requester override,
+unauthorized third-party release and unauthorized cancel after a live Claim. This is an
 abstract transition-system safety proof, **not** a proof that Rust's
 `work/engagement.rs`, SQL CAS, Gateway middleware or Security PDP
 implements the model. The existing `work_engagement_pg.rs`, official

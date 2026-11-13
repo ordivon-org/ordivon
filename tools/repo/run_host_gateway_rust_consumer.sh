@@ -9,6 +9,14 @@ if [[ -z "$rust_binary" ]]; then
 fi
 test -x "$rust_binary"
 
+# Reuse Security Owner's pinned native OPA provider for *real*, isolated
+# AuthZEN/OPA principal→Actor policy decisions in the Gateway→Rust test.
+# Never read installed Security credentials, grants or production policy data.
+/usr/bin/mise -C "$root/platform/security" install opa >/dev/null
+export ORDIVON_HOST_RUST_TEST_OPA
+ORDIVON_HOST_RUST_TEST_OPA="$(/usr/bin/mise -C "$root/platform/security" which opa)"
+test -x "$ORDIVON_HOST_RUST_TEST_OPA"
+
 # Cold GitHub runners have no pinned wheel cache (including protobuf).
 # Provision the Gateway's locked env first; the actual consumer stays offline.
 # Never solve missing wheels by dropping a test or altering the locked versions.

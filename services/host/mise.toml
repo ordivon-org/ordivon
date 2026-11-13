@@ -95,8 +95,8 @@ if printf '%s\n' "$output" | grep -E 'depends on axioms|sorryAx|propext'; then
   exit 1
 fi
 count="$(printf '%s\n' "$output" | grep -c 'does not depend on any axioms' || true)"
-if [ "$count" -ne 5 ]; then
-  echo "HOST_ENGAGEMENT_ABSTRACT_PROOF_INCOMPLETE: $count/5" >&2
+if [ "$count" -ne 9 ]; then
+  echo "HOST_ENGAGEMENT_ABSTRACT_PROOF_INCOMPLETE: $count/9" >&2
   exit 1
 fi
 echo HOST_ENGAGEMENT_FORMAL_ACCEPTANCE_SAFETY_PASS

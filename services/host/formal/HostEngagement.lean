@@ -1,12 +1,24 @@
--- Host Agent Work Engagement: finite-action, unbounded-epoch abstract safety.
--- Not a statement about installed PostgreSQL, Access Principal authorization,
--- Runtime effects or Artifact verification. Rust transitions and actual MCP
--- consumers are independent source/refinement obligations.
+-- Agent-facing Host Engagement transition safety, refined against
+-- Rust work::engagement::transition (2026-11). The transition system is
+-- abstract: no claim of Rust source refinement, PostgreSQL CAS, signed
+-- Principal→Actor identity, Artifact validation or deployment currentness.
+-- The Action explicitly carries the caller/claimEpoch so forged/stale
+-- caller requests cannot disappear from the formal specification.
 
 namespace OrdivonHostEngagement
 
+def maxSafeClaimEpoch : Nat := 9007199254740991
+
 inductive Phase where
   | offered | claimed | submitted | returned | accepted | cancelled
+  deriving DecidableEq, Repr
+
+inductive Action where
+  | claim (actor : Nat)
+  | release (actor : Nat)
+  | submit (actor assertedEpoch : Nat)
+  | review (actor assertedEpoch : Nat) (accept : Bool)
+  | cancel (actor : Nat)
   deriving DecidableEq, Repr
 
 structure State where
@@ -15,98 +27,134 @@ structure State where
   assignee : Option Nat
   submittedEpoch : Option Nat
   verificationEpoch : Option Nat
+  requester : Nat
   consumer : Nat
   deriving Repr
 
-def initial (consumer : Nat) : State :=
-  State.mk .offered 0 none none none consumer
+def initial (requester consumer : Nat) : State :=
+  State.mk .offered 0 none none none requester consumer
 
 def claimed (s : State) (worker : Nat) : State :=
-  State.mk .claimed (s.epoch + 1) (some worker) none none s.consumer
+  State.mk .claimed (s.epoch + 1) (some worker) none none s.requester s.consumer
 
 def released (s : State) : State :=
-  State.mk .offered s.epoch none none none s.consumer
+  State.mk .offered s.epoch none none none s.requester s.consumer
 
 def submitted (s : State) : State :=
-  State.mk .submitted s.epoch s.assignee (some s.epoch) none s.consumer
+  State.mk .submitted s.epoch s.assignee (some s.epoch) none s.requester s.consumer
 
 def returned (s : State) : State :=
-  State.mk .returned s.epoch s.assignee s.submittedEpoch (some s.epoch) s.consumer
+  State.mk .returned s.epoch s.assignee s.submittedEpoch (some s.epoch)
+    s.requester s.consumer
 
 def accepted (s : State) : State :=
-  State.mk .accepted s.epoch s.assignee s.submittedEpoch (some s.epoch) s.consumer
+  State.mk .accepted s.epoch s.assignee s.submittedEpoch (some s.epoch)
+    s.requester s.consumer
 
 def cancelled (s : State) : State :=
-  State.mk .cancelled s.epoch s.assignee s.submittedEpoch s.verificationEpoch s.consumer
+  State.mk .cancelled s.epoch s.assignee s.submittedEpoch s.verificationEpoch
+    s.requester s.consumer
 
--- A Step describes a single already-admitted Host Work revision transition.
--- It assumes external Security binds caller identity to the requested actor,
--- and that PostgreSQL's CAS admits at most one competing write per revision.
-inductive Step : State → State → Prop where
-  | claim (s : State) (worker : Nat)
-      (hphase : s.phase = .offered ∨ s.phase = .returned) :
-      Step s (claimed s worker)
-  | release (s : State) (worker : Nat)
+-- A Step is one already-accepted Host Work transition. Each constructor
+-- mirrors a phase/Actor/epoch guard from the Rust domain function.
+-- One actual SQL revision CAS winner is a separate implementation obligation.
+inductive Step : State → Action → State → Prop where
+  | claim (s : State) (actor : Nat)
+      (hphase : s.phase = .offered ∨ s.phase = .returned)
+      (hbound : s.epoch < maxSafeClaimEpoch) :
+      Step s (.claim actor) (claimed s actor)
+  | release (s : State) (actor : Nat)
       (hphase : s.phase = .claimed)
-      (howner : s.assignee = some worker) :
-      Step s (released s)
-  | submit (s : State) (worker : Nat)
+      (hcaller : actor = s.requester ∨ s.assignee = some actor) :
+      Step s (.release actor) (released s)
+  | submit (s : State) (actor assertedEpoch : Nat)
       (hphase : s.phase = .claimed)
-      (howner : s.assignee = some worker) :
-      Step s (submitted s)
-  | returnForRevision (s : State) (reviewer : Nat)
+      (hcaller : s.assignee = some actor)
+      (hepoch : assertedEpoch = s.epoch) :
+      Step s (.submit actor assertedEpoch) (submitted s)
+  | returnForRevision (s : State) (reviewer assertedEpoch : Nat)
       (hphase : s.phase = .submitted)
       (hconsumer : reviewer = s.consumer)
+      (hepoch : assertedEpoch = s.epoch)
       (hdelivery : s.submittedEpoch = some s.epoch) :
-      Step s (returned s)
-  | accept (s : State) (reviewer : Nat)
+      Step s (.review reviewer assertedEpoch false) (returned s)
+  | accept (s : State) (reviewer assertedEpoch : Nat)
       (hphase : s.phase = .submitted)
       (hconsumer : reviewer = s.consumer)
+      (hepoch : assertedEpoch = s.epoch)
       (hdelivery : s.submittedEpoch = some s.epoch) :
-      Step s (accepted s)
-  | cancel (s : State)
-      (hactive : s.phase ≠ .accepted ∧ s.phase ≠ .cancelled) :
-      Step s (cancelled s)
+      Step s (.review reviewer assertedEpoch true) (accepted s)
+  | cancel (s : State) (actor : Nat)
+      (hphase : s.phase ≠ .accepted ∧ s.phase ≠ .cancelled)
+      (hcaller : actor = s.requester) :
+      Step s (.cancel actor) (cancelled s)
 
 def AcceptedHasEvidence (s : State) : Prop :=
   s.phase = .accepted →
     s.submittedEpoch = some s.epoch ∧
     s.verificationEpoch = some s.epoch
 
-theorem step_acceptance_safety {s t : State} (h : Step s t) :
-    AcceptedHasEvidence t := by
+theorem step_acceptance_safety {s t : State} {a : Action}
+    (h : Step s a t) : AcceptedHasEvidence t := by
   cases h with
-  | claim worker _ =>
+  | claim _ _ _ =>
       intro impossible
       cases impossible
-  | release worker _ _ =>
+  | release _ _ _ =>
       intro impossible
       cases impossible
-  | submit worker _ _ =>
+  | submit _ _ _ _ _ =>
       intro impossible
       cases impossible
-  | returnForRevision reviewer _ _ _ =>
+  | returnForRevision _ _ _ _ _ _ =>
       intro impossible
       cases impossible
-  | accept reviewer _ _ hdelivery =>
+  | accept _ _ _ _ _ hdelivery =>
       intro _
       exact ⟨hdelivery, rfl⟩
-  | cancel _ =>
+  | cancel _ _ _ =>
       intro impossible
       cases impossible
 
 inductive Reachable (origin : State) : State → Prop where
   | here : Reachable origin origin
-  | later {s t : State} : Reachable origin s → Step s t → Reachable origin t
+  | later {s t : State} {a : Action} :
+      Reachable origin s → Step s a t → Reachable origin t
 
-theorem reachable_acceptance_safety {consumer : Nat} {s : State}
-    (h : Reachable (initial consumer) s) : AcceptedHasEvidence s := by
+theorem reachable_acceptance_safety {requester consumer : Nat} {s : State}
+    (h : Reachable (initial requester consumer) s) :
+    AcceptedHasEvidence s := by
   induction h with
   | here =>
       intro impossible
       cases impossible
   | later earlier step ih =>
       exact step_acceptance_safety step
+
+-- Admission proofs explicitly inspect the *action argument*, rather than
+-- proving a postcondition that could be reached by forged caller metadata.
+theorem review_accept_requires_designated_consumer_and_current_epoch
+    {s t : State} {actor epoch : Nat}
+    (h : Step s (.review actor epoch true) t) :
+    actor = s.consumer ∧ epoch = s.epoch := by
+  cases h with
+  | accept _ _ _ hconsumer hepoch _ =>
+      exact ⟨hconsumer, hepoch⟩
+
+theorem release_requires_requester_or_assignee
+    {s t : State} {actor : Nat}
+    (h : Step s (.release actor) t) :
+    actor = s.requester ∨ s.assignee = some actor := by
+  cases h with
+  | release _ _ hcaller =>
+      exact hcaller
+
+theorem cancel_requires_requester
+    {s t : State} {actor : Nat}
+    (h : Step s (.cancel actor) t) : actor = s.requester := by
+  cases h with
+  | cancel _ _ hcaller =>
+      exact hcaller
 
 theorem accept_preserves_epoch (s : State) :
     (accepted s).epoch = s.epoch := by
@@ -116,11 +164,15 @@ theorem claim_advances_epoch (s : State) (worker : Nat) :
     (claimed s worker).epoch = s.epoch + 1 := by
   rfl
 
--- Independent negative witness: the safety predicate rejects a fabricated
--- Accepted state which lacks a submitted delivery. A successful Lean compile
--- must not be misreported as a checked Rust/PostgreSQL refinement.
+theorem claim_clears_prior_delivery (s : State) (worker : Nat) :
+    (claimed s worker).submittedEpoch = none ∧
+    (claimed s worker).verificationEpoch = none := by
+  exact ⟨rfl, rfl⟩
+
+-- The abstract model cannot assert a fake accepted Work, even if someone
+-- wrote the value directly rather than passing the transition guard.
 def fabricatedAccepted : State :=
-  State.mk .accepted 1 (some 7) none (some 1) 19
+  State.mk .accepted 1 (some 7) none (some 1) 17 19
 
 theorem fabricated_acceptance_is_rejected :
     ¬ AcceptedHasEvidence fabricatedAccepted := by
@@ -129,10 +181,14 @@ theorem fabricated_acceptance_is_rejected :
     (assumed rfl).1
   cases h
 
-#print axioms fabricated_acceptance_is_rejected
 #print axioms step_acceptance_safety
 #print axioms reachable_acceptance_safety
+#print axioms review_accept_requires_designated_consumer_and_current_epoch
+#print axioms release_requires_requester_or_assignee
+#print axioms cancel_requires_requester
 #print axioms accept_preserves_epoch
 #print axioms claim_advances_epoch
+#print axioms claim_clears_prior_delivery
+#print axioms fabricated_acceptance_is_rejected
 
 end OrdivonHostEngagement
