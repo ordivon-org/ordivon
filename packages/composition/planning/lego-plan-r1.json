@@ -182,7 +182,10 @@
       ],
       "evidence": [
         "src/ordivon_composition/verification_obligation_r1.py",
-        "tests/test_verification_obligation_r1.py"
+        "tests/test_verification_obligation_r1.py",
+        "src/ordivon_composition/host_agent_verification_actions.py",
+        "tests/test_host_agent_verification_actions.py",
+        "docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md"
       ],
       "dependencies": [
         "C01",
@@ -204,6 +207,11 @@
           "path": "packages/composition/tests/test_verification_obligation_r1.py",
           "operation": "select_impacted_obligations local test and CLI",
           "standing": "SOURCE_TEST_AND_CLI_CONSUMER_EXTERNAL_UNKNOWN"
+        },
+        {
+          "path": "packages/composition/src/ordivon_composition/host_agent_verification_actions.py",
+          "operation": "project_host_agent_verification_actions calls existing select_impacted_obligations and maps its typed statuses into bounded Agent/Host current snapshot actions; never a second proof algorithm",
+          "standing": "SOURCE_PURE_CODE_AND_CLI_TARGETED_TEST; OWNER_PROOF_AND_INSTALLED_CONSUMPTION_UNKNOWN"
         }
       ],
       "formalObligations": [

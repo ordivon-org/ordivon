@@ -205,5 +205,66 @@
     "retiredVocabulary": [
       "Task/Checkpoint/Board referred to retired pre-Social-Work-Fabric modules; current Work snapshots and social journal are not claims of old API compatibility."
     ]
-  }
+  },
+  "consumerCompositions": [
+    {
+      "id": "AGENT-KNOWLEDGE-IMPACT-R1",
+      "kind": "agent-current-work-evidence-applicability-projection-not-second-authority",
+      "directConsumer": "Agent/Harness resuming an existing Host Work and deciding whether old proof needs scoped re-verification",
+      "businessScenario": "Known prior verifier receipts and a new SourceCut: read Work/current references, select impacted proof obligations, reuse old Owner evidence for unchanged scopes, qualify unknowns, and propose only affected Work nextActions without executing tests",
+      "thoughtModules": [
+        "Incremental computation affected inputs",
+        "Assume-guarantee/dependency closure",
+        "Evidence provenance and currentness",
+        "Three-valued impact lattice",
+        "Consumer-first/CQRS",
+        "DELETE-CUSTOM→REUSE→COMPOSE"
+      ],
+      "logicModules": [
+        "CurrentWorkCheckpoint",
+        "PreviousOwnerEvidenceReference",
+        "ProofDependencyReadset",
+        "SourceChangeImpact",
+        "EvidenceApplicabilityCandidate",
+        "AgentReverificationDemand"
+      ],
+      "capabilityRefs": [
+        "K01",
+        "K02",
+        "P02"
+      ],
+      "status": "SOURCE_ONLY_TASK_LOCAL_COMPOSITION_BRIDGE_NOT_INSTALLED",
+      "contract": {
+        "I": "Typed Host work.get current response + Composition proof graph + owner-queried changed/unknown refs + optional prior Work proof references and graph",
+        "O": "Per-obligation RECHECK_NAMED_CONSUMER/QUALIFY_DEPENDENCIES_NOT_RERUN/READ_EXISTING_OWNER_PROOF/LOCATE_PRIOR_OWNER_PROOF, summary, optional legacy WorkSnapshot CAS proposal",
+        "S": "No new persistence; Host owns current WorkSnapshot, Git owns SourceCut, each natural Owner owns verifier receipts and live evidence; task-local Composition projection is rebuildable",
+        "pre": "Exact WorkRef/revision/current snapshot and valid task-local graph; evidence refs must already be in Work; dependency completeness and owner proof currentness remain UNQUALIFIED by this adapter",
+        "post": "Only impacted obligations become recheck proposals, unindexed/unknown sources become qualification requests, unaffected candidates trigger prior-proof read rather than rerun; Host established/unresolved/referenceRefs unchanged",
+        "inv": "REUSE_CANDIDATE is never VERIFIED; UNKNOWN is never FALSE; no automatic verifier execution; nextActions are stable under replay; Rust Engagement/terminal Work never receives legacy CAS proposal",
+        "eff": "None. Read-only analysis and pure optional proposed legacy WorkSnapshot. Any Host CAS, Runtime execution or real Owner proof admission is a separate consumer-authorized effect",
+        "c": "O(V+E) existing Composition impact fixed-point plus O(Host nextActions); installed Agent latency and tokens UNKNOWN",
+        "epsilon": "UNKNOWN(reason=owner proof authenticity, dynamic/negative dependency closure, installed currentness and live policy not qualified; obligation=separate native Owner readback before claiming VERIFIED)",
+        "prov": [
+          "packages/composition/src/ordivon_composition/verification_impact.py",
+          "packages/composition/src/ordivon_composition/host_agent_verification_actions.py",
+          "packages/composition/tests/test_host_agent_verification_actions.py",
+          "packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md",
+          "services/host/src/ordivon_host_v2/work_inputs.py"
+        ],
+        "unfold": "Agent Host work.get → natural Owner source/readset and proof receipts → existing Composition C04 impact selector → new pure bounded Agent action view → optional Host work.snapshot.commit expectedRevision → next Agent work.get"
+      },
+      "evidence": {
+        "tier": "SOURCE_ONLY_PURE_TESTED",
+        "completionClaim": "Selected impacted and unknown actions are derived from existing Composition algorithm; no claim of Owner proof reuse currentness, Host production commit or installed Gateway exposure",
+        "installedCurrentness": "UNKNOWN",
+        "ownerCertifiedDependencyClosure": "UNKNOWN",
+        "automaticRerun": "NEVER"
+      },
+      "releaseBlockers": [
+        "Authenticated existing Owner proof readback and complete dependency closure",
+        "Real Agent/Harness consumer deploys task-local adapter",
+        "Optional Host CAS proposal is accepted under actual current Work revision"
+      ]
+    }
+  ]
 }

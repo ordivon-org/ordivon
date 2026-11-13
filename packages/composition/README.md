@@ -14,6 +14,11 @@ capability discovery, seam-specific verification, workflow state, or domain trut
 - Successor Contract predecessor/candidate binding and verifier-owned succession-gate
   evaluation.
 - Public JSON Schemas for those contracts.
+- Task-local Host Agent knowledge **action projection** from existing C04 proof impact,
+  via `python -m ordivon_composition.verification_obligation_r1 agent-host-actions`.
+  It produces an optional legacy Host Work CAS snapshot proposal without
+  executing tests or converting candidate reuse into verified proof. See
+  [Agent evidence applicability R1](docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md).
 
 ## Non-claims
 

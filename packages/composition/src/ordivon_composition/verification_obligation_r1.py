@@ -27,6 +27,7 @@ from .cognitive_circuit_r1 import (
     canonical_digest,
     compile_manifest,
 )
+from .host_agent_verification_actions import project_host_agent_verification_actions
 from .verification_impact import (
     _cyclic_proof_members as _cyclic_proof_members,
 )
@@ -623,6 +624,16 @@ def _parser() -> argparse.ArgumentParser:
     readset_parser.add_argument("source_readset_evidence", type=Path)
     readset_parser.add_argument("--repo", type=Path, required=True)
 
+    # Read-only projection for the existing Host Work.current snapshot. This
+    # does not start a verifier, insert Work rows or certify prior proof.
+    agent_parser = sub.add_parser("agent-host-actions")
+    agent_parser.add_argument("host_work", type=Path)
+    agent_parser.add_argument("impact_graph", type=Path)
+    agent_parser.add_argument("changed_refs", type=Path)
+    agent_parser.add_argument("--unknown-refs", type=Path)
+    agent_parser.add_argument("--previous-graph", type=Path)
+    agent_parser.add_argument("--proof-refs", type=Path)
+
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
@@ -678,6 +689,17 @@ def main() -> int:
             )
             if all(requested):
                 result["gitSourceCuts"] = {"previous": before_source, "current": after_source}
+        elif args.command == "agent-host-actions":
+            result = project_host_agent_verification_actions(
+                work=_load_json(args.host_work),
+                impact_graph=_load_json(args.impact_graph),
+                changed_refs=_load_task_local_json_list(args.changed_refs),
+                unknown_refs=(
+                    _load_task_local_json_list(args.unknown_refs) if args.unknown_refs else None
+                ),
+                previous_graph=(_load_json(args.previous_graph) if args.previous_graph else None),
+                proof_refs_by_obligation=(_load_json(args.proof_refs) if args.proof_refs else None),
+            )
         elif args.command == "impact-observations":
             # Natural owners still own the observations and physical receipts.
             # This is a task-local, non-executing source-to-proof adapter.

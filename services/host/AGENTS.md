@@ -19,6 +19,22 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 - **Schema/release:** `migrations/versions/` via Alembic; `packaging/` handles immutable release and systemd.
 - **Validation:** `mise run verify` for source gate, `mise run test:postgres:disposable` for isolated real PostgreSQL 18, and `mise run formal:reply-source` (Python PEP316 obligations) and `mise run formal:work-graph` (bounded Z3 DAG model and negative control); run `mise run formal:dag-theorem` for the axiom-free general Lean DAG theorem using the repo's pinned Lean toolchain for the scoped pure source obligations. For Unicode-gram candidate soundness, run `mise run formal:unicode-search` (axiom-free Lean theorem), then verify PostgreSQL `host_unicode_ngrams3` refinement with `mise run test:postgres:disposable`; neither proof alone proves installed behavior. A skip is not a database PASS.
 
+## Before another verification run: consume existing proof applicability
+
+The repeated Rust/PG18/Gateway regressions are **not** automatic Agent work.
+Check the existing Host Work.current `established` / `unresolved` /
+`referenceRefs` first, then use Composition's existing C04
+`select_impacted_obligations` (via the read-only `agent-host-actions`
+CLI) to determine affected obligations. Unchanged inputs generate **existing
+Owner-proof lookup**, unknown dependencies generate **qualification**, and
+actual changed dependencies generate **only scoped recheck candidates**.
+The projection may propose an eight-field legacy `work.snapshot.commit`
+CAS payload which embeds next Agent actions; no Host schema/table is added.
+Never promote `REUSE_CANDIDATE` to VERIFIED or trust unauthenticated proof
+references. No new Runtime Job is needed for an unchanged Owner receipt.
+Source: [Composition consumer R1](../../packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md).
+**This source bridge is not yet an installed Gateway tool.**
+
 ## Agent re-entry and effects
 
 Use `work.get → attention.reentry → topic.resume → owner-native reference readback → work.snapshot.commit → cursor acknowledgment` as needed. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.
