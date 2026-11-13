@@ -473,8 +473,8 @@ impl HostPg {
         let doctor = if detail == "summary" {
             None
         } else {
-            // Exact legacy HostV2.status check order and labels. A clean
-            // current pointer does NOT imply contiguous historical revisions.
+            // Current HostV2.status contract: current revision is authoritative;
+            // earlier revisions are optional retention, not required continuity.
             let mut checks: Vec<Value> = Vec::with_capacity(8);
             let mut add_check = |name: &'static str, ok: bool, description: String| {
                 checks.push(json!({
@@ -536,38 +536,25 @@ impl HostPg {
                 receipt_bad == 0,
                 format!("incomplete={receipt_bad}"),
             );
-            let history_bad = count(
+            // Work continuity requires only the CURRENT revision's payload.
+            // Old revisions may be pruned and must not make Host unhealthy.
+            let current_payload_bad = bad_snapshot_digests(
                 &tx,
-                "SELECT count(*) FROM (                 SELECT w.work_ref,w.current_revision,count(s.revision) AS snapshots,                 min(s.revision) AS rmin,max(s.revision) AS rmax                  FROM works w LEFT JOIN work_snapshots s USING(work_ref)                  GROUP BY w.work_ref,w.current_revision                 ) x WHERE snapshots<>current_revision OR rmin<>1 OR rmax<>current_revision"
-            ).await?;
+                "SELECT s.snapshot_digest,s.payload FROM works w JOIN work_snapshots s \
+                 ON s.work_ref=w.work_ref AND s.revision=w.current_revision",
+            )
+            .await?;
             add_check(
-                "work.snapshot_history_contiguous",
-                history_bad == 0,
-                format!("invalidWorks={history_bad}"),
+                "work.current_snapshot_payload_digest",
+                current_payload_bad == 0,
+                format!("invalid={current_payload_bad}"),
             );
             if detail == "history" {
-                // Use a PostgreSQL server-side Portal instead of query() or
-                // fetchall(): at most 128 JSONB rows are resident per batch.
-                // The transaction remains REPEATABLE READ READ ONLY.
-                let portal = tx
-                    .bind("SELECT snapshot_digest,payload FROM work_snapshots", &[])
-                    .await?;
-                let mut digest_bad: i64 = 0;
-                loop {
-                    let batch = tx.query_portal(&portal, 128).await?;
-                    if batch.is_empty() {
-                        break;
-                    }
-                    for row in batch {
-                        let expected: String = row.get("snapshot_digest");
-                        let payload: Value = row.get("payload");
-                        let valid = payload.is_object()
-                            && work::canonical_digest(&payload).ok().as_deref() == Some(&expected);
-                        if !valid {
-                            digest_bad += 1;
-                        }
-                    }
-                }
+                // Historical rows, when retained, still have verifiable bytes.
+                // They are optional data, not a gap-free system invariant.
+                let digest_bad =
+                    bad_snapshot_digests(&tx, "SELECT snapshot_digest,payload FROM work_snapshots")
+                        .await?;
                 add_check(
                     "work.snapshot_history_digest",
                     digest_bad == 0,
@@ -605,6 +592,31 @@ impl HostPg {
             )]),
         })
     }
+}
+
+async fn bad_snapshot_digests(
+    tx: &tokio_postgres::Transaction<'_>,
+    sql: &str,
+) -> Result<i64, HostDbError> {
+    // Reuse the official PostgreSQL portal: a bounded 128 JSONB rows per page.
+    let portal = tx.bind(sql, &[]).await?;
+    let mut bad: i64 = 0;
+    loop {
+        let batch = tx.query_portal(&portal, 128).await?;
+        if batch.is_empty() {
+            break;
+        }
+        for row in batch {
+            let expected: String = row.get("snapshot_digest");
+            let payload: Value = row.get("payload");
+            if !payload.is_object()
+                || work::canonical_digest(&payload).ok().as_deref() != Some(&expected)
+            {
+                bad += 1;
+            }
+        }
+    }
+    Ok(bad)
 }
 
 async fn count(tx: &tokio_postgres::Transaction<'_>, sql: &str) -> Result<i64, HostDbError> {

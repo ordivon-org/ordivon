@@ -1,5 +1,14 @@
 # Host Rust R5 — consumer parity: Doctor and Message read/search
 
+> 2026-11-13 contract update: the original R5 history-gap requirements below
+> describe a superseded diagnostic experiment. The current Host Work health
+> contract requires a valid CURRENT revision pointer and canonical payload,
+> not a complete snapshot archive. `integrity` is healthy despite a missing
+> noncurrent revision; `history` still diagnoses corrupted retained revisions.
+> Rust's bounded PostgreSQL portal reuses the original native transport and
+> schema. See current `services/host/README.md` and #2168.
+
+
 ## Source boundary
 - Upstream A/B clean joint baseline `301b3fef60d08bdeefc6e732c28da0a6fff3356c`.
 - Cherry-picked C's completed R5 first collaboration loop `3d02a87efcde8c8036478eb0f673ab1c3c2b5d1f` as `a782354bb7e54f2bc1e9c4bb48660e5eab535cba`.

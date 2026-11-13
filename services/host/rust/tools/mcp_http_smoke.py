@@ -361,9 +361,8 @@ try:
     assert doctor["healthy"] is False, historical
     diagnostics = {check["name"]: check for check in doctor["checks"]}
     assert diagnostics["work.current_snapshot"]["status"] == "ok", diagnostics
-    assert diagnostics["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1", (
-        diagnostics
-    )
+    assert diagnostics["work.current_snapshot_payload_digest"]["detail"] == "invalid=0"
+    assert "work.snapshot_history_contiguous" not in diagnostics
     assert diagnostics["work.snapshot_history_digest"]["detail"] == "invalid=1", diagnostics
     # A separate HTTP MCP session performs a new durable Work intake and
     # claim. Its full typed reply is validated by post() against the official

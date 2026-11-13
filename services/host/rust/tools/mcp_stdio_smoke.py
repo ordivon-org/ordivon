@@ -134,9 +134,10 @@ try:
     assert history["structuredContent"]["doctor"]["healthy"] is False, history
     doctor_checks = {check["name"]:check for check in history["structuredContent"]["doctor"]["checks"]}
     assert doctor_checks["work.current_snapshot"]["status"] == "ok", doctor_checks
-    assert doctor_checks["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1"
+    assert doctor_checks["work.current_snapshot_payload_digest"]["detail"] == "invalid=0"
+    assert "work.snapshot_history_contiguous" not in doctor_checks
     assert doctor_checks["work.snapshot_history_digest"]["detail"] == "invalid=1"
-    print("MCP_DOCTOR_R5_PYTHON_RUST_PARITY_PASS summary+integrity+history MVCC=ONE_HISTORY_SNAPSHOT gap=1 digest=1")
+    print("MCP_DOCTOR_CURRENT_ONLY_PYTHON_RUST_PARITY_PASS summary+integrity+history current=valid missing_history=allowed retained_digest_error=detected")
 
     initial = request(
         "tools/call",

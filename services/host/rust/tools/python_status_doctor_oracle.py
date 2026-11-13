@@ -1,8 +1,8 @@
 """Isolated Python Host Doctor oracle for Rust status(summary/integrity/history).
 
 Seed deliberate historical corruption *only* inside the temporary PG18 database
-created by Host's native integration harness. In particular, CURRENT may remain
-valid while historical continuity/digest checks fail.
+created by Host's native integration harness. CURRENT health is independent of missing revisions and corrupted retained
+noncurrent history; optional history scans still report corrupt retained bytes.
 """
 from __future__ import annotations
 
@@ -51,20 +51,18 @@ def check_disposable() -> str:
 
 
 def check(doctor: dict, mode: str) -> None:
-    assert doctor["healthy"] is False, doctor
+    assert doctor["healthy"] is (mode == "integrity"), doctor
     names = [item["name"] for item in doctor["checks"]]
     assert names == [
         "postgres.schema", "work.current_snapshot", "social.message_topic_space",
         "social.reply_integrity", "attention.cursor_bounds",
-        "command_receipts.complete", "work.snapshot_history_contiguous",
+        "command_receipts.complete", "work.current_snapshot_payload_digest",
     ] + (["work.snapshot_history_digest"] if mode == "history" else []), names
     observed = {item["name"]: item for item in doctor["checks"]}
-    assert observed["work.current_snapshot"] == {
-        "name": "work.current_snapshot", "status": "ok", "detail": "invalid=0"
-    }, observed
-    assert observed["work.snapshot_history_contiguous"] == {
-        "name": "work.snapshot_history_contiguous", "status": "error", "detail": "invalidWorks=1"
-    }, observed
+    for key in ("work.current_snapshot", "work.current_snapshot_payload_digest"):
+        assert observed[key] == {
+            "name": key, "status": "ok", "detail": "invalid=0"
+        }, observed
     if mode == "history":
         assert observed["work.snapshot_history_digest"] == {
             "name": "work.snapshot_history_digest", "status": "error", "detail": "invalid=1"
@@ -124,7 +122,7 @@ def seed(dsn: str, output: Path) -> None:
         json.dumps(expected, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print("PYTHON_DOCTOR_ORACLE_SEED_PASS current_snapshot=OK gap=1 digest=1")
+    print("PYTHON_DOCTOR_ORACLE_CURRENT_ONLY_SEED_PASS current=OK gap=OPTIONAL retained_digest=1")
 
 
 def verify(dsn: str) -> None:
@@ -132,7 +130,7 @@ def verify(dsn: str) -> None:
     for mode in ("integrity", "history"):
         observed = host.status(mode)
         check(observed["doctor"], mode)
-    print("PYTHON_DOCTOR_ORACLE_VERIFY_PASS current=OK history_gap=1 digest_mismatch=1")
+    print("PYTHON_DOCTOR_ORACLE_CURRENT_ONLY_VERIFY_PASS current=OK gap=OPTIONAL retained_digest=1")
 
 
 def main() -> None:

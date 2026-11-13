@@ -30,6 +30,10 @@ async fn summary_comes_from_same_real_postgres_authority() {
     let checks = integrity.doctor.as_ref().expect("integrity checks");
     assert_eq!(checks["healthy"], true, "{checks}");
     assert_eq!(checks["checks"].as_array().unwrap().len(), 7);
+    assert_eq!(
+        checks["checks"][6]["name"],
+        "work.current_snapshot_payload_digest"
+    );
     let history = pg.status("history").await.expect("history doctor");
     let checks = history.doctor.as_ref().expect("history checks");
     assert_eq!(checks["healthy"], true, "{checks}");
