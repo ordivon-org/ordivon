@@ -12,7 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "adoption" / "r3_native"))
-from frozen_spy_shy_holdout import observe  # noqa: E402
+from frozen_spy_shy_holdout import format_partial_forward_markdown, observe  # noqa: E402
 
 FROZEN = ROOT / "evidence/finance-research/spy-shy-forward-20261108/frozen-plan.json"
 POLICY = ROOT / "examples/paper_fixed_mix_etf_20261106.json"
@@ -90,3 +90,18 @@ def test_source_future_row_and_outside_holdout_cut_rejected(tmp_path):
     with pytest.raises(ValueError, match="future or out-of-period"):
         observe(FROZEN, POLICY, "2026-11-13", tmp_path / "future_row", forward_future)
     assert not (tmp_path / "future_row").exists()
+
+
+def test_human_facing_report_reuses_economic_result_and_keeps_unknowns(tmp_path):
+    report = observe(FROZEN, POLICY, "2026-11-13", tmp_path / "private", fake)
+    shown = format_partial_forward_markdown(report)
+    assert "60% SPY / 40% SHY" in shown
+    assert "SPY 基准期末" in shown
+    assert "统计 Alpha 均未认证" in shown
+    assert "风险预算未评估" in shown
+    assert "冻结研究复权口径的合格复现" in shown
+    assert "任何实盘金融写入权限" in shown
+    tampered = dict(report)
+    tampered["alphaVerified"] = True
+    with pytest.raises(ValueError, match="unqualified result"):
+        format_partial_forward_markdown(tampered)

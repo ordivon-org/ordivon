@@ -151,12 +151,50 @@ def observe(
     return report
 
 
+
+def format_partial_forward_markdown(report: dict) -> str:
+    """Render the existing economic evidence, never calculate new NAV."""
+    values = report["economicComparison"]
+    sessions = report["observedSessions"]
+    if (
+        report["standing"] != "PARTIAL_FORWARD_DESCRIPTIVE_SOURCE_UNVERIFIED"
+        or report["alphaVerified"] is not False
+        or report["realMoneyOrdersAuthorized"] is not False
+        or report["frozenAdjustedCloseMetricReproduced"] is not False
+    ):
+        raise ValueError("unqualified result cannot be rendered as bounded research")
+    end = sessions[-1]
+    strategy = Decimal(values["strategyTerminalWealth"])
+    passive = Decimal(values["benchmarkTerminalWealth"])
+    difference = Decimal(values["terminalWealthDifference"])
+    if strategy - passive != difference:
+        raise ValueError("economic result identity is inconsistent")
+    fmt = lambda x: f"{x:,.2f}"  # Presentation-only; computations remain in Portfolio.
+    return "\n".join([
+        "# Finance 冻结研究｜部分未来价格观察（非投资建议）",
+        "",
+        f"观察日期：{sessions[0]} 至 {end}；有效收益期间：{report['returnPeriods']}。",
+        "冻结方案：60% SPY / 40% SHY；对照：100% SPY。假设初始本金：USD 100,000，无追加投入。",
+        "已计入方案原定年化费用情景：组合 0.2%，SPY 基准 0.1%，按 252 个期间分摊。",
+        f"- 组合期末描述性净值：USD {fmt(strategy)}",
+        f"- SPY 基准期末描述性净值：USD {fmt(passive)}",
+        f"- 相对基准的终值差额：USD {fmt(difference)}",
+        "",
+        "**证据限定：这只是 2026-11-13 才捕获的 Cboe 历史收盘价代理，不是冻结研究复权口径的合格复现。**",
+        "来源权利、历史 PIT、分红拆股、真实交易成本、完整留出期与统计 Alpha 均未认证；风险预算未评估。",
+        "2027-03-31 前的完整未来样本尚未结束。无任何实盘金融写入权限。",
+        f"原研究冻结标识：{report['frozenPlanDigest']}",
+        "",
+    ])
+
+
 def main() -> int:
     cli = argparse.ArgumentParser(description="Frozen forward SPY/SHY observation, non-live/private")
     cli.add_argument("--frozen", type=Path, required=True)
     cli.add_argument("--policy", type=Path, required=True)
     cli.add_argument("--through", required=True)
     cli.add_argument("--private-output", type=Path, required=True)
+    cli.add_argument("--format", choices=("json", "markdown"), default="json")
     a = cli.parse_args()
     from openbb import obb  # Official mature provider; pinned only in native R3 environment.
 
@@ -166,7 +204,8 @@ def main() -> int:
         received = datetime.now(UTC)
         return str(result.provider), result.to_dataframe(), requested, received
 
-    print(json.dumps(observe(a.frozen, a.policy, a.through, a.private_output, fetch), sort_keys=True))
+    result = observe(a.frozen, a.policy, a.through, a.private_output, fetch)
+    print(format_partial_forward_markdown(result) if a.format == "markdown" else json.dumps(result, sort_keys=True))
     return 0
 
 

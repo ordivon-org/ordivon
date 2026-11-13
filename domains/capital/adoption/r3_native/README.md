@@ -133,3 +133,7 @@ Source raw-wire bytes and independently signed publisher timestamps are
 not present; historic and prospective claims remain UNKNOWN. Keep the
 vendor CSV private; do not commit it or put it in a Host message. Use
 the existing `finance-experiment-review` Skill for any later review.
+
+For a concise Human research status, pass `--format markdown` to the same
+CLI. It renders the exact existing Portfolio comparison with mandatory data
+and risk unknowns; it is not an additional pricing, accounting or risk engine.
