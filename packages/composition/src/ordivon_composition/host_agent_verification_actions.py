@@ -74,13 +74,8 @@ def project_host_agent_verification_actions(
     previous_graph: dict[str, Any] | None = None,
     proof_refs_by_obligation: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Create the next Agent plan, without running a verifier or writing Host.
-
-    This function does NOT accept a caller-supplied impact decision. It derives
-    it with the existing Composition selector. Even a complete caller graph
-    yields only REUSE_CANDIDATE; Owner provenance/currentness are NOT certified.
-    """
-    work_ref, revision, snapshot, can_commit = _require_host_work(work)
+    """Select proof impact from the existing task-local graph, then plan actions."""
+    selection_inputs = impact_graph
     if not isinstance(impact_graph, dict) or set(impact_graph) != {
         "authorityRefs",
         "obligations",
@@ -88,12 +83,25 @@ def project_host_agent_verification_actions(
         raise CircuitContractError("impact_graph needs exact existing Composition graph fields")
 
     selection = select_impacted_obligations(
-        authority_refs=impact_graph["authorityRefs"],
-        obligations=impact_graph["obligations"],
+        authority_refs=selection_inputs["authorityRefs"],
+        obligations=selection_inputs["obligations"],
         changed_refs=changed_refs,
         unknown_refs=unknown_refs,
         previous_graph=previous_graph,
     )
+    return _project_selected_host_actions(
+        work=work, selection=selection, proof_refs_by_obligation=proof_refs_by_obligation
+    )
+
+
+def _project_selected_host_actions(
+    *,
+    work: dict[str, Any],
+    selection: dict[str, Any],
+    proof_refs_by_obligation: dict[str, str] | None,
+) -> dict[str, Any]:
+    """Render Agent Work actions from an existing Composition impact selection."""
+    work_ref, revision, snapshot, can_commit = _require_host_work(work)
     prior_refs = proof_refs_by_obligation if proof_refs_by_obligation is not None else {}
     ids = {row["id"] for row in selection["standingByObligation"]}
     if not isinstance(prior_refs, dict) or any(
@@ -194,3 +202,43 @@ def project_host_agent_verification_actions(
             "No external, installed, Artifact, Security or domain completion authority is granted.",
         ],
     }
+
+
+def project_host_agent_source_readset_actions(
+    *,
+    work: dict[str, Any],
+    git_source_delta: dict[str, Any],
+    source_readset_evidence: dict[str, Any],
+    proof_refs_by_obligation: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Direct natural Git/readset -> C04 selection -> Agent Work action bridge.
+
+    Git delta provenance MUST be requalified with the existing native Git
+    producer before an external request is used (the CLI performs that).
+    Caller-supplied Owner readset completeness and original proof receipt
+    remain independently UNQUALIFIED.
+    """
+    from .verification_impact import select_source_readset_impacts
+
+    source_impact = select_source_readset_impacts(
+        git_source_delta=git_source_delta,
+        source_readset_evidence=source_readset_evidence,
+    )
+    result = _project_selected_host_actions(
+        work=work,
+        selection=source_impact["selection"],
+        proof_refs_by_obligation=proof_refs_by_obligation,
+    )
+    result["sourceReadsetScope"] = {
+        "sourceCut": source_impact["sourceCut"],
+        "queryPrefix": source_impact["queryPrefix"],
+        "sourceScopeRef": source_impact["sourceScopeRef"],
+        "readsetDependencyQualification": source_impact["readsetDependencyQualification"],
+        "sourceReadsetProjectionDigest": source_impact["projectionDigest"],
+        "nativeGitRequalifiedByPureFunction": False,
+        "ownerCertifiedReadsetClosure": False,
+    }
+    result["nonClaims"].append(
+        "Native Git source requalification belongs to the CLI/owner, not a caller-authored JSON envelope."
+    )
+    return result

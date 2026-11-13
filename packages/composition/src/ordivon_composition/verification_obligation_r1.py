@@ -27,7 +27,10 @@ from .cognitive_circuit_r1 import (
     canonical_digest,
     compile_manifest,
 )
-from .host_agent_verification_actions import project_host_agent_verification_actions
+from .host_agent_verification_actions import (
+    project_host_agent_source_readset_actions,
+    project_host_agent_verification_actions,
+)
 from .verification_impact import (
     _cyclic_proof_members as _cyclic_proof_members,
 )
@@ -634,6 +637,15 @@ def _parser() -> argparse.ArgumentParser:
     agent_parser.add_argument("--previous-graph", type=Path)
     agent_parser.add_argument("--proof-refs", type=Path)
 
+    # Source owner Git membership is requalified by the existing trusted
+    # provider. Owner readset completeness remains a separate obligation.
+    agent_source_parser = sub.add_parser("agent-host-source-actions")
+    agent_source_parser.add_argument("host_work", type=Path)
+    agent_source_parser.add_argument("git_source_delta", type=Path)
+    agent_source_parser.add_argument("source_readset_evidence", type=Path)
+    agent_source_parser.add_argument("--repo", type=Path, required=True)
+    agent_source_parser.add_argument("--proof-refs", type=Path)
+
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
@@ -700,6 +712,29 @@ def main() -> int:
                 previous_graph=(_load_json(args.previous_graph) if args.previous_graph else None),
                 proof_refs_by_obligation=(_load_json(args.proof_refs) if args.proof_refs else None),
             )
+        elif args.command == "agent-host-source-actions":
+            git_delta = _requalify_git_source_delta(
+                args.repo,
+                _load_json(
+                    args.git_source_delta,
+                    git_byte_path_fields=frozenset(
+                        {"addedPaths", "removedPaths", "changedValuePaths"}
+                    ),
+                ),
+            )
+            readset = _load_json(
+                args.source_readset_evidence,
+                git_byte_path_fields=frozenset({"sourcePaths"}),
+            )
+            result = project_host_agent_source_readset_actions(
+                work=_load_json(args.host_work),
+                git_source_delta=git_delta,
+                source_readset_evidence=readset,
+                proof_refs_by_obligation=(_load_json(args.proof_refs) if args.proof_refs else None),
+            )
+            # The Git scope is owner-recomputed in this command; the Owner's
+            # *readset* and historical verifier receipt are still unqualified.
+            result["sourceReadsetScope"]["nativeGitRequalifiedByCLI"] = True
         elif args.command == "impact-observations":
             # Natural owners still own the observations and physical receipts.
             # This is a task-local, non-executing source-to-proof adapter.

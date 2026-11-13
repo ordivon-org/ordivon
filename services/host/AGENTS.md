@@ -24,8 +24,11 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 The repeated Rust/PG18/Gateway regressions are **not** automatic Agent work.
 Check the existing Host Work.current `established` / `unresolved` /
 `referenceRefs` first, then use Composition's existing C04
-`select_impacted_obligations` (via the read-only `agent-host-actions`
-CLI) to determine affected obligations. Unchanged inputs generate **existing
+`select_impacted_obligations` (via read-only `agent-host-actions`
+CLI), or the **native Git/readset route** `agent-host-source-actions` when
+Git owns the immutable scoped path delta; the latter re-queries the actual
+Git SourceCut rather than trusting a caller's changedRefs JSON. Both routes
+use C04's **same** selector and Agent action renderer. Unchanged inputs generate **existing
 Owner-proof lookup**, unknown dependencies generate **qualification**, and
 actual changed dependencies generate **only scoped recheck candidates**.
 The projection may propose an eight-field legacy `work.snapshot.commit`

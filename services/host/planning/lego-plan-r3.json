@@ -233,14 +233,14 @@
         "K02",
         "P02"
       ],
-      "status": "SOURCE_ONLY_TASK_LOCAL_COMPOSITION_BRIDGE_NOT_INSTALLED",
+      "status": "SOURCE_ONLY_NATIVE_GIT_REQUALIFIED_DIRECT_CONSUMER_CLI_NOT_INSTALLED",
       "contract": {
-        "I": "Typed Host work.get current response + Composition proof graph + owner-queried changed/unknown refs + optional prior Work proof references and graph",
-        "O": "Per-obligation RECHECK_NAMED_CONSUMER/QUALIFY_DEPENDENCIES_NOT_RERUN/READ_EXISTING_OWNER_PROOF/LOCATE_PRIOR_OWNER_PROOF, summary, optional legacy WorkSnapshot CAS proposal",
+        "I": "Current Host work.get response, native Git source membership delta (CLI requalified against real Git), Owner positive source readset statement OR existing generic Composition proof graph, optional prior Work proof references",
+        "O": "Per-obligation bounded recheck/qualify/Owner-proof lookup decision; sourceReadsetScope requalification metadata on Git path; optional current Work legacy CAS snapshot proposal, never verifier pass",
         "S": "No new persistence; Host owns current WorkSnapshot, Git owns SourceCut, each natural Owner owns verifier receipts and live evidence; task-local Composition projection is rebuildable",
-        "pre": "Exact WorkRef/revision/current snapshot and valid task-local graph; evidence refs must already be in Work; dependency completeness and owner proof currentness remain UNQUALIFIED by this adapter",
+        "pre": "Native Git reporter and CLI recomputation bind exact SourceCut and scoped path members; Owner source readset completeness is caller-declared and NOT certified; old verifier receipt and currentness separate",
         "post": "Only impacted obligations become recheck proposals, unindexed/unknown sources become qualification requests, unaffected candidates trigger prior-proof read rather than rerun; Host established/unresolved/referenceRefs unchanged",
-        "inv": "REUSE_CANDIDATE is never VERIFIED; UNKNOWN is never FALSE; no automatic verifier execution; nextActions are stable under replay; Rust Engagement/terminal Work never receives legacy CAS proposal",
+        "inv": "REUSE_CANDIDATE is never VERIFIED; UNKNOWN is never FALSE; no automatic verifier execution; nextActions are stable under replay; Rust Engagement/terminal Work never receives legacy CAS proposal; Direct Git source route and manual graph route use exactly one C04 selection family and one Agent action renderer; changedRefs report cannot bypass native Git CLI requalification",
         "eff": "None. Read-only analysis and pure optional proposed legacy WorkSnapshot. Any Host CAS, Runtime execution or real Owner proof admission is a separate consumer-authorized effect",
         "c": "O(V+E) existing Composition impact fixed-point plus O(Host nextActions); installed Agent latency and tokens UNKNOWN",
         "epsilon": "UNKNOWN(reason=owner proof authenticity, dynamic/negative dependency closure, installed currentness and live policy not qualified; obligation=separate native Owner readback before claiming VERIFIED)",
@@ -249,13 +249,15 @@
           "packages/composition/src/ordivon_composition/host_agent_verification_actions.py",
           "packages/composition/tests/test_host_agent_verification_actions.py",
           "packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md",
-          "services/host/src/ordivon_host_v2/work_inputs.py"
+          "services/host/src/ordivon_host_v2/work_inputs.py",
+          "tools/repo/source_history_legos.py",
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
         ],
-        "unfold": "Agent Host work.get → natural Owner source/readset and proof receipts → existing Composition C04 impact selector → new pure bounded Agent action view → optional Host work.snapshot.commit expectedRevision → next Agent work.get"
+        "unfold": "Agent Host work.get → native Git Owner source_history_legos immutable delta + natural Owner readset → existing Composition readset bridge / C04 impacted selector → shared Agent action renderer → optional Host work.snapshot.commit under separate CAS authorization → next Agent Work current read"
       },
       "evidence": {
-        "tier": "SOURCE_ONLY_PURE_TESTED",
-        "completionClaim": "Selected impacted and unknown actions are derived from existing Composition algorithm; no claim of Owner proof reuse currentness, Host production commit or installed Gateway exposure",
+        "tier": "SOURCE_NATIVE_GIT_IMMUTABLE_DELTA_REQUALIFIED_TARGETED_CLI_TESTED",
+        "completionClaim": "Direct actual Git SourceCut/readset→Agent Work action CLI and anti-forgery tested, previous R1 graph path preserved; Owner proof acceptance, real Host CAS and installed Gateway consumers not established",
         "installedCurrentness": "UNKNOWN",
         "ownerCertifiedDependencyClosure": "UNKNOWN",
         "automaticRerun": "NEVER"

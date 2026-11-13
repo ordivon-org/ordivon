@@ -178,7 +178,8 @@
       ],
       "behavioralContract": "Real changed paths/declared negative dependencies must not disappear from effective inputs; cyclic/unknown dependencies fail closed and candidate reuse is never final proof admissibility.",
       "acceptance": [
-        "Existing graph/impact tests check unindexed source, dynamic edges, relation membership, cycles and independent impact oracle."
+        "Existing graph/impact tests check unindexed source, dynamic edges, relation membership, cycles and independent impact oracle.",
+        "Host Agent R2 focused suite asserts native Git delta anti-forgery, scoped recheck, unchanged prior evidence lookup and missing dependency UNKNOWN; no old PG18 verifier rerun."
       ],
       "evidence": [
         "src/ordivon_composition/verification_obligation_r1.py",
@@ -210,8 +211,8 @@
         },
         {
           "path": "packages/composition/src/ordivon_composition/host_agent_verification_actions.py",
-          "operation": "project_host_agent_verification_actions calls existing select_impacted_obligations and maps its typed statuses into bounded Agent/Host current snapshot actions; never a second proof algorithm",
-          "standing": "SOURCE_PURE_CODE_AND_CLI_TARGETED_TEST; OWNER_PROOF_AND_INSTALLED_CONSUMPTION_UNKNOWN"
+          "operation": "Agent Work task-local adapter reuses select_impacted_obligations OR existing select_source_readset_impacts after native Git query requalification; both share one action renderer, no second dependency selector or proof authority",
+          "standing": "SOURCE_CLI_NATIVE_GIT_REQUALIFIED_WITH_TARGETED_REAL_GIT_TEST; OWNER_READSET_CLOSURE_AND_INSTALLED_AGENT_USE_UNKNOWN"
         }
       ],
       "formalObligations": [

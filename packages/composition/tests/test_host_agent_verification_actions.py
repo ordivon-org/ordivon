@@ -14,6 +14,7 @@ import pytest
 
 from ordivon_composition.cognitive_circuit_r1 import CircuitContractError
 from ordivon_composition.host_agent_verification_actions import (
+    project_host_agent_source_readset_actions,
     project_host_agent_verification_actions,
 )
 
@@ -207,3 +208,192 @@ def test_real_existing_composition_cli_is_agent_consumable(tmp_path):
     assert projection["workRef"] == "work:test:agent-knowledge"
     assert projection["summary"]["scopedRecheckCandidates"] == 2
     assert projection["kind"] == "ordivon.agent-host-verification-action-projection"
+
+
+def source_readset_fixture(*, complete_other: bool = True):
+    scope = "git:repo:" + "1" * 64
+    prev, curr = "b" * 40, "a" * 40
+    changed = scope + ":path:owner/a.py"
+    unchanged = scope + ":path:owner/b.py"
+    delta = {
+        "kind": "ordivon.git-source-membership-delta",
+        "truthRole": "exact-git-source-delta-no-proof-acceptance",
+        "queryPrefix": "owner/",
+        "sourceScopeRef": scope,
+        "sourceCuts": {"previous": prev, "current": curr},
+        "authorityRefs": [changed, unchanged],
+        "changedRefs": [changed],
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+    }
+    readset = {
+        "kind": "ordivon.source-readset-evidence",
+        "truthRole": "owner-positive-source-readsets-not-acceptance",
+        "sourceCut": curr,
+        "scopePrefix": "owner/",
+        "items": [
+            {"id": "proof:cas", "sourcePaths": ["owner/a.py"], "dependenciesComplete": True},
+            {
+                "id": "proof:topic",
+                "sourcePaths": ["owner/b.py"],
+                "dependenciesComplete": complete_other,
+            },
+        ],
+        "dependencyQualification": "CALLER_DECLARED_POSITIVE_READSETS",
+        "proofReuseAdmissible": False,
+    }
+    return delta, readset
+
+
+def test_direct_git_readset_to_host_agent_actions_reuses_original_selector():
+    git_delta, readsets = source_readset_fixture()
+    got = project_host_agent_source_readset_actions(
+        work=work_fixture(),
+        git_source_delta=git_delta,
+        source_readset_evidence=readsets,
+        proof_refs_by_obligation={"proof:topic": "evidence:topic:prior-pass:1"},
+    )
+    records = {item["obligationId"]: item for item in got["actions"]}
+    assert records["proof:cas"]["agentDecision"] == "RECHECK_NAMED_CONSUMER"
+    assert records["proof:topic"]["agentDecision"] == "READ_EXISTING_OWNER_PROOF"
+    assert got["summary"]["scopedRecheckCandidates"] == 1
+    assert got["summary"]["reusedOrLocatedExistingEvidence"] == 1
+    assert got["sourceReadsetScope"]["sourceCut"] == git_delta["sourceCuts"]["current"]
+    assert got["sourceReadsetScope"]["nativeGitRequalifiedByPureFunction"] is False
+    assert got["sourceReadsetScope"]["ownerCertifiedReadsetClosure"] is False
+    assert got["proposedWorkSnapshot"]["established"] == work_fixture()["snapshot"]["established"]
+    assert not any(item["proofVerifiedByProjection"] for item in records.values())
+
+
+def test_incomplete_unaffected_readset_is_unknown_without_full_rerun():
+    delta, evidence = source_readset_fixture(complete_other=False)
+    r = project_host_agent_source_readset_actions(
+        work=work_fixture(), git_source_delta=delta, source_readset_evidence=evidence
+    )
+    rows = {i["obligationId"]: i for i in r["actions"]}
+    assert rows["proof:cas"]["agentDecision"] == "RECHECK_NAMED_CONSUMER"
+    assert rows["proof:topic"]["agentDecision"] == "QUALIFY_DEPENDENCIES_NOT_RERUN"
+    assert r["summary"]["wholeSuiteRecheckRequested"] is False
+
+
+def test_source_cut_scope_or_proof_ref_forgery_refused():
+    delta, readsets = source_readset_fixture()
+    readsets["sourceCut"] = "c" * 40
+    with pytest.raises(CircuitContractError):
+        project_host_agent_source_readset_actions(
+            work=work_fixture(), git_source_delta=delta, source_readset_evidence=readsets
+        )
+    readsets["sourceCut"] = delta["sourceCuts"]["current"]
+    with pytest.raises(CircuitContractError):
+        project_host_agent_source_readset_actions(
+            work=work_fixture(),
+            git_source_delta=delta,
+            source_readset_evidence=readsets,
+            proof_refs_by_obligation={"proof:topic": "evidence:forged:new"},
+        )
+
+
+def test_native_git_owner_cli_to_agent_current_work_readset_and_negative(tmp_path):
+    """Only a real source delta from the existing Git producer gets CLI requalification."""
+    from pathlib import Path
+
+    repo = tmp_path / "git-owner"
+    repo.mkdir()
+    upstream = Path(__file__).resolve().parents[3]
+
+    def git(*args: str):
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Readset Test")
+    git("config", "user.email", "readsets@example.invalid")
+    (repo / "owner").mkdir()
+    (repo / "owner" / "a.py").write_text("v1\n", encoding="utf-8")
+    (repo / "owner" / "b.py").write_text("stable\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    old = git("rev-parse", "HEAD")
+    (repo / "owner" / "a.py").write_text("v2\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "change only a")
+    current = git("rev-parse", "HEAD")
+    native = subprocess.run(
+        [
+            sys.executable,
+            str(upstream / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(repo),
+            "--left",
+            old,
+            "--right",
+            current,
+            "--impact-prefix",
+            "owner/",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    delta = json.loads(native.stdout)
+    work, diff, evidence, proof_refs = [
+        tmp_path / name
+        for name in ("work.json", "git-delta.json", "readsets.json", "proof-refs.json")
+    ]
+    work.write_text(json.dumps(work_fixture()), encoding="utf-8")
+    diff.write_text(json.dumps(delta), encoding="utf-8")
+    original = {
+        "kind": "ordivon.source-readset-evidence",
+        "truthRole": "test-owner-positive-source-readsets",
+        "sourceCut": current,
+        "scopePrefix": "owner/",
+        "items": [
+            {"id": "proof:cas", "sourcePaths": ["owner/a.py"], "dependenciesComplete": True},
+            {"id": "proof:topic", "sourcePaths": ["owner/b.py"], "dependenciesComplete": True},
+        ],
+        "dependencyQualification": "TEST_OWNER_DECLARED_POSITIVE_ONLY",
+        "proofReuseAdmissible": False,
+    }
+    evidence.write_text(json.dumps(original), encoding="utf-8")
+    proof_refs.write_text(
+        json.dumps({"proof:topic": "evidence:topic:prior-pass:1"}), encoding="utf-8"
+    )
+    cmd = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "agent-host-source-actions",
+        str(work),
+        str(diff),
+        str(evidence),
+        "--repo",
+        str(repo),
+        "--proof-refs",
+        str(proof_refs),
+    ]
+    ok = subprocess.run(cmd, text=True, capture_output=True, timeout=30)
+    assert ok.returncode == 0, ok.stderr
+    result = json.loads(ok.stdout)
+    assert result["sourceReadsetScope"]["sourceCut"] == current
+    assert result["sourceReadsetScope"]["nativeGitRequalifiedByCLI"] is True
+    assert result["sourceReadsetScope"]["ownerCertifiedReadsetClosure"] is False
+    assert result["summary"]["scopedRecheckCandidates"] == 1
+    assert result["summary"]["reusedOrLocatedExistingEvidence"] == 1
+    assert result["summary"]["wholeSuiteRecheckRequested"] is False
+
+    # An attacker cannot edit the Git report and still claim it was produced by
+    # the native Git authority; the CLI independently reproduces the delta.
+    forged = dict(delta)
+    forged["changedRefs"] = []
+    diff.write_text(json.dumps(forged), encoding="utf-8")
+    denied = subprocess.run(cmd, text=True, capture_output=True, timeout=30)
+    assert denied.returncode != 0
+    assert "Git report differs" in denied.stderr
+
+    diff.write_text(native.stdout, encoding="utf-8")
+    forged_readset = dict(original)
+    forged_readset["sourceCut"] = old
+    evidence.write_text(json.dumps(forged_readset), encoding="utf-8")
+    denied = subprocess.run(cmd, text=True, capture_output=True, timeout=30)
+    assert denied.returncode != 0
+    assert "exact current Git scope" in denied.stderr

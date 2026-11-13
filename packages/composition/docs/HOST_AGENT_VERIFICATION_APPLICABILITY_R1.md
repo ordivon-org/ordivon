@@ -19,7 +19,7 @@ The existing Composition C04 selector already computes:
 \`RECHECK_REQUIRED / UNKNOWN / REUSE_CANDIDATE\`.
 Do **not** create a competing invalidation engine.
 
-## R1 Agent read-only bridge
+## R1 Agent read-only bridge (still supported)
 
 \`project_host_agent_verification_actions\` accepts the current native Host
 \`work.get\` response, the exact **task-local** Composition proof graph, a
@@ -49,6 +49,51 @@ The caller may, *separately*, supply the proposed snapshot to the existing
 clientRequestId. This bridge does not write any Host state and never builds a
 second durable proof store. Terminal Works, Rust Engagement snapshots and
 unrepresentable legacy shapes get **no** commit proposal.
+
+### R2: native Git source/readset → Agent action (no hand-built middle graph)
+
+The existing Git source authority `tools/repo/source_history_legos.py` can
+produce an immutable two-SourceCut, path-scoped `git-source-membership-delta`.
+Composition already has `select_source_readset_impacts`; it cross-checks
+a positive Owner source readset against that delta, then delegates to the
+original C04 three-valued worklist. The **R2 connection does not invent or
+reimplement proof graph propagation**.
+
+`project_host_agent_source_readset_actions` directly accepts the native Git
+delta and the Owner readset statement, reuses the exact C04 selection and
+converts it to the **same** Agent action format as R1. The public CLI also
+reexecutes the already-existing `_requalify_git_source_delta` native Git
+query first, rejecting a forged changedRefs set, invalid SourceCut or altered
+scoped Git membership. The optional `--proof-refs` must still address only
+references already in current Host Work.
+
+```bash
+# First obtain the delta from the existing Git owner, with exact immutable
+# source cuts and the smallest consumer-relevant --impact-prefix.
+python tools/repo/source_history_legos.py \
+  --repo /path/to/repo --left PREVIOUS_COMMIT --right CURRENT_COMMIT \
+  --impact-prefix packages/composition/ > /path/to/git-delta.json
+
+# Owner's readset statement is separate and may remain unqualified.
+cd packages/composition
+uv run python -m ordivon_composition.verification_obligation_r1 \
+  agent-host-source-actions /path/to/host-work-get.json \
+  /path/to/git-delta.json /path/to/owner-readset.json \
+  --repo /path/to/repo --proof-refs /path/to/existing-proof-refs.json
+```
+
+Output includes the precise `sourceReadsetScope` (SourceCut, scoped Git
+authority, native Git requalification via the **CLI**), and explicitly says
+`ownerCertifiedReadsetClosure=false`. Native Git proves **which committed
+paths differ**, not whether all dynamic/env/negative prerequisites were
+observed or whether a historical verifier PASS is still valid. No current
+Security Grant or external Runtime effect can be certified by this tool.
+
+The original `agent-host-actions` graph mode remains available for non-Git
+changes and typed environment/effect observations. R2 shares its one
+renderer: it is a **second input route**, not a second algorithm or state
+store. The previous 9 targeted R1 tests are retained; only four new
+R2 scenarios (including actual Git CLI and tampered source) are added.
 
 ### Existing CLI
 
