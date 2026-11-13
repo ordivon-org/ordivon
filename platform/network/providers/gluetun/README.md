@@ -160,8 +160,10 @@ VPN failure.
 ### Recovery decision and partial failures
 
 The production fast gate consumes **existing Prometheus data**; it checks
-unique Claude, Codex and PyPI series, three distinct aligned evaluation
-timestamps, and a recent last sample. A monitored endpoint may return
+unique Claude, Codex and PyPI series, three distinct aligned **raw
+scrape timestamps** from the native Prometheus `/api/v1/query` range-vector
+API (not interpolation from `/api/v1/query_range`), and a recent last
+sample. A monitored endpoint may return
 HTTP 401/404 successfully at the transport layer; these are deliberately
 not a provider failure. Monitor silence or conflicting series => UNKNOWN
 and no VPN mutation. Only sustained correlated 3-lane failures proceed.
