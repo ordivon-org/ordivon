@@ -9,6 +9,18 @@ This is an optional mise tool group; normal repo:ci does not download
 the large proof systems. No new mathematical kernel, graph authority,
 package manager or agent is created.
 
+For read-only incremental input impact before contemplating another
+expensive Formal run, use the already deployed repository source
+consumer in tools/repo/evidence_validity.py with --current-sha,
+--prior-sha and --formal-source-delta. It compares this runner's
+historical SOURCE_FILES declarations and Git mode/blob identities;
+it DOES NOT run Lean/Z3, certify the current binary toolchain,
+replay a proof or grant proofReuseAdmissible. The native formal:verify
+producer already emits the required original proof probes, source
+blobs, binaries and observed resources, and GitHub CI validates those
+receipts; retain that owner evidence. No new proof database or
+shadow tool runner is necessary for source-only delta questions.
+
 Lean 4: kernel-checked relational/refinement lemmas. The Media native-processing
 admission model is also proved by this existing runner and binds its current
 Python producer to the Git source cut. This DOES NOT prove the producer's

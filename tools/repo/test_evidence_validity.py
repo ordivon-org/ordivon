@@ -359,3 +359,153 @@ def test_existing_nonpass_never_needs_older_provider_lookup():
     )
     assert result["disposition"] == "OBSERVE_EXISTING_RUN"
     assert github.calls == 1
+
+
+def test_formal_source_delta_unchanged_despite_unrelated_source_change(monkeypatch):
+    declaration = "SOURCE_FILES = ('tools/formal/verify.py', 'a/source.lean')"
+    monkeypatch.setattr(module, "git_native", lambda repo, *args: declaration)
+    tree = {
+        "tools/formal/verify.py": "100644:blob:" + "1" * 40,
+        "a/source.lean": "100644:blob:" + "2" * 40,
+    }
+    monkeypatch.setattr(module, "current_tree", lambda repo, sha: dict(tree))
+    result = module.declared_formal_source_delta(
+        repo=Path("/unused"),
+        prior_sha=PREVIOUS,
+        current_sha=CURRENT,
+    )
+    assert result["standing"] == "UNCHANGED_DECLARED_SOURCE_INPUTS"
+    assert result["declaredSourceReadsetComparisonComplete"]
+    assert result["changedDeclaredPaths"] == []
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_formal_source_delta_exact_change_and_declaration_change(monkeypatch):
+    old_declaration = "SOURCE_FILES = ('tools/formal/verify.py', 'a/source.lean')"
+    new_declaration = (
+        "SOURCE_FILES = ('tools/formal/verify.py', 'a/source.lean', 'new/model.lean')"
+    )
+    monkeypatch.setattr(
+        module,
+        "git_native",
+        lambda repo, *args: old_declaration if PREVIOUS in args[1] else new_declaration,
+    )
+
+    def tree(repo, sha):
+        if sha == PREVIOUS:
+            return {
+                "tools/formal/verify.py": "100644:blob:" + "1" * 40,
+                "a/source.lean": "100644:blob:" + "2" * 40,
+                "new/model.lean": "100644:blob:" + "3" * 40,
+            }
+        return {
+            "tools/formal/verify.py": "100644:blob:" + "9" * 40,
+            "a/source.lean": "100644:blob:" + "4" * 40,
+            "new/model.lean": "100644:blob:" + "3" * 40,
+        }
+
+    monkeypatch.setattr(module, "current_tree", tree)
+    result = module.declared_formal_source_delta(
+        repo=Path("/unused"),
+        prior_sha=PREVIOUS,
+        current_sha=CURRENT,
+    )
+    assert result["standing"] == "CHANGED_DECLARED_SOURCE_INPUTS"
+    assert result["declarationChanged"]
+    assert result["changedDeclaredPaths"] == ["a/source.lean", "tools/formal/verify.py"]
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_formal_declaration_refuses_arbitrary_dynamic_code(monkeypatch):
+    monkeypatch.setattr(
+        module,
+        "git_native",
+        lambda repo, *args: "SOURCE_FILES = tuple(__import__('os').listdir('/'))",
+    )
+    with pytest.raises(ValueError, match="literal"):
+        module._formal_declared_files(Path("/unused"), PREVIOUS)
+
+
+def test_formal_readset_refuses_nonregular_git_object(monkeypatch):
+    monkeypatch.setattr(
+        module,
+        "git_native",
+        lambda repo, *args: "SOURCE_FILES = ('tools/formal/verify.py',)",
+    )
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {"tools/formal/verify.py": "120000:blob:" + "1" * 40},
+    )
+    with pytest.raises(ValueError, match="non-regular"):
+        module.declared_formal_source_delta(
+            repo=Path("/unused"),
+            prior_sha=PREVIOUS,
+            current_sha=CURRENT,
+        )
+
+
+def test_formal_readset_requires_native_ancestry(monkeypatch):
+    monkeypatch.setattr(
+        module,
+        "require_ancestral_source_cuts",
+        Mock(side_effect=ValueError("sibling tip")),
+    )
+    with pytest.raises(ValueError, match="sibling"):
+        module.declared_formal_source_delta(
+            repo=Path("/unused"),
+            prior_sha=PREVIOUS,
+            current_sha=CURRENT,
+        )
+
+
+def test_failed_formal_delta_cannot_erase_successful_github_receipt(monkeypatch):
+    monkeypatch.setattr(
+        module,
+        "declared_formal_source_delta",
+        Mock(side_effect=ValueError("unqualified unrelated git input")),
+    )
+    result = module.decide_with_optional_formal_source_delta(
+        repo=module.DEFAULT_REPOSITORY,
+        current_sha=CURRENT,
+        prior_sha=PREVIOUS,
+        check_name="root-verification",
+        include_formal_source_delta=True,
+        github=provider(dict(GOOD)),
+    )
+    assert result["disposition"] == "REUSE_CURRENT_RECEIPT"
+    assert result["existingCheckReceiptReusable"] is True
+    assert (
+        result["formalDeclaredSourceDelta"]["standing"]
+        == "UNKNOWN_DECLARED_SOURCE_INPUTS"
+    )
+    assert result["formalDeclaredSourceDelta"]["proofReuseAdmissible"] is False
+
+
+def test_newly_declared_formal_file_is_affected_not_unqualified(monkeypatch):
+    old = "SOURCE_FILES = ('tools/formal/verify.py',)"
+    new = "SOURCE_FILES = ('tools/formal/verify.py', 'new/proof.lean')"
+    monkeypatch.setattr(
+        module,
+        "git_native",
+        lambda repo, *args: old if PREVIOUS in args[1] else new,
+    )
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {
+            "tools/formal/verify.py": "100644:blob:"
+            + ("1" * 40 if sha == PREVIOUS else "2" * 40),
+            **(
+                {} if sha == PREVIOUS else {"new/proof.lean": "100644:blob:" + "3" * 40}
+            ),
+        },
+    )
+    result = module.declared_formal_source_delta(
+        repo=Path("/unused"),
+        prior_sha=PREVIOUS,
+        current_sha=CURRENT,
+    )
+    assert result["standing"] == "CHANGED_DECLARED_SOURCE_INPUTS"
+    assert "new/proof.lean" in result["changedDeclaredPaths"]
+    assert result["proofReuseAdmissible"] is False

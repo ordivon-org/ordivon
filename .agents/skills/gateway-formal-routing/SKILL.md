@@ -36,6 +36,11 @@ source conformance -> real consumer -> installed candidate proof.
    plus existing native Owner source impact are reusable evidence inputs.
    existingCheckReceiptReusable is strictly same-SHA Check Run outcome;
    proofReuseAdmissible remains false for broader formal/external claims.
+   For specific Formal source-input impact, add --prior-sha
+   FULL_ANCESTOR_SHA --formal-source-delta to compare both historical
+   declared SOURCE_FILES sets and exact Git modes/blobs without executing
+   old Python or a proof. An unchanged declared input set does not close
+   solver/toolchain, dynamic environment or real consumer assumptions.
 
    Do NOT execute a verifier merely because another Agent turn began.
 2. Use the existing tools/repo/convergence_plan.py changed-source Owner

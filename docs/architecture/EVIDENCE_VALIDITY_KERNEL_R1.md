@@ -46,6 +46,60 @@ It does not initiate verification, dispatch CI, or mutate Host Work/Runtime.
   proofReuseAdmissible=false until real proof readset closure is
   independently established.
 
+## Native Formal declared source-readset consumer (R2)
+
+For a question about WHICH Formal source inputs changed (rather than
+whether a proof remains valid), opt in to the independent read-only
+source comparison:
+
+    python3 tools/repo/evidence_validity.py --current-sha FULL_CURRENT_SHA --prior-sha FULL_ANCESTOR_SHA --formal-source-delta
+
+The comparison reads the historical Formal producer's SOURCE_FILES
+declaration at BOTH immutable Git cuts using static Python AST parsing,
+never historical Python execution. It reuses the native Git ancestry
+and Git tree object-membership reader. Each file must be a regular Git
+blob where declared. Added/deleted proof files and modified mode/blob
+objects are genuine changes, not a guess from path names.
+
+The independent formalDeclaredSourceDelta is one of:
+- UNCHANGED_DECLARED_SOURCE_INPUTS: exact set and mode/blob identity;
+- CHANGED_DECLARED_SOURCE_INPUTS: declaration or member changed;
+- UNKNOWN_DECLARED_SOURCE_INPUTS: native source relationship or declaration
+  cannot be qualified.
+
+An unknown Formal delta must not erase an independently qualified
+GitHub Check Run PASS. The field declaredSourceReadsetComparisonComplete
+means ONLY declared Git input equality, not closed proof/toolchain
+dependencies. proofReuseAdmissible stays false in ALL branches.
+
+Real Git observations (no solver/verification Job):
+- two adjacent general-code commits: 36/36 declared Formal Git path
+  mode/blob pairs unchanged; source readset Green.
+- a genuine historical Formal verifier change: the declared input
+  set expanded from 33 to 36 members and two tracked Git member
+  identities changed; source readset Red.
+Neither source comparison claims a prior formal result can be
+reused without its original trusted execution/tool/environment receipt.
+The existing Formal producer itself already emits sourceBlobs, toolBinaries,
+Alloy resources, observed Z3 ELF dependencies, and 21 proof probes with
+pre/post checking. Its CI consumer separately validates that exact
+receipt. Keep these natural producer and consumer capabilities; do not
+create a competing proof source.
+
+To qualify a prior formal proof across commits still requires the
+ORIGINAL trusted proof receipt, verifier/toolchain/resources, formal
+assumptions and real implementation/consumer readset closure. Static
+source comparison alone is NOT a proof-reuse grant.
+
+Harness consumer: Generic Harness Agent Run and Runtime ToolBridge
+carry nonverification work such as compilation, research experiments
+and browser actions. Do not string-match or silently skip generic
+workspace.exec actions based on this report. A verification-specific
+Caller-admitted exact Tool/Task scope and original evidence identity
+would be necessary for safe automated no-dispatch; it is not yet built.
+For now, this read-only query is source evidence for Agent cognition
+and scoped verification planning.
+
 ## Status contract
 
 | Disposition | Consequence |

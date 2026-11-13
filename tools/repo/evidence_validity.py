@@ -9,6 +9,7 @@ that that named check finished successfully at its exact Git commit.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 import subprocess
@@ -19,7 +20,8 @@ from urllib.parse import urlsplit
 
 import convergence_plan
 from ci_telemetry import Gh
-from source_history_legos import require_ancestral_source_cuts
+from source_history_legos import current_tree, require_ancestral_source_cuts
+from source_history_legos import git as git_native
 
 DEFAULT_REPOSITORY = "ordivon-org/ordivon"
 REPO_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
@@ -267,19 +269,156 @@ def decide(
     return result
 
 
+def _formal_declared_files(repo: Path, sha: str) -> tuple[str, ...]:
+    """Parse the historical native Formal SOURCE_FILES, never execute it."""
+    code = git_native(repo, "show", f"{sha}:tools/formal/verify.py")
+    source = ast.parse(code, filename=f"{sha}:tools/formal/verify.py")
+    declarations = [
+        stmt.value
+        for stmt in source.body
+        if isinstance(stmt, ast.Assign)
+        and len(stmt.targets) == 1
+        and isinstance(stmt.targets[0], ast.Name)
+        and stmt.targets[0].id == "SOURCE_FILES"
+    ]
+    if len(declarations) != 1:
+        raise ValueError("formal historical SOURCE_FILES is not uniquely declared")
+    try:
+        paths = ast.literal_eval(declarations[0])
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError) as exc:
+        raise ValueError(
+            "formal SOURCE_FILES is not a native literal declaration"
+        ) from exc
+    if (
+        not isinstance(paths, tuple)
+        or not 1 <= len(paths) <= 1000
+        or any(
+            not isinstance(path, str)
+            or not path
+            or path.startswith("/")
+            or ".." in Path(path).parts
+            or "\\" in path
+            for path in paths
+        )
+        or len(set(paths)) != len(paths)
+        or "tools/formal/verify.py" not in paths
+    ):
+        raise ValueError("formal SOURCE_FILES does not declare a safe bounded set")
+    return paths
+
+
+def declared_formal_source_delta(
+    *,
+    repo: Path,
+    prior_sha: str,
+    current_sha: str,
+) -> dict[str, Any]:
+    """Evidence about SOURCE_FILES Git members, NOT proof/toolchain reuse.
+
+    Reuse the existing Formal producer's literal declaration at BOTH
+    cuts, and the native immutable Git source-history membership query.
+    Dynamic tool/loader, environment and consumer closure stay UNKNOWN.
+    """
+    prior_sha = _exact_commit(prior_sha)
+    current_sha = _exact_commit(current_sha)
+    require_ancestral_source_cuts(repo, prior_sha, current_sha)
+    old = _formal_declared_files(repo, prior_sha)
+    new = _formal_declared_files(repo, current_sha)
+    prior_tree = current_tree(repo, prior_sha)
+    current = current_tree(repo, current_sha)
+    all_paths = sorted(set(old) | set(new))
+    if any(
+        not prior_tree.get(path, "").startswith(("100644:blob:", "100755:blob:"))
+        for path in old
+    ) or any(
+        not current.get(path, "").startswith(("100644:blob:", "100755:blob:"))
+        for path in new
+    ):
+        raise ValueError("formal declared readset has missing/non-regular Git members")
+    changed = [path for path in all_paths if prior_tree.get(path) != current.get(path)]
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.formal-declared-git-readset-delta",
+        "producer": "tools/formal/verify.py::SOURCE_FILES",
+        "sourceCuts": {"prior": prior_sha, "current": current_sha},
+        "standing": (
+            "UNCHANGED_DECLARED_SOURCE_INPUTS"
+            if not changed and old == new
+            else "CHANGED_DECLARED_SOURCE_INPUTS"
+        ),
+        "priorDeclaredPaths": len(old),
+        "currentDeclaredPaths": len(new),
+        "changedDeclaredPaths": changed,
+        "declarationChanged": old != new,
+        "declaredSourceReadsetComparisonComplete": True,
+        "proofReuseAdmissible": False,
+        "unresolved": [
+            "No verifier/toolchain dynamic input equivalence attested",
+            "No qualified previously executed proof receipt was consumed",
+            "No installed/physical consumer or environmental assumption equivalence",
+        ],
+    }
+
+
+def decide_with_optional_formal_source_delta(
+    *,
+    repo: str,
+    current_sha: str,
+    prior_sha: str | None,
+    check_name: str,
+    include_formal_source_delta: bool,
+    github: Gh | None = None,
+    git_repo: Path | None = None,
+) -> dict[str, Any]:
+    """A missing Formal readset cannot erase a qualified GitHub check fact."""
+    decision = decide(
+        repo=repo,
+        current_sha=current_sha,
+        prior_sha=prior_sha,
+        check_name=check_name,
+        github=github,
+    )
+    if not include_formal_source_delta:
+        return decision
+    if prior_sha is None:
+        raise ValueError("--formal-source-delta requires --prior-sha")
+    try:
+        decision["formalDeclaredSourceDelta"] = declared_formal_source_delta(
+            repo=git_repo or Path.cwd(),
+            prior_sha=prior_sha,
+            current_sha=current_sha,
+        )
+    except (ValueError, OSError, subprocess.CalledProcessError, SyntaxError) as exc:
+        decision["formalDeclaredSourceDelta"] = {
+            "schemaVersion": 1,
+            "kind": "ordivon.formal-declared-git-readset-delta",
+            "standing": "UNKNOWN_DECLARED_SOURCE_INPUTS",
+            "declaredSourceReadsetComparisonComplete": False,
+            "proofReuseAdmissible": False,
+            "errorType": type(exc).__name__,
+        }
+    return decision
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=DEFAULT_REPOSITORY)
     parser.add_argument("--current-sha", required=True)
     parser.add_argument("--prior-sha")
     parser.add_argument("--check-name", default="root-verification")
+    parser.add_argument(
+        "--formal-source-delta",
+        action="store_true",
+        help="also inspect the native Formal declared Git source-readset delta",
+    )
     args = parser.parse_args()
     try:
-        result = decide(
+        result = decide_with_optional_formal_source_delta(
             repo=args.repo,
             current_sha=args.current_sha,
             prior_sha=args.prior_sha,
             check_name=args.check_name,
+            include_formal_source_delta=args.formal_source_delta,
         )
     except (
         OSError,

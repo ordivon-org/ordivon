@@ -72,8 +72,13 @@ GitHub CLI and the bounded read-only native consumer first:
     python3 tools/repo/evidence_validity.py --current-sha FULL_SHA --check-name root-verification
 
 Add --prior-sha FULL_ANCESTOR_SHA only when the current check is absent and
-changed-source impact would change the decision. The check-receipt decision
-can reuse a same-SHA check outcome without replay. It never asserts formal
+changed-source impact would change the decision. For Formal Git input changes,
+add --formal-source-delta with two ancestral commits to compare the existing
+Formal producer's historical SOURCE_FILES modes/blobs without executing a
+proof. This is source input equivalence only; a toolchain/assumption/real
+consumer proof reuse or arbitrary Harness workspace.exec no-dispatch remains
+unqualified. The check-receipt decision can reuse a same-SHA check outcome
+without replay. It never asserts formal
 or installed proof reuse across Git commits. Do not create a second CI
 scheduler or run another verification Job after a same-SHA accepted receipt.
 
