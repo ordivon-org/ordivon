@@ -204,6 +204,103 @@ def test_native_fill_identity_cannot_be_forged_when_session_digest_is_updated(
         run_simulated_paper("never-connect", **bundle)
 
 
+def _mandate(root: Path, *, symbol: str = "SPY", portfolio_ref: str = "paper-lab-r3") -> Path:
+    request = {
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.portfolio.paper-simulation-mandate",
+        "portfolioRef": portfolio_ref,
+        "lane": "NON_LIVE",
+        "externalFinancialWritesAllowed": False,
+        "maxHorizonSessions": 20,
+        "allocationRequest": {
+            "schemaVersion": 1,
+            "kind": "ordivon.finance.portfolio.strategic-contribution-request",
+            "currency": "USD",
+            "cashMinor": 1_000_000,
+            "protectedReserveMinor": 900_000,
+            "contributionMinor": 100_000,
+            "holdingsMinor": {symbol: 0},
+            "targetWeightsBps": {symbol: 10_000},
+        },
+    }
+    target = root / "mandate.json"
+    target.write_text(json.dumps(request))
+    return target
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("wrong_symbol", "Portfolio capital envelope"),
+        ("wrong_cash", "Portfolio capital envelope"),
+        ("protected_cash", "protected cash reserve"),
+        ("short_horizon", "Paper portfolio mandate"),
+        ("external_write", "Paper portfolio mandate"),
+        ("wrong_lane", "Paper portfolio mandate"),
+        ("real_account_name", "Paper portfolio mandate"),
+    ),
+)
+def test_portfolio_mandate_scope_fails_before_pg(tmp_path, monkeypatch, mutation, message):
+    bundle = _bundle(tmp_path)
+    mandate = _mandate(tmp_path)
+    data = json.loads(mandate.read_text())
+    if mutation == "wrong_symbol":
+        data["allocationRequest"]["holdingsMinor"] = {"QQQ": 0}
+        data["allocationRequest"]["targetWeightsBps"] = {"QQQ": 10000}
+    elif mutation == "wrong_cash":
+        data["allocationRequest"]["cashMinor"] += 100
+    elif mutation == "protected_cash":
+        data["allocationRequest"]["protectedReserveMinor"] += 100
+    elif mutation == "short_horizon":
+        data["maxHorizonSessions"] = 4
+    elif mutation == "external_write":
+        data["externalFinancialWritesAllowed"] = True
+    elif mutation == "wrong_lane":
+        data["lane"] = "EXTERNAL_WRITE"
+    else:
+        data["portfolioRef"] = "broker-account-prod"
+    mandate.write_text(json.dumps(data))
+    import ordivon_capital.accounting.paper_simulation_run as runner
+    monkeypatch.setattr(
+        runner, "PostgresPaperClose",
+        lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("wrong mandate reached PG")),
+    )
+    with pytest.raises(ValueError, match=message):
+        run_simulated_paper("never-connect", mandate=mandate, **bundle)
+
+
+def test_nonlive_governance_is_called_before_paper_pg(tmp_path, monkeypatch):
+    bundle = _bundle(tmp_path)
+    mandate = _mandate(tmp_path)
+    import ordivon_capital.accounting.paper_simulation_run as runner
+    from ordivon_capital.governance.policy_decision import PolicyDecisionError
+
+    def refused(*_args):
+        raise PolicyDecisionError("current lane is no longer NON_LIVE")
+
+    monkeypatch.setattr(runner, "enforce_non_live", refused)
+    monkeypatch.setattr(
+        runner, "PostgresPaperClose",
+        lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("policy denied but wrote PG")),
+    )
+    with pytest.raises(ValueError, match="Governance policy denied"):
+        run_simulated_paper("never-connect", mandate=mandate, **bundle)
+
+
+def test_valid_portfolio_mandate_composes_current_nonlive_and_portfolio_plan(
+    tmp_path, monkeypatch,
+):
+    bundle = _bundle(tmp_path)
+    mandate = _mandate(tmp_path)
+    import ordivon_capital.accounting.paper_simulation_run as runner
+    monkeypatch.setattr(
+        runner, "PostgresPaperClose",
+        lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("valid mandate reached PG")),
+    )
+    with pytest.raises(ReachedPostgres, match="valid mandate reached PG"):
+        run_simulated_paper("never-connect", mandate=mandate, **bundle)
+
+
 class ReachedPostgres(Exception):
     pass
 
@@ -274,3 +371,19 @@ def test_paper_batch_real_postgres_restart_safe_run_identity_and_receipt(tmp_pat
     # Independent test case itself gets unique source bytes: no external account mapping.
     assert a["accountKey"].startswith("r3sim_")
     assert a["realAccountMappingAuthorized"] is False
+
+    mandate = _mandate(tmp_path)
+    scoped = run_simulated_paper(dsn, mandate=mandate, **bundle)
+    again = run_simulated_paper(dsn, mandate=mandate, **bundle)
+    assert scoped == again
+    assert scoped["accountKey"] != a["accountKey"]
+    assert scoped["portfolioRef"] == "paper-lab-r3"
+    assert scoped["portfolioMandateStanding"] == "SIMULATION_ONLY_PORTFOLIO_PLAN_BOUND"
+    assert scoped["simulationEvidence"]["nonlive_policy_standing"] == "NON_LIVE_POLICY_ALLOWED"
+    assert scoped["realAccountMappingAuthorized"] is False
+    bound_receipt = read_latest_committed_paper_close(dsn, scoped["accountKey"])
+    assert bound_receipt["simulation_evidence"] == scoped["simulationEvidence"]
+    mandate2 = _mandate(tmp_path, portfolio_ref="paper-lab-secondary")
+    other = run_simulated_paper(dsn, mandate=mandate2, **bundle)
+    assert other["accountKey"] not in (a["accountKey"], scoped["accountKey"])
+    assert other["portfolioRef"] == "paper-lab-secondary"

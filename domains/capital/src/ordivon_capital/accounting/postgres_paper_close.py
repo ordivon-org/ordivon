@@ -133,12 +133,33 @@ class PostgresPaperClose:
         # Caller-declared simulation identity: traceability, NEVER real-money or PIT authority.
         # The same binding is stored in the PG request hash AND predecessor-bound receipt.
         if simulation_evidence is not None:
+            original_fields = {
+                "standing", "native_account", "model_study_sha256",
+                "prediction_sha256", "native_result_sha256", "sessions_sha256",
+            }
+            scoped_fields = original_fields | {
+                "paper_portfolio_ref", "paper_mandate_sha256",
+                "nonlive_policy_standing", "portfolio_plan_standing",
+            }
+            scope = set(simulation_evidence) if type(simulation_evidence) is dict else set()
             if (
                 type(simulation_evidence) is not dict
-                or set(simulation_evidence) != {
-                    "standing", "native_account", "model_study_sha256",
-                    "prediction_sha256", "native_result_sha256", "sessions_sha256",
-                }
+                or scope not in (original_fields, scoped_fields)
+                or (scope == scoped_fields and (
+                    type(simulation_evidence["paper_portfolio_ref"]) is not str
+                    or re.fullmatch(
+                        r"paper-[a-z0-9][a-z0-9-]{2,47}",
+                        simulation_evidence["paper_portfolio_ref"],
+                    ) is None
+                    or type(simulation_evidence["paper_mandate_sha256"]) is not str
+                    or re.fullmatch(
+                        r"[a-f0-9]{64}", simulation_evidence["paper_mandate_sha256"],
+                    ) is None
+                    or simulation_evidence["nonlive_policy_standing"]
+                        != "NON_LIVE_POLICY_ALLOWED"
+                    or simulation_evidence["portfolio_plan_standing"]
+                        != "READ_ONLY_PROJECTION"
+                ))
                 or simulation_evidence["standing"] != "SIMULATION_ONLY_CALLER_DECLARED"
                 or simulation_evidence["native_account"] != "SIM-001"
                 or any(

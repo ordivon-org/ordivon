@@ -1,5 +1,9 @@
 # Ordivon Finance — Human 操作指南（R1）
 
+**当前 Golden Road：** [Finance Golden Road R1](FINANCE_GOLDEN_ROAD_R1.md)。
+入口覆盖 Portfolio 原资金计划、Governance NON_LIVE、Qlib/Nautilus
+原生模拟、PostgreSQL 账务与独立读回；PIT、真实券商和账户权限需要另行准入。
+
 **Directory audit and Human/Agent roles:** [Finance Owner / LEGO audited guide](FINANCE_DIRECTORY_OWNER_AUDIT_R1.md). Use the existing natural Owners instead of recreating the retired Wave-A pipeline.
 
 > 多阶段情景树优化与严格非预见性说明：
