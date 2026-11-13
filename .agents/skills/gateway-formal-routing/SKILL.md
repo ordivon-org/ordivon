@@ -83,18 +83,20 @@ an execution submission after uncertain delivery.
 
 ## Public MCP Tool visibility R1
 
-Reuse normal Host registrars and official MCP SDK remove_tool. The
+Reuse normal Host registrars and official MCP SDK list_tools/remove_tool during pre-service lifespan. The
 thought LEGO is information hiding plus explicit falsification; the
-logic LEGO is a static Core/Full allowed-name projection. The
+logic LEGO is a static Core subset Collaboration subset Full allowed-name projection. The
 ability LEGO is the SDK's registered tools and pre-publication removal,
 not a new policy engine, tool protocol or Host decorator.
 
-Run GatewayToolVisibilityR1.tla via gateway:formal:verify with both
-safe Core/Full configs and expected reachable/unsafe counterexamples.
-Run SDK negative calls for all 21 hidden tools; run real local TCP
-Core/Full + fake AuthZEN positive and negative tests independently.
-Middleware can run before SDK unknown-tool dispatch, so hidden Core
-names must not cause authorization probes.
+Run GatewayToolVisibilityR1.tla via gateway:formal:verify with
+safe Core/Collaboration/Full configs and expected reachable/unsafe counterexamples.
+Run SDK negative calls for all 21 Core-hidden tools, inject a
+future unrecognized tool, and verify a missing required tool refuses
+startup. Test Collaboration's 10-step Owner SDK consumer workflow, then
+real local TCP Core/Collaboration/Full with fake AuthZEN separately.
+Middleware can run before SDK unknown-tool dispatch, so any
+public-profile-hidden name must not cause authorization probes.
 
 For release, compare candidate and current ACTIVE profile input/output
 schema digests and verify actual installed profile by live tools/list.

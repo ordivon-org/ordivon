@@ -13,7 +13,7 @@ from mcp.client.streamable_http import streamable_http_client
 
 from ordivon_gateway.mcp_server import build_http_app, build_server
 from ordivon_gateway.service import GatewayService
-from ordivon_gateway.tool_visibility import CORE_PUBLIC_TOOLS
+from ordivon_gateway.tool_visibility import PUBLIC_TOOL_PROFILES
 
 
 class HostStatusOwner:
@@ -30,6 +30,10 @@ class HostStatusOwner:
         self.calls.append((owner, tool))
         if (owner, tool) == ("host", "work.get"):
             return {"schemaVersion": 3, "kind": "ordivon.host-work", "workRef": args["workRef"]}
+        if (owner, tool) == ("host", "space.get"):
+            return {"schemaVersion": 3, "kind": "ordivon.host-space", "spaceRef": args["spaceRef"]}
+        if (owner, tool) == ("host", "topic.create"):
+            return {"schemaVersion": 3, "kind": "ordivon.host-topic", "topicRef": args["topicRef"]}
         assert (owner, tool) == ("host", "host.status")
         return {"schemaVersion": 3, "kind": "ordivon.host-status"}
 
@@ -74,6 +78,17 @@ class SourceAuthZenStub:
     [
         ("full", "host.status", {}),
         ("core", "work.get", {"workRef": "work:core-tcp"}),
+        ("collaboration", "space.get", {"spaceRef": "space:collab-tcp"}),
+        (
+            "collaboration",
+            "topic.create",
+            {
+                "topicRef": "topic:collab-tcp",
+                "spaceRef": "space:collab-tcp",
+                "title": "Native TCP contract",
+                "actorRef": "actor:collab-tcp",
+            },
+        ),
     ],
 )
 def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(
@@ -138,8 +153,8 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(
                 ) as client:
                     listed = await client.list_tools()
                     advertised = {item.name for item in listed.tools}
-                    if surface == "core":
-                        assert advertised == CORE_PUBLIC_TOOLS
+                    if surface != "full":
+                        assert advertised == PUBLIC_TOOL_PROFILES[surface]
                         assert "host.status" not in advertised
                         hidden = await client.call_tool("host.status", {})
                         assert hidden.is_error is True
@@ -149,15 +164,35 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(
                         assert "host.status" in advertised
                     result = await client.call_tool(tool_name, tool_args)
                     assert result.is_error is False
-                    assert result.structured_content["kind"] == (
-                        "ordivon.host-work" if surface == "core" else "ordivon.host-status"
+                    assert (
+                        result.structured_content["kind"]
+                        == {
+                            "core": "ordivon.host-work",
+                            "collaboration": (
+                                "ordivon.host-topic"
+                                if tool_name == "topic.create"
+                                else "ordivon.host-space"
+                            ),
+                            "full": "ordivon.host-status",
+                        }[surface]
                     )
                     assert owner.calls == [("host", tool_name)]
-                    assert policy.calls[0]["requested_capability"] == "host.legacy-read"
+                    write = tool_name == "topic.create"
+                    assert policy.calls[0]["requested_capability"] == (
+                        "host.legacy-write" if write else "host.legacy-read"
+                    )
                     resource = policy.calls[0]["requested_resource"]["properties"]
-                    assert resource["unscoped"] is (surface == "full")
+                    if write:
+                        assert resource["toolName"] == "topic.create"
+                        assert resource["claimedActorRef"] == "actor:collab-tcp"
+                        assert resource["topicRef"] == "topic:collab-tcp"
+                        assert resource["spaceRef"] == "space:collab-tcp"
+                    else:
+                        assert resource["unscoped"] is (surface == "full")
                     if surface == "core":
                         assert resource["requestedSelectors"] == {"workRef": "work:core-tcp"}
+                    if surface == "collaboration" and not write:
+                        assert resource["requestedSelectors"] == {"spaceRef": "space:collab-tcp"}
                     assert policy.calls[0]["principal_id"] == ("principal:local-service:harness")
 
                     # A valid HTTP service bearer is not enough to bypass PDP.

@@ -43,18 +43,20 @@ if [ -z "$SURFACE_PROFILE" ]; then SURFACE_PROFILE=full; fi
 case "$SURFACE_PROFILE" in
   full) CANDIDATE_MANIFEST="$RELEASE/mcp-surface.json" ;;
   core) CANDIDATE_MANIFEST="$RELEASE/mcp-surface-core.json" ;;
-  *) echo "Gateway surface profile must be full or core" >&2; exit 2 ;;
+  collaboration) CANDIDATE_MANIFEST="$RELEASE/mcp-surface-collaboration.json" ;;
+  *) echo "Gateway surface profile must be full, core, or collaboration" >&2; exit 2 ;;
 esac
 if [ -e "$PREFIX/current" ] && [ -f "$PREFIX/current/mcp-surface-core.json" ] \
    && [ -z "$CURRENT_PROFILE" ]; then
-  echo "installed Gateway supports both profiles: require verified ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE" >&2
+  echo "installed Gateway supports multiple profiles: require verified ORDIVON_GATEWAY_CURRENT_SURFACE_PROFILE" >&2
   exit 2
 fi
 if [ -z "$CURRENT_PROFILE" ]; then CURRENT_PROFILE=full; fi
 case "$CURRENT_PROFILE" in
   full) CURRENT_MANIFEST="$PREFIX/current/mcp-surface.json" ;;
   core) CURRENT_MANIFEST="$PREFIX/current/mcp-surface-core.json" ;;
-  *) echo "current Gateway surface profile must be full or core" >&2; exit 2 ;;
+  collaboration) CURRENT_MANIFEST="$PREFIX/current/mcp-surface-collaboration.json" ;;
+  *) echo "current Gateway surface profile must be full, core, or collaboration" >&2; exit 2 ;;
 esac
 if [ -e "$PREFIX/current" ] && [ ! -f "$CURRENT_MANIFEST" ]; then
   echo "current Gateway active profile manifest is absent" >&2

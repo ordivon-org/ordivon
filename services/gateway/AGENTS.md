@@ -205,10 +205,12 @@ identity or grant object-level Host authorization.
 ## Public Core: consumer and native SDK guidance
 
 The canonical Agent Plugin still points to one Gateway MCP endpoint.
-Full is the production default. Core has 17 tools, selected explicitly.
-Register original Host/Runtime tools then use SDK MCPServer.remove_tool
-before publishing Gateway, instead of wrapping Host decorators or
-creating a second Tool registry. Original Host Tool names still bind
+Full remains the production default. Core has 17 tools; optional
+Collaboration adds five real Agent-task consumers (22 tools).
+During Gateway SDK lifespan use official MCPServer.list_tools and
+remove_tool to project the exact process-static public allowlist, including
+excluding unrecognized future Tool registrations. Do not wrap Host
+decorators or create a second Tool registry. Original Host Tool names still bind
 the current Security AuthZEN policy. Hidden requests must neither
 reach an Owner nor trigger remote PDP authorization.
 
@@ -216,5 +218,6 @@ For Tool edits, inspect SDK tools/list and tools/call, input/output
 schema digests, GatewayToolVisibilityR1 positive/negative formal checks,
 protected TCP ingress, and natural Owner consumers. A finite model does
 not prove deployed HTTP, Security or physical effects. Do not enable
-live Core before service profile and client catalog refresh are
+live Core or Collaboration before service profile, specialist endpoint
+routing and client catalog refresh are
 independently verified. See docs/architecture/GATEWAY_PUBLIC_CORE_CONSUMERS_R1.md.

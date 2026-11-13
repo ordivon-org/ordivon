@@ -42,7 +42,7 @@ from .contracts import (
 from .host_tools import register_host_tools
 from .http_ingress_guard import GatewayHTTPIngressGuard
 from .service import GatewayError, GatewayService
-from .tool_visibility import CORE_PUBLIC_TOOLS, retain_core_tools
+from .tool_visibility import PUBLIC_TOOL_PROFILES, project_registered_tools
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
 
@@ -165,14 +165,18 @@ def build_server(
     capability_authorizer: CapabilityAuthorizer | None = None,
     protect_artifact_reads: bool = False,
     require_http_execution_identity: bool = False,
-    surface: Literal["full", "core"] = "full",
+    surface: Literal["full", "core", "collaboration"] = "full",
 ) -> MCPServer:
-    if surface not in {"full", "core"}:
+    if surface not in {"full", "core", "collaboration"}:
         raise ValueError("Gateway surface must be full or core")
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
     @asynccontextmanager
     async def gateway_lifespan(_server):
+        # Official SDK registration is authoritative, not a guessed hidden
+        # list. Project once before servicing any MCP client request.
+        if surface != "full":
+            await project_registered_tools(_server, PUBLIC_TOOL_PROFILES[surface])
         try:
             yield {}
         finally:
@@ -199,7 +203,7 @@ def build_server(
         # Avoid invoking a remote PDP for a memorized hidden Tool name:
         # middleware runs before the SDK's eventual Unknown Tool dispatch.
         def visible_authorization_target(tool_name: str, arguments: Mapping[str, Any]):
-            if surface == "core" and tool_name not in CORE_PUBLIC_TOOLS:
+            if surface != "full" and tool_name not in PUBLIC_TOOL_PROFILES[surface]:
                 return None
             return resolve_authorization_target(tool_name, arguments)
 
@@ -345,8 +349,6 @@ def build_server(
         )
 
     register_host_tools(server, gateway, _owner_boundary)
-    if surface == "core":
-        retain_core_tools(server)
 
     return server
 
@@ -482,8 +484,8 @@ def main() -> None:
     _reject_retired_worker_database_config()
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
     surface_profile = os.environ.get("ORDIVON_GATEWAY_SURFACE_PROFILE", "full")
-    if surface_profile not in {"full", "core"}:
-        raise RuntimeError("ORDIVON_GATEWAY_SURFACE_PROFILE must be full or core")
+    if surface_profile not in {"full", "core", "collaboration"}:
+        raise RuntimeError("ORDIVON_GATEWAY_SURFACE_PROFILE must be full, core, or collaboration")
     gateway = GatewayService(McpOwnerCaller.from_env())
     server = build_server(
         gateway,

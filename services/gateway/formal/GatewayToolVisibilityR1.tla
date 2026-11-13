@@ -5,12 +5,16 @@ EXTENDS TLC, FiniteSets
 \* Tools are registered, then SDK remove_tool is applied BEFORE publication.
 \* A memorized hidden tool name must not reach its natural Owner.
 
-CONSTANTS Tools, CoreTools, Profile
+CONSTANTS Tools, CoreTools, CollaborationTools, Profile
 ASSUME /\ Tools # {}
        /\ CoreTools \subseteq Tools
-       /\ Profile \in {"full", "core"}
+       /\ CollaborationTools \subseteq Tools
+       /\ CoreTools \subseteq CollaborationTools
+       /\ Profile \in {"full", "core", "collaboration"}
 
-ActiveTools == IF Profile = "core" THEN CoreTools ELSE Tools
+ActiveTools == IF Profile = "core" THEN CoreTools
+               ELSE IF Profile = "collaboration" THEN CollaborationTools
+               ELSE Tools
 
 VARIABLES listed, forwarded, rejected
 vars == <<listed, forwarded, rejected>>

@@ -1,14 +1,13 @@
-"""Project one existing MCP SDK tool set into the consumer Core surface.
+"""Process-start public MCP projection using the official MCP SDK.
 
-Use SDK-native MCPServer.remove_tool before publishing the server, rather
-than wrapping every Host decorator or maintaining an alternate tool router.
+Natural Owner Tools are registered unmodified. At server lifespan admission,
+the official MCPServer.list_tools/remove_tool pair projects one static
+consumer profile. New registrations are hidden by default, not left visible.
 """
 
 from __future__ import annotations
 
 from mcp.server import MCPServer
-
-from .service import _SOCIAL_WORK_HOST_TOOLS
 
 CORE_PUBLIC_TOOLS = frozenset(
     {
@@ -32,19 +31,32 @@ CORE_PUBLIC_TOOLS = frozenset(
     }
 )
 
-# Only the original Gateway metadata Tools are hidden beyond the actual
-# canonical Host tool set. The Runtime execution/Artifact recovery tools
-# all remain public. No duplicate Host registry or custom MCP protocol.
-_NON_CORE_METADATA = frozenset({"system.describe", "capability.describe", "capability.resolve"})
+# Actual task-space-reentry Skill consumers need space.get/attention.reentry.
+# First-time collaboration consumers need Actor/Space/Topic bootstrap.
+# Neither group is silently loaded into the 17-tool default Core.
+COLLABORATION_PUBLIC_TOOLS = CORE_PUBLIC_TOOLS | frozenset(
+    {"actor.declare", "space.create", "space.get", "topic.create", "attention.reentry"}
+)
+
+PUBLIC_TOOL_PROFILES: dict[str, frozenset[str]] = {
+    "core": CORE_PUBLIC_TOOLS,
+    "collaboration": COLLABORATION_PUBLIC_TOOLS,
+}
 
 
-def retain_core_tools(server: MCPServer) -> None:
-    """Remove hidden tool dispatch AND discovery using official MCP SDK.
+async def project_registered_tools(server: MCPServer, visible_tools: frozenset[str]) -> None:
+    """One SDK-native fail-closed projection before the service accepts calls.
 
-    This runs before the server is returned/published. Tool removals
-    do not change any natural Owner function or its authorization target.
-    Future tool additions are still protected by the source/SDK surface
-    release contract, which fails if the effective public tool set drifts.
+    New registered tools not explicitly in the selected public projection
+    are removed as well. A missing required public tool refuses startup.
+    This must run exactly once during MCPServer lifespan startup, before
+    HTTP/session requests; profiles must not vary per request.
     """
-    for tool_name in sorted((_SOCIAL_WORK_HOST_TOOLS | _NON_CORE_METADATA) - CORE_PUBLIC_TOOLS):
+    registered_tools = {tool.name for tool in await server.list_tools()}
+    missing = visible_tools - registered_tools
+    if missing:
+        raise RuntimeError(
+            "Gateway public profile lacks registered tools: " + ", ".join(sorted(missing))
+        )
+    for tool_name in sorted(registered_tools - visible_tools):
         server.remove_tool(tool_name)

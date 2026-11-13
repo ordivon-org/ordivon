@@ -13,10 +13,14 @@ from ordivon_gateway.mcp_server import build_server
 
 SURFACE_PATH = Path(__file__).resolve().parents[2] / "mcp-surface.json"
 SURFACE_PROFILE = os.environ.get("ORDIVON_GATEWAY_SURFACE_PROFILE", "full")
-if SURFACE_PROFILE not in {"full", "core"}:
-    raise SystemExit("Gateway surface profile must be full or core")
-if SURFACE_PROFILE == "core":
-    SURFACE_PATH = SURFACE_PATH.with_name("mcp-surface-core.json")
+SURFACE_MANIFESTS = {
+    "full": "mcp-surface.json",
+    "core": "mcp-surface-core.json",
+    "collaboration": "mcp-surface-collaboration.json",
+}
+if SURFACE_PROFILE not in SURFACE_MANIFESTS:
+    raise SystemExit("Gateway surface profile must be full, core, or collaboration")
+SURFACE_PATH = SURFACE_PATH.with_name(SURFACE_MANIFESTS[SURFACE_PROFILE])
 SURFACE = json.loads(SURFACE_PATH.read_text(encoding="utf-8"))
 EXPECTED_VERSION = SURFACE["packageVersion"]
 EXPECTED = list(SURFACE["tools"])
