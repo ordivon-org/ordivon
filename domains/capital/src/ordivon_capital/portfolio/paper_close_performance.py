@@ -146,6 +146,67 @@ def summarize_paper_period(
     }
 
 
+def render_paper_daily_markdown(summary: dict[str, Any]) -> str:
+    """Human display of the existing Portfolio/Risk result, never another NAV."""
+    if (
+        summary.get("schemaVersion") != 1
+        or summary.get("kind") != "ordivon.finance.portfolio.paper-close-economic-summary"
+        or summary.get("standing") != "READ_ONLY_ACCOUNTING_RECEIPT_CONSUMER"
+        or summary.get("capitalAuthority") != "SIMULATION_ONLY"
+        or summary.get("realMoneyOrdersAuthorized") is not False
+        or summary.get("sourceProviderAuthenticityIndependentlyVerified") is not False
+        or summary.get("historicalPointInTimeStanding")
+        != "UNKNOWN_NOT_INDEPENDENTLY_VERIFIED"
+        or type(summary.get("accountingPersistenceReverified")) is not bool
+        or summary.get("returnConvention") != "START_PERIOD_CONTRIBUTION_ASSUMED_NOT_GIPS_TWR_OR_IRR"
+    ):
+        raise PaperPerformanceError("daily brief requires an unpromoted read-only Paper result")
+
+    def money(value: Any) -> str:
+        return f"USD {Decimal(_minor(value, 'daily amount')) / Decimal(100):,.2f}"
+
+    def signed_money(value: Any) -> str:
+        if type(value) is not int or not -(2**63 - 1) <= value <= 2**63 - 1:
+            raise PaperPerformanceError("invalid signed gain")
+        return f"USD {Decimal(value) / Decimal(100):+,.2f}"
+
+    risk = summary.get("riskStanding")
+    if type(risk) is not str or not risk:
+        raise PaperPerformanceError("missing risk decision")
+    lines = [
+        "# Finance Paper 日结｜只读模拟",
+        "",
+        f"账户：{summary['accountKey']}；交易日：{summary['session']}",
+        f"期末净值：{money(summary['closingNavMinor'])}",
+        f"本期外部入金：{money(summary['contributionMinor'])}",
+    ]
+    if summary["previousSession"] is None:
+        lines.append("首次日结：无上一期净值，不计算当期投资损益或收益率。")
+    else:
+        lines.extend([
+            f"上期净值：{money(summary['previousNavMinor'])}",
+            f"扣除外部入金的投资损益：{signed_money(summary['fundingNeutralEconomicGainMinor'])}",
+            "本期收益率（假设期初入金；非 GIPS 时间加权收益或 IRR）："
+            + f" {Decimal(summary['simplePeriodReturnDecimal']) * Decimal(100):+,.4f}%",
+        ])
+    lines.extend([
+        "",
+        "账务来源：" + (
+            "专用 PostgreSQL 已提交收据，独立读回核验通过。"
+            if summary["accountingPersistenceReverified"] else
+            "输入文件模拟收据，未验证实际 PostgreSQL 持久状态。"
+        ),
+        f"风险状态：{risk}。不等于获得风险合格认定。",
+        "行情证据：仅操作方绑定；真实提供者身份、数据使用权、公司行动和历史 PIT 均未经独立认证。",
+        f"行情首次捕获：{summary['marketCapturedAt']}",
+        "",
+        "**决策：观察、非实盘；无真实金融写入权限。**",
+        "主动策略与被动基准比较需另有同日期、同资金流、同费用证据。",
+        "",
+    ])
+    return "\n".join(lines)
+
+
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for name, value in pairs:
@@ -180,6 +241,7 @@ def main() -> int:
     parser.add_argument("--previous-session")
     parser.add_argument("--snapshot", type=Path, required=True)
     parser.add_argument("--binding", type=Path, required=True)
+    parser.add_argument("--format", choices=("json", "markdown"), default="json")
     args = parser.parse_args()
     if bool(args.account) != bool(args.session):
         parser.error("--account and --session must be supplied together")
@@ -227,7 +289,10 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    print(json.dumps(summary, ensure_ascii=False, sort_keys=True, allow_nan=False))
+    print(
+        render_paper_daily_markdown(summary) if args.format == "markdown"
+        else json.dumps(summary, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    )
     return 0
 
 
