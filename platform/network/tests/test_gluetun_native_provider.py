@@ -142,6 +142,76 @@ def test_running_gluetun_loaded_settings_match_selected_native_sourcecut():
 
 
 
+
+def test_candidate_pool_is_independent_of_geographic_permissions():
+    import json
+    allowed = native.parse_allowed_policy(
+        json.dumps({
+            "allowedCountries": ["Singapore", "Japan", "Croatia"],
+            "excludedCountries": ["Hong Kong"],
+        })
+    )
+    initial = native.parse_candidate_policy(
+        '{"regions":[],"selectedCountries":"allAllowed"}', allowed
+    )
+    assert initial["selectedCountries"] == ["Singapore", "Japan", "Croatia"]
+    selected = native.parse_candidate_policy(
+        '{"regions":[],"selectedCountries":["Croatia","Japan"]}', allowed
+    )
+    assert selected["selectedCountries"] == ["Croatia", "Japan"]
+    env = native.generate_env(
+        native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"),
+        "10.64.200.9/16", selected,
+    )
+    assert "SERVER_COUNTRIES=Croatia,Japan" in env
+    assert "Hong Kong" not in env
+    for rejected in (
+        '{"regions":[],"selectedCountries":[]}',
+        '{"regions":[],"selectedCountries":["Hong Kong"]}',
+        '{"regions":[],"selectedCountries":["Not In Catalog"]}',
+        '{"regions":[],"selectedCountries":["Croatia","Croatia"]}',
+        '{"regions":[],"selectedCountries":["Croatia\\\\nINJECT=1"]}',
+        '{"regions":[],"selectedCountries":["Croatia"],"unknown":true}',
+        '{"regions":[],"selectedCountries":["Croatia"],"selectedCountries":["Japan"]}',
+    ):
+        with pytest.raises(ValueError):
+            native.parse_candidate_policy(rejected, allowed)
+    for invalid in (
+        '{"allowedCountries":["Singapore"],"excludedCountries":["Singapore"]}',
+        '{"allowedCountries":[],"excludedCountries":["Hong Kong"]}',
+        '{"allowedCountries":["Singapore"],"excludedCountries":["Hong Kong"],"extra":1}',
+        '{"allowedCountries":["Singapore"],"allowedCountries":["Japan"],"excludedCountries":[]}',
+    ):
+        with pytest.raises(ValueError):
+            native.parse_allowed_policy(invalid)
+
+
+def test_split_source_preserves_loaded_legacy_vpn_selector_bytes(tmp_path):
+    import json
+    real = native.read_selector_policy()
+    allowed = native.parse_allowed_policy(native.ALLOW_POLICY.read_text())
+    assert real["selectedCountries"] == allowed["allowedCountries"]
+    assert real["excludedCountries"] == ["Hong Kong"]
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text('{"regions":[],"selectedCountries":["Croatia","Japan"]}')
+    narrowed = native.read_selector_policy(candidate)
+    assert narrowed["selectedCountries"] == ["Croatia", "Japan"]
+    assert narrowed["excludedCountries"] == ["Hong Kong"]
+    generated = native.generate_env(
+        native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"),
+        "10.64.200.9/16",
+    )
+    baseline = native.generate_env(
+        native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"),
+        "10.64.200.9/16",
+        native.parse_selector_policy(json.dumps({
+            "regions": [], "selectedCountries": allowed["allowedCountries"],
+            "excludedCountries": allowed["excludedCountries"],
+        })),
+    )
+    assert generated == baseline
+
+
 def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
     policy = native.read_selector_policy()
     assert policy["regions"] == []
