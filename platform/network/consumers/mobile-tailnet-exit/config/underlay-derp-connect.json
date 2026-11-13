@@ -1,0 +1,36 @@
+{
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "tailscale-control-connect",
+      "listen": "10.253.239.1",
+      "listen_port": 19690
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "native-underlay"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "domain_suffix": [
+          "tailscale.com",
+          "tailscale.net"
+        ],
+        "action": "route",
+        "outbound": "native-underlay"
+      },
+      {
+        "action": "reject"
+      }
+    ],
+    "final": "native-underlay"
+  }
+}

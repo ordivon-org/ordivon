@@ -1474,11 +1474,21 @@ class LifecycleTests(unittest.TestCase):
             encoding="utf-8"
         )
         starts = [line for line in unit.splitlines() if line.startswith("ExecStart=")]
-        self.assertEqual(len(starts), 1)
-        self.assertIn("/ordivon-runtime-pg-reclaim --apply ", starts[0])
-        self.assertIn("--policy-file /etc/ordivon/workspace-retention.json", starts[0])
-        self.assertIn("--min-age-hours 4 --limit 25", starts[0])
-        self.assertIn("--workspace-root /var/lib/ordivon/pg-candidate/workspaces", starts[0])
+        self.assertEqual(len(starts), 3)
+        for line, repo in zip(
+            starts,
+            ("ordivon", "ordivon-research-v2", "ordivon-paper2"),
+            strict=True,
+        ):
+            self.assertIn("/ordivon-runtime-pg-reclaim --apply ", line)
+            self.assertIn(f"--source-repo /root/projects/{repo} ", line)
+            self.assertIn("--policy-file /etc/ordivon/workspace-retention.json", line)
+            self.assertIn("--min-age-hours 4 --limit 25", line)
+            self.assertIn("--workspace-root /var/lib/ordivon/pg-candidate/workspaces", line)
+            self.assertNotIn("--force", line)
+        for line in starts[1:]:
+            self.assertIn("--integration-ref refs/heads/main", line)
+        self.assertNotIn("--integration-ref refs/heads/main", starts[0])
         self.assertNotIn("registry.sqlite3", unit)
         self.assertNotIn("/ordivon-runtime-lifecycle sweep ", unit)
         timer = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.timer").read_text(
