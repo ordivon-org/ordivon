@@ -78,3 +78,15 @@ it is not a replacement engine or test framework.
 MLflow tracking URI is assigned before importing Qlib/MLflow. This avoids
 the unconsumed default root-level ./mlruns scratch side effect; the
 research-only file store remains confined to ignored ./output/mlruns.
+
+## Independent simulated Paper batch consumer (Q1 R3, 2026-11-13)
+
+After the existing native test-producer generates native_holding_result.json
+and paper_sessions.json, Capital accounting.paper_simulation_run consumes
+those exact-by-digest outputs and the Qlib study/predictions in another
+process, without re-running native Nautilus. Its stable r3sim_... key is
+simulation-run-specific, not a real customer mapping. The original
+PostgreSQL Paper accounting ledger owns all financial daily effects.
+See docs/FINANCE_PAPER_INVESTMENT_R1.md for invocation, PIT/rights limits,
+physical PG acceptance and replay. Never promote this producer or
+retrospective study to an authorized live strategy.
