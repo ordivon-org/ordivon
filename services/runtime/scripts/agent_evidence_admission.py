@@ -99,6 +99,34 @@ def _official_ci_at_cut(checks: dict[str, Any], source_cut: str) -> tuple[str, l
     return "EXACT_CUT_SOURCE_CI_PASS", selected
 
 
+def _native_root_workflow_matches(root_check: dict[str, str], source_cut: str) -> bool:
+    """Qualify GH's actual required CI job/run, not any check with same name."""
+    match = re.fullmatch(
+        r"https://github[.]com/ordivon-org/ordivon/actions/runs/([0-9]+)/job/([0-9]+)",
+        root_check.get("url", ""),
+    )
+    if match is None:
+        return False
+    run_id, job_id = map(int, match.groups())
+    job = _github(f"actions/jobs/{job_id}")
+    run = _github(f"actions/runs/{run_id}")
+    return (
+        job.get("id") == job_id
+        and job.get("run_id") == run_id
+        and job.get("name") == "root-verification"
+        and job.get("workflow_name") == "Monorepo Required"
+        and job.get("head_sha") == source_cut
+        and job.get("status") == "completed"
+        and job.get("conclusion") == "success"
+        and run.get("id") == run_id
+        and run.get("name") == "Monorepo Required"
+        and run.get("path") == ".github/workflows/ci.yml"
+        and run.get("head_sha") == source_cut
+        and run.get("status") == "completed"
+        and run.get("conclusion") == "success"
+    )
+
+
 def _native_harness_claim(claim_id: str, target_cut: str) -> dict[str, Any]:
     """Compose the ORIGINAL Harness query; no copied currentness rules."""
     native_cut = _source_cut(_git("rev-parse", "HEAD"))
@@ -156,6 +184,14 @@ def assess(*, pr: int, owner: str, target: str = "HEAD", harness_claim: str | No
             raise ValueError("original PR Git revision not available in local immutable source")
     checks = _github(f"commits/{proof_cut}/check-runs?per_page=100")
     receipt, jobs = _official_ci_at_cut(checks, proof_cut)
+    root_check = next(
+        (x for x in jobs if x["name"] == "root-verification" and x["app"] == "github-actions"),
+        None,
+    )
+    if receipt == "EXACT_CUT_SOURCE_CI_PASS" and (
+        root_check is None or not _native_root_workflow_matches(root_check, proof_cut)
+    ):
+        receipt = "UNKNOWN_ROOT_WORKFLOW_IDENTITY"
 
     # This is an existing canonical OWNER consumer selection projection,
     # not an authenticated record of every CI child Job's executed task list.
@@ -208,9 +244,7 @@ def assess(*, pr: int, owner: str, target: str = "HEAD", harness_claim: str | No
         "targetSourceCut": target_cut,
         "originalReceipt": receipt,
         "officialCheckCount": len(jobs),
-        "originalRootCheck": next(
-            (x for x in jobs if x["name"] == "root-verification" and x["app"] == "github-actions"), None
-        ),
+        "originalRootCheck": root_check,
         "originalOwnerInCurrentSelectorProjection": selection,
         "sourceRelation": source,
         "newOwnerAffected": new_owner_affected,

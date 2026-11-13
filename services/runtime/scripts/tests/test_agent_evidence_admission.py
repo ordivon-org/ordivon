@@ -63,6 +63,25 @@ class EvidenceAdmissionTests(unittest.TestCase):
                 "head": {"sha": SHA, "repo": {"full_name": module.REPOSITORY}},
                 "base": {"sha": BASE, "repo": {"full_name": module.REPOSITORY}},
             }
+        if path == "actions/jobs/1":
+            return {
+                "id": 1,
+                "run_id": 1,
+                "name": "root-verification",
+                "workflow_name": "Monorepo Required",
+                "head_sha": SHA,
+                "status": "completed",
+                "conclusion": "success",
+            }
+        if path == "actions/runs/1":
+            return {
+                "id": 1,
+                "name": "Monorepo Required",
+                "path": ".github/workflows/ci.yml",
+                "head_sha": SHA,
+                "status": "completed",
+                "conclusion": "success",
+            }
         return {"check_runs": [check()], "total_count": 1}
 
     @staticmethod
@@ -98,6 +117,23 @@ class EvidenceAdmissionTests(unittest.TestCase):
             patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
         ):
             report = module.assess(pr=2177, owner="runtime", target=SHA)
+        self.assertEqual(report["decision"], "RECEIPT_UNKNOWN_OR_NOT_PASSED")
+        self.assertFalse(report["proofReuseAdmissible"])
+
+    def test_forged_same_named_check_from_other_workflow_is_not_reused(self):
+        def wrong_workflow(path):
+            row = self.fake_github(path)
+            if path == "actions/runs/1":
+                row = {**row, "path": ".github/workflows/unrelated.yml"}
+            return row
+
+        with (
+            patch.object(module, "_github", side_effect=wrong_workflow),
+            patch.object(module, "_git", side_effect=self.fake_git),
+            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
+        ):
+            report = module.assess(pr=2177, owner="runtime", target=SHA)
+        self.assertEqual(report["originalReceipt"], "UNKNOWN_ROOT_WORKFLOW_IDENTITY")
         self.assertEqual(report["decision"], "RECEIPT_UNKNOWN_OR_NOT_PASSED")
         self.assertFalse(report["proofReuseAdmissible"])
 
