@@ -1625,7 +1625,9 @@ def route_capabilities(source: str) -> set[str]:
 
 
 def gateway_tools(source: str) -> set[str]:
-    return set(re.findall(r'@server\.tool\(name="([^"]+)"\)', source))
+    # Gateway registers both the complete internal surface and the
+    # process-selected Core projection through the same SDK decorator.
+    return set(re.findall(r'@(?:server\.tool\(name=|expose_tool\(server,\s*)"([^"]+)"', source))
 
 
 def validate_source_tool_surface(
@@ -2331,7 +2333,7 @@ def validate_repository(root: Path = ROOT) -> None:
         )
 
     gateway_source = gateway_mcp.read_text(encoding="utf-8")
-    if "register_host_tools(server, gateway, _owner_boundary)" not in gateway_source:
+    if "register_host_tools(server, gateway, _owner_boundary" not in gateway_source:
         raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
     observed_tools = gateway_tools(
         gateway_source + "\n" + "\n".join(path.read_text(encoding="utf-8") for path in gateway_host_tool_sources)
