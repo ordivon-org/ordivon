@@ -343,6 +343,8 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                       starts[1])
         self.assertIn("--source-repo /root/projects/ordivon-paper2 ",
                       starts[2])
+        for line in starts:
+            self.assertIn("--policy-file /etc/ordivon/workspace-retention.json ", line)
         for line in starts[1:]:
             self.assertIn("--integration-ref refs/heads/main ", line)
             self.assertIn("--min-age-hours 4 ", line)
