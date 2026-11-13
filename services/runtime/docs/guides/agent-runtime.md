@@ -171,3 +171,44 @@ A daemon schedules pending work and reconciles issued native work without client
 For CPU/memory-intensive build, model, or media jobs, explicitly set `execution.budget.scheduling.resources` from known workload evidence; do not assume that the default 128MiB request covers Cargo compilation. Use `runtime.describe.scheduling` to observe PSI and effective node headroom, and prefer work that can share idle capacity without forcing another Owner into thrash. The workload's physical systemd Unit is in `system.slice`; do not read the Runtime manager's separate service cgroup as if it were the workload's capacity. The Slice and ancestor restrictions are the physical inputs to admission.
 
 When cancelling, use the exact Job identity and then verify `job.get` reports terminal Attempt and released allocation; `lost` does not mean the external effect succeeded. If a heavy test materially raises PSI, cancel **that test only** and record its outcome as UNRUN/INCOMPLETE for the native test phase. For a scheduler patch, run `scripts/tla-formal check-resource` and `falsify-resource`, then obtain a real PostgreSQL/systemd consumer receipt; a parsed model alone is insufficient.
+
+
+## Read-only evidence admission before running repeated verification (2026-11-14)
+
+An Agent should not re-run a previously successful owner check just because
+its prior chat cannot recall it. Use existing GitHub Actions check-runs at the
+original **exact commit**, the repo's native SourceCut/Owner closure
+(`convergence_plan.py`), and the existing Harness evidence checker:
+
+```bash
+# Query PR #2177's original GitHub CI at its exact proof SourceCut.
+# Do not call Runtime Job replay, TLC, or a physical canary as a substitute.
+python3 services/runtime/scripts/agent_evidence_admission.py --pr 2177 --owner runtime --target cc294b72700c9aa02c067f9962fab47359836af6
+
+# Query current checkout impact and one original Harness Claim in one read.
+python3 services/runtime/scripts/agent_evidence_admission.py --pr 2177 --owner runtime --harness-claim harness.runtime-correlation.h2
+
+# The same Harness claim remains owned by its existing checker.
+python3 services/harness/scripts/check_evidence.py --query-claim harness.runtime-correlation.h2
+```
+
+The Runtime query calls `gh api` read-only, requires official GitHub
+`root-verification` and exact-commit successful checks, then delegates
+SourceCut/consumer selection to the **existing** Owner planner. A missing,
+pending, ambiguous, failed, foreign or nonmatching receipt is UNKNOWN or
+not passed; it must not make a stale proof current. The Harness claim read
+does not promote archived `historical` to `verified`.
+Only its original native `check_evidence.py` may qualify current
+verified claims; different Git cut identities cannot be silently combined.
+
+`EXACT_CUT_CI_OBSERVED` means **one source commit's CI passed**.
+It does NOT establish a production-installation receipt, closed dynamic
+dependency graph, Rust/TLA refinement proof or a live process effect
+(`proofReuseAdmissible=false`). `SCOPED_SOURCE_NO_OWNER_RECHECK`
+is only a source-level Owner policy projection.
+`UNKNOWN_SOURCE_RELATION` means investigate missing source relation,
+**not** blanket re-run unrelated historic experiments.
+
+This is on-demand Agent-consumable capability, **not yet wired automatically**
+into the Harness Run scheduling lifecycle. No second evidence registry,
+verifier service, or background monitoring job is introduced.
