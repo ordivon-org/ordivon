@@ -192,3 +192,12 @@ retain normal SDK output-schema validation. Test a real principal-owned
 Gateway execution.submit -> execution.resolve -> execution.get -> artifact.read
 flow and validate the Artifact digest; remove the adapter after the Runtime
 binary publishes corrected schemas with such a passing consumer flow.
+
+## Host upstream identity after Host HTTP hardening
+
+Gateway Host requests use the existing `ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE`
+operator credential, read from a private file on every request. Host verifies
+the same service credential through the MCP SDK's native Bearer middleware.
+Configure both ends before enabling the authenticated Host HTTP release.
+The transport credential does **not** establish a caller's human or Agent
+identity or grant object-level Host authorization.
