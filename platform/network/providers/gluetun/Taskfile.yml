@@ -118,6 +118,11 @@ tasks:
         jq -c '{kind:"ordivon.network-v2.provider-egress-observation",standing:"OBSERVED_NOT_READINESS",source:"ipinfo.io",ip,country,org}' "$tmp"
 
 
+  provider:gluetun:observe-active:
+    desc: Read-only proof of the single ACTIVE kernel WireGuard endpoint and two real HTTPS consumers; never marks standbys healthy
+    cmds:
+      - python3 providers/gluetun/observe_active.py
+
   provider:gluetun:eligible-exits:
     desc: Read native Surfshark WireGuard catalog, source-selected countries and excluded inventory without claiming live health
     cmds:
