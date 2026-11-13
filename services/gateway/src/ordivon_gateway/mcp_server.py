@@ -5,7 +5,7 @@ import json
 import os
 from contextlib import asynccontextmanager
 from importlib.metadata import version as package_version
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
 import uvicorn
@@ -37,6 +37,7 @@ from .contracts import (
 from .host_tools import register_host_tools
 from .http_ingress_guard import GatewayHTTPIngressGuard
 from .service import GatewayError, GatewayService
+from .tool_visibility import CORE_PUBLIC_TOOLS, expose_tool
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
 
@@ -159,7 +160,11 @@ def build_server(
     capability_authorizer: CapabilityAuthorizer | None = None,
     protect_artifact_reads: bool = False,
     require_http_execution_identity: bool = False,
+    surface: Literal["full", "core"] = "full",
 ) -> MCPServer:
+    if surface not in {"full", "core"}:
+        raise ValueError("Gateway surface must be full or core")
+    visible_tools = CORE_PUBLIC_TOOLS if surface == "core" else None
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
     @asynccontextmanager
@@ -188,15 +193,15 @@ def build_server(
     ):
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
-    @server.tool(name="system.describe")
+    @expose_tool(server, "system.describe", visible_tools)
     def system_describe() -> SystemDescription:
         return gateway.system_describe()
 
-    @server.tool(name="capability.describe")
+    @expose_tool(server, "capability.describe", visible_tools)
     async def capability_describe(capability: str | None = None) -> CapabilityProjection:
         return await gateway.capability_describe(capability)
 
-    @server.tool(name="capability.search")
+    @expose_tool(server, "capability.search", visible_tools)
     async def capability_search(
         query: str,
         category: str | None = None,
@@ -212,7 +217,7 @@ def build_server(
             include_unavailable=includeUnavailable,
         )
 
-    @server.tool(name="capability.resolve")
+    @expose_tool(server, "capability.resolve", visible_tools)
     async def capability_resolve(
         capability: str,
         workspaceId: str | None = None,
@@ -323,7 +328,7 @@ def build_server(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    register_host_tools(server, gateway, _owner_boundary)
+    register_host_tools(server, gateway, _owner_boundary, visible_tools)
 
     return server
 
@@ -458,12 +463,16 @@ def _capability_authorizer_from_env() -> CapabilityAuthorizer | None:
 def main() -> None:
     _reject_retired_worker_database_config()
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
+    surface_profile = os.environ.get("ORDIVON_GATEWAY_SURFACE_PROFILE", "full")
+    if surface_profile not in {"full", "core"}:
+        raise RuntimeError("ORDIVON_GATEWAY_SURFACE_PROFILE must be full or core")
     gateway = GatewayService(McpOwnerCaller.from_env())
     server = build_server(
         gateway,
         capability_authorizer=_capability_authorizer_from_env(),
         protect_artifact_reads=(transport == "streamable-http"),
         require_http_execution_identity=(transport == "streamable-http"),
+        surface=surface_profile,
     )
     if transport == "stdio":
         server.run()

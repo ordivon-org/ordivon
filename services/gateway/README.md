@@ -1,5 +1,42 @@
 # Ordivon Gateway
 
+## Lean public MCP surface: explicit Core profile (candidate)
+
+The existing ordivon-control-plane Agent Plugin already connects to one
+Gateway HTTPS MCP endpoint. Gateway 0.11.0 can register either the original
+full 38-Tool MCP surface or an explicit 17-Tool Core projection. Normal
+production startup remains full until actual external consumer migration.
+
+- Public Core consists of capability search, Work continuity, existing
+  collaboration search/post, Attention change/ack, and exact Runtime
+  execution/receipt/Artifact operations. It reuses verified existing Owner
+  operations, not a new domain API or a generic invoke dispatcher.
+- The remaining Host object-management, topic cursor, Actor declaration,
+  subscription, maintenance, and Research composition routes are not
+  registered in Core. The natural Owner APIs remain intact for legitimate
+  internal and specialist consumers.
+- Core is static per process. Unlisted tools are not callable through
+  that MCP server. This is NOT an authorization grant, a per-session
+  mutable Tool registry, or an Agent Run completion claim.
+- Public Host read/write tools retain their original names so the
+  existing Security AuthZEN object-level binding remains exact.
+  Changing those names without independently qualifying the Security
+  contract would create an unsafe authorization gap.
+- Core has its own official MCP SDK-verified tool manifest, available
+  as mcp-surface-core.json. Set ORDIVON_GATEWAY_SURFACE_PROFILE=core
+  for BOTH release preflight and the actual service process. The
+  default is full; unsupported values fail startup/preflight.
+- No second Gateway process, new Handler Registry, SQLite persistence,
+  Tool retry mechanism, credentials, or Plugin packaging system is added.
+
+Before promoting Core on the Plugin-facing endpoint, verify the installed
+service identity, real HTTP tools/list, denied hidden tools, Host read/write
+Security grants, the natural Owner effect, and client catalog refresh.
+Test an entire Work read/commit, collaboration search/post, and execution
+submit/resolve/observe/Artifact delivery as the actual external Principal.
+These source tests do not claim that deployment or client refresh happened.
+
+
 Thin, non-authoritative northbound MCP adapter over Ordivon natural owners.
 
 Gateway owns only:

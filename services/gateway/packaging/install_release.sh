@@ -39,6 +39,15 @@ fi
   "$RELEASE/pyproject.toml" \
   "$PREFIX/current/mcp-surface.json"
 
+# Explicit public cutover verifies a second SDK-qualified projection.
+SURFACE_PROFILE="$(printenv ORDIVON_GATEWAY_SURFACE_PROFILE || true)"
+if [ "$SURFACE_PROFILE" = "core" ]; then
+  /usr/bin/python3 "$SCRIPT_DIR/verify_tool_surface.py"     "$RELEASE/mcp-surface-core.json"     "$RELEASE/pyproject.toml"     "$PREFIX/current/mcp-surface.json"
+elif [ -n "$SURFACE_PROFILE" ] && [ "$SURFACE_PROFILE" != "full" ]; then
+  echo "Gateway surface profile must be full or core" >&2
+  exit 2
+fi
+
 if [ ! -f "$RELEASE/.python-version" ]; then
   echo "release is missing .python-version" >&2
   exit 2

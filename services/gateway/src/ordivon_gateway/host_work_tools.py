@@ -8,26 +8,28 @@ from typing import Any, Literal
 from mcp.server import MCPServer
 
 from .host_tool_contracts import HostCollectionBytes
+from .tool_visibility import expose_tool
 
 
 def register_host_work_tools(
     server: MCPServer,
     _host: Callable[[str, dict[str, Any]], Awaitable[Any]],
+    visible_tools: frozenset[str] | None = None,
 ) -> None:
-    @server.tool(name="host.status")
+    @expose_tool(server, "host.status", visible_tools)
     async def host_status(
         detail: Literal["summary", "integrity", "history"] = "summary",
     ) -> dict[str, Any]:
         return await _host("host.status", {"detail": detail})
 
-    @server.tool(name="actor.declare")
+    @expose_tool(server, "actor.declare", visible_tools)
     async def actor_declare(
         actorRef: str,
         actorKind: Literal["unknown", "human", "agent", "service", "organization"],
     ) -> dict[str, Any]:
         return await _host("actor.declare", {"actorRef": actorRef, "actorKind": actorKind})
 
-    @server.tool(name="work.create")
+    @expose_tool(server, "work.create", visible_tools)
     async def work_create(
         workRef: str, workKind: str, actorRef: str, initialSnapshot: dict[str, Any]
     ) -> dict[str, Any]:
@@ -41,11 +43,11 @@ def register_host_work_tools(
             },
         )
 
-    @server.tool(name="work.get")
+    @expose_tool(server, "work.get", visible_tools)
     async def work_get(workRef: str, revision: int | None = None) -> dict[str, Any]:
         return await _host("work.get", {"workRef": workRef, "revision": revision})
 
-    @server.tool(name="work.list")
+    @expose_tool(server, "work.list", visible_tools)
     async def work_list(
         state: Literal["open", "completed", "abandoned"] | None = None,
         limit: int = 50,
@@ -64,7 +66,7 @@ def register_host_work_tools(
             },
         )
 
-    @server.tool(name="work.snapshot.commit")
+    @expose_tool(server, "work.snapshot.commit", visible_tools)
     async def work_snapshot_commit(
         workRef: str,
         expectedRevision: int,
