@@ -128,6 +128,8 @@ def observe(
         "economicComparison": comparison,
         "historicalPITVerified": False, "independentSourceAuthenticityVerified": False,
         "dataRightsIndependentlyVerified": False, "corporateActionsQualified": False,
+        "frozenAdjustedCloseMetricReproduced": False,
+        "observedPriceBasis": "OPENBB_CBOE_DAILY_CLOSE_ADJUSTMENT_UNKNOWN",
         "completeHoldoutVerified": False, "alphaVerified": False,
         "realMoneyOrdersAuthorized": False,
         "notEvaluated": [

@@ -124,8 +124,10 @@ python domains/capital/adoption/r3_native/frozen_spy_shy_holdout.py \
   --private-output /root/projects/ordivon-private/finance/spy-shy-forward-20261113
 ```
 
-This is **price-only** partial-forward observation, NOT a completed
-2027 holdout, authenticated data rights, total-return economic proof,
+This is **price-only** partial-forward observation. The original
+retrospective study used adjusted closes; this Cboe close-price proxy
+is NOT yet verified equivalent to that frozen economic metric. It is NOT
+a completed 2027 holdout, authenticated data rights, total-return economic proof,
 PIT historical investability, reliable alpha, or execution grant.
 Source raw-wire bytes and independently signed publisher timestamps are
 not present; historic and prospective claims remain UNKNOWN. Keep the

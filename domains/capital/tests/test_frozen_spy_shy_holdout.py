@@ -35,6 +35,8 @@ def test_reuses_actual_frozen_research_and_existing_portfolio_with_private_bytes
     assert result["frozenPlanDigest"] == "sha256:3798e0f219081439f0679dd57f1e4c77aa0842bb11e7561517d28c94023b9501"
     assert result["standing"] == "PARTIAL_FORWARD_DESCRIPTIVE_SOURCE_UNVERIFIED"
     assert result["returnPeriods"] == 2
+    assert result["frozenAdjustedCloseMetricReproduced"] is False
+    assert result["observedPriceBasis"] == "OPENBB_CBOE_DAILY_CLOSE_ADJUSTMENT_UNKNOWN"
     assert result["observedSessions"] == ["2026-11-09", "2026-11-10", "2026-11-11"]
     assert result["economicComparison"]["standing"] == "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION"
     assert result["economicComparison"]["contributedCapital"] == "100000"
