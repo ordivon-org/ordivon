@@ -28,7 +28,13 @@
         "docs/status.md",
         "planning/invariants-r1.json",
         "docs/guides/runtime-legos.md",
-        "formal/README.md"
+        "formal/README.md",
+        "formal/WorkspaceMultiAgentReleaseR1.tla",
+        "formal/WorkspaceMultiAgentReleaseR1.cfg",
+        "formal/WorkspaceMultiAgentReleaseR1.reachability.cfg",
+        "formal/WorkspaceMultiAgentReleaseR1.unsafe-single.cfg",
+        "formal/WorkspaceMultiAgentReleaseR1.unsafe-age.cfg",
+        "scripts/tla-formal"
       ],
       "dependencies": [],
       "mustNotOwn": [

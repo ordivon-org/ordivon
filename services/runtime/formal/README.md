@@ -428,6 +428,36 @@ installed correctness.
 Keep the existing Rust/PG/Gateway/Harness physical consumer tests alongside
 this abstract proof. Do not create another persistence ledger for the bridge.
 
+## Multiple Agent Runs sharing one Workspace: separate P0 release candidate (2026-11-14)
+
+The existing WorkspaceConsumerCloseR1 proves the bounded policy of one
+abstract consumer; GatewayAgentWorkspaceBindingR1 establishes a Job's source
+Workspace identity, not continuous Agent scope ownership. Neither represents
+two Harness Runs simultaneously using the same physical Workspace.
+
+WorkspaceMultiAgentReleaseR1.tla is a separate finite refinement candidate
+using the EXISTING digest-pinned Runtime scripts/tla-formal checker. Two
+independent Run consumers may each finish/release while the other remains
+active; physical Job and Git dependencies are separate guards. Positive
+fair-TLC checks 74 reachable states (source canary); negative profiles
+independently falsify closure after one Run release and age-only closure,
+while a third negative control proves valid full release is reachable.
+
+A disposable LIVE PG native Workspace canary (2026-11-14) submitted two
+successful Gateway Job steps for distinct logical consumers, then asserted
+consumerReleased=true for the first while the second logically needed another
+step. Runtime correctly applied the single CALLER assertion and removed
+the clean, idle Workspace; the second continuation was rejected. This is a
+cross-Run orchestration gap, NOT proof of a bug inside the explicitly
+single-caller native Runtime Close protocol.
+
+Formal assumption: Release(c) is accurate and belongs to c. Real source does
+not yet establish durable multi-Run claim registration, signed/authorized
+relinquishment, all-consumers knowledge, or a recovery/expiry policy for
+abandoned consumers. The strong all-released close is MODEL_VERIFIED as a
+candidate only; it is NOT CODE_REFINED or INSTALLED. Do not auto-close other
+Agents' Workspaces on this model or on a four-hour clock alone.
+
 ## PostgreSQL R06 failed-cutover abort before PG authority (CEGAR)
 
 **Problem**: freezing the last SQLite writer is not proof that PostgreSQL

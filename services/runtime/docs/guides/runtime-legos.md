@@ -87,6 +87,17 @@ The source-only bounded GatewayAgentWorkspaceBindingR1 finite model lives
 under services/gateway/formal; exact source tests and a live PG owner observation
 are evidence for this narrow consumer link, NOT deployed refinement.
 
+**Physical negative consumer (2026-11-14).** A disposable, same-Workspace
+two-logical-Agent Gateway/PG trial showed both Job results can finish while
+one Agent still intends another command. A single consumerReleased=true
+assertion removes the clean idle Workspace and the second Agent's subsequent
+command fails. This is the explicitly admitted single-caller assumption of
+Runtime Close, not a broken PG lock or evidence that another real Agent was
+affected. The separate formal WorkspaceMultiAgentReleaseR1.tla models the
+multi-consumer requirement; model status only. A safe implementation needs
+a durable owner-registered consumer set or provably exclusive scope and
+bounded revoked/expired claims, without a transaction spanning model thinking.
+
 Still unimplemented P0: a real Agent Run's long-lived Workspace ownership,
 durable outcome handoff, exact relinquishment evidence, and Gateway-issued
 native Workspace close. The current Runtime consumerReleased flag is only a
