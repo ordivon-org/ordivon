@@ -13,4 +13,9 @@ ExecStartPre=/usr/local/libexec/network-v2/provider-identity-exclusive gluetun
 # systemctl start is idempotent for healthy services; restore the actual
 # physical Provider and its internal compatibility adapter independently.
 ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service
-TimeoutStartSec=1min
+# Reuse this existing 2-minute owner timer for a bounded quality-aware
+# supplemental recovery, not another VPN or polling service. Healthy blackbox
+# consumers exit early without any Provider GET/PUT or WAN probe.
+ExecStartPost=/usr/bin/python3 /usr/local/libexec/network-v2/gluetun-native/native_switch.py --recover
+# Explicitly includes the maximum guarded native API trial and rollback.
+TimeoutStartSec=3min
