@@ -118,6 +118,36 @@ tasks:
         jq -c '{kind:"ordivon.network-v2.provider-egress-observation",standing:"OBSERVED_NOT_READINESS",source:"ipinfo.io",ip,country,org}' "$tmp"
 
 
+  provider:gluetun:native-auth:validate:
+    desc: Source-only syntactic and route-authorization check for upstream Gluetun root-only control role
+    cmds:
+      - python3 providers/gluetun/auth_profile.py --check-source
+
+  provider:gluetun:native-auth:prepare:
+    desc: Prepare root-only upstream control-server auth TOML without restarting the active Gluetun process; loaded authorization remains separate
+    cmds:
+      - python3 providers/gluetun/auth_profile.py --install
+
+  provider:gluetun:native-auth:verify:
+    desc: Prove installed native Gluetun role bytes without claiming process readback
+    cmds:
+      - python3 providers/gluetun/auth_profile.py --verify
+
+  provider:gluetun:native-control-preflight:
+    desc: One-shot read-only authorization/SourceCut probe for Gluetun official settings GET; never exposes secret or changes tunnel
+    cmds:
+      - python3 providers/gluetun/native_switch.py --preflight
+
+  provider:gluetun:native-recover:
+    desc: One-shot only when actual consumers failed, physical underlay is reachable and recent candidate evidence exists; uses authenticated Gluetun official settings PUT with bounded rollback
+    cmds:
+      - python3 providers/gluetun/native_switch.py --recover
+
+  provider:gluetun:quality-history:
+    desc: One-shot historical Gluetun country and actual consumer quality evidence; NOT verified hot standbys or autonomous switching
+    cmds:
+      - python3 providers/gluetun/quality_history.py --hours 48
+
   provider:gluetun:observe-active:
     desc: Read-only proof of the single ACTIVE kernel WireGuard endpoint and two real HTTPS consumers; never marks standbys healthy
     cmds:
