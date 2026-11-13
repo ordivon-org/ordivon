@@ -102,14 +102,23 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(
     async def verify() -> None:
         owner = HostStatusOwner()
         policy = SourceAuthZenStub()
+        mcp_server = build_server(
+            service=GatewayService(owner),
+            capability_authorizer=policy,
+            require_http_execution_identity=True,
+            protect_artifact_reads=True,
+            surface=surface,
+        )
+        unexpected_forward: list[str] = []
+        if surface != "full":
+
+            @mcp_server.tool(name="future.unclassified.write")
+            def future_write() -> dict[str, bool]:
+                unexpected_forward.append("unauthorized")
+                return {"unexpectedEffect": True}
+
         app = build_http_app(
-            build_server(
-                service=GatewayService(owner),
-                capability_authorizer=policy,
-                require_http_execution_identity=True,
-                protect_artifact_reads=True,
-                surface=surface,
-            ),
+            mcp_server,
             host="127.0.0.1",
             path="/mcp",
             public_origin=None,
@@ -156,10 +165,14 @@ def test_tcp_mcp_requires_real_http_service_identity_before_host_owner_call(
                     if surface != "full":
                         assert advertised == PUBLIC_TOOL_PROFILES[surface]
                         assert "host.status" not in advertised
+                        assert "future.unclassified.write" not in advertised
                         hidden = await client.call_tool("host.status", {})
                         assert hidden.is_error is True
+                        future = await client.call_tool("future.unclassified.write", {})
+                        assert future.is_error is True
+                        assert unexpected_forward == []
                         assert owner.calls == []
-                        assert policy.calls == [], "hidden Core Tool must not probe PDP"
+                        assert policy.calls == [], "hidden Tool must not probe PDP"
                     else:
                         assert "host.status" in advertised
                     result = await client.call_tool(tool_name, tool_args)
