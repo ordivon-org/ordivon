@@ -84,17 +84,24 @@ def selected_snapshot(raw: dict, allowed: set[str]) -> dict:
         raise ValueError("Unexpected VPN provider")
     s = provider.get("server_selection", {})
     countries = s.get("countries")
-    if not isinstance(countries, list) or not countries or any(
-        not isinstance(c, str) or c not in allowed or c == "Hong Kong"
-        for c in countries
-    ):
+    if not isinstance(countries, list) or not countries:
+        raise ValueError("Gluetun control country selection violates policy")
+    # Official Gluetun v3.41.3 lowercases source SERVER_COUNTRIES in its
+    # GET /v1/vpn/settings output. Compare with a case-folded permission map,
+    # but always return canonical source names for PUT and rollback.
+    canonical_names = {name.casefold(): name for name in allowed}
+    if len(canonical_names) != len(allowed):
+        raise ValueError("Ambiguous allowed countries after case normalization")
+    if any(not isinstance(c, str) or not c or c.casefold() not in canonical_names
+           or c.casefold() == "hong kong" for c in countries):
         raise ValueError("Gluetun control country selection violates policy")
     if any(s.get(field) for field in ("regions", "cities", "hostnames", "names",
                                      "isps", "numbers")):
         raise ValueError("Unexpected other native server selection filters")
-    if len(countries) != len(set(countries)):
+    canonical = [canonical_names[c.casefold()] for c in countries]
+    if len(canonical) != len(set(canonical)):
         raise ValueError("Duplicate native selected country")
-    return {"countries": list(countries), "vpn": raw.get("type"), "provider": provider.get("name")}
+    return {"countries": canonical, "vpn": raw.get("type"), "provider": provider.get("name")}
 
 
 def internal_http(method: str) -> int:

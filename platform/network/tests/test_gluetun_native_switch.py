@@ -22,6 +22,13 @@ def test_snapshot_requires_active_wireguard_surfshark_and_bounded_countries():
     model={"type":"wireguard","provider":{"name":"surfshark",
       "server_selection":{"countries":["Japan","Croatia"],"regions":[],"cities":[],"hostnames":[]}}}
     assert switch.selected_snapshot(model,{"Japan","Croatia"})["countries"]==["Japan","Croatia"]
+    # Physical upstream authenticated GET normalizes all configured names.
+    lower={**model,"provider":{**model["provider"],"server_selection":{
+      **model["provider"]["server_selection"],"countries":["japan","croatia"]}}}
+    assert switch.selected_snapshot(lower,{"Japan","Croatia"})["countries"]==["Japan","Croatia"]
+    mixed={**model,"provider":{**model["provider"],"server_selection":{
+      **model["provider"]["server_selection"],"countries":["JaPaN","croatia"]}}}
+    assert switch.selected_snapshot(mixed,{"Japan","Croatia"})["countries"]==["Japan","Croatia"]
     variants=[
       ({"type":"openvpn"},"different_vpn"),
       ({"provider":{"name":"other"}},"provider"),
