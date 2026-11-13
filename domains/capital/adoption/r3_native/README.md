@@ -94,3 +94,46 @@ insufficient: balancing buy/sell price or fee errors is explicitly refused.
 See docs/FINANCE_PAPER_INVESTMENT_R1.md for invocation, PIT/rights limits,
 physical PG acceptance and replay. Never promote this producer or
 retrospective study to an authorized live strategy.
+
+
+## Frozen SPY/SHY forward consumer (2026-11-13)
+
+The existing Research plan `evidence/finance-research/spy-shy-forward-20261108/frozen-plan.json`
+precommits to 60% SPY / 40% SHY against 100% SPY before the planned
+2026-11-09 to 2027-03-31 holdout. Its `configDigest` binds the exact existing
+`examples/paper_fixed_mix_etf_20261106.json` policy bytes.
+
+The small `frozen_spy_shy_holdout.py` is an actual private consumer of
+the native OpenBB V5 Cboe provider, `research.experiment_protocol` and
+`portfolio.passive_benchmark`. It does not duplicate provider HTTP, Qlib,
+the benchmark engine, Risk, accounting, broker, or scheduler. It checks
+the frozen plan and refuses altered weights/costs, missing matched
+sessions, future rows and wrong provider identity. It emits normalized
+Cboe CSV data and one partial research receipt **only** into a fresh
+operator-selected private directory outside Git.
+
+Example from the Ordivon repository root in the existing native Python3.11
+environment with `openbb-core==2.0.1` / `openbb-cboe==2.0.0`:
+
+```sh
+export PYTHONPATH="$PWD/domains/capital/src"
+python domains/capital/adoption/r3_native/frozen_spy_shy_holdout.py \
+  --frozen domains/capital/evidence/finance-research/spy-shy-forward-20261108/frozen-plan.json \
+  --policy domains/capital/examples/paper_fixed_mix_etf_20261106.json \
+  --through 2026-11-13 \
+  --private-output /root/projects/ordivon-private/finance/spy-shy-forward-20261113
+```
+
+This is **price-only** partial-forward observation. The original
+retrospective study used adjusted closes; this Cboe close-price proxy
+is NOT yet verified equivalent to that frozen economic metric. It is NOT
+a completed 2027 holdout, authenticated data rights, total-return economic proof,
+PIT historical investability, reliable alpha, or execution grant.
+Source raw-wire bytes and independently signed publisher timestamps are
+not present; historic and prospective claims remain UNKNOWN. Keep the
+vendor CSV private; do not commit it or put it in a Host message. Use
+the existing `finance-experiment-review` Skill for any later review.
+
+For a concise Human research status, pass `--format markdown` to the same
+CLI. It renders the exact existing Portfolio comparison with mandatory data
+and risk unknowns; it is not an additional pricing, accounting or risk engine.
