@@ -107,6 +107,16 @@ collaboration, Subscription and Attention navigation.
 
 Legacy `task.*` and `board.*` tools and their active PostgreSQL storage are physically retired. Historical recovery evidence is retained separately and does not constrain the active model.
 
+Work continuity is **current-snapshot-first**: the only mandatory revision is
+the current Work snapshot. Earlier revisions may be retained or pruned according to
+real consumer needs; missing historical revisions are not a Host health failure.
+`work.get(revision=old)` may return a typed not-found/conflict when that revision
+was pruned. The current snapshot's stored digest and payload must still agree,
+and PostgreSQL CAS must still arbitrate concurrent updates. The `history` Doctor
+verifies the integrity of any history that remains, but no longer requires
+a gap-free archive. This is a contract change, not proof that production
+has already compacted its older snapshots.
+
 The active ontology is intentionally orthogonal: `Work` owns revisioned semantic continuity, `Space`/`Topic`/`Message` own collaboration structure, and `Subscription`/`Attention` own rebuildable actor-scoped navigation. Work state is not chat history, social participation is not assignment or authorization, and Attention is not priority or scheduler truth.
 
 Re-entry uses two different cursors: `attention.*` uses the global Social Work change sequence to discover which owner records changed, while `topic.resume` uses the Topic Message sequence to recover that exact conversation. Agents must not substitute one cursor domain for the other.

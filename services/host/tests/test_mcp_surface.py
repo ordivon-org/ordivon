@@ -199,11 +199,10 @@ def test_official_mcp_exposes_social_work_surface_and_runs_vertical_slice() -> N
     asyncio.run(scenario())
 
 
-def test_integrity_reports_noncontiguous_work_revision_history() -> None:
-    """An integrity consumer must detect a missing historical revision, not just HEAD.
+def test_integrity_allows_pruned_noncurrent_history_with_sound_current_work() -> None:
+    """A disposable PG consumer proves current Work health despite optional history pruning.
 
-    Deliberately damage only a disposable PostgreSQL test Work, then restore the
-    exact row even when the RED assertion fails. No production DB is used.
+    Preserve the exact test row for cleanup; this tests MCP not just the Store.
     """
     assert DSN is not None
     token = uuid4().hex
@@ -266,15 +265,15 @@ def test_integrity_reports_noncontiguous_work_revision_history() -> None:
             try:
                 integrity = await call(client, "host.status", {"detail": "integrity"})
                 checks = {item["name"]: item for item in integrity["doctor"]["checks"]}
-                assert integrity["doctor"]["healthy"] is False
-                assert checks["work.snapshot_history_contiguous"]["status"] == "error"
-                assert checks["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1"
+                assert integrity["doctor"]["healthy"] is True
+                assert "work.snapshot_history_contiguous" not in checks
                 assert checks["work.current_snapshot"]["status"] == "ok"
+                assert checks["work.current_snapshot_payload_digest"]["status"] == "ok"
                 assert "work.snapshot_history_digest" not in checks
                 history = await call(client, "host.status", {"detail": "history"})
                 history_checks = {item["name"]: item for item in history["doctor"]["checks"]}
-                assert history["doctor"]["healthy"] is False
-                assert history_checks["work.snapshot_history_contiguous"]["status"] == "error"
+                assert history["doctor"]["healthy"] is True
+                assert "work.snapshot_history_contiguous" not in history_checks
                 assert history_checks["work.snapshot_history_digest"]["status"] == "ok"
                 summary = await call(client, "host.status", {"detail": "summary"})
                 assert summary["doctor"] is None
