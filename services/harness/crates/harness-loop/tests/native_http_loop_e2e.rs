@@ -5,7 +5,7 @@ use ordivon_harness_core::{digest_bytes, loads_strict, CanonicalDocument};
 use ordivon_harness_loop::{
     native_loop::{
         AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision,
-        ModelVisibleContent, NativeAgentLoop, RunResult,
+        ModelVisibleContent, NativeAgentLoop, PauseCause, RunResult,
     },
     native_provider_http::HttpModelProvider,
     tool_call::ModelToolCall,
@@ -51,7 +51,7 @@ impl DurableJournal for TestJournal {
         self.0.push("completion-proposed");
         Ok(())
     }
-    fn record_pause(&mut self, _: u32) -> Result<(), String> {
+    fn record_pause(&mut self, _: u32, _: PauseCause) -> Result<(), String> {
         self.0.push("paused");
         Ok(())
     }

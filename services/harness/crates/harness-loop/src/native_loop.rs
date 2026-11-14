@@ -50,6 +50,14 @@ pub enum ModelVisibleContent {
 }
 
 const MAX_MODEL_VISIBLE_BYTES: usize = 65_536;
+/// Pause reason is owner-specific: Provider ambiguity, caller input, and Tool
+/// effect ambiguity are not interchangeable persistence transitions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PauseCause {
+    ProviderUnknown,
+    NeedsInput,
+    ToolUnknown,
+}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunResult {
     CompletionProposal(String),
@@ -112,7 +120,7 @@ pub trait DurableJournal {
         result: &EffectResult,
     ) -> Result<ModelVisibleContent, String>;
     fn record_completion(&mut self, turn: u32, proposal: &str) -> Result<(), String>;
-    fn record_pause(&mut self, turn: u32) -> Result<(), String>;
+    fn record_pause(&mut self, turn: u32, cause: PauseCause) -> Result<(), String>;
 }
 pub trait EffectReceiver {
     /// The owner verifies real effect authority and returns its own receipt.
@@ -197,7 +205,9 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
             let delivered = self.provider.turn(turn, &observations);
             let decision = match delivered {
                 ProviderResult::Unknown => {
-                    self.journal.record_pause(turn).map_err(RunFault::Journal)?;
+                    self.journal
+                        .record_pause(turn, PauseCause::ProviderUnknown)
+                        .map_err(RunFault::Journal)?;
                     return Ok(RunResult::PausedUnknown);
                 }
                 ProviderResult::Delivered(decision) => decision,
@@ -216,7 +226,9 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
                     return Ok(RunResult::CompletionProposal(text));
                 }
                 ModelDecision::RequestInput => {
-                    self.journal.record_pause(turn).map_err(RunFault::Journal)?;
+                    self.journal
+                        .record_pause(turn, PauseCause::NeedsInput)
+                        .map_err(RunFault::Journal)?;
                     return Ok(RunResult::NeedsInput);
                 }
                 ModelDecision::CallTools(docs) => {
@@ -291,7 +303,9 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
                                         "UNKNOWN effect must never release model content".into(),
                                     ));
                                 }
-                                self.journal.record_pause(turn).map_err(RunFault::Journal)?;
+                                self.journal
+                                    .record_pause(turn, PauseCause::ToolUnknown)
+                                    .map_err(RunFault::Journal)?;
                                 return Ok(RunResult::PausedUnknown);
                             }
                             EffectResult::Observed {
@@ -359,6 +373,7 @@ mod tests {
         steps: Vec<&'static str>,
         deny: &'static str,
         release: Option<ModelVisibleContent>,
+        last_pause_cause: Option<PauseCause>,
     }
     impl DurableJournal for Journal {
         fn prepare_provider(&mut self, _: u32) -> Result<(), String> {
@@ -396,8 +411,9 @@ mod tests {
             self.steps.push("proposal-recorded");
             Ok(())
         }
-        fn record_pause(&mut self, _: u32) -> Result<(), String> {
+        fn record_pause(&mut self, _: u32, cause: PauseCause) -> Result<(), String> {
             self.steps.push("paused");
+            self.last_pause_cause = Some(cause);
             Ok(())
         }
     }
@@ -487,6 +503,7 @@ mod tests {
             RunResult::PausedUnknown
         );
         assert_eq!(journal.steps, vec!["provider-prepared", "paused"]);
+        assert_eq!(journal.last_pause_cause, Some(PauseCause::ProviderUnknown));
     }
     #[test]
     fn unknown_effect_stops_before_later_effect() {
@@ -515,6 +532,7 @@ mod tests {
             RunResult::PausedUnknown
         );
         assert_eq!(receiver.calls, 1);
+        assert_eq!(journal.last_pause_cause, Some(PauseCause::ToolUnknown));
     }
     #[test]
     fn duplicate_batch_is_preflight_rejected_with_zero_effect() {
@@ -661,6 +679,7 @@ mod tests {
             .unwrap(),
             RunResult::NeedsInput
         );
+        assert_eq!(journal.last_pause_cause, Some(PauseCause::NeedsInput));
     }
     #[test]
     fn entire_batch_schema_preflight_blocks_all_effects_even_if_first_call_valid() {

@@ -8,7 +8,7 @@ use ordivon_harness_core::{
 };
 use ordivon_harness_loop::native_loop::{
     AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision, ModelVisibleContent,
-    NativeAgentLoop, RunResult,
+    NativeAgentLoop, PauseCause, Provider, ProviderResult, RunFault, RunResult, ToolObservation,
 };
 use ordivon_harness_loop::native_provider_http::HttpModelProvider;
 use ordivon_harness_loop::pg_domain_read::{
@@ -184,7 +184,10 @@ impl DurableJournal for SourcePgUnknownJournal {
     fn record_completion(&mut self, _: u32, _: &str) -> Result<(), String> {
         Err("no claimed task completion".into())
     }
-    fn record_pause(&mut self, turn: u32) -> Result<(), String> {
+    fn record_pause(&mut self, turn: u32, cause: PauseCause) -> Result<(), String> {
+        if cause != PauseCause::ProviderUnknown {
+            return Err("Provider V4 Journal refuses non-Provider pause cause".into());
+        }
         let previous = self
             .dispatch_digest
             .as_ref()
@@ -268,6 +271,12 @@ impl DurableJournal for SourcePgUnknownJournal {
         }
         self.unknown_lease = Some(lease);
         Ok(())
+    }
+}
+struct RefuseAnyProviderSend;
+impl Provider for RefuseAnyProviderSend {
+    fn turn(&mut self, _: u32, _: &[ToolObservation]) -> ProviderResult {
+        panic!("stale PG Run passed Journal gate and attempted a Provider send");
     }
 }
 struct NoEffect;
@@ -602,6 +611,14 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         unknown_lease: None,
     };
 
+    // The same Journal can never misinterpret caller input or an uncertain
+    // Tool physical effect as an UNKNOWN external Provider call.
+    for wrong in [PauseCause::NeedsInput, PauseCause::ToolUnknown] {
+        assert!(journal.record_pause(1, wrong).is_err());
+        assert!(!journal.prepared);
+        assert!(journal.unknown_lease.is_none());
+    }
+
     // Real localhost HTTP send, at the endpoint obtained from the same PG
     // Contract-bound CAS configuration. Read the complete JSON body and bind
     // its actual bytes to the original Python V4 providerRequestDigest.
@@ -778,5 +795,42 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         observe_exact_batch(&mut readonly, &schema, run_id, 3, &wrong),
         Err(WriteError::Conflict(_))
     ));
+    // TOCTOU falsifier: the old source-verified initial Run snapshot alone
+    // is NOT a dispatch grant. After the Run advanced to revision 4 and the
+    // Provider head became UNKNOWN, a fresh Loop using this STALE snapshot
+    // must never reach Provider::turn. Existing PG revision/lease reject it.
+    let mut stale_journal = SourcePgUnknownJournal {
+        writer_dsn: writer_dsn.clone(),
+        schema: schema.clone(),
+        run_id: run_id.to_owned(),
+        batch: batch.clone(),
+        python_first_source: journal.python_first_source.clone(),
+        python_failure_oracle: journal.python_failure_oracle.clone(),
+        prepared: false,
+        dispatch_digest: None,
+        unknown_lease: None,
+    };
+    let mut never_send = RefuseAnyProviderSend;
+    let stale = NativeAgentLoop::new_provider_only(
+        &mut never_send,
+        &mut stale_journal,
+        &mut no_effect,
+        &verified,
+        1,
+    )
+    .unwrap()
+    .run();
+    assert!(
+        matches!(stale, Err(RunFault::Journal(_))),
+        "A stale but correctly digested source Run must not authorize new Provider transport"
+    );
+    assert!(!stale_journal.prepared);
+    assert_eq!(
+        read_run_readonly(&mut readonly, &schema, run_id)
+            .unwrap()
+            .projection
+            .revision,
+        4
+    );
     println!("PG18_RUST_WRITER_PYTHON_PROVIDER_V4_UNKNOWN_READBACK_EXACT_PASS");
 }

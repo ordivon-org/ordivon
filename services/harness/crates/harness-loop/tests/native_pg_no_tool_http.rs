@@ -4,7 +4,7 @@ use ordivon_harness_core::CanonicalDocument;
 use ordivon_harness_loop::{
     native_loop::{
         AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision,
-        ModelVisibleContent, NativeAgentLoop, RunFault, RunResult,
+        ModelVisibleContent, NativeAgentLoop, PauseCause, RunFault, RunResult,
     },
     native_provider_http::HttpModelProvider,
     pg_domain_read::{inspect_pg_no_tool_run, ExpectedModel},
@@ -47,7 +47,7 @@ impl DurableJournal for Journal {
         self.proposals += 1;
         Ok(())
     }
-    fn record_pause(&mut self, _: u32) -> Result<(), String> {
+    fn record_pause(&mut self, _: u32, _: PauseCause) -> Result<(), String> {
         Ok(())
     }
 }
