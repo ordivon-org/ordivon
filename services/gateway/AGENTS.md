@@ -175,6 +175,16 @@ claim successful service admission from an unprivileged staging install.
 On 203/EXEC investigate the interpreter shebang and complete parent path,
 retain the last healthy release, and correct the interpreter location.
 
+## Agent receipt type fidelity (2026-11-14)
+
+Agent-facing `execution.submit` and `execution.cancel` only project
+nonempty native JSON string `status`/`attemptState` and optional
+`deliveryDisposition`. Do not convert malformed Owner values using
+Python `str()` or treat unknown variants as success. Preserve future
+nonempty string states as Owner-owned opaque vocabulary. Source TDD:
+`tests/test_execution_receipt_types.py`; native Gateway verification
+remains necessary. A typed receipt does not attest the physical effect.
+
 ## R08 Linux PG Runtime real business Job and Artifact delivery
 
 **Human:** A real production Gateway-to-Linux Runtime Job executed and emitted

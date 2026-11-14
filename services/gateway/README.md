@@ -95,6 +95,18 @@ rule applies to the Linux and Windows Runtime owners; see
 This validates result correlation, not physical process termination or a new
 cancellation authority.
 
+**Native execution receipt text type (R5, 2026-11-14):** Gateway's
+`execution.submit` and `execution.cancel` must preserve Owner-supplied
+`status`/`attemptState` and optional `deliveryDisposition` only when
+they are nonempty JSON strings. Python `str(True)`, `str(None)`, or
+`str({})` manufactures a state that the Runtime never declared.
+Absent status is `unknown`, absent disposition remains `None`, and
+valid future string variants remain opaque Owner vocabulary rather
+than being forced into a local enum. This is Agent-facing wire
+fidelity, not proof of physical effects, and does not supersede the
+Owner's `resultAvailable`/domain-effect boundary. Regression consumers:
+`tests/test_execution_receipt_types.py`.
+
 B01 is intentionally small. The public schema avoids fast-moving closed enums such as Runtime execution-context values. Provider-owned context data stays opaque at the Gateway boundary; Gateway only lowers the generic envelope into the owner field and leaves semantic validation to the owner.
 
 For `execution.windows`, Gateway accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
