@@ -86,6 +86,66 @@ Research/Portfolio/Accounting 经济消费者，而不是在报告
 原生验收和性能观测细节见 Finance R3 源审计回执，
 不是以本段文字代替测试。
 
+## 2026-11-14：发行方现金分配与 Research 持仓价格标签
+
+**真实消费者问题：** OpenBB Cboe ETF OHLCV 日线接口没有明确的
+分红/拆分调价参数；Qlib R3 H5/H20 研究标签是 T+1 OPEN →
+T+H+1 OPEN 的价格比率，并不自然成为含现金分配的总回报。
+两个行情端点的 close 相等，也不能证明原始价格复权语义、
+来源独立性、数据许可或历史首次可知时间。
+
+**唯一自然 Research 只读消费者：**
+ordivon_capital.research.etf_distribution_label_audit。
+输入仅包括冻结 CSV 面板、完整 XNYS 交易日网格和单独存放的
+私有发行方事件观察 JSON。重用已安装 Mature
+exchange-calendars 校验日历，检测
+entry_session < exDate <= exit_session
+的潜在分红暴露，不重复任何 Portfolio 收益、Accounting
+应收款或交易引擎。所有 issuer 事件来自本次人工观察，
+并非历史版本的独立时间认证，状态始终
+OBSERVED_ISSUER_EVENT_EXPOSURE_NOT_TOTAL_RETURN。
+
+本轮来源：私有
+finance/market-daily/capture-20261114-r3/daily_close_panel_20261113.csv
+sha256=a1daef34db81615b4ab26ada498ed2d7121833a42cc974303357aeb006cd2e59，
+以及私有
+finance/issuer-events-diagnostic-20261114-r1/issuer_distribution_observed.json。
+发行方公开原始页面：
+- QQQ：https://www.invesco.com/us/en/financial-products/etfs/invesco-qqq-trust-series-1.html
+- IWM：https://www.ishares.com/us/products/239710/iwm-ishares-russell-2000-etf
+- SPY：https://www.ssga.com/us/en/individual/resources/documents/etf-dividend-distributions
+
+2025-10-01 至 2026-10-29 的所有可评价**假设决策日期**
+（非 Qlib 真实选股与成交）：
+
+| 研究窗口 | 完整标签候选 | QQQ 跨已观察除息 | IWM 跨已观察除息 | SPY 跨已观察除息的下界 |
+| --- | ---: | ---: | ---: | ---: |
+| H5 T+H+1 OPEN | 272 | 20 | 20 | 5 |
+| H20 T+H+1 OPEN | 262 | 80 | 80 | 20 |
+
+QQQ、IWM 各核实四项季度事件；SPY 仅核实 2026-09-18
+一个事件，故 SPY 不是完整事件统计。没有观察到事件，
+**不意味着已经证明没有任何发行方事件**。需要独立
+来源历史发表时点、股息/拆分、调价语义、税费及权利
+才能真正做总收益回测。
+
+Agent 只读使用：
+
+    cd domains/capital
+    PYTHONPATH=src uv run --locked --group test python -m ordivon_capital.research.etf_distribution_label_audit --panel /private/panel.csv --observed-events /private/issuer_events.json --expected-panel-sha256 ACTUAL_64_HEX --decision-first 2025-10-01 --decision-last 2026-10-29 --holding-sessions 20
+
+现有 Consumer Graph：
+Markets XNYS / 来源字节 →
+Research Qlib 冻结 H5/H20 价格标签 →
+Research issuer-date label audit →
+只有在独立取得合格复权、历史可知性与使用许可后，才允许
+交给既有 Portfolio passive_benchmark / Research
+investment_candidate 真正经济对照及 Accounting/Risk。
+未认证前绝不回填 Qlib 已冻结输出、改写 Paper NAV、
+声称 Alpha 或启动资金/真实账户。应继续使用成熟 Skill
+finance-experiment-review 中 freeze/holdout/source 原则，
+不建立新的 Corporate Actions Bookkeeper。
+
 ## Golden commands
 
 ### 1. Start without any database or broker

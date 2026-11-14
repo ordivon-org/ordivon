@@ -252,6 +252,17 @@ eod_expected = ["unsat", "unsat", "unsat", "sat", "sat"]
 if eod_results != eod_expected:
     raise SystemExit(f"Markets EOD -> Paper gate model mismatch: {eod_results!r}")
 print("MarketsEodPaperCalendarR1: 3 abstract consumer invariants UNSAT; 2 counterexamples SAT")
+distribution_raw = Path("formal/ResearchExDividendHoldingHorizonR1.smt2").read_bytes()
+distribution_ctx = z3.Context()
+distribution_results = z3.z3core.Z3_eval_smtlib2_string(
+    distribution_ctx.ref(), distribution_raw
+).splitlines()
+distribution_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "sat"]
+if distribution_results != distribution_expected:
+    raise SystemExit(
+        f"Research issuer dividend holding horizon model mismatch: {distribution_results!r}"
+    )
+print("ResearchExDividendHoldingHorizonR1: 4 abstract invariants UNSAT; 2 wrong/valid witnesses SAT")
 PYZ3
 """
 
