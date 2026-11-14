@@ -220,3 +220,53 @@ be overridden, a qualified peer with no file, and main-Gateway admission
 fail-closed. The owner-native full gateway pytest and Ruff checks apply to
 the exact source revision; live installed Gateway 0.10.8 remains a separate
 Cut and must not be claimed to consume this source change until published.
+
+## Real Host service bearer canary (2026-11-15)
+
+A declared `ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE` plus a real HTTP 401/403
+for an anonymous Host request does not prove the same *installed* Gateway
+bearer actually authenticates with Host. A stale or different token may
+strand every Agent Work/Topic call after deployment.
+
+The existing release preflight now separately proves a positive read-only
+MCP `initialize` using the credential actually declared by the primary
+Gateway: first establish Host anonymous denial; then resolve its systemd
+`%d` credential path (or operator-owned absolute path) and use the existing
+Gateway private file reader (bounded, no-follow, same-FD checks). Never
+forward the credential to an arbitrary route or any Host that has not
+denied anonymous initialization. Only fixed `127.0.0.1:8898/mcp` can be
+probed. HTTP 200 must include matching JSON-RPC request ID, MCP protocol
+version, capabilities and server metadata; redirect/401/403/invalid JSON
+does not qualify. No token bytes enter logs, receipts or MCP Tool arguments.
+
+This operates in the existing immutable Gateway production activation
+preflight, not the `--prepare-only` stage. Existing test fixtures cover
+positive/negative/mismatched/error/unsafe-path behavior and the actual
+release entrypoint. The bounded `GatewayHostCutoverR1` TLA+ model adds
+`hostBearerVerified` only *after* Host protection; Gateway promotion
+requires it and a separate counterexample falsifies a premature publish.
+
+This is **not** an operator Principal→Actor grant, active peer bearer
+equality proof, service secret rotation guarantee, installed Security PDP
+readback or Cloudflare/Agent business migration receipt. Keep those
+existing natural-owner acceptance steps independent.
+
+
+### Active peer Gateway is an independent bearer consumer
+
+The main Gateway's valid Host MCP handshake is not transferable to
+`ordivon-gateway-local-r21.service` or any other active peer. For each
+systemd-discovered peer whose qualified configuration points at the same
+Host Owner endpoint, the original release preflight now resolves that
+**peer unit's own** `%d/host-mcp-bearer` path and demands its own positive
+authenticated MCP initialize. No probe may send private credentials unless
+the separate Host anonymous negative canary has already succeeded.
+Missing, inaccessible, mismatched or rejected peer tokens keep the active
+peer in `ACTIVE_HOST_CONSUMER_MISSING_OWNER_CREDENTIAL`. Peers explicitly
+routed to a different Owner target remain out of this exact Host consumer
+check; unobservable `EnvironmentFiles` remain unqualified.
+
+This uses the same native bounded Owner private-file reader and HTTP
+canary, not another credential store or scheduling authority. True
+authorization and business continuity still require real authenticated
+Agent read/write and reviewer acceptance after the release.

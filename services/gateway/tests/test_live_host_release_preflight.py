@@ -476,7 +476,14 @@ def test_migrated_or_unrelated_active_peer_does_not_block(
         return subprocess.CompletedProcess(command, 0, stdout=secondary_environment)
 
     monkeypatch.setattr(preflight.subprocess, "run", fake_run)
-    assert preflight._unqualified_active_peer_host_consumers() == ()
+    # Declaring a bearer is no longer a migration witness. Only this
+    # independently observed per-peer authenticated Host canary qualifies.
+    monkeypatch.setattr(
+        preflight,
+        "_authenticated_host_initialize_accepted",
+        lambda environment, *, anonymous_denied, unit: True,
+    )
+    assert preflight._unqualified_active_peer_host_consumers(anonymous_denied=True) == ()
 
 
 def test_active_peer_discovery_errors_never_qualify_release(
@@ -639,7 +646,12 @@ def test_active_peer_envfile_override_does_not_hide_unqualified_host_consumer(
         raise AssertionError("unexpected native systemd query")
 
     monkeypatch.setattr(preflight.subprocess, "run", native_systemd)
-    observed = preflight._unqualified_active_peer_host_consumers()
+    monkeypatch.setattr(
+        preflight,
+        "_authenticated_host_initialize_accepted",
+        lambda environment, *, anonymous_denied, unit: True,
+    )
+    observed = preflight._unqualified_active_peer_host_consumers(anonymous_denied=True)
     assert observed == ((peer_unit,) if must_block else ())
 
 

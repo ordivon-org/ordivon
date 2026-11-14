@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
+from ordivon_gateway.upstream_identity import OwnerCallError, _read_private_token_file
 
 MAX_POLICY_BYTES = 2_097_152
 MAX_SOCKET_EVIDENCE_BYTES = 131_072
@@ -198,20 +199,117 @@ def _active_host_grant_count(document: dict[str, Any], *, now: int) -> int:
     return sum(active(grant) for grant in grants)
 
 
-def _declares_host_owner_identity(systemd_environment: str) -> bool:
+def _declared_owner_credential_path(
+    systemd_environment: str, *, unit: str = GATEWAY_UNIT
+) -> str | None:
+    """Resolve only the existing Gateway owner-bearer declaration.
+
+    The production Gateway's systemd %d specifier resolves to its credential
+    directory; we never interpret shell, read a private env file or accept a
+    caller-supplied upstream URL. Two competing declarations are ambiguous.
+    """
     try:
-        values = shlex.split(systemd_environment)
+        entries = shlex.split(systemd_environment)
     except ValueError:
+        return None
+    values = [
+        item.partition("=")[2]
+        for item in entries
+        if item.startswith("ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=")
+    ]
+    if len(values) != 1:
+        return None
+    value = values[0]
+    if value.startswith("%d/"):
+        relative = value[3:]
+        if (
+            not relative
+            or relative.startswith("/")
+            or any(part in (".", "..", "") for part in relative.split("/"))
+        ):
+            return None
+        return f"/run/credentials/{unit}/{relative}"
+    if value.startswith("/") and ".." not in value.split("/") and not value.startswith("//"):
+        return value
+    return None
+
+
+def _declares_host_owner_identity(systemd_environment: str) -> bool:
+    return _declared_owner_credential_path(systemd_environment) is not None
+
+
+def _authenticated_host_initialize_accepted(
+    systemd_environment: str, *, anonymous_denied: bool, unit: str = GATEWAY_UNIT
+) -> bool:
+    """Proof that the declared *current* Gateway bearer reaches the exact Host MCP.
+
+    Never send operator secret bytes to the Host until its *separate* unauthenticated
+    initialize returned an HTTP 401/403. A declaration, socket connection, 200
+    from a different app, redirect or malformed MCP JSON is not acceptance.
+    Actual Principal/Actor grants and real business tool use still need AuthZEN.
+    """
+    if not anonymous_denied or not _owner_route_is_probed_endpoint(systemd_environment):
         return False
-    for item in values:
-        if not item.startswith("ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE="):
-            continue
-        value = item.partition("=")[2]
-        return value.startswith(("/", "%d/")) and len(value) > 3
-    return False
+    path = _declared_owner_credential_path(systemd_environment, unit=unit)
+    if path is None:
+        return False
+    try:
+        # Reuse the very same bounded, no-follow, same-inode credential reader
+        # as Gateway's existing Owner upstream client; never print the token.
+        bearer = _read_private_token_file(path)
+    except OSError, OwnerCallError, ValueError:
+        return False
+    if len(bearer) < 32:
+        return False
+
+    connection = http.client.HTTPConnection("127.0.0.1", 8898, timeout=4)
+    try:
+        connection.request(
+            "POST",
+            "/mcp",
+            body=MCP_INITIALIZE,
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "MCP-Protocol-Version": "2025-06-18",
+                "Authorization": f"Bearer {bearer}",
+            },
+        )
+        response = connection.getresponse()
+        if response.status != 200:
+            return False
+        raw = response.read(65_537)
+        if len(raw) > 65_536:
+            return False
+        result = json.loads(raw)
+        protocol = result.get("result") if isinstance(result, dict) else None
+        return bool(
+            isinstance(result, dict)
+            and result.get("jsonrpc") == "2.0"
+            and result.get("id") == "gateway-host-anonymous-release-negative"
+            and isinstance(protocol, dict)
+            and protocol.get("protocolVersion") == "2025-06-18"
+            and isinstance(protocol.get("capabilities"), dict)
+            and isinstance(protocol.get("serverInfo"), dict)
+        )
+    except OSError, http.client.HTTPException, ValueError, UnicodeDecodeError:
+        return False
+    finally:
+        connection.close()
 
 
-def _unqualified_active_peer_host_consumers() -> tuple[str, ...]:
+def _apply_authenticated_host_canary(
+    standing: dict[str, Any], *, qualified: bool
+) -> dict[str, Any]:
+    """A necessary physical M2M proof, separate from Security authorization."""
+    standing["hostOwnerAuthenticatedInitializeAccepted"] = qualified
+    if not qualified:
+        standing["status"] = "NO_GO"
+        standing["reasons"].append("HOST_OWNER_AUTHENTICATED_MCP_NOT_PROVEN")
+    return standing
+
+
+def _unqualified_active_peer_host_consumers(*, anonymous_denied: bool = False) -> tuple[str, ...]:
     """Check other ACTIVE Gateway services that point at this Host Owner route.
 
     The release installer promotes only the primary Gateway, but a distinct
@@ -249,11 +347,20 @@ def _unqualified_active_peer_host_consumers() -> tuple[str, ...]:
         if len(observed) >= 32:
             raise ValueError("active Gateway consumer census exceeds bound")
         environment = _qualified_systemd_environment(unit)
-        if environment is None or (
-            _owner_route_is_probed_endpoint(environment)
-            and not _declares_host_owner_identity(environment)
-        ):
+        if environment is None:
             observed.add(unit)
+        elif _owner_route_is_probed_endpoint(environment):
+            # A declared bearer might be absent or differ from the protected
+            # Host's real secret. Each active peer must prove its *own* private
+            # service credential, not borrow the primary Gateway's canary.
+            if (
+                not _declares_host_owner_identity(environment)
+                or not anonymous_denied
+                or not _authenticated_host_initialize_accepted(
+                    environment, anonymous_denied=anonymous_denied, unit=unit
+                )
+            ):
+                observed.add(unit)
     return tuple(sorted(observed))
 
 
@@ -408,7 +515,7 @@ def assess(
         "unverified": [
             "actual Principal-to-Actor and resource authorization",
             "positive and negative live Host AuthZEN consumer canaries",
-            "actual Host bearer-protected ingress and matching credential",
+            "Host bearer rotation, peer consistency and post-promotion revalidation",
             "direct Host MCP connector migration",
             "Cloudflare remote Host ingress target and direct-consumer migration",
             "production post-promotion behavior",
@@ -448,14 +555,25 @@ def main() -> int:
         )
         if security_service.returncode != 0 or security_service.stdout.strip() != "active":
             raise ValueError("current Security PDP is not running")
+        anonymous_denied = _rejects_unauthenticated_host_initialize()
+        # Only after a negative anonymous canary can a private workload token
+        # safely be offered to this exact known-local Host MCP endpoint.
+        authenticated_accepted = _authenticated_host_initialize_accepted(
+            environment, anonymous_denied=anonymous_denied
+        )
         standing = _apply_installed_security_read_surface(
-            assess(
-                data,
-                environment,
-                now=int(time.time()),
-                anonymous_host_initialize_denied=_rejects_unauthenticated_host_initialize(),
-                observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
-                unqualified_active_host_consumers=_unqualified_active_peer_host_consumers(),
+            _apply_authenticated_host_canary(
+                assess(
+                    data,
+                    environment,
+                    now=int(time.time()),
+                    anonymous_host_initialize_denied=anonymous_denied,
+                    observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
+                    unqualified_active_host_consumers=_unqualified_active_peer_host_consumers(
+                        anonymous_denied=anonymous_denied
+                    ),
+                ),
+                qualified=authenticated_accepted,
             ),
             qualified=_installed_security_host_read_surface_qualified(),
         )
