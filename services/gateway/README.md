@@ -180,7 +180,14 @@ single newly promoted Host read to preserve exact messageRef /
 expectedDigest evidence readback when an authenticated Agent migrates off a
 direct Host connector. It forwards to Host without persisting or reinterpreting
 the message and uses the existing host.legacy-read AuthZEN selector plus
-full-request binding. This is **not** an authorization grant or an installed
+full-request binding. Release preflight now also inventories active peer Gateway services that
+route to the very same Host Owner. A peer with no declared Host upstream
+Bearer blocks promotion; migrating only the primary Gateway is insufficient
+when a live legacy Gateway still consumes the old anonymous Host endpoint.
+This is bounded systemd config evidence, not proof of all external Agent
+connectors or actual successful bearer authentication.
+
+This is **not** an authorization grant or an installed
 migration, and host.pool.stats remains an operator-local diagnostic rather
 than a new Gateway surface. A source/PDP test cannot substitute for the
 actual trusted Principal, Security Grant, Host Bearer pairing, and native
