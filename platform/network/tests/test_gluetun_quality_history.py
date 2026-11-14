@@ -80,7 +80,7 @@ def test_recent_failure_requires_three_observed_consecutive_zeros(monkeypatch):
     now=t()
     def fill(values):
         return [{"metric":{"job":job},
-                 "values":[[now.timestamp()-180+i*60,str(v)] for i,v in enumerate(values)]}
+                 "values":[[now.timestamp()-90+i*30,str(v)] for i,v in enumerate(values)]}
                 for job in history.JOBS]
     monkeypatch.setattr(history,"http_raw_samples",lambda metric,now:fill([0,0,0]))
     assert history.recent_failure_witness(now) is True
@@ -120,7 +120,7 @@ def test_last_three_samples_must_be_fresh_and_distinct(monkeypatch):
             "values":[[stamp,str(value)] for stamp,value in zip(stamps,values)]}
             for job in history.JOBS]
         return r + ([r[0]] if duplicate else [])
-    fresh=[now.timestamp()-120,now.timestamp()-60,now.timestamp()]
+    fresh=[now.timestamp()-75,now.timestamp()-45,now.timestamp()-15]
     monkeypatch.setattr(history,"http_raw_samples",lambda *a:rows(fresh))
     assert history.recent_failure_witness(now) is True
     monkeypatch.setattr(history,"http_raw_samples",lambda *a:rows(fresh,values=(0,1,0)))
@@ -249,6 +249,38 @@ def test_raw_failure_gate_queries_one_prometheus_range_vector_not_replayed_steps
     q=parse_qs(parsed.query)["query"][0]
     assert "probe_success{" in q and q.endswith("[7m]")
     assert "/query_range" not in calls[0]
+
+
+
+
+def test_fast_cadence_rejects_stale_old_failures_after_monitoring_stops(monkeypatch):
+    """Actual P0 mutant: 3 old zeroes at T-195/T-165/T-135 were accepted."""
+    now=t()
+    def raw(last_age=135,gap=30,skew=0,values=(0,0,0)):
+        return [{"metric":{"job":job},"values":[
+            [now.timestamp()-last_age-extra-2*gap,str(values[0])],
+            [now.timestamp()-last_age-extra-gap,str(values[1])],
+            [now.timestamp()-last_age-extra,str(values[2])]]}
+            for i,job in enumerate(history.JOBS)
+            for extra in ([skew] if i==2 else [0])]
+    def check(*args,**kwargs):
+        return history.recent_failure_witness(now)
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw())
+    assert check() is None
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw(last_age=75))
+    assert check() is True
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw(last_age=76))
+    assert check() is None
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw(last_age=15,gap=45))
+    assert check() is True
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw(last_age=15,gap=46))
+    assert check() is None
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw(last_age=15,gap=30,skew=45))
+    assert check() is True
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw(last_age=15,gap=30,skew=46))
+    assert check() is None
+    monkeypatch.setattr(history,"http_raw_samples",lambda *a:raw(last_age=15,gap=30,values=(0,1,0)))
+    assert check() is False
 
 
 def test_suspended_prometheus_scrape_with_previous_zero_is_unknown(monkeypatch):

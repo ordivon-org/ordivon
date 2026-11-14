@@ -189,6 +189,31 @@ VPN failure.
   or blocks the proven failure action. Official native API readback verifies
   attempted changes and selection restoration. No claim of hot standby.
 
+### Current-sample admission boundary after the 30-second rollout
+
+2026-11-14 production fault-falsification found that the previous one-minute
+scrape logic still allowed **three failed origin samples whose latest original
+timestamp was 135 seconds old**. When monitoring stopped after prior failures,
+that stale evidence could authorize a new country trial even if a client had
+already recovered. The 30-second native sampling cadence must therefore be
+paired with a source-bound original-timestamp safety condition.
+
+The one-shot now requires each of three distinct raw samples per lane to have
+its most recent sample at most **75 seconds** old, the oldest at most
+**165 seconds** old, and no gap greater than **45 seconds**. The three lanes'
+latest sample timestamps may differ by at most **45 seconds**. Late/missing
+telemetry returns `UNKNOWN` and never grants a VPN mutation. Real current
+successful samples return `FALSE` for a correlated failure. This uses the
+existing single Prometheus range-vector call; there is no new monitoring
+process, storage, timetable or additional endpoint probe.
+
+The finite source-bound Z3 test enumerates sampling ages, missing-interval
+gaps and cross-lane skews, including the previously accepted 135-second-old
+all-zero mutant. This proves the bounded timestamp predicate against its
+explicit abstraction, not all possible Prometheus scheduling behavior or
+real-world VPN failover time. Required live consumer checks and healthy
+Gluetun/Tailscale PID continuity remain separate release gates.
+
 ### Recovery decision and partial failures
 
 The production fast gate consumes **existing Prometheus data**; it checks
