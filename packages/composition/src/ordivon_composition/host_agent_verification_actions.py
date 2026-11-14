@@ -123,12 +123,25 @@ def _project_selected_host_actions(
         identity, standing = row["id"], row["standing"]
         counts[standing] += 1
         if standing == "RECHECK_REQUIRED":
-            decision = "RECHECK_NAMED_CONSUMER"
-            # A changed proof requires *scoped* qualification, not whole-suite
-            # replay or automatic submission of a Runtime Job.
-            next_steps.append(
-                f"{_GENERATED_PREFIX}{identity}: recheck impacted owner/consumer obligation only"
-            )
+            if identity in prior_refs:
+                # "Affected" is a dependency finding, not a claim that nobody
+                # has already reverified the *new* source. The current Work
+                # reference may be an old or a new receipt; ask the natural
+                # Owner to establish its exact subject/readset before retry.
+                decision = "QUALIFY_EXISTING_IMPACTED_PROOF_FIRST"
+                next_steps.append(
+                    f"{_GENERATED_PREFIX}{identity}: consult existing Owner proof "
+                    f"{prior_refs[identity]} for changed scope/currentness first; "
+                    "only then recheck this named obligation if not qualified"
+                )
+            else:
+                decision = "RECHECK_NAMED_CONSUMER"
+                # Without a Work reference this is a scoped recheck *candidate*,
+                # not a verifier dispatch or proof that no Owner result exists.
+                next_steps.append(
+                    f"{_GENERATED_PREFIX}{identity}: locate current Owner proof if any; "
+                    "otherwise recheck impacted owner/consumer obligation only"
+                )
         elif standing == "UNKNOWN":
             decision = "QUALIFY_DEPENDENCIES_NOT_RERUN"
             next_steps.append(

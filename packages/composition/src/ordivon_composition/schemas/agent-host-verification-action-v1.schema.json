@@ -211,7 +211,8 @@
             "RECHECK_NAMED_CONSUMER",
             "QUALIFY_DEPENDENCIES_NOT_RERUN",
             "READ_EXISTING_OWNER_PROOF",
-            "LOCATE_PRIOR_OWNER_PROOF"
+            "LOCATE_PRIOR_OWNER_PROOF",
+            "QUALIFY_EXISTING_IMPACTED_PROOF_FIRST"
           ]
         },
         "existingProofRef": {
@@ -235,6 +236,23 @@
             },
             "agentDecision": {
               "const": "RECHECK_NAMED_CONSUMER"
+            },
+            "existingProofRef": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "impactStanding": {
+              "const": "RECHECK_REQUIRED"
+            },
+            "agentDecision": {
+              "const": "QUALIFY_EXISTING_IMPACTED_PROOF_FIRST"
+            },
+            "existingProofRef": {
+              "type": "string",
+              "minLength": 1
             }
           }
         },

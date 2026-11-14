@@ -30,7 +30,7 @@ Git owns the immutable scoped path delta; the latter re-queries the actual
 Git SourceCut rather than trusting a caller's changedRefs JSON. Both routes
 use C04's **same** selector and Agent action renderer. Unchanged inputs generate **existing
 Owner-proof lookup**, unknown dependencies generate **qualification**, and
-actual changed dependencies generate **only scoped recheck candidates**.
+actual changed dependencies generate **only scoped recheck candidates**. Even if a dependency changed, read a matching **already-updated** Owner receipt from current Work before invoking a verifier again; `QUALIFY_EXISTING_IMPACTED_PROOF_FIRST` records this alternative without declaring PASS.
 The projection may propose an eight-field legacy `work.snapshot.commit`
 CAS payload which embeds next Agent actions; no Host schema/table is added.
 Composition now validates both Agent action CLI outputs using a strict Draft202012

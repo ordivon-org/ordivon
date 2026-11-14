@@ -181,7 +181,8 @@
         "Existing graph/impact tests check unindexed source, dynamic edges, relation membership, cycles and independent impact oracle.",
         "Host Agent R2 focused suite asserts native Git delta anti-forgery, scoped recheck, unchanged prior evidence lookup and missing dependency UNKNOWN; no old PG18 verifier rerun.",
         "Agent action schema negatives reject fabricated acceptance, impossible status-decision pairing, unsafe whole-suite reruns and unqualified Owner closure claims.",
-        "Actual native Git member-addition test ensures old complete positive-readset proof becomes UNKNOWN/QUALIFY_DEPENDENCIES, not REUSE_CANDIDATE."
+        "Actual native Git member-addition test ensures old complete positive-readset proof becomes UNKNOWN/QUALIFY_DEPENDENCIES, not REUSE_CANDIDATE.",
+        "Impacted obligation with existing Work Owner evidence must result in Owner read/qualification before optional scoped rerun, never unqualified acceptance."
       ],
       "evidence": [
         "src/ordivon_composition/verification_obligation_r1.py",

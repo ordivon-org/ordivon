@@ -30,7 +30,8 @@ It calls the existing selector, never trusts a caller-supplied impact status:
 
 | Composition finding | Agent decision | Side effect |
 | --- | --- | --- |
-| `RECHECK_REQUIRED` | `RECHECK_NAMED_CONSUMER` | Suggest **only** the impacted verifier/consumer, no execution |
+| `RECHECK_REQUIRED` with a current Work proof reference | `QUALIFY_EXISTING_IMPACTED_PROOF_FIRST` | First ask the original Owner whether the changed subject has **already** passed an applicable check; only if not, recheck the affected obligation |
+| `RECHECK_REQUIRED` without proof reference | `RECHECK_NAMED_CONSUMER` | Search for an Owner proof first; otherwise propose only the impacted verifier/consumer, no execution |
 | `UNKNOWN` | `QUALIFY_DEPENDENCIES_NOT_RERUN` | Read source/Owner assumptions, never default to whole-suite run |
 | `REUSE_CANDIDATE` with known proof ref | `READ_EXISTING_OWNER_PROOF` | Read/check original Owner evidence, **not** a new test |
 | `REUSE_CANDIDATE` without ref | `LOCATE_PRIOR_OWNER_PROOF` | Locate natural Owner receipt, **not** a new test |
@@ -42,7 +43,9 @@ The CLI result is checked by the existing Draft202012 validator against
 The strict schema refuses impossible impact-standing/Agent-decision pairs,
 `proofVerifiedByProjection=true`, `wholeSuiteRecheckRequested=true`,
 an eligible CAS with no legacy WorkSnapshot, or a caller asserting
-`ownerCertifiedReadsetClosure=true`. This is a typed interface check, not
+`ownerCertifiedReadsetClosure=true`. Any old or new Owner reference is an **address**, not proof of the changed source. `RECHECK_REQUIRED` says the old *dependencies* were affected; it does not mean a verifier has not already run since the change. Only a qualified Owner result with exact changed subject, acceptance, provenance and covered readset can suppress the recheck. This avoids repeated tests after another Agent already supplied the new receipt.
+
+This is a typed interface check, not
 a proof that the natural Owner's dependencies or historical receipt are valid.
 It has `workRef`, exact `expectedRevision`, inherited impact `basisDigest`,
 per-proof action, summary and **an optional canonical eight-field legacy

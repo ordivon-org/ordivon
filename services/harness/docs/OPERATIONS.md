@@ -73,6 +73,10 @@ Composition consumer `agent-host-source-actions` can combine the native
 `tools/repo/source_history_legos.py` scoped Git delta with Owner-declared
 readsets to produce machine-typed actions for the Agent:
 
+- `QUALIFY_EXISTING_IMPACTED_PROOF_FIRST`: changed input may already
+  have a current Owner PASS; if the current Host Work has an evidence reference,
+  retrieve and qualify exact subject, Owner, readset and validity before
+  another expensive verifier. An old receipt is not automatically applicable.
 - `RECHECK_NAMED_CONSUMER`: only the affected obligation's verifier is a
   candidate for a new execution, after normal Harness/Runtime admission.
 - `QUALIFY_DEPENDENCIES_NOT_RERUN`: read back missing dependency/negative

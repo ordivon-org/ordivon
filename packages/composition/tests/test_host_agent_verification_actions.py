@@ -556,3 +556,43 @@ def test_real_new_file_membership_prevents_unqualified_prior_proof_reuse(tmp_pat
         projection["sourceReadsetScope"]["membershipClosureQualification"]
         == "UNKNOWN_NEGATIVE_DEPENDENCIES_AFTER_MEMBERSET_DELTA"
     )
+
+
+def test_affected_proof_already_has_owner_receipt_read_it_before_rerunning():
+    """Changed dependency does NOT imply nobody already verified the new source."""
+    from pathlib import Path
+
+    work = work_fixture()
+    latest_receipt = "runtime:job:job-verified-on-changed-source"
+    work["snapshot"]["referenceRefs"].append(latest_receipt)
+    observed = project_host_agent_verification_actions(
+        work=work,
+        impact_graph=graph_fixture(),
+        changed_refs=["source:cas"],
+        proof_refs_by_obligation={
+            "proof:cas": latest_receipt,
+            "proof:topic": "evidence:topic:prior-pass:1",
+        },
+    )
+    by_id = {row["obligationId"]: row for row in observed["actions"]}
+    changed = by_id["proof:cas"]
+    assert changed["impactStanding"] == "RECHECK_REQUIRED"
+    assert changed["agentDecision"] == "QUALIFY_EXISTING_IMPACTED_PROOF_FIRST"
+    assert changed["existingProofRef"] == latest_receipt
+    assert changed["proofVerifiedByProjection"] is False
+    assert changed["automaticVerifierExecution"] is False
+    steps = observed["proposedWorkSnapshot"]["nextActions"]
+    assert any(latest_receipt in action and "only then recheck" in action for action in steps)
+    assert observed["summary"]["wholeSuiteRecheckRequested"] is False
+
+    schema = (
+        Path(__file__).resolve().parents[1]
+        / "src/ordivon_composition/schemas/agent-host-verification-action-v1.schema.json"
+    )
+    _validate_schema(observed, schema, "affected Owner receipt-first action")
+    tampered = json.loads(json.dumps(observed))
+    next(i for i in tampered["actions"] if i["obligationId"] == "proof:cas")["existingProofRef"] = (
+        None
+    )
+    with pytest.raises(CircuitContractError):
+        _validate_schema(tampered, schema, "reject affected claimed receipt without a ref")
