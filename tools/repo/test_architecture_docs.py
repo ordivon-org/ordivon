@@ -94,7 +94,14 @@ def test_current_harness_route_does_not_rewrite_historical_deployment() -> None:
     assert deployed["status"] == "HISTORICAL_DEPLOYED_SNAPSHOT_20260928"
     assert set(deployed["routers"]["capabilityRouter"]["capabilities"]) == module.EXPECTED_CAPABILITIES
     assert source_routes == module.EXPECTED_SOURCE_CAPABILITIES
-    assert source_routes - module.EXPECTED_CAPABILITIES == {"execution.harness"}
+    # The historical September deployment snapshot is immutable; the live
+    # source has both the issuer-fenced Harness profile and a read-only
+    # discoverable native Linux release capability. Neither is installed
+    # merely because it appears in the source router.
+    assert source_routes - module.EXPECTED_CAPABILITIES == {
+        "execution.harness",
+        "runtime.release.linux",
+    }
 
 
 def test_default_plugin_rejects_direct_owner_servers() -> None:

@@ -716,3 +716,21 @@ ReleaseEffect/receipt readback. Do not force a Gateway upgrade over the known
 live Host authorization/grant gap. Until all gates are actually verified,
 production `runtime.release.apply` stays unavailable; do not bypass using
 `execution.submit` or manual installer calls.
+
+## Agent discovery of native Linux Runtime release (R13)
+
+A future installed Gateway package may answer capability.search with query
+runtime.release.linux or release, optionally category=release, to discover
+the fixed Linux Runtime release route and its truth boundary. This reuses
+the established route catalog, rather than a second capability registry.
+
+The discovered route does not confer authority. configured=true requires
+the exact native Runtime node linux-pg, valid local Linux target status,
+and its structured release configured flag. Even then, available=false
+and readiness UNKNOWN because Owner metadata alone cannot prove which
+Gateway tool is actually installed, who has a live Security AuthZEN grant,
+or whether a candidate ReleaseEffect will be admitted. Explicit source
+structuredReleaseConfigured=false means NOT_READY, while malformed fields
+remain UNKNOWN. It is forbidden to satisfy a requested release by sending
+a generic execution.linux shell installer. R13 only changes SourceCut,
+package version and routeDigest, NOT the MCP tool schema or Surface Epoch 12.

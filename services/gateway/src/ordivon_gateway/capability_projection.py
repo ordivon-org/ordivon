@@ -133,6 +133,79 @@ def project_execution_capability(
     )
 
 
+def project_native_release_capability(
+    route: CapabilityRoute,
+    *,
+    configured_at_gateway: bool,
+    owner_response: dict[str, Any] | None,
+    observation_error: str | None = None,
+    configuration_error: str | None = None,
+) -> CapabilityDescriptor:
+    """Read-only Runtime release discovery; never infer the caller's PDP ALLOW.
+
+    This route cannot be positively 'available' from runtime.describe alone:
+    it does not attest installed Gateway tools/list, the Runtime original
+    ReleaseEffect admission/receipt or the current Principal's Security grant.
+    """
+    issue = observation_error
+    configured = False
+    node_id: str | None = None
+    if not configured_at_gateway:
+        issue = configuration_error or "Linux Runtime Owner endpoint is unconfigured"
+    elif owner_response is None:
+        issue = issue or "Runtime source/installed release state is not observed"
+    else:
+        node = owner_response.get("node")
+        targets = owner_response.get("targets")
+        enabled = owner_response.get("structuredReleaseConfigured")
+        if (
+            type(owner_response.get("schemaVersion")) is not int
+            or owner_response["schemaVersion"] != 1
+            or not isinstance(node, dict)
+            or node.get("nodeId") != "linux-pg"
+            or node.get("platform") != "linux"
+            or node.get("native") is not True
+            or not isinstance(targets, list)
+            or type(enabled) is not bool
+        ):
+            issue = "invalid native Linux Runtime structured-release status"
+        else:
+            node_id = "linux-pg"
+            matches = [
+                item
+                for item in targets
+                if isinstance(item, dict) and item.get("target") == "local_linux"
+            ]
+            target = matches[0] if len(matches) == 1 else None
+            if (
+                target is None
+                or type(target.get("configured")) is not bool
+                or type(target.get("available")) is not bool
+                or (target["available"] is True and target["configured"] is False)
+            ):
+                issue = "invalid Linux release target status; readiness UNKNOWN"
+            elif enabled is False or target["configured"] is False:
+                issue = None  # Exact disabled Runtime/target means NOT_READY.
+            else:
+                configured = True
+                issue = (
+                    "Runtime reports structured release configured; installed "
+                    "Gateway/Runtime tool identities, authenticated Security "
+                    "grant and actual ReleaseEffect readiness are still UNKNOWN"
+                )
+    return CapabilityDescriptor(
+        capability=route.capability,
+        owner_id=route.owner_id,
+        category=route.category,
+        configured=configured,
+        available=False,  # No positive grant/installed action truth from owner metadata.
+        context_mode=route.context_mode,  # type: ignore[arg-type]
+        owner_node_id=node_id,
+        observation_error=issue,
+        truth_boundary=route.truth_boundary,
+    )
+
+
 def _metadata_match_kind(
     *,
     capability: str,

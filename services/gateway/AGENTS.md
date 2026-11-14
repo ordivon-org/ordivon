@@ -276,3 +276,19 @@ The comparison is native original Host+Gateway `tools/list`, not a new
 hardcoded list of all 30 Host Tools. Input and output Schema differences
 remain explicit separate results, and live Security/installed-Plugin
 migration remains UNKNOWN until independently verified.
+
+## R13 Runtime self-release discovery (read only, not admission)
+
+The runtime.release.linux immutable route exposes existing native
+runtime.release.apply/get functionality through Gateway capability metadata.
+Discovery observes only runtime.describe on the fixed runtime.linux Owner;
+it does not attempt a release, ask Security to create a grant or execute a
+shell. Even if Runtime structuredReleaseConfigured=true, Gateway must keep
+available=false with readiness UNKNOWN until deployed tool identity, Security
+operator grant and Runtime ReleaseEffect qualification are independently
+observed. Exact structuredReleaseConfigured=false is NOT_READY, not a
+transport failure. Invalid node identity or boolean status is UNKNOWN.
+The MCP source tool input/output contract does not change for a new metadata
+route, but normal routeDigest and source package version do change.
+Exercise test_runtime_release_discovery.py plus gateway:verify and true
+post-deployment readback before claiming readiness.

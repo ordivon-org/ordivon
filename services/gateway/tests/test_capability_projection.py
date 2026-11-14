@@ -253,8 +253,11 @@ def test_capability_search_is_deterministic_bounded_discovery_not_authorization(
     filtered = asyncio.run(
         service.capability_search(query="runtime", owner_id="runtime.linux", limit=1)
     )
-    assert filtered.total_matches == 1
-    assert [match.capability.capability for match in filtered.matches] == ["execution.linux"]
+    # The new native ReleaseEffect route ranks ahead of the generic Linux
+    # execution adapter: lexical discovery is not an execution permission.
+    assert filtered.total_matches == 2
+    assert [match.capability.capability for match in filtered.matches] == ["runtime.release.linux"]
+    assert filtered.matches[0].capability.available is False
     assert filtered.projection_digest.startswith("sha256:")
 
     owner_tools = [tool for _, tool, _ in caller.calls]
@@ -280,11 +283,16 @@ def test_capability_search_does_not_misclassify_observation_error_as_proven_unav
             include_unavailable=False,
         )
     )
-    assert result.total_matches == 1
-    item = result.matches[0].capability
-    assert item.available is False
-    assert item.observation_error is not None
-    assert "synthetic transport observation failure" in item.observation_error
+    assert result.total_matches == 2
+    assert {match.capability.capability for match in result.matches} == {
+        "execution.linux",
+        "runtime.release.linux",
+    }
+    for match in result.matches:
+        item = match.capability
+        assert item.available is False
+        assert item.observation_error is not None
+        assert "synthetic transport observation failure" in item.observation_error
 
 
 def test_capability_search_rejects_invalid_bounds_without_owner_calls() -> None:
