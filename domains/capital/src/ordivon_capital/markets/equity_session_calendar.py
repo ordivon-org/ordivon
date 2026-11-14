@@ -6,6 +6,7 @@ redefining Research labels and the Portfolio backtest clock. Calendar
 alignment is NOT source authenticity, historical PIT, total return or order
 permission.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -21,7 +22,9 @@ class MarketSessionQualificationError(ValueError):
     """The exchange-session index is incomplete, invented, or ambiguous."""
 
 
-def require_xnys_session_grid(source_dates: Iterable[Any], *, symbol: str) -> dict[str, Any]:
+def require_xnys_session_grid(
+    source_dates: Iterable[Any], *, symbol: str, requested_start: str, requested_end: str
+) -> dict[str, Any]:
     """Fail closed on missing, duplicate, extra or non-midnight XNYS sessions.
 
     The caller must separately verify immutable captured bytes, instrument
@@ -44,7 +47,30 @@ def require_xnys_session_grid(source_dates: Iterable[Any], *, symbol: str) -> di
         raise MarketSessionQualificationError(f"{symbol}: duplicate session date")
     if not sessions.is_monotonic_increasing:
         raise MarketSessionQualificationError(f"{symbol}: unordered session dates")
-    expected = xcals.get_calendar("XNYS").sessions_in_range(sessions[0], sessions[-1])
+    # The declared request window, NOT the source's self-reported endpoints,
+    # owns expected completeness. Inference from observed first/last would
+    # accept a stale source missing the latest exchange session.
+    if (
+        type(requested_start) is not str
+        or type(requested_end) is not str
+        or len(requested_start) != 10
+        or len(requested_end) != 10
+    ):
+        raise MarketSessionQualificationError(f"{symbol}: missing explicit source request bounds")
+    try:
+        left = pd.Timestamp(requested_start)
+        right = pd.Timestamp(requested_end)
+        if (
+            left.strftime("%Y-%m-%d") != requested_start
+            or right.strftime("%Y-%m-%d") != requested_end
+            or left > right
+        ):
+            raise ValueError("noncanonical or reversed request dates")
+        expected = xcals.get_calendar("XNYS").sessions_in_range(left, right)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise MarketSessionQualificationError(f"{symbol}: invalid source request bounds") from exc
+    if len(expected) < 2 or len(expected) > MAX_SOURCE_ROWS:
+        raise MarketSessionQualificationError(f"{symbol}: no bounded exchange sessions requested")
     if not sessions.equals(expected):
         invented = sessions.difference(expected)
         missing = expected.difference(sessions)
@@ -59,6 +85,8 @@ def require_xnys_session_grid(source_dates: Iterable[Any], *, symbol: str) -> di
         "firstSession": str(sessions[0].date()),
         "lastSession": str(sessions[-1].date()),
         "sessions": len(sessions),
+        "requestedStart": requested_start,
+        "requestedEnd": requested_end,
         "dateStanding": "EXCHANGE_SESSION_ALIGNED_SOURCE_UNVERIFIED",
         "historicalPITVerified": False,
         "priceAdjustmentVerified": False,

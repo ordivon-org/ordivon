@@ -3,6 +3,7 @@
 All inputs are historical backfills, not certified PIT data, adjusted total
 returns, executable predictions or mandate-authorized investments. No orders.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -25,6 +26,10 @@ SOURCE = Path(
     os.environ.get("ORDIVON_FINANCE_R3_ETF_DATA_DIR", str(ROOT.parent / "output"))
 ).resolve()
 SYMBOLS = ("SPY", "QQQ", "IWM")
+# The Riskfolio consumer reads the exact fixed-window Qlib backfill.
+# These are requested source bounds, not observed source endpoints.
+REQUESTED_START = "2023-01-01"
+REQUESTED_END = "2026-10-31"
 
 # Use the SAME immutable capture receipt already consumed by Qlib and Nautilus.
 # A path's name or today's checksum alone cannot prove the bytes were sourced
@@ -39,8 +44,10 @@ frames = []
 receipts = {}
 for symbol in SYMBOLS:
     matched = [
-        receipt for receipt in rows
-        if isinstance(receipt, dict) and receipt.get("symbol") == symbol
+        receipt
+        for receipt in rows
+        if isinstance(receipt, dict)
+        and receipt.get("symbol") == symbol
         and receipt.get("provider") == "cboe"
     ]
     if len(matched) != 1:
@@ -58,7 +65,12 @@ for symbol in SYMBOLS:
         parse_dates=["session_date"],
         index_col="session_date",
     )
-    require_xnys_session_grid(frame.index, symbol=symbol)
+    require_xnys_session_grid(
+        frame.index,
+        symbol=symbol,
+        requested_start=REQUESTED_START,
+        requested_end=REQUESTED_END,
+    )
     frames.append(frame["close"].astype(float).rename(symbol))
     receipts[symbol] = digest
 
@@ -75,7 +87,12 @@ for label, risk in (
     ("min_covariance_variance", "MV"),
 ):
     result = portfolio.optimization(
-        model="Classic", rm=risk, obj="MinRisk", rf=0, l=0, hist=True,
+        model="Classic",
+        rm=risk,
+        obj="MinRisk",
+        rf=0,
+        l=0,
+        hist=True,
     )
     if result is None or result.isna().any().any():
         raise RuntimeError(f"Riskfolio native {risk} failed")
@@ -104,6 +121,7 @@ evidence = {
     "captured_at": datetime.now(UTC).isoformat(),
 }
 (ROOT / "native_riskfolio_result.json").write_text(
-    json.dumps(evidence, indent=2, sort_keys=True), encoding="utf-8",
+    json.dumps(evidence, indent=2, sort_keys=True),
+    encoding="utf-8",
 )
 print("NATIVE_RISKFOLIO_QUALIFICATION", json.dumps(evidence, sort_keys=True))

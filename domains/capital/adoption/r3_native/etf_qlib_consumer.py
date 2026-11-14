@@ -3,6 +3,7 @@
 No broker order, PG posting, or point-in-time historical availability claim.
 Data is captured NOW; a retrospective backfill does not prove what was known THEN.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,7 +22,9 @@ sys.path.insert(0, str(ROOT.parents[1] / "src"))
 OUT = Path(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR", str(ROOT / "output"))).resolve()
 OUT.mkdir(exist_ok=True)
 os.chdir(ROOT)
-os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"  # isolated reproducibility proof only; production uses existing PG tracking authority
+os.environ["MLFLOW_ALLOW_FILE_STORE"] = (
+    "true"  # isolated reproducibility proof only; production uses existing PG tracking authority
+)
 os.environ["MLFLOW_TRACKING_URI"] = (OUT / "mlruns").resolve().as_uri()
 
 import numpy as np
@@ -62,7 +65,9 @@ END = "2026-10-31"
 capture_path = os.environ.get("ORDIVON_FINANCE_R3_CAPTURE_DIR")
 capture_dir = Path(capture_path).resolve() if capture_path else None
 if capture_dir is not None:
-    prior_result = json.loads((capture_dir / "native_study_result.json").read_text(encoding="utf-8"))
+    prior_result = json.loads(
+        (capture_dir / "native_study_result.json").read_text(encoding="utf-8")
+    )
     if prior_result.get("kind") != "ordivon.finance.r3.native-etf-research-only":
         raise ValueError("Capture manifest kind does not match this consumer")
     expected_sources = {r["symbol"]: r for r in prior_result["provider_receipts"]}
@@ -95,23 +100,33 @@ for symbol in SYMBOLS:
         raw_normalized = pd.read_csv(BytesIO(pinned_bytes), index_col="session_date").sort_index()
     required = {"open", "high", "low", "close", "volume"}
     if not required.issubset(raw_normalized.columns):
-        raise ValueError(f"Provider {symbol} missing columns {required - set(raw_normalized.columns)}")
+        raise ValueError(
+            f"Provider {symbol} missing columns {required - set(raw_normalized.columns)}"
+        )
     duplicate_rows = int(raw_normalized.index.duplicated(keep=False).sum())
     if duplicate_rows:
         conflict_dates = []
-        for date, group in raw_normalized[raw_normalized.index.duplicated(keep=False)].groupby(level=0):
+        for date, group in raw_normalized[raw_normalized.index.duplicated(keep=False)].groupby(
+            level=0
+        ):
             if not (group.nunique(dropna=False) <= 1).all():
                 conflict_dates.append(str(date))
         if conflict_dates:
-            raise ValueError(f"Provider {symbol} conflicting duplicate session records: {conflict_dates}")
+            raise ValueError(
+                f"Provider {symbol} conflicting duplicate session records: {conflict_dates}"
+            )
         raw_normalized = raw_normalized.loc[~raw_normalized.index.duplicated(keep="first")]
-        print("EXACT_DUPLICATE_REMOVED", symbol, "rows", duplicate_rows, "same_values_verified", True)
+        print(
+            "EXACT_DUPLICATE_REMOVED", symbol, "rows", duplicate_rows, "same_values_verified", True
+        )
     if len(raw_normalized) < 400 or raw_normalized.index.has_duplicates:
         raise ValueError(f"Provider {symbol} insufficient/duplicate rows: {len(raw_normalized)}")
     # The provider is NOT authoritative for whether the exchange actually
     # traded. Reject fake holidays and missing sessions before generating any
     # labels, TimeAdjuster calendar, MLflow recorder or Portfolio evidence.
-    date_grid = require_xnys_session_grid(raw_normalized.index, symbol=symbol)
+    date_grid = require_xnys_session_grid(
+        raw_normalized.index, symbol=symbol, requested_start=START, requested_end=END
+    )
     snapshot = OUT / f"openbb_cboe_{symbol}_normalized.csv"
     if capture_dir is None:
         raw_normalized.to_csv(snapshot, index_label="session_date")
@@ -119,46 +134,55 @@ for symbol in SYMBOLS:
         # Parse and persist exactly the SAME hash-admitted immutable bytes.
         # Re-opening the source path would reintroduce check/use TOCTOU.
         snapshot.write_bytes(pinned_bytes)
-    if capture_dir is not None and sha256(snapshot.read_bytes()).hexdigest() != origin["normalized_sha256"]:
+    if (
+        capture_dir is not None
+        and sha256(snapshot.read_bytes()).hexdigest() != origin["normalized_sha256"]
+    ):
         raise ValueError(f"Immutable capture was altered during replay: {symbol}")
-    provider_receipts.append({
-        "session_grid_qualification": date_grid,
-        "input_mode": "hash_verified_local_replay" if capture_dir is not None else "OpenBB_native_provider_capture",
-        "symbol": symbol,
-        "provider": provider_name,
-        "requested_at": requested,
-        "received_at": received,
-        "first_session": str(raw_normalized.index.min()),
-        "last_session": str(raw_normalized.index.max()),
-        "rows": len(raw_normalized),
-        "normalized_sha256": sha256(snapshot.read_bytes()).hexdigest(),
-        "source_raw_wire_captured": False,
-        "historical_available_at": "UNKNOWN",
-        "adjustment_provenance": "UNKNOWN",
-        "corporate_actions_completeness": "UNKNOWN",
-        "rights_for_redistribution": "UNKNOWN"
-    })
+    provider_receipts.append(
+        {
+            "session_grid_qualification": date_grid,
+            "input_mode": "hash_verified_local_replay"
+            if capture_dir is not None
+            else "OpenBB_native_provider_capture",
+            "symbol": symbol,
+            "provider": provider_name,
+            "requested_at": requested,
+            "received_at": received,
+            "first_session": str(raw_normalized.index.min()),
+            "last_session": str(raw_normalized.index.max()),
+            "rows": len(raw_normalized),
+            "normalized_sha256": sha256(snapshot.read_bytes()).hexdigest(),
+            "source_raw_wire_captured": False,
+            "historical_available_at": "UNKNOWN",
+            "adjustment_provenance": "UNKNOWN",
+            "corporate_actions_completeness": "UNKNOWN",
+            "rights_for_redistribution": "UNKNOWN",
+        }
+    )
     x = raw_normalized
     dates = pd.DatetimeIndex(pd.to_datetime(x.index)).as_unit("ns")
-    index = pd.MultiIndex.from_arrays(
-        [dates, [symbol] * len(x)], names=["datetime", "instrument"]
-    )
+    index = pd.MultiIndex.from_arrays([dates, [symbol] * len(x)], names=["datetime", "instrument"])
     close = x["close"].astype(float)
     vol = x["volume"].astype(float)
-    feature = pd.DataFrame({
-        "RET1": close.pct_change(fill_method=None).to_numpy(),
-        "MOM5": close.pct_change(5, fill_method=None).to_numpy(),
-        "HILO": ((x["high"] - x["low"]) / close).to_numpy(),
-        "VOL5": (vol / vol.rolling(5).mean() - 1.0).to_numpy(),
-    }, index=index)
+    feature = pd.DataFrame(
+        {
+            "RET1": close.pct_change(fill_method=None).to_numpy(),
+            "MOM5": close.pct_change(5, fill_method=None).to_numpy(),
+            "HILO": ((x["high"] - x["low"]) / close).to_numpy(),
+            "VOL5": (vol / vol.rolling(5).mean() - 1.0).to_numpy(),
+        },
+        index=index,
+    )
     # The target must match the strategy's ACTUAL closing economic event.
     # Closing-price research remains the default for backwards compatibility.
     # Native buy/HOLD/exit sells T+H+1 OPEN (not T+H CLOSE).
     next_open = x["open"].astype(float).shift(-1)
     exit_marks = x["open"].astype(float) if EXIT_PRICE == "next_open" else close
-    label = pd.DataFrame({
-        "LABEL0": (exit_marks.shift(-LABEL_FORWARD_SESSIONS) / next_open - 1.0).to_numpy()
-    }, index=index)
+    label = pd.DataFrame(
+        {"LABEL0": (exit_marks.shift(-LABEL_FORWARD_SESSIONS) / next_open - 1.0).to_numpy()},
+        index=index,
+    )
     frames.append(pd.concat({"feature": feature, "label": label}, axis=1))
     prices[symbol] = pd.Series(close.to_numpy(), index=dates, name=symbol)
 
@@ -193,7 +217,10 @@ if HOLD_SESSIONS > 1:
     segments["train"] = train_valid["train"]
     index_by_session = {day: pos for pos, day in enumerate(exchange_sessions)}
     for older, newer in (("train", "valid"), ("valid", "test")):
-        if index_by_session[segments[older][1]] + LABEL_FORWARD_SESSIONS >= index_by_session[segments[newer][0]]:
+        if (
+            index_by_session[segments[older][1]] + LABEL_FORWARD_SESSIONS
+            >= index_by_session[segments[newer][0]]
+        ):
             raise ValueError(f"Research target leaks future labels across {older}/{newer}")
 dataset = DatasetH(handler=handler, segments=segments)
 train = dataset.prepare("train", col_set=["feature", "label"])
@@ -245,7 +272,9 @@ if actual_test.index.has_duplicates or predicted_test.index.has_duplicates:
 if not actual_test.index.equals(predicted_test.index):
     # Both representations must refer to exactly the same sessions/assets:
     # missing or reordered predictions may silently inflate scores.
-    if len(actual_test) != len(predicted_test) or set(actual_test.index) != set(predicted_test.index):
+    if len(actual_test) != len(predicted_test) or set(actual_test.index) != set(
+        predicted_test.index
+    ):
         raise ValueError("Qlib predictions and realized labels have different test samples")
     predicted_test = predicted_test.reindex(actual_test.index)
 realized = actual_test.to_numpy(dtype=float)
@@ -262,10 +291,13 @@ train_mean = float(historical_train.mean())
 # Each ETF's own prior-only unconditional mean is an additional inexpensive
 # baseline. A model beating a zero vector alone is not predictive alpha.
 per_instrument_train_mean = train["label"].iloc[:, 0].groupby(level="instrument").mean()
-instrument_train_baseline = np.array([
-    per_instrument_train_mean[instrument]
-    for instrument in actual_test.index.get_level_values("instrument")
-], dtype=float)
+instrument_train_baseline = np.array(
+    [
+        per_instrument_train_mean[instrument]
+        for instrument in actual_test.index.get_level_values("instrument")
+    ],
+    dtype=float,
+)
 per_instrument_train_mse = float(np.mean((realized - instrument_train_baseline) ** 2))
 model_mse = float(np.mean((realized - forecast_values) ** 2))
 zero_mse = float(np.mean(realized**2))
@@ -288,9 +320,9 @@ skill = {
     "matches_native_fixed_holding_exit_event": EXIT_PRICE == "next_open",
     "holding_sessions": HOLD_SESSIONS,
     "purged_overlapping_train_validation_labels": HOLD_SESSIONS > 1,
-    "approx_nonoverlapping_test_blocks": int(np.ceil(
-        len(actual_test.index.get_level_values("datetime").unique()) / HOLD_SESSIONS
-    )),
+    "approx_nonoverlapping_test_blocks": int(
+        np.ceil(len(actual_test.index.get_level_values("datetime").unique()) / HOLD_SESSIONS)
+    ),
     "sample_rows": int(len(realized)),
     "sample_sessions": int(len(actual_test.index.get_level_values("datetime").unique())),
     "asset_universe": list(SYMBOLS),
@@ -308,7 +340,8 @@ skill = {
         model_mse < zero_mse and model_mse < train_mean_mse
     ),
     "qlib_native_signal_analysis_metrics": {
-        key: float(value) for key, value in native_signal_metrics.items()
+        key: float(value)
+        for key, value in native_signal_metrics.items()
         if key in ("IC", "ICIR", "Rank IC", "Rank ICIR")
     },
     "prices_from_historical_backfill": True,
@@ -322,10 +355,14 @@ skill = {
     "profitable_executable_strategy_demonstrated": False,
 }
 prediction_snapshot = OUT / "qlib_test_predictions.csv"
-predictions.to_csv(prediction_snapshot, header=[
-    "predicted_next_open_to_next_open_fractional_return"
-    if EXIT_PRICE == "next_open" else "predicted_next_open_to_close_fractional_return"
-])
+predictions.to_csv(
+    prediction_snapshot,
+    header=[
+        "predicted_next_open_to_next_open_fractional_return"
+        if EXIT_PRICE == "next_open"
+        else "predicted_next_open_to_close_fractional_return"
+    ],
+)
 # Bind the exact Qlib-generated OOS prediction bytes to the study receipt.
 # Local artifact consistency, NOT independent proof of historical PIT or model skill.
 prediction_digest = sha256(prediction_snapshot.read_bytes()).hexdigest()
@@ -349,7 +386,9 @@ result = {
     "kind": "ordivon.finance.r3.native-etf-research-only",
     "audited_capital_source_cut": "c883db3bbe211b8a963a3236599e1dc3cfe362ac",
     "captured_at": datetime.now(UTC).isoformat(),
-    "data_input_mode": "hash_verified_local_replay" if capture_dir is not None else "OpenBB_native_provider_capture",
+    "data_input_mode": "hash_verified_local_replay"
+    if capture_dir is not None
+    else "OpenBB_native_provider_capture",
     "replay_is_historical_pit": False,
     "provider_receipts": provider_receipts,
     "qlib_version": qlib.__version__,
@@ -367,12 +406,16 @@ result = {
     "forecast": {
         "kind": (
             "uncalibrated_next_session_open_to_close_fractional_regression"
-            if HOLD_SESSIONS == 1 else "uncalibrated_multisession_holding_return"
+            if HOLD_SESSIONS == 1
+            else "uncalibrated_multisession_holding_return"
         ),
-        **{(
-            "predicted_next_open_to_close_fractional_returns"
-            if HOLD_SESSIONS == 1 else "predicted_next_open_to_holding_exit_fractional_returns"
-        ): {k: float(v) for k, v in expected_daily.items()}},
+        **{
+            (
+                "predicted_next_open_to_close_fractional_returns"
+                if HOLD_SESSIONS == 1
+                else "predicted_next_open_to_holding_exit_fractional_returns"
+            ): {k: float(v) for k, v in expected_daily.items()}
+        },
         "target_horizon": (
             "new_entry_next_session_open_to_close"
             if HOLD_SESSIONS == 1

@@ -243,6 +243,14 @@ EXCHANGE_SESSION_ALIGNED_SOURCE_UNVERIFIED explicitly does NOT grant
 historical PIT, split/dividend/total-return, issuer licensing, PortfolioIntent,
 Paper PostgreSQL authorization or live orders.
 
+The Markets guard now checks the declared request window, not merely
+the earliest and latest observed date. Otherwise, a stale issuer source
+missing only the first/last requested XNYS session would falsely PASS.
+The current fixed R3 experiment requests 2023-01-01 through 2026-10-31,
+and the qualifying XNYS sequence must cover every true exchange
+session in that exact request interval. This still does not attest
+first-observed provider publication time or historical PIT.
+
 The fake Memorial Day and missing-session negative controls now belong to
 tests/test_market_xnys_source_session_calendar.py, consumed by the existing
 Capital verify task. This is native behavior falsification; not a new formally
