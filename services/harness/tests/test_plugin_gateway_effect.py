@@ -538,8 +538,11 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert result.loop_result.stop_code.value == "candidate_completed"
         assert observed_pre_dispatch["checked"] is True
         names = [name for name, _ in client.calls]
-        assert names == ["execution.submit", "execution.get"]
+        assert names == ["execution.submit", "execution.get", "execution.resolve"]
         assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[2][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[2][1]["capability"] == "execution.linux"
+        assert names.count("execution.submit") == 1
         assert client.calls[1][1]["capability"] == "execution.linux"
         submit = client.calls[0][1]
         assert submit["capability"] == "execution.linux"
@@ -671,11 +674,16 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_sc
 
         assert result.loop_result.stop_code.value == "candidate_completed"
         names = [name for name, _ in client.calls]
-        assert names == ["execution.submit", "execution.resolve", "execution.get"]
-        assert client.calls[2][1]["requestId"] == client.calls[0][1]["requestId"]
-        assert client.calls[2][1]["capability"] == "execution.linux"
+        assert names == [
+            "execution.submit",
+            "execution.resolve",
+            "execution.get",
+            "execution.resolve",
+        ]
+        for index in (1, 2, 3):
+            assert client.calls[index][1]["requestId"] == client.calls[0][1]["requestId"]
+            assert client.calls[index][1]["capability"] == "execution.linux"
         assert names.count("execution.submit") == 1
-        assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
 
         with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
             continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
@@ -1440,3 +1448,125 @@ def test_real_pg_harness_stays_unknown_when_gateway_owner_identity_cannot_be_pro
         step = continuity.load_current_tool_step()
         assert step.fence is not None
         assert step.receipt is None or step.receipt.status.value != "observed"
+
+
+@pytest.mark.parametrize("forged", ["ws-another-agent", "", 1, False])
+def test_terminal_observation_rejects_wrong_runtime_workspace_resolution(forged: object) -> None:
+    class ForeignResolution(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                payload["workspace_id"] = forged
+            return error, payload
+
+    client = ForeignResolution()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    with pytest.raises(HarnessRuntimeClientError):
+        adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert [x[0] for x in client.calls] == ["execution.get", "execution.resolve"]
+
+
+def test_terminal_observation_absent_resolution_remains_unknown() -> None:
+    class MissingResolution(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                payload["resolution"] = "absent"
+            return error, payload
+
+    client = MissingResolution()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    result = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert result["executionTerminal"] is True
+    assert result["deliveryDisposition"] == "reconciliation_required"
+    assert result["recoveryRequired"] is True
+    assert result["resultAvailable"] is False
+
+
+def test_terminal_observation_confirms_original_grant_without_new_gateway_schema() -> None:
+    client = GatewayExecutionFixture()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    result = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert result["resultAvailable"] is True
+    assert not result["recoveryRequired"]
+    assert [x[0] for x in client.calls] == ["execution.get", "execution.resolve"]
+
+
+def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_schema) -> None:
+    from dataclasses import replace
+
+    # Native Runtime's Workspace grant is not an exclusive long-lived consumer
+    # claim. Independent PG Run histories can refer to the same Workspace.
+    # Completing A MUST NOT be treated as authority to close it for B.
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    original = _contract(factory)
+    overlapping = replace(
+        original,
+        harness_run_id="harness-run:plugin-h2-second-consumer",
+        caller_run_ref="trial:plugin-h2-second-consumer",
+    )
+    clock = FixedClock()
+    first = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        original,
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    second = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        overlapping,
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    assert first.harness_run_id != second.harness_run_id
+    assert factory.execution_grant.workspace_id == "ws-plugin-h2"
+
+    result_a = first.run(())
+    assert result_a.loop_result.stop_code.value == "candidate_completed"
+    assert first.inspect_terminal().receipt.harness_run_id == original.harness_run_id
+    with pytest.raises(KeyError, match="no independent terminal result"):
+        second.inspect_terminal()
+    # B's lack of a terminal record is durable PG readback, not authorization
+    # for a cross-Run consumerReleased=true.
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        projection = store.load_run(second.harness_run_id)
+        assert projection.status.terminal is False

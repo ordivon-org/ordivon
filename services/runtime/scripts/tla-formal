@@ -769,6 +769,37 @@ check_workspace_consumer_close_r2_candidate() {
     -config WorkspaceConsumerCloseR1.r2-candidate.cfg WorkspaceConsumerCloseR1.tla)
 }
 
+# Distinct two-Agent continuation scope: source DESIGN model, not installed PG claims.
+check_workspace_multi_agent_release() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/WorkspaceMultiAgentReleaseR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceMultiAgentReleaseR1.cfg WorkspaceMultiAgentReleaseR1.tla)
+}
+
+falsify_workspace_multi_agent_release() {
+  verify_jar
+  local label config invariant result output
+  for label in reachability unsafe-single unsafe-age; do
+    config="WorkspaceMultiAgentReleaseR1.$label.cfg"
+    invariant="ClosedImpliesEveryConsumerReleased"
+    if [[ "$label" == reachability ]]; then invariant="ClosedUnreachable"; fi
+    set +e
+    output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config "$config" WorkspaceMultiAgentReleaseR1.tla 2>&1)
+    result=$?
+    set -e
+    if [[ "$result" != 12 ]] ||
+       ! printf '%s\n' "$output" | grep -Fxq "Error: Invariant $invariant is violated." ||
+       ! printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'; then
+      echo "Workspace multi-Agent $label counterexample FAILED" >&2
+      printf '%s\n' "$output" | tail -38 >&2
+      exit 1
+    fi
+    echo "Workspace multi-Agent $label named counterexample PASS"
+  done
+}
+
 workspace_close_expect_named_counterexample() {
   local folder="$1" config="$2" property="$3" label="$4"
   local output="$folder/result.log" result
@@ -981,9 +1012,9 @@ case "${1:-check}" in
   check-dispatch) check_runtime_dispatch ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_runtime_resource_queue ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_runtime_resource_queue ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_runtime_resource_queue ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; falsify_runtime_resource_queue ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2

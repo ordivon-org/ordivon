@@ -385,6 +385,22 @@ for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'     
   printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
   printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
 done
+
+# One bounded Agent consumer boundary, distinct from physical Runtime close.
+java -cp "$jar" tla2sany.SANY GatewayAgentWorkspaceBindingR1.tla
+workspace_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayAgentWorkspaceBindingR1.cfg GatewayAgentWorkspaceBindingR1.tla)
+printf '%s\n' "$workspace_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayAgentWorkspaceBindingR1.reachability.cfg:NeverAccepted' 'GatewayAgentWorkspaceBindingR1.unsafe.cfg:AcceptedRequiresExactOwnerWorkspace'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayAgentWorkspaceBindingR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+  printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
+done
 """
 
 [tasks."chaoxing:verify"]
