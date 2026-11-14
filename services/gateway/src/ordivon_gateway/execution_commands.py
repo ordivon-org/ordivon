@@ -7,28 +7,14 @@ from .contracts import (
 )
 from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
-from .owner_protocol import _required_bool, _required_str
+from .owner_protocol import (
+    _owner_optional_disposition,
+    _owner_receipt_state,
+    _required_bool,
+    _required_str,
+)
 from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
-
-
-def _owner_receipt_state(response: dict[str, Any]) -> str:
-    """Keep Owner state open to future variants without inventing string values."""
-    for field in ("status", "attemptState"):
-        if field in response:
-            value = response[field]
-            if not isinstance(value, str) or not value:
-                raise GatewayError(f"Runtime owner response requires string {field}")
-            return value
-    return "unknown"
-
-
-def _owner_receipt_delivery(response: dict[str, Any]) -> str | None:
-    """A malformed disposition is not a committed/known delivery fact."""
-    value = response.get("deliveryDisposition")
-    if value is not None and (not isinstance(value, str) or not value):
-        raise GatewayError("Runtime owner response requires string deliveryDisposition")
-    return value
 
 
 class ExecutionCommandMethods:
@@ -127,7 +113,7 @@ class ExecutionCommandMethods:
             native_id=native_id,
             state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=_owner_receipt_delivery(result),
+            delivery_disposition=_owner_optional_disposition(result, "deliveryDisposition"),
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
@@ -152,5 +138,5 @@ class ExecutionCommandMethods:
             native_id=observed_native_id,
             state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=_owner_receipt_delivery(result),
+            delivery_disposition=_owner_optional_disposition(result, "deliveryDisposition"),
         )
