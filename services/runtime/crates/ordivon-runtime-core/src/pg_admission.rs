@@ -1782,6 +1782,58 @@ mod live_pg_tests {
         .unwrap();
         assert_eq!(missing.phase, PgWindowsWitnessPhase::NoLauncherWitness);
         assert!(!missing.terminal_proven);
+        // RED before guard: latest Attempt remained readable even when the
+        // unresolved Job had no matching current_attempt_id.
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET current_attempt_id=NULL WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
+        assert!(inspect_admitted_windows_pg_bundle(
+            &dsn,
+            &scratch.name,
+            &"a".repeat(64),
+            &input.principal,
+            &input.job_id,
+            temp.path(),
+        )
+        .unwrap_err()
+        .contains("current Attempt"));
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET current_attempt_id=$1 WHERE job_id=$2",
+                &[&input.attempt_id, &input.job_id],
+            )
+            .unwrap();
+        // Resolution also clears the current pointer; a contradictory
+        // terminal+current pair must be rejected instead of borrowed.
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET resolution='succeeded' WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
+        assert!(inspect_admitted_windows_pg_bundle(
+            &dsn,
+            &scratch.name,
+            &"a".repeat(64),
+            &input.principal,
+            &input.job_id,
+            temp.path(),
+        )
+        .unwrap_err()
+        .contains("resolved PG Job retains"));
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET resolution=NULL WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
         assert!(inspect_admitted_windows_pg_bundle(
             &dsn,
             &scratch.name,

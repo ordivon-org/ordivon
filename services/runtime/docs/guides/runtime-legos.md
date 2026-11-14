@@ -185,7 +185,11 @@ FILETIME or a signalled launcher handle **cannot individually prove** that the
 whole Windows Job Object has terminated, that PG terminal CAS was committed,
 or that another consumer has accepted the result.
 `terminalProven=false` remains mandatory for this source-only reader;
-missing/ambiguous native owner evidence must remain UNKNOWN.
+missing/ambiguous native owner evidence must remain UNKNOWN. For an unresolved
+PG Job, the read-only witness must bind to its exact `current_attempt_id`,
+not merely `ORDER BY attempt_number DESC`. Resolved Jobs may inspect historical
+Attempts only when their live current-Attempt pointer has been cleared.
+An inconsistent snapshot is a failed qualification, never an execution grant.
 
 Verification: `cargo test -p ordivon-runtime-core --no-default-features
 --features postgres-registry-admission pg_windows` checks bounded pure cases;
