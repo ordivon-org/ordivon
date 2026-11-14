@@ -27,23 +27,51 @@ unfold: specification -> TLA+ model -> model check/negative controls ->
 source conformance -> real consumer -> installed candidate proof.
 
 ## Agent procedure
-1. Bind exact Git SourceCut; inspect services/gateway/AGENTS.md, README.md,
-   mcp-surface.json and the routing/consumer source graph.
-2. Run mise run gateway:formal:verify using an exact digest-checked TLA+ JAR.
-   Positive model passes; reachability intentionally violates NeverForward;
-   unsafe routing intentionally violates ForwardedImpliesExactRoute.
-3. Run Python finite implementation checker at
-   services/gateway/formal/check_routing_conformance.py. This is bounded
-   exploration, never a universal theorem.
-4. Run mise run gateway:verify and Gateway -> Runtime/Host native
-   readback for operations with physical effects. Compare package/tool
-   surface to the actually installed candidate.
-5. Record SPECIFIED, MODEL_VERIFIED, BOUNDED_IMPLEMENTATION_CHECKED,
-   SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED separately. UNKNOWN is
-   never FALSE and never PROVEN.
-6. Retire sample tests only when the exact property has sufficiently strong
-   refinement evidence. Preserve native network, auth, deployment and Owner
-   effect verification where abstract models are insufficient.
+1. Bind the intended property, natural consumer, current Git SourceCut and
+   previous evidence receipt including its verifier/toolchain and assumptions.
+   Read exact PR head SHA and already completed native CI/Owner/Formal checks.
+   Before manually rerunning a completed GitHub check, query
+   tools/repo/evidence_validity.py with the exact --current-sha and
+   --check-name root-verification. The actual GitHub Check Run metadata
+   plus existing native Owner source impact are reusable evidence inputs.
+   existingCheckReceiptReusable is strictly same-SHA Check Run outcome;
+   proofReuseAdmissible remains false for broader formal/external claims.
+   If the decision specifically needs an original Formal execution receipt,
+   pass --prior-sha ORIGINAL_FORMAL_SHA --formal-source-delta
+   --fetch-historical-formal-report. It uses original GitHub Check Run
+   and official gh run download, verifies the original Git members and
+   retains UNKNOWN for dynamic/toolchain/installation assumptions.
+   No automatic solver rerun is triggered by missing/expired artifacts.
+
+   For specific Formal source-input impact, add --prior-sha
+   FULL_ANCESTOR_SHA --formal-source-delta to compare both historical
+   declared SOURCE_FILES sets and exact Git modes/blobs without executing
+   old Python or a proof. An unchanged declared input set does not close
+   solver/toolchain, dynamic environment or real consumer assumptions.
+
+   Do NOT execute a verifier merely because another Agent turn began.
+2. Use the existing tools/repo/convergence_plan.py changed-source Owner
+   selection and check_architecture_docs.py --agent-impact to locate affected
+   declared consumers. Neither projection alone admits formal proof reuse:
+   partial/dynamic readsets and non-Git assumptions retain UNKNOWN.
+3. If source, proof scope and assumptions still match the accepted receipt,
+   report REUSED_SCOPED_EVIDENCE without rerunning. If a proof dependency,
+   model, checker, assumption or novel consumer obligation changed, run only
+   the affected formal/model check and relevant negative control. The\n   unchanged Formal models actually PRESENT at the selected SourceCut\n   require no new TLC replay.
+4. Run bounded Python route conformance and the relevant native Gateway
+   consumer tests only for impacted implementation/readset or an explicit
+   fresh release gate. Run full gateway:verify when Gateway behavior
+   changed and the existing CI source selection has not yet qualified it;
+   do not duplicate an exact completed CI PASS.
+5. Require live installed Gateway -> Runtime/Host readback only when the
+   decision involves actual installed generation, identity, external
+   assumptions or physical effects. An older real observation remains
+   historical evidence, not automatically current state.
+6. Report REUSED_SCOPED_EVIDENCE, NEWLY_VERIFIED, AFFECTED_RECHECK,
+   UNKNOWN_DEPENDENCY and FALSIFIED separately. No Git-only source delta,
+   missing consumer observation, or no-hit result can authorize false proof
+   reuse. Retire redundant tests only when a stronger validated refinement
+   covers the same actual consumer claim.
 
 ## Human
 Review the claim/evidence ledger before using a candidate release. Reuse
@@ -79,3 +107,61 @@ Validate exact Owner semantics through independent real loopback RPCs, not
 only mocked connector calls; do not infer production latency from loopback.
 Preserve long-running Runtime Jobs on HTTP cancellation; never blindly replay
 an execution submission after uncertain delivery.
+
+
+### PR synthetic merge and original Formal identity
+
+For a pull_request workflow, GitHub reports the Check Run at PR Head
+while Formal executes the synthetic merge SourceCut. Query the existing
+--fetch-historical-formal-report consumer and use
+verifiedExecutionSourceCut, sourceRelationship and
+executionInputsVsCandidate. Only an exact two-parent native Git match
+allows the source label distinction; ordinary previous/current
+--formal-source-delta requires ancestor history. Neither static
+comparison proves solver/toolchain continuity or real Owner acceptance.
+
+
+### Typed Claim applicability at the exact Git SourceCut
+
+To avoid evaluating the same original Formal Artifact twice, pass
+--claim-kind BOTH with exact --current-sha, original --prior-sha
+and --fetch-historical-formal-report to the existing repo consumer.
+FORMAL_DECLARED_GIT_INPUTS_EQUAL can be supported only for the
+declared source-input comparison consumer. The much stronger
+FORMAL_PROOF_APPLICABLE_TO_TARGET remains UNKNOWN until toolchain,
+dynamic dependency and model-to-real-consumer obligations close.
+Do not treat the GatewayToolVisibility model on separate unmerged
+PR #2174 as if it were already present in a different SourceCut.
+This Skill grants no Harness or Runtime execution authority.
+
+
+### Optional selected-tool observation, not another proof run
+
+When the precise missing premise concerns the actual selected
+toolchain, pass --compare-current-formal-tool-inputs together with
+the existing --fetch-historical-formal-report and exact Git cuts.
+This calls the original Formal producer's read-only mise, Alloy
+and Z3 helper functions, never the solver main(). Inspect
+changedObservedFields to distinguish path-only drift from SHA.
+Even identical selected bytes do NOT close Lean OLEAN imports,
+dlopen/plugins, runtime time/environment or installed consumer
+scope. Ordinary Gateway requests need not run this optional query.
+
+
+When selected tool inputs differ, the stronger Typed Claim emits
+AFFECTED_PROOF_TOOL_INPUTS with an exact
+INSPECT_CHANGED_SELECTED_FORMAL_TOOL_INPUTS obligation. This is an
+inspection instruction, NOT permission to dispatch a verification Job;
+the runtime/caller identity and existing check receipts remain separate.
+
+
+### A new contained Z3 consumer, not the original multi-solver proof
+
+When the specific Media Loudness IEEE-754 SMT model needs a new
+verification, tools/formal/contained_z3.py can execute the original
+Git-bound model under Bubblewrap with a selected immutable
+Z3/ELF input bundle and no host filesystem except those bound
+files. It requires SAT/UNSAT/SAT and negative guest denial of
+host /etc/passwd. This is a narrow new consumer, never a proof
+that original historical Lean/Alloy/Z3 results can be reused.
+Do not generalize or dispatch it for unrelated Claims.
