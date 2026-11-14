@@ -401,10 +401,15 @@ pub fn inspect_admitted_windows_pg_bundle(
     if !source_ok {
         return Err("PG source is not qualified".into());
     }
-    let row = tx.query_opt(
-        "SELECT j.principal,j.workspace_snapshot_json,a.attempt_id,a.launch_token_digest,          a.bundle_path,a.unit_name,a.bundle_digest          FROM jobs j JOIN attempts a ON a.job_id=j.job_id          WHERE j.job_id=$1 ORDER BY a.attempt_number DESC LIMIT 1",
-        &[&job_id],
-    ).map_err(|_| "PG Job lookup failed".to_string())?
+    let row = tx
+        .query_opt(
+            "SELECT j.principal,j.workspace_snapshot_json,a.attempt_id,a.launch_token_digest, \
+            a.bundle_path,a.unit_name,a.bundle_digest,j.resolution,j.current_attempt_id \
+            FROM jobs j JOIN attempts a ON a.job_id=j.job_id \
+            WHERE j.job_id=$1 ORDER BY a.attempt_number DESC LIMIT 1",
+            &[&job_id],
+        )
+        .map_err(|_| "PG Job lookup failed".to_string())?
         .ok_or_else(|| "unknown PG Job".to_string())?;
     if row.get::<_, String>(0) != principal {
         return Err("PG principal ownership conflict".into());
@@ -420,6 +425,18 @@ pub fn inspect_admitted_windows_pg_bundle(
         .filter(|d| d.len() == 71 && d.starts_with("sha256:"))
         .ok_or_else(|| "PG launcher provider digest invalid".to_string())?;
     let attempt_id: String = row.get(2);
+    // A historical terminal may read back the latest Attempt after the current
+    // pointer has been cleared. An *unresolved* Job must never borrow the
+    // latest available bundle unless PG still designates that exact Attempt.
+    // The read-only preflight cannot infer this from attempt_number alone.
+    let resolution: Option<String> = row.get(7);
+    let current_attempt: Option<String> = row.get(8);
+    if resolution.is_none() && current_attempt.as_deref() != Some(&attempt_id) {
+        return Err("unresolved PG Job has no matching current Attempt".into());
+    }
+    if resolution.is_some() && current_attempt.is_some() {
+        return Err("resolved PG Job retains an unexpected current Attempt".into());
+    }
     let token: String = row.get(3);
     let bundle: String = row.get(4);
     let name: String = row.get(5);
