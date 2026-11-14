@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import http.client
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -235,6 +236,116 @@ def _unqualified_active_peer_host_consumers() -> tuple[str, ...]:
     return tuple(sorted(observed))
 
 
+def _installed_security_host_read_surface_qualified() -> bool:
+    """One-way installed Security Rego => Gateway source consumer qualification.
+
+    Native Security's actual systemd-declared OPA and Rego paths are read
+    without tokens. A policy file inspection is only a necessary source-
+    installation condition, NOT an installed PDP ALLOW, loaded live model
+    proof or a Principal/Actor grant.
+    """
+    try:
+        unit = subprocess.run(
+            ["/usr/bin/systemctl", "show", SECURITY_UNIT, "-p", "Environment", "--value"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=8,
+        )
+        settings = dict(item.split("=", 1) for item in shlex.split(unit.stdout) if "=" in item)
+        policy = Path(settings["ORDIVON_SECURITY_AUTHZEN_POLICY_FILE"])
+        opa = Path(settings["ORDIVON_SECURITY_AUTHZEN_OPA"])
+        if (
+            not policy.is_absolute()
+            or not policy.is_file()
+            or policy.is_symlink()
+            or policy.stat().st_size > MAX_POLICY_BYTES
+            or not opa.is_absolute()
+            or not opa.is_file()
+            or opa.is_symlink()
+            or not os.access(opa, os.X_OK)
+        ):
+            return False
+
+        inventory = json.loads(
+            (Path(__file__).resolve().parents[1] / "enforcement-surface.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        expected = {
+            row["name"]
+            for row in inventory["tools"]
+            if row["routeOwner"] == "host" and row["operation"] == "read"
+        }
+        if not expected or "message.get" not in expected:
+            return False
+
+        namespace = "data.ordivon.security.gateway_artifact."
+
+        def read_opa_object(property_name: str) -> dict[str, list[str]] | None:
+            result = subprocess.run(
+                [
+                    str(opa),
+                    "eval",
+                    "--data",
+                    str(policy),
+                    "--format=json",
+                    namespace + property_name,
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=8,
+            )
+            if len(result.stdout.encode("utf-8")) > MAX_SOCKET_EVIDENCE_BYTES:
+                return None
+            response = json.loads(result.stdout)
+            rows = response.get("result")
+            if not isinstance(rows, list) or len(rows) != 1:
+                return None
+            expressions = rows[0].get("expressions")
+            if not isinstance(expressions, list) or len(expressions) != 1:
+                return None
+            value = expressions[0].get("value")
+            if not isinstance(value, dict) or not all(
+                isinstance(k, str) and isinstance(v, list) and all(isinstance(f, str) for f in v)
+                for k, v in value.items()
+            ):
+                return None
+            return value
+
+        selectors = read_opa_object("host_read_selector_fields")
+        mandatory = read_opa_object("host_read_required_fields")
+        return bool(
+            selectors is not None
+            and mandatory is not None
+            and set(selectors) == expected
+            and set(mandatory).issubset(selectors)
+            and all(set(fields).issubset(selectors[name]) for name, fields in mandatory.items())
+            and mandatory.get("message.get") == ["messageRef"]
+        )
+    except (
+        OSError,
+        KeyError,
+        TypeError,
+        ValueError,
+        subprocess.SubprocessError,
+        json.JSONDecodeError,
+    ):
+        return False
+
+
+def _apply_installed_security_read_surface(
+    standing: dict[str, Any], *, qualified: bool
+) -> dict[str, Any]:
+    """Keep the existing six-factor preconditions; add an installed PDP fence."""
+    standing["installedSecurityHostReadSurfaceQualified"] = qualified
+    if not qualified:
+        standing["status"] = "NO_GO"
+        standing["reasons"].append("HOST_SECURITY_INSTALLED_READ_SURFACE_MISMATCH")
+    return standing
+
+
 def assess(
     document: dict[str, Any],
     systemd_environment: str,
@@ -320,13 +431,16 @@ def main() -> int:
         )
         if security_service.returncode != 0 or security_service.stdout.strip() != "active":
             raise ValueError("current Security PDP is not running")
-        standing = assess(
-            data,
-            result.stdout,
-            now=int(time.time()),
-            anonymous_host_initialize_denied=_rejects_unauthenticated_host_initialize(),
-            observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
-            unqualified_active_host_consumers=_unqualified_active_peer_host_consumers(),
+        standing = _apply_installed_security_read_surface(
+            assess(
+                data,
+                result.stdout,
+                now=int(time.time()),
+                anonymous_host_initialize_denied=_rejects_unauthenticated_host_initialize(),
+                observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
+                unqualified_active_host_consumers=_unqualified_active_peer_host_consumers(),
+            ),
+            qualified=_installed_security_host_read_surface_qualified(),
         )
     except OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError:
         standing = {
