@@ -1,11 +1,14 @@
 ## Ephemeral Runtime Workspaces (Linux PG)
 
-On workspace.open, read the returned retentionNotice: the existing
-ordivon-runtime-lifecycle.timer runs every hour and may close an inactive
-Workspace after **4 hours since its latest Runtime Job activity** when that
-Job has succeeded, the source HEAD has been integrated into origin/main,
-the tree has no tracked/untracked changes, and Runtime has no active/held Job.
-The 4 hours are a **minimum quiet period**, not a guaranteed Workspace lease.
+On workspace.open, read the returned retentionNotice. The installed
+ordivon-runtime-lifecycle.timer is an **operator-configured periodic timer**:
+read the actual systemd unit and latest receipts before assuming its cadence
+or whether physical reclamation is installed and successful. The **4 hours
+since latest Runtime Job activity** is a minimum quiet period, not a
+guaranteed Workspace lease. Native close also checks Git source/dirty state,
+live or held Jobs and installed retention policy. A terminal Job or one
+caller's consumerReleased=true does not prove other Agents or external
+consumers have relinquished the Workspace.
 Git commits, published artifacts, and durable Work records are the deliverables;
 Workspace directories are disposable execution environments. Explicitly use
 workspace.close after completed work and handoff, or create a fresh Workspace
