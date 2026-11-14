@@ -107,6 +107,15 @@ if [ -n "$SERVICE_USER" ]; then
   printf 'service_user_preflight=pass user=%s\n' "$SERVICE_USER"
 fi
 
+# Real host-delegation and service-owner-identity facts are necessary for a
+# production Gateway upgrade. This protects Agent Host Work/Space/Topic
+# continuity without deciding Security grants in Gateway or relaxing the PEP.
+# Isolated test/staging prefixes keep their existing official install path.
+if [ "$(realpath -m "$PREFIX")" = "/opt/ordivon/gateway" ]; then
+  "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py" \
+    --policy-data "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer"
+fi
+
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"
 
