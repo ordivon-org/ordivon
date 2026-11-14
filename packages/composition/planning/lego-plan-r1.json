@@ -274,7 +274,7 @@
       ],
       "behavioralContract": "Never retries, dispatches, grants permission or certifies an external provider effect. Runtime executionTerminal=true, exitCode=0 and deliveryDisposition=committed still require provider-owned effect confirmation. Missing unindexed effect references broaden UNKNOWN through C04 instead of producing an empty impact.",
       "acceptance": [
-        "tests/test_effect_reconciliation_r1.py verifies Gateway external.pull started lease expiry, runtime-terminal committed-but-effect-unknown, unrelated proof isolation and absent dynamic effect UNKNOWN.",
+        "tests/test_effect_reconciliation_r1.py verifies the native Runtime Linux/Windows/Harness reconciliation_required delivery, legacy synthetic external.pull started uncertainty, terminal committed-but-effect-unknown, unrelated proof isolation and absent dynamic effect UNKNOWN.",
         "Rejects forged native operation identity, false-like JSON terminality/recovery values and malformed caller inputs; CLI preserves same negative behavior."
       ],
       "evidence": [
@@ -282,6 +282,7 @@
         "tests/test_effect_reconciliation_r1.py",
         "formal/EffectReplayFence.tla",
         "formal/EffectReplayFence.cfg",
+        "formal/EffectReplayFence.ReconciliationDeliveryIsUnreachable.cfg",
         "scripts/verify_effect_replay_formal.sh"
       ],
       "dependencies": [
@@ -301,8 +302,8 @@
         }
       ],
       "formalObligations": [
-        "Native pinned TLA+ TLC exhaustively verifies TypeOK, no retry, no effect success claim, exact classified recommendation and known/unindexed impact scope over a declared finite abstract transition system; 3 nonvacuity probes and an unsafe-retry mutation must yield named counterexamples.",
-        "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 72 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
+        "Native pinned TLA+ TLC exhaustively verifies TypeOK, no retry, no effect success claim, exact classified recommendation and known/unindexed impact scope over a declared finite abstract transition system; 4 nonvacuity probes (including the fourth delivery-state witness) and an unsafe-retry mutation must yield named counterexamples.",
+        "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 96 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
       ],
       "qualification": "FINITE_TLA_MODEL_VERIFIED_WITH_MUTATION_PROBE; SOURCE_FINITE_CORRESPONDENCE_TESTED; IMPLEMENTATION_REFINEMENT_INSTALLED_EFFECT_UNKNOWN"
     },
