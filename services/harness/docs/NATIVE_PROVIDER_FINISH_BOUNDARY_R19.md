@@ -139,6 +139,48 @@ authorize a blind new Provider request.
   No custom parser, second PG authority, duplicate scheduler or
   security-bypassing test proxy.
 
+## Installed Gateway/Runtime consumer qualification (same source, scoped)
+
+This is a *separate installed infrastructure check*, NOT proof that the
+`execution.harness` capability itself exists or grants model/Tool authority.
+
+* Installed Gateway version `0.10.8`, route digest
+  `sha256:809352746859c38759a8c05c1e138241dceb1ea6a08dc71ef1e14a0492727d7e`.
+  `execution.linux` resolves to natural `runtime.linux`, `linux-pg`.
+  Search for `execution.harness` still returned zero matches.
+* Actual installed Gateway `execution.linux` → native PG Runtime Job
+  `job-01a1dabf-e226-7417-93c9-fbc4904cd628`:
+  `cargo test --test native_http_loop_e2e`; Gateway terminal
+  `succeeded` and Runtime direct Owner observed exit 0 with 2/2 tests.
+* Actual installed Gateway `execution.linux` → native PG Runtime Job
+  `job-01a1dac0-91bc-77ba-a3c9-fd699ab2b728`:
+  original Python Store real PG18 → Rust verified no-Tool Run → local
+  HTTP Loop consumer 1/1 PASS, original disposable PG removed. Gateway and
+  Runtime independently observed terminal succeeded/exit0.
+* Negative missing-route request using `execution.harness` was rejected
+  (Gateway surfaced `INVALID_ARGUMENT`); Runtime
+  `job_list(clientRequestId=exact_missing_route_request)` returned
+  `jobs=[]`. This proves **no fallback to generic Linux execution was
+  observed for that one exact request**, not universal enforcement against
+  a future different install or actor.
+* These are tests on **the same private local Git SourceCut**. No paid/free
+  remote model was called, no natural ToolGrant→Owner effect was issued,
+  no true domain semantic verdict or production Harness release occurred.
+
+## Workspace lifecycle and naturally owned debt
+
+The native Runtime `workspace.close` refused cleanup with
+`WORKSPACE_DIRTY` despite Git status clean because existing Cargo/Python
+source-parity tests generated Git-ignored `.venv`, `__pycache__`, and
+`ordivon_harness.egg-info` in this isolated Workspace. The Runtime refusal
+is correct under its current lifecycle contract; it protects untracked data.
+The test cache comes from original Python parity tests invoking `uv run`
+and other Python source invocations. Do not globally force-delete arbitrary
+ignored files, erase shared Cargo targets or mutate other Agent worktrees.
+Only source-confirmed ephemeral paths with no active Job are eligible for
+explicit consumer release. Longer-term retention/ignored-artifact lifecycle
+belongs to the natural Runtime/Workstation owner, not a new Harness GC daemon.
+
 ## Next gate
 
 The natural full-path consumer remains:
