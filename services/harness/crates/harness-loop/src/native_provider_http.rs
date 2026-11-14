@@ -2,6 +2,7 @@
 //! speculative retry after an ambiguous network/Provider response.
 use crate::{
     native_loop::{ModelDecision, Provider, ProviderResult, ToolObservation},
+    native_provider_sse::decode_chat_completion_sse,
     pg_domain_read::ObservedNoToolRun,
     tool_surface::DomainToolSurface,
 };
@@ -25,6 +26,7 @@ pub struct HttpModelProvider {
     messages: Vec<Value>,
     tools: Vec<Value>,
     observed: usize,
+    streaming: bool,
 }
 impl HttpModelProvider {
     /// The only HTTP escape hatch is an exact loopback fixture. Real models
@@ -126,7 +128,15 @@ impl HttpModelProvider {
             ],
             tools,
             observed: 0,
+            streaming: false,
         })
+    }
+
+    /// Opt into OpenAI ChatCompletion SSE. Selection alone grants no model
+    /// request: the authoritative Journal must still admit dispatch.
+    pub fn with_streaming(mut self) -> Self {
+        self.streaming = true;
+        self
     }
 
     fn query(&mut self, observations: &[ToolObservation]) -> ProviderResult {
@@ -151,7 +161,7 @@ impl HttpModelProvider {
                 .push(json!({"role":"tool","tool_call_id":obs.call_id,"content":content}));
         }
         self.observed = observations.len();
-        let mut body = json!({"model":self.model,"messages":self.messages,"stream":false});
+        let mut body = json!({"model":self.model,"messages":self.messages,"stream":self.streaming});
         if !self.tools.is_empty() {
             body["tools"] = json!(self.tools);
             body["tool_choice"] = json!("auto");
@@ -169,15 +179,31 @@ impl HttpModelProvider {
         if !response.status().is_success() {
             return ProviderResult::Unknown;
         }
+        if self.streaming
+            && !response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|value| value.to_ascii_lowercase().starts_with("text/event-stream"))
+        {
+            return ProviderResult::Unknown;
+        }
         // Bound actual bytes even with chunked transfer or absent Content-Length.
         let mut limited = response.take((MAX_PROVIDER_RESPONSE_BYTES + 1) as u64);
         let mut bytes = Vec::new();
         if limited.read_to_end(&mut bytes).is_err() || bytes.len() > MAX_PROVIDER_RESPONSE_BYTES {
             return ProviderResult::Unknown;
         }
-        let reply: Value = match serde_json::from_slice(&bytes) {
-            Ok(value) => value,
-            Err(_) => return ProviderResult::Unknown,
+        let reply: Value = if self.streaming {
+            match decode_chat_completion_sse(&bytes) {
+                Some(value) => value,
+                None => return ProviderResult::Unknown,
+            }
+        } else {
+            match serde_json::from_slice(&bytes) {
+                Ok(value) => value,
+                Err(_) => return ProviderResult::Unknown,
+            }
         };
         let Some((message, action)) = decode_chat_completion(&reply) else {
             return ProviderResult::Unknown;
@@ -310,7 +336,12 @@ mod tests {
                     }
                 }
             }
-            let message=format!("HTTP/1.1 {status} OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response}",response.len());
+            let content_type = if response.starts_with("data: ") {
+                "text/event-stream"
+            } else {
+                "application/json"
+            };
+            let message=format!("HTTP/1.1 {status} OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response}",response.len());
             stream.write_all(message.as_bytes()).unwrap();
         });
         (url, handle)
@@ -383,6 +414,68 @@ mod tests {
             }
         }
         assert_eq!((checked, accepted), (60, 2));
+    }
+
+    #[test]
+    fn real_http_sse_stream_exercises_upstream_cc_framing() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            concat!(
+                "data: {\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hello\"},\"finish_reason\":null}]}\n\n",
+                "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+                "data: [DONE]\n\n"
+            ),
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap()
+                .with_streaming();
+        assert!(matches!(
+            model.turn(1, &[]),
+            ProviderResult::Delivered(ModelDecision::ProposeCompletion(ref text))
+                if text == "hello"
+        ));
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn real_http_sse_tool_proposal_still_requires_journal_grant() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            concat!(
+                "data: {\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"tool_calls\":[{\"index\":0,\"id\":\"call:1\",\"type\":\"function\",\"function\":{\"name\":\"search\",\"arguments\":\"{}\"}}]},\"finish_reason\":null}]}\n\n",
+                "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n",
+                "data: [DONE]\n\n"
+            ),
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap()
+                .with_streaming();
+        assert!(matches!(
+            model.turn(1, &[]),
+            ProviderResult::Delivered(ModelDecision::CallTools(ref tools))
+                if tools.len() == 1
+        ));
+        // Provider::turn is only a proposal, never an EffectReceiver::execute.
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn real_http_sse_without_done_remains_unknown() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"looks done\"},\"finish_reason\":\"stop\"}]}\n\n",
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap()
+                .with_streaming();
+        assert!(matches!(model.turn(1, &[]), ProviderResult::Unknown));
+        server.join().unwrap();
     }
 
     #[test]
