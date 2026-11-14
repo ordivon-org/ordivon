@@ -199,6 +199,15 @@ The commit mode does not invent the missing PR base/Owner task selection,
 and never inherits PASS across different Git cuts merely because they
 result from a squash merge; the new commit needs its own official receipt.
 
+When Merge Queue and subsequent push produce duplicate Check Run names at
+the same Git SHA, the query binds a completed Monorepo Required Workflow Run
+by its original GitHub Job/Run identity. A later in-progress push does not
+erase the earlier completed workflow's positive SOURCE observation. A
+conflicting completed required workflow or incomplete same-run jobs remains
+UNKNOWN; a successful root workflow does not promote independent CodeQL
+or physical effect checks. No blanket replay is triggered by duplicate job
+names in the GitHub flat check-runs list.
+
 The Runtime query calls `gh api` read-only, requires official GitHub
 `root-verification` and exact-commit successful checks, then delegates
 SourceCut/consumer selection to the **existing** Owner planner. A missing,

@@ -127,17 +127,96 @@ def _native_root_workflow_matches(root_check: dict[str, str], source_cut: str) -
     )
 
 
-def _qualified_original_source_ci(source_cut: str) -> tuple[str, list[dict[str, str]], dict[str, str] | None]:
-    """Read original GitHub workflow, not re-run a verifier."""
+def _qualified_original_source_ci(
+    source_cut: str,
+) -> tuple[str, list[dict[str, str]], dict[str, str] | None]:
+    """Read exact GitHub CI by native workflow run, not flattened job names.
+
+    A merge queue success followed by an in-progress push at the SAME Git
+    SHA yields duplicate check names. Only a completed, qualified Required
+    workflow qualifies its OWN tests. Other workflows stay independent.
+    """
     checks = _github(f"commits/{source_cut}/check-runs?per_page=100")
     standing, jobs = _official_ci_at_cut(checks, source_cut)
     root = next(
         (row for row in jobs if row["name"] == "root-verification" and row["app"] == "github-actions"),
         None,
     )
-    if standing == "EXACT_CUT_SOURCE_CI_PASS" and (root is None or not _native_root_workflow_matches(root, source_cut)):
-        standing = "UNKNOWN_ROOT_WORKFLOW_IDENTITY"
-    return standing, jobs, root
+    if standing == "EXACT_CUT_SOURCE_CI_PASS":
+        if root is None or not _native_root_workflow_matches(root, source_cut):
+            return "UNKNOWN_ROOT_WORKFLOW_IDENTITY", jobs, root
+        return standing, jobs, root
+    if standing not in {"AMBIGUOUS_CHECK_RUNS", "INCOMPLETE_OR_FAILED_CHECKS"}:
+        return standing, jobs, root
+
+    rows = checks.get("check_runs")
+    count = checks.get("total_count")
+    if not isinstance(rows, list) or not isinstance(count, int) or count != len(rows):
+        return "UNKNOWN_CHECK_SET", [], None
+    if any(not isinstance(row, dict) or row.get("head_sha") != source_cut for row in rows):
+        return "UNKNOWN_CHECK_SET", [], None
+
+    # Only official Actions job URLs are used to establish workflow identity.
+    # Regex is anchored to the fixed repository, and the original GitHub
+    # Actions Job/Run endpoint independently verifies completion and workflow.
+    url_pattern = re.compile(r"https://github[.]com/ordivon-org/ordivon/actions/runs/([0-9]+)/job/([0-9]+)")
+    root_rows = [
+        item
+        for item in rows
+        if item.get("name") == "root-verification"
+        and isinstance(item.get("app"), dict)
+        and item["app"].get("slug") == "github-actions"
+    ]
+    if any(item.get("status") == "completed" and item.get("conclusion") != "success" for item in root_rows):
+        return "CONFLICTING_REQUIRED_WORKFLOW_RESULTS", [], None
+
+    qualified: list[tuple[list[dict[str, str]], dict[str, str]]] = []
+    for item in root_rows:
+        if item.get("status") != "completed" or item.get("conclusion") != "success":
+            continue
+        url = item.get("details_url")
+        match = url_pattern.fullmatch(url) if isinstance(url, str) else None
+        if match is None:
+            continue
+        run_id = match.group(1)
+        record = {
+            "name": "root-verification",
+            "app": "github-actions",
+            "status": "completed",
+            "conclusion": "success",
+            "url": url,
+        }
+        if not _native_root_workflow_matches(record, source_cut):
+            continue
+        members: list[dict[str, str]] = []
+        valid = True
+        for row in rows:
+            app = row.get("app")
+            row_url = row.get("details_url")
+            member = url_pattern.fullmatch(row_url) if isinstance(row_url, str) else None
+            if not (isinstance(app, dict) and app.get("slug") == "github-actions" and member):
+                continue
+            if member.group(1) != run_id:
+                continue
+            if row.get("status") != "completed" or row.get("conclusion") not in {"success", "skipped"}:
+                valid = False
+                break
+            members.append(
+                {
+                    "name": str(row["name"]),
+                    "app": "github-actions",
+                    "status": str(row["status"]),
+                    "conclusion": str(row["conclusion"]),
+                    "url": row_url,
+                }
+            )
+        if valid and any(member["name"] == "root-verification" for member in members):
+            qualified.append((members, record))
+
+    if len(qualified) != 1:
+        return "AMBIGUOUS_OR_UNQUALIFIED_REQUIRED_WORKFLOW", [], None
+    selected, selected_root = qualified[0]
+    return "EXACT_CUT_REQUIRED_WORKFLOW_PASS", selected, selected_root
 
 
 def assess_commit(*, commit: str, owner: str, target: str = "HEAD") -> dict[str, Any]:
@@ -155,7 +234,7 @@ def assess_commit(*, commit: str, owner: str, target: str = "HEAD") -> dict[str,
     if _git("cat-file", "-t", proof_cut) != "commit":
         raise ValueError("original commit unavailable in local Git source")
     receipt, jobs, root = _qualified_original_source_ci(proof_cut)
-    if receipt != "EXACT_CUT_SOURCE_CI_PASS":
+    if receipt not in {"EXACT_CUT_SOURCE_CI_PASS", "EXACT_CUT_REQUIRED_WORKFLOW_PASS"}:
         decision = "RECEIPT_UNKNOWN_OR_NOT_PASSED"
         action = "INSPECT_ORIGINAL_CI_RECEIPT_BEFORE_RUNNING_TESTS"
     elif proof_cut == target_cut:
@@ -242,7 +321,7 @@ def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
             else:
                 new_owner_affected = False
                 source = "UNCHANGED_GIT_CONTENT_AT_DESCENDANT"
-    if receipt != "EXACT_CUT_SOURCE_CI_PASS":
+    if receipt not in {"EXACT_CUT_SOURCE_CI_PASS", "EXACT_CUT_REQUIRED_WORKFLOW_PASS"}:
         decision = "RECEIPT_UNKNOWN_OR_NOT_PASSED"
         action = "INSPECT_ORIGINAL_CI_RECEIPT_BEFORE_RUNNING_TESTS"
     elif target_cut == proof_cut:

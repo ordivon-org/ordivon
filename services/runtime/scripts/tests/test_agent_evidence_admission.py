@@ -186,6 +186,77 @@ class EvidenceAdmissionTests(unittest.TestCase):
         self.assertEqual(report["decision"], "UNKNOWN_SOURCE_RELATION")
         self.assertEqual(report["recommendedAction"], "QUALIFY_MISSING_SOURCE_RELATION_NOT_BLANKET_REPLAY")
 
+    @staticmethod
+    def workflow_check(
+        name: str,
+        *,
+        run: int,
+        job: int,
+        status: str = "completed",
+        conclusion: str | None = "success",
+    ) -> dict:
+        return {
+            "name": name,
+            "status": status,
+            "conclusion": conclusion,
+            "head_sha": SHA,
+            "app": {"slug": "github-actions"},
+            "details_url": (f"https://github.com/ordivon-org/ordivon/actions/runs/{run}/job/{job}"),
+        }
+
+    def test_merge_queue_push_duplicate_names_preserve_completed_required_run(self):
+        records = [
+            self.workflow_check("root-verification", run=1, job=10),
+            self.workflow_check("repo-preflight", run=1, job=11),
+            self.workflow_check("repo-preflight", run=2, job=21, status="in_progress", conclusion=None),
+            self.workflow_check("repo-mechanics", run=2, job=22, status="in_progress", conclusion=None),
+        ]
+        with (
+            patch.object(module, "_github", return_value={"check_runs": records, "total_count": len(records)}),
+            patch.object(module, "_native_root_workflow_matches", return_value=True) as qualified,
+        ):
+            standing, selected, root = module._qualified_original_source_ci(SHA)
+        self.assertEqual(standing, "EXACT_CUT_REQUIRED_WORKFLOW_PASS")
+        self.assertEqual(len(selected), 2)
+        self.assertEqual(root["name"], "root-verification")
+        self.assertTrue(all("/runs/1/" in item["url"] for item in selected))
+        qualified.assert_called_once()
+
+    def test_conflicting_finished_root_stands_unknown(self):
+        records = [
+            self.workflow_check("root-verification", run=1, job=10),
+            self.workflow_check("root-verification", run=2, job=20, conclusion="failure"),
+        ]
+        with patch.object(module, "_github", return_value={"check_runs": records, "total_count": 2}):
+            standing, selected, _ = module._qualified_original_source_ci(SHA)
+        self.assertEqual(standing, "CONFLICTING_REQUIRED_WORKFLOW_RESULTS")
+        self.assertEqual(selected, [])
+
+    def test_pending_job_in_same_required_workflow_is_not_sufficient(self):
+        records = [
+            self.workflow_check("root-verification", run=1, job=10),
+            self.workflow_check("repo-mechanics", run=1, job=11, status="in_progress", conclusion=None),
+        ]
+        with (
+            patch.object(module, "_github", return_value={"check_runs": records, "total_count": 2}),
+            patch.object(module, "_native_root_workflow_matches", return_value=True),
+        ):
+            standing, _, _ = module._qualified_original_source_ci(SHA)
+        self.assertEqual(standing, "AMBIGUOUS_OR_UNQUALIFIED_REQUIRED_WORKFLOW")
+
+    def test_same_named_root_from_wrong_workflow_is_not_promoted(self):
+        records = [
+            self.workflow_check("root-verification", run=1, job=10),
+            self.workflow_check("repo-preflight", run=1, job=11),
+            self.workflow_check("repo-preflight", run=2, job=21, status="in_progress", conclusion=None),
+        ]
+        with (
+            patch.object(module, "_github", return_value={"check_runs": records, "total_count": 3}),
+            patch.object(module, "_native_root_workflow_matches", return_value=False),
+        ):
+            standing, _, _ = module._qualified_original_source_ci(SHA)
+        self.assertEqual(standing, "AMBIGUOUS_OR_UNQUALIFIED_REQUIRED_WORKFLOW")
+
     def test_exact_commit_ci_after_merge_queue_needs_no_pr_identity(self):
         with (
             patch.object(module, "_git", side_effect=self.fake_git),
