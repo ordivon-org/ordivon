@@ -8,15 +8,18 @@ import math
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from archive_source import load_archive_snapshot
+
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / 'source' / 'creative-library-catalog-v1.json'
 OUT = ROOT / 'render'
 WEB = ROOT / 'interactive'
 OUT.mkdir(parents=True, exist_ok=True)
 WEB.mkdir(parents=True, exist_ok=True)
-cat = json.loads(SRC.read_text(encoding='utf-8'))
-works = list(cat.get('works', []))
-relations = list(cat.get('relations', []))
+snapshot = load_archive_snapshot(SRC)
+cat = snapshot.catalog
+works = list(snapshot.works)
+relations = list(snapshot.relations)
 
 owners = sorted({w.get('owner') or 'Unknown' for w in works})
 owner_counts = Counter(w.get('owner') or 'Unknown' for w in works)
@@ -47,14 +50,12 @@ for owner, rows in by_owner.items():
 # Relation normalization and degree.
 rel_features=[]; degree=Counter(); neighbors=defaultdict(list)
 for r in relations:
-    a=r.get('child_work_id') or r.get('childWorkId') or r.get('from')
-    b=r.get('parent_work_id') or r.get('parentWorkId') or r.get('to')
-    typ=r.get('relation_type') or r.get('relationType') or r.get('type') or 'RELATED'
-    if a in positions and b in positions:
-        rel_features.append({'from':a,'to':b,'type':typ})
-        degree[a]+=1; degree[b]+=1
-        neighbors[a].append({'workId':b,'type':typ,'direction':'out'})
-        neighbors[b].append({'workId':a,'type':typ,'direction':'in'})
+    a, b, typ = r['from'], r['to'], r['type']
+    rel_features.append(r)
+    degree[a] += 1
+    degree[b] += 1
+    neighbors[a].append({'workId': b, 'type': typ, 'direction': 'out'})
+    neighbors[b].append({'workId': a, 'type': typ, 'direction': 'in'})
 
 # Selective static labels: at most two representative works per owner.
 labels=set()
@@ -95,13 +96,15 @@ def relation_path(a,b,typ):
     bend=min(34,ln*0.06)*sign; cx=mx-dy/ln*bend; cy=my+dx/ln*bend
     return f'M {X1:.1f},{Y1:.1f} Q {cx:.1f},{cy:.1f} {X2:.1f},{Y2:.1f}'
 
+relation_counts = Counter(r['type'] for r in rel_features)
+
 # Editorial still.
 svg=[]
 svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">')
 svg.append('<rect width="100%" height="100%" fill="#090d12"/>')
 svg.append('<rect x="52" y="52" width="1496" height="896" rx="28" fill="none" stroke="#30363d" stroke-width="2"/>')
 svg.append('<text x="86" y="116" fill="#f0f6fc" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="40" font-weight="700" letter-spacing="4">ARCHIVE / ARCHIPELAGO 001</text>')
-svg.append('<text x="86" y="148" fill="#7d8590" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" letter-spacing="1.4">303 FROZEN CREATIVE WORKS · 45 CATALOGUED RELATIONS · CONCEPTUAL ARCHIVE PLANE</text>')
+svg.append(f'<text x="86" y="148" fill="#7d8590" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" letter-spacing="1.4">{len(works)} FROZEN CREATIVE WORKS · {len(rel_features)} CATALOGUED RELATIONS · CONCEPTUAL ARCHIVE PLANE</text>')
 svg.append('<line x1="86" y1="176" x2="1514" y2="176" stroke="#21262d"/>')
 # island contours
 for owner in owners:
@@ -135,8 +138,8 @@ for wid in sorted(labels):
 lx,ly=1120,720
 svg.append(f'<rect x="{lx}" y="{ly}" width="392" height="160" rx="18" fill="#11161d" stroke="#30363d"/>')
 svg.append(f'<text x="{lx+22}" y="{ly+30}" fill="#f0f6fc" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="12" font-weight="700" letter-spacing="1">READING THE MAP</text>')
-svg.append(f'<line x1="{lx+22}" y1="{ly+54}" x2="{lx+72}" y2="{ly+54}" stroke="#6e7681" stroke-width="1.4" stroke-dasharray="3 7"/><text x="{lx+88}" y="{ly+59}" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">DERIVATIVE_OF — 35</text>')
-svg.append(f'<line x1="{lx+22}" y1="{ly+82}" x2="{lx+72}" y2="{ly+82}" stroke="#8b949e" stroke-width="1.4"/><text x="{lx+88}" y="{ly+87}" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">CONSUMER_OF — 10</text>')
+svg.append(f'<line x1="{lx+22}" y1="{ly+54}" x2="{lx+72}" y2="{ly+54}" stroke="#6e7681" stroke-width="1.4" stroke-dasharray="3 7"/><text x="{lx+88}" y="{ly+59}" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">DERIVATIVE_OF — {relation_counts["DERIVATIVE_OF"]}</text>')
+svg.append(f'<line x1="{lx+22}" y1="{ly+82}" x2="{lx+72}" y2="{ly+82}" stroke="#8b949e" stroke-width="1.4"/><text x="{lx+88}" y="{ly+87}" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">CONSUMER_OF — {relation_counts["CONSUMER_OF"]}</text>')
 svg.append(f'<circle cx="{lx+30}" cy="{ly+112}" r="5" fill="#58a6ff"/><circle cx="{lx+30}" cy="{ly+112}" r="9" fill="none" stroke="#58a6ff" stroke-opacity=".55"/><text x="{lx+50}" y="{ly+117}" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">ring = featured work · size ≈ carrier count</text>')
 svg.append(f'<text x="{lx+22}" y="{ly+145}" fill="#6e7681" font-family="Inter,Segoe UI,sans-serif" font-size="11">proximity is composition, not semantic similarity</text>')
 # footer
