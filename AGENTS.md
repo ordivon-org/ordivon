@@ -113,6 +113,17 @@ agent_evidence_admission.py already consumes exact GitHub CI
 for the named natural Owner. It is read-only, not an enforced
 Harness ToolBridge no-redispatch gate.
 
+For the actual bounded Formal declared-Git-input Claim, reuse
+tools/repo/evidence_validity.py with exact --current-sha,
+original --prior-sha, --fetch-historical-formal-report and
+--claim-kind BOTH. One original artifact read returns both
+FORMAL_DECLARED_GIT_INPUTS_EQUAL (only the agent:formal-declared-source-impact
+consumer may receive scoped support) and FORMAL_PROOF_APPLICABLE_TO_TARGET
+(UNKNOWN until dynamic/toolchain/implementation/consumer assumptions
+are closed). Neither result authorizes any Runtime Job or generic Harness
+workspace.exec, nor does it establish installed currentness.
+See docs/architecture/EVIDENCE_VALIDITY_KERNEL_R1.md.
+
 ## Evidence-backed detailed reporting and handoffs
 
 When a user requests a detailed progress/completion report, or when handing off a

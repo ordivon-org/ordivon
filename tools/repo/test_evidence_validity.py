@@ -1085,3 +1085,238 @@ def test_unpushed_candidate_github_unknown_does_not_erase_original_readset(
     assert result["formalDeclaredSourceDelta"]["standing"] == (
         "UNCHANGED_DECLARED_SOURCE_INPUTS"
     )
+
+
+def _qualified_typed_formal_receipt(
+    *,
+    status="UNCHANGED_DECLARED_SOURCE_INPUTS",
+    changed=None,
+    target=CURRENT,
+):
+    if changed is None:
+        changed = [] if status == "UNCHANGED_DECLARED_SOURCE_INPUTS" else ["proof.lean"]
+    return {
+        "standing": "CONTENT_MATCHES_DECLARED_GIT_SOURCE",
+        "sourceCut": PREVIOUS,
+        "verifiedExecutionSourceCut": PREVIOUS,
+        "sourceRelationship": "PR_SYNTHETIC_MERGE_BASE_AND_HEAD",
+        "artifactProvenance": "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE",
+        "originalCheckRunId": 112,
+        "githubArtifactId": 554,
+        "githubArtifactName": "ordivon-core-formal-" + PREVIOUS,
+        "proofReuseAdmissible": False,
+        "executionInputsVsCandidate": {
+            "kind": "ordivon.formal-execution-inputs-vs-candidate",
+            "executionSourceCut": PREVIOUS,
+            "candidateSourceCut": target,
+            "comparisonBasis": "TWO_IMMUTABLE_GIT_SNAPSHOTS_NOT_TEMPORAL_PROOF",
+            "standing": status,
+            "priorDeclaredPaths": 36,
+            "candidateDeclaredPaths": 36,
+            "declaredSourceReadsetComparisonComplete": True,
+            "proofReuseAdmissible": False,
+            "changedDeclaredPaths": changed,
+        },
+    }
+
+
+def _assess_typed(receipt=None, claim=None, consumer=None):
+    return module.assess_formal_evidence_claim(
+        claim_kind=claim or module.FORMAL_SOURCE_INPUT_CLAIM,
+        consumer_ref=consumer or module.FORMAL_SOURCE_INPUT_CONSUMER,
+        target_source_cut=CURRENT,
+        historical_receipt=receipt,
+    )
+
+
+def test_typed_claim_narrow_source_fact_is_supported_without_proof_or_job():
+    result = _assess_typed(_qualified_typed_formal_receipt())
+    assert result["decision"] == "SUPPORTED_SCOPED_SOURCE_INPUT_FACT"
+    assert result["claimSupported"] is True
+    assert result["claim"]["targetSourceCut"] == CURRENT
+    assert result["claim"]["consumerRef"] == module.FORMAL_SOURCE_INPUT_CONSUMER
+    assert result["unresolvedObligations"] == []
+    assert result["evidenceRefs"] == [
+        {
+            "kind": "GITHUB_ORIGINAL_FORMAL_ARTIFACT",
+            "checkRunId": 112,
+            "artifactId": 554,
+            "executionSourceCut": PREVIOUS,
+        }
+    ]
+    assert result["proofReuseAdmissible"] is False
+    assert result["physicalExecutionAuthorized"] is False
+    assert result["verificationTaskDispatched"] is False
+
+
+def test_typed_claim_source_inputs_equal_never_implies_proof_applicability():
+    result = _assess_typed(
+        _qualified_typed_formal_receipt(),
+        claim=module.FORMAL_PROOF_APPLICABILITY_CLAIM,
+    )
+    assert result["decision"] == "UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS"
+    assert result["claimSupported"] is False
+    assert result["proofReuseAdmissible"] is False
+    assert [row["kind"] for row in result["unresolvedObligations"]] == [
+        "QUALIFY_EXECUTION_TOOLCHAIN_AND_DYNAMIC_DEPENDENCIES",
+        "QUALIFY_MODEL_IMPLEMENTATION_CONSUMER_REFINEMENT",
+    ]
+
+
+def test_typed_claim_changed_input_contradicts_only_source_equality():
+    report = _qualified_typed_formal_receipt(
+        status="CHANGED_DECLARED_SOURCE_INPUTS", changed=["proof.lean", "proof2.lean"]
+    )
+    result = _assess_typed(report)
+    assert result["decision"] == "CONTRADICTED_SCOPED_SOURCE_INPUT_FACT"
+    assert result["claimSupported"] is False
+    assert result["changedDeclaredPaths"] == ["proof.lean", "proof2.lean"]
+    assert [x["kind"] for x in result["unresolvedObligations"]] == [
+        "INSPECT_CHANGED_FORMAL_DECLARED_INPUTS"
+    ]
+    assert result["nextOperation"] == "inspect-only-changed-declared-source-inputs"
+    assert result["verificationTaskDispatched"] is False
+
+
+def test_typed_claim_stronger_with_changed_inputs_has_scoped_obligations():
+    result = _assess_typed(
+        _qualified_typed_formal_receipt(
+            status="CHANGED_DECLARED_SOURCE_INPUTS", changed=["proof.lean"]
+        ),
+        claim=module.FORMAL_PROOF_APPLICABILITY_CLAIM,
+    )
+    assert result["decision"] == "AFFECTED_PROOF_SOURCE_INPUTS"
+    assert [row["kind"] for row in result["unresolvedObligations"]] == [
+        "INSPECT_CHANGED_FORMAL_DECLARED_INPUTS",
+        "QUALIFY_EXECUTION_TOOLCHAIN_AND_DYNAMIC_DEPENDENCIES",
+        "QUALIFY_MODEL_IMPLEMENTATION_CONSUMER_REFINEMENT",
+    ]
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_typed_claim_wrong_consumer_never_upgrades_source_to_installed():
+    result = _assess_typed(
+        _qualified_typed_formal_receipt(),
+        consumer="consumer:gateway.production-runtime",
+    )
+    assert result["decision"] == "UNKNOWN_CONSUMER_SCOPE"
+    assert result["claimSupported"] is False
+    assert result["evidenceRefs"] == []
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_typed_claim_absent_original_report_requires_original_not_replay():
+    result = _assess_typed(None)
+    assert result["decision"] == "UNKNOWN_NO_HISTORICAL_REPORT"
+    assert result["unresolvedObligations"][0]["kind"] == (
+        "LOCATE_QUALIFIED_PRODUCER_EVIDENCE"
+    )
+    assert result["verificationTaskDispatched"] is False
+    result = _assess_typed({"standing": "CONTENT_MATCHES_DECLARED_GIT_SOURCE"})
+    assert result["decision"] == "UNKNOWN_NO_SOURCE_COMPARISON"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"sourceCut": CURRENT},
+        {"verifiedExecutionSourceCut": CURRENT},
+        {"githubArtifactId": None},
+        {"githubArtifactId": True},
+        {"originalCheckRunId": -1},
+        {"githubArtifactName": "ordivon-core-formal-" + CURRENT},
+        {"artifactProvenance": "UNVERIFIED_LOCAL_INPUT"},
+        {"sourceRelationship": "ASSUMED_HEAD_EQUALS_MERGE"},
+        {"proofReuseAdmissible": True},
+        {
+            "executionInputsVsCandidate": {
+                "executionSourceCut": PREVIOUS,
+                "candidateSourceCut": PREVIOUS,
+                "standing": "UNCHANGED_DECLARED_SOURCE_INPUTS",
+            }
+        },
+    ],
+)
+def test_typed_claim_rejects_inconsistent_original_evidence_binding(mutation):
+    import copy
+
+    original = _qualified_typed_formal_receipt()
+    report = copy.deepcopy(original)
+    report.update(mutation)
+    result = _assess_typed(report)
+    assert result["decision"] == "UNKNOWN_UNQUALIFIED_EVIDENCE_BINDING"
+    assert result["claimSupported"] is False
+    assert result["proofReuseAdmissible"] is False
+
+
+@pytest.mark.parametrize(
+    "standing,changed",
+    [
+        ("UNCHANGED_DECLARED_SOURCE_INPUTS", ["proof.lean"]),
+        ("CHANGED_DECLARED_SOURCE_INPUTS", []),
+        ("PASS", []),
+        ("UNKNOWN", []),
+    ],
+)
+def test_typed_claim_fail_closed_on_contradictory_input_delta(standing, changed):
+    report = _qualified_typed_formal_receipt(status=standing, changed=changed)
+    result = _assess_typed(report)
+    assert result["decision"].startswith("UNKNOWN")
+    assert not result["claimSupported"]
+    assert not result["physicalExecutionAuthorized"]
+
+
+def test_typed_claim_rejects_unknown_kind_and_inexact_target():
+    with pytest.raises(ValueError, match="unknown scoped Claim"):
+        module.assess_formal_evidence_claim(
+            claim_kind="GATEWAY_INSTALLED_CORRECT",
+            consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+            target_source_cut=CURRENT,
+            historical_receipt=_qualified_typed_formal_receipt(),
+        )
+    with pytest.raises(ValueError, match="exact target"):
+        module.assess_formal_evidence_claim(
+            claim_kind=module.FORMAL_SOURCE_INPUT_CLAIM,
+            consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+            target_source_cut="HEAD",
+            historical_receipt=_qualified_typed_formal_receipt(),
+        )
+
+
+def test_typed_claim_exhaustive_finite_state_no_strong_claim_upgrade():
+    import itertools
+
+    for scope, kind, original, standing, changed in itertools.product(
+        (module.FORMAL_SOURCE_INPUT_CONSUMER, "consumer:gateway.production"),
+        (module.FORMAL_SOURCE_INPUT_CLAIM, module.FORMAL_PROOF_APPLICABILITY_CLAIM),
+        (True, False),
+        ("UNCHANGED_DECLARED_SOURCE_INPUTS", "CHANGED_DECLARED_SOURCE_INPUTS"),
+        (False, True),
+    ):
+        receipt = None
+        if original:
+            paths = ["proof.lean"] if changed else []
+            receipt = _qualified_typed_formal_receipt(status=standing, changed=paths)
+        decision = module.assess_formal_evidence_claim(
+            claim_kind=kind,
+            consumer_ref=scope,
+            target_source_cut=CURRENT,
+            historical_receipt=receipt,
+        )
+        assert decision["proofReuseAdmissible"] is False
+        assert decision["physicalExecutionAuthorized"] is False
+        assert decision["verificationTaskDispatched"] is False
+        if decision["claimSupported"]:
+            assert kind == module.FORMAL_SOURCE_INPUT_CLAIM
+            assert scope == module.FORMAL_SOURCE_INPUT_CONSUMER
+            assert standing == "UNCHANGED_DECLARED_SOURCE_INPUTS"
+            assert original and not changed
+
+
+def test_typed_claim_same_inputs_must_have_same_membership_cardinality():
+    report = _qualified_typed_formal_receipt()
+    report["executionInputsVsCandidate"]["candidateDeclaredPaths"] = 37
+    result = _assess_typed(report)
+    assert result["decision"] == "UNKNOWN_CONTRADICTORY_SOURCE_CHANGE_WITNESS"
+    assert result["claimSupported"] is False
+    assert result["physicalExecutionAuthorized"] is False

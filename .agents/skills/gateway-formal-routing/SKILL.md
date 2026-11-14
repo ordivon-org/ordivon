@@ -57,9 +57,7 @@ source conformance -> real consumer -> installed candidate proof.
 3. If source, proof scope and assumptions still match the accepted receipt,
    report REUSED_SCOPED_EVIDENCE without rerunning. If a proof dependency,
    model, checker, assumption or novel consumer obligation changed, run only
-   the affected formal/model check and relevant negative control. The
-   unchanged GatewayToolVisibility/Routing/Observation/AuthZEN models
-   require no new TLC replay.
+   the affected formal/model check and relevant negative control. The\n   unchanged Formal models actually PRESENT at the selected SourceCut\n   require no new TLC replay.
 4. Run bounded Python route conformance and the relevant native Gateway
    consumer tests only for impacted implementation/readset or an explicit
    fresh release gate. Run full gateway:verify when Gateway behavior
@@ -121,3 +119,17 @@ executionInputsVsCandidate. Only an exact two-parent native Git match
 allows the source label distinction; ordinary previous/current
 --formal-source-delta requires ancestor history. Neither static
 comparison proves solver/toolchain continuity or real Owner acceptance.
+
+
+### Typed Claim applicability at the exact Git SourceCut
+
+To avoid evaluating the same original Formal Artifact twice, pass
+--claim-kind BOTH with exact --current-sha, original --prior-sha
+and --fetch-historical-formal-report to the existing repo consumer.
+FORMAL_DECLARED_GIT_INPUTS_EQUAL can be supported only for the
+declared source-input comparison consumer. The much stronger
+FORMAL_PROOF_APPLICABLE_TO_TARGET remains UNKNOWN until toolchain,
+dynamic dependency and model-to-real-consumer obligations close.
+Do not treat the GatewayToolVisibility model on separate unmerged
+PR #2174 as if it were already present in a different SourceCut.
+This Skill grants no Harness or Runtime execution authority.

@@ -273,3 +273,102 @@ Agent/caller cognition. Generic workspace.exec also runs compilation,
 experiments, browser and physical tasks; it must not be silently suppressed
 by a historic proof success. A future strict no-dispatch admission requires
 one exact caller-declared verification intent and its natural owner.
+
+
+## R6: Typed Claim / Consumer Golden Road (2026-11-14)
+
+### Evidence is not a generic theorem
+
+The actual accepted PR #2182 Check Run and its original Formal Artifact
+support a **narrow typed proposition**: the declared native Formal Git
+input set, modes and Blob OIDs on its original execution SourceCut equal
+those of a requested candidate SourceCut. They do NOT automatically prove
+that a theorem applies to new toolchains, installations or consumers.
+
+The existing read-only tools/repo/evidence_validity.py includes one
+small pure Claim-to-Evidence projection, not another registry or
+scheduler. The source-bound producer is still original GitHub Actions
+plus the native Formal report and immutable Git tree comparator.
+
+The finite typed contract has:
+
+- claimKind = FORMAL_DECLARED_GIT_INPUTS_EQUAL or
+  FORMAL_PROOF_APPLICABLE_TO_TARGET.
+- consumerRef = agent:formal-declared-source-impact for this narrow
+  scope. Any other consumer stays UNKNOWN.
+- targetSourceCut = exact full Git SHA, never a mutable branch alias.
+- historicalFormalReceipt = the original qualified GitHub workflow
+  and Artifact plus the immutable pairwise native Formal source
+  comparison, NOT arbitrary caller-controlled local JSON.
+- outputs: claimSupported, evidenceRefs, nextOperation, named
+  unresolvedObligations, proofReuseAdmissible=false,
+  physicalExecutionAuthorized=false, verificationTaskDispatched=false.
+
+| Requested Claim | Evidence / change observation | Decision |
+| --- | --- | --- |
+| Declared Git inputs equal | Original official evidence + same declared Git members and modes | SUPPORTED_SCOPED_SOURCE_INPUT_FACT |
+| Declared Git inputs equal | Actual changed declared path | CONTRADICTED_SCOPED_SOURCE_INPUT_FACT; inspect only changed paths |
+| Declared Git inputs equal | Missing/wrong consumer/forged or contradictory evidence | UNKNOWN with specific missing qualification |
+| Formal proof applicable to target | Same declared Git inputs, but dynamic/toolchain/consumer closure not established | UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS |
+| Formal proof applicable to target | Declared Git inputs changed | AFFECTED_PROOF_SOURCE_INPUTS; inspect change and missing assumptions |
+
+Query BOTH Claim grades from ONE original GitHub Artifact download:
+
+    python3 tools/repo/evidence_validity.py --current-sha FULL_TARGET_SHA --prior-sha FULL_ORIGINAL_PR_HEAD_SHA --fetch-historical-formal-report --claim-kind BOTH
+
+The stronger Claim never becomes true based merely on a static source
+comparison. An arbitrary installed Gateway or Domain consumer cannot
+reuse this source-input-only evidence through a scope substitution.
+
+### Actual live consumer on prior PR #2182
+
+Prior PR Head: 06407a629e74e1782513a0a1cde00a008b2911a0.
+Original Formal execution Git merge:
+d841a022afd09fe9b214c91041db9baf6da8063f.
+Official GitHub Check Run and original Artifact returned
+CONTENT_MATCHES_DECLARED_GIT_SOURCE and
+UNCHANGED_DECLARED_SOURCE_INPUTS for 36 declared Git members.
+The source-equality Claim was SUPPORTED_SCOPED_SOURCE_INPUT_FACT;
+the stronger proof-applicability Claim was
+UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS, with two missing obligations:
+qualify toolchain/dynamic dependencies and
+qualify model/implementation/consumer refinement.
+No additional solver or duplicate verification Job was executed.
+Earlier valid same-SHA official CI results remain reusable as their
+original Check Run outcome only.
+
+### Recursive LEGO R2.1 representation
+
+I = typed Claim, consumerRef, target SourceCut, original Formal evidence.
+O = scoped result, evidenceRefs and minimal unresolved proof obligations.
+S = absent, mismatched, unchanged, changed and unclosed input premises.
+pre = original GitHub/Artifact/Git binding qualified, else UNKNOWN.
+post = source input equality supported only with valid declared readset.
+inv = claimSupported for source equality NEVER grants broader
+proofReuseAdmissible, production acceptance or physical Job admission.
+eff = none; the evaluator has no execution effects.
+c = original Artifact read once plus bounded pure Claim projection;
+real resource savings require real measured consumers.
+epsilon = toolchain, OLEAN/loader and dynamic non-Git dependencies,
+model-to-implementation and installed consumer remain UNKNOWN.
+prov = qualified source commit, original GitHub Artifact/Run and
+focus-scoped native tests with negative controls.
+unfold = original SourceCut -> readset comparison -> typed Claim ->
+missing obligations -> caller-specific decision.
+
+### Remaining P0 and P1
+
+P0: A caller-specific VerificationIntent must bind exact Claim,
+consumer, SourceCut, natural Owner and existing Runtime Job identity,
+with a true atomic admission boundary. The existing read-only
+Runtime agent_evidence_admission.py and Harness check_evidence.py
+are separate natural consumers, not physical no-dispatch gates.
+
+P0: Proof dynamic/toolchain/assumption closure and
+model-to-implementation/consumer refinement are still UNKNOWN.
+Source equality cannot replace those obligations.
+
+P1: Only for real consumers, refine this bounded decision against
+formal properties and independently falsify implementation
+conformance. Do not delete unrelated tests before stronger evidence
+covers their exact Claim.

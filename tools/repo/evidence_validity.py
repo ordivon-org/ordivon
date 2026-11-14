@@ -801,6 +801,215 @@ def decide_with_optional_formal_source_delta(
     return decision
 
 
+# This is a pure Claim-to-Evidence *projection*, not a verifier or Job gate.
+# Only the known source-input consumer is admitted. Adding new Claim kinds
+# requires native evidence, semantics and independent negative controls.
+FORMAL_SOURCE_INPUT_CLAIM = "FORMAL_DECLARED_GIT_INPUTS_EQUAL"
+FORMAL_PROOF_APPLICABILITY_CLAIM = "FORMAL_PROOF_APPLICABLE_TO_TARGET"
+FORMAL_SOURCE_INPUT_CONSUMER = "agent:formal-declared-source-impact"
+
+
+def assess_formal_evidence_claim(
+    *,
+    claim_kind: str,
+    consumer_ref: str,
+    target_source_cut: str,
+    historical_receipt: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Decide one typed, bounded Claim from an already inspected official receipt.
+
+    This has no IO. The producer/official-Git/Artifact qualification is
+    performed by fetch_original_formal_report; never pass arbitrary
+    external JSON and call the result a qualified attestation.
+    """
+    if claim_kind not in {
+        FORMAL_SOURCE_INPUT_CLAIM,
+        FORMAL_PROOF_APPLICABILITY_CLAIM,
+    }:
+        raise ValueError("unknown scoped Claim kind")
+    if not isinstance(target_source_cut, str) or not SHA_PATTERN.fullmatch(
+        target_source_cut
+    ):
+        raise ValueError("scoped Claim requires exact target Git SHA")
+    claim = {
+        "claimKind": claim_kind,
+        "consumerRef": consumer_ref,
+        "targetSourceCut": target_source_cut,
+    }
+    assessment: dict[str, Any] = {
+        "schemaVersion": 1,
+        "kind": "ordivon.typed-claim-evidence-applicability",
+        "claim": claim,
+        "decision": "UNKNOWN",
+        "claimSupported": False,
+        "proofReuseAdmissible": False,
+        "physicalExecutionAuthorized": False,
+        "verificationTaskDispatched": False,
+        "evidenceRefs": [],
+        "unresolvedObligations": [],
+        "nextOperation": "inspect-existing-qualified-evidence",
+        "truthBoundary": (
+            "Only the original Formal declared Git input equality fact is "
+            "decidable here; no mathematical proof, toolchain equivalence, "
+            "model-to-implementation refinement, installed currentness or "
+            "Runtime Job admission is asserted."
+        ),
+    }
+    if consumer_ref != FORMAL_SOURCE_INPUT_CONSUMER:
+        assessment["decision"] = "UNKNOWN_CONSUMER_SCOPE"
+        assessment["unresolvedObligations"] = [
+            {
+                "kind": "QUALIFY_CONSUMER_SCOPE",
+                "reason": "No evidence argument connects the requested consumer to the source-input claim",
+            }
+        ]
+        return assessment
+    if not isinstance(historical_receipt, dict):
+        assessment["decision"] = "UNKNOWN_NO_HISTORICAL_REPORT"
+        assessment["unresolvedObligations"] = [
+            {
+                "kind": "LOCATE_QUALIFIED_PRODUCER_EVIDENCE",
+                "reason": "Read the existing official report; do not reexecute the Formal tools",
+            }
+        ]
+        return assessment
+    evidence = historical_receipt
+    delta = evidence.get("executionInputsVsCandidate")
+    if not isinstance(delta, dict):
+        assessment["decision"] = "UNKNOWN_NO_SOURCE_COMPARISON"
+        assessment["unresolvedObligations"] = [
+            {
+                "kind": "COMPARE_DECLARED_GIT_INPUTS",
+                "reason": "Use the original execution SourceCut, not only PR Head",
+            }
+        ]
+        return assessment
+    execution_cut = evidence.get("verifiedExecutionSourceCut")
+    metadata_qualified = (
+        evidence.get("standing") == "CONTENT_MATCHES_DECLARED_GIT_SOURCE"
+        and evidence.get("artifactProvenance")
+        == "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+        and evidence.get("sourceCut") == execution_cut
+        and isinstance(execution_cut, str)
+        and SHA_PATTERN.fullmatch(execution_cut) is not None
+        and delta.get("executionSourceCut") == execution_cut
+        and delta.get("candidateSourceCut") == target_source_cut
+        and delta.get("comparisonBasis")
+        == "TWO_IMMUTABLE_GIT_SNAPSHOTS_NOT_TEMPORAL_PROOF"
+        and delta.get("declaredSourceReadsetComparisonComplete") is True
+        and delta.get("proofReuseAdmissible") is False
+        and evidence.get("proofReuseAdmissible") is False
+        and type(evidence.get("originalCheckRunId")) is int
+        and evidence["originalCheckRunId"] > 0
+        and type(evidence.get("githubArtifactId")) is int
+        and evidence["githubArtifactId"] > 0
+        and evidence.get("githubArtifactName") == "ordivon-core-formal-" + execution_cut
+        and isinstance(evidence.get("sourceRelationship"), str)
+        and evidence["sourceRelationship"]
+        in {
+            "DIRECT_WORKFLOW_HEAD",
+            "PR_SYNTHETIC_MERGE_BASE_AND_HEAD",
+        }
+        and type(delta.get("priorDeclaredPaths")) is int
+        and type(delta.get("candidateDeclaredPaths")) is int
+        and delta["priorDeclaredPaths"] > 0
+        and delta["candidateDeclaredPaths"] > 0
+    )
+    if not metadata_qualified:
+        assessment["decision"] = "UNKNOWN_UNQUALIFIED_EVIDENCE_BINDING"
+        assessment["unresolvedObligations"] = [
+            {
+                "kind": "QUALIFY_ORIGINAL_EVIDENCE_BINDING",
+                "reason": "Historical Check Run, Artifact, SourceCut and compare scope are inconsistent",
+            }
+        ]
+        return assessment
+    assessment["evidenceRefs"] = [
+        {
+            "kind": "GITHUB_ORIGINAL_FORMAL_ARTIFACT",
+            "checkRunId": evidence["originalCheckRunId"],
+            "artifactId": evidence["githubArtifactId"],
+            "executionSourceCut": execution_cut,
+        }
+    ]
+    standing = delta.get("standing")
+    changed = delta.get("changedDeclaredPaths")
+    if (
+        not isinstance(changed, list)
+        or any(
+            not isinstance(path, str) or not path or len(path) > 1024
+            for path in changed
+        )
+        or len(set(changed)) != len(changed)
+    ):
+        assessment["decision"] = "UNKNOWN_SOURCE_CHANGE_WITNESS"
+        assessment["unresolvedObligations"] = [
+            {"kind": "QUALIFY_SOURCE_CHANGE_WITNESS"}
+        ]
+        return assessment
+    if standing == "UNCHANGED_DECLARED_SOURCE_INPUTS" and (
+        changed or delta["priorDeclaredPaths"] != delta["candidateDeclaredPaths"]
+    ):
+        assessment["decision"] = "UNKNOWN_CONTRADICTORY_SOURCE_CHANGE_WITNESS"
+        assessment["unresolvedObligations"] = [
+            {"kind": "RECONCILE_DECLARED_SOURCE_COMPARISON"}
+        ]
+        return assessment
+    if standing == "CHANGED_DECLARED_SOURCE_INPUTS" and not changed:
+        assessment["decision"] = "UNKNOWN_CONTRADICTORY_SOURCE_CHANGE_WITNESS"
+        assessment["unresolvedObligations"] = [
+            {"kind": "RECONCILE_DECLARED_SOURCE_COMPARISON"}
+        ]
+        return assessment
+    if standing not in {
+        "UNCHANGED_DECLARED_SOURCE_INPUTS",
+        "CHANGED_DECLARED_SOURCE_INPUTS",
+    }:
+        assessment["decision"] = "UNKNOWN_SOURCE_INPUT_STANDING"
+        return assessment
+    assessment["declaredSourceInputStanding"] = standing
+    assessment["changedDeclaredPaths"] = changed
+    if claim_kind == FORMAL_SOURCE_INPUT_CLAIM:
+        if standing == "UNCHANGED_DECLARED_SOURCE_INPUTS":
+            assessment["decision"] = "SUPPORTED_SCOPED_SOURCE_INPUT_FACT"
+            assessment["claimSupported"] = True
+            assessment["nextOperation"] = (
+                "consume-original-declared-source-input-equality"
+            )
+        else:
+            assessment["decision"] = "CONTRADICTED_SCOPED_SOURCE_INPUT_FACT"
+            assessment["unresolvedObligations"] = [
+                {
+                    "kind": "INSPECT_CHANGED_FORMAL_DECLARED_INPUTS",
+                    "paths": changed,
+                    "reason": "Input equality is false; this is not necessarily a counterexample to the Formal theorem",
+                }
+            ]
+            assessment["nextOperation"] = "inspect-only-changed-declared-source-inputs"
+        return assessment
+    # The stronger Claim is deliberately not granted by static Git equality.
+    assessment["decision"] = (
+        "UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS"
+        if standing == "UNCHANGED_DECLARED_SOURCE_INPUTS"
+        else "AFFECTED_PROOF_SOURCE_INPUTS"
+    )
+    assessment["unresolvedObligations"] = (
+        [
+            {
+                "kind": "INSPECT_CHANGED_FORMAL_DECLARED_INPUTS",
+                "paths": changed,
+            }
+        ]
+        if changed
+        else []
+    ) + [
+        {"kind": "QUALIFY_EXECUTION_TOOLCHAIN_AND_DYNAMIC_DEPENDENCIES"},
+        {"kind": "QUALIFY_MODEL_IMPLEMENTATION_CONSUMER_REFINEMENT"},
+    ]
+    assessment["nextOperation"] = "inspect-missing-proof-premises-not-full-replay"
+    return assessment
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=DEFAULT_REPOSITORY)
@@ -821,6 +1030,16 @@ def main() -> int:
         "--fetch-historical-formal-report",
         action="store_true",
         help="read existing GitHub Check Run and original published Formal report via gh CLI",
+    )
+    parser.add_argument(
+        "--claim-kind",
+        choices=(FORMAL_SOURCE_INPUT_CLAIM, FORMAL_PROOF_APPLICABILITY_CLAIM, "BOTH"),
+        help="optional typed Claim (or BOTH in one artifact read); only source equality can be supported",
+    )
+    parser.add_argument(
+        "--consumer-ref",
+        default=FORMAL_SOURCE_INPUT_CONSUMER,
+        help="exact scoped consumer of the typed Claim",
     )
     args = parser.parse_args()
     try:
@@ -869,6 +1088,27 @@ def main() -> int:
                     "proofReuseAdmissible": False,
                     "errorType": type(exc).__name__,
                 }
+        if args.claim_kind == "BOTH":
+            # One original GitHub Artifact fetch, two distinct Claim decisions.
+            result["claimAssessments"] = [
+                assess_formal_evidence_claim(
+                    claim_kind=claim_kind,
+                    consumer_ref=args.consumer_ref,
+                    target_source_cut=args.current_sha,
+                    historical_receipt=result.get("historicalFormalReceipt"),
+                )
+                for claim_kind in (
+                    FORMAL_SOURCE_INPUT_CLAIM,
+                    FORMAL_PROOF_APPLICABILITY_CLAIM,
+                )
+            ]
+        elif args.claim_kind is not None:
+            result["claimAssessment"] = assess_formal_evidence_claim(
+                claim_kind=args.claim_kind,
+                consumer_ref=args.consumer_ref,
+                target_source_cut=args.current_sha,
+                historical_receipt=result.get("historicalFormalReceipt"),
+            )
     except (
         OSError,
         ValueError,
