@@ -26,6 +26,7 @@
 | 需求 | 对应自然 Owner / 现有模块 | 当前实际能力 | 不等于什么 |
 |---|---|---|---|
 | 查询、整理 ETF 收盘行情和历史版本 | Markets · `etf_eod_snapshot.py`, `historical_close_snapshot.py` | 有来源与时间边界的行情快照准入 | 自动获取全市场真实、实时的价格 |
+| 用历史 SPY、QQQ、IWM 数据训练 Qlib 或优化 Riskfolio | Markets XNYS 日期资格 + Finance R3 native read-only consumers | 拒绝伪交易日和遗漏交易日后，允许继续做不具资金授权的回顾研究 | 来源真实 PIT、复权、股息、可交易收益或投资指令 |
 | 将新存款分配给长期目标资产 | Portfolio · `strategic_contribution.py` | 给定持仓、市值与目标比例，计算**只买不卖**的计划 | 投资建议、实际订单或可信行情 |
 | 比较主动策略与相同现金流的被动指数 | Portfolio · `passive_benchmark.py` | 纯函数、现金流与费用口径匹配的描述性对照 | 真实预测、税务计算或交易执行 |
 | 用已冻结的历史行情重放模拟策略 | Portfolio · `paper_investment.py` | 生成逐日模拟净值、回撤和基准差异 | 真实订单成交、可复现的未来 Alpha |

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from datetime import UTC, datetime
 from hashlib import sha256
 from io import BytesIO
@@ -15,6 +16,8 @@ from pathlib import Path
 # Set MLflow authority BEFORE importing Qlib/its MLflow integration. Otherwise
 # even a read-only experiment can create a default ./mlruns under caller CWD.
 ROOT = Path(__file__).resolve().parent
+# When called as a native source-tree script, reuse the canonical Markets package.
+sys.path.insert(0, str(ROOT.parents[1] / "src"))
 OUT = Path(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR", str(ROOT / "output"))).resolve()
 OUT.mkdir(exist_ok=True)
 os.chdir(ROOT)
@@ -35,6 +38,8 @@ from qlib.workflow import R
 from qlib.workflow.record_temp import SigAnaRecord, SignalRecord
 from qlib.workflow.task.gen import trunc_segments
 from qlib.workflow.task.utils import TimeAdjuster
+
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
 
 SYMBOLS = ("SPY", "QQQ", "IWM")
 # The legacy one-session output is the default; longer horizons are
@@ -103,6 +108,10 @@ for symbol in SYMBOLS:
         print("EXACT_DUPLICATE_REMOVED", symbol, "rows", duplicate_rows, "same_values_verified", True)
     if len(raw_normalized) < 400 or raw_normalized.index.has_duplicates:
         raise ValueError(f"Provider {symbol} insufficient/duplicate rows: {len(raw_normalized)}")
+    # The provider is NOT authoritative for whether the exchange actually
+    # traded. Reject fake holidays and missing sessions before generating any
+    # labels, TimeAdjuster calendar, MLflow recorder or Portfolio evidence.
+    date_grid = require_xnys_session_grid(raw_normalized.index, symbol=symbol)
     snapshot = OUT / f"openbb_cboe_{symbol}_normalized.csv"
     if capture_dir is None:
         raw_normalized.to_csv(snapshot, index_label="session_date")
@@ -113,6 +122,7 @@ for symbol in SYMBOLS:
     if capture_dir is not None and sha256(snapshot.read_bytes()).hexdigest() != origin["normalized_sha256"]:
         raise ValueError(f"Immutable capture was altered during replay: {symbol}")
     provider_receipts.append({
+        "session_grid_qualification": date_grid,
         "input_mode": "hash_verified_local_replay" if capture_dir is not None else "OpenBB_native_provider_capture",
         "symbol": symbol,
         "provider": provider_name,

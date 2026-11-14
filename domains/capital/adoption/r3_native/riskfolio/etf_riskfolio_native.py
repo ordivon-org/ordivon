@@ -9,6 +9,7 @@ import hashlib
 import importlib.metadata as im
 import json
 import os
+import sys
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -17,6 +18,9 @@ import pandas as pd
 import riskfolio as rp
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parents[2] / "src"))
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
+
 SOURCE = Path(
     os.environ.get("ORDIVON_FINANCE_R3_ETF_DATA_DIR", str(ROOT.parent / "output"))
 ).resolve()
@@ -54,6 +58,7 @@ for symbol in SYMBOLS:
         parse_dates=["session_date"],
         index_col="session_date",
     )
+    require_xnys_session_grid(frame.index, symbol=symbol)
     frames.append(frame["close"].astype(float).rename(symbol))
     receipts[symbol] = digest
 
