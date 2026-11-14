@@ -63,7 +63,7 @@ to this root. Cloudflare authentication remains owned by the existing provider c
 
 The original Cloudflare **Account API Token** is obtained through the private
 `/root/.config/ordivon/secrets/cloudflare.json` alias; the alias resolves to
-`cloudflare-account-api-token.json`, not the historical backup, Tunnel runtime
+the private active Account API credential, not the historical backup, Tunnel runtime
 `TUNNEL_TOKEN` or Access Service Token pair. Official Cloudflare account
 Token Verify returned `active` and a matching `ordivon.com` Zone. Never print
 or copy token values, or infer Token identity from filename alone.
