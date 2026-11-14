@@ -146,6 +146,21 @@ investment_candidate 真正经济对照及 Accounting/Risk。
 finance-experiment-review 中 freeze/holdout/source 原则，
 不建立新的 Corporate Actions Bookkeeper。
 
+## 2026-11-14：H20 模型实际消费者与分红暴露的差别
+
+完整市场日历上的每一日假设持仓暴露，不等于冻结 Qlib 的
+13 个离散决策窗口。根据先前原生报告 R7：
+H20 模型 13 个不重叠持仓全选 IWM。重建的每20日决策
+开盘-开盘日历中，4/13 个已选 IWM 日期窗口跨过
+四次发行方已观察除息日；这是报告 SourceCut 的
+日期重建而不是当轮重新执行原始 Qlib 模型。
+同一持仓时段的模型和固定 IWM 在完全相同成本、
+现金流和交易约束下保持经济同一性；反之相对
+SPY 的价格回测差额尚不具备含现金分红的
+投资者财富定义。源级证据和有限适用范围见
+adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
+无需重复搭建 Portfolio return engine 以推导此事。
+
 ## 2026-11-14：HILO 原生数据形状质量
 
 即使日期符合官方 XNYS、历史来源字节 SHA 正确，
