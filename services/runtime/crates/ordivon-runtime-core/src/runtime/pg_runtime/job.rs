@@ -72,7 +72,7 @@ mod cargo_issuer_environment_tests {
     #[test]
     fn spoofed_harness_hint_without_issuer_cannot_bypass_private_cargo_default() {
         let fence = candidate_fence();
-        let enabled = preserve_qualified_issuer_environment(None, &[fence.clone()]);
+        let enabled = preserve_qualified_issuer_environment(None, std::slice::from_ref(&fence));
         assert!(!enabled);
         let actual = pg_private_cargo_environment(Default::default(), enabled);
         assert_eq!(
