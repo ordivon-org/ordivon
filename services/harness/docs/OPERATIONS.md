@@ -13,7 +13,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-11-09
+updated: 2026-11-14
 summary: Canonical operational contract for Harness Run execution, concurrent worker fencing, targeted reopen validation, Doctor, recovery, and escalation.
 evidence_status: verified
 readiness: READY
@@ -39,6 +39,25 @@ ordivon-harness doctor
 ordivon-harness status HARNESS_RUN_ID
 ordivon-harness inspect HARNESS_RUN_ID
 ```
+
+## Host Agent re-entry is an existing Tool consumer, not a new Harness store
+
+For an Agent that uses Host, prefer the installed Gateway/Host MCP sequence
+`work.list` (only if unknown WorkRef) → `work.get` current revision →
+`attention.reentry` for the actual Actor → `topic.resume` using
+the **per-Topic** `resumeAfterSequence` → relevant natural Owner
+readback → `message.post` / `work.snapshot.commit` →
+`topic.cursor.ack` and `attention.ack` **only after actual consumption**.
+Do not pass Attention ChangeSequence as Topic MessageSequence or
+acknowledge beyond a page not consumed. Host Work CAS is semantic
+continuity, not Harness Run or Runtime Job completion.
+
+The concrete Host Owner consumer and live two-page scenario are recorded
+in `services/host/docs/HOST_OWNER_GUIDE.md` §5.1.
+This guidance does not claim a deployed automatic Harness hook, independent
+Agent credentials, or measured token/latency improvement. A Harness-native
+trace is required to measure tool-call friction. Do not build a second
+re-entry database, scheduler, priority engine, or proof cache.
 
 ## Store administration
 
