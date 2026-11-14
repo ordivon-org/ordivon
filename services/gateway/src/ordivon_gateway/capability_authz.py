@@ -13,6 +13,7 @@ from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
 from .execution_refs import GatewayError, parse_execution_ref
+from .ingress_identity import identity_from_state, request_state
 from .service import _SOCIAL_WORK_HOST_TOOLS
 
 
@@ -109,29 +110,6 @@ def _qualified_host_reference(
 # in the single Gateway route registry is a write and REQUIRES Security PEP.
 # New Owner tools therefore fail closed by default instead of inheriting an
 # accidentally public state-changing route.
-_HOST_READ_ONLY_TOOLS = frozenset(
-    {
-        "host.status",
-        "work.get",
-        "work.list",
-        "space.get",
-        "space.list",
-        "space.participation.list",
-        "space.subject.list",
-        "topic.cursor.get",
-        "topic.list",
-        "topic.resume",
-        "message.get",
-        "message.search",
-        "message.relation.list",
-        "subscription.list",
-        "attention.get",
-        "attention.delta",
-        "attention.reentry",
-    }
-)
-
-
 # Authorization selectors are derived from the *actual* read interface. Extra
 # caller-supplied fields cannot impersonate an Actor or narrow an Owner query.
 # A query without a recognized object selector is explicitly global and
@@ -155,6 +133,9 @@ _HOST_READ_SELECTORS: dict[str, tuple[str, ...]] = {
     "attention.delta": ("actorRef",),
     "attention.reentry": ("actorRef",),
 }
+
+# Derive the Host read names from the semantic selectors actually enforced.
+_HOST_READ_ONLY_TOOLS = frozenset(_HOST_READ_SELECTORS)
 
 
 def _host_request_sha256(arguments: Mapping[str, Any], *, capability: str, action: str) -> str:
@@ -444,15 +425,6 @@ def resolve_authorization_target(
     )
 
 
-def _request_state(ctx: ServerRequestContext[Any, Any]) -> dict[str, Any]:
-    request = ctx.request
-    scope = getattr(request, "scope", None)
-    if not isinstance(scope, dict):
-        return {}
-    state = scope.get("state")
-    return state if isinstance(state, dict) else {}
-
-
 def _error(code: str, message: str, *, capability: str | None) -> CallToolResult:
     error: dict[str, Any] = {
         "code": code,
@@ -508,21 +480,16 @@ class GatewayCapabilityAuthorizationMiddleware:
 
         capability = target.capability
         resource = target.authzen_resource()
-        state = _request_state(ctx)
-        principal = state.get("ordivon_access_principal")
-        issuer = state.get("ordivon_access_issuer")
-        if (
-            not isinstance(principal, str)
-            or not principal
-            or not isinstance(issuer, str)
-            or not issuer
-        ):
+        state = request_state(ctx)
+        identity = identity_from_state(state)
+        if identity is None:
             return _error(
                 "CAPABILITY_AUTHZ_INGRESS_IDENTITY_MISSING",
                 "Protected capability requires verified ingress identity.",
                 capability=capability,
             )
 
+        principal, issuer = identity.principal, identity.issuer
         if self._authorizer is None:
             return _error(
                 "CAPABILITY_AUTHZ_UNAVAILABLE",

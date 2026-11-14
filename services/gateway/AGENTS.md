@@ -12,7 +12,7 @@ Harness owns Agent run, Security owns admission/PDP decisions.
 3. routing.py / capability_catalog.py / capability_projection.py — discovery.
 4. execution_* / execution_refs.py — Runtime delegation and correlation.
 5. host_*_tools.py / upstream*.py — Host/Owner forwarding.
-6. access_auth.py / capability_authz.py — trusted ingress and protected calls.
+6. access_auth.py / ingress_identity.py / capability_authz.py — verified ingress identity, shared request coordinates and protected calls.
 
 ## Human
 Pin Git revision. Compare released tool surface with live system.describe and
@@ -35,10 +35,27 @@ the existence of `AuthZenPrincipalAuthorizer` or an injected test. The actual
 does not forward; configure both
 `ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT` and
 `ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE` for authenticated AuthZEN
-decisions. Only a Runtime Artifact read belongs to this PEP, not all MCP
-effects. The existing private token loader and PDP adapter are reused.
+decisions. The existing Security PEP also covers Host read/write operations
+and qualified Runtime release.apply; generic Runtime execution retains the
+independent verified-ingress/Runtime authority boundary. A valid machine
+bearer or Tool ActorRef is not a Security grant. The existing private token
+loader and PDP adapter are reused.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
+
+## Shared HTTP request identity (source contract)
+
+`ingress_identity.py` is the only Gateway source reader of the request-local
+`scope.state` Principal/Issuer pair. The Access middleware authenticates and
+populates this state; the pure reader **does not** authenticate arbitrary dicts.
+The HTTP guard, AuthZEN object PEP, audit correlation, and the MCP Tool execution
+Context all use the same non-blank pair or independently fail closed.
+`_HOST_READ_ONLY_TOOLS` derives from the canonical Host read-selector map,
+not a second hand-maintained Tool list. Native source tests verify this read/
+write partition against the existing `enforcement-surface.json` and Host
+Dispatcher. This changes no Security grants, owner credential, or installed
+authorization. Run `test_ingress_identity_contract.py` with the existing
+HTTP/Host/AuthZEN tests before any installed consumer inference.
 
 ## HTTP execution Principal — separate from STDIO
 

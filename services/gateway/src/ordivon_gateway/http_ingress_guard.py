@@ -10,7 +10,7 @@ from __future__ import annotations
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
-from .capability_authz import _request_state
+from .ingress_identity import identity_from_state, request_state
 
 # Only explicitly reviewed non-sensitive discovery functions are anonymous.
 # This is NOT a permission list for executable or Host objects.
@@ -38,10 +38,7 @@ class GatewayHTTPIngressGuard:
 
         # Ingress middleware owns these request-local coordinates. Caller Tool
         # arguments, _meta, headers echoed inside the Tool, etc. are not proof.
-        state = _request_state(ctx)
-        principal = state.get("ordivon_access_principal")
-        issuer = state.get("ordivon_access_issuer")
-        if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
+        if identity_from_state(request_state(ctx)) is None:
             return CallToolResult(
                 content=[
                     TextContent(

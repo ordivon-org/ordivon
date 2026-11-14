@@ -38,6 +38,7 @@ from .contracts import (
 )
 from .host_tools import register_host_tools
 from .http_ingress_guard import GatewayHTTPIngressGuard
+from .ingress_identity import identity_from_state, tool_context_state
 from .service import GatewayError, GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
@@ -72,20 +73,9 @@ async def _owner_boundary(call) -> Any:
 
 
 def _verified_execution_scope(context: Context | None) -> tuple[str, str] | None:
-    """Request-local authority from the existing verified HTTP ingress, if present."""
-    try:
-        request = context.request_context.request
-    except ValueError, AttributeError:
-        return None
-    scope = getattr(request, "scope", None)
-    state = scope.get("state") if isinstance(scope, dict) else None
-    if not isinstance(state, dict):
-        return None
-    principal = state.get("ordivon_access_principal")
-    issuer = state.get("ordivon_access_issuer")
-    if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
-        return None
-    return issuer, principal
+    """Extract ingress identity from the SDK Tool Context, not Tool arguments."""
+    identity = identity_from_state(tool_context_state(context))
+    return (identity.issuer, identity.principal) if identity is not None else None
 
 
 def _require_http_execution_identity(context: Context | None) -> None:

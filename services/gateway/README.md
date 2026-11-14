@@ -59,6 +59,11 @@ contract tests: `tests/test_gateway_service.py` route-identity and explicit
 empty-routes cases. This is Gateway projection validation, not authorization to
 execute any Runtime or Host effect.
 
+Host read Tool names are derived from the *existing* Host authorization
+selector map; the native source-security test also checks that its partition
+agrees with `enforcement-surface.json` and the real Host Dispatcher. Do not
+add another manually maintained Host read-name catalog.
+
 Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run truth, OAuth/credential authority, Plugin/Skill semantics, or domain completion.
 
 
@@ -68,6 +73,11 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   read-only system description, capability description, search and resolution.
   Observes natural owners; never executes effects or claims domain completion.
   Reuses the canonical capability_projection.project_execution_capability operator.
+- **Ingress identity contract** (src/ordivon_gateway/ingress_identity.py):
+  all HTTP Guard, AuthZEN PEP, audit, and MCP execution-Context readers
+  agree on the complete non-blank Principal/Issuer request-state pair.
+  This is a projection of already verified Access state, not an authenticator,
+  token issuer, Actor grant, or alternate Security policy.
 - **Gateway application facade** (src/ordivon_gateway/service.py):
   stable public signatures, execution dispatch, artifact reads and Host delegation.
   Its discovery methods delegate rather than duplicating catalog rules.
