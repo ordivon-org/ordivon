@@ -1159,7 +1159,14 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     ).resolve(strict=True)
                     assert committed_after_terminal["args"] == source_execution["args"]
                     assert committed_after_terminal["timeoutMs"] == source_execution["timeoutMs"]
-                    assert committed_after_terminal["env"] == source_execution["env"]
+                    # The issuer-free correlation route is not an exact Tool
+                    # authority. Native PG legitimately adds its private Cargo
+                    # target to the *effective* frozen Plan; the original
+                    # Harness request remains unchanged and provenance-only.
+                    # Preserve an explicitly authored target unchanged.
+                    expected_effective_env = dict(source_execution["env"])
+                    expected_effective_env.setdefault("CARGO_TARGET_DIR", "/proc/self/fd/198")
+                    assert committed_after_terminal["env"] == expected_effective_env
                     # Runtime's source-faithful normalized Plan stores the
                     # *resolved* absolute workspace cwd, not the caller's
                     # literal cwdRelative input.
