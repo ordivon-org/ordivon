@@ -229,7 +229,8 @@ def select_source_readset_impacts(
         if (
             not isinstance(item, dict)
             or not {"id", "sourcePaths", "dependenciesComplete"} <= set(item)
-            or not set(item) <= {"id", "sourcePaths", "dependenciesComplete", "dependsOnScopeMembership"}
+            or not set(item)
+            <= {"id", "sourcePaths", "dependenciesComplete", "dependsOnScopeMembership"}
             or type(item.get("dependsOnScopeMembership", False)) is not bool
             or not isinstance(item["id"], str)
             or ":" not in item["id"]
@@ -264,8 +265,7 @@ def select_source_readset_impacts(
             refs.append(ref)
         if item.get("dependsOnScopeMembership", False):
             expected = (
-                f"{git_source_delta['sourceScopeRef']}:members:"
-                f"{git_source_delta['queryPrefix']}"
+                f"{git_source_delta['sourceScopeRef']}:members:{git_source_delta['queryPrefix']}"
             )
             if membership_ref != expected or membership_ref not in authority:
                 raise CircuitContractError(

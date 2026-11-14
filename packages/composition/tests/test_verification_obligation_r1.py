@@ -93,15 +93,15 @@ def test_source_readset_namespace_membership_is_explicit_and_selective():
     delta["membershipRef"] = member
     delta["authorityRefs"].extend([member, newcomer])
     delta["changedRefs"] += [member, newcomer]
-    evidence["items"].append({
-        "id": "proof:test:namespace-enumerator",
-        "sourcePaths": ["owner/b.py"],
-        "dependenciesComplete": True,
-        "dependsOnScopeMembership": True,
-    })
-    result = select_source_readset_impacts(
-        git_source_delta=delta, source_readset_evidence=evidence
+    evidence["items"].append(
+        {
+            "id": "proof:test:namespace-enumerator",
+            "sourcePaths": ["owner/b.py"],
+            "dependenciesComplete": True,
+            "dependsOnScopeMembership": True,
+        }
     )
+    result = select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
     statuses = {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
     assert statuses == {
         "proof:test:a": "RECHECK_REQUIRED",  # independently changed file
@@ -122,9 +122,7 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
     from tools.repo.source_history_legos import source_membership_delta
 
     def git(*args):
-        return subprocess.check_output(
-            ["git", "-C", str(tmp_path), *args], text=True
-        ).strip()
+        return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
 
     git("init", "-q")
     git("config", "user.name", "Ordivon graph-test")
@@ -161,7 +159,9 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
         selected = select_source_readset_impacts(
             git_source_delta=delta, source_readset_evidence=proof
         )
-        return delta, {row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]}
+        return delta, {
+            row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]
+        }
 
     (scope / "new.txt").write_text("added\n", encoding="utf-8")
     git("add", ".")
@@ -194,22 +194,16 @@ def test_source_readset_namespace_membership_rejects_malformed_claim():
     delta["membershipRef"] = member
     delta["authorityRefs"].append(member)
     evidence["items"][0]["dependsOnScopeMembership"] = True
-    good = select_source_readset_impacts(
-        git_source_delta=delta, source_readset_evidence=evidence
-    )
+    good = select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
     assert good["selection"]["standingByObligation"]
     for invalid in ("true", 1, None, [], {}):
         evidence["items"][0]["dependsOnScopeMembership"] = invalid
         with pytest.raises(CircuitContractError):
-            select_source_readset_impacts(
-                git_source_delta=delta, source_readset_evidence=evidence
-            )
+            select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
     evidence["items"][0]["dependsOnScopeMembership"] = True
     delta["membershipRef"] = member + "incorrect"
     with pytest.raises(CircuitContractError):
-        select_source_readset_impacts(
-            git_source_delta=delta, source_readset_evidence=evidence
-        )
+        select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
 
 
 @pytest.mark.parametrize("mutation", ["sourcecut", "scope", "missing-path", "duplicate-path"])
