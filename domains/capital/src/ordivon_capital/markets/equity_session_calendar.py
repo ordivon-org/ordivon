@@ -9,11 +9,9 @@ permission.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from datetime import UTC, datetime
 from typing import Any
-
-import exchange_calendars as xcals
-import pandas as pd
 
 MAX_SOURCE_ROWS = 10000
 
@@ -35,6 +33,10 @@ def require_xnys_session_grid(
     raw = list(source_dates)
     if len(raw) < 2 or len(raw) > MAX_SOURCE_ROWS:
         raise MarketSessionQualificationError(f"{symbol}: unbounded or insufficient session rows")
+    # Delay scientific calendar imports until the source consumer needs them.
+    import exchange_calendars as xcals
+    import pandas as pd
+
     try:
         sessions = pd.DatetimeIndex(pd.to_datetime(raw, errors="raise"))
     except (TypeError, ValueError, OverflowError) as exc:
@@ -92,3 +94,50 @@ def require_xnys_session_grid(
         "priceAdjustmentVerified": False,
         "capitalAuthority": False,
     }
+
+
+def require_xnys_eod_session_closes(
+    expected_closes: Mapping[str, datetime],
+) -> None:
+    """Require actual scheduled XNYS session dates AND precise regular closes.
+
+    Caller-supplied exchange-close declarations can be hash-consistent but
+    physically false, e.g. Memorial Day or the Friday after Thanksgiving.
+    This only authenticates the public exchange calendar rule; it does NOT
+    certify an ETF price, provider publication/capture instant, adjustment,
+    rights, or corporate-action coverage.
+    """
+    if not expected_closes or len(expected_closes) > 366:
+        raise MarketSessionQualificationError("XNYS expected EOD sessions must be bounded")
+    # Keep non-market Accounting and other Capital imports lightweight.
+    import exchange_calendars as xcals
+    import pandas as pd
+
+    cal = xcals.get_calendar("XNYS")
+    for day, supplied in expected_closes.items():
+        try:
+            stamp = pd.Timestamp(day)
+            if (
+                type(day) is not str
+                or stamp.strftime("%Y-%m-%d") != day
+                or stamp.tzinfo is not None
+                or type(supplied) is not datetime
+                or supplied.tzinfo is None
+                or supplied.utcoffset() is None
+            ):
+                raise ValueError("not a canonical UTC-bound session close")
+            if not cal.is_session(stamp):
+                raise MarketSessionQualificationError(
+                    f"XNYS closed on supplied session {day}"
+                )
+            official = cal.session_close(stamp)
+        except MarketSessionQualificationError:
+            raise
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise MarketSessionQualificationError(
+                f"XNYS invalid supplied session {day}"
+            ) from exc
+        if supplied.astimezone(UTC) != official.to_pydatetime():
+            raise MarketSessionQualificationError(
+                f"XNYS official close disagrees with supplied session {day}"
+            )

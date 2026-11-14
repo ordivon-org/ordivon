@@ -34,6 +34,58 @@ live PortfolioIntent. Each distinct source / mandate has its own
 run-specific r3sim_... PG account. The same portfolio label does **not**
 create a canonical persistent multi-run portfolio aggregate.
 
+## 2026-11-14 Markets ETF 日终资格与 PG 消费者精化
+
+此前 Qlib/Riskfolio 已拒绝 2025-05-26 非 XNYS 历史会话，但
+Accounting 所用的 Markets ETF EOD 快照仍可能接受任意
+operator-declared 的会话日期和假收盘时刻。这会令模拟账户的
+EOD close 被错误地投影为有效交易所收盘；源摘要正确并不能
+证明会话日期或时刻正确。
+
+当前 Markets etf_eod_snapshot.admit_etf_eod_snapshot 在继续原有
+来源摘要、交易时点、原始 USD 收盘、使用权声明和公司行动声明
+检查的同时，调用现有 equity_session_calendar 的
+require_xnys_eod_session_closes。它直接复用已锁定的
+exchange-calendars XNYS 历史会话、夏令时和提前收盘规则；
+不开发第二日历/业务时间服务。Accounting
+PostgresPaperClose.close_session 对传入的快照类型再次调用
+同一自然 Markets 校验：Python dataclass 的形状不是授权或
+日历正确性证明。缺日、假节假日、DST 时刻错误和提前收盘时间
+错误一律在财务写入前拒绝。原测试专用 CALLER_SUPPLIED_MARKS
+仍仅为模拟输入，Risk/Portfolio 不允许把它自动升级为
+OPERATOR_BOUND_MARKS 或真实行情来源。
+
+源经济边界必须保持清楚：Cboe/OpenBB 的日线接口只公开
+OHLCV 字段，未提供该接口所保证的股息总回报调节类型；
+2026 年 QQQ/IWM 的实际分红在各基金原始发行方公开可查，
+必须独立取得分红和公司行动才能比较税费后总财富。
+具体发行方反例（均为公开发行方记录，非本模型的已认证
+历史 first-observed 行情）：Invesco QQQ 在 2026-09-21
+除息，单份分配 USD 0.75143，支付日 2026-10-08；
+iShares IWM 在 2026-09-15 除息，单份分配
+USD 0.750436，支付日 2026-09-18。这两个事件都在
+原 Qlib 2025-10 至 2026-10 的回顾性 OOS 时间轴内。
+只用行情 open/close 计算的跨除息持仓收益，不能在没有
+股息/复权核验时自动成为总回报；应由自然 Markets 来源层
+重新取得发行方公司行动和实际可用时点，再委托既有
+Research/Portfolio/Accounting 经济消费者，而不是在报告
+里静默补算。是否以及如何调整原 Cboe OHLC 在该 SourceCut
+依旧 UNKNOWN，禁止由网页上的一个股息日期推定完整
+现金收益或投资策略 Alpha。
+
+来源参考：
+- https://docs.openbb.co/odp/python/reference/cboe/equity/historical
+- https://www.invesco.com/us/en/financial-products/etfs/invesco-qqq-trust-series-1.html
+- https://www.ishares.com/us/products/239710/iwm-ishares-russell-2000-etf
+
+无官方已验证的复权、历史 first-observed、数据许可与客户
+授权时，研究结果仍仅 retrospective；不能把模拟的 $88/$73
+相对 SPY 差额当作真实 Alpha 或推送到真实交易。
+真正的 Paper PG / Risk / Portfolio 验收可以只使用独立
+临时数据库 + 合成来源声明，绝不重用生产账户。
+原生验收和性能观测细节见 Finance R3 源审计回执，
+不是以本段文字代替测试。
+
 ## Golden commands
 
 ### 1. Start without any database or broker

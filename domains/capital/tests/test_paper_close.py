@@ -1,5 +1,6 @@
 """Observable paper cash, fill and valuation invariants across a restart."""
 
+import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import date, datetime
@@ -230,7 +231,25 @@ def test_postgres_paper_receipt_binds_admitted_market_bytes():
     assert receipt["valuation"]["nav_minor"] == 1_001_900
     with pytest.raises(ValueError, match="inline marks"):
         store.close_session(account, day1, mark_snapshot=snapshot)
-    changed_binding = admit("2026-01-09T18:00:00Z")
+    # A caller cannot change the real XNYS close time to manufacture a
+    # new admissible source. Retain the original PG conflict test by
+    # changing an independently hash-bound synthetic PRICE instead.
+    with pytest.raises(ValueError, match="XNYS"):
+        admit("2026-01-09T18:00:00Z")
+    revised = json.loads(raw)
+    revised["marks"][0]["priceMinor"] += 1
+    revised["supersedesSha256"] = digest
+    revised_raw = dumps(revised).encode()
+    changed_binding = admit_etf_eod_snapshot(
+        revised_raw,
+        expected_sha256="sha256:" + sha256(revised_raw).hexdigest(),
+        expected_source_id="synthetic-fixture",
+        expected_rights_ref="fixture",
+        expected_corporate_actions_ref="fixture",
+        expected_instruments=["ETF"],
+        expected_session_closes={"2026-01-09": close_at},
+        decision_at=observed_at,
+    )
     with pytest.raises(ValueError, match="conflicting"):
         store.close_session(account, replace(day1, marks={}), mark_snapshot=changed_binding)
 
@@ -381,3 +400,47 @@ def test_paper_open_payable_cannot_be_reidentified_as_sale_receivable():
         paper_close.value_session(
             purchased, replace(day2, sells=(sale,), marks={}),
         )
+
+
+
+def test_disposable_pg_rejects_a_forged_etf_session_before_ledger_write():
+    """A typed dataclass without Markets admission cannot invent exchange days."""
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from datetime import UTC
+
+    from ordivon_capital.accounting.postgres_paper_close import (
+        PostgresPaperClose,
+        read_latest_committed_paper_close,
+    )
+    from ordivon_capital.markets.etf_eod_snapshot import (
+        AdmittedEtfEodSnapshot,
+        EtfCloseMark,
+    )
+
+    account = "fake-xnys-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    captured = datetime.fromisoformat("2026-11-14T08:00:00+00:00")
+    assert captured.utcoffset() == UTC.utcoffset(captured)
+
+    for day, operator_close in (
+        ("2025-05-26", "2025-05-26T20:00:00+00:00"),  # US market closed
+        ("2025-11-28", "2025-11-28T21:00:00+00:00"),  # early close 18:00Z
+    ):
+        mark = EtfCloseMark(
+            day, "SPY", 10_000, datetime.fromisoformat(operator_close),
+            captured, "FIRST_OBSERVED",
+        )
+        # A caller can instantiate a dataclass directly. The Paper consumer
+        # must NEVER assume type membership authenticates the market calendar.
+        forged = AdmittedEtfEodSnapshot(
+            "sha256:" + "1" * 64, "forged-only", "test", "test",
+            captured, captured, None, (mark,),
+        )
+        paper_day = paper_close.PaperSession(
+            date.fromisoformat(day), None, 1_000_000, 900_000, {}, (),
+        )
+        with pytest.raises(ValueError, match="XNYS"):
+            store.close_session(account, paper_day, mark_snapshot=forged)
+        assert read_latest_committed_paper_close(dsn, account) is None

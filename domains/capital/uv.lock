@@ -142,6 +142,7 @@ name = "ordivon-capital"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "exchange-calendars" },
     { name = "psycopg", extra = ["binary"] },
     { name = "websockets" },
 ]
@@ -153,14 +154,12 @@ nonlive = [
     { name = "pandas" },
 ]
 research = [
-    { name = "exchange-calendars" },
     { name = "numpy" },
     { name = "pyarrow" },
     { name = "scikit-learn" },
     { name = "scipy" },
 ]
 test = [
-    { name = "exchange-calendars" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyarrow" },
@@ -172,6 +171,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
+    { name = "exchange-calendars", specifier = "==4.13.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6,<4" },
     { name = "websockets", specifier = "==17.1" },
 ]
@@ -183,14 +183,12 @@ nonlive = [
     { name = "pandas", specifier = "==3.1.1" },
 ]
 research = [
-    { name = "exchange-calendars", specifier = "==4.13.2" },
     { name = "numpy", specifier = "==2.5.3" },
     { name = "pyarrow", specifier = "==26.0.0" },
     { name = "scikit-learn", specifier = "==1.9.1" },
     { name = "scipy", specifier = "==1.18.1" },
 ]
 test = [
-    { name = "exchange-calendars", specifier = "==4.13.2" },
     { name = "numpy", specifier = "==2.5.3" },
     { name = "pandas", specifier = "==3.1.1" },
     { name = "pyarrow", specifier = "==26.0.0" },
