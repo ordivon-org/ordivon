@@ -402,3 +402,14 @@ Agent：现有 Finance R3 Qlib 与 Riskfolio 实际消费同一个 Markets
 时间、使用许可、模拟成交真实性或资金授权。新增反证测试位于
 Capital 标准 tests 下，抽象 Z3 证明与实际消费者测试各有边界。
 具体研究结果与证据见 adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
+
+### Markets 日终交易日与实际收盘时刻的边界（2026-11-14）
+
+对 SPY、QQQ、IWM 等 US ETF 的研究或 Paper 日结，历史价格
+不只需要 SHA、日期连续性，还需要交易所真实开市日期和
+真实收盘时间。现有 Markets ETF 日终快照准入会利用
+exchange-calendars XNYS 检验休市日、夏令时和提前收盘；
+PostgreSQL Paper 对被传入的已构造快照也会复查日历。
+Human 无须另装日历系统，Agent 重用自然 Markets 的公开规则。
+这不能证明经纪商成交、数据供应商或股息总回报；
+不要把历史普通收盘价自动当作可投资的总回报数据。
