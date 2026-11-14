@@ -190,6 +190,18 @@ PG Job, the read-only witness must bind to its exact `current_attempt_id`,
 not merely `ORDER BY attempt_number DESC`. Resolved Jobs may inspect historical
 Attempts only when their live current-Attempt pointer has been cleared.
 An inconsistent snapshot is a failed qualification, never an execution grant.
+The same PG-admitted Attempt name also drives a **read-only Win32 Job Object**
+`OpenJobObjectW(JOB_OBJECT_QUERY)` / `QueryInformationJobObject` observation.
+`populated`, `empty`, `not_found` and `unknown` remain separate:
+an empty object is only a momentary process-count observation; missing object
+handles or unavailable Session/ACL truth are **not** terminal evidence.
+The explicit PE `--self-test` checks this native kernel readback on Windows
+using a unique empty disposable Job Object and closes its handle; it does not
+connect PostgreSQL, dispatch a Job or qualify the installed Windows PG Writer.
+When invoked as an already owned Windows Runtime target, it also reports the
+calling process's immediate enclosing Job Object population through the same
+kernel accounting primitive. This diagnostic is **not** evidence of PG ownership
+or a service-account qualification.
 
 Verification: `cargo test -p ordivon-runtime-core --no-default-features
 --features postgres-registry-admission pg_windows` checks bounded pure cases;

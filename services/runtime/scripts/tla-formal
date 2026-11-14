@@ -1056,6 +1056,30 @@ PY_WINPG_UNGUARDED
       exit 1
     fi
     echo 'WinPG missing OS exit guard counterexample PASS'
+    # Second independent falsifier: an absent/unknown Job Object must NOT
+    # satisfy the real process-tree-empty requirement. Reconstruct from the
+    # pristine model; the previous mutation removed only the PID exit guard.
+    cp "$ROOT/formal/RuntimeWindowsPgAttemptR1.tla" "$tmp_dir/RuntimeWindowsPgAttemptR1.tla"
+    python3 - "$tmp_dir/RuntimeWindowsPgAttemptR1.tla" <<'PY_WINPG_NO_JOB_OBJECT'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+src = path.read_text(encoding='utf-8')
+guard = '    /\\ jobObject = "empty"\n'
+assert src.count(guard) == 1, "Windows PG Job Object guard drifted"
+path.write_text(src.replace(guard, '', 1), encoding='utf-8')
+PY_WINPG_NO_JOB_OBJECT
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimeWindowsPgAttemptR1.cfg RuntimeWindowsPgAttemptR1.tla) > "$tmp_dir/unguarded-object.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant TerminalRequiresJobObjectEmpty is violated' "$tmp_dir/unguarded-object.log"; then
+      echo 'WinPG missing Job Object empty guard negative control FAILED' >&2
+      tail -30 "$tmp_dir/unguarded-object.log" >&2
+      exit 1
+    fi
+    echo 'WinPG missing Job Object empty guard counterexample PASS'
   )
 }
 
