@@ -204,6 +204,11 @@ impl HttpModelProvider {
             }
             let mut decoded = Vec::new();
             for call in calls {
+                // The Provider wire protocol admits only function Tool calls.
+                // A similarly shaped different kind is not an executable Tool.
+                if call.get("type").and_then(Value::as_str) != Some("function") {
+                    return ProviderResult::Unknown;
+                }
                 let Some(id) = call.get("id").and_then(Value::as_str) else {
                     return ProviderResult::Unknown;
                 };
@@ -316,6 +321,23 @@ mod tests {
         );
         server.join().unwrap();
     }
+    #[test]
+    fn unexpected_provider_tool_type_must_not_become_a_tool_decision() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            r#"{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"external_action","function":{"name":"search","arguments":"{}"}}]}}]}"#,
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap();
+        assert!(
+            matches!(model.turn(1, &[]), ProviderResult::Unknown),
+            "Untrusted Provider must not map a non-function tool variant into a Tool action"
+        );
+        server.join().unwrap();
+    }
+
     #[test]
     fn request_returns_native_tool_call() {
         let (catalog, grant) = fixtures();
