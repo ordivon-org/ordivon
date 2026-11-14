@@ -11,6 +11,7 @@ from .capability_projection import (
     candidate_routes_for_search,
     project_capability_search,
     project_execution_capability,
+    project_native_release_capability,
 )
 from .contracts import (
     CapabilityDescriptor,
@@ -159,7 +160,9 @@ class CapabilityCatalog:
 
         # Only independent read-only observations fan out. TaskGroup keeps child
         # lifetimes inside this request; no cross-request cache or effect retry.
-        runtime_owners = {route.owner_id for route in selected if route.category == "execution"}
+        runtime_owners = {
+            route.owner_id for route in selected if route.category in {"execution", "release"}
+        }
         if any(route.capability == "artifact.runtime" for route in selected):
             runtime_owners.update(("runtime.linux", "runtime.windows"))
         host_probe = None
@@ -177,6 +180,24 @@ class CapabilityCatalog:
         for route in selected:
             if route.category == "execution":
                 values.append(await execution_descriptor(route))
+                continue
+
+            if route.category == "release":
+                owner_configured = _configured(self._caller, route.owner_id)
+                response, error = (
+                    await runtime_description(route.owner_id) if owner_configured else (None, None)
+                )
+                values.append(
+                    project_native_release_capability(
+                        route,
+                        configured_at_gateway=owner_configured,
+                        owner_response=response,
+                        observation_error=error,
+                        configuration_error=_configuration_error(self._caller, route.owner_id)
+                        if not owner_configured
+                        else None,
+                    )
+                )
                 continue
 
             if route.category == "research":

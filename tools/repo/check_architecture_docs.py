@@ -54,7 +54,7 @@ EXPECTED_CAPABILITIES = {
 }
 # Current source routing exposes an opt-in issuer-fenced Runtime profile. It is
 # still not production availability: the owner endpoint and bearer must qualify.
-EXPECTED_SOURCE_CAPABILITIES = EXPECTED_CAPABILITIES | {"execution.harness"}
+EXPECTED_SOURCE_CAPABILITIES = EXPECTED_CAPABILITIES | {"execution.harness", "runtime.release.linux"}
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
     'actor.declare',
