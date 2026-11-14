@@ -168,6 +168,37 @@ allowed_fragment = "../../services/runtime"
 kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
 contract_ref = "services/runtime/formal/README.md"
 
+# Gateway's original TLC verification script consumes Runtime's existing
+# SHA-verified upstream TLA+ JAR, not Runtime Job/Attempt or Workspace state.
+# Extracting that script from root mise to its natural Gateway Owner makes the
+# pre-existing public read dependency explicit; keep it narrow and consumable.
+[[seams]]
+from_owner = "gateway"
+to_owner = "runtime"
+source_glob = "services/gateway/formal/verify.sh"
+allowed_fragment = "services/runtime/target/formal-tools/tla2tools-v1.7.4.jar"
+kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
+contract_ref = "services/runtime/formal/README.md"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "runtime"
+source_glob = "services/gateway/formal/verify.sh"
+allowed_fragment = "services/runtime/formal/toolchain.lock.json"
+kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
+contract_ref = "services/runtime/formal/README.md"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "runtime"
+source_glob = "services/gateway/tests/test_formal_task_owner.py"
+allowed_fragment = "services/runtime/formal/toolchain.lock.json"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+# This test reads only the pinned upstream lock; unrelated Runtime source
+# changes must not spill into Gateway's business verification component.
+selection_scope = "PATH"
+contract_ref = "services/runtime/formal/README.md"
+
 # Public digest-verified upstream Formal toolchain; not Runtime Job/Attempt state.
 [[seams]]
 from_owner = "composition"

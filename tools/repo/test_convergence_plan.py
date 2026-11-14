@@ -1608,6 +1608,73 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(runtime["verificationOwners"], ["composition", "runtime"])
         self.assertEqual(runtime["taskLocalTestConsumers"], ["composition"])
 
+    def test_gateway_public_tlc_toolchain_only_is_not_runtime_business_edge(self) -> None:
+        """The verifier consumes a pinned JAR, not Runtime business effects."""
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("runtime", graph["gateway"])
+        self.assertNotIn("gateway", graph["runtime"])
+        selection = MODULE.build_plan(
+            changed_files=["services/gateway/formal/verify.sh"]
+        )
+        self.assertEqual(
+            selection["verificationOwners"],
+            ["gateway", "harness", "security", "web"],
+        )
+        self.assertNotIn("runtime", selection["verificationOwners"])
+        # An actual lock update is selected by the existing source-aware
+        # Gateway model checker, not by a fictitious live Runtime edge.
+        self.assertTrue(
+            MODULE.affected_owners.requires_gateway_formal_verification(
+                ["services/runtime/formal/toolchain.lock.json"]
+            )
+        )
+        runtime_code = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+        self.assertEqual(
+            runtime_code["verificationOwners"], ["composition", "runtime"]
+        )
+        self.assertNotIn("gateway", runtime_code["taskLocalTestConsumers"])
+        toolchain_lock = MODULE.build_plan(
+            changed_files=["services/runtime/formal/toolchain.lock.json"]
+        )
+        self.assertIn("gateway", toolchain_lock["taskLocalTestConsumers"])
+        self.assertIn("gateway", toolchain_lock["verificationOwners"])
+
+    def test_gateway_pinned_toolchain_exception_cannot_be_widened(self) -> None:
+        """No glob or arbitrary Runtime executable may claim tool-only status."""
+        original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        known = 'source_glob = "services/gateway/formal/verify.sh"'
+        self.assertIn(known, original)
+        for mutation in (
+            'source_glob = "services/gateway/**"',
+            'source_glob = "services/gateway/src/gateway/execute.py"',
+        ):
+            with self.subTest(mutation=mutation):
+                with tempfile.TemporaryDirectory() as directory:
+                    shadow = Path(directory) / "dependency_contracts.toml"
+                    shadow.write_text(
+                        original.replace(known, mutation), encoding="utf-8"
+                    )
+                    with self.assertRaisesRegex(
+                        ValueError, "unapproved upstream toolchain-only seam"
+                    ):
+                        MODULE.load_dependency_graph(path=shadow)
+        known_fragment = 'allowed_fragment = "services/runtime/formal/toolchain.lock.json"'
+        self.assertIn(known_fragment, original)
+        with tempfile.TemporaryDirectory() as directory:
+            shadow = Path(directory) / "dependency_contracts.toml"
+            shadow.write_text(
+                original.replace(
+                    known_fragment,
+                    'allowed_fragment = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"'
+                ), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(
+                ValueError, "unapproved upstream toolchain-only seam"
+            ):
+                MODULE.load_dependency_graph(path=shadow)
+
     def test_formal_toolchain_exception_rejects_unapproved_consumer_paths(self) -> None:
         """The tool-only exemption is an exact named file, not owner authority."""
         policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
