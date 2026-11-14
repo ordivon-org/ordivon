@@ -518,3 +518,60 @@ delegations, the natural Host direct-channel migration is qualified
 and a candidate service-account+Owner canary passes. Any promotion
 must be followed by live Gateway/Host/Artifact readback rather than
 just a source-manifest test.
+
+
+### R3 production precondition: current Security credential, not a source file
+
+The native Gateway installer now calls its read-only
+packaging/check_live_host_admission.py **only** for the real
+/opt/ordivon/gateway production prefix, before changing current.
+It reuses the existing Gateway Host Tool registry and reads the
+currently loaded Security PDP systemd credential from
+/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer,
+not the /etc source file that may not yet have been loaded by the
+running PDP. It also checks that the Security PDP is active and that
+the Gateway unit declares a Host Owner bearer credential.
+
+A result of status=NO_GO (exit code 3) means that at least one
+**necessary** installed continuity prerequisite is absent or cannot
+be established. This is a release stop, not an excuse to bypass
+Gateway's AuthZEN PEP. A result of
+status=NECESSARY_PRECONDITIONS_PRESENT (exit 0) does **not** attest
+that all existing Principals have correct Actor grants or that
+the Owner credential is accepted. The output deliberately lists
+remaining live authorization, direct Host and canary obligations.
+It never prints Principal IDs, Actor references or credential data.
+
+Read-only current-instance inspection can be performed with the
+installed Gateway Python environment, for example:
+
+    uv run --locked --project services/gateway python services/gateway/packaging/check_live_host_admission.py
+
+Actual November 14 source investigation (NOT a universal future fact):
+running Gateway=0.10.8, Host HTTP accepts anonymous local MCP
+initialize (200) while Gateway rejects the same request (403);
+the Security PDP is active and knows the Host authorization policy
+but its active loaded operator credential contains no
+gateway_host_actor_grants; Gateway's active systemd unit does not
+declare ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE. Therefore candidate
+0.10.9 deployment is **NO_GO** while existing Host Agent consumers
+must keep working.
+
+The correct cross-service sequence is to identify the **actual**
+verified Agent Principals and their authorized Host Actors and
+scopes; have the Security operator provision the corresponding
+signed/controlled policy data; restart/reload the Security PDP so
+the currently loaded credential reflects it; configure the same
+Owner bearer through the native Host/Gateway systemd credential
+facilities; qualify the original Agent read/write allow/deny
+consumers; then stage the Gateway through the official installer
+and install/authenticate Host without breaking any remaining direct
+Host clients. Finally verify the running exact Gateway/Host versions,
+real tools/call, Owner identity, expected denial and normal
+Work/Topic/Message consumption. The ordering of the two service
+switches must be tested with the current consumers, not guessed.
+
+Do not infer cross-Agent Principal->Actor permission from successful
+legacy Gateway message.post, use a shared Principal for every Actor,
+manufacture test grants in the live operator policy, or treat an
+isolated unit test's positive AuthZEN decision as an installed result.
