@@ -256,3 +256,7 @@ Agent: on `CONCURRENCY_LIMIT` with `commitState=not_started`, preserve the origi
 ## Retirement and evidence standing
 
 The Linux Runtime has a PG-native installed process, but the PG Cargo feature still transitively includes the legacy SQLite Core. Windows still has a live, growing SQLite Registry as of the 2026-11-07 audit. Neither fact can be erased by editing this guide. See [Operator Guide](operator-runtime.md), [Agent Guide](agent-runtime.md), and the [live audit](../audits/2026-11-07-runtime-owner-audit.md).
+
+### Linux PG native Runner start-state refinement — R8 source candidate
+
+`DISPATCH_ISSUED` commits only physical dispatch intent and leaves the Attempt `starting`. `runner-start.json` must agree on Job/Attempt/launch token and immutable Runner image with live systemd `InvocationID`/`MainPID` and populated cgroup. Only then does existing PG CAS commit a `RUNNER_BOUND` physical observation, `started_at_ms` and state `running`; missing/conflicting evidence remains UNKNOWN. Concurrent cancel, stale Attempt or terminal state rejects promotion. A start witness is not business completion or authorization to dispatch a replacement. Natural implementation is existing `pg_dispatch.rs` + `runtime/pg_runtime/reconciliation.rs`; existing PostgreSQL18 original fixture and native MCP/systemd `fresh_pg_mcp_native_runner_success_and_cancel` are the relevant consumer evidence, not proof of installation.

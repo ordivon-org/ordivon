@@ -3182,6 +3182,40 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         start_path.exists(),
         "physical cancellation test requires bound Runner start evidence"
     );
+    // PG's former state remained STARTING for the entire long-lived command.
+    // A real Runner + exact native systemd/cgroup observation must now cause
+    // a durable RUNNER_BOUND transition, without assuming DISPATCH=RUNNING.
+    let bind_deadline = Instant::now() + Duration::from_secs(8);
+    loop {
+        let binding = call(&endpoint, "job.observe", json!({"jobId":job,"waitMs":0}));
+        assert_ne!(binding["isError"], true, "{binding}");
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT a.state,a.started_at_ms,EXISTS(SELECT 1 FROM job_events e \
+             WHERE e.job_id=$1 AND e.attempt_id=a.attempt_id \
+             AND e.event_type='RUNNER_BOUND' AND e.origin='SYSTEM_OBSERVED' \
+             AND e.reason_code='NATIVE_RUNNER_START_VERIFIED') \
+             FROM attempts a WHERE a.job_id=$1",
+                &[&job.as_str().unwrap()],
+            )
+            .unwrap();
+        if row.get::<_, String>(0) == "running" {
+            assert!(row.get::<_, Option<i64>>(1).is_some());
+            assert!(row.get::<_, bool>(2), "RUNNER_BOUND event absent");
+            let state = call(&endpoint, "job.get", json!({"jobId":job}));
+            assert_eq!(
+                state["structuredContent"]["attempts"][0]["state"], "running",
+                "{state}"
+            );
+            break;
+        }
+        assert!(
+            Instant::now() < bind_deadline,
+            "native Runner was started but durable PG RUNNER_BOUND was not recorded: {binding}"
+        );
+        thread::sleep(Duration::from_millis(75));
+    }
     let unsafe_write = call(
         &endpoint,
         "workspace.mutate",

@@ -11,7 +11,7 @@ use uuid::Uuid;
 mod dispatch;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
-pub use dispatch::{PgBundleReady, PgDispatchIssued};
+pub use dispatch::{PgBundleReady, PgDispatchIssued, PgRunnerBound};
 
 #[derive(Debug)]
 pub enum PgAdmissionError {
@@ -2645,6 +2645,21 @@ mod live_pg_tests {
             expected_source_sha256: a.expected_source_sha256.clone(),
         };
         assert_eq!(store.commit_bundle_ready_pg(&prepared).unwrap(), 1);
+        // A disk or caller claim cannot create a running state before the
+        // original durable physical-dispatch boundary has committed.
+        let running = PgRunnerBound {
+            attempt_id: a.attempt_id.clone(),
+            expected_row_version: 2,
+            expected_bundle_digest: digest.clone(),
+            runner_start_digest: format!("sha256:{}", "c".repeat(64)),
+            invocation_id: "systemd-invocation-1".into(),
+            observed_at_ms: a.created_at_ms + 3,
+            expected_source_sha256: a.expected_source_sha256.clone(),
+        };
+        assert!(matches!(
+            store.mark_runner_bound_pg(&running),
+            Err(PgAdmissionError::Blocked)
+        ));
         assert!(matches!(
             store.commit_bundle_ready_pg(&prepared),
             Err(PgAdmissionError::Blocked)
@@ -2710,6 +2725,73 @@ mod live_pg_tests {
             event.get::<_, Option<String>>(3).as_deref(),
             Some("starting")
         );
+        let mut forged = running.clone();
+        forged.expected_source_sha256 = "f".repeat(64);
+        assert!(matches!(
+            store.mark_runner_bound_pg(&forged),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        assert_eq!(store.mark_runner_bound_pg(&running).unwrap(), 3);
+        assert_eq!(scratch.count("job_events"), 6);
+        let actual = scratch
+            .admin
+            .query_one(
+                "SELECT state,started_at_ms,row_version FROM attempts WHERE attempt_id=$1",
+                &[&a.attempt_id],
+            )
+            .unwrap();
+        assert_eq!(actual.get::<_, String>(0), "running");
+        assert_eq!(
+            actual.get::<_, Option<i64>>(1),
+            Some(running.observed_at_ms)
+        );
+        assert_eq!(actual.get::<_, i64>(2), 3);
+        let event = scratch.admin.query_one(
+            "SELECT origin,previous_state,new_state,reason_code,detail_json,detail_digest              FROM job_events WHERE job_id=$1 AND event_sequence=6",
+            &[&a.job_id],
+        ).unwrap();
+        assert_eq!(event.get::<_, String>(0), "SYSTEM_OBSERVED");
+        assert_eq!(
+            event.get::<_, Option<String>>(1).as_deref(),
+            Some("starting")
+        );
+        assert_eq!(
+            event.get::<_, Option<String>>(2).as_deref(),
+            Some("running")
+        );
+        assert_eq!(event.get::<_, String>(3), "NATIVE_RUNNER_START_VERIFIED");
+        let event_json: String = event.get(4);
+        assert_eq!(
+            event.get::<_, String>(5),
+            format!(
+                "sha256:{}",
+                hex::encode(Sha256::digest(event_json.as_bytes()))
+            )
+        );
+        assert!(
+            matches!(
+                store.mark_runner_bound_pg(&running),
+                Err(PgAdmissionError::Blocked)
+            ),
+            "exact replay may not append a duplicate RUNNER_BOUND event"
+        );
+        assert_eq!(scratch.count("job_events"), 6);
+        // A cancelled Job is not re-qualified as running by a new marker.
+        store
+            .request_cancel_intent(&PgCancelIntent {
+                job_id: a.job_id.clone(),
+                observed_at_ms: running.observed_at_ms + 1,
+                expected_source_sha256: a.expected_source_sha256.clone(),
+            })
+            .unwrap();
+        assert!(matches!(
+            store.mark_runner_bound_pg(&PgRunnerBound {
+                expected_row_version: 3,
+                observed_at_ms: running.observed_at_ms + 2,
+                ..running
+            }),
+            Err(PgAdmissionError::Blocked)
+        ));
     }
 
     #[test]

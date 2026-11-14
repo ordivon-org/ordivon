@@ -67,6 +67,55 @@ check_runtime_dispatch() {
   )
 }
 
+# Runner-bound refinement: a real native start must be reachable, while
+# weakening its witness must violate the original dispatch invariant.
+check_native_runner_bound_falsifiers() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-runner-bound-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    cp "$ROOT/formal/RuntimeDispatchR1.tla" "$tmp_dir/RuntimeDispatchR1.tla"
+    cp "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/RuntimeDispatchR1.cfg"
+    printf '\nINVARIANT NativeStartIsUnreachable\n' >> "$tmp_dir/RuntimeDispatchR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla) > "$tmp_dir/reachable.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant NativeStartIsUnreachable is violated.' "$tmp_dir/reachable.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/reachable.log"; then
+      echo 'Native Runner start reachability proof FAILED' >&2
+      tail -30 "$tmp_dir/reachable.log" >&2
+      exit 1
+    fi
+    python3 - "$tmp_dir/RuntimeDispatchR1.tla" <<'PY_NATIVE_BOUND_RED'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+source = p.read_text(encoding="utf-8")
+old = "    /\\ nativeStartVerified' = [nativeStartVerified EXCEPT ![currentAttempt] = TRUE]"
+new = "    /\\ UNCHANGED nativeStartVerified"
+assert source.count(old) == 1, "native Runner start positive witness drift"
+p.write_text(source.replace(old, new, 1), encoding="utf-8")
+PY_NATIVE_BOUND_RED
+    cp "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/RuntimeDispatchR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla) > "$tmp_dir/unsafe.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant RunningRequiresQualifiedNativeStart is violated.' "$tmp_dir/unsafe.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/unsafe.log"; then
+      echo 'Unsafe RUNNING without native witness was not falsified' >&2
+      tail -30 "$tmp_dir/unsafe.log" >&2
+      exit 1
+    fi
+    echo 'TLC native RunnerBound reachability and missing-witness counterexample PASS'
+  )
+}
+
 # PostgreSQL-first R06 registry cutover is a separate finite *design* model.
 # It is not evidence that the current SQLite production registry has migrated.
 check_runtime_pg_cutover() {
@@ -532,7 +581,7 @@ BlindRetryWithoutReconciliation ==
         /\ currentAttempt' = a
     /\ jobState' = "admitted"
     /\ reconcileState' = "none"
-    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
 
 '''
 assert source.count("Next ==\n") == 1, "counterexample mutation source drift"
@@ -581,8 +630,8 @@ from pathlib import Path
 import sys
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 old = r'''    /\ currentAttempt' = NoAttempt
-    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>'''
-new = r'''    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence>>'''
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>'''
+new = r'''    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>'''
 assert source.count(old) == 1, "terminal pointer mutation target drift"
 Path(sys.argv[2]).write_text(source.replace(old, new, 1), encoding="utf-8")
 PY_TERMINAL_POINTER_RED
@@ -1092,7 +1141,7 @@ case "${1:-check}" in
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
   check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue ;;
-  falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
+  falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_native_runner_bound_falsifiers ;;
   falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2

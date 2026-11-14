@@ -8,14 +8,14 @@ EXTENDS Naturals
 
 CONSTANTS Attempts, NoAttempt
 
-AttemptStates == {"unused", "admitted", "running", "ambiguous", "orphanedHeld", "lost", "terminal", "cancelledWithoutDispatch"}
+AttemptStates == {"unused", "admitted", "starting", "running", "ambiguous", "orphanedHeld", "lost", "terminal", "cancelledWithoutDispatch"}
 JobStates == {"none", "admitted", "ambiguous", "terminal"}
 ReconcileStates == {"none", "required", "absent", "committed"}
 ResultEvidenceStates == {"none", "foreign", "matching", "localCancel"}
 
-VARIABLES jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, resultEvidence
+VARIABLES jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, resultEvidence, nativeStartVerified
 
-vars == <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, resultEvidence>>
+vars == <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
 
 TypeOK ==
     /\ Attempts # {}
@@ -28,6 +28,7 @@ TypeOK ==
     /\ heldReservation \in BOOLEAN
     /\ outputObserved \in [Attempts -> BOOLEAN]
     /\ resultEvidence \in [Attempts -> ResultEvidenceStates]
+    /\ nativeStartVerified \in [Attempts -> BOOLEAN]
 
 Init ==
     /\ jobState = "none"
@@ -38,6 +39,7 @@ Init ==
     /\ heldReservation = FALSE
     /\ outputObserved = [a \in Attempts |-> FALSE]
     /\ resultEvidence = [a \in Attempts |-> "none"]
+    /\ nativeStartVerified = [a \in Attempts |-> FALSE]
 
 Admit ==
     /\ jobState = "none"
@@ -48,37 +50,52 @@ Admit ==
         /\ currentAttempt' = a
     /\ jobState' = "admitted"
     /\ reconcileState' = "none"
-    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
 
 Dispatch ==
     /\ jobState = "admitted"
     /\ currentAttempt # NoAttempt
     /\ attemptState[currentAttempt] = "admitted"
     /\ dispatchCount[currentAttempt] = 0
-    /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "running"]
+    /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "starting"]
     /\ dispatchCount' = [dispatchCount EXCEPT ![currentAttempt] = @ + 1]
-    /\ UNCHANGED <<jobState, currentAttempt, reconcileState, heldReservation, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<jobState, currentAttempt, reconcileState, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
+
+(* Separate durable dispatch intent from a real Runner/systemd start witness.
+   This abstract action represents a qualified PG CAS: the guard must be
+   refined by immutable Runner identity + matching native InvocationID,
+   MainPID and populated cgroup. Output alone cannot set this bit. *)
+ObserveQualifiedNativeStart ==
+    /\ jobState = "admitted"
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] = "starting"
+    /\ dispatchCount[currentAttempt] = 1
+    /\ ~nativeStartVerified[currentAttempt]
+    /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "running"]
+    /\ nativeStartVerified' = [nativeStartVerified EXCEPT ![currentAttempt] = TRUE]
+    /\ UNCHANGED <<jobState, currentAttempt, dispatchCount, reconcileState,
+                  heldReservation, outputObserved, resultEvidence>>
 
 LoseDispatchKnowledge ==
     /\ jobState = "admitted"
     /\ currentAttempt # NoAttempt
-    /\ attemptState[currentAttempt] = "running"
+    /\ attemptState[currentAttempt] \in {"starting", "running"}
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "ambiguous"]
     /\ jobState' = "ambiguous"
     /\ reconcileState' = "required"
-    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
 
 (* A physical orphan has no selected current Attempt, yet its durable *)
 (* held reservation forbids blind admission/retry until proven absent.   *)
 ObserveOrphanedHeld ==
     /\ currentAttempt # NoAttempt
-    /\ attemptState[currentAttempt] \in {"admitted", "running", "ambiguous"}
+    /\ attemptState[currentAttempt] \in {"admitted", "starting", "running", "ambiguous"}
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "orphanedHeld"]
     /\ currentAttempt' = NoAttempt
     /\ jobState' = "ambiguous"
     /\ reconcileState' = "required"
     /\ heldReservation' = TRUE
-    /\ UNCHANGED <<dispatchCount, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<dispatchCount, outputObserved, resultEvidence, nativeStartVerified>>
 
 ReconcileHeldOrphanProvenAbsent ==
     /\ jobState = "ambiguous"
@@ -90,7 +107,7 @@ ReconcileHeldOrphanProvenAbsent ==
     /\ jobState' = "admitted"
     /\ reconcileState' = "absent"
     /\ heldReservation' = FALSE
-    /\ UNCHANGED <<currentAttempt, dispatchCount, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<currentAttempt, dispatchCount, outputObserved, resultEvidence, nativeStartVerified>>
 
 
 (* Output bytes exist independently of exact terminal result provenance. *)
@@ -100,27 +117,27 @@ PublishPartialOutput ==
     /\ attemptState[currentAttempt] = "running"
     /\ ~outputObserved[currentAttempt]
     /\ outputObserved' = [outputObserved EXCEPT ![currentAttempt] = TRUE]
-    /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, resultEvidence>>
+    /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, resultEvidence, nativeStartVerified>>
 
 (* CEGAR: foreign evidence is possible, but cannot authorize this Attempt. *)
 ObserveResultEvidence ==
     /\ currentAttempt # NoAttempt
-    /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ attemptState[currentAttempt] \in {"starting", "running", "ambiguous"}
     /\ resultEvidence[currentAttempt] = "none"
     /\ \E standing \in {"foreign", "matching"}:
          resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = standing]
-    /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved>>
+    /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, nativeStartVerified>>
 
 (* Rejected evidence is an external observation, not a durable
    incompatibility of the selected Attempt. A later exact matching result
    may correct it; this is a possible bounded transition, not fairness. *)
 CorrectForeignResultEvidence ==
     /\ currentAttempt # NoAttempt
-    /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ attemptState[currentAttempt] \in {"starting", "running", "ambiguous"}
     /\ resultEvidence[currentAttempt] = "foreign"
     /\ resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = "matching"]
     /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount,
-                  reconcileState, heldReservation, outputObserved>>
+                  reconcileState, heldReservation, outputObserved, nativeStartVerified>>
 
 (* Native Registry request_cancel accepts this local, synthetic receipt while
    an Attempt is still accepted; no provider/process result is observed.
@@ -136,18 +153,18 @@ CancelAcceptedBeforeDispatch ==
     /\ jobState' = "terminal"
     /\ currentAttempt' = NoAttempt
     /\ reconcileState' = "committed"
-    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, nativeStartVerified>>
 
 ObserveTerminalEvidence ==
     /\ currentAttempt # NoAttempt
-    /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ attemptState[currentAttempt] \in {"starting", "running", "ambiguous"}
     /\ resultEvidence[currentAttempt] = "matching"
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "terminal"]
     /\ jobState' = "terminal"
     /\ reconcileState' = "committed"
     (* SQL commit_terminal clears jobs.current_attempt_id in the same CAS. *)
     /\ currentAttempt' = NoAttempt
-    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
 
 ReconcileProvenAbsent ==
     /\ jobState = "ambiguous"
@@ -158,7 +175,7 @@ ReconcileProvenAbsent ==
     /\ jobState' = "admitted"
     /\ currentAttempt' = NoAttempt
     /\ reconcileState' = "absent"
-    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
 
 AdmitExplicitRetry ==
     /\ jobState = "admitted"
@@ -169,11 +186,12 @@ AdmitExplicitRetry ==
         /\ attemptState' = [attemptState EXCEPT ![a] = "admitted"]
         /\ currentAttempt' = a
     /\ reconcileState' = "none"
-    /\ UNCHANGED <<jobState, dispatchCount, heldReservation, outputObserved, resultEvidence>>
+    /\ UNCHANGED <<jobState, dispatchCount, heldReservation, outputObserved, resultEvidence, nativeStartVerified>>
 
 Next ==
     \/ Admit
     \/ Dispatch
+    \/ ObserveQualifiedNativeStart
     \/ LoseDispatchKnowledge
     \/ PublishPartialOutput
     \/ ObserveResultEvidence
@@ -194,6 +212,7 @@ FairSpec ==
     Spec
     /\ WF_vars(Admit)
     /\ WF_vars(Dispatch)
+    /\ WF_vars(ObserveQualifiedNativeStart)
     /\ WF_vars(ObserveTerminalEvidence \/ LoseDispatchKnowledge)
 
 ProgressToFirstDecision ==
@@ -203,7 +222,7 @@ AtMostOnceDispatchPerAttempt ==
     \A a \in Attempts : dispatchCount[a] <= 1
 
 (* Safety across distinct Attempt identities: no second unresolved live Attempt. *)
-LiveAttemptStates == {"admitted", "running", "ambiguous"}
+LiveAttemptStates == {"admitted", "starting", "running", "ambiguous"}
 
 NoCompetingLiveAttempts ==
     \A a \in Attempts:
@@ -236,6 +255,17 @@ AmbiguityRequiresReconciliation ==
             \/ /\ currentAttempt = NoAttempt
                /\ \E a \in Attempts: attemptState[a] = "orphanedHeld")
 
+(* The new running state must never be inferred from DISPATCH_ISSUED. *)
+RunningRequiresQualifiedNativeStart ==
+    \A a \in Attempts:
+       attemptState[a] = "running" =>
+           /\ nativeStartVerified[a]
+           /\ dispatchCount[a] = 1
+
+(* Non-vacuity probe: intentionally false once native start is reachable. *)
+NativeStartIsUnreachable ==
+    \A a \in Attempts : ~nativeStartVerified[a]
+
 NoUnusedAttemptWasDispatched ==
     \A a \in Attempts : attemptState[a] = "unused" => dispatchCount[a] = 0
 
@@ -267,7 +297,7 @@ LocalCancellationNeverDispatched ==
    later be qualified for the same live Attempt. ENABLED is NOT eventuality. *)
 ForeignResultDoesNotDisableMatchingRecovery ==
     (currentAttempt # NoAttempt
-     /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+     /\ attemptState[currentAttempt] \in {"starting", "running", "ambiguous"}
      /\ resultEvidence[currentAttempt] = "foreign")
     => ENABLED CorrectForeignResultEvidence
 

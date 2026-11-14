@@ -57,6 +57,7 @@ REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 REQUIRED_TLC_INVARIANTS = {
     "TypeOK",
     "AtMostOnceDispatchPerAttempt",
+    "RunningRequiresQualifiedNativeStart",
     "AmbiguityRequiresReconciliation",
     "NoUnusedAttemptWasDispatched",
     "TerminalAttemptWasDispatched",

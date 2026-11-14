@@ -310,3 +310,118 @@ impl PgAdmissionStore {
         Ok(i.expected_row_version + 1)
     }
 }
+
+/// A native OS/Runner-verified *start* observation; never an execution-success
+/// receipt. The caller must first verify Runner's frozen identity and current
+/// systemd InvocationID, MainPID and live cgroup population.
+#[derive(Clone)]
+pub struct PgRunnerBound {
+    pub attempt_id: String,
+    pub expected_row_version: i64,
+    pub expected_bundle_digest: String,
+    pub runner_start_digest: String,
+    pub invocation_id: String,
+    pub observed_at_ms: i64,
+    pub expected_source_sha256: String,
+}
+
+impl PgAdmissionStore {
+    /// Commit an actual, qualified physical start into the existing PG
+    /// Job/Attempt/Event ledger. An already terminal, cancelled, superseded,
+    /// or otherwise non-current Attempt cannot be reclassified as running.
+    /// A lost COMMIT acknowledgement remains UNKNOWN; consumers read the
+    /// exact current Job rather than dispatching a replacement.
+    pub fn mark_runner_bound_pg(&mut self, i: &PgRunnerBound) -> Result<i64, PgAdmissionError> {
+        validate(
+            &i.attempt_id,
+            i.expected_row_version,
+            &i.expected_bundle_digest,
+            i.observed_at_ms,
+            &i.expected_source_sha256,
+        )?;
+        if !sha256_id(&i.runner_start_digest) || i.invocation_id.is_empty() {
+            return Err(PgAdmissionError::InvalidInput);
+        }
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::Serializable)
+            .start()?;
+        require_qualified_writer(&mut tx, &i.expected_source_sha256)?;
+        let row = tx
+            .query_opt(
+                "SELECT a.job_id,a.state,a.row_version,a.bundle_digest,a.created_at_ms, \
+                        j.current_attempt_id,j.desired_state,j.resolution,r.state \
+                 FROM attempts a JOIN jobs j ON j.job_id=a.job_id \
+                 JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id \
+                 WHERE a.attempt_id=$1 FOR UPDATE OF a,j,r",
+                &[&i.attempt_id],
+            )?
+            .ok_or(PgAdmissionError::Blocked)?;
+        let job_id: String = row.get(0);
+        if row.get::<_, String>(1) != "starting"
+            || row.get::<_, i64>(2) != i.expected_row_version
+            || row.get::<_, Option<String>>(3).as_deref() != Some(i.expected_bundle_digest.as_str())
+            || i.observed_at_ms < row.get::<_, i64>(4)
+            || row.get::<_, Option<String>>(5).as_deref() != Some(i.attempt_id.as_str())
+            || row.get::<_, String>(6) != "run"
+            || row.get::<_, Option<String>>(7).is_some()
+            || row.get::<_, String>(8) != "active"
+        {
+            return Err(PgAdmissionError::Blocked);
+        }
+        let event_detail = serde_json::json!({"bundleDigest":i.expected_bundle_digest}).to_string();
+        let event_digest = format!(
+            "sha256:{}",
+            hex::encode(Sha256::digest(event_detail.as_bytes()))
+        );
+        let issued: bool = tx
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_events WHERE job_id=$1 AND attempt_id=$2 \
+             AND event_type='DISPATCH_ISSUED' AND origin='SYSTEM_DERIVED' \
+             AND previous_state='accepted' AND new_state='starting' \
+             AND reason_code='AT_MOST_ONCE_BOUNDARY_COMMITTED' \
+             AND detail_json=$3 AND detail_digest=$4)",
+                &[&job_id, &i.attempt_id, &event_detail, &event_digest],
+            )?
+            .get(0);
+        let allocated: bool = tx
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_allocations \
+             WHERE attempt_id=$1 AND state='active')",
+                &[&i.attempt_id],
+            )?
+            .get(0);
+        if !issued || !allocated {
+            return Err(PgAdmissionError::Blocked);
+        }
+        let updated = tx.execute(
+            "UPDATE attempts SET state='running',started_at_ms=$1,row_version=row_version+1 \
+             WHERE attempt_id=$2 AND state='starting' AND row_version=$3 \
+             AND started_at_ms IS NULL",
+            &[&i.observed_at_ms, &i.attempt_id, &i.expected_row_version],
+        )?;
+        if updated != 1 {
+            return Err(PgAdmissionError::Blocked);
+        }
+        append_dispatch_event(
+            &mut tx,
+            PgDispatchEvent {
+                job_id: &job_id,
+                attempt_id: &i.attempt_id,
+                event_type: "RUNNER_BOUND",
+                origin: "SYSTEM_OBSERVED",
+                old: "starting",
+                new: "running",
+                reason: "NATIVE_RUNNER_START_VERIFIED",
+                detail: serde_json::json!({
+                    "runnerStartDigest":i.runner_start_digest,
+                    "invocationId":i.invocation_id,
+                }),
+                at: i.observed_at_ms,
+            },
+        )?;
+        tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+        Ok(i.expected_row_version + 1)
+    }
+}

@@ -651,6 +651,69 @@ impl PgRuntime {
             .map_err(pg)?;
             return Ok(());
         }
+        // PG dispatch is only an intent: transition to RUNNING only after the
+        // exact Runner identity AND live native systemd/cgroup evidence agree.
+        // This is the same existing PG ledger, not a second observation store.
+        // A missing start file, failed native probe or concurrent cancel leaves
+        // the original STARTING/UNKNOWN standing. Terminal reconciliation below
+        // remains independently authorized by its original Result/OS evidence.
+        if a.state == AttemptState::Starting
+            && a.termination_intent == AttemptTerminationIntent::Natural
+            && !path.join("result.json").exists()
+        {
+            let marker = path.join("runner-start.json");
+            if let Ok(bytes) = fs::read(&marker) {
+                if let Ok(start) = serde_json::from_slice::<RunnerStartEvidence>(&bytes) {
+                    let native = super::platform::systemctl_show(&a.unit_name)?;
+                    let expected_group = format!("/system.slice/{}", a.unit_name);
+                    let bound = start.schema_version == 1
+                        && start.job_id == job
+                        && start.attempt_id == a.attempt_id
+                        && start.launch_token_digest == a.launch_token_digest
+                        && start.unit_name == a.unit_name
+                        && start.control_group == expected_group
+                        && !start.invocation_id.is_empty()
+                        && start.runner_executable_digest.as_deref()
+                            == provider["executionProvider"]["executableDigest"].as_str()
+                        && native.get("LoadState").map(String::as_str) == Some("loaded")
+                        && native.get("ActiveState").map(String::as_str) == Some("active")
+                        && native.get("Job").is_some_and(String::is_empty)
+                        && native.get("InvocationID").map(String::as_str)
+                            == Some(start.invocation_id.as_str())
+                        && native.get("ControlGroup").map(String::as_str)
+                            == Some(start.control_group.as_str())
+                        && native
+                            .get("MainPID")
+                            .and_then(|pid| pid.parse::<u32>().ok())
+                            == Some(start.namespace_pid)
+                        && super::platform::cgroup_population(&start.control_group)?
+                            == super::platform::CgroupPopulation::Populated;
+                    if bound {
+                        let at = i64::try_from(start.observed_unix_ms)
+                            .map_err(|_| error("Runner start timestamp outside PG range"))?;
+                        let input = PgRunnerBound {
+                            attempt_id: a.attempt_id.clone(),
+                            expected_row_version: a.row_version as i64,
+                            expected_bundle_digest: a
+                                .bundle_digest
+                                .clone()
+                                .ok_or_else(|| error("issued Attempt has no bundle digest"))?,
+                            runner_start_digest: universal::sha256_bytes(&bytes),
+                            invocation_id: start.invocation_id,
+                            observed_at_ms: at,
+                            expected_source_sha256: self.config.source_sha256.clone(),
+                        };
+                        match db.mark_runner_bound_pg(&input) {
+                            Ok(_) => a.state = AttemptState::Running,
+                            // The current Attempt may have been cancelled or
+                            // terminalized by another observer: never overwrite.
+                            Err(PgAdmissionError::Blocked) => return Ok(()),
+                            Err(err) => return Err(pg(err).with_operation_id(job)),
+                        }
+                    }
+                }
+            }
+        }
         if !a.state.is_terminal() && path.join("result.json").exists() {
             // Reuse native identity, stdout/stderr digest and result validators.
             let start: RunnerStartEvidence =
