@@ -21,6 +21,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Path::new(&required("ORDIVON_PG_STORE_ROOT")?),
         )?;
         let owner = ordivon_runtime_core::pg_windows_evidence::inspect_windows_pg_os_owner(&output);
+        let object =
+            ordivon_runtime_core::pg_windows_evidence::inspect_windows_pg_job_object(&output);
         println!(
             "{}",
             json!({
@@ -28,6 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "schemaVersion":1,
                 "witness":output,
                 "nativeOwnerState":owner,
+                "nativeJobObjectState":object,
                 "executionReady":false,
                 "postgresTerminalCommitted":false
             })
@@ -35,12 +38,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     if std::env::args().skip(1).collect::<Vec<_>>() == ["--self-test"] {
+        let os_job_object_ok =
+            ordivon_runtime_core::pg_windows_evidence::selftest_windows_pg_job_object_query();
+        let enclosing =
+            ordivon_runtime_core::pg_windows_evidence::selftest_windows_pg_enclosing_job_object_state();
+        if !os_job_object_ok {
+            return Err("native Windows Job Object read-only population self-test failed".into());
+        }
         println!(
             "{}",
             json!({
                 "kind":"ordivon.windows-pg-preflight-self-test",
                 "schemaVersion":1,
                 "nativeWindows":cfg!(windows),
+                "nativeJobObjectReadback":true,
+                "enclosingJobObjectState":enclosing,
                 "postgresConnected":false,
                 "executionReady":false
             })
