@@ -1824,9 +1824,9 @@ mod live_pg_tests {
         assert_eq!(scratch.count("concurrency_reservations"), 1);
         assert_eq!(scratch.count("idempotency_keys"), 1);
         assert_eq!(scratch.count("job_events"), 3);
-        // A previously committed idempotency key is a read-only observation.
-        // An unrelated unfinished release Effect can forbid *new* PG Jobs,
-        // but cannot erase the answer to the original exact replay.
+        // A release Effect attached to the same ordinary Job is conflicting
+        // provenance, NOT an unrelated Effect or a valid ordinary replay.
+        // Preserve exact operation identity instead of accepting corruption.
         scratch
             .admin
             .execute(
@@ -1834,10 +1834,10 @@ mod live_pg_tests {
                 &[&a.job_id],
             )
             .unwrap();
-        assert_eq!(
-            store.admit(&a).unwrap(),
-            PgAdmissionOutcome::Existing(a.job_id.clone())
-        );
+        assert!(matches!(
+            store.admit(&a),
+            Err(PgAdmissionError::IdempotencyConflict)
+        ));
         let mut conflicting_during_effect = a.clone();
         conflicting_during_effect.request_digest = "sha256:other-request".into();
         assert!(matches!(
