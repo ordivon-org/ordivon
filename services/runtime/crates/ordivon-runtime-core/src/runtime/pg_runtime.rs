@@ -52,6 +52,52 @@ pub struct PgRuntime {
     reconciliation_cursors: Arc<Mutex<ReconciliationCursors>>,
 }
 
+/// Northbound delivery describes availability of an execution result, not
+/// whether PostgreSQL committed a terminal control record. A native-stop-only
+/// LOST result is mechanically converged but has no Runner result or proof of
+/// a domain effect. Keep job.list and job.observe on the same projection law.
+fn pg_delivery_disposition(
+    resolution: Option<&str>,
+    runner_result_available: bool,
+) -> &'static str {
+    match resolution {
+        None => "in_progress",
+        Some("lost") => "unknown",
+        Some("orphaned") => "reconciliation_required",
+        Some("succeeded" | "failed" | "timed_out" | "cancelled") if runner_result_available => {
+            "committed"
+        }
+        Some(_) => "reconciliation_required",
+    }
+}
+
+#[cfg(test)]
+mod pg_delivery_semantics_tests {
+    use super::pg_delivery_disposition;
+
+    #[test]
+    fn control_commit_is_not_runner_result_delivery() {
+        for (resolution, available, expected) in [
+            (None, false, "in_progress"),
+            (None, true, "in_progress"),
+            (Some("succeeded"), true, "committed"),
+            (Some("failed"), true, "committed"),
+            (Some("timed_out"), true, "committed"),
+            (Some("cancelled"), true, "committed"),
+            (Some("cancelled"), false, "reconciliation_required"),
+            (Some("succeeded"), false, "reconciliation_required"),
+            (Some("lost"), false, "unknown"),
+            (Some("lost"), true, "unknown"),
+            (Some("orphaned"), false, "reconciliation_required"),
+            (Some("orphaned"), true, "reconciliation_required"),
+            (Some("alien"), true, "reconciliation_required"),
+            (Some("alien"), false, "reconciliation_required"),
+        ] {
+            assert_eq!(pg_delivery_disposition(resolution, available), expected);
+        }
+    }
+}
+
 fn error(message: impl Into<String>) -> RuntimeError {
     RuntimeError::new(RuntimeErrorCode::RegistryUnavailable, message, None, false)
 }

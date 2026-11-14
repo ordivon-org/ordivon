@@ -14,7 +14,8 @@ VARIABLES phase, remoteState, terminal, recovery, delivery, indexed,
 vars == <<phase, remoteState, terminal, recovery, delivery, indexed,
           recommendation, impacted, retryAllowed, effectEstablished>>
 
-RemoteStates == {"started", "reconcile_required", "completed"}
+RemoteStates == {"started", "reconcile_required", "completed", "succeeded", "failed",
+                 "timed_out", "cancelled", "lost", "orphaned"}
 DeliveryStates == {"unknown", "in_progress", "committed", "reconciliation_required"}
 Phases == {"new", "observed", "classified"}
 Recommendations == {"none", "observe", "reconcile", "verify"}
@@ -25,7 +26,8 @@ Obligations == {"write", "client", "media"}
 (* means only process delivery, never provider-effect completion.           *)
 (***************************************************************************)
 Decision(s, t, r, d) ==
-    IF r \/ d \in {"unknown", "reconciliation_required"} \/ s = "reconcile_required"
+    IF r \/ d \in {"unknown", "reconciliation_required"}
+       \/ s \in {"reconcile_required", "lost", "orphaned"}
     THEN "reconcile"
     ELSE IF ~t THEN "observe"
     ELSE "verify"
@@ -99,6 +101,10 @@ ReconciliationDeliveryNeedsOriginalObservation ==
     phase = "classified" /\ delivery = "reconciliation_required"
     => recommendation = "reconcile"
 
+UncertainNativeResolutionNeverVerifies ==
+    phase = "classified" /\ remoteState \in {"lost", "orphaned"}
+    => recommendation = "reconcile"
+
 NoEffectEstablishedFromProcessExit ==
     phase = "classified" => ~effectEstablished
 
@@ -121,6 +127,14 @@ IndependentMediaIsUnaffectedByIndexedEffect ==
    silently collapse into a nonexistent branch. *)
 ReconciliationDeliveryIsUnreachable ==
     phase = "classified" => delivery # "reconciliation_required"
+
+(* The live PG native-stop-only LOST response was actually observed with
+   delivery=committed, yet no Runner result. Keep that contradictory old
+   transport case reachable in the model so a model/code refinement cannot
+   make this counterexample disappear by restricting its inputs. *)
+LostCommittedIsUnreachable ==
+    phase = "classified" =>
+      ~(remoteState = "lost" /\ delivery = "committed")
 
 (* Nonvacuity probes: these are intentionally FALSE, and their TLC counter *)
 (* examples demonstrate reconciliation, successful process exit with no    *)
