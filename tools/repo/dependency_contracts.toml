@@ -307,3 +307,15 @@ allowed_fragment = "domains/capital/src/ordivon_capital/research/experiment_prot
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 selection_scope = "PATH"
 contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+
+# Security's own native OPA/HTTP consumer checks the Gateway PUBLIC read
+# surface as a test-only source contract. This grants no runtime API, policy
+# authority or private Python dependency to Security.
+[[seams]]
+from_owner = "security"
+to_owner = "gateway"
+source_glob = "platform/security/services/gateway-authzen/tests/test_gateway_host_delegation.py"
+allowed_fragment = "services/gateway/enforcement-surface.json"
+kind = "TEST_ONLY_PUBLIC_TOOL_SURFACE"
+contract_ref = "services/gateway/enforcement-surface.json"
