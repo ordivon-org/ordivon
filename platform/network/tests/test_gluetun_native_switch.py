@@ -253,3 +253,86 @@ def test_bounded_consumer_probe_timeout_is_unknown_and_not_success(monkeypatch):
         raise subprocess.TimeoutExpired(cmd=args[0],timeout=kw["timeout"])
     monkeypatch.setattr(switch.subprocess,"run",timeout)
     assert switch.bounded_consumer_observe(20)["standing"]=="UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"
+
+
+def test_expired_quality_plus_native_catalog_cold_candidates_reaches_second_business_success(monkeypatch):
+    """Integrated policy -> official catalog -> 2 tried API candidates -> origin acceptance.
+
+    All API and physical effects are fixtures; this never changes production.
+    """
+    import json
+    from itertools import count
+    class Result:
+        returncode=0
+        def __init__(self,text): self.stdout=text
+    stored=json.dumps({"surfshark":{"servers":[
+        {"country":"Malaysia","vpn":"wireguard","ips":["192.0.2.1"]},
+        {"country":"North Macedonia","vpn":"wireguard","ips":["192.0.2.2"]},
+        {"country":"Mexico","vpn":"wireguard","ips":["192.0.2.3"]},
+        {"country":"Hong Kong","vpn":"wireguard","ips":["192.0.2.4"]},
+    ]}})
+    def native_run(args,**kw):
+        if args[:2]==["/usr/bin/podman","exec"]: return Result(stored)
+        if args[0]=="/usr/bin/journalctl": return Result("")
+        if args[0]=="/usr/bin/curl":return Result("200")
+        raise AssertionError("Unexpected external subprocess")
+    monkeypatch.setattr(switch.quality.subprocess,"run",native_run)
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(switch.quality,"current_catalog_country",lambda catalog:"Malaysia")
+    # The previous verified quality hint has expired and grants no quality.
+    monkeypatch.setattr(switch.quality,"source_trial_hints",lambda *a,**kw:[])
+    monkeypatch.setattr(switch,"initial_preflight",lambda:{"standing":"NATIVE_API_AUTHORIZED_READONLY"})
+    monkeypatch.setattr(switch,"last_attempt",lambda:None)
+    monkeypatch.setattr(switch,"mark_attempt",lambda:None)
+    selection=["Malaysia"]
+    puts=[]
+    def api(method,payload=None):
+        if method=="PUT":
+            chosen=payload["provider"]["server_selection"]["countries"]
+            puts.append(chosen)
+            selection[:]=chosen
+            return {"status":200}
+        return {"type":"wireguard","provider":{"name":"surfshark",
+            "server_selection":{"countries":selection[:],"regions":[]}}}
+    monkeypatch.setattr(switch,"api_call",api)
+    def consumer(seconds=25):
+        return {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"} if (
+            len(puts)>1) else {"standing":"NOT_QUALIFIED"}
+    monkeypatch.setattr(switch,"bounded_consumer_observe",consumer)
+    monkeypatch.setattr(switch.time,"monotonic",count(start=0,step=10).__next__)
+    monkeypatch.setattr(switch.time,"sleep",lambda s:None)
+    outcome=switch.guarded_recover()
+    assert puts==[["North Macedonia"],["Mexico"]]
+    assert outcome["standing"]=="NATIVE_SWITCH_CONSUMED"
+    assert outcome["country"]=="Mexico"
+    assert outcome["countriesTried"]==["North Macedonia","Mexico"]
+    assert outcome["effectAttempted"] is True
+    assert selection==["Mexico"]
+
+
+def test_catalog_cold_preference_never_overrides_shared_underlay_failure(monkeypatch):
+    """The verified physical outage must not cause a futile country switch."""
+    import json
+    class Result:
+        returncode=28
+        def __init__(self,text):self.stdout=text
+    catalog=json.dumps({"surfshark":{"servers":[
+        {"vpn":"wireguard","country":"North Macedonia","ips":["192.0.2.2"]},
+    ]}})
+    def native_run(args,**kw):
+        if args[:2]==["/usr/bin/podman","exec"]:return Result(catalog)
+        if args[0]=="/usr/bin/journalctl":return Result("")
+        if args[0]=="/usr/bin/curl":return Result("")
+        raise AssertionError("Unexpected subprocess")
+    monkeypatch.setattr(switch.quality.subprocess,"run",native_run)
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(switch.quality,"source_trial_hints",
+        lambda *a,**kw: (_ for _ in ()).throw(AssertionError("Must not read hints when WAN fails")))
+    monkeypatch.setattr(switch.quality,"catalog_cold_trials",
+        lambda *a,**kw: (_ for _ in ()).throw(AssertionError("No cold catalog reads when WAN fails")))
+    monkeypatch.setattr(switch.quality,"current_catalog_country",lambda x:"Malaysia")
+    monkeypatch.setattr(switch,"api_call",
+        lambda *a,**kw: (_ for _ in ()).throw(AssertionError("No API may be opened")))
+    result=switch.guarded_recover()
+    assert result["standing"]=="HOLD_SHARED_UNDERLAY_OR_UNKNOWN"
+    assert result["effectAttempted"] is False
