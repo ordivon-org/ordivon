@@ -8,7 +8,8 @@ use ordivon_harness_core::{
 };
 use ordivon_harness_loop::native_loop::{
     AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision, ModelVisibleContent,
-    NativeAgentLoop, PauseCause, Provider, ProviderResult, RunFault, RunResult, ToolObservation,
+    NativeAgentLoop, PauseCause, Provider, ProviderResult, ProviderWireObservation, RunFault,
+    RunResult, ToolObservation,
 };
 use ordivon_harness_loop::native_provider_http::HttpModelProvider;
 use ordivon_harness_loop::pg_domain_read::{
@@ -163,7 +164,12 @@ impl DurableJournal for SourcePgUnknownJournal {
         self.prepared = true;
         Ok(())
     }
-    fn complete_provider(&mut self, _: u32, _: &ModelDecision) -> Result<(), String> {
+    fn complete_provider(
+        &mut self,
+        _: u32,
+        _: &ModelDecision,
+        _: Option<&ProviderWireObservation>,
+    ) -> Result<(), String> {
         Err("test intentionally loses Provider response".into())
     }
     fn admit_tool(

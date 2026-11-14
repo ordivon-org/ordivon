@@ -5,7 +5,7 @@ use ordivon_harness_core::{digest_bytes, loads_strict, CanonicalDocument};
 use ordivon_harness_loop::{
     native_loop::{
         AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision,
-        ModelVisibleContent, NativeAgentLoop, PauseCause, RunResult,
+        ModelVisibleContent, NativeAgentLoop, PauseCause, ProviderWireObservation, RunResult,
     },
     native_provider_http::HttpModelProvider,
     tool_call::ModelToolCall,
@@ -26,7 +26,12 @@ impl DurableJournal for TestJournal {
         self.0.push("provider-prepared");
         Ok(())
     }
-    fn complete_provider(&mut self, _: u32, _: &ModelDecision) -> Result<(), String> {
+    fn complete_provider(
+        &mut self,
+        _: u32,
+        _: &ModelDecision,
+        _: Option<&ProviderWireObservation>,
+    ) -> Result<(), String> {
         self.0.push("provider-recorded");
         Ok(())
     }

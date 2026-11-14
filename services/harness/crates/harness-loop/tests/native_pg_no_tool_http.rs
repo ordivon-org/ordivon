@@ -4,7 +4,8 @@ use ordivon_harness_core::CanonicalDocument;
 use ordivon_harness_loop::{
     native_loop::{
         AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision,
-        ModelVisibleContent, NativeAgentLoop, PauseCause, RunFault, RunResult,
+        ModelVisibleContent, NativeAgentLoop, PauseCause, ProviderWireObservation, RunFault,
+        RunResult,
     },
     native_provider_http::HttpModelProvider,
     pg_domain_read::{inspect_pg_no_tool_run, ExpectedModel},
@@ -23,13 +24,27 @@ use std::{
 struct Journal {
     claims: u32,
     proposals: u32,
+    wire_observed: u32,
 }
 impl DurableJournal for Journal {
     fn prepare_provider(&mut self, _: u32) -> Result<(), String> {
         self.claims += 1;
         Ok(())
     }
-    fn complete_provider(&mut self, _: u32, _: &ModelDecision) -> Result<(), String> {
+    fn complete_provider(
+        &mut self,
+        _: u32,
+        _: &ModelDecision,
+        wire: Option<&ProviderWireObservation>,
+    ) -> Result<(), String> {
+        let wire = wire.ok_or("positive HTTP model result lacks qualified wire observation")?;
+        if !wire.raw_response_digest().starts_with("sha256:")
+            || wire.raw_response_bytes() == 0
+            || wire.finish_reason().is_empty()
+        {
+            return Err("qualified Provider wire evidence invalid".into());
+        }
+        self.wire_observed += 1;
         Ok(())
     }
     fn admit_tool(&mut self, _: u32, _: &ModelToolCall) -> Result<AdmittedTool, String> {
@@ -227,6 +242,7 @@ fn native_pg_verifiable_provider_only_http_loop() {
         let mut journal = Journal {
             claims: 0,
             proposals: 0,
+            wire_observed:0,
         };
         let mut effect = NoEffect;
         let result = NativeAgentLoop::new_provider_only(
@@ -257,6 +273,8 @@ fn native_pg_verifiable_provider_only_http_loop() {
             _ => panic!("unreachable expected Provider response class"),
         }
         assert_eq!(journal.claims, 1);
+        assert_eq!(journal.wire_observed, if expected_outcome=="paused_unknown" {0} else {1},
+            "Only complete and decoded HTTP responses may become wire observations");
         http.join().unwrap();
     }
     println!("PG18_VERIFIED_NO_TOOL_REAL_HTTP_RUST_LOOP_PASS");

@@ -1,6 +1,7 @@
 //! Bounded Rust Agent decision loop with explicit durable-admission boundaries.
 //! A trait is an owner port, not an old Python adapter or a substitute for PG.
 use crate::{
+    cc_usage::ProviderUsageObservation,
     pg_domain_read::ObservedNoToolRun,
     tool_arguments::validate_granted_tool_arguments,
     tool_call::{
@@ -21,6 +22,48 @@ pub enum ModelDecision {
 pub enum ProviderResult {
     Delivered(ModelDecision),
     Unknown,
+}
+/// Evidence from a fully decoded Provider wire response, not a bill,
+/// PG receipt, Tool grant or DomainSuccess. Only the HTTP transport itself
+/// can construct this witness; synthetic Provider scripts return None.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderWireObservation {
+    raw_response_digest: String,
+    raw_response_bytes: u64,
+    provider_reported_model: Option<String>,
+    reported_usage: Option<ProviderUsageObservation>,
+    finish_reason: String,
+}
+impl ProviderWireObservation {
+    pub(crate) fn from_validated_http(
+        body: &[u8],
+        provider_reported_model: Option<&str>,
+        reported_usage: Option<ProviderUsageObservation>,
+        finish_reason: &str,
+    ) -> Self {
+        Self {
+            raw_response_digest: digest_bytes(body),
+            raw_response_bytes: u64::try_from(body.len()).expect("bounded HTTP body"),
+            provider_reported_model: provider_reported_model.map(str::to_owned),
+            reported_usage,
+            finish_reason: finish_reason.to_owned(),
+        }
+    }
+    pub fn raw_response_digest(&self) -> &str {
+        &self.raw_response_digest
+    }
+    pub fn raw_response_bytes(&self) -> u64 {
+        self.raw_response_bytes
+    }
+    pub fn provider_reported_model(&self) -> Option<&str> {
+        self.provider_reported_model.as_deref()
+    }
+    pub fn reported_usage(&self) -> Option<&ProviderUsageObservation> {
+        self.reported_usage.as_ref()
+    }
+    pub fn finish_reason(&self) -> &str {
+        &self.finish_reason
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolObservation {
@@ -108,10 +151,19 @@ impl AdmittedTool {
 }
 pub trait Provider {
     fn turn(&mut self, number: u32, observations: &[ToolObservation]) -> ProviderResult;
+    /// Absent on synthetic providers, and on ambiguous or malformed responses.
+    fn last_wire_observation(&self) -> Option<&ProviderWireObservation> {
+        None
+    }
 }
 pub trait DurableJournal {
     fn prepare_provider(&mut self, turn: u32) -> Result<(), String>;
-    fn complete_provider(&mut self, turn: u32, decision: &ModelDecision) -> Result<(), String>;
+    fn complete_provider(
+        &mut self,
+        turn: u32,
+        decision: &ModelDecision,
+        wire: Option<&ProviderWireObservation>,
+    ) -> Result<(), String>;
     fn admit_tool(&mut self, turn: u32, call: &ModelToolCall) -> Result<AdmittedTool, String>;
     fn record_effect(
         &mut self,
@@ -213,7 +265,7 @@ impl<'a, P: Provider, J: DurableJournal, E: EffectReceiver> NativeAgentLoop<'a, 
                 ProviderResult::Delivered(decision) => decision,
             };
             self.journal
-                .complete_provider(turn, &decision)
+                .complete_provider(turn, &decision, self.provider.last_wire_observation())
                 .map_err(RunFault::Journal)?;
             match decision {
                 ModelDecision::ProposeCompletion(text) => {
@@ -380,7 +432,12 @@ mod tests {
             self.steps.push("provider-prepared");
             Ok(())
         }
-        fn complete_provider(&mut self, _: u32, _: &ModelDecision) -> Result<(), String> {
+        fn complete_provider(
+            &mut self,
+            _: u32,
+            _: &ModelDecision,
+            _: Option<&ProviderWireObservation>,
+        ) -> Result<(), String> {
             self.steps.push("provider-recorded");
             Ok(())
         }

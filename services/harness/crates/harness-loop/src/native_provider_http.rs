@@ -2,7 +2,9 @@
 //! speculative retry after an ambiguous network/Provider response.
 use crate::{
     cc_usage::{observe_chat_usage, ProviderUsageObservation},
-    native_loop::{ModelDecision, Provider, ProviderResult, ToolObservation},
+    native_loop::{
+        ModelDecision, Provider, ProviderResult, ProviderWireObservation, ToolObservation,
+    },
     native_provider_sse::decode_chat_completion_sse,
     pg_domain_read::ObservedNoToolRun,
     pg_provider_config::ObservedProviderTransport,
@@ -41,6 +43,7 @@ pub struct HttpModelProvider {
     observed: usize,
     streaming: bool,
     last_usage: Option<ProviderUsageObservation>,
+    last_wire_observation: Option<ProviderWireObservation>,
     unknown_requires_reconciliation: bool,
     prepared: Option<PreparedHttpRequest>,
 }
@@ -176,6 +179,7 @@ impl HttpModelProvider {
             observed: 0,
             streaming: false,
             last_usage: None,
+            last_wire_observation: None,
             unknown_requires_reconciliation: false,
             prepared: None,
         })
@@ -264,6 +268,7 @@ impl HttpModelProvider {
 
     fn query(&mut self, observations: &[ToolObservation]) -> ProviderResult {
         self.last_usage = None;
+        self.last_wire_observation = None;
         if self.unknown_requires_reconciliation {
             return ProviderResult::Unknown;
         }
@@ -332,6 +337,15 @@ impl HttpModelProvider {
             return ProviderResult::Unknown;
         };
         self.last_usage = observe_chat_usage(&reply);
+        self.last_wire_observation = Some(ProviderWireObservation::from_validated_http(
+            &bytes,
+            reply.get("model").and_then(Value::as_str),
+            self.last_usage.clone(),
+            reply
+                .pointer("/choices/0/finish_reason")
+                .and_then(Value::as_str)
+                .expect("validated provider decode requires finish_reason"),
+        ));
         self.messages = frozen.messages;
         self.observed = observations.len();
         self.messages.push(message.clone());
@@ -412,6 +426,9 @@ fn decode_chat_completion(reply: &Value) -> Option<(&Value, ModelDecision)> {
 impl Provider for HttpModelProvider {
     fn turn(&mut self, _number: u32, observations: &[ToolObservation]) -> ProviderResult {
         self.query(observations)
+    }
+    fn last_wire_observation(&self) -> Option<&ProviderWireObservation> {
+        self.last_wire_observation.as_ref()
     }
 }
 #[cfg(test)]
@@ -614,6 +631,13 @@ mod tests {
         assert_eq!(usage.input_tokens, 11);
         assert_eq!(usage.output_tokens, 2);
         assert_eq!(usage.cache_read_tokens, 5);
+        let observed = model
+            .last_wire_observation()
+            .expect("validated complete SSE body");
+        assert_eq!(observed.reported_usage().unwrap().input_tokens, 11);
+        assert_eq!(observed.finish_reason(), "stop");
+        assert!(observed.raw_response_digest().starts_with("sha256:"));
+        assert!(observed.raw_response_bytes() > 0);
         server.join().unwrap();
     }
 
@@ -739,6 +763,15 @@ mod tests {
             ProviderResult::Delivered(ModelDecision::ProposeCompletion(ref v)) if v=="ok"
         ));
         assert!(model.last_usage().is_none());
+        assert!(
+            model.last_wire_observation().is_some(),
+            "Missing Usage does not make the verified response missing"
+        );
+        assert!(model
+            .last_wire_observation()
+            .unwrap()
+            .reported_usage()
+            .is_none());
         server.join().unwrap();
     }
 
@@ -754,6 +787,10 @@ mod tests {
                 .unwrap()
                 .with_streaming();
         assert!(matches!(model.turn(1, &[]), ProviderResult::Unknown));
+        assert!(
+            model.last_wire_observation().is_none(),
+            "Incomplete SSE cannot yield a verified positive Provider receipt"
+        );
         server.join().unwrap();
     }
 
