@@ -186,6 +186,59 @@ class EvidenceAdmissionTests(unittest.TestCase):
         self.assertEqual(report["decision"], "UNKNOWN_SOURCE_RELATION")
         self.assertEqual(report["recommendedAction"], "QUALIFY_MISSING_SOURCE_RELATION_NOT_BLANKET_REPLAY")
 
+    def test_exact_commit_ci_after_merge_queue_needs_no_pr_identity(self):
+        with (
+            patch.object(module, "_git", side_effect=self.fake_git),
+            patch.object(
+                module,
+                "_qualified_original_source_ci",
+                return_value=(
+                    "EXACT_CUT_SOURCE_CI_PASS",
+                    [{"name": "root-verification"}],
+                    {"name": "root-verification", "status": "completed", "conclusion": "success"},
+                ),
+            ) as original,
+        ):
+            receipt = module.assess_commit(commit=SHA, owner="runtime", target=SHA)
+        original.assert_called_once_with(SHA)
+        self.assertIsNone(receipt["originalPr"])
+        self.assertIsNone(receipt["originalBaseCut"])
+        self.assertIsNone(receipt["originalOwnerInCurrentSelectorProjection"])
+        self.assertEqual(receipt["decision"], "EXACT_CUT_CI_OBSERVED")
+        self.assertFalse(receipt["proofReuseAdmissible"])
+
+    def test_distinct_squash_commit_cannot_inherit_old_pr_ci(self):
+        with (
+            patch.object(module, "_git", side_effect=self.fake_git),
+            patch.object(
+                module,
+                "_qualified_original_source_ci",
+                return_value=("EXACT_CUT_SOURCE_CI_PASS", [], {"name": "root-verification"}),
+            ),
+        ):
+            receipt = module.assess_commit(commit=SHA, owner="runtime", target=NEXT)
+        self.assertEqual(receipt["decision"], "UNKNOWN_SOURCE_RELATION")
+        self.assertEqual(receipt["sourceRelation"], "UNQUALIFIED_DISTINCT_SOURCE_CUTS")
+        self.assertIn("EXACT_TARGET_CUT_RECEIPT", receipt["recommendedAction"])
+
+    def test_commit_mode_cannot_promote_failed_or_unknown_original_ci(self):
+        with (
+            patch.object(module, "_git", side_effect=self.fake_git),
+            patch.object(
+                module,
+                "_qualified_original_source_ci",
+                return_value=("INCOMPLETE_OR_FAILED_CHECKS", [], None),
+            ),
+        ):
+            receipt = module.assess_commit(commit=SHA, owner="runtime", target=SHA)
+        self.assertEqual(receipt["decision"], "RECEIPT_UNKNOWN_OR_NOT_PASSED")
+
+    def test_commit_mode_rejects_nonexact_input_and_unsupported_owner(self):
+        with self.assertRaisesRegex(ValueError, "exact lowercase"):
+            module.assess_commit(commit="HEAD", owner="runtime")
+        with self.assertRaisesRegex(ValueError, "unknown natural"):
+            module.assess_commit(commit=SHA, owner="invented")
+
     def test_rejects_unqualified_request_and_foreign_pr(self):
         with self.assertRaisesRegex(ValueError, "unknown natural"):
             module.assess(pr=2177, owner="invented")

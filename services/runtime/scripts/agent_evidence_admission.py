@@ -127,6 +127,72 @@ def _native_root_workflow_matches(root_check: dict[str, str], source_cut: str) -
     )
 
 
+def _qualified_original_source_ci(source_cut: str) -> tuple[str, list[dict[str, str]], dict[str, str] | None]:
+    """Read original GitHub workflow, not re-run a verifier."""
+    checks = _github(f"commits/{source_cut}/check-runs?per_page=100")
+    standing, jobs = _official_ci_at_cut(checks, source_cut)
+    root = next(
+        (row for row in jobs if row["name"] == "root-verification" and row["app"] == "github-actions"),
+        None,
+    )
+    if standing == "EXACT_CUT_SOURCE_CI_PASS" and (root is None or not _native_root_workflow_matches(root, source_cut)):
+        standing = "UNKNOWN_ROOT_WORKFLOW_IDENTITY"
+    return standing, jobs, root
+
+
+def assess_commit(*, commit: str, owner: str, target: str = "HEAD") -> dict[str, Any]:
+    """Observe an exact Git commit's own CI without inventing PR ancestry.
+
+    This permits safe readout after squash/merge queue changes the commit ID.
+    No source patch equivalence, consumer coverage or installed fact is assumed.
+    """
+    if owner not in {item.name for item in affected_owners.OWNERS}:
+        raise ValueError("unknown natural verification Owner")
+    proof_cut = _source_cut(commit)
+    if target != "HEAD" and _GIT_SHA.fullmatch(target) is None:
+        raise ValueError("target revision must be HEAD or an exact Git commit")
+    target_cut = _source_cut(_git("rev-parse", f"{target}^{{commit}}"))
+    if _git("cat-file", "-t", proof_cut) != "commit":
+        raise ValueError("original commit unavailable in local Git source")
+    receipt, jobs, root = _qualified_original_source_ci(proof_cut)
+    if receipt != "EXACT_CUT_SOURCE_CI_PASS":
+        decision = "RECEIPT_UNKNOWN_OR_NOT_PASSED"
+        action = "INSPECT_ORIGINAL_CI_RECEIPT_BEFORE_RUNNING_TESTS"
+    elif proof_cut == target_cut:
+        decision = "EXACT_CUT_CI_OBSERVED"
+        action = "REUSE_OFFICIAL_SOURCE_CI_RESULT_AT_THIS_CUT_NO_DUPLICATE_RUN"
+    else:
+        decision = "UNKNOWN_SOURCE_RELATION"
+        action = "VERIFY_EXACT_TARGET_CUT_RECEIPT_INSTEAD_OF_INHERITING_SQUASH_PR_STATUS"
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.runtime-agent-evidence-admission",
+        "consumerOwner": owner,
+        "originalPr": None,
+        "originalBaseCut": None,
+        "originalProofCut": proof_cut,
+        "targetSourceCut": target_cut,
+        "originalReceipt": receipt,
+        "officialCheckCount": len(jobs),
+        "originalRootCheck": root,
+        "originalOwnerInCurrentSelectorProjection": None,
+        "sourceRelation": "EXACT_GIT_CUT" if proof_cut == target_cut else "UNQUALIFIED_DISTINCT_SOURCE_CUTS",
+        "newOwnerAffected": None,
+        "changedTrackedGitPaths": [],
+        "decision": decision,
+        "recommendedAction": action,
+        "proofReuseAdmissible": False,
+        "installedStanding": "UNKNOWN",
+        "runtimeCallStanding": "UNKNOWN",
+        "harnessArchivedEvidenceStanding": "SEPARATE_UPSTREAM_HARNESS_AUTHORITY",
+        "truthBoundary": (
+            "Original GitHub Actions exact-commit CI observation, not model/code "
+            "refinement, task-level execution coverage, Git patch-equivalence, "
+            "installed service state or live execution semantics. No verifier invoked."
+        ),
+    }
+
+
 def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
     owner_names = {item.name for item in affected_owners.OWNERS}
     if owner not in owner_names:
@@ -148,16 +214,7 @@ def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
     for cut in (proof_cut, base_cut):
         if _git("cat-file", "-t", cut) != "commit":
             raise ValueError("original PR Git revision not available in local immutable source")
-    checks = _github(f"commits/{proof_cut}/check-runs?per_page=100")
-    receipt, jobs = _official_ci_at_cut(checks, proof_cut)
-    root_check = next(
-        (x for x in jobs if x["name"] == "root-verification" and x["app"] == "github-actions"),
-        None,
-    )
-    if receipt == "EXACT_CUT_SOURCE_CI_PASS" and (
-        root_check is None or not _native_root_workflow_matches(root_check, proof_cut)
-    ):
-        receipt = "UNKNOWN_ROOT_WORKFLOW_IDENTITY"
+    receipt, jobs, root_check = _qualified_original_source_ci(proof_cut)
 
     # This is an existing canonical OWNER consumer selection projection,
     # not an authenticated record of every CI child Job's executed task list.
@@ -232,12 +289,18 @@ def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pr", type=int, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--pr", type=int, help="original GitHub pull request")
+    source.add_argument("--commit", help="exact 40-hex Git commit and its own official CI")
     parser.add_argument("--owner", required=True)
     parser.add_argument("--target", default="HEAD", help="exact local target revision (default HEAD)")
     args = parser.parse_args()
     try:
-        report = assess(pr=args.pr, owner=args.owner, target=args.target)
+        report = (
+            assess(pr=args.pr, owner=args.owner, target=args.target)
+            if args.pr is not None
+            else assess_commit(commit=args.commit, owner=args.owner, target=args.target)
+        )
     except (ValueError, OSError, json.JSONDecodeError, subprocess.SubprocessError) as exc:
         print(
             json.dumps(
