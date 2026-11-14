@@ -153,3 +153,15 @@ AFFECTED_PROOF_TOOL_INPUTS with an exact
 INSPECT_CHANGED_SELECTED_FORMAL_TOOL_INPUTS obligation. This is an
 inspection instruction, NOT permission to dispatch a verification Job;
 the runtime/caller identity and existing check receipts remain separate.
+
+
+### A new contained Z3 consumer, not the original multi-solver proof
+
+When the specific Media Loudness IEEE-754 SMT model needs a new
+verification, tools/formal/contained_z3.py can execute the original
+Git-bound model under Bubblewrap with a selected immutable
+Z3/ELF input bundle and no host filesystem except those bound
+files. It requires SAT/UNSAT/SAT and negative guest denial of
+host /etc/passwd. This is a narrow new consumer, never a proof
+that original historical Lean/Alloy/Z3 results can be reused.
+Do not generalize or dispatch it for unrelated Claims.

@@ -123,6 +123,11 @@ consumer may receive scoped support) and FORMAL_PROOF_APPLICABLE_TO_TARGET
 are closed). Neither result authorizes any Runtime Job or generic Harness
 workspace.exec, nor does it establish installed currentness.
 See docs/architecture/EVIDENCE_VALIDITY_KERNEL_R1.md.
+The optional contained Z3 Media consumer in
+tools/formal/contained_z3.py performs a new native Bubblewrap
+empty-root model query with only selected Z3 and ELF files,
+not old proof reuse or installed application correctness.
+
 For a specific toolchain premise, optionally include
 --compare-current-formal-tool-inputs to use the native formal
 read-only selected toolchain observation. This never closes a full

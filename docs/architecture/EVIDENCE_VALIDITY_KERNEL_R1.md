@@ -462,3 +462,68 @@ toolchain/dynamic and model/consumer assumptions remain present;
 no PG Job is dispatched, no other Claim is promoted, and full proof
 reuse still remains FALSE/unknown. Missing or unqualified observations
 fail closed and preserve the previous UNKNOWN path.
+
+
+## R8: A real contained Z3 Media model consumer with bounded file visibility
+
+The previous historical Formal verification used unbounded ambient
+host loader/import state, so it cannot claim a closed complete
+dynamic proof readset. A different narrow approach constrains a
+NEW verification consumer's observable filesystem, not by claiming
+to have discovered all arbitrary historical dynamic dependencies.
+
+Native tools/formal/contained_z3.py reuses the original
+tools/formal/verify.py production helpers for its source Git
+qualification, selected mise Z3 binary and Z3 ELF loader-observed
+libraries. It binds its own runner code and the existing
+capabilities/media/formal/LoudnessProfileSafety.smt2 model to
+the exact committed Git SourceCut. It copies Z3 and the five
+loader-resolved libraries to a temporary worktree stage and
+verifies every staged digest against the native producer before
+an isolated run. The interpreter remains executable while
+all guest input bind mounts are read-only.
+
+Bubblewrap --unshare-all and --clearenv run Z3 inside an empty
+new guest root with only /z3 and the selected ELF files mounted,
+with an empty /tmp scratch space, no host /etc, /home, /dev,
+or /proc mount and no host network namespace. The domain
+consumer requires SAT, UNSAT, SAT from its three IEEE-754
+queries, plus a physical negative control: an existing real
+host /etc/passwd must be denied to Z3 in the guest.
+
+This is a new single-model execution, NOT a rerun or reuse
+of the 21-probe historical Formal Job. The staged input
+identities and runner/model SourceCut are recorded. This
+is not a generic sandbox security proof, not a full
+temporal/runtime/CPU/kernel dependency closure, and does
+not establish the Python implementation or production
+consumer satisfies the abstract Media model.
+
+Run directly from a clean committed Linux SourceCut:
+
+    python3 tools/formal/contained_z3.py
+
+Actual physical execution is opt-in, and default root CI
+only exercises native unit/negative source contracts.
+The optional additional live consumer unit test is gated
+by ORDIVON_CONTAINED_Z3_LIVE=1.
+
+R2.1 LEGO:
+I = exact Git runner/model, native Z3 and ELF observations;
+O = SAT/UNSAT/SAT result, visible input identities and host-file-denial;
+S = qualified, failed or unsupported bounded environment;
+pre = original source and staged tool bytes bound to exact digest;
+post = one bounded IEEE-754 Media model accepts expected responses;
+inv = no cross-SHA historical proof reuse, no production assertion;
+eff = one isolated Z3 query and separate negative guest-file probe;
+c = two bounded small processes, not old multi-solver Formal suite;
+epsilon = host kernel and CPU, concurrent stage tamper, output
+to installed implementation mapping remain UNKNOWN;
+prov = exact Git source, native producer and Bubblewrap run;
+unfold = Git SourceCut -> staged tool inputs -> restricted
+namespace -> domain model -> bounded evidence.
+
+Remaining P0: actual original full multi-tool dynamic readset and
+model-to-implementation refinement; Caller-specific cross-Agent
+atomic PG verification task admission without sharing Principal
+or globally blocking ordinary Harness ToolBridge.
