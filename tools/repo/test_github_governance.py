@@ -65,6 +65,7 @@ _FORMAL_PROBE_ORACLES = (
     ("Lean kernel Media Creative Library Catalog acceptance", 0),
     ("Lean kernel Media Output byte identity", 0),
     ("Lean kernel Media dependency impact model", 0),
+    ("Lean kernel Media archive visual relation conservation", 0),
     ("Z3 IEEE-754 Media loudness profile model", 0),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
