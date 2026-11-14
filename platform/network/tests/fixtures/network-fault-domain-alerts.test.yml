@@ -1,0 +1,132 @@
+# Native Prometheus differential classification of two distinct real egress
+# failure domains. All source jobs are existing Blackbox consumers; no daemon.
+# Missing, partially healthy, or mixed direct probes cannot assert either
+# specialisation. The general three-lane alarm remains available separately.
+rule_files:
+  - ../../config/prometheus/consumer.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              observation_plane: correlated_direct_and_vpn
+            exp_annotations:
+              summary: Two independent direct origins and three VPN consumers failed together; shared upstream failure suspected, physical cause unknown
+      - eval_time: 4m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              observation_plane: direct_healthy_vpn_consumers_failed
+            exp_annotations:
+              summary: Two direct HTTPS origins succeeded while three VPN consumers failed; investigate the VPN-dependent path without assuming provider cause
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 0 0 0'
+      # Alternate direct origin missing: UNKNOWN; do not infer physical failure.
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0 0 0'
+      # An old observed failure followed by a stale marker is UNKNOWN.
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 stale _ _ _ _'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '0 0 stale _ _ _ _'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 1 1 1'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts: []

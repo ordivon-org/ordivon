@@ -120,6 +120,40 @@ groups:
           severity: warning
         annotations:
           summary: PyPI, Codex and Claude independent HTTPS probes are simultaneously failing; inspect shared egress before individual applications
+      # Triage the actual failure domain at the consumer boundary. Both
+      # host-direct targets must be independently observed: a single origin
+      # can fail without losing the physical WAN. All five series require
+      # fresh original scrape timestamps; missing evidence is UNKNOWN.
+      # This is a *correlated symptom*, not causal proof of the modem or ISP.
+      # In particular, a shared outage must never authorize a Gluetun PUT.
+      - alert: NetworkSharedUnderlaySuspected
+        expr: >-
+          (sum(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 0)
+          and (count(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 5)
+          and (count((time() - timestamp(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"})) < 90) == 5)
+        for: 2m
+        labels:
+          severity: warning
+          observation_plane: correlated_direct_and_vpn
+        annotations:
+          summary: Two independent direct origins and three VPN consumers failed together; shared upstream failure suspected, physical cause unknown
+      # The inverse only narrows the investigation to a VPN-dependent path.
+      # Healthy direct HTTPS does not prove that DNS, the Gluetun endpoint,
+      # a scoped proxy, or a destination service is specifically responsible.
+      - alert: NetworkVPNPathFailureWithDirectHealthy
+        expr: >-
+          (sum(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 0)
+          and (count(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 3)
+          and (count((time() - timestamp(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"})) < 90) == 3)
+          and (sum(probe_success{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 2)
+          and (count(probe_success{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 2)
+          and (count((time() - timestamp(probe_success{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"})) < 90) == 2)
+        for: 2m
+        labels:
+          severity: warning
+          observation_plane: direct_healthy_vpn_consumers_failed
+        annotations:
+          summary: Two direct HTTPS origins succeeded while three VPN consumers failed; investigate the VPN-dependent path without assuming provider cause
       # Prevent certificate-expiry class before the next production TLS outage.
       - alert: NetworkConsumerTLSExpirySoon
         expr: (probe_ssl_earliest_cert_expiry{job=~"blackbox-(vpn|scoped)-.*"} - time()) < 1209600
