@@ -85,6 +85,127 @@ def test_source_readset_impact_preserves_incomplete_unaffected_dependency_as_unk
     assert standing["proof:test:b"] == "UNKNOWN"
 
 
+def test_source_readset_namespace_membership_is_explicit_and_selective():
+    """A new namespace member invalidates a glob consumer, not an unrelated file consumer."""
+    delta, evidence = _source_readset_fixture(complete_second=True)
+    member = delta["sourceScopeRef"] + ":members:owner/"
+    newcomer = delta["sourceScopeRef"] + ":path:owner/new.py"
+    delta["membershipRef"] = member
+    delta["authorityRefs"].extend([member, newcomer])
+    delta["changedRefs"] += [member, newcomer]
+    evidence["items"].append(
+        {
+            "id": "proof:test:namespace-enumerator",
+            "sourcePaths": ["owner/b.py"],
+            "dependenciesComplete": True,
+            "dependsOnScopeMembership": True,
+        }
+    )
+    result = select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
+    statuses = {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
+    assert statuses == {
+        "proof:test:a": "RECHECK_REQUIRED",  # independently changed file
+        "proof:test:b": "REUSE_CANDIDATE",  # only unchanged explicit input
+        "proof:test:namespace-enumerator": "RECHECK_REQUIRED",  # new member
+    }
+    assert result["selection"]["unindexedChangeRefs"] == []
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, monkeypatch):
+    """Actual Git objects: newly appearing/disappearing members are dependencies."""
+    import subprocess
+    from pathlib import Path
+
+    source_repo = Path(__file__).resolve().parents[3]
+    monkeypatch.syspath_prepend(str(source_repo))
+    from tools.repo.source_history_legos import source_membership_delta
+
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon graph-test")
+    git("config", "user.email", "source-graph@example.invalid")
+    scope = tmp_path / "source"
+    scope.mkdir()
+    (scope / "existing.txt").write_text("unchanged\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "before")
+    first = git("rev-parse", "HEAD")
+
+    def select(old, new):
+        delta = source_membership_delta(tmp_path, old, new, "source/")
+        proof = {
+            "kind": "ordivon.source-readset-evidence",
+            "sourceCut": new,
+            "scopePrefix": "source/",
+            "dependencyQualification": "TASK_LOCAL_GIT_EXAMPLE_ONLY",
+            "proofReuseAdmissible": False,
+            "items": [
+                {
+                    "id": "proof:consumer:namespace",
+                    "sourcePaths": ["source/existing.txt"],
+                    "dependsOnScopeMembership": True,
+                    "dependenciesComplete": True,
+                },
+                {
+                    "id": "proof:consumer:single-file",
+                    "sourcePaths": ["source/existing.txt"],
+                    "dependenciesComplete": True,
+                },
+            ],
+        }
+        selected = select_source_readset_impacts(
+            git_source_delta=delta, source_readset_evidence=proof
+        )
+        return delta, {
+            row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]
+        }
+
+    (scope / "new.txt").write_text("added\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "add member")
+    second = git("rev-parse", "HEAD")
+    delta, statuses = select(first, second)
+    assert delta["addedPaths"] == ["source/new.txt"]
+    assert delta["membershipChanged"] is True
+    assert statuses == {
+        "proof:consumer:namespace": "RECHECK_REQUIRED",
+        "proof:consumer:single-file": "REUSE_CANDIDATE",
+    }
+
+    (scope / "new.txt").unlink()
+    git("add", "-u")
+    git("commit", "-qm", "remove member")
+    third = git("rev-parse", "HEAD")
+    delta, statuses = select(second, third)
+    assert delta["removedPaths"] == ["source/new.txt"]
+    assert delta["membershipChanged"] is True
+    assert statuses == {
+        "proof:consumer:namespace": "RECHECK_REQUIRED",
+        "proof:consumer:single-file": "REUSE_CANDIDATE",
+    }
+
+
+def test_source_readset_namespace_membership_rejects_malformed_claim():
+    delta, evidence = _source_readset_fixture(complete_second=True)
+    member = delta["sourceScopeRef"] + ":members:owner/"
+    delta["membershipRef"] = member
+    delta["authorityRefs"].append(member)
+    evidence["items"][0]["dependsOnScopeMembership"] = True
+    good = select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
+    assert good["selection"]["standingByObligation"]
+    for invalid in ("true", 1, None, [], {}):
+        evidence["items"][0]["dependsOnScopeMembership"] = invalid
+        with pytest.raises(CircuitContractError):
+            select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
+    evidence["items"][0]["dependsOnScopeMembership"] = True
+    delta["membershipRef"] = member + "incorrect"
+    with pytest.raises(CircuitContractError):
+        select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
+
+
 @pytest.mark.parametrize("mutation", ["sourcecut", "scope", "missing-path", "duplicate-path"])
 def test_source_readset_impact_fails_closed_on_unqualified_bridge(mutation):
     delta, evidence = _source_readset_fixture()

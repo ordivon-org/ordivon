@@ -219,12 +219,19 @@ def select_source_readset_impacts(
         raise CircuitContractError("source readset evidence must bind the exact current Git scope")
 
     authority = set(git_source_delta["authorityRefs"])
+    # An enumerating consumer depends on the *set* of source members, not
+    # merely the bytes of the files that happened to exist at the prior cut.
+    # Reuse the native Git delta's existing members: ref; no second graph.
+    membership_ref = git_source_delta.get("membershipRef")
     obligations: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
     for item in evidence["items"]:
         if (
             not isinstance(item, dict)
-            or set(item) != {"id", "sourcePaths", "dependenciesComplete"}
+            or not {"id", "sourcePaths", "dependenciesComplete"} <= set(item)
+            or not set(item)
+            <= {"id", "sourcePaths", "dependenciesComplete", "dependsOnScopeMembership"}
+            or type(item.get("dependsOnScopeMembership", False)) is not bool
             or not isinstance(item["id"], str)
             or ":" not in item["id"]
             or not isinstance(item["sourcePaths"], list)
@@ -256,6 +263,15 @@ def select_source_readset_impacts(
                     "source readset path is absent from exact Git authority refs"
                 )
             refs.append(ref)
+        if item.get("dependsOnScopeMembership", False):
+            expected = (
+                f"{git_source_delta['sourceScopeRef']}:members:{git_source_delta['queryPrefix']}"
+            )
+            if membership_ref != expected or membership_ref not in authority:
+                raise CircuitContractError(
+                    "scope membership edge requires the exact native Git scope reference"
+                )
+            refs.append(membership_ref)
         obligations.append(
             {
                 "id": item["id"],
@@ -281,6 +297,7 @@ def select_source_readset_impacts(
         "proofAcceptanceEstablished": False,
         "nonClaims": [
             "Owner readset evidence supplies positive dependency edges, not proof of complete dynamic/build/environment closure.",
+            "dependsOnScopeMembership explicitly tracks additions/removals across the whole selected Git prefix; false never proves the consumer ignores newly discovered members.",
             "REUSE_CANDIDATE remains a scheduling candidate and is never verifier PASS.",
             "No implementation refinement, installed currentness, effect authority, or domain acceptance is established.",
         ],

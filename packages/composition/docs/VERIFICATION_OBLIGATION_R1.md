@@ -177,3 +177,22 @@ The next useful integration is not another formal engine. It is one real end-to-
 that lowers a Circuit Gate to this obligation carrier, binds an existing verifier, executes
 through the natural owner, and feeds the existing `composition-gate-result` back into R1
 closure without widening authority.
+
+### Source namespace membership is a distinct readset edge (R1 extension)
+
+For the existing task-local `impact-readsets` path, an Owner-supplied readset
+item can optionally declare `dependsOnScopeMembership: true` alongside its
+`sourcePaths` and `dependenciesComplete`. This explicitly subscribes to the
+**exact Git prefix member-set identity** already returned by the native
+`source_membership_delta` (`membershipRef`). A new/removal member is therefore
+reported as `RECHECK_REQUIRED` for that enumerating consumer, while an
+unrelated file-specific consumer remains a `REUSE_CANDIDATE` only when its
+caller-supplied readset is separately claimed complete. The bridge rejects
+non-boolean values or an absent/mismatched membership reference. Omitting the
+field preserves existing direct-file queries; it is not proof that a real
+consumer ignores missing or newly discovered files.
+
+The model remains a read-only *selection* with `proofReuseAdmissible: false`.
+This is not a graph database, new Source owner or proof/installed acceptance.
+The actual Agent Golden Road is
+`../../../docs/AGENT_NATIVE_SOURCE_CAUSAL_GRAPH_R1.md`.
