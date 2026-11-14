@@ -40,6 +40,19 @@ references. No new Runtime Job is needed for an unchanged Owner receipt.
 Source: [Composition consumer R1](../../packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md).
 **This source bridge is not yet an installed Gateway tool.**
 
+## Real GitHub Owner workflow evidence and Justification (source-only R4)
+
+For a GitHub workflow completion at one exact Git SHA, the Composition
+agent-host-github-justifications consumer reads natural gh run view records
+for evidence references **already present** in current Work. It evaluates
+AND/OR support paths under current SourceCut and workflow identity.
+A prior successful run on an older SHA does not substitute for a new run;
+an independently complete path may prevent an unnecessary rerun.
+This is a narrow evidence-requirement qualification, not a domain VERIFIED,
+full dependency closure, installed policy or Agent authorization claim.
+Only a separately authenticated Work CAS may record generated nextActions.
+See packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md.
+
 ## Agent re-entry and effects
 
 Use `work.get → attention.reentry → topic.resume → owner-native reference readback → work.snapshot.commit → cursor acknowledgment` as needed. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.

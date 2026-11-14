@@ -526,6 +526,82 @@
       "replacements": [
         "Replace this task-local adapter with native Research/Artifact acceptance once it preserves explicit authority separation and negative tests."
       ]
+    },
+    {
+      "id": "C10",
+      "label": "GithubOwnerJustificationApplicability",
+      "kind": "agent_task_local_evidence_support",
+      "responsibility": "For a current Host Agent Work, read natural GitHub Actions runs and evaluate narrowly scoped exact-SHA workflow completion requirements via finite OR of AND Justifications, without new Jobs or domain-proof promotion.",
+      "authority": "GitHub Actions owns workflow run records; Composition owns only bounded source-level support projection; Host current Work and Gateway are downstream semantic consumers.",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "actual current Host work.get and references",
+        "immutable native Git HEAD",
+        "task-local consumer Claim and bounded AND/OR paths",
+        "GitHub native run ID, SHA, workflow name, status and conclusion"
+      ],
+      "outputs": [
+        "Owner-read qualification per referenced GitHub run",
+        "EVIDENCE_REQUIREMENTS_SATISFIED or UNKNOWN per workflow evidence requirement",
+        "non-executing current Work nextAction proposal"
+      ],
+      "behavioralContract": "One OR path suffices only if every referenced native GitHub run has matching run ID, repository, current SHA, exact workflow and completed/success; one invalidated path does not invalidate independent valid alternative; no owner result equals domain proof.",
+      "acceptance": [
+        "11 new bounded test cases for natural Owner evidence OR/AND and adversarial inputs",
+        "Real GitHub Owner runs old SHA mismatch and current Required+CodeQL match",
+        "Five pinned Lean axiom-free abstract Justification support theorems",
+        "Real Host WorkSnapshot CAS rev4→5 and Gateway identical revision/digest, no GitHub or Runtime rerun"
+      ],
+      "evidence": [
+        "src/ordivon_composition/github_justification_r1.py",
+        "src/ordivon_composition/schemas/agent-host-github-justification-v1.schema.json",
+        "tests/test_github_justification_r1.py",
+        "formal/GitHubJustification.lean",
+        "docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md"
+      ],
+      "dependencies": [
+        "C04"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "GitHub authority or credentials",
+        "cryptographic software artifact attestation",
+        "domain acceptance, scientific validity or installation",
+        "global evidence registry or Runtime scheduler",
+        "complete negative/dynamic/environment dependency closure"
+      ],
+      "consumerBindings": [
+        {
+          "path": "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "symbols": [
+            "project_github_owner_justifications",
+            "agent-host-github-justifications"
+          ],
+          "standing": "SOURCE_CLI_REAL_GITHUB_OWNER_READ"
+        },
+        {
+          "path": "services/host/planning/lego-plan-r3.json",
+          "symbols": [
+            "AGENT-GITHUB-JUSTIFICATION-R4"
+          ],
+          "standing": "SOURCE_DOWNSTREAM_CONSUMER_WITH_REAL_HOST_WORK_CAS"
+        },
+        {
+          "path": "packages/composition/tests/test_github_justification_r1.py",
+          "symbols": [
+            "project_github_owner_justifications"
+          ],
+          "standing": "SOURCE_TEST_NEGATIVE_AND_OR_REAL_OWNER_SEPARATE"
+        }
+      ],
+      "formalObligations": [
+        "Lean proves abstract AND/OR algebra, not Python/Owner API/PG CAS implementation",
+        "Workflow success cannot establish installed state, runtime effect, domain proof, or full readset closure",
+        "Agent/Harness installed pre-execution consumer with independent Principal still UNKNOWN"
+      ],
+      "replacements": [
+        "Prefer GitHub native run read over any new proof database or duplicate CI invocation"
+      ]
     }
   ],
   "edges": [
@@ -574,6 +650,11 @@
       "from": "C07",
       "to": "C09",
       "type": "DATA"
+    },
+    {
+      "from": "C04",
+      "to": "C10",
+      "type": "DATA"
     }
   ],
   "slices": [
@@ -617,6 +698,18 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "Separate Web/Security and Research/Artifact acceptance bounded to declared source/fixture contract only."
+      ]
+    },
+    {
+      "id": "HOST_AGENT_JUSTIFICATION_R4",
+      "label": "GithubOwnerWorkflowJustification",
+      "nodeIds": [
+        "C04",
+        "C10"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Real Owner run view AND/OR + actual Work CAS, zero additional verification jobs"
       ]
     }
   ],

@@ -95,6 +95,18 @@ Run, override native Runtime receipt status, or impersonate an actual Owner
 verifier. See
 `packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md`.
 
+### R4 native GitHub Owner AND/OR workflow-result reuse
+
+The task-local agent-host-github-justifications command reads actual
+GitHub Actions runs for exact Git HEAD SHA and workflow name, combining
+multiple Work-linked run IDs using finite OR of AND support paths.
+An old-SHA success cannot count as a new-SHA success. If one alternative
+already matches, Agent should consume that native Owner result rather than
+start another equivalent verification. A failed/unavailable Owner check
+yields UNKNOWN support, not automatically another Job or proof of a false
+domain Claim. This is not an installed Harness execution admission hook:
+no new Runtime/GitHub verification effect is issued here.
+
 ## Provider recovery
 
 Retained Provider Call status controls the next action. A safely failed pre-dispatch call may be retried within budget. A lost response after durable completion is replayed from Store. Ambiguous dispatch remains UNKNOWN until reconciled; transport loss is not implicit redispatch permission.

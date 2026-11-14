@@ -135,6 +135,80 @@ the natural Owner must supply and qualify Work, SourceCut, dependency readsets,
 prior proof receipts and any live/currentness witnesses. This adapter cannot
 authenticate caller-supplied JSON or certify an installed binary by itself.
 
+## R4: natural GitHub Owner justification with finite AND/OR support
+
+R4 is a narrow **workflow completion** consumer, not a full domain-proof
+registry. The source module github_justification_r1.py reads Git HEAD and
+native GitHub Actions run records with the installed gh CLI; it **never**
+accepts caller-authored PASS as Owner evidence or schedules a workflow.
+
+A task-local contract identifies the exact GitHub owner/repository, current
+immutable Git HEAD, and nonempty Claims. Each Claim binds to the existing
+Host WorkRef and has an **OR of alternative Justifications**, each containing
+an **AND of required GitHub run IDs and exact workflow names**. Every run
+reference must already be in current Work referenceRefs.
+
+- A path supports a narrow workflow-result requirement only when every
+  required run has matching repository, run ID, Git SHA, workflow name and
+  completed/success Owner result.
+- A stale successful run on an old Git SHA is SOURCE_MISMATCH. A separate
+  valid alternative can still support the same workflow requirement.
+- A failed, unavailable, unfinished, or mismatched Owner record is UNKNOWN
+  as support for the requested workflow-completion claim; it is NOT evidence
+  that a domain Claim is false.
+- The result always says domainClaimVerified=false and creates zero new
+  GitHub/Runtime verification Jobs. It does not prove full dynamic/negative
+  readset closure, installation, Security authorization or Research quality.
+- It emits an optional unchanged eight-field Host WorkSnapshot proposal,
+  replacing only previous verification-justification-prefixed nextActions.
+  The native Host CAS update, if needed, is **a separate authenticated act**.
+
+The existing Composition command is:
+
+    uv run python -m ordivon_composition.verification_obligation_r1 \
+      agent-host-github-justifications /path/to/host-work.json \
+      /path/to/justification-contract.json --git-repo /path/to/git/repo
+
+The contract has kind=ordivon.github-workflow-justification-contract,
+repo=owner/repo, targetSourceCut=EXACT_HEAD, and claims with id,
+consumerRef, anyOf paths (each with id and allOf edges of evidenceRef
+github:run:RUNID plus workflowName). This mode deliberately does not infer
+arbitrary domain truth from the caller's chosen proof formula.
+
+**Real consumer receipt.** On PR #2185 exact head
+c9daf823040b2a9bd7f5543b778a68cd937bbd07, native GitHub Owner reads
+returned old Monorepo Required 43490396164 as SOURCE_MISMATCH; current
+Monorepo Required 43567631728 and Monorepo CodeQL 43567631871 were
+completed/success for the exact current SHA. One OR Claim used the new
+alternative, while a separate AND Claim required both current runs.
+Both workflow-result evidence requirements were satisfied, domain claims
+remained unverified and no new verification Job was started. The actual Host
+Work was committed rev4 -> rev5 by native CAS and independently read back
+by Gateway with matching Snapshot digest. This is semantic handoff, NOT
+an independently authenticated second Agent.
+
+The new strict Draft202012 JSON Schema prevents false domain PASS, fake
+execution counts, ambiguous status/action pairs and malformed identity tokens.
+The abstract axiom-free Lean support calculus at formal/GitHubJustification.lean
+proves five properties: support requires one all-matched path, a valid
+alternative suffices, an unmatched dependency in every path blocks support,
+adding matched evidence preserves support, and an empty OR has no support.
+Those abstract theorems do **not** prove Python/GitHub API/Host CAS refinement.
+
+**Thought modules:** Truth Maintenance System (Justification support),
+Build Systems a la Carte verifying traces, in-toto/SLSA subject separation,
+Pact exact consumer-version compatibility, formal-first and CQRS.
+
+**Logical modules:** current Consumer Claim -> OR paths -> AND required Owner
+evidence -> exact SHA/workflow qualification -> narrow workflow-result
+support -> non-executing Agent nextAction -> Host Work current reentry.
+
+**Capabilities:** reuse native Git and gh CLI; new bounded source-only Python
+AND/OR projection + strict schema; five Lean theorems and targeted tests;
+reuse existing Host WorkSnapshot CAS and Gateway read path. No second
+evidence database, no new Host MCP tool or Runtime scheduling responsibility.
+
+
 ## LEGO 2.1 and thought modules
 
 `ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)`

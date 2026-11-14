@@ -269,6 +269,68 @@
         "Real Agent/Harness consumer deploys task-local adapter",
         "Optional Host CAS proposal is accepted under actual current Work revision"
       ]
+    },
+    {
+      "id": "AGENT-GITHUB-JUSTIFICATION-R4",
+      "kind": "source-only-github-workflow-evidence-support-and-current-work-handoff",
+      "directConsumer": "Real Host Work work:ordivon:host-agent-proof-applicability-r3:20261114 and Gateway Work.get rev5",
+      "businessScenario": "Agent re-enters Work and wants to reuse already completed GitHub Required+CodeQL checks at the same immutable SourceCut, with OR alternatives for stale and current run",
+      "thoughtModules": [
+        "TMS finite justification AND/OR support",
+        "Build Systems a la Carte verifying traces",
+        "in-toto Subject/Predicate boundary",
+        "Pact exact consumer and provider version",
+        "CQRS current Work",
+        "formal-first / reuse before compose"
+      ],
+      "logicModules": [
+        "Consumer-specific workflow check requirement",
+        "current SourceCut and Owner run binding",
+        "OR alternative AND requirements",
+        "Owner evidence scope/read qualification",
+        "non-executing Agent reuse/qualification action",
+        "Host Work current state CAS and Gateway readback"
+      ],
+      "capabilityRefs": [
+        "K01",
+        "K02",
+        "P02"
+      ],
+      "status": "SOURCE_ACTUAL_GITHUB_OWNER_REAL_WORK_CAS_NOT_INSTALLED_HARNESS_POLICY",
+      "contract": {
+        "I": "Current Host work.get with existing GitHub run refs, task-local bounded Claim/Justification contract, immutable Git HEAD, native GitHub run view status",
+        "O": "Owner-run qualification, finite AND/OR workflow requirement standing, non-executing Agent nextActions and optional CAS-compatible snapshot",
+        "S": "No new persistence; GitHub owns run status, Host owns current semantic Work and Gateway is only a read router",
+        "pre": "Contract target SHA = exact native HEAD; each run is already in current Work; original owner/repo/ID/url/workflow/sha/status must match before satisfied evidence requirement",
+        "post": "Successful alternative AND path satisfies narrow GitHub workflow-completion requirement; mismatched old SHA never does; current Work generated actions can be CAS committed separately",
+        "inv": "Every satisfying AND path has all native Owner records matched; empty alternatives rejected; a separate valid path survives failure of another; DomainClaimVerified always false and zero Jobs created",
+        "eff": "Bounded read-only native Git and GitHub queries; actual authenticated Host CAS only when explicitly invoked as separate consumer effect",
+        "c": "At most 32 unique Owner runs, 24 claims, 16 alternatives per claim and 8 leaves per alternative; no measured p95 or token reduction",
+        "epsilon": "GitHub unavailable/old SHA/wrong workflow/uncompleted result yields UNKNOWN or ineligible path; no automatic domain falsity or valid proof assumption",
+        "prov": [
+          "packages/composition/src/ordivon_composition/github_justification_r1.py",
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "packages/composition/src/ordivon_composition/schemas/agent-host-github-justification-v1.schema.json",
+          "packages/composition/tests/test_github_justification_r1.py",
+          "packages/composition/formal/GitHubJustification.lean",
+          "github:run:43490396164",
+          "github:run:43567631728",
+          "github:run:43567631871"
+        ],
+        "unfold": "Authenticated actual Work.get → exact Git SourceCut → native GitHub Owner runs → bounded AND/OR support → non-executing Work nextAction CAS proposal → separately committed Work rev4→5 → Gateway readback"
+      },
+      "evidence": {
+        "tier": "SOURCE_REAL_GITHUB_OWNER_RECONCILIATION_ACTUAL_HOST_CAS",
+        "completionClaim": "Two exact SHA workflow-completion requirements satisfied via real GitHub runs and Host CAS rev4→5, old SHA mismatched; 11 new focused tests and five Lean no-axiom abstract theorems; zero rerun of prior verifier jobs",
+        "installedCurrentness": "UNKNOWN",
+        "domainClaimVerified": false,
+        "ownerCertifiedDynamicReadsetClosure": "UNKNOWN"
+      },
+      "releaseBlockers": [
+        "Independent authenticated Agent/Harness installed pre-dispatch consumer not established",
+        "GitHub workflow completion != domain proof or full dynamic/negative readset closure",
+        "New SourceCut peer review and independent GitHub official checks"
+      ]
     }
   ]
 }

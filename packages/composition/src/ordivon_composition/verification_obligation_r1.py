@@ -27,6 +27,7 @@ from .cognitive_circuit_r1 import (
     canonical_digest,
     compile_manifest,
 )
+from .github_justification_r1 import project_github_owner_justifications
 from .host_agent_verification_actions import (
     project_host_agent_source_readset_actions,
     project_host_agent_verification_actions,
@@ -52,6 +53,9 @@ OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schem
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
 AGENT_HOST_ACTION_SCHEMA = ROOT / "schemas" / "agent-host-verification-action-v1.schema.json"
+AGENT_GITHUB_JUSTIFICATION_SCHEMA = (
+    ROOT / "schemas" / "agent-host-github-justification-v1.schema.json"
+)
 
 
 def _load_task_local_json_list(path: Path) -> list[Any]:
@@ -647,6 +651,13 @@ def _parser() -> argparse.ArgumentParser:
     agent_source_parser.add_argument("--repo", type=Path, required=True)
     agent_source_parser.add_argument("--proof-refs", type=Path)
 
+    # True natural Owner read and current Host Work consumer, no new evidence
+    # authority. GitHub workflow status is NOT a domain-proof admission.
+    justification_parser = sub.add_parser("agent-host-github-justifications")
+    justification_parser.add_argument("host_work", type=Path)
+    justification_parser.add_argument("justification_contract", type=Path)
+    justification_parser.add_argument("--git-repo", type=Path, required=True)
+
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
@@ -736,6 +747,12 @@ def main() -> int:
             # The Git scope is owner-recomputed in this command; the Owner's
             # *readset* and historical verifier receipt are still unqualified.
             result["sourceReadsetScope"]["nativeGitRequalifiedByCLI"] = True
+        elif args.command == "agent-host-github-justifications":
+            result = project_github_owner_justifications(
+                work=_load_json(args.host_work),
+                contract=_load_json(args.justification_contract),
+                git_repo=args.git_repo,
+            )
         elif args.command == "impact-observations":
             # Natural owners still own the observations and physical receipts.
             # This is a task-local, non-executing source-to-proof adapter.
@@ -820,6 +837,12 @@ def main() -> int:
     except (OSError, json.JSONDecodeError, CircuitContractError) as exc:
         raise SystemExit(f"verification obligation R1 failed: {exc}") from exc
 
+    if args.command == "agent-host-github-justifications":
+        _validate_schema(
+            result,
+            AGENT_GITHUB_JUSTIFICATION_SCHEMA,
+            "task-local natural GitHub Owner justification",
+        )
     if args.command in {"agent-host-actions", "agent-host-source-actions"}:
         _validate_schema(result, AGENT_HOST_ACTION_SCHEMA, "Host Agent action projection")
     print(json.dumps(result, indent=2, sort_keys=True))
