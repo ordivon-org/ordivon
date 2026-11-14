@@ -107,3 +107,27 @@ ordinary COMPLETED cases still pass exact original Python Store / Rust reader
 parity; physical server sends real localhost HTTP, not a live external API.
 This closes the transactional orphan-CAS hole, **not** the issuer-at-spawn
 authorization, current model billing or external AgentSolved proof.
+
+## R32 original source Provider dispatch budget under locked PG Run
+
+The mature Python RunBudget/Agent Loop limits maxModelCalls and safe
+maxModelRetries, but native PG Writer previously did not constrain physical
+Provider DISPATCHING edges if another caller bypassed that cognitive Loop.
+R32 reuses the SAME original locked Run PG transaction and the already
+validated source Contract to count previously durable DISPATCHING events,
+add new ones in the proposed batch, and refuse admissions above
+maxModelCalls + maxModelRetries. It first reconciles exact Event replay,
+preserving already-committed historical receipt semantics without creating
+a second physical effect. A modern v2 source missing these limits fails closed
+for physical dispatch; historical v1 lacks modern budgets and retains its
+previous source-compatible behavior.
+
+Original Python creates a source PG18 Run constrained to maxModelCalls=1 and
+maxModelRetries=0. The first native Rust model call makes a real localhost
+HTTP POST and records DISPATCHING/COMPLETED. The second source-valid PG
+dispatch candidate is rejected in the same original Writer despite a
+currently valid Run lease, and an independent SELECT-only consumer proves
+no new Event/Run revision. Replaying the original completed event still
+returns Existing. This is a conservative upper bound on total dispatched
+physical attempts, NOT monetary budget, observed Token billing nor
+permission to redirect model, issue Tool effects or retry UNKNOWN.

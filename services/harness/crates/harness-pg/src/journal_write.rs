@@ -180,7 +180,7 @@ fn cas_require(tx: &mut Transaction<'_>, d: &str, kind: &str, len: i64) -> Resul
 fn require_current_run_contract(
     tx: &mut Transaction<'_>,
     current: &RunProjection,
-) -> Result<(), WriteError> {
+) -> Result<CanonicalDocument, WriteError> {
     if current.contract_digest != current.contract_object_digest {
         return Err(WriteError::Read(ReadError::Corruption(
             "Run Contract digest vs stored object digest differs".into(),
@@ -212,6 +212,71 @@ fn require_current_run_contract(
                 "Run Contract vs projection differs at {key}"
             ))));
         }
+    }
+    Ok(contract)
+}
+
+/// A source-defined per-Run cap on physical Provider dispatch admission.
+/// The legacy Python cognitive loop counts successful model calls plus
+/// globally limited safe retries; a PG dispatch edge is a conservative
+/// physical attempt. Do not treat reported token usage or claimed status as
+/// permission to spend, and never permit a new dispatch after this cap.
+fn require_dispatch_budget(
+    tx: &mut Transaction<'_>,
+    run: &str,
+    contract: &CanonicalDocument,
+    new_events: &[EventWrite],
+) -> Result<(), WriteError> {
+    let extra = i64::try_from(
+        new_events
+            .iter()
+            .filter(|e| e.event_kind == "harness.provider-call-dispatching")
+            .count(),
+    )
+    .map_err(|_| WriteError::Overflow)?;
+    if extra == 0 {
+        return Ok(());
+    }
+    let budget = contract
+        .field("budget")
+        .ok_or(WriteError::Invalid("source budget absent"))?;
+    let model_calls = budget.field("maxModelCalls").and_then(|v| v.integer_text());
+    let retries = budget
+        .field("maxModelRetries")
+        .and_then(|v| v.integer_text());
+    // Historical v1 contracts may predate this budget, but a current v2
+    // source Contract cannot physically dispatch without both exact limits.
+    let (Some(calls), Some(retries)) = (model_calls, retries) else {
+        return if contract
+            .field("schemaVersion")
+            .and_then(|v| v.integer_text())
+            == Some("2")
+        {
+            Err(WriteError::Invalid("current Run Provider budget absent"))
+        } else {
+            Ok(())
+        };
+    };
+    // Arbitrarily large legitimate integers mean the representable
+    // PostgreSQL event count cannot exhaust this budget. Invalid negative
+    // or noninteger source values fail closed for a model dispatch.
+    let valid = |txt: &str| !txt.is_empty() && txt.bytes().all(|b| b.is_ascii_digit());
+    if !valid(calls) || !valid(retries) {
+        return Err(WriteError::Invalid("source model budget invalid"));
+    }
+    let limit = match (calls.parse::<i64>(), retries.parse::<i64>()) {
+        (Ok(a), Ok(b)) => a.saturating_add(b),
+        _ => i64::MAX,
+    };
+    let used:i64=tx.query_one(
+        "SELECT count(*) FROM run_events WHERE harness_run_id=$1          AND event_kind='harness.provider-call-dispatching'",
+        &[&run],
+    )?.get(0);
+    let requested = used.checked_add(extra).ok_or(WriteError::Overflow)?;
+    if requested > limit {
+        return Err(WriteError::Invalid(
+            "source Provider dispatch budget exhausted",
+        ));
     }
     Ok(())
 }
@@ -421,7 +486,7 @@ pub fn append_events_with_provider_cas(
         )?
         .ok_or_else(|| WriteError::MissingRun(run.into()))?;
     let current = run_projection(&row)?;
-    require_current_run_contract(&mut tx, &current)?;
+    let contract = require_current_run_contract(&mut tx, &current)?;
     let lookup: Vec<_> = events.iter().map(|e| e.event_id.clone()).collect();
     let found = tx.query(
         "SELECT event_id FROM run_events WHERE event_id=ANY($1::text[])",
@@ -447,6 +512,9 @@ pub fn append_events_with_provider_cas(
         return Err(WriteError::Terminal);
     }
     require_lease(&mut tx, run, expected_revision, lease, lease_checked_at_ms)?;
+    // Budget is checked inside the same Run lock, after exact replay
+    // reconciliation and before any dispatch Event may become durable.
+    require_dispatch_budget(&mut tx, run, &contract, events)?;
     let mut status = current.status.as_str();
     let mut when = current.updated_at_ms;
     let mut terminal: Option<&str> = None;

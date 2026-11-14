@@ -220,7 +220,7 @@ print("R18_SOURCE_OWNED_PYTHON_REAL_PG_NO_TOOL_RUN_CREATED")
                 "--", "--ignored", "--nocapture", "--test-threads=1",
             ], env=rust_env, timeout=250)
             evidence["nativeProviderV4TestTail"] = rust.stdout[-1700:]
-            if rust.returncode or "PG18_RUST_WRITER_PYTHON_PROVIDER_V4_UNKNOWN_READBACK_EXACT_PASS" not in rust.stdout or "PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS" not in rust.stdout or "PG18_NATIVE_RUST_POSITIVE_HTTP_PRIVACY_REDACTED_COMPLETED_PASS" not in rust.stdout or "PG18_REJECTED_COMPLETED_EVENT_NO_PRIVATE_CAS_ORPHAN_PASS" not in rust.stdout or "PG18_PYTHON_PROVIDER_V4_VERIFIED_CAS_RECOVERY_PASS" not in rust.stdout:
+            if rust.returncode or "PG18_RUST_WRITER_PYTHON_PROVIDER_V4_UNKNOWN_READBACK_EXACT_PASS" not in rust.stdout or "PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS" not in rust.stdout or "PG18_NATIVE_RUST_POSITIVE_HTTP_PRIVACY_REDACTED_COMPLETED_PASS" not in rust.stdout or "PG18_REJECTED_COMPLETED_EVENT_NO_PRIVATE_CAS_ORPHAN_PASS" not in rust.stdout or "PG18_SOURCE_PROVIDER_DISPATCH_BUDGET_GATE_PASS" not in rust.stdout or "PG18_PYTHON_PROVIDER_V4_VERIFIED_CAS_RECOVERY_PASS" not in rust.stdout:
                 raise RuntimeError("Native Rust PG V4 source consumer failed: " + rust.stdout[-1500:] + rust.stderr[-1250:])
             evidence["nativeProviderV4Suite"] = "PASS"
             # Independently reopen via the original Python Store after the

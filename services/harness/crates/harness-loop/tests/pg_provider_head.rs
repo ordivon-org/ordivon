@@ -845,6 +845,62 @@ fn verify_native_rust_pg_v4_completed_case(source_case: &str, retain_model_conte
             .revision,
         4
     );
+    // Source-budget falsifier: the original Run Contract now has
+    // maxModelCalls=1,maxModelRetries=0 and one durable DISPATCHING.
+    // The existing valid rev4 lease is NOT enough to authorize another
+    // physical Provider dispatch. This must fail before any new model send.
+    let mut extra_dispatch = batch[1].clone();
+    extra_dispatch.event_id = format!("event:excess-provider-dispatch-{source_case}");
+    extra_dispatch.recorded_at_ms = 1041;
+    let exceeds = append_events(
+        &mut denied_db,
+        &schema,
+        run_id,
+        &[extra_dispatch.clone()],
+        4,
+        &newer_lease,
+        1041,
+    );
+    assert!(
+        matches!(
+            exceeds,
+            Err(WriteError::Invalid(
+                "source Provider dispatch budget exhausted"
+            ))
+        ),
+        "source dispatch cap was not enforced by original PG Run lock: {exceeds:?}"
+    );
+    let evt_sql = format!("SELECT count(*) FROM {schema}.run_events WHERE event_id=$1");
+    let denied_count: i64 = readonly
+        .query_one(&evt_sql, &[&extra_dispatch.event_id])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        denied_count, 0,
+        "rejected budget overrun became a durable Event"
+    );
+    assert_eq!(
+        read_run_readonly(&mut readonly, &schema, run_id)
+            .unwrap()
+            .projection
+            .revision,
+        4
+    );
+    // Source exact replay of an already completed event must remain legal
+    // even after this finite budget is exhausted; no second physical send.
+    assert!(matches!(
+        append_events(
+            &mut denied_db,
+            &schema,
+            run_id,
+            &batch[2..],
+            3,
+            &newer_lease,
+            1042,
+        ),
+        Ok(Admission::Existing)
+    ));
+    println!("PG18_SOURCE_PROVIDER_DISPATCH_BUDGET_GATE_PASS");
     println!("PG18_REJECTED_COMPLETED_EVENT_NO_PRIVATE_CAS_ORPHAN_PASS");
     if retain_model_content {
         println!("PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS");

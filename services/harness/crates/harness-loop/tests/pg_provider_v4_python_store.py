@@ -516,6 +516,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         base,
         harness_run_id=complete_id,
         caller_run_ref="test-run-native-provider-completed",
+        budget={**base.budget,"maxModelCalls":1,"maxModelRetries":0},
     )
     assert complete_contract.privacy.allow_model_content, "positive result has content"
     assert store.create_run(complete_contract).value == "created"
@@ -645,6 +646,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
     redacted_contract = replace(
         base, harness_run_id=redacted_id,
         caller_run_ref="test-run-native-completed-redacted",
+        budget={**base.budget,"maxModelCalls":1,"maxModelRetries":0},
         privacy=replace(base.privacy, allow_model_content=False),
     )
     assert not redacted_contract.privacy.allow_model_content
