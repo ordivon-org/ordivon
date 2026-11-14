@@ -12,6 +12,25 @@ from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
 
 
+def _owner_receipt_state(response: dict[str, Any]) -> str:
+    """Keep Owner state open to future variants without inventing string values."""
+    for field in ("status", "attemptState"):
+        if field in response:
+            value = response[field]
+            if not isinstance(value, str) or not value:
+                raise GatewayError(f"Runtime owner response requires string {field}")
+            return value
+    return "unknown"
+
+
+def _owner_receipt_delivery(response: dict[str, Any]) -> str | None:
+    """A malformed disposition is not a committed/known delivery fact."""
+    value = response.get("deliveryDisposition")
+    if value is not None and (not isinstance(value, str) or not value):
+        raise GatewayError("Runtime owner response requires string deliveryDisposition")
+    return value
+
+
 class ExecutionCommandMethods:
     """Gateway owner delegation; authoritative Job and Artifact data stay upstream."""
 
@@ -106,13 +125,9 @@ class ExecutionCommandMethods:
             capability=capability,
             owner_id=route.owner_id,
             native_id=native_id,
-            state=str(result.get("status", result.get("attemptState", "unknown"))),
+            state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=(
-                str(result["deliveryDisposition"])
-                if result.get("deliveryDisposition") is not None
-                else None
-            ),
+            delivery_disposition=_owner_receipt_delivery(result),
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
@@ -135,11 +150,7 @@ class ExecutionCommandMethods:
             ),
             owner_id=owner_id,
             native_id=observed_native_id,
-            state=str(result.get("status", "unknown")),
+            state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=(
-                str(result["deliveryDisposition"])
-                if result.get("deliveryDisposition") is not None
-                else None
-            ),
+            delivery_disposition=_owner_receipt_delivery(result),
         )
