@@ -12,10 +12,13 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import sys
 from collections import Counter
 from datetime import date
 from decimal import Decimal
+from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 
 # Economic evaluation uses assert-heavy experimental invariants.
@@ -34,7 +37,90 @@ OUT = Path(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR", str(ROOT / "out
 SYMBOLS = ("IWM", "QQQ", "SPY")
 ZERO = "0"
 OPENING = "1000"  # investment sleeve only; $9,000 remains protected cash
+_SHA = re.compile(r"[0-9a-f]{64}\Z")
 
+
+def _read_study_owned_bytes(path: Path, digest: object, *, role: str) -> bytes:
+    """A digest binds a local study artifact, never historical publisher/PIT."""
+    if not isinstance(digest, str) or not _SHA.fullmatch(digest):
+        raise ValueError(f"{role}: missing exact study source digest")
+    payload = path.read_bytes()
+    if sha256(payload).hexdigest() != digest:
+        raise ValueError(f"{role}: study source differs from frozen study receipt")
+    return payload
+
+
+def _native_study_inputs(report: dict) -> tuple[pd.Series, pd.DataFrame, dict[str, pd.DataFrame]]:
+    """Consume *same hash-admitted bytes* for forecasts, labels and each ETF.
+
+    A prior report's CLOSE forecast may not be reused with NEXT_OPEN labels,
+    even when both experiments used the same ETF universe and holding count.
+    The report must bind every actual source file read by this consumer.
+    """
+    pred = _read_study_owned_bytes(
+        OUT / "qlib_test_predictions.csv", report.get("qlib_prediction_sha256"),
+        role="Qlib prediction",
+    )
+    dataset = _read_study_owned_bytes(
+        OUT / "qlib_static_dataset.parquet", report.get("qlib_dataset_sha256"),
+        role="Qlib labeled dataset",
+    )
+    receipts = report.get("provider_receipts")
+    if not isinstance(receipts, list) or len(receipts) != len(SYMBOLS):
+        raise ValueError("Qlib source receipts must cover exact ETF universe")
+    receipt_map = {item.get("symbol"): item for item in receipts if isinstance(item, dict)}
+    if set(receipt_map) != set(SYMBOLS) or len(receipt_map) != len(receipts):
+        raise ValueError("Qlib source receipts contain missing/duplicate/wrong instrument")
+    bars = {}
+    for symbol in SYMBOLS:
+        item = receipt_map[symbol]
+        if item.get("provider") != "cboe":
+            raise ValueError("Qlib source provider differs from study receipt")
+        payload = _read_study_owned_bytes(
+            OUT / f"openbb_cboe_{symbol}_normalized.csv",
+            item.get("normalized_sha256"), role=f"{symbol} OHLCV",
+        )
+        data = pd.read_csv(BytesIO(payload))
+        if not data["session_date"].is_unique:
+            raise ValueError(f"{symbol} source dates are not unique")
+        bars[symbol] = data.set_index("session_date").sort_index()
+    predictions = pd.read_csv(BytesIO(pred)).set_index(["datetime", "instrument"]).iloc[:, 0]
+    labels = pd.read_parquet(BytesIO(dataset))
+    if not predictions.index.is_unique or not labels.index.is_unique:
+        raise ValueError("Duplicate historical prediction or label keys")
+    return predictions, labels, bars
+
+
+def _study_identity(report: dict) -> dict:
+    skill = report["signal_quality"]
+    hold = skill["holding_sessions"]
+    exit_price = skill["exit_price_kind"]
+    if exit_price == "next_open":
+        expected_horizon = f"next_session_open_to_T_plus_{hold+1}_open"
+    elif exit_price == "close" and hold == 1:
+        expected_horizon = "new_entry_next_session_open_to_close"
+    elif exit_price == "close":
+        expected_horizon = f"next_session_open_to_T_plus_{hold}_close"
+    else:
+        raise ValueError("Unknown Qlib research exit event")
+    forecast = report["forecast"]
+    if (
+        forecast.get("exit_price_kind") != exit_price
+        or forecast.get("holding_sessions") != hold
+        or forecast.get("target_horizon") != expected_horizon
+    ):
+        raise ValueError("Study forecast exit/holding/horizon mismatches native label")
+    return {
+        "holdingSessions": hold,
+        "exitPriceKind": exit_price,
+        "forecastTargetHorizon": expected_horizon,
+        "qlibPredictionSha256": report["qlib_prediction_sha256"],
+        "qlibDatasetSha256": report["qlib_dataset_sha256"],
+        "sourceReceipts": {
+            item["symbol"]: item["normalized_sha256"]
+            for item in report["provider_receipts"]
+        },
+    }
 
 
 def run_multisession(report: dict, hold: int) -> dict:
@@ -69,16 +155,10 @@ def run_multisession(report: dict, hold: int) -> dict:
     assert allocation["allocationsMinor"]["SPY"] == 100_000
     assert allocation["executionAuthorized"] is False
 
-    predictions = pd.read_csv(OUT / "qlib_test_predictions.csv").set_index(
-        ["datetime", "instrument"]
-    ).iloc[:, 0]
-    labels = pd.read_parquet(OUT / "qlib_static_dataset.parquet")["label"]["LABEL0"]
+    study_identity = _study_identity(report)
+    predictions, full_labels, bars = _native_study_inputs(report)
+    labels = full_labels["label"]["LABEL0"]
     assert len(predictions) == skill["sample_rows"]
-    bars = {
-        sym: pd.read_csv(OUT / f"openbb_cboe_{sym}_normalized.csv")
-        .set_index("session_date").sort_index()
-        for sym in SYMBOLS
-    }
     sessions = list(bars["SPY"].index)
     assert all(list(bars[sym].index) == sessions for sym in SYMBOLS)
     index_of = {day: i for i, day in enumerate(sessions)}
@@ -143,6 +223,7 @@ def run_multisession(report: dict, hold: int) -> dict:
         "kind": "ordivon.finance.r3.qlib-disjoint-holding-economic-counterexample",
         "standing": "RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
         "source_forecast_skill": skill,
+        "native_study_identity": study_identity,
         "holding_sessions": hold,
         "exit_price_kind": exit_price,
         "native_fixed_holding_economic_event_matched": exit_price == "next_open",
@@ -227,21 +308,14 @@ def run() -> dict:
     assert allocation["allocationsMinor"]["SPY"] == 100_000
     assert allocation["protectedReserveMinor"] == 900_000
     assert allocation["executionAuthorized"] is False
-    predictions = pd.read_csv(OUT / "qlib_test_predictions.csv").set_index(
-        ["datetime", "instrument"]
-    ).iloc[:, 0]
-    dataset = pd.read_parquet(OUT / "qlib_static_dataset.parquet")
+    study_identity = _study_identity(report)
+    predictions, dataset, bars = _native_study_inputs(report)
     labels = dataset["label"]["LABEL0"]
     assert predictions.index.is_unique and labels.index.is_unique
     assert predictions.index.isin(labels.index).all()
     assert len(predictions) == skill["sample_rows"] == 816
     assert len(set(predictions.index.get_level_values("datetime"))) == 272
 
-    bars = {}
-    for sym in SYMBOLS:
-        data = pd.read_csv(OUT / f"openbb_cboe_{sym}_normalized.csv")
-        assert data["session_date"].is_unique
-        bars[sym] = data.set_index("session_date").sort_index()
     sessions = list(bars["SPY"].index)
     assert all(list(bars[s].index) == sessions for s in SYMBOLS)
     next_date = dict(zip(sessions[:-1],sessions[1:]))
@@ -336,6 +410,7 @@ def run() -> dict:
         "kind":"ordivon.finance.r3.qlib-economic-consumer-counterexample",
         "standing":"RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
         "source_model_skill":skill,
+        "native_study_identity":study_identity,
         "capital_budget_lego":"ordivon_capital.portfolio.strategic_contribution",
         "total_initial_cash_minor":1_000_000,
         "protected_cash_minor":900_000,
