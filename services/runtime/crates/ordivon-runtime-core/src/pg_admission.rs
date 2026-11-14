@@ -390,6 +390,19 @@ mod serializable_retry_tests {
         assert_eq!(delays, [4, 8, 16, 32, 64, 64, 64]);
     }
 }
+// PostgreSQL insertion columns, not another release semantic state owner.
+// Only a transactional Runtime caller can construct the domain release object.
+// Standalone PG admission needs no legacy Runtime module or SQLite dependency.
+struct PgReleaseInsert {
+    effect_id: String,
+    request_digest: String,
+    workspace_id: String,
+    commit: String,
+    candidate_manifest_digest: String,
+    expected_tool_count: i32,
+    receipt_path: String,
+}
+
 impl PgAdmissionStore {
     pub fn connect(dsn: &str, schema: &str) -> Result<Self, PgAdmissionError> {
         if !exact_schema(schema) {
@@ -411,6 +424,7 @@ impl PgAdmissionStore {
     /// Internal PG-only release admission. No MCP caller can invoke this until
     /// an independently qualified operator installation/reconciliation contract
     /// exists. No filesystem or systemd effects occur in this transaction.
+    #[cfg(feature = "transactional-runtime")]
     pub fn admit_release_effect(
         &mut self,
         input: &PgAdmissionInput,
@@ -423,7 +437,7 @@ impl PgAdmissionStore {
         };
         ReleaseStateContract::validate_request(request)
             .map_err(|_| PgAdmissionError::InvalidInput)?;
-        let _ = i32::try_from(request.expected_tool_count)
+        let expected_tool_count = i32::try_from(request.expected_tool_count)
             .map_err(|_| PgAdmissionError::InvalidInput)?;
         if !receipt_path.is_absolute()
             || receipt_path
@@ -459,7 +473,16 @@ impl PgAdmissionStore {
         {
             return Err(PgAdmissionError::InvalidInput);
         }
-        self.admit_inner(input, Some((&binding, &digest)), None, None)
+        let columns = PgReleaseInsert {
+            effect_id: binding.effect_id.clone(),
+            request_digest: binding.request_digest.clone(),
+            workspace_id: binding.workspace_id.clone(),
+            commit: binding.commit.clone(),
+            candidate_manifest_digest: binding.candidate_manifest_digest.clone(),
+            expected_tool_count,
+            receipt_path: binding.receipt_path.clone(),
+        };
+        self.admit_inner(input, Some((&columns, &digest)), None, None)
     }
 
     /// One atomic admission. No dispatch/terminal/repair effect is authorized.
@@ -472,6 +495,7 @@ impl PgAdmissionStore {
     /// The callback is performed only for a NEW Job after exact replay is
     /// resolved; it must be read-only and may not make external side effects.
     /// It executes while the same global advisory lock guards close/mutate.
+    #[cfg(feature = "transactional-runtime")]
     pub(crate) fn admit_with_workspace_guard(
         &mut self,
         i: &PgAdmissionInput,
@@ -488,7 +512,7 @@ impl PgAdmissionStore {
     fn admit_inner(
         &mut self,
         i: &PgAdmissionInput,
-        release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
+        release: Option<(&PgReleaseInsert, &str)>,
         guard: Option<&dyn Fn() -> Result<(), PgAdmissionError>>,
         issuer_schema: Option<&str>,
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
@@ -513,7 +537,7 @@ impl PgAdmissionStore {
     fn admit_once(
         &mut self,
         i: &PgAdmissionInput,
-        release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
+        release: Option<(&PgReleaseInsert, &str)>,
         guard: Option<&dyn Fn() -> Result<(), PgAdmissionError>>,
         issuer_schema: Option<&str>,
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
@@ -566,7 +590,7 @@ impl PgAdmissionStore {
                         && row.get::<_, String>(2) == binding.workspace_id
                         && row.get::<_, String>(3) == binding.commit
                         && row.get::<_, String>(4) == binding.candidate_manifest_digest
-                        && row.get::<_, i32>(5) == binding.expected_tool_count as i32
+                        && row.get::<_, i32>(5) == binding.expected_tool_count
                         && row.get::<_, String>(6) == binding.receipt_path
                         && row.get::<_, String>(7) == digest => {}
                 _ => return Err(PgAdmissionError::IdempotencyConflict),
@@ -639,7 +663,7 @@ impl PgAdmissionStore {
                 "INSERT INTO job_runtime_release_effects(job_id,effect_id,contract,request_digest,workspace_id,commit_revision,candidate_manifest_digest,expected_tool_count,receipt_path,binding_digest) VALUES($1,$2,'runtime_release_v1',$3,$4,$5,$6,$7,$8,$9)",
                 &[&i.job_id,&binding.effect_id,&binding.request_digest,&binding.workspace_id,
                   &binding.commit,&binding.candidate_manifest_digest,
-                  &(binding.expected_tool_count as i32),&binding.receipt_path,&digest],
+                  &binding.expected_tool_count,&binding.receipt_path,&digest],
             )?;
         }
         let events = [
