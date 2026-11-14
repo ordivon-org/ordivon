@@ -215,3 +215,11 @@ PY_FOREIGN_RECOVERY_RED
 [tasks."formal:effect:verify"]
 description = "Check C06 task-local effect uncertainty invariants using pinned upstream TLC"
 run = "bash scripts/verify_effect_replay_formal.sh ../../services/runtime"
+
+[tasks."formal:justification"]
+description = "New axiom-free finite AND/OR Justification proof; no old full-suite replay"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+(cd "$repo_root/tools/formal" && /usr/bin/mise exec -- lean ../../packages/composition/formal/GitHubJustification.lean)
+"""

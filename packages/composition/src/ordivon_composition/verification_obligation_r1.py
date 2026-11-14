@@ -27,6 +27,14 @@ from .cognitive_circuit_r1 import (
     canonical_digest,
     compile_manifest,
 )
+from .github_justification_r1 import (
+    combine_github_justification_with_source_impact,
+    project_github_owner_justifications,
+)
+from .host_agent_verification_actions import (
+    project_host_agent_source_readset_actions,
+    project_host_agent_verification_actions,
+)
 from .verification_impact import (
     _cyclic_proof_members as _cyclic_proof_members,
 )
@@ -47,6 +55,10 @@ ROOT = Path(__file__).resolve().parent
 OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schema.json"
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
+AGENT_HOST_ACTION_SCHEMA = ROOT / "schemas" / "agent-host-verification-action-v1.schema.json"
+AGENT_GITHUB_JUSTIFICATION_SCHEMA = (
+    ROOT / "schemas" / "agent-host-github-justification-v1.schema.json"
+)
 
 
 def _load_task_local_json_list(path: Path) -> list[Any]:
@@ -623,6 +635,37 @@ def _parser() -> argparse.ArgumentParser:
     readset_parser.add_argument("source_readset_evidence", type=Path)
     readset_parser.add_argument("--repo", type=Path, required=True)
 
+    # Read-only projection for the existing Host Work.current snapshot. This
+    # does not start a verifier, insert Work rows or certify prior proof.
+    agent_parser = sub.add_parser("agent-host-actions")
+    agent_parser.add_argument("host_work", type=Path)
+    agent_parser.add_argument("impact_graph", type=Path)
+    agent_parser.add_argument("changed_refs", type=Path)
+    agent_parser.add_argument("--unknown-refs", type=Path)
+    agent_parser.add_argument("--previous-graph", type=Path)
+    agent_parser.add_argument("--proof-refs", type=Path)
+
+    # Source owner Git membership is requalified by the existing trusted
+    # provider. Owner readset completeness remains a separate obligation.
+    agent_source_parser = sub.add_parser("agent-host-source-actions")
+    agent_source_parser.add_argument("host_work", type=Path)
+    agent_source_parser.add_argument("git_source_delta", type=Path)
+    agent_source_parser.add_argument("source_readset_evidence", type=Path)
+    agent_source_parser.add_argument("--repo", type=Path, required=True)
+    agent_source_parser.add_argument("--proof-refs", type=Path)
+
+    # True natural Owner read and current Host Work consumer, no new evidence
+    # authority. GitHub workflow status is NOT a domain-proof admission.
+    justification_parser = sub.add_parser("agent-host-github-justifications")
+    justification_parser.add_argument("host_work", type=Path)
+    justification_parser.add_argument("justification_contract", type=Path)
+    justification_parser.add_argument("--git-repo", type=Path, required=True)
+    # Optional but all-or-nothing: exact native Git membership impact +
+    # caller-declared positive readset, co-consumed with real GitHub Owner
+    # workflow evidence. No new evidence/impact engine is introduced.
+    justification_parser.add_argument("--git-source-delta", type=Path)
+    justification_parser.add_argument("--source-readset-evidence", type=Path)
+
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
@@ -678,6 +721,68 @@ def main() -> int:
             )
             if all(requested):
                 result["gitSourceCuts"] = {"previous": before_source, "current": after_source}
+        elif args.command == "agent-host-actions":
+            result = project_host_agent_verification_actions(
+                work=_load_json(args.host_work),
+                impact_graph=_load_json(args.impact_graph),
+                changed_refs=_load_task_local_json_list(args.changed_refs),
+                unknown_refs=(
+                    _load_task_local_json_list(args.unknown_refs) if args.unknown_refs else None
+                ),
+                previous_graph=(_load_json(args.previous_graph) if args.previous_graph else None),
+                proof_refs_by_obligation=(_load_json(args.proof_refs) if args.proof_refs else None),
+            )
+        elif args.command == "agent-host-source-actions":
+            git_delta = _requalify_git_source_delta(
+                args.repo,
+                _load_json(
+                    args.git_source_delta,
+                    git_byte_path_fields=frozenset(
+                        {"addedPaths", "removedPaths", "changedValuePaths"}
+                    ),
+                ),
+            )
+            readset = _load_json(
+                args.source_readset_evidence,
+                git_byte_path_fields=frozenset({"sourcePaths"}),
+            )
+            result = project_host_agent_source_readset_actions(
+                work=_load_json(args.host_work),
+                git_source_delta=git_delta,
+                source_readset_evidence=readset,
+                proof_refs_by_obligation=(_load_json(args.proof_refs) if args.proof_refs else None),
+            )
+            # The Git scope is owner-recomputed in this command; the Owner's
+            # *readset* and historical verifier receipt are still unqualified.
+            result["sourceReadsetScope"]["nativeGitRequalifiedByCLI"] = True
+        elif args.command == "agent-host-github-justifications":
+            if (args.git_source_delta is None) != (args.source_readset_evidence is None):
+                raise CircuitContractError(
+                    "Git impact and source readsets must be supplied together"
+                )
+            result = project_github_owner_justifications(
+                work=_load_json(args.host_work),
+                contract=_load_json(args.justification_contract),
+                git_repo=args.git_repo,
+            )
+            if args.git_source_delta is not None:
+                qualified_delta = _requalify_git_source_delta(
+                    args.git_repo,
+                    _load_json(
+                        args.git_source_delta,
+                        git_byte_path_fields=frozenset(
+                            {"addedPaths", "removedPaths", "changedValuePaths"}
+                        ),
+                    ),
+                )
+                result = combine_github_justification_with_source_impact(
+                    workflow_result=result,
+                    git_source_delta=qualified_delta,
+                    source_readset_evidence=_load_json(
+                        args.source_readset_evidence,
+                        git_byte_path_fields=frozenset({"sourcePaths"}),
+                    ),
+                )
         elif args.command == "impact-observations":
             # Natural owners still own the observations and physical receipts.
             # This is a task-local, non-executing source-to-proof adapter.
@@ -762,6 +867,14 @@ def main() -> int:
     except (OSError, json.JSONDecodeError, CircuitContractError) as exc:
         raise SystemExit(f"verification obligation R1 failed: {exc}") from exc
 
+    if args.command == "agent-host-github-justifications":
+        _validate_schema(
+            result,
+            AGENT_GITHUB_JUSTIFICATION_SCHEMA,
+            "task-local natural GitHub Owner justification",
+        )
+    if args.command in {"agent-host-actions", "agent-host-source-actions"}:
+        _validate_schema(result, AGENT_HOST_ACTION_SCHEMA, "Host Agent action projection")
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 

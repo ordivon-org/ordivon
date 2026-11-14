@@ -63,6 +63,77 @@ A CREATED Run is executed with `run`. A PAUSED Run requires `resume`. A terminal
 
 Multiple workers may open the same PostgreSQL Harness schema, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
 
+## Agent semantic proof reuse before discretionary verifier execution
+
+For an Agent continuing a **semantic Work** (distinct from a Harness Run),
+first read the current Host `work.get` and its Owner evidence references.
+A new Git SourceCut, restarted Agent or different conversation is **not by
+itself** permission to rerun all old verification jobs. The source-only
+Composition consumer `agent-host-source-actions` can combine the native
+`tools/repo/source_history_legos.py` scoped Git delta with Owner-declared
+readsets to produce machine-typed actions for the Agent:
+
+- `QUALIFY_EXISTING_IMPACTED_PROOF_FIRST`: changed input may already
+  have a current Owner PASS; if the current Host Work has an evidence reference,
+  retrieve and qualify exact subject, Owner, readset and validity before
+  another expensive verifier. An old receipt is not automatically applicable.
+- `RECHECK_NAMED_CONSUMER`: only the affected obligation's verifier is a
+  candidate for a new execution, after normal Harness/Runtime admission.
+- `QUALIFY_DEPENDENCIES_NOT_RERUN`: read back missing dependency/negative
+  consumer witnesses, **do not automatically execute** verifiers.
+- `READ_EXISTING_OWNER_PROOF` or `LOCATE_PRIOR_OWNER_PROOF`: re-use
+  natural Owner evidence only after authenticating its scope/currentness.
+  `REUSE_CANDIDATE` is never itself `VERIFIED`.
+
+When files are added/removed in the Git scope, the existing Composition C04
+selector conservatively carries **UNKNOWN** for old positive readsets until
+their negative/glob/dynamic dependency closure is qualified. The versioned
+Agent action JSON Schema explicitly forbids false proof admission and
+whole-suite replay flags. This is a **source-level optional consumer path**;
+it is not installed in Harness execution policy and must not block a live
+Run, override native Runtime receipt status, or impersonate an actual Owner
+verifier. See
+`packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md`.
+
+### R4 native GitHub Owner AND/OR workflow-result reuse
+
+The task-local agent-host-github-justifications command reads actual
+GitHub Actions runs for exact Git HEAD SHA and workflow name, combining
+multiple Work-linked run IDs using finite OR of AND support paths.
+An old-SHA success cannot count as a new-SHA success. If one alternative
+already matches, Agent should consume that native Owner result rather than
+start another equivalent verification. A failed/unavailable Owner check
+yields UNKNOWN support, not automatically another Job or proof of a false
+domain Claim. This is not an installed Harness execution admission hook:
+no new Runtime/GitHub verification effect is issued here.
+
+### R5 optional C04 source impact and current Owner join
+
+The existing `agent-host-github-justifications` command can additionally
+accept `--git-source-delta` and `--source-readset-evidence` together.
+It re-queries immutable Git, computes existing Composition C04 source
+impact, and joins it with live GitHub workflow results only when exact
+Claim IDs and SourceCut match. Even if a changed scope's current workflow
+is already SUCCESS, domain acceptance remains UNKNOWN until natural
+Owner proof/readset closure. When file membership changes, unchanged
+positive-readset claims carry an explicit negative-dependency UNKNOWN.
+It emits non-executing Agent nextActions, **not** a Harness execution
+gate, automatic GitHub rerun, or certified current authorization.
+
+### R6 scoped owner Job/Step conclusion versus parent GREEN
+
+When a particular Agent/Harness consumer explicitly requires that a
+GitHub Job/Step actually completed with success conclusion, it must
+query the natural Owner's job-level and step-level records, not infer
+it from workflow SUCCESS. Composition's existing R4/R5 GitHub
+Justification CLI now accepts `requiredJobs` with exact
+`name`/`requiredSteps`. If a required step was skipped, even though
+the workflow is green, the matching *scoped evidence requirement* is
+UNKNOWN. A scoped PASS is limited to GitHub's reported
+post-`continue-on-error` conclusion and does not certify raw exit
+outcome, implementation coverage, domain success or installed state.
+No Harness pre-dispatch integration is claimed here.
+
 ## Provider recovery
 
 Retained Provider Call status controls the next action. A safely failed pre-dispatch call may be retried within budget. A lost response after durable completion is replayed from Store. Ambiguous dispatch remains UNKNOWN until reconciled; transport loss is not implicit redispatch permission.

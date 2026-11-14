@@ -205,5 +205,133 @@
     "retiredVocabulary": [
       "Task/Checkpoint/Board referred to retired pre-Social-Work-Fabric modules; current Work snapshots and social journal are not claims of old API compatibility."
     ]
-  }
+  },
+  "consumerCompositions": [
+    {
+      "id": "AGENT-KNOWLEDGE-IMPACT-R1",
+      "kind": "agent-current-work-evidence-applicability-projection-not-second-authority",
+      "directConsumer": "Agent/Harness resuming an existing Host Work and deciding whether old proof needs scoped re-verification",
+      "businessScenario": "Known prior verifier receipts and a new SourceCut: read Work/current references, select impacted proof obligations, reuse old Owner evidence for unchanged scopes, qualify unknowns, and propose only affected Work nextActions without executing tests",
+      "thoughtModules": [
+        "Incremental computation affected inputs",
+        "Assume-guarantee/dependency closure",
+        "Evidence provenance and currentness",
+        "Three-valued impact lattice",
+        "Consumer-first/CQRS",
+        "DELETE-CUSTOM→REUSE→COMPOSE"
+      ],
+      "logicModules": [
+        "CurrentWorkCheckpoint",
+        "PreviousOwnerEvidenceReference",
+        "ProofDependencyReadset",
+        "SourceChangeImpact",
+        "EvidenceApplicabilityCandidate",
+        "AgentReverificationDemand"
+      ],
+      "capabilityRefs": [
+        "K01",
+        "K02",
+        "P02"
+      ],
+      "status": "SOURCE_ONLY_NATIVE_GIT_REQUALIFIED_DIRECT_CONSUMER_CLI_NOT_INSTALLED",
+      "contract": {
+        "I": "Current Host work.get response, native Git source membership delta (CLI requalified against real Git), Owner positive source readset statement OR existing generic Composition proof graph, optional prior Work proof references",
+        "O": "Per-obligation bounded recheck/qualify/Owner-proof lookup decision; sourceReadsetScope requalification metadata on Git path; optional current Work legacy CAS snapshot proposal, never verifier pass; membershipClosureQualification on direct Git path; affected proof with a current Work evidence reference yields QUALIFY_EXISTING_IMPACTED_PROOF_FIRST rather than blindly resubmitting a verifier",
+        "S": "No new persistence; Host owns current WorkSnapshot, Git owns SourceCut, each natural Owner owns verifier receipts and live evidence; task-local Composition projection is rebuildable",
+        "pre": "Native Git reporter and CLI recomputation bind exact SourceCut and scoped path members; Owner source readset completeness is caller-declared and NOT certified; old verifier receipt and currentness separate",
+        "post": "Only impacted obligations become recheck proposals, unindexed/unknown sources become qualification requests, unaffected candidates trigger prior-proof read rather than rerun; Host established/unresolved/referenceRefs unchanged",
+        "inv": "REUSE_CANDIDATE is never VERIFIED; UNKNOWN is never FALSE; no automatic verifier execution; nextActions are stable under replay; Rust Engagement/terminal Work never receives legacy CAS proposal; Direct Git source route and manual graph route use exactly one C04 selection family and one Agent action renderer; changedRefs report cannot bypass native Git CLI requalification; strict Draft202012 source action output rejects false proofVerifiedByProjection, impossible status/decision combinations and caller-certified Owner closure; Git member-set changes conservatively block unaffected positive-readset proofs as UNKNOWN until negative/glob/dynamic dependency closure is qualified; re-verification request must first qualify a current Work Owner receipt even for changed inputs, without asserting the receipt is valid",
+        "eff": "None. Read-only analysis and pure optional proposed legacy WorkSnapshot. Any Host CAS, Runtime execution or real Owner proof admission is a separate consumer-authorized effect",
+        "c": "O(V+E) existing Composition impact fixed-point plus O(Host nextActions); installed Agent latency and tokens UNKNOWN",
+        "epsilon": "UNKNOWN(reason=owner proof authenticity, dynamic/negative dependency closure, installed currentness and live policy not qualified; obligation=separate native Owner readback before claiming VERIFIED)",
+        "prov": [
+          "packages/composition/src/ordivon_composition/verification_impact.py",
+          "packages/composition/src/ordivon_composition/host_agent_verification_actions.py",
+          "packages/composition/tests/test_host_agent_verification_actions.py",
+          "packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md",
+          "services/host/src/ordivon_host_v2/work_inputs.py",
+          "tools/repo/source_history_legos.py",
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "packages/composition/src/ordivon_composition/schemas/agent-host-verification-action-v1.schema.json",
+          "packages/composition/src/ordivon_composition/verification_impact.py"
+        ],
+        "unfold": "Agent Host work.get → native Git Owner source_history_legos immutable delta + natural Owner readset → existing Composition readset bridge / C04 impacted selector → shared Agent action renderer → optional Host work.snapshot.commit under separate CAS authorization → next Agent Work current read"
+      },
+      "evidence": {
+        "tier": "SOURCE_NATIVE_GIT_IMMUTABLE_DELTA_REQUALIFIED_TARGETED_CLI_TESTED",
+        "completionClaim": "Direct actual Git SourceCut/readset→Agent Work action CLI and anti-forgery tested, previous R1 graph path preserved; Owner proof acceptance, real Host CAS and installed Gateway consumers not established; typed JSON Schema negative tests refuse fabricated Owner/Verifier PASS; real added-member test retains UNKNOWN despite apparently complete unchanged positive readset; affected prior-proof first branch is verified by targeted typed status/decision regression",
+        "installedCurrentness": "UNKNOWN",
+        "ownerCertifiedDependencyClosure": "UNKNOWN",
+        "automaticRerun": "NEVER"
+      },
+      "releaseBlockers": [
+        "Authenticated existing Owner proof readback and complete dependency closure",
+        "Real Agent/Harness consumer deploys task-local adapter",
+        "Optional Host CAS proposal is accepted under actual current Work revision"
+      ]
+    },
+    {
+      "id": "AGENT-GITHUB-JUSTIFICATION-R4",
+      "kind": "source-only-github-workflow-evidence-support-and-current-work-handoff",
+      "directConsumer": "Real Host Work work:ordivon:host-agent-proof-applicability-r3:20261114 and Gateway Work.get rev5",
+      "businessScenario": "Agent re-enters Work and wants to reuse already completed GitHub Required+CodeQL checks at the same immutable SourceCut, with OR alternatives for stale and current run",
+      "thoughtModules": [
+        "TMS finite justification AND/OR support",
+        "Build Systems a la Carte verifying traces",
+        "in-toto Subject/Predicate boundary",
+        "Pact exact consumer and provider version",
+        "CQRS current Work",
+        "formal-first / reuse before compose"
+      ],
+      "logicModules": [
+        "Consumer-specific workflow check requirement",
+        "current SourceCut and Owner run binding",
+        "OR alternative AND requirements",
+        "Owner evidence scope/read qualification",
+        "non-executing Agent reuse/qualification action",
+        "Host Work current state CAS and Gateway readback"
+      ],
+      "capabilityRefs": [
+        "K01",
+        "K02",
+        "P02"
+      ],
+      "status": "SOURCE_GITHUB_OWNER_AND_C04_REAL_CONSUMER_NOT_INSTALLED_HARNESS",
+      "contract": {
+        "I": "Current Host work.get with existing GitHub run refs, task-local bounded Claim/Justification contract, immutable Git HEAD, native GitHub run view status; optional native Git delta + owner-declared positive readset at exact target SourceCut with Claim IDs identical; optional per-evidence requiredJobs name+requiredSteps, authenticated native GitHub Job/Step list",
+        "O": "Owner-run qualification, finite AND/OR workflow requirement standing, non-executing Agent nextActions and optional CAS-compatible snapshot; typed sourceApplicability per Claim with exact C04 RECHECK_REQUIRED/UNKNOWN/REUSE_CANDIDATE and domainProofApplicability=UNKNOWN; each Job/Step-qualified Justification records actual Owner job databaseId and reported step conclusion, without elevating parent workflow GREEN",
+        "S": "No new persistence; GitHub owns run status, Host owns current semantic Work and Gateway is only a read router",
+        "pre": "Contract target SHA = exact native HEAD; each run is already in current Work; original owner/repo/ID/url/workflow/sha/status must match before satisfied evidence requirement",
+        "post": "Successful alternative AND path satisfies narrow GitHub workflow-completion requirement; mismatched old SHA never does; current Work generated actions can be CAS committed separately",
+        "inv": "Every satisfying AND path has all native Owner records matched; empty alternatives rejected; a separate valid path survives failure of another; DomainClaimVerified always false and zero Jobs created; even exact Owner workflow success plus changed/unchanged source cannot establish domainProofApplicabilityCertified; new Git membership makes unchanged positive-readset candidates UNKNOWN and no automatic job; required skipped/unreadable/ambiguous native job step cannot satisfy job-scoped evidence requirement even when parent workflow SUCCESS; step success after continue-on-error not raw execution outcome",
+        "eff": "Bounded read-only native Git and GitHub queries; actual authenticated Host CAS only when explicitly invoked as separate consumer effect; zero new verifier Jobs for all R5 projections",
+        "c": "At most 32 unique Owner runs, 24 claims, 16 alternatives per claim and 8 leaves per alternative; no measured p95 or token reduction",
+        "epsilon": "GitHub unavailable/old SHA/wrong workflow/uncompleted result yields UNKNOWN or ineligible path; no automatic domain falsity or valid proof assumption; original Owner job/step missing or skipped => UNKNOWN of scoped requirement, not domain FALSE or automatic verifier Job",
+        "prov": [
+          "packages/composition/src/ordivon_composition/github_justification_r1.py",
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "packages/composition/src/ordivon_composition/schemas/agent-host-github-justification-v1.schema.json",
+          "packages/composition/tests/test_github_justification_r1.py",
+          "packages/composition/formal/GitHubJustification.lean",
+          "github:run:43490396164",
+          "github:run:43567631728",
+          "github:run:43567631871"
+        ],
+        "unfold": "Authenticated actual Work.get → exact Git SourceCut → native GitHub Owner runs → bounded AND/OR support → non-executing Work nextAction CAS proposal → separately committed Work rev4→5 → Gateway readback; R5 optional native Git delta independently requalified through existing CLI → C04 selection → joined with matching Owner workflow facts → Work CAS rev7→8"
+      },
+      "evidence": {
+        "tier": "SOURCE_REAL_GITHUB_OWNER_RECONCILIATION_ACTUAL_HOST_CAS",
+        "completionClaim": "Two exact SHA workflow-completion requirements satisfied via real GitHub runs and Host CAS rev4→5, old SHA mismatched; 11 new focused tests and five Lean no-axiom abstract theorems; zero rerun of prior verifier jobs; R5 actual Git SourceCut c9→73d added four members; 3 claims: two changed readsets and one unchanged-with-negative-closure UNKNOWN, native Github current Required/CodeQL success, no new verifier Job, Work rev7→8 and Gateway matching; 11 Lean abstract properties, focused tests; R6 real c24 official Required workflow GREEN but Formal preflight step skipped: a scoped Justification must remain UNKNOWN; root-verification and CodeQL Python analyze step SUCCESS => 2 supported/1 unknown, no new verifier execution",
+        "installedCurrentness": "UNKNOWN",
+        "domainClaimVerified": false,
+        "ownerCertifiedDynamicReadsetClosure": "UNKNOWN"
+      },
+      "releaseBlockers": [
+        "Independent authenticated Agent/Harness installed pre-dispatch consumer not established",
+        "GitHub workflow completion != domain proof or full dynamic/negative readset closure",
+        "New SourceCut peer review and independent GitHub official checks",
+        "Native GitHub Job/Step reported conclusion cannot certify underlying outcome if continue-on-error; requires deeper verifier proof to claim domain correctness."
+      ]
+    }
+  ]
 }

@@ -176,13 +176,21 @@
         "RECHECK_REQUIRED, UNKNOWN, or non-authoritative REUSE_CANDIDATE by affected gate/obligation",
         "unindexed and relation-scope warnings"
       ],
-      "behavioralContract": "Real changed paths/declared negative dependencies must not disappear from effective inputs; cyclic/unknown dependencies fail closed and candidate reuse is never final proof admissibility.",
+      "behavioralContract": "Real changed paths/declared negative dependencies must not disappear from effective inputs; cyclic/unknown dependencies fail closed and candidate reuse is never final proof admissibility. A native Git added/removed scoped path generates a membership-closure UNKNOWN for other positive-readset candidates, preventing a false unaffected conclusion from missing negative/glob/dynamic readsets.",
       "acceptance": [
-        "Existing graph/impact tests check unindexed source, dynamic edges, relation membership, cycles and independent impact oracle."
+        "Existing graph/impact tests check unindexed source, dynamic edges, relation membership, cycles and independent impact oracle.",
+        "Host Agent R2 focused suite asserts native Git delta anti-forgery, scoped recheck, unchanged prior evidence lookup and missing dependency UNKNOWN; no old PG18 verifier rerun.",
+        "Agent action schema negatives reject fabricated acceptance, impossible status-decision pairing, unsafe whole-suite reruns and unqualified Owner closure claims.",
+        "Actual native Git member-addition test ensures old complete positive-readset proof becomes UNKNOWN/QUALIFY_DEPENDENCIES, not REUSE_CANDIDATE.",
+        "Impacted obligation with existing Work Owner evidence must result in Owner read/qualification before optional scoped rerun, never unqualified acceptance."
       ],
       "evidence": [
         "src/ordivon_composition/verification_obligation_r1.py",
-        "tests/test_verification_obligation_r1.py"
+        "tests/test_verification_obligation_r1.py",
+        "src/ordivon_composition/host_agent_verification_actions.py",
+        "tests/test_host_agent_verification_actions.py",
+        "docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md",
+        "src/ordivon_composition/schemas/agent-host-verification-action-v1.schema.json"
       ],
       "dependencies": [
         "C01",
@@ -204,6 +212,11 @@
           "path": "packages/composition/tests/test_verification_obligation_r1.py",
           "operation": "select_impacted_obligations local test and CLI",
           "standing": "SOURCE_TEST_AND_CLI_CONSUMER_EXTERNAL_UNKNOWN"
+        },
+        {
+          "path": "packages/composition/src/ordivon_composition/host_agent_verification_actions.py",
+          "operation": "Agent Work task-local adapter reuses select_impacted_obligations OR existing select_source_readset_impacts after native Git query requalification; both share one action renderer, no second dependency selector or proof authority",
+          "standing": "SOURCE_CLI_NATIVE_GIT_REQUALIFIED_WITH_TARGETED_REAL_GIT_TEST; OWNER_READSET_CLOSURE_AND_INSTALLED_AGENT_USE_UNKNOWN"
         }
       ],
       "formalObligations": [
@@ -513,6 +526,90 @@
       "replacements": [
         "Replace this task-local adapter with native Research/Artifact acceptance once it preserves explicit authority separation and negative tests."
       ]
+    },
+    {
+      "id": "C10",
+      "label": "GithubOwnerJustificationApplicability",
+      "kind": "agent_task_local_evidence_support",
+      "responsibility": "For a current Host Agent Work, read natural GitHub Actions runs and evaluate narrowly scoped exact-SHA workflow completion requirements via finite OR of AND Justifications, without new Jobs or domain-proof promotion.",
+      "authority": "GitHub Actions owns workflow run records; Composition owns only bounded source-level support projection; Host current Work and Gateway are downstream semantic consumers.",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "actual current Host work.get and references",
+        "immutable native Git HEAD",
+        "task-local consumer Claim and bounded AND/OR paths",
+        "GitHub native run ID, SHA, workflow name, status and conclusion",
+        "Optional real native Git two-cut delta and Agent-declared positive source-readsets aligned one-to-one by Claim IDs",
+        "Optional exact requiredJobs(name,requiredSteps) on an existing Owner evidence edge"
+      ],
+      "outputs": [
+        "Owner-read qualification per referenced GitHub run",
+        "EVIDENCE_REQUIREMENTS_SATISFIED or UNKNOWN per workflow evidence requirement",
+        "non-executing current Work nextAction proposal",
+        "Typed combined per-Claim native workflow completion + C04 source impact + domain UNKNOWN currentness",
+        "Per-Justification provider-reported required job IDs, step conclusions and scoped exact-success or UNKNOWN"
+      ],
+      "behavioralContract": "One OR path suffices only if every referenced native GitHub run has matching run ID, repository, current SHA, exact workflow and completed/success; one invalidated path does not invalidate independent valid alternative; no owner result equals domain proof. Native Git is requalified by the existing CLI; the R5 join uses the same C04 selector and never upgrades caller-declared readsets or successful workflows into domain proof. R6 green parent workflow cannot override skipped, missing, ambiguous or unsuccessful consumer-required Job/Step; success refers to reported post-continue-on-error conclusion, not underlying raw step outcome.",
+      "acceptance": [
+        "11 new bounded test cases for natural Owner evidence OR/AND and adversarial inputs",
+        "Real GitHub Owner runs old SHA mismatch and current Required+CodeQL match",
+        "Five pinned Lean axiom-free abstract Justification support theorems",
+        "Real Host WorkSnapshot CAS rev4→5 and Gateway identical revision/digest, no GitHub or Runtime rerun",
+        "R5 affected tests and real Git c9→73d membership delta with native GitHub Required+CodeQL: matched current Owner, two RECHECK_REQUIRED and one UNKNOWN, no domain acceptance, Work CAS rev7→8 and Gateway equal digest.",
+        "R6 real Github Required green but repo-preflight Formal step skipped => scoped UNKNOWN, root-verification job success and CodeQL Python Analyze code success => two scoped matches; zero new verifier Jobs."
+      ],
+      "evidence": [
+        "src/ordivon_composition/github_justification_r1.py",
+        "src/ordivon_composition/schemas/agent-host-github-justification-v1.schema.json",
+        "tests/test_github_justification_r1.py",
+        "formal/GitHubJustification.lean",
+        "docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md"
+      ],
+      "dependencies": [
+        "C04"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "GitHub authority or credentials",
+        "cryptographic software artifact attestation",
+        "domain acceptance, scientific validity or installation",
+        "global evidence registry or Runtime scheduler",
+        "complete negative/dynamic/environment dependency closure"
+      ],
+      "consumerBindings": [
+        {
+          "path": "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "symbols": [
+            "project_github_owner_justifications",
+            "agent-host-github-justifications"
+          ],
+          "standing": "SOURCE_CLI_REAL_GITHUB_OWNER_READ"
+        },
+        {
+          "path": "services/host/planning/lego-plan-r3.json",
+          "symbols": [
+            "AGENT-GITHUB-JUSTIFICATION-R4"
+          ],
+          "standing": "SOURCE_DOWNSTREAM_CONSUMER_WITH_REAL_HOST_WORK_CAS"
+        },
+        {
+          "path": "packages/composition/tests/test_github_justification_r1.py",
+          "symbols": [
+            "project_github_owner_justifications"
+          ],
+          "standing": "SOURCE_TEST_NEGATIVE_AND_OR_REAL_OWNER_SEPARATE"
+        }
+      ],
+      "formalObligations": [
+        "Lean proves abstract AND/OR algebra, not Python/Owner API/PG CAS implementation",
+        "Workflow success cannot establish installed state, runtime effect, domain proof, or full readset closure",
+        "Agent/Harness installed pre-execution consumer with independent Principal still UNKNOWN",
+        "Even exact current workflow SUCCESS plus matching source impact does not prove full dependency closure, domain acceptance or installed result.",
+        "GitHub step conclusion after continue-on-error may differ from raw execution outcome; gh jobs evidence cannot certify underlying outcome or dynamic readset. Lean R6 boolean conjunction abstract, not native Owner API implementation proof."
+      ],
+      "replacements": [
+        "Prefer GitHub native run read over any new proof database or duplicate CI invocation"
+      ]
     }
   ],
   "edges": [
@@ -561,6 +658,11 @@
       "from": "C07",
       "to": "C09",
       "type": "DATA"
+    },
+    {
+      "from": "C04",
+      "to": "C10",
+      "type": "DATA"
     }
   ],
   "slices": [
@@ -604,6 +706,20 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "Separate Web/Security and Research/Artifact acceptance bounded to declared source/fixture contract only."
+      ]
+    },
+    {
+      "id": "HOST_AGENT_JUSTIFICATION_R4",
+      "label": "GithubOwnerWorkflowJustification",
+      "nodeIds": [
+        "C04",
+        "C10"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Real Owner run view AND/OR + actual Work CAS, zero additional verification jobs",
+        "R5 native Git/C04 impact join retains UNKNOWN domain proof and suppresses duplicate current-workflow suggestion with new-member dependency uncertainty.",
+        "R6 per-job/step scope prevents parent-green assumption, returns 2 satisfied and 1 skipped UNKNOWN on actual GH c24 run."
       ]
     }
   ],

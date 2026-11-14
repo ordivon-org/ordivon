@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.org/schemas/agent-host-verification-action-v1.schema.json",
+  "title": "Host Agent verification action projection v1",
+  "description": "Rebuildable nonauthoritative Agent action projection; never an Owner proof or verifier execution authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "workRef",
+    "expectedRevision",
+    "impactBasisDigest",
+    "impactProjectionDigest",
+    "actions",
+    "summary",
+    "proposedWorkSnapshot",
+    "proposedHostCommitEligible",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.agent-host-verification-action-projection"
+    },
+    "truthRole": {
+      "const": "task-local-rebuildable-agent-scheduling-not-owner-proof"
+    },
+    "workRef": {
+      "type": "string",
+      "pattern": "^work:[^\\s]+(?![\\s\\S])",
+      "maxLength": 1024
+    },
+    "expectedRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "impactBasisDigest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "impactProjectionDigest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "actions": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scopedRecheckCandidates",
+        "qualifyWithoutRerun",
+        "reusedOrLocatedExistingEvidence",
+        "wholeSuiteRecheckRequested"
+      ],
+      "properties": {
+        "scopedRecheckCandidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qualifyWithoutRerun": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reusedOrLocatedExistingEvidence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wholeSuiteRecheckRequested": {
+          "const": false
+        }
+      }
+    },
+    "proposedWorkSnapshot": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/legacySnapshot"
+        }
+      ]
+    },
+    "proposedHostCommitEligible": {
+      "type": "boolean"
+    },
+    "sourceReadsetScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceCut",
+        "queryPrefix",
+        "sourceScopeRef",
+        "readsetDependencyQualification",
+        "sourceReadsetProjectionDigest",
+        "nativeGitRequalifiedByPureFunction",
+        "ownerCertifiedReadsetClosure",
+        "membershipClosureQualification"
+      ],
+      "properties": {
+        "sourceCut": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})(?![\\s\\S])"
+        },
+        "queryPrefix": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceScopeRef": {
+          "type": "string",
+          "minLength": 3
+        },
+        "readsetDependencyQualification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceReadsetProjectionDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "nativeGitRequalifiedByPureFunction": {
+          "const": false
+        },
+        "ownerCertifiedReadsetClosure": {
+          "const": false
+        },
+        "nativeGitRequalifiedByCLI": {
+          "const": true
+        },
+        "membershipClosureQualification": {
+          "enum": [
+            "UNKNOWN_NEGATIVE_DEPENDENCIES_AFTER_MEMBERSET_DELTA",
+            "NO_MEMBERSET_DELTA_OBSERVED_NOT_OWNER_CERTIFIED"
+          ]
+        }
+      }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "proposedHostCommitEligible": {
+            "const": true
+          }
+        },
+        "required": [
+          "proposedHostCommitEligible"
+        ]
+      },
+      "then": {
+        "properties": {
+          "proposedWorkSnapshot": {
+            "$ref": "#/$defs/legacySnapshot"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "proposedWorkSnapshot": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "obligationId",
+        "impactStanding",
+        "agentDecision",
+        "existingProofRef",
+        "proofVerifiedByProjection",
+        "automaticVerifierExecution"
+      ],
+      "properties": {
+        "obligationId": {
+          "type": "string",
+          "minLength": 3
+        },
+        "impactStanding": {
+          "enum": [
+            "RECHECK_REQUIRED",
+            "UNKNOWN",
+            "REUSE_CANDIDATE"
+          ]
+        },
+        "agentDecision": {
+          "enum": [
+            "RECHECK_NAMED_CONSUMER",
+            "QUALIFY_DEPENDENCIES_NOT_RERUN",
+            "READ_EXISTING_OWNER_PROOF",
+            "LOCATE_PRIOR_OWNER_PROOF",
+            "QUALIFY_EXISTING_IMPACTED_PROOF_FIRST"
+          ]
+        },
+        "existingProofRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "proofVerifiedByProjection": {
+          "const": false
+        },
+        "automaticVerifierExecution": {
+          "const": false
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "impactStanding": {
+              "const": "RECHECK_REQUIRED"
+            },
+            "agentDecision": {
+              "const": "RECHECK_NAMED_CONSUMER"
+            },
+            "existingProofRef": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "impactStanding": {
+              "const": "RECHECK_REQUIRED"
+            },
+            "agentDecision": {
+              "const": "QUALIFY_EXISTING_IMPACTED_PROOF_FIRST"
+            },
+            "existingProofRef": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "impactStanding": {
+              "const": "UNKNOWN"
+            },
+            "agentDecision": {
+              "const": "QUALIFY_DEPENDENCIES_NOT_RERUN"
+            }
+          }
+        },
+        {
+          "properties": {
+            "impactStanding": {
+              "const": "REUSE_CANDIDATE"
+            },
+            "agentDecision": {
+              "const": "READ_EXISTING_OWNER_PROOF"
+            },
+            "existingProofRef": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "impactStanding": {
+              "const": "REUSE_CANDIDATE"
+            },
+            "agentDecision": {
+              "const": "LOCATE_PRIOR_OWNER_PROOF"
+            },
+            "existingProofRef": {
+              "type": "null"
+            }
+          }
+        }
+      ]
+    },
+    "legacySnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objective",
+        "frontier",
+        "established",
+        "unresolved",
+        "rejected",
+        "constraints",
+        "nextActions",
+        "referenceRefs"
+      ],
+      "properties": {
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "frontier": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "established": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unresolved": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "nextActions": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "referenceRefs": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
