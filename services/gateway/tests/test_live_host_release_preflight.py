@@ -423,6 +423,8 @@ def test_active_second_gateway_without_host_bearer_blocks_release(
                 ),
             )
         assert command[2] == "ordivon-gateway-local-r21.service"
+        if "EnvironmentFiles" in command:
+            return subprocess.CompletedProcess(command, 0, stdout="")
         return subprocess.CompletedProcess(
             command,
             0,
@@ -432,7 +434,7 @@ def test_active_second_gateway_without_host_bearer_blocks_release(
     monkeypatch.setattr(preflight.subprocess, "run", fake_run)
     peer_units = preflight._unqualified_active_peer_host_consumers()
     assert peer_units == ("ordivon-gateway-local-r21.service",)
-    assert len(calls) == 2
+    assert len(calls) == 3
     env = (
         "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
@@ -469,6 +471,8 @@ def test_migrated_or_unrelated_active_peer_does_not_block(
                 0,
                 stdout="ordivon-gateway-local-r21.service loaded active running legacy\n",
             )
+        if "EnvironmentFiles" in command:
+            return subprocess.CompletedProcess(command, 0, stdout="")
         return subprocess.CompletedProcess(command, 0, stdout=secondary_environment)
 
     monkeypatch.setattr(preflight.subprocess, "run", fake_run)
@@ -586,3 +590,106 @@ def test_prepare_only_argument_is_only_supported_optional_mode() -> None:
         )
         assert checked.returncode == 2
         assert "usage: install_release.sh" in checked.stderr
+
+
+@pytest.mark.parametrize(
+    ("peer_environment", "environment_files", "must_block"),
+    [
+        ("", "/etc/ordivon/gateway/peer.env (ignore_errors=no)", True),
+        (
+            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer",
+            "/etc/ordivon/gateway/peer.env (ignore_errors=no)",
+            True,
+        ),
+        (
+            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:9999/mcp",
+            "/etc/ordivon/gateway/peer.env (ignore_errors=no)",
+            True,
+        ),
+        (
+            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer",
+            "",
+            False,
+        ),
+    ],
+)
+def test_active_peer_envfile_override_does_not_hide_unqualified_host_consumer(
+    preflight: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    peer_environment: str,
+    environment_files: str,
+    must_block: bool,
+) -> None:
+    """A systemd EnvironmentFile can override Environment; unknown effective route is NO_GO."""
+
+    peer_unit = "ordivon-gateway-local-r21.service"
+
+    def native_systemd(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "list-units" in command:
+            return subprocess.CompletedProcess(
+                command, 0, stdout=f"{peer_unit} loaded active running secondary\n"
+            )
+        assert command[:4] == ["/usr/bin/systemctl", "show", peer_unit, "-p"]
+        if command[4] == "Environment":
+            return subprocess.CompletedProcess(command, 0, stdout=peer_environment)
+        if command[4] == "EnvironmentFiles":
+            return subprocess.CompletedProcess(command, 0, stdout=environment_files)
+        raise AssertionError("unexpected native systemd query")
+
+    monkeypatch.setattr(preflight.subprocess, "run", native_systemd)
+    observed = preflight._unqualified_active_peer_host_consumers()
+    assert observed == ((peer_unit,) if must_block else ())
+
+
+@pytest.mark.parametrize(
+    ("environment_files", "expected"),
+    [
+        ("", "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp"),
+        ("/etc/ordivon/gateway/upstream.env (ignore_errors=no)", None),
+    ],
+)
+def test_primary_gateway_environment_files_are_not_false_routing_proof(
+    preflight: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    environment_files: str,
+    expected: str | None,
+) -> None:
+    """Systemd file overrides must never produce a false positive Host Owner route."""
+
+    unit = "ordivon-gateway.service"
+    calls: list[str] = []
+
+    def native_systemd(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        assert command[:4] == ["/usr/bin/systemctl", "show", unit, "-p"]
+        name = command[4]
+        calls.append(name)
+        if name == "Environment":
+            return subprocess.CompletedProcess(
+                command, 0, stdout="ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp"
+            )
+        if name == "EnvironmentFiles":
+            return subprocess.CompletedProcess(command, 0, stdout=environment_files)
+        raise AssertionError("unexpected systemd property")
+
+    monkeypatch.setattr(preflight.subprocess, "run", native_systemd)
+    assert preflight._qualified_systemd_environment(unit) == expected
+    assert calls == ["Environment", "EnvironmentFiles"]
+
+
+def test_primary_gateway_admission_fails_closed_on_unobserved_envfile_override(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Admission must not treat stale systemd Environment as effective process config."""
+    import sys
+
+    monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
+    monkeypatch.setattr(preflight, "_policy_data", lambda _path: _operator_data([_grant()]))
+    monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda _unit: None)
+
+    result = preflight.main()
+    assert result == 3
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "NO_GO"
+    assert report["reasons"] == ["HOST_SECURITY_PRECONDITIONS_UNOBSERVABLE"]

@@ -192,3 +192,31 @@ unobservable native source. It does **not** universally prove the
 official MCP SDK or installed Cloudflare route. An unavailable native
 Owner SDK environment emits `null`/UNKNOWN rather than false.
 No new Tool registry, database, PEP, scheduler or service is created.
+
+
+## Systemd EnvironmentFile consumer falsifier (2026-11-15)
+
+The original live Gateway release checker inspected only `systemctl show -p
+Environment` for the primary and active peer Gateway units. This property is
+not the effective environment when systemd loads an `EnvironmentFile`, which
+can override the Host Owner URL or its bearer path. An active peer with only a
+file-sourced Host route could be silently excluded from the consumer census;
+a primary Gateway could be falsely declared to use the negatively probed
+`127.0.0.1:8898` endpoint.
+
+The source now reuses one bounded native systemd read helper for *both*
+primary and peer Gateway units, querying `Environment` and
+`EnvironmentFiles`. An attached EnvironmentFile means the effective route
+cannot be established from that read-only metadata alone: primary admission
+returns `NO_GO/HOST_SECURITY_PRECONDITIONS_UNOBSERVABLE`, and an active
+peer remains an unqualified potential Host consumer. This is intentionally
+a **necessary-condition falsifier**, not a new policy engine, credential
+reader, assertion of caller identity or claim that actual migration failed.
+It never reads or logs the contents of an environment file.
+
+Original `test_live_host_release_preflight.py` consumer tests now exercise
+empty/overriding EnvironmentFiles, an unrelated-looking service URL that can
+be overridden, a qualified peer with no file, and main-Gateway admission
+fail-closed. The owner-native full gateway pytest and Ruff checks apply to
+the exact source revision; live installed Gateway 0.10.8 remains a separate
+Cut and must not be claimed to consume this source change until published.
