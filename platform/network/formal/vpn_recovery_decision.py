@@ -285,13 +285,36 @@ def validate() -> None:
                              Or(first_ok, second_ok),
                              Not(And(first_ok, second_ok)))
     assert single_origin_mutant.check() == sat
+    # Bind recovery admission's two HTTPS origin strings to the real native
+    # Prometheus direct consumer *targets*, not only to matching job names.
+    # Previous proof passed even if either job's target silently drifted.
+    # Reuse source's one-job YAML blocks; the native promtool/preflight owns
+    # full syntax/module/relabel validation, not this finite model.
     direct_source = (source_root / "config/prometheus/prometheus.yml").read_text()
-    assert "job_name: blackbox-http-ipv4\n" in direct_source
-    assert "job_name: blackbox-http-ipv4-alternate\n" in direct_source
-    assert policy.DIRECT_UNDERLAY_HTTPS == (
-        "https://example.com/",
-        "https://www.apple.com/library/test/success.html",
-    )
+    direct_jobs = ("blackbox-http-ipv4", "blackbox-http-ipv4-alternate")
+    def direct_target(source: str, job: str) -> str:
+        heading = "  - job_name: " + job + "\n"
+        assert source.count(heading) == 1
+        block = source.split(heading, 1)[1].split("  - job_name:", 1)[0]
+        assert "    metrics_path: /probe\n" in block
+        assert "        - http_2xx_ipv4\n" in block
+        target_lines = [row.removeprefix("          - ").strip()
+                        for row in block.splitlines()
+                        if row.startswith("          - https://")]
+        assert len(target_lines) == 1
+        return target_lines[0]
+
+    actual_direct = tuple(direct_target(direct_source, job) for job in direct_jobs)
+    assert actual_direct == policy.DIRECT_UNDERLAY_HTTPS
+    drift_cases = 0
+    for observed in policy.DIRECT_UNDERLAY_HTTPS:
+        bad_source = direct_source.replace(
+            "          - " + observed + "\n",
+            "          - https://unexpected.invalid/\n", 1)
+        assert bad_source != direct_source
+        mutated_targets = tuple(direct_target(bad_source, job) for job in direct_jobs)
+        assert mutated_targets != policy.DIRECT_UNDERLAY_HTTPS
+        drift_cases += 1
 
     # An incorrect selector copying duplicate countries into both slots has
     # a satisfiable distinctness violation; implemented source above cannot.
@@ -306,6 +329,7 @@ def validate() -> None:
         "finiteCases": cases,
         "distinctCandidateCases": country_cases,
         "twoDirectOriginTriStateCases": direct_cases,
+        "directProbeTargetDriftMutantsRejected": drift_cases,
         "singleOriginOptimisticMutantRefuted": True,
         "timeBoundedSourceHintCases": hint_cases,
         "postExpiryCatalogColdTrialCases": cold_cases,
