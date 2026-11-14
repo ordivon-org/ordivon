@@ -154,3 +154,41 @@ surface/typed-output consumers, reconnect and live allowed/denied
 Work/Topic/Message/Attention operations. Do not graft original Host
 output schemas into Gateway as a hand-maintained second type registry,
 or add an operator-only Tool merely to make tool counts equal.
+
+## R9 Host business-tool closure proof (2026-11-15)
+
+The R8 native SDK report proved only *shared* Host/Gateway input-property
+and required-set parity. That property alone was insufficient as a migration
+gate: if an original Host adds `message.new` and Gateway has no matching
+Tool, the remaining shared Tools could still all match and the old report
+would exit successfully. R9 adds a separately named **source Host business
+surface coverage** predicate, not an invented installed/authorization claim.
+
+The checker uses the original Host and Gateway `tools/list` to compute
+the set inclusion of all Host tools except the **one original documented
+operator-only Host diagnostic**, `host.pool.stats`. It rejects any new
+unrepresented Host business tool and also rejects an unexpected exposure of
+`host.pool.stats` in Gateway. The exception is **not** a copied inventory
+of Host business tools, and cannot silently hide future Host operations.
+
+```text
+HostBusiness = HostNativeTools − {host.pool.stats}
+SourceHostBusinessCovered =
+    SharedTools≠∅ ∧ HostBusiness ⊆ GatewayNativeTools
+    ∧ host.pool.stats ∉ GatewayNativeTools
+SourceConsumerSurfaceQualified =
+    SourceHostBusinessCovered ∧ SameInputNamesAndRequiredSetsForSharedTools
+SourceConsumerSurfaceQualified ⇏ ExactInputSchemaEquivalent
+SourceConsumerSurfaceQualified ⇏ ExactOutputSchemaEquivalent
+SourceConsumerSurfaceQualified ⇏ InstalledConsumerMigrated
+```
+
+The finite adversarial conformance in
+`tests/test_host_gateway_source_consumer_r9.py` explores all **64 pairs**
+of subsets of three representative Host business Tools, alongside a
+known operator-only diagnostic, missing-tool regression, operator
+diagnostic leakage, divergent required fields, CLI failure exit and
+unobservable native source. It does **not** universally prove the
+official MCP SDK or installed Cloudflare route. An unavailable native
+Owner SDK environment emits `null`/UNKNOWN rather than false.
+No new Tool registry, database, PEP, scheduler or service is created.
