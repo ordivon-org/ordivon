@@ -354,6 +354,7 @@ struct SourcePgCompletedJournal {
     original_result_oracle: CanonicalDocument,
     model_call_id: String,
     requested_model: String,
+    retain_model_content: bool,
     completed: bool,
 }
 impl DurableJournal for SourcePgCompletedJournal {
@@ -382,23 +383,67 @@ impl DurableJournal for SourcePgCompletedJournal {
             .ok_or("no source current DISPATCHING record")?;
         let recorded_at = self.base.batch[2].recorded_at_ms;
         let mut db = Client::connect(&self.base.writer_dsn, NoTls).map_err(|e| e.to_string())?;
-        let result_ref = put_provider_cas(
-            &mut db,
-            &self.base.schema,
-            ProviderCasKind::AgentTurnResult,
-            &result,
-            recorded_at,
-        )
-        .map_err(|e| e.to_string())?;
-        if &result_ref != expected_ref(&self.base.batch[2], "agent-turn-result")? {
-            return Err("Positive result object ref differs from Python source".into());
+        // R30 SOURCE AUTHORITY, not a test-provided retention flag:
+        // this is the canonical, verified same-Run PG Contract privacy field.
+        // A stale/concurrent Run is still rejected by the original PG Lease.
+        let source = read_run_readonly(&mut db, &self.base.schema, &self.base.run_id)
+            .map_err(|e| format!("original source PG Run invalid: {e:?}"))?;
+        if source.projection.revision != 3
+            || source.projection.status != "active"
+            || source
+                .contract
+                .field("harnessRunId")
+                .and_then(|v| v.as_str())
+                != Some(self.base.run_id.as_str())
+        {
+            return Err("live original PG Run/Contract currentness lost".into());
         }
+        let privacy = source
+            .contract
+            .field("privacy")
+            .and_then(|value| value.field("allowModelContent"))
+            .ok_or("source PG Contract privacy flag absent")?;
+        let source_allows_content = match privacy.canonical_bytes().as_slice() {
+            b"true" => true,
+            b"false" => false,
+            _ => return Err("invalid source PG privacy flag".into()),
+        };
+        if source_allows_content != self.retain_model_content {
+            return Err("caller retention flag differs from immutable source Contract".into());
+        }
+        let result_digest = digest_bytes(&canonical_bytes(&result));
+        // The source Contract's privacy policy governs actual CAS retention.
+        // The positive Provider fact survives redaction through resultDigest;
+        // forbidden model content must never enter the PostgreSQL objects table.
+        let result_object = if source_allows_content {
+            let stored = put_provider_cas(
+                &mut db,
+                &self.base.schema,
+                ProviderCasKind::AgentTurnResult,
+                &result,
+                recorded_at,
+            )
+            .map_err(|e| e.to_string())?;
+            if &stored != expected_ref(&self.base.batch[2], "agent-turn-result")? {
+                return Err("Retained Result ref differs from Python source".into());
+            }
+            Some(stored)
+        } else {
+            if self.base.batch[2]
+                .referenced_objects
+                .iter()
+                .any(|r| r.kind == "agent-turn-result")
+            {
+                return Err("Privacy-redacted result unexpectedly referenced".into());
+            }
+            None
+        };
         let completed = author_provider_v4(
             &native_seed(&self.base.python_first_source),
             ProviderV4Transition::Completed {
                 previous,
-                result_digest: &result_ref.digest,
-                result_object_digest: Some(&result_ref.digest),
+                result_digest: &result_digest,
+                result_object_digest: result_object.as_ref().map(|r| r.digest.as_str()),
             },
             u64::try_from(recorded_at).map_err(|e| e.to_string())?,
         )
@@ -485,15 +530,13 @@ impl EffectReceiver for NoEffect {
 /// NativeAgentLoop drives the original same-Run PG Claim→Dispatch→COMPLETED,
 /// Python is ONLY the independent source for V4 + AgentTurnResult canonical
 /// bytes. No external LLM was queried; candidate is not DomainSuccess.
-#[test]
-#[ignore = "original disposable PG18 original Python normative source + Rust native positive V4"]
-fn native_rust_pg_v4_completed_after_real_local_http_positive() {
+fn verify_native_rust_pg_v4_completed_case(source_case: &str, retain_model_content: bool) {
     let writer_dsn = std::env::var("HARNESS_RUST_TEST_PG_WRITER_DSN").unwrap();
     let readonly_dsn = std::env::var("HARNESS_RUST_TEST_PG_DSN").unwrap();
     let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").unwrap();
     let fixture = std::env::var("HARNESS_RUST_TEST_FIXTURE_PATH").unwrap();
     let all = loads_strict(&fs::read_to_string(fixture).unwrap()).unwrap();
-    let native = all.get("rust_native_provider_completed").unwrap();
+    let native = all.get(source_case).unwrap();
     let run_id = text(&native, "runId");
     let source_records = native.get("sourceRecords").unwrap();
     let first = loads_strict(
@@ -545,6 +588,7 @@ fn native_rust_pg_v4_completed_after_real_local_http_positive() {
         original_result_oracle: original_result.clone(),
         model_call_id: text(&native, "modelCallId").to_owned(),
         requested_model: model.requested_model_id.to_owned(),
+        retain_model_content,
         completed: false,
     };
     // Invalid action MUST be rejected before any real successful transition.
@@ -673,15 +717,32 @@ fn native_rust_pg_v4_completed_after_real_local_http_positive() {
         .unwrap();
         assert_eq!(canonical_bytes(&found), canonical_bytes(&expected));
     }
-    let result_ref = expected_ref(&batch[2], "agent-turn-result").unwrap();
-    let stored = ordivon_harness_pg::read_cas_object_readonly(
-        &mut readonly,
-        &schema,
-        &result_ref.digest,
-        "agent-turn-result",
-    )
-    .unwrap();
-    assert_eq!(canonical_bytes(&stored), canonical_bytes(&original_result));
+    let positive_digest = digest_bytes(&canonical_bytes(&original_result));
+    if retain_model_content {
+        let result_ref = expected_ref(&batch[2], "agent-turn-result").unwrap();
+        let stored = ordivon_harness_pg::read_cas_object_readonly(
+            &mut readonly,
+            &schema,
+            &result_ref.digest,
+            "agent-turn-result",
+        )
+        .unwrap();
+        assert_eq!(canonical_bytes(&stored), canonical_bytes(&original_result));
+        assert_eq!(result_ref.digest, positive_digest);
+    } else {
+        // A true SELECT-only consumer proves the result object was never
+        // committed, rather than trusting absent event references alone.
+        assert!(batch[2]
+            .referenced_objects
+            .iter()
+            .all(|ref_| ref_.kind != "agent-turn-result"));
+        let sql = format!("SELECT count(*) FROM {schema}.objects WHERE digest=$1");
+        let count: i64 = readonly
+            .query_one(&sql, &[&positive_digest])
+            .unwrap()
+            .get(0);
+        assert_eq!(count, 0, "private model content entered original PG CAS");
+    }
     let observed = inspect_pg_provider_head(&mut readonly, &schema, run_id, model)
         .unwrap()
         .unwrap();
@@ -694,12 +755,26 @@ fn native_rust_pg_v4_completed_after_real_local_http_positive() {
         observed.record_digest(),
         text(&native, "expectedRecordDigest")
     );
-    assert_eq!(observed.result_digest(), Some(result_ref.digest.as_str()));
+    assert_eq!(observed.result_digest(), Some(positive_digest.as_str()));
     assert!(journal.base.unknown_lease.is_none());
     // Intentional consumer negative: after the original Run advanced from
     // revision 1 to 4, the same old source cannot issue another Provider send.
     assert!(journal.prepare_provider(1).is_err());
-    println!("PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS");
+    if retain_model_content {
+        println!("PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS");
+    } else {
+        println!("PG18_NATIVE_RUST_POSITIVE_HTTP_PRIVACY_REDACTED_COMPLETED_PASS");
+    }
+}
+#[test]
+#[ignore = "real disposable PG18 source + native positive Provider V4"]
+fn native_rust_pg_v4_completed_after_real_local_http_positive() {
+    verify_native_rust_pg_v4_completed_case("rust_native_provider_completed", true);
+}
+#[test]
+#[ignore = "real disposable PG18 source + privacy-redacted native Provider V4"]
+fn native_rust_pg_v4_completed_privacy_redacted() {
+    verify_native_rust_pg_v4_completed_case("rust_native_provider_completed_redacted", false);
 }
 
 #[test]

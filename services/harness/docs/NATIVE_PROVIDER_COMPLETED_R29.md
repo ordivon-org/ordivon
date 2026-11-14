@@ -59,3 +59,24 @@ L9 usage, L10 candidate vs DomainSuccess.
 Ability LEGO: `agent_turn_result.rs`, `provider_v4_author.rs`,
 `provider_cas.rs`, original `journal_write.rs`/`lease.rs`,
 original Python `model.AgentTurnResult`, PG18 read-only consumer.
+
+## R30 source-privacy falsification (same document, no R30 documentation layer)
+
+The Rust positive Journal re-reads the same live Run's source PG Contract at
+revision 3 and extracts the canonical allowModelContent boolean; no caller
+retention hint can override the authoritative privacy bit. A source/passed
+flag mismatch aborts before saving any Provider result CAS. The independent
+Python source Contract selects allowModelContent=false for the negative case. A second
+real localhost HTTP-positive Run receives the same exact response and token
+Usage, produces the true Python-equivalent native AgentTurnResult in memory,
+but the **same** PG Writer must persist ONLY a Provider V4 COMPLETED record
+whose resultDigest names the qualified result. resultObjectDigest is **null**;
+the original PG18 objects table contains NO AgentTurnResult object for the
+redacted result. A SELECT-only Rust reader verifies the no-CAS condition and
+Provider completed head; the original Python Store independently validates
+the Run's causal history and no leakage. The permitted-content counterpart
+still stores the full result, and UNKNOWN still does not blind retry.
+
+R30 is a source-policy production *capability seam* in the test-only Journal
+rather than a newly deployed Security owner. Real Provider credentials, live
+currentness, external cost and independently solved Agent tasks stay OPEN.

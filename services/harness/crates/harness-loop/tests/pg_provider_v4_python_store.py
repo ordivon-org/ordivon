@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Real Python PG18 Store writer + pure production Provider V4 record constructors.
 
-Creates *no real Provider effect*: every record explicitly belongs to this
-scratch SourceCut. Exercises exactly the Provider CAS/Event reference edge that
-A's PG Reader verifies and B's real read-only recovery consumer must interpret.
+Creates no external-model effect; the native test performs actual
+loopback HTTP and original PG18 writes under isolated synthetic test identity.
+The independent Python V4 and result oracles never pre-store native results.
+The Rust and Python consumers verify positive, redacted, and UNKNOWN histories.
 """
 from __future__ import annotations
 
@@ -61,7 +62,18 @@ if len(sys.argv) > 1 and sys.argv[1] == "verify-native":
         assert original.digest == result["digest"]
         assert original.raw_response_digest == positive["expectedRawResponseDigest"]
         assert original.conclusion is not None and original.conclusion.status == "candidate_completed"
-    print("PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_AND_COMPLETED_JOURNALS_PASS")
+        redacted = fixture["rust_native_provider_completed_redacted"]
+        store.validate_run_history(redacted["runId"])
+        assert store.load_run(redacted["runId"]).revision == 4
+        assert any(event.event_kind == "harness.provider-call-completed"
+                   for event in store.list_run_events(redacted["runId"]))
+        assert all(ref["kind"] != "agent-turn-result"
+                   for ev in redacted["events"] for ref in ev["references"])
+        assert store.connection.execute(
+            f"SELECT count(*) FROM {schema}.objects WHERE digest=%s",
+            (redacted["expectedResultDigest"],)
+        ).fetchone()["count"] == 0, "Privacy-redacted AgentTurnResult leaked to PG CAS"
+    print("PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_COMPLETED_AND_REDACTED_JOURNALS_PASS")
     sys.exit(0)
 all_cases = json.loads(path.read_text(encoding="utf-8"))
 base_run = all_cases["no_tool"]["runId"]
@@ -625,6 +637,100 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         "events": complete_events,
     }
 
+
+
+    # R30 privacy-negative original Contract; only the RESULT DIGEST may enter
+    # the Provider COMPLETED journal, not a full answer CAS object.
+    redacted_id = "harness-run:test-pg-native-completed-redacted"
+    redacted_contract = replace(
+        base, harness_run_id=redacted_id,
+        caller_run_ref="test-run-native-completed-redacted",
+        privacy=replace(base.privacy, allow_model_content=False),
+    )
+    assert not redacted_contract.privacy.allow_model_content
+    assert store.create_run(redacted_contract).value == "created"
+    redacted_state = HarnessRunState(
+        messages=(), observations=(), remaining_budget={"maxTurns":2},
+        requested_model_id=redacted_contract.requested_model_id,
+        effective_model_id=None,
+    )
+    redacted_state_ref = store.put_object(
+        redacted_state.to_dict(redacted_id), kind="harness-run-state"
+    )
+    redacted_source_ref = store.put_object(
+        {"kind":"test-only-native-provider-source","runId":redacted_id},
+        kind="test-provider-source",
+    )
+    redacted_result = replace(
+        positive_result, model_call_id="model-call:test-native-rust-redacted"
+    )
+    redacted_records, redacted_events = [], []
+    redacted_previous = None
+    for status, when in (
+        (HarnessProviderCallStatus.CLAIMED, 1030),
+        (HarnessProviderCallStatus.DISPATCHING, 1031),
+        (HarnessProviderCallStatus.COMPLETED, 1032),
+    ):
+        record = build_provider_call_record_v4(
+            provider_call_id="provider-call:test-native-rust-redacted",
+            harness_run_id=redacted_id,
+            binding_digest=id_digest("native-redacted-binding"),
+            source_kind=HarnessProviderCallSource.ASSIGNMENT,
+            source_digest=redacted_source_ref.digest,
+            source_object_digest=redacted_source_ref.digest,
+            state_object_digest=redacted_state_ref.digest,
+            turn_id="turn:test-native-redacted",
+            turn_sequence=1,
+            request_digest=id_digest("native-redacted-request"),
+            request_object_digest=None,
+            provider_request_digest=native_wire_digest,
+            adapter_id=redacted_contract.adapter_id,
+            requested_model_id=redacted_contract.requested_model_id,
+            holder_id="test-holder:native-provider-redacted",
+            generation=1,
+            status=status,
+            result_digest=redacted_result.digest
+                if status is HarnessProviderCallStatus.COMPLETED else None,
+            result_object_digest=None,
+            failure_digest=None,
+            failure_object_digest=None,
+            previous_record_digest=(
+                redacted_previous.digest if redacted_previous is not None else None
+            ),
+            issued_at_ms=1029, expires_at_ms=50000, recorded_at_ms=when,
+        )
+        redacted_records.append(record.to_dict())
+        record_ref = StoredHarnessObject(
+            digest=record.digest,
+            byte_length=len(canonical_bytes(record.to_dict())),
+            kind="harness-provider-call-record",
+        )
+        redacted_events.append({
+            "eventId":f"event:rust-native-redacted-{status.value}",
+            "eventKind":f"harness.provider-call-{status.value}",
+            "recordedAtMs":when,
+            "data":{
+                "providerCallRecordDigest":record.digest,
+                "providerCallRecordObjectDigest":record_ref.digest,
+                "stateObjectDigest":redacted_state_ref.digest,
+                "requestObjectDigest":None,"resultObjectDigest":None,
+                "failureObjectDigest":None,
+            },
+            "references":[ref.to_dict() for ref in [record_ref,redacted_state_ref]],
+        })
+        redacted_previous = record
+    all_cases["rust_native_provider_completed_redacted"] = {
+        "runId":redacted_id,
+        "modelCallId":redacted_result.model_call_id,
+        "expectedProviderRequestDigest":native_wire_digest,
+        "expectedRawResponseDigest":redacted_result.raw_response_digest,
+        "expectedResultDigest":redacted_result.digest,
+        "expectedRecordDigest":redacted_previous.digest,
+        "responseBody":complete_wire_bytes.decode("utf-8"),
+        "sourceRecords":redacted_records,
+        "sourceResult":redacted_result.to_dict(),
+        "events":redacted_events,
+    }
 
 all_cases["provider_records"] = cases
 path.write_text(json.dumps(all_cases, ensure_ascii=False, sort_keys=True), encoding="utf-8")
