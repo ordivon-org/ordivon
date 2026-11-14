@@ -30,15 +30,22 @@ unexecuted or unqualified stages are UNKNOWN.
 
 For human and Agent alike, do not infer Gateway capability protection from
 the existence of `AuthZenPrincipalAuthorizer` or an injected test. The actual
-`main()` now builds the HTTP server with
-`protect_artifact_reads=True`. `artifact.read` without a configured PDP
-does not forward; configure both
-`ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT` and
-`ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE` for authenticated AuthZEN
-decisions. Only a Runtime Artifact read belongs to this PEP, not all MCP
-effects. The existing private token loader and PDP adapter are reused.
-Check `gateway:verify` and `gateway:formal:verify`, then inspect live
-deployed middleware/configuration and downstream owner readback separately.
+`main()` builds HTTP with both `protect_artifact_reads=True` and
+`require_http_execution_identity=True`. Even if only the latter builder flag
+is used, the existing `GatewayCapabilityAuthorizationMiddleware` is installed:
+Runtime `artifact.read`, versioned Work Engagement, and all registered legacy
+**Host mutations** are PEP-qualified. Without configured PDP, they fail
+closed **before the Owner**. Host read tools still require verified ingress,
+but do not claim per-resource Security authorization.
+
+Configure `ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT` and
+`ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE` together for real PDP decisions.
+A PDP ALLOW on an unverified caller-claimed ActorRef is not a delegation
+grant; Security owns actual Principal / Actor / Work rights. Neither stdio
+nor direct Owner HTTP authority is proven by Gateway PEP tests. The existing
+private-file helper, official AuthZEN adapter and Owner SDK are reused.
+Check `gateway:verify` and `gateway:formal:verify`, then independently inspect
+installed middleware, PDP policy, natural Owner and effect evidence.
 
 ## HTTP execution Principal — separate from STDIO
 
@@ -115,8 +122,8 @@ native Owner RPC, Gateway projection, Windows SCM source cut and Owner logs.
 
 ## HTTP MCP ingress security coverage (source cut)
 
-**Human:** HTTP mode uses `GatewayHTTPIngressGuard` before the narrow Runtime
-Artifact AuthZEN PEP. Only `system.describe`, `capability.describe`, and
+**Human:** HTTP uses `GatewayHTTPIngressGuard` before the shared Runtime
+Artifact plus protected Host-write AuthZEN PEP. Only `system.describe`, `capability.describe`, and
 `capability.search` are anonymous *metadata* tools. All other registered
 (and newly introduced/unknown) Tools require the verified Principal and issuer
 placed in request-local state by the configured ingress verifier; a forged

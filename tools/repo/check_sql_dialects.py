@@ -25,6 +25,7 @@ POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_e
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
 POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER = "services/runtime/sql/pg_resource_scheduler_v1.sql"
 POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
+POSTGRESQL_HOST_ATTENTION_DELTA = "services/host/rust/src/attention_delta.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
 # packages on an ephemeral CI runner. Keep them executable and bounded, not
@@ -260,7 +261,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA, POSTGRESQL_HOST_ATTENTION_DELTA}:
         return "postgresql"
     return None
 
@@ -550,6 +551,14 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
             if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
                 issues.extend(pg_runtime_ddl_structure_issues(name, parsed))
+            elif name == POSTGRESQL_HOST_ATTENTION_DELTA:
+                # Existing B-owned delta is ONE read-only PostgreSQL SELECT
+                # with CTEs and stable pagination; it must not grow DDL/DML.
+                observed = tuple(type(stmt.stmt).__name__ for stmt in parsed)
+                if observed != ("SelectStmt",):
+                    issues.append(
+                        f"Host Rust Attention projection must be one read-only SELECT: {name}"
+                    )
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four
                 # source/section/head/reference tables, two native indexes,

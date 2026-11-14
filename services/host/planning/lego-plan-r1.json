@@ -12,10 +12,10 @@
       "src/ordivon_host_v2/work_store.py",
       "src/ordivon_host_v2/work_queries.py",
       "src/ordivon_host_v2/social_store.py",
-        "src/ordivon_host_v2/social_space_commands.py",
-        "src/ordivon_host_v2/social_topic_commands.py",
-        "src/ordivon_host_v2/social_message_commands.py",
-        "src/ordivon_host_v2/coordination_intent_commands.py",
+      "src/ordivon_host_v2/social_space_commands.py",
+      "src/ordivon_host_v2/social_topic_commands.py",
+      "src/ordivon_host_v2/social_message_commands.py",
+      "src/ordivon_host_v2/coordination_intent_commands.py",
       "src/ordivon_host_v2/social_read_queries.py",
       "src/ordivon_host_v2/social_space_queries.py",
       "src/ordivon_host_v2/social_message_queries.py",
@@ -333,7 +333,7 @@
         "non-resurrection of terminal Work",
         "complete snapshot digest and pointer correspondence"
       ],
-      "replacementContract": "Preserve revision/content identities, observable replay/conflict behavior and complete history; migrate persisted snapshots before changing substrate.",
+      "replacementContract": "Preserve exact current revision/payload/digest, observable CAS replay/conflict behavior, and typed unavailable responses for pruned historical revisions. Only current WorkSnapshot is mandatory; never reconstruct or promise gap-free old history.",
       "evidenceScope": {
         "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
         "qualification": "SOURCE_CONFIRMED",

@@ -179,8 +179,9 @@ def build_server(
     server.middleware.append(GatewayAuditMiddleware())
     if require_http_execution_identity:
         server.middleware.append(GatewayHTTPIngressGuard())
-    # Verified HTTP Host reads and writes must reach the existing Security PEP
-    # even when the PDP is not configured (fail closed, not bearer=actor).
+    # In verified HTTP mode every Host mutation also needs a Security PEP,
+    # including the original tools that predate versioned Work Engagement.
+    # The absence of a configured PDP is a DENY, never a service-bearer grant.
     if (
         capability_authorizer is not None
         or protect_artifact_reads
@@ -323,7 +324,15 @@ def build_server(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    register_host_tools(server, gateway, _owner_boundary)
+    # Both conditions are required. STDIO does not carry a verified HTTP
+    # Principal. A configured capability authorizer without HTTP ingress is
+    # also insufficient; a bearer-authenticated service is not an Actor.
+    register_host_tools(
+        server,
+        gateway,
+        _owner_boundary,
+        register_engagement=require_http_execution_identity and capability_authorizer is not None,
+    )
 
     return server
 

@@ -149,28 +149,45 @@ remain server-derived. The accepted v3 AuthZEN decision is not an Agent Grant
 or proof of physical bytes. The existing stdio lane has a different local OS
 trust boundary and is **not** claimed to use HTTP ingress/PDP authentication.
 
-**Original Host read/write PEP (compatibility release):** Reuses the same
-Security AuthZEN middleware for the 16 original Host read and 13 original
-Host write tools on verified HTTP ingress, with canonical request binding,
-actual Owner selectors and an explicit global-read distinction. For
-message.post, the real author is authorActorRef; an ignored caller actorRef
-never becomes writer authority. Without an installed Security PDP, all
-qualified Host reads/writes DENY. A service bearer is not a grant to any
-claimed Actor. Source coverage is checked against the real MCP SDK tool
-surface. This release deliberately does not register Rust-only
-work.engagement tools. They remain in the separate Rust Host draft PR.
-The independent installed Security AuthZEN/OPA policy must provide
-operator-provisioned Principal-to-Actor grants with exact tool/resource
-scope before Gateway rollout, and actual allow/deny consumers must pass.
+**R15 Host write qualification:** The same PEP now qualifies every original
+Host **state-changing** tool in the Gateway Host owner registry, not just
+`work.engagement.advance`. `build_server` installs it whenever verified HTTP
+execution is enabled, even with no configured PDP. A caller holding a valid
+ingress credential but no Security policy receives
+`CAPABILITY_AUTHZ_UNAVAILABLE`; the Owner is not called. The server-derived
+resource includes the original tool, the complete canonical JSON request
+SHA-256, actual claimed writer (`authorActorRef` for `message.post`, otherwise
+`actorRef`) and request coordinates. An ALLOW bound to different arguments or
+a different actor cannot be reused. New registered Host tools default to write
+qualification unless explicitly classified as read-only. The finite default
+Host source surface is cross-checked against `enforcement-surface.json`;
+this projection is not a runtime authorization database.
 
-This is **not a global Gateway security gate**. Execution submit/cancel,
-Skills and other Owner capabilities remain separately qualified; STDIO
-uses the existing local OS trust boundary rather than HTTP Principal/PDP.
-The installed Gateway SourceCut and downstream Owner authorization remain
-separate acceptance obligations. Native consumers include the original
-capability middleware tests, scoped Host read tests, source-surface coverage
-and real TCP ingress tests. The Gateway finite-state model is not a proof
-of Python implementation or installed production behavior.
+R16 Host read qualification: the existing AuthZEN middleware now also mediates
+all 16 original Host read routes in verified HTTP mode. Its requested object
+selectors are derived only from the real route contract (not an injected
+ActorRef); every other parameter, including revision/pagination/filter, is
+bound into the canonical request digest. Unscoped inventories are explicitly
+tagged for the PDP. A valid service bearer is **not** Principal-to-Actor or
+resource authorization. Without a configured Security PDP, Host reads also
+fail closed; production deployment therefore requires a real authorized
+Principal/Actor positive consumer, negative cross-object consumer, and
+operator-validated read policy BEFORE cutover. The source tests use artificial
+decisions and do not establish an installed policy.
+
+This is **not a global Gateway security gate**. Runtime execution submit/cancel
+and other Owner capabilities remain separately scoped. The legacy stdio
+profile continues to have a different trusted-local boundary, not HTTP/PDP
+identity. The installed Security PDP has not been proven to grant any lawful
+Principal / claimed Actor / Work / Action Host rights; a synthetic test PDP
+ALLOW is no production delegation proof. With no configured PDP, HTTP Host
+writes intentionally DENY. Whether a configured, installed Security policy
+can lawfully grant a particular Host writer remains UNKNOWN until independent
+deployment and Principal-to-Actor authorization evidence. Native consumers:
+`tests/test_capability_authz_middleware.py` and actual ASGI HTTP/MCP
+`tests/test_engagement_verified_exposure.py`. Abstract model:
+`formal/GatewayCapabilityAuthzR1.tla`. Model safety, source behavior and
+installed release remain separate evidence grades.
 
 ## HTTP execution identity cannot downgrade to STDIO (2026-11-08)
 

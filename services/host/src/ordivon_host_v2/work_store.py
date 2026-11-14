@@ -4,6 +4,7 @@ from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
+from pydantic import ValidationError
 
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
@@ -29,6 +30,27 @@ def _next_work_revision(expected_revision: int) -> int:
     post: __return__ > expected_revision
     """
     return expected_revision + 1
+
+
+def _require_legacy_work_snapshot_shape(payload: Any) -> None:
+    """Refuse stale Writer CAS when the durable Work is beyond this DTO.
+
+    A strict incoming WorkSnapshotInput cannot protect a *current* snapshot
+    produced by a newer writer. Reuse the existing typed legacy codec, rather
+    than enumerating today's extension names (engagement, future fields, ...).
+    Require lossless canonical roundtrip to avoid silently dropping aliases,
+    defaults, unknown fields, or future owner-defined state.
+    """
+    try:
+        legacy = WorkSnapshotInput.model_validate(payload)
+    except ValidationError as error:
+        raise ConflictError(
+            "current Work snapshot is not writable by legacy work.snapshot.commit"
+        ) from error
+    if legacy.canonical_payload() != payload:
+        raise ConflictError(
+            "current Work snapshot cannot roundtrip through legacy work.snapshot.commit"
+        )
 
 
 class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
@@ -147,10 +169,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
     ) -> dict[str, Any]:
         # Revision is a typed CAS identity, not Python numeric equality:
         # bool is an int subclass, and 1.0 compares equal to 1.
-        if (
-            type(expected_revision) is not int
-            or not 1 <= expected_revision < POSTGRES_BIGINT_MAX
-        ):
+        if type(expected_revision) is not int or not 1 <= expected_revision < POSTGRES_BIGINT_MAX:
             raise ValueError("expected_revision must be a positive PostgreSQL BIGINT predecessor")
         payload = snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
@@ -178,6 +197,17 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
                 raise WorkNotFound(work_ref)
             current_revision = int(current["current_revision"])
             next_revision = _next_work_revision(expected_revision)
+            # Transactionally check the *stored current snapshot*, not only
+            # the incoming legacy DTO. A newer Work owner may already have
+            # introduced engagement or any future versioned state. The works
+            # FOR UPDATE lock serializes this check with the Rust Work CAS.
+            current_snapshot = conn.execute(
+                "SELECT payload FROM work_snapshots WHERE work_ref=%s AND revision=%s",
+                (work_ref, current_revision),
+            ).fetchone()
+            if current_snapshot is None:
+                raise ConflictError("current Work snapshot is missing")
+            _require_legacy_work_snapshot_shape(current_snapshot["payload"])
             if current_revision == next_revision:
                 prior = conn.execute(
                     "SELECT snapshot_digest,writer_actor_ref FROM work_snapshots "

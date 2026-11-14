@@ -86,6 +86,9 @@ class HostAccountabilityAuthorizationTarget:
         }
 
 
+_ACCOUNTABILITY_ACTIONS = frozenset({"offer", "claim", "release", "submit", "review", "cancel"})
+
+
 def _qualified_host_reference(
     value: object, field: str, *, capability: str = "host.legacy-read"
 ) -> str:
@@ -102,6 +105,104 @@ def _qualified_host_reference(
             capability=capability,
         )
     return value
+
+
+def _resolve_work_engagement_target(
+    tool_name: str,
+    arguments: Mapping[str, Any],
+) -> HostAccountabilityAuthorizationTarget | None:
+    """Project a versioned Host write/read onto the existing AuthZEN PEP.
+
+    Unlike a Work Snapshot or caller Tool metadata, none of these fields is
+    authorization evidence. No installed Security policy means no admission.
+    """
+    if tool_name == "work.engagement.advance":
+        work_ref = _qualified_host_reference(arguments.get("workRef"), "workRef")
+        actor_ref = _qualified_host_reference(arguments.get("actorRef"), "actorRef")
+        revision = arguments.get("expectedRevision")
+        action = arguments.get("action")
+        action_type = action.get("type") if isinstance(action, dict) else None
+        if (
+            type(revision) is not int
+            or not 1 <= revision <= 9_007_199_254_740_991
+            or not isinstance(action_type, str)
+            or action_type not in _ACCOUNTABILITY_ACTIONS
+        ):
+            raise CapabilityAuthorizationTargetError(
+                "CAPABILITY_AUTHZ_TARGET_INVALID",
+                "Work accountability needs a valid expectedRevision and action.type.",
+                capability="host.work.engagement.advance",
+            )
+        if action_type == "offer":
+            _qualified_host_reference(action.get("consumerActorRef"), "consumerActorRef")
+        if action_type == "review" and (
+            not isinstance(action.get("decision"), str)
+            or action.get("decision") not in {"accepted", "returned"}
+        ):
+            raise CapabilityAuthorizationTargetError(
+                "CAPABILITY_AUTHZ_TARGET_INVALID",
+                "Work accountability review.decision must be accepted or returned.",
+                capability="host.work.engagement.advance",
+            )
+        return HostAccountabilityAuthorizationTarget(
+            capability="host.work.engagement.advance",
+            resource_type="ordivon.host.work-engagement",
+            resource_id="host-engagement:v1:" + _base64url_text(work_ref),
+            attributes={
+                "identityContract": "ordivon.host-engagement-request-resource.v1",
+                "workRef": work_ref,
+                "claimedActorRef": actor_ref,
+                "expectedRevision": revision,
+                "actionType": action_type,
+                # These are claims/targets, never attested third-party proofs.
+                "requestedConsumerActorRef": action.get("consumerActorRef")
+                if action_type == "offer"
+                else None,
+                "reviewDecision": action.get("decision") if action_type == "review" else None,
+            },
+        )
+    if tool_name == "work.engagement.list":
+        assignee = arguments.get("assigneeActorRef")
+        consumer = arguments.get("consumerActorRef")
+        if assignee is not None:
+            assignee = _qualified_host_reference(assignee, "assigneeActorRef")
+        if consumer is not None:
+            consumer = _qualified_host_reference(consumer, "consumerActorRef")
+        phase = arguments.get("phase")
+        if phase is not None and (
+            not isinstance(phase, str)
+            or phase
+            not in {
+                "offered",
+                "claimed",
+                "submitted",
+                "returned",
+                "accepted",
+                "cancelled",
+            }
+        ):
+            raise CapabilityAuthorizationTargetError(
+                "CAPABILITY_AUTHZ_TARGET_INVALID",
+                "Work accountability phase is invalid.",
+                capability="host.work.engagement.list",
+            )
+        return HostAccountabilityAuthorizationTarget(
+            capability="host.work.engagement.list",
+            resource_type="ordivon.host.work-engagement-inbox",
+            resource_id=(
+                "host-engagement-inbox:v1:"
+                + _base64url_text(assignee or "*")
+                + "."
+                + _base64url_text(consumer or "*")
+            ),
+            attributes={
+                "identityContract": "ordivon.host-engagement-request-resource.v1",
+                "requestedAssigneeActorRef": assignee,
+                "requestedConsumerActorRef": consumer,
+                "requestedPhase": phase,
+            },
+        )
+    return None
 
 
 # These original Host projections only read state. Every other Host operation
@@ -326,6 +427,9 @@ def resolve_authorization_target(
     closed before reaching Runtime or the authorization provider.
     """
 
+    engagement = _resolve_work_engagement_target(tool_name, arguments)
+    if engagement is not None:
+        return engagement
     legacy_read = _legacy_host_read_target(tool_name, arguments)
     if legacy_read is not None:
         return legacy_read

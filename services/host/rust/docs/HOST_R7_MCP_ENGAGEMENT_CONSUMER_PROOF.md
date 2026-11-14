@@ -1,0 +1,119 @@
+# Host R7 — Work Engagement official MCP, end-to-end consumer qualification
+
+**Status:** Git source candidate; disposable PostgreSQL 18 / original Host schema13; NOT installed, production cutover, authenticated authority, or real Artifact/Runtime evidence verification.
+
+## Mature LEGO reuse and exact owner
+- **Work** (A): original PostgreSQL Schema13 `works` + immutable `work_snapshots` + `command_receipts` is the single authority for Work responsibility. A's existing `work::engagement::{advance_engagement,list_engagements}` owns every transition, history digest, CAS and rejection. No second task database, Task Queue, Watcher, lease daemon, shadow event bus, automatic follow, or new SQL in the MCP adapter.
+- **PG connection** (C): existing `deadpool-postgres` borrows one bounded session, delegates directly into A's Work domain; no extra write transaction in MCP.
+- **Public capability** (C): official `rmcp 3.9` `work.engagement.advance` accepts `workRef,expectedRevision,actorRef,clientRequestId,action`, where `action.type` is a tagged `offer|claim|release|submit|review|cancel` union. The caller-supplied stable `clientRequestId` is deliberately required for reconciliation after response loss.
+- **Public consumer read** (C): `work.engagement.list` accepts optional `phase,assigneeActorRef,consumerActorRef,limit,maxBytes,beforeUpdatedAt,beforeWorkRef`; A returns current-only filtered Work standing, stable descending keyset and a single PostgreSQL RepeatableRead snapshot per page. No claim of cross-page serializability.
+- **Typed MCP contracts**: rust `mcp/engagement_wire.rs` contains only boundary schema DTOs; official `rmcp::handler::server::tool::schema_for_output` derives real JSON output schemas with nested engagement/delivery/review fields. No copy of the Work state machine. The original 30 Python-compatible Rust tools continue using exact source-generated Python TypedDict schemas (and original strict input defaults).
+- **Source vs extension evidence**: `audit_mcp_surface.py` requires two *explicit* Rust-only extension tool names and non-placeholder typed input/output schemas, separately reports original source coverage, and rejects unapproved additional tools. Real source31, common Rust30, Rust-only2, Python-only1 (`host.pool.stats`), **30 legacy schema differences=0**, Rust outputSchema32/32. Count32 does NOT mean Python31/31 compatibility or installed exposure.
+
+## Real full consumer, not a DTO-only proof
+The isolated verifier creates a new Docker PG18 instance, runs the **original Host Alembic0001→0013**, and deletes that instance. A's PG work engagement tests prove two-client CAS claim race/one winner, payload preservation, safe monotonic epoch, response-loss replay, release/cancel, Return→Reclaim→Submit→Accept, and unicode 16KiB prefix pagination. The new official rmcp **stdio** test separately creates ActorRefs and a Work with true MCP calls:
+
+`Work.create(r1)` → `Offer(r2)` → `Claim(r3,e1)` → `Submit(r4)` → `consumer Return(r5)` → `another Agent Claim(r6,e2)` → `Submit(r7)` → `consumer Accept(r8,Completed)`. It also tests `Release→Cancel` on a second Work, exact idempotency replay, conflicting same ID/different payload, stale expectedRevision, stale claimEpoch/wrong assignee, wrong consumer, deliveryRef reuse, legacy `work.snapshot.commit` erasure rejection and invalid pagination. **All accepted statuses above are Host consumer declarations about synthetic evidence references, not confirmation of physical external effects.**
+
+The unsigned/subscription-free consumer has **no** Work subscription, yet can find the current submitted Work via `work.engagement.list(phase=submitted,consumerActorRef=...)`. After acceptance it no longer appears as submitted. This is current responsibility discovery, not historical `attention.delta` coverage or an unsolicited notification.
+
+One separate official **streamable HTTP** session creates/Offers/Claims a new Work and reads the consumer inbox. Every successful `structuredContent` from those two new tools is validated against **the exact JSON output schema published in that same real tools/list session**. Original Python `WorkStore.get_work(revision=1..8)` rereads all stdio-created immutable revisions and matches Rust Work.get JSON exactly; original Python's canonical RFC8785 digest matches all eight. The actual PostgreSQL `command_receipts` rows for seven step requests match original Python-computed request digests and response JSON exactly. The unmodified strict `WorkSnapshotInput(extra='forbid')` rejects all seven upgraded snapshots: no silent widening of legacy API.
+
+## R10 owner-transport identity seam (verified in disposable PG18 only)
+
+Rust Host Streamable HTTP now fails startup without ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE referencing a readable, private, bounded regular file (non-symlink). It accepts the same standard Authorization: Bearer token used by the existing Gateway McpOwnerCaller OwnerEndpoint(bearer_token_file) interface; no extra JWT service, password database or in-band identity claim is introduced. On Linux use owner-only 0600 private files, or a systemd LoadCredential/CREDENTIALS_DIRECTORY path with Gateway-compatible private access. The credential is loaded at Host startup: **coordinate both service restarts when rotating it**; a changed file alone is not a zero-downtime rotation guarantee. Missing/wrong bearer gets HTTP 401 before rmcp can read or write PG. STDIO remains a separate trusted local-process entrypoint and is not asserted to carry authenticated end-user identity.
+
+The PG18 integration creates a random private fixture file and runs the official Rust HTTP owner and actual Gateway McpOwnerCaller using that same credential; valid Gateway-to-Rust success/error payloads pass. Uncredentialed direct local tool calls cannot reach work.engagement.advance. **This is only service-to-service authentication.** It deliberately does not map the verified Gateway ingress Principal to actorRef, or prove that an Artifact/Runtime reference is valid. The Gateway PEP/real Security PDP must enforce those *additional* authorities before externally exposing the two Work Engagement tools. A response reporting Accepted remains an internally recorded consumer declaration, not proof of external effect.
+
+## R11 cross-LEGO Agent information-terminal consumer (isolated real PG18)
+
+The existing `tools/repo/run_host_gateway_rust_consumer.sh` invokes
+`services/gateway/tests/native_rust_host_consumer_smoke.py` (MCP/Gateway
+read-only transport smoke), which delegates the isolated Agent-specific
+Work/Social/Attention composition to
+`services/gateway/tests/native_rust_host_engagement_consumer.py` with a real
+loopback Rust HTTP Host, the official Gateway MCP SDK/OwnerEndpoint and
+Host's original Alembic schema13 on one disposable PostgreSQL 18.
+
+Beyond the earlier read-only Gateway parity smoke, that same consumer now
+tests a *second authenticated Gateway HTTP session* with the existing
+Gateway AuthZEN PEP, the **real Security Owner AuthZenPrincipalAuthorizer**, a
+live disposable loopback **AuthZEN HTTP / pinned OPA 1.21.4** provider and the
+original Rego policy supplied with **test-only exact Actor/Work/Action grants**.
+No mock Python policy decision or new custom authorization server remains.
+All Work mutations travel through true MCP calls and Rust PostgreSQL
+transactions. Work setup and Topic follow are seeded by the native Owner
+SDK as test preconditions, not falsely reported as authenticated Agent
+mutation. The consumer performs:
+
+`Offer → unsubscribed Work engagement.list → reject forged Claim →
+ Claim → Submit → Message.post → disconnect MCP → fresh MCP session →
+ attention.reentry → topic.resume → topic.cursor.ack → attention.ack →
+ reject forged Review → consumer Review.Accepted → Work.get Completed`.
+
+The subscription is Topic-scoped; the reviewer has no Work subscription.
+This demonstrates that Work engagement discovery and Attention navigation
+are separate, complementary needs, not duplicate inbox tables. Reconnecting
+does not require replaying a history of all old Work revisions.
+
+The observed Security policy engine authorizes a single local service
+Principal through three separate **test-owned, exact** ActorRef grants, each
+with tool, action, resource and expiry constraints. It first denies the Offer
+when policy grants are empty, rejects forged Claim/Review, then after the
+consumer's Accepted state revokes all test grants and verifies Work.get is
+denied while the original PostgreSQL Work revision stays unchanged.
+The OPA and AuthZEN service are production implementations; the grants,
+issuer fixture and listener are **disposable-only**, not installed credentials. It does **not** prove independent Agent credentials,
+production Security/OPA grants, private Space confidentiality or genuine
+Artifact/Runtime effects. A successful response without that installed
+grant cannot authorize a production cutover.
+
+### R12 three independently signed Principals (still disposable)
+
+One further official Gateway HTTP consumer uses the **existing**
+`CloudflareAccessVerifier` with three distinct signed RS256 test subjects and
+public-key verification, plus three separate test-owned Security OPA grants.
+Requester may Offer only, Worker may Claim/Submit only, Reviewer may query
+submitted Work and Accept only. The three independent MCP sessions reach the
+same real Rust Host with a distinct verified
+`principal:cf-access:<sha256>` at every request. A requester-provided
+Worker ActorRef and a Worker-provided Reviewer ActorRef both fail the real
+OPA policy before any Host update. A non-loopback ASGI client cannot reuse
+the local machine bearer; it must supply a valid signed Access JWT.
+
+This closes the **test-level distinct-Principal-to-Actor** composition gap,
+not the production identity gap: signatures, source policy data, test Agent
+subjects, certificates and Grant lifetimes are disposable fixtures. It does
+not establish installed Cloudflare credentials, production individual-Agent
+onboarding, live Security operator approval or actual external effects.
+
+### Formal-to-implementation refinement boundary
+
+`formal/HostEngagement.lean` now encodes the actual submitted **Action**
+(caller, asserted claimEpoch, review decision), requester and consumer identities,
+the JSON-safe claim epoch upper bound and the distinct requester/assignee
+release rule. The native `mise run formal:engagement` gate confirms **nine**
+axiom-free theorems, including caller/supplied epoch constraints, requester-only
+cancel, claim clearing old delivery and a negative fabricated-Accepted witness.
+The original Rust PostgreSQL18 consumer test also checks requester override,
+unauthorized third-party release and unauthorized cancel after a live Claim. This is an
+abstract transition-system safety proof, **not** a proof that Rust's
+`work/engagement.rs`, SQL CAS, Gateway middleware or Security PDP
+implements the model. The existing `work_engagement_pg.rs`, official
+MCP Engagement smoke and this true Gateway→Rust→PG18 consumer are the
+necessary bounded refinement/falsification tests. Production installed
+and distinct-Principal verification remain separate RED release gates.
+
+The canonical owner/consumer composition is declared once in
+`planning/lego-plan-r3.json` as `AGENT-COMPOSITE-01`; no second
+routing/LEGO registry, task database, custom message bus or workflow
+runtime is introduced.
+
+## Mandatory red release gates
+1. **ActorRef is a Host label, not authenticated identity.** These staging tools take `actorRef` supplied by the caller; a trusted Gateway/Security principal binding and per-consumer authorization are required before exposing mutating actions to untrusted traffic. ClaimEpoch fences Host responsibility only, not Runtime effects.
+2. **Notifications are not covered.** `work.engagement.list` supports explicit pull-based reentry without requiring subscription; it does not retroactively deliver push notifications or invent old Attention events. B can independently falsify consumer discovery and decide whether any *new actual consumer* needs a separate notification improvement.
+3. **Gateway projects a weaker output type, not a proven incorrect result.** A's independent official Python SDK audit found 29 common Host→Gateway tools with exact input metadata, but all 29 output schemas intentionally or incidentally generalized to `{"type":"object","additionalProperties":true}`. This is a legal supertype if actual structured responses still satisfy the Owner's stronger schema; there is no proof that Gateway corrupts returned data. Preserving every typed schema would increase the 29-tool metadata by about 26KiB. Exact output-schema refinement is an **opt-in consumer/release profile**, not a universal correctness failure; the Owner→Gateway machine-readable downgrade and actual installed consumption remain visible for consumers that require stronger typing.
+4. **Legacy source still lacks one native tool.** `host.pool.stats` has Psycopg-specific 15 counters, not equivalent to four native deadpool gauges; do not fake missing counts as zero. Installed ChatGPT Host connector reports 28 methods, not the experimental 32.
+5. No production PG/systemd/Windows/Gateway update, new package/release epoch, single-writer cutover or rollback qualification. Existing historic invalid Work histories are not fabricated healthy. No real Artifact/Runtime attestations or actual human consumer acceptance have been demonstrated.
+
+**Repeatable isolated acceptance:** `bash services/host/rust/tools/verify_r2_integrated_pg18.sh`, then `ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE=1 mise -C services/host run queue`. The verifier refuses inherited production DSNs and removes disposable DB containers and temporary JSON observations.

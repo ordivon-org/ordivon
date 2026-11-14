@@ -1,0 +1,489 @@
+{
+  "historicalRevisionState": "historical_state_unknown",
+  "invalidSnapshots": [
+    {
+      "errorType": "missing",
+      "id": "missing_objective",
+      "input": {
+        "frontier": "only"
+      }
+    },
+    {
+      "errorType": "missing",
+      "id": "missing_frontier",
+      "input": {
+        "objective": "only"
+      }
+    },
+    {
+      "errorType": "string_too_short",
+      "id": "empty_objective",
+      "input": {
+        "frontier": "f",
+        "objective": ""
+      }
+    },
+    {
+      "errorType": "extra_forbidden",
+      "id": "extra_forbidden",
+      "input": {
+        "frontier": "f",
+        "notAField": 1,
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "untrimmed_list_entry",
+      "input": {
+        "established": [
+          " bad "
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "empty_list_entry",
+      "input": {
+        "frontier": "f",
+        "nextActions": [
+          ""
+        ],
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "string_type",
+      "id": "wrong_objective_type",
+      "input": {
+        "frontier": "f",
+        "objective": 42
+      }
+    },
+    {
+      "errorType": "list_type",
+      "id": "null_list_is_not_default",
+      "input": {
+        "frontier": "f",
+        "nextActions": null,
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "string_type",
+      "id": "wrong_list_member_type",
+      "input": {
+        "frontier": "f",
+        "objective": "o",
+        "referenceRefs": [
+          3
+        ]
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001C",
+      "input": {
+        "established": [
+          "a\u001c"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001D",
+      "input": {
+        "established": [
+          "a\u001d"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001E",
+      "input": {
+        "established": [
+          "a\u001e"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001F",
+      "input": {
+        "established": [
+          "a\u001f"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    }
+  ],
+  "kind": "ordivon.host-rust-work-parity",
+  "oracle": {
+    "canonicalFormat": "RFC8785/UTF-8/SHA-256",
+    "implementation": [
+      "ordivon_host_v2.work_inputs.WorkSnapshotInput",
+      "ordivon_host_v2.canonical_json.canonical_bytes",
+      "ordivon_host_v2.work_store.commit_snapshot"
+    ],
+    "scope": "pure-python-host-wire-and-digest",
+    "sourceCut": "c7bbeed016be16f4860fec4ba069f3ee0cb11932"
+  },
+  "postgresqlEffectsProven": false,
+  "revisions": [
+    {
+      "accepted": true,
+      "id": "get_min",
+      "operation": "work.get",
+      "value": 1
+    },
+    {
+      "accepted": true,
+      "id": "get_max",
+      "operation": "work.get",
+      "value": 9223372036854775807
+    },
+    {
+      "accepted": false,
+      "id": "get_zero",
+      "operation": "work.get",
+      "value": 0
+    },
+    {
+      "accepted": false,
+      "id": "get_overflow",
+      "operation": "work.get",
+      "value": 9223372036854775808
+    },
+    {
+      "accepted": false,
+      "id": "get_bool",
+      "operation": "work.get",
+      "value": true
+    },
+    {
+      "accepted": false,
+      "id": "get_float",
+      "operation": "work.get",
+      "value": 1.0
+    },
+    {
+      "accepted": false,
+      "id": "get_string",
+      "operation": "work.get",
+      "value": "1"
+    },
+    {
+      "accepted": true,
+      "id": "commit_min",
+      "operation": "work.snapshot.commit",
+      "value": 1
+    },
+    {
+      "accepted": true,
+      "id": "commit_last_advancable",
+      "operation": "work.snapshot.commit",
+      "value": 9223372036854775806
+    },
+    {
+      "accepted": false,
+      "id": "commit_max",
+      "operation": "work.snapshot.commit",
+      "value": 9223372036854775807
+    },
+    {
+      "accepted": false,
+      "id": "commit_zero",
+      "operation": "work.snapshot.commit",
+      "value": 0
+    },
+    {
+      "accepted": false,
+      "id": "commit_bool",
+      "operation": "work.snapshot.commit",
+      "value": true
+    },
+    {
+      "accepted": false,
+      "id": "commit_float",
+      "operation": "work.snapshot.commit",
+      "value": 1.0
+    },
+    {
+      "accepted": false,
+      "id": "commit_string",
+      "operation": "work.snapshot.commit",
+      "value": "1"
+    }
+  ],
+  "schemaVersion": 1,
+  "validSnapshots": [
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [],
+        "established": [],
+        "frontier": "恢复工作 🧭",
+        "nextActions": [],
+        "objective": "持续 🧪",
+        "referenceRefs": [],
+        "rejected": [],
+        "unresolved": []
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b5d2c2265737461626c6973686564223a5b5d2c2266726f6e74696572223a22e681a2e5a48de5b7a5e4bd9c20f09fa7ad222c226e657874416374696f6e73223a5b5d2c226f626a656374697665223a22e68c81e7bbad20f09fa7aa222c227265666572656e636552656673223a5b5d2c2272656a6563746564223a5b5d2c22756e7265736f6c766564223a5b5d7d",
+      "expectedRevision": 1,
+      "id": "minimum_nonbmp",
+      "input": {
+        "frontier": "恢复工作 🧭",
+        "objective": "持续 🧪"
+      },
+      "mcpClientRequestId": "work-snapshot-commit:3138c6096ce57bdb83bc8b0cb8710f0995a6679c05fc6e7d4febddc825ce9c46",
+      "mcpRequestDigest": "sha256:3138c6096ce57bdb83bc8b0cb8710f0995a6679c05fc6e7d4febddc825ce9c46",
+      "snapshotDigest": "sha256:0fa4aecc513a7d373082aaeeef7f7170de1e9cb2b5daf1d2e198088fe2daf92c",
+      "state": "open",
+      "storeCreateDigest": "sha256:57888dc0de137db4f8bd91720b8ecc1dfaf6fe91ecef6e0e67cba70bd8c6aed1",
+      "storeRequestDigest": "sha256:439221f7ad35525daa99173d166873eb85052a353fcb56aa9aa562f1e7f2423c",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:minimum_nonbmp"
+    },
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [
+          "single writer",
+          "no invented payload"
+        ],
+        "established": [
+          "PostgreSQL 18",
+          "digest stable"
+        ],
+        "frontier": "CAS + receipts",
+        "nextActions": [
+          "read current Work",
+          "verify source SHA"
+        ],
+        "objective": "Verify \"response loss\" / 请求重放",
+        "referenceRefs": [
+          "git:revision:c7bbeed016be16f4860fec4ba069f3ee0cb11932",
+          "message:26139"
+        ],
+        "rejected": [
+          "dual write"
+        ],
+        "unresolved": [
+          "MCP tool list?",
+          "time zone offsets"
+        ]
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b2273696e676c6520777269746572222c226e6f20696e76656e746564207061796c6f6164225d2c2265737461626c6973686564223a5b22506f737467726553514c203138222c2264696765737420737461626c65225d2c2266726f6e74696572223a22434153202b207265636569707473222c226e657874416374696f6e73223a5b22726561642063757272656e7420576f726b222c2276657269667920736f7572636520534841225d2c226f626a656374697665223a22566572696679205c22726573706f6e7365206c6f73735c22202f20e8afb7e6b182e9878de694be222c227265666572656e636552656673223a5b226769743a7265766973696f6e3a63376262656564303136626531366634383630666563346261303639663365653063623131393332222c226d6573736167653a3236313339225d2c2272656a6563746564223a5b226475616c207772697465225d2c22756e7265736f6c766564223a5b224d435020746f6f6c206c6973743f222c2274696d65207a6f6e65206f666673657473225d7d",
+      "expectedRevision": 7,
+      "id": "full_aliases",
+      "input": {
+        "constraints": [
+          "single writer",
+          "no invented payload"
+        ],
+        "established": [
+          "PostgreSQL 18",
+          "digest stable"
+        ],
+        "frontier": "CAS + receipts",
+        "nextActions": [
+          "read current Work",
+          "verify source SHA"
+        ],
+        "objective": "Verify \"response loss\" / 请求重放",
+        "referenceRefs": [
+          "git:revision:c7bbeed016be16f4860fec4ba069f3ee0cb11932",
+          "message:26139"
+        ],
+        "rejected": [
+          "dual write"
+        ],
+        "unresolved": [
+          "MCP tool list?",
+          "time zone offsets"
+        ]
+      },
+      "mcpClientRequestId": "work-snapshot-commit:7c4e779ba4fb1b865efb50e23a2d62c496d7670b0ee6dd172e20cbbfd92812f5",
+      "mcpRequestDigest": "sha256:7c4e779ba4fb1b865efb50e23a2d62c496d7670b0ee6dd172e20cbbfd92812f5",
+      "snapshotDigest": "sha256:cc53557cbbd37c969df1ebfd7b83b358e567009cf9d21c92136b0afe73abba17",
+      "state": "completed",
+      "storeCreateDigest": "sha256:eee53ef949c102cf8562fdd3378210846a4b73e155aefb12c6fceb8d4f0f3b19",
+      "storeRequestDigest": "sha256:807eef7fcc1cd8177ef925283fdcdf4ae783e2601cc79fbac033c9811bba6261",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:full_aliases"
+    },
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [],
+        "established": [],
+        "frontier": "camel-case durable form",
+        "nextActions": [
+          "continue"
+        ],
+        "objective": "Snake-case input alias",
+        "referenceRefs": [
+          "work:stable"
+        ],
+        "rejected": [],
+        "unresolved": []
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b5d2c2265737461626c6973686564223a5b5d2c2266726f6e74696572223a2263616d656c2d636173652064757261626c6520666f726d222c226e657874416374696f6e73223a5b22636f6e74696e7565225d2c226f626a656374697665223a22536e616b652d6361736520696e70757420616c696173222c227265666572656e636552656673223a5b22776f726b3a737461626c65225d2c2272656a6563746564223a5b5d2c22756e7265736f6c766564223a5b5d7d",
+      "expectedRevision": 2,
+      "id": "python_field_names",
+      "input": {
+        "frontier": "camel-case durable form",
+        "next_actions": [
+          "continue"
+        ],
+        "objective": "Snake-case input alias",
+        "reference_refs": [
+          "work:stable"
+        ]
+      },
+      "mcpClientRequestId": "work-snapshot-commit:b15583a91e48675709bb501fc1a8bc8e08b3407c9d53cfcb91140b52694f5596",
+      "mcpRequestDigest": "sha256:b15583a91e48675709bb501fc1a8bc8e08b3407c9d53cfcb91140b52694f5596",
+      "snapshotDigest": "sha256:060c4ceebb3647395fe770e80e8a7322d10b844c786ff2477c61a4ff675c66b0",
+      "state": "open",
+      "storeCreateDigest": "sha256:f32b10e3ad9660d39d6124fa8a7b197b0916ef6aba0bdee8f4c5953cba0adb5b",
+      "storeRequestDigest": "sha256:f63e25b4cc87d38c3d2f286f1791980a7d08e6c7089bdb26fc0bab96c75ebf80",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:python_field_names"
+    },
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [
+          "literal   line separator",
+          "tab\tinside"
+        ],
+        "established": [],
+        "frontier": "line1\nline2\twith tab",
+        "nextActions": [],
+        "objective": "quote \" slash / backslash \\",
+        "referenceRefs": [],
+        "rejected": [],
+        "unresolved": []
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b226c69746572616c20e280a8206c696e6520736570617261746f72222c227461625c74696e73696465225d2c2265737461626c6973686564223a5b5d2c2266726f6e74696572223a226c696e65315c6e6c696e65325c747769746820746162222c226e657874416374696f6e73223a5b5d2c226f626a656374697665223a2271756f7465205c2220736c617368202f206261636b736c617368205c5c222c227265666572656e636552656673223a5b5d2c2272656a6563746564223a5b5d2c22756e7265736f6c766564223a5b5d7d",
+      "expectedRevision": 42,
+      "id": "json_escapes",
+      "input": {
+        "constraints": [
+          "literal   line separator",
+          "tab\tinside"
+        ],
+        "frontier": "line1\nline2\twith tab",
+        "objective": "quote \" slash / backslash \\"
+      },
+      "mcpClientRequestId": "work-snapshot-commit:da054cd44c5f761088f7858eb7e1d814a964100c7e440a48b87a5a14a67aa43f",
+      "mcpRequestDigest": "sha256:da054cd44c5f761088f7858eb7e1d814a964100c7e440a48b87a5a14a67aa43f",
+      "snapshotDigest": "sha256:35b4e8d27b5bdde0d8268e1fc970f19ee5a0f52dc9f50a614d950effc8b63163",
+      "state": "abandoned",
+      "storeCreateDigest": "sha256:3f0b4983f757933ea623f8306e2c0d54f3249cb209477bf00f6c51ec8942217f",
+      "storeRequestDigest": "sha256:45561c417b6d867b0a6a482268c278144dc414ae1024369ba39e62d83681792a",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:json_escapes"
+    },
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [],
+        "established": [],
+        "frontier": "不同 Unicode composition",
+        "nextActions": [],
+        "objective": "Café",
+        "referenceRefs": [],
+        "rejected": [],
+        "unresolved": []
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b5d2c2265737461626c6973686564223a5b5d2c2266726f6e74696572223a22e4b88de5908c20556e69636f646520636f6d706f736974696f6e222c226e657874416374696f6e73223a5b5d2c226f626a656374697665223a2243616665cc81222c227265666572656e636552656673223a5b5d2c2272656a6563746564223a5b5d2c22756e7265736f6c766564223a5b5d7d",
+      "expectedRevision": 1,
+      "id": "unicode_combining",
+      "input": {
+        "frontier": "不同 Unicode composition",
+        "objective": "Café"
+      },
+      "mcpClientRequestId": "work-snapshot-commit:8e859ddd32b397b320310dd0bb86adaa4051f312d1554b57ac3802faade833d1",
+      "mcpRequestDigest": "sha256:8e859ddd32b397b320310dd0bb86adaa4051f312d1554b57ac3802faade833d1",
+      "snapshotDigest": "sha256:5ad12104664e91c17adb5b28fab0180c6c4c17f25287cf9f90263d9644538e06",
+      "state": "open",
+      "storeCreateDigest": "sha256:4f517206f19c402ad8813e30f78762c565241ccd3b3754596996e90669642e2a",
+      "storeRequestDigest": "sha256:d159a64c5e68df2df3f326c0045448ed88d4ff2c51ae807ded95868cbee70906",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:unicode_combining"
+    },
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [],
+        "established": [],
+        "frontier": "不同 Unicode composition",
+        "nextActions": [],
+        "objective": "Café",
+        "referenceRefs": [],
+        "rejected": [],
+        "unresolved": []
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b5d2c2265737461626c6973686564223a5b5d2c2266726f6e74696572223a22e4b88de5908c20556e69636f646520636f6d706f736974696f6e222c226e657874416374696f6e73223a5b5d2c226f626a656374697665223a22436166c3a9222c227265666572656e636552656673223a5b5d2c2272656a6563746564223a5b5d2c22756e7265736f6c766564223a5b5d7d",
+      "expectedRevision": 1,
+      "id": "unicode_precomposed",
+      "input": {
+        "frontier": "不同 Unicode composition",
+        "objective": "Café"
+      },
+      "mcpClientRequestId": "work-snapshot-commit:dd2379e1ef2702bc27f3e69e670e85351433a4a3b906c9627b9fa84293a94c4d",
+      "mcpRequestDigest": "sha256:dd2379e1ef2702bc27f3e69e670e85351433a4a3b906c9627b9fa84293a94c4d",
+      "snapshotDigest": "sha256:374faece3008aac8adee92a5cc7c1e3641850136de388f1c027cf8459d564e70",
+      "state": "open",
+      "storeCreateDigest": "sha256:9b6a03471b88b810999adb716c27ce9769e6ae401d8aa88ec123d5692235a0b8",
+      "storeRequestDigest": "sha256:1d2b867f15a86c2997869997fb590d17652ee91b0bc856d526afbb788385e941",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:unicode_precomposed"
+    },
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [],
+        "established": [
+          "a\u001cb"
+        ],
+        "frontier": "f",
+        "nextActions": [],
+        "objective": "o",
+        "referenceRefs": [],
+        "rejected": [],
+        "unresolved": []
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b5d2c2265737461626c6973686564223a5b22615c753030316362225d2c2266726f6e74696572223a2266222c226e657874416374696f6e73223a5b5d2c226f626a656374697665223a226f222c227265666572656e636552656673223a5b5d2c2272656a6563746564223a5b5d2c22756e7265736f6c766564223a5b5d7d",
+      "expectedRevision": 1,
+      "id": "embedded_python_only_whitespace",
+      "input": {
+        "established": [
+          "a\u001cb"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      },
+      "mcpClientRequestId": "work-snapshot-commit:74c6ac6959751cb39488622cfc85901c8a154d0ddb713e6df1e95dfd8d7d2607",
+      "mcpRequestDigest": "sha256:74c6ac6959751cb39488622cfc85901c8a154d0ddb713e6df1e95dfd8d7d2607",
+      "snapshotDigest": "sha256:d626e2210890bec69ee241be65811af4e5b472b483eaf856ad3b7febd3ffdd94",
+      "state": "open",
+      "storeCreateDigest": "sha256:1996cea81841307b3545ff687edb4a108b9d5e42b161518fec30da0af3870612",
+      "storeRequestDigest": "sha256:a19b9609cb5058050cde68417d6d0d1e3bf2aedc726c83b091e15bcdc808788c",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:embedded_python_only_whitespace"
+    }
+  ]
+}
