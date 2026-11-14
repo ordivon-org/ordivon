@@ -878,6 +878,135 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         txn_release.touch()
                         writer.communicate(timeout=24)
                     assert writer.returncode == 0, "source PG writer did not commit"
+                    if issuer_isolated and dispatch_gate:
+                        # Concrete CEGAR negative: qualified issuer admission is
+                        # not a guarantee that authorization remains current at
+                        # the later physical systemd-run spawn. This branch must
+                        # execute before the issuer-bound scenario returns.
+                        late_output = "R24_ISSUER_ON_SPAWNED_AFTER_REVOCATION"
+                        late = verified_harness_source(
+                            "prepare", ORDIVON_R22_EXEC_OUTPUT=late_output
+                        )
+                        gate_enabled.touch()
+                        submission = asyncio.create_task(
+                            agent.call_tool("execution.submit", native_request(late))
+                        )
+                        pending_get = None
+                        try:
+                            for _ in range(300):
+                                if gate_ready.exists():
+                                    break
+                                if submission.done():
+                                    submitted = await submission
+                                    assert not submitted.is_error, submitted.structured_content
+                                    if pending_get is None or pending_get.done():
+                                        if pending_get is not None:
+                                            prior = await pending_get
+                                            assert not prior.is_error, prior.structured_content
+                                        pending_get = asyncio.create_task(
+                                            agent.call_tool(
+                                                "execution.get",
+                                                {
+                                                    "operationRef": submitted.structured_content[
+                                                        "operation_ref"
+                                                    ],
+                                                    "waitMs": 1500,
+                                                },
+                                            )
+                                        )
+                                await asyncio.sleep(0.05)
+                            assert gate_ready.exists(), (
+                                "authenticated Harness Job did not reach the "
+                                "native post-DISPATCH_ISSUED gate"
+                            )
+                            late_job = psql(
+                                "SELECT job_id FROM fresh.jobs "
+                                "WHERE principal='harness-native-test' "
+                                f"AND client_request_id='{late['clientRequestId']}'"
+                            ).strip()
+                            assert late_job.startswith("job-")
+                            assert (
+                                psql(
+                                    "SELECT count(*) FROM fresh.job_events "
+                                    f"WHERE job_id='{late_job}' AND event_type='DISPATCH_ISSUED'"
+                                ).strip()
+                                == "1"
+                            )
+                            assert (
+                                psql(
+                                    "SELECT count(*) FROM fresh.job_events "
+                                    f"WHERE job_id='{late_job}' AND event_type='JOB_TERMINAL'"
+                                ).strip()
+                                == "0"
+                            )
+                            superseded = verified_harness_source(
+                                "supersede",
+                                ORDIVON_R22_EXPECT_RUN=late["runId"],
+                                ORDIVON_R22_EXPECT_REQUEST=late["clientRequestId"],
+                                ORDIVON_R22_EXPECT_REFS_JSON=json.dumps(late["foreignReferences"]),
+                            )
+                            assert superseded["standing"] == (
+                                "FENCE_SUPERSEDED_BY_DURABLE_RUN_REVISION"
+                            )
+                            print("R24_ISSUER_ON_DISPATCH_COMMITTED_BEFORE_REVOCATION")
+                        finally:
+                            # Never strand a native systemd Job on a failed test.
+                            gate_release.touch()
+                        submitted = await submission
+                        assert not submitted.is_error, submitted.structured_content
+                        assert submitted.structured_content["native_id"] == late_job
+                        if pending_get is not None:
+                            previous = await pending_get
+                            assert not previous.is_error, previous.structured_content
+                        for _ in range(35):
+                            observed = await agent.call_tool(
+                                "execution.get",
+                                {
+                                    "operationRef": submitted.structured_content["operation_ref"],
+                                    "waitMs": 1500,
+                                },
+                            )
+                            if observed.is_error:
+                                error = observed.structured_content.get("error", {})
+                                assert (
+                                    error.get("code") == "REGISTRY_BUSY"
+                                    and error.get("commitState") == "committed"
+                                ), observed.structured_content
+                                # The exact accepted PG Job is durable. An
+                                # uncertain observation requires read-only
+                                # reattachment, NEVER a new effect submission.
+                                exact = await caller.call_tool(
+                                    "runtime.harness", "job.get", {"jobId": late_job}
+                                )
+                                assert exact["job"]["jobId"] == late_job
+                                await asyncio.sleep(0.1)
+                                continue
+                            if observed.structured_content["terminal"]:
+                                break
+                        assert not observed.is_error, observed.structured_content
+                        assert observed.structured_content["terminal"]
+                        assert observed.structured_content["exit_code"] == 0
+                        observed_effect = False
+                        for artifact_id in observed.structured_content["artifact_ids"]:
+                            content = await agent.call_tool(
+                                "artifact.read",
+                                {
+                                    "operationRef": submitted.structured_content["operation_ref"],
+                                    "artifactId": artifact_id,
+                                    "maxBytes": 65_536,
+                                },
+                            )
+                            assert not content.is_error, content.structured_content
+                            observed_effect |= late_output in content.structured_content["content"]
+                        assert observed_effect, "native effect must occur after source revocation"
+                        assert (
+                            psql(
+                                "SELECT count(*) FROM fresh.job_events "
+                                f"WHERE job_id='{late_job}' AND event_type='DISPATCH_ISSUED'"
+                            ).strip()
+                            == "1"
+                        ), "source revocation cannot create a second dispatch"
+                        print("R24_ISSUER_ON_SPAWN_CURRENT_COUNTEREXAMPLE_REPRODUCED")
                 return
             request_id = "gateway-native-" + secrets.token_hex(6)
             output = "GATEWAY_NATIVE_PG_" + request_id
