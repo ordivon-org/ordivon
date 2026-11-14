@@ -636,6 +636,26 @@ manufacture test grants in the live operator policy, or treat an
 isolated unit test's positive AuthZEN decision as an installed result.
 
 
+### Installed Security Rego read-tool surface is a release consumer condition
+
+A merged Security PR is not the Rego version used by the installed PDP.
+The official Gateway production admission preflight now queries the
+installed Security service's systemd-declared OPA executable and Rego
+policy file through native bounded opa eval. It compares the actual
+Host read-tool selector set to Gateway's public enforcement-surface.json,
+checks required fields are valid selectors and specifically requires
+message.get to demand messageRef. Missing, stale, undefined or malformed
+OPA data produces a separate NO_GO reason:
+HOST_SECURITY_INSTALLED_READ_SURFACE_MISMATCH. Neither the source Rego
+nor a guessed policy path is substituted for the Security operator's
+installed declaration.
+
+This is one necessary source/installed contract condition, not a
+live OPA ALLOW, proof that Security already loaded that file, an Operator
+Principal/Actor Grant or successful real Agent traffic. The latter
+still need true installed HTTP canaries and explicit natural-owner
+authorization before activation.
+
 ### R4 direct Host MCP ingress: an independently observed release condition
 
 The Gateway production release preflight must not infer that Host HTTP is
