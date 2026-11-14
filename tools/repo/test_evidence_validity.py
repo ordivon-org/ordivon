@@ -1048,3 +1048,40 @@ def test_historical_formal_declaration_resists_actual_git_replace_ref(tmp_path):
         "tools/formal/verify.py",
         "old.lean",
     )
+
+
+def test_unpushed_candidate_github_unknown_does_not_erase_original_readset(
+    monkeypatch,
+):
+    import subprocess
+
+    monkeypatch.setattr(
+        module,
+        "decide",
+        Mock(side_effect=subprocess.CalledProcessError(1, "gh api")),
+    )
+    original = {
+        "standing": "UNCHANGED_DECLARED_SOURCE_INPUTS",
+        "proofReuseAdmissible": False,
+        "declaredSourceReadsetComparisonComplete": True,
+    }
+    monkeypatch.setattr(
+        module,
+        "declared_formal_source_delta",
+        Mock(return_value=original),
+    )
+    result = module.decide_with_optional_formal_source_delta(
+        repo=module.DEFAULT_REPOSITORY,
+        current_sha=CURRENT,
+        prior_sha=PREVIOUS,
+        check_name="root-verification",
+        include_formal_source_delta=True,
+        github=provider(),
+    )
+    assert result["disposition"] == "UNKNOWN_CURRENT_CHECK_PROVIDER"
+    assert result["existingCheckReceiptReusable"] is False
+    assert result["proofReuseAdmissible"] is False
+    assert result["formalDeclaredSourceDelta"] is original
+    assert result["formalDeclaredSourceDelta"]["standing"] == (
+        "UNCHANGED_DECLARED_SOURCE_INPUTS"
+    )

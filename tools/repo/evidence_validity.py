@@ -738,14 +738,47 @@ def decide_with_optional_formal_source_delta(
     github: Gh | None = None,
     git_repo: Path | None = None,
 ) -> dict[str, Any]:
-    """A missing Formal readset cannot erase a qualified GitHub check fact."""
-    decision = decide(
-        repo=repo,
-        current_sha=current_sha,
-        prior_sha=prior_sha,
-        check_name=check_name,
-        github=github,
-    )
+    """GitHub provider uncertainty does not erase immutable Git source evidence.
+
+    A candidate SourceCut may exist locally before being pushed to GitHub.
+    That yields no current provider Check Run, but original Formal Artifact
+    and two original Git snapshots remain independently inspectable.
+    """
+    current_sha = _exact_commit(current_sha)
+    if prior_sha is not None:
+        prior_sha = _exact_commit(prior_sha)
+    if repo != DEFAULT_REPOSITORY or not check_name or len(check_name) > 128:
+        raise ValueError("unqualified repository or Check Run name")
+    try:
+        decision = decide(
+            repo=repo,
+            current_sha=current_sha,
+            prior_sha=prior_sha,
+            check_name=check_name,
+            github=github,
+        )
+    except (
+        OSError,
+        ValueError,
+        subprocess.CalledProcessError,
+        json.JSONDecodeError,
+    ) as exc:
+        decision = {
+            "schemaVersion": 1,
+            "kind": "ordivon.source-check-evidence-decision",
+            "repository": repo,
+            "currentSourceCut": current_sha,
+            "priorSourceCut": prior_sha,
+            "disposition": "UNKNOWN_CURRENT_CHECK_PROVIDER",
+            "nextOperation": "inspect-current-provider-when-published",
+            "existingCheckReceiptReusable": False,
+            "proofReuseAdmissible": False,
+            "errorType": type(exc).__name__,
+            "nonClaims": [
+                "Missing current GitHub Check Run is not an execution failure",
+                "Immutable local Git and prior Artifact evidence are independent",
+            ],
+        }
     if not include_formal_source_delta:
         return decision
     if prior_sha is None:

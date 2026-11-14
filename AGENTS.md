@@ -104,6 +104,15 @@ The evidence consumer must validate the original PR base/head parents;
 do not copy the PR Head into the historical proof as if it had executed.
 No separate Harness execution-dispatch authority is implied.
 
+A local Git candidate that has not yet been pushed can return
+UNKNOWN_CURRENT_CHECK_PROVIDER while independent prior Formal Artifact
+and immutable Git input comparison still succeed. Do not let current
+provider unavailability erase previously qualified historical evidence
+or trigger automatic solver re-execution. The existing Runtime
+agent_evidence_admission.py already consumes exact GitHub CI
+for the named natural Owner. It is read-only, not an enforced
+Harness ToolBridge no-redispatch gate.
+
 ## Evidence-backed detailed reporting and handoffs
 
 When a user requests a detailed progress/completion report, or when handing off a

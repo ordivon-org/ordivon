@@ -150,6 +150,45 @@ reuse as real Agent consumer metrics. Do not invent a percentage from
 synthetic test counts.
 
 
+## R5: unpublished candidate / current provider independence (2026-11-14)
+
+A local exact Git candidate SHA may not yet exist in the GitHub API.
+Its current Check Run is UNKNOWN_CURRENT_CHECK_PROVIDER. That is neither
+a known CI failure nor reason to rerun the old proof. For that
+read-only case the candidate's original local Git identity is qualified
+first, and independent historical source/Artifact consumers are still
+permitted to inspect original evidence.
+
+Actual readback (before publishing the candidate): PR #2182's
+original GitHub root Check Run 132147168403 and Formal execution
+SourceCut 72d97e758f22383cf0a464a3ea5e08d5f9f0aad5 were retrieved
+while the candidate commit ec21eb7acce3b608ba0b126045888ec8722c6a54
+had no GitHub check. Native Git snapshot comparison found
+UNCHANGED_DECLARED_SOURCE_INPUTS for all 36 producer-declared Formal
+source inputs. The local-current provider remained UNKNOWN and
+proofReuseAdmissible was FALSE. No solver and no duplicate CI/Runtime
+Job were launched.
+
+A separate natural Owner consumer is already present on main:
+services/runtime/scripts/agent_evidence_admission.py. Its real read-only
+query on original PR #2182/Head ef001b0d3e111721bcca856be960a6027737bb77
+returned EXACT_CUT_CI_OBSERVED with advice
+REUSE_OFFICIAL_SOURCE_CI_RESULT_AT_THIS_CUT_NO_DUPLICATE_RUN.
+That is an exact-commit CI result and does not supersede a separate
+Formal input/toolchain/consumer proof. Harness archived claim
+currentness is independently owned by
+services/harness/scripts/check_evidence.py. Do not create an
+alternative Harness authority or treat this query as a physical
+Runtime no-dispatch fence.
+
+The remaining P0 boundary is caller-specific verification intent:
+the caller must identify exact claim, natural Owner, relevant
+verified producer/consumer scope and accepted evidence before
+a task-specific no-redispatch decision can be enforced. Generic
+Harness ToolBridge/workspace.exec is also used for compilation,
+research, browser and real external actions, and must not be
+globally disabled on the basis of old source CI proof.
+
 ## R4: Real PR merge-SourceCut consumer correction (2026-11-14)
 
 Actual user-facing failure observed on existing PR #2182: GitHub Actions
