@@ -463,3 +463,58 @@ observe -> artifact.read business workflow succeeds with high-level SDK calls.
 Proof of business delivery requires the original owner Job identity, terminal
 evidence, source-qualified output bytes, and an independently verified Artifact
 digest. Gateway route readiness and HTTP /health alone do not prove it.
+
+
+## Agent result-consumer and release admission Golden Road (2026-11-14)
+
+For a typical Agent, the end-to-end chain is capability.describe/search/
+resolve -> execution.submit -> execution.resolve/get -> artifact.read ->
+the natural domain consumer. Gateway owns the public MCP contract,
+caller/Owner reference qualification and faithful projection of the
+native Runtime outcome. Runtime's PG Job/Attempt and retained Artifact
+truth remain authoritative; terminal Job does not prove Research/Finance
+domain completion. Reuse the existing GatewayService, native
+ExecutionObservationMethods and HTTP/Owner MCP SDK, not another Scheduler.
+
+**Critical result projection**: A Runtime Artifact chunk is a typed
+bounded range, not free-form data. Gateway must reject a non-JSON-boolean
+eof, wrong/ill-typed offset, nextOffset outside the requested range,
+or non-string content; the string "false" cannot become EOF=True.
+An artifact_projection_complete=True claim requires an actual
+nonnegative JSON integer from job.get.artifacts.count corroborating
+the observed Artifact IDs. If the authoritative total is absent or
+malformed, completeness must remain UNKNOWN (None), not True or False.
+Likewise exitCode=True cannot be treated as an integer code. Original
+native consumers and negative tests:
+src/ordivon_gateway/execution_observations.py and
+tests/test_gateway_service.py. This is a wire result contract, not a
+new Runtime state model.
+
+**Installed release is an independent acceptance stage.** Compare
+the exact running /opt/ordivon/gateway/current Git SourceCut, live
+MCP SDK tools/list surface/epoch, ingress and natural Security PDP
+operator data BEFORE promotion. Existing packaging/install_release.sh
+performs native verify_tool_surface.py and MCP SDK verification.
+For a staged dry-run, use an isolated PREFIX with its initial current
+symlink pointing to the installed release. A private Runtime Workspace
+is not traversable by the Gateway service account, so service-user
+preflight must use a separate, traversable isolated prefix. Preserve
+the existing ORDIVON_GATEWAY_RELEASE_SERVICE_USER check.
+
+When the candidate activates Gateway's Host read/write AuthZEN PEP,
+Security must already have **operator-provisioned current Principal
+to Actor and tool/resource-scoped grants** and real read/write
+allow/deny consumers must pass. Merely supporting host.legacy-read
+and host.legacy-write in OPA Rego does not produce grants. An empty
+live grant set is a **NO-GO** for a service-continuity-preserving
+upgrade: the new correct fail-closed PEP would deny the existing
+Host operations. Never fabricate Actor delegation from a Tool
+actorRef, a shared local bearer, a Cloudflare Access JWT, or CI PASS,
+and never bypass the PEP to make a release look ready.
+
+Keep the source-qualified candidate if needed, but leave production
+symlink/service unchanged until Security operator authorizes actual
+delegations, the natural Host direct-channel migration is qualified
+and a candidate service-account+Owner canary passes. Any promotion
+must be followed by live Gateway/Host/Artifact readback rather than
+just a source-manifest test.
