@@ -434,6 +434,48 @@ def inspect_historical_formal_report(
             or not re.fullmatch(r"[0-9a-f]{64}", record["sha256"])
         ):
             raise ValueError("historical Formal report tool provenance invalid")
+    # Retain the original source producer's finite *observations* for an
+    # optional read-only comparison; do not promote them into a full readset.
+    resources = report.get("toolResources")
+    z3 = report.get("z3ObservedElfDependencies")
+    valid_resources = (
+        isinstance(resources, dict)
+        and set(resources) == {"alloyAppJar", "alloyJvm"}
+        and all(
+            isinstance(row, dict)
+            and isinstance(row.get("path"), str)
+            and row["path"].startswith("/")
+            and isinstance(row.get("sha256"), str)
+            and re.fullmatch(r"[0-9a-f]{64}", row["sha256"]) is not None
+            for row in resources.values()
+        )
+    )
+    valid_z3 = (
+        isinstance(z3, dict)
+        and isinstance(z3.get("scope"), str)
+        and z3["scope"].startswith("linux-elf64-")
+        and z3.get("entrypointSha256") == tools["z3"]["sha256"]
+        and isinstance(z3.get("interpreterPath"), str)
+        and z3["interpreterPath"].startswith("/")
+        and isinstance(z3.get("resolvedLibraries"), dict)
+        and bool(z3["resolvedLibraries"])
+        and all(
+            isinstance(path, str)
+            and path.startswith("/")
+            and isinstance(digest, str)
+            and re.fullmatch(r"[0-9a-f]{64}", digest) is not None
+            for path, digest in z3["resolvedLibraries"].items()
+        )
+    )
+    tool_snapshot = (
+        {
+            "toolBinaries": tools,
+            "toolResources": resources,
+            "z3ObservedElfDependencies": z3,
+        }
+        if valid_resources and valid_z3
+        else None
+    )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.historical-formal-receipt-content-binding",
@@ -444,6 +486,7 @@ def inspect_historical_formal_report(
         "reportedToolEntrypoints": len(tools),
         "artifactProvenance": "UNVERIFIED_LOCAL_INPUT",
         "runtimeAndToolchainEquivalence": "UNKNOWN",
+        "originalObservedToolInputs": tool_snapshot,
         "proofReuseAdmissible": False,
     }
 
@@ -801,6 +844,177 @@ def decide_with_optional_formal_source_delta(
     return decision
 
 
+def observe_current_formal_tool_inputs(
+    *, repo: Path, target_source_cut: str
+) -> dict[str, Any]:
+    """Native Formal producer pre/post tool observations without its main().
+
+    Unlike a hermetic action manifest, this leaves plugins, dlopen, imports,
+    host time and model→implementation refinement explicitly UNKNOWN.
+    """
+    import importlib.util
+
+    target_source_cut = _exact_commit(target_source_cut)
+    if repo.resolve() != Path.cwd().resolve():
+        raise ValueError("Formal observer needs current Git repository")
+    source = repo / "tools/formal/verify.py"
+    if not source.is_file() or source.is_symlink():
+        raise ValueError("missing or symlinked native Formal producer")
+    expected = git_native(
+        repo,
+        "--no-replace-objects",
+        "rev-parse",
+        target_source_cut + ":tools/formal/verify.py",
+    ).strip()
+    actual = git_native(repo, "hash-object", "--no-filters", "--", str(source)).strip()
+    if actual != expected:
+        raise ValueError("unqualified local Formal producer source")
+    spec = importlib.util.spec_from_file_location(
+        "ordivon_formal_readonly_observer", source
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("Formal producer import unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source_before = module.qualified_source_cut()
+    if source_before.get("gitHead") != target_source_cut:
+        raise ValueError("current source differs from observed target")
+    tools_before = module.qualified_tool_binaries()
+    alloy_before = module.qualified_alloy_runtime_resources(
+        tools_before["alloy"]["path"]
+    )
+    z3_before = module.observed_z3_elf_dependencies(Path(tools_before["z3"]["path"]))
+    if z3_before.get("entrypointSha256") != tools_before["z3"]["sha256"]:
+        raise ValueError("Z3 loader and executable conflict")
+    if (
+        module.qualified_source_cut() != source_before
+        or module.qualified_tool_binaries() != tools_before
+        or module.qualified_alloy_runtime_resources(tools_before["alloy"]["path"])
+        != alloy_before
+        or module.observed_z3_elf_dependencies(Path(tools_before["z3"]["path"]))
+        != z3_before
+    ):
+        raise ValueError("current inputs changed during read-only observation")
+    return {
+        "kind": "ordivon.native-formal-tool-input-observation",
+        "sourceCut": target_source_cut,
+        "tools": {
+            "toolBinaries": tools_before,
+            "toolResources": alloy_before,
+            "z3ObservedElfDependencies": z3_before,
+        },
+        "scope": "ONE_LOCAL_ENVIRONMENT_PRE_POST_NO_SOLVER",
+        "proofReuseAdmissible": False,
+    }
+
+
+def compare_original_formal_tool_inputs(
+    *,
+    historical_receipt: dict[str, Any] | None,
+    current_observation: dict[str, Any],
+    target_source_cut: str,
+) -> dict[str, Any]:
+    """Only compare qualified original observations with finite current subset."""
+    target_source_cut = _exact_commit(target_source_cut)
+    result = {
+        "kind": "ordivon.scoped-formal-tool-input-comparison",
+        "targetSourceCut": target_source_cut,
+        "standing": "UNKNOWN_TOOL_INPUT_OBSERVATION",
+        "changedObservedInputs": [],
+        "changedObservedFields": {},
+        "proofReuseAdmissible": False,
+        "fullReadsetClosed": False,
+        "unresolved": [
+            "Lean OLEAN, plugins, dlopen and arbitrary dynamic/child-process inputs",
+            "Non-hermetic host/time assumptions and model-to-code/consumer refinement",
+        ],
+    }
+    if (
+        not isinstance(historical_receipt, dict)
+        or historical_receipt.get("artifactProvenance")
+        != "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+        or current_observation.get("kind")
+        != "ordivon.native-formal-tool-input-observation"
+        or current_observation.get("sourceCut") != target_source_cut
+        or current_observation.get("scope")
+        != "ONE_LOCAL_ENVIRONMENT_PRE_POST_NO_SOLVER"
+        or current_observation.get("proofReuseAdmissible") is not False
+    ):
+        return result
+    old = historical_receipt.get("originalObservedToolInputs")
+    new = current_observation.get("tools")
+    if not isinstance(old, dict) or not isinstance(new, dict):
+        return result
+    changed: list[str] = []
+    changed_fields: dict[str, list[str]] = {}
+    for family, members in (
+        (
+            "toolBinaries",
+            {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"},
+        ),
+        ("toolResources", {"alloyAppJar", "alloyJvm"}),
+    ):
+        prev, now = old.get(family), new.get(family)
+        if (
+            not isinstance(prev, dict)
+            or set(prev) != members
+            or not isinstance(now, dict)
+            or set(now) != members
+        ):
+            return result
+        for name in sorted(members):
+            a, b = prev[name], now[name]
+            keys = (
+                ("path", "sha256", "version")
+                if family == "toolBinaries"
+                else ("path", "sha256")
+            )
+            if (
+                not isinstance(a, dict)
+                or not isinstance(b, dict)
+                or not all(
+                    isinstance(a.get(k), str)
+                    and bool(a[k])
+                    and isinstance(b.get(k), str)
+                    and bool(b[k])
+                    for k in keys
+                )
+            ):
+                return result
+            fields_changed = [k for k in keys if a[k] != b[k]]
+            if fields_changed:
+                item = family + "." + name
+                changed.append(item)
+                changed_fields[item] = fields_changed
+    prev, now = (
+        old.get("z3ObservedElfDependencies"),
+        new.get("z3ObservedElfDependencies"),
+    )
+    if not isinstance(prev, dict) or not isinstance(now, dict):
+        return result
+    fields = ("scope", "entrypointSha256", "interpreterPath", "resolvedLibraries")
+    if any(k not in prev or k not in now for k in fields):
+        return result
+    for key in fields:
+        if prev[key] != now[key]:
+            item = "z3ObservedElfDependencies." + key
+            changed.append(item)
+            changed_fields[item] = [key]
+    result["standing"] = (
+        "MATCHED_SCOPED_TOOL_OBSERVATIONS"
+        if not changed
+        else "CHANGED_SCOPED_TOOL_OBSERVATIONS"
+    )
+    result["changedObservedInputs"] = changed
+    result["changedObservedFields"] = changed_fields
+    result["nextOperation"] = (
+        "inspect-changed-selected-tool-input-fields"
+        if changed
+        else "qualify-unobserved-dynamic-proof-dependencies"
+    )
+    return result
+
+
 # This is a pure Claim-to-Evidence *projection*, not a verifier or Job gate.
 # Only the known source-input consumer is admitted. Adding new Claim kinds
 # requires native evidence, semantics and independent negative controls.
@@ -815,6 +1029,7 @@ def assess_formal_evidence_claim(
     consumer_ref: str,
     target_source_cut: str,
     historical_receipt: dict[str, Any] | None,
+    tool_input_comparison: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Decide one typed, bounded Claim from an already inspected official receipt.
 
@@ -1006,7 +1221,42 @@ def assess_formal_evidence_claim(
         {"kind": "QUALIFY_EXECUTION_TOOLCHAIN_AND_DYNAMIC_DEPENDENCIES"},
         {"kind": "QUALIFY_MODEL_IMPLEMENTATION_CONSUMER_REFINEMENT"},
     ]
-    assessment["nextOperation"] = "inspect-missing-proof-premises-not-full-replay"
+    # A qualified mismatch is a *new obligation*, never a counterexample to
+    # the mathematical theorem or a grant to execute its verifier.
+    compared = tool_input_comparison
+    if (
+        isinstance(compared, dict)
+        and compared.get("kind") == "ordivon.scoped-formal-tool-input-comparison"
+        and compared.get("targetSourceCut") == target_source_cut
+        and compared.get("standing") == "CHANGED_SCOPED_TOOL_OBSERVATIONS"
+        and compared.get("proofReuseAdmissible") is False
+        and compared.get("fullReadsetClosed") is False
+        and isinstance(compared.get("changedObservedFields"), dict)
+        and bool(compared["changedObservedFields"])
+        and all(
+            isinstance(key, str)
+            and key
+            and isinstance(fields, list)
+            and bool(fields)
+            and all(isinstance(field, str) and field for field in fields)
+            for key, fields in compared["changedObservedFields"].items()
+        )
+    ):
+        assessment["unresolvedObligations"].insert(
+            0,
+            {
+                "kind": "INSPECT_CHANGED_SELECTED_FORMAL_TOOL_INPUTS",
+                "changedObservedFields": compared["changedObservedFields"],
+            },
+        )
+        assessment["decision"] = (
+            "AFFECTED_PROOF_SOURCE_AND_TOOL_INPUTS"
+            if changed
+            else "AFFECTED_PROOF_TOOL_INPUTS"
+        )
+        assessment["nextOperation"] = "inspect-exact-formal-tool-input-differences"
+    else:
+        assessment["nextOperation"] = "inspect-missing-proof-premises-not-full-replay"
     return assessment
 
 
@@ -1040,6 +1290,11 @@ def main() -> int:
         "--consumer-ref",
         default=FORMAL_SOURCE_INPUT_CONSUMER,
         help="exact scoped consumer of the typed Claim",
+    )
+    parser.add_argument(
+        "--compare-current-formal-tool-inputs",
+        action="store_true",
+        help="observe selected tool entrypoints and scoped resources without any solver",
     )
     args = parser.parse_args()
     try:
@@ -1088,6 +1343,36 @@ def main() -> int:
                     "proofReuseAdmissible": False,
                     "errorType": type(exc).__name__,
                 }
+        if args.compare_current_formal_tool_inputs:
+            try:
+                if not args.fetch_historical_formal_report:
+                    raise ValueError("original official Formal Artifact required")
+                observed = observe_current_formal_tool_inputs(
+                    repo=Path.cwd(),
+                    target_source_cut=args.current_sha,
+                )
+                result["formalToolInputComparison"] = (
+                    compare_original_formal_tool_inputs(
+                        historical_receipt=result.get("historicalFormalReceipt"),
+                        current_observation=observed,
+                        target_source_cut=args.current_sha,
+                    )
+                )
+            except (
+                ValueError,
+                OSError,
+                subprocess.SubprocessError,
+                ImportError,
+                KeyError,
+                AttributeError,
+            ) as exc:
+                result["formalToolInputComparison"] = {
+                    "kind": "ordivon.scoped-formal-tool-input-comparison",
+                    "standing": "UNKNOWN_CURRENT_TOOL_OBSERVATION",
+                    "proofReuseAdmissible": False,
+                    "fullReadsetClosed": False,
+                    "errorType": type(exc).__name__,
+                }
         if args.claim_kind == "BOTH":
             # One original GitHub Artifact fetch, two distinct Claim decisions.
             result["claimAssessments"] = [
@@ -1096,6 +1381,7 @@ def main() -> int:
                     consumer_ref=args.consumer_ref,
                     target_source_cut=args.current_sha,
                     historical_receipt=result.get("historicalFormalReceipt"),
+                    tool_input_comparison=result.get("formalToolInputComparison"),
                 )
                 for claim_kind in (
                     FORMAL_SOURCE_INPUT_CLAIM,
@@ -1108,6 +1394,7 @@ def main() -> int:
                 consumer_ref=args.consumer_ref,
                 target_source_cut=args.current_sha,
                 historical_receipt=result.get("historicalFormalReceipt"),
+                tool_input_comparison=result.get("formalToolInputComparison"),
             )
     except (
         OSError,

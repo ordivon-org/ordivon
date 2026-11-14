@@ -133,3 +133,23 @@ dynamic dependency and model-to-real-consumer obligations close.
 Do not treat the GatewayToolVisibility model on separate unmerged
 PR #2174 as if it were already present in a different SourceCut.
 This Skill grants no Harness or Runtime execution authority.
+
+
+### Optional selected-tool observation, not another proof run
+
+When the precise missing premise concerns the actual selected
+toolchain, pass --compare-current-formal-tool-inputs together with
+the existing --fetch-historical-formal-report and exact Git cuts.
+This calls the original Formal producer's read-only mise, Alloy
+and Z3 helper functions, never the solver main(). Inspect
+changedObservedFields to distinguish path-only drift from SHA.
+Even identical selected bytes do NOT close Lean OLEAN imports,
+dlopen/plugins, runtime time/environment or installed consumer
+scope. Ordinary Gateway requests need not run this optional query.
+
+
+When selected tool inputs differ, the stronger Typed Claim emits
+AFFECTED_PROOF_TOOL_INPUTS with an exact
+INSPECT_CHANGED_SELECTED_FORMAL_TOOL_INPUTS obligation. This is an
+inspection instruction, NOT permission to dispatch a verification Job;
+the runtime/caller identity and existing check receipts remain separate.

@@ -123,6 +123,11 @@ consumer may receive scoped support) and FORMAL_PROOF_APPLICABLE_TO_TARGET
 are closed). Neither result authorizes any Runtime Job or generic Harness
 workspace.exec, nor does it establish installed currentness.
 See docs/architecture/EVIDENCE_VALIDITY_KERNEL_R1.md.
+For a specific toolchain premise, optionally include
+--compare-current-formal-tool-inputs to use the native formal
+read-only selected toolchain observation. This never closes a full
+dynamic readset or grants proof reuse/execution authority.
+
 
 ## Evidence-backed detailed reporting and handoffs
 

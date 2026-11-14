@@ -1320,3 +1320,214 @@ def test_typed_claim_same_inputs_must_have_same_membership_cardinality():
     assert result["decision"] == "UNKNOWN_CONTRADICTORY_SOURCE_CHANGE_WITNESS"
     assert result["claimSupported"] is False
     assert result["physicalExecutionAuthorized"] is False
+
+
+# Exact changed fields matter: GitHub CI and local Runtime tool *paths*
+# differ without necessarily changing the executable SHA, and neither
+# identity alone closes arbitrary loader/consumer inputs.
+def _tool_snapshot_fixture():
+    names = ("lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
+    return {
+        "toolBinaries": {
+            name: {"path": "/ci/tools/" + name, "version": "1", "sha256": "a" * 64}
+            for name in names
+        },
+        "toolResources": {
+            "alloyAppJar": {"path": "/ci/alloy/app.jar", "sha256": "b" * 64},
+            "alloyJvm": {"path": "/ci/alloy/libjvm.so", "sha256": "c" * 64},
+        },
+        "z3ObservedElfDependencies": {
+            "scope": "linux-elf64-x86_64-glibc-ld.so-list-prepost-not-dlopen-or-TOCTOU",
+            "entrypointSha256": "a" * 64,
+            "interpreterPath": "/ci/ld-linux.so.2",
+            "resolvedLibraries": {"/ci/libc.so.6": "d" * 64},
+        },
+    }
+
+
+def _tool_snap_pair():
+    import copy
+
+    base = _tool_snapshot_fixture()
+    return (
+        {
+            "artifactProvenance": "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE",
+            "originalObservedToolInputs": copy.deepcopy(base),
+        },
+        {
+            "kind": "ordivon.native-formal-tool-input-observation",
+            "sourceCut": CURRENT,
+            "scope": "ONE_LOCAL_ENVIRONMENT_PRE_POST_NO_SOLVER",
+            "proofReuseAdmissible": False,
+            "tools": copy.deepcopy(base),
+        },
+    )
+
+
+def _compare_tool_snapshots(monkeypatch, historical, current):
+    monkeypatch.setattr(module, "_exact_commit", lambda sha: sha)
+    return module.compare_original_formal_tool_inputs(
+        historical_receipt=historical,
+        current_observation=current,
+        target_source_cut=CURRENT,
+    )
+
+
+def test_tool_input_equal_selected_subset_never_proves_complete_readset(monkeypatch):
+    old, current = _tool_snap_pair()
+    result = _compare_tool_snapshots(monkeypatch, old, current)
+    assert result["standing"] == "MATCHED_SCOPED_TOOL_OBSERVATIONS"
+    assert result["changedObservedFields"] == {}
+    assert result["proofReuseAdmissible"] is False
+    assert result["fullReadsetClosed"] is False
+    assert "Lean OLEAN" in result["unresolved"][0]
+
+
+def test_tool_input_path_change_not_reported_as_binary_byte_change(monkeypatch):
+    old, current = _tool_snap_pair()
+    current["tools"]["toolBinaries"]["lean"]["path"] = "/local/tools/lean"
+    result = _compare_tool_snapshots(monkeypatch, old, current)
+    assert result["standing"] == "CHANGED_SCOPED_TOOL_OBSERVATIONS"
+    assert result["changedObservedInputs"] == ["toolBinaries.lean"]
+    assert result["changedObservedFields"] == {"toolBinaries.lean": ["path"]}
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_tool_input_digest_and_path_changes_are_separately_accounted(monkeypatch):
+    old, current = _tool_snap_pair()
+    current["tools"]["toolBinaries"]["lean"]["sha256"] = "e" * 64
+    current["tools"]["toolBinaries"]["lean"]["path"] = "/local/lean"
+    current["tools"]["toolResources"]["alloyAppJar"]["sha256"] = "f" * 64
+    current["tools"]["z3ObservedElfDependencies"]["resolvedLibraries"] = {
+        "/other/libc.so.6": "d" * 64
+    }
+    result = _compare_tool_snapshots(monkeypatch, old, current)
+    assert result["changedObservedFields"] == {
+        "toolBinaries.lean": ["path", "sha256"],
+        "toolResources.alloyAppJar": ["sha256"],
+        "z3ObservedElfDependencies.resolvedLibraries": ["resolvedLibraries"],
+    }
+    assert result["proofReuseAdmissible"] is False
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["missing", "unauthenticated", "wrong-cut", "wrong-scope", "incomplete-inventory"],
+)
+def test_tool_input_missing_or_inconsistent_evidence_fails_unknown(
+    monkeypatch, scenario
+):
+    old, current = _tool_snap_pair()
+    if scenario == "missing":
+        old["originalObservedToolInputs"] = None
+    elif scenario == "unauthenticated":
+        old["artifactProvenance"] = "UNVERIFIED_LOCAL_INPUT"
+    elif scenario == "wrong-cut":
+        current["sourceCut"] = PREVIOUS
+    elif scenario == "wrong-scope":
+        current["scope"] = "FULL_HERMETIC_PROOF"
+    elif scenario == "incomplete-inventory":
+        del current["tools"]["toolBinaries"]["lean"]
+    result = _compare_tool_snapshots(monkeypatch, old, current)
+    assert result["standing"] == "UNKNOWN_TOOL_INPUT_OBSERVATION"
+    assert result["changedObservedInputs"] == []
+    assert result["proofReuseAdmissible"] is False
+    assert result["fullReadsetClosed"] is False
+
+
+def test_original_report_without_dynamic_observations_remains_partial(monkeypatch):
+    names, report = _synthetic_formal_report()
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: names)
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {
+            names[0]: "100644:blob:" + "1" * 40,
+            names[1]: "100755:blob:" + "2" * 40,
+        },
+    )
+    result = module.inspect_historical_formal_report(
+        repo=Path("/repo"), source_sha=PREVIOUS, report=report
+    )
+    assert result["standing"] == "CONTENT_MATCHES_DECLARED_GIT_SOURCE"
+    assert result["originalObservedToolInputs"] is None
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_changed_selected_tool_inputs_become_scoped_proof_obligation(monkeypatch):
+    old, current = _tool_snap_pair()
+    current["tools"]["toolBinaries"]["kani"]["sha256"] = "1" * 64
+    tool = _compare_tool_snapshots(monkeypatch, old, current)
+    report = _qualified_typed_formal_receipt()
+    assessed = module.assess_formal_evidence_claim(
+        claim_kind=module.FORMAL_PROOF_APPLICABILITY_CLAIM,
+        consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+        target_source_cut=CURRENT,
+        historical_receipt=report,
+        tool_input_comparison=tool,
+    )
+    assert assessed["decision"] == "AFFECTED_PROOF_TOOL_INPUTS"
+    assert assessed["unresolvedObligations"][0] == {
+        "kind": "INSPECT_CHANGED_SELECTED_FORMAL_TOOL_INPUTS",
+        "changedObservedFields": {"toolBinaries.kani": ["sha256"]},
+    }
+    assert assessed["claimSupported"] is False
+    assert assessed["proofReuseAdmissible"] is False
+    assert assessed["physicalExecutionAuthorized"] is False
+
+
+def test_simultaneous_source_and_tool_input_delta_is_composed_not_dispatched(
+    monkeypatch,
+):
+    old, current = _tool_snap_pair()
+    current["tools"]["toolBinaries"]["lean"]["path"] = "/other/lean"
+    tool = _compare_tool_snapshots(monkeypatch, old, current)
+    report = _qualified_typed_formal_receipt(
+        status="CHANGED_DECLARED_SOURCE_INPUTS", changed=["proof.lean"]
+    )
+    assessed = module.assess_formal_evidence_claim(
+        claim_kind=module.FORMAL_PROOF_APPLICABILITY_CLAIM,
+        consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+        target_source_cut=CURRENT,
+        historical_receipt=report,
+        tool_input_comparison=tool,
+    )
+    assert assessed["decision"] == "AFFECTED_PROOF_SOURCE_AND_TOOL_INPUTS"
+    assert [row["kind"] for row in assessed["unresolvedObligations"]] == [
+        "INSPECT_CHANGED_SELECTED_FORMAL_TOOL_INPUTS",
+        "INSPECT_CHANGED_FORMAL_DECLARED_INPUTS",
+        "QUALIFY_EXECUTION_TOOLCHAIN_AND_DYNAMIC_DEPENDENCIES",
+        "QUALIFY_MODEL_IMPLEMENTATION_CONSUMER_REFINEMENT",
+    ]
+    assert assessed["verificationTaskDispatched"] is False
+
+
+def test_matching_selected_tools_never_promotes_formal_proof(monkeypatch):
+    old, current = _tool_snap_pair()
+    tool = _compare_tool_snapshots(monkeypatch, old, current)
+    assessed = module.assess_formal_evidence_claim(
+        claim_kind=module.FORMAL_PROOF_APPLICABILITY_CLAIM,
+        consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+        target_source_cut=CURRENT,
+        historical_receipt=_qualified_typed_formal_receipt(),
+        tool_input_comparison=tool,
+    )
+    assert assessed["decision"] == "UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS"
+    assert not assessed["proofReuseAdmissible"]
+
+
+def test_fake_tool_mismatch_with_wrong_cut_does_not_create_spurious_obligation(
+    monkeypatch,
+):
+    old, current = _tool_snap_pair()
+    current["sourceCut"] = PREVIOUS
+    tool = _compare_tool_snapshots(monkeypatch, old, current)
+    assessed = module.assess_formal_evidence_claim(
+        claim_kind=module.FORMAL_PROOF_APPLICABILITY_CLAIM,
+        consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+        target_source_cut=CURRENT,
+        historical_receipt=_qualified_typed_formal_receipt(),
+        tool_input_comparison=tool,
+    )
+    assert assessed["decision"] == "UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS"
+    assert not assessed["proofReuseAdmissible"]

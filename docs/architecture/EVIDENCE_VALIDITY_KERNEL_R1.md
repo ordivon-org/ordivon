@@ -372,3 +372,93 @@ P1: Only for real consumers, refine this bounded decision against
 formal properties and independently falsify implementation
 conformance. Do not delete unrelated tests before stronger evidence
 covers their exact Claim.
+
+
+## R7: Original Formal selected-tool comparison without proof replay
+
+R6 proves only declared Git input consistency. R7 exposes the original
+Formal producer's selected tool-input observations for an explicitly
+requested toolchain premise, instead of repeating its expensive
+mathematical solvers.
+
+The official historical GitHub Formal report already has 8 selected
+mise executables (path/version/SHA256), Alloy JAR and JVM resource
+paths/SHA256 and Z3 loader scope, interpreter, and resolved libraries.
+R7 reuses the existing native Formal verify.py read-only functions
+qualified_source_cut, qualified_tool_binaries,
+qualified_alloy_runtime_resources and
+observed_z3_elf_dependencies at the exact local target SourceCut.
+No second scanner, proof engine, evidence registry, or scheduler.
+
+For one exact PR Head and candidate checked-out SourceCut:
+
+    python3 tools/repo/evidence_validity.py --prior-sha ORIGINAL_PR_HEAD --current-sha CURRENT_EXACT_SHA --fetch-historical-formal-report --claim-kind BOTH --compare-current-formal-tool-inputs
+
+This invokes one original GitHub Artifact fetch and *only*
+read-only current tool observations. It never runs a solver.
+formalToolInputComparison has the following bounded outcomes:
+
+- MATCHED_SCOPED_TOOL_OBSERVATIONS: all declared selected
+  original/current paths, versions, entrypoint SHA, Alloy resources,
+  and scoped Z3 loader observation fields match.
+- CHANGED_SCOPED_TOOL_OBSERVATIONS: changedObservedFields isolates
+  exact path, version, sha256, interpreter, or resolved-library
+  difference; path changes do not by themselves prove byte changes.
+- UNKNOWN_TOOL_INPUT_OBSERVATION / UNKNOWN_CURRENT_TOOL_OBSERVATION:
+  original or current evidence is insufficient. No automatic retry.
+
+Even if observed tool digests agree, the record is NOT a full readset.
+It does not cover Lean OLEAN, dlopen, plugins, arbitrary subprocess
+inputs, environment/time, cross-host semantics, or the actual
+model-to-implementation-to-consumer refinement. Both
+fullReadsetClosed and proofReuseAdmissible always remain false.
+
+Actual initial consumer at the R10 #2182 Head
+b633ae7003497dddf558ae6a156e658780d0ac85 found
+CHANGED_SCOPED_TOOL_OBSERVATIONS for all 8 tool entrypoint records,
+Alloy JAR/JVM resource records and Z3 loader path/libraries.
+Each record may differ only in path; R7 now outputs per-field
+differences to prevent conflating location and changed executable
+bytes. Historic original GitHub CI PASS and synthetic merge
+SourceCut are not the currently installed server state.
+
+Recursive LEGO R2.1: I=(official prior Artifact, target current
+SourceCut, existing formal producer); O=(scoped tool field diffs and
+remaining assumptions); S=(MATCHED/CHANGED/UNKNOWN);
+pre=(official original receipt and current native producer Git binding);
+post=(only those selected tool observations);
+inv=(never mathematical proof reuse, full readset, or physical admission);
+eff=(read-only tool binary/loader observations);
+c=(selected tool hashes/finite loader inputs, no solver runtime);
+epsilon=(unclosed imports, plugin/dlopen, temporal/currentness,
+model/consumer refinement); prov=(GitHub Run/Artifact, native mise);
+unfold=(original evidence→current snapshot→changed fields→next obligation).
+
+Still P0: closed non-Git dynamic readsets via real hermetic
+execution assumptions; Caller-level VerificationIntent + native
+PostgreSQL atomic Job admission (do not reimplement Runtime).
+
+
+### R7 real obligation-planner consumer (not a proof executor)
+
+On the same original official #2182 GitHub Artifact, a later local
+candidate (source snapshot df50d7ca80a41b97c1c2bf989337eac881dd3c46)
+had identical 36 declared Git Formal inputs to execution SourceCut
+f40a5b85d0b674435ab393802aad7889f3a4bbde.
+The selected tool differences were field-qualified: all eight entrypoint
+records changed absolute path; Kani alone also changed executable
+SHA256, the seven other selected executable SHA256 values were equal;
+both Alloy resource digests were equal despite path drift; and Z3
+interpreter path/resolved library map changed. These are specific
+cross-environment observations, not mathematical counterexamples.
+
+When the actual optional comparison is available to the same Typed Claim
+call, the stronger FORMAL_PROOF_APPLICABLE_TO_TARGET decision becomes
+AFFECTED_PROOF_TOOL_INPUTS, with obligation
+INSPECT_CHANGED_SELECTED_FORMAL_TOOL_INPUTS and its exact observed field
+map. If the Git Formal source inputs also change, the decision becomes
+AFFECTED_PROOF_SOURCE_AND_TOOL_INPUTS. In both cases the unresolved
+toolchain/dynamic and model/consumer assumptions remain present;
+no PG Job is dispatched, no other Claim is promoted, and full proof
+reuse still remains FALSE/unknown. Missing or unqualified observations
+fail closed and preserve the previous UNKNOWN path.
