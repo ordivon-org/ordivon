@@ -89,6 +89,13 @@ def test_unconfigured_runtime_release_is_listed_without_owner_rpc() -> None:
         {"node": {"nodeId": "linux-pg", "platform": "linux", "native": "true"}},
         {"structuredReleaseConfigured": "true"},
         {"structuredReleaseConfigured": 1},
+        {"schemaVersion": "1"},
+        {
+            "targets": [
+                {"target": "local_linux", "configured": True, "available": True},
+                {"target": "local_linux", "configured": False, "available": False},
+            ]
+        },
         {"targets": [{"target": "local_linux", "configured": "true", "available": True}]},
         {"targets": [{"target": "local_linux", "configured": False, "available": True}]},
         {"targets": [{"target": "other", "configured": True, "available": True}]},
@@ -140,3 +147,30 @@ def test_mcp_native_public_discovery_works_without_deployment_commands() -> None
 
     asyncio.run(verify())
     assert [tool for _, tool, _ in owner.calls] == ["runtime.describe"]
+
+
+def test_runtime_release_requires_real_configured_linux_target() -> None:
+    owner = ReleaseOwner()
+    owner.description["targets"] = [
+        {"target": "local_linux", "configured": False, "available": False}
+    ]
+    result = asyncio.run(
+        GatewayService(owner).capability_describe("runtime.release.linux")
+    ).capabilities[0]
+    assert result.configured is False
+    assert result.available is False
+    assert result.readiness_state == "not_ready"
+    assert result.observation_error is None
+
+
+def test_runtime_release_target_true_configured_false_availability_is_not_an_allow() -> None:
+    owner = ReleaseOwner()
+    owner.description["targets"] = [
+        {"target": "local_linux", "configured": True, "available": False}
+    ]
+    result = asyncio.run(
+        GatewayService(owner).capability_describe("runtime.release.linux")
+    ).capabilities[0]
+    assert result.configured is True
+    assert result.available is False
+    assert result.readiness_state == "unknown"

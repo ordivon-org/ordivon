@@ -159,7 +159,9 @@ def project_native_release_capability(
         targets = owner_response.get("targets")
         enabled = owner_response.get("structuredReleaseConfigured")
         if (
-            not isinstance(node, dict)
+            type(owner_response.get("schemaVersion")) is not int
+            or owner_response["schemaVersion"] != 1
+            or not isinstance(node, dict)
             or node.get("nodeId") != "linux-pg"
             or node.get("platform") != "linux"
             or node.get("native") is not True
@@ -169,23 +171,21 @@ def project_native_release_capability(
             issue = "invalid native Linux Runtime structured-release status"
         else:
             node_id = "linux-pg"
-            target = next(
-                (
-                    item
-                    for item in targets
-                    if isinstance(item, dict) and item.get("target") == "local_linux"
-                ),
-                None,
-            )
+            matches = [
+                item
+                for item in targets
+                if isinstance(item, dict) and item.get("target") == "local_linux"
+            ]
+            target = matches[0] if len(matches) == 1 else None
             if (
-                not isinstance(target, dict)
+                target is None
                 or type(target.get("configured")) is not bool
                 or type(target.get("available")) is not bool
                 or (target["available"] is True and target["configured"] is False)
             ):
                 issue = "invalid Linux release target status; readiness UNKNOWN"
-            elif enabled is False:
-                issue = None  # An exact Runtime FALSE means NOT_READY, not an outage.
+            elif enabled is False or target["configured"] is False:
+                issue = None  # Exact disabled Runtime/target means NOT_READY.
             else:
                 configured = True
                 issue = (
