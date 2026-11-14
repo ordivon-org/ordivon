@@ -146,6 +146,67 @@ investment_candidate 真正经济对照及 Accounting/Risk。
 finance-experiment-review 中 freeze/holdout/source 原则，
 不建立新的 Corporate Actions Bookkeeper。
 
+## 2026-11-14：Paper 账本不能把股票卖出应收冒充基金分红
+
+本轮核对原生 PaperSession/PaperValuation 和
+PostgresPaperClose 源码：Accounting 的 receivable_minor
+仅承载 pending_sales、sale_settlement_dates 等真实卖出交割
+应收，并不表示 ETF 除息后、派付日前存在独立的
+dividend receivable 账目。Markets ETF EOD 的
+admit_etf_eod_snapshot 要求 corporateActions.events 为
+空，任何要求分红或拆分现金效果的输入都会在来源层
+被拒绝；不应把 dividend 塞进 PaperSell settlement。
+
+所以应先核对已经上市 ETF 原始公司行动、历史发表时点、
+股东权益、record/payable date、券商税务口径、数据使用权
+和分红是否已经包含在历史复权收盘价中，再由现有自然
+Accounting Owner 决定是否需要添加新的事件类型。
+本轮只复用旧的禁止 corporateAction 事件契约，
+给 DIVIDEND 添加了原生负例，不修改 PG 账本、
+不产生第二套现金收益计算，也不授权真实账户。
+
+## 2026-11-14：H20 模型实际消费者与分红暴露的差别
+
+完整市场日历上的每一日假设持仓暴露，不等于冻结 Qlib 的
+13 个离散决策窗口。根据先前原生报告 R7：
+H20 模型 13 个不重叠持仓全选 IWM。重建的每20日决策
+开盘-开盘日历中，4/13 个已选 IWM 日期窗口跨过
+四次发行方已观察除息日；这是报告 SourceCut 的
+日期重建而不是当轮重新执行原始 Qlib 模型。
+同一持仓时段的模型和固定 IWM 在完全相同成本、
+现金流和交易约束下保持经济同一性；反之相对
+SPY 的价格回测差额尚不具备含现金分红的
+投资者财富定义。源级证据和有限适用范围见
+adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
+无需重复搭建 Portfolio return engine 以推导此事。
+
+## 2026-11-14：HILO 原生数据形状质量
+
+即使日期符合官方 XNYS、历史来源字节 SHA 正确，
+同一条 OHLCV 行仍可能内部矛盾；由 (high-low)/close
+构造 Qlib HILO 特征因此没有可复核的单一真实价格语义。
+已存在的 OpenBB/Cboe 私有来源中：
+QQQ 2026-05-20 的 high 比 close 低 USD 0.02；
+IWM 2023-06-05 的 high 比 open 低 USD 0.55。
+相比长期研究框架的系统性来源风险，这只涉及当前
+SPY/QQQ/IWM 各 971 行中两条，但 IWM 发生在训练数据，
+QQQ 发生在测试数据。不能为了保护历史回测排名而偷偷
+增加 high、剪裁 close 或让 Pandas 填补这些字段。
+另一个公开历史报价页面显示 QQQ 同日 high 为 713.15，
+不等于已取得具 PIT/许可证明的原始报价替换证据。
+
+复用现有 Pandas/NumPy 与 Markets 自然来源资格函数
+equity_ohlcv_shape.require_ohlcv_shape_for_hilo：
+高/低必须包住开盘和收盘，价格有限且大于零，
+成交量有限且非负；否则报明确的
+OHLC_BOUNDS_INVALID_FOR_HILO，在 Qlib HILO 生成前
+拒绝后续新模型运行。这个契约不能将旧模型神奇变成
+clean HILO，也不验证数据供应商首次可知时间。历史
+模型结果只作为不可信原始 SourceCut 的描述性敏感性报告；
+重新获取完整且可复验的原始 BAR 证据或预先定义一个
+独立的非 HILO 研究家族后才能进行新比较。无私人
+行情字节提交 Git，无真实账户/券商影响。
+
 ## Golden commands
 
 ### 1. Start without any database or broker

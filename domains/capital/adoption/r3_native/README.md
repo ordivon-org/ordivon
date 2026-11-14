@@ -27,6 +27,21 @@ objects and microseconds for CSV strings, changing parquet bytes even
 though DataFrames had equal values. This is a representation proof,
 not provider accuracy or retrospective PIT proof.
 
+2026-11-14 native source-quality refinement: the existing HILO feature
+depends on actual high-low bars, but source SHA and correct XNYS dates do
+not certify internal OHLC shape. Natural Markets
+equity_ohlcv_shape.require_ohlcv_shape_for_hilo now rejects contradictory
+OHLCV bars BEFORE training or generating HILO features. The original
+private Cboe snapshot has QQQ 2026-05-20 high 713.13 below close 713.15
+(2 cents / ~0.28bp) and IWM 2023-06-05 high 180.82 below open 181.37
+(55 cents / ~30.63bp); SPY had no such anomaly. It rejects BOTH despite
+different magnitudes: no feature is silently repaired, truncated,
+forward-filled, or declared independently source-authenticated. Historical
+models remain descriptive at original SourceCut; requalification and a
+separate new-source study are required before new native HILO training.
+This is only an OHLC shape obligation, not licensed provider rights, PIT
+or a proof of adjusted/dividend total-return economics.
+
 Features RET1/MOM5/HILO/VOL5 are EOD-close-derived; LABEL0 is next
 TRADING SESSION open-to-close fractional return (for new entries). These predictions are
 UNCALIBRATED research scores, NOT a conditional return distribution or
