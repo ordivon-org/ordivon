@@ -121,6 +121,40 @@ def validate() -> None:
         assert mismatch.check() == unsat
         country_cases += 1
 
+    # Source hint is only a time-bounded *candidate* and cannot bypass
+    # the same active/underlay/allowed-country admission predicate. These
+    # scenarios do not claim hot-standby reachability or real API effects.
+    hinted = policy.source_trial_hints(NOW, {"Malaysia", "North Macedonia", "Mexico"})
+    assert len(hinted) == 2
+    hint_cases = 0
+    for active, underlay, current in product(
+        (True, False, None), (True, False, None),
+        ("Malaysia", "North Macedonia", "Mexico"),
+    ):
+        action = policy.decision(active_healthy=active,
+            underlay_reachable=underlay, evidence=hinted, now=NOW,
+            current_country=current)
+        expected = active is False and underlay is True
+        trial = action["decision"].startswith("TRIAL_ONLY_")
+        z = Solver()
+        z.add(BoolVal(expected) != BoolVal(trial))
+        assert z.check() == unsat
+        if trial:
+            assert "Hong Kong" not in action["trialCountries"]
+            assert len(set(action["trialCountries"])) == len(action["trialCountries"])
+            assert len(action["trialCountries"]) <= 2
+            assert current not in action["trialCountries"]
+            assert action["certifiedHotStandbyCount"] == 0
+        hint_cases += 1
+    # Temporal expiry withdraws all hints; even a witnessed VPN-only
+    # failure with a healthy physical underlay no longer admits a trial.
+    expired = policy.source_trial_hints(NOW + timedelta(days=8),
+                                         {"Malaysia", "North Macedonia", "Mexico"})
+    assert expired == []
+    assert policy.decision(active_healthy=False, underlay_reachable=True,
+                           evidence=expired, now=NOW+timedelta(days=8),
+                           current_country="Malaysia")["decision"] == "HOLD_NO_RECENT_EVIDENCE"
+
     # An incorrect selector copying duplicate countries into both slots has
     # a satisfiable distinctness violation; implemented source above cannot.
     c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
@@ -133,6 +167,7 @@ def validate() -> None:
         "standing": "SOURCE_ENUMERATION_REFINED_WITH_Z3",
         "finiteCases": cases,
         "distinctCandidateCases": country_cases,
+        "timeBoundedSourceHintCases": hint_cases,
         "premises": [
             "observed consumer failure (not UNKNOWN)",
             "direct underlay reachable",

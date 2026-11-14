@@ -1,0 +1,17 @@
+{
+  "kind": "ordivon.network.historical-consumer-trial-hints",
+  "observedAtUtc": "2026-11-13T18:56:00Z",
+  "expiresAtUtc": "2026-11-20T18:56:00Z",
+  "candidates": [
+    {
+      "country": "North Macedonia",
+      "worstConsumerSuccessRatio": 0.99644,
+      "medianOfConsumerP90Ms": 1820
+    },
+    {
+      "country": "Mexico",
+      "worstConsumerSuccessRatio": 0.99153,
+      "medianOfConsumerP90Ms": 3732
+    }
+  ]
+}

@@ -35,6 +35,66 @@ WARMUP = timedelta(minutes=3)
 WITNESS_MIN = 12
 SUCCESS_FLOOR = 0.97
 HISTORICAL_TTL = timedelta(hours=24)
+SOURCE_TRIAL_HINTS = Path(__file__).resolve().parent / "config/recovery-hints.json"
+SOURCE_HINT_MAX_AGE = timedelta(days=7)
+
+def source_trial_hints(now: datetime, allowed: set[str],
+                       path: Path = SOURCE_TRIAL_HINTS) -> list[dict[str, object]]:
+    """A finite, *stale-able* source preference, not current node liveness.
+
+    Existing Gluetun journald is bounded and a 3178-restart shared-underlay
+    incident can discard past successful-country journal segments. When that
+    happens two actually observed historic candidates must not disappear from
+    the only fallback plan. Only a real fresh 3-lane consumer outage, healthy
+    independent underlay and official authenticated post-trial receipt can
+    authorize any effect. This file NEVER grants those conditions.
+    """
+    raw = native._strict_json_mapping(path.read_text(encoding="utf-8"),
+                                      "VPN recovery trial hints")
+    if set(raw) != {"kind", "observedAtUtc", "expiresAtUtc", "candidates"} or (
+        raw["kind"] != "ordivon.network.historical-consumer-trial-hints"
+    ):
+        raise ValueError("Unexpected VPN recovery trial hint schema")
+    observed = datetime.fromisoformat(str(raw["observedAtUtc"]).replace("Z", "+00:00"))
+    expires = datetime.fromisoformat(str(raw["expiresAtUtc"]).replace("Z", "+00:00"))
+    if observed.tzinfo is None or expires.tzinfo is None or (
+        expires <= observed or expires - observed > SOURCE_HINT_MAX_AGE
+    ):
+        raise ValueError("Invalid historic trial hint time boundary")
+    if not isinstance(raw["candidates"], list) or not (1 <= len(raw["candidates"]) <= 2):
+        raise ValueError("Only one or two source historic trial hints are admitted")
+    seen: set[str] = set()
+    results: list[dict[str, object]] = []
+    for row in raw["candidates"]:
+        if not isinstance(row, dict) or set(row) != {
+            "country", "worstConsumerSuccessRatio", "medianOfConsumerP90Ms"
+        }:
+            raise ValueError("Invalid historic candidate evidence")
+        country = row["country"]
+        if (not isinstance(country, str) or country not in allowed or
+            country == "Hong Kong" or country in seen):
+            raise ValueError("Unknown, forbidden or duplicate source trial candidate")
+        seen.add(country)
+        ratio = row["worstConsumerSuccessRatio"]
+        ms = row["medianOfConsumerP90Ms"]
+        if (isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or
+            not 0.97 <= ratio <= 1 or isinstance(ms, bool) or
+            not isinstance(ms, int) or not 1 <= ms <= 60_000):
+            raise ValueError("No bounded consumer quality evidence for source trial hint")
+        results.append({
+            "catalogCountry": country,
+            "standing": "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT",
+            "lastObservedHoursAgo": round(max(0,(now-observed).total_seconds())/3600,2),
+            "medianOfConsumerP90Ms": ms,
+            "worstConsumerSuccessRatio": ratio,
+            "qualifiedNowStandby": False,
+            "evidenceBasis": "prior verified real Gluetun journal + three-lane Prometheus",
+            "expiresAtUtc": expires.isoformat(),
+        })
+    if not observed <= now < expires:
+        return []  # Expired or future evidence must never authorize trials.
+    return results
+
 
 
 @dataclass(frozen=True)
@@ -180,12 +240,15 @@ def decision(
     if last_switch is not None and now - last_switch < cooldown:
         return {"decision": "HOLD_COOLDOWN", "trialCountry": None}
     candidates = [row for row in evidence
-                  if row.get("standing") == "RECENT_HISTORICAL_CONSUMER_SUCCESS"
+                  if row.get("standing") in (
+                      "RECENT_HISTORICAL_CONSUMER_SUCCESS",
+                      "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT")
                   and row.get("catalogCountry") is not None
                   and row.get("catalogCountry") != current_country]
     if not candidates:
         return {"decision": "HOLD_NO_RECENT_EVIDENCE", "trialCountry": None}
     candidates.sort(key=lambda row: (
+        0 if row["standing"] == "RECENT_HISTORICAL_CONSUMER_SUCCESS" else 1,
         int(row.get("medianOfConsumerP90Ms", 1000000)),
         -float(row.get("worstConsumerSuccessRatio", 0)),
         float(row.get("lastObservedHoursAgo", 1000000)),
@@ -372,9 +435,13 @@ def observe(*, hours: int) -> dict[str, object]:
             underlay_ok = response.returncode == 0 and response.stdout == "200"
         except (OSError, subprocess.SubprocessError):
             underlay_ok = None
+    # Preference-only evidence is read ONLY at a witnessed outage boundary.
+    # It cannot change a healthy VPN, or defeat missing/failed underlay.
+    hints = source_trial_hints(now, allowed) if (
+        active_ok is False and underlay_ok is True) else []
     plan = decision(
         active_healthy=active_ok, underlay_reachable=underlay_ok,
-        evidence=results, now=now,
+        evidence=results + hints, now=now,
         current_country=catalog_identity,
     )
     # A lost kernel WG endpoint is an expected symptom of a genuine outage.
@@ -385,6 +452,7 @@ def observe(*, hours: int) -> dict[str, object]:
         "observationUtc": now.isoformat(),
         "scope": "correlated historical endpoint dwell and VPN consumer probe quality",
         "history": results,
+        "sourceTrialHints": hints,
         "active": {
             "standing": observed,
             "catalogCountry": catalog_identity,
