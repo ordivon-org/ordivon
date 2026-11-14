@@ -1083,17 +1083,68 @@ PY_WINPG_NO_JOB_OBJECT
   )
 }
 
+
+check_pg_build_cache_eviction() {
+  verify_jar
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config RuntimePgBuildCacheEvictionR1.cfg RuntimePgBuildCacheEvictionR1.tla)
+}
+
+falsify_pg_build_cache_eviction() {
+  verify_jar
+  (
+    dir=$(mktemp -d -t ordivon-pg-buildcache-XXXXXX)
+    trap 'rm -rf -- "$dir"' EXIT
+    cp "$ROOT/formal/RuntimePgBuildCacheEvictionR1.tla" "$dir/"
+    cp "$ROOT/formal/RuntimePgBuildCacheEvictionR1.cfg" "$dir/"
+    echo 'INVARIANT NeverDetached' >> "$dir/RuntimePgBuildCacheEvictionR1.cfg"
+    set +e
+    (cd "$dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgBuildCacheEvictionR1.cfg RuntimePgBuildCacheEvictionR1.tla) > "$dir/anti-vacuity.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant NeverDetached is violated' "$dir/anti-vacuity.log"; then
+      echo 'PG build-cache eviction anti-vacuity negative FAILED' >&2
+      tail -n 25 "$dir/anti-vacuity.log" >&2
+      exit 1
+    fi
+    sed -i '/INVARIANT NeverDetached/d' "$dir/RuntimePgBuildCacheEvictionR1.cfg"
+    python3 - "$dir/RuntimePgBuildCacheEvictionR1.tla" <<'PY_UNGUARDED_PG_BUILD'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+source = p.read_text(encoding="utf-8")
+guard = '    /\\ qualified\n'
+assert source.count(guard) == 1, "PG build cache qualification guard drifted"
+p.write_text(source.replace(guard, '', 1), encoding="utf-8")
+PY_UNGUARDED_PG_BUILD
+    set +e
+    (cd "$dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgBuildCacheEvictionR1.cfg RuntimePgBuildCacheEvictionR1.tla) > "$dir/unqualified.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant DetachedRequiresQualified is violated' "$dir/unqualified.log"; then
+      echo 'PG build-cache eviction unqualified detach negative FAILED' >&2
+      tail -n 25 "$dir/unqualified.log" >&2
+      exit 1
+    fi
+    echo 'PG build-cache eviction legal effect reachable and unqualified detach falsified PASS'
+  )
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-dispatch) check_runtime_dispatch ;;
   check-windows-pg-attempt) check_windows_pg_attempt ;;
+  check-pg-buildcache) check_pg_build_cache_eviction ;;
+  falsify-pg-buildcache) falsify_pg_build_cache_eviction ;;
   falsify-windows-pg-attempt) check_windows_pg_attempt_counterexample ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
