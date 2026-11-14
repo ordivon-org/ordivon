@@ -146,6 +146,33 @@ investment_candidate 真正经济对照及 Accounting/Risk。
 finance-experiment-review 中 freeze/holdout/source 原则，
 不建立新的 Corporate Actions Bookkeeper。
 
+## 2026-11-14：HILO 原生数据形状质量
+
+即使日期符合官方 XNYS、历史来源字节 SHA 正确，
+同一条 OHLCV 行仍可能内部矛盾；由 (high-low)/close
+构造 Qlib HILO 特征因此没有可复核的单一真实价格语义。
+已存在的 OpenBB/Cboe 私有来源中：
+QQQ 2026-05-20 的 high 比 close 低 USD 0.02；
+IWM 2023-06-05 的 high 比 open 低 USD 0.55。
+相比长期研究框架的系统性来源风险，这只涉及当前
+SPY/QQQ/IWM 各 971 行中两条，但 IWM 发生在训练数据，
+QQQ 发生在测试数据。不能为了保护历史回测排名而偷偷
+增加 high、剪裁 close 或让 Pandas 填补这些字段。
+另一个公开历史报价页面显示 QQQ 同日 high 为 713.15，
+不等于已取得具 PIT/许可证明的原始报价替换证据。
+
+复用现有 Pandas/NumPy 与 Markets 自然来源资格函数
+equity_ohlcv_shape.require_ohlcv_shape_for_hilo：
+高/低必须包住开盘和收盘，价格有限且大于零，
+成交量有限且非负；否则报明确的
+OHLC_BOUNDS_INVALID_FOR_HILO，在 Qlib HILO 生成前
+拒绝后续新模型运行。这个契约不能将旧模型神奇变成
+clean HILO，也不验证数据供应商首次可知时间。历史
+模型结果只作为不可信原始 SourceCut 的描述性敏感性报告；
+重新获取完整且可复验的原始 BAR 证据或预先定义一个
+独立的非 HILO 研究家族后才能进行新比较。无私人
+行情字节提交 Git，无真实账户/券商影响。
+
 ## Golden commands
 
 ### 1. Start without any database or broker
