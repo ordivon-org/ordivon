@@ -249,6 +249,14 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "scopedJobEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/scopedJobEvidence"
+          }
         }
       }
     },
@@ -558,6 +566,147 @@
           }
         }
       ]
+    },
+    "requiredJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "requiredSteps"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "requiredSteps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        }
+      }
+    },
+    "observedStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepName",
+        "status",
+        "conclusion"
+      ],
+      "properties": {
+        "stepName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conclusion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "observedJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "jobName",
+        "jobId",
+        "jobStatus",
+        "jobConclusion",
+        "steps"
+      ],
+      "properties": {
+        "jobName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "jobId": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "jobStatus": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "jobConclusion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/observedStep"
+          }
+        }
+      }
+    },
+    "scopedJobEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidenceRef",
+        "requiredJobs",
+        "qualification",
+        "jobObservations"
+      ],
+      "properties": {
+        "evidenceRef": {
+          "$ref": "#/$defs/runRef"
+        },
+        "requiredJobs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/requiredJob"
+          }
+        },
+        "qualification": {
+          "enum": [
+            "MATCHED_CHECK_SUCCESS",
+            "OWNER_UNKNOWN",
+            "SOURCE_MISMATCH",
+            "WORKFLOW_MISMATCH",
+            "CHECK_NOT_SUCCESSFUL",
+            "CHECK_NOT_COMPLETE",
+            "OWNER_JOB_SCOPE_UNKNOWN",
+            "REQUIRED_JOB_MISSING_OR_AMBIGUOUS",
+            "REQUIRED_JOB_OR_STEP_NOT_SUCCESSFUL"
+          ]
+        },
+        "jobObservations": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/observedJob"
+          }
+        }
+      }
     }
   }
 }

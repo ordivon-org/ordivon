@@ -120,6 +120,20 @@ positive-readset claims carry an explicit negative-dependency UNKNOWN.
 It emits non-executing Agent nextActions, **not** a Harness execution
 gate, automatic GitHub rerun, or certified current authorization.
 
+### R6 scoped owner Job/Step conclusion versus parent GREEN
+
+When a particular Agent/Harness consumer explicitly requires that a
+GitHub Job/Step actually completed with success conclusion, it must
+query the natural Owner's job-level and step-level records, not infer
+it from workflow SUCCESS. Composition's existing R4/R5 GitHub
+Justification CLI now accepts `requiredJobs` with exact
+`name`/`requiredSteps`. If a required step was skipped, even though
+the workflow is green, the matching *scoped evidence requirement* is
+UNKNOWN. A scoped PASS is limited to GitHub's reported
+post-`continue-on-error` conclusion and does not certify raw exit
+outcome, implementation coverage, domain success or installed state.
+No Harness pre-dispatch integration is claimed here.
+
 ## Provider recovery
 
 Retained Provider Call status controls the next action. A safely failed pre-dispatch call may be retried within budget. A lost response after durable completion is replayed from Store. Ambiguous dispatch remains UNKNOWN until reconciled; transport loss is not implicit redispatch permission.

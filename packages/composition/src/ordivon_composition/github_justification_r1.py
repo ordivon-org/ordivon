@@ -83,8 +83,32 @@ def _contract(
                 raise CircuitContractError("bounded nonempty evidence AND list required")
             refs_in_path: set[str] = set()
             for edge in edges:
-                if not isinstance(edge, dict) or set(edge) != {"evidenceRef", "workflowName"}:
-                    raise CircuitContractError("evidence requires exact Owner ref and workflow")
+                if (
+                    not isinstance(edge, dict)
+                    or not {"evidenceRef", "workflowName"} <= set(edge)
+                    or not set(edge) <= {"evidenceRef", "workflowName", "requiredJobs"}
+                ):
+                    raise CircuitContractError(
+                        "evidence requires exact Owner ref, workflow and optional requiredJobs"
+                    )
+                if "requiredJobs" in edge:
+                    jobs = edge["requiredJobs"]
+                    if not isinstance(jobs, list) or not 1 <= len(jobs) <= 16:
+                        raise CircuitContractError("requiredJobs must be nonempty and bounded")
+                    job_names: set[str] = set()
+                    for job in jobs:
+                        if not isinstance(job, dict) or set(job) != {"name", "requiredSteps"}:
+                            raise CircuitContractError("required job has invalid shape")
+                        name = _text(job["name"], label="required job name")
+                        if name in job_names:
+                            raise CircuitContractError("duplicate required job")
+                        job_names.add(name)
+                        steps = job["requiredSteps"]
+                        if not isinstance(steps, list) or not 1 <= len(steps) <= 24:
+                            raise CircuitContractError("requiredSteps must be nonempty and bounded")
+                        validated = [_text(step, label="required step name") for step in steps]
+                        if len(set(validated)) != len(validated):
+                            raise CircuitContractError("duplicate required step")
                 ref = _text(edge["evidenceRef"], label="Owner evidence reference")
                 workflow = _text(edge["workflowName"], label="GitHub workflow name")
                 if _RUN_REF.fullmatch(ref) is None or ref not in snapshot["referenceRefs"]:
@@ -138,7 +162,7 @@ def _github_run(
         "--repo",
         repo,
         "--json",
-        "databaseId,headSha,status,conclusion,workflowName,url",
+        "databaseId,headSha,status,conclusion,workflowName,url,jobs",
     ]
     try:
         response = runner(cmd, capture_output=True, text=True, timeout=20, check=False)
@@ -158,6 +182,11 @@ def _github_run(
             "workflowName": obj.get("workflowName"),
             "status": obj.get("status"),
             "conclusion": obj.get("conclusion"),
+            # The original GitHub API owns the job/step observations. A
+            # missing/truncated jobs payload cannot satisfy a scoped check.
+            "jobs": obj.get("jobs")
+            if isinstance(obj.get("jobs"), list) and len(obj["jobs"]) <= 256
+            else None,
             "readStanding": "GITHUB_OWNER_READ_SUCCESS",
         }
     except OSError, ValueError, json.JSONDecodeError, subprocess.TimeoutExpired:
@@ -169,8 +198,97 @@ def _github_run(
             "workflowName": None,
             "status": None,
             "conclusion": None,
+            "jobs": None,
             "readStanding": "OWNER_UNAVAILABLE_OR_IDENTITY_MISMATCH",
         }
+
+
+def _qualify_job_steps(
+    *,
+    owner_run: dict[str, Any],
+    required_jobs: list[dict[str, Any]],
+) -> tuple[str, list[dict[str, Any]]]:
+    """Check exact required job and step names, NOT all possible CI coverage.
+
+    A workflow with successful top-level conclusion can still have skipped
+    steps. Unobserved/ambiguous job-step evidence never counts as success.
+    """
+    job_data = owner_run.get("jobs")
+    if not isinstance(job_data, list):
+        return "OWNER_JOB_SCOPE_UNKNOWN", []
+    observations: list[dict[str, Any]] = []
+    standing = "MATCHED_CHECK_SUCCESS"
+    for required in required_jobs:
+        name = required["name"]
+        matched_jobs = [
+            row for row in job_data if isinstance(row, dict) and row.get("name") == name
+        ]
+        if len(matched_jobs) != 1:
+            observations.append(
+                {
+                    "jobName": name,
+                    "jobId": None,
+                    "jobStatus": None,
+                    "jobConclusion": None,
+                    "steps": [],
+                }
+            )
+            standing = "REQUIRED_JOB_MISSING_OR_AMBIGUOUS"
+            continue
+        job = matched_jobs[0]
+        # A job is identified by its original provider job ID, not the
+        # caller-declared job name alone.
+        job_id = job.get("databaseId")
+        valid_job_id = type(job_id) is int and job_id > 0
+        steps_data = job.get("steps")
+        found_steps: list[dict[str, Any]] = []
+        matched = (
+            valid_job_id
+            and job.get("status") == "completed"
+            and job.get("conclusion") == "success"
+            and isinstance(steps_data, list)
+        )
+        for requested_step in required["requiredSteps"]:
+            matches = [
+                step
+                for step in (steps_data if isinstance(steps_data, list) else [])
+                if isinstance(step, dict) and step.get("name") == requested_step
+            ]
+            if len(matches) == 1:
+                step = matches[0]
+                found_steps.append(
+                    {
+                        "stepName": requested_step,
+                        "status": step.get("status")
+                        if isinstance(step.get("status"), str)
+                        else None,
+                        "conclusion": step.get("conclusion")
+                        if isinstance(step.get("conclusion"), str)
+                        else None,
+                    }
+                )
+                matched = (
+                    matched
+                    and step.get("status") == "completed"
+                    and step.get("conclusion") == "success"
+                )
+            else:
+                found_steps.append({"stepName": requested_step, "status": None, "conclusion": None})
+                matched = False
+        observations.append(
+            {
+                "jobName": name,
+                "jobId": job_id if valid_job_id else None,
+                "jobStatus": job.get("status") if isinstance(job.get("status"), str) else None,
+                "jobConclusion": job.get("conclusion")
+                if isinstance(job.get("conclusion"), str)
+                else None,
+                "steps": found_steps,
+            }
+        )
+        if not matched:
+            standing = "REQUIRED_JOB_OR_STEP_NOT_SUCCESSFUL"
+    return standing, observations
 
 
 def project_github_owner_justifications(
@@ -223,18 +341,39 @@ def project_github_owner_justifications(
     for claim in claims:
         paths = []
         for path in claim["anyOf"]:
-            qualifications = [states[edge["evidenceRef"]] for edge in path["allOf"]]
+            qualifications: list[str] = []
+            scoped_rows: list[dict[str, Any]] = []
+            for edge in path["allOf"]:
+                ref = edge["evidenceRef"]
+                qualification = states[ref]
+                if "requiredJobs" in edge:
+                    job_observations: list[dict[str, Any]] = []
+                    if qualification == "MATCHED_CHECK_SUCCESS":
+                        qualification, job_observations = _qualify_job_steps(
+                            owner_run=observations[ref],
+                            required_jobs=edge["requiredJobs"],
+                        )
+                    scoped_rows.append(
+                        {
+                            "evidenceRef": ref,
+                            "requiredJobs": edge["requiredJobs"],
+                            "qualification": qualification,
+                            "jobObservations": job_observations,
+                        }
+                    )
+                qualifications.append(qualification)
             complete = all(q == "MATCHED_CHECK_SUCCESS" for q in qualifications)
-            paths.append(
-                {
-                    "justificationId": path["id"],
-                    "standing": "ALL_OWNER_CHECKS_MATCHED"
-                    if complete
-                    else "NOT_ALL_OWNER_CHECKS_MATCHED",
-                    "evidenceRefs": [edge["evidenceRef"] for edge in path["allOf"]],
-                    "qualifications": qualifications,
-                }
-            )
+            path_row = {
+                "justificationId": path["id"],
+                "standing": "ALL_OWNER_CHECKS_MATCHED"
+                if complete
+                else "NOT_ALL_OWNER_CHECKS_MATCHED",
+                "evidenceRefs": [edge["evidenceRef"] for edge in path["allOf"]],
+                "qualifications": qualifications,
+            }
+            if scoped_rows:
+                path_row["scopedJobEvidence"] = scoped_rows
+            paths.append(path_row)
         accepted = any(path["standing"] == "ALL_OWNER_CHECKS_MATCHED" for path in paths)
         outcome = "EVIDENCE_REQUIREMENTS_SATISFIED" if accepted else "UNKNOWN"
         counts[outcome] += 1
@@ -254,16 +393,31 @@ def project_github_owner_justifications(
                 "automaticVerifierExecution": False,
             }
         )
-        actions.append(
-            f"{_GENERATED_PREFIX}{claim['id']}: "
-            + (
-                "read matching completed GitHub workflow evidence for exact SourceCut; "
+        scoped_requested = any("scopedJobEvidence" in path for path in paths)
+        skipped_or_failed = any(
+            detail["qualification"] == "REQUIRED_JOB_OR_STEP_NOT_SUCCESSFUL"
+            for path in paths
+            for detail in path.get("scopedJobEvidence", [])
+        )
+        if accepted:
+            hint = (
+                "required GitHub job/step Owner evidence matched at exact SourceCut; "
+                "do not repeat this same check by default"
+                if scoped_requested
+                else "read matching completed GitHub workflow evidence for exact SourceCut; "
                 "do not rerun this same check by default"
-                if accepted
-                else "existing Owner run does not fully match current evidence requirements; "
+            )
+        elif skipped_or_failed:
+            hint = (
+                "a consumer-required GitHub job/step was not successful (possibly skipped); "
+                "inspect its original Owner observation, do not turn workflow GREEN into proof or rerun automatically"
+            )
+        else:
+            hint = (
+                "existing Owner run does not fully match current evidence requirements; "
                 "resolve missing/failed/mismatched Owner evidence before scoped rerun"
             )
-        )
+        actions.append(f"{_GENERATED_PREFIX}{claim['id']}: {hint}")
 
     proposed: dict[str, Any] | None = None
     if can_commit and len(actions) <= 64 and all(len(x) <= 4096 for x in actions):
@@ -292,8 +446,9 @@ def project_github_owner_justifications(
         "proposedWorkSnapshot": proposed,
         "proposedHostCommitEligible": proposed is not None,
         "nonClaims": [
-            "GitHub reports workflow completion for exact SHA, not domain or software correctness.",
+            "GitHub reports workflow/job/step completion for exact SHA, not domain or software correctness.",
             "GitHub CLI owner read is not a cryptographic attestation of a built artifact.",
+            "GitHub job/step conclusion is post continue-on-error and may differ from underlying step outcome; the latter is not certified by gh run view jobs.",
             "Justification contracts are consumer-declared, not Owner-certified dependency closure.",
             "No unchanged-readset inference, installed state, live Security grant or external effect is certified.",
             "No Runtime job, GitHub rerun, Host CAS write, or independent Principal action occurs.",

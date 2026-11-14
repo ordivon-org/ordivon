@@ -300,6 +300,79 @@ stricter JSON Schema, Lean abstraction/refinement tests, actual Host
 CAS and Gateway readback.
 
 
+## R6: exact natural GitHub Owner Job/Step execution-scope qualification
+
+A green GitHub workflow is **not** proof that a particular job step ran.
+This was found in the *actual current-source Owner API*, not an invented
+test fixture. At Git SHA `c24a89a1e1f57fe2d6a2db7a2e070c56ee1ff25d`,
+Monorepo Required run `43578313957` returned SUCCESS, while the
+`repo-preflight` step `Verify changed core Formal source` returned
+**completed/skipped**. In the same run, `root-verification` step
+`Enforce native preflight and every selected Owner shard` returned
+completed/success. The separate current-source Monorepo CodeQL run
+`43578313999` reported the `codeql-python` step `Analyze code`
+completed/success.
+
+R6 extends the **existing** R4 Justification edge with an **optional**
+`requiredJobs` array (1–16), with exact job `name` and nonempty
+`requiredSteps` (1–24) arrays. No new CLI, evidence authority, graph,
+or database. The existing `gh run view --json ...,jobs` query now reads
+original Owner job/step IDs, names, status and conclusions together with
+the original run ID, repository, workflow name and current exact Git SHA.
+A scoped AND leaf is satisfied only if every required job is unique,
+completed/success and all its required named steps are uniquely
+completed/success. A missing/ambiguous job, missing/ambiguous step,
+unavailable Owner payload or a skipped step remains UNKNOWN. The
+per-Justification `scopedJobEvidence` records required job names,
+actual native job IDs, observed step statuses and the exact qualification.
+
+Example narrow edge:
+
+```json
+{"evidenceRef":"github:run:43578313957",
+ "workflowName":"Monorepo Required",
+ "requiredJobs":[
+  {"name":"repo-preflight",
+   "requiredSteps":["Verify changed core Formal source"]}
+ ]}
+```
+
+A *real* Host Work at rev9 and three current-source consumer claims were
+evaluated. Results: **two** narrow job/step requirements matched, **one**
+(the skipped Formal step) remained UNKNOWN, **zero** verifier Jobs started.
+This is not a claim that the Formal step should have run: it may be
+intentionally skipped under changed-owner selection; it merely cannot
+support a Claim that it *did* run.
+
+Important GitHub semantic restriction: step `conclusion=success` is
+post-`continue-on-error`, so it can occur even if the underlying step
+`outcome` is failure. The `gh run view --json jobs` projection does not
+certify that underlying outcome. R6 certifies **the provider-reported job/
+step conclusion**, not raw exit status, source coverage, dynamic readset,
+the domain property or a deployed system. Official docs:
+https://docs.github.com/en/actions/reference/workflows-and-actions/contexts
+
+The three new abstract Lean laws in `formal/GitHubJustification.lean`
+state: workflow GREEN + required step false cannot support that scoped
+claim; all three provider predicates true support the narrow claim; a
+positive result requires each predicate. Together with the original
+eleven abstract properties, **fourteen** theorems are checked without
+axioms; they do not prove Python→GitHub API refinement.
+The narrow behavioral tests additionally reject ambiguous/missing job
+or step records, invalid required-job declarations and false typed
+domain proof claims.
+
+**Thought LEGO:** W3C PROV's precise activity/evidence relations;
+in-toto Subject/Predicate separation; TMS Justification AND/OR;
+Design by Contract; formal safety and conservative three-valued logic.
+**Logic LEGO:** exact Work Consumer Claim → GitHub immutable SHA →
+Workflow → Job → Step → Owner conclusion → AND/OR support →
+Agent nextAction with UNKNOWN boundary. **Capabilities:** reuse GitHub CLI,
+existing Composition R5 interface, existing Host Work CAS and Gateway;
+optimize bounded native Owner record parsing, strict JSON Schema,
+Lean and focused negative tests.
+
+
 ## LEGO 2.1 and thought modules
 
 `ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)`

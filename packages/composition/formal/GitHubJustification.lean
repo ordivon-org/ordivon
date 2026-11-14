@@ -139,4 +139,37 @@ theorem unknown_workflow_never_acts_as_matching_current_workflow
 #print axioms matching_workflow_plus_unknown_impact_requests_readset_qualification
 #print axioms unknown_workflow_never_acts_as_matching_current_workflow
 
+-- R6 exact GitHub job/step Owner scope: a green workflow alone cannot
+-- establish a consumer-required step was actually completed successfully.
+def RequiredOwnerStepPassed
+    (workflowSuccess jobSuccess stepSuccess : Bool) : Bool :=
+  workflowSuccess && jobSuccess && stepSuccess
+
+theorem green_workflow_but_skipped_step_not_supported :
+    RequiredOwnerStepPassed true true false = false := by
+  rfl
+
+theorem exact_required_step_can_support_narrow_workflow_evidence :
+    RequiredOwnerStepPassed true true true = true := by
+  rfl
+
+theorem required_step_support_entails_each_owner_predicate
+    (workflow job step : Bool)
+    (h : RequiredOwnerStepPassed workflow job step = true) :
+    workflow = true ∧ job = true ∧ step = true := by
+  cases workflow with
+  | false =>
+      cases job <;> cases step <;> cases h
+  | true =>
+      cases job with
+      | false => cases step <;> cases h
+      | true =>
+          cases step with
+          | false => cases h
+          | true => exact ⟨rfl, rfl, rfl⟩
+
+#print axioms green_workflow_but_skipped_step_not_supported
+#print axioms exact_required_step_can_support_narrow_workflow_evidence
+#print axioms required_step_support_entails_each_owner_predicate
+
 end OrdivonJustification

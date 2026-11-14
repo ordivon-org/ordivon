@@ -67,6 +67,21 @@ An unchanged positive readset is not full dependency closure when new
 Git members were added; keep UNKNOWN.
 This is source-only; no native Harness pre-dispatch admission is installed.
 
+## R6: green GitHub workflow is not proof a required step ran
+
+Agent must not replace a required Job/Step result with a successful
+parent GitHub workflow conclusion. The existing Composition
+`agent-host-github-justifications` interface optionally accepts
+`requiredJobs:[{name,requiredSteps}]` on each evidence edge.
+Use original `gh run view --json jobs` Owner observations to
+distinguish a uniquely completed/successful required step from a
+`skipped`, missing or ambiguous one. On run 43578313957 at c24,
+the Formal preflight step was actually skipped despite parent success.
+This is an evidence scope boundary, not necessarily a broken workflow.
+`conclusion=success` is post-continue-on-error, not raw exit outcome.
+Never assert domain proof, full dependency closure or installed
+Harness enforcement based on this scope.
+
 ## Agent re-entry and effects
 
 Use `work.get → attention.reentry → topic.resume → owner-native reference readback → work.snapshot.commit → cursor acknowledgment` as needed. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.

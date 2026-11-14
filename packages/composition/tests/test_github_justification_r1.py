@@ -470,3 +470,152 @@ def test_r5_strict_schema_refuses_fake_domain_certification(monkeypatch):
         mutation(tampered)
         with pytest.raises(CircuitContractError):
             _validate_schema(tampered, schema_path(), "R5 fake domain closure")
+
+
+def _job_scoped_manifest():
+    m = manifest()
+    m["claims"][0]["anyOf"] = [
+        {
+            "id": "reason:real-owner-job-step",
+            "allOf": [
+                {
+                    "evidenceRef": REF_A,
+                    "workflowName": "Monorepo Required",
+                    "requiredJobs": [
+                        {
+                            "name": "repo-preflight",
+                            "requiredSteps": ["Verify changed core Formal source"],
+                        }
+                    ],
+                }
+            ],
+        }
+    ]
+    return m
+
+
+def _job_records(*, outcome="success"):
+    return [
+        {
+            "databaseId": 132397385043,
+            "name": "repo-preflight",
+            "status": "completed",
+            "conclusion": "success",
+            "steps": [
+                {
+                    "name": "Verify changed core Formal source",
+                    "status": "completed",
+                    "conclusion": outcome,
+                }
+            ],
+        }
+    ]
+
+
+def test_r6_workflow_success_cannot_promote_skipped_required_step(monkeypatch):
+    fake_receipts(monkeypatch, {REF_A: {"jobs": _job_records(outcome="skipped")}})
+    result = owner.project_github_owner_justifications(
+        work=work(), contract=_job_scoped_manifest(), git_repo=Path(".")
+    )
+    claim = result["claims"][0]
+    assert result["evidence"][0]["qualification"] == "MATCHED_CHECK_SUCCESS"
+    assert claim["supportStanding"] == "UNKNOWN"
+    scope = claim["justifications"][0]["scopedJobEvidence"][0]
+    assert scope["qualification"] == "REQUIRED_JOB_OR_STEP_NOT_SUCCESSFUL"
+    assert scope["jobObservations"][0]["steps"][0]["conclusion"] == "skipped"
+    assert claim["automaticVerifierExecution"] is False
+    assert claim["domainClaimVerified"] is False
+    _validate_schema(result, schema_path(), "job skipped despite successful workflow")
+
+
+def test_r6_exact_job_and_step_success_is_only_scoped_result(monkeypatch):
+    fake_receipts(monkeypatch, {REF_A: {"jobs": _job_records()}})
+    result = owner.project_github_owner_justifications(
+        work=work(), contract=_job_scoped_manifest(), git_repo=Path(".")
+    )
+    claim = result["claims"][0]
+    scope = claim["justifications"][0]["scopedJobEvidence"][0]
+    assert scope["qualification"] == "MATCHED_CHECK_SUCCESS"
+    assert scope["jobObservations"][0]["jobId"] == 132397385043
+    assert claim["supportStanding"] == "EVIDENCE_REQUIREMENTS_SATISFIED"
+    assert claim["domainClaimVerified"] is False
+    _validate_schema(result, schema_path(), "job and step both passed")
+
+
+def test_r6_missing_ambiguous_and_unreadable_job_summaries_are_unknown(monkeypatch):
+    for jobs in [[], _job_records() * 2, None, [{**_job_records()[0], "steps": []}]]:
+        fake_receipts(monkeypatch, {REF_A: {"jobs": jobs}})
+        got = owner.project_github_owner_justifications(
+            work=work(), contract=_job_scoped_manifest(), git_repo=Path(".")
+        )
+        claim = got["claims"][0]
+        assert claim["supportStanding"] == "UNKNOWN"
+        assert claim["justifications"][0]["scopedJobEvidence"][0]["qualification"] in {
+            "REQUIRED_JOB_MISSING_OR_AMBIGUOUS",
+            "OWNER_JOB_SCOPE_UNKNOWN",
+            "REQUIRED_JOB_OR_STEP_NOT_SUCCESSFUL",
+        }
+        assert got["summary"]["newVerificationJobsCreated"] == 0
+        _validate_schema(got, schema_path(), "job scope unknown")
+
+
+def test_r6_contract_rejects_forged_or_duplicate_job_step_declarations(monkeypatch):
+    fake_receipts(monkeypatch, {REF_A: {"jobs": _job_records()}})
+    for bad in (
+        lambda edge: edge["requiredJobs"][0]["requiredSteps"].append(
+            "Verify changed core Formal source"
+        ),
+        lambda edge: edge["requiredJobs"].append(dict(edge["requiredJobs"][0])),
+        lambda edge: edge["requiredJobs"][0].update(name="repo-preflight\n"),
+        lambda edge: edge["requiredJobs"][0].update(requiredSteps=[]),
+        lambda edge: edge.update(requiredJobs=[]),
+    ):
+        m = _job_scoped_manifest()
+        bad(m["claims"][0]["anyOf"][0]["allOf"][0])
+        with pytest.raises(CircuitContractError):
+            owner.project_github_owner_justifications(work=work(), contract=m, git_repo=Path("."))
+
+
+def test_r6_github_run_job_scope_read_is_native_not_user_supplied():
+    jobs = _job_records(outcome="skipped")
+
+    def run(args, **kwargs):
+        assert args[:3] == ["gh", "run", "view"]
+        assert "jobs" in args[-1]
+        return SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "databaseId": 43567631728,
+                    "headSha": SHA,
+                    "status": "completed",
+                    "conclusion": "success",
+                    "workflowName": "Monorepo Required",
+                    "url": "https://github.com/ordivon-org/ordivon/actions/runs/43567631728",
+                    "jobs": jobs,
+                }
+            ),
+        )
+
+    got = owner._github_run(repo="ordivon-org/ordivon", run_ref=REF_A, runner=run)
+    assert got["readStanding"] == "GITHUB_OWNER_READ_SUCCESS"
+    assert got["jobs"][0]["steps"][0]["conclusion"] == "skipped"
+
+
+def test_r6_job_scope_schema_rejects_false_step_success(monkeypatch):
+    fake_receipts(monkeypatch, {REF_A: {"jobs": _job_records(outcome="skipped")}})
+    good = owner.project_github_owner_justifications(
+        work=work(), contract=_job_scoped_manifest(), git_repo=Path(".")
+    )
+    forged = copy.deepcopy(good)
+    forged["claims"][0]["justifications"][0]["scopedJobEvidence"][0]["jobObservations"][0]["steps"][
+        0
+    ]["conclusion"] = {"pretend": "success"}
+    with pytest.raises(CircuitContractError):
+        _validate_schema(forged, schema_path(), "reject fabricated job conclusion type")
+    forged = copy.deepcopy(good)
+    forged["claims"][0]["justifications"][0]["scopedJobEvidence"][0]["qualification"] = (
+        "DOMAIN_VERIFIED"
+    )
+    with pytest.raises(CircuitContractError):
+        _validate_schema(forged, schema_path(), "reject falsely promoted domain result")

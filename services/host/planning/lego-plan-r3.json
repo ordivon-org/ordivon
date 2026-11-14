@@ -298,15 +298,15 @@
       ],
       "status": "SOURCE_GITHUB_OWNER_AND_C04_REAL_CONSUMER_NOT_INSTALLED_HARNESS",
       "contract": {
-        "I": "Current Host work.get with existing GitHub run refs, task-local bounded Claim/Justification contract, immutable Git HEAD, native GitHub run view status; optional native Git delta + owner-declared positive readset at exact target SourceCut with Claim IDs identical",
-        "O": "Owner-run qualification, finite AND/OR workflow requirement standing, non-executing Agent nextActions and optional CAS-compatible snapshot; typed sourceApplicability per Claim with exact C04 RECHECK_REQUIRED/UNKNOWN/REUSE_CANDIDATE and domainProofApplicability=UNKNOWN",
+        "I": "Current Host work.get with existing GitHub run refs, task-local bounded Claim/Justification contract, immutable Git HEAD, native GitHub run view status; optional native Git delta + owner-declared positive readset at exact target SourceCut with Claim IDs identical; optional per-evidence requiredJobs name+requiredSteps, authenticated native GitHub Job/Step list",
+        "O": "Owner-run qualification, finite AND/OR workflow requirement standing, non-executing Agent nextActions and optional CAS-compatible snapshot; typed sourceApplicability per Claim with exact C04 RECHECK_REQUIRED/UNKNOWN/REUSE_CANDIDATE and domainProofApplicability=UNKNOWN; each Job/Step-qualified Justification records actual Owner job databaseId and reported step conclusion, without elevating parent workflow GREEN",
         "S": "No new persistence; GitHub owns run status, Host owns current semantic Work and Gateway is only a read router",
         "pre": "Contract target SHA = exact native HEAD; each run is already in current Work; original owner/repo/ID/url/workflow/sha/status must match before satisfied evidence requirement",
         "post": "Successful alternative AND path satisfies narrow GitHub workflow-completion requirement; mismatched old SHA never does; current Work generated actions can be CAS committed separately",
-        "inv": "Every satisfying AND path has all native Owner records matched; empty alternatives rejected; a separate valid path survives failure of another; DomainClaimVerified always false and zero Jobs created; even exact Owner workflow success plus changed/unchanged source cannot establish domainProofApplicabilityCertified; new Git membership makes unchanged positive-readset candidates UNKNOWN and no automatic job",
+        "inv": "Every satisfying AND path has all native Owner records matched; empty alternatives rejected; a separate valid path survives failure of another; DomainClaimVerified always false and zero Jobs created; even exact Owner workflow success plus changed/unchanged source cannot establish domainProofApplicabilityCertified; new Git membership makes unchanged positive-readset candidates UNKNOWN and no automatic job; required skipped/unreadable/ambiguous native job step cannot satisfy job-scoped evidence requirement even when parent workflow SUCCESS; step success after continue-on-error not raw execution outcome",
         "eff": "Bounded read-only native Git and GitHub queries; actual authenticated Host CAS only when explicitly invoked as separate consumer effect; zero new verifier Jobs for all R5 projections",
         "c": "At most 32 unique Owner runs, 24 claims, 16 alternatives per claim and 8 leaves per alternative; no measured p95 or token reduction",
-        "epsilon": "GitHub unavailable/old SHA/wrong workflow/uncompleted result yields UNKNOWN or ineligible path; no automatic domain falsity or valid proof assumption",
+        "epsilon": "GitHub unavailable/old SHA/wrong workflow/uncompleted result yields UNKNOWN or ineligible path; no automatic domain falsity or valid proof assumption; original Owner job/step missing or skipped => UNKNOWN of scoped requirement, not domain FALSE or automatic verifier Job",
         "prov": [
           "packages/composition/src/ordivon_composition/github_justification_r1.py",
           "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
@@ -321,7 +321,7 @@
       },
       "evidence": {
         "tier": "SOURCE_REAL_GITHUB_OWNER_RECONCILIATION_ACTUAL_HOST_CAS",
-        "completionClaim": "Two exact SHA workflow-completion requirements satisfied via real GitHub runs and Host CAS rev4→5, old SHA mismatched; 11 new focused tests and five Lean no-axiom abstract theorems; zero rerun of prior verifier jobs; R5 actual Git SourceCut c9→73d added four members; 3 claims: two changed readsets and one unchanged-with-negative-closure UNKNOWN, native Github current Required/CodeQL success, no new verifier Job, Work rev7→8 and Gateway matching; 11 Lean abstract properties, focused tests",
+        "completionClaim": "Two exact SHA workflow-completion requirements satisfied via real GitHub runs and Host CAS rev4→5, old SHA mismatched; 11 new focused tests and five Lean no-axiom abstract theorems; zero rerun of prior verifier jobs; R5 actual Git SourceCut c9→73d added four members; 3 claims: two changed readsets and one unchanged-with-negative-closure UNKNOWN, native Github current Required/CodeQL success, no new verifier Job, Work rev7→8 and Gateway matching; 11 Lean abstract properties, focused tests; R6 real c24 official Required workflow GREEN but Formal preflight step skipped: a scoped Justification must remain UNKNOWN; root-verification and CodeQL Python analyze step SUCCESS => 2 supported/1 unknown, no new verifier execution",
         "installedCurrentness": "UNKNOWN",
         "domainClaimVerified": false,
         "ownerCertifiedDynamicReadsetClosure": "UNKNOWN"
@@ -329,7 +329,8 @@
       "releaseBlockers": [
         "Independent authenticated Agent/Harness installed pre-dispatch consumer not established",
         "GitHub workflow completion != domain proof or full dynamic/negative readset closure",
-        "New SourceCut peer review and independent GitHub official checks"
+        "New SourceCut peer review and independent GitHub official checks",
+        "Native GitHub Job/Step reported conclusion cannot certify underlying outcome if continue-on-error; requires deeper verifier proof to claim domain correctness."
       ]
     }
   ]
