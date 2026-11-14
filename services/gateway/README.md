@@ -560,7 +560,7 @@ must keep working.
 The correct cross-service sequence is to identify the **actual**
 verified Agent Principals and their authorized Host Actors and
 scopes; have the Security operator provision the corresponding
-signed/controlled policy data; restart/reload the Security PDP so
+operator-controlled policy data; restart/reload the Security PDP so
 the currently loaded credential reflects it; configure the same
 Owner bearer through the native Host/Gateway systemd credential
 facilities; qualify the original Agent read/write allow/deny
