@@ -8,7 +8,8 @@ import unittest
 
 import exchange_calendars as xcals
 import pandas as pd
-from market_daily_close_consumer import (
+
+from adoption.r3_native.market_daily_close_consumer import (
     FOCUS,
     INDEX_SYMBOLS,
     MAG7,

@@ -43,7 +43,7 @@ Data-quality counterexamples:
   are independently unqualified). No Research->PortfolioIntent promotion.
 
 Validation: native full 43-source private consumer and source-free negative
-controls in tests/test_market_daily_close_consumer.py. A digest only
+controls in domains/capital/tests/test_market_daily_close_consumer.py. A digest only
 guarantees local byte equality, not publisher signature or historical PIT.
 
 Future boundary: sample-level formal/source refinement; rights/license
