@@ -94,7 +94,13 @@ fn server(response: &'static str) -> (String, thread::JoinHandle<()>) {
         assert!(body.get("tools").is_none());
         assert!(body.get("tool_choice").is_none());
         assert_eq!(body["model"], json!("model:verified-source"));
-        let msg=format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",response.len(),response);
+        assert_eq!(body["stream"], json!(response.starts_with("data: ")));
+        let content_type = if response.starts_with("data: ") {
+            "text/event-stream"
+        } else {
+            "application/json"
+        };
+        let msg=format!("HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",response.len(),response);
         sock.write_all(msg.as_bytes()).unwrap();
     });
     (url, handle)
@@ -116,32 +122,52 @@ fn native_pg_verifiable_provider_only_http_loop() {
     let verified = inspect_pg_no_tool_run(&mut db, &schema, run, expected).unwrap();
     assert_eq!(verified.model_visible_tool_count(), 0);
     assert_eq!(verified.status(), "created");
-    for (response, expected_outcome) in [
+    for (response, expected_outcome, streaming) in [
         (
             r#"{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"A useful answer"}}]}"#,
             "proposal",
+            false,
         ),
         (
             r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:forged","type":"function","function":{"name":"exec","arguments":"{}"}}]}}]}"#,
             "tool_rejected",
+            false,
         ),
         (
             r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":"A truncated but plausible answer"}}]}"#,
             "paused_unknown",
+            false,
         ),
         (
             r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:forged","type":"function","function":{"name":"exec","arguments":"{}"}}]}}]}"#,
             "paused_unknown",
+            false,
         ),
         (
             r#"{"choices":[{"message":{"role":"assistant","content":"No confirmed finish reason"}}]}"#,
             "paused_unknown",
+            false,
+        ),
+        (
+            concat!(
+                "data: {\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"A useful answer\"},\"finish_reason\":null}]}\n\n",
+                "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+                "data: [DONE]\n\n"
+            ),
+            "proposal",
+            true,
+        ),
+        (
+            "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"A useful answer\"},\"finish_reason\":\"stop\"}]}\n\n",
+            "paused_unknown",
+            true,
         ),
     ] {
         let (url, http) = server(response);
-        let mut provider =
+        let provider =
             HttpModelProvider::new_provider_only(&url, "test", "system", "question", &verified)
                 .unwrap();
+        let mut provider = if streaming { provider.with_streaming() } else { provider };
         let mut journal = Journal {
             claims: 0,
             proposals: 0,

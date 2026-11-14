@@ -235,6 +235,55 @@ mod tests {
         assert!(decode_chat_completion_sse(b"data: \xff\n\n").is_none());
     }
     #[test]
+    fn every_truncated_prefix_refuses_a_confirmed_model_decision() {
+        let p = [
+            json!({"choices":[{"index":0,"delta":{"content":"complete answer"},"finish_reason":null}]}),
+            json!({"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}),
+        ];
+        let full = frames(&p, true);
+        assert!(decode_chat_completion_sse(&full).is_some());
+        for end in 0..full.len() {
+            assert!(
+                decode_chat_completion_sse(&full[..end]).is_none(),
+                "strict prefix length {end} falsely completed Provider response"
+            );
+        }
+    }
+
+    #[test]
+    fn preserves_utf8_when_real_provider_chunks_split_inside_character() {
+        let mk = |s: String| {
+            frames(
+                &[
+                    json!({"choices":[{"index":0,"delta":{"content":s},"finish_reason":null}]}),
+                    json!({"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}),
+                ],
+                true,
+            )
+        };
+        let first = mk("你".into());
+        let pos = first
+            .windows("你".len())
+            .position(|w| w == "你".as_bytes())
+            .unwrap();
+        let pad = (4095 + 4096 - (pos % 4096)) % 4096;
+        let expected = format!("{}你", "x".repeat(pad));
+        let source = mk(expected.clone());
+        let char_pos = source
+            .windows(3)
+            .position(|w| w == "你".as_bytes())
+            .unwrap();
+        assert_eq!(char_pos % 4096, 4095);
+        let decoded = decode_chat_completion_sse(&source).unwrap();
+        assert_eq!(
+            decoded
+                .pointer("/choices/0/message/content")
+                .and_then(Value::as_str),
+            Some(expected.as_str())
+        );
+    }
+
+    #[test]
     fn tolerates_usage_after_finished_choice() {
         let p = [
             json!({"choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":"stop"}]}),
