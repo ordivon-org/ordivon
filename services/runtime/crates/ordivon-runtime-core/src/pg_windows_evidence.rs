@@ -467,6 +467,7 @@ pub enum PgWindowsOwnerState {
 }
 
 /// Predicate pure enough to falsify on all hosts before using Windows API calls.
+#[cfg(any(windows, test))]
 fn same_win32_owner(
     expected_pid: u64,
     expected_birth: u64,

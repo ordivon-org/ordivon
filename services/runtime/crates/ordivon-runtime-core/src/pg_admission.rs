@@ -1740,6 +1740,10 @@ mod live_pg_tests {
             owner.admit(&input).unwrap(),
             PgAdmissionOutcome::Created(_)
         ));
+        // A current PG reservation/allocation is required before BUNDLE_READY.
+        // Reuse the exact same physical fixture contract as the Linux PG tests;
+        // a Job row alone must never authorize a launch.
+        allocate_fixture(&mut scratch, &input);
         // Absence of a PG-admitted bundle readiness receipt fails closed.
         assert!(inspect_admitted_windows_pg_bundle(
             &dsn,
