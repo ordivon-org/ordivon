@@ -174,6 +174,11 @@ work.engagement tools. They remain in the separate Rust Host draft PR.
 The independent installed Security AuthZEN/OPA policy must provide
 operator-provisioned Principal-to-Actor grants with exact tool/resource
 scope before Gateway rollout, and actual allow/deny consumers must pass.
+The native source checker also checks the actual GatewayService Host dispatch
+allowlist, not only the public Host/Gateway MCP Tool names. Its
+`sourceEndToEndSourceQualified` closes this source-level dispatcher gap without
+a new registry; source input/output Schema differences, installed authorization,
+connected ChatGPT Plugins and real Host migration remain separately UNKNOWN.
 
 **Candidate version 0.10.10, Surface Epoch 11 (source-only):** message.get is a
 single newly promoted Host read to preserve exact messageRef /

@@ -273,7 +273,14 @@ Host business Tool absent from Gateway, not only differing arguments on
 Tools already shared. `host.pool.stats` is an original Host
 operator-only exception that must NOT silently become an Agent Tool.
 The comparison is native original Host+Gateway `tools/list`, not a new
-hardcoded list of all 30 Host Tools. Input and output Schema differences
+hardcoded list of all 30 Host Tools. R10 extends this same source checker
+to the original GatewayService `_SOCIAL_WORK_HOST_TOOLS` allowlist, observed
+in the locked Gateway environment. Require
+`sourceEndToEndSourceQualified=true` for Host business Tool public
+registration **and** internal dispatch closure; an absent/extra dispatcher
+name fails even when the two MCP Tool sets match. The original
+`sourceConsumerSurfaceQualified` is only the earlier public-name/required
+baseline, not the full dispatch proof. Input and output Schema differences
 remain explicit separate results, and live Security/installed-Plugin
 migration remains UNKNOWN until independently verified.
 
