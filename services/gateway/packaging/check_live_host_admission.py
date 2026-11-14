@@ -9,6 +9,7 @@ The Security policy and Systemd remain the natural authorities.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import shlex
 import subprocess
@@ -26,6 +27,58 @@ ACTIVE_POLICY_CREDENTIAL = Path(
 )
 # No second list of permitted Host actions or AuthZEN policy.
 HOST_TOOLS = frozenset(_SOCIAL_WORK_HOST_TOOLS) | {"host.status"}
+
+# The installed Gateway Owner endpoint is local; do not chase caller-provided
+# hosts, redirects or public URLs from a production release preflight.
+HOST_OWNER_URL = "http://127.0.0.1:8898/mcp"
+MCP_INITIALIZE = json.dumps(
+    {
+        "jsonrpc": "2.0",
+        "id": "gateway-host-anonymous-release-negative",
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "ordivon-gateway-release-negative", "version": "1"},
+        },
+    },
+    separators=(",", ":"),
+).encode("utf-8")
+
+
+def _rejects_unauthenticated_host_initialize() -> bool:
+    """A real, read-only local HTTP canary: only 401/403 prove this negative.
+
+    This request intentionally has no Authorization header. 200, other HTTP
+    responses, network failures and unknown transports all mean NOT PROVEN.
+    stdlib HTTPConnection does not follow redirects or honor HTTP proxies.
+    """
+    conn = http.client.HTTPConnection("127.0.0.1", 8898, timeout=4)
+    try:
+        conn.request(
+            "POST",
+            "/mcp",
+            body=MCP_INITIALIZE,
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+                "MCP-Protocol-Version": "2025-06-18",
+            },
+        )
+        response = conn.getresponse()
+        return response.status in (401, 403)
+    except OSError, http.client.HTTPException:
+        return False
+    finally:
+        conn.close()
+
+
+def _owner_route_is_probed_endpoint(systemd_environment: str) -> bool:
+    try:
+        entries = shlex.split(systemd_environment)
+    except ValueError:
+        return False
+    return f"ORDIVON_GATEWAY_HOST_URL={HOST_OWNER_URL}" in entries
 
 
 def _policy_data(path: Path) -> dict[str, Any]:
@@ -87,20 +140,28 @@ def assess(
     systemd_environment: str,
     *,
     now: int,
+    anonymous_host_initialize_denied: bool | None = None,
 ) -> dict[str, Any]:
     active_count = _active_host_grant_count(document, now=now)
     credential_declared = _declares_host_owner_identity(systemd_environment)
+    owner_route_qualified = _owner_route_is_probed_endpoint(systemd_environment)
     failures: list[str] = []
     if active_count == 0:
         failures.append("HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE")
     if not credential_declared:
         failures.append("GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED")
+    if not owner_route_qualified:
+        failures.append("HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY")
+    if anonymous_host_initialize_denied is not True:
+        failures.append("HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED")
     return {
         "schemaVersion": 1,
         "kind": "ordivon.gateway-host-release-precondition",
         "status": "NO_GO" if failures else "NECESSARY_PRECONDITIONS_PRESENT",
         "activeHostDelegationCount": active_count,
         "hostOwnerCredentialDeclared": credential_declared,
+        "hostOwnerRouteQualified": owner_route_qualified,
+        "anonymousHostInitializeDenied": anonymous_host_initialize_denied is True,
         "reasons": failures,
         "unverified": [
             "actual Principal-to-Actor and resource authorization",
@@ -148,7 +209,12 @@ def main() -> int:
         )
         if security_service.returncode != 0 or security_service.stdout.strip() != "active":
             raise ValueError("current Security PDP is not running")
-        standing = assess(data, result.stdout, now=int(time.time()))
+        standing = assess(
+            data,
+            result.stdout,
+            now=int(time.time()),
+            anonymous_host_initialize_denied=_rejects_unauthenticated_host_initialize(),
+        )
     except OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError:
         standing = {
             "schemaVersion": 1,
