@@ -148,6 +148,27 @@ future theorem proof    -> Lean/Coq/Isabelle provider when justified
 
 No provider becomes universal.
 
+### C06: native Gateway `reconciliation_required` source semantics (2026-11-14)
+
+Actual Gateway `ExecutionObservation` and Harness `runtime_bridge.py` recognize
+`deliveryDisposition=reconciliation_required` as a reason to inspect or
+reconcile the **original** operation. Composition `C06` now consumes this
+fourth Runtime delivery state rather than reporting a protocol error. The
+result is still read-only and has `automaticRetryAdmissible=false`,
+`providerEffectEstablished=false` and `proofReuseAdmissible=false`. Gateway's
+native route owners are `runtime.linux`, `runtime.windows`, and
+`runtime.harness`; C06's older `external.pull` fixture is **caller-shaped
+synthetic** and is not a native Gateway route claim.
+
+The existing finite TLA+ `EffectReplayFence.tla` has four delivery variants.
+The pinned TLC gate includes one new deliberately false fourth-state
+reachability probe and the existing unsafe retry mutation. The native Python
+correspondence checks 96 bounded combinations; Gateway's real Pydantic
+projection independently tests three owner routes. These are finite
+source/model tests, **not** an installed PG/physical/provider effect proof.
+The cross-module Golden Road is
+`../../../docs/AGENT_EXECUTION_CAUSAL_CHAIN_R2.md`.
+
 ## Anti-growth laws
 
 This package must not grow:
@@ -177,24 +198,3 @@ The next useful integration is not another formal engine. It is one real end-to-
 that lowers a Circuit Gate to this obligation carrier, binds an existing verifier, executes
 through the natural owner, and feeds the existing `composition-gate-result` back into R1
 closure without widening authority.
-
-### C06: native Gateway `reconciliation_required` source semantics (2026-11-14)
-
-Actual Gateway `ExecutionObservation` and Harness `runtime_bridge.py` recognize
-`deliveryDisposition=reconciliation_required` as a reason to inspect or
-reconcile the **original** operation. Composition `C06` now consumes this
-fourth Runtime delivery state rather than reporting a protocol error. The
-result is still read-only and has `automaticRetryAdmissible=false`,
-`providerEffectEstablished=false` and `proofReuseAdmissible=false`. Gateway's
-native route owners are `runtime.linux`, `runtime.windows`, and
-`runtime.harness`; C06's older `external.pull` fixture is **caller-shaped
-synthetic** and is not a native Gateway route claim.
-
-The existing finite TLA+ `EffectReplayFence.tla` has four delivery variants.
-The pinned TLC gate includes one new deliberately false fourth-state
-reachability probe and the existing unsafe retry mutation. The native Python
-correspondence checks 96 bounded combinations; Gateway's real Pydantic
-projection independently tests three owner routes. These are finite
-source/model tests, **not** an installed PG/physical/provider effect proof.
-The cross-module Golden Road is
-`../../../docs/AGENT_EXECUTION_CAUSAL_CHAIN_R2.md`.
