@@ -7,6 +7,7 @@ replace an Owner AuthZEN decision, actual Host canary, or production activation.
 from __future__ import annotations
 
 import importlib.util
+import itertools
 import json
 import subprocess
 from pathlib import Path
@@ -483,3 +484,67 @@ def test_active_peer_discovery_errors_never_qualify_release(
     monkeypatch.setattr(preflight.subprocess, "run", fake_run)
     with pytest.raises(subprocess.CalledProcessError):
         preflight._unqualified_active_peer_host_consumers()
+
+
+@pytest.mark.parametrize(
+    (
+        "grant",
+        "main_bearer",
+        "exact_route",
+        "host_anonymous_denied",
+        "no_live_direct",
+        "no_active_peer",
+    ),
+    list(itertools.product((False, True), repeat=6)),
+)
+def test_release_necessary_conditions_are_conjunctive_for_all_64_boolean_states(
+    preflight: Any,
+    grant: bool,
+    main_bearer: bool,
+    exact_route: bool,
+    host_anonymous_denied: bool,
+    no_live_direct: bool,
+    no_active_peer: bool,
+) -> None:
+    """Exhaust the 2**6 current release-qualification states, not only sample tests.
+
+    This checks *necessary* preconditions; a positive result is not a grant,
+    bearer proof, remotely authenticated consumer, or production GO.
+    """
+    qualified_env = "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp"
+    invalid_env = "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:9000/mcp"
+    bearer_env = "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    env = qualified_env if exact_route else invalid_env
+    if main_bearer:
+        env += " " + bearer_env
+    result = preflight.assess(
+        _operator_data([_grant()] if grant else []),
+        env,
+        now=1500,
+        anonymous_host_initialize_denied=host_anonymous_denied,
+        observed_non_gateway_host_tcp_clients=[] if no_live_direct else ["cloudflared"],
+        unqualified_active_host_consumers=()
+        if no_active_peer
+        else ("ordivon-gateway-local-r21.service",),
+    )
+    reasons = []
+    if not grant:
+        reasons.append("HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE")
+    if not main_bearer:
+        reasons.append("GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED")
+    if not exact_route:
+        reasons.append("HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY")
+    if not host_anonymous_denied:
+        reasons.append("HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED")
+    if not no_live_direct:
+        reasons.append("HOST_DIRECT_NON_GATEWAY_TCP_CONSUMER_OBSERVED")
+    if not no_active_peer:
+        reasons.append("ACTIVE_HOST_CONSUMER_MISSING_OWNER_CREDENTIAL")
+    assert result["reasons"] == reasons
+    assert result["status"] == ("NECESSARY_PRECONDITIONS_PRESENT" if not reasons else "NO_GO")
+    assert result["observedDirectHostTcpConsumerClasses"] == (
+        [] if no_live_direct else ["cloudflared"]
+    )
+    assert result["unqualifiedActiveHostConsumers"] == (
+        [] if no_active_peer else ["ordivon-gateway-local-r21.service"]
+    )
