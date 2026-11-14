@@ -85,8 +85,12 @@ source build, locked formal checks and native consumer readback.
 ## B03 strict Owner observation
 Runtime configured/available fields must be literal JSON booleans;
 contradictory or malformed values are UNKNOWN, with an observation error.
-Run the bounded formal/check_owner_status_contract.py in the locked Gateway
-environment. Never treat a model result as proof of a live Runtime RPC.
+The B03 TLA+ model and original bounded Python consumer now additionally
+require a list-valued target inventory, exactly one matching target identity
+and list-valued explicitly provided context inventories before READY.
+The checker covers 100 status pairs plus nine real Python inventory/Context
+cases. Run both gateway:formal:verify and gateway:verify; neither establishes
+live Runtime readiness or a universal Python-to-TLA+ refinement proof.
 
 ## R04 Owner HTTP pool (MCP SDK native)
 McpOwnerCaller uses a process-scoped per-Owner HTTP connection pool and a

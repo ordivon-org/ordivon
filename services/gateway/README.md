@@ -275,7 +275,13 @@ that aborts discovery of other healthy owners. This reuses the existing
 `capability_projection.py` path; the native release-discovery route already
 requires exactly one matching Linux target. Source-level regression consumers:
 `tests/test_capability_projection.py` and `tests/test_runtime_release_discovery.py`.
-This is not installed-state or execution-authorization evidence.
+This is not installed-state or execution-authorization evidence. The original
+GatewayOwnerObservationR1 model now also covers inventory container shape,
+exactly-one target matches and explicitly supplied context-list types.
+formal/check_owner_status_contract.py independently executes the current
+Python projection and service on 100 status pairs and 9 target/context
+observations. A finite abstraction and its bounded source witness do not
+prove all Python executions or an installed Runtime's availability.
 
 The default per-probe cooperative cancellation budget is five seconds. Cancellation waits for transport cleanup: legacy MCP session DELETE cleanup may extend that budget, so it is not a hard end-to-end latency deadline. Cancellation of the enclosing request drains its child probes. Gateway does not parallelize effects or retry upstream effects.
 
