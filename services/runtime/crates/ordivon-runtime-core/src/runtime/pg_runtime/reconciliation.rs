@@ -1,6 +1,39 @@
 //! PostgreSQL Attempt readback, native reconciliation, and Job result projection.
 use super::*;
 
+/// Project RUNNING only from a positively bound Linux Runner plus the
+/// kernel supervisor's current native identity. An issued dispatch, partial
+/// stdout, or the mere presence of runner-start.json is insufficient.
+fn native_running_witness(
+    start: &RunnerStartEvidence,
+    native: &std::collections::BTreeMap<String, String>,
+    job: &str,
+    attempt: &str,
+    launch_digest: &str,
+    observed_process_start: Option<&str>,
+    provider_digest: &str,
+) -> bool {
+    let expected_unit = format!("ordivon-pg-{attempt}.service");
+    start.schema_version == 1
+        && start.job_id == job
+        && start.attempt_id == attempt
+        && start.launch_token_digest == launch_digest
+        && start.unit_name == expected_unit
+        && start.control_group == format!("/system.slice/{expected_unit}")
+        && start.namespace_pid != 0
+        && !start.namespace_process_start_identity.is_empty()
+        && observed_process_start == Some(start.namespace_process_start_identity.as_str())
+        && start.observed_unix_ms > 0
+        && start.runner_executable_digest.as_deref() == Some(provider_digest)
+        && native.get("LoadState").map(String::as_str) == Some("loaded")
+        && native.get("ActiveState").map(String::as_str) == Some("active")
+        && native.get("InvocationID").map(String::as_str) == Some(start.invocation_id.as_str())
+        && !start.invocation_id.is_empty()
+        && native.get("ControlGroup").map(String::as_str) == Some(start.control_group.as_str())
+        && native.get("MainPID").map(String::as_str)
+            == Some(start.namespace_pid.to_string().as_str())
+}
+
 /// Retain PostgreSQL's SQLSTATE across direct Client reads. The shared
 /// PgAdmissionError adapter owns transaction-abort vs unavailable taxonomy;
 /// generic io(Display) would erase SQLSTATE 40001/40P01 first.
@@ -598,7 +631,61 @@ impl PgRuntime {
             }
             a = self.attempt(db, job)?.0;
         }
-        let path = Path::new(&a.bundle_path);
+        let path = PathBuf::from(&a.bundle_path);
+        // DISPATCH_ISSUED is intent, not a physical start. Only the native
+        // Runner start receipt bound to the live systemd InvocationID, PID
+        // and cgroup may advance this Attempt from starting to running.
+        if a.state == AttemptState::Starting
+            && a.termination_intent == AttemptTerminationIntent::Natural
+        {
+            let start_path = Path::new(&a.bundle_path).join("runner-start.json");
+            match fs::symlink_metadata(&start_path) {
+                Ok(metadata) if metadata.file_type().is_file() => {
+                    let bytes = fs::read(&start_path).map_err(io)?;
+                    let start: RunnerStartEvidence = serde_json::from_slice(&bytes).map_err(io)?;
+                    let native = super::platform::systemctl_show(&a.unit_name)?;
+                    if native_running_witness(
+                        &start,
+                        &native,
+                        job,
+                        &a.attempt_id,
+                        &a.launch_token_digest,
+                        super::platform::process_identity(start.namespace_pid).as_deref(),
+                        provider["executionProvider"]["executableDigest"]
+                            .as_str()
+                            .unwrap_or(""),
+                    ) {
+                        let input = crate::pg_admission::PgRunnerBound {
+                            attempt_id: a.attempt_id.clone(),
+                            expected_row_version: a.row_version as i64,
+                            expected_bundle_digest: a
+                                .bundle_digest
+                                .clone()
+                                .ok_or_else(|| error("issued Attempt omitted bundle digest"))?,
+                            runner_start_digest: universal::sha256_bytes(&bytes),
+                            native_invocation_id: start.invocation_id,
+                            observed_at_ms: now()?,
+                            expected_source_sha256: self.config.source_sha256.clone(),
+                        };
+                        match db.mark_runner_bound_pg(&input) {
+                            Ok(new_version) => {
+                                a.state = AttemptState::Running;
+                                a.row_version = new_version as u64;
+                            }
+                            Err(PgAdmissionError::Blocked | PgAdmissionError::UnknownCommit) => {
+                                // A concurrent cancellation/terminal won. Read its
+                                // original PG Attempt; never redispatch or revive it.
+                                a = self.attempt(db, job)?.0;
+                            }
+                            Err(err) => return Err(pg(err)),
+                        }
+                    }
+                }
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+                Ok(_) => return Err(error("Runner start evidence is not a regular file")),
+                Err(err) => return Err(io(err)),
+            }
+        }
         if a.state == AttemptState::Accepted
             && a.termination_intent == AttemptTerminationIntent::StopRequested
         {
@@ -614,7 +701,7 @@ impl PgRuntime {
                 "jobId":job,"attemptId":a.attempt_id,"dispatchIssued":false,
                 "terminalState":"cancelled","finishedAtMs":cancelled_at}))
             .map_err(io)?;
-            fs::create_dir_all(path).map_err(io)?;
+            fs::create_dir_all(&path).map_err(io)?;
             let evidence_path = path.join("admission-cancel-evidence.json");
             // All bytes are deterministic from committed PG identity and its
             // first stop event, including across concurrent exact replays.
@@ -877,7 +964,7 @@ impl PgRuntime {
             // At this point the bound native cgroup is already quiescent, so
             // the Runner cannot subsequently publish this file from the
             // same owned process tree.
-            if !runner_result_still_absent(path)? {
+            if !runner_result_still_absent(&path)? {
                 return Ok(());
             }
             let receipt_bytes = if receipt_path.exists() {
@@ -1053,6 +1140,170 @@ impl PgRuntime {
             }
         }
         serde_json::from_value(value).map_err(io)
+    }
+}
+
+#[cfg(test)]
+mod native_runner_start_tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    fn native_running_witness(
+        start: &RunnerStartEvidence,
+        native: &BTreeMap<String, String>,
+        job: &str,
+        attempt: &str,
+        launch_digest: &str,
+        provider_digest: &str,
+    ) -> bool {
+        super::native_running_witness(
+            start,
+            native,
+            job,
+            attempt,
+            launch_digest,
+            Some(start.namespace_process_start_identity.as_str()),
+            provider_digest,
+        )
+    }
+
+    #[test]
+    fn running_witness_rejects_pid_reuse_and_unobserved_kernel_start_identity() {
+        let start = start();
+        let native = unit();
+        let provider = start.runner_executable_digest.as_deref().unwrap();
+        for stale in [None, Some("different-kernel-starttime")] {
+            assert!(
+                !super::native_running_witness(
+                    &start,
+                    &native,
+                    "job-a",
+                    "attempt-a",
+                    &start.launch_token_digest,
+                    stale,
+                    provider
+                ),
+                "PID-only proof wrongly qualified a replaced or unobserved process"
+            );
+        }
+    }
+
+    fn start() -> RunnerStartEvidence {
+        RunnerStartEvidence {
+            schema_version: 1,
+            job_id: "job-a".into(),
+            attempt_id: "attempt-a".into(),
+            launch_token_digest: format!("sha256:{}", "a".repeat(64)),
+            unit_name: "ordivon-pg-attempt-a.service".into(),
+            invocation_id: "invocation-1".into(),
+            control_group: "/system.slice/ordivon-pg-attempt-a.service".into(),
+            namespace_pid: 1234,
+            namespace_process_start_identity: "start-1234".into(),
+            payload_uid: None,
+            payload_gid: None,
+            observed_workspace_source_digest: None,
+            runner_executable_digest: Some(format!("sha256:{}", "d".repeat(64))),
+            observed_unix_ms: 1000,
+        }
+    }
+    fn unit() -> BTreeMap<String, String> {
+        BTreeMap::from([
+            ("LoadState".into(), "loaded".into()),
+            ("ActiveState".into(), "active".into()),
+            ("InvocationID".into(), "invocation-1".into()),
+            (
+                "ControlGroup".into(),
+                "/system.slice/ordivon-pg-attempt-a.service".into(),
+            ),
+            ("MainPID".into(), "1234".into()),
+        ])
+    }
+    #[test]
+    fn runner_running_witness_requires_bound_live_native_identity() {
+        let start = start();
+        let properties = unit();
+        let provider = start.runner_executable_digest.as_deref().unwrap();
+        assert!(native_running_witness(
+            &start,
+            &properties,
+            "job-a",
+            "attempt-a",
+            &start.launch_token_digest,
+            provider
+        ));
+        for (name, wrong) in [
+            ("ActiveState", "activating"),
+            ("LoadState", "not-found"),
+            ("InvocationID", "reused"),
+            ("ControlGroup", "/system.slice/wrong.service"),
+            ("MainPID", "3456"),
+        ] {
+            let mut bad = properties.clone();
+            bad.insert(name.into(), wrong.into());
+            assert!(
+                !native_running_witness(
+                    &start,
+                    &bad,
+                    "job-a",
+                    "attempt-a",
+                    &start.launch_token_digest,
+                    provider
+                ),
+                "{name}"
+            );
+        }
+        let mut missing = start.clone();
+        missing.namespace_process_start_identity.clear();
+        assert!(!native_running_witness(
+            &missing,
+            &properties,
+            "job-a",
+            "attempt-a",
+            &start.launch_token_digest,
+            provider
+        ));
+        missing = start.clone();
+        missing.runner_executable_digest = None;
+        assert!(!native_running_witness(
+            &missing,
+            &properties,
+            "job-a",
+            "attempt-a",
+            &start.launch_token_digest,
+            provider
+        ));
+        assert!(!native_running_witness(
+            &start,
+            &properties,
+            "job-other",
+            "attempt-a",
+            &start.launch_token_digest,
+            provider
+        ));
+        assert!(!native_running_witness(
+            &start,
+            &properties,
+            "job-a",
+            "attempt-other",
+            &start.launch_token_digest,
+            provider
+        ));
+        assert!(!native_running_witness(
+            &start,
+            &properties,
+            "job-a",
+            "attempt-a",
+            "sha256:wrong",
+            provider
+        ));
+        assert!(!native_running_witness(
+            &start,
+            &properties,
+            "job-a",
+            "attempt-a",
+            &start.launch_token_digest,
+            "sha256:wrong"
+        ));
     }
 }
 
