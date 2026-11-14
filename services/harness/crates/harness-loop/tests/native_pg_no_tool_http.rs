@@ -116,14 +116,26 @@ fn native_pg_verifiable_provider_only_http_loop() {
     let verified = inspect_pg_no_tool_run(&mut db, &schema, run, expected).unwrap();
     assert_eq!(verified.model_visible_tool_count(), 0);
     assert_eq!(verified.status(), "created");
-    for (response, should_complete) in [
+    for (response, expected_outcome) in [
         (
-            r#"{"choices":[{"message":{"role":"assistant","content":"A useful answer"}}]}"#,
-            true,
+            r#"{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"A useful answer"}}]}"#,
+            "proposal",
         ),
         (
-            r#"{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:forged","type":"function","function":{"name":"exec","arguments":"{}"}}]}}]}"#,
-            false,
+            r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:forged","type":"function","function":{"name":"exec","arguments":"{}"}}]}}]}"#,
+            "tool_rejected",
+        ),
+        (
+            r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":"A truncated but plausible answer"}}]}"#,
+            "paused_unknown",
+        ),
+        (
+            r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:forged","type":"function","function":{"name":"exec","arguments":"{}"}}]}}]}"#,
+            "paused_unknown",
+        ),
+        (
+            r#"{"choices":[{"message":{"role":"assistant","content":"No confirmed finish reason"}}]}"#,
+            "paused_unknown",
         ),
     ] {
         let (url, http) = server(response);
@@ -144,15 +156,23 @@ fn native_pg_verifiable_provider_only_http_loop() {
         )
         .unwrap()
         .run();
-        if should_complete {
-            assert_eq!(
-                result,
-                Ok(RunResult::CompletionProposal("A useful answer".into()))
-            );
-            assert_eq!(journal.proposals, 1);
-        } else {
-            assert_eq!(result, Err(RunFault::ToolNotGranted));
-            assert_eq!(journal.proposals, 0);
+        match expected_outcome {
+            "proposal" => {
+                assert_eq!(
+                    result,
+                    Ok(RunResult::CompletionProposal("A useful answer".into()))
+                );
+                assert_eq!(journal.proposals, 1);
+            }
+            "tool_rejected" => {
+                assert_eq!(result, Err(RunFault::ToolNotGranted));
+                assert_eq!(journal.proposals, 0);
+            }
+            "paused_unknown" => {
+                assert_eq!(result, Ok(RunResult::PausedUnknown));
+                assert_eq!(journal.proposals, 0);
+            }
+            _ => panic!("unreachable expected Provider response class"),
         }
         assert_eq!(journal.claims, 1);
         http.join().unwrap();

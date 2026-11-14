@@ -192,8 +192,20 @@ impl HttpModelProvider {
         {
             return ProviderResult::Unknown;
         }
+        // OpenAI-compatible Chat Completions finish_reason is the Provider's
+        // explicit decision-boundary signal. A visually plausible body may
+        // still be truncated, filtered or incomplete; none is authorization.
+        let Some(finish_reason) = reply
+            .pointer("/choices/0/finish_reason")
+            .and_then(Value::as_str)
+        else {
+            return ProviderResult::Unknown;
+        };
         let tools = message.get("tool_calls").and_then(Value::as_array);
         let action = if let Some(calls) = tools.filter(|a| !a.is_empty()) {
+            if finish_reason != "tool_calls" {
+                return ProviderResult::Unknown;
+            }
             // Never choose a Tool effect over a simultaneous terminal answer.
             if message
                 .get("content")
@@ -235,6 +247,9 @@ impl HttpModelProvider {
             }
             ModelDecision::CallTools(decoded)
         } else {
+            if finish_reason != "stop" {
+                return ProviderResult::Unknown;
+            }
             let Some(content) = message.get("content").and_then(Value::as_str) else {
                 return ProviderResult::Unknown;
             };
@@ -307,10 +322,58 @@ mod tests {
         (url, handle)
     }
     #[test]
+    fn truncated_completion_must_not_be_promoted_from_length_finish_reason() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":"I have finished repairing"}}]}"#,
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap();
+        assert!(
+            matches!(model.turn(1, &[]), ProviderResult::Unknown),
+            "A length-truncated Provider response cannot authorize a conclusion"
+        );
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn truncated_tool_call_must_not_reach_domain_tool() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#,
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap();
+        assert!(
+            matches!(model.turn(1, &[]), ProviderResult::Unknown),
+            "A length-truncated Tool response cannot be treated as a complete action"
+        );
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn finish_reason_is_required_for_confirmed_completion() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            r#"{"choices":[{"message":{"role":"assistant","content":"apparently done"}}]}"#,
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap();
+        assert!(matches!(model.turn(1, &[]), ProviderResult::Unknown));
+        server.join().unwrap();
+    }
+
+    #[test]
     fn request_returns_native_completion() {
         let (catalog, grant) = fixtures();
         let (url, server) = server(
-            r#"{"choices":[{"message":{"role":"assistant","content":"done"}}]}"#,
+            r#"{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"done"}}]}"#,
             200,
         );
         let mut model =
@@ -325,7 +388,7 @@ mod tests {
     fn unexpected_provider_tool_type_must_not_become_a_tool_decision() {
         let (catalog, grant) = fixtures();
         let (url, server) = server(
-            r#"{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"external_action","function":{"name":"search","arguments":"{}"}}]}}]}"#,
+            r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"external_action","function":{"name":"search","arguments":"{}"}}]}}]}"#,
             200,
         );
         let mut model =
@@ -342,7 +405,7 @@ mod tests {
     fn request_returns_native_tool_call() {
         let (catalog, grant) = fixtures();
         let (url, server) = server(
-            r#"{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#,
+            r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#,
             200,
         );
         let mut model =
@@ -381,7 +444,7 @@ mod tests {
     fn mixed_tool_and_terminal_are_not_both_admitted() {
         let (catalog, grant) = fixtures();
         let (url, fixture) = server(
-            r#"{"choices":[{"message":{"role":"assistant","content":"finished","tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#,
+            r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"finished","tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#,
             200,
         );
         let mut model =
@@ -418,7 +481,7 @@ mod tests {
     fn malformed_tool_calls_cannot_silently_become_completion() {
         let (catalog, grant) = fixtures();
         let (url, server) = server(
-            r#"{"choices":[{"message":{"role":"assistant","content":"finished","tool_calls":"not-an-array"}}]}"#,
+            r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"finished","tool_calls":"not-an-array"}}]}"#,
             200,
         );
         let mut model =

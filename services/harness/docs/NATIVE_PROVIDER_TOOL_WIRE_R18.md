@@ -3,6 +3,9 @@
 Status: PRIVATE SOURCE-CANDIDATE, not merged into main or installed Runtime/Gateway.
 Source parent: 8a77e265e97b9068e1404fa9ecdbbb20183214c3 (existing Rust NativeAgentLoop branch).
 This document does not grant Tool authority, credentials, or domain result admission.
+Successor: [R19 Provider finish-reason boundary](NATIVE_PROVIDER_FINISH_BOUNDARY_R19.md)
+adds explicit stop/tool_calls versus truncated/filter/unknown state tests;
+R18 tool type correctness remains a distinct required gate.
 
 ## Exact user-facing consumer
 

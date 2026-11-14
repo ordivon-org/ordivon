@@ -71,9 +71,11 @@ impl EffectReceiver for TestReceiver {
 fn response(index: usize) -> &'static str {
     match index {
         0 => {
-            r#"{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#
+            r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#
         }
-        _ => r#"{"choices":[{"message":{"role":"assistant","content":"candidate-complete"}}]}"#,
+        _ => {
+            r#"{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"candidate-complete"}}]}"#
+        }
     }
 }
 #[test]
@@ -184,58 +186,87 @@ fn native_http_loop_full_two_turn_owner_receipt() {
 }
 
 #[test]
-fn unknown_provider_tool_kind_cannot_reach_physical_effect_receiver() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let url = format!(
-        "http://{}/v1/chat/completions",
-        listener.local_addr().unwrap()
-    );
-    let server = thread::spawn(move || {
-        let (mut conn, _) = listener.accept().unwrap();
-        conn.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
-        let mut buffer = [0u8; 8192];
-        let _ = conn.read(&mut buffer).unwrap();
-        let response = r#"{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"other","function":{"name":"search","arguments":"{}"}}]}}]}"#;
-        let packet = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-            response.len(),
-            response
+fn unsupported_or_incomplete_provider_wires_never_admit_physical_effects_or_completion() {
+    // Real loopback HTTP and the existing native Loop, not a Provider or
+    // EffectReceiver protocol mock. The Receiver must never be invoked.
+    for (case, response) in [
+        (
+            "wrong_tool_kind",
+            r#"{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"other","function":{"name":"search","arguments":"{}"}}]}}]}"#,
+        ),
+        (
+            "truncated_tool_batch",
+            r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call:1","type":"function","function":{"name":"search","arguments":"{}"}}]}}]}"#,
+        ),
+        (
+            "truncated_completion",
+            r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":"Finished repairing"}}]}"#,
+        ),
+        (
+            "filtered_completion",
+            r#"{"choices":[{"finish_reason":"content_filter","message":{"role":"assistant","content":"Finished repairing"}}]}"#,
+        ),
+        (
+            "missing_finish",
+            r#"{"choices":[{"message":{"role":"assistant","content":"Finished repairing"}}]}"#,
+        ),
+    ] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!(
+            "http://{}/v1/chat/completions",
+            listener.local_addr().unwrap()
         );
-        conn.write_all(packet.as_bytes()).unwrap();
-    });
-    let catalog = loads_strict(
-        r#"{"schemaVersion":1,"kind":"ordivon.domain-tool-catalog","domainId":"domain:smoke","revision":"v1","tools":[{"name":"search","description":"Search owner","inputSchema":{"type":"object"}}]}"#,
-    ).unwrap();
-    let surface = project_domain_tool_surface(&catalog, &["search"]).unwrap();
-    let mut provider = HttpModelProvider::new(
-        &url,
-        "model",
-        "test",
-        "instruction",
-        "question",
-        &catalog,
-        &surface,
-    )
-    .unwrap();
-    let mut journal = TestJournal::default();
-    let mut receiver = TestReceiver::default();
-    let actual = NativeAgentLoop::new(
-        &mut provider,
-        &mut journal,
-        &mut receiver,
-        &catalog,
-        &surface,
-        2,
-        1,
-    )
-    .unwrap()
-    .run()
-    .unwrap();
-    assert_eq!(actual, RunResult::PausedUnknown);
-    assert_eq!(
-        receiver.0, 0,
-        "unknown Provider wire variant must have zero Tool effects"
-    );
-    assert_eq!(journal.0, vec!["provider-prepared", "paused"]);
-    server.join().unwrap();
+        let server = thread::spawn(move || {
+            let (mut conn, _) = listener.accept().unwrap();
+            conn.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+            let mut buffer = [0u8; 8192];
+            let _ = conn.read(&mut buffer).unwrap();
+            let packet = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                response.len(),
+                response
+            );
+            conn.write_all(packet.as_bytes()).unwrap();
+        });
+        let catalog = loads_strict(
+            r#"{"schemaVersion":1,"kind":"ordivon.domain-tool-catalog","domainId":"domain:smoke","revision":"v1","tools":[{"name":"search","description":"Search owner","inputSchema":{"type":"object"}}]}"#,
+        )
+        .unwrap();
+        let surface = project_domain_tool_surface(&catalog, &["search"]).unwrap();
+        let mut provider = HttpModelProvider::new(
+            &url,
+            "model",
+            "test",
+            "instruction",
+            "question",
+            &catalog,
+            &surface,
+        )
+        .unwrap();
+        let mut journal = TestJournal::default();
+        let mut receiver = TestReceiver::default();
+        let actual = NativeAgentLoop::new(
+            &mut provider,
+            &mut journal,
+            &mut receiver,
+            &catalog,
+            &surface,
+            2,
+            1,
+        )
+        .unwrap()
+        .run()
+        .unwrap();
+        assert_eq!(actual, RunResult::PausedUnknown, "{case}");
+        assert_eq!(
+            receiver.0, 0,
+            "{case}: unsupported Provider outcome must have zero Tool effects"
+        );
+        assert_eq!(
+            journal.0,
+            vec!["provider-prepared", "paused"],
+            "{case}: no Tool admission or completion receipt permitted"
+        );
+        server.join().unwrap();
+    }
 }
