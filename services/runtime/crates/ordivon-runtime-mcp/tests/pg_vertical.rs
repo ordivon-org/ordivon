@@ -56,7 +56,16 @@ impl Fixture {
             .arg(root.join("data"))
             .arg("-k")
             .arg(&root)
-            .args(["-h", "", "-p", "5432", "-c", "fsync=off"]);
+            .args([
+                "-h",
+                "",
+                "-p",
+                "5432",
+                "-c",
+                "fsync=off",
+                "-c",
+                "dynamic_shared_memory_type=mmap",
+            ]);
         unprivileged(&mut launch);
         let log = fs::File::create(root.join("postgres.log")).unwrap();
         launch.stdout(log.try_clone().unwrap()).stderr(log);
@@ -76,6 +85,18 @@ impl Fixture {
                 }
             }
         };
+        // Multiple isolated PG fixtures run as the same disposable nobody
+        // identity. POSIX dynamic shared-memory segments can be removed by
+        // unrelated fixture teardown; only this test-owned PostgreSQL process
+        // must choose the mature mmap debugging carrier.
+        let dsm: String = db
+            .query_one("SHOW dynamic_shared_memory_type", &[])
+            .unwrap()
+            .get(0);
+        assert_eq!(
+            dsm, "mmap",
+            "disposable PG must not share POSIX DSM lifetime"
+        );
         db.batch_execute("CREATE SCHEMA fresh; SET search_path TO fresh")
             .unwrap();
         db.batch_execute(include_str!(
