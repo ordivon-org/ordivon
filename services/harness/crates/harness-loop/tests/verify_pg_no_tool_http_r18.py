@@ -15,6 +15,7 @@ import pwd
 import random
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -35,6 +36,11 @@ def as_postgres(args: list[str], *, timeout: int = 100) -> subprocess.CompletedP
 
 
 def main() -> int:
+    # Reuse the same original one-cluster PG18 harness rather than creating
+    # a second PostgreSQL/Runner test authority for R20 Provider V4.
+    provider_v4 = sys.argv[1:] == ["--provider-v4"]
+    if sys.argv[1:] and not provider_v4:
+        raise SystemExit("usage: verify_pg_no_tool_http_r18.py [--provider-v4]")
     evidence: dict[str, object] = {
         "kind": "ordivon.harness-r18-pg-no-tool-http-real-consumer",
         "status": "FAIL",
@@ -45,6 +51,8 @@ def main() -> int:
         "physicalToolCalls": 0,
         "testOnlyJournal": True,
         "isolatedClusterRemoved": False,
+        "nativeProviderV4Suite": "NOT_REQUESTED" if not provider_v4 else "FAIL",
+        "originalPythonStoreReadback": False,
     }
     tmp = Path(tempfile.mkdtemp(prefix="ordivon-harness-r18-pg18-", dir="/tmp"))
     data, socket = tmp / "data", tmp / "socket"
@@ -54,7 +62,7 @@ def main() -> int:
     for directory in (tmp, data, socket):
         os.chown(directory, postgres_user.pw_uid, postgres_user.pw_gid)
     port = random.randrange(54500, 59400)
-    schema = "hpg_r18_native_" + str(port)
+    schema = ("hpg_rust_isolated_a_r20_" if provider_v4 else "hpg_r18_native_") + str(port)
     fixture = tmp / "no-tool-source.json"
     dsn = f"host={socket} port={port} dbname=postgres user=postgres connect_timeout=5"
     started = False
@@ -112,7 +120,10 @@ with PostgresHarnessStore(
     assert store.load_run(contract_obj.harness_run_id).status.value == "created"
     assert store.doctor()["healthy"]
 Path(os.environ["HARNESS_RUST_TEST_FIXTURE_PATH"]).write_text(
-    json.dumps({"no_tool": {"runId": contract_obj.harness_run_id}}, sort_keys=True),
+    json.dumps({"no_tool": {"runId": contract_obj.harness_run_id,
+                            "providerId": contract_obj.provider_id,
+                            "adapterId": contract_obj.adapter_id,
+                            "requestedModelId": contract_obj.requested_model_id}}, sort_keys=True),
     encoding="utf-8",
 )
 print("R18_SOURCE_OWNED_PYTHON_REAL_PG_NO_TOOL_RUN_CREATED")
@@ -131,6 +142,50 @@ print("R18_SOURCE_OWNED_PYTHON_REAL_PG_NO_TOOL_RUN_CREATED")
         if r.returncode or "PG18_VERIFIED_NO_TOOL_REAL_HTTP_RUST_LOOP_PASS" not in r.stdout:
             raise RuntimeError("Rust actual source PG consumer failed: " + r.stdout[-1100:] + r.stderr[-1000:])
         evidence["rustVerifiedContractHttpLoop"] = True
+        if provider_v4:
+            # All V4 CAS objects are made by the existing real Python
+            # Provider source constructors in the same scratch PG Store.
+            source_fixture = str(HARNESS / "crates/harness-loop/tests/pg_provider_v4_python_store.py")
+            prepared = checked([str(PYTHON), "-B", source_fixture], env=env, timeout=90)
+            if prepared.returncode or "PYTHON_PG_REAL_PROVIDER_V4_EVENT_REFERENCES_READY" not in prepared.stdout:
+                raise RuntimeError("Original Python V4 fixture failed: " + prepared.stderr[-1200:] + prepared.stdout[-700:])
+            evidence["providerV4SourceObjects"] = True
+            # The native recovery consumer must use an ACTUAL SQL SELECT-only
+            # role; no process-local mock of permissions is permitted.
+            reader = "r20_readonly_" + str(port)
+            privilege_sql = (
+                f"CREATE ROLE {reader} LOGIN; "
+                f"GRANT USAGE ON SCHEMA {schema} TO {reader}; "
+                f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO {reader}"
+            )
+            created_role = as_postgres([
+                "/usr/bin/psql", "-h", str(socket), "-p", str(port),
+                "-d", "postgres", "-v", "ON_ERROR_STOP=1",
+                "-c", privilege_sql,
+            ], timeout=30)
+            if created_role.returncode:
+                raise RuntimeError("Read-only test role setup failed: " + created_role.stderr[-900:])
+            readonly_dsn = f"host={socket} port={port} dbname=postgres user={reader} connect_timeout=5"
+            rust_env = {
+                **env,
+                "HARNESS_RUST_TEST_PG_WRITER_DSN": dsn,
+                "HARNESS_RUST_TEST_PG_DSN": readonly_dsn,
+            }
+            rust = checked([
+                "/usr/bin/cargo", "test", "--offline", "--locked",
+                "-p", "ordivon-harness-loop", "--test", "pg_provider_head",
+                "--", "--ignored", "--nocapture",
+            ], env=rust_env, timeout=210)
+            evidence["nativeProviderV4TestTail"] = rust.stdout[-1700:]
+            if rust.returncode or "PG18_RUST_WRITER_PYTHON_PROVIDER_V4_UNKNOWN_READBACK_EXACT_PASS" not in rust.stdout or "PG18_PYTHON_PROVIDER_V4_VERIFIED_CAS_RECOVERY_PASS" not in rust.stdout:
+                raise RuntimeError("Native Rust PG V4 source consumer failed: " + rust.stdout[-1500:] + rust.stderr[-1250:])
+            evidence["nativeProviderV4Suite"] = "PASS"
+            # Independently reopen via the original Python Store after the
+            # Rust Writer's true PG transaction and connection loss.
+            python_verify = checked([str(PYTHON), "-B", source_fixture, "verify-native"], env=env, timeout=60)
+            if python_verify.returncode or "PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_JOURNAL_PASS" not in python_verify.stdout:
+                raise RuntimeError("Python original PG readback failed: " + python_verify.stderr[-1000:])
+            evidence["originalPythonStoreReadback"] = True
         evidence["status"] = "PASS"
     except (RuntimeError, OSError, subprocess.TimeoutExpired, AssertionError) as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"[:1500]

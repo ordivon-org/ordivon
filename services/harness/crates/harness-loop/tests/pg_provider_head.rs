@@ -46,6 +46,16 @@ fn source_python_provider_v4_cas_head_recovery_does_not_dispatch_or_blind_retry(
             RecoveryPosture::RecheckClaimAndDurableFence,
         ),
         (
+            "claimed_next_turn",
+            ProviderStatus::Claimed,
+            RecoveryPosture::RecheckClaimAndDurableFence,
+        ),
+        (
+            "claimed_superseded",
+            ProviderStatus::Claimed,
+            RecoveryPosture::RecheckClaimAndDurableFence,
+        ),
+        (
             "unknown",
             ProviderStatus::Unknown,
             RecoveryPosture::RetainUnknownAndReconcile,
@@ -102,7 +112,15 @@ fn source_python_provider_v4_cas_head_recovery_does_not_dispatch_or_blind_retry(
         inspect_pg_provider_head(&mut client, &schema, text(&wrong, "runId"), expected),
         Err(PgProviderRecoveryError::EventRecordMismatch(_))
     ));
-    for label in ["wrong_state", "extra_reference", "wrong_event_status"] {
+    for label in [
+        "wrong_state",
+        "extra_reference",
+        "wrong_event_status",
+        "wrong_previous_record",
+        "wrong_previous_identity",
+        "claimed_bad_previous",
+        "claimed_missing_previous",
+    ] {
         let item = provider_records.get(label).unwrap();
         assert!(
             matches!(

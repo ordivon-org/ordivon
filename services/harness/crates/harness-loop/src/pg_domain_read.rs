@@ -441,6 +441,75 @@ pub fn inspect_pg_provider_head(
     };
     let parsed = crate::provider_head::inspect_v4(record)
         .map_err(|_| PgProviderRecoveryError::InvalidProviderV4)?;
+    // An individually valid V4 CAS+Event edge is not a valid Provider
+    // recovery *history*. Every present previousRecordDigest (including a
+    // superseding/new-turn CLAIMED head) must name a real immediately prior
+    // Provider Event in THIS verified PG Run, not a hash-shaped foreign value.
+    // Only non-CLAIMED transitions inherit the SAME ProviderCall identity;
+    // Python source allows a next-turn CLAIMED record to follow a completed
+    // different ProviderCall. No new registry/SQL authority is introduced.
+    // One frozen A-owned Event sequence determines the predecessor for both
+    // present-link and missing-link branches. No duplicated scan/policy.
+    let position = snapshot
+        .events
+        .iter()
+        .position(|entry| entry.event_id == event.event_id)
+        .ok_or(PgProviderRecoveryError::MissingOrAmbiguousEventReference)?;
+    let predecessor = snapshot.events[..position]
+        .iter()
+        .rev()
+        .take_while(|earlier| !provider_event_clears_head(&earlier.event_kind))
+        .find(|earlier| provider_event_status(&earlier.event_kind).is_some());
+    if parsed.previous_record_digest.is_some()
+        || parsed.status != crate::provider_head::ProviderStatus::Claimed
+    {
+        let previous_digest = parsed.previous_record_digest.as_deref().ok_or(
+            PgProviderRecoveryError::EventRecordMismatch("missing V4 causal predecessor"),
+        )?;
+        let predecessor = predecessor.ok_or(PgProviderRecoveryError::EventRecordMismatch(
+            "missing prior V4 Provider Event in current Run",
+        ))?;
+        let previous_refs: Vec<_> = snapshot
+            .provider_record_references
+            .iter()
+            .filter(|reference| reference.event_id() == predecessor.event_id)
+            .collect();
+        if previous_refs.len() != 1 || previous_refs[0].digest() != previous_digest {
+            return Err(PgProviderRecoveryError::EventRecordMismatch(
+                "Provider previousRecordDigest is not the current Run predecessor",
+            ));
+        }
+        let previous = crate::provider_head::inspect_v4(previous_refs[0].value())
+            .map_err(|_| PgProviderRecoveryError::InvalidProviderV4)?;
+        if previous.status
+            != provider_event_status(&predecessor.event_kind).ok_or(
+                PgProviderRecoveryError::EventRecordMismatch(
+                    "unqualified predecessor Event status",
+                ),
+            )?
+            || (parsed.status != crate::provider_head::ProviderStatus::Claimed
+                && (previous.provider_call_id != parsed.provider_call_id
+                    || previous.turn_id != parsed.turn_id
+                    || previous.turn_sequence != parsed.turn_sequence
+                    || previous.claim_generation != parsed.claim_generation
+                    || previous.request_digest != parsed.request_digest
+                    || previous.provider_request_digest != parsed.provider_request_digest))
+        {
+            return Err(PgProviderRecoveryError::EventRecordMismatch(
+                "Provider V4 causal predecessor identity/status mismatch",
+            ));
+        }
+    } else {
+        // A first-generation CLAIMED record may omit a predecessor only if
+        // no Provider head is active since the last source-defined clear.
+        // After an earlier completed call, Python source requires the next
+        // turn's CLAIMED record to bind the actual previous CAS digest.
+        if predecessor.is_some() {
+            return Err(PgProviderRecoveryError::EventRecordMismatch(
+                "CLAIMED Provider omitted active same-Run causal predecessor",
+            ));
+        }
+    }
     let recorded_ms = event.recorded_at_ms.to_string();
     if parsed.status != expected_status
         || parsed.canonical_digest != record_digest

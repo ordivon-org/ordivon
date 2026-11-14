@@ -64,9 +64,10 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
     )
     base = HarnessRunContract.from_dict(raw_base)
     for scenario in (
-        "claimed", "unknown", "failed", "completed_redacted", "cleared", "wrong_digest",
+        "claimed", "claimed_next_turn", "claimed_superseded", "claimed_missing_previous", "unknown", "failed", "completed_redacted", "cleared", "wrong_digest",
         "v3_legacy", "wrong_kind", "tampered_cas",
-        "wrong_state", "extra_reference", "wrong_event_status",
+        "wrong_state", "extra_reference", "wrong_event_status", "wrong_previous_record",
+        "wrong_previous_identity", "claimed_bad_previous",
         "bad_failure_safety", "bad_failure_detail", "bad_failure_digest",
         "bad_failure_call", "bad_failure_request",
         "bad_failure_code", "bad_failure_schema", "bad_failure_kind",
@@ -150,22 +151,31 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         def append(status: HarnessProviderCallStatus, time: int, previous=None,
                    *, corrupt_digest=False, version3=False):
             record = build_provider_call_record_v4(
-                provider_call_id=provider_call_id,
+                provider_call_id=(
+                    f"provider-call:test-foreign-head-{scenario}"
+                    if scenario == "wrong_previous_identity"
+                    and status is HarnessProviderCallStatus.DISPATCHING
+                    else f"provider-call:test-next-turn-{scenario}"
+                    if scenario in {"claimed_next_turn", "claimed_missing_previous"} and time == 1005
+                    else provider_call_id
+                ),
                 harness_run_id=run_id,
                 binding_digest=id_digest(f"{scenario}:binding"),
                 source_kind=HarnessProviderCallSource.ASSIGNMENT,
                 source_digest=source_ref.digest,
                 source_object_digest=source_ref.digest,
                 state_object_digest=state_ref.digest,
-                turn_id=f"turn:test-{scenario}",
-                turn_sequence=1,
+                turn_id=(f"turn:test-next-turn-{scenario}"
+                         if scenario in {"claimed_next_turn", "claimed_missing_previous"} and time == 1005
+                         else f"turn:test-{scenario}"),
+                turn_sequence=(2 if scenario in {"claimed_next_turn", "claimed_missing_previous"} and time == 1005 else 1),
                 request_digest=failure.request_digest,
                 request_object_digest=None,
                 provider_request_digest=failure.provider_request_digest,
                 adapter_id=contract.adapter_id,
                 requested_model_id=contract.requested_model_id,
                 holder_id=f"test-holder:{scenario}",
-                generation=1,
+                generation=(2 if scenario == "claimed_superseded" and time == 1005 else 1),
                 status=status,
                 result_digest=(id_digest(f"{scenario}:redacted-result")
                                if status is HarnessProviderCallStatus.COMPLETED else None),
@@ -180,7 +190,15 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                     if status in {HarnessProviderCallStatus.UNKNOWN, HarnessProviderCallStatus.FAILED}
                     else None
                 ),
-                previous_record_digest=(previous.digest if previous is not None else None),
+                previous_record_digest=(
+                    None
+                    if scenario == "claimed_missing_previous" and time == 1005
+                    else id_digest("unrelated-cross-run-causal-link")
+                    if scenario == "wrong_previous_record" and status is HarnessProviderCallStatus.UNKNOWN
+                    else id_digest("absent-initial-claim-previous")
+                    if scenario == "claimed_bad_previous" and status is HarnessProviderCallStatus.CLAIMED
+                    else previous.digest if previous is not None else None
+                ),
                 issued_at_ms=1001,
                 expires_at_ms=50000,
                 recorded_at_ms=time,
@@ -247,6 +265,8 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 event_kind=(
                     "harness.provider-call-completed"
                     if scenario == "wrong_event_status"
+                    else "harness.provider-call-superseded"
+                    if scenario == "claimed_superseded" and time == 1005
                     else f"harness.provider-call-{name}"
                 ),
                 data=data, expected_revision=lease.run_revision,
@@ -262,7 +282,9 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         )
         latest = claimed
         if scenario in {
-            "unknown", "failed", "completed_redacted", "cleared",
+            "unknown", "failed", "completed_redacted", "cleared", "wrong_previous_record",
+            "claimed_next_turn", "claimed_missing_previous",
+            "wrong_previous_identity",
             "bad_failure_safety", "bad_failure_detail", "bad_failure_digest",
             "bad_failure_call", "bad_failure_request",
             "bad_failure_code", "bad_failure_schema", "bad_failure_kind",
@@ -273,7 +295,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             )
             latest = dispatched
             if scenario in {
-                "unknown", "cleared", "bad_failure_safety", "bad_failure_detail",
+                "unknown", "cleared", "wrong_previous_record", "bad_failure_safety", "bad_failure_detail",
                 "bad_failure_digest", "bad_failure_call", "bad_failure_request",
                 "bad_failure_code", "bad_failure_schema", "bad_failure_kind",
                 "bad_failure_extra", "bad_failure_overlong", "bad_failure_provider_request",
@@ -284,6 +306,14 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             else:
                 final_status = HarnessProviderCallStatus.COMPLETED
             latest = append(final_status, 1004, previous=dispatched)
+        if scenario in {"claimed_next_turn", "claimed_superseded", "claimed_missing_previous"}:
+            # Source-positive: next turn can change ProviderCall ID after
+            # completed, and an expired claim may use a higher generation.
+            # Both must still link the actual preceding CAS on this Run.
+            latest = append(
+                HarnessProviderCallStatus.CLAIMED, 1005,
+                previous=(None if scenario == "claimed_missing_previous" else latest),
+            )
         if scenario == "cleared":
             lease = store.acquire_run_lease(
                 run_id, owner_id=f"test:lease:{scenario}:pause", ttl_ms=30_000,
