@@ -87,16 +87,48 @@ or without authenticated API access. A permitted historical country is
 only a **trial**, not a current certified standby. If its consumer/TLS tests
 do not pass after a bounded period, native settings selection is returned
 to its previous source; this cannot resurrect original TCP sessions or
-guarantee the former exact Surfshark endpoint IP. Production automatic triggering **was installed on the existing two-minute
+guarantee the former exact Surfshark endpoint IP. Production automatic triggering **was installed on the existing native
 systemd reconciler** after PR #2181 merged (2026-11-14), and both a manual
 systemd start and repeated automatic healthy no-op runs were observed.
 This is activated native logic; real unattended failure-triggered failover
 time is still UNKNOWN.
 
+## Native recovery detection speed (consumer-scoped, 2026-11-14)
+
+The source-selected one-minute Gluetun recovery timer reuses the original systemd
+unit. Claude API, Codex MCP and PyPI source-owned Prometheus Blackbox jobs
+scrape every **30 seconds**, retaining their original 12-second timeout,
+source URLs, module mapping and credential boundaries. Other Codex and
+Supply Chain jobs remain at their existing intervals. No new monitor,
+extra API listener, control agent or VPN identity is created.
+
+The three-lane failure gate still requires three original raw scrape
+samples per lane, aligned and recent, and an independent physical underlay
+before any official Gluetun API country trial. With reliable 30-second
+sampling and a 60-second timer, the scheduling-only worst-case before the
+recovery decision is approximated by three probes (up to 90s after failure)
+plus a next timer (up to 60s plus native timer jitter); this is **not** a
+real-world failover-time SLA or an estimate of the following API trial. The
+normal healthy consumer no-op has been observed below 0.2 seconds; direct
+and VPN probes must continue proving the physical WAN distinction.
+
+This targeted probe-rate increase costs six samples per minute rather than
+three across the failure-detection lanes. Recent healthy 30min observed
+P90 Blackbox probe durations were below 2.2 seconds (native timeout 12s),
+leaving ample execution slack in the 30s scrape cadence. Production installation requires an explicit byte-verified migration of
+three consumer-owned Prometheus fragments with native Prometheus SIGHUP;
+the existing Provider bundle installer owns the original timer unit's
+systemd reload/restart. The timer restart does NOT restart Gluetun.
+Do not invoke generic core:converge to silently overwrite a protected
+monitoring SourceCut. Verify loaded native Prometheus targets' interval,
+all 19 scrape pools, current real HTTPS consumers and stable VPN/Tailscale
+PIDs separately after migration.
+
 ## Active bounded recovery consumer on existing systemd timer
 
-The already installed `network-v2-gluetun-owned-reconcile.timer` runs its
-native oneshot service every two minutes. The selected source adds exactly one
+The existing `network-v2-gluetun-owned-reconcile.timer` has a source-bound
+**one-minute** cadence (previously two minutes). It remains the same native
+systemd timer and oneshot with exactly one physical Gluetun instance. The selected source adds exactly one
 `ExecStartPost` action to that same service:
 `/usr/bin/python3 /usr/local/libexec/network-v2/gluetun-native/native_switch.py --recover`.
 No new daemon, timer, WireGuard interface or proxy is created. The native
@@ -147,7 +179,7 @@ VPN failure.
   A country trial succeeding for Claude/Codex/PyPI does NOT imply that
   Finance or mobile device traffic can use it.
 - **Recovery trigger**: existing Gluetun health-restart remains authoritative
-  for tunnel recovery. The existing two-minute provider systemd timer **is
+  for tunnel recovery. The existing native provider systemd timer **is
   now wired to** `native-recover`; its repeated active healthy results are
   `HOLD_CONSUMER_HEALTHY_OR_PARTIAL` with no effect. Failover uses at most
   two distinct recently successful country candidates, only after the

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Install only a bounded upstream-Gluetun recovery consumer onto native systemd.
 
-Uses pre-existing two-minute systemd timer, the single current Gluetun
+Uses pre-existing native systemd timer, the single current Gluetun
 instance, live Prometheus, and official authenticated VPN Settings. It does
 not create a new WireGuard tunnel, daemon, proxy or source of credentials.
 """
@@ -20,6 +20,9 @@ DEST = Path("/usr/local/libexec/network-v2/gluetun-native")
 SVC_NAME = "network-v2-gluetun-owned-reconcile.service"
 SOURCE_SVC = SOURCE / "systemd" / SVC_NAME
 INSTALLED_SVC = Path("/etc/systemd/system") / SVC_NAME
+TIMER_NAME = "network-v2-gluetun-owned-reconcile.timer"
+SOURCE_TIMER = SOURCE / "systemd" / TIMER_NAME
+INSTALLED_TIMER = Path("/etc/systemd/system") / TIMER_NAME
 FILES = (
     "native_profile.py",
     "observe_active.py",
@@ -48,6 +51,13 @@ def validate_source() -> dict[str, object]:
         raise ValueError("Native one-shot timeout cannot cover bounded recovery trial")
     if content.count("ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service") != 1:
         raise ValueError("Original provider/adapter native start contract missing")
+    calendar = SOURCE_TIMER.read_text(encoding="utf-8")
+    if (SOURCE_TIMER.is_symlink() or
+        calendar.count("OnCalendar=*-*-* *:*:00") != 1 or
+        "RandomizedDelaySec=5s" not in calendar or
+        "AccuracySec=5s" not in calendar or
+        "Unit=" + SVC_NAME not in calendar):
+        raise ValueError("Existing native timer has unexpected recovery cadence")
     for name in FILES:
         file = SOURCE / name
         if not file.is_file() or file.is_symlink():
@@ -85,9 +95,14 @@ def verify(*, dest: Path = DEST, verify_systemd: bool = True) -> dict[str, objec
     if verify_systemd:
         if not filecmp.cmp(SOURCE_SVC, INSTALLED_SVC, shallow=False):
             raise ValueError("Native recovery systemd source vs installed mismatch")
+        if not filecmp.cmp(SOURCE_TIMER, INSTALLED_TIMER, shallow=False):
+            raise ValueError("Native recovery timer source vs installed mismatch")
         loaded = run("/usr/bin/systemctl", "show", SVC_NAME, "-p", "ExecStartPost")
         if EFFECT not in loaded or "--recover" not in loaded:
             raise ValueError("New native recovery systemd unit not loaded")
+        calendar = run("/usr/bin/systemctl", "show", TIMER_NAME, "-p", "TimersCalendar")
+        if "OnCalendar=*-*-* *:*:00" not in calendar:
+            raise ValueError("Native recovery one-minute systemd timer not loaded")
     return {"standing": "NATIVE_BUNDLE_INSTALLED_SOURCE_MATCH",
             "nonsecretFileCount": len(FILES),
             "loadedSystemd": verify_systemd}
@@ -108,13 +123,22 @@ def install() -> dict[str, object]:
                  "network-v2-gluetun-owned.service", "-p", "MainPID", "--value")
     if not before.isdigit() or int(before) < 2:
         raise ValueError("Provider main process not active")
+    if run("/usr/bin/systemctl", "show", TIMER_NAME, "-p", "ActiveState", "--value") != "active":
+        raise ValueError("Existing native recovery timer is not already active")
     copy_payload()
     # Change service bytes only after all script/config payload is installed.
     subprocess.run(
         ["/usr/bin/install", "-m", "0644", str(SOURCE_SVC), str(INSTALLED_SVC)],
         check=True, capture_output=True, timeout=15,
     )
+    subprocess.run(
+        ["/usr/bin/install", "-m", "0644", str(SOURCE_TIMER), str(INSTALLED_TIMER)],
+        check=True, capture_output=True, timeout=15,
+    )
     run("/usr/bin/systemctl", "daemon-reload", timeout=25)
+    # Restart ONLY the native timer to recalculate the new calendar.
+    # Never restart the Gluetun, WireGuard or mobile Exit Node process.
+    run("/usr/bin/systemctl", "restart", TIMER_NAME, timeout=25)
     receipt = verify()
     after = run("/usr/bin/systemctl", "show",
                 "network-v2-gluetun-owned.service", "-p", "MainPID", "--value")

@@ -37,3 +37,13 @@ def test_runtime_observer_reuses_neighbor_provider_contract_in_source_and_instal
     script=(DIR/"observe_active.py").read_text()
     assert 'NATIVE_PROFILE = Path(__file__).resolve().with_name("native_profile.py")' in script
     assert "parents[2]" not in script
+
+
+def test_loaded_timer_source_keeps_single_native_unit_and_minute_cadence():
+    data=bundle.SOURCE_TIMER.read_text()
+    assert data.count("OnCalendar=*-*-* *:*:00")==1
+    assert "RandomizedDelaySec=5s" in data
+    assert "AccuracySec=5s" in data
+    assert "Unit=network-v2-gluetun-owned-reconcile.service" in data
+    assert "OnCalendar=*-*-* *:0/2:00" not in data
+    assert bundle.TIMER_NAME=="network-v2-gluetun-owned-reconcile.timer"
