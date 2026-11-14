@@ -103,6 +103,8 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
                 "execution.resolve",
                 "execution.get",
                 "execution.cancel",
+                "runtime.release.apply",
+                "runtime.release.get",
                 "artifact.read",
                 "host.status",
                 "actor.declare",

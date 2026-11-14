@@ -156,6 +156,22 @@
       "downstreamAuthorization": "UNKNOWN"
     },
     {
+      "name": "runtime.release.apply",
+      "routeOwner": "runtime",
+      "operation": "execute",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "runtime-release-authzen",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "runtime.release.get",
+      "routeOwner": "runtime",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
       "name": "space.create",
       "routeOwner": "host",
       "operation": "write",

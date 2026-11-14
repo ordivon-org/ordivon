@@ -627,3 +627,36 @@ Observed 2026-11-14 live result: NO_GO because loaded Actor grants=0,
 Gateway Host bearer declaration missing, and Host anonymous MCP initialize
 returned HTTP 200. This is local installed-service evidence, not a claim
 about public Internet anonymous reachability.
+
+## Linux Runtime native release via Gateway (candidate R11)
+
+Gateway `runtime.release.apply` routes to Runtime Owner's existing `release.apply`
+on the verified `runtime.linux` node `linux-pg`; it does **not** call a shell
+installer or expose installation paths, tokens, or PG credentials. Input:
+`requestId`, `workspaceId`, exact Runtime-owner `commit`,
+`candidateManifestDigest`, `expectedToolCount`. After a lost Gateway/Runtime
+response, call **only** `runtime.release.get` with the same `requestId`, same
+authenticated Principal and issuer. No new request key and no command retry.
+
+Release authority remains in Runtime's qualified PG ReleaseEffect, existing
+operator service, and digest-bound installation receipt. A deployed receipt,
+not a successful Gateway process exit, establishes successful release. The
+Gateway requires both trusted HTTP ingress identity and an exact Security
+AuthZEN `runtime.release.linux` ALLOW before any apply; without an installed
+PDP grant it fails closed. Runtime's Owner service credential is not a substitute
+for the caller's authorization. The original `execution.linux` capability
+remains for ordinary bounded Jobs and is **not** a self-release path.
+
+### Availability and deployment gate
+
+The R12 source candidate extends MCP surface epoch 11 to 12 (41 tools). Its
+source tests and an Owner route demonstration do not imply the installed
+Gateway or the ChatGPT Gateway connector offers the new pair. Enable only after
+(1) normal Gateway release qualification, (2) existing Host/Security AuthZEN
+PEP consumer admission and real release authorization grant, (3) installed
+Gateway MCP discovery and caller action approval, (4) Runtime Owner actual
+release qualification and immutable candidate manifest, (5) owner-native
+ReleaseEffect/receipt readback. Do not force a Gateway upgrade over the known
+live Host authorization/grant gap. Until all gates are actually verified,
+production `runtime.release.apply` stays unavailable; do not bypass using
+`execution.submit` or manual installer calls.

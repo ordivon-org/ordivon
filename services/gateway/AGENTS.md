@@ -223,3 +223,26 @@ the same service credential through the MCP SDK's native Bearer middleware.
 Configure both ends before enabling the authenticated Host HTTP release.
 The transport credential does **not** establish a caller's human or Agent
 identity or grant object-level Host authorization.
+
+## R12 native Linux Runtime structured release forwarding (source-only)
+
+The Gateway may expose `runtime.release.apply` and `runtime.release.get` as a
+fixed `runtime.linux`/`linux-pg` MCP Owner forwarding pair, **not** as general
+`execution.submit` or a second deployer. Apply accepts only the original
+requestId, Workspace, Runtime-owner Git commit, exact candidate manifest digest
+and expected Tool count. The existing Gateway HTTP verified Principal scopes the
+request ID; the existing Security AuthZEN PEP must explicitly allow the complete
+`runtime.release.linux` request before forwarding. Unavailable PDP/unknown
+authority stays DENY. Release GET reuses the original Principal-scoped key
+without resubmitting any physical effect. Runtime keeps all ReleaseEffect,
+operator installation, PostgreSQL, receipt, and rollback authority.
+
+Run `gateway:verify`, `gateway:formal:verify` with the pinned TLA+ JAR,
+`test_runtime_release_proxy.py`, then the exact native MCP `tools/list` surface
+check. Source acceptance is not proof that the installed Gateway, its current
+Security PDP, or the connected ChatGPT Gateway App exposes and authorizes these
+Tools. Do not promote the currently divergent Gateway release without proving
+all Host/Security consumers work under its AuthZEN credentials. Do not run
+`ordivon-runtime-deploy` using `execution.submit` to bypass a missing
+`runtime.release.apply` Tool: that lacks the caller's proper ReleaseEffect
+admission and original-result recovery contract.

@@ -12,12 +12,15 @@ from .contracts import (
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
+    RuntimeReleaseAdmission,
+    RuntimeReleaseProjection,
     SystemDescription,
 )
 from .execution_coordinator import ExecutionCoordinator
 from .execution_refs import GatewayError
 from .execution_refs import parse_execution_ref as parse_execution_ref
 from .routing import CapabilityRoute, default_routes
+from .runtime_release import RuntimeReleaseProxy
 from .upstream import OwnerToolCaller
 
 _SOCIAL_WORK_HOST_TOOLS = frozenset(
@@ -79,6 +82,7 @@ class GatewayService:
             raise GatewayError("route identity must match its capability")
         self._catalog = CapabilityCatalog(caller, self._routes, projection_timeout_seconds)
         self._execution = ExecutionCoordinator(caller, self._routes)
+        self._runtime_release = RuntimeReleaseProxy(caller)
 
     async def aclose(self) -> None:
         """Close only process-owned upstream transports, never Owner Jobs."""
@@ -121,6 +125,26 @@ class GatewayService:
             workspace_id=workspace_id,
             agent_id=agent_id,
         )
+
+    async def runtime_release_apply(
+        self,
+        *,
+        request_id: str,
+        workspace_id: str,
+        commit: str,
+        candidate_manifest_digest: str,
+        expected_tool_count: int,
+    ) -> RuntimeReleaseAdmission:
+        return await self._runtime_release.apply(
+            request_id=request_id,
+            workspace_id=workspace_id,
+            commit=commit,
+            candidate_manifest_digest=candidate_manifest_digest,
+            expected_tool_count=expected_tool_count,
+        )
+
+    async def runtime_release_get(self, *, request_id: str) -> RuntimeReleaseProjection:
+        return await self._runtime_release.get(request_id=request_id)
 
     async def execution_submit(
         self,
