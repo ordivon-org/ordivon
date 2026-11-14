@@ -169,6 +169,36 @@ PG admission transaction. Without that verifier, forged/unrelated references
 cannot alter the Runtime Cargo default. Neither a source patch nor the hint
 establishes that the issuer guard is installed or configured on a live node.
 
+### Windows PostgreSQL Attempt witness (source-only, no cutover)
+
+The existing native Windows Launcher/Job Object and the PostgreSQL Job/Attempt
+schema are composed through `pg_windows_evidence.rs`. The **PG-only** Core
+binary `ordivon-runtime-windows-pg-preflight` can inspect one exact qualified
+Writer/Job/Attempt/Bundle identity without starting a service, allocating a Job
+or changing PostgreSQL. It is intentionally separate from the legacy
+SQLite-enabled MCP binary.
+
+The explicit phase is `no_launcher_witness`, `launcher_witness`,
+`target_witness`, or `result_witness_pending_os_reconciliation`. A
+target-writable `result.json`, a stale/reused PID, a matching process birth
+FILETIME or a signalled launcher handle **cannot individually prove** that the
+whole Windows Job Object has terminated, that PG terminal CAS was committed,
+or that another consumer has accepted the result.
+`terminalProven=false` remains mandatory for this source-only reader;
+missing/ambiguous native owner evidence must remain UNKNOWN.
+
+Verification: `cargo test -p ordivon-runtime-core --no-default-features
+--features postgres-registry-admission pg_windows` checks bounded pure cases;
+`python3 scripts/pg_disposable_physical.py` runs the original 18 cases plus
+the independent Windows PG reader against a disposable PostgreSQL 18 schema;
+`scripts/tla-formal check-windows-pg-attempt` and
+`falsify-windows-pg-attempt` check the finite owner/exit model and required
+counterexamples. Cross-target `cargo check` qualifies only Windows PE
+compilability, **not** Windows-native execution. Actual Windows PG Writer,
+native launcher, process recovery, Gateway consumers and installed release
+remain separate OPEN obligations; do not switch or delete the live SQLite
+Registry on the strength of these checks.
+
 ## Agent usage
 
 1. Discover node capabilities before choosing commands; never guess permissions or backend by the endpoint name.
