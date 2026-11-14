@@ -250,8 +250,22 @@ proved Lean/Z3 implementation refinement. Formal obligations remaining:
 the actual date-index equality and Qlib label-horizon TimeAdjuster refinement,
 and independent external calendar vintage and publication-time evidence.
 
+Pure Accounting Paper consumer was also run on exact SHA-matched original
+and corrected SPY sources with the existing PaperSession/value_session
+transition code, without Postgres or broker calls. H5 BUY on 2025-10-02 OPEN,
+SELL on 2025-10-09 OPEN and settle after 8 successive XNYS sessions:
+both sources end with +USD 3.04 after synthetic fees, zero shares, payables
+and receivables. H20 SELL on 2025-10-30 OPEN and settle after 23 sessions:
+both end with +USD 13.36, no pending positions or liabilities. The
+replayed trading dates are AFTER the observed fake 2025-05-26 date and do
+not authenticate fills or retrospective source availability. Private
+evidence: economic-revalidation-r2/
+native_paper_h5h20_session_calendar_revalidation.json. No Paper
+PostgreSQL or external account state was touched.
+
 This scoped revalidation does not rehabilitate synthetic economic results,
 historical price PIT, corporate actions, volume, market fills or adjusted price
-basis. It settles the observed source-calendar sensitivity ONLY for these five
-source/model combinations, NOT general stock price correctness, real Paper
-session execution or predictive alpha.
+basis. It settles calendar sensitivity for five current-source model/Portfolio
+combinations plus two pure Paper transition paths. It does NOT prove
+correctness of original market prices, durable PostgreSQL paper accounting
+replay, real broker execution or predictive alpha.
