@@ -17,6 +17,10 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
+# The original Host exposes this operator-local diagnostic, never an Agent action.
+# Reuse the two native MCP SDK tool registries for all business tool names;
+# this is the one documented Host-only exception, not a copied tool catalog.
+_HOST_OPERATOR_ONLY = frozenset({"host.pool.stats"})
 
 
 async def _emit_source(owner: str) -> dict[str, dict[str, Any]]:
@@ -44,7 +48,11 @@ async def _emit_source(owner: str) -> dict[str, dict[str, Any]]:
 def summarize(
     host: dict[str, dict[str, Any]], gateway: dict[str, dict[str, Any]]
 ) -> dict[str, Any]:
-    common = sorted(set(host) & set(gateway))
+    host_names, gateway_names = set(host), set(gateway)
+    common = sorted(host_names & gateway_names)
+    missing_business = sorted((host_names - gateway_names) - _HOST_OPERATOR_ONLY)
+    excluded_operator = sorted((host_names - gateway_names) & _HOST_OPERATOR_ONLY)
+    exposed_operator = sorted(gateway_names & _HOST_OPERATOR_ONLY)
     input_name_required_drift: list[str] = []
     input_schema_different: list[str] = []
     output_schema_different: list[str] = []
@@ -61,18 +69,28 @@ def summarize(
             input_schema_different.append(name)
         if host[name].get("outputSchema") != gateway[name].get("outputSchema"):
             output_schema_different.append(name)
+    input_names_match = bool(common) and not input_name_required_drift
+    business_surface_covered = (
+        bool(common) and not missing_business and not exposed_operator
+    )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.host-gateway-source-mcp-consumer-surface",
         "hostToolCount": len(host),
         "gatewayToolCount": len(gateway),
         "sharedToolCount": len(common),
-        "hostOnlyTools": sorted(set(host) - set(gateway)),
-        "gatewayOnlyTools": sorted(set(gateway) - set(host)),
+        "hostOnlyTools": sorted(host_names - gateway_names),
+        "gatewayOnlyTools": sorted(gateway_names - host_names),
+        "missingHostBusinessTools": missing_business,
+        "operatorDiagnosticsExcluded": excluded_operator,
+        "exposedHostOperatorDiagnostics": exposed_operator,
+        "sourceHostBusinessSurfaceCovered": business_surface_covered,
+        "sourceConsumerSurfaceQualified": input_names_match
+        and business_surface_covered,
         "inputPropertyOrRequiredDrift": input_name_required_drift,
         "inputSchemaDifferentTools": input_schema_different,
         "outputSchemaDifferentTools": output_schema_different,
-        "sourceInputNameRequiredParity": bool(common) and not input_name_required_drift,
+        "sourceInputNameRequiredParity": input_names_match,
         "installedConsumersQualified": None,
         "securityAuthorized": None,
         "domainConsumerMigrated": None,
@@ -150,14 +168,14 @@ def main() -> int:
                     "kind": "ordivon.host-gateway-source-mcp-consumer-surface",
                     "migrationStanding": "UNKNOWN_SOURCE_OBSERVATION_FAILED",
                     "errorType": type(exc).__name__,
-                    "installedConsumersQualified": False,
+                    "installedConsumersQualified": None,
                 },
                 sort_keys=True,
             )
         )
         return 3
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["sourceInputNameRequiredParity"] else 3
+    return 0 if result["sourceConsumerSurfaceQualified"] else 3
 
 
 if __name__ == "__main__":

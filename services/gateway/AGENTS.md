@@ -263,3 +263,16 @@ permissions match. See
 compatibility obligation, and installed native Agent canaries.
 Do not reimplement Host output models inside Gateway or assume a
 Cloudflare DNS/ingress change migrates a connected ChatGPT Plugin.
+
+## R9 native Host Tool coverage before migration
+
+Run the existing `python3 tools/repo/check_host_gateway_mcp_consumer_surface.py`
+and require `sourceConsumerSurfaceQualified=true` **only for the
+source Tool name/required-argument baseline**. R9 now rejects any new
+Host business Tool absent from Gateway, not only differing arguments on
+Tools already shared. `host.pool.stats` is an original Host
+operator-only exception that must NOT silently become an Agent Tool.
+The comparison is native original Host+Gateway `tools/list`, not a new
+hardcoded list of all 30 Host Tools. Input and output Schema differences
+remain explicit separate results, and live Security/installed-Plugin
+migration remains UNKNOWN until independently verified.
