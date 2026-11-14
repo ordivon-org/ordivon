@@ -92,3 +92,68 @@ before a revocation is trusted. No real grant or deployment credentials are
 included here. The native OPA + Starlette HTTP tests use only disposable,
 test-owned policy-data files. Installed HTTPS ALLOW/DENY, legitimate Agent
 grant, and actual Host PG receipt still require separate production evidence.
+
+
+## Native Linux Runtime self-release authorization (Gateway R12 consumer)
+
+This is an extension of the **same Security AuthZEN/OPA policy** and current
+systemd LoadCredential policy-data carrier, not an Agent ACL, scheduler,
+deployment engine, or additional Policy Decision Point.
+
+Gateway's source-level `runtime.release.apply` derives one typed resource
+(`ordivon.runtime.native-release-request`) for capability
+`runtime.release.linux` and an exact `runtime.release.apply` tool. Security
+recomputes the SHA-256 over the ASCII canonical JSON tuple
+`{requestId,workspaceId,commit,candidateManifestDigest,expectedToolCount}`
+using the same sorted JSON object property ordering as Gateway's Python
+producer. Inputs with non-ASCII request IDs do not acquire this operator grant.
+The original typed Gateway request rejects invalid nonempty fields and the
+native Runtime separately validates source ownership, qualified candidate,
+immutable manifest, expected MCP Tool count and idempotent ReleaseEffect.
+
+An actual Security operator can add the following **illustrative structure**
+beneath the existing **trusted policy data**
+`ordivon.security.gateway_runtime_release_grants`, using actual independently
+verified issuer/Principal and time boundaries:
+
+```json
+{
+  "active": true,
+  "role": "operator",
+  "principalId": "principal:cf-access:<actual-verified-principal-hash>",
+  "issuer": "https://<actual-trusted-issuer>",
+  "ownerId": "runtime.linux",
+  "nodeId": "linux-pg",
+  "allowedTools": ["runtime.release.apply"],
+  "allowQualifiedCandidates": true,
+  "notBeforeEpochSeconds": 0,
+  "expiresAtEpochSeconds": 0
+}
+```
+
+The zero dates above are intentionally **NON-ACTIVE EXAMPLE VALUES**, not a
+deployable permission. Only an operator may provision a real time-bounded
+grant. `allowQualifiedCandidates` intentionally grants the named trusted
+operator repeated access to Runtime's *existing* qualified-release validation,
+not to raw shell installation or arbitrary execution. This is distinct from
+`gateway_host_actor_grants`; Host Actor permissions never grant a Runtime
+release, and a Runtime release grant never grants Host or Artifact operations.
+The service workload bearer authenticates Gateway→PDP but is not an operator
+Principal, an approval, or permission to release.
+
+To test the source, use the existing Security owner
+`mise run security:verify` and native OPA/AuthZEN tests at
+`tests/test_runtime_release_operator.py`. Tests include real OPA, exact
+resource-hash parity, grant expiry/revocation, wrong issuer/Principal and
+tampering of request/Manifest/commit/Tool count; they are not deployed
+authorization. On production, install the source-qualified Security policy and
+an authorized operator grant through the existing credential management
+process, recheck loaded PDP policy after a controlled restart/credential
+refresh, and observe both ALLOW and DENY using the actual Gateway caller.
+The credential loaded at service start is a snapshot: writing its original
+source file does not prove that a running service has refreshed the grant.
+
+The current Gateway R12 tool is **source merged**, but installed Gateway and
+the connected ChatGPT action catalog must independently expose it. Do not
+use `execution.linux` to substitute a shell installer for the ReleaseEffect,
+or claim installed Runtime success without the native `release.get` receipt.
