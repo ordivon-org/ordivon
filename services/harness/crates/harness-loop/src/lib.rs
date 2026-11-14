@@ -13,6 +13,7 @@ pub mod pg_domain_read;
 pub mod pg_provider_config;
 pub mod pg_tool_head;
 pub mod provider_head;
+pub mod provider_v4_author;
 pub mod runtime_delivery;
 pub mod tool_arguments;
 pub mod tool_call;

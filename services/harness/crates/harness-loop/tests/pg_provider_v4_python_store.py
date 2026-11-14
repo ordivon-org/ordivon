@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from anc_canonical import canonical_digest, digest_bytes
+from anc_canonical import canonical_bytes, canonical_digest, digest_bytes
 from ordivon_harness.core_contracts import HarnessRunContract
 from ordivon_harness.ordivon.continuity_records import (
     HarnessProviderCallRecordV3,
@@ -26,6 +26,7 @@ from ordivon_harness.protocol import (
     HarnessProviderCallStatus,
 )
 from ordivon_harness.run_state import HarnessRunState
+from ordivon_harness.store import StoredHarnessObject
 
 
 dsn = os.environ["HARNESS_RUST_TEST_PG_DSN"]
@@ -392,10 +393,15 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         dispatch_safety="dispatch_ambiguous",
         detail="Test-only ambiguous loopback transport after outbound request",
     )
-    native_failure_ref = store.put_object(
-        native_failure.to_dict(), kind="harness-provider-call-failure"
+    # Independent Python failure receipt oracle. As with the three V4
+    # records, Rust produces/persists the immutable CAS bytes in this scenario.
+    native_failure_ref = StoredHarnessObject(
+        digest=native_failure.digest,
+        byte_length=len(canonical_bytes(native_failure.to_dict())),
+        kind="harness-provider-call-failure",
     )
     native_events = []
+    native_source_oracle_records = []
     prior = None
     for status, when in (
         (HarnessProviderCallStatus.CLAIMED, 1010),
@@ -435,8 +441,14 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             expires_at_ms=50000,
             recorded_at_ms=when,
         )
-        record_ref = store.put_object(
-            record.to_dict(), kind="harness-provider-call-record"
+        # Pure original Python V4 source oracle ONLY. No record is stored:
+        # Rust MUST author, validate, persist its own exact CAS V4 bytes
+        # before the first native Journal append in the real PG18 consumer.
+        native_source_oracle_records.append(record.to_dict())
+        record_ref = StoredHarnessObject(
+            digest=record.digest,
+            byte_length=len(canonical_bytes(record.to_dict())),
+            kind="harness-provider-call-record",
         )
         references = [record_ref, native_state_ref]
         if status is HarnessProviderCallStatus.UNKNOWN:
@@ -464,6 +476,8 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         "runId": native_id,
         "expectedProviderRequestDigest": native_wire_digest,
         "expectedRecordDigest": prior.digest,
+        "sourceRecords": native_source_oracle_records,
+        "sourceFailure": native_failure.to_dict(),
         "events": native_events,
     }
 

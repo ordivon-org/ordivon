@@ -84,7 +84,7 @@ fn prepare(v: &CanonicalDocument) -> Result<Birth<'_>, WriteError> {
         payload,
     })
 }
-fn store_cas(
+pub(crate) fn store_cas(
     tx: &mut Transaction<'_>,
     digest: &str,
     kind: &str,

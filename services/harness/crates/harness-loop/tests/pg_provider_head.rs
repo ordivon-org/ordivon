@@ -3,7 +3,9 @@
 //! model requests. A readonly DB role is enforced by the shared PG runner.
 use std::{fs, io::Read, net::TcpListener, path::Path, thread, time::Duration};
 
-use ordivon_harness_core::{digest_bytes, loads_strict, CanonicalDocument, CanonicalRef};
+use ordivon_harness_core::{
+    canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalRef,
+};
 use ordivon_harness_loop::native_loop::{
     AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision, ModelVisibleContent,
     NativeAgentLoop, RunResult,
@@ -15,12 +17,17 @@ use ordivon_harness_loop::pg_domain_read::{
 };
 use ordivon_harness_loop::pg_provider_config::inspect_pg_provider_transport;
 use ordivon_harness_loop::provider_head::{ProviderStatus, RecoveryPosture};
+use ordivon_harness_loop::provider_v4_author::{
+    author_provider_failure, author_provider_v4, DispatchSafety, ProviderFailureCode,
+    ProviderFailureSpec, ProviderV4Seed, ProviderV4Transition,
+};
 use ordivon_harness_pg::{
     journal_write::{
         append_events, observe_exact_batch, Admission, EventWrite, JournalObservation, StoredRef,
         WriteError,
     },
     lease::{acquire_run_lease, RunLease},
+    provider_cas::{put_provider_cas, ProviderCasKind},
     read_run_readonly, ReadError,
 };
 use postgres::{Client, NoTls};
@@ -29,25 +36,107 @@ fn text<'a>(v: &'a CanonicalDocument, key: &str) -> &'a str {
     v.field(key).and_then(CanonicalRef::as_str).unwrap()
 }
 
-/// Test adapter consuming the EXISTING PG Lease/Writer, not a new Store.
-/// Only the source-authored exact Provider V4 events can be persisted.
-/// Production current-security/issuer and domain effects are deliberately absent.
+/// Test adapter consuming the EXISTING PG Lease/Writer, never a new Store.
+/// Distinct from R24: Provider V4 record CAS is authored by Rust at the exact
+/// lifecycle transition, not pre-computed or stored by Python or test setup.
+/// Security materialization + current issuer are deliberately NOT proven.
 struct SourcePgUnknownJournal {
     writer_dsn: String,
     schema: String,
     run_id: String,
     batch: Vec<EventWrite>,
+    python_first_source: CanonicalDocument,
+    python_failure_oracle: CanonicalDocument,
     prepared: bool,
+    dispatch_digest: Option<String>,
     unknown_lease: Option<RunLease>,
+}
+fn native_seed<'a>(doc: &'a CanonicalDocument) -> ProviderV4Seed<'a> {
+    let int = |key: &str| -> u64 {
+        doc.field(key)
+            .unwrap()
+            .integer_text()
+            .unwrap()
+            .parse()
+            .unwrap()
+    };
+    ProviderV4Seed {
+        provider_call_id: text(doc, "providerCallId"),
+        harness_run_id: text(doc, "harnessRunId"),
+        binding_digest: text(doc, "bindingDigest"),
+        source_kind: text(doc, "sourceKind"),
+        source_digest: text(doc, "sourceDigest"),
+        source_object_digest: text(doc, "sourceObjectDigest"),
+        state_object_digest: text(doc, "stateObjectDigest"),
+        turn_id: text(doc, "turnId"),
+        turn_sequence: int("turnSequence"),
+        request_digest: text(doc, "requestDigest"),
+        request_object_digest: None,
+        provider_request_digest: text(doc, "providerRequestDigest"),
+        adapter_id: text(doc, "adapterId"),
+        requested_model_id: text(doc, "requestedModelId"),
+        holder_id: text(doc, "holderId"),
+        claim_generation: int("claimGeneration"),
+        issued_at_ms: int("issuedAtMs"),
+        expires_at_ms: int("expiresAtMs"),
+    }
+}
+fn expected_ref<'a>(e: &'a EventWrite, kind: &str) -> Result<&'a StoredRef, String> {
+    e.referenced_objects
+        .iter()
+        .find(|r| r.kind == kind)
+        .ok_or_else(|| format!("source reference absent for kind {kind}"))
 }
 impl DurableJournal for SourcePgUnknownJournal {
     fn prepare_provider(&mut self, turn: u32) -> Result<(), String> {
-        if self.prepared || turn != 1 {
+        if self.prepared || turn != 1 || self.batch.len() != 3 {
             return Err("unexpected Provider dispatch".into());
         }
-        let mut conn = Client::connect(&self.writer_dsn, NoTls).map_err(|e| e.to_string())?;
+        let seed = native_seed(&self.python_first_source);
+        if seed.harness_run_id != self.run_id {
+            return Err("source Run identity drift".into());
+        }
+        let mut db = Client::connect(&self.writer_dsn, NoTls).map_err(|e| e.to_string())?;
+        let claimed = author_provider_v4(
+            &seed,
+            ProviderV4Transition::Claimed { previous: None },
+            u64::try_from(self.batch[0].recorded_at_ms).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let claim_ref = put_provider_cas(
+            &mut db,
+            &self.schema,
+            ProviderCasKind::RecordV4,
+            &claimed,
+            self.batch[0].recorded_at_ms,
+        )
+        .map_err(|e| e.to_string())?;
+        if &claim_ref != expected_ref(&self.batch[0], "harness-provider-call-record")? {
+            return Err("Rust V4 claimed bytes differ from independent Python source".into());
+        }
+        let dispatching = author_provider_v4(
+            &seed,
+            ProviderV4Transition::Dispatching {
+                previous: &claim_ref.digest,
+            },
+            u64::try_from(self.batch[1].recorded_at_ms).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let dispatch_ref = put_provider_cas(
+            &mut db,
+            &self.schema,
+            ProviderCasKind::RecordV4,
+            &dispatching,
+            self.batch[1].recorded_at_ms,
+        )
+        .map_err(|e| e.to_string())?;
+        if &dispatch_ref != expected_ref(&self.batch[1], "harness-provider-call-record")? {
+            return Err("Rust V4 dispatch bytes differ from independent Python source".into());
+        }
+        // Only after the CAS witnesses exist, obtain a live PG lease and
+        // commit the exact two Event transitions before physical HTTP.
         let lease = acquire_run_lease(
-            &mut conn,
+            &mut db,
             &self.schema,
             &self.run_id,
             "test:rust-native-provider-journal",
@@ -57,7 +146,7 @@ impl DurableJournal for SourcePgUnknownJournal {
         )
         .map_err(|e| e.to_string())?;
         match append_events(
-            &mut conn,
+            &mut db,
             &self.schema,
             &self.run_id,
             &self.batch[..2],
@@ -70,11 +159,12 @@ impl DurableJournal for SourcePgUnknownJournal {
             Admission::Created => {}
             Admission::Existing => return Err("source Run unexpectedly already dispatched".into()),
         }
+        self.dispatch_digest = Some(dispatch_ref.digest);
         self.prepared = true;
         Ok(())
     }
     fn complete_provider(&mut self, _: u32, _: &ModelDecision) -> Result<(), String> {
-        Err("this test loses the physical Provider response".into())
+        Err("test intentionally loses Provider response".into())
     }
     fn admit_tool(
         &mut self,
@@ -95,12 +185,65 @@ impl DurableJournal for SourcePgUnknownJournal {
         Err("no claimed task completion".into())
     }
     fn record_pause(&mut self, turn: u32) -> Result<(), String> {
+        let previous = self
+            .dispatch_digest
+            .as_ref()
+            .ok_or_else(|| "Cannot record UNKNOWN without committed DISPATCHING".to_owned())?;
         if !self.prepared || self.unknown_lease.is_some() || turn != 1 {
             return Err("unadmitted or repeated UNKNOWN".into());
         }
-        let mut conn = Client::connect(&self.writer_dsn, NoTls).map_err(|e| e.to_string())?;
+        let failure = &self.python_failure_oracle;
+        if text(failure, "failureCode") != "provider_transport_failed"
+            || text(failure, "dispatchSafety") != "dispatch_ambiguous"
+        {
+            return Err("source failure oracle isn't transport UNKNOWN".into());
+        }
+        let fail = author_provider_failure(&ProviderFailureSpec {
+            provider_call_id: text(failure, "providerCallId"),
+            request_digest: text(failure, "requestDigest"),
+            provider_request_digest: text(failure, "providerRequestDigest"),
+            failure_code: ProviderFailureCode::TransportFailed,
+            dispatch_safety: DispatchSafety::Ambiguous,
+            detail: text(failure, "detail"),
+        })
+        .map_err(|e| format!("{e:?}"))?;
+        let mut db = Client::connect(&self.writer_dsn, NoTls).map_err(|e| e.to_string())?;
+        // The failure receipt and UNKNOWN V4 record are created only AFTER
+        // NativeAgentLoop observed a truly ambiguous HTTP response.
+        let fail_ref = put_provider_cas(
+            &mut db,
+            &self.schema,
+            ProviderCasKind::FailureReceipt,
+            &fail,
+            self.batch[2].recorded_at_ms,
+        )
+        .map_err(|e| e.to_string())?;
+        if &fail_ref != expected_ref(&self.batch[2], "harness-provider-call-failure")? {
+            return Err("Rust failure CAS differs from Python source oracle".into());
+        }
+        let unknown = author_provider_v4(
+            &native_seed(&self.python_first_source),
+            ProviderV4Transition::Unknown {
+                previous,
+                failure_digest: &fail_ref.digest,
+                failure_object_digest: &fail_ref.digest,
+            },
+            u64::try_from(self.batch[2].recorded_at_ms).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let unknown_ref = put_provider_cas(
+            &mut db,
+            &self.schema,
+            ProviderCasKind::RecordV4,
+            &unknown,
+            self.batch[2].recorded_at_ms,
+        )
+        .map_err(|e| e.to_string())?;
+        if &unknown_ref != expected_ref(&self.batch[2], "harness-provider-call-record")? {
+            return Err("Rust unknown CAS differs from Python source oracle".into());
+        }
         let lease = acquire_run_lease(
-            &mut conn,
+            &mut db,
             &self.schema,
             &self.run_id,
             "test:rust-native-provider-journal",
@@ -110,7 +253,7 @@ impl DurableJournal for SourcePgUnknownJournal {
         )
         .map_err(|e| e.to_string())?;
         match append_events(
-            &mut conn,
+            &mut db,
             &self.schema,
             &self.run_id,
             &self.batch[2..],
@@ -401,6 +544,23 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         });
     }
 
+    // Python is the independent source oracle only; all Provider V4 and
+    // failure CAS documents are now written by Rust AT THE ACTUAL TRANSITION.
+    let source_records = native
+        .get("sourceRecords")
+        .expect("Python V4 source oracle");
+    assert_eq!(source_records.as_borrowed().array_len(), Some(3));
+    let first_doc = loads_strict(
+        std::str::from_utf8(&source_records.index(0).unwrap().canonical_bytes()).unwrap(),
+    )
+    .unwrap();
+    let failure_oracle = native.get("sourceFailure").unwrap();
+    assert_eq!(native_seed(&first_doc).harness_run_id, run_id);
+    assert_eq!(
+        native_seed(&first_doc).requested_model_id,
+        model.requested_model_id
+    );
+
     // Freeze the exact HTTP body *before* native PostgreSQL Claim/Dispatch.
     // It must match the original Python source-authored V4 ProviderRequest
     // digest, not a synthetic hash invented by this Rust test.
@@ -436,6 +596,9 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         run_id: run_id.to_owned(),
         batch: batch.clone(),
         prepared: false,
+        python_first_source: first_doc,
+        python_failure_oracle: failure_oracle,
+        dispatch_digest: None,
         unknown_lease: None,
     };
 
@@ -544,6 +707,37 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
     let observed = read_run_readonly(&mut readonly, &schema, run_id).unwrap();
     assert_eq!(observed.projection.revision, 4);
     assert_eq!(observed.events.len(), 4);
+    // The independent Python original V4 source oracle was never persisted
+    // on this Run. Validate the exact Rust-produced, live-PG CAS documents
+    // AFTER NativeAgentLoop physically executed and recovered.
+    for (i, event) in batch.iter().enumerate() {
+        let expected = loads_strict(
+            std::str::from_utf8(&source_records.index(i).unwrap().canonical_bytes()).unwrap(),
+        )
+        .unwrap();
+        let record_ref = expected_ref(event, "harness-provider-call-record").unwrap();
+        let found = ordivon_harness_pg::read_cas_object_readonly(
+            &mut readonly,
+            &schema,
+            &record_ref.digest,
+            "harness-provider-call-record",
+        )
+        .unwrap();
+        assert_eq!(canonical_bytes(&found), canonical_bytes(&expected));
+    }
+    let failure_ref = expected_ref(&batch[2], "harness-provider-call-failure").unwrap();
+    let found = ordivon_harness_pg::read_cas_object_readonly(
+        &mut readonly,
+        &schema,
+        &failure_ref.digest,
+        "harness-provider-call-failure",
+    )
+    .unwrap();
+    assert_eq!(
+        canonical_bytes(&found),
+        canonical_bytes(&journal.python_failure_oracle)
+    );
+
     let head = inspect_pg_provider_head(&mut readonly, &schema, run_id, model)
         .unwrap()
         .expect("native Rust Journal must expose real Python V4 CAS");

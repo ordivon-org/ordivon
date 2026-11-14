@@ -4,6 +4,7 @@ pub mod contract_semantics;
 pub mod journal_write;
 pub mod lease;
 mod projection;
+pub mod provider_cas;
 mod readback;
 pub mod run_create;
 pub use projection::{
