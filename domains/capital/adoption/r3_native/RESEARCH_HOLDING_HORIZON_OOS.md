@@ -286,3 +286,36 @@ basis. It settles calendar sensitivity for five current-source model/Portfolio
 combinations plus two pure Paper transition paths. It does NOT prove
 correctness of original market prices, durable PostgreSQL paper accounting
 replay, real broker execution or predictive alpha.
+
+
+## 2026-11-14：发行方现金事件对 H5/H20 价格标签的反证
+
+Qlib R3 在历史回填价格上按 T+1 开盘买入、T+H+1 开盘
+卖出测量价格标签，原数据不具已认证的股息现金流、公司行动、
+来源许可或历史首次可知时间。
+新增现有 Research 下面的轻量日期暴露消费者
+src/ordivon_capital/research/etf_distribution_label_audit.py。
+它只计算已观察 issuer ex-date 与交易所会话索引的相交，
+不向 Portfolio/Accounting 写钱、不重新计算策略收益。
+持有在 ex-date 前进入、ex-date 开盘退出的持仓可能获得
+分红权；若 ex-date 开盘才买入则不享该分红。
+这是数学场景条件，不是券商账户/股东登记证明。
+
+具体采用 2026-11-13 收盘更新的 971 行私有面板
+（sha256 a1daef34db81615b4ab26ada498ed2d7121833a42cc974303357aeb006cd2e59），
+2025-10-01 至 2026-10-29 所有完整假设决策窗口中：
+H5 共272期，QQQ/IWM各20期跨已观察事件；
+H20 共262期，QQQ/IWM各80期跨已观察事件。
+SPY 因只观察一项公开分红，仅有5/20期下界。
+QQQ 四项发行方日期 2025-12-22、2026-03-23、
+2026-06-22、2026-09-21；IWM 四项 2025-12-16、
+2026-03-17、2026-06-15、2026-09-15。
+具体发行方事件的人工观察时间为2026-11-14，
+不能证明2025/26模型决策时刻可知。现有记录位于
+私有 issuer-events-diagnostic-20261114-r1，没有上传 Git。
+
+新增形式模型 ResearchExDividendHoldingHorizonR1.smt2，
+证明抽象 session index 中买入当日除息不应获得分红、
+在除息日退出仍可能享有分红、单个发行方事件最多
+影响 H 个相邻候选窗口。不能用抽象证明替代
+真实股东登记、市场价格调价、Python实现精化或分红到账。
