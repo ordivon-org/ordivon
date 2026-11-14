@@ -232,3 +232,10 @@ EffectReplayFence model includes nine source states, 288 representative
 Python cases and one deliberately false LOST+committed reachability property.
 An exited/timeout/cancelled process can already have caused a partial effect.
 Do not derive `automaticRetryAdmissible=true` or owner effect completion.
+
+The live R3 cancelled Job's own Workspace marker was independently read back
+through Gateway Artifact `attempt-01a1da1b-5ccf-7211-9d50-6f16ae134985.stdout`:
+`entered` was durable while `exited` was absent (readback SHA-256
+`46eb3d6b7c89c65df13fe70ea8feb5b9da22ff3c131aac57b36615a26d7577bd`).
+This falsifies any implied rule `LOST => no physical effect`, even on a
+mechanically converged control record. It does not establish a provider effect.
