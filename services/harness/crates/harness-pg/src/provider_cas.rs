@@ -14,6 +14,7 @@ use postgres::Client;
 pub enum ProviderCasKind {
     RecordV4,
     FailureReceipt,
+    AgentTurnResult,
 }
 impl ProviderCasKind {
     fn names(self) -> (&'static str, &'static str) {
@@ -26,6 +27,7 @@ impl ProviderCasKind {
                 "harness-provider-call-failure",
                 "ordivon.harness-provider-call-failure",
             ),
+            Self::AgentTurnResult => ("agent-turn-result", "ordivon.agent-turn-result"),
         }
     }
 }
@@ -54,6 +56,14 @@ pub fn put_provider_cas(
             != Some("4")
     {
         return Err(WriteError::Invalid("Provider V4 CAS version mismatch"));
+    }
+    if kind == ProviderCasKind::AgentTurnResult
+        && document
+            .field("schemaVersion")
+            .and_then(|v| v.integer_text())
+            != Some("1")
+    {
+        return Err(WriteError::Invalid("AgentTurnResult CAS version mismatch"));
     }
     let bytes = canonical_bytes(document);
     if bytes.len() > 1_048_576 {

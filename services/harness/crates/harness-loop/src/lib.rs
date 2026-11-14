@@ -1,6 +1,7 @@
 //! Native Harness execution decision kernel.
 //! Tool selection and progress accounting have independent state and tests.
 
+pub mod agent_turn_result;
 mod cc_sse;
 pub mod cc_usage;
 pub mod evidence;

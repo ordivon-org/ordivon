@@ -15,6 +15,7 @@ from pathlib import Path
 
 from anc_canonical import canonical_bytes, canonical_digest, digest_bytes
 from ordivon_harness.core_contracts import HarnessRunContract
+from ordivon_harness.ordivon.model import AgentRunConclusion, AgentTurnResult
 from ordivon_harness.ordivon.continuity_records import (
     HarnessProviderCallRecordV3,
     build_provider_call_record_v4,
@@ -47,7 +48,20 @@ if len(sys.argv) > 1 and sys.argv[1] == "verify-native":
                 and event.event_kind == entry["eventKind"]
                 for event in store.list_run_events(native["runId"])
             )
-    print("PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_JOURNAL_PASS")
+        positive = fixture["rust_native_provider_completed"]
+        store.validate_run_history(positive["runId"])
+        completed_run = store.load_run(positive["runId"])
+        assert completed_run.revision == 4
+        assert any(event.event_kind == "harness.provider-call-completed"
+                   for event in store.list_run_events(positive["runId"]))
+        result_ref = positive["events"][2]["references"]
+        result = next(v for v in result_ref if v["kind"] == "agent-turn-result")
+        normalized_result = store.get_object(result["digest"], expected_kind="agent-turn-result")
+        original = AgentTurnResult.from_dict(normalized_result)
+        assert original.digest == result["digest"]
+        assert original.raw_response_digest == positive["expectedRawResponseDigest"]
+        assert original.conclusion is not None and original.conclusion.status == "candidate_completed"
+    print("PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_AND_COMPLETED_JOURNALS_PASS")
     sys.exit(0)
 all_cases = json.loads(path.read_text(encoding="utf-8"))
 base_run = all_cases["no_tool"]["runId"]
@@ -480,6 +494,137 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         "sourceFailure": native_failure.to_dict(),
         "events": native_events,
     }
+
+    # R29: independent positive-path oracle. Python authors ONLY the legitimate
+    # Contract/State/Source and pure canonical V4+AgentTurnResult EXPECTATIONS.
+    # Rust must send REAL localhost HTTP and commit positive result CAS and
+    # V4 COMPLETED into the original PG18 Writer at NativeAgentLoop boundaries.
+    complete_id = "harness-run:test-pg-native-provider-completed"
+    complete_contract = replace(
+        base,
+        harness_run_id=complete_id,
+        caller_run_ref="test-run-native-provider-completed",
+    )
+    assert complete_contract.privacy.allow_model_content, "positive result has content"
+    assert store.create_run(complete_contract).value == "created"
+    complete_state = HarnessRunState(
+        messages=(), observations=(), remaining_budget={"maxTurns": 2},
+        requested_model_id=complete_contract.requested_model_id,
+        effective_model_id=None,
+    )
+    complete_state_ref = store.put_object(
+        complete_state.to_dict(complete_id), kind="harness-run-state"
+    )
+    complete_source_ref = store.put_object(
+        {"kind": "test-only-native-provider-source", "runId": complete_id},
+        kind="test-provider-source",
+    )
+    complete_call_id = "provider-call:test-native-rust-completed"
+    complete_response = {
+        "choices": [{"finish_reason": "stop", "message": {
+            "role": "assistant", "content": "A useful answer",
+        }}],
+        "model": complete_contract.requested_model_id,
+        "usage": {"prompt_tokens": 9, "completion_tokens": 4},
+    }
+    complete_wire_bytes = json.dumps(
+        complete_response, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")
+    positive_result = AgentTurnResult(
+        model_call_id="model-call:test-native-rust-completed",
+        model_id=complete_contract.requested_model_id,
+        content="A useful answer",
+        tool_calls=(),
+        conclusion=AgentRunConclusion(
+            status="candidate_completed", summary="A useful answer"
+        ),
+        usage={
+            "inputTokens": 9, "outputTokens": 4,
+            "cacheReadTokens": 0, "cacheCreationTokens": 0,
+        },
+        finish_reason="stop",
+        raw_response_digest=digest_bytes(complete_wire_bytes),
+    )
+    # This is an independently computed CAS reference, not a preexisting
+    # Provider result object. All V4 and result objects are authored by Rust.
+    complete_result_ref = StoredHarnessObject(
+        digest=positive_result.digest,
+        byte_length=len(canonical_bytes(positive_result.to_dict())),
+        kind="agent-turn-result",
+    )
+    complete_records = []
+    complete_events = []
+    previous = None
+    for status, when in (
+        (HarnessProviderCallStatus.CLAIMED, 1020),
+        (HarnessProviderCallStatus.DISPATCHING, 1021),
+        (HarnessProviderCallStatus.COMPLETED, 1022),
+    ):
+        record = build_provider_call_record_v4(
+            provider_call_id=complete_call_id,
+            harness_run_id=complete_id,
+            binding_digest=id_digest("native-completed-binding"),
+            source_kind=HarnessProviderCallSource.ASSIGNMENT,
+            source_digest=complete_source_ref.digest,
+            source_object_digest=complete_source_ref.digest,
+            state_object_digest=complete_state_ref.digest,
+            turn_id="turn:test-native-completed",
+            turn_sequence=1,
+            request_digest=id_digest("native-completed-request"),
+            request_object_digest=None,
+            provider_request_digest=native_wire_digest,
+            adapter_id=complete_contract.adapter_id,
+            requested_model_id=complete_contract.requested_model_id,
+            holder_id="test-holder:native-provider-completed",
+            generation=1,
+            status=status,
+            result_digest=positive_result.digest if status is HarnessProviderCallStatus.COMPLETED else None,
+            result_object_digest=positive_result.digest if status is HarnessProviderCallStatus.COMPLETED else None,
+            failure_digest=None,
+            failure_object_digest=None,
+            previous_record_digest=previous.digest if previous is not None else None,
+            issued_at_ms=1019,
+            expires_at_ms=50000,
+            recorded_at_ms=when,
+        )
+        complete_records.append(record.to_dict())
+        record_ref = StoredHarnessObject(
+            digest=record.digest,
+            byte_length=len(canonical_bytes(record.to_dict())),
+            kind="harness-provider-call-record",
+        )
+        references = [record_ref, complete_state_ref]
+        if status is HarnessProviderCallStatus.COMPLETED:
+            references.append(complete_result_ref)
+        complete_events.append({
+            "eventId": f"event:rust-native-completed-provider-{status.value}",
+            "eventKind": f"harness.provider-call-{status.value}",
+            "recordedAtMs": when,
+            "data": {
+                "providerCallRecordDigest": record.digest,
+                "providerCallRecordObjectDigest": record_ref.digest,
+                "stateObjectDigest": complete_state_ref.digest,
+                "requestObjectDigest": None,
+                "resultObjectDigest": (
+                    complete_result_ref.digest if status is HarnessProviderCallStatus.COMPLETED else None
+                ),
+                "failureObjectDigest": None,
+            },
+            "references": [ref.to_dict() for ref in references],
+        })
+        previous = record
+    all_cases["rust_native_provider_completed"] = {
+        "runId": complete_id,
+        "modelCallId": positive_result.model_call_id,
+        "expectedProviderRequestDigest": native_wire_digest,
+        "expectedRawResponseDigest": positive_result.raw_response_digest,
+        "expectedRecordDigest": previous.digest,
+        "responseBody": complete_wire_bytes.decode("utf-8"),
+        "sourceRecords": complete_records,
+        "sourceResult": positive_result.to_dict(),
+        "events": complete_events,
+    }
+
 
 all_cases["provider_records"] = cases
 path.write_text(json.dumps(all_cases, ensure_ascii=False, sort_keys=True), encoding="utf-8")

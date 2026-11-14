@@ -217,16 +217,16 @@ print("R18_SOURCE_OWNED_PYTHON_REAL_PG_NO_TOOL_RUN_CREATED")
             rust = checked([
                 "/usr/bin/cargo", "test", "--offline", "--locked",
                 "-p", "ordivon-harness-loop", "--test", "pg_provider_head",
-                "--", "--ignored", "--nocapture",
-            ], env=rust_env, timeout=210)
+                "--", "--ignored", "--nocapture", "--test-threads=1",
+            ], env=rust_env, timeout=250)
             evidence["nativeProviderV4TestTail"] = rust.stdout[-1700:]
-            if rust.returncode or "PG18_RUST_WRITER_PYTHON_PROVIDER_V4_UNKNOWN_READBACK_EXACT_PASS" not in rust.stdout or "PG18_PYTHON_PROVIDER_V4_VERIFIED_CAS_RECOVERY_PASS" not in rust.stdout:
+            if rust.returncode or "PG18_RUST_WRITER_PYTHON_PROVIDER_V4_UNKNOWN_READBACK_EXACT_PASS" not in rust.stdout or "PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS" not in rust.stdout or "PG18_PYTHON_PROVIDER_V4_VERIFIED_CAS_RECOVERY_PASS" not in rust.stdout:
                 raise RuntimeError("Native Rust PG V4 source consumer failed: " + rust.stdout[-1500:] + rust.stderr[-1250:])
             evidence["nativeProviderV4Suite"] = "PASS"
             # Independently reopen via the original Python Store after the
             # Rust Writer's true PG transaction and connection loss.
             python_verify = checked([str(PYTHON), "-B", source_fixture, "verify-native"], env=env, timeout=60)
-            if python_verify.returncode or "PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_JOURNAL_PASS" not in python_verify.stdout:
+            if python_verify.returncode or "PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_AND_COMPLETED_JOURNALS_PASS" not in python_verify.stdout:
                 raise RuntimeError("Python original PG readback failed: " + python_verify.stderr[-1000:])
             evidence["originalPythonStoreReadback"] = True
         evidence["status"] = "PASS"

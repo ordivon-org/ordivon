@@ -1,11 +1,19 @@
 //! True Python Store→PG18→A verified CAS/Journal→B Provider recovery head.
 //! All Provider events are synthetic test-only identities, with zero external
 //! model requests. A readonly DB role is enforced by the shared PG runner.
-use std::{fs, io::Read, net::TcpListener, path::Path, thread, time::Duration};
+use std::{
+    fs,
+    io::{Read, Write},
+    net::TcpListener,
+    path::Path,
+    thread,
+    time::Duration,
+};
 
 use ordivon_harness_core::{
     canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalRef,
 };
+use ordivon_harness_loop::agent_turn_result::author_no_tool_turn_result;
 use ordivon_harness_loop::native_loop::{
     AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision, ModelVisibleContent,
     NativeAgentLoop, PauseCause, Provider, ProviderResult, ProviderWireObservation, RunFault,
@@ -88,6 +96,64 @@ fn expected_ref<'a>(e: &'a EventWrite, kind: &str) -> Result<&'a StoredRef, Stri
         .find(|r| r.kind == kind)
         .ok_or_else(|| format!("source reference absent for kind {kind}"))
 }
+fn source_event_batch(native: &CanonicalDocument) -> Vec<EventWrite> {
+    let events = native.get("events").expect("source event oracle");
+    assert_eq!(events.as_borrowed().array_len(), Some(3));
+    let mut batch = Vec::new();
+    for n in 0..3 {
+        let source = events.index(n).unwrap();
+        let references = source.field("references").unwrap();
+        let mut refs = Vec::new();
+        for i in 0..references.array_len().unwrap() {
+            let reference = references.index(i).unwrap();
+            refs.push(StoredRef {
+                digest: reference
+                    .field("digest")
+                    .and_then(CanonicalRef::as_str)
+                    .unwrap()
+                    .to_owned(),
+                kind: reference
+                    .field("kind")
+                    .and_then(CanonicalRef::as_str)
+                    .unwrap()
+                    .to_owned(),
+                byte_length: reference
+                    .field("byteLength")
+                    .and_then(CanonicalRef::integer_text)
+                    .unwrap()
+                    .parse::<i64>()
+                    .unwrap(),
+            });
+        }
+        let event_data_ref = source.field("data").unwrap();
+        let event_data =
+            loads_strict(std::str::from_utf8(&event_data_ref.canonical_bytes()).unwrap()).unwrap();
+        batch.push(EventWrite {
+            event_id: source
+                .field("eventId")
+                .and_then(CanonicalRef::as_str)
+                .unwrap()
+                .to_owned(),
+            event_kind: source
+                .field("eventKind")
+                .and_then(CanonicalRef::as_str)
+                .unwrap()
+                .to_owned(),
+            data: event_data,
+            recorded_at_ms: source
+                .field("recordedAtMs")
+                .and_then(CanonicalRef::integer_text)
+                .unwrap()
+                .parse()
+                .unwrap(),
+            caused_by_event_id: None,
+            referenced_objects: refs,
+        });
+    }
+
+    batch
+}
+
 impl DurableJournal for SourcePgUnknownJournal {
     fn prepare_provider(&mut self, turn: u32) -> Result<(), String> {
         if self.prepared || turn != 1 || self.batch.len() != 3 {
@@ -279,6 +345,129 @@ impl DurableJournal for SourcePgUnknownJournal {
         Ok(())
     }
 }
+/// R29 POSITIVE real localhost model-response test consumer. The source
+/// Python AgentTurnResult and V4 records are pure independent Oracle bytes.
+/// The real native Rust Loop must author and write the entire result/COMPLETED
+/// CAS+Event only AFTER receiving a verified positive HTTP wire response.
+struct SourcePgCompletedJournal {
+    base: SourcePgUnknownJournal,
+    original_result_oracle: CanonicalDocument,
+    model_call_id: String,
+    requested_model: String,
+    completed: bool,
+}
+impl DurableJournal for SourcePgCompletedJournal {
+    fn prepare_provider(&mut self, turn: u32) -> Result<(), String> {
+        self.base.prepare_provider(turn)
+    }
+    fn complete_provider(
+        &mut self,
+        turn: u32,
+        decision: &ModelDecision,
+        wire: Option<&ProviderWireObservation>,
+    ) -> Result<(), String> {
+        if turn != 1 || self.completed || !self.base.prepared || self.base.batch.len() != 3 {
+            return Err("Unqualified positive Provider transition".into());
+        }
+        let result =
+            author_no_tool_turn_result(&self.model_call_id, &self.requested_model, decision, wire)
+                .map_err(|e| format!("Positive AgentTurnResult rejected: {e:?}"))?;
+        if canonical_bytes(&result) != canonical_bytes(&self.original_result_oracle) {
+            return Err("Rust result differs from original Python AgentTurnResult".into());
+        }
+        let previous = self
+            .base
+            .dispatch_digest
+            .as_deref()
+            .ok_or("no source current DISPATCHING record")?;
+        let recorded_at = self.base.batch[2].recorded_at_ms;
+        let mut db = Client::connect(&self.base.writer_dsn, NoTls).map_err(|e| e.to_string())?;
+        let result_ref = put_provider_cas(
+            &mut db,
+            &self.base.schema,
+            ProviderCasKind::AgentTurnResult,
+            &result,
+            recorded_at,
+        )
+        .map_err(|e| e.to_string())?;
+        if &result_ref != expected_ref(&self.base.batch[2], "agent-turn-result")? {
+            return Err("Positive result object ref differs from Python source".into());
+        }
+        let completed = author_provider_v4(
+            &native_seed(&self.base.python_first_source),
+            ProviderV4Transition::Completed {
+                previous,
+                result_digest: &result_ref.digest,
+                result_object_digest: Some(&result_ref.digest),
+            },
+            u64::try_from(recorded_at).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let completed_ref = put_provider_cas(
+            &mut db,
+            &self.base.schema,
+            ProviderCasKind::RecordV4,
+            &completed,
+            recorded_at,
+        )
+        .map_err(|e| e.to_string())?;
+        if &completed_ref != expected_ref(&self.base.batch[2], "harness-provider-call-record")? {
+            return Err("Positive V4 COMPLETED ref differs from source".into());
+        }
+        let lease = acquire_run_lease(
+            &mut db,
+            &self.base.schema,
+            &self.base.run_id,
+            "test:rust-native-provider-journal",
+            30_000,
+            recorded_at,
+            Some(3),
+        )
+        .map_err(|e| e.to_string())?;
+        match append_events(
+            &mut db,
+            &self.base.schema,
+            &self.base.run_id,
+            &self.base.batch[2..],
+            3,
+            &lease,
+            recorded_at,
+        )
+        .map_err(|e| e.to_string())?
+        {
+            Admission::Created => {}
+            Admission::Existing => return Err("source COMPLETED already committed".into()),
+        }
+        self.completed = true;
+        Ok(())
+    }
+    fn admit_tool(
+        &mut self,
+        _: u32,
+        _: &ordivon_harness_loop::tool_call::ModelToolCall,
+    ) -> Result<AdmittedTool, String> {
+        Err("no source Tool grant on no-Tool Provider Run".into())
+    }
+    fn record_effect(
+        &mut self,
+        _: u32,
+        _: &AdmittedTool,
+        _: &EffectResult,
+    ) -> Result<ModelVisibleContent, String> {
+        Err("no source Tool effect".into())
+    }
+    fn record_completion(&mut self, turn: u32, proposal: &str) -> Result<(), String> {
+        // This acknowledges a candidate output, not DomainSuccess.
+        if self.completed && turn == 1 && proposal == "A useful answer" {
+            return Ok(());
+        }
+        Err("unqualified completion candidate".into())
+    }
+    fn record_pause(&mut self, _: u32, _: PauseCause) -> Result<(), String> {
+        Err("positive-only source consumer cannot fabricate UNKNOWN".into())
+    }
+}
+
 struct RefuseAnyProviderSend;
 impl Provider for RefuseAnyProviderSend {
     fn turn(&mut self, _: u32, _: &[ToolObservation]) -> ProviderResult {
@@ -290,6 +479,227 @@ impl EffectReceiver for NoEffect {
     fn execute(&mut self, _: &AdmittedTool, _: &CanonicalDocument) -> EffectResult {
         panic!("source no-Tool Run physically executed a Tool");
     }
+}
+
+/// R29 positive consumer: actual localhost HTTP 200 JSON with reported Usage,
+/// NativeAgentLoop drives the original same-Run PG Claim→Dispatch→COMPLETED,
+/// Python is ONLY the independent source for V4 + AgentTurnResult canonical
+/// bytes. No external LLM was queried; candidate is not DomainSuccess.
+#[test]
+#[ignore = "original disposable PG18 original Python normative source + Rust native positive V4"]
+fn native_rust_pg_v4_completed_after_real_local_http_positive() {
+    let writer_dsn = std::env::var("HARNESS_RUST_TEST_PG_WRITER_DSN").unwrap();
+    let readonly_dsn = std::env::var("HARNESS_RUST_TEST_PG_DSN").unwrap();
+    let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").unwrap();
+    let fixture = std::env::var("HARNESS_RUST_TEST_FIXTURE_PATH").unwrap();
+    let all = loads_strict(&fs::read_to_string(fixture).unwrap()).unwrap();
+    let native = all.get("rust_native_provider_completed").unwrap();
+    let run_id = text(&native, "runId");
+    let source_records = native.get("sourceRecords").unwrap();
+    let first = loads_strict(
+        std::str::from_utf8(&source_records.index(0).unwrap().canonical_bytes()).unwrap(),
+    )
+    .unwrap();
+    let original_result = native.get("sourceResult").unwrap();
+    let batch = source_event_batch(&native);
+    let model_source = all.get("no_tool").unwrap();
+    let model = ExpectedModel {
+        provider_id: text(&model_source, "providerId"),
+        adapter_id: text(&model_source, "adapterId"),
+        requested_model_id: text(&model_source, "requestedModelId"),
+    };
+    let mut readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
+    let verified = inspect_pg_no_tool_run(&mut readonly, &schema, run_id, model).unwrap();
+    let transport = inspect_pg_provider_transport(&mut readonly, &schema, &verified).unwrap();
+    let mut provider = HttpModelProvider::new_provider_only_pg_bound(
+        &transport,
+        &verified,
+        "credential:verified-source-r22",
+        "test",
+        "system",
+        "question",
+    )
+    .unwrap();
+    let expected_wire = text(&native, "expectedProviderRequestDigest");
+    assert_eq!(
+        provider.freeze_next_request_digest(&[]).unwrap(),
+        expected_wire
+    );
+    let target_port = reqwest::Url::parse(transport.endpoint())
+        .unwrap()
+        .port()
+        .unwrap();
+    let mut journal = SourcePgCompletedJournal {
+        base: SourcePgUnknownJournal {
+            writer_dsn: writer_dsn.clone(),
+            schema: schema.clone(),
+            run_id: run_id.to_owned(),
+            batch: batch.clone(),
+            python_first_source: first,
+            python_failure_oracle: loads_strict(r#"{"kind":"unused-positive-failure-oracle"}"#)
+                .unwrap(),
+            prepared: false,
+            dispatch_digest: None,
+            unknown_lease: None,
+        },
+        original_result_oracle: original_result.clone(),
+        model_call_id: text(&native, "modelCallId").to_owned(),
+        requested_model: model.requested_model_id.to_owned(),
+        completed: false,
+    };
+    // Invalid action MUST be rejected before any real successful transition.
+    assert!(journal
+        .complete_provider(1, &ModelDecision::RequestInput, None)
+        .is_err());
+    assert!(!journal.completed);
+
+    let response = text(&native, "responseBody").as_bytes().to_vec();
+    let response_digest = digest_bytes(&response);
+    assert_eq!(response_digest, text(&native, "expectedRawResponseDigest"));
+    let listener = TcpListener::bind(("127.0.0.1", target_port)).unwrap();
+    let reader_dsn = readonly_dsn.clone();
+    let verify_schema = schema.clone();
+    let verify_run = run_id.to_owned();
+    let expected_model = (
+        model.provider_id.to_owned(),
+        model.adapter_id.to_owned(),
+        model.requested_model_id.to_owned(),
+    );
+    let first_two = batch[..2].to_vec();
+    let expected_wire_digest = expected_wire.to_owned();
+    let inbound = thread::spawn(move || {
+        let (mut socket, _) = listener.accept().unwrap();
+        // Independent SELECT-only consumer observes the durable DISPATCHING
+        // before the external endpoint even reads the model request body.
+        let mut pg = Client::connect(&reader_dsn, NoTls).unwrap();
+        assert_eq!(
+            observe_exact_batch(&mut pg, &verify_schema, &verify_run, 1, &first_two).unwrap(),
+            JournalObservation::ExactCommitted
+        );
+        let observed = inspect_pg_provider_head(
+            &mut pg,
+            &verify_schema,
+            &verify_run,
+            ExpectedModel {
+                provider_id: &expected_model.0,
+                adapter_id: &expected_model.1,
+                requested_model_id: &expected_model.2,
+            },
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(observed.status(), ProviderStatus::Dispatching);
+        drop(pg);
+        socket
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        let mut collected = Vec::new();
+        let mut buf = [0u8; 8192];
+        loop {
+            let n = socket.read(&mut buf).unwrap();
+            assert!(n > 0, "read complete admitted HTTP request before reply");
+            collected.extend_from_slice(&buf[..n]);
+            if let Some(at) = collected.windows(4).position(|b| b == b"\r\n\r\n") {
+                let headers = String::from_utf8_lossy(&collected[..at]);
+                assert!(headers.starts_with("POST /v1/chat/completions HTTP/1.1"));
+                let length = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (k, v) = line.split_once(':')?;
+                        k.eq_ignore_ascii_case("content-length")
+                            .then(|| v.trim().parse::<usize>().ok())
+                            .flatten()
+                    })
+                    .expect("exact request content length");
+                if collected.len() >= at + 4 + length {
+                    assert_eq!(
+                        digest_bytes(&collected[at + 4..at + 4 + length]),
+                        expected_wire_digest
+                    );
+                    break;
+                }
+            }
+        }
+        let head=format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            response.len()
+        );
+        socket.write_all(head.as_bytes()).unwrap();
+        socket.write_all(&response).unwrap();
+        socket.flush().unwrap();
+    });
+    let mut no_effect = NoEffect;
+    let result = NativeAgentLoop::new_provider_only(
+        &mut provider,
+        &mut journal,
+        &mut no_effect,
+        &verified,
+        1,
+    )
+    .unwrap()
+    .run();
+    assert_eq!(
+        result,
+        Ok(RunResult::CompletionProposal("A useful answer".into()))
+    );
+    inbound.join().unwrap();
+    assert!(journal.completed);
+    assert_eq!(provider.last_usage().unwrap().input_tokens, 9);
+    assert_eq!(provider.last_usage().unwrap().output_tokens, 4);
+    // A completed Provider V4 is NOT a confirmed completed Agent Run.
+    let after = read_run_readonly(&mut readonly, &schema, run_id).unwrap();
+    assert_eq!(after.projection.revision, 4);
+    assert_eq!(after.projection.status, "active");
+    assert_eq!(
+        observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch[..2]).unwrap(),
+        JournalObservation::ExactCommitted
+    );
+    assert_eq!(
+        observe_exact_batch(&mut readonly, &schema, run_id, 3, &batch[2..]).unwrap(),
+        JournalObservation::ExactCommitted
+    );
+    for (i, event) in batch.iter().enumerate() {
+        let expected = loads_strict(
+            std::str::from_utf8(&source_records.index(i).unwrap().canonical_bytes()).unwrap(),
+        )
+        .unwrap();
+        let record_ref = expected_ref(event, "harness-provider-call-record").unwrap();
+        let found = ordivon_harness_pg::read_cas_object_readonly(
+            &mut readonly,
+            &schema,
+            &record_ref.digest,
+            "harness-provider-call-record",
+        )
+        .unwrap();
+        assert_eq!(canonical_bytes(&found), canonical_bytes(&expected));
+    }
+    let result_ref = expected_ref(&batch[2], "agent-turn-result").unwrap();
+    let stored = ordivon_harness_pg::read_cas_object_readonly(
+        &mut readonly,
+        &schema,
+        &result_ref.digest,
+        "agent-turn-result",
+    )
+    .unwrap();
+    assert_eq!(canonical_bytes(&stored), canonical_bytes(&original_result));
+    let observed = inspect_pg_provider_head(&mut readonly, &schema, run_id, model)
+        .unwrap()
+        .unwrap();
+    assert_eq!(observed.status(), ProviderStatus::Completed);
+    assert_eq!(
+        observed.recovery_posture(),
+        RecoveryPosture::ReadCommittedResult
+    );
+    assert_eq!(
+        observed.record_digest(),
+        text(&native, "expectedRecordDigest")
+    );
+    assert_eq!(observed.result_digest(), Some(result_ref.digest.as_str()));
+    assert!(journal.base.unknown_lease.is_none());
+    // Intentional consumer negative: after the original Run advanced from
+    // revision 1 to 4, the same old source cannot issue another Provider send.
+    assert!(journal.prepare_provider(1).is_err());
+    println!("PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS");
 }
 
 #[test]
@@ -505,59 +915,7 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         requested_model_id: text(&no_tool, "requestedModelId"),
     };
 
-    let events = native.get("events").unwrap();
-    assert_eq!(events.as_borrowed().array_len(), Some(3));
-    let mut batch = Vec::new();
-    for n in 0..3 {
-        let source = events.index(n).unwrap();
-        let references = source.field("references").unwrap();
-        let mut refs = Vec::new();
-        for i in 0..references.array_len().unwrap() {
-            let reference = references.index(i).unwrap();
-            refs.push(StoredRef {
-                digest: reference
-                    .field("digest")
-                    .and_then(CanonicalRef::as_str)
-                    .unwrap()
-                    .to_owned(),
-                kind: reference
-                    .field("kind")
-                    .and_then(CanonicalRef::as_str)
-                    .unwrap()
-                    .to_owned(),
-                byte_length: reference
-                    .field("byteLength")
-                    .and_then(CanonicalRef::integer_text)
-                    .unwrap()
-                    .parse::<i64>()
-                    .unwrap(),
-            });
-        }
-        let event_data_ref = source.field("data").unwrap();
-        let event_data =
-            loads_strict(std::str::from_utf8(&event_data_ref.canonical_bytes()).unwrap()).unwrap();
-        batch.push(EventWrite {
-            event_id: source
-                .field("eventId")
-                .and_then(CanonicalRef::as_str)
-                .unwrap()
-                .to_owned(),
-            event_kind: source
-                .field("eventKind")
-                .and_then(CanonicalRef::as_str)
-                .unwrap()
-                .to_owned(),
-            data: event_data,
-            recorded_at_ms: source
-                .field("recordedAtMs")
-                .and_then(CanonicalRef::integer_text)
-                .unwrap()
-                .parse()
-                .unwrap(),
-            caused_by_event_id: None,
-            referenced_objects: refs,
-        });
-    }
+    let batch = source_event_batch(&native);
 
     // Python is the independent source oracle only; all Provider V4 and
     // failure CAS documents are now written by Rust AT THE ACTUAL TRANSITION.
