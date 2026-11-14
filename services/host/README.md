@@ -37,6 +37,16 @@ Use
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
 
+## Attention recovery model (one transaction cut)
+
+From the repository root, run `mise run host:formal:attention-reentry` with the existing pinned TLA+ JAR.
+The model covers interleaved relevant/unrelated change commits, monotone ACKs,
+one-page re-entry and one captured MVCC cut. Both mixed-snapshot Topic cursor
+and non-final page skipping are falsified with separate unsafe transitions.
+This is a bounded abstract model, not a PostgreSQL SQL/source refinement or
+installed Agent proof: retain the existing real PG18 single-snapshot and
+pagination consumer tests. No new Host database, Tool or model executor.
+
 ## Host formal verification: Human and Agent entrypoints
 
 **Human:** From services/host, run mise run formal:reply-source to check both
