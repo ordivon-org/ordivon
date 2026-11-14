@@ -26,6 +26,15 @@ JOBS = (
     "blackbox-vpn-pypi",
 )
 PROM = "http://127.0.0.1:29090"
+# Three native Prometheus Blackbox jobs scrape every 30 seconds.
+# Keep this one-shot admission bound to genuinely fresh, contiguous raw data.
+# These thresholds fail closed on missed or stale scrapes; they are not a
+# monitoring-retention or user-facing recovery-time SLA.
+FAILURE_SCRAPE_SECONDS = 30
+FAILURE_LAST_SAMPLE_AGE_SECONDS = 75
+FAILURE_MAX_SAMPLE_GAP_SECONDS = 45
+FAILURE_MAX_WINDOW_AGE_SECONDS = 165
+FAILURE_CROSS_LANE_SKEW_SECONDS = 45
 CONNECT = re.compile(
     r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z).*"
     r"\[wireguard\] Connecting to ((?:\d{1,3}\.){3}\d{1,3}):\d+"
@@ -339,12 +348,16 @@ def recent_failure_witness(now: datetime) -> bool | None:
         # Monitor silence must never become a fresh VPN failure; require
         # three distinct scrape evaluations and a recent last measurement.
         if (len(set(times)) != 3 or
-            now.timestamp() - times[-1] > 150 or
-            now.timestamp() - times[0] > 300):
+            now.timestamp() - times[-1] > FAILURE_LAST_SAMPLE_AGE_SECONDS or
+            now.timestamp() - times[0] > FAILURE_MAX_WINDOW_AGE_SECONDS or
+            any(right - left > FAILURE_MAX_SAMPLE_GAP_SECONDS
+                for left, right in zip(times, times[1:]))):
             return None
-    # All lanes must refer to a comparable observation window; accepting
-    # disjoint epochs would fabricate correlated failure.
-    if max(x[-1][0] for x in windows) - min(x[-1][0] for x in windows) > 90:
+    # The 30s consumer jobs must give three consecutive, recent original
+    # measurements; a retained failed value from a dead exporter/Prometheus
+    # is not evidence of a failure NOW. Cross-lane epochs also must overlap.
+    if (max(x[-1][0] for x in windows) - min(x[-1][0] for x in windows)
+        > FAILURE_CROSS_LANE_SKEW_SECONDS):
         return None
     return all(all(v == 0 for _, v in values) for values in windows)
 

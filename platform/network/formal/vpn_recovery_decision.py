@@ -185,6 +185,56 @@ def validate() -> None:
     z.add(BoolVal(worst_case < old_worst_case) == BoolVal(False))
     assert z.check() == unsat
 
+    # Real-consumer signal freshness refinement. The 30s scrape policy
+    # must not promote retained 135-second-old failed samples into current
+    # failure after Prometheus/Blackbox stopped. Model original, not
+    # query_range replayed timestamps, on a finite boundary grid.
+    assert policy.FAILURE_SCRAPE_SECONDS == scan
+    assert policy.FAILURE_LAST_SAMPLE_AGE_SECONDS == 75
+    assert policy.FAILURE_MAX_SAMPLE_GAP_SECONDS == 45
+    assert policy.FAILURE_MAX_WINDOW_AGE_SECONDS == 165
+    assert policy.FAILURE_CROSS_LANE_SKEW_SECONDS == 45
+    original_http = policy.http_raw_samples
+    raw_cases = 0
+    stale_mutants = 0
+    try:
+        for age, gap, skew in product(
+            (15, 65, 75, 76, 100, 135, 151),
+            (30, 45, 46, 60),
+            (0, 30, 45, 46),
+        ):
+            windows = [
+                {"metric": {"job": job}, "values": [
+                    [NOW.timestamp()-age-extra-2*gap, "0"],
+                    [NOW.timestamp()-age-extra-gap, "0"],
+                    [NOW.timestamp()-age-extra, "0"],
+                ]}
+                for i, job in enumerate(policy.JOBS)
+                for extra in ([skew] if i==2 else [0])
+            ]
+            policy.http_raw_samples = lambda metric, now, values=windows: values
+            action = policy.recent_failure_witness(NOW)
+            expected = (
+                age <= 75 and age+skew <= 75 and
+                gap <= 45 and
+                age+skew+2*gap <= 165 and
+                skew <= 45
+            )
+            model = Solver()
+            model.add(BoolVal(action is True) != BoolVal(expected))
+            assert model.check() == unsat, (age,gap,skew,action,expected)
+            if action is None:
+                assert not expected
+            raw_cases += 1
+            if age == 135 and gap == 30 and skew == 0:
+                # The pre-fix 150-second freshness bound admitted this.
+                old_mutant_admits = age <= 150 and age+2*gap <= 300
+                assert old_mutant_admits and action is None
+                stale_mutants += 1
+    finally:
+        policy.http_raw_samples = original_http
+    assert stale_mutants == 1
+
     # An incorrect selector copying duplicate countries into both slots has
     # a satisfiable distinctness violation; implemented source above cannot.
     c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
@@ -199,6 +249,8 @@ def validate() -> None:
         "distinctCandidateCases": country_cases,
         "timeBoundedSourceHintCases": hint_cases,
         "sourceBoundMaxSamplingAndTimerDecisionSeconds": worst_case,
+        "raw30sFreshnessCounterexampleCases": raw_cases,
+        "previousStaleZeroMutantRejected": stale_mutants,
         "premises": [
             "observed consumer failure (not UNKNOWN)",
             "direct underlay reachable",
