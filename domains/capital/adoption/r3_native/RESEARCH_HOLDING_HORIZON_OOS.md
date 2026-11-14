@@ -257,6 +257,15 @@ Capital verify task. This is native behavior falsification; not a new formally
 proved Lean/Z3 implementation refinement. Formal obligations remaining:
 the actual date-index equality and Qlib label-horizon TimeAdjuster refinement,
 and independent external calendar vintage and publication-time evidence.
+A small model-only Z3 contract now proves the abstract requested
+endpoint equality/nonmissing/nonfabrication and Qlib H/+1 label-purge
+arithmetics, with independent SAT witnesses for stale endpoint inference
+and the unsafe H-only NEXT_OPEN purge. This is executed by the existing
+Markets formal:pit-capture task. Those 8 SMT solver answers are scoped
+logical assurance, NOT physical Calendar/Pandas/TimeAdjuster
+implementation refinement or external market source validation. The native
+17-case calendar tests and six actual Windows source acceptance runs remain
+indispensable effect-level falsification.
 
 Pure Accounting Paper consumer was also run on exact SHA-matched original
 and corrected SPY sources with the existing PaperSession/value_session
