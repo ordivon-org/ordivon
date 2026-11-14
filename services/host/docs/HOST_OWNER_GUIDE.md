@@ -63,6 +63,31 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 4. 发布：校验准确 Git SourceCut、不可变安装目录、mcp-surface.json 与真实注册工具一致，再进行已安装服务和 PG 验证。
 5. 清理：检查 PG 外键、业务关联、活跃消费者和审计要求。禁止把系统文件、运行时别人的 Workspace 或数据库行当成普通缓存强删。
 
+## 4.1 当前消费者驱动的低成本 Work 恢复（2026-11-15 只读核查）
+
+一次真实 Host PG/官方 MCP 只读采样：14 个 Work 的 work.list 元数据
+JSON 约 4,276 JavaScript 字符单元，而逐个 work.get 的 JSON 合计
+268,498 字符单元，最大一个 Work 达 130,530；它的 established
+条目已经是接口允许的 128 条上限。这是当时 JSON 文本长度，
+不是 token、生产耗时或 p95 指标，也不代表其它日期的容量。
+
+- 对 Agent 日常恢复，先调用 work.list 的有界、无排序语义的元数据，
+  按真实当前消费者和引用选定 WorkRef，再对该 Work 调用 work.get；
+  rankingApplied=false 不能被解释为任务重要性排序。
+- 对巨型 Work，WorkSnapshot 负责当前可行动状态；完整历史与
+  独立证据仍由现有 Topic/Message 及外部 Owner 引用承载。不要把每次
+  调查结论永久附加到 established，也不要为了绕过最大条目数而
+  擅自删除有消费者的事实。
+- 需要归并时先证明历史证据仍可被目标 Agent 通过
+  workRef → topicRef/messageRef/referenceRefs 找回，取得真实
+  消费者验收，然后使用最新 expectedRevision 的 CAS 提交
+  精化的 Frontier/Established/Unresolved。发生竞争就重读、
+  合并，不能覆盖其它 Agent 的修订。
+- 这套操作复用现有 Host work.list/work.get/topic.resume
+  /work.snapshot.commit，不产生第二份注册表、快照数据库或
+  调度器。要证明真正节省 Agent token/延迟，需要独立在同一
+  Consumer 路径测量，不能只用 JSON 字符数推算。
+
 ## 5. Agent 操作指南
 
 1. actor.declare 仅声明稳定引用，不代表安全授权。创建或读取 Work 时，使用 work.create / work.get 的当前 revision。

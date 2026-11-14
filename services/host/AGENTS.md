@@ -21,7 +21,9 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 
 ## Agent re-entry and effects
 
-Use `work.get → attention.reentry → topic.resume → owner-native reference readback → work.snapshot.commit → cursor acknowledgment` as needed. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.
+For Work discovery, start with bounded work.list(state=open, limit, maxBytes); it returns reference/revision metadata, NOT business priority. Fetch full work.get only for an actually selected consumer Work, then attention.reentry, topic.resume, Owner-native reference readback, work.snapshot.commit, and cursor acknowledgment as needed. Do not fetch all open Work snapshots just to discover a task. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.
+
+Keep WorkSnapshot as a CURRENT semantic checkpoint, not an unbounded collaboration archive. A real production Work has already reached the 128-item established field contract bound. Before a consumer-approved compacting edit, preserve necessary historic evidence in existing Topic messages or Owner-native references, keep causal references/cursors, and use CAS against the latest revision. Do not silently drop unresolved facts, claim an ActorRef is authority, or just raise the limit to hide unbounded accumulation.
 
 For a change or cleanup, inspect the *exact real consumers*, PostgreSQL dependencies, active Work/Topic/Subscription references, source cut and installed release. Do not delete business rows because they are old or appear redundant. Prefer an existing PostgreSQL/MCP/Alembic/Pydantic capability before implementing a custom one; add no duplicate registry or event bus. Keep code reshaping separate from contract changes, and publish verification outcomes accurately.
 
