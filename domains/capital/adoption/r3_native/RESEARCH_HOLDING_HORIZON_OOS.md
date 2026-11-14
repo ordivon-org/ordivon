@@ -205,3 +205,84 @@ ORDIVON_FINANCE_R3_RESEARCH_HOLD_SESSIONS=5 or 20 and
 ORDIVON_FINANCE_R3_RESEARCH_EXIT_PRICE=next_open. Default CLOSE mode
 preserves previous experiments. Do NOT choose an investment horizon or
 deploy a policy using this already-inspected historical test set.
+
+## R11: Historical XNYS session qualification and native consumer revalidation (2026-11-14)
+
+Observed counterexample: originally retained Windows Finance R3 SPY/QQQ/IWM
+962-row Cboe normalized inputs match original Git receipt SHA-256 values.
+Each contains 2025-05-26, when XNYS was closed (Memorial Day).
+Vendor calendar labels do not establish a genuine trading event.
+
+Controlled revalidation: existing native Qlib 0.9.7/LightGBM,
+Riskfolio-Lib 7.4.1 and native Capital passive_benchmark and
+strategic_contribution under the same code revision per pair:
+
+- A: preserve the original 962-row input receipt and results.
+- B: remove only that one invalid session from each original SHA-matched
+  issuer source (961 rows), no synthetic fill or forecast tuning.
+- Five Qlib labels: H1 CLOSE, H5 CLOSE, H20 CLOSE, H5 NEXT_OPEN,
+  H20 NEXT_OPEN. Same time windows and cost conventions.
+- This CURRENT Qlib source revision: A/B predictions identical across
+  816/804/759/801/756 rows respectively; all five Portfolio economic
+  comparisons also identical, although five Qlib dataset byte digests change.
+  Riskfolio last-252-row CVaR/minimum-variance outputs are unchanged.
+- OLDER Qlib source revision had a separate A/B experiment whose H1
+  scores changed. Different code revisions confound the interpretation:
+  never equate cross-revision results with a single-input causal experiment.
+- Evidence in user-private Windows:
+  FinanceR3AgentA/calendar-requalification-20261114/economic-revalidation-r2/
+  native_5mode_calendar_requalification_matrix.json.
+  Private captured bytes, exact source SHA, model snapshots, MLflow recorders
+  and Portfolio results remain outside Git.
+
+Natural-owner source fix: reuse pinned exchange_calendars XNYS in Markets
+equity_session_calendar.require_xnys_session_grid, BEFORE Qlib feature,
+label/TimeAdjuster construction and before Riskfolio returns. The source
+provider cannot declare its own actual exchange sessions. The standing
+EXCHANGE_SESSION_ALIGNED_SOURCE_UNVERIFIED explicitly does NOT grant
+historical PIT, split/dividend/total-return, issuer licensing, PortfolioIntent,
+Paper PostgreSQL authorization or live orders.
+
+The Markets guard now checks the declared request window, not merely
+the earliest and latest observed date. Otherwise, a stale issuer source
+missing only the first/last requested XNYS session would falsely PASS.
+The current fixed R3 experiment requests 2023-01-01 through 2026-10-31,
+and the qualifying XNYS sequence must cover every true exchange
+session in that exact request interval. This still does not attest
+first-observed provider publication time or historical PIT.
+
+The fake Memorial Day and missing-session negative controls now belong to
+tests/test_market_xnys_source_session_calendar.py, consumed by the existing
+Capital verify task. This is native behavior falsification; not a new formally
+proved Lean/Z3 implementation refinement. Formal obligations remaining:
+the actual date-index equality and Qlib label-horizon TimeAdjuster refinement,
+and independent external calendar vintage and publication-time evidence.
+A small model-only Z3 contract now proves the abstract requested
+endpoint equality/nonmissing/nonfabrication and Qlib H/+1 label-purge
+arithmetics, with independent SAT witnesses for stale endpoint inference
+and the unsafe H-only NEXT_OPEN purge. This is executed by the existing
+Markets formal:pit-capture task. Those 8 SMT solver answers are scoped
+logical assurance, NOT physical Calendar/Pandas/TimeAdjuster
+implementation refinement or external market source validation. The native
+17-case calendar tests and six actual Windows source acceptance runs remain
+indispensable effect-level falsification.
+
+Pure Accounting Paper consumer was also run on exact SHA-matched original
+and corrected SPY sources with the existing PaperSession/value_session
+transition code, without Postgres or broker calls. H5 BUY on 2025-10-02 OPEN,
+SELL on 2025-10-09 OPEN and settle after 8 successive XNYS sessions:
+both sources end with +USD 3.04 after synthetic fees, zero shares, payables
+and receivables. H20 SELL on 2025-10-30 OPEN and settle after 23 sessions:
+both end with +USD 13.36, no pending positions or liabilities. The
+replayed trading dates are AFTER the observed fake 2025-05-26 date and do
+not authenticate fills or retrospective source availability. Private
+evidence: economic-revalidation-r2/
+native_paper_h5h20_session_calendar_revalidation.json. No Paper
+PostgreSQL or external account state was touched.
+
+This scoped revalidation does not rehabilitate synthetic economic results,
+historical price PIT, corporate actions, volume, market fills or adjusted price
+basis. It settles calendar sensitivity for five current-source model/Portfolio
+combinations plus two pure Paper transition paths. It does NOT prove
+correctness of original market prices, durable PostgreSQL paper accounting
+replay, real broker execution or predictive alpha.

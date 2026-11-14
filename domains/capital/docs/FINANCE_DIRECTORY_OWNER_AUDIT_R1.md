@@ -1,5 +1,35 @@
 # Ordivon Finance 目录与 Owner 审计 R1（2026-11-07 历史快照；当前变更见下）
 
+## 2026-11-14 Markets 日期资格与真实 Research 消费者修补
+
+本节是新证据，不重算下方 2026-11-07 历史快照的静态目录数量；
+它不创建 Owner Agent、第二份市场时钟平台或新的投资引擎。
+
+- External producer Cboe/OpenBB 的历史日线可能含虚假 XNYS
+  2025-05-26 交易日；Windows 私有历史 SPY/QQQ/IWM 原始捕获
+  SHA 与原 R3 实验源清单相同。对应真实消费者分别为
+  adoption/r3_native/etf_qlib_consumer.py (Qlib TimeAdjuster/label)
+  和 adoption/r3_native/riskfolio/etf_riskfolio_native.py
+  (历史收益估计和 CVaR/方差)。
+- Markets 自然 Owner 新增只读、有界的
+  src/ordivon_capital/markets/equity_session_calendar.py，直接组合
+  upstream exchange_calendars 4.13.2 XNYS，不自建节假日规则或时钟数据库。
+  消费者必须在读取原始数据后、构造标签和风险收益前进行校验。
+- Consumer graph: original publisher/byte receipt → Markets 日期轴
+  → Qlib/TimeAdjuster 或 Riskfolio → Portfolio 只读模拟。
+  日期形态正确只是一条必要条件，不产生额外 PIT、复权、
+  外部授权或 Paper PG 财务能力。
+- 当前实证：同版本五种 Qlib 持仓口径，原始 962 行 vs
+  删除仅一个假交易日后的 961 行，模型/Portfolio 输出均相同，
+  数据集摘要却不同；Riskfolio last-252-day 权重亦相同。
+  另一个更早 Qlib 源码版本的 H1 预测曾改变，
+  两者不能混成单个受控实验。
+- 工程验收：同一自然 Owner 的 Source moduleMap / census
+  同步登记；test_market_xnys_source_session_calendar.py
+  覆盖假节假日、缺失及时间顺序等负控，默认 Capital CI 消费。
+  真 Windows native 原始数据拒绝/校正后通过需与原生 SourceCut
+  和正式 GitHub CI 分开确认。
+
 ## 2026-11-10 存量减法重审（Git 主线 ef17d6879d12faa61fff3bb762b0d500d73c9113）
 
 此前 R1 的目录/行数与历史工具 KEEP 结论只代表 2026-11-07 SourceCut，不再是当前文件基线。全仓 5,002 文件结构清单及跨 Owner 评估在 `docs/architecture/audits/2026-11-10-brownfield/`；Finance 原始本轮基线为 399 文件。自然 Owner 七类仍不变。

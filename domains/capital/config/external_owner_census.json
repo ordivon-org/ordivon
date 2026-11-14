@@ -895,6 +895,27 @@
       ]
     },
     {
+      "id": "markets-xnys-public-equity-session-grid",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/equity_session_calendar.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "exchange_calendars 4.13.2 historical XNYS session rules; original listing exchange remains authoritative"
+      ],
+      "localStanding": "RETAINED_BOUNDED_READONLY_CALENDAR_ADAPTER",
+      "localResponsibility": "Reject invented, missing, duplicate, unordered and non-midnight session dates in caller-captured US stock and ETF historical research, before source data enters Qlib/TimeAdjuster or Riskfolio; alignment proves only the exchange calendar shape, never price, historical PIT, source rights, total return or trading authority.",
+      "admittedMechanicsOwners": [
+        "exchange_calendars 4.13.2 XNYS; pandas 3.1.1 explicit datetime/date indexing"
+      ],
+      "localDependencies": [
+        "Client-supplied provider-captured date labels, no publisher authentication or market-time vintage proof"
+      ]
+    },
+    {
       "id": "portfolio-offline-virtual-capital-daily-mark",
       "sourcePatterns": [
         "src/ordivon_capital/portfolio/paper_investment.py",

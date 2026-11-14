@@ -234,6 +234,17 @@ expected = ["unsat", "sat", "unsat", "unsat", "unsat", "sat"]
 if observed != expected:
     raise SystemExit(f"Markets capture PIT model results mismatch: {observed!r}")
 print("MarketsCapturePITR1: 4 invariant checks UNSAT; 2 bad-model witnesses SAT")
+calendar_raw = Path("formal/MarketsCalendarHorizonR1.smt2").read_bytes()
+calendar_ctx = z3.Context()
+calendar_results = z3.z3core.Z3_eval_smtlib2_string(
+    calendar_ctx.ref(), calendar_raw
+).splitlines()
+calendar_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "unsat", "unsat", "sat"]
+if calendar_results != calendar_expected:
+    raise SystemExit(
+        f"Markets calendar/Horizon model mismatch: {calendar_results!r}"
+    )
+print("MarketsCalendarHorizonR1: 6 scoped invariant checks UNSAT; 2 wrong-model witnesses SAT")
 PYZ3
 """
 
