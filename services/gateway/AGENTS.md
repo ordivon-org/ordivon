@@ -246,3 +246,20 @@ all Host/Security consumers work under its AuthZEN credentials. Do not run
 `ordivon-runtime-deploy` using `execution.submit` to bypass a missing
 `runtime.release.apply` Tool: that lacks the caller's proper ReleaseEffect
 admission and original-result recovery contract.
+
+## R8 direct-Host connector migration evidence
+
+The existing ChatGPT `ordivon-host` connector is a real **separate**
+consumer of `host-mcp.ordivon.com`, not merely a Host subprocess.
+Before changing its endpoint, run the original native MCP SDK
+`python3 tools/repo/check_host_gateway_mcp_consumer_surface.py`
+from the monorepo root. This reports source tool-set and argument
+differences, never a deployment approval. The original Host exposes
+31 tools, candidate Gateway 41 with 30 common on source
+`682e4c00dad0f9a28792049a415bb236fb0135e3`; same input
+property/required sets do not imply output schema or real Agent
+permissions match. See
+`docs/HOST_DIRECT_CONSUMER_GATE_R7.md` for full physical evidence,
+compatibility obligation, and installed native Agent canaries.
+Do not reimplement Host output models inside Gateway or assume a
+Cloudflare DNS/ingress change migrates a connected ChatGPT Plugin.
