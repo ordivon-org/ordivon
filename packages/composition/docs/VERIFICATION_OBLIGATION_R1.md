@@ -163,7 +163,7 @@ synthetic** and is not a native Gateway route claim.
 The existing finite TLA+ `EffectReplayFence.tla` has four delivery variants.
 The pinned TLC gate includes one new deliberately false fourth-state
 reachability probe and the existing unsafe retry mutation. The native Python
-correspondence checks 96 bounded combinations; Gateway's real Pydantic
+correspondence checks 288 bounded combinations; Gateway's real Pydantic
 projection independently tests three owner routes. These are finite
 source/model tests, **not** an installed PG/physical/provider effect proof.
 The cross-module Golden Road is
@@ -217,3 +217,25 @@ The model remains a read-only *selection* with `proofReuseAdmissible: false`.
 This is not a graph database, new Source owner or proof/installed acceptance.
 The actual Agent Golden Road is
 `../../../docs/AGENT_NATIVE_SOURCE_CAUSAL_GRAPH_R1.md`.
+
+### C06 R4: native-stop-only LOST is a real counterexample
+
+On a real PG Runtime cancellation, `job.observe` showed
+`executionDisposition=lost`, `executionTerminal=true`,
+`deliveryDisposition=committed`, `resultAvailable=false` and only one
+`native_stop_evidence` Artifact. That `committed` described a durable
+control resolution, not an original Runner result. C06 must recover the
+original operation for `lost/orphaned` even if an older installed producer
+still labels delivery `committed`. Native Composition tests include both
+legacy-contradictory and corrected `unknown` delivery. The finite
+EffectReplayFence model includes nine source states, 288 representative
+Python cases and one deliberately false LOST+committed reachability property.
+An exited/timeout/cancelled process can already have caused a partial effect.
+Do not derive `automaticRetryAdmissible=true` or owner effect completion.
+
+The live R3 cancelled Job's own Workspace marker was independently read back
+through Gateway Artifact `attempt-01a1da1b-5ccf-7211-9d50-6f16ae134985.stdout`:
+`entered` was durable while `exited` was absent (readback SHA-256
+`46eb3d6b7c89c65df13fe70ea8feb5b9da22ff3c131aac57b36615a26d7577bd`).
+This falsifies any implied rule `LOST => no physical effect`, even on a
+mechanically converged control record. It does not establish a provider effect.

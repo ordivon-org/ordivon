@@ -81,7 +81,11 @@ pub fn interpret_runtime_delivery(
         return Ok(Decision::Reconcile);
     }
     if delivery == "unknown" {
-        if !terminal || execution != Some("lost") || !result_available {
+        // The PG native-stop-only LOST record is mechanically converged but
+        // does not have an original Runner result.json. This owner state is
+        // still UNKNOWN, never a completed Tool result or retry permission.
+        // Keep Rust interpretation equivalent to the Python natural consumer.
+        if !terminal || execution != Some("lost") {
             return Err(Error::InvalidOwnerObservation);
         }
         return Ok(Decision::Unknown);
@@ -107,6 +111,14 @@ mod tests {
         assert_eq!(
             interpret_runtime_delivery(&doc),
             Ok(RuntimeDeliveryDecision::Reconcile)
+        );
+    }
+    #[test]
+    fn native_pg_stop_without_runner_result_is_unknown_not_protocol_invalid() {
+        let doc = loads_strict(r#"{"executionTerminal":true,"executionDisposition":"lost","deliveryDisposition":"unknown","recoveryRequired":false,"resultAvailable":false,"semanticCompletionEvaluated":false}"#).unwrap();
+        assert_eq!(
+            interpret_runtime_delivery(&doc),
+            Ok(RuntimeDeliveryDecision::Unknown)
         );
     }
     #[test]

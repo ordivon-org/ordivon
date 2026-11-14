@@ -88,7 +88,11 @@ def qualify_execution_effect_frontier(
     if (
         recovery is True
         or delivery in {"unknown", "reconciliation_required"}
-        or observation["state"] == "reconcile_required"
+        # An older installed PG owner may still project a durable LOST
+        # control record as committed despite having no Runner result.
+        # Trust neither the label nor exit code as a domain effect witness.
+        or observation["state"] in {"reconcile_required", "lost", "orphaned"}
+        or disposition in {"lost", "orphaned"}
     ):
         next_read = "RECONCILE_ORIGINAL_OPERATION"
     elif not observation["terminal"]:

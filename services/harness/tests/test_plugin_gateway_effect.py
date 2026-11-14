@@ -1056,6 +1056,45 @@ def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection(
     assert observed["resultAvailable"] is False
 
 
+def test_gateway_native_stop_unknown_lost_does_not_invent_runner_result() -> None:
+    """Gateway artifact projection != native execution result availability."""
+
+    class NativeStopOnly(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            is_error, record = super().call_tool(name, arguments)
+            if name == "execution.get":
+                record.update(
+                    state="lost",
+                    execution_disposition="lost",
+                    delivery_disposition="unknown",
+                    terminal=True,
+                    exit_code=None,
+                    recovery_required=False,
+                    artifact_ids=["artifact-attempt-native-stop"],
+                    artifact_count=1,
+                    artifact_projection_complete=True,
+                )
+            return is_error, record
+
+    client = NativeStopOnly()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_requests[client.native_id] = "request:native-stop-recovery"
+    observed = adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+    assert observed["executionTerminal"] is True
+    assert observed["executionDisposition"] == "lost"
+    assert observed["deliveryDisposition"] == "unknown"
+    assert observed["resultAvailable"] is False
+    assert observed["semanticCompletionEvaluated"] is False
+
+
 @pytest.mark.parametrize("invalid", [None, True, False, 0, -1, 10_001, "10"])
 def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object, pg_schema) -> None:
     """An invalid canonical JSON value must not reach Gateway execution.submit."""

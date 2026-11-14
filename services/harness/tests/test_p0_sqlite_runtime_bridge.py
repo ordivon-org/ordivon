@@ -650,6 +650,27 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             "reconcile",
         )
 
+    def test_real_pg_native_stop_has_no_runner_result_and_stays_unknown(self) -> None:
+        """Native stop evidence can commit LOST without execution_result.
+
+        The current PG owner readback from actual cancellation had one native
+        stop artifact, resultAvailable=False, and executionDisposition=lost.
+        The fixed Runtime delivery must not become Harness Tool success.
+        """
+        observed = {
+            "executionTerminal": True,
+            "executionDisposition": "lost",
+            "deliveryDisposition": "unknown",
+            "recoveryRequired": False,
+            "resultAvailable": False,
+            "semanticCompletionEvaluated": False,
+        }
+        self.assertEqual(_runtime_delivery_state(observed), "unknown")
+        with self.assertRaisesRegex(
+            HarnessRuntimeClientError, "executionDisposition"
+        ):
+            _runtime_delivery_state({**observed, "deliveryDisposition": "committed"})
+
     def test_runtime_delivery_product_has_no_false_terminal_projection(self) -> None:
         # Exhaust the small finite product of Runtime's six JobResolution
         # variants, one invalid alien value, four delivery variants, and
@@ -692,7 +713,8 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
                                 self.assertEqual(resolution, "lost")
                                 self.assertEqual(delivery, "unknown")
                                 self.assertTrue(terminal)
-                                self.assertTrue(available)
+                                # LOST may have only native-stop evidence,
+                                # with no Runner execution_result at all.
                                 self.assertFalse(recovery)
                             else:
                                 self.assertEqual(standing, "reconcile")

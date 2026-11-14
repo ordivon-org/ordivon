@@ -19,7 +19,7 @@ java -XX:+UseParallelGC -cp "$jar" tlc2.TLC -workers 1 -config EffectReplayFence
 probe="$(mktemp)"
 red="$(mktemp -d)"
 trap 'rm -f "$probe";rm -rf "$red"' EXIT
-for invariant in ReconciliationIsUnreachable ReconciliationDeliveryIsUnreachable TerminalCommittedWithoutEffectIsUnreachable UnindexedUncertaintyIsUnreachable;do
+for invariant in ReconciliationIsUnreachable ReconciliationDeliveryIsUnreachable LostCommittedIsUnreachable TerminalCommittedWithoutEffectIsUnreachable UnindexedUncertaintyIsUnreachable;do
   if java -XX:+UseParallelGC -cp "$jar" tlc2.TLC -workers 1 -config "EffectReplayFence.$invariant.cfg" EffectReplayFence.tla >"$probe" 2>&1;then
     echo "C06 nonvacuity unexpectedly PASS: $invariant" >&2;exit 1
   fi
@@ -28,6 +28,10 @@ for invariant in ReconciliationIsUnreachable ReconciliationDeliveryIsUnreachable
     ReconciliationIsUnreachable) grep -Fq 'recommendation = "reconcile"' "$probe";;
     ReconciliationDeliveryIsUnreachable)
       grep -Fq 'delivery = "reconciliation_required"' "$probe"
+      grep -Fq 'recommendation = "reconcile"' "$probe";;
+    LostCommittedIsUnreachable)
+      grep -Fq 'remoteState = "lost"' "$probe"
+      grep -Fq 'delivery = "committed"' "$probe"
       grep -Fq 'recommendation = "reconcile"' "$probe";;
     TerminalCommittedWithoutEffectIsUnreachable)
       grep -Fq 'terminal = TRUE' "$probe"

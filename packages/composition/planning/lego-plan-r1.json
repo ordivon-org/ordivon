@@ -283,6 +283,7 @@
         "formal/EffectReplayFence.tla",
         "formal/EffectReplayFence.cfg",
         "formal/EffectReplayFence.ReconciliationDeliveryIsUnreachable.cfg",
+        "formal/EffectReplayFence.LostCommittedIsUnreachable.cfg",
         "scripts/verify_effect_replay_formal.sh"
       ],
       "dependencies": [
@@ -302,8 +303,8 @@
         }
       ],
       "formalObligations": [
-        "Native pinned TLA+ TLC exhaustively verifies TypeOK, no retry, no effect success claim, exact classified recommendation and known/unindexed impact scope over a declared finite abstract transition system; 4 nonvacuity probes (including the fourth delivery-state witness) and an unsafe-retry mutation must yield named counterexamples.",
-        "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 96 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
+        "Native pinned TLA+ TLC exhaustively verifies TypeOK, no retry, no effect success claim, exact classified recommendation and known/unindexed impact scope over a declared finite abstract transition system; 5 nonvacuity probes (including native-stop LOST+committed and fourth delivery-state witnesses) and an unsafe-retry mutation must yield named counterexamples.",
+        "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 288 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
       ],
       "qualification": "FINITE_TLA_MODEL_VERIFIED_WITH_MUTATION_PROBE; SOURCE_FINITE_CORRESPONDENCE_TESTED; IMPLEMENTATION_REFINEMENT_INSTALLED_EFFECT_UNKNOWN"
     },

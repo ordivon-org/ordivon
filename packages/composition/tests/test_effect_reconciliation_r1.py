@@ -188,6 +188,51 @@ def test_gateway_native_reconciliation_required_is_actionable_not_a_protocol_err
     assert standings(result) == {"proof:effect": "UNKNOWN", "proof:outside": "REUSE_CANDIDATE"}
 
 
+@pytest.mark.parametrize("delivery", ["committed", "unknown"])
+def test_actual_pg_native_stop_lost_is_not_a_verified_terminal_effect(delivery):
+    """Live PG cancellation yielded lost+committed and no runner result.
+
+    Consumer must not mistake a mechanically converged control record for
+    conclusive process delivery; a prior partial file effect remains possible.
+    """
+    operation = "ordivon-exec:v1:runtime.linux:job-native-stop-lost"
+    effect = f"effect:{operation}"
+    obs = {
+        **gateway_observation(state="lost", terminal=True, delivery=delivery, recovery=False),
+        "owner_id": "runtime.linux",
+        "native_id": "job-native-stop-lost",
+        "operation_ref": operation,
+        "execution_disposition": "lost",
+        "exit_code": None,
+    }
+    result = qualify_execution_effect_frontier(
+        observation=obs,
+        expected_operation_ref=operation,
+        proof_graph={
+            "authorityRefs": [effect, "source:independent"],
+            "obligations": [
+                {
+                    "id": "proof:depends-on-effect",
+                    "dependsOn": [effect],
+                    "dependenciesComplete": True,
+                },
+                {
+                    "id": "proof:independent",
+                    "dependsOn": ["source:independent"],
+                    "dependenciesComplete": True,
+                },
+            ],
+        },
+    )
+    assert result["recommendedNextRead"] == "RECONCILE_ORIGINAL_OPERATION"
+    assert result["automaticRetryAdmissible"] is False
+    assert result["providerEffectEstablished"] is False
+    assert {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]} == {
+        "proof:depends-on-effect": "UNKNOWN",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+
+
 def test_active_operation_is_observed_not_retried():
     result = qualify(
         gateway_observation(state="started", terminal=False, delivery="in_progress", recovery=False)
@@ -309,7 +354,7 @@ def test_existing_cli_rejects_wrong_operation_and_emits_bounded_impact(tmp_path)
 
 
 def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstraction():
-    """96 classified abstract inputs; test relation, NOT proof of Python refinement.
+    """288 classified abstract inputs; test relation, NOT proof of Python refinement.
 
     The native pinned-TLC EffectReplayFence model exhausts this same input
     partition. Checking these concrete representative JSON inputs provides a
@@ -317,7 +362,17 @@ def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstra
     """
     tested = 0
     for state, terminal, recovery, delivery, indexed in product(
-        ("started", "reconcile_required", "completed"),
+        (
+            "started",
+            "reconcile_required",
+            "completed",
+            "succeeded",
+            "failed",
+            "timed_out",
+            "cancelled",
+            "lost",
+            "orphaned",
+        ),
         (False, True),
         (False, True),
         ("unknown", "in_progress", "committed", "reconciliation_required"),
@@ -337,7 +392,7 @@ def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstra
         if (
             recovery
             or delivery in {"unknown", "reconciliation_required"}
-            or state == "reconcile_required"
+            or state in {"reconcile_required", "lost", "orphaned"}
         ):
             expected = "RECONCILE_ORIGINAL_OPERATION"
         elif not terminal:
@@ -360,4 +415,4 @@ def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstra
         assert standings(result) == expected_standing
         assert result["selection"]["unindexedChangeRefs"] == ([] if indexed else [EFFECT])
         tested += 1
-    assert tested == 96
+    assert tested == 288

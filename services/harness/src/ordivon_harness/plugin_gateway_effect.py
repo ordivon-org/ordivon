@@ -563,10 +563,16 @@ class GatewayMcpRuntimeAdapter:
                 raise HarnessRuntimeClientError(
                     "Gateway artifact count differs from exact artifact identities"
                 )
+        # Gateway's artifact_projection_complete proves the *listed artifact
+        # identities*, not existence of an original Runner execution_result.
+        # In particular LOST + unknown + native_stop_evidence is NOT an
+        # available Runner result. Do not synthesize one from an unknown
+        # delivery label; the original native Owner remains the readback path.
         result_available = (
             terminal
             and not recovery
-            and (delivery == "unknown" or (delivery == "committed" and projection_complete is True))
+            and delivery == "committed"
+            and projection_complete is True
         )
         return {
             "jobId": native_id,

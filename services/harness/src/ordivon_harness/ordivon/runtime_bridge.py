@@ -314,7 +314,11 @@ def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
     if recovery_required or delivery_disposition == "reconciliation_required":
         return "reconcile"
     if delivery_disposition == "unknown":
-        if not execution_terminal or execution_disposition != "lost" or not result_available:
+        # Native PG cancellation can commit a LOST control result with only
+        # native-stop evidence, no Runner result.json and resultAvailable=False.
+        # This is still an uncertain physical outcome, never an observed Tool
+        # success. Older Runtime variants may retain a separate lost receipt.
+        if not execution_terminal or execution_disposition != "lost":
             raise HarnessRuntimeClientError("Runtime unknown delivery projection is inconsistent")
         return "unknown"
     if delivery_disposition == "in_progress":
