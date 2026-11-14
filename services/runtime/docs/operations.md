@@ -472,6 +472,50 @@ scripts/ordivon-runtime-cache inspect \
   --runtime-store-root /var/lib/ordivon/runtime --pretty
 ```
 
+### PostgreSQL-only rebuildable build-cache eviction
+
+The native PostgreSQL Runtime lifecycle reclaimer closes eligible Workspaces but does
+not invoke the SQLite Registry-backed `ordivon-runtime-cache prune`. Therefore
+open Workspace private Cargo targets can accumulate even after successful Jobs.
+The PG-only targeted operator adapter
+`scripts/ordivon-runtime-pg-buildcache-evict` reuses the mature cache operator's
+**detach under admission fence, unlink outside the fence** algorithm without
+opening SQLite or closing Git Workspaces. This adapter is a manual source
+capability unless separately installed into the operator's systemd lifecycle.
+
+Use the **effective** installed PG Runtime configuration, preserving systemd
+`EnvironmentFile=` precedence: later overlays override earlier definitions.
+A base env file alone is insufficient if the running PG Writer SourceCut came
+from a later overlay. Supply the actual `workspace.get` HEAD and
+`sourceStateDigest`; the adapter rechecks source cleanliness, native PG
+Workspace status, source qualification, no unresolved or held PG Job, a
+minimum four-hour quiet interval, and physical cache identity under the same
+PG advisory lock that serializes Job admission. Dry run is the default.
+`--apply` records a plan, atomically detaches only
+`cache/build/<workspaceId>/`, releases the PG fence, deletes detached bytes,
+and records the final result. Git source, untracked/ignored Workspace outputs,
+PG Job/Attempt, and Artifacts are not its deletion target. Interrupted
+post-detach cleanup leaves a named `.prune-detached` candidate and a
+recoverable plan receipt; do not assume the caller's error means no effects.
+
+Example (use the exact current values returned by `workspace.get`):
+
+```bash
+python3 scripts/ordivon-runtime-pg-buildcache-evict \
+  --env-file /etc/ordivon/ordivon-runtime-pg-only.env \
+  --env-overlay /etc/ordivon/runtime-resource-scheduler.env \
+  --env-overlay /etc/ordivon/runtime-pg-only-build.env \
+  --store-root /var/lib/ordivon/pg-candidate \
+  --workspace-id '<workspace-id>' \
+  --expected-head '<40-hex-current-HEAD>' \
+  --expected-source-state-digest 'sha256:<64-hex-source-digest>'
+```
+
+This is **not** a semantic consumer-release proof or an installed automatic
+GC policy. Reusing compiled outputs after cache eviction incurs rebuild costs,
+and external non-Runtime consumers require independent observation. Native
+successful source/PG evidence does not establish domain task completion.
+
 The former source-cache migration path is retired. Current execution never consumes `cache/build/sources/<sha256>/`; keeping an operator that moved Workspace build targets into that hierarchy would manufacture unused state. Existing source-scoped caches are therefore legacy reconstructible bytes and are eligible for ordinary capacity reclamation even when the same source repository still has an open Workspace.
 
 Cache reclamation is capacity-driven rather than a blind age sweep. The packaged daily lifecycle service resolves its watermarks from `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` in `/etc/ordivon/ordivon-runtime.env`; the packaged example remains 64 GiB / 48 GiB, while an installation may deliberately choose another pair. Those watermarks bind one explicit Runtime retention metric, `path-apparent-nondirectory-bytes-count-hardlinks-v1`: every regular-file or symlink pathname contributes its apparent byte length, hardlinks count once per retained pathname, and directory inode bytes are excluded. This additive metric is used for candidate budgeting; it is not a claim about unique filesystem allocation or bytes that `df` would recover after deletion. Active or held Workspace build targets remain protected. An open but idle Workspace does not by itself make its reconstructible Cargo/build target semantic state. Effectful prune binds `--registry-root` separately from `--database`: Runtime Core owns `registryRoot/admission.lock`, so the maintenance fence must come from that explicit authority coordinate rather than being guessed from an arbitrary database pathname. The database must be the direct canonical `registryRoot/registry.sqlite3` file; symlink or hardlink aliases fail closed before a receipt or cache effect, preventing two pathnames for one SQLite database from silently producing two unrelated admission locks. Cache inspection and fenced revalidation consume Runtime Core `registry` / `registry-markers` projections rather than reconstructing Job/Attempt semantics in Python. Under retention pressure the LRU-selected candidate carries a digest of its observed Registry Job/Attempt identity into the durable prune plan. Prune then acquires the same exclusive Registry `admission.lock` used by deployment and, while new admission is fenced, rechecks active/held ownership, the Workspace record standing, and the exact planned activity digest. A new Job that was admitted and even completed while prune waited for the fence therefore invalidates the old candidate without requiring an arbitrary one-hour, six-hour, or other age threshold. Only a still-current candidate is atomically renamed out of the execution path; recursive deletion happens after releasing the admission fence. A later Job recreates the empty Workspace build directory through normal execution-environment construction. If post-detach deletion fails, the bytes remain under `cache/.prune-detached/` and are reported as an explicit `detached_eviction` residual on the next inspection rather than disappearing from ownership. Generic and temporary cache roots remain protected for every open Workspace because this change does not establish equivalent cross-Job semantics for those paths. Legacy source-scoped build caches have no current execution consumer and remain capacity-reclaimable regardless of repository-open state. Global package-manager caches are measured but not interpreted or deleted by Runtime; mature package-manager-native pruning remains their owner. Prune execution truth is separate from retention pressure: deletion failures or a still-reclaimable residual produce `status=partial` and a nonzero exit, while a cache that remains above the high watermark only because no policy-eligible bytes remain is a successful maintenance execution with `capacityDisposition=protected_residual`. Its receipt records the residual overage and zero remaining reclaimable bytes; `runtime-status --diagnose` uses the same retention metric identity for `CACHE_HIGH_WATERMARK` rather than comparing the policy with a different hardlink-deduplicated byte count.

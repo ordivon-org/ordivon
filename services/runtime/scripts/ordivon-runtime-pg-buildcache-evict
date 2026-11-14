@@ -1,0 +1,297 @@
+#!/usr/bin/env python3
+"""One bounded PostgreSQL-native, admission-fenced eviction of rebuildable Workspace build cache.
+
+This is the PG-only counterpart to the mature SQLite Runtime cache detachment
+algorithm, NOT a second Workspace garbage collector or a PostgreSQL writer.
+It preserves Git worktrees, ignored outputs, Artifacts and Job/Attempt evidence.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import time
+import uuid
+
+from mcp_probe import connect_compatible, load_environment_file
+
+ADMISSION_LOCK = 79_245_017  # Same owner-owned lock as PG Job admission / Workspace effects.
+MIN_QUIET_MS = 4 * 60 * 60 * 1000
+WORKSPACE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$")
+SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
+GIT_HEAD = re.compile(r"^[0-9a-f]{40}$")
+
+
+def validate_identity(workspace_id: str, head: str, digest: str) -> None:
+    if not WORKSPACE_ID.fullmatch(workspace_id):
+        raise ValueError("invalid Workspace identity")
+    if not GIT_HEAD.fullmatch(head):
+        raise ValueError("expected HEAD must be one exact Git commit")
+    if not SHA.fullmatch(digest):
+        raise ValueError("expected source state must be one exact sha256 digest")
+
+
+def qualified_quiet(last_ms: int, now_ms: int, unresolved: int, held: int,
+                    latest_resolution: str | None) -> bool:
+    return (last_ms > 0 and 0 <= last_ms <= now_ms - MIN_QUIET_MS
+            and unresolved == 0 and held == 0 and latest_resolution == "succeeded")
+
+
+def direct_directory(path: Path) -> Path:
+    metadata = path.lstat()
+    if not stat.S_ISDIR(metadata.st_mode) or path.is_symlink():
+        raise RuntimeError("candidate path is not a direct directory")
+    return path
+
+
+def git(root: Path, *args: str) -> str:
+    result = subprocess.run(["/usr/bin/git", "-C", str(root), *args],
+                            capture_output=True, text=True, timeout=12)
+    if result.returncode:
+        raise RuntimeError("Git Workspace observation unavailable")
+    return result.stdout.strip()
+
+
+def atomic_receipt(path: Path, value: dict) -> None:
+    if path.exists() or path.is_symlink():
+        # A receipt name is an immutable operation ID, not an overwrite target.
+        raise RuntimeError("receipt identity collision")
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with path.open("x", encoding="utf-8") as out:
+        os.chmod(path, 0o600)
+        json.dump(value, out, sort_keys=True)
+        out.write("\n")
+        out.flush()
+        os.fsync(out.fileno())
+
+
+def pg_qualification(conn, schema, source: str, workspace_id: str) -> tuple[int, dict]:
+    from psycopg import sql
+    s = sql.Identifier(schema)
+    row = conn.execute(sql.SQL(
+        "SELECT state,source_sha256,promotion_allowed FROM {}._stage_control WHERE id='source'"
+    ).format(s)).fetchone()
+    if row != ("QUALIFIED_WRITER", source, True):
+        raise RuntimeError("installed PostgreSQL source has no current qualified writer")
+    query = sql.SQL("""
+        SELECT
+        (SELECT MAX(created_at_ms) FROM {s}.jobs WHERE workspace_id=%s),
+        (SELECT MAX(a.finished_at_ms) FROM {s}.attempts a JOIN {s}.jobs j
+            ON j.job_id=a.job_id WHERE j.workspace_id=%s),
+        (SELECT MAX(e.observed_at_ms) FROM {s}.job_events e JOIN {s}.jobs j
+            ON j.job_id=e.job_id WHERE j.workspace_id=%s),
+        (SELECT COUNT(*) FROM {s}.jobs WHERE workspace_id=%s AND resolution IS NULL),
+        (SELECT COUNT(*) FROM {s}.concurrency_reservations r
+            JOIN {s}.attempts a ON a.attempt_id=r.attempt_id
+            JOIN {s}.jobs j ON j.job_id=a.job_id
+            WHERE j.workspace_id=%s AND r.state IN ('active','held_orphaned')),
+        (SELECT resolution FROM {s}.jobs WHERE workspace_id=%s
+            ORDER BY created_at_ms DESC,job_id DESC LIMIT 1),
+        (EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint
+    """).format(s=s)
+    j, a, e, unresolved, held, latest, now = conn.execute(
+        query, (workspace_id,) * 6
+    ).fetchone()
+    last = max((v or 0) for v in (j, a, e))
+    result = {"lastActivityUnixMs": int(last), "nowUnixMs": int(now),
+              "unresolvedJobs": int(unresolved), "heldReservations": int(held),
+              "lastJobResolution": latest,
+              "idleHours": round((int(now) - last) / 3600000, 2) if last else None}
+    if not qualified_quiet(int(last), int(now), int(unresolved), int(held), latest):
+        raise RuntimeError("Workspace has recent, unresolved, held or unqualified PG Job activity")
+    return int(now), result
+
+
+def native_workspace_snapshot(environment: dict[str, str], wid: str,
+                              expected_head: str, expected_digest: str,
+                              expected_root: Path) -> dict:
+    # Native PG Runtime owns the readback; do not reconstruct that truth from
+    # disconnected filesystem fragments or an earlier GC inventory.
+    os.environ["no_proxy"] = "127.0.0.1,localhost"
+    client = connect_compatible(
+        "http://" + environment["ORDIVON_PG_BIND"] + "/mcp",
+        environment["ORDIVON_PG_TOKEN"], client_name="ordivon-runtime-pg-buildcache",
+        timeout=18.0,
+    )
+    value = client.call_tool("workspace.get", {"workspaceId": wid, "schemaVersion": 1})
+    if (value.get("workspaceId") != wid
+        or value.get("sourceStateDigest") != expected_digest
+        or value.get("currentHeadRevision") != expected_head
+        or value.get("dirty") is not False
+        or value.get("activeJobIds") != []):
+        raise RuntimeError("native Runtime Workspace witness changed or has live work")
+    source_repo = value.get("sourceRepo")
+    if not isinstance(source_repo, str) or not Path(source_repo).is_dir():
+        raise RuntimeError("native Workspace source repository unavailable")
+    workspace = expected_root / "workspaces" / wid
+    if not workspace.is_dir() or workspace.is_symlink():
+        raise RuntimeError("Workspace physical carrier is missing or unexpected")
+    return value
+
+
+def assert_source_and_cache(root: Path, wid: str, head: str) -> Path:
+    workspace = root / "workspaces" / wid
+    direct_directory(workspace)
+    if git(workspace, "rev-parse", "HEAD") != head or git(
+        workspace, "status", "--porcelain", "--untracked-files=normal"
+    ):
+        raise RuntimeError("physical Workspace is no longer the clean qualified source")
+    record_path = root / "workspace-records" / (wid + ".json")
+    if record_path.is_symlink() or not record_path.is_file():
+        raise RuntimeError("Workspace record missing or redirected")
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    if record.get("state", "open") != "open":
+        raise RuntimeError("Workspace record no longer open")
+    if record.get("workspaceId", wid) != wid:
+        raise RuntimeError("Workspace record identity drifted")
+    cache = root / "cache" / "build" / wid
+    direct_directory(cache)
+    return cache
+
+
+def external_processes_using(path: Path) -> list[str]:
+    # Advisory OS-consumer guard in addition to the authoritative PG Job fence.
+    # Never mistake an unreadable process path for proof of absence.
+    target = str(path) + os.sep
+    matches = []
+    for proc in Path("/proc").glob("[0-9]*"):
+        for link in (proc / "cwd",):
+            try:
+                loc = os.readlink(link)
+                if loc == str(path) or loc.startswith(target):
+                    matches.append(proc.name)
+            except (FileNotFoundError, ProcessLookupError, PermissionError, OSError):
+                continue
+    return matches
+
+
+def effective_environment(base: Path, overlays: list[Path]) -> dict[str, str]:
+    """Honor the installed systemd EnvironmentFile order; later files override."""
+    env = load_environment_file(base)
+    for path in overlays:
+        env.update(load_environment_file(path))
+    return env
+
+
+def run(args) -> dict:
+    validate_identity(args.workspace_id, args.expected_head,
+                      args.expected_source_state_digest)
+    environment = effective_environment(args.env_file, args.env_overlay)
+    root = Path(environment["ORDIVON_PG_STORE_ROOT"])
+    if root != args.store_root or root.is_symlink():
+        raise RuntimeError("operator store root does not match installed PostgreSQL Runtime")
+    for dirname in (root, root / "cache", root / "cache" / "build",
+                    root / "workspace-records", root / "workspaces"):
+        direct_directory(dirname)
+    environment_source = environment["ORDIVON_PG_SOURCE_SHA256"]
+    if len(environment_source) != 64 or not all(v in "0123456789abcdef" for v in environment_source):
+        raise RuntimeError("invalid installed PG source identity")
+    native_workspace_snapshot(environment, args.workspace_id,
+                              args.expected_head, args.expected_source_state_digest, root)
+    import psycopg
+    with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as conn:
+        with conn.transaction():
+            conn.execute("SET LOCAL statement_timeout='30000ms'")
+            conn.execute("SELECT pg_advisory_xact_lock(%s)", (ADMISSION_LOCK,))
+            now, pg_status = pg_qualification(conn, environment["ORDIVON_PG_SCHEMA"],
+                                              environment_source, args.workspace_id)
+            cache = assert_source_and_cache(root, args.workspace_id, args.expected_head)
+            if external_processes_using(cache):
+                raise RuntimeError("an external process is currently using the build cache")
+            result = {
+                "kind": "ordivon.pg-native-buildcache-eviction", "schemaVersion": 1,
+                "workspaceId": args.workspace_id,
+                "sourceHead": args.expected_head,
+                "sourceStateDigest": args.expected_source_state_digest,
+                "pg": pg_status, "cachePath": str(cache),
+                "effect": "not_requested" if not args.apply else "detaching",
+                "sourceAndArtifactsPreserved": True,
+            }
+            if not args.apply:
+                return result
+            detached_root = root / "cache" / ".prune-detached"
+            detached_root.mkdir(mode=0o700, exist_ok=True)
+            direct_directory(detached_root)
+            detached = detached_root / (
+                "pg-build-" + args.workspace_id + "-" + uuid.uuid4().hex
+            )
+            if detached.exists() or detached.is_symlink():
+                raise RuntimeError("detached cache identity already exists")
+            receipt_dir = root / "lifecycle-receipts"
+            direct_directory(receipt_dir)
+            receipt = receipt_dir / (
+                "pg-buildcache-" + args.workspace_id + "-" + uuid.uuid4().hex
+            )
+            if receipt.exists() or receipt.is_symlink():
+                raise RuntimeError("receipt identity collision")
+            before_free = shutil.disk_usage(root).free
+            atomic_receipt(receipt / "plan.json", {
+                **result, "effect": "prepared",
+                "detachedPath": str(detached), "preparedAtMs": now
+            })
+            # Only this rename is inside the PG admission/effect fence. A new
+            # admitted Job then creates a NEW per-Workspace build cache path.
+            os.rename(cache, detached)
+            for directory in (cache.parent, detached_root):
+                fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+                try:
+                    os.fsync(fd)
+                finally:
+                    os.close(fd)
+        # PG transaction ends: do not block the Runtime control plane while
+        # disposing potentially gigabytes of already-detached rebuildable bytes.
+        shutil.rmtree(detached)
+        result.update({"effect": "evicted", "receipt": str(receipt),
+                       "detachedPath": str(detached),
+                       "freeBytesBefore": before_free,
+                       "freeBytesAfter": shutil.disk_usage(root).free})
+        atomic_receipt(receipt / "result.json", result)
+        return result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--env-file", type=Path, required=True)
+    parser.add_argument("--env-overlay", type=Path, action="append", default=[],
+                        help="Installed systemd EnvironmentFile overlays in exact unit order")
+    parser.add_argument("--store-root", type=Path, required=True)
+    parser.add_argument("--workspace-id", required=True)
+    parser.add_argument("--expected-head", required=True)
+    parser.add_argument("--expected-source-state-digest", required=True)
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+    try:
+        result = run(args)
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 0
+    except Exception as error:
+        # Credentials and Postgres exceptions may embed DSN; never serialize
+        # arbitrary inner exception strings to a public Runtime Artifact.
+        known = {
+            "native Runtime Workspace witness changed or has live work": "WORKSPACE_WITNESS_STALE",
+            "native Workspace source repository unavailable": "SOURCE_REPOSITORY_UNAVAILABLE",
+            "Workspace physical carrier is missing or unexpected": "WORKSPACE_CARRIER_UNAVAILABLE",
+            "installed PostgreSQL source has no current qualified writer": "PG_SOURCE_NOT_QUALIFIED",
+            "Workspace has recent, unresolved, held or unqualified PG Job activity": "PG_ACTIVITY_NOT_QUIET",
+            "physical Workspace is no longer the clean qualified source": "WORKSPACE_PHYSICAL_SOURCE_STALE",
+            "Workspace record no longer open": "WORKSPACE_RECORD_CLOSED",
+            "Workspace record identity drifted": "WORKSPACE_RECORD_DRIFT",
+            "candidate path is not a direct directory": "CACHE_PATH_UNQUALIFIED",
+            "an external process is currently using the build cache": "EXTERNAL_CACHE_CONSUMER",
+        }
+        print(json.dumps({"kind": "ordivon.pg-native-buildcache-eviction",
+                          "status": "reconciliation_required" if args.apply else "ineligible",
+                          "reasonClass": type(error).__name__,
+                          "reasonCode": known.get(str(error), "UNCLASSIFIED"),
+                          "workspaceId": args.workspace_id}), file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
