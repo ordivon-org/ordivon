@@ -4,7 +4,10 @@
 use std::{fs, io::Read, net::TcpListener, path::Path, thread, time::Duration};
 
 use ordivon_harness_core::{digest_bytes, loads_strict, CanonicalDocument, CanonicalRef};
-use ordivon_harness_loop::native_loop::{Provider, ProviderResult};
+use ordivon_harness_loop::native_loop::{
+    AdmittedTool, DurableJournal, EffectReceiver, EffectResult, ModelDecision, ModelVisibleContent,
+    NativeAgentLoop, RunResult,
+};
 use ordivon_harness_loop::native_provider_http::HttpModelProvider;
 use ordivon_harness_loop::pg_domain_read::{
     inspect_pg_no_tool_run, inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError,
@@ -17,13 +20,118 @@ use ordivon_harness_pg::{
         append_events, observe_exact_batch, Admission, EventWrite, JournalObservation, StoredRef,
         WriteError,
     },
-    lease::acquire_run_lease,
+    lease::{acquire_run_lease, RunLease},
     read_run_readonly, ReadError,
 };
 use postgres::{Client, NoTls};
 
 fn text<'a>(v: &'a CanonicalDocument, key: &str) -> &'a str {
     v.field(key).and_then(CanonicalRef::as_str).unwrap()
+}
+
+/// Test adapter consuming the EXISTING PG Lease/Writer, not a new Store.
+/// Only the source-authored exact Provider V4 events can be persisted.
+/// Production current-security/issuer and domain effects are deliberately absent.
+struct SourcePgUnknownJournal {
+    writer_dsn: String,
+    schema: String,
+    run_id: String,
+    batch: Vec<EventWrite>,
+    prepared: bool,
+    unknown_lease: Option<RunLease>,
+}
+impl DurableJournal for SourcePgUnknownJournal {
+    fn prepare_provider(&mut self, turn: u32) -> Result<(), String> {
+        if self.prepared || turn != 1 {
+            return Err("unexpected Provider dispatch".into());
+        }
+        let mut conn = Client::connect(&self.writer_dsn, NoTls).map_err(|e| e.to_string())?;
+        let lease = acquire_run_lease(
+            &mut conn,
+            &self.schema,
+            &self.run_id,
+            "test:rust-native-provider-journal",
+            30_000,
+            1008,
+            Some(1),
+        )
+        .map_err(|e| e.to_string())?;
+        match append_events(
+            &mut conn,
+            &self.schema,
+            &self.run_id,
+            &self.batch[..2],
+            1,
+            &lease,
+            1008,
+        )
+        .map_err(|e| e.to_string())?
+        {
+            Admission::Created => {}
+            Admission::Existing => return Err("source Run unexpectedly already dispatched".into()),
+        }
+        self.prepared = true;
+        Ok(())
+    }
+    fn complete_provider(&mut self, _: u32, _: &ModelDecision) -> Result<(), String> {
+        Err("this test loses the physical Provider response".into())
+    }
+    fn admit_tool(
+        &mut self,
+        _: u32,
+        _: &ordivon_harness_loop::tool_call::ModelToolCall,
+    ) -> Result<AdmittedTool, String> {
+        Err("no Tool Grant on source no-Tool Run".into())
+    }
+    fn record_effect(
+        &mut self,
+        _: u32,
+        _: &AdmittedTool,
+        _: &EffectResult,
+    ) -> Result<ModelVisibleContent, String> {
+        Err("no Tool may be executed".into())
+    }
+    fn record_completion(&mut self, _: u32, _: &str) -> Result<(), String> {
+        Err("no claimed task completion".into())
+    }
+    fn record_pause(&mut self, turn: u32) -> Result<(), String> {
+        if !self.prepared || self.unknown_lease.is_some() || turn != 1 {
+            return Err("unadmitted or repeated UNKNOWN".into());
+        }
+        let mut conn = Client::connect(&self.writer_dsn, NoTls).map_err(|e| e.to_string())?;
+        let lease = acquire_run_lease(
+            &mut conn,
+            &self.schema,
+            &self.run_id,
+            "test:rust-native-provider-journal",
+            30_000,
+            1012,
+            Some(3),
+        )
+        .map_err(|e| e.to_string())?;
+        match append_events(
+            &mut conn,
+            &self.schema,
+            &self.run_id,
+            &self.batch[2..],
+            3,
+            &lease,
+            1012,
+        )
+        .map_err(|e| e.to_string())?
+        {
+            Admission::Created => {}
+            Admission::Existing => return Err("source UNKNOWN already committed".into()),
+        }
+        self.unknown_lease = Some(lease);
+        Ok(())
+    }
+}
+struct NoEffect;
+impl EffectReceiver for NoEffect {
+    fn execute(&mut self, _: &AdmittedTool, _: &CanonicalDocument) -> EffectResult {
+        panic!("source no-Tool Run physically executed a Tool");
+    }
 }
 
 #[test]
@@ -322,44 +430,57 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         .unwrap();
     drop(source_db);
 
-    let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
-    let first = acquire_run_lease(
-        &mut writer,
-        &schema,
-        run_id,
-        "test:rust-native-provider-journal",
-        30_000,
-        1008,
-        Some(1),
-    )
-    .unwrap();
-    assert_eq!(
-        append_events(&mut writer, &schema, run_id, &batch[..2], 1, &first, 1008).unwrap(),
-        Admission::Created
-    );
-    drop(writer);
-
-    let mut readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
-    assert_eq!(
-        observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch[..2]).unwrap(),
-        JournalObservation::ExactCommitted
-    );
-    let dispatch = inspect_pg_provider_head(&mut readonly, &schema, run_id, model)
-        .unwrap()
-        .expect("durable DISPATCHING must exist before any socket send");
-    assert_eq!(dispatch.status(), ProviderStatus::Dispatching);
-    assert_eq!(
-        dispatch.recovery_posture(),
-        RecoveryPosture::ReconcileWithProviderOwner
-    );
+    let mut journal = SourcePgUnknownJournal {
+        writer_dsn: writer_dsn.clone(),
+        schema: schema.clone(),
+        run_id: run_id.to_owned(),
+        batch: batch.clone(),
+        prepared: false,
+        unknown_lease: None,
+    };
 
     // Real localhost HTTP send, at the endpoint obtained from the same PG
     // Contract-bound CAS configuration. Read the complete JSON body and bind
     // its actual bytes to the original Python V4 providerRequestDigest.
     let listener = TcpListener::bind(("127.0.0.1", target_port)).unwrap();
     let inbound_digest = expected_wire_digest.clone();
+    let reader_dsn_for_server = readonly_dsn.clone();
+    let schema_for_server = schema.clone();
+    let run_id_for_server = run_id.to_owned();
+    let server_provider_id = model.provider_id.to_owned();
+    let server_adapter_id = model.adapter_id.to_owned();
+    let server_requested_model_id = model.requested_model_id.to_owned();
+    let prepare_batch_for_server = batch[..2].to_vec();
     let inbound = thread::spawn(move || {
         let (mut socket, _) = listener.accept().unwrap();
+        // The server is an independent observer: an HTTP connection before
+        // a durable PG DISPATCHING record is a fatal consumer violation.
+        let mut pg = Client::connect(&reader_dsn_for_server, NoTls).unwrap();
+        assert_eq!(
+            observe_exact_batch(
+                &mut pg,
+                &schema_for_server,
+                &run_id_for_server,
+                1,
+                &prepare_batch_for_server
+            )
+            .unwrap(),
+            JournalObservation::ExactCommitted
+        );
+        let dispatched = inspect_pg_provider_head(
+            &mut pg,
+            &schema_for_server,
+            &run_id_for_server,
+            ExpectedModel {
+                provider_id: &server_provider_id,
+                adapter_id: &server_adapter_id,
+                requested_model_id: &server_requested_model_id,
+            },
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(dispatched.status(), ProviderStatus::Dispatching);
+        drop(pg);
         socket
             .set_read_timeout(Some(Duration::from_secs(5)))
             .unwrap();
@@ -394,31 +515,28 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         // Drop after receiving actual bytes; no response status or content
         // exists, so the physical Provider outcome is genuinely ambiguous.
     });
-    assert!(matches!(provider.turn(1, &[]), ProviderResult::Unknown));
+    let mut no_effect = NoEffect;
+    let result = NativeAgentLoop::new_provider_only(
+        &mut provider,
+        &mut journal,
+        &mut no_effect,
+        &verified,
+        1,
+    )
+    .unwrap()
+    .run();
+    assert_eq!(result, Ok(RunResult::PausedUnknown));
     inbound.join().unwrap();
     assert!(provider.last_usage().is_none());
     assert!(
         provider.freeze_next_request_digest(&[]).is_err(),
-        "Unknown instance cannot be re-armed to silently resend a frozen call"
+        "Unknown instance must never be rearmed to resend frozen request"
     );
-
-    // Now, and only now, commit source-authored UNKNOWN in the same PG Run.
-    let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
-    let second = acquire_run_lease(
-        &mut writer,
-        &schema,
-        run_id,
-        "test:rust-native-provider-journal",
-        30_000,
-        1012,
-        Some(3),
-    )
-    .unwrap();
-    assert_eq!(
-        append_events(&mut writer, &schema, run_id, &batch[2..], 3, &second, 1012).unwrap(),
-        Admission::Created
+    let mut readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
+    assert!(
+        journal.unknown_lease.is_some(),
+        "NativeAgentLoop journal must commit UNKNOWN after physical loss"
     );
-    drop(writer);
     assert_eq!(
         observe_exact_batch(&mut readonly, &schema, run_id, 3, &batch[2..]).unwrap(),
         JournalObservation::ExactCommitted
@@ -441,7 +559,16 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
     // but this does NOT authorize a second physical Provider send.
     let mut retry = Client::connect(&writer_dsn, NoTls).unwrap();
     assert_eq!(
-        append_events(&mut retry, &schema, run_id, &batch[2..], 3, &second, 1012).unwrap(),
+        append_events(
+            &mut retry,
+            &schema,
+            run_id,
+            &batch[2..],
+            3,
+            journal.unknown_lease.as_ref().unwrap(),
+            1012
+        )
+        .unwrap(),
         Admission::Existing
     );
     assert_eq!(
