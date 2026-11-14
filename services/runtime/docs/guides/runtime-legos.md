@@ -159,6 +159,16 @@ Git SourceCut, Owner graph, Harness evidence checker, CI status, original
 Runtime formal toolchain, PG Job/Artifact receipt.
 See `services/runtime/AGENTS.md` for the operational rule.
 
+### Qualified Harness issuer and environment preservation
+
+Caller-supplied `foreignReferences` are metadata, never execution authority.
+A Harness dispatch-fence hint may suppress Runtime's private Cargo default
+**only when a same-PG Harness issuer verifier is operator-configured**.
+The issuer guard still validates the original exact Tool intent inside the new
+PG admission transaction. Without that verifier, forged/unrelated references
+cannot alter the Runtime Cargo default. Neither a source patch nor the hint
+establishes that the issuer guard is installed or configured on a live node.
+
 ## Agent usage
 
 1. Discover node capabilities before choosing commands; never guess permissions or backend by the endpoint name.

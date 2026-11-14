@@ -18,6 +18,19 @@ fn preserve_committed_job_identity<T>(
     observed.map_err(|error| error.with_operation_id(job_id))
 }
 
+// A foreign reference is caller-authored metadata, never execution authority.
+// Without a configured same-PG issuer verifier it cannot affect the environment.
+// With a verifier, preserve exact source intent for the PG transactional guard.
+fn preserve_qualified_issuer_environment(
+    issuer_schema: Option<&str>,
+    references: &[ForeignReference],
+) -> bool {
+    issuer_schema.is_some()
+        && references.iter().any(|reference| {
+            reference.namespace == "ordivon.harness" && reference.reference_type == "dispatch_fence"
+        })
+}
+
 // Resolve the existing native Runtime Cargo build-cache LEGO at PG admission.
 // User-supplied CARGO_TARGET_DIR remains explicit; defaults are recorded in
 // the immutable PG plan rather than silently changed only at physical launch.
@@ -43,7 +56,45 @@ fn pg_private_cargo_environment(
 
 #[cfg(test)]
 mod cargo_issuer_environment_tests {
-    use super::pg_private_cargo_environment;
+    use super::{pg_private_cargo_environment, preserve_qualified_issuer_environment};
+    use crate::runtime::ForeignReference;
+
+    fn candidate_fence() -> ForeignReference {
+        ForeignReference {
+            namespace: "ordivon.harness".into(),
+            reference_type: "dispatch_fence".into(),
+            id: "harness-dispatch-fence:test".into(),
+            generation: None,
+            digest: None,
+        }
+    }
+
+    #[test]
+    fn spoofed_harness_hint_without_issuer_cannot_bypass_private_cargo_default() {
+        let fence = candidate_fence();
+        let enabled = preserve_qualified_issuer_environment(None, &[fence.clone()]);
+        assert!(!enabled);
+        let actual = pg_private_cargo_environment(Default::default(), enabled);
+        assert_eq!(
+            actual.get("CARGO_TARGET_DIR").map(String::as_str),
+            Some("/proc/self/fd/198")
+        );
+        assert!(preserve_qualified_issuer_environment(
+            Some("harness"),
+            &[fence]
+        ));
+        assert!(!preserve_qualified_issuer_environment(Some("harness"), &[]));
+    }
+
+    #[test]
+    fn unrelated_reference_does_not_change_cargo_environment() {
+        let mut other = candidate_fence();
+        other.namespace = "unrelated.owner".into();
+        assert!(!preserve_qualified_issuer_environment(
+            Some("harness"),
+            &[other]
+        ));
+    }
     use std::collections::BTreeMap;
 
     #[test]
@@ -106,10 +157,12 @@ impl PgRuntime {
         // ForeignReferences are not authorization. A real Harness dispatch
         // fence is only a source-owned exact-physical-intent indicator: do not
         // modify its environment before the actual issuer authority check.
-        // A caller can at most opt out of a cache default via this hint.
-        let preserve_harness_fenced_request = e.foreign_references.iter().any(|reference| {
-            reference.namespace == "ordivon.harness" && reference.reference_type == "dispatch_fence"
-        });
+        // Only an operator-configured issuer path may preserve the source environment;
+        // the hint never authenticates the caller and PG still checks currentness.
+        let preserve_harness_fenced_request = preserve_qualified_issuer_environment(
+            self.config.harness_issuer_schema.as_deref(),
+            &e.foreign_references,
+        );
 
         if e.execution_target != ExecutionTarget::LocalLinux
             || e.execution_profile != ExecutionProfile::TrustedLocal
