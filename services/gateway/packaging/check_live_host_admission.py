@@ -124,6 +124,31 @@ def _observed_non_gateway_host_tcp_clients() -> list[str]:
     return sorted(clients)
 
 
+def _qualified_systemd_environment(unit: str) -> str | None:
+    """Return source-visible service env only when no EnvironmentFile can override it.
+
+    systemctl show -p Environment reports unit-declared values, not effective
+    process values after EnvironmentFile overrides. Never infer an unrelated
+    route or a working bearer from such incomplete evidence. No private env
+    file contents are read or logged here; unqualified yields None.
+    """
+    environment = subprocess.run(
+        ["/usr/bin/systemctl", "show", unit, "-p", "Environment", "--value"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=8,
+    )
+    files = subprocess.run(
+        ["/usr/bin/systemctl", "show", unit, "-p", "EnvironmentFiles", "--value"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=8,
+    )
+    return None if files.stdout.strip() else environment.stdout
+
+
 def _owner_route_is_probed_endpoint(systemd_environment: str) -> bool:
     try:
         entries = shlex.split(systemd_environment)
@@ -223,16 +248,12 @@ def _unqualified_active_peer_host_consumers() -> tuple[str, ...]:
             continue
         if len(observed) >= 32:
             raise ValueError("active Gateway consumer census exceeds bound")
-        consumer = subprocess.run(
-            ["/usr/bin/systemctl", "show", unit, "-p", "Environment", "--value"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=8,
-        )
-        if _owner_route_is_probed_endpoint(consumer.stdout):
-            if not _declares_host_owner_identity(consumer.stdout):
-                observed.add(unit)
+        environment = _qualified_systemd_environment(unit)
+        if environment is None or (
+            _owner_route_is_probed_endpoint(environment)
+            and not _declares_host_owner_identity(environment)
+        ):
+            observed.add(unit)
     return tuple(sorted(observed))
 
 
@@ -415,13 +436,9 @@ def main() -> int:
 
     try:
         data = _policy_data(args.policy_data)
-        result = subprocess.run(
-            ["/usr/bin/systemctl", "show", args.gateway_unit, "-p", "Environment", "--value"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=8,
-        )
+        environment = _qualified_systemd_environment(args.gateway_unit)
+        if environment is None:
+            raise ValueError("Gateway EnvironmentFile overrides are not a qualified owner route")
         security_service = subprocess.run(
             ["/usr/bin/systemctl", "is-active", SECURITY_UNIT],
             capture_output=True,
@@ -434,7 +451,7 @@ def main() -> int:
         standing = _apply_installed_security_read_surface(
             assess(
                 data,
-                result.stdout,
+                environment,
                 now=int(time.time()),
                 anonymous_host_initialize_denied=_rejects_unauthenticated_host_initialize(),
                 observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
