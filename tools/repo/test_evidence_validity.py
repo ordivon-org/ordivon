@@ -388,7 +388,7 @@ def test_formal_source_delta_exact_change_and_declaration_change(monkeypatch):
     monkeypatch.setattr(
         module,
         "git_native",
-        lambda repo, *args: old_declaration if PREVIOUS in args[1] else new_declaration,
+        lambda repo, *args: old_declaration if PREVIOUS in args[2] else new_declaration,
     )
 
     def tree(repo, sha):
@@ -488,7 +488,7 @@ def test_newly_declared_formal_file_is_affected_not_unqualified(monkeypatch):
     monkeypatch.setattr(
         module,
         "git_native",
-        lambda repo, *args: old if PREVIOUS in args[1] else new,
+        lambda repo, *args: old if PREVIOUS in args[2] else new,
     )
     monkeypatch.setattr(
         module,
@@ -649,11 +649,27 @@ def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch)
             self.queries.append(endpoint)
             if "/commits/" in endpoint:
                 return {"total_count": 1, "check_runs": [check]}
-            assert endpoint == "repos/ordivon-org/ordivon/actions/runs/731"
+            if endpoint == "repos/ordivon-org/ordivon/actions/runs/731":
+                return {
+                    "id": 731,
+                    "head_sha": PREVIOUS,
+                    "repository": {"full_name": module.DEFAULT_REPOSITORY},
+                }
+            assert endpoint == (
+                "repos/ordivon-org/ordivon/actions/runs/731/artifacts?per_page=100&page=1"
+            )
             return {
-                "id": 731,
-                "head_sha": PREVIOUS,
-                "repository": {"full_name": module.DEFAULT_REPOSITORY},
+                "total_count": 1,
+                "artifacts": [
+                    {
+                        "id": 19,
+                        "name": "ordivon-core-formal-" + PREVIOUS,
+                        "size_in_bytes": 321,
+                        "expired": False,
+                        "digest": "sha256:" + "a" * 64,
+                        "workflow_run": {"id": 731, "head_sha": PREVIOUS},
+                    }
+                ],
             }
 
     provider = VerifiedRunProvider()
@@ -690,7 +706,9 @@ def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch)
     assert result["proofReuseAdmissible"] is False
     assert result["artifactProvenance"] == "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
     assert cmds[0][:4] == ["gh", "run", "download", "731"]
-    assert len(provider.queries) == 2
+    assert result["sourceRelationship"] == "DIRECT_WORKFLOW_HEAD"
+    assert result["githubArtifactId"] == 19
+    assert len(provider.queries) == 3
 
 
 def test_fetch_formal_report_rejects_mismatched_provider_run_before_download(
@@ -737,3 +755,296 @@ def test_fetch_formal_report_requires_prior_success_before_download(monkeypatch)
             source_sha=PREVIOUS,
             github=provider(),
         )
+
+
+def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch):
+    names, report = _synthetic_formal_report()
+    merge_sha = "c" * 40
+    base_sha = "d" * 40
+    report["sourceCut"] = merge_sha
+    original = dict(
+        GOOD,
+        head_sha=PREVIOUS,
+        details_url="https://github.com/ordivon-org/ordivon/actions/runs/731/job/101",
+    )
+
+    class PrProvider:
+        def api(self, endpoint):
+            if "/commits/" in endpoint:
+                return {"total_count": 1, "check_runs": [original]}
+            if endpoint.endswith("/actions/runs/731"):
+                return {
+                    "id": 731,
+                    "head_sha": PREVIOUS,
+                    "event": "pull_request",
+                    "repository": {"full_name": module.DEFAULT_REPOSITORY},
+                    "pull_requests": [
+                        {
+                            "number": 2182,
+                            "head": {"sha": PREVIOUS},
+                            "base": {"sha": base_sha},
+                        }
+                    ],
+                }
+            assert endpoint.endswith("/actions/runs/731/artifacts?per_page=100&page=1")
+            return {
+                "total_count": 1,
+                "artifacts": [
+                    {
+                        "id": 222,
+                        "name": "ordivon-core-formal-" + merge_sha,
+                        "size_in_bytes": 321,
+                        "expired": False,
+                        "digest": "sha256:" + "a" * 64,
+                        "workflow_run": {"id": 731, "head_sha": PREVIOUS},
+                    }
+                ],
+            }
+
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: names)
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {
+            names[0]: "100644:blob:" + "1" * 40,
+            names[1]: "100644:blob:" + "2" * 40,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "git_native",
+        lambda repo, *args: merge_sha + " " + base_sha + " " + PREVIOUS + chr(10),
+    )
+
+    def download(cmd, **kwargs):
+        assert "--name" in cmd
+        assert cmd[cmd.index("--name") + 1] == "ordivon-core-formal-" + merge_sha
+        out = Path(cmd[cmd.index("--dir") + 1])
+        (out / "ordivon-core-formal-report.json").write_text(
+            __import__("json").dumps(report), encoding="utf-8"
+        )
+        return Mock(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", download)
+    result = module.fetch_original_formal_report(
+        repo=module.DEFAULT_REPOSITORY,
+        source_sha=PREVIOUS,
+        github=PrProvider(),
+    )
+    assert result["requestedWorkflowHeadSha"] == PREVIOUS
+    assert result["verifiedExecutionSourceCut"] == merge_sha
+    assert result["sourceRelationship"] == "PR_SYNTHETIC_MERGE_BASE_AND_HEAD"
+    assert result["sourceCut"] == merge_sha
+    assert result["proofReuseAdmissible"] is False
+
+    def wrong_parents(repo, *args):
+        return merge_sha + " " + "e" * 40 + " " + PREVIOUS + chr(10)
+
+    monkeypatch.setattr(module, "git_native", wrong_parents)
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        Mock(side_effect=AssertionError("must not download unqualified merge")),
+    )
+    with pytest.raises(ValueError, match="synthetic merge parents mismatch"):
+        module.fetch_original_formal_report(
+            repo=module.DEFAULT_REPOSITORY,
+            source_sha=PREVIOUS,
+            github=PrProvider(),
+        )
+
+
+def test_unqualified_artifact_missing_duplicate_expired_or_wrong_run_is_not_reused(
+    monkeypatch,
+):
+    check = dict(
+        GOOD,
+        head_sha=PREVIOUS,
+        details_url="https://github.com/ordivon-org/ordivon/actions/runs/731/job/101",
+    )
+    valid = {
+        "id": 30,
+        "name": "ordivon-core-formal-" + PREVIOUS,
+        "size_in_bytes": 300,
+        "expired": False,
+        "digest": "sha256:" + "a" * 64,
+        "workflow_run": {"id": 731, "head_sha": PREVIOUS},
+    }
+
+    class FixtureProvider:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def api(self, endpoint):
+            if "/commits/" in endpoint:
+                return {"total_count": 1, "check_runs": [check]}
+            if endpoint.endswith("/actions/runs/731"):
+                return {
+                    "id": 731,
+                    "head_sha": PREVIOUS,
+                    "repository": {"full_name": module.DEFAULT_REPOSITORY},
+                }
+            return {"total_count": len(self.rows), "artifacts": self.rows}
+
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        Mock(side_effect=AssertionError("must not download unqualified artifact")),
+    )
+    variants = [
+        [],
+        [dict(valid), dict(valid, id=31)],
+        [dict(valid, expired=True)],
+        [dict(valid, workflow_run={"id": 999, "head_sha": PREVIOUS})],
+        [dict(valid, workflow_run={"id": 731, "head_sha": CURRENT})],
+        [dict(valid, digest="sha256:bad")],
+        [dict(valid, size_in_bytes=9999999)],
+        [dict(valid, name="ordivon-core-formal-" + "f" * 40)],
+    ]
+    for variant in variants:
+        with pytest.raises(ValueError):
+            module.fetch_original_formal_report(
+                repo=module.DEFAULT_REPOSITORY,
+                source_sha=PREVIOUS,
+                github=FixtureProvider(variant),
+            )
+
+
+def test_original_formal_merge_and_head_snapshot_green_never_grants_proof(monkeypatch):
+    original = "c" * 40
+    candidate = "b" * 40
+    files = ("tools/formal/verify.py", "formal/source.lean")
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: files)
+    tree = {
+        files[0]: "100644:blob:" + "1" * 40,
+        files[1]: "100644:blob:" + "2" * 40,
+    }
+    monkeypatch.setattr(module, "current_tree", lambda repo, sha: dict(tree))
+    monkeypatch.setattr(
+        module,
+        "require_ancestral_source_cuts",
+        Mock(side_effect=AssertionError("PR synthetic merge is not ancestor of Head")),
+    )
+    result = module.compare_formal_execution_inputs_to_candidate(
+        repo=Path("/repo"),
+        execution_sha=original,
+        candidate_sha=candidate,
+    )
+    assert result["standing"] == "UNCHANGED_DECLARED_SOURCE_INPUTS"
+    assert result["changedDeclaredPaths"] == []
+    assert result["comparisonBasis"] == (
+        "TWO_IMMUTABLE_GIT_SNAPSHOTS_NOT_TEMPORAL_PROOF"
+    )
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_original_formal_source_snapshot_red_for_blob_mode_and_membership(monkeypatch):
+    original = "c" * 40
+    candidate = "b" * 40
+    old_files = ("tools/formal/verify.py", "proof.lean", "removed.lean")
+    new_files = ("tools/formal/verify.py", "proof.lean", "added.lean")
+    monkeypatch.setattr(
+        module,
+        "_formal_declared_files",
+        lambda repo, sha: old_files if sha == original else new_files,
+    )
+    old_tree = {
+        old_files[0]: "100644:blob:" + "1" * 40,
+        old_files[1]: "100644:blob:" + "2" * 40,
+        old_files[2]: "100644:blob:" + "3" * 40,
+    }
+    new_tree = {
+        new_files[0]: "100644:blob:" + "1" * 40,
+        new_files[1]: "100755:blob:" + "2" * 40,
+        new_files[2]: "100644:blob:" + "4" * 40,
+    }
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: old_tree if sha == original else new_tree,
+    )
+    result = module.compare_formal_execution_inputs_to_candidate(
+        repo=Path("/repo"),
+        execution_sha=original,
+        candidate_sha=candidate,
+    )
+    assert result["standing"] == "CHANGED_DECLARED_SOURCE_INPUTS"
+    assert result["changedDeclaredPaths"] == [
+        "added.lean",
+        "proof.lean",
+        "removed.lean",
+    ]
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_formal_original_snapshot_refuses_nonregular_or_missing_git_member(monkeypatch):
+    original, candidate = "c" * 40, "b" * 40
+    filenames = ("tools/formal/verify.py",)
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: filenames)
+    monkeypatch.setattr(
+        module,
+        "current_tree",
+        lambda repo, sha: {
+            filenames[0]: "120000:blob:" + "1" * 40
+            if sha == original
+            else "100644:blob:" + "1" * 40
+        },
+    )
+    with pytest.raises(ValueError, match="unqualified Git member"):
+        module.compare_formal_execution_inputs_to_candidate(
+            repo=Path("/repo"),
+            execution_sha=original,
+            candidate_sha=candidate,
+        )
+
+
+def test_historical_formal_declaration_uses_original_git_blob_not_replace_overlay(
+    monkeypatch,
+):
+    calls = []
+
+    def original_git(repo, *args):
+        calls.append(args)
+        return "SOURCE_FILES = ('tools/formal/verify.py',)"
+
+    monkeypatch.setattr(module, "git_native", original_git)
+    files = module._formal_declared_files(Path("/repo"), PREVIOUS)
+    assert files == ("tools/formal/verify.py",)
+    assert calls == [
+        ("--no-replace-objects", "show", PREVIOUS + ":tools/formal/verify.py")
+    ]
+
+
+def test_historical_formal_declaration_resists_actual_git_replace_ref(tmp_path):
+    """Native Git replacement ref must not rewrite an older proof readset."""
+    import subprocess
+
+    repo = tmp_path / "source_repo"
+    repo.mkdir()
+
+    def git(*argv):
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *argv],
+            text=True,
+            stderr=subprocess.PIPE,
+        ).strip()
+
+    git("init", "--quiet")
+    git("config", "user.name", "Evidence Test")
+    git("config", "user.email", "evidence-test@example.invalid")
+    formal = repo / "tools/formal/verify.py"
+    formal.parent.mkdir(parents=True)
+    formal.write_text("SOURCE_FILES = ('tools/formal/verify.py', 'old.lean')\n")
+    git("add", ".")
+    git("commit", "--quiet", "-m", "Old Formal input declaration")
+    original = git("rev-parse", "HEAD")
+    formal.write_text("SOURCE_FILES = ('tools/formal/verify.py', 'new.lean')\n")
+    git("add", ".")
+    git("commit", "--quiet", "-m", "Changed Formal input declaration")
+    newer = git("rev-parse", "HEAD")
+    git("replace", original, newer)
+    assert "new.lean" in git("show", original + ":tools/formal/verify.py")
+    assert module._formal_declared_files(repo, original) == (
+        "tools/formal/verify.py",
+        "old.lean",
+    )

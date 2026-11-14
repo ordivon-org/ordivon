@@ -95,6 +95,15 @@ In handoffs report REUSED_EXISTING_EVIDENCE separately from NEWLY_VERIFIED,
 UNKNOWN and FALSIFIED. Prioritize new business/consumer capabilities over
 repeated verification of unchanged claims.
 
+Before reusing a CI Formal receipt on a PR, distinguish the
+GitHub Check Run's PR Head SHA from the actual verified synthetic merge
+SourceCut. Read historicalFormalReceipt.verifiedExecutionSourceCut,
+sourceRelationship, and executionInputsVsCandidate; a two-snapshot
+input equality is neither temporal ancestry nor full proof reuse.
+The evidence consumer must validate the original PR base/head parents;
+do not copy the PR Head into the historical proof as if it had executed.
+No separate Harness execution-dispatch authority is implied.
+
 ## Evidence-backed detailed reporting and handoffs
 
 When a user requests a detailed progress/completion report, or when handing off a

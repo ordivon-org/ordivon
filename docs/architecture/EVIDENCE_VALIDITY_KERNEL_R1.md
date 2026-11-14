@@ -150,6 +150,53 @@ reuse as real Agent consumer metrics. Do not invent a percentage from
 synthetic test counts.
 
 
+## R4: Real PR merge-SourceCut consumer correction (2026-11-14)
+
+Actual user-facing failure observed on existing PR #2182: GitHub Actions
+root-verification Check Run 132147168403 on PR Head
+ef001b0d3e111721bcca856be960a6027737bb77 was SUCCESS and
+workflow 43499713609 published Artifact 14073198750. The published
+Artifact name and its original 21-probe/36-source/8-tool report instead
+bind GitHub's actual checkout/verification SourceCut
+72d97e758f22383cf0a464a3ea5e08d5f9f0aad5. This is the synthetic
+PR merge commit with parent 1 equal to exact Base
+5f6a0d1f93024c8992a5d78d61771ad5a0fbbf5a and parent 2 equal to
+exact PR Head. Previously the consumer guessed Artifact name and
+report sourceCut from the Check Run Head, so it failed to find
+a successful original proof.
+
+The repaired read-only consumer follows the actual GitHub:
+Check Run -> original Workflow Run -> complete original Artifact list.
+It requires one unexpired matching Formal Artifact, exact workflow
+identity, canonical repository, bounded Artifact size, digest metadata,
+and exact original Git commit identity. If the Artifact SourceCut differs
+from Workflow Head, an explicitly sourced PR event and exact Git
+two-parent merge relation must establish the difference. A rejected,
+missing, duplicate, expired, unrelated or forged Artifact is UNKNOWN,
+never a pretext for rerun or proof admission.
+
+The execution-input-versus-candidate comparison deliberately reads
+the actual report execution SourceCut and the candidate Git commit as
+TWO IMMUTABLE SOURCE SNAPSHOTS, without making an ancestral-history
+claim. The old --formal-source-delta is still a separate ancestral
+change-history query; when the PR actually verified a synthetic merge,
+the two comparators answer different questions. The actual PR readback
+returns UNCHANGED_DECLARED_SOURCE_INPUTS for all 36 native Formal
+source inputs between merge and PR Head, but
+proofReuseAdmissible=false, because dynamic/toolchain/real consumer
+closure and cross-run evidence validity are not established.
+
+Historical Formal SOURCE_FILES is now read with native
+--no-replace-objects so local Git refs/replace cannot substitute the
+historical declaration for an otherwise immutable Git object tree.
+The existing original blob/mode membership reader and graft-free
+Git native ancestry protections remain reused rather than copied.
+
+This is concrete evidence identity interoperability, NOT a new
+Harness permission gate, mathematical proof, or false current deployed
+status. For a verified Agent business/task claim, its natural owner
+must still define exact applicability and consumption.
+
 ## R3: retain the original Formal verification receipt (2026-11-14)
 
 Problem: tools/formal/verify.py already emits a complete bounded report

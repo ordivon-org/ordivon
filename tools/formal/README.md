@@ -66,3 +66,14 @@ The source-bound report is not a proof that an unchanged Git blob implies
 unchanged installed consumers, dynamic loader behavior or verifier toolchain
 across time. Those facts remain UNKNOWN, and proofReuseAdmissible remains
 false. An unselected, missing or expired report does not cause retries.
+
+
+### CI PR Head versus executed Formal SourceCut
+
+On pull_request, a GitHub Check Run points to PR Head but the actual
+Formal JSON and Artifact refer to GitHub's synthetic merge commit.
+The read-only evidence consumer resolves the original Artifact from
+its GitHub Run and validates the two-parent Git commit relation. Its
+executionInputsVsCandidate compares immutable declared source input
+snapshots; it does not assert that the synthetic merge is an ancestor
+of the PR Head or that a mathematical proof may be reused.

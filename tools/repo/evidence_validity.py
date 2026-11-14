@@ -272,7 +272,9 @@ def decide(
 
 def _formal_declared_files(repo: Path, sha: str) -> tuple[str, ...]:
     """Parse the historical native Formal SOURCE_FILES, never execute it."""
-    code = git_native(repo, "show", f"{sha}:tools/formal/verify.py")
+    code = git_native(
+        repo, "--no-replace-objects", "show", f"{sha}:tools/formal/verify.py"
+    )
     source = ast.parse(code, filename=f"{sha}:tools/formal/verify.py")
     declarations = [
         stmt.value
@@ -463,11 +465,181 @@ def inspect_historical_formal_report_file(
     )
 
 
+def compare_formal_execution_inputs_to_candidate(
+    *,
+    repo: Path,
+    execution_sha: str,
+    candidate_sha: str,
+) -> dict[str, Any]:
+    """Compare two immutable Formal input snapshots, not Git ancestry.
+
+    An actual PR synthetic merge is often NOT ancestor of PR Head; exact
+    Git input equivalence is distinct from historical proof reuse.
+    """
+    execution_sha = _exact_commit(execution_sha)
+    candidate_sha = _exact_commit(candidate_sha)
+    original = _formal_declared_files(repo, execution_sha)
+    current = _formal_declared_files(repo, candidate_sha)
+    old_tree = current_tree(repo, execution_sha)
+    new_tree = current_tree(repo, candidate_sha)
+    if any(
+        not old_tree.get(path, "").startswith(("100644:blob:", "100755:blob:"))
+        for path in original
+    ) or any(
+        not new_tree.get(path, "").startswith(("100644:blob:", "100755:blob:"))
+        for path in current
+    ):
+        raise ValueError("Formal source comparison contains unqualified Git member")
+    old_set = set(original)
+    new_set = set(current)
+    changed = [
+        path
+        for path in sorted(old_set | new_set)
+        if (old_tree[path] if path in old_set else None)
+        != (new_tree[path] if path in new_set else None)
+    ]
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.formal-execution-inputs-vs-candidate",
+        "executionSourceCut": execution_sha,
+        "candidateSourceCut": candidate_sha,
+        "comparisonBasis": "TWO_IMMUTABLE_GIT_SNAPSHOTS_NOT_TEMPORAL_PROOF",
+        "standing": (
+            "UNCHANGED_DECLARED_SOURCE_INPUTS"
+            if not changed and original == current
+            else "CHANGED_DECLARED_SOURCE_INPUTS"
+        ),
+        "priorDeclaredPaths": len(original),
+        "candidateDeclaredPaths": len(current),
+        "changedDeclaredPaths": changed,
+        "declaredSourceReadsetComparisonComplete": True,
+        "proofReuseAdmissible": False,
+        "unresolved": [
+            "Toolchain, libraries, environment, time and external assumptions not compared",
+            "Scope is only the native Formal declared Git SOURCE_FILES",
+            "No implementation/physical consumer refinement proof",
+        ],
+    }
+
+
+def _workflow_formal_artifact(
+    *,
+    gh: Gh,
+    repo: str,
+    run_id: str,
+    head_sha: str,
+    run: dict[str, Any],
+    git_repo: Path,
+) -> tuple[dict[str, Any], str, str]:
+    """Select one actual Formal Artifact, not an artifact guessed from PR head.
+
+    GitHub's pull_request workflow Check Run is tied to PR Head while
+    github.sha/checked-out Formal SourceCut is a synthetic merge commit.
+    Reconstruct the exact two-parent Git relationship before accepting
+    the merge SourceCut as a historical execution context.
+    """
+    prefix = "ordivon-core-formal-"
+    rows: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        payload = gh.api(
+            f"repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100&page={page}"
+        )
+        if (
+            not isinstance(payload, dict)
+            or type(payload.get("total_count")) is not int
+            or not isinstance(payload.get("artifacts"), list)
+        ):
+            raise ValueError("historical Formal Artifact index unavailable")
+        count = payload["total_count"]
+        batch = payload["artifacts"]
+        if (
+            not (0 <= count <= 2000)
+            or len(batch) > 100
+            or any(not isinstance(row, dict) for row in batch)
+        ):
+            raise ValueError("historical Formal Artifact listing is invalid")
+        rows.extend(batch)
+        if len(rows) == count:
+            break
+        if len(rows) > count or not batch or page >= 20:
+            raise ValueError("historical Formal Artifact listing is incomplete")
+        page += 1
+    identifiers = [row.get("id") for row in rows]
+    if any(type(item) is not int or item <= 0 for item in identifiers) or (
+        len(set(identifiers)) != len(identifiers)
+    ):
+        raise ValueError("historical Formal Artifact listing duplicates identities")
+    matching = [
+        row
+        for row in rows
+        if isinstance(row.get("name"), str) and row["name"].startswith(prefix)
+    ]
+    if len(matching) != 1:
+        raise ValueError("historical Formal Artifact must have one exact producer")
+    artifact = matching[0]
+    actual_sha = artifact["name"][len(prefix) :]
+    _exact_commit(actual_sha)
+    workflow = artifact.get("workflow_run")
+    if (
+        artifact.get("expired") is not False
+        or not isinstance(workflow, dict)
+        or workflow.get("id") != int(run_id)
+        or workflow.get("head_sha") != head_sha
+        or type(artifact.get("size_in_bytes")) is not int
+        or not 0 < artifact["size_in_bytes"] <= 1048576
+        or not isinstance(artifact.get("digest"), str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", artifact["digest"]) is None
+    ):
+        raise ValueError("historical Formal Artifact provenance is unqualified")
+    if actual_sha == head_sha:
+        relation = "DIRECT_WORKFLOW_HEAD"
+    else:
+        if run.get("event") != "pull_request":
+            raise ValueError("non-PR workflow Artifact source differs from Head")
+        prs = run.get("pull_requests")
+        if not isinstance(prs, list) or len(prs) != 1 or not isinstance(prs[0], dict):
+            raise ValueError("PR workflow lacks unique exact provenance")
+        pr = prs[0]
+        if (
+            type(pr.get("number")) is not int
+            or pr["number"] <= 0
+            or not isinstance(pr.get("head"), dict)
+            or not isinstance(pr.get("base"), dict)
+            or pr["head"].get("sha") != head_sha
+        ):
+            raise ValueError("PR workflow Head SourceCut does not match provider")
+        # Read the original Git commit object with native replace/graft guards.
+        lineage = (
+            git_native(
+                git_repo,
+                "--no-replace-objects",
+                "rev-list",
+                "--parents",
+                "-n",
+                "1",
+                actual_sha,
+            )
+            .strip()
+            .split()
+        )
+        if (
+            len(lineage) != 3
+            or lineage[0] != actual_sha
+            or lineage[1] != pr["base"].get("sha")
+            or lineage[2] != head_sha
+        ):
+            raise ValueError("PR synthetic merge parents mismatch original Run")
+        relation = "PR_SYNTHETIC_MERGE_BASE_AND_HEAD"
+    return artifact, actual_sha, relation
+
+
 def fetch_original_formal_report(
     *,
     repo: str,
     source_sha: str,
     github: Gh | None = None,
+    candidate_sha: str | None = None,
 ) -> dict[str, Any]:
     """Use original GitHub Check Run and official gh run download (read-only).
 
@@ -504,7 +676,15 @@ def fetch_original_formal_report(
         or run["repository"].get("full_name") != repo
     ):
         raise ValueError("historical Formal workflow run SourceCut mismatch")
-    name = "ordivon-core-formal-" + source_sha
+    artifact, execution_sha, source_relation = _workflow_formal_artifact(
+        gh=gh,
+        repo=repo,
+        run_id=run_id,
+        head_sha=source_sha,
+        run=run,
+        git_repo=Path.cwd(),
+    )
+    name = artifact["name"]
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-evidence-") as directory:
         subprocess.run(
             [
@@ -525,13 +705,26 @@ def fetch_original_formal_report(
         )
         result = inspect_historical_formal_report_file(
             repo=Path.cwd(),
-            source_sha=source_sha,
+            source_sha=execution_sha,
             path=Path(directory) / "ordivon-core-formal-report.json",
         )
     result["originalCheckRunId"] = check["checkRunId"]
     result["originalWorkflowRunId"] = run_id
     result["githubArtifactName"] = name
+    result["githubArtifactId"] = artifact["id"]
+    result["githubArtifactArchiveDigest"] = artifact["digest"]
+    result["requestedWorkflowHeadSha"] = source_sha
+    result["verifiedExecutionSourceCut"] = execution_sha
+    result["sourceRelationship"] = source_relation
     result["artifactProvenance"] = "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+    if candidate_sha is not None:
+        result["executionInputsVsCandidate"] = (
+            compare_formal_execution_inputs_to_candidate(
+                repo=Path.cwd(),
+                execution_sha=execution_sha,
+                candidate_sha=candidate_sha,
+            )
+        )
     return result
 
 
@@ -621,6 +814,7 @@ def main() -> int:
                     report = fetch_original_formal_report(
                         repo=args.repo,
                         source_sha=args.prior_sha,
+                        candidate_sha=args.current_sha,
                     )
                 else:
                     report = inspect_historical_formal_report_file(

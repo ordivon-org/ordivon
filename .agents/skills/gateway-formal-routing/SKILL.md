@@ -109,3 +109,15 @@ Validate exact Owner semantics through independent real loopback RPCs, not
 only mocked connector calls; do not infer production latency from loopback.
 Preserve long-running Runtime Jobs on HTTP cancellation; never blindly replay
 an execution submission after uncertain delivery.
+
+
+### PR synthetic merge and original Formal identity
+
+For a pull_request workflow, GitHub reports the Check Run at PR Head
+while Formal executes the synthetic merge SourceCut. Query the existing
+--fetch-historical-formal-report consumer and use
+verifiedExecutionSourceCut, sourceRelationship and
+executionInputsVsCandidate. Only an exact two-parent native Git match
+allows the source label distinction; ordinary previous/current
+--formal-source-delta requires ancestor history. Neither static
+comparison proves solver/toolchain continuity or real Owner acceptance.
