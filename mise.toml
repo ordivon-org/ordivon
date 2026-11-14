@@ -391,7 +391,7 @@ done
 java -cp "$jar" tla2sany.SANY GatewayHostCutoverR1.tla
 cutover_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayHostCutoverR1.cfg GatewayHostCutoverR1.tla)
 printf '%s\n' "$cutover_positive" | grep -F 'Model checking completed. No error has been found.'
-for check in 'GatewayHostCutoverR1.reachability.cfg:NeverFinished' 'GatewayHostCutoverR1.unsafe.cfg:HostProtectedNeedsQualifiedConsumers'; do
+for check in 'GatewayHostCutoverR1.reachability.cfg:NeverFinished' 'GatewayHostCutoverR1.unsafe.cfg:HostProtectedNeedsQualifiedConsumers' 'GatewayHostCutoverR1.bearer-unsafe.cfg:GatewayPepNeedsVerifiedOwnerBearer'; do
   config=$(printf '%s' "$check" | cut -d: -f1)
   invariant=$(printf '%s' "$check" | cut -d: -f2)
   set +e
