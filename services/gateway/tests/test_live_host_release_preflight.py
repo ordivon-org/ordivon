@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -269,3 +270,84 @@ def test_host_direct_anonymous_denial_cannot_be_inferred_from_grants(
         assert result["hostOwnerRouteQualified"] is True
         assert result["anonymousHostInitializeDenied"] is False
         assert "HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED" in result["reasons"]
+
+
+def test_active_second_gateway_without_host_bearer_blocks_release(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A primary service alone cannot qualify all active Host callers."""
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(tuple(command))
+        if "list-units" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=(
+                    "ordivon-gateway-local-r21.service loaded active running legacy\n"
+                    "ordivon-gateway.service loaded active running current\n"
+                ),
+            )
+        assert command[2] == "ordivon-gateway-local-r21.service"
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp",
+        )
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    peer_units = preflight._unqualified_active_peer_host_consumers()
+    assert peer_units == ("ordivon-gateway-local-r21.service",)
+    assert len(calls) == 2
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    )
+    result = preflight.assess(
+        _operator_data([_grant()]),
+        env,
+        now=1500,
+        anonymous_host_initialize_denied=True,
+        unqualified_active_host_consumers=peer_units,
+    )
+    assert result["status"] == "NO_GO"
+    assert result["unqualifiedActiveHostConsumers"] == list(peer_units)
+    assert result["reasons"] == ["ACTIVE_HOST_CONSUMER_MISSING_OWNER_CREDENTIAL"]
+
+
+@pytest.mark.parametrize(
+    "secondary_environment",
+    [
+        (
+            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+        ),
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:9999/mcp",
+    ],
+)
+def test_migrated_or_unrelated_active_peer_does_not_block(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, secondary_environment: str
+) -> None:
+    def fake_run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "list-units" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout="ordivon-gateway-local-r21.service loaded active running legacy\n",
+            )
+        return subprocess.CompletedProcess(command, 0, stdout=secondary_environment)
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    assert preflight._unqualified_active_peer_host_consumers() == ()
+
+
+def test_active_peer_discovery_errors_never_qualify_release(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_run(_command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        raise subprocess.CalledProcessError(1, "systemctl")
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    with pytest.raises(subprocess.CalledProcessError):
+        preflight._unqualified_active_peer_host_consumers()
