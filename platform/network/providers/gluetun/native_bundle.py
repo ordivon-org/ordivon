@@ -28,6 +28,7 @@ FILES = (
     "auth_profile.py",
     "config/exit-allowlist.json",
     "config/exit-selector.json",
+    "config/recovery-hints.json",
 )
 EFFECT = str(DEST / "native_switch.py")
 
@@ -51,6 +52,13 @@ def validate_source() -> dict[str, object]:
         file = SOURCE / name
         if not file.is_file() or file.is_symlink():
             raise ValueError(f"Native recovery source is missing: {name}")
+    # Source policy is also checked before production files are installed:
+    # a bad geographic hint must never get as far as a real API action.
+    import native_profile as profile
+    import quality_history as history
+    from datetime import datetime, timezone
+    allow = set(profile.parse_allowed_policy(profile.ALLOW_POLICY.read_text())["allowedCountries"])
+    history.source_trial_hints(datetime.now(timezone.utc), allow)
     # Do not create a second custom VPN, cron or scheduler.
     if any(word in content for word in ("podman run ", "wg-quick", "sleep ", "http://0.0.0.0")):
         raise ValueError("Native recovery wrongly owns physical tunneling")

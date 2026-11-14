@@ -165,6 +165,34 @@ def test_bulk_history_uses_two_provider_queries_not_two_per_session(monkeypatch)
     assert [q[0] for q in queries]==["probe_success","probe_duration_seconds"]
 
 
+def test_correlated_vpn_only_outage_uses_source_hints_when_journal_loses_old_nodes(monkeypatch):
+    import observe_active
+    class Result:
+        def __init__(self,stdout):self.stdout=stdout
+        returncode=0
+    subprocess_calls=[]
+    def run(args,**kw):
+        subprocess_calls.append(args[0])
+        if args[:2] == ["/usr/bin/podman","exec"]:
+            return Result('{"surfshark":{"servers":[]}}')
+        if args[0]=="/usr/bin/journalctl":return Result("")
+        if args[0]=="/usr/bin/curl":return Result("200")
+        raise AssertionError("Unexpected source call")
+    monkeypatch.setattr(history.subprocess,"run",run)
+    monkeypatch.setattr(history,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(history,"current_catalog_country",lambda catalog:"Malaysia")
+    monkeypatch.setattr(observe_active,"observe",lambda:(_ for _ in ()).throw(
+        AssertionError("Correlated failure should not do 3 more origin timeouts")))
+    now=datetime.now(timezone.utc)
+    hints=history.source_trial_hints(now,{"Malaysia","Mexico","North Macedonia"})
+    x=history.observe(hours=48)
+    assert x["history"]==[]  # journal old successes are truly absent
+    assert len(x["sourceTrialHints"])==len(hints)==2
+    assert x["recommended"]["trialCountries"]==["North Macedonia","Mexico"]
+    assert x["active"]["threeLaneConsecutiveFailure"] is True
+    assert "/usr/bin/curl" in subprocess_calls
+
+
 def test_correlated_outage_can_try_allowed_history_even_without_kernel_endpoint(monkeypatch):
     import observe_active
     now=datetime.now(timezone.utc)
@@ -233,3 +261,58 @@ def test_suspended_prometheus_scrape_with_previous_zero_is_unknown(monkeypatch):
           for job in history.JOBS]
     monkeypatch.setattr(history,"http_raw_samples",lambda *args:rows)
     assert history.recent_failure_witness(now) is None
+
+
+def test_bounded_source_fallback_survives_journald_history_loss(tmp_path):
+    import json
+    now=datetime(2026,11,14,6,30,tzinfo=timezone.utc)
+    source={
+       "kind":"ordivon.network.historical-consumer-trial-hints",
+       "observedAtUtc":"2026-11-13T18:56:00Z",
+       "expiresAtUtc":"2026-11-20T18:56:00Z",
+       "candidates":[
+          {"country":"North Macedonia","worstConsumerSuccessRatio":0.99644,
+           "medianOfConsumerP90Ms":1820},
+          {"country":"Mexico","worstConsumerSuccessRatio":0.99153,
+           "medianOfConsumerP90Ms":3732},
+       ],
+    }
+    f=tmp_path/"hints.json"
+    f.write_text(json.dumps(source))
+    rows=history.source_trial_hints(now,{"Malaysia","Mexico","North Macedonia"},f)
+    assert len(rows)==2
+    assert all(x["qualifiedNowStandby"] is False for x in rows)
+    assert all(x["standing"]=="SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT" for x in rows)
+    plan=history.decision(active_healthy=False,underlay_reachable=True,
+                          evidence=rows,now=now,current_country="Malaysia")
+    assert plan["trialCountries"]==["North Macedonia","Mexico"]
+    assert plan["certifiedHotStandbyCount"]==0
+    assert history.decision(active_healthy=False,underlay_reachable=False,
+                            evidence=rows,now=now,current_country="Malaysia")["decision"]=="HOLD_SHARED_UNDERLAY_OR_UNKNOWN"
+    assert history.decision(active_healthy=True,underlay_reachable=True,
+                            evidence=rows,now=now,current_country="Malaysia")["decision"]=="HOLD_WORKING_ACTIVE"
+    assert history.source_trial_hints(datetime(2026,11,21,tzinfo=timezone.utc),
+                                      {"Malaysia","Mexico","North Macedonia"},f)==[]
+    source["candidates"][1]["country"]="Hong Kong"
+    f.write_text(json.dumps(source))
+    import pytest
+    with pytest.raises(ValueError,match="forbidden"):
+        history.source_trial_hints(now,{"Hong Kong","Mexico","North Macedonia"},f)
+    source["candidates"][1]["country"]="Mexico"
+    source["expiresAtUtc"]="2026-12-20T18:56:00Z"
+    f.write_text(json.dumps(source))
+    with pytest.raises(ValueError,match="time boundary"):
+        history.source_trial_hints(now,{"Mexico","North Macedonia"},f)
+
+
+def test_prefer_current_real_histories_over_source_trial_hints():
+    now=t()
+    hints=[
+      {"catalogCountry":"Mexico","standing":"SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT",
+       "medianOfConsumerP90Ms":400,"worstConsumerSuccessRatio":1,"lastObservedHoursAgo":2},
+      {"catalogCountry":"Japan","standing":"RECENT_HISTORICAL_CONSUMER_SUCCESS",
+       "medianOfConsumerP90Ms":2000,"worstConsumerSuccessRatio":.98,"lastObservedHoursAgo":1},
+    ]
+    x=history.decision(active_healthy=False,underlay_reachable=True,
+                        evidence=hints,now=now,current_country="Malaysia")
+    assert x["trialCountries"]==["Japan","Mexico"]

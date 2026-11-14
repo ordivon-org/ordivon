@@ -114,7 +114,7 @@ two distinct bounded API trials and selection rollback.
 `task provider:gluetun:native-bundle:validate` checks source only;
 `...:install` checks source-vs-loaded Gluetun configuration and an actually
 authorized upstream API GET, copies only the required nonsecret Python
-modules and two geographic policy JSONs to the root-owned libexec tree,
+modules and three source policy JSONs to the root-owned libexec tree,
 then installs the existing updated oneshot unit and performs
 `systemctl daemon-reload`. It does not restart Gluetun, Tailscale or
 other consumers. `...:verify` proves exact source/installed file and
@@ -179,6 +179,39 @@ selection with authenticated GET readback. Restoring a selection filter
 does **not** imply restored sessions or successful consumer traffic.
 Cooldown remains ten minutes between auto-triggered recovery runs.
 Never select Hong Kong.
+
+## Time-bounded alternative-country memory without a new registry
+
+The production 2026-11-14 common-underlay outage generated 3,178 native
+Gluetun health reconnects in about 5.6 hours, while the Windows WLAN and USB
+RNDIS interfaces simultaneously lost Internet reachability (NCSI). The
+existing two-minute systemd consumer correctly recorded 169
+`HOLD_SHARED_UNDERLAY_OR_UNKNOWN` decisions and never initiated a futile
+country switch. Both interfaces use the same gateway IP **and gateway MAC**:
+they are not proven independent WAN supplies.
+
+The 3,178 repeated log sessions also left the 48-hour quality report with
+only current Malaysia sessions, despite previously validated successful
+North Macedonia and Mexico sessions. For a genuinely different event
+where the **physical underlay is reachable but the current VPN is down**,
+that missing evidence should not permanently disable second-country trials.
+
+The source-owned `config/recovery-hints.json` retains only two already
+verified **historical** country hints, from a native Gluetun-journal and
+three-consumer Prometheus sample observed at 2026-11-14 02:56 CST:
+North Macedonia (99.644%, consumer P90-median 1820ms) and Mexico
+(99.153%, 3732ms). Hints expire after at most seven days. They are
+`SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT`, never a currently live standby.
+Actual recent consumer-qualified journal segments always rank ahead of these
+source hints. Only fresh correlated consumer failure, independently healthy
+direct underlay, original API authorization, non-Hong-Kong allowlist, cooldown
+and post-switch real HTTPS origin evidence can lead to an actual change.
+
+No session is restarted merely because this source policy is installed.
+No extra Timer, daemon, database, hot WireGuard or IP endpoint registry is
+introduced. Expired hints cease to be eligible; refreshing them requires
+another real observed qualified consumer interval, not guessing an IP.
+This avoids treating a remembered country as evidence of present liveness.
 
 ## Historical consumer quality — native evidence, never fictitious hot spares
 

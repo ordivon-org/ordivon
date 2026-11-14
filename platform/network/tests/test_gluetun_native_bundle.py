@@ -14,7 +14,7 @@ spec.loader.exec_module(bundle)
 
 def test_reconciler_keeps_original_native_owner_and_one_recovery_consumer():
     result=bundle.validate_source()
-    assert result["nonsecretFileCount"]==7
+    assert result["nonsecretFileCount"]==8
     data=bundle.SOURCE_SVC.read_text()
     assert "ExecStartPost=/usr/bin/python3 " in data
     assert "native_switch.py --recover" in data
@@ -28,7 +28,7 @@ def test_source_payload_is_installable_without_credentials_or_live_effect(tmp_pa
     assert all("private_key" not in name for name in bundle.FILES)
     dest=tmp_path/"gluetun-native"
     bundle.copy_payload(dest)
-    assert bundle.verify(dest=dest,verify_systemd=False)["nonsecretFileCount"]==7
+    assert bundle.verify(dest=dest,verify_systemd=False)["nonsecretFileCount"]==8
     assert (dest/"native_switch.py").is_file()
     assert (dest/"config/exit-allowlist.json").is_file()
 
