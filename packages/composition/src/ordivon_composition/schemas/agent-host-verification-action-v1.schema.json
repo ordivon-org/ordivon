@@ -31,7 +31,7 @@
     },
     "workRef": {
       "type": "string",
-      "pattern": "^work:[^\\s]+$",
+      "pattern": "^work:[^\\s]+(?![\\s\\S])",
       "maxLength": 1024
     },
     "expectedRevision": {
@@ -107,7 +107,7 @@
       "properties": {
         "sourceCut": {
           "type": "string",
-          "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})(?![\\s\\S])"
         },
         "queryPrefix": {
           "type": "string",
@@ -181,7 +181,7 @@
   "$defs": {
     "sha256": {
       "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
+      "pattern": "^sha256:[0-9a-f]{64}(?![\\s\\S])"
     },
     "action": {
       "type": "object",
