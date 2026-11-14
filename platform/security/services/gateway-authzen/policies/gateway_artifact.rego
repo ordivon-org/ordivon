@@ -317,3 +317,70 @@ valid_host_delegation if {
 allow if {
   valid_host_delegation
 }
+
+# Gateway native Linux Runtime release: reuse this Security PDP, not a second
+# release authorization service. Runtime still owns all durable ReleaseEffect,
+# candidate verification, operator installation, and original receipt truth.
+# Canonical identity is the exact ASCII Gateway source request object.  Never
+# mistake execution.linux, release.get, or a caller-supplied Actor for authority.
+runtime_release_target_ok if {
+  input.action.name == "runtime.release.linux"
+  input.action.properties.gatewayTool == "runtime.release.apply"
+  input.resource.type == "ordivon.runtime.native-release-request"
+  p := input.resource.properties
+  p.identityContract == "ordivon.gateway-native-runtime-release-request.v1"
+  p.ownerId == "runtime.linux"
+  p.nodeId == "linux-pg"
+  is_string(p.requestId)
+  regex.match("^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$", p.requestId)
+  is_string(p.workspaceId)
+  regex.match("^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$", p.workspaceId)
+  is_string(p.commit)
+  regex.match("^[0-9a-f]{40}$", p.commit)
+  is_string(p.candidateManifestDigest)
+  regex.match("^sha256:[0-9a-f]{64}$", p.candidateManifestDigest)
+  is_number(p.expectedToolCount)
+  p.expectedToolCount == floor(p.expectedToolCount)
+  p.expectedToolCount >= 1
+  p.expectedToolCount <= 4294967295
+  count(object.keys(p)) == 9
+  identity := {
+    "requestId": p.requestId,
+    "workspaceId": p.workspaceId,
+    "commit": p.commit,
+    "candidateManifestDigest": p.candidateManifestDigest,
+    "expectedToolCount": p.expectedToolCount,
+  }
+  digest := crypto.sha256(json.marshal(identity))
+  p.requestSha256 == digest
+  input.resource.id == sprintf("runtime-release:v1:%s", [digest])
+}
+
+# Production operator grants exist only in the trusted systemd LoadCredential
+# policy_data. An explicit short-lived operator may accept *qualified* Runtime
+# candidates without a new approval for every Git commit; Runtime still checks
+# source ownership, exact manifest bytes, and the immutable candidate itself.
+# Missing, malformed, expired, wrong-Principal, or wrong-target grants DENY.
+runtime_release_operator_granted if {
+  valid_issuer
+  runtime_release_target_ok
+  some grant in data.ordivon.security.gateway_runtime_release_grants
+  grant.active == true
+  grant.role == "operator"
+  grant.principalId == input.subject.id
+  grant.issuer == input.subject.properties.issuer
+  grant.ownerId == "runtime.linux"
+  grant.nodeId == "linux-pg"
+  grant.allowQualifiedCandidates == true
+  is_array(grant.allowedTools)
+  "runtime.release.apply" in grant.allowedTools
+  is_number(grant.notBeforeEpochSeconds)
+  is_number(grant.expiresAtEpochSeconds)
+  now := time.now_ns() / 1000000000
+  grant.notBeforeEpochSeconds <= now
+  now < grant.expiresAtEpochSeconds
+}
+
+allow if {
+  runtime_release_operator_granted
+}
