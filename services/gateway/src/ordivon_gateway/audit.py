@@ -7,16 +7,9 @@ from typing import Any
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from opentelemetry import trace
 
+from .ingress_identity import identity_from_state, request_state
+
 logger = logging.getLogger("ordivon_gateway.audit")
-
-
-def _request_state(ctx: ServerRequestContext[Any, Any]) -> dict[str, Any]:
-    request = ctx.request
-    scope = getattr(request, "scope", None)
-    if not isinstance(scope, dict):
-        return {}
-    state = scope.get("state")
-    return state if isinstance(state, dict) else {}
 
 
 def _trace_identity() -> tuple[str | None, str | None]:
@@ -63,9 +56,9 @@ class GatewayAuditMiddleware:
         ctx: ServerRequestContext[Any, Any],
         call_next: CallNext,
     ) -> HandlerResult:
-        state = _request_state(ctx)
-        principal = state.get("ordivon_access_principal")
-        issuer = state.get("ordivon_access_issuer")
+        identity = identity_from_state(request_state(ctx))
+        principal = identity.principal if identity is not None else None
+        issuer = identity.issuer if identity is not None else None
 
         span = trace.get_current_span()
         if isinstance(principal, str) and principal:
