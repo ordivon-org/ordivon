@@ -9,7 +9,7 @@ service; starting the actual healthy services is an idempotent no-op.
 It fixes the observed failure mode where an early Podman storage error
 prevented the generated provider-network unit from starting during WSL boot.
 Podman later recovered, but systemd did not re-attempt the failed target.
-Periodic attempts use a two-minute calendar plus a boot-relative attempt.
+Periodic attempts use the existing **one-minute native timer** plus a boot-relative attempt.
 
 The existing provider-identity-exclusive check refuses competing WireGuard
 identity realization. A missing selector or disabled Gluetun target disables

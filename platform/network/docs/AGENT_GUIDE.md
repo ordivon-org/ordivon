@@ -110,7 +110,11 @@ Consumer graph / action authority:
   Carrier probes plus three consumer-origin probes. `query_range` evaluation
   timestamps are NOT fresh raw scrape timestamps. The recovery predicate
   uses one native Prometheus range-vector query and 3 aligned original
-  samples per Claude/Codex/PyPI lane; missing evidence remains UNKNOWN.
+  samples per Claude/Codex/PyPI lane, at **30s** scrape intervals. It requires
+  latest original sample age <=75s, earliest <=165s, within-lane gap <=45s,
+  and latest cross-lane skew <=45s; missing or stale evidence remains UNKNOWN.
+  The separate alert NetworkCorrelatedConsumerOutage with Prometheus for:2m
+  is NOT the authorized decision to switch the physical tunnel.
 - **C3 — Selection**: recent consumer-qualified native Gluetun sessions
   rank first. Explicit source `recovery-hints.json` stores at most two
   nonsecret previously sampled country hints for a maximum seven days.

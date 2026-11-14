@@ -117,6 +117,22 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 
 源码发布走仓库现有的 GitHub PR、必需 CI、合并队列；只有合并之后再进行生产读回，才算实际发布完成。
 
+### 2026-11-14 ZTE 物理上游与原生 Windows Chrome 验收
+
+源生只读 `task provider:zte-u30pro:observe` 于北京时间 16:23
+实际确认当前网关为 **ZTE U30 Pro MU5358**，LAN `192.168.0.1`；
+当前运营商中国移动 5G，PPP WAN 已连接，RSRP -72 dBm、SNR 27 dB，
+十次低强度网关 ICMP 0% 丢包、平均约 1.98ms。该观察**不认证**
+当天 08:41–14:20 故障具体发生在设备、无线运营商还是更远上游，
+也没有发现第二条独立 WAN。无感地增加 USB 路由优先级不能修复同一网关掉线。
+
+Windows 原生 Chrome 的策略为固定代理 `127.0.0.1:19781`。
+16:16 使用独立临时 Chrome 用户目录启动 `--headless=new`，
+**不提供任何代理覆盖命令行参数**，真实访问 Cloudflare HTTP/TLS
+获得出口国家 **MY**、退出码 0，临时目录随即清理。
+这证明当前正常 Chrome 政策和被测 HTTPS 路径，
+不等于所有扩展、WebRTC、iOS 设备流量已被验证。
+
 ### 2026-11-13 Windows/WSL 生产路径核验
 
 本次真实检查发现 Windows WLAN 和 USB RNDIS 虽然同时 Up，但都经
@@ -195,12 +211,21 @@ Windows NCSI 恢复后 Carrier / PyPI / 直连 IPv4 首次采样成功
 
 ### 多个应用同时断网时如何定位
 
-从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：它只在 PyPI、Codex 与 Claude **三路每分钟 HTTPS 探针最近 90 秒都有样本、并持续两分钟同时失败**时成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席须查看 `NetworkConsumerEvidenceMissing`（观测缺失），而非把无样本解释为 NetworkVPN/Scoped `Unavailable` 的实测失败；不能把缺测当作成功或失败。
+从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：PyPI、Codex 与 Claude 的**三路每 30 秒 HTTPS 探针**需要在最近 90 秒内都有样本、共同失败持续两分钟，告警才成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席须查看 `NetworkConsumerEvidenceMissing`（观测缺失），而非把无样本解释为 NetworkVPN/Scoped `Unavailable` 的实测失败；不能把缺测当作成功或失败。
 
     curl -fsS http://127.0.0.1:29090/api/v1/alerts |
       jq '.data.alerts[] | select(.labels.alertname=="NetworkCorrelatedConsumerOutage")'
 
 随后顺序检查 `task provider:gluetun:verify`、Gluetun 原生日志、`task provider:gluetun:observe-exit`，最后复测受到影响的 Consumer。代理 CONNECT 200 但 HTTPS TLS 超时属于 **尚未完成源站请求**，不能宣布 READY；`systemctl active` 也不能取代源站探测。先使用 Gluetun 自带健康恢复，**不要在故障时另开一条 WireGuard 或重启全部 Consumer**。IPinfo 的未认证端点有共享限流，只用于一次性出口采样，不用来替代 Prometheus 健康检查。
+
+**告警与自动恢复准入是两个不同的消费者。** 告警的持续两分钟条件
+不能直接授权更换 Surfshark 国家。现有一分钟 systemd 恢复任务必须
+检查每路**三条原始采样**，最新年龄不超过 75 秒、最早不超过 165 秒、
+相邻采样不间断超过 45 秒，三路最新时间戳错位不超过 45 秒；
+还必须独立证实物理 WAN 通畅、目标国家允许、官方 API 授权、
+真实 HTTPS 业务完成。监控消失、数据陈旧或时间交错均返回 UNKNOWN。
+详见现有 [Gluetun Provider 指导](../providers/gluetun/README.md)，不要
+用旧的每分钟采样图表或猜测恢复动作。
 
 **DNS 故障与 VPN 故障不能混为一谈。** DNS 超时既可能导致健康检查受影响，也可能只是底层隧道故障的结果。应分别验证原生 IP/TLS 健康目标与 DNS 上游。不要为此添加第二个 VPN Watchdog：Gluetun 自带健康检查与自动恢复。
 

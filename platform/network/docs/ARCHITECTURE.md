@@ -59,20 +59,27 @@ This inventory is a source/installed/consumer map, not a second registry:
 ## Real network failure-domain graph (consumer evidence, 2026-11-14)
 
 ```text
-one upstream internet / router 192.168.0.1 (single observed failure domain)
-  ├── Windows Wi-Fi Realtek 8852BE ─┐
-  └── Windows Remote NDIS USB ──────┤ [same learned gateway MAC]
-                                    └── Windows selected route → WSL2
-                                        ├── Host / Gateway / Runtime control
-                                        ├── direct IPv4 Blackbox proof
-                                        └── one Gluetun/Surfshark WG
-                                            ├── native WireGuard health restart
-                                            ├── existing 2-minute systemd recovery
-                                            └── shared Carrier → Claude / Codex
-                                                       → Finance (9 lanes)
-                                                       → model/supply chain/Chrome
-                                                       → Tailscale server exit
+one ZTE U30 Pro MU5358 / China Mobile 5G WAN (single observed failure domain)
+  └── LAN gateway 192.168.0.1, same learned gateway MAC
+      ├── Windows Wi-Fi Realtek 8852BE ───┐
+      └── Windows Remote NDIS USB ────────┤
+                                          └── Windows selected route → WSL2
+                                              ├── Host / Gateway / Runtime control
+                                              ├── direct IPv4 Blackbox proof
+                                              └── one Gluetun/Surfshark WG
+                                                  ├── native WireGuard health restart
+                                                  ├── existing 1-minute systemd recovery
+                                                  └── shared Carrier → Claude / Codex
+                                                                     → Finance (9 lanes)
+                                                                     → model/supply chain/Chrome
+                                                                     → Tailscale server exit
 ```
+
+The existing ZTE U30 Pro read-only Provider observer independently returned
+MU5358/China Mobile 5G current PPP connected, RSRP -72 dBm and SNR 27 dB,
+with ten gateway pings and no loss at 2026-11-14 16:23 CST. These are
+**current** cellular/LAN observations, not historical cause proof for
+08:41–14:20; no physically independent second WAN is established.
 
 This diagram describes one observed first-hop failure domain. It does
 not prove an ISP internal component is the root cause. On 2026-11-14
