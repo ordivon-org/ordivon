@@ -245,6 +245,13 @@ if calendar_results != calendar_expected:
         f"Markets calendar/Horizon model mismatch: {calendar_results!r}"
     )
 print("MarketsCalendarHorizonR1: 6 scoped invariant checks UNSAT; 2 wrong-model witnesses SAT")
+eod_raw = Path("formal/MarketsEodPaperCalendarR1.smt2").read_bytes()
+eod_ctx = z3.Context()
+eod_results = z3.z3core.Z3_eval_smtlib2_string(eod_ctx.ref(), eod_raw).splitlines()
+eod_expected = ["unsat", "unsat", "unsat", "sat", "sat"]
+if eod_results != eod_expected:
+    raise SystemExit(f"Markets EOD -> Paper gate model mismatch: {eod_results!r}")
+print("MarketsEodPaperCalendarR1: 3 abstract consumer invariants UNSAT; 2 counterexamples SAT")
 PYZ3
 """
 

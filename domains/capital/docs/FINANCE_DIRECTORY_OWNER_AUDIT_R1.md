@@ -9,6 +9,14 @@ Markets exchange_calendars XNYS → Markets etf_eod_snapshot
 → Risk paper_close_risk (相同快照与已提交日结账一致)
 → Portfolio paper_close_performance (净值/现金流匹配报告)。
 
+本轮进一步复用原有 formal:pit-capture Z3 任务，加入
+MarketsEodPaperCalendarR1.smt2 对 EOD 的 abstract qualified
+market date/精确 UTC 收盘/PG入账前必需资格进行 3 个 UNSAT
+不可达证明，并提供 2 个 SAT 反例（旧 operator 自报有效
+及真提前收盘允许）。这是模型层数学合同校验，而不是
+exchange_calendars Python 代码、复权、来源发布时间或
+实际 PostgreSQL ACID 的实现精化证明；具体层必须继续
+运行真实 native tests 和 PostgreSQL 测试。
 此图不把 issuer source / historical PIT / adjusted total return
 视为已认证。PostgresPaperClose 对纯历史 CALLER_SUPPLIED_MARKS
 依然保留模拟效果但不产生市场来源证明；
