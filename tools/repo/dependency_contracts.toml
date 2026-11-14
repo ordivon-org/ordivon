@@ -194,6 +194,9 @@ to_owner = "runtime"
 source_glob = "services/gateway/tests/test_formal_task_owner.py"
 allowed_fragment = "services/runtime/formal/toolchain.lock.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
+# This test reads only the pinned upstream lock; unrelated Runtime source
+# changes must not spill into Gateway's business verification component.
+selection_scope = "PATH"
 contract_ref = "services/runtime/formal/README.md"
 
 # Public digest-verified upstream Formal toolchain; not Runtime Job/Attempt state.

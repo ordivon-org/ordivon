@@ -1628,6 +1628,18 @@ class ConvergencePlanTests(unittest.TestCase):
                 ["services/runtime/formal/toolchain.lock.json"]
             )
         )
+        runtime_code = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+        self.assertEqual(
+            runtime_code["verificationOwners"], ["composition", "runtime"]
+        )
+        self.assertNotIn("gateway", runtime_code["taskLocalTestConsumers"])
+        toolchain_lock = MODULE.build_plan(
+            changed_files=["services/runtime/formal/toolchain.lock.json"]
+        )
+        self.assertIn("gateway", toolchain_lock["taskLocalTestConsumers"])
+        self.assertIn("gateway", toolchain_lock["verificationOwners"])
 
     def test_gateway_pinned_toolchain_exception_cannot_be_widened(self) -> None:
         """No glob or arbitrary Runtime executable may claim tool-only status."""
