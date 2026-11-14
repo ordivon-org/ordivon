@@ -93,6 +93,26 @@ systemd start and repeated automatic healthy no-op runs were observed.
 This is activated native logic; real unattended failure-triggered failover
 time is still UNKNOWN.
 
+## Native recovery physical-underlay admission (two host-direct origins)
+
+Only after a fresh three-lane Claude/Codex/PyPI outage, the existing
+`quality_history.py` directly probes the same two public HTTPS origins
+already owned by native Blackbox: `https://example.com/` and
+`https://www.apple.com/library/test/success.html`, with curl
+`--noproxy '*'` and IPv4. **Both** must independently return valid HTTP
+200/TLS responses before a candidate country becomes eligible for native
+Gluetun API trial. Both failed => physical path considered unavailable;
+missing, timed out, conflicting, or one failed => UNKNOWN and no VPN change.
+This replaces the previous single-direct-origin optimistic admission.
+It does **not** prove an independent WAN, rule out origin-specific outages,
+or identify the ISP/ZTE internal component. The check executes only at a
+fresh VPN-consumer failure boundary, never as a healthy-polling daemon.
+
+The source-linked Z3 finite model and native negative tests explicitly
+refute accepting one successful direct origin as sufficient. The current
+systemd 4-minute one-shot remains the execution boundary. Real unattended
+fault-to-consumer-recovery TTR is still UNKNOWN, and no extra VPN exists.
+
 ## Native recovery detection speed (consumer-scoped, 2026-11-14)
 
 The source-selected one-minute Gluetun recovery timer reuses the original systemd
