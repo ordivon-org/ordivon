@@ -33,6 +33,9 @@ pub enum PgWindowsWitnessPhase {
 #[serde(rename_all = "camelCase")]
 pub struct PgWindowsWitnessObservation {
     pub phase: PgWindowsWitnessPhase,
+    /// Derived only from a qualified PG Attempt identity, not target-authored JSON.
+    /// Lookup is diagnostic: a named kernel object becoming absent is UNKNOWN.
+    pub admitted_job_object_name: String,
     pub launcher_process_id: Option<u64>,
     pub launcher_creation_file_time: Option<u64>,
     pub target_process_id: Option<u64>,
@@ -106,6 +109,7 @@ pub fn inspect_windows_pg_bundle(
     let result = read_value(&dir.join("result.json"))?;
     let mut output = PgWindowsWitnessObservation {
         phase: PgWindowsWitnessPhase::NoLauncherWitness,
+        admitted_job_object_name: format!("Ordivon.{}", expected.attempt_id),
         launcher_process_id: None,
         launcher_creation_file_time: None,
         target_process_id: None,
@@ -467,6 +471,147 @@ pub fn inspect_admitted_windows_pg_bundle(
     inspect_windows_pg_bundle(&root, &identity)
 }
 
+/// Read-only native Windows Job Object population, independent of target-writable
+/// result.json and the launcher's PID. This is a physical *observation*, not
+/// proof of stable terminality: the owning launcher may still spawn children,
+/// and a vanished named object is not evidence that the exact Attempt ended.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PgWindowsJobObjectState {
+    Populated,
+    Empty,
+    NotFound,
+    Unknown,
+}
+
+/// Missing launcher identity never authorizes an OS-level conclusion.
+#[cfg(any(windows, test))]
+fn eligible_job_object_name(witness: &PgWindowsWitnessObservation) -> Option<&str> {
+    if witness.phase == PgWindowsWitnessPhase::NoLauncherWitness
+        || witness.launcher_process_id.is_none()
+        || witness.launcher_creation_file_time.is_none()
+        || !witness.admitted_job_object_name.starts_with("Ordivon.")
+        || witness.admitted_job_object_name.len() <= "Ordivon.".len()
+    {
+        None
+    } else {
+        Some(&witness.admitted_job_object_name)
+    }
+}
+
+#[cfg(windows)]
+fn query_windows_named_job_object(name: &str) -> PgWindowsJobObjectState {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Foundation::{CloseHandle, GetLastError};
+    use windows_sys::Win32::System::JobObjects::OpenJobObjectW;
+    // Win32 JOB_OBJECT_QUERY; no terminate, assign or change-config rights.
+    const JOB_OBJECT_QUERY: u32 = 0x0004;
+    const ERROR_FILE_NOT_FOUND: u32 = 2;
+    if name.is_empty() || name.encode_utf16().any(|c| c == 0) {
+        return PgWindowsJobObjectState::Unknown;
+    }
+    let mut wide: Vec<u16> = std::ffi::OsStr::new(name).encode_wide().collect();
+    wide.push(0);
+    unsafe {
+        let handle = OpenJobObjectW(JOB_OBJECT_QUERY, 0, wide.as_ptr());
+        if handle.is_null() {
+            return if GetLastError() == ERROR_FILE_NOT_FOUND {
+                PgWindowsJobObjectState::NotFound
+            } else {
+                PgWindowsJobObjectState::Unknown
+            };
+        }
+        let result = query_windows_job_object_handle(handle);
+        CloseHandle(handle);
+        result
+    }
+}
+
+#[cfg(windows)]
+unsafe fn query_windows_job_object_handle(
+    handle: windows_sys::Win32::Foundation::HANDLE,
+) -> PgWindowsJobObjectState {
+    use windows_sys::Win32::System::JobObjects::{
+        JobObjectBasicAccountingInformation, QueryInformationJobObject,
+        JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,
+    };
+    let mut accounting = JOBOBJECT_BASIC_ACCOUNTING_INFORMATION::default();
+    let mut returned = 0_u32;
+    let ok = unsafe {
+        QueryInformationJobObject(
+            handle,
+            JobObjectBasicAccountingInformation,
+            (&mut accounting as *mut JOBOBJECT_BASIC_ACCOUNTING_INFORMATION).cast(),
+            std::mem::size_of::<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION>() as u32,
+            &mut returned,
+        )
+    };
+    if ok == 0 || returned as usize != std::mem::size_of::<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION>()
+    {
+        PgWindowsJobObjectState::Unknown
+    } else if accounting.ActiveProcesses == 0 {
+        PgWindowsJobObjectState::Empty
+    } else {
+        PgWindowsJobObjectState::Populated
+    }
+}
+
+/// Diagnostics only. Win32 QueryInformationJobObject(NULL) observes the
+/// calling process's immediate assigned Job Object when one exists. It is
+/// NOT a PG-qualified owner lookup and is never used for terminal CAS.
+#[cfg(windows)]
+pub fn selftest_windows_pg_enclosing_job_object_state() -> PgWindowsJobObjectState {
+    unsafe { query_windows_job_object_handle(std::ptr::null_mut()) }
+}
+
+#[cfg(windows)]
+pub fn inspect_windows_pg_job_object(
+    witness: &PgWindowsWitnessObservation,
+) -> PgWindowsJobObjectState {
+    let Some(name) = eligible_job_object_name(witness) else {
+        return PgWindowsJobObjectState::Unknown;
+    };
+    query_windows_named_job_object(name)
+}
+
+#[cfg(not(windows))]
+pub fn inspect_windows_pg_job_object(
+    _witness: &PgWindowsWitnessObservation,
+) -> PgWindowsJobObjectState {
+    PgWindowsJobObjectState::Unknown
+}
+
+/// One bounded native diagnostic: create a unique empty Win32 Job Object,
+/// observe it using the identical read-only production query and close the
+/// handle. Never starts a child, changes service ACL or touches PostgreSQL.
+#[cfg(windows)]
+pub fn selftest_windows_pg_job_object_query() -> bool {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Foundation::{CloseHandle, GetLastError};
+    use windows_sys::Win32::System::JobObjects::CreateJobObjectW;
+    let name = format!(
+        "Ordivon.WinPgProbe.{}.{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    );
+    let mut wide: Vec<u16> = std::ffi::OsStr::new(&name).encode_wide().collect();
+    wide.push(0);
+    unsafe {
+        let handle = CreateJobObjectW(std::ptr::null(), wide.as_ptr());
+        if handle.is_null() {
+            return false;
+        }
+        // Do not accept a preexisting named Job even if the unlikely name collides.
+        let fresh = GetLastError() != 183; // ERROR_ALREADY_EXISTS
+        let empty = query_windows_named_job_object(&name) == PgWindowsJobObjectState::Empty;
+        CloseHandle(handle);
+        fresh && empty && query_windows_named_job_object(&name) == PgWindowsJobObjectState::NotFound
+    }
+}
+
 /// Native OS observation must be independent of the target-writable bundle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -565,6 +710,30 @@ pub fn inspect_windows_pg_os_owner(_witness: &PgWindowsWitnessObservation) -> Pg
 #[cfg(test)]
 mod owner_identity_tests {
     use super::*;
+    #[test]
+    fn job_object_lookup_requires_bound_launcher_evidence() {
+        let mut x = PgWindowsWitnessObservation {
+            phase: PgWindowsWitnessPhase::NoLauncherWitness,
+            admitted_job_object_name: "Ordivon.attempt-probe".into(),
+            launcher_process_id: None,
+            launcher_creation_file_time: None,
+            target_process_id: None,
+            target_creation_file_time: None,
+            result_digest: None,
+            terminal_proven: false,
+        };
+        assert_eq!(eligible_job_object_name(&x), None);
+        assert_eq!(x.admitted_job_object_name, "Ordivon.attempt-probe");
+        x.phase = PgWindowsWitnessPhase::LauncherWitness;
+        assert_eq!(eligible_job_object_name(&x), None);
+        x.launcher_process_id = Some(19);
+        x.launcher_creation_file_time = Some(11);
+        assert_eq!(
+            eligible_job_object_name(&x),
+            Some(x.admitted_job_object_name.as_str())
+        );
+    }
+
     #[test]
     fn pid_reuse_cannot_transfer_ownership() {
         assert!(same_win32_owner(45, 10, 45, 10));
