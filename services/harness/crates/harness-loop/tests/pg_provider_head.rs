@@ -32,11 +32,11 @@ use ordivon_harness_loop::provider_v4_author::{
 };
 use ordivon_harness_pg::{
     journal_write::{
-        append_events, observe_exact_batch, Admission, EventWrite, JournalObservation, StoredRef,
-        WriteError,
+        append_events, append_events_with_provider_cas, observe_exact_batch, Admission, EventWrite,
+        JournalObservation, ProviderEventBatch, StoredRef, WriteError,
     },
     lease::{acquire_run_lease, RunLease},
-    provider_cas::{put_provider_cas, ProviderCasKind},
+    provider_cas::{put_provider_cas, ProviderCasKind, ProviderStagedCas},
     read_run_readonly, ReadError,
 };
 use postgres::{Client, NoTls};
@@ -416,25 +416,23 @@ impl DurableJournal for SourcePgCompletedJournal {
         // The positive Provider fact survives redaction through resultDigest;
         // forbidden model content must never enter the PostgreSQL objects table.
         let result_object = if source_allows_content {
-            let stored = put_provider_cas(
-                &mut db,
-                &self.base.schema,
-                ProviderCasKind::AgentTurnResult,
-                &result,
-                recorded_at,
-            )
-            .map_err(|e| e.to_string())?;
-            if &stored != expected_ref(&self.base.batch[2], "agent-turn-result")? {
-                return Err("Retained Result ref differs from Python source".into());
+            let reference = StoredRef {
+                digest: result_digest.clone(),
+                kind: "agent-turn-result".to_string(),
+                byte_length: i64::try_from(canonical_bytes(&result).len())
+                    .map_err(|e| e.to_string())?,
+            };
+            if &reference != expected_ref(&self.base.batch[2], "agent-turn-result")? {
+                return Err("Source result object reference mismatch".into());
             }
-            Some(stored)
+            Some(reference)
         } else {
             if self.base.batch[2]
                 .referenced_objects
                 .iter()
                 .any(|r| r.kind == "agent-turn-result")
             {
-                return Err("Privacy-redacted result unexpectedly referenced".into());
+                return Err("Privacy-redacted Provider result referenced".into());
             }
             None
         };
@@ -448,16 +446,28 @@ impl DurableJournal for SourcePgCompletedJournal {
             u64::try_from(recorded_at).map_err(|e| e.to_string())?,
         )
         .map_err(|e| format!("{e:?}"))?;
-        let completed_ref = put_provider_cas(
-            &mut db,
-            &self.base.schema,
-            ProviderCasKind::RecordV4,
-            &completed,
-            recorded_at,
-        )
-        .map_err(|e| e.to_string())?;
+        let completed_ref = StoredRef {
+            digest: digest_bytes(&canonical_bytes(&completed)),
+            kind: "harness-provider-call-record".to_string(),
+            byte_length: i64::try_from(canonical_bytes(&completed).len())
+                .map_err(|e| e.to_string())?,
+        };
         if &completed_ref != expected_ref(&self.base.batch[2], "harness-provider-call-record")? {
-            return Err("Positive V4 COMPLETED ref differs from source".into());
+            return Err("Completed provider V4 source byte reference mismatch".into());
+        }
+        // No standalone CAS writes. Both source-authorized objects and the
+        // COMPLETED event are committed or rolled back in ONE original PG TX.
+        let mut staged = vec![ProviderStagedCas {
+            kind: ProviderCasKind::RecordV4,
+            document: &completed,
+            first_seen_at_ms: recorded_at,
+        }];
+        if source_allows_content {
+            staged.push(ProviderStagedCas {
+                kind: ProviderCasKind::AgentTurnResult,
+                document: &result,
+                first_seen_at_ms: recorded_at,
+            });
         }
         let lease = acquire_run_lease(
             &mut db,
@@ -469,11 +479,14 @@ impl DurableJournal for SourcePgCompletedJournal {
             Some(3),
         )
         .map_err(|e| e.to_string())?;
-        match append_events(
+        match append_events_with_provider_cas(
             &mut db,
             &self.base.schema,
             &self.base.run_id,
-            &self.base.batch[2..],
+            ProviderEventBatch {
+                events: &self.base.batch[2..],
+                staged: &staged,
+            },
             3,
             &lease,
             recorded_at,
@@ -760,6 +773,79 @@ fn verify_native_rust_pg_v4_completed_case(source_case: &str, retain_model_conte
     // Intentional consumer negative: after the original Run advanced from
     // revision 1 to 4, the same old source cannot issue another Provider send.
     assert!(journal.prepare_provider(1).is_err());
+    // Independent transactional privacy falsifier: the model has returned
+    // good positive HTTP content. A DIFFERENT private result object must not
+    // survive when the PG Event is rejected because the original Run advanced
+    // from rev3 to rev4 (even if the actor now has a valid rev4 lease).
+    // This specifically catches R30's old two-transaction CAS-before-Event
+    // leak, which could leave an orphaned private answer after a stale lease.
+    let rejected_call_id = format!("model-call:aborted-staged-{source_case}");
+    let rejected = author_no_tool_turn_result(
+        &rejected_call_id,
+        model.requested_model_id,
+        &ModelDecision::ProposeCompletion("A useful answer".into()),
+        provider.last_wire_observation(),
+    )
+    .unwrap();
+    let rejected_ref = StoredRef {
+        digest: digest_bytes(&canonical_bytes(&rejected)),
+        kind: "agent-turn-result".to_owned(),
+        byte_length: i64::try_from(canonical_bytes(&rejected).len()).unwrap(),
+    };
+    let mut rejected_event = batch[2].clone();
+    rejected_event.event_id = format!("event:aborted-staged-{source_case}");
+    rejected_event.recorded_at_ms = 1040;
+    rejected_event.referenced_objects.push(rejected_ref.clone());
+    let mut denied_db = Client::connect(&writer_dsn, NoTls).unwrap();
+    let newer_lease = acquire_run_lease(
+        &mut denied_db,
+        &schema,
+        run_id,
+        "test:aborted-staged-cas",
+        30_000,
+        1039,
+        Some(4),
+    )
+    .unwrap();
+    let failed = append_events_with_provider_cas(
+        &mut denied_db,
+        &schema,
+        run_id,
+        ProviderEventBatch {
+            events: &[rejected_event],
+            staged: &[ProviderStagedCas {
+                kind: ProviderCasKind::AgentTurnResult,
+                document: &rejected,
+                first_seen_at_ms: 1040,
+            }],
+        },
+        3,
+        &newer_lease,
+        1040,
+    );
+    assert!(
+        matches!(failed, Err(WriteError::Revision)),
+        "stale source PG revision must abort the entire CAS+Event TX: {failed:?}"
+    );
+    // Verify through a fresh read-only connection that the entire private
+    // Result CAS was rolled back: checking Event absence alone is not enough.
+    let rollback_sql = format!("SELECT count(*) FROM {schema}.objects WHERE digest=$1");
+    let post_rollback: i64 = readonly
+        .query_one(&rollback_sql, &[&rejected_ref.digest])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        post_rollback, 0,
+        "rejected Event left private AgentTurnResult orphan CAS"
+    );
+    assert_eq!(
+        read_run_readonly(&mut readonly, &schema, run_id)
+            .unwrap()
+            .projection
+            .revision,
+        4
+    );
+    println!("PG18_REJECTED_COMPLETED_EVENT_NO_PRIVATE_CAS_ORPHAN_PASS");
     if retain_model_content {
         println!("PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS");
     } else {

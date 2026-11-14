@@ -32,6 +32,54 @@ impl ProviderCasKind {
     }
 }
 
+/// Submit CAS objects alongside the exact Provider Journal Event whose
+/// references bind them. Unlike stand-alone CAS, these are rolled back when
+/// the Run revision, lease, source Contract or event preflight is rejected.
+#[derive(Clone, Copy)]
+pub struct ProviderStagedCas<'a> {
+    pub kind: ProviderCasKind,
+    pub document: &'a CanonicalDocument,
+    pub first_seen_at_ms: i64,
+}
+
+/// The single canonical Provider CAS preparation/validation shared by the
+/// original standalone CAS path and the atomic Event+CAS append.
+pub(crate) fn prepare_provider_cas(
+    input: ProviderStagedCas<'_>,
+) -> Result<(StoredRef, Vec<u8>), WriteError> {
+    if input.first_seen_at_ms < 0 {
+        return Err(WriteError::Invalid("invalid Provider CAS time"));
+    }
+    let (kind_name, protocol_kind) = input.kind.names();
+    if input.document.field("kind").and_then(|v| v.as_str()) != Some(protocol_kind) {
+        return Err(WriteError::Invalid("Provider CAS kind/document mismatch"));
+    }
+    let expected_version = match input.kind {
+        ProviderCasKind::RecordV4 => "4",
+        ProviderCasKind::FailureReceipt => "1",
+        ProviderCasKind::AgentTurnResult => "1",
+    };
+    if input
+        .document
+        .field("schemaVersion")
+        .and_then(|v| v.integer_text())
+        != Some(expected_version)
+    {
+        return Err(WriteError::Invalid("Provider CAS version mismatch"));
+    }
+    let bytes = canonical_bytes(input.document);
+    if bytes.len() > 1_048_576 {
+        return Err(WriteError::Invalid("Provider CAS object too large"));
+    }
+    let len = i64::try_from(bytes.len()).map_err(|_| WriteError::Overflow)?;
+    let stored = StoredRef {
+        digest: digest_bytes(&bytes),
+        kind: kind_name.to_owned(),
+        byte_length: len,
+    };
+    Ok((stored, bytes))
+}
+
 /// Persist a newly authored Provider record (or failure receipt) with one
 /// native PG CAS authority. A CAS write is deliberately *not* a Provider
 /// Event: the existing lease-fenced Journal append owns admission.
@@ -42,46 +90,25 @@ pub fn put_provider_cas(
     document: &CanonicalDocument,
     first_seen_at_ms: i64,
 ) -> Result<StoredRef, WriteError> {
-    if !valid_schema(schema) || first_seen_at_ms < 0 {
-        return Err(WriteError::Invalid("invalid Provider CAS schema/time"));
+    if !valid_schema(schema) {
+        return Err(WriteError::Invalid("invalid Provider CAS schema"));
     }
-    let (kind_name, protocol_kind) = kind.names();
-    if document.field("kind").and_then(|v| v.as_str()) != Some(protocol_kind) {
-        return Err(WriteError::Invalid("Provider CAS kind/document mismatch"));
-    }
-    if kind == ProviderCasKind::RecordV4
-        && document
-            .field("schemaVersion")
-            .and_then(|v| v.integer_text())
-            != Some("4")
-    {
-        return Err(WriteError::Invalid("Provider V4 CAS version mismatch"));
-    }
-    if kind == ProviderCasKind::AgentTurnResult
-        && document
-            .field("schemaVersion")
-            .and_then(|v| v.integer_text())
-            != Some("1")
-    {
-        return Err(WriteError::Invalid("AgentTurnResult CAS version mismatch"));
-    }
-    let bytes = canonical_bytes(document);
-    if bytes.len() > 1_048_576 {
-        return Err(WriteError::Invalid("Provider CAS object too large"));
-    }
-    let digest = digest_bytes(&bytes);
-    let len = i64::try_from(bytes.len()).map_err(|_| WriteError::Overflow)?;
+    let (stored, bytes) = prepare_provider_cas(ProviderStagedCas {
+        kind,
+        document,
+        first_seen_at_ms,
+    })?;
     let mut tx = db.transaction()?;
     check_schema(&mut tx, schema)?;
-    // Reuses the same immutable CAS writer as native create_run, including
-    // verification of immutable bytes/kind if the digest already exists.
-    store_cas(&mut tx, &digest, kind_name, &bytes, first_seen_at_ms)?;
+    store_cas(
+        &mut tx,
+        &stored.digest,
+        &stored.kind,
+        &bytes,
+        first_seen_at_ms,
+    )?;
     tx.commit()?;
-    Ok(StoredRef {
-        digest,
-        kind: kind_name.to_string(),
-        byte_length: len,
-    })
+    Ok(stored)
 }
 
 #[cfg(test)]

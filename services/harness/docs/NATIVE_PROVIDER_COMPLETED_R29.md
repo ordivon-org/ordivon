@@ -80,3 +80,30 @@ still stores the full result, and UNKNOWN still does not blind retry.
 R30 is a source-policy production *capability seam* in the test-only Journal
 rather than a newly deployed Security owner. Real Provider credentials, live
 currentness, external cost and independently solved Agent tasks stay OPEN.
+
+## R31 atomic CAS+Event hard-core fix (same document)
+
+R30's two independent PostgreSQL transactions (put immutable Result/V4 CAS,
+then append a lease-fenced COMPLETED Event) could leave a private, unreferenced
+answer object after Event revision failure, even while the Provider record
+correctly refused to claim success. R31 composes, rather than replaces, the
+mature original PG Journal Writer: `append_events_with_provider_cas` stages
+source-referenced typed Result/V4 CAS and the Event+edges+Run projection in
+ONE existing PG transaction. `append_events` retains its original interface
+by calling this with zero staged objects. CAS preparation and strict kind/
+version rules are shared with the existing `put_provider_cas` instead of
+duplicating canonical validators. New staged objects MUST appear in the
+actual Event references. The original Run row lock, semantic Contract
+validation, replay, revision, lease, atomic projection update and rollback
+remain the only authority.
+
+Real disposable PG18 independently falsifies the old leak on both permitted
+and redacted source Runs: an actually source-valid new model Result is staged
+then a stale expected Run revision is submitted with a currently held lease.
+The Event transaction rejects revision 3 after actual Run advanced to 4,
+and a *separate SELECT-only connection* observes zero object rows for the
+new private result digest; existing Run revision 4 remains unchanged. Both
+ordinary COMPLETED cases still pass exact original Python Store / Rust reader
+parity; physical server sends real localhost HTTP, not a live external API.
+This closes the transactional orphan-CAS hole, **not** the issuer-at-spawn
+authorization, current model billing or external AgentSolved proof.

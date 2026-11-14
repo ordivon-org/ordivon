@@ -3,6 +3,8 @@
 //! Lost commit responses are UNKNOWN until exact Event-ID reconciliation.
 
 use super::lease::{check_schema, LeaseError, RunLease};
+use super::provider_cas::{prepare_provider_cas, ProviderStagedCas};
+use super::run_create::store_cas;
 use super::{
     contract_semantics, decode_cas, run_projection, transition, valid_schema, ReadError,
     RunProjection, CONTRACT_KIND,
@@ -84,6 +86,12 @@ pub struct EventWrite {
     pub recorded_at_ms: i64,
     pub caused_by_event_id: Option<String>,
     pub referenced_objects: Vec<StoredRef>,
+}
+/// One source-owned atomic Provider Journal batch. The staged CAS documents
+/// must be referenced by the exact attached Event, not a separate datastore.
+pub struct ProviderEventBatch<'a> {
+    pub events: &'a [EventWrite],
+    pub staged: &'a [ProviderStagedCas<'a>],
 }
 struct Prepared<'a> {
     source: &'a EventWrite,
@@ -292,6 +300,34 @@ pub fn append_events(
     lease: &RunLease,
     lease_checked_at_ms: i64,
 ) -> Result<Admission, WriteError> {
+    append_events_with_provider_cas(
+        db,
+        schema,
+        run,
+        ProviderEventBatch {
+            events,
+            staged: &[],
+        },
+        expected_revision,
+        lease,
+        lease_checked_at_ms,
+    )
+}
+
+/// Same native Writer, same source PG Lease and Event transaction. Provider
+/// result V4 CAS is inserted *inside* the Event transaction: rejected or
+/// rolled-back Event cannot leave a private answer orphaned in PG.
+pub fn append_events_with_provider_cas(
+    db: &mut Client,
+    schema: &str,
+    run: &str,
+    batch: ProviderEventBatch<'_>,
+    expected_revision: i64,
+    lease: &RunLease,
+    lease_checked_at_ms: i64,
+) -> Result<Admission, WriteError> {
+    let events = batch.events;
+    let staged = batch.staged;
     if !valid_schema(schema) {
         return Err(WriteError::Invalid("schema"));
     }
@@ -327,8 +363,39 @@ pub fn append_events(
             bytes,
         });
     }
+    let mut pending = Vec::with_capacity(staged.len());
+    if staged.len() > 256 {
+        return Err(WriteError::Invalid("too many Provider CAS objects"));
+    }
+    for spec in staged {
+        let (reference, bytes) = prepare_provider_cas(*spec)?;
+        if !events
+            .iter()
+            .any(|event| event.referenced_objects.contains(&reference))
+        {
+            return Err(WriteError::Invalid(
+                "staged Provider CAS lacks exact Event reference",
+            ));
+        }
+        if pending
+            .iter()
+            .any(|(r, _, _): &(StoredRef, Vec<u8>, i64)| r.digest == reference.digest)
+        {
+            return Err(WriteError::Invalid("duplicate staged Provider CAS"));
+        }
+        pending.push((reference, bytes, spec.first_seen_at_ms));
+    }
     let mut tx = db.transaction()?;
     check_schema(&mut tx, schema)?;
+    for (reference, bytes, first_seen) in &pending {
+        store_cas(
+            &mut tx,
+            &reference.digest,
+            &reference.kind,
+            bytes,
+            *first_seen,
+        )?;
+    }
     for p in &prepared {
         let n = i64::try_from(p.bytes.len()).map_err(|_| WriteError::Overflow)?;
         tx.execute(
