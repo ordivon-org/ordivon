@@ -252,6 +252,16 @@ worker data are imported, migrated or retained by this source retirement.
 
 Independent read-only Runtime and Host capability observations run concurrently, once per required owner per request. Projection ordering stays deterministic, and observations are not cached across requests. A failed or timed-out owner observation remains UNKNOWN through the existing observation error; healthy owners remain visible.
 
+Runtime execution capability discovery requires a list-valued target inventory and an
+unambiguous match for the routed execution target. A duplicate target identity,
+non-list target inventory, or explicitly malformed context list is UNKNOWN with
+an observation error, never a positive availability claim or a Python exception
+that aborts discovery of other healthy owners. This reuses the existing
+`capability_projection.py` path; the native release-discovery route already
+requires exactly one matching Linux target. Source-level regression consumers:
+`tests/test_capability_projection.py` and `tests/test_runtime_release_discovery.py`.
+This is not installed-state or execution-authorization evidence.
+
 The default per-probe cooperative cancellation budget is five seconds. Cancellation waits for transport cleanup: legacy MCP session DELETE cleanup may extend that budget, so it is not a hard end-to-end latency deadline. Cancellation of the enclosing request drains its child probes. Gateway does not parallelize effects or retry upstream effects.
 
 ### Windows local service identity

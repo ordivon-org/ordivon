@@ -463,3 +463,87 @@ def test_pure_search_projection_does_not_confer_execution_authority() -> None:
     assert result.total_matches == 1
     assert result.truth_role == "rebuildable-non-authoritative-discovery-projection"
     assert result.matches[0].capability.observation_error == "owner unavailable"
+
+
+def test_execution_projection_cannot_promote_ambiguous_or_malformed_runtime_targets() -> None:
+    """An untrusted Owner inventory is not an ordered preference list."""
+    for capability in ("execution.linux", "execution.windows"):
+        route = default_routes()[capability]
+        target_name = route.execution_target
+        ready_target = {"target": target_name, "configured": True, "available": True}
+        for targets in (
+            None,
+            {"target": target_name},
+            "not-a-target-list",
+            [ready_target, ready_target],
+            [ready_target, {"target": target_name, "configured": False, "available": False}],
+        ):
+            item = project_execution_capability(
+                route,
+                configured_at_gateway=True,
+                owner_response={"targets": targets},
+            )
+            assert item.available is False
+            assert item.readiness_state == "unknown"
+            assert item.observation_error
+
+
+def test_bad_runtime_inventory_does_not_hide_an_independent_healthy_runtime() -> None:
+    """Broken Linux capability metadata must not destroy Windows discovery."""
+    caller = ProjectionCaller(
+        {
+            ("runtime.linux", "runtime.describe"): {
+                "schemaVersion": 1,
+                "node": {"nodeId": "linux-pg", "platform": "linux", "native": True},
+                "targets": None,
+            },
+            ("runtime.windows", "runtime.describe"): {
+                "schemaVersion": 1,
+                "node": {
+                    "nodeId": "windows-main-r6-candidate",
+                    "platform": "windows",
+                    "native": True,
+                },
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": True,
+                        "windowsContexts": [{"identity": "service", "privilege": "limited"}],
+                    }
+                ],
+            },
+        },
+        {"runtime.linux", "runtime.windows"},
+    )
+    items = asyncio.run(GatewayService(caller).capability_describe()).capabilities
+    by_name = {item.capability: item for item in items}
+    assert by_name["execution.linux"].readiness_state == "unknown"
+    assert by_name["execution.windows"].available is True
+    assert by_name["execution.windows"].readiness_state == "ready"
+
+
+def test_execution_projection_malformed_contexts_are_unknown_not_global_discovery_errors() -> None:
+    """Malformed context lists from an Owner cannot crash all capability discovery."""
+    for capability, bad_field in (
+        ("execution.linux", "executionProfiles"),
+        ("execution.windows", "windowsAuthorities"),
+    ):
+        route = default_routes()[capability]
+        descriptor = project_execution_capability(
+            route,
+            configured_at_gateway=True,
+            owner_response={
+                "targets": [
+                    {
+                        "target": route.execution_target,
+                        "configured": True,
+                        "available": True,
+                        bad_field: None,
+                    }
+                ]
+            },
+        )
+        assert descriptor.available is False
+        assert descriptor.readiness_state == "unknown"
+        assert descriptor.observation_error

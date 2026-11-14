@@ -291,4 +291,8 @@ transport failure. Invalid node identity or boolean status is UNKNOWN.
 The MCP source tool input/output contract does not change for a new metadata
 route, but normal routeDigest and source package version do change.
 Exercise test_runtime_release_discovery.py plus gateway:verify and true
-post-deployment readback before claiming readiness.
+post-deployment readback before claiming readiness. Ordinary execution
+readiness must also be grounded in one unambiguous Runtime target with typed
+context inventories: refer to README.md "Capability observation lifecycle"
+and test_capability_projection.py; malformed Owner data is UNKNOWN rather
+than a positive READY or a global discovery exception.

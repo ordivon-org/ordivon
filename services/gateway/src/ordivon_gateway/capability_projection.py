@@ -52,14 +52,38 @@ def project_execution_capability(
             truth_boundary=route.truth_boundary,
         )
 
-    target = next(
-        (
-            item
-            for item in owner_response.get("targets", [])
-            if isinstance(item, dict) and item.get("target") == route.execution_target
-        ),
-        None,
-    )
+    # The Owner's inventory is evidence, not an ordered route-preference list.
+    # A malformed container or duplicate identity is UNKNOWN; accepting the
+    # first matching target can incorrectly advertise an executable as ready.
+    targets = owner_response.get("targets")
+    if not isinstance(targets, list):
+        return CapabilityDescriptor(
+            capability=route.capability,
+            owner_id=route.owner_id,
+            category=route.category,
+            configured=False,
+            available=False,
+            context_mode=route.context_mode,  # type: ignore[arg-type]
+            observation_error="owner returned invalid execution-target inventory",
+            truth_boundary=route.truth_boundary,
+        )
+    matches = [
+        item
+        for item in targets
+        if isinstance(item, dict) and item.get("target") == route.execution_target
+    ]
+    if len(matches) > 1:
+        return CapabilityDescriptor(
+            capability=route.capability,
+            owner_id=route.owner_id,
+            category=route.category,
+            configured=False,
+            available=False,
+            context_mode=route.context_mode,  # type: ignore[arg-type]
+            observation_error="owner advertised duplicate execution-target identities",
+            truth_boundary=route.truth_boundary,
+        )
+    target = matches[0] if matches else None
     if target is None:
         return CapabilityDescriptor(
             capability=route.capability,
@@ -92,6 +116,25 @@ def project_execution_capability(
             available=False,
             context_mode=route.context_mode,  # type: ignore[arg-type]
             observation_error="owner returned invalid execution-target status",
+            truth_boundary=route.truth_boundary,
+        )
+
+    # Context inventories are Owner-declared lists. Invalid explicitly supplied
+    # types must not crash discovery or be silently projected as a ready route.
+    context_fields = (
+        ("windowsContexts", "windowsAuthorities")
+        if route.execution_target == "windows_native"
+        else ("executionProfiles",)
+    )
+    if any(field in target and not isinstance(target[field], list) for field in context_fields):
+        return CapabilityDescriptor(
+            capability=route.capability,
+            owner_id=route.owner_id,
+            category=route.category,
+            configured=False,
+            available=False,
+            context_mode=route.context_mode,  # type: ignore[arg-type]
+            observation_error="owner returned invalid execution-context inventory",
             truth_boundary=route.truth_boundary,
         )
 
