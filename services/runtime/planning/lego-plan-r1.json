@@ -425,7 +425,10 @@
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
-        "docs/effect-kernel.md"
+        "docs/effect-kernel.md",
+        "scripts/agent_evidence_admission.py",
+        "scripts/tests/test_agent_evidence_admission.py",
+        "docs/guides/agent-runtime.md"
       ],
       "dependencies": [
         "R08",
