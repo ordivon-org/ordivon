@@ -264,6 +264,35 @@ def validate() -> None:
         policy.http_raw_samples = original_http
     assert stale_mutants == 1
 
+
+    # Two source-owned host-direct HTTPS origins: a single success is not
+    # enough to authorize changing the only physical WireGuard session.
+    # This is exact tri-state admission refinement, not a two-WAN guarantee.
+    direct_cases = 0
+    for first, second in product((True, False, None), repeat=2):
+        observed = policy.direct_underlay_evidence((first, second))
+        expected = (True if first is True and second is True else
+                    False if first is False and second is False else None)
+        assert observed is expected
+        s = Solver()
+        s.add(BoolVal(observed is True) !=
+              And(BoolVal(first is True), BoolVal(second is True)))
+        assert s.check() == unsat
+        direct_cases += 1
+    single_origin_mutant = Solver()
+    first_ok, second_ok = Bool("first_direct_ok"), Bool("second_direct_ok")
+    single_origin_mutant.add(first_ok, Not(second_ok),
+                             Or(first_ok, second_ok),
+                             Not(And(first_ok, second_ok)))
+    assert single_origin_mutant.check() == sat
+    direct_source = (source_root / "config/prometheus/prometheus.yml").read_text()
+    assert "job_name: blackbox-http-ipv4\n" in direct_source
+    assert "job_name: blackbox-http-ipv4-alternate\n" in direct_source
+    assert policy.DIRECT_UNDERLAY_HTTPS == (
+        "https://example.com/",
+        "https://www.apple.com/library/test/success.html",
+    )
+
     # An incorrect selector copying duplicate countries into both slots has
     # a satisfiable distinctness violation; implemented source above cannot.
     c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
@@ -276,6 +305,8 @@ def validate() -> None:
         "standing": "SOURCE_ENUMERATION_REFINED_WITH_Z3",
         "finiteCases": cases,
         "distinctCandidateCases": country_cases,
+        "twoDirectOriginTriStateCases": direct_cases,
+        "singleOriginOptimisticMutantRefuted": True,
         "timeBoundedSourceHintCases": hint_cases,
         "postExpiryCatalogColdTrialCases": cold_cases,
         "sourceBoundMaxSamplingAndTimerDecisionSeconds": worst_case,
@@ -290,6 +321,7 @@ def validate() -> None:
         ],
         "negativeControls": [
             "missing underlay guard mutant SAT",
+            "single successful host-direct origin prematurely grants VPN mutation SAT",
             "UNKNOWN active must not grant trial",
             "duplicate fallback country mutation SAT",
         ],

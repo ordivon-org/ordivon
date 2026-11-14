@@ -423,3 +423,74 @@ def test_prefer_current_real_histories_over_source_trial_hints():
     x=history.decision(active_healthy=False,underlay_reachable=True,
                         evidence=hints,now=now,current_country="Malaysia")
     assert x["trialCountries"]==["Japan","Mexico"]
+
+
+def test_direct_underlay_two_origin_tri_state_including_all_missing_and_mixed():
+    from itertools import product
+    for left, right in product((True, False, None), repeat=2):
+        result=history.direct_underlay_evidence((left,right))
+        expected=True if left is True and right is True else (
+                 False if left is False and right is False else None)
+        assert result is expected, (left,right,result)
+    assert history.DIRECT_UNDERLAY_HTTPS == (
+        "https://example.com/",
+        "https://www.apple.com/library/test/success.html",
+    )
+
+
+def test_direct_underlay_real_curl_observer_uses_exact_no_proxy_two_origins(monkeypatch):
+    from subprocess import TimeoutExpired
+    class Reply:
+        def __init__(self, good):
+            self.returncode=0 if good else 28
+            self.stdout="200" if good else "000"
+    receipts=[]
+    answers=[Reply(True),Reply(True)]
+    def run(args,**kwargs):
+        assert args[:4]==["/usr/bin/curl","-q","--noproxy","*"]
+        assert args[4]=="-4" and args[-1] in history.DIRECT_UNDERLAY_HTTPS
+        assert kwargs["timeout"]==9 and kwargs["capture_output"]
+        receipts.append(args[-1])
+        selected=answers[len(receipts)-1]
+        if selected is None: raise TimeoutExpired(args,9)
+        return selected
+    monkeypatch.setattr(history.subprocess,"run",run)
+    for pairs,expected in (
+        ((True,True),True),
+        ((False,False),False),
+        ((True,False),None),
+        ((False,True),None),
+        ((True,None),None),
+        ((None,True),None),
+        ((None,None),None),
+    ):
+        receipts.clear()
+        answers=[Reply(x) if x is not None else None for x in pairs]
+        assert history.direct_underlay_witness() is expected
+        assert receipts==list(history.DIRECT_UNDERLAY_HTTPS)
+
+
+def test_vpn_failure_cannot_authorize_country_trial_on_mixed_direct_paths(monkeypatch):
+    import observe_active
+    import json
+    class Reply:
+        returncode=0
+        def __init__(self,stdout):self.stdout=stdout
+    seen=[]
+    def run(args,**kwargs):
+        seen.append(args)
+        if args[:2]==["/usr/bin/podman","exec"]:
+            return Reply(json.dumps({"surfshark":{"servers":[]}}))
+        if args[0]=="/usr/bin/journalctl":return Reply("")
+        if args[0]=="/usr/bin/curl":
+            return Reply("200" if args[-1]==history.DIRECT_UNDERLAY_HTTPS[0] else "503")
+        raise AssertionError("unexpected run: "+str(args))
+    monkeypatch.setattr(history.subprocess,"run",run)
+    monkeypatch.setattr(history,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(history,"current_catalog_country",lambda cat:"Malaysia")
+    monkeypatch.setattr(observe_active,"observe",lambda: (_ for _ in ()).throw(AssertionError("no redundant failed probes")))
+    plan=history.observe(hours=48)
+    assert plan["active"]["threeLaneConsecutiveFailure"] is True
+    assert plan["recommended"]["decision"]=="HOLD_SHARED_UNDERLAY_OR_UNKNOWN"
+    assert plan["sourceTrialHints"]==[] and plan["sourceCatalogColdTrials"]==[]
+    assert [a[-1] for a in seen if a[0]=="/usr/bin/curl"]==list(history.DIRECT_UNDERLAY_HTTPS)

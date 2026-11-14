@@ -439,6 +439,41 @@ def current_catalog_country(catalog: str) -> str | None:
     return observe_active.catalog_country(catalog, observe_active.endpoint_ip(raw))
 
 
+DIRECT_UNDERLAY_HTTPS = (
+    "https://example.com/",
+    "https://www.apple.com/library/test/success.html",
+)
+
+
+def direct_underlay_evidence(observations: tuple[bool | None, bool | None]) -> bool | None:
+    """Two known-good direct origins imply reachability; mixed => UNKNOWN.
+
+    Neither origin is a separate WAN; do not infer modem/ISP root cause.
+    """
+    if observations == (True, True):
+        return True
+    if observations == (False, False):
+        return False
+    return None
+
+
+def direct_underlay_witness() -> bool | None:
+    """Run two current host-direct HTTPS observations only during an outage."""
+    observations: list[bool | None] = []
+    for origin in DIRECT_UNDERLAY_HTTPS:
+        try:
+            result = subprocess.run([
+                "/usr/bin/curl", "-q", "--noproxy", "*", "-4",
+                "--silent", "--show-error", "--connect-timeout", "3",
+                "--max-time", "7", "-o", "/dev/null", "-w", "%{http_code}",
+                origin,
+            ], capture_output=True, text=True, timeout=9)
+            observations.append(result.returncode == 0 and result.stdout == "200")
+        except (OSError, subprocess.SubprocessError):
+            observations.append(None)
+    return direct_underlay_evidence((observations[0], observations[1]))
+
+
 def observe(*, hours: int) -> dict[str, object]:
     now = datetime.now(timezone.utc)
     allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
@@ -494,20 +529,12 @@ def observe(*, hours: int) -> dict[str, object]:
             catalog_identity = current_catalog_country(catalog)
         except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
             catalog_identity = None
-    # Physical baseline is synthetic and does NOT route user traffic outside
-    # VPN. If it cannot be verified, no endpoint switching is recommended.
-    underlay_ok: bool | None = None
-    if active_ok is False:
-        try:
-            response = subprocess.run([
-                "/usr/bin/curl", "-q", "--noproxy", "*", "-4",
-                "--silent", "--show-error", "--connect-timeout", "3",
-                "--max-time", "7", "-o", "/dev/null", "-w", "%{http_code}",
-                "https://example.com/",
-            ], capture_output=True, text=True, timeout=9)
-            underlay_ok = response.returncode == 0 and response.stdout == "200"
-        except (OSError, subprocess.SubprocessError):
-            underlay_ok = None
+    # These two distinct *host-direct* HTTPS origins are the same source-owned
+    # physical-path controls consumed by the existing Blackbox jobs. They
+    # cannot prove which modem/ISP component failed, but a lone healthy origin
+    # must not be promoted to evidence that the shared physical Internet is
+    # reliably available for a provider-wide VPN selection mutation.
+    underlay_ok = direct_underlay_witness() if active_ok is False else None
     # Preference-only evidence is read ONLY at a witnessed outage boundary.
     # It cannot change a healthy VPN, or defeat missing/failed underlay.
     hints = source_trial_hints(now, allowed) if (
