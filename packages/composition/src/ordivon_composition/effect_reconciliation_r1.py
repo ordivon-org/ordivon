@@ -17,8 +17,14 @@ from typing import Any
 from .cognitive_circuit_r1 import CircuitContractError, _load_json
 from .verification_obligation_r1 import select_impacted_obligations
 
-OWNERS = frozenset({"runtime.linux", "runtime.windows", "external.pull"})
-DELIVERY = frozenset({"unknown", "in_progress", "committed"})
+# Gateway accepts runtime.harness alongside Linux/Windows. Keep the existing
+# external.pull synthetic/legacy shape until its consumers can be retired with
+# owner evidence; only the Runtime owners below are live Gateway executions.
+OWNERS = frozenset({"runtime.linux", "runtime.windows", "runtime.harness", "external.pull"})
+# Must match the actual Runtime/Gateway northbound delivery vocabulary. An
+# uncertain completion with reconciliation_required is an actionable *read*
+# of the original operation, not a protocol error and never retry authority.
+DELIVERY = frozenset({"unknown", "in_progress", "committed", "reconciliation_required"})
 
 
 def qualify_execution_effect_frontier(
@@ -79,7 +85,11 @@ def qualify_execution_effect_frontier(
         changed_refs=[],
         unknown_refs=[effect_ref],
     )
-    if recovery is True or delivery == "unknown" or observation["state"] == ("reconcile_required"):
+    if (
+        recovery is True
+        or delivery in {"unknown", "reconciliation_required"}
+        or observation["state"] == "reconcile_required"
+    ):
         next_read = "RECONCILE_ORIGINAL_OPERATION"
     elif not observation["terminal"]:
         next_read = "OBSERVE_ORIGINAL_OPERATION"

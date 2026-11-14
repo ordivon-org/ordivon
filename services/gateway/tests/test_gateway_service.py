@@ -488,6 +488,53 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     )
 
 
+@pytest.mark.parametrize("owner_id", ["runtime.linux", "runtime.windows", "runtime.harness"])
+def test_execution_get_preserves_native_reconciliation_required_to_agent(owner_id: str) -> None:
+    """Gateway must carry an uncertain Runtime delivery without normalizing it.
+
+    Downstream Composition maps this exact wire token to reconciliation of the
+    original Job, not dispatch/retry. This owner-native test checks the actual
+    Gateway method, owner routing and emitted Pydantic observation fields.
+    """
+    caller = FakeOwnerCaller()
+    caller.responses[(owner_id, "job.observe")] = {
+        "jobId": "job-reconcile-native",
+        "status": "starting",
+        "attemptState": "starting",
+        "executionTerminal": False,
+        "deliveryDisposition": "reconciliation_required",
+        "executionDisposition": None,
+        "recoveryRequired": True,
+        "artifactsAvailable": False,
+        "resultAvailable": False,
+    }
+    ref = f"ordivon-exec:v1:{owner_id}:job-reconcile-native"
+    observed = asyncio.run(GatewayService(caller).execution_get(ref))
+    record = observed.model_dump(mode="json")
+    assert record["kind"] == "ordivon.gateway-execution-observation"
+    assert record["schema_version"] == 1
+    assert record["owner_id"] == owner_id
+    assert record["native_id"] == "job-reconcile-native"
+    assert record["operation_ref"] == ref
+    assert record["delivery_disposition"] == "reconciliation_required"
+    assert record["recovery_required"] is True
+    assert record["terminal"] is False
+    assert caller.calls == [
+        (
+            owner_id,
+            "job.observe",
+            {
+                "schemaVersion": 1,
+                "jobId": "job-reconcile-native",
+                "waitMs": 0,
+                "waitUntil": "change_or_terminal",
+                "stdoutTailBytes": 0,
+                "stderrTailBytes": 0,
+            },
+        )
+    ]
+
+
 def test_execution_get_reobserves_when_terminal_artifacts_lag_summary() -> None:
     caller = FakeOwnerCaller()
     caller.responses[("runtime.windows", "job.observe")] = [
