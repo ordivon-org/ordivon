@@ -12,7 +12,7 @@ pub use projection::{
     VerifiedToolReference, VerifiedToolSnapshotMetadata,
 };
 pub(crate) use readback::{corrupted, run_projection, transition, valid_schema, CONTRACT_KIND};
-pub use readback::{decode_cas, read_run_readonly};
+pub use readback::{decode_cas, read_cas_object_readonly, read_run_readonly};
 pub use run_create::create_run;
 
 #[cfg(test)]

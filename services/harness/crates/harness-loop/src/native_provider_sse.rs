@@ -45,6 +45,7 @@ pub(crate) fn decode_chat_completion_sse(bytes: &[u8]) -> Option<Value> {
     let mut finish: Option<String> = None;
     let mut done = false;
     let mut saw_choice = false;
+    let mut usage: Option<Value> = None;
 
     while let Some(block) = take_sse_block(&mut buffer) {
         if block.is_empty() {
@@ -79,7 +80,11 @@ pub(crate) fn decode_chat_completion_sse(bytes: &[u8]) -> Option<Value> {
         let choices = frame.get("choices")?.as_array()?;
         if choices.is_empty() {
             // OpenAI stream_options.include_usage may append a usage-only frame.
-            if finish.is_some() && frame.get("usage").is_some_and(Value::is_object) {
+            if finish.is_some()
+                && usage.is_none()
+                && frame.get("usage").is_some_and(Value::is_object)
+            {
+                usage = frame.get("usage").cloned();
                 continue;
             }
             return None;
@@ -168,7 +173,11 @@ pub(crate) fn decode_chat_completion_sse(bytes: &[u8]) -> Option<Value> {
         }),
         None => json!({"role": "assistant", "content": content}),
     };
-    Some(json!({"choices":[{"finish_reason":finish,"message":message}]}))
+    let mut reply = json!({"choices":[{"finish_reason":finish,"message":message}]});
+    if let Some(usage) = usage {
+        reply["usage"] = usage;
+    }
+    Some(reply)
 }
 
 #[cfg(test)]
@@ -281,6 +290,34 @@ mod tests {
                 .and_then(Value::as_str),
             Some(expected.as_str())
         );
+    }
+
+    #[test]
+    fn sse_usage_is_not_zero_when_unreported_and_is_released_only_with_done() {
+        use crate::cc_usage::observe_chat_usage;
+        let p = [
+            json!({"choices":[{"index":0,"delta":{"content":"yes"},"finish_reason":"stop"}]}),
+            json!({"choices":[],"usage":{"prompt_tokens":100,"completion_tokens":7,
+                "prompt_tokens_details":{"cached_tokens":40}}}),
+        ];
+        let full = frames(&p, true);
+        let reply = decode_chat_completion_sse(&full).unwrap();
+        let usage = observe_chat_usage(&reply).unwrap();
+        assert_eq!(usage.input_tokens, 100);
+        assert_eq!(usage.cache_read_tokens, 40);
+        assert!(decode_chat_completion_sse(&frames(&p, false)).is_none());
+        let p_without = [p[0].clone()];
+        let without = decode_chat_completion_sse(&frames(&p_without, true)).unwrap();
+        assert!(observe_chat_usage(&without).is_none());
+    }
+
+    #[test]
+    fn duplicated_or_premature_usage_frame_is_not_admitted() {
+        let end =
+            json!({"choices":[{"index":0,"delta":{"content":"answer"},"finish_reason":"stop"}]});
+        let usage = json!({"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":2}});
+        assert!(decode_chat_completion_sse(&frames(&[usage.clone(), end.clone()], true)).is_none());
+        assert!(decode_chat_completion_sse(&frames(&[end, usage.clone(), usage], true)).is_none());
     }
 
     #[test]

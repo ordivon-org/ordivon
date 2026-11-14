@@ -250,6 +250,50 @@ fn validate_chain(
     Ok(())
 }
 
+/// Read a CAS object through A's sole PostgreSQL read-only authority.
+/// The caller must independently prove that its immutable Run Contract binds
+/// this exact digest and expected kind; a free-floating CAS object alone is
+/// never a Provider, Tool or external effect permission.
+pub fn read_cas_object_readonly(
+    connection: &mut Client,
+    schema: &str,
+    digest: &str,
+    expected_kind: &str,
+) -> Result<CanonicalDocument, ReadError> {
+    if !valid_schema(schema) {
+        return Err(ReadError::InvalidSchema);
+    }
+    if !digest.starts_with("sha256:")
+        || digest.len() != 71
+        || !digest[7..]
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+    {
+        return Err(corrupted("invalid bound CAS digest"));
+    }
+    let mut tx = connection
+        .build_transaction()
+        .isolation_level(IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()?;
+    tx.batch_execute(&format!("SET LOCAL search_path TO {schema}"))?;
+    let row = tx
+        .query_opt(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+            &[&digest],
+        )?
+        .ok_or_else(|| corrupted("bound provider source CAS object missing"))?;
+    let result = decode_cas(
+        digest,
+        expected_kind,
+        &row.get::<_, String>("kind"),
+        row.get::<_, i64>("byte_length"),
+        &row.get::<_, Vec<u8>>("content"),
+    )?;
+    tx.commit()?;
+    Ok(result)
+}
+
 /// Observe a complete Harness Run from one database snapshot. This never
 /// calls any write API; the read-only transaction also fails closed on writes.
 pub fn read_run_readonly(

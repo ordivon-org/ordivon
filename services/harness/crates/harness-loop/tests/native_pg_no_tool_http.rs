@@ -8,6 +8,7 @@ use ordivon_harness_loop::{
     },
     native_provider_http::HttpModelProvider,
     pg_domain_read::{inspect_pg_no_tool_run, ExpectedModel},
+    pg_provider_config::inspect_pg_provider_transport,
     tool_call::ModelToolCall,
 };
 use postgres::{Client, NoTls};
@@ -56,8 +57,8 @@ impl EffectReceiver for NoEffect {
         panic!("no-Tool physically executed")
     }
 }
-fn server(response: &'static str) -> (String, thread::JoinHandle<()>) {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+fn server(response: &'static str, bound_port: Option<u16>) -> (String, thread::JoinHandle<()>) {
+    let listener = TcpListener::bind(("127.0.0.1", bound_port.unwrap_or(0))).unwrap();
     let url = format!(
         "http://{}/v1/chat/completions",
         listener.local_addr().unwrap()
@@ -121,6 +122,61 @@ fn native_pg_verifiable_provider_only_http_loop() {
     };
     let verified = inspect_pg_no_tool_run(&mut db, &schema, run, expected).unwrap();
     assert_eq!(verified.model_visible_tool_count(), 0);
+    // SOURCE-BOUND immutable configuration: no caller-provided HTTPS URL
+    // or credential bytes can replace the RunContract.sourceRefs CAS identity.
+    let config = inspect_pg_provider_transport(&mut db, &schema, &verified).unwrap();
+    assert_eq!(config.model_id(), "model:verified-source");
+    let foreign = fixture["config_negative"]["runId"].as_str().unwrap();
+    let foreign_run = inspect_pg_no_tool_run(&mut db, &schema, foreign, expected).unwrap();
+    assert!(
+        matches!(
+            inspect_pg_provider_transport(&mut db, &schema, &foreign_run),
+            Err(ordivon_harness_loop::pg_provider_config::ProviderTransportError::InvalidSource)
+        ),
+        "CAS-valid foreign Provider config must fail semantic binding"
+    );
+    let configured_url = reqwest::Url::parse(config.endpoint()).unwrap();
+    assert_eq!(configured_url.host_str(), Some("127.0.0.1"));
+    assert_eq!(configured_url.scheme(), "http");
+    let config_port = configured_url.port().unwrap();
+    assert_eq!(configured_url.path(), "/v1/chat/completions");
+    assert_eq!(config.credential_ref(), "credential:verified-source-r22");
+    assert!(!format!("{config:?}").contains("127.0.0.1"));
+    assert!(!format!("{config:?}").contains("verified-source-r22"));
+    assert!(HttpModelProvider::new_provider_only_pg_bound(
+        &config,
+        &verified,
+        "credential:wrong-secret-ref",
+        "test",
+        "system",
+        "question"
+    )
+    .is_err());
+    // The actual request URL is read from exact PG CAS, not passed by caller.
+    let (url, bound_http) = server(
+        r#"{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"Bound endpoint reached"}}]}"#,
+        Some(config_port),
+    );
+    assert_eq!(url, config.endpoint());
+    let mut source_bound = HttpModelProvider::new_provider_only_pg_bound(
+        &config,
+        &verified,
+        "credential:verified-source-r22",
+        "test",
+        "system",
+        "question",
+    )
+    .unwrap();
+    use ordivon_harness_loop::native_loop::{Provider, ProviderResult};
+    assert!(matches!(
+        source_bound.turn(1,&[]),
+        ProviderResult::Delivered(ModelDecision::ProposeCompletion(ref answer))
+            if answer=="Bound endpoint reached"
+    ));
+    bound_http.join().unwrap();
+    // This remains a test credential and test-only unleased Provider::turn.
+    // A production Security credential / live Journal Permit is NOT proven.
+
     assert_eq!(verified.status(), "created");
     for (response, expected_outcome, streaming) in [
         (
@@ -163,7 +219,7 @@ fn native_pg_verifiable_provider_only_http_loop() {
             true,
         ),
     ] {
-        let (url, http) = server(response);
+        let (url, http) = server(response,None);
         let provider =
             HttpModelProvider::new_provider_only(&url, "test", "system", "question", &verified)
                 .unwrap();

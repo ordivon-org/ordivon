@@ -375,7 +375,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         provider_request_digest=id_digest("native-provider-transport-request"),
         failure_code="provider_transport_failed",
         dispatch_safety="dispatch_ambiguous",
-        detail="Synthetic unknown; no Provider API was contacted",
+        detail="Test-only ambiguous loopback transport after outbound request",
     )
     native_failure_ref = store.put_object(
         native_failure.to_dict(), kind="harness-provider-call-failure"

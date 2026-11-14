@@ -1,9 +1,11 @@
 //! Direct Rust HTTP model consumer using reqwest. No Python transport and no
 //! speculative retry after an ambiguous network/Provider response.
 use crate::{
+    cc_usage::{observe_chat_usage, ProviderUsageObservation},
     native_loop::{ModelDecision, Provider, ProviderResult, ToolObservation},
     native_provider_sse::decode_chat_completion_sse,
     pg_domain_read::ObservedNoToolRun,
+    pg_provider_config::ObservedProviderTransport,
     tool_surface::DomainToolSurface,
 };
 use ordivon_harness_core::{loads_strict, CanonicalDocument};
@@ -27,6 +29,8 @@ pub struct HttpModelProvider {
     tools: Vec<Value>,
     observed: usize,
     streaming: bool,
+    last_usage: Option<ProviderUsageObservation>,
+    unknown_requires_reconciliation: bool,
 }
 impl HttpModelProvider {
     /// The only HTTP escape hatch is an exact loopback fixture. Real models
@@ -86,6 +90,36 @@ impl HttpModelProvider {
         )
     }
 
+    /// Endpoint/model are read exclusively from immutable PG Contract-bound
+    /// source, not arbitrary user-supplied URLs. Security MUST independently
+    /// qualify the credential identity/material and the Journal MUST check
+    /// current Run/Lease/Dispatch before any real send.
+    pub fn new_provider_only_pg_bound(
+        config: &ObservedProviderTransport,
+        verified: &ObservedNoToolRun,
+        credential_ref: &str,
+        bearer: &str,
+        system: &str,
+        user: &str,
+    ) -> Result<Self, ProviderConfigError> {
+        if config.run_id() != verified.run_id()
+            || config.contract_digest() != verified.contract_digest()
+            || config.model_id() != verified.model_id()
+            || config.credential_ref() != credential_ref
+            || !matches!(verified.status(), "created" | "active")
+        {
+            return Err(ProviderConfigError::InvalidCatalog);
+        }
+        Self::build(
+            config.endpoint(),
+            config.model_id(),
+            bearer,
+            system,
+            user,
+            Vec::new(),
+        )
+    }
+
     fn build(
         endpoint: &str,
         model: &str,
@@ -129,6 +163,8 @@ impl HttpModelProvider {
             tools,
             observed: 0,
             streaming: false,
+            last_usage: None,
+            unknown_requires_reconciliation: false,
         })
     }
 
@@ -139,7 +175,23 @@ impl HttpModelProvider {
         self
     }
 
+    /// The latest *reported* token usage, not priced/billed or PG committed.
+    /// None means unobserved; never interpret None as zero cost.
+    pub fn last_usage(&self) -> Option<&ProviderUsageObservation> {
+        self.last_usage.as_ref()
+    }
+
     fn query(&mut self, observations: &[ToolObservation]) -> ProviderResult {
+        self.last_usage = None;
+        // A send that reaches the network and loses its response is UNKNOWN.
+        // This exact Provider instance is then quarantined; do not allow an
+        // accidental second call to recreate the same physical effect.
+        // Only an independent PG-authoritative reconciliation may authorize
+        // construction of a fresh Provider for a new Call.
+        if self.unknown_requires_reconciliation {
+            return ProviderResult::Unknown;
+        }
+        self.unknown_requires_reconciliation = true;
         if observations.len() < self.observed {
             return ProviderResult::Unknown;
         }
@@ -208,7 +260,9 @@ impl HttpModelProvider {
         let Some((message, action)) = decode_chat_completion(&reply) else {
             return ProviderResult::Unknown;
         };
+        self.last_usage = observe_chat_usage(&reply);
         self.messages.push(message.clone());
+        self.unknown_requires_reconciliation = false;
         ProviderResult::Delivered(action)
     }
 }
@@ -460,6 +514,93 @@ mod tests {
                 if tools.len() == 1
         ));
         // Provider::turn is only a proposal, never an EffectReceiver::execute.
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn reported_sse_usage_reaches_real_http_provider_but_not_billing() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            concat!(
+                "data: {\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\n",
+                "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":2,\"prompt_tokens_details\":{\"cached_tokens\":5}}}\n\n",
+                "data: [DONE]\n\n"
+            ),
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap()
+                .with_streaming();
+        assert!(matches!(model.turn(1,&[]),
+            ProviderResult::Delivered(ModelDecision::ProposeCompletion(ref v)) if v=="ok"
+        ));
+        let usage = model
+            .last_usage()
+            .expect("reported SSE usage should be observable");
+        assert_eq!(usage.input_tokens, 11);
+        assert_eq!(usage.output_tokens, 2);
+        assert_eq!(usage.cache_read_tokens, 5);
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn unknown_instance_never_dispatches_again_without_pg_reconciliation() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::time::{Duration, Instant};
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!(
+            "http://{}/v1/chat/completions",
+            listener.local_addr().unwrap()
+        );
+        let worker = thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(4)))
+                .unwrap();
+            let mut buffer = [0u8; 8192];
+            let n = socket.read(&mut buffer).unwrap();
+            assert!(n > 0);
+            let body = r#"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":"plausible but incomplete"}}]}"#;
+            write!(socket,"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).unwrap();
+            drop(socket);
+            listener.set_nonblocking(true).unwrap();
+            let start = Instant::now();
+            while start.elapsed() < Duration::from_millis(250) {
+                match listener.accept() {
+                    Ok((_extra, _)) => panic!("UNKNOWN Provider was physically resent"),
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        thread::sleep(Duration::from_millis(10));
+                    }
+                    Err(e) => panic!("unexpected socket accept error: {e}"),
+                }
+            }
+        });
+        let (catalog, grant) = fixtures();
+        let mut provider =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap();
+        assert!(matches!(provider.turn(1, &[]), ProviderResult::Unknown));
+        assert!(matches!(provider.turn(2, &[]), ProviderResult::Unknown));
+        assert!(provider.last_usage().is_none());
+        worker.join().unwrap();
+    }
+
+    #[test]
+    fn no_usage_in_delivered_result_does_not_mean_free_call() {
+        let (catalog, grant) = fixtures();
+        let (url, server) = server(
+            r#"{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"ok"}}]}"#,
+            200,
+        );
+        let mut model =
+            HttpModelProvider::new(&url, "model", "test", "rule", "task", &catalog, &grant)
+                .unwrap();
+        assert!(matches!(model.turn(1,&[]),
+            ProviderResult::Delivered(ModelDecision::ProposeCompletion(ref v)) if v=="ok"
+        ));
+        assert!(model.last_usage().is_none());
         server.join().unwrap();
     }
 

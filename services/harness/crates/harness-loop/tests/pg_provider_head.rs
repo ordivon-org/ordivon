@@ -1,11 +1,14 @@
 //! True Python Store→PG18→A verified CAS/Journal→B Provider recovery head.
 //! All Provider events are synthetic test-only identities, with zero external
 //! model requests. A readonly DB role is enforced by the shared PG runner.
-use std::{fs, path::Path};
+use std::{fs, io::Read, net::TcpListener, path::Path, thread, time::Duration};
 
 use ordivon_harness_core::{loads_strict, CanonicalDocument, CanonicalRef};
+use ordivon_harness_loop::native_loop::{Provider, ProviderResult};
+use ordivon_harness_loop::native_provider_http::HttpModelProvider;
 use ordivon_harness_loop::pg_domain_read::{
-    inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError, PgProviderRecoveryError,
+    inspect_pg_no_tool_run, inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError,
+    PgProviderRecoveryError,
 };
 use ordivon_harness_loop::provider_head::{ProviderStatus, RecoveryPosture};
 use ordivon_harness_pg::{
@@ -211,10 +214,10 @@ fn source_python_provider_v4_cas_head_recovery_does_not_dispatch_or_blind_retry(
 }
 
 /// The cross-Owner proof omitted by separately green Writer and Provider tests:
-/// Python source authors CAS Provider V4 Records; only Rust owns the Event
-/// commit; after the writer connection disappears Rust read-only recovery
-/// observes UNKNOWN without dispatching or inferring a safe retry. Finally,
-/// the original Python Store validates the same immutable Journal.
+/// Python authors immutable CAS V4 Records; Rust commits Claim+Dispatch,
+/// an actual loopback HTTP Provider send loses its response, Rust then commits
+/// UNKNOWN; readonly Rust + the original Python Store independently verify
+/// same Run. No external model, billing, or physical Tool is inferred.
 #[test]
 #[ignore = "real shared disposable PG18 Python CAS source + A Rust Writer + B Provider reader"]
 fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() {
@@ -289,11 +292,11 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         });
     }
 
-    // The actual persistent effect here is a PG Journal transaction only.
-    // Even the UNKNOWN Provider Event is a record, not evidence that a model
-    // request was sent; this fixture makes no Provider or Runtime API call.
+    // First commit durable Claim+Dispatch *before* any physical outbound
+    // HTTP request. The final source-authored UNKNOWN Event must be committed
+    // only after an actual ambiguous loopback Provider transport response.
     let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
-    let lease = acquire_run_lease(
+    let first = acquire_run_lease(
         &mut writer,
         &schema,
         run_id,
@@ -304,16 +307,73 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
     )
     .unwrap();
     assert_eq!(
-        append_events(&mut writer, &schema, run_id, &batch, 1, &lease, 1008).unwrap(),
+        append_events(&mut writer, &schema, run_id, &batch[..2], 1, &first, 1008).unwrap(),
         Admission::Created
     );
-    // Simulate disappearing write connection / lost commit response:
-    // only a fresh read-only authoritative snapshot can tell whether the
-    // exact Journal batch committed. It cannot prove a physical effect.
     drop(writer);
+
     let mut readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
     assert_eq!(
-        observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch).unwrap(),
+        observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch[..2]).unwrap(),
+        JournalObservation::ExactCommitted
+    );
+    let dispatch = inspect_pg_provider_head(&mut readonly, &schema, run_id, model)
+        .unwrap()
+        .expect("durable DISPATCHING must exist before any socket send");
+    assert_eq!(dispatch.status(), ProviderStatus::Dispatching);
+    assert_eq!(
+        dispatch.recovery_posture(),
+        RecoveryPosture::ReconcileWithProviderOwner
+    );
+
+    // This is an actual loopback socket, not a synthetic ProviderResult. The
+    // server deliberately closes after accepting a request, without returning
+    // an HTTP result. The client must report UNKNOWN and never auto-resend.
+    let verified = inspect_pg_no_tool_run(&mut readonly, &schema, run_id, model)
+        .expect("same PG Contract must be source valid");
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let endpoint = format!(
+        "http://{}/v1/chat/completions",
+        listener.local_addr().unwrap()
+    );
+    let inbound = thread::spawn(move || {
+        let (mut socket, _) = listener.accept().unwrap();
+        socket
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        let mut bytes = [0u8; 4096];
+        let count = socket.read(&mut bytes).unwrap();
+        assert!(count > 0);
+        let received = String::from_utf8_lossy(&bytes[..count]);
+        assert!(received.starts_with("POST /v1/chat/completions HTTP/1.1"));
+        // Drop socket deliberately: response status/commit is unknowable.
+    });
+    let mut provider =
+        HttpModelProvider::new_provider_only(&endpoint, "test", "system", "question", &verified)
+            .unwrap();
+    assert!(matches!(provider.turn(1, &[]), ProviderResult::Unknown));
+    inbound.join().unwrap();
+    assert!(provider.last_usage().is_none());
+
+    // Now, and only now, commit source-authored UNKNOWN in the same PG Run.
+    let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
+    let second = acquire_run_lease(
+        &mut writer,
+        &schema,
+        run_id,
+        "test:rust-native-provider-journal",
+        30_000,
+        1012,
+        Some(3),
+    )
+    .unwrap();
+    assert_eq!(
+        append_events(&mut writer, &schema, run_id, &batch[2..], 3, &second, 1012).unwrap(),
+        Admission::Created
+    );
+    drop(writer);
+    assert_eq!(
+        observe_exact_batch(&mut readonly, &schema, run_id, 3, &batch[2..]).unwrap(),
         JournalObservation::ExactCommitted
     );
     let observed = read_run_readonly(&mut readonly, &schema, run_id).unwrap();
@@ -330,11 +390,11 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         RecoveryPosture::RetainUnknownAndReconcile
     );
 
-    // The Writer's source-defined exact retry is idempotent even though its
-    // lease was atomically consumed. No duplicate Event and no redispatch.
+    // A lost response to the PG Writer itself may replay the exact commit,
+    // but this does NOT authorize a second physical Provider send.
     let mut retry = Client::connect(&writer_dsn, NoTls).unwrap();
     assert_eq!(
-        append_events(&mut retry, &schema, run_id, &batch, 1, &lease, 1008).unwrap(),
+        append_events(&mut retry, &schema, run_id, &batch[2..], 3, &second, 1012).unwrap(),
         Admission::Existing
     );
     assert_eq!(
@@ -344,10 +404,10 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
             .revision,
         4
     );
-    let mut wrong = batch.clone();
-    wrong[2].data = loads_strict(r#"{"forged":"physical effect completed"}"#).unwrap();
+    let mut wrong = batch[2..].to_vec();
+    wrong[0].data = loads_strict(r#"{"forged":"physical effect completed"}"#).unwrap();
     assert!(matches!(
-        observe_exact_batch(&mut readonly, &schema, run_id, 1, &wrong),
+        observe_exact_batch(&mut readonly, &schema, run_id, 3, &wrong),
         Err(WriteError::Conflict(_))
     ));
     println!("PG18_RUST_WRITER_PYTHON_PROVIDER_V4_UNKNOWN_READBACK_EXACT_PASS");

@@ -2,6 +2,7 @@
 //! Tool selection and progress accounting have independent state and tests.
 
 mod cc_sse;
+pub mod cc_usage;
 pub mod evidence;
 mod identity;
 pub mod native_loop;
@@ -9,6 +10,7 @@ pub mod native_provider_http;
 pub mod native_provider_sse;
 pub mod owner_effect_handoff;
 pub mod pg_domain_read;
+pub mod pg_provider_config;
 pub mod pg_tool_head;
 pub mod provider_head;
 pub mod runtime_delivery;

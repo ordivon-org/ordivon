@@ -99,10 +99,11 @@ def main() -> int:
             if key.endswith("_API_KEY") or key.startswith(("OPENROUTER", "ORDIVON_R10_LIVE_FREE", "HARNESS_R12_REAL_OWNER")):
                 del env[key]
         original = r'''
-import json, os
+import json, os, socket
 from dataclasses import replace
 from pathlib import Path
 from ordivon_harness.postgres_store import PostgresHarnessStore
+from ordivon_harness.core_contracts import HarnessBoundReference
 from tests.test_r3_supported_agent_run import contract
 contract_obj = replace(
     contract("r18-verified-pg-no-tool", tools=False),
@@ -115,15 +116,57 @@ with PostgresHarnessStore(
     schema=os.environ["HARNESS_RUST_TEST_SCHEMA"],
     initialize=True,
 ) as store:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as temporary:
+        temporary.bind(("127.0.0.1", 0))
+        local_port = temporary.getsockname()[1]
+    # Original Run Contract sourceRefs binds one immutable Provider target
+    # snapshot; the CAS object contains only an opaque credential reference,
+    # never a bearer token. No new PostgreSQL Writer or Store exists.
+    transport = {
+        "schemaVersion": 1,
+        "kind": "ordivon.harness-provider-transport-snapshot",
+        "providerId": contract_obj.provider_id,
+        "adapterId": contract_obj.adapter_id,
+        "requestedModelId": contract_obj.requested_model_id,
+        "endpoint": f"http://127.0.0.1:{local_port}/v1/chat/completions",
+        "credentialRef": "credential:verified-source-r22",
+    }
+    config_ref = store.put_object(transport, kind="harness-provider-transport-snapshot")
+    contract_obj = replace(
+        contract_obj,
+        source_refs=(*contract_obj.source_refs, HarnessBoundReference(
+            ref="provider-config:verified-source-r22",
+            kind="harness-provider-transport-snapshot",
+            digest=config_ref.digest,
+        )),
+    )
     admission = store.create_run(contract_obj)
     assert admission.value == "created"
     assert store.load_run(contract_obj.harness_run_id).status.value == "created"
+    # Real PG negative: CAS bytes are valid, but the object carries an
+    # unrelated Provider identity. Contract/PG digest alone cannot validate
+    # the target's semantic Provider ownership.
+    foreign = dict(transport, providerId="provider:foreign")
+    foreign_ref=store.put_object(foreign,kind="harness-provider-transport-snapshot")
+    foreign_run_id="harness-run:test-provider-transport-foreign"
+    foreign_contract=replace(
+        contract_obj,
+        harness_run_id=foreign_run_id,
+        caller_run_ref="test-run-provider-transport-foreign",
+        source_refs=(*contract_obj.source_refs[:-1],HarnessBoundReference(
+            ref="provider-config:foreign-provider-r22",
+            kind="harness-provider-transport-snapshot",
+            digest=foreign_ref.digest,
+        )),
+    )
+    assert store.create_run(foreign_contract).value=="created"
     assert store.doctor()["healthy"]
 Path(os.environ["HARNESS_RUST_TEST_FIXTURE_PATH"]).write_text(
     json.dumps({"no_tool": {"runId": contract_obj.harness_run_id,
                             "providerId": contract_obj.provider_id,
                             "adapterId": contract_obj.adapter_id,
-                            "requestedModelId": contract_obj.requested_model_id}}, sort_keys=True),
+                            "requestedModelId": contract_obj.requested_model_id},
+                "config_negative": {"runId": foreign_run_id}}, sort_keys=True),
     encoding="utf-8",
 )
 print("R18_SOURCE_OWNED_PYTHON_REAL_PG_NO_TOOL_RUN_CREATED")
