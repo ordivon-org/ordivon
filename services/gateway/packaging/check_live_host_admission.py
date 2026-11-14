@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import http.client
 import json
+import re
 import shlex
 import subprocess
 import time
@@ -135,12 +136,63 @@ def _declares_host_owner_identity(systemd_environment: str) -> bool:
     return False
 
 
+def _unqualified_active_peer_host_consumers() -> tuple[str, ...]:
+    """Check other ACTIVE Gateway services that point at this Host Owner route.
+
+    The release installer promotes only the primary Gateway, but a distinct
+    active Gateway could lose Host connectivity when the Host is hardened.
+    This read-only discovery checks service config, not live Agent credentials
+    or the successful migration of independent direct Host connectors.
+    A failed systemd query is never a positive release witness.
+    """
+    units = subprocess.run(
+        [
+            "/usr/bin/systemctl",
+            "list-units",
+            "ordivon-gateway*.service",
+            "--type=service",
+            "--state=active",
+            "--no-legend",
+            "--plain",
+            "--no-pager",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=8,
+    )
+    observed: set[str] = set()
+    for line in units.stdout.splitlines():
+        columns = line.split()
+        if not columns:
+            continue
+        unit = columns[0]
+        if not re.fullmatch(r"ordivon-gateway(?:-[a-z0-9._-]+)?\.service", unit):
+            raise ValueError("unexpected active Gateway consumer unit")
+        if unit == GATEWAY_UNIT:
+            continue
+        if len(observed) >= 32:
+            raise ValueError("active Gateway consumer census exceeds bound")
+        consumer = subprocess.run(
+            ["/usr/bin/systemctl", "show", unit, "-p", "Environment", "--value"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=8,
+        )
+        if _owner_route_is_probed_endpoint(consumer.stdout):
+            if not _declares_host_owner_identity(consumer.stdout):
+                observed.add(unit)
+    return tuple(sorted(observed))
+
+
 def assess(
     document: dict[str, Any],
     systemd_environment: str,
     *,
     now: int,
     anonymous_host_initialize_denied: bool | None = None,
+    unqualified_active_host_consumers: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     active_count = _active_host_grant_count(document, now=now)
     credential_declared = _declares_host_owner_identity(systemd_environment)
@@ -154,6 +206,8 @@ def assess(
         failures.append("HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY")
     if anonymous_host_initialize_denied is not True:
         failures.append("HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED")
+    if unqualified_active_host_consumers:
+        failures.append("ACTIVE_HOST_CONSUMER_MISSING_OWNER_CREDENTIAL")
     return {
         "schemaVersion": 1,
         "kind": "ordivon.gateway-host-release-precondition",
@@ -162,6 +216,7 @@ def assess(
         "hostOwnerCredentialDeclared": credential_declared,
         "hostOwnerRouteQualified": owner_route_qualified,
         "anonymousHostInitializeDenied": anonymous_host_initialize_denied is True,
+        "unqualifiedActiveHostConsumers": list(unqualified_active_host_consumers),
         "reasons": failures,
         "unverified": [
             "actual Principal-to-Actor and resource authorization",
@@ -214,6 +269,7 @@ def main() -> int:
             result.stdout,
             now=int(time.time()),
             anonymous_host_initialize_denied=_rejects_unauthenticated_host_initialize(),
+            unqualified_active_host_consumers=_unqualified_active_peer_host_consumers(),
         )
     except OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError:
         standing = {
