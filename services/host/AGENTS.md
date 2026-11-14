@@ -23,6 +23,16 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 
 Use `work.get → attention.reentry → topic.resume → owner-native reference readback → work.snapshot.commit → cursor acknowledgment` as needed. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.
 
+**Agent-first daily Golden Road:** read only current Work; restore only relevant
+Attention and Topic pages; optionally read affected natural Owner refs; commit
+Work with exact CAS revision; Ack each *different* cursor only after actual
+consumption. The work.list page is discovery metadata, not complete Work
+state; an Attention event's change sequence is NOT a Topic message sequence.
+Use the concrete live, source-qualified business recipe in
+[Owner Guide §5.1](docs/HOST_OWNER_GUIDE.md).
+Do not load all Work/Topic history, auto-Ack a shared Actor cursor, invent
+Agent priorities, or start a second Host state store.
+
 For a change or cleanup, inspect the *exact real consumers*, PostgreSQL dependencies, active Work/Topic/Subscription references, source cut and installed release. Do not delete business rows because they are old or appear redundant. Prefer an existing PostgreSQL/MCP/Alembic/Pydantic capability before implementing a custom one; add no duplicate registry or event bus. Keep code reshaping separate from contract changes, and publish verification outcomes accurately.
 
 ## HTTP Host workload identity (source boundary)

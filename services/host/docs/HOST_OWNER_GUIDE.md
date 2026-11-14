@@ -72,6 +72,64 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 5. 完成消息处理后单调推进 topic.cursor.ack 与 attention.ack；确认已消费不是确认业务完成。
 6. 新 LEGO 应明确 I/O、S、pre/post、inv、eff、c、epsilon、prov、unfold 和真实消费者。未知证据保持 UNKNOWN；优先 DELETE CUSTOM → REUSE → COMPOSE。
 
+### 5.1 Agent 日常 Golden Road（2026-11-14 真实消费者核查）
+
+**优先级：Agent 完成工作，而不是 Host 拥有更多状态或验证系统。**
+本节是对现有 \`work.*\` / \`attention.*\` / \`topic.*\` 的**调用编排**，
+不增加数据库、MCP 工具、评分器、调度器或另一份事实权威。
+真实入口取决于当前安装的 \`tools/list\` 和 Gateway 授权；源码工具存在
+不等于已安装或调用方具备权限。
+
+| Agent 实际问题 | 思想型 LEGO | 逻辑型 LEGO | 已存在的能力型 LEGO |
+| --- | --- | --- | --- |
+| 我现在有什么工作？ | Consumer-first、最小充分状态 | Work Discovery / Work Identity | \`work.list\`（有界元数据），已知 Ref 直接 \`work.get\` |
+| 我做到哪里、下一步是什么？ | CQRS、事务一致性 | Current Work Snapshot / Revision | \`work.get\` / PG \`work.snapshot.commit\` CAS |
+| 上次之后谁说了什么？ | 增量视图、因果导航 | Attention Delta / Topic Resume | \`attention.reentry\` / \`topic.resume\` |
+| 我需要跟谁协作？ | 消息传递、显式关系 | Space / Topic / Message / Relation | \`message.post\` / \`message.relation.*\`；不凭 ActorRef 自动授权 |
+| 怎样避免多 Agent 相互覆盖？ | 乐观并发、MVCC | Work CAS Conflict / Reconcile | PG 原生事务 + \`work.snapshot.commit(expectedRevision)\` |
+| 怎样不再读一遍完整历史？ | 增量消费、信息预算 | Dual Cursors / Bounded Pagination | \`attention.ack\`、\`topic.cursor.ack\`（严格不同的坐标） |
+| 外部结果是不是还成立？ | 自然 Owner、证据溯源 | Owner Readback / Currentness | Git / Runtime / Security / 领域 Owner；Host 仅存引用 |
+
+**既有工具的可重复消费顺序：**
+
+1. 已知 \`workRef\` 直接读 \`work.get\`；未知则先用 \`work.list(state=open, limit, maxBytes)\` 找到候选的 **Ref/Kind/Revision**，再只取相关 Work 的当前 Snapshot。不用历史快照或更新时间自动推断重要性。
+2. 从 Work 当前 \`referenceRefs\` 找真实 \`topic:\` / \`space:\` 引用。**只有已确认业务关联时才添加该引用**。缺引用时不能声称该 Work 不存在协作讨论；可从已知 Space/Topic 或受控搜索定位后，经 Work CAS 明确关联。
+3. 用当前 **Actor 的真实授权**读取 \`attention.reentry\`。其中 \`afterSequence\`、\`nextAfterSequence\` 和 \`snapshotHighSequence\` 均属于 **Host Attention ChangeSequence**，不是消息序号；\`items[].resumeAfterSequence\` 才是对应 Topic 的 **Message Sequence** 消费坐标。
+4. 对所需 Topic 使用 \`topic.resume(topicRef, afterSequence=resumeAfterSequence, limit, maxBytes)\`。若 \`hasMore=true\`，下一页用本次 Topic 的 \`nextAfterSequence\`，直到需要的信息消费完整。**不得**把 Attention 的 \`nextAfterSequence\` 填给 \`topic.resume\`；同一 Topic 的两页必须无重叠、不跳过已返回的消息。
+5. 如果 Work 引用了外部 Runtime、Git、Research、Security 信息，仅对当前行动真正依赖的 Ref 回到原 Owner 读取；历史状态和聊天主张不自动升级为当前事实，UNKNOWN 继续是 UNKNOWN。
+6. Agent 在完成所需外部消费后，按需 \`message.post\` 留下真实协作记录，使用最新 \`work.get.revision\` 调用 \`work.snapshot.commit(expectedRevision,...)\` 提交新的**完整八字段** Snapshot。出现 CAS 冲突则重新读取当前 Work，合并他人真实贡献后再尝试；不能盲目覆盖或由 Message 推断 Work Completed。
+7. **最后才 Ack。** 仅在已经处理相应消息与当前变更后，单调提交 Topic 的 **Message Sequence** \`topic.cursor.ack\` 与 Attention 的 **ChangeSequence** \`attention.ack\`。如果 Attention \`hasMore=true\`，只能按已处理页的 \`nextAfterSequence\` 逐页确认；不得跃过尚未处理的事件、也不能自动推进到 \`snapshotHighSequence\`。Cursor Ack 表示“已消费”，不表示任务成功、协作接受、外部执行效果或权限批准。
+
+**实际只读消费（2026-11-14，一次观察而非性能承诺）：**
+
+- 在本轮补充导航引用和新建主线 Work 之前，生产 Host 有 **9 个 open Work**，其中 **2 个**的当前 \`referenceRefs\` 显式包含 \`topic:\`。这是直接导航覆盖率的观察，**不证明**另 7 个 Work 必须有 Topic，不能无依据批量改写。
+- 原有 Host 证据 Work \`work:ordivon:host-agent-proof-applicability-r3:20261114\` 的真实关联 Topic \`topic:ordivon:host-optimization-tri-agent-plan:20261110\` 原来不在 \`referenceRefs\`。现已仅增补该真实 TopicRef，Host Work CAS **rev12→13**，Gateway 读回 \`snapshotDigest\` 一致，\`frontier\` 没有变化。
+- 对相同 Actor \`actor:agent:chatgpt:gpt6-host-business-q1-20261113\`，\`attention.reentry\` 从 **changeSeq 77453** 返回 12 个原始变化聚成 1 个 Topic，下一 **changeSeq 77622**；该 Topic 自己的 \`resumeAfterSequence\` 却是 **messageSeq 27535**。这两个坐标属于不同域，不能比较大小或互换。
+- \`topic.resume(afterSequence=27535, limit=8)\` 第 1 页 8 条消息，下一 **messageSeq 27609**，\`hasMore=true\`；第 2 页再读 6 条，下一 **messageSeq 27669**，\`hasMore=false\`。两页没有消息重叠。两次完整 JSON 序列化文本的观察长度约 18,638 和 17,649 **字符**；这不是准确的 Token 消耗、实际网络流量、p95 或上下文压缩率。
+- **绝不为了演示而推进现有 Actor 的生产消费游标。** 本次做了只读恢复，没有 \`attention.ack\` 或 \`topic.cursor.ack\`。
+- 新建真实 Host 主线 Work：\`work:ordivon:host-agent-continuation-golden-road-r1:20261114\`，把“Agent 日常发现、恢复、协作”与之前只关注证据适用性的 Work 分开；关联已有 Topic，不新建重复的 Space/Topic。
+- 两项实际变更之后再次读回：**10 个 open Work，其中 4 个有显式 TopicRef**。这是两个时间点的导航观察，并不是“完成度提高到 40%”的产品指标；是否需要额外 Topic 必须由每个 Work 的消费者决定。
+- 正式独立 Agent B、Harness 自动 Re-entry、真实 Token/时间预算目前 **UNKNOWN**。当前只是一个 Actor 经 Host/Gateway 只读消费和正常 Work CAS 的证明，不可替代多 Principal 验收。
+
+**最小 R2.1 消费契约：** I=ActorRef、WorkRef、当前 Snapshot/Revision、
+Attention ChangeSequence、Topic MessageSequence、真实 TopicRef；
+O=可解释的当前工作状态、需恢复消息、真实下一步和仅已消费的确认坐标；
+S=Host PG 现有 Work/Social/Attention 行；pre=当前可授权 Actor、合法
+Work/Topic 引用和各自合法游标；post=不漏已消费页、不把一种序列当另一种、
+Work CAS 按精确 revision 决议；inv=消息不是执行事实、Attention 不是优先级、
+游标确认只代表消费、Work 竞争不能静默覆盖；
+eff=按需 Owner 只读、受授权的 Work/Message 写、实际消费完才 Ack；
+c=以 Harness 原生调用轨迹测量真实调用/Token/延迟，尚未取得；
+epsilon=跨网络/多 Agent 延迟与失误率均 UNKNOWN；
+prov=Host 原生 MCP、PG 当前读回与本节精确 Work/Topic 对象；
+unfold=Discovery → Work.get → Attention.reentry → Topic.resume 分页 →
+必要 Owner Readback → Message/Work CAS → 安全双 Ack。
+
+**成熟机制：** PostgreSQL MVCC 与 CAS、MCP 已安装工具合同、CQRS 的局部
+Read/Write 分离、单调增量消费坐标和有界字节/条目分页。无需新建 Host
+事件总线、VectorDB、排序模型、完备历史恢复或第二套 Run/State。
+
+
 ## 6. 在线数据归并候选（2026-11-07，只读核查）
 
 以下三个 Space 的功能重叠，属于进一步消费者审计候选，不是已经证明可删的数据：

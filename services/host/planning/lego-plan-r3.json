@@ -205,5 +205,84 @@
     "retiredVocabulary": [
       "Task/Checkpoint/Board referred to retired pre-Social-Work-Fabric modules; current Work snapshots and social journal are not claims of old API compatibility."
     ]
-  }
+  },
+  "consumerCompositions": [
+    {
+      "id": "HOST-AGENT-DAILY-CONTINUATION-R7",
+      "kind": "existing-Host-Work-Social-Attention-agent-consumer-composition",
+      "directConsumer": "real actor:agent:chatgpt:gpt6-host-business-q1-20261113 with current Work, Gateway attention/topic and current Work CAS",
+      "businessScenario": "Agent discovers one current Work, reads only relevant Attention/Topic deltas, shares collaboration and commits current semantic state without reading all history or skipping unconsumed messages",
+      "thoughtModules": [
+        "CQRS local read/write separation",
+        "PostgreSQL MVCC/CAS",
+        "Incremental materialized views",
+        "Monotone dual cursor domain separation",
+        "Asynchronous causal collaboration",
+        "DELETE-CUSTOM→REUSE→COMPOSE"
+      ],
+      "logicModules": [
+        "Work discovery when WorkRef unknown",
+        "Current WorkSnapshot/revision",
+        "Actor scoped Attention ChangeSequence",
+        "Topic MessageSequence/Resume",
+        "Natural Owner readback",
+        "Message exchange and Work CAS",
+        "Only-consumed cursor acknowledgement"
+      ],
+      "capabilityRefs": [
+        "Host existing work.list/get/snapshot.commit",
+        "Host existing attention.reentry/ack",
+        "Host existing topic.resume/topic.cursor.ack",
+        "Host existing Message/Space/Topic",
+        "Gateway existing MCP Tool transport",
+        "Natural Owner readback; no new Host verifier"
+      ],
+      "status": "LIVE_DIRECT_EXISTING_TOOLS_SOURCE_GUIDANCE_NOT_INSTALLED_HARNESS_AUTOMATION",
+      "contract": {
+        "I": "Known/unknown WorkRef, actual authenticated Agent principal and ActorRef, current Host Work revision, Actor Attention ChangeSequence, and per-Topic MessageSequence",
+        "O": "Relevant current Work and message pages, explicit next action, owner-ref query candidates, safe post/Work CAS and separately acknowledged consumption cursors",
+        "S": "No new Host storage: existing PostgreSQL Work/Social/Attention owns all native semantic records; Harness owns actual Agent invocation lifecycle",
+        "pre": "Installed tool visibility and authorized Principal/Actor binding; current WorkRef and readable Topic; caller preserves both noninterchangeable cursor coordinates",
+        "post": "Only needed current Work/Topic pages consumed, Work CAS resolves exact revision and does not silently overwrite concurrent Agent; acknowledgement occurs after page consumption",
+        "inv": "No change-sequence/message-sequence exchange; no ack of unconsumed event or Topic message; participation is not IAM, Work is not Runtime truth; Work/Topic links require known real business association",
+        "eff": "Read only until actual Agent action; optionally write Message and Work CAS; distinct cursor acks only after consumed pages, never arbitrary service effect",
+        "c": "Measured 9 current Open Works, 2 direct TopicRef links, two Topic pages 8+6 messages, serialized JSON characters 18638+17649; real Agent tokens and p95 UNKNOWN",
+        "epsilon": "No independent two-Principal Agent handoff yet; no automatic Harness hook; workload latency/failed-resume probability UNKNOWN",
+        "prov": [
+          "services/host/mcp-surface.json",
+          "services/host/docs/HOST_OWNER_GUIDE.md#5.1",
+          "work:ordivon:host-agent-continuation-golden-road-r1:20261114",
+          "work:ordivon:host-agent-proof-applicability-r3:20261114",
+          "topic:ordivon:host-optimization-tri-agent-plan:20261110"
+        ],
+        "unfold": "work.list if needed → work.get → attention.reentry → topic.resume pages by Topic Message cursor → external Owner relevant reads → message.post/work.snapshot.commit CAS → acknowledge exactly consumed Topic and Attention horizons"
+      },
+      "ownerBoundary": {
+        "Host": "Work, Social, Attention, Subscription, cursor and CAS PG truths",
+        "Harness": "Agent cognition, tool invocation strategy and client-observed cost",
+        "GatewaySecurity": "Live authenticated tool ingress and real Principal grants",
+        "RuntimeGitDomain": "All foreign effects and external proof currentness"
+      },
+      "realReadback": {
+        "observedAtDate": "2026-11-14",
+        "workInventory": "9 Open, 2 explicit current topic refs; no claim other Works necessarily require topics",
+        "hostProofWork": "real Topic reference added rev12 to13 with preserved frontier and matching Gateway snapshotDigest",
+        "attention": "one navigation Topic after 12 raw changes, afterChangeSeq 77453, nextChangeSeq 77622, topic resumeAfterMessageSeq 27535",
+        "topicPagination": "page1 8 nextMessageSeq 27609 hasMore; page2 6 nextMessageSeq 27669 complete, no duplicate returned messages",
+        "cursorAcks": "NOT_EXECUTED shared Actor production cursors remain unchanged",
+        "newWork": "work:ordivon:host-agent-continuation-golden-road-r1:20261114 rev1",
+        "newCapabilityClaims": "none"
+      },
+      "remainingQ1": [
+        "actual distinct Principal B Agent reentry and handoff, no invented peer",
+        "real Work/Biz consumer validation of obligation/coordination semantic ambiguity",
+        "Harness direct token/latency/tool-call instrumentation before claiming improvement"
+      ],
+      "remainingQ2": [
+        "review other Work/topic relations before bulk link",
+        "keep docs/consumer graph aligned when official Host tool surface changes",
+        "stronger formalization only for new observed owner-critical invariant failures"
+      ]
+    }
+  ]
 }

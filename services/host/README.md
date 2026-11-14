@@ -96,6 +96,17 @@ See [Host Owner Guide](docs/HOST_OWNER_GUIDE.md) for directory retention decisio
 
 Work Graph relation commands and cycle detection now live in src/ordivon_host_v2/work_relation_commands.py, composed by the existing WorkStore. This internal split does not introduce a second database or a public MCP tool.
 
+## Agent consumer Golden Road
+
+The existing Work / Social / Attention MCP tools compose into one
+Agent-first business path: discover current Work, resume bounded relevant
+Topic messages from the per-Topic cursor, revalidate only necessary natural
+Owner references, commit a complete Work Snapshot with CAS and acknowledge
+consumption only after processing. A live bounded two-page example and
+the non-interchangeable Attention/Topic cursor contract are in
+[Host Owner Guide §5.1](docs/HOST_OWNER_GUIDE.md).
+No new Host service, ranking engine or run scheduler is needed.
+
 ## Current product surface
 
 Host v2 runs Social Work Fabric schema 13. The release-owned
