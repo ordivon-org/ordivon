@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import http.client
 import json
+import re
 import shlex
 import subprocess
 import time
@@ -20,6 +21,7 @@ from typing import Any
 from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
 
 MAX_POLICY_BYTES = 2_097_152
+MAX_SOCKET_EVIDENCE_BYTES = 131_072
 GATEWAY_UNIT = "ordivon-gateway.service"
 SECURITY_UNIT = "ordivon-security-gateway-authzen.service"
 ACTIVE_POLICY_CREDENTIAL = Path(
@@ -71,6 +73,54 @@ def _rejects_unauthenticated_host_initialize() -> bool:
         return False
     finally:
         conn.close()
+
+
+def _observed_non_gateway_host_tcp_clients() -> list[str]:
+    """A one-way, read-only physical falsifier of Host direct-client migration.
+
+    Only a socket *actually established* on the known Host Owner endpoint
+    qualifies as positive evidence. Empty observation is NEVER proof that
+    remote Cloudflare ingress and all other direct clients have migrated.
+    The running Gateway service PID, not an executable name, defines the
+    excluded natural Gateway->Host upstream connection.
+    """
+    pid_result = subprocess.run(
+        ["/usr/bin/systemctl", "show", GATEWAY_UNIT, "-p", "MainPID", "--value"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=8,
+    )
+    pid_raw = pid_result.stdout.strip()
+    if not pid_raw.isdecimal() or int(pid_raw) <= 0:
+        raise ValueError("current Gateway MainPID is unavailable")
+    gateway_pid = int(pid_raw)
+    sockets = subprocess.run(
+        ["/usr/bin/ss", "-H", "-t", "-n", "-p", "( dport = :8898 )"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=8,
+    )
+    if len(sockets.stdout.encode("utf-8")) > MAX_SOCKET_EVIDENCE_BYTES:
+        raise ValueError("direct Host TCP observation exceeds bounded size")
+    clients: set[str] = set()
+    for row in sockets.stdout.splitlines():
+        fields = row.split()
+        if len(fields) < 5 or fields[0] != "ESTAB" or fields[4] != "127.0.0.1:8898":
+            continue
+        pids = {int(match) for match in re.findall(r"pid=(\d+)", row)}
+        if pids == {gateway_pid}:
+            continue
+        if '"cloudflared"' in row:
+            clients.add("cloudflared")
+        elif pids:
+            clients.add("other_non_gateway")
+        else:
+            # A privileged socket probe without process attribution cannot
+            # establish that this connection belongs to the known Gateway.
+            clients.add("unattributed")
+    return sorted(clients)
 
 
 def _owner_route_is_probed_endpoint(systemd_environment: str) -> bool:
@@ -141,6 +191,7 @@ def assess(
     *,
     now: int,
     anonymous_host_initialize_denied: bool | None = None,
+    observed_non_gateway_host_tcp_clients: list[str] | None = None,
 ) -> dict[str, Any]:
     active_count = _active_host_grant_count(document, now=now)
     credential_declared = _declares_host_owner_identity(systemd_environment)
@@ -154,6 +205,10 @@ def assess(
         failures.append("HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY")
     if anonymous_host_initialize_denied is not True:
         failures.append("HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED")
+    # Only positive socket evidence can falsify migration. A momentarily
+    # empty socket set NEVER establishes Cloudflare route or Agent migration.
+    if observed_non_gateway_host_tcp_clients:
+        failures.append("HOST_DIRECT_NON_GATEWAY_TCP_CONSUMER_OBSERVED")
     return {
         "schemaVersion": 1,
         "kind": "ordivon.gateway-host-release-precondition",
@@ -162,12 +217,14 @@ def assess(
         "hostOwnerCredentialDeclared": credential_declared,
         "hostOwnerRouteQualified": owner_route_qualified,
         "anonymousHostInitializeDenied": anonymous_host_initialize_denied is True,
+        "observedDirectHostTcpConsumerClasses": observed_non_gateway_host_tcp_clients,
         "reasons": failures,
         "unverified": [
             "actual Principal-to-Actor and resource authorization",
             "positive and negative live Host AuthZEN consumer canaries",
             "actual Host bearer-protected ingress and matching credential",
             "direct Host MCP connector migration",
+            "Cloudflare remote Host ingress target and direct-consumer migration",
             "production post-promotion behavior",
         ],
         "truthBoundary": "release precondition only; Security PDP and Host remain authoritative",
@@ -214,6 +271,7 @@ def main() -> int:
             result.stdout,
             now=int(time.time()),
             anonymous_host_initialize_denied=_rejects_unauthenticated_host_initialize(),
+            observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
         )
     except OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError:
         standing = {

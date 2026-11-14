@@ -269,3 +269,135 @@ def test_host_direct_anonymous_denial_cannot_be_inferred_from_grants(
         assert result["hostOwnerRouteQualified"] is True
         assert result["anonymousHostInitializeDenied"] is False
         assert "HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED" in result["reasons"]
+
+
+def test_observed_cloudflare_host_socket_is_release_counterexample(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only a native ESTAB socket, not an installed service name, is positive evidence."""
+
+    def fake_run(argv: list[str], **_kwargs: Any) -> Any:
+        if argv[0] == "/usr/bin/systemctl":
+            assert argv == [
+                "/usr/bin/systemctl",
+                "show",
+                "ordivon-gateway.service",
+                "-p",
+                "MainPID",
+                "--value",
+            ]
+            return type("Process", (), {"stdout": "1607\n"})()
+        assert argv == ["/usr/bin/ss", "-H", "-t", "-n", "-p", "( dport = :8898 )"]
+        return type(
+            "Process",
+            (),
+            {
+                "stdout": (
+                    "ESTAB 0 0 127.0.0.1:58293 127.0.0.1:8898 "
+                    'users:(("ordivon-gateway",pid=1607,fd=12))\n'
+                    "ESTAB 0 0 127.0.0.1:57987 127.0.0.1:8898 "
+                    'users:(("cloudflared",pid=1856075,fd=16))\n'
+                    "CLOSE-WAIT 1 0 127.0.0.1:50000 127.0.0.1:8898 "
+                    'users:(("unrelated",pid=8,fd=7))\n'
+                )
+            },
+        )()
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    classes = preflight._observed_non_gateway_host_tcp_clients()
+    assert classes == ["cloudflared"]
+    result = preflight.assess(
+        _operator_data([_grant()]),
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer",
+        now=1_500,
+        anonymous_host_initialize_denied=True,
+        observed_non_gateway_host_tcp_clients=classes,
+    )
+    assert result["status"] == "NO_GO"
+    assert result["reasons"] == ["HOST_DIRECT_NON_GATEWAY_TCP_CONSUMER_OBSERVED"]
+    assert result["observedDirectHostTcpConsumerClasses"] == ["cloudflared"]
+
+
+@pytest.mark.parametrize(
+    ("socket_line", "expected"),
+    [
+        (
+            'ESTAB 0 0 127.0.0.1:59000 127.0.0.1:8898 users:(("ordivon-gateway",pid=1607,fd=5))',
+            [],
+        ),
+        (
+            'ESTAB 0 0 127.0.0.1:59000 127.0.0.1:8898 users:(("ordivon-gateway",pid=1608,fd=5))',
+            ["other_non_gateway"],
+        ),
+        (
+            "ESTAB 0 0 127.0.0.1:59000 127.0.0.1:8898",
+            ["unattributed"],
+        ),
+        (
+            'ESTAB 0 0 127.0.0.1:59000 127.0.0.1:8888 users:(("cloudflared",pid=1856075,fd=16))',
+            [],
+        ),
+        (
+            "TIME-WAIT 0 0 127.0.0.1:59000 127.0.0.1:8898 "
+            'users:(("cloudflared",pid=1856075,fd=16))',
+            [],
+        ),
+    ],
+)
+def test_host_socket_falsifier_uses_exact_gateway_pid_endpoint_and_established_state(
+    preflight: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    socket_line: str,
+    expected: list[str],
+) -> None:
+    def fake_run(argv: list[str], **_kwargs: Any) -> Any:
+        if argv[0] == "/usr/bin/systemctl":
+            return type("Process", (), {"stdout": "1607\n"})()
+        return type("Process", (), {"stdout": socket_line + "\n"})()
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    assert preflight._observed_non_gateway_host_tcp_clients() == expected
+
+
+def test_absent_socket_is_not_claimed_as_cloudflare_migration_proof(preflight: Any) -> None:
+    qualified = preflight.assess(
+        _operator_data([_grant()]),
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer",
+        now=1_500,
+        anonymous_host_initialize_denied=True,
+        observed_non_gateway_host_tcp_clients=[],
+    )
+    assert qualified["status"] == "NECESSARY_PRECONDITIONS_PRESENT"
+    assert qualified["observedDirectHostTcpConsumerClasses"] == []
+    assert (
+        "Cloudflare remote Host ingress target and direct-consumer migration"
+        in (qualified["unverified"])
+    )
+
+
+@pytest.mark.parametrize("bad_main_pid", ["", "0", "not-a-pid", "-1"])
+def test_invalid_running_gateway_pid_fails_closed(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, bad_main_pid: str
+) -> None:
+    def fake_run(argv: list[str], **_kwargs: Any) -> Any:
+        assert argv[0] == "/usr/bin/systemctl"
+        return type("Process", (), {"stdout": bad_main_pid})()
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    with pytest.raises(ValueError, match="MainPID"):
+        preflight._observed_non_gateway_host_tcp_clients()
+
+
+def test_socket_probe_execution_error_remains_unobservable(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_run(argv: list[str], **_kwargs: Any) -> Any:
+        if argv[0] == "/usr/bin/systemctl":
+            return type("Process", (), {"stdout": "1607\n"})()
+        raise FileNotFoundError("native ss is not installed")
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    with pytest.raises(OSError):
+        preflight._observed_non_gateway_host_tcp_clients()
