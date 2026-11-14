@@ -369,10 +369,25 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         kind="test-provider-source",
     )
     native_call_id = "provider-call:test-native-rust-writer"
+    # Exact JSON body sent by the Rust Provider in the native PG18 test.
+    # It has no bearer/credential and is identical to serde_json::to_vec
+    # of the no-Tool ChatCompletion request after strict stable keys.
+    native_model_body = {
+        "model": native.requested_model_id,
+        "messages": [
+            {"role": "system", "content": "system"},
+            {"role": "user", "content": "question"},
+        ],
+        "stream": False,
+    }
+    native_wire_body = json.dumps(
+        native_model_body, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")
+    native_wire_digest = digest_bytes(native_wire_body)
     native_failure = HarnessProviderCallFailureReceipt(
         provider_call_id=native_call_id,
         request_digest=id_digest("native-provider-request"),
-        provider_request_digest=id_digest("native-provider-transport-request"),
+        provider_request_digest=native_wire_digest,
         failure_code="provider_transport_failed",
         dispatch_safety="dispatch_ambiguous",
         detail="Test-only ambiguous loopback transport after outbound request",
@@ -447,6 +462,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         prior = record
     all_cases["rust_native_provider"] = {
         "runId": native_id,
+        "expectedProviderRequestDigest": native_wire_digest,
         "expectedRecordDigest": prior.digest,
         "events": native_events,
     }

@@ -3,13 +3,14 @@
 //! model requests. A readonly DB role is enforced by the shared PG runner.
 use std::{fs, io::Read, net::TcpListener, path::Path, thread, time::Duration};
 
-use ordivon_harness_core::{loads_strict, CanonicalDocument, CanonicalRef};
+use ordivon_harness_core::{digest_bytes, loads_strict, CanonicalDocument, CanonicalRef};
 use ordivon_harness_loop::native_loop::{Provider, ProviderResult};
 use ordivon_harness_loop::native_provider_http::HttpModelProvider;
 use ordivon_harness_loop::pg_domain_read::{
     inspect_pg_no_tool_run, inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError,
     PgProviderRecoveryError,
 };
+use ordivon_harness_loop::pg_provider_config::inspect_pg_provider_transport;
 use ordivon_harness_loop::provider_head::{ProviderStatus, RecoveryPosture};
 use ordivon_harness_pg::{
     journal_write::{
@@ -292,9 +293,35 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         });
     }
 
-    // First commit durable Claim+Dispatch *before* any physical outbound
-    // HTTP request. The final source-authored UNKNOWN Event must be committed
-    // only after an actual ambiguous loopback Provider transport response.
+    // Freeze the exact HTTP body *before* native PostgreSQL Claim/Dispatch.
+    // It must match the original Python source-authored V4 ProviderRequest
+    // digest, not a synthetic hash invented by this Rust test.
+    let mut source_db = Client::connect(&readonly_dsn, NoTls).unwrap();
+    let verified = inspect_pg_no_tool_run(&mut source_db, &schema, run_id, model)
+        .expect("source-valid no-Tool Run");
+    let transport = inspect_pg_provider_transport(&mut source_db, &schema, &verified)
+        .expect("Run-bound, CAS-authenticated Provider transport");
+    let expected_wire_digest = text(&native, "expectedProviderRequestDigest").to_string();
+    let mut provider = HttpModelProvider::new_provider_only_pg_bound(
+        &transport,
+        &verified,
+        "credential:verified-source-r22",
+        "test",
+        "system",
+        "question",
+    )
+    .unwrap();
+    assert_eq!(
+        provider.freeze_next_request_digest(&[]).unwrap(),
+        expected_wire_digest,
+        "Provider V4 CAS must name the EXACT bytes frozen for outbound send"
+    );
+    let target_port = reqwest::Url::parse(transport.endpoint())
+        .unwrap()
+        .port()
+        .unwrap();
+    drop(source_db);
+
     let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
     let first = acquire_run_lease(
         &mut writer,
@@ -326,34 +353,54 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         RecoveryPosture::ReconcileWithProviderOwner
     );
 
-    // This is an actual loopback socket, not a synthetic ProviderResult. The
-    // server deliberately closes after accepting a request, without returning
-    // an HTTP result. The client must report UNKNOWN and never auto-resend.
-    let verified = inspect_pg_no_tool_run(&mut readonly, &schema, run_id, model)
-        .expect("same PG Contract must be source valid");
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let endpoint = format!(
-        "http://{}/v1/chat/completions",
-        listener.local_addr().unwrap()
-    );
+    // Real localhost HTTP send, at the endpoint obtained from the same PG
+    // Contract-bound CAS configuration. Read the complete JSON body and bind
+    // its actual bytes to the original Python V4 providerRequestDigest.
+    let listener = TcpListener::bind(("127.0.0.1", target_port)).unwrap();
+    let inbound_digest = expected_wire_digest.clone();
     let inbound = thread::spawn(move || {
         let (mut socket, _) = listener.accept().unwrap();
         socket
             .set_read_timeout(Some(Duration::from_secs(5)))
             .unwrap();
-        let mut bytes = [0u8; 4096];
-        let count = socket.read(&mut bytes).unwrap();
-        assert!(count > 0);
-        let received = String::from_utf8_lossy(&bytes[..count]);
-        assert!(received.starts_with("POST /v1/chat/completions HTTP/1.1"));
-        // Drop socket deliberately: response status/commit is unknowable.
+        let mut collected = Vec::new();
+        let mut buf = [0u8; 8192];
+        loop {
+            let n = socket.read(&mut buf).unwrap();
+            assert!(n > 0, "request must not end before complete HTTP body");
+            collected.extend_from_slice(&buf[..n]);
+            if let Some(at) = collected.windows(4).position(|b| b == b"\r\n\r\n") {
+                let header = String::from_utf8_lossy(&collected[..at]);
+                assert!(header.starts_with("POST /v1/chat/completions HTTP/1.1"));
+                let content_length = header
+                    .lines()
+                    .find_map(|line| {
+                        let (k, v) = line.split_once(':')?;
+                        k.eq_ignore_ascii_case("content-length")
+                            .then(|| v.trim().parse::<usize>().ok())
+                            .flatten()
+                    })
+                    .expect("provider sends a content length");
+                if collected.len() >= at + 4 + content_length {
+                    assert_eq!(
+                        digest_bytes(&collected[at + 4..at + 4 + content_length]),
+                        inbound_digest,
+                        "physically transmitted JSON differs from V4 CAS request digest"
+                    );
+                    break;
+                }
+            }
+        }
+        // Drop after receiving actual bytes; no response status or content
+        // exists, so the physical Provider outcome is genuinely ambiguous.
     });
-    let mut provider =
-        HttpModelProvider::new_provider_only(&endpoint, "test", "system", "question", &verified)
-            .unwrap();
     assert!(matches!(provider.turn(1, &[]), ProviderResult::Unknown));
     inbound.join().unwrap();
     assert!(provider.last_usage().is_none());
+    assert!(
+        provider.freeze_next_request_digest(&[]).is_err(),
+        "Unknown instance cannot be re-armed to silently resend a frozen call"
+    );
 
     // Now, and only now, commit source-authored UNKNOWN in the same PG Run.
     let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
