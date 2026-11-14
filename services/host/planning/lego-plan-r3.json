@@ -296,15 +296,15 @@
         "K02",
         "P02"
       ],
-      "status": "SOURCE_ACTUAL_GITHUB_OWNER_REAL_WORK_CAS_NOT_INSTALLED_HARNESS_POLICY",
+      "status": "SOURCE_GITHUB_OWNER_AND_C04_REAL_CONSUMER_NOT_INSTALLED_HARNESS",
       "contract": {
-        "I": "Current Host work.get with existing GitHub run refs, task-local bounded Claim/Justification contract, immutable Git HEAD, native GitHub run view status",
-        "O": "Owner-run qualification, finite AND/OR workflow requirement standing, non-executing Agent nextActions and optional CAS-compatible snapshot",
+        "I": "Current Host work.get with existing GitHub run refs, task-local bounded Claim/Justification contract, immutable Git HEAD, native GitHub run view status; optional native Git delta + owner-declared positive readset at exact target SourceCut with Claim IDs identical",
+        "O": "Owner-run qualification, finite AND/OR workflow requirement standing, non-executing Agent nextActions and optional CAS-compatible snapshot; typed sourceApplicability per Claim with exact C04 RECHECK_REQUIRED/UNKNOWN/REUSE_CANDIDATE and domainProofApplicability=UNKNOWN",
         "S": "No new persistence; GitHub owns run status, Host owns current semantic Work and Gateway is only a read router",
         "pre": "Contract target SHA = exact native HEAD; each run is already in current Work; original owner/repo/ID/url/workflow/sha/status must match before satisfied evidence requirement",
         "post": "Successful alternative AND path satisfies narrow GitHub workflow-completion requirement; mismatched old SHA never does; current Work generated actions can be CAS committed separately",
-        "inv": "Every satisfying AND path has all native Owner records matched; empty alternatives rejected; a separate valid path survives failure of another; DomainClaimVerified always false and zero Jobs created",
-        "eff": "Bounded read-only native Git and GitHub queries; actual authenticated Host CAS only when explicitly invoked as separate consumer effect",
+        "inv": "Every satisfying AND path has all native Owner records matched; empty alternatives rejected; a separate valid path survives failure of another; DomainClaimVerified always false and zero Jobs created; even exact Owner workflow success plus changed/unchanged source cannot establish domainProofApplicabilityCertified; new Git membership makes unchanged positive-readset candidates UNKNOWN and no automatic job",
+        "eff": "Bounded read-only native Git and GitHub queries; actual authenticated Host CAS only when explicitly invoked as separate consumer effect; zero new verifier Jobs for all R5 projections",
         "c": "At most 32 unique Owner runs, 24 claims, 16 alternatives per claim and 8 leaves per alternative; no measured p95 or token reduction",
         "epsilon": "GitHub unavailable/old SHA/wrong workflow/uncompleted result yields UNKNOWN or ineligible path; no automatic domain falsity or valid proof assumption",
         "prov": [
@@ -317,11 +317,11 @@
           "github:run:43567631728",
           "github:run:43567631871"
         ],
-        "unfold": "Authenticated actual Work.get → exact Git SourceCut → native GitHub Owner runs → bounded AND/OR support → non-executing Work nextAction CAS proposal → separately committed Work rev4→5 → Gateway readback"
+        "unfold": "Authenticated actual Work.get → exact Git SourceCut → native GitHub Owner runs → bounded AND/OR support → non-executing Work nextAction CAS proposal → separately committed Work rev4→5 → Gateway readback; R5 optional native Git delta independently requalified through existing CLI → C04 selection → joined with matching Owner workflow facts → Work CAS rev7→8"
       },
       "evidence": {
         "tier": "SOURCE_REAL_GITHUB_OWNER_RECONCILIATION_ACTUAL_HOST_CAS",
-        "completionClaim": "Two exact SHA workflow-completion requirements satisfied via real GitHub runs and Host CAS rev4→5, old SHA mismatched; 11 new focused tests and five Lean no-axiom abstract theorems; zero rerun of prior verifier jobs",
+        "completionClaim": "Two exact SHA workflow-completion requirements satisfied via real GitHub runs and Host CAS rev4→5, old SHA mismatched; 11 new focused tests and five Lean no-axiom abstract theorems; zero rerun of prior verifier jobs; R5 actual Git SourceCut c9→73d added four members; 3 claims: two changed readsets and one unchanged-with-negative-closure UNKNOWN, native Github current Required/CodeQL success, no new verifier Job, Work rev7→8 and Gateway matching; 11 Lean abstract properties, focused tests",
         "installedCurrentness": "UNKNOWN",
         "domainClaimVerified": false,
         "ownerCertifiedDynamicReadsetClosure": "UNKNOWN"

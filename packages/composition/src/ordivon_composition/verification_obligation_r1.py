@@ -27,7 +27,10 @@ from .cognitive_circuit_r1 import (
     canonical_digest,
     compile_manifest,
 )
-from .github_justification_r1 import project_github_owner_justifications
+from .github_justification_r1 import (
+    combine_github_justification_with_source_impact,
+    project_github_owner_justifications,
+)
 from .host_agent_verification_actions import (
     project_host_agent_source_readset_actions,
     project_host_agent_verification_actions,
@@ -657,6 +660,11 @@ def _parser() -> argparse.ArgumentParser:
     justification_parser.add_argument("host_work", type=Path)
     justification_parser.add_argument("justification_contract", type=Path)
     justification_parser.add_argument("--git-repo", type=Path, required=True)
+    # Optional but all-or-nothing: exact native Git membership impact +
+    # caller-declared positive readset, co-consumed with real GitHub Owner
+    # workflow evidence. No new evidence/impact engine is introduced.
+    justification_parser.add_argument("--git-source-delta", type=Path)
+    justification_parser.add_argument("--source-readset-evidence", type=Path)
 
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
@@ -748,11 +756,33 @@ def main() -> int:
             # *readset* and historical verifier receipt are still unqualified.
             result["sourceReadsetScope"]["nativeGitRequalifiedByCLI"] = True
         elif args.command == "agent-host-github-justifications":
+            if (args.git_source_delta is None) != (args.source_readset_evidence is None):
+                raise CircuitContractError(
+                    "Git impact and source readsets must be supplied together"
+                )
             result = project_github_owner_justifications(
                 work=_load_json(args.host_work),
                 contract=_load_json(args.justification_contract),
                 git_repo=args.git_repo,
             )
+            if args.git_source_delta is not None:
+                qualified_delta = _requalify_git_source_delta(
+                    args.git_repo,
+                    _load_json(
+                        args.git_source_delta,
+                        git_byte_path_fields=frozenset(
+                            {"addedPaths", "removedPaths", "changedValuePaths"}
+                        ),
+                    ),
+                )
+                result = combine_github_justification_with_source_impact(
+                    workflow_result=result,
+                    git_source_delta=qualified_delta,
+                    source_readset_evidence=_load_json(
+                        args.source_readset_evidence,
+                        git_byte_path_fields=frozenset({"sourcePaths"}),
+                    ),
+                )
         elif args.command == "impact-observations":
             # Natural owners still own the observations and physical receipts.
             # This is a task-local, non-executing source-to-proof adapter.

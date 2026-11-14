@@ -538,19 +538,22 @@
         "actual current Host work.get and references",
         "immutable native Git HEAD",
         "task-local consumer Claim and bounded AND/OR paths",
-        "GitHub native run ID, SHA, workflow name, status and conclusion"
+        "GitHub native run ID, SHA, workflow name, status and conclusion",
+        "Optional real native Git two-cut delta and Agent-declared positive source-readsets aligned one-to-one by Claim IDs"
       ],
       "outputs": [
         "Owner-read qualification per referenced GitHub run",
         "EVIDENCE_REQUIREMENTS_SATISFIED or UNKNOWN per workflow evidence requirement",
-        "non-executing current Work nextAction proposal"
+        "non-executing current Work nextAction proposal",
+        "Typed combined per-Claim native workflow completion + C04 source impact + domain UNKNOWN currentness"
       ],
-      "behavioralContract": "One OR path suffices only if every referenced native GitHub run has matching run ID, repository, current SHA, exact workflow and completed/success; one invalidated path does not invalidate independent valid alternative; no owner result equals domain proof.",
+      "behavioralContract": "One OR path suffices only if every referenced native GitHub run has matching run ID, repository, current SHA, exact workflow and completed/success; one invalidated path does not invalidate independent valid alternative; no owner result equals domain proof. Native Git is requalified by the existing CLI; the R5 join uses the same C04 selector and never upgrades caller-declared readsets or successful workflows into domain proof.",
       "acceptance": [
         "11 new bounded test cases for natural Owner evidence OR/AND and adversarial inputs",
         "Real GitHub Owner runs old SHA mismatch and current Required+CodeQL match",
         "Five pinned Lean axiom-free abstract Justification support theorems",
-        "Real Host WorkSnapshot CAS rev4→5 and Gateway identical revision/digest, no GitHub or Runtime rerun"
+        "Real Host WorkSnapshot CAS rev4→5 and Gateway identical revision/digest, no GitHub or Runtime rerun",
+        "R5 affected tests and real Git c9→73d membership delta with native GitHub Required+CodeQL: matched current Owner, two RECHECK_REQUIRED and one UNKNOWN, no domain acceptance, Work CAS rev7→8 and Gateway equal digest."
       ],
       "evidence": [
         "src/ordivon_composition/github_justification_r1.py",
@@ -597,7 +600,8 @@
       "formalObligations": [
         "Lean proves abstract AND/OR algebra, not Python/Owner API/PG CAS implementation",
         "Workflow success cannot establish installed state, runtime effect, domain proof, or full readset closure",
-        "Agent/Harness installed pre-execution consumer with independent Principal still UNKNOWN"
+        "Agent/Harness installed pre-execution consumer with independent Principal still UNKNOWN",
+        "Even exact current workflow SUCCESS plus matching source impact does not prove full dependency closure, domain acceptance or installed result."
       ],
       "replacements": [
         "Prefer GitHub native run read over any new proof database or duplicate CI invocation"
@@ -709,7 +713,8 @@
       ],
       "status": "IMPLEMENTED",
       "acceptance": [
-        "Real Owner run view AND/OR + actual Work CAS, zero additional verification jobs"
+        "Real Owner run view AND/OR + actual Work CAS, zero additional verification jobs",
+        "R5 native Git/C04 impact join retains UNKNOWN domain proof and suppresses duplicate current-workflow suggestion with new-member dependency uncertainty."
       ]
     }
   ],

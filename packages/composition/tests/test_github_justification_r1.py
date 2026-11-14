@@ -298,3 +298,175 @@ def test_real_native_git_head_is_exact_commit_id(tmp_path):
     import re
 
     assert re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", owner._native_git_head(repo))
+
+
+def _source_scope_fixture(*, member_change=False, unchanged_complete=True):
+    scope = "git:repo:" + "f" * 64
+    changed = scope + ":path:owner/a.py"
+    unchanged = scope + ":path:owner/b.py"
+    delta = {
+        "kind": "ordivon.git-source-membership-delta",
+        "truthRole": "exact-git-source-delta-no-proof-acceptance",
+        "queryPrefix": "owner/",
+        "sourceScopeRef": scope,
+        "sourceCuts": {"previous": OLDER, "current": SHA},
+        "authorityRefs": [changed, unchanged],
+        "changedRefs": [changed],
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+    }
+    if member_change:
+        member = scope + ":members:owner/"
+        delta["membershipChanged"] = True
+        delta["membershipRef"] = member
+        delta["authorityRefs"].append(member)
+        delta["changedRefs"].append(member)
+    reads = {
+        "kind": "ordivon.source-readset-evidence",
+        "truthRole": "agent-positive-readset-not-owner-certified",
+        "sourceCut": SHA,
+        "scopePrefix": "owner/",
+        "items": [
+            {
+                "id": "claim:required-check",
+                "sourcePaths": ["owner/a.py"],
+                "dependenciesComplete": True,
+            },
+        ],
+        "dependencyQualification": "AGENT_DECLARED_POSITIVE_ONLY",
+        "proofReuseAdmissible": False,
+    }
+    return delta, reads
+
+
+def test_r5_exact_owner_workflow_success_plus_changed_c04_is_not_domain_proof(monkeypatch):
+    fake_receipts(monkeypatch, {REF_B: {"headSha": OLDER}})
+    owner_result = owner.project_github_owner_justifications(
+        work=work(), contract=manifest(), git_repo=Path(".")
+    )
+    delta, reads = _source_scope_fixture()
+    result = owner.combine_github_justification_with_source_impact(
+        workflow_result=owner_result,
+        git_source_delta=delta,
+        source_readset_evidence=reads,
+    )
+    rows = result["sourceApplicability"]["claims"]
+    assert len(rows) == 1
+    assert rows[0]["ownerWorkflowStanding"] == "EVIDENCE_REQUIREMENTS_SATISFIED"
+    assert rows[0]["sourceImpactStanding"] == "RECHECK_REQUIRED"
+    assert rows[0]["agentDecision"] == "CURRENT_WORKFLOW_ALREADY_CHECKED_QUALIFY_DOMAIN"
+    assert rows[0]["domainProofApplicability"] == "UNKNOWN_NOT_OWNER_CERTIFIED"
+    assert result["sourceApplicability"]["ownerCertifiedReadsetClosure"] is False
+    assert result["sourceApplicability"]["wholeSuiteRerunRequested"] is False
+    assert result["proposedWorkSnapshot"]["referenceRefs"] == work()["snapshot"]["referenceRefs"]
+    assert result["summary"]["newVerificationJobsCreated"] == 0
+    _validate_schema(result, schema_path(), "R5 already rechecked source")
+
+
+def test_r5_unknown_member_set_even_when_github_owner_success(monkeypatch):
+    fake_receipts(monkeypatch, {REF_B: {"headSha": OLDER}})
+    result = owner.project_github_owner_justifications(
+        work=work(), contract=manifest(), git_repo=Path(".")
+    )
+    delta, reads = _source_scope_fixture(member_change=True)
+    reads["items"][0]["sourcePaths"] = ["owner/b.py"]
+    result = owner.combine_github_justification_with_source_impact(
+        workflow_result=result, git_source_delta=delta, source_readset_evidence=reads
+    )
+    claim = result["sourceApplicability"]["claims"][0]
+    assert claim["ownerWorkflowStanding"] == "EVIDENCE_REQUIREMENTS_SATISFIED"
+    assert claim["sourceImpactStanding"] == "UNKNOWN"
+    assert claim["agentDecision"] == "CURRENT_WORKFLOW_KNOWN_READSET_UNKNOWN"
+    assert (
+        result["sourceApplicability"]["membershipClosureQualification"]
+        == "UNKNOWN_NEGATIVE_DEPENDENCIES_AFTER_MEMBERSET_DELTA"
+    )
+    assert claim["ownerCertifiedReadsetClosure"] is False
+    _validate_schema(result, schema_path(), "R5 membership UNKNOWN")
+
+
+def test_r5_unchanged_source_candidate_still_not_domain_accepted(monkeypatch):
+    fake_receipts(monkeypatch, {REF_B: {"headSha": OLDER}})
+    result = owner.project_github_owner_justifications(
+        work=work(), contract=manifest(), git_repo=Path(".")
+    )
+    delta, reads = _source_scope_fixture()
+    reads["items"][0]["sourcePaths"] = ["owner/b.py"]
+    got = owner.combine_github_justification_with_source_impact(
+        workflow_result=result, git_source_delta=delta, source_readset_evidence=reads
+    )
+    claim = got["sourceApplicability"]["claims"][0]
+    assert claim["sourceImpactStanding"] == "REUSE_CANDIDATE"
+    assert claim["agentDecision"] == "CURRENT_WORKFLOW_KNOWN_DOMAIN_UNCERTIFIED"
+    assert got["sourceApplicability"]["domainProofApplicabilityCertified"] is False
+    _validate_schema(got, schema_path(), "R5 source unchanged not domain PASS")
+
+
+def test_r5_owner_missing_does_not_rerun_even_with_changed_source(monkeypatch):
+    fake_receipts(
+        monkeypatch,
+        {REF_A: {"status": "in_progress", "conclusion": None}, REF_B: {"headSha": OLDER}},
+    )
+    result = owner.project_github_owner_justifications(
+        work=work(), contract=manifest(), git_repo=Path(".")
+    )
+    delta, reads = _source_scope_fixture()
+    got = owner.combine_github_justification_with_source_impact(
+        workflow_result=result, git_source_delta=delta, source_readset_evidence=reads
+    )
+    row = got["sourceApplicability"]["claims"][0]
+    assert row["ownerWorkflowStanding"] == "UNKNOWN"
+    assert row["sourceImpactStanding"] == "RECHECK_REQUIRED"
+    assert row["agentDecision"] == "LOCATE_CURRENT_OWNER_RESULT_BEFORE_SCOPED_RECHECK"
+    assert got["summary"]["newVerificationJobsCreated"] == 0
+    _validate_schema(got, schema_path(), "R5 owner missing")
+
+
+def test_r5_wrong_readset_subject_or_invented_applicability_refused(monkeypatch):
+    fake_receipts(monkeypatch, {REF_B: {"headSha": OLDER}})
+    delta, reads = _source_scope_fixture()
+    reads["items"][0]["id"] = "claim:another-consumer"
+    with pytest.raises(CircuitContractError, match="exactly one C04"):
+        owner.combine_github_justification_with_source_impact(
+            workflow_result=owner.project_github_owner_justifications(
+                work=work(), contract=manifest(), git_repo=Path(".")
+            ),
+            git_source_delta=delta,
+            source_readset_evidence=reads,
+        )
+    delta, reads = _source_scope_fixture()
+    delta["sourceCuts"]["current"] = OLDER
+    with pytest.raises(CircuitContractError, match="SourceCut mismatch"):
+        owner.combine_github_justification_with_source_impact(
+            workflow_result=owner.project_github_owner_justifications(
+                work=work(), contract=manifest(), git_repo=Path(".")
+            ),
+            git_source_delta=delta,
+            source_readset_evidence={**reads, "sourceCut": OLDER},
+        )
+
+
+def test_r5_strict_schema_refuses_fake_domain_certification(monkeypatch):
+    fake_receipts(monkeypatch, {REF_B: {"headSha": OLDER}})
+    delta, reads = _source_scope_fixture()
+    good = owner.combine_github_justification_with_source_impact(
+        workflow_result=owner.project_github_owner_justifications(
+            work=work(), contract=manifest(), git_repo=Path(".")
+        ),
+        git_source_delta=delta,
+        source_readset_evidence=reads,
+    )
+    for mutation in (
+        lambda p: p["sourceApplicability"].update(ownerCertifiedReadsetClosure=True),
+        lambda p: p["sourceApplicability"].update(domainProofApplicabilityCertified=True),
+        lambda p: p["sourceApplicability"]["claims"][0].update(domainClaimVerified=True),
+        lambda p: p["sourceApplicability"]["claims"][0].update(
+            agentDecision="CURRENT_WORKFLOW_KNOWN_DOMAIN_UNCERTIFIED"
+        ),
+        lambda p: p["sourceApplicability"]["claims"][0].update(ownerWorkflowStanding="UNKNOWN"),
+        lambda p: p["sourceApplicability"].update(wholeSuiteRerunRequested=True),
+    ):
+        tampered = copy.deepcopy(good)
+        mutation(tampered)
+        with pytest.raises(CircuitContractError):
+            _validate_schema(tampered, schema_path(), "R5 fake domain closure")

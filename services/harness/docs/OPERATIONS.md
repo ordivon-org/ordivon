@@ -107,6 +107,19 @@ yields UNKNOWN support, not automatically another Job or proof of a false
 domain Claim. This is not an installed Harness execution admission hook:
 no new Runtime/GitHub verification effect is issued here.
 
+### R5 optional C04 source impact and current Owner join
+
+The existing `agent-host-github-justifications` command can additionally
+accept `--git-source-delta` and `--source-readset-evidence` together.
+It re-queries immutable Git, computes existing Composition C04 source
+impact, and joins it with live GitHub workflow results only when exact
+Claim IDs and SourceCut match. Even if a changed scope's current workflow
+is already SUCCESS, domain acceptance remains UNKNOWN until natural
+Owner proof/readset closure. When file membership changes, unchanged
+positive-readset claims carry an explicit negative-dependency UNKNOWN.
+It emits non-executing Agent nextActions, **not** a Harness execution
+gate, automatic GitHub rerun, or certified current authorization.
+
 ## Provider recovery
 
 Retained Provider Call status controls the next action. A safely failed pre-dispatch call may be retried within budget. A lost response after durable completion is replayed from Store. Ambiguous dispatch remains UNKNOWN until reconciled; transport loss is not implicit redispatch permission.

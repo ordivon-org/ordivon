@@ -209,6 +209,97 @@ reuse existing Host WorkSnapshot CAS and Gateway read path. No second
 evidence database, no new Host MCP tool or Runtime scheduling responsibility.
 
 
+## R5: Join verified workflow evidence to exact C04 consumer impact
+
+**Use case:** after a changed Git SourceCut, the Agent has a new completed
+GitHub run but also an incomplete, caller-declared dependency readset. Does
+it rerun CI, or can it reuse the workflow result without overclaiming
+application/domain correctness?
+
+The R5 mode extends the **same** existing
+\`agent-host-github-justifications\` command; it adds two optional,
+all-or-nothing inputs and reuses the existing native Git delta
+requalification and existing C04 \`select_source_readset_impacts\`.
+There is no new dependency selector, fact registry, execution policy or
+Host MCP tool.
+
+\`\`\`bash
+cd packages/composition
+uv run python -m ordivon_composition.verification_obligation_r1 \
+  agent-host-github-justifications \
+  /path/to/current-host-work.json \
+  /path/to/task-local-gh-workflow-justifications.json \
+  --git-repo /path/to/repo \
+  --git-source-delta /path/to/native-git-scoped-two-cut-delta.json \
+  --source-readset-evidence /path/to/owner-readsets.json
+\`\`\`
+
+The \`source-readset-evidence.items[].id\` set must be identical to the
+Justification \`claims[].id\` set, not guessed from textual similarity.
+Each readset is bound to the exact current Git SHA and scoped paths.
+The CLI independently recomputes the claimed Git delta before impact
+selection and still reads live GitHub run records through \`gh run view\`.
+However, readset \`dependenciesComplete=true\` is **only caller input**:
+positive readsets never become Owner-certified negative/dynamic/environment
+dependency closure.
+
+The output distinguishes three separate dimensions:
+
+1. **Owner workflow status:** exact completed/successful SHA and workflow
+   means \`EVIDENCE_REQUIREMENTS_SATISFIED\`, *only for that workflow fact*
+2. **C04 source impact:** \`RECHECK_REQUIRED\`, \`REUSE_CANDIDATE\`, or
+   \`UNKNOWN\`; Git file additions create the known negative-membership
+   \`UNKNOWN\` fence for otherwise apparently unchanged positive readsets
+3. **Domain Proof:** always \`UNKNOWN_NOT_OWNER_CERTIFIED\`; no domain PASS,
+   no claim of full readset closure or new verifier execution
+
+The action logic is intentionally bounded. A matching current Owner
+workflow with changed input means
+\`CURRENT_WORKFLOW_ALREADY_CHECKED_QUALIFY_DOMAIN\`: do not repeat that
+identical workflow just because something changed; qualify separate
+domain/source assumptions first. A matching workflow with an \`UNKNOWN\`
+readset instead yields \`CURRENT_WORKFLOW_KNOWN_READSET_UNKNOWN\`.
+An unchanged candidate similarly remains domain unqualified. A missing,
+failed or incomplete Owner result yields
+\`LOCATE_CURRENT_OWNER_RESULT_BEFORE_SCOPED_RECHECK\`, never an automatic Job.
+
+**Real consumer evidence (Git c9daf823 → 73d649fd).** The actual Git
+diff in packages/composition added four files. At the exact newer commit,
+native GitHub Required run 43575031656 and CodeQL run 43575031634 each
+completed successfully; older run 43567631728 belongs to c9daf823 and
+was correctly rejected for the current target. Two claims had changed
+positive source inputs and became \`RECHECK_REQUIRED\` yet had already
+completed their exact current Owner workflows. A third claim referenced
+an unchanged positive source path, but the new-membership negative
+dependency fence made its impact \`UNKNOWN\`. All three **domain proof
+applicabilities remained UNKNOWN**, and **zero** verifier Jobs were
+created by this projection. The actual Host Work
+\`work:ordivon:host-agent-proof-applicability-r3:20261114\` was
+separately updated by normal Work CAS from revision 7 to 8 and Gateway
+read back the same current snapshot.
+
+Strict Draft202012 type checks now reject impossible combinations of
+Owner standing, C04 impact, decision, and domain authority, as well as any
+fabricated \`ownerCertifiedReadsetClosure=true\` or
+\`wholeSuiteRerunRequested=true\`. The existing Lean file now contains
+additional abstract *no domain reuse without independently closed
+readset and domain Owner proof* obligations; this **does not prove**
+Python-API or installed Harness refinement. R5 did not establish
+post-deploy currentness, a second authenticated Agent Principal, or
+cross-domain proof applicability.
+
+**Thought LEGOs:** TMS reason maintenance, Bazel/Build Systems à la
+Carte incrementality, Assume–Guarantee scope, in-toto provenance,
+three-valued conservative reasoning, CQRS. **Logical LEGOs:**
+Claim-ID ↔ existing C04 obligation; immutable Git delta;
+native Owner workflow result; justification AND/OR; source impact;
+domain-closedness unknown; Agent action; Work.current handoff.
+**Capability LEGOs:** Existing Git provider and C04, existing GitHub
+Owner read, reused \`agent-host-github-justifications\` interface,
+stricter JSON Schema, Lean abstraction/refinement tests, actual Host
+CAS and Gateway readback.
+
+
 ## LEGO 2.1 and thought modules
 
 `ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)`

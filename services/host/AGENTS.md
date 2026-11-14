@@ -53,6 +53,20 @@ full dependency closure, installed policy or Agent authorization claim.
 Only a separately authenticated Work CAS may record generated nextActions.
 See packages/composition/docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md.
 
+## Host Agent R5: exact workflow reuse is NOT domain proof
+
+The same Composition `agent-host-github-justifications` CLI accepts an
+optional exact native Git two-cut delta and caller-declared positive source
+readsets. Native Git is requalified independently before C04 computes
+impact. Claim IDs must bind the matching readset obligation.
+A current GitHub workflow may have completed successfully *even though*
+C04 reports RECHECK_REQUIRED, so do not schedule that same workflow
+again merely because the source changed. Instead qualify missing
+domain and negative/dynamic dependency evidence with its natural Owner.
+An unchanged positive readset is not full dependency closure when new
+Git members were added; keep UNKNOWN.
+This is source-only; no native Harness pre-dispatch admission is installed.
+
 ## Agent re-entry and effects
 
 Use `work.get → attention.reentry → topic.resume → owner-native reference readback → work.snapshot.commit → cursor acknowledgment` as needed. Attention change sequence and per-topic Message sequence differ. Host never grants authentication/authorization, assigns work, schedules Jobs, or proves domain completion; Runtime, Git, Security and domain Owners retain their own truths.

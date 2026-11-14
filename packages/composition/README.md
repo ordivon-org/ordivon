@@ -14,7 +14,7 @@ capability discovery, seam-specific verification, workflow state, or domain trut
 - Successor Contract predecessor/candidate binding and verifier-owned succession-gate
   evaluation.
 - Public JSON Schemas for those contracts.
-- Task-local finite AND/OR GitHub Owner workflow-completion evidence via agent-host-github-justifications; exact SHA/workflow/run-ID from native gh, no domain proof or new verifier. See docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md section R4.
+- Task-local finite AND/OR GitHub Owner workflow-completion evidence via agent-host-github-justifications; exact SHA/workflow/run-ID from native gh, no domain proof or new verifier. R5 optionally binds that same natural-Owner result to the existing C04 source impact via --git-source-delta and --source-readset-evidence, retaining UNKNOWN for domain proof. See docs/HOST_AGENT_VERIFICATION_APPLICABILITY_R1.md sections R4–R5.
 - Task-local Host Agent knowledge **action projection** from existing C04 proof impact,
   via `python -m ordivon_composition.verification_obligation_r1 agent-host-actions`;
   for real Git SourceCut/readset inputs use `agent-host-source-actions` with native

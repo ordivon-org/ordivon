@@ -64,4 +64,79 @@ theorem no_support_from_zero_paths {α : Type u} (ownerOk : α → Prop) :
 #print axioms support_monotone_for_added_matching_evidence
 #print axioms no_support_from_zero_paths
 
+
+-- R5: distinct evidence-workflow success, incremental impact and DOMAIN proof.
+-- C04 only knows a scheduling/impact standing, never a Domain acceptance.
+inductive ImpactStanding where
+  | recheck | unknown | reuseCandidate
+  deriving DecidableEq
+
+inductive WorkflowStanding where
+  | matched | unknown
+  deriving DecidableEq
+
+inductive AgentNext where
+  | lookupOwner
+  | qualifyChangedDomain
+  | qualifyUnknownReadset
+  | qualifyCandidateDomain
+  deriving DecidableEq
+
+def decideAgent (workflow : WorkflowStanding) (impact : ImpactStanding) : AgentNext :=
+  match workflow, impact with
+  | .unknown, _ => .lookupOwner
+  | .matched, .recheck => .qualifyChangedDomain
+  | .matched, .unknown => .qualifyUnknownReadset
+  | .matched, .reuseCandidate => .qualifyCandidateDomain
+
+-- Provenance/readset closure and Domain Owner proof are separate conditions
+-- beyond a matching workflow and beyond C04 source selection.
+def DomainReuseAllowed (workflowMatched readsetOwnerClosed domainOwnerAccepted : Bool) : Bool :=
+  workflowMatched && readsetOwnerClosed && domainOwnerAccepted
+
+theorem no_domain_reuse_without_closed_owner_readset
+    (workflowMatched domainOwnerAccepted : Bool) :
+    DomainReuseAllowed workflowMatched false domainOwnerAccepted = false := by
+  cases workflowMatched <;> cases domainOwnerAccepted <;> rfl
+
+theorem no_domain_reuse_without_domain_owner_proof
+    (workflowMatched readsetOwnerClosed : Bool) :
+    DomainReuseAllowed workflowMatched readsetOwnerClosed false = false := by
+  cases workflowMatched <;> cases readsetOwnerClosed <;> rfl
+
+theorem domain_reuse_requires_all_three
+    (workflowMatched readsetOwnerClosed domainOwnerAccepted : Bool)
+    (h : DomainReuseAllowed workflowMatched readsetOwnerClosed domainOwnerAccepted = true) :
+    workflowMatched = true ∧ readsetOwnerClosed = true ∧ domainOwnerAccepted = true := by
+  cases workflowMatched with
+  | false =>
+      cases readsetOwnerClosed <;> cases domainOwnerAccepted <;> cases h
+  | true =>
+      cases readsetOwnerClosed with
+      | false => cases domainOwnerAccepted <;> cases h
+      | true =>
+          cases domainOwnerAccepted with
+          | false => cases h
+          | true => exact ⟨rfl, rfl, rfl⟩
+
+theorem matching_workflow_plus_changed_source_requests_domain_qualification :
+    decideAgent .matched .recheck = .qualifyChangedDomain := by
+  rfl
+
+theorem matching_workflow_plus_unknown_impact_requests_readset_qualification :
+    decideAgent .matched .unknown = .qualifyUnknownReadset := by
+  rfl
+
+theorem unknown_workflow_never_acts_as_matching_current_workflow
+    (impact : ImpactStanding) :
+    decideAgent .unknown impact = .lookupOwner := by
+  cases impact <;> rfl
+
+#print axioms no_domain_reuse_without_closed_owner_readset
+#print axioms no_domain_reuse_without_domain_owner_proof
+#print axioms domain_reuse_requires_all_three
+#print axioms matching_workflow_plus_changed_source_requests_domain_qualification
+#print axioms matching_workflow_plus_unknown_impact_requests_readset_qualification
+#print axioms unknown_workflow_never_acts_as_matching_current_workflow
+
 end OrdivonJustification

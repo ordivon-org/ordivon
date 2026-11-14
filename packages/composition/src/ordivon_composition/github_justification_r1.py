@@ -299,3 +299,98 @@ def project_github_owner_justifications(
             "No Runtime job, GitHub rerun, Host CAS write, or independent Principal action occurs.",
         ],
     }
+
+
+def combine_github_justification_with_source_impact(
+    *,
+    workflow_result: dict[str, Any],
+    git_source_delta: dict[str, Any],
+    source_readset_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    """Conjoin *separate* Owner facts and C04 impact, not their authorities.
+
+    Git source delta MUST already be requalified by the existing native Git
+    caller. Readsets are caller/Agent declared and never certify negative,
+    dynamic or environment closure. We can avoid an *identical* GitHub workflow
+    rerun after matching a current successful Owner result; we CANNOT infer
+    domain applicability from either the workflow status or C04's graph.
+    """
+    from .verification_impact import select_source_readset_impacts
+
+    impact = select_source_readset_impacts(
+        git_source_delta=git_source_delta,
+        source_readset_evidence=source_readset_evidence,
+    )
+    if impact["sourceCut"] != workflow_result["targetSourceCut"]:
+        raise CircuitContractError("Git/Owner/Work applicability SourceCut mismatch")
+    claim_ids = [c["claimId"] for c in workflow_result["claims"]]
+    impacted = {row["id"]: row["standing"] for row in impact["selection"]["standingByObligation"]}
+    if set(impacted) != set(claim_ids) or len(impacted) != len(claim_ids):
+        raise CircuitContractError(
+            "every consumer Claim needs exactly one C04 readset obligation with same id"
+        )
+    decisions: list[dict[str, Any]] = []
+    generated: list[str] = []
+    for c in workflow_result["claims"]:
+        identity = c["claimId"]
+        standing = impacted[identity]
+        support = c["supportStanding"]
+        if support == "UNKNOWN":
+            next_action = "LOCATE_CURRENT_OWNER_RESULT_BEFORE_SCOPED_RECHECK"
+            guidance = "query matching current Owner check before any scoped verifier decision"
+        elif standing == "RECHECK_REQUIRED":
+            next_action = "CURRENT_WORKFLOW_ALREADY_CHECKED_QUALIFY_DOMAIN"
+            guidance = "current exact workflow already completed; do not repeat it just because an input changed; qualify domain/readset separately"
+        elif standing == "UNKNOWN":
+            next_action = "CURRENT_WORKFLOW_KNOWN_READSET_UNKNOWN"
+            guidance = "current exact workflow completed, but dynamic/negative source dependency closure is unknown; qualify dependencies"
+        elif standing == "REUSE_CANDIDATE":
+            next_action = "CURRENT_WORKFLOW_KNOWN_DOMAIN_UNCERTIFIED"
+            guidance = (
+                "current exact workflow completed; C04 candidate alone is no domain acceptance"
+            )
+        else:
+            raise CircuitContractError("unexpected C04 impact standing")
+        decisions.append(
+            {
+                "claimId": identity,
+                "ownerWorkflowStanding": support,
+                "sourceImpactStanding": standing,
+                "agentDecision": next_action,
+                "domainProofApplicability": "UNKNOWN_NOT_OWNER_CERTIFIED",
+                "ownerCertifiedReadsetClosure": False,
+                "domainClaimVerified": False,
+                "automaticVerifierExecution": False,
+            }
+        )
+        generated.append(f"{_GENERATED_PREFIX}{identity}: {guidance}")
+
+    # Both paths remain nonauthoritative; source/owner *address* matching is
+    # the only certified scope. Never encode source-readset 'complete=True'
+    # as an Owner verified fact. Reuse existing CAS proposal and prefix
+    # replacement; do not fork a second Work write engine.
+    proposal = workflow_result["proposedWorkSnapshot"]
+    if proposal is not None:
+        retained = [a for a in proposal["nextActions"] if not a.startswith(_GENERATED_PREFIX)]
+        if len(retained) + len(generated) <= 128 and all(len(a) <= 4096 for a in generated):
+            proposal["nextActions"] = retained + generated
+        else:
+            proposal = None
+    workflow_result["proposedWorkSnapshot"] = proposal
+    workflow_result["proposedHostCommitEligible"] = proposal is not None
+    workflow_result["sourceApplicability"] = {
+        "sourceCut": impact["sourceCut"],
+        "queryPrefix": impact["queryPrefix"],
+        "impactBasisDigest": impact["selection"]["basisDigest"],
+        "membershipClosureQualification": impact["membershipClosureQualification"],
+        "readsetDependencyQualification": impact["readsetDependencyQualification"],
+        "gitRequalifiedByCaller": True,
+        "ownerCertifiedReadsetClosure": False,
+        "domainProofApplicabilityCertified": False,
+        "wholeSuiteRerunRequested": False,
+        "claims": decisions,
+    }
+    workflow_result["nonClaims"].append(
+        "The Git report was independently requalified by the CLI; caller readset completeness and domain/negative/environment dependency closure remain UNKNOWN."
+    )
+    return workflow_result
