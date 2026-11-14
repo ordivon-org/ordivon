@@ -125,6 +125,17 @@ Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy
 
 External-news publication is not a Host responsibility. Its unconsumed \`news_publications\` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
 
+The Host installer accepts an optional fifth argument --prepare-only
+only when the fourth argument pins an independently reviewed Host Git tree
+OID. Preparation verifies immutable Git source, MCP tool surface, exact
+Python/uv versions and the locked release-local package, but leaves current
+and the systemd process intact and prints activation=NOT_PERFORMED. A later
+ordinary activation independently revalidates the same immutable candidate.
+This mode does not authorize a deployment, reload secrets, provision Actor
+Grants or prove migration of the main/peer Gateway and Cloudflare clients.
+The separate Gateway Host/Security release check and live positive/negative
+Agent consumers must still pass before cutting over the single Host Writer.
+
 Production releases are immutable Git-SHA directories with a release-local `.venv`; systemd executes only `/opt/ordivon/host-v2/current/.venv/...`. This prevents a shared Python environment from retaining stale code when the package version is unchanged.
 
 Host v2 intentionally does not restore v1's SQLite Journal/WAL/file-lock machinery, filesystem CAS for normal JSON payloads, separate SQLite Board FTS sidecar, Runtime/Harness/provider proxying, historical cognition execution stack, or a separate ContinuityLens subsystem.
