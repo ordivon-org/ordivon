@@ -13,5 +13,9 @@
       "worstConsumerSuccessRatio": 0.99153,
       "medianOfConsumerP90Ms": 3732
     }
+  ],
+  "coldTrialCountries": [
+    "North Macedonia",
+    "Mexico"
   ]
 }
