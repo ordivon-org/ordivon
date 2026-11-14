@@ -129,11 +129,11 @@ class ExecutionObservationMethods:
             if not isinstance(job, dict) or job.get("jobId") != native_id:
                 raise GatewayError("Runtime job.get returned mismatched job identity")
             summary = inspection.get("artifacts")
-            summary_count = (
-                int(summary["count"])
-                if isinstance(summary, dict) and isinstance(summary.get("count"), int)
-                else None
-            )
+            # An Owner summary is evidence of completeness only when its
+            # count is an actual nonnegative JSON integer. bool is NOT a
+            # count, and absent/invalid counts cannot establish "complete".
+            raw_count = summary.get("count") if isinstance(summary, dict) else None
+            summary_count = raw_count if type(raw_count) is int and raw_count >= 0 else None
             if summary_count is not None:
                 artifact_count = summary_count
                 if len(artifacts) != summary_count:
@@ -160,8 +160,12 @@ class ExecutionObservationMethods:
                         else artifacts_available
                     )
                 artifact_projection_complete = len(artifacts) == summary_count
-            else:
-                artifact_projection_complete = not artifacts_available or bool(artifacts)
+            # Without the Owner's qualified total, any completeness claim is
+            # UNKNOWN even if the projected list contains some Artifact IDs.
+
+        raw_exit_code = result.get("exitCode")
+        if raw_exit_code is not None and type(raw_exit_code) is not int:
+            raise GatewayError("Runtime job.observe returned non-integer exitCode")
 
         return ExecutionObservation(
             operation_ref=operation_ref,
@@ -185,9 +189,7 @@ class ExecutionObservationMethods:
                 if result.get("executionDisposition") is not None
                 else None
             ),
-            exit_code=(
-                int(result["exitCode"]) if isinstance(result.get("exitCode"), int) else None
-            ),
+            exit_code=raw_exit_code,
             recovery_required=(
                 bool(result["recoveryRequired"])
                 if isinstance(result.get("recoveryRequired"), bool)
@@ -221,14 +223,34 @@ class ExecutionObservationMethods:
         )
         if result.get("jobId") != native_id or result.get("artifactId") != artifact_id:
             raise GatewayError("artifact owner returned mismatched identity")
+        # The natural Owner's range and EOF report is the Agent's cursor,
+        # not a free-form object for Python truthiness/string coercion.
+        # "false" as a string must NEVER be interpreted as EOF=True.
+        observed_offset = result.get("offset")
+        next_offset = result.get("nextOffset")
+        if (
+            type(offset) is not int
+            or offset < 0
+            or type(max_bytes) is not int
+            or not 1 <= max_bytes <= 1_048_576
+            or type(observed_offset) is not int
+            or observed_offset != offset
+            or type(next_offset) is not int
+            or not offset <= next_offset <= offset + max_bytes
+        ):
+            raise GatewayError("artifact owner returned an invalid range/cursor")
+        eof = _required_bool(result, "eof")
+        content = result.get("content")
+        if not isinstance(content, str):
+            raise GatewayError("artifact owner returned invalid content")
         return ArtifactChunk(
             operation_ref=operation_ref,
             owner_id=owner_id,
             native_id=native_id,
             artifact_id=artifact_id,
-            offset=int(result.get("offset", offset)),
-            next_offset=int(result.get("nextOffset", offset)),
-            eof=bool(result.get("eof", False)),
+            offset=observed_offset,
+            next_offset=next_offset,
+            eof=eof,
             digest=_required_str(result, "digest"),
-            content=str(result.get("content", "")),
+            content=content,
         )
