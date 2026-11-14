@@ -193,6 +193,18 @@ Gateway execution.submit -> execution.resolve -> execution.get -> artifact.read
 flow and validate the Artifact digest; remove the adapter after the Runtime
 binary publishes corrected schemas with such a passing consumer flow.
 
+## Host exact-message consumer continuity (candidate source)
+
+message.get(messageRef, expectedDigest?) is a bounded-purpose
+read-only Host proxy for Agent re-entry/evidence readback. Keep its output
+on the Host's natural authority; bind messageRef and the *entire* requested
+digest to the existing Gateway host.legacy-read AuthZEN policy, never use
+an untrusted ActorRef as authorization. The existing message.search
+and topic.resume are not substitutes for an exact digest-checked message.
+Gateway sources/tests/mcp-surface.json describe a *candidate*, not the
+installed tool list. First qualify the real Host bearer and authenticated
+Principal/Actor consumer; do not bypass PEP to preserve old direct clients.
+
 ## Host upstream identity after Host HTTP hardening
 
 Gateway Host requests use the existing `ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE`

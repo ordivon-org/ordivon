@@ -40,6 +40,7 @@ _SOCIAL_WORK_HOST_TOOLS = frozenset(
         "topic.list",
         "topic.state.set",
         "topic.resume",
+        "message.get",
         "message.post",
         "message.search",
         "message.relation.add",

@@ -122,6 +122,7 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
                 "topic.list",
                 "topic.resume",
                 "topic.state.set",
+                "message.get",
                 "message.post",
                 "message.search",
                 "message.relation.add",
@@ -922,3 +923,33 @@ def test_unqualified_artifact_summary_never_reports_complete(
     assert result.artifact_ids == ["artifact-one"]
     assert result.artifact_projection_complete is None
     assert result.artifact_count == 1
+
+
+def test_message_get_forwards_exact_owner_read_without_second_message_store() -> None:
+    caller = FakeOwnerCaller()
+    digest = "sha256:" + "a" * 64
+    expected = {
+        "schemaVersion": 1,
+        "kind": "ordivon.host-message-read",
+        "messageRef": "message:demo:one",
+        "messageDigest": digest,
+        "body": "Original Host message",
+    }
+    caller.responses[("host", "message.get")] = expected
+
+    async def scenario() -> None:
+        async with Client(build_server(GatewayService(caller)), raise_exceptions=True) as client:
+            actual = await client.call_tool(
+                "message.get",
+                {"messageRef": "message:demo:one", "expectedDigest": digest},
+            )
+            assert actual.structured_content == expected
+
+    asyncio.run(scenario())
+    assert caller.calls == [
+        (
+            "host",
+            "message.get",
+            {"messageRef": "message:demo:one", "expectedDigest": digest},
+        )
+    ]
