@@ -955,3 +955,61 @@ def test_message_get_forwards_exact_owner_read_without_second_message_store() ->
             {"messageRef": "message:demo:one", "expectedDigest": digest},
         )
     ]
+
+
+@pytest.mark.parametrize("refresh_unique", [False, True])
+def test_duplicate_runtime_artifact_ids_cannot_fake_complete_projection(
+    refresh_unique: bool,
+) -> None:
+    """Equal row count cannot imply complete Artifact identity coverage."""
+    caller = FakeOwnerCaller()
+
+    def observation(ids: list[str]) -> dict[str, Any]:
+        return {
+            "jobId": "job-duplicate",
+            "status": "succeeded",
+            "executionTerminal": True,
+            "artifactsAvailable": True,
+            "artifacts": [{"artifactId": value} for value in ids],
+        }
+
+    duplicate = ["a.stdout", "a.stdout"]
+    refreshed = ["a.stdout", "a.result"] if refresh_unique else duplicate
+    caller.responses[("runtime.windows", "job.observe")] = [
+        observation(duplicate),
+        observation(refreshed),
+    ]
+    caller.responses[("runtime.windows", "job.get")] = {
+        "job": {"jobId": "job-duplicate"},
+        "artifacts": {"count": 2},
+    }
+    observed = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.windows:job-duplicate")
+    )
+    assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]
+    assert observed.artifact_count == 2  # Count remains natural Runtime-owned.
+    assert observed.artifact_ids == refreshed
+    assert observed.artifact_projection_complete is refresh_unique
+
+
+def test_blank_artifact_id_is_not_an_agent_visible_complete_identity() -> None:
+    caller = FakeOwnerCaller()
+    invalid = {
+        "jobId": "job-blank",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": [{"artifactId": "a.stdout"}, {"artifactId": ""}],
+    }
+    caller.responses[("runtime.linux", "job.observe")] = [dict(invalid), dict(invalid)]
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-blank"},
+        "artifacts": {"count": 2},
+    }
+    observed = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-blank")
+    )
+    assert observed.artifact_count == 2
+    assert observed.artifact_ids == ["a.stdout"]
+    assert observed.artifact_projection_complete is False
+    assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]

@@ -107,9 +107,17 @@ class ExecutionObservationMethods:
         def artifact_ids(payload: dict[str, Any]) -> list[str]:
             values: list[str] = []
             for item in payload.get("artifacts", []):
-                if isinstance(item, dict) and isinstance(item.get("artifactId"), str):
+                if (
+                    isinstance(item, dict)
+                    and isinstance(item.get("artifactId"), str)
+                    and item["artifactId"]
+                ):
                     values.append(item["artifactId"])
             return values
+
+        def identities_complete(ids: list[str], expected_count: int) -> bool:
+            # A row count cannot prove distinct Owner Artifact identities.
+            return len(ids) == expected_count and len(set(ids)) == expected_count
 
         artifacts = artifact_ids(result)
         artifacts_available = (
@@ -141,7 +149,7 @@ class ExecutionObservationMethods:
             summary_count = raw_count if type(raw_count) is int and raw_count >= 0 else None
             if summary_count is not None:
                 artifact_count = summary_count
-                if len(artifacts) != summary_count:
+                if not identities_complete(artifacts, summary_count):
                     refreshed = await self._caller.call_tool(
                         owner_id,
                         "job.observe",
@@ -164,7 +172,7 @@ class ExecutionObservationMethods:
                         if isinstance(refreshed.get("artifactsAvailable"), bool)
                         else artifacts_available
                     )
-                artifact_projection_complete = len(artifacts) == summary_count
+                artifact_projection_complete = identities_complete(artifacts, summary_count)
             # Without the Owner's qualified total, any completeness claim is
             # UNKNOWN even if the projected list contains some Artifact IDs.
 

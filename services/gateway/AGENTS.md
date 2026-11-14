@@ -185,6 +185,13 @@ nonempty string states as Owner-owned opaque vocabulary. Source TDD:
 `tests/test_execution_receipt_types.py`; native Gateway verification
 remains necessary. A typed receipt does not attest the physical effect.
 
+For Agent-facing execution.get Artifact completeness, the Owner's qualified
+job.get artifact count must match **distinct, nonblank Artifact IDs** from
+job.observe, not merely the number of rows. If identities repeat or are blank,
+the Gateway performs its existing one bounded refresh; unresolved identity
+coverage stays incomplete. Never fabricate a missing Owner Artifact or treat
+an unqualified count as a success witness.
+
 ## R08 Linux PG Runtime real business Job and Artifact delivery
 
 **Human:** A real production Gateway-to-Linux Runtime Job executed and emitted

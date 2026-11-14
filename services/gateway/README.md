@@ -526,9 +526,12 @@ bounded range, not free-form data. Gateway must reject a non-JSON-boolean
 eof, wrong/ill-typed offset, nextOffset outside the requested range,
 or non-string content; the string "false" cannot become EOF=True.
 An artifact_projection_complete=True claim requires an actual
-nonnegative JSON integer from job.get.artifacts.count corroborating
-the observed Artifact IDs. If the authoritative total is absent or
-malformed, completeness must remain UNKNOWN (None), not True or False.
+nonnegative JSON integer from job.get.artifacts.count corroborated by
+that many **distinct, nonblank** observed Artifact IDs. A duplicate row
+must not fake identity completeness; Gateway reuses its existing single
+bounded job.observe refresh and leaves unresolved coverage False. If the
+authoritative total is absent or malformed, completeness remains UNKNOWN
+(None), not True or False.
 Likewise exitCode=True cannot be treated as an integer code. Original
 native consumers and negative tests:
 src/ordivon_gateway/execution_observations.py and
