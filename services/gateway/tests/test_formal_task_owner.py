@@ -16,7 +16,8 @@ def test_root_task_delegates_to_natural_gateway_owner() -> None:
     runner = ROOT / "services/gateway/formal/verify.sh"
     assert runner.is_file() and not runner.is_symlink()
     assert runner.read_text(encoding="utf-8").splitlines()[:2] == [
-        "#!/usr/bin/env bash", "set -euo pipefail",
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
     ]
     subprocess.run(["bash", "-n", str(runner)], check=True)
 
