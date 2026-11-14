@@ -116,6 +116,14 @@
       "downstreamAuthorization": "UNKNOWN"
     },
     {
+      "name": "message.get",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "host-legacy-read-authzen",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
       "name": "message.post",
       "routeOwner": "host",
       "operation": "write",

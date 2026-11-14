@@ -25,6 +25,7 @@ READ_REQUESTS = {
     "topic.cursor.get": {"topicRef": "topic:demo:one", "actorRef": "actor:demo:one"},
     "topic.list": {"spaceRef": "space:demo:one"},
     "topic.resume": {"topicRef": "topic:demo:one", "afterSequence": 5},
+    "message.get": {"messageRef": "message:demo:one", "expectedDigest": "sha256:" + "a" * 64},
     "message.search": {"spaceRef": "space:demo:one", "query": "hello"},
     "message.relation.list": {"messageRef": "message:demo:one"},
     "subscription.list": {"actorRef": "actor:demo:one"},
@@ -175,3 +176,29 @@ def test_real_authzen_positive_and_negative_object_read_consumer() -> None:
     assert mismatch.is_error is True
     assert mismatch.structured_content["error"]["code"] == ("CAPABILITY_AUTHZ_BINDING_MISMATCH")
     assert entered == []
+
+
+def test_exact_message_digest_is_part_of_host_read_pdp_target() -> None:
+    one = resolve_authorization_target(
+        "message.get", {"messageRef": "message:demo:one", "expectedDigest": "sha256:" + "a" * 64}
+    )
+    changed_digest = resolve_authorization_target(
+        "message.get", {"messageRef": "message:demo:one", "expectedDigest": "sha256:" + "b" * 64}
+    )
+    other_message = resolve_authorization_target(
+        "message.get", {"messageRef": "message:demo:two", "expectedDigest": "sha256:" + "a" * 64}
+    )
+    assert all((one, changed_digest, other_message))
+    assert len({one.resource_id, changed_digest.resource_id, other_message.resource_id}) == 3
+    assert one.authzen_resource()["properties"]["requestedSelectors"] == {
+        "messageRef": "message:demo:one"
+    }
+    assert one.authzen_resource()["properties"]["unscoped"] is False
+
+
+@pytest.mark.parametrize(
+    "invalid", [{"messageRef": {"forged": "message:demo:one"}}, {"messageRef": "no-colon"}]
+)
+def test_exact_message_read_rejects_invalid_selector_before_pdp(invalid) -> None:
+    with pytest.raises(CapabilityAuthorizationTargetError):
+        resolve_authorization_target("message.get", invalid)

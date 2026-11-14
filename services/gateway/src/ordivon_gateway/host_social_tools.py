@@ -216,6 +216,15 @@ def register_host_social_tools(
             },
         )
 
+    @server.tool(name="message.get")
+    async def message_get(messageRef: str, expectedDigest: str | None = None) -> dict[str, Any]:
+        # Exact Host-owned message/digest readback for downstream evidence
+        # consumers; Gateway does not reinterpret authorship or provenance.
+        return await _host(
+            "message.get",
+            {"messageRef": messageRef, "expectedDigest": expectedDigest},
+        )
+
     @server.tool(name="message.search")
     async def message_search(
         query: str,

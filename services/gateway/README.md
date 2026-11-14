@@ -175,6 +175,17 @@ The independent installed Security AuthZEN/OPA policy must provide
 operator-provisioned Principal-to-Actor grants with exact tool/resource
 scope before Gateway rollout, and actual allow/deny consumers must pass.
 
+**Candidate version 0.10.10, Surface Epoch 11 (source-only):** message.get is a
+single newly promoted Host read to preserve exact messageRef /
+expectedDigest evidence readback when an authenticated Agent migrates off a
+direct Host connector. It forwards to Host without persisting or reinterpreting
+the message and uses the existing host.legacy-read AuthZEN selector plus
+full-request binding. This is **not** an authorization grant or an installed
+migration, and host.pool.stats remains an operator-local diagnostic rather
+than a new Gateway surface. A source/PDP test cannot substitute for the
+actual trusted Principal, Security Grant, Host Bearer pairing, and native
+positive/negative Agent consumer before deployment.
+
 This is **not a global Gateway security gate**. Execution submit/cancel,
 Skills and other Owner capabilities remain separately qualified; STDIO
 uses the existing local OS trust boundary rather than HTTP Principal/PDP.
