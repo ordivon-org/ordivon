@@ -165,20 +165,32 @@ Accounting Owner 决定是否需要添加新的事件类型。
 给 DIVIDEND 添加了原生负例，不修改 PG 账本、
 不产生第二套现金收益计算，也不授权真实账户。
 
-## 2026-11-14：H20 模型实际消费者与分红暴露的差别
+## 2026-11-14 R6：不要跨 Qlib 实验偷换 H20 实际选股
 
-完整市场日历上的每一日假设持仓暴露，不等于冻结 Qlib 的
-13 个离散决策窗口。根据先前原生报告 R7：
-H20 模型 13 个不重叠持仓全选 IWM。重建的每20日决策
-开盘-开盘日历中，4/13 个已选 IWM 日期窗口跨过
-四次发行方已观察除息日；这是报告 SourceCut 的
-日期重建而不是当轮重新执行原始 Qlib 模型。
-同一持仓时段的模型和固定 IWM 在完全相同成本、
-现金流和交易约束下保持经济同一性；反之相对
-SPY 的价格回测差额尚不具备含现金分红的
-投资者财富定义。源级证据和有限适用范围见
+研究实验的真实身份至少包含：模型及预测哈希、
+source digest / first-observed、hold_sessions、完整
+决策样本、exit_price_kind（CLOSE / NEXT_OPEN）、标签
+经济事件、数据源调整口径、挑选策略和费用约定。
+
+R7 真实 H20 CLOSE 模型记录的 IWM 13/13 属于
+T+H CLOSE 退出；R9 重新训练的 H20 NEXT_OPEN
+属于 T+H+1 OPEN 退出。不能因为都叫 H20，就把旧
+IWM 13/13 直接用于新 NEXT_OPEN 模型分红统计。
+本轮原生 Portfolio 在 private frozen OHLC 上对
+纯「13 次固定 IWM」重新计算，H20 CLOSE 相对 SPY
+约负 USD 35.67（吻合旧 R7 报告），H20 NEXT_OPEN
+约负 USD 25.98（与新 R9 的真实模型
+NEXT_OPEN 报告正 USD 73.16 不同）。因此撤回此前
+「H20 NEXT_OPEN 模型 4/13 次选中 IWM 跨分红」断言：
+那个 4/13 仅是预设全选 IWM 的**条件性场景**，
+实际 NEXT_OPEN 模型应恢复对应原始 Qlib prediction
+与完整 SourceCut 后再判断。
+
+原有 Research 日期消费者对所有候选日期窗口的
+QQQ/IWM 除息相交检查仍可重复，不产生资本权威。
+不要重写错误历史、继承不匹配的 benchmark 回执或
+基于错误标签选择所谓获利资产。详见
 adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
-无需重复搭建 Portfolio return engine 以推导此事。
 
 ## 2026-11-14：HILO 原生数据形状质量
 
@@ -374,3 +386,35 @@ downstream consumers require it; current portfolioRef is not that owner.
 P2: Scheduling via existing Harness/Runtime; never add a custom agent
 worker or trading runner without a proven consumer and resource budget.
 External broker finance writes remain NOT_ADMITTED.
+
+
+## 2026-11-14 R6：研究经济消费者新的精确输入合约
+
+已有 Qlib 测试经济消费者
+adoption/r3_native/tests/probe_qlib_paper_horizon.py
+现在拒绝与研究报告预测、Parquet 标签、三个 ETF
+原始市场数据 SHA 不匹配的快照，并检查 H1/H5/H20
+正确的 CLOSE/NEXT_OPEN 经济标签定义。其输出包含
+native_study_identity，供 Agent 审查实际所消费的
+预测字节、数据集与价格来源；变更一个文件不能仍然
+借用旧模型名字继续计算。因此历史旧报告可保留，
+新模型才有资格重新生成自己的结果，不用另写
+Qlib/Portfolio 计算引擎。
+
+私有 issuer-events-diagnostic-20261114-r6 中增加 SPY
+2025-12、2026-03、2026-06 的有限事件观察，
+当前三个 ETF 各观察到4个季度事件，但美版发行方
+历史 XLSX 未单独认证，全部返回 SOURCE_UNVERIFIED/
+PIT_UNKNOWN；现金敏感性脚本调用既有 Portfolio
+cashflow-matched comparator。美国 SPY（NYSE Arca）
+与同 ISIN 的新加坡 SPY 交易单位（SGX）存在
+2026-06-18 vs 2026-06-17 不同当地 ex-date，
+绝不能互用。同一基金不等于同一市场除息时间。
+
+H20 CLOSE 固定 13 次 IWM 的旧比较 -35.67 USD，
+与观察现金相加后的条件比较约 -36.68 USD；
+H20 NEXT_OPEN 假设固定 13 次 IWM 的价格比较
+-25.98 USD，条件现金 -26.93 USD。这些都是
+历史价格/条件现金情景，不是新 R9 NEXT_OPEN
+Qlib 模型重放，不是已认证的总回报，
+更不提供实盘/PG 影响。
