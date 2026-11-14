@@ -100,6 +100,7 @@ def test_correction_is_admitted_only_with_a_new_committed_digest_and_decision_cu
         ("corporateActions", "coverage", "UNKNOWN", "corporate actions"),
         ("corporateActions", "evidenceRef", "unbound", "corporate actions"),
         ("corporateActions", "events", [{"type": "SPLIT"}], "corporate action events"),
+        ("corporateActions", "events", [{"type": "DIVIDEND", "amount": "0.75"}], "corporate action events"),
         ("marks", "priceMinor", True, "integer USD cents"),
         ("marks", "priceMinor", 10.5, "integer USD cents"),
         ("marks", "availableAt", "2026-04-02T19:59:59Z", "before session close"),

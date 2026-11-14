@@ -352,3 +352,17 @@ h20_13_iwm_selection_calendar_conditional_reconstruction.json。
 含分红的直接经济意义。无需新会计引擎、虚拟利润修正
 或另一模型；应先独立取得 issuer 全季度现金流、
 真正总回报价格调节、使用权和历史可知性后评估。
+
+
+### Accounting 不应把卖出交割应收偷换成 ETF 现金分配
+
+真实 PaperValuation.receivable_minor 仅代表 pending_sales
+对应的交易卖出应收；sale_settlement_dates 不是发行方
+分红 payable date。Markets ETF EOD
+admit_etf_eod_snapshot 当前拒绝任何 corporateActions.events
+非空的来源；这恰好保留了没有现成分红权益模型的边界。
+本轮 Research 日期暴露计数不能自动变成会计应收，
+也不能事后回填原来 13 个 H20 价格标签的假想利润。
+只有取得发行方数据的完整版本、历史首次可知时点、
+使用权、除息/付款与适当复权经济语义后，
+才考虑以正式合约扩展 Accounting 真实事件处理。

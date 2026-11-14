@@ -146,6 +146,25 @@ investment_candidate 真正经济对照及 Accounting/Risk。
 finance-experiment-review 中 freeze/holdout/source 原则，
 不建立新的 Corporate Actions Bookkeeper。
 
+## 2026-11-14：Paper 账本不能把股票卖出应收冒充基金分红
+
+本轮核对原生 PaperSession/PaperValuation 和
+PostgresPaperClose 源码：Accounting 的 receivable_minor
+仅承载 pending_sales、sale_settlement_dates 等真实卖出交割
+应收，并不表示 ETF 除息后、派付日前存在独立的
+dividend receivable 账目。Markets ETF EOD 的
+admit_etf_eod_snapshot 要求 corporateActions.events 为
+空，任何要求分红或拆分现金效果的输入都会在来源层
+被拒绝；不应把 dividend 塞进 PaperSell settlement。
+
+所以应先核对已经上市 ETF 原始公司行动、历史发表时点、
+股东权益、record/payable date、券商税务口径、数据使用权
+和分红是否已经包含在历史复权收盘价中，再由现有自然
+Accounting Owner 决定是否需要添加新的事件类型。
+本轮只复用旧的禁止 corporateAction 事件契约，
+给 DIVIDEND 添加了原生负例，不修改 PG 账本、
+不产生第二套现金收益计算，也不授权真实账户。
+
 ## 2026-11-14：H20 模型实际消费者与分红暴露的差别
 
 完整市场日历上的每一日假设持仓暴露，不等于冻结 Qlib 的
