@@ -7,7 +7,9 @@ replace an Owner AuthZEN decision, actual Host canary, or production activation.
 from __future__ import annotations
 
 import importlib.util
+import itertools
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -401,3 +403,148 @@ def test_socket_probe_execution_error_remains_unobservable(
     monkeypatch.setattr(preflight.subprocess, "run", fake_run)
     with pytest.raises(OSError):
         preflight._observed_non_gateway_host_tcp_clients()
+
+
+def test_active_second_gateway_without_host_bearer_blocks_release(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A primary service alone cannot qualify all active Host callers."""
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(tuple(command))
+        if "list-units" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=(
+                    "ordivon-gateway-local-r21.service loaded active running legacy\n"
+                    "ordivon-gateway.service loaded active running current\n"
+                ),
+            )
+        assert command[2] == "ordivon-gateway-local-r21.service"
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp",
+        )
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    peer_units = preflight._unqualified_active_peer_host_consumers()
+    assert peer_units == ("ordivon-gateway-local-r21.service",)
+    assert len(calls) == 2
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    )
+    result = preflight.assess(
+        _operator_data([_grant()]),
+        env,
+        now=1500,
+        anonymous_host_initialize_denied=True,
+        unqualified_active_host_consumers=peer_units,
+    )
+    assert result["status"] == "NO_GO"
+    assert result["unqualifiedActiveHostConsumers"] == list(peer_units)
+    assert result["reasons"] == ["ACTIVE_HOST_CONSUMER_MISSING_OWNER_CREDENTIAL"]
+
+
+@pytest.mark.parametrize(
+    "secondary_environment",
+    [
+        (
+            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+        ),
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:9999/mcp",
+    ],
+)
+def test_migrated_or_unrelated_active_peer_does_not_block(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, secondary_environment: str
+) -> None:
+    def fake_run(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "list-units" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout="ordivon-gateway-local-r21.service loaded active running legacy\n",
+            )
+        return subprocess.CompletedProcess(command, 0, stdout=secondary_environment)
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    assert preflight._unqualified_active_peer_host_consumers() == ()
+
+
+def test_active_peer_discovery_errors_never_qualify_release(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_run(_command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        raise subprocess.CalledProcessError(1, "systemctl")
+
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+    with pytest.raises(subprocess.CalledProcessError):
+        preflight._unqualified_active_peer_host_consumers()
+
+
+@pytest.mark.parametrize(
+    (
+        "grant",
+        "main_bearer",
+        "exact_route",
+        "host_anonymous_denied",
+        "no_live_direct",
+        "no_active_peer",
+    ),
+    list(itertools.product((False, True), repeat=6)),
+)
+def test_release_necessary_conditions_are_conjunctive_for_all_64_boolean_states(
+    preflight: Any,
+    grant: bool,
+    main_bearer: bool,
+    exact_route: bool,
+    host_anonymous_denied: bool,
+    no_live_direct: bool,
+    no_active_peer: bool,
+) -> None:
+    """Exhaust the 2**6 current release-qualification states, not only sample tests.
+
+    This checks *necessary* preconditions; a positive result is not a grant,
+    bearer proof, remotely authenticated consumer, or production GO.
+    """
+    qualified_env = "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp"
+    invalid_env = "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:9000/mcp"
+    bearer_env = "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    env = qualified_env if exact_route else invalid_env
+    if main_bearer:
+        env += " " + bearer_env
+    result = preflight.assess(
+        _operator_data([_grant()] if grant else []),
+        env,
+        now=1500,
+        anonymous_host_initialize_denied=host_anonymous_denied,
+        observed_non_gateway_host_tcp_clients=[] if no_live_direct else ["cloudflared"],
+        unqualified_active_host_consumers=()
+        if no_active_peer
+        else ("ordivon-gateway-local-r21.service",),
+    )
+    reasons = []
+    if not grant:
+        reasons.append("HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE")
+    if not main_bearer:
+        reasons.append("GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED")
+    if not exact_route:
+        reasons.append("HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY")
+    if not host_anonymous_denied:
+        reasons.append("HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED")
+    if not no_live_direct:
+        reasons.append("HOST_DIRECT_NON_GATEWAY_TCP_CONSUMER_OBSERVED")
+    if not no_active_peer:
+        reasons.append("ACTIVE_HOST_CONSUMER_MISSING_OWNER_CREDENTIAL")
+    assert result["reasons"] == reasons
+    assert result["status"] == ("NECESSARY_PRECONDITIONS_PRESENT" if not reasons else "NO_GO")
+    assert result["observedDirectHostTcpConsumerClasses"] == (
+        [] if no_live_direct else ["cloudflared"]
+    )
+    assert result["unqualifiedActiveHostConsumers"] == (
+        [] if no_active_peer else ["ordivon-gateway-local-r21.service"]
+    )
