@@ -337,6 +337,81 @@ def test_bounded_source_fallback_survives_journald_history_loss(tmp_path):
         history.source_trial_hints(now,{"Mexico","North Macedonia"},f)
 
 
+
+def test_expired_quality_hints_keep_bounded_catalog_only_cold_trials(tmp_path):
+    """The previous fallback becomes deterministically impossible on Nov 20."""
+    import json
+    src={
+        "kind":"ordivon.network.historical-consumer-trial-hints",
+        "observedAtUtc":"2026-11-13T18:56:00Z",
+        "expiresAtUtc":"2026-11-20T18:56:00Z",
+        "candidates":[
+          {"country":"North Macedonia","worstConsumerSuccessRatio":.99644,
+           "medianOfConsumerP90Ms":1820},
+          {"country":"Mexico","worstConsumerSuccessRatio":.99153,
+           "medianOfConsumerP90Ms":3732}],
+        "coldTrialCountries":["North Macedonia","Mexico"],
+    }
+    f=tmp_path/"source-hints.json"
+    f.write_text(json.dumps(src))
+    allowed={"Malaysia","North Macedonia","Mexico"}
+    future=datetime(2026,11,22,tzinfo=timezone.utc)
+    assert history.source_trial_hints(future,allowed,f)==[]
+    catalog=json.dumps({"surfshark":{"servers":[
+      {"vpn":"wireguard","country":"North Macedonia","ips":["192.0.2.20"]},
+      {"vpn":"wireguard","country":"Mexico","ips":["192.0.2.21"]},
+      {"vpn":"wireguard","country":"Hong Kong","ips":["192.0.2.22"]},
+      {"vpn":"wireguard","country":"Malaysia","ips":["192.0.2.23"]}]}})
+    cold=history.catalog_cold_trials(catalog,allowed,f)
+    assert [r["catalogCountry"] for r in cold]==["North Macedonia","Mexico"]
+    assert all(r["standing"]=="SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED" for r in cold)
+    assert all(r["qualifiedNowStandby"] is False for r in cold)
+    plan=history.decision(active_healthy=False,underlay_reachable=True,
+           evidence=cold,now=future,current_country="Malaysia")
+    assert plan["trialCountries"]==["North Macedonia","Mexico"]
+    assert plan["trialEvidenceStandings"]==[
+      "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED",
+      "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"]
+    assert plan["certifiedHotStandbyCount"]==0
+    assert history.decision(active_healthy=None,underlay_reachable=True,
+        evidence=cold,now=future,current_country="Malaysia")["decision"]=="HOLD_ACTIVE_HEALTH_UNKNOWN"
+    assert history.decision(active_healthy=True,underlay_reachable=True,
+        evidence=cold,now=future,current_country="Malaysia")["decision"]=="HOLD_WORKING_ACTIVE"
+    for underlay in (None,False):
+        assert history.decision(active_healthy=False,underlay_reachable=underlay,
+        evidence=cold,now=future,current_country="Malaysia")["decision"]=="HOLD_SHARED_UNDERLAY_OR_UNKNOWN"
+    assert history.decision(active_healthy=False,underlay_reachable=True,
+        evidence=cold,now=future,current_country="North Macedonia")["trialCountries"]==["Mexico"]
+    assert history.catalog_cold_trials(
+        json.dumps({"surfshark":{"servers":[]}}),allowed,f)==[]
+    src["coldTrialCountries"]=["Hong Kong","Mexico"]
+    f.write_text(json.dumps(src))
+    import pytest
+    with pytest.raises(ValueError,match="forbidden"):
+        history.catalog_cold_trials(catalog,allowed,f)
+    src["coldTrialCountries"]=["North Macedonia","North Macedonia"]
+    f.write_text(json.dumps(src))
+    with pytest.raises(ValueError,match="Invalid"):
+        history.source_trial_hints(future,allowed,f)
+
+
+def test_recent_real_quality_trumps_catalog_only_country_preference():
+    now=t()
+    real={"catalogCountry":"Japan","standing":"RECENT_HISTORICAL_CONSUMER_SUCCESS",
+          "medianOfConsumerP90Ms":1900,"worstConsumerSuccessRatio":.99,
+          "lastObservedHoursAgo":1}
+    cold=[{"catalogCountry":c,"standing":"SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED",
+           "coldTrialRank":i,"qualifiedNowStandby":False}
+          for i,c in enumerate(("Mexico","North Macedonia"))]
+    out=history.decision(active_healthy=False,underlay_reachable=True,
+         evidence=cold+[real],now=now,current_country="Malaysia")
+    assert out["trialCountries"]==["Japan","Mexico"]
+    assert out["trialEvidenceStandings"]==[
+      "RECENT_HISTORICAL_CONSUMER_SUCCESS",
+      "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"]
+    assert out["certifiedHotStandbyCount"]==0
+
+
 def test_prefer_current_real_histories_over_source_trial_hints():
     now=t()
     hints=[

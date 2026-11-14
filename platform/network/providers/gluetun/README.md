@@ -237,6 +237,37 @@ does **not** imply restored sessions or successful consumer traffic.
 Cooldown remains ten minutes between auto-triggered recovery runs.
 Never select Hong Kong.
 
+## Cold catalog trial after historical quality evidence expires (2026-11-14)
+
+The existing 7-day source quality hint **still expires**; its latency and
+consumer success ratios never become fresh measurements after expiry.
+One live WireGuard provider can only directly qualify its connected country.
+After 2026-11-20, staying exclusively connected to Malaysia would otherwise
+make the current policy return HOLD_NO_RECENT_EVIDENCE forever after a genuine
+three-lane VPN-only outage, despite stored official Gluetun WireGuard server
+catalog countries being available for an API trial.
+
+To prevent that deterministic liveness hole without rotating a healthy VPN,
+the existing nonsecret recovery-hints.json also declares up to two **cold
+trial country preferences**, currently North Macedonia then Mexico. They
+are independently checked against the loaded Gluetun Surfshark WireGuard
+server catalog at the failure boundary. Catalog membership proves neither
+reachability nor latency: standing is SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED,
+certifiedHotStandbyCount is zero. Recent actual live-session consumer quality
+remains first priority, then unexpired historic hints, then catalog-only cold
+preferences; no auto selection occurs when consumers are healthy.
+
+ONLY a fresh 30-second-origin three-lane failure and independent live
+underlay success can reach the existing one-shot, and both the official
+authenticated Gluetun settings GET/PUT and real kernel endpoint plus two
+TLS/HTTP consumer checks are still required to accept a trial. At most two
+distinct countries, 10-minute cooldown, Hong Kong excluded and previous
+native country *filter* restored on complete failure. This does not create
+a second VPN, scheduled healthy rotation, background controller or live
+hot standby. If the catalog drops either country, that candidate is not
+tried. If both disappear, the system correctly holds for lack of evidence.
+The first verified automatic real outage TTR remains UNKNOWN.
+
 ## Time-bounded alternative-country memory without a new registry
 
 The production 2026-11-14 common-underlay outage generated 3,178 native

@@ -146,14 +146,43 @@ def validate() -> None:
             assert current not in action["trialCountries"]
             assert action["certifiedHotStandbyCount"] == 0
         hint_cases += 1
-    # Temporal expiry withdraws all hints; even a witnessed VPN-only
-    # failure with a healthy physical underlay no longer admits a trial.
+    # Historical quality expires after 7d. Catalog-only cold preferences
+    # remain permitted under exactly the same real failure/underlay guards;
+    # they are never classified as fresh success or current standby.
     expired = policy.source_trial_hints(NOW + timedelta(days=8),
                                          {"Malaysia", "North Macedonia", "Mexico"})
     assert expired == []
     assert policy.decision(active_healthy=False, underlay_reachable=True,
                            evidence=expired, now=NOW+timedelta(days=8),
                            current_country="Malaysia")["decision"] == "HOLD_NO_RECENT_EVIDENCE"
+    cold_catalog = json.dumps({"surfshark":{"servers":[
+       {"vpn":"wireguard","country":"North Macedonia","ips":["192.0.2.18"]},
+       {"vpn":"wireguard","country":"Mexico","ips":["192.0.2.19"]},
+       {"vpn":"wireguard","country":"Hong Kong","ips":["192.0.2.20"]}]}})
+    cold = policy.catalog_cold_trials(
+        cold_catalog, {"Malaysia","North Macedonia","Mexico"})
+    assert len(cold) == 2 and all(
+        row["standing"]=="SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED" and
+        row["qualifiedNowStandby"] is False for row in cold)
+    cold_cases = 0
+    for active, underlay, current in product(
+        (True, False, None), (True, False, None),
+        ("Malaysia", "North Macedonia","Mexico"),
+    ):
+        outcome=policy.decision(active_healthy=active, underlay_reachable=underlay,
+          evidence=expired+cold, now=NOW+timedelta(days=8),
+          current_country=current)
+        actual=outcome["decision"].startswith("TRIAL_ONLY_")
+        expected=active is False and underlay is True and (
+            len([x for x in cold if x["catalogCountry"]!=current])>0)
+        z=Solver()
+        z.add(BoolVal(actual)!=BoolVal(expected))
+        assert z.check()==unsat
+        if actual:
+            assert outcome["certifiedHotStandbyCount"]==0
+            assert "Hong Kong" not in outcome["trialCountries"]
+            assert len(outcome["trialCountries"])<=2
+        cold_cases+=1
 
     # Finite temporal *schedule* model, bound to the native source
     # intervals. The proof is only about maximum sampling/timer phase,
@@ -248,13 +277,14 @@ def validate() -> None:
         "finiteCases": cases,
         "distinctCandidateCases": country_cases,
         "timeBoundedSourceHintCases": hint_cases,
+        "postExpiryCatalogColdTrialCases": cold_cases,
         "sourceBoundMaxSamplingAndTimerDecisionSeconds": worst_case,
         "raw30sFreshnessCounterexampleCases": raw_cases,
         "previousStaleZeroMutantRejected": stale_mutants,
         "premises": [
             "observed consumer failure (not UNKNOWN)",
             "direct underlay reachable",
-            "recent allowed historical candidate",
+            "approved trial country (recent quality or official catalog-only cold)",
             "no switch inside cooldown",
             "candidate different from active country",
         ],
