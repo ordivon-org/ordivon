@@ -155,6 +155,36 @@ def validate() -> None:
                            evidence=expired, now=NOW+timedelta(days=8),
                            current_country="Malaysia")["decision"] == "HOLD_NO_RECENT_EVIDENCE"
 
+    # Finite temporal *schedule* model, bound to the native source
+    # intervals. The proof is only about maximum sampling/timer phase,
+    # not VPN interruption, Prometheus scheduling under load or WAN TTR.
+    from pathlib import Path
+    source_root = ROOT
+    fast_jobs = {
+        "blackbox-scoped-claude-api": "claude.yml",
+        "blackbox-scoped-codex-mcp": "codex.yml",
+        "blackbox-vpn-pypi": "supply-chain.yml",
+    }
+    for job, fragment in fast_jobs.items():
+        raw = (source_root/"config/prometheus/consumers"/fragment).read_text()
+        piece = raw.split("  - job_name: " + job + "\n", 1)[1].split("  - job_name:", 1)[0]
+        assert "scrape_interval: 30s" in piece
+        assert "scrape_timeout: 12s" in piece
+    timer_source = (source_root/"providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer").read_text()
+    assert "OnCalendar=*-*-* *:*:00" in timer_source
+    assert "RandomizedDelaySec=5s" in timer_source
+    assert "AccuracySec=5s" in timer_source
+    scan = 30
+    timer_period = 60
+    scrape_deadline = 12
+    timer_jitter = 10
+    worst_case = (3 * scan) + timer_period + scrape_deadline + timer_jitter
+    assert worst_case == 172
+    old_worst_case = (3 * 60) + 120 + scrape_deadline + 15
+    z = Solver()
+    z.add(BoolVal(worst_case < old_worst_case) == BoolVal(False))
+    assert z.check() == unsat
+
     # An incorrect selector copying duplicate countries into both slots has
     # a satisfiable distinctness violation; implemented source above cannot.
     c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
@@ -168,6 +198,7 @@ def validate() -> None:
         "finiteCases": cases,
         "distinctCandidateCases": country_cases,
         "timeBoundedSourceHintCases": hint_cases,
+        "sourceBoundMaxSamplingAndTimerDecisionSeconds": worst_case,
         "premises": [
             "observed consumer failure (not UNKNOWN)",
             "direct underlay reachable",

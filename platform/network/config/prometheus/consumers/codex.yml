@@ -1,7 +1,7 @@
 # Native Prometheus scrape definitions for the codex consumer.
 scrape_configs:
   - job_name: blackbox-scoped-codex-mcp
-    scrape_interval: 1m
+    scrape_interval: 30s
     scrape_timeout: 12s
     metrics_path: /probe
     params:
