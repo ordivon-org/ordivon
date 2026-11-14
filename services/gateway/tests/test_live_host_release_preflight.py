@@ -548,3 +548,41 @@ def test_release_necessary_conditions_are_conjunctive_for_all_64_boolean_states(
     assert result["unqualifiedActiveHostConsumers"] == (
         [] if no_active_peer else ["ordivon-gateway-local-r21.service"]
     )
+
+
+def test_prepare_only_preserves_production_security_gate_and_symlink() -> None:
+    """Pre-stage is inert; final activation still needs the native live P0 gate."""
+    installer = INSTALLER.read_text(encoding="utf-8")
+    assert '[ "$4" != "--prepare-only" ]' in installer
+    assert "PREPARE_ONLY=false" in installer
+    assert "PREPARE_ONLY=true" in installer
+    prepare = 'if [ "$PREPARE_ONLY" = true ]; then'
+    assert installer.count(prepare) == 1
+    stage_index = installer.index(prepare)
+    sdk_index = installer.index(
+        '"$RELEASE/.venv/bin/python" "$RELEASE/packaging/windows/verify_release.py"'
+    )
+    user_index = installer.index("service_user_preflight=pass")
+    admission_index = installer.index(
+        '"$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py"'
+    )
+    promote_index = installer.index('ln -sfn "releases/$COMMIT" "$PREFIX/current.next"')
+    assert sdk_index < user_index < stage_index < admission_index < promote_index
+    assert "activation=NOT_PERFORMED" in installer[stage_index:admission_index]
+    assert "exit 0" in installer[stage_index:admission_index]
+
+
+def test_prepare_only_argument_is_only_supported_optional_mode() -> None:
+    """No accidental mode that bypasses live admission before promotion."""
+    import subprocess
+
+    for extra in ("--skip-preflight", "--force", "--activate-prepared", "unexpected"):
+        checked = subprocess.run(
+            ["/usr/bin/bash", str(INSTALLER), "source", "deadbeef", "/tmp/unused", extra],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=8,
+        )
+        assert checked.returncode == 2
+        assert "usage: install_release.sh" in checked.stderr

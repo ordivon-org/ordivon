@@ -550,6 +550,35 @@ must be followed by live Gateway/Host/Artifact readback rather than
 just a source-manifest test.
 
 
+### Prepared candidate: build before the Host authentication cutover
+
+The existing packaging/install_release.sh supports a fourth optional
+--prepare-only argument. It still checks the exact Git commit and MCP
+Tool surface, installs the locked package, verifies the actual MCP SDK
+tools/list contract, and runs the configured service-account preflight.
+It then prints activation=NOT_PERFORMED and returns **before** the live
+Host admission gate and any production current symlink change. It does
+not reload, restart, grant actor authority or qualify migration.
+
+Once the Security operator has separately established the real
+Principal/Actor/resource grants, loaded the current PDP, migrated
+Gateway/local-r21/Cloudflare Host consumers and proved working workload
+bearers, invoke the ordinary three-argument installer: its complete
+native preflight still runs before the symlink switch and can return
+NO_GO. Pre-staging only removes dependency-build work from the cutover;
+it does not make a single-port cutover seamless or establish that all
+Agent connections have been migrated. No bypass or force activation
+option exists.
+
+The pinned TLC model formal/GatewayHostCutoverR1.tla checks a bounded
+ordering with separate Security qualification, primary Host bearer,
+active peer migration, Cloudflare direct-Host consumer migration, candidate
+preparation, Host authentication, Gateway PEP promotion and ingress state.
+A safe path EXISTS only under the model's explicit qualification and
+temporary ingress quiescence. The unsafe mutation produces a counterexample
+to premature Host promotion. This does not prove quiescence is operational,
+uninterrupted availability, a genuine Actor grant or real service effects.
+
 ### R3 production precondition: current Security credential, not a source file
 
 The native Gateway installer now calls its read-only
