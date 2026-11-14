@@ -137,6 +137,49 @@ WinINet 代理读回和 Windows HTTPS 测试；这不是重启后的持久性证
 不可把未覆盖的外部调用者直接当作不存在。后续优先验证现代原生
 `19781` 路径，不要恢复旧直连桥。
 
+### 2026-11-14 真实事故：全应用断网时，先证明物理上游
+
+08:41:29（北京时间）Windows NCSI Event 4042 记录 WLAN 与 USB RNDIS
+**同时失去互联网连通性**；14:20:44 两者同时恢复。Windows 两接口
+虽然均显示为 Up，但都使用 192.168.0.1，且学习到相同网关 MAC。
+Prometheus 的宿主机**直连 IPv4**、Carrier 与 Claude / Codex / PyPI
+消费者在 09:00–13:59 每个完整小时的成功率都是 0%。
+Gluetun 在这段时间内部健康检查失败重连 3,178 次（6 个马来西亚
+WireGuard IP），**但这不证明马来西亚节点单独故障**。
+
+现有 Network 原生 systemd 两分钟恢复任务在事故期间给出
+169 个 `HOLD_SHARED_UNDERLAY_OR_UNKNOWN`，另有 159 个健康 HOLD，
+没有一次无证据的国家切换，也没有 systemd 恢复任务失败。
+Windows NCSI 恢复后 Carrier / PyPI / 直连 IPv4 首次采样成功
+分别约在 11 / 12 / 12 秒后，Claude 与 Codex 在约 22 / 34 秒后。
+这是首次成功采样相对 NCSI 事件的时间，**不是精确 TCP 中断时间**。
+
+#### 真正断网时的 Golden Road
+
+1. **所有应用都失败**：先检查 Windows NCSI、Wi-Fi/USB RNDIS
+   接口和网关，再对比宿主机直连 IPv4 与共享 VPN 的 Prometheus
+   Blackbox。同一时段两者都失败，按共享上游失效处理，不尝试
+   通过 Surfshark 国家轮换修复不可达的互联网。
+2. 在 Windows PowerShell 使用
+   `Get-NetRoute -AddressFamily IPv4 -DestinationPrefix 0.0.0.0/0`、
+   `Get-NetNeighbor -AddressFamily IPv4 -IPAddress 192.168.0.1`、
+   `Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-NCSI/Operational';Id=4042}`。
+   为验证当前**两个接口**可访问公网，可显式绑定不同源 IP 的
+   Windows 原生 `curl.exe --noproxy '*' --ipv4 --interface <源IP> --connect-timeout 3 --max-time 12 https://example.com/`。
+   这是**仅用于诊断**的直连请求；不要把该命令写入 Agent 业务绕过 VPN 的回退。
+3. 只有**独立物理互联网链路正常、VPN 三个原始采样时间戳均新鲜且
+   连续失败**，才允许现有 Gluetun 官方授权 API 按近期真实证据
+   试切国家。它必须继续通过 HTTPS/TLS 消费者验收，绝不连接香港。
+   旧日曾成功的国家仅是 `TRIAL_HINT`，不是现在在线的热备。
+4. 想要避免下一次相同上游 5 小时故障，先实际提供并独立验证
+   第二运营商/独立 SIM 上网或不同 ISP 网关。两个接口连向同一个
+   网关、同时掉线，**不等于双 WAN**。不要为了展示冗余而直接改
+   Windows 路由优先级、关闭 Gluetun 原生 Kill Switch 或禁用健康检查。
+5. 互联网恢复后分别运行 `task provider:gluetun:verify`、
+   `task consumer:codex:verify`、`task consumer:finance:verify` 与受影响
+   Consumer；移动 Tailscale 的服务端 READY **不能**替代 iPhone/iPad
+   自身的公网 IP / DNS 验收。
+
 ## 四、出问题时先找谁
 
 | 表现 | 先检查 | 真正的 Owner |

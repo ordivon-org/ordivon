@@ -85,6 +85,64 @@ contributing causes and links to tracked corrective actions. Outside incidents,
 keep the main report organized by user decision, changed responsibilities,
 verified consumer effect, blockers and precise next steps.
 
+### 2026-11-14 real outage: consumer-first fault-domain separation
+
+Observed physical facts must outrank a proposed VPN-country optimization.
+At 08:41 CST Windows Wi-Fi and USB RNDIS NCSI both lost internet capability;
+both default routes currently share the **same gateway MAC and IPv4 next hop**.
+At 14:20 both recovered together. Five complete hours of simultaneous zero
+success on *direct* IPv4 Blackbox, Carrier, Claude, Codex and PyPI constitute
+a common-underlay failure domain, not independent evidence that a Surfshark
+endpoint failed. Gluetun itself logged 3,178 healthcheck-directed reconnects
+with no successful internet until physical recovery. This is causal alignment,
+not proof of which device/ISP internal component failed.
+
+Consumer graph / action authority:
+
+- **C0 — Windows access and WAN**: WLAN and USB RNDIS `Up` only prove
+  L2 interface status. NCSI 4042, neighbor next hop and explicit per-interface
+  direct HTTPS are the independent WAN evidence. Workstation owns physical
+  Windows routing and any separately verified independent ISP.
+- **C1 — Provider**: original Gluetun owns one WireGuard identity,
+  firewall and its native health restart. On loss of underlying Internet,
+  new VPN-country APIs cannot create WAN reachability.
+- **C2 — Quality witness**: Prometheus has distinct direct IPv4 and VPN
+  Carrier probes plus three consumer-origin probes. `query_range` evaluation
+  timestamps are NOT fresh raw scrape timestamps. The recovery predicate
+  uses one native Prometheus range-vector query and 3 aligned original
+  samples per Claude/Codex/PyPI lane; missing evidence remains UNKNOWN.
+- **C3 — Selection**: recent consumer-qualified native Gluetun sessions
+  rank first. Explicit source `recovery-hints.json` stores at most two
+  nonsecret previously sampled country hints for a maximum seven days.
+  Journal churn may remove old sessions, but a hint is not current liveness.
+  Exclude the running country and Hong Kong; never allow a stale hint to
+  bypass current physical underlay or raw consumer failure admission.
+- **C4 — Effect and rollback**: only existing Gluetun authorized
+  `GET/PUT /v1/vpn/settings` may select one candidate at a time; validate
+  native readback, kernel endpoint country and two real TLS/HTTP consumers.
+  One failed candidate may permit one independent alternate before restoring
+  original *filter*, verified by GET. Restoring a filter does not restore
+  old TCP sessions or prove user traffic.
+- **C5 — Downstream consumers**: Finance nine lanes, Claude, Codex, model
+  provider, supply chain, Windows Chrome and Tailscale server exit are distinct
+  acceptance boundaries; iOS device-origin is still UNKNOWN.
+
+Release evidence is split into SOURCE / MERGED / INSTALLED / LOADED /
+EXECUTED / CONSUMED. A staged bundle may use eight nonsecret source files
+while production still uses seven; `provider:gluetun:verify` must reject that
+source-installed drift until the corresponding protected-main merge is
+materialized by the existing native installer. DO NOT fix by restarting
+the healthy physical VPN or bypassing original Gluetun control permissions.
+
+For this specific incident, 328 real systemd decision receipts contained
+169 holds for shared underlay/UNKNOWN, 159 healthy holds, zero native country
+changes, and zero systemd recovery errors. Its first recovered real
+consumer monitoring samples were 11–34 seconds after the 14:20:44 Windows
+NCSI restoration, not an exact end-to-end TCP restoration SLA. The only
+material missing facility for surviving another same-common-path outage is
+a truly independent Internet uplink; adding VPN node catalogs cannot replace
+this prerequisite.
+
 ### Formal scoped-route proof (source, not live effects)
 
 Run cd platform/network && mise run formal to prove equivalence of the
