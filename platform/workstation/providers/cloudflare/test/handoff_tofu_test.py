@@ -440,12 +440,13 @@ class WindowsServiceAuthTests(unittest.TestCase):
 
 
 
-def test_gateway_mcp_dns_points_to_native_tunnel_and_handoff_reads_prior_state() -> None:
-    """Native Gateway cutover must not inherit the obsolete production-tunnel CNAME."""
+def test_gateway_mcp_dns_stays_on_active_production_tunnel_and_preserves_native_standby() -> None:
+    """A Native cutover needs a real Windows origin canary; WSL is active today."""
     tf = (ROOT.parents[1] / "tofu/agent-birth-handoff/main.tf").read_text()
     gateway = tf.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
     other = tf.split('resource "cloudflare_dns_record" "handoff" {', 1)[1].split("\n}", 1)[0]
-    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    assert 'content = "${local.production_tunnel_id}.cfargotunnel.com"' in gateway
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' not in gateway
     assert 'content = "${local.production_tunnel_id}.cfargotunnel.com"' in other
     assert 'cloudflare_zero_trust_tunnel_cloudflared_config.native,' in gateway
     handoff = MODULE_PATH.read_text()
