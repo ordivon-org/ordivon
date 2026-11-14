@@ -181,6 +181,49 @@ Only source-confirmed ephemeral paths with no active Job are eligible for
 explicit consumer release. Longer-term retention/ignored-artifact lifecycle
 belongs to the natural Runtime/Workstation owner, not a new Harness GC daemon.
 
+## R19 Q2 local logic extraction and bounded model matrix
+
+One actual consumer justified a narrow decoupling: `HttpModelProvider::query`
+continues to own `reqwest` transport, bounded HTTP response bytes and
+single-call no-blind-retry semantics, while a new **private pure function**
+`decode_chat_completion(&serde_json::Value)` in the same Rust source file
+interprets untrusted wire JSON as a model Proposal. It returns `None` for
+incomplete/unrecognized responses; this becomes the original
+`ProviderResult::Unknown` and then `NativeAgentLoop::PausedUnknown`.
+It is **not** a Provider gateway, semantic policy owner, Tool authority,
+independent codec, PG writer or new transport abstraction. This removes
+one previously coupled responsibility at the smallest existing seam.
+
+The ordinary Rust tests and original Python/PG18 live consumer were rerun
+after extraction; strict Clippy initially rejected the new Option-returning
+function's let-else form (`job-01a1daca-62a2-74b1-be1e-b828b829e0b3`,
+exit 101). Replacing those expressions with standard Rust Option `?`
+eliminated the errors: fmt/check, strict Clippy and all native loop tests
+passed `job-01a1dacb-9873-702d-95b2-58afc9c3b6ca`; the actual
+isolated original Python PG Store → Rust no-Tool → loopback HTTP consumer
+passed `job-01a1daca-27fc-74e3-adc2-77c197d9d136` and removed its PG.
+
+A new **source-owning decision matrix** covers 10 `finish_reason`
+classes (including `null`, non-string and missing) × 6 model-message
+shapes = **60 finite combinations**. Only `stop + valid text` and
+`tool_calls + valid function ToolCall` are allowed as *proposals*;
+all 58 other combinations must yield `None`/UNKNOWN. Actual matrix
+positive: `job-01a1dace-fd22-71a5-adbe-8c895c49389c` PASS.
+An independent *mutation negative-control* deliberately permitted
+`length + text`; `job-01a1dacf-7966-71c6-94c3-1f6ff52c0c6e`
+failed as expected, pinpointing that exact unauthorized promotion.
+The safe exact rule was restored **before further validation**;
+the restored matrix PASS is
+`job-01a1dacf-fe32-76e6-8a7f-fea83d1ba0f0`.
+
+This is finite model-based testing of a **bounded source-visible
+classifier**, not a whole-system Quint/TLA+ proof or a tested SQL
+refinement of the Provider/Tool Journal/physical Runtime race. Since the
+new decoder is pure and returns only proposals, future genuinely
+justified formal refinement can express the 60-case safety predicate
+without replacing independent physical, cancellation and
+domain-verifier tests.
+
 ## Next gate
 
 The natural full-path consumer remains:

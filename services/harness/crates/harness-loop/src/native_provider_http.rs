@@ -179,89 +179,83 @@ impl HttpModelProvider {
             Ok(value) => value,
             Err(_) => return ProviderResult::Unknown,
         };
-        let Some(message) = reply.pointer("/choices/0/message") else {
+        let Some((message, action)) = decode_chat_completion(&reply) else {
             return ProviderResult::Unknown;
-        };
-        if message.get("role").and_then(Value::as_str) != Some("assistant") {
-            return ProviderResult::Unknown;
-        }
-        // Malformed advertised Tool calls cannot turn into silent completion.
-        if message
-            .get("tool_calls")
-            .is_some_and(|calls| !calls.is_null() && !calls.is_array())
-        {
-            return ProviderResult::Unknown;
-        }
-        // OpenAI-compatible Chat Completions finish_reason is the Provider's
-        // explicit decision-boundary signal. A visually plausible body may
-        // still be truncated, filtered or incomplete; none is authorization.
-        let Some(finish_reason) = reply
-            .pointer("/choices/0/finish_reason")
-            .and_then(Value::as_str)
-        else {
-            return ProviderResult::Unknown;
-        };
-        let tools = message.get("tool_calls").and_then(Value::as_array);
-        let action = if let Some(calls) = tools.filter(|a| !a.is_empty()) {
-            if finish_reason != "tool_calls" {
-                return ProviderResult::Unknown;
-            }
-            // Never choose a Tool effect over a simultaneous terminal answer.
-            if message
-                .get("content")
-                .and_then(Value::as_str)
-                .is_some_and(|text| !text.is_empty())
-            {
-                return ProviderResult::Unknown;
-            }
-            let mut decoded = Vec::new();
-            for call in calls {
-                // The Provider wire protocol admits only function Tool calls.
-                // A similarly shaped different kind is not an executable Tool.
-                if call.get("type").and_then(Value::as_str) != Some("function") {
-                    return ProviderResult::Unknown;
-                }
-                let Some(id) = call.get("id").and_then(Value::as_str) else {
-                    return ProviderResult::Unknown;
-                };
-                let Some(name) = call.pointer("/function/name").and_then(Value::as_str) else {
-                    return ProviderResult::Unknown;
-                };
-                let Some(args) = call.pointer("/function/arguments").and_then(Value::as_str) else {
-                    return ProviderResult::Unknown;
-                };
-                let Ok(arguments) = loads_strict(args) else {
-                    return ProviderResult::Unknown;
-                };
-                if arguments.object_len().is_none() {
-                    return ProviderResult::Unknown;
-                }
-                let Ok(doc) = CanonicalDocument::object(vec![
-                    ("toolCallId".into(), CanonicalDocument::string(id)),
-                    ("name".into(), CanonicalDocument::string(name)),
-                    ("arguments".into(), arguments),
-                ]) else {
-                    return ProviderResult::Unknown;
-                };
-                decoded.push(doc);
-            }
-            ModelDecision::CallTools(decoded)
-        } else {
-            if finish_reason != "stop" {
-                return ProviderResult::Unknown;
-            }
-            let Some(content) = message.get("content").and_then(Value::as_str) else {
-                return ProviderResult::Unknown;
-            };
-            if content.is_empty() {
-                return ProviderResult::Unknown;
-            }
-            ModelDecision::ProposeCompletion(content.into())
         };
         self.messages.push(message.clone());
         ProviderResult::Delivered(action)
     }
 }
+/// Pure normalization of the Provider's non-stream Chat Completions result.
+/// This maps untrusted wire shape into a model PROPOSAL, never a Tool grant
+/// or DomainSuccess. HTTP transport/retry and PG effect admission stay outside.
+fn decode_chat_completion(reply: &Value) -> Option<(&Value, ModelDecision)> {
+    let message = reply.pointer("/choices/0/message")?;
+    if message.get("role").and_then(Value::as_str) != Some("assistant") {
+        return None;
+    }
+    // Malformed advertised Tool calls cannot turn into silent completion.
+    if message
+        .get("tool_calls")
+        .is_some_and(|calls| !calls.is_null() && !calls.is_array())
+    {
+        return None;
+    }
+    // OpenAI-compatible Chat Completions finish_reason is the Provider's
+    // explicit decision-boundary signal. A visually plausible body may
+    // still be truncated, filtered or incomplete; none is authorization.
+    let finish_reason = reply
+        .pointer("/choices/0/finish_reason")
+        .and_then(Value::as_str)?;
+    let tools = message.get("tool_calls").and_then(Value::as_array);
+    let action = if let Some(calls) = tools.filter(|a| !a.is_empty()) {
+        if finish_reason != "tool_calls" {
+            return None;
+        }
+        // Never choose a Tool effect over a simultaneous terminal answer.
+        if message
+            .get("content")
+            .and_then(Value::as_str)
+            .is_some_and(|text| !text.is_empty())
+        {
+            return None;
+        }
+        let mut decoded = Vec::new();
+        for call in calls {
+            // The Provider wire protocol admits only function Tool calls.
+            // A similarly shaped different kind is not an executable Tool.
+            if call.get("type").and_then(Value::as_str) != Some("function") {
+                return None;
+            }
+            let id = call.get("id").and_then(Value::as_str)?;
+            let name = call.pointer("/function/name").and_then(Value::as_str)?;
+            let args = call
+                .pointer("/function/arguments")
+                .and_then(Value::as_str)?;
+            let arguments = loads_strict(args).ok()?;
+            arguments.object_len()?;
+            let doc = CanonicalDocument::object(vec![
+                ("toolCallId".into(), CanonicalDocument::string(id)),
+                ("name".into(), CanonicalDocument::string(name)),
+                ("arguments".into(), arguments),
+            ])
+            .ok()?;
+            decoded.push(doc);
+        }
+        ModelDecision::CallTools(decoded)
+    } else {
+        if finish_reason != "stop" {
+            return None;
+        }
+        let content = message.get("content").and_then(Value::as_str)?;
+        if content.is_empty() {
+            return None;
+        }
+        ModelDecision::ProposeCompletion(content.into())
+    };
+    Some((message, action))
+}
+
 impl Provider for HttpModelProvider {
     fn turn(&mut self, _number: u32, observations: &[ToolObservation]) -> ProviderResult {
         self.query(observations)
@@ -321,6 +315,76 @@ mod tests {
         });
         (url, handle)
     }
+    #[test]
+    fn finite_finish_reason_decision_matrix_admits_only_exact_conclusion_or_function_tool() {
+        use serde_json::json;
+        let accepted_tool = json!([{
+            "id":"call:1","type":"function",
+            "function":{"name":"search","arguments":"{}"}
+        }]);
+        let other_tool = json!([{
+            "id":"call:1","type":"custom",
+            "function":{"name":"search","arguments":"{}"}
+        }]);
+        let shapes = [
+            ("text", json!({"role":"assistant","content":"done"})),
+            (
+                "tool",
+                json!({"role":"assistant","content":null,"tool_calls":accepted_tool.clone()}),
+            ),
+            (
+                "wrong_tool",
+                json!({"role":"assistant","content":null,"tool_calls":other_tool}),
+            ),
+            (
+                "mixed",
+                json!({"role":"assistant","content":"done","tool_calls":accepted_tool}),
+            ),
+            ("empty", json!({"role":"assistant","content":""})),
+            (
+                "malformed",
+                json!({"role":"assistant","content":"done","tool_calls":"wrong-shape"}),
+            ),
+        ];
+        let reasons = [
+            ("stop", Some(json!("stop"))),
+            ("tool_calls", Some(json!("tool_calls"))),
+            ("length", Some(json!("length"))),
+            ("filtered", Some(json!("content_filter"))),
+            ("legacy", Some(json!("function_call"))),
+            ("unrecognized", Some(json!("unrecognized"))),
+            ("empty", Some(json!(""))),
+            ("null", Some(json!(null))),
+            ("non_string", Some(json!(7))),
+            ("missing", None),
+        ];
+        let mut checked = 0usize;
+        let mut accepted = 0usize;
+        for (label, reason) in reasons {
+            for (shape, message) in &shapes {
+                let mut reply = json!({"choices":[{"message":message.clone()}]});
+                if let Some(ending) = &reason {
+                    reply["choices"][0]["finish_reason"] = ending.clone();
+                }
+                let actual = match decode_chat_completion(&reply) {
+                    Some((_, ModelDecision::ProposeCompletion(text))) if text == "done" => "text",
+                    Some((_, ModelDecision::CallTools(tools))) if tools.len() == 1 => "tool",
+                    Some(_) => "unexpected",
+                    None => "unknown",
+                };
+                let expected = match (label, *shape) {
+                    ("stop", "text") => "text",
+                    ("tool_calls", "tool") => "tool",
+                    _ => "unknown",
+                };
+                assert_eq!(actual, expected, "finish_reason={label}, shape={shape}");
+                checked += 1;
+                accepted += usize::from(actual != "unknown");
+            }
+        }
+        assert_eq!((checked, accepted), (60, 2));
+    }
+
     #[test]
     fn truncated_completion_must_not_be_promoted_from_length_finish_reason() {
         let (catalog, grant) = fixtures();
