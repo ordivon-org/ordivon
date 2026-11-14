@@ -575,3 +575,32 @@ Do not infer cross-Agent Principal->Actor permission from successful
 legacy Gateway message.post, use a shared Principal for every Actor,
 manufacture test grants in the live operator policy, or treat an
 isolated unit test's positive AuthZEN decision as an installed result.
+
+
+### R4 direct Host MCP ingress: an independently observed release condition
+
+The Gateway production release preflight must not infer that Host HTTP is
+protected merely because a Host bearer setting or a Security Actor grant
+exists. The running Host could still be an unauthenticated HTTP binary.
+The preflight sends an unauthenticated, read-only MCP initialize request
+to exact local Owner route http://127.0.0.1:8898/mcp using stdlib HTTP,
+without redirects, HTTP proxies, cloud egress, Authorization or Actor
+claims. Only HTTP 401/403 counts as the necessary negative property.
+HTTP 200, redirects, other HTTP responses, timeout, connection failure or
+a different installed Gateway Host route return NO_GO before production
+symlink promotion. The fields anonymousHostInitializeDenied and
+hostOwnerRouteQualified are not authority to act as any Principal.
+
+The negative canary does NOT demonstrate a valid Gateway workload bearer.
+Before any live release, reuse original MCP SDK HostServiceTokenVerifier
+and Gateway McpOwnerCaller consumers with the same installed services:
+(a) anonymous Host rejection, (b) authenticated Gateway-to-Host positive
+host.status, (c) current Security PDP allow/deny for actual Agent Principal,
+Actor and specific resource, (d) original Work/Topic/Message read/write
+consumption, (e) migration of existing direct Host clients. Direct Host
+callers do not silently inherit Gateway AuthZEN authorization.
+
+Observed 2026-11-14 live result: NO_GO because loaded Actor grants=0,
+Gateway Host bearer declaration missing, and Host anonymous MCP initialize
+returned HTTP 200. This is local installed-service evidence, not a claim
+about public Internet anonymous reachability.

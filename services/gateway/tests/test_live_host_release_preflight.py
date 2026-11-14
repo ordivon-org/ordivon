@@ -52,21 +52,28 @@ def _grant() -> dict[str, Any]:
 
 
 def test_real_missing_operator_grants_and_owner_credential_are_blocked(preflight: Any) -> None:
-    result = preflight.assess(_operator_data([]), "", now=1_500)
+    result = preflight.assess(
+        _operator_data([]), "", now=1_500, anonymous_host_initialize_denied=True
+    )
     assert result["status"] == "NO_GO"
     assert result["activeHostDelegationCount"] == 0
     assert result["hostOwnerCredentialDeclared"] is False
     assert result["reasons"] == [
         "HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE",
         "GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED",
+        "HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY",
     ]
 
 
 def test_bounded_promotion_prerequisites_are_distinct_from_authorization(preflight: Any) -> None:
     result = preflight.assess(
         _operator_data([_grant()]),
-        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer",
+        (
+            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+        ),
         now=1_500,
+        anonymous_host_initialize_denied=True,
     )
     assert result["status"] == "NECESSARY_PRECONDITIONS_PRESENT"
     assert result["activeHostDelegationCount"] == 1
@@ -96,8 +103,12 @@ def test_nonqualified_grants_cannot_unblock_live_release(
     assert (
         preflight.assess(
             _operator_data([grant]),
-            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=/run/credentials/gateway/host",
+            (
+                "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+                "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=/run/credentials/gateway/host"
+            ),
             now=1_500,
+            anonymous_host_initialize_denied=True,
         )["status"]
         == "NO_GO"
     )
@@ -142,3 +153,119 @@ def test_official_production_promotion_consumer_checks_before_atomic_switch() ->
     assert "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer" in installer
     assert installer.index(needle) < installer.index('ln -sfn "releases/$COMMIT"')
     assert installer.index(needle) > installer.index("service_user_preflight=pass")
+
+
+@pytest.mark.parametrize(
+    ("http_status", "qualifies_denial"),
+    [
+        (200, False),
+        (201, False),
+        (302, False),
+        (400, False),
+        (401, True),
+        (403, True),
+        (404, False),
+        (503, False),
+    ],
+)
+def test_local_host_initialize_negative_requires_http_auth_denial(
+    preflight: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    http_status: int,
+    qualifies_denial: bool,
+) -> None:
+    requests: list[tuple[str, str, dict[str, str]]] = []
+
+    class FakeConnection:
+        def __init__(self, host: str, port: int, timeout: int) -> None:
+            assert (host, port, timeout) == ("127.0.0.1", 8898, 4)
+
+        def request(
+            self,
+            method: str,
+            path: str,
+            *,
+            body: bytes,
+            headers: dict[str, str],
+        ) -> None:
+            assert b'"method":"initialize"' in body
+            assert "Authorization" not in headers
+            requests.append((method, path, headers))
+
+        def getresponse(self) -> Any:
+            return type("Response", (), {"status": http_status})()
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(preflight.http.client, "HTTPConnection", FakeConnection)
+    assert preflight._rejects_unauthenticated_host_initialize() is qualifies_denial
+    assert len(requests) == 1
+    assert requests[0][0:2] == ("POST", "/mcp")
+
+
+def test_host_anonymous_network_failure_is_not_proof(
+    preflight: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailingConnection:
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
+
+        def request(self, *_args: Any, **_kwargs: Any) -> None:
+            raise ConnectionRefusedError("fixture-only")
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(preflight.http.client, "HTTPConnection", FailingConnection)
+    assert preflight._rejects_unauthenticated_host_initialize() is False
+
+
+@pytest.mark.parametrize(
+    "host_owner_url",
+    [
+        "",
+        "http://127.0.0.1:8898/",
+        "http://localhost:8898/mcp",
+        "https://host-mcp.ordivon.com/mcp",
+        "http://127.0.0.1:9999/mcp",
+    ],
+)
+def test_gateway_must_route_to_exact_negatively_probed_host(
+    preflight: Any,
+    host_owner_url: str,
+) -> None:
+    env = f"ORDIVON_GATEWAY_HOST_URL={host_owner_url} "
+    env += "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=/run/gateway/host"
+    result = preflight.assess(
+        _operator_data([_grant()]),
+        env,
+        now=1_500,
+        anonymous_host_initialize_denied=True,
+    )
+    assert result["status"] == "NO_GO"
+    assert result["hostOwnerRouteQualified"] is False
+    assert "HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY" in result["reasons"]
+
+
+def test_host_direct_anonymous_denial_cannot_be_inferred_from_grants(
+    preflight: Any,
+) -> None:
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=/run/gateway/host"
+    )
+    for observed in (None, False):
+        result = preflight.assess(
+            _operator_data([_grant()]),
+            env,
+            now=1_500,
+            anonymous_host_initialize_denied=observed,
+        )
+        assert result["status"] == "NO_GO"
+        assert result["activeHostDelegationCount"] == 1
+        assert result["hostOwnerCredentialDeclared"] is True
+        assert result["hostOwnerRouteQualified"] is True
+        assert result["anonymousHostInitializeDenied"] is False
+        assert "HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED" in result["reasons"]
