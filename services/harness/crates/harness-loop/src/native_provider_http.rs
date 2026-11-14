@@ -42,7 +42,6 @@ pub struct HttpModelProvider {
     tools: Vec<Value>,
     observed: usize,
     streaming: bool,
-    last_usage: Option<ProviderUsageObservation>,
     last_wire_observation: Option<ProviderWireObservation>,
     unknown_requires_reconciliation: bool,
     prepared: Option<PreparedHttpRequest>,
@@ -178,7 +177,6 @@ impl HttpModelProvider {
             tools,
             observed: 0,
             streaming: false,
-            last_usage: None,
             last_wire_observation: None,
             unknown_requires_reconciliation: false,
             prepared: None,
@@ -198,7 +196,11 @@ impl HttpModelProvider {
     /// The latest *reported* token usage, not priced/billed or PG committed.
     /// None means unobserved; never interpret None as zero cost.
     pub fn last_usage(&self) -> Option<&ProviderUsageObservation> {
-        self.last_usage.as_ref()
+        // Single authoritative observation: never allow Usage and the exact
+        // verified wire receipt to become two divergent mutable states.
+        self.last_wire_observation
+            .as_ref()
+            .and_then(ProviderWireObservation::reported_usage)
     }
 
     /// Prepare one exact immutable request-body byte sequence for the
@@ -267,7 +269,6 @@ impl HttpModelProvider {
     }
 
     fn query(&mut self, observations: &[ToolObservation]) -> ProviderResult {
-        self.last_usage = None;
         self.last_wire_observation = None;
         if self.unknown_requires_reconciliation {
             return ProviderResult::Unknown;
@@ -336,11 +337,11 @@ impl HttpModelProvider {
         let Some((message, action)) = decode_chat_completion(&reply) else {
             return ProviderResult::Unknown;
         };
-        self.last_usage = observe_chat_usage(&reply);
+        let reported_usage = observe_chat_usage(&reply);
         self.last_wire_observation = Some(ProviderWireObservation::from_validated_http(
             &bytes,
             reply.get("model").and_then(Value::as_str),
-            self.last_usage.clone(),
+            reported_usage,
             reply
                 .pointer("/choices/0/finish_reason")
                 .and_then(Value::as_str)
@@ -639,6 +640,13 @@ mod tests {
         assert!(observed.raw_response_digest().starts_with("sha256:"));
         assert!(observed.raw_response_bytes() > 0);
         server.join().unwrap();
+        // The loopback server is gone. A subsequent unconfirmed transport
+        // must discard previously observed Usage and wire evidence, rather
+        // than reusing the earlier successful response or charge counters.
+        assert!(matches!(model.turn(2, &[]), ProviderResult::Unknown));
+        assert!(model.last_usage().is_none());
+        assert!(model.last_wire_observation().is_none());
+        assert!(matches!(model.turn(3, &[]), ProviderResult::Unknown));
     }
 
     #[test]
