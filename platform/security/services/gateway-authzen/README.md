@@ -46,6 +46,13 @@ a tool's authorization, write authority, identity grant or Actor identity.
 A namespace prefix must end in a colon boundary
 (such as work:project:) rather than being an unqualified substring.
 
+For Gateway 0.10.10 / Surface Epoch 11, the existing Security Rego
+read-selector contract additionally accepts message.get with a mandatory
+messageRef, subject to exact allowedTools and delegated object scope.
+Security does not verify message bytes or expectedDigest: Gateway binds the
+complete requested digest in the AuthZEN resource and Host checks the actual
+message digest. This source update neither provisions a grant nor deploys.
+
 The decision requires exact verified Principal, issuer, claimed Actor,
 actual Owner tool, permitted resource and, for versioned Work, allowed
 submit/review/etc action. For a relation the target is separately checked.
