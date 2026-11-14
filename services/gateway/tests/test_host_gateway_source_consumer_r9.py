@@ -114,7 +114,17 @@ def test_native_cli_exit_rejects_missing_business_tool(monkeypatch, capsys) -> N
     mod = _audit()
     host = {"work.get": _tool("work.get"), "message.get": _tool("message.get")}
     gateway = {"work.get": _tool("work.get")}
-    monkeypatch.setattr(mod, "_child_source", lambda name: host if name == "host" else gateway)
+    monkeypatch.setattr(
+        mod,
+        "_child_source",
+        lambda name: (
+            host
+            if name == "host"
+            else gateway
+            if name == "gateway"
+            else {"dispatchHostToolNames": ["work.get"]}
+        ),
+    )
     monkeypatch.setattr(
         mod.subprocess,
         "run",
@@ -145,3 +155,76 @@ def test_source_observation_error_remains_unknown_not_false(monkeypatch, capsys)
     result = json.loads(capsys.readouterr().out)
     assert result["migrationStanding"] == "UNKNOWN_SOURCE_OBSERVATION_FAILED"
     assert result["installedConsumersQualified"] is None
+
+
+def test_original_host_sdk_tools_must_match_gateway_service_dispatcher() -> None:
+    """A listed MCP Tool must not be stopped by a second hidden service registry."""
+    m = _audit()
+    host = {
+        "work.get": _tool("work.get"),
+        "message.get": _tool("message.get"),
+        "host.pool.stats": _tool("host.pool.stats"),
+    }
+    gateway = {"work.get": _tool("work.get"), "message.get": _tool("message.get")}
+
+    missing = m.summarize(host, gateway, dispatcher_host_tools={"work.get"})
+    assert missing["sourceConsumerSurfaceQualified"] is True
+    assert missing["sourceGatewayDispatcherQualified"] is False
+    assert missing["missingGatewayDispatcherTools"] == ["message.get"]
+    assert missing["sourceEndToEndSourceQualified"] is False
+    assert missing["installedConsumersQualified"] is None
+
+    leaked = m.summarize(
+        host, gateway, dispatcher_host_tools={"work.get", "message.get", "host.pool.stats"}
+    )
+    assert leaked["sourceGatewayDispatcherQualified"] is False
+    assert leaked["unexpectedGatewayDispatcherTools"] == ["host.pool.stats"]
+
+    qualified = m.summarize(host, gateway, dispatcher_host_tools={"work.get", "message.get"})
+    assert qualified["sourceGatewayDispatcherQualified"] is True
+    assert qualified["sourceEndToEndSourceQualified"] is True
+    assert qualified["domainConsumerMigrated"] is None
+
+
+def test_unobserved_gateway_dispatcher_remains_unknown() -> None:
+    m = _audit()
+    host = {"work.get": _tool("work.get")}
+    gateway = {"work.get": _tool("work.get")}
+    result = m.summarize(host, gateway)
+    assert result["sourceConsumerSurfaceQualified"] is True
+    assert result["sourceGatewayDispatcherQualified"] is None
+    assert result["sourceEndToEndSourceQualified"] is None
+
+
+def test_native_cli_rejects_gateway_dispatcher_gap_with_public_tools_intact(
+    monkeypatch, capsys
+) -> None:
+    """No live Owner required: an internal whitelist gap is a source NO_GO."""
+    import json
+    import sys
+    from types import SimpleNamespace
+
+    m = _audit()
+    host = {
+        "work.get": _tool("work.get"),
+        "message.get": _tool("message.get"),
+        "host.pool.stats": _tool("host.pool.stats"),
+    }
+    gateway = {"work.get": _tool("work.get"), "message.get": _tool("message.get")}
+    reports = {
+        "host": host,
+        "gateway": gateway,
+        "gateway-dispatch": {"dispatchHostToolNames": ["work.get"]},
+    }
+    monkeypatch.setattr(m, "_child_source", reports.__getitem__)
+    monkeypatch.setattr(
+        m.subprocess, "run", lambda *_args, **_kwargs: SimpleNamespace(stdout="b" * 40)
+    )
+    monkeypatch.setattr(sys, "argv", ["native-host-surface"])
+    assert m.main() == 3
+    report = json.loads(capsys.readouterr().out)
+    assert report["sourceConsumerSurfaceQualified"] is True
+    assert report["sourceGatewayDispatcherQualified"] is False
+    assert report["missingGatewayDispatcherTools"] == ["message.get"]
+    assert report["sourceEndToEndSourceQualified"] is False
+    assert report["installedConsumersQualified"] is None

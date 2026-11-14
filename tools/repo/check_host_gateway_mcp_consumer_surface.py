@@ -23,7 +23,14 @@ ROOT = Path(__file__).resolve().parents[2]
 _HOST_OPERATOR_ONLY = frozenset({"host.pool.stats"})
 
 
-async def _emit_source(owner: str) -> dict[str, dict[str, Any]]:
+async def _emit_source(owner: str) -> dict[str, Any]:
+    # Observe the original GatewayService allowlist in the Gateway environment,
+    # rather than introducing a second copied Tool registry.
+    if owner == "gateway-dispatch":
+        from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
+
+        return {"dispatchHostToolNames": sorted(_SOCIAL_WORK_HOST_TOOLS)}
+
     from mcp import Client
 
     if owner == "host":
@@ -46,7 +53,10 @@ async def _emit_source(owner: str) -> dict[str, dict[str, Any]]:
 
 
 def summarize(
-    host: dict[str, dict[str, Any]], gateway: dict[str, dict[str, Any]]
+    host: dict[str, dict[str, Any]],
+    gateway: dict[str, dict[str, Any]],
+    *,
+    dispatcher_host_tools: set[str] | None = None,
 ) -> dict[str, Any]:
     host_names, gateway_names = set(host), set(gateway)
     common = sorted(host_names & gateway_names)
@@ -73,6 +83,31 @@ def summarize(
     business_surface_covered = (
         bool(common) and not missing_business and not exposed_operator
     )
+    # A public Gateway MCP Tool can exist while GatewayService rejects the
+    # forwarded name. Host->Gateway migration needs both public Tool coverage
+    # and the existing internal dispatch allowlist to match natural Host Tools.
+    expected_dispatch = host_names - _HOST_OPERATOR_ONLY
+    missing_dispatch = (
+        sorted(expected_dispatch - dispatcher_host_tools)
+        if dispatcher_host_tools is not None
+        else []
+    )
+    unexpected_dispatch = (
+        sorted(dispatcher_host_tools - expected_dispatch)
+        if dispatcher_host_tools is not None
+        else []
+    )
+    dispatch_qualified = (
+        None
+        if dispatcher_host_tools is None
+        else not missing_dispatch and not unexpected_dispatch
+    )
+    public_surface_qualified = input_names_match and business_surface_covered
+    end_to_end_source_qualified = (
+        None
+        if dispatch_qualified is None
+        else public_surface_qualified and dispatch_qualified
+    )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.host-gateway-source-mcp-consumer-surface",
@@ -85,8 +120,11 @@ def summarize(
         "operatorDiagnosticsExcluded": excluded_operator,
         "exposedHostOperatorDiagnostics": exposed_operator,
         "sourceHostBusinessSurfaceCovered": business_surface_covered,
-        "sourceConsumerSurfaceQualified": input_names_match
-        and business_surface_covered,
+        "sourceConsumerSurfaceQualified": public_surface_qualified,
+        "sourceGatewayDispatcherQualified": dispatch_qualified,
+        "sourceEndToEndSourceQualified": end_to_end_source_qualified,
+        "missingGatewayDispatcherTools": missing_dispatch,
+        "unexpectedGatewayDispatcherTools": unexpected_dispatch,
         "inputPropertyOrRequiredDrift": input_name_required_drift,
         "inputSchemaDifferentTools": input_schema_different,
         "outputSchemaDifferentTools": output_schema_different,
@@ -98,7 +136,9 @@ def summarize(
         "truthBoundary": (
             "MCP SDK source introspection only; input parity does not prove "
             "Gateway accepts all Host argument values, output-schema typing, "
-            "real Owner authorization, installed Plugin shape or domain success"
+            "real Owner authorization, installed Plugin shape or domain success. "
+            "The source dispatch witness comes from the original GatewayService "
+            "allowlist, not from installed HTTP or external Agent consumers"
         ),
     }
 
@@ -115,7 +155,7 @@ def _child_source(owner: str) -> dict[str, dict[str, Any]]:
             "--locked",
             "--offline",
             "--project",
-            str(ROOT / "services" / owner),
+            str(ROOT / "services" / ("gateway" if owner == "gateway-dispatch" else owner)),
             "python",
             program,
             "--emit",
@@ -135,7 +175,7 @@ def _child_source(owner: str) -> dict[str, dict[str, Any]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--emit", choices=["host", "gateway"])
+    parser.add_argument("--emit", choices=["host", "gateway", "gateway-dispatch"])
     args = parser.parse_args()
     if args.emit:
         print(json.dumps(asyncio.run(_emit_source(args.emit)), sort_keys=True))
@@ -144,7 +184,15 @@ def main() -> int:
     try:
         host = _child_source("host")
         gateway = _child_source("gateway")
-        result = summarize(host, gateway)
+        dispatch = _child_source("gateway-dispatch")
+        raw_dispatch = dispatch.get("dispatchHostToolNames")
+        if (
+            not isinstance(raw_dispatch, list)
+            or not all(isinstance(name, str) and bool(name) for name in raw_dispatch)
+            or len(set(raw_dispatch)) != len(raw_dispatch)
+        ):
+            raise TypeError("native GatewayService Host dispatcher source is malformed")
+        result = summarize(host, gateway, dispatcher_host_tools=set(raw_dispatch))
         source = subprocess.run(
             ["/usr/bin/git", "rev-parse", "HEAD"],
             cwd=ROOT,
@@ -175,7 +223,7 @@ def main() -> int:
         )
         return 3
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["sourceConsumerSurfaceQualified"] else 3
+    return 0 if result["sourceEndToEndSourceQualified"] is True else 3
 
 
 if __name__ == "__main__":
