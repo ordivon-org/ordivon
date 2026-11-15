@@ -54,7 +54,7 @@ WINDOWS_PG_WITNESS_ARGS = (
     "--nocapture",
     "--test-threads=1",
 )
-EXPECTED_PG18 = 18
+EXPECTED_PG18 = 19
 PG18_CASE = re.compile(r"^test pg_admission::live_pg_tests::pg18_[^ ]+ \.\.\. ok$", re.M)
 PG18_RESULT = re.compile(r"test result: ok\. (\d+) passed; 0 failed; 0 ignored;")
 

@@ -1132,21 +1132,74 @@ PY_UNGUARDED_PG_BUILD
   )
 }
 
+check_runner_bound() {
+  verify_jar
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config RuntimeRunnerBoundR1.cfg RuntimeRunnerBoundR1.tla)
+}
+
+falsify_runner_bound() {
+  verify_jar
+  (
+    dir=$(mktemp -d -t ordivon-pg-runner-bound-XXXXXX)
+    trap 'rm -rf -- "$dir"' EXIT
+    cp "$ROOT/formal/RuntimeRunnerBoundR1.tla" "$dir/"
+    cp "$ROOT/formal/RuntimeRunnerBoundR1.cfg" "$dir/"
+    echo 'INVARIANT NeverBound' >> "$dir/RuntimeRunnerBoundR1.cfg"
+    set +e
+    (cd "$dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeRunnerBoundR1.cfg RuntimeRunnerBoundR1.tla) > "$dir/reachable.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant NeverBound is violated' "$dir/reachable.log"; then
+      echo 'RunnerBound positive reachability negative FAILED' >&2
+      tail -n 25 "$dir/reachable.log" >&2
+      exit 1
+    fi
+    sed -i '/INVARIANT NeverBound/d' "$dir/RuntimeRunnerBoundR1.cfg"
+    python3 - "$dir/RuntimeRunnerBoundR1.tla" <<'PY_UNSAFE_RUNNER'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+source = p.read_text(encoding="utf-8")
+start = source.index("RunnerBound ==\n")
+end = source.index("RequestStop ==\n", start)
+action = source[start:end]
+guard = '    /\\ nativeEvidence = "matching"\n'
+assert action.count(guard) == 1, "RunnerBound positive native guard drift"
+p.write_text(source[:start] + action.replace(guard, "", 1) + source[end:], encoding="utf-8")
+PY_UNSAFE_RUNNER
+    set +e
+    (cd "$dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeRunnerBoundR1.cfg RuntimeRunnerBoundR1.tla) > "$dir/unsafe.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant RunningRequiresBoundNative is violated' "$dir/unsafe.log"; then
+      echo 'RunnerBound unsafe intent-to-running negative FAILED' >&2
+      tail -n 25 "$dir/unsafe.log" >&2
+      exit 1
+    fi
+    echo 'RunnerBound positive native evidence reachable and missing-proof mutant rejected PASS'
+  )
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-dispatch) check_runtime_dispatch ;;
+  check-runner-bound) check_runner_bound ;;
+  falsify-runner-bound) falsify_runner_bound ;;
   check-windows-pg-attempt) check_windows_pg_attempt ;;
   check-pg-buildcache) check_pg_build_cache_eviction ;;
   falsify-pg-buildcache) falsify_pg_build_cache_eviction ;;
   falsify-windows-pg-attempt) check_windows_pg_attempt_counterexample ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound ;;
   *)
-    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
+    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-runner-bound|falsify-runner-bound]" >&2
     exit 2
     ;;
 esac

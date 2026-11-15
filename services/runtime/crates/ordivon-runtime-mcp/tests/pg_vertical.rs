@@ -56,7 +56,16 @@ impl Fixture {
             .arg(root.join("data"))
             .arg("-k")
             .arg(&root)
-            .args(["-h", "", "-p", "5432", "-c", "fsync=off"]);
+            .args([
+                "-h",
+                "",
+                "-p",
+                "5432",
+                "-c",
+                "fsync=off",
+                "-c",
+                "dynamic_shared_memory_type=mmap",
+            ]);
         unprivileged(&mut launch);
         let log = fs::File::create(root.join("postgres.log")).unwrap();
         launch.stdout(log.try_clone().unwrap()).stderr(log);
@@ -76,6 +85,18 @@ impl Fixture {
                 }
             }
         };
+        // Multiple isolated PG fixtures run as the same disposable nobody
+        // identity. POSIX dynamic shared-memory segments can be removed by
+        // unrelated fixture teardown; only this test-owned PostgreSQL process
+        // must choose the mature mmap debugging carrier.
+        let dsm: String = db
+            .query_one("SHOW dynamic_shared_memory_type", &[])
+            .unwrap()
+            .get(0);
+        assert_eq!(
+            dsm, "mmap",
+            "disposable PG must not share POSIX DSM lifetime"
+        );
         db.batch_execute("CREATE SCHEMA fresh; SET search_path TO fresh")
             .unwrap();
         db.batch_execute(include_str!(
@@ -3181,6 +3202,45 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     assert!(
         start_path.exists(),
         "physical cancellation test requires bound Runner start evidence"
+    );
+    // Genuine PG→systemd→Runner acceptance: the original long-lived Job must
+    // become RUNNING only after the native bound receipt exists, not merely
+    // because DISPATCH_ISSUED was committed or stdout was produced.
+    let bound_deadline = Instant::now() + Duration::from_secs(8);
+    loop {
+        let running = call(
+            &endpoint,
+            "job.observe",
+            json!({
+                "jobId":job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0
+            }),
+        );
+        assert_ne!(
+            running["isError"], true,
+            "native Runner observation failed: {running}"
+        );
+        if running["structuredContent"]["attemptState"] == "running" {
+            break;
+        }
+        assert!(
+            Instant::now() < bound_deadline,
+            "native start receipt failed to advance PG Attempt: {running}"
+        );
+        thread::sleep(Duration::from_millis(70));
+    }
+    let bound = fixture.db.query_one(
+        "SELECT a.state,a.started_at_ms,COUNT(e.event_id) FILTER(WHERE e.event_type='RUNNER_BOUND') \
+            FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id \
+            LEFT JOIN job_events e ON e.job_id=j.job_id AND e.attempt_id=a.attempt_id \
+            WHERE j.job_id=$1 GROUP BY a.state,a.started_at_ms",
+        &[&job.as_str().unwrap()],
+    ).unwrap();
+    assert_eq!(bound.get::<_, String>(0), "running");
+    assert!(bound.get::<_, Option<i64>>(1).is_some());
+    assert_eq!(
+        bound.get::<_, i64>(2),
+        1,
+        "RUNNER_BOUND must be recorded exactly once"
     );
     let unsafe_write = call(
         &endpoint,
