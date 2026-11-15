@@ -18,6 +18,23 @@ fn preserve_committed_job_identity<T>(
     observed.map_err(|error| error.with_operation_id(job_id))
 }
 
+/// The first observation follows a committed PG Job admission. SQLSTATE
+/// serialization aborts may invalidate its read/runner reconciliation, not
+/// the already-committed Job identity. Re-observe that SAME Job only; no
+/// second admission or new external operation is allowed. Reuse the PG
+/// admission module's proven bounded aborted-transaction backoff.
+fn observe_committed_job_with_bounded_busy_recovery<T>(
+    job_id: &str,
+    observe: impl FnMut() -> RuntimeResult<T>,
+) -> RuntimeResult<T> {
+    let result = crate::pg_admission::retry_aborted_transaction(
+        observe,
+        |error| error.code == RuntimeErrorCode::RegistryBusy && error.retryable,
+        std::thread::sleep,
+    );
+    preserve_committed_job_identity(job_id, result)
+}
+
 // A foreign reference is caller-authored metadata, never execution authority.
 // Without a configured same-PG issuer verifier it cannot affect the environment.
 // With a verifier, preserve exact source intent for the PG transactional guard.
@@ -148,9 +165,10 @@ impl PgRuntime {
         if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(pg_read_error)? {
             if row.get::<_,String>(1)!=identity { return Err(pg(PgAdmissionError::IdempotencyConflict)); }
             let committed_job: String = row.get(0);
-            return preserve_committed_job_identity(
+            let mut first_wait_ms = proposal.wait_ms;
+            return observe_committed_job_with_bounded_busy_recovery(
                 &committed_job,
-                self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:committed_job.clone(),wait_ms:proposal.wait_ms,wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None }),
+                || self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:committed_job.clone(),wait_ms:std::mem::replace(&mut first_wait_ms, 0),wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None }),
             );
         }
         let e = &proposal.execution;
@@ -472,22 +490,22 @@ impl PgRuntime {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,
         };
         let _ = self.schedule_pending_jobs();
-        preserve_committed_job_identity(
-            &job,
+        let mut first_wait_ms = proposal.wait_ms;
+        observe_committed_job_with_bounded_busy_recovery(&job, || {
             self.observe(
                 &proposal.principal,
                 &JobObserveRequest {
                     schema_version: 1,
                     job_id: job.clone(),
-                    wait_ms: proposal.wait_ms,
+                    wait_ms: std::mem::replace(&mut first_wait_ms, 0),
                     wait_until: JobObserveWaitUntil::Terminal,
                     stdout_tail_bytes: proposal.stdout_tail_bytes,
                     stderr_tail_bytes: proposal.stderr_tail_bytes,
                     stdout_offset: None,
                     stderr_offset: None,
                 },
-            ),
-        )
+            )
+        })
     }
     pub fn observe(
         &self,
@@ -829,6 +847,83 @@ mod committed_observation_tests {
     use super::*;
 
     #[test]
+    fn postcommit_busy_observation_recovers_same_job_without_new_admission() {
+        let mut observations = 0_u32;
+        let result = observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+            observations += 1;
+            if observations < 3 {
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryBusy,
+                    "aborted serializable post-admission PG observation",
+                    None,
+                    true,
+                ))
+            } else {
+                Ok("observed-existing-job")
+            }
+        })
+        .unwrap();
+        assert_eq!(result, "observed-existing-job");
+        assert_eq!(observations, 3);
+
+        let mut unknown_attempts = 0_u32;
+        let failed: RuntimeResult<()> =
+            observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+                unknown_attempts += 1;
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::DispatchOutcomeUnknown,
+                    "external effect outcome is unknown",
+                    None,
+                    false,
+                ))
+            });
+        assert_eq!(
+            unknown_attempts, 1,
+            "never retry an ambiguous physical effect"
+        );
+        assert_eq!(
+            failed.unwrap_err().operation_id.as_deref(),
+            Some("job-stable")
+        );
+
+        let mut nonretryable_busy_reads = 0_u32;
+        let refused: RuntimeResult<()> =
+            observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+                nonretryable_busy_reads += 1;
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryBusy,
+                    "not a proven aborted observation",
+                    None,
+                    false,
+                ))
+            });
+        assert_eq!(nonretryable_busy_reads, 1);
+        assert_eq!(
+            refused.unwrap_err().operation_id.as_deref(),
+            Some("job-stable")
+        );
+
+        let mut bounded_reads = 0_u32;
+        let exhausted: RuntimeResult<()> =
+            observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+                bounded_reads += 1;
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryBusy,
+                    "serializable observation always aborted",
+                    None,
+                    true,
+                ))
+            });
+        assert_eq!(
+            bounded_reads, 8,
+            "reuse the existing bounded PG retry budget"
+        );
+        let final_error = exhausted.unwrap_err();
+        assert_eq!(final_error.code, RuntimeErrorCode::RegistryBusy);
+        assert_eq!(final_error.operation_id.as_deref(), Some("job-stable"));
+    }
+
+    #[test]
     fn post_admission_observation_error_keeps_committed_job_identity() {
         let failed: RuntimeResult<()> = Err(RuntimeError::new(
             RuntimeErrorCode::RegistryUnavailable,
@@ -873,5 +968,21 @@ mod committed_observation_tests {
                 assert!(!observed.retryable);
             }
         }
+        let mut observed = 0_u32;
+        let qualified =
+            observe_committed_job_with_bounded_busy_recovery("job-real-direct-PG", || {
+                observed += 1;
+                if observed == 1 {
+                    let abort = db
+                        .batch_execute("DO $$ BEGIN RAISE EXCEPTION SQLSTATE '40001'; END $$;")
+                        .unwrap_err();
+                    Err(pg_read_error(abort))
+                } else {
+                    Ok("the original committed Job")
+                }
+            })
+            .unwrap();
+        assert_eq!(observed, 2);
+        assert_eq!(qualified, "the original committed Job");
     }
 }
