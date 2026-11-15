@@ -69,3 +69,54 @@ def test_sdk_rejects_illegal_owner_budgets_before_any_host_call() -> None:
             assert caller.calls == []
 
     asyncio.run(scenario())
+
+
+def test_gateway_topic_archive_forwarding_uses_existing_owner_tool() -> None:
+    from mcp.server import MCPServer
+
+    from ordivon_gateway.host_social_tools import register_host_social_tools
+
+    async def scenario() -> None:
+        calls: list[tuple[str, dict]] = []
+
+        async def owner(tool: str, args: dict) -> dict:
+            calls.append((tool, args))
+            return {"acceptedByFixture": True}
+
+        server = MCPServer("host-topic-archive-source-fixture", version="1.0")
+        register_host_social_tools(server, owner)
+        async with Client(server, raise_exceptions=True) as client:
+            tools = {tool.name: tool for tool in (await client.list_tools()).tools}
+            state = tools["topic.state.set"].input_schema["properties"]
+            assert "archived" in state["state"]["enum"]
+            assert "archived" in state["expectedState"]["enum"]
+            topic_list = tools["topic.list"].input_schema["properties"]
+            assert topic_list["includeArchived"]["default"] is False
+            await client.call_tool(
+                "topic.state.set",
+                {
+                    "topicRef": "topic:fixture",
+                    "actorRef": "actor:fixture",
+                    "state": "archived",
+                    "expectedState": "closed",
+                    "expectedHighSequence": 5,
+                },
+            )
+            assert calls[-1] == (
+                "topic.state.set",
+                {
+                    "topicRef": "topic:fixture",
+                    "actorRef": "actor:fixture",
+                    "state": "archived",
+                    "expectedState": "closed",
+                    "expectedHighSequence": 5,
+                },
+            )
+            await client.call_tool(
+                "topic.list",
+                {"spaceRef": "space:fixture", "includeArchived": True},
+            )
+            assert calls[-1][0] == "topic.list"
+            assert calls[-1][1]["includeArchived"] is True
+
+    asyncio.run(scenario())
