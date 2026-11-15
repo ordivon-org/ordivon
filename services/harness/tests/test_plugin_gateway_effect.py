@@ -246,6 +246,139 @@ def _adapter(timeout_ms: int | None = 5_000) -> ScriptedTurnAdapter:
     )
 
 
+
+class GatewayTextArtifacts(GatewayExecutionFixture):
+    """Existing Gateway execution+artifact ports in one bounded test client."""
+
+    stdout = "A中文B🙂C\n"
+
+    def __init__(self, *, tamper: str | None = None):
+        super().__init__()
+        self.tamper = tamper
+
+    def list_tools(self):
+        return (
+            *super().list_tools(),
+            {
+                "name": "artifact.read",
+                "description": "Read exact Owner Artifact bytes",
+                "inputSchema": {"type": "object"},
+                "outputSchema": {"type": "object"},
+            },
+        )
+
+    def call_tool(self, name, arguments):
+        if name == "artifact.read":
+            self.calls.append((name, dict(arguments)))
+            assert arguments["maxBytes"] == 4096
+            assert arguments["requestId"]
+            assert arguments["capability"] == "execution.linux"
+            assert arguments["operationRef"] == self.operation_ref
+            assert arguments["offset"] == 0
+            artifact_id = arguments["artifactId"]
+            assert artifact_id in {"attempt-h2.stdout", "attempt-h2.stderr"}
+            content = self.stdout if artifact_id.endswith(".stdout") else ""
+            payload = {
+                "operation_ref": self.operation_ref,
+                "owner_id": "runtime.linux",
+                "native_id": self.native_id,
+                "artifact_id": artifact_id,
+                "offset": 0,
+                "next_offset": len(content.encode("utf-8")),
+                "eof": True,
+                "content": content,
+                "digest": "sha256:" + "a" * 64,
+            }
+            if self.tamper == "wrong_job":
+                payload["native_id"] = "job-unrelated"
+            if self.tamper == "wrong_operation":
+                payload["operation_ref"] = "ordivon-exec:v1:runtime.linux:job-unrelated"
+            if self.tamper == "wrong_owner":
+                payload["owner_id"] = "runtime.windows"
+            if self.tamper == "zero_progress" and artifact_id.endswith(".stdout"):
+                payload.update(next_offset=0, eof=False, content="")
+            return False, payload
+        is_error, payload = super().call_tool(name, arguments)
+        if name == "execution.get":
+            payload = dict(payload)
+            payload["artifact_ids"] = ["attempt-h2.stdout", "attempt-h2.stderr"]
+            payload["artifact_count"] = 2
+        return is_error, payload
+
+
+def test_gateway_observes_real_text_artifacts_for_next_model_turn() -> None:
+    """Do not erase the content of the Owner Tool; text is UTF-8 byte-bounded."""
+    client = GatewayTextArtifacts()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        artifact_read_enabled=True,
+    )
+    adapter._operation_requests[client.native_id] = "request:text-artifact"
+    observed = adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+    assert observed["resultAvailable"] is True
+    assert observed["outputPreviews"]["stdout"]["text"] == client.stdout
+    assert observed["outputPreviews"]["stdout"]["eof"] is True
+    assert observed["outputPreviews"]["stderr"]["text"] == ""
+    assert [name for name, _ in client.calls] == [
+        "execution.get",
+        "execution.resolve",
+        "artifact.read",
+        "artifact.read",
+    ]
+
+
+@pytest.mark.parametrize("tamper", ("wrong_job", "wrong_operation", "wrong_owner", "zero_progress"))
+def test_gateway_rejects_artifact_window_not_owned_by_job(tamper: str) -> None:
+    client = GatewayTextArtifacts(tamper=tamper)
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        artifact_read_enabled=True,
+    )
+    adapter._operation_requests[client.native_id] = "request:tampered-artifact"
+    with pytest.raises(HarnessRuntimeClientError, match="Artifact read"):
+        adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+
+
+def test_gateway_artifact_text_reaches_next_model_turn_and_original_pg(pg_schema) -> None:
+    """Real PostgreSQL ToolStep/Run persists one bounded Owner output observation."""
+    client = GatewayTextArtifacts()
+    factory = _factory(client)
+    model = _adapter()
+    clock = FixedClock()
+    contract = _contract(factory)
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        contract,
+        lambda _: model,
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "candidate_completed"
+    model_messages = [
+        msg for msg in model.requests[1].messages if msg.get("role") == "tool"
+    ]
+    assert len(model_messages) == 1
+    model_content = model_messages[0]["observation"]["content"]
+    assert model_content["outputPreviews"]["stdout"]["text"] == client.stdout
+    assert model_content["outputPreviews"]["stderr"]["text"] == ""
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        step = EventSourcedRunContinuity.open(
+            store, contract.harness_run_id
+        ).load_current_tool_step()
+        assert step.receipt is not None
+        assert step.receipt.status.value == "observed"
+        assert step.observation["structuredContent"]["outputPreviews"]["stdout"]["text"] == client.stdout
+
+
 def test_effect_gateway_factory_rejects_duplicate_required_tool_names() -> None:
     from ordivon_harness.ordivon.tool_errors import ToolBridgeError
 
