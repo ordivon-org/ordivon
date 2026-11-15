@@ -648,3 +648,54 @@ mod gitlink_worktree_root_tests {
         fs::remove_dir_all(&root).expect("cleanup fixture");
     }
 }
+
+/// Domain-separated source commitment over an explicit read set. Git HEAD is
+/// always bound; unrelated mutable paths are excluded rather than disabling
+/// source validation. Scoped source trees reject filesystem aliases.
+pub(crate) fn workspace_source_readset_digest_at(workspace:&Path,paths:&[String])->Result<String,UniversalExecError>{
+    use sha2::{Digest,Sha256};
+    use std::io::Read;
+    let workspace=canonical_directory(workspace,"workspacePath")?;
+    let mut hash=Sha256::new();hash.update(b"runtime-workspace-readset-v1\0");
+    hash.update(workspace_head_revision_at(&workspace)?.as_bytes());
+    fn walk(root:&Path,path:&Path,hash:&mut Sha256)->Result<(),UniversalExecError>{
+        let relative=path.strip_prefix(root).map_err(|_|invalid("source path escaped Workspace","readPaths"))?;
+        if relative.components().any(|v|matches!(v,std::path::Component::ParentDir|std::path::Component::RootDir|std::path::Component::Prefix(_))){return Err(invalid("invalid scoped source path","readPaths"));}
+        if relative.components().any(|v|v.as_os_str()==".git"){return Ok(());}
+        let mut ancestor=root.to_path_buf();
+        for component in relative.components(){ancestor.push(component.as_os_str());if let Ok(meta)=fs::symlink_metadata(&ancestor){if meta.file_type().is_symlink(){return Err(invalid("scoped source path traversed an alias","readPaths"));}}}
+        hash.update(relative.as_os_str().as_encoded_bytes());hash.update([0]);
+        let meta=match fs::symlink_metadata(path){Ok(v)=>v,Err(e)if e.kind()==std::io::ErrorKind::NotFound=>{hash.update(b"absent");return Ok(())},Err(e)=>return Err(io_error(path,"inspect scoped source",e))};
+        if meta.file_type().is_symlink(){return Err(invalid("scoped sources cannot traverse symlinks","readPaths"));}
+        if meta.is_file(){
+            #[cfg(unix)] {use std::os::unix::fs::MetadataExt;if meta.nlink()>1{return Err(invalid("scoped sources cannot contain hardlinked files","readPaths"));}}
+            hash.update(b"file");
+            #[cfg(unix)] {use std::os::unix::fs::PermissionsExt;hash.update(meta.permissions().mode().to_le_bytes());}hash.update(meta.len().to_le_bytes());
+            let mut file=fs::File::open(path).map_err(|e|io_error(path,"open scoped source",e))?;let mut buffer=[0u8;65536];
+            loop{let size=file.read(&mut buffer).map_err(|e|io_error(path,"read scoped source",e))?;if size==0{break;}hash.update(&buffer[..size]);}
+        }else if meta.is_dir(){
+            hash.update(b"directory");let mut entries=fs::read_dir(path).map_err(|e|io_error(path,"list scoped source",e))?.collect::<Result<Vec<_>,_>>().map_err(|e|io_error(path,"list scoped source",e))?;
+            entries.sort_by_key(|v|v.file_name());for entry in entries{walk(root,&entry.path(),hash)?;}
+        }else{return Err(invalid("unsupported file in scoped read set","readPaths"));}
+        Ok(())
+    }
+    let mut paths=paths.to_vec();paths.sort();paths.dedup();
+    for path in paths{
+        if path.is_empty()||Path::new(&path).is_absolute()||Path::new(&path).components().any(|v|matches!(v,std::path::Component::ParentDir|std::path::Component::RootDir|std::path::Component::Prefix(_))){return Err(invalid("invalid scoped read path","readPaths"));}
+        walk(&workspace,&workspace.join(path),&mut hash)?;
+    }
+    Ok(format!("sha256:{}",hex::encode(hash.finalize())))
+}
+
+#[cfg(test)] mod scoped_source_tests {
+    use super::*;
+    #[test] fn scoped_commitment_tracks_its_read_set_and_rejects_aliases(){
+        let root=std::env::temp_dir().join(format!("runtime-readset-{}",uuid::Uuid::now_v7()));fs::create_dir_all(root.join("left")).unwrap();fs::create_dir(root.join("right")).unwrap();
+        for args in [vec!["init"],vec!["-c","user.name=Test","-c","user.email=test@example.invalid","commit","--allow-empty","-m","source"]]{assert!(Command::new("git").arg("-C").arg(&root).args(args).output().unwrap().status.success());}
+        fs::write(root.join("left/input"),b"before").unwrap();let paths=vec!["left".to_string()];let before=workspace_source_readset_digest_at(&root,&paths).unwrap();
+        fs::write(root.join("right/output"),b"independent").unwrap();assert_eq!(before,workspace_source_readset_digest_at(&root,&paths).unwrap());
+        fs::write(root.join("left/input"),b"changed").unwrap();assert_ne!(before,workspace_source_readset_digest_at(&root,&paths).unwrap());
+        #[cfg(unix)] {std::os::unix::fs::symlink(root.join("left"),root.join("alias")).unwrap();assert!(workspace_source_readset_digest_at(&root,&["alias/input".into()]).is_err());}
+        fs::remove_dir_all(root).unwrap();
+    }
+}

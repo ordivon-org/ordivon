@@ -1863,6 +1863,7 @@ fn runtime_resource_budget_is_enforced_by_the_attempt_cgroup() {
     let runtime = context.runtime(2_000);
     let mut request = context.request("runtime_resource_budget.py", 0);
     request.execution.budget = ExecutionBudget {
+        scheduling: None,
         memory_max_bytes: Some(128 * 1024 * 1024),
         tasks_max: Some(32),
         cpu_quota_percent: Some(200),

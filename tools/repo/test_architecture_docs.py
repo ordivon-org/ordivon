@@ -85,6 +85,25 @@ def test_deployed_capability_set_is_exact() -> None:
         module.validate_deployed_graph(value)
 
 
+def test_current_harness_route_does_not_rewrite_historical_deployment() -> None:
+    deployed = graph()
+    source_routes = module.route_capabilities(
+        (ROOT / "services/gateway/src/ordivon_gateway/routing.py").read_text(encoding="utf-8")
+    )
+    module.validate_deployed_graph(deployed)
+    assert deployed["status"] == "HISTORICAL_DEPLOYED_SNAPSHOT_20260928"
+    assert set(deployed["routers"]["capabilityRouter"]["capabilities"]) == module.EXPECTED_CAPABILITIES
+    assert source_routes == module.EXPECTED_SOURCE_CAPABILITIES
+    # The historical September deployment snapshot is immutable; the live
+    # source has both the issuer-fenced Harness profile and a read-only
+    # discoverable native Linux release capability. Neither is installed
+    # merely because it appears in the source router.
+    assert source_routes - module.EXPECTED_CAPABILITIES == {
+        "execution.harness",
+        "runtime.release.linux",
+    }
+
+
 def test_default_plugin_rejects_direct_owner_servers() -> None:
     value = {
         "mcpServers": {
@@ -1893,7 +1912,7 @@ def test_git01_gateway_windows_release_historical_verifier_consumer() -> None:
 
 
 def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> None:
-    """Old Gateway DNS tunnel switch may not override the corrected owner carrier."""
+    """Keep the 2026-10-24 historical verdict, qualify today's actual Owner route."""
     census, plans = formal_issue_inputs()
     ledger = next(x for x in census["issues"] if x["id"] == "GIT-01")
     matches = [x for x in ledger["consumerSelections"]
@@ -1908,7 +1927,12 @@ def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> 
     p = ROOT / "platform/workstation/tofu/agent-birth-handoff/main.tf"
     source = p.read_text()
     gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
-    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    # The historical Git-01 native SourceCut was correct at the time, but the
+    # current remote Cloudflare DNS points to ordivon-wsl, while Windows
+    # native :19000 has no listener. Do not turn historical evidence into a
+    # permanent requirement to publish an unqualified native origin.
+    assert 'content = "${local.production_tunnel_id}.cfargotunnel.com"' in gateway
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' not in gateway
     module.validate_formal_issue_census(census, plans)
 
 @pytest.mark.parametrize(

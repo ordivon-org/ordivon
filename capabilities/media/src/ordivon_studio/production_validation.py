@@ -148,29 +148,51 @@ def _validate_production_semantics(
         # Derived article chapters and encoded media outputs must not be forced
         # to equal an unrelated source artifact.
         for output in production.get("outputs", []):
-            if not isinstance(output, dict) or "sourceCarrier" not in output:
+            if not isinstance(output, dict):
                 continue
-            carrier = output["sourceCarrier"]
             output_id = output.get("id")
-            if not isinstance(carrier, str) or carrier not in source_paths:
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not a declared source")
+            source_carrier = output.get("sourceCarrier")
+            output_carrier = output.get("outputCarrier")
+            if source_carrier is None and output_carrier is None:
                 continue
+            if source_carrier is not None and output_carrier is not None:
+                errors.append(f"{prefix}: output {output_id!r} has multiple carrier types")
+                continue
+            if source_carrier is not None:
+                if not isinstance(source_carrier, str) or source_carrier not in source_paths:
+                    errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not a declared source")
+                    continue
+                carrier = source_carrier
+                role = "sourceCarrier"
+            else:
+                if not isinstance(output_carrier, str) or not _is_repository_path(output_carrier):
+                    errors.append(f"{prefix}: output {output_id!r} invalid outputCarrier path")
+                    continue
+                carrier = output_carrier
+                role = "outputCarrier"
             path = (production_path.parent / carrier).resolve()
-            if not path.is_relative_to(ROOT.resolve()) or not path.is_file():
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not an accessible repository file")
+            if not path.is_relative_to(production_path.parent.resolve()):
+                errors.append(f"{prefix}: output {output_id!r} {role} escapes Production root")
                 continue
             expected_digest = output.get("blobDigest")
             if not isinstance(expected_digest, str):
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier requires blobDigest")
+                errors.append(f"{prefix}: output {output_id!r} {role} requires blobDigest")
+                continue
+            if not path.is_file():
+                # Retained output locations are historical physical hints.
+                # An absent file is UNKNOWN for consumers, not a failed work.
+                if role == "sourceCarrier":
+                    errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not an accessible repository file")
                 continue
             try:
                 with path.open("rb") as source_file:
                     actual_digest = "sha256:" + hashlib.file_digest(source_file, "sha256").hexdigest()
             except OSError as exc:
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier unreadable: {exc}")
+                if role == "sourceCarrier":
+                    errors.append(f"{prefix}: output {output_id!r} sourceCarrier unreadable: {exc}")
                 continue
             if actual_digest != expected_digest:
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier digest mismatch")
+                errors.append(f"{prefix}: output {output_id!r} {role} digest mismatch")
     return errors
 
 

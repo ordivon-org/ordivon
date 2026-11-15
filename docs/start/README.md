@@ -21,7 +21,7 @@ before making availability claims.
 | Curious user or researcher | [Run a read-only Finance example](human-first-run.md) | Get and interpret a deterministic result without brokerage access |
 | Coding Agent or engineering contributor | [Agent's first verified task](agent-first-run.md) | Locate the natural owner, run its actual consumer, record evidence |
 | Someone looking for a specific capability | [Find the right task owner](tasks.md) | Reach the owner-specific entry and confirm readiness |
-| Architecture reader | [Current architecture projection](../architecture/CURRENT_ARCHITECTURE.md) | Understand the owner boundaries and source-vs-deployment caveat |
+| Architecture reader | [Current Owner entrypoints](../../README.md#where-to-start) | Use the [2026-09-28 architecture snapshot](../architecture/CURRENT_ARCHITECTURE.md) only for historical deployment context |
 
 These paths are complementary. **Human documentation explains an outcome and
 how to achieve it; Agent documentation adds discovery, source control, testing
@@ -44,7 +44,7 @@ up exact information and understanding design trade-offs.
 
 The root repository describes source ownership; it does not certify the
 current health of a remote service. The dated
-[architecture projection](../architecture/CURRENT_ARCHITECTURE.md) explicitly
+[2026-09-28 architecture snapshot](../architecture/CURRENT_ARCHITECTURE.md) explicitly
 states that it is non-authoritative and must be reconciled with live owners,
 their release evidence and real consumers. The planned physical directory
 layout is not necessarily deployed.

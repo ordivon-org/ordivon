@@ -95,7 +95,9 @@ generic `SUCCESS` status.
   [CONTRIBUTING](../../CONTRIBUTING.md) and the owner's tests.
 
 This page is a starting tutorial, **not** a second mandatory global workflow
-or a new Agent authority.\r\n\r\n## Tool discovery under the real execution identity
+or a new Agent authority.
+
+## Tool discovery under the real execution identity
 
 For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
 and choose the **actual node and Runtime identity** before probing. The

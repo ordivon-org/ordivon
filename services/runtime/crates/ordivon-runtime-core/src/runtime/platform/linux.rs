@@ -147,6 +147,9 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     let mut command = Command::new("systemd-run");
     command
         .arg(format!("--unit={unit_name}"))
+        // Matches NodeResources measurement of system.slice and its ancestors.
+        // Make the target explicit instead of relying on systemd-run defaults.
+        .arg("--slice=system.slice")
         .arg("--no-block")
         .args([
             "--property=Type=exec",
@@ -168,6 +171,41 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
         command.arg(format!("--property=CPUQuota={cpu_quota_percent}%"));
     }
 
+    if let Some(schedule) = &budget.scheduling {
+        command.arg(format!(
+            "--property=CPUWeight={}",
+            (schedule.resources.cpu_millis / 10).clamp(1, 10000)
+        ));
+        if let Some(high) = schedule.memory_high_bytes {
+            command.arg(format!("--property=MemoryHigh={high}"));
+        }
+        if let Some(weight) = schedule.io_weight {
+            command.arg(format!("--property=IOWeight={weight}"));
+        }
+        let access = &schedule.workspace_access;
+        if access.read_only || !access.write_paths.is_empty() {
+            let mut readonly = vec![systemd_path_value(workspace_path)?];
+            if let Some(common) = workspace_git_common_dir {
+                readonly.push(systemd_path_value(common)?);
+            }
+            command.arg(format!("--property=ReadOnlyPaths={}", readonly.join(" ")));
+            let mut writes = Vec::new();
+            for relative in &access.write_paths {
+                let path = fs::canonicalize(workspace_path.join(relative))
+                    .map_err(|e| io_error("resolve scoped write directory", e))?;
+                if !path.starts_with(workspace_path) {
+                    return Err(RuntimeError::invalid(
+                        "write path escaped Workspace",
+                        "execution.budget.scheduling.workspaceAccess",
+                    ));
+                }
+                writes.push(systemd_path_value(&path)?);
+            }
+            if !writes.is_empty() {
+                command.arg(format!("--property=ReadWritePaths={}", writes.join(" ")));
+            }
+        }
+    }
     match execution_profile {
         crate::runtime::ExecutionProfile::TrustedLocal => {
             append_trusted_environment(&mut command);
@@ -496,29 +534,108 @@ pub(crate) fn systemctl_show(unit_name: &str) -> RuntimeResult<BTreeMap<String, 
         SYSTEMCTL_OBSERVATION_TIMEOUT,
         "systemctl show",
     )?;
-    if !output.status.success() && output.stdout.is_empty() {
+    parse_systemctl_show_output(output)
+}
+
+/// Strict native observation parses systemctl's completed output; the OS
+/// command's status is an observation, never an execution/disposition fact.
+fn parse_systemctl_show_output(output: Output) -> RuntimeResult<BTreeMap<String, String>> {
+    // A nonzero exit is not an authoritative partial snapshot, even when
+    // systemctl emitted some properties before losing its manager connection.
+    // No NativeStop/Runner recovery caller may infer negative Unit truth.
+    if !output.status.success() {
         return Err(RuntimeError::new(
             RuntimeErrorCode::ToolFailed,
             format!(
-                "systemctl show failed: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
+                "systemctl show did not complete successfully: {}",
+                String::from_utf8_lossy(&output.stderr)
+                    .trim()
+                    .chars()
+                    .take(512)
+                    .collect::<String>()
             ),
             None,
             true,
         ));
     }
+    let text = std::str::from_utf8(&output.stdout).map_err(|_| {
+        RuntimeError::new(
+            RuntimeErrorCode::ToolFailed,
+            "systemctl show emitted non-UTF8 properties",
+            None,
+            true,
+        )
+    })?;
     let mut properties = BTreeMap::new();
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
-        if let Some((key, value)) = line.split_once('=') {
-            properties.insert(key.to_string(), value.to_string());
+    for line in text.lines() {
+        let (key, value) = line.split_once('=').ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::ToolFailed,
+                "systemctl show emitted a malformed property",
+                None,
+                true,
+            )
+        })?;
+        if key.is_empty()
+            || properties
+                .insert(key.to_string(), value.to_string())
+                .is_some()
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ToolFailed,
+                "systemctl show emitted a duplicate or unnamed property",
+                None,
+                true,
+            ));
         }
     }
-    properties
-        .entry("LoadState".to_string())
-        .or_insert_with(|| "not-found".to_string());
-    properties
-        .entry("ActiveState".to_string())
-        .or_insert_with(|| "inactive".to_string());
+    // LoadState=not-found and ActiveState=inactive are POSITIVE observations
+    // of absence. Missing values must never be synthesized as that state.
+    // The absence of a Unit.Job is equally important: it gates irreversible
+    // LOST decisions after the cgroup is checked. systemctl explicitly emits
+    // "Job=" when there is no queued manager Job.
+    for required in [
+        "LoadState",
+        "ActiveState",
+        "SubState",
+        "Job",
+        "InvocationID",
+        "ControlGroup",
+        "MainPID",
+        "Result",
+        "ExecMainCode",
+        "ExecMainStatus",
+    ] {
+        if !properties.contains_key(required) {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ToolFailed,
+                format!("systemctl show omitted required {required}"),
+                Some(required),
+                true,
+            ));
+        }
+    }
+    if !matches!(
+        properties["LoadState"].as_str(),
+        "loaded" | "not-found" | "masked" | "error" | "bad-setting" | "merged" | "stub"
+    ) || !matches!(
+        properties["ActiveState"].as_str(),
+        "active"
+            | "activating"
+            | "deactivating"
+            | "inactive"
+            | "failed"
+            | "reloading"
+            | "refreshing"
+            | "maintenance"
+    ) {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ToolFailed,
+            "systemctl show returned an unknown Unit state",
+            None,
+            true,
+        ));
+    }
     Ok(properties)
 }
 
@@ -666,7 +783,11 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
     let root = Path::new("/sys/fs/cgroup").join(control_group.trim_start_matches('/'));
     match fs::metadata(&root) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            return Ok(CgroupPopulation::Removed);
+            return Ok(if cgroup_removed(control_group)? {
+                CgroupPopulation::Removed
+            } else {
+                CgroupPopulation::Unknown
+            });
         }
         Err(error) => return Err(io_error("inspect cgroup", error)),
         Ok(metadata) if !metadata.is_dir() => {
@@ -704,6 +825,26 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
             }
         }
         Err(error) => Err(io_error("read cgroup population", error)),
+    }
+}
+
+/// A vanished path is positive evidence only if cgroup2 is mounted.
+pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
+    let root = std::ffi::CString::new("/sys/fs/cgroup").expect("static cgroup root");
+    let mut info = std::mem::MaybeUninit::<libc::statfs>::uninit();
+    // SAFETY: NUL-terminated root and initialized output only on success.
+    if unsafe { libc::statfs(root.as_ptr(), info.as_mut_ptr()) } != 0 {
+        return Ok(false);
+    }
+    // SAFETY: statfs initialized info on successful return.
+    if unsafe { info.assume_init() }.f_type != libc::CGROUP2_SUPER_MAGIC {
+        return Ok(false);
+    }
+    let path = Path::new("/sys/fs/cgroup").join(control_group.trim_start_matches('/'));
+    match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Ok(_) => Ok(false),
+        Err(error) => Err(io_error("observe cgroup disappearance", error)),
     }
 }
 
@@ -780,6 +921,79 @@ fn tool_error(context: &str, error: std::io::Error) -> RuntimeError {
         None,
         true,
     )
+}
+
+/// Kernel notifications are wake-up hints only; callers re-read durable state.
+/// Inotify covers Result publication and output growth; cgroup.events covers
+/// process-tree population. A bounded fallback handles watch setup races.
+#[cfg(feature = "postgres-registry-admission")]
+pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>, wait: Duration) {
+    use std::io::Read;
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+    let wait = wait.min(Duration::from_secs(1));
+    if wait.is_zero() {
+        return;
+    }
+    // SAFETY: no pointers; a successful descriptor is transferred to OwnedFd.
+    let raw = unsafe { libc::inotify_init1(libc::IN_CLOEXEC | libc::IN_NONBLOCK) };
+    let inotify = if raw >= 0 {
+        Some(unsafe { OwnedFd::from_raw_fd(raw) })
+    } else {
+        None
+    };
+    let mut descriptors = Vec::new();
+    if let (Some(fd), Some(path)) = (
+        &inotify,
+        bundle.to_str().and_then(|p| std::ffi::CString::new(p).ok()),
+    ) {
+        // SAFETY: fd is live, path NUL terminated and the mask is valid.
+        if unsafe {
+            libc::inotify_add_watch(
+                fd.as_raw_fd(),
+                path.as_ptr(),
+                libc::IN_MODIFY | libc::IN_MOVED_TO | libc::IN_CREATE | libc::IN_DELETE,
+            )
+        } >= 0
+        {
+            descriptors.push(libc::pollfd {
+                fd: fd.as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            });
+        }
+    }
+    let mut events = control_group
+        .filter(|path| cgroup_population(path).is_ok())
+        .and_then(|path| {
+            fs::File::open(
+                Path::new("/sys/fs/cgroup")
+                    .join(path.trim_start_matches('/'))
+                    .join("cgroup.events"),
+            )
+            .ok()
+        });
+    if let Some(file) = events.as_mut() {
+        let mut initial = String::new();
+        if file.read_to_string(&mut initial).is_ok() {
+            descriptors.push(libc::pollfd {
+                fd: file.as_raw_fd(),
+                events: libc::POLLPRI | libc::POLLERR,
+                revents: 0,
+            });
+        }
+    }
+    if descriptors.is_empty() {
+        thread::sleep(wait.min(Duration::from_millis(250)));
+        return;
+    }
+    // SAFETY: descriptors and their backing Files stay alive through poll.
+    let _ = unsafe {
+        libc::poll(
+            descriptors.as_mut_ptr(),
+            descriptors.len() as libc::nfds_t,
+            wait.as_millis().min(i32::MAX as u128) as i32,
+        )
+    };
 }
 
 #[cfg(test)]
@@ -900,6 +1114,121 @@ mod tests {
         })
         .unwrap();
         assert!(command.get_args().any(|arg| arg == "--no-block"));
+        assert!(command.get_args().any(|arg| arg == "--slice=system.slice"));
+    }
+
+    // All these samples are subprocess output, not mocked PG outcomes. Native
+    // systemd consumers must never learn "not-found" from missing output.
+    #[test]
+    fn incomplete_systemctl_show_cannot_invent_not_found_or_inactive() {
+        let output = Command::new("/usr/bin/sh")
+            .args(["-c", "printf 'ControlGroup=/system.slice/demo.service\\n'"])
+            .output()
+            .unwrap();
+        let error = parse_systemctl_show_output(output).unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
+        assert!(error.retryable);
+    }
+
+    #[test]
+    fn failed_systemctl_show_with_partial_stdout_is_not_native_truth() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=not-found\\nActiveState=inactive\\nJob=\\n'; exit 3",
+            ])
+            .output()
+            .unwrap();
+        let error = parse_systemctl_show_output(output).unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
+    }
+
+    #[test]
+    fn systemctl_show_without_manager_job_state_is_not_terminal_evidence() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=not-found\\nActiveState=inactive\\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn duplicate_systemctl_state_cannot_silently_override_first_observation() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=loaded\\nActiveState=active\\nActiveState=inactive\\nJob=\\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn unrecognized_systemctl_active_state_is_unknown_not_inactive() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=loaded\\nActiveState=indeterminate\\nJob=\\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn explicit_systemctl_not_found_is_native_negative_evidence() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=not-found\\nActiveState=inactive\\nSubState=dead\\nJob=\\nInvocationID=\\nControlGroup=\\nMainPID=0\\nResult=success\\nExecMainCode=0\\nExecMainStatus=0\\n'",
+            ])
+            .output()
+            .unwrap();
+        let properties = parse_systemctl_show_output(output).unwrap();
+        assert_eq!(
+            properties.get("LoadState").map(String::as_str),
+            Some("not-found")
+        );
+        assert_eq!(
+            properties.get("ActiveState").map(String::as_str),
+            Some("inactive")
+        );
+        assert!(!unit_has_pending_job(&properties));
+    }
+
+    #[test]
+    fn three_fields_without_full_systemd_witness_are_inconclusive() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=loaded\nActiveState=inactive\nJob=\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn unrecognized_systemctl_load_state_is_unknown_not_false() {
+        let output = Command::new("/usr/bin/sh")
+            .args(["-c", "printf 'LoadState=BROKEN\nActiveState=inactive\nSubState=dead\nJob=\nInvocationID=\nControlGroup=\nMainPID=0\nResult=success\nExecMainCode=0\nExecMainStatus=0\n'"])
+            .output().unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    #[ignore = "requires a running native Linux systemd manager"]
+    fn native_systemctl_missing_unit_is_explicit_negative_evidence() {
+        let properties = systemctl_show("ordivon-r9-unknown-unit-20261111.service").unwrap();
+        assert_eq!(properties["LoadState"], "not-found");
+        assert_eq!(properties["ActiveState"], "inactive");
+        assert_eq!(properties["Job"], "");
+        assert!(!unit_is_active(&properties));
+        assert!(!unit_has_pending_job(&properties));
     }
 
     #[test]

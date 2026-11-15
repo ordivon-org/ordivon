@@ -1,9 +1,9 @@
 # Ordivon Composition Architecture Contract R1
 
 Date: 2026-09-21  
-Status: CURRENT ARCHITECTURE CONTRACT / DEPLOYED BASELINE
+Status: R1 composition-law reference; 2026-09-21 deployment baseline is historical
 
-Current deployed topology is projected in `CURRENT_ARCHITECTURE.md` and `deployed-architecture-r1.json`. This contract defines the durable composition laws; deployed-state claims must follow the current projection rather than historical execution plans.
+`CURRENT_ARCHITECTURE.md` and `deployed-architecture-r1.json` record the 2026-09-28 historical deployment topology, not the running system. The composition laws below are source contracts; current owner paths and installed-state claims require the live Owner interfaces and deployment readback.
 
 ## System of interest
 

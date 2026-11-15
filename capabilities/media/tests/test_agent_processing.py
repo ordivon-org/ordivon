@@ -179,6 +179,82 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             self.assertEqual(accepted_again["adapterDigest"], third["adapterDigest"])
             self.assertEqual(accepted_again["execution"]["args"][2], third["profilePath"])
 
+    def test_exact_input_binding_emits_native_runtime_host_dependencies(self) -> None:
+        """A selected materialized input binds input/profile/adapter bytes."""
+        from ordivon_studio.agent_processing import processing_probe_plan
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profiles = root / "processing/profiles"
+            adapters = root / "processing/bin"
+            profiles.mkdir(parents=True)
+            adapters.mkdir(parents=True)
+            (profiles / "av.json").write_text(json.dumps({
+                "schemaVersion": 1, "kind": "ordivon.media.v2.av-profile",
+                "id": "bound-av",
+            }), encoding="utf-8")
+            (adapters / "probe-av.sh").write_text("#!/bin/bash\\n", encoding="utf-8")
+            selected_file = root / "selected.mp4"
+            selected_file.write_bytes(b"selected original bytes")
+            digest = "sha256:" + hashlib.sha256(selected_file.read_bytes()).hexdigest()
+            row = processing_profiles(root)["profiles"][0]
+            arguments = {
+                "profile_id": "bound-av",
+                "expected_profile_digest": row["profileDigest"],
+                "expected_adapter_digest": row["adapterDigest"],
+                "input_path": "selected.mp4",
+                "evidence_directory": "observations",
+                "expected_input_digest": digest,
+            }
+            plan = processing_probe_plan(root, **arguments)
+            execution = plan["execution"]
+            self.assertEqual(execution["args"][1], str(selected_file.resolve()))
+            self.assertEqual(len(execution["hostDependencies"]), 3)
+            self.assertEqual(
+                {entry["path"]: entry["expectedDigest"] for entry in execution["hostDependencies"]},
+                {
+                    str(selected_file.resolve()): digest,
+                    str((profiles / "av.json").resolve()): row["profileDigest"],
+                    str((adapters / "probe-av.sh").resolve()): row["adapterDigest"],
+                },
+            )
+            self.assertEqual(plan["inputByteBinding"]["status"], "proposed-not-executed")
+            self.assertEqual(plan["inputByteBinding"]["expectedDigest"], digest)
+
+            # Exercise the public Agent JSON Schema, not only the direct
+            # compiler. The legacy no-input-digest contract is covered above.
+            public_args = {
+                "profileId": "bound-av",
+                "expectedProfileDigest": row["profileDigest"],
+                "expectedAdapterDigest": row["adapterDigest"],
+                "inputPath": "selected.mp4",
+                "evidenceDirectory": "observations",
+                "expectedInputDigest": digest,
+            }
+            wire_plan = execute_surface_action(
+                "studio_processing_probe_plan", public_args, root=root
+            )
+            self.assertEqual(
+                wire_plan["execution"]["hostDependencies"], execution["hostDependencies"]
+            )
+            with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                execute_surface_action(
+                    "studio_processing_probe_plan",
+                    {**public_args, "expectedInputDigest": "sha256:ABC"},
+                    root=root,
+                )
+
+            selected_file.write_bytes(b"substituted bytes")
+            with self.assertRaisesRegex(ValueError, "input digest changed"):
+                processing_probe_plan(root, **arguments)
+            arguments["expected_input_digest"] = "sha256:ABC"
+            with self.assertRaisesRegex(ValueError, "lowercase"):
+                processing_probe_plan(root, **arguments)
+            selected_file.unlink()
+            arguments["expected_input_digest"] = digest
+            with self.assertRaises(FileNotFoundError):
+                processing_probe_plan(root, **arguments)
+
     def test_duplicate_profile_identity_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

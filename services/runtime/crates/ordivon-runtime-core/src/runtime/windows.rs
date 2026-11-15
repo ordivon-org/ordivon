@@ -2427,6 +2427,7 @@ mod tests {
         let args = vec!["--literal=$HOME".to_string(), "a b".to_string()];
         let environment = BTreeMap::from([("AgentFlag".to_string(), "1".to_string())]);
         let budget = ExecutionBudget {
+            scheduling: None,
             memory_max_bytes: Some(268_435_456),
             tasks_max: Some(3),
             cpu_quota_percent: Some(50),

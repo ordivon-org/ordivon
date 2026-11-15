@@ -30,6 +30,14 @@ theme_override_font_sizes/font_size = 17
 theme_override_colors/font_color = Color(1, 0.8, 0.5, 1)
 text = "Watch the enemy intent before committing."
 
+[node name="Outcome" type="Label" parent="."]
+visible = false
+layout_mode = 2
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(0.69, 0.98, 0.75, 1)
+text = ""
+
 [node name="Actions" type="HFlowContainer" parent="."]
 layout_mode = 2
 [node name="Attack" type="Button" parent="Actions"]

@@ -44,6 +44,99 @@ Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unf
 
 Use existing `.agents/skills/design-structure-matrix` for observed coupling and `.agents/skills/compositional-contracts` for actual substitution seams. Prefer deleting unconsumed code over renaming public wire identifiers. A module split is useful only if it gives a replaceable contract without breaking actual consumers.
 
+## Output byte identity: exact consumer readback
+
+Use the existing `production-context` operation, not a second asset registry.
+The projection exposes `outputByteIdentity.observations` next to owner-declared
+Output metadata. The source-owned `sourceCarrier` names a declared source
+that is byte-identical to the Output. A different opt-in field,
+`outputCarrier`, names a Production-relative materialized output (e.g.
+`render/master.wav`), never its original source or Artifact storage owner.
+The consumer checks actual bytes in both cases at read time.
+
+For rendered outputs without a declared local carrier (notably external
+Resolve/R2 carriers), select the *actual final file* explicitly:
+
+```bash
+cd capabilities/media
+uv run --frozen ordivon-studio production-context \
+  productions/runtime-introduction \
+  --output-file runtime-film-en-landscape=/absolute/path/to/selected-film.mp4
+```
+
+`MATCHES_DECLARED_DIGEST` means the observed file bytes matched the
+Production's declared Output digest at inspection. `DIFFERS_FROM_DECLARED_DIGEST`
+is a falsifying byte observation. `UNKNOWN_*` means missing file/binding or
+unavailable evidence; it is not a failed Production or evidence of currentness.
+`INVALID_*` describes a malformed or unsafe carrier binding.
+
+**Human:** compare the selected Output ID, source binding/Claim, inspected file
+and digest. Confirm any technical QC independently; assess quality, rights and
+audience fit; then make a separate decision about publication with the owning
+destination. Never infer publication authorization from `approved`.
+
+**Agent:** first select the Production by caller intent. Read
+`studio_production_context` with optional typed `outputFiles` (Output ID
+to selected absolute file path), or use the CLI with `--output-file`.
+Both check declared source and local output carriers by default and compare
+explicitly selected transformed outputs when requested. An inaccessible
+`outputCarrier` returns `UNKNOWN_SELECTED_FILE_UNAVAILABLE`, rather than
+revoking historical Output status. Require exact `MATCHES_DECLARED_DIGEST`
+on the selected output before
+asserting local byte identity; preserve `UNKNOWN` and `DIFFERS` and name
+the actual bound path and SourceCut in the decision. Do not infer physical
+availability from Creative Index, or trust a historical Runtime receipt as
+proof of a file's current bytes. A digest match is **not** technical quality,
+legal permission, semantic acceptance, editorial approval, persistent
+immutability, or external publication evidence. This comparison is a
+non-atomic filesystem observation, not a continuous watch.
+
+**Formal boundary:** `formal/ProductionOutputByteIdentity.lean` proves only
+the abstract Option-digest equality model and non-promotion of Output status.
+`tests/test_production_context.py` covers the Python integration and real
+selected Production source carrier. Neither proves SHA-256, atomic file
+readback, provider authority or end-to-end publication. Preserve native
+consumer tests. The formal proof is registered in the existing Formal CI gate.
+
+## Operation dependency impact: source-only, no cache or executor
+
+The selected Sonic Ident Production now declares one bounded native
+`sources.sourceDocuments` entry: `operation-lineage.json`, with five
+source-owned steps. `studio_production_context` exposes the
+`operationLineage` read-only projection automatically when this exact
+document is explicitly declared. No generic repo scan, provider state,
+implicit agent execution, or new scheduler is involved.
+
+The projection verifies selected source/intermediate/final-file digests.
+Every declared predecessor edge must name a downstream `inputFiles` carrier
+whose **path and SHA-256** match an explicitly retained file or declared
+Output carrier of that predecessor. `dependencyByteLinks` reports these
+exact local declarations; `historicalExecutionUseProven=false` deliberately
+does not claim those bytes were read by a historical provider. This is
+stricter than merely trusting `dependsOn`. Distinguish
+`REVALIDATE_REQUIRED` (a byte changed in a dependency closure),
+`UNKNOWN_UPSTREAM` (insufficient evidence), and
+`NO_BYTE_DRIFT_OBSERVED` (only the explicitly declared byte cut matched).
+Do **not** treat the last state as reproducible execution, cache authorization,
+semantic quality, or a licence to skip work. Every row has `actionKey=null`,
+`cacheReuseAuthorized=false`, unknown full tool/environment/recipe identity.
+
+**Agent:** read the selected production, inspect the 5-step `operationLineage`
+and `revalidateStepIds`/`unresolvedStepIds`. On a changed source, propose
+only the downstream checks to the human or Runtime planner; do not invoke
+SoX/FFmpeg or accept cache results without separately qualified invocation,
+tool and environment evidence. On missing bytes, preserve UNKNOWN. On local
+file-match observations, do not infer historical Runtime Job recovery or
+publication. Use `tests/test_operation_impact.py` for independent falsifiers.
+
+**Human:** use `uv run --frozen ordivon-studio production-context
+productions/convergence-sonic-ident` and inspect `operationLineage`. Change
+one source in an isolated test workspace to see the scoped effects. The
+current `generate.py` can reproduce `render/convergence-source.wav` in a
+temporary directory under the selected Python 3.15.1 environment, but
+historical SoX/FLAC/Vorbis/FFmpeg invocation parameter closure is not yet
+qualified. See `productions/convergence-sonic-ident/README.md`.
+
 ## Selected processing example
 
 ```bash

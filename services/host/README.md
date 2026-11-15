@@ -17,7 +17,7 @@ Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_hos
 ## Tests with mature upstream tools
 
 The public canonical-JSON boundary has a real [Hypothesis](https://github.com/HypothesisWorks/hypothesis)
-property/regression test in `tests/test_canonical_property.py`. Run the local
+property/regression test in `tests/test_canonical_json_property.py`. Run the local
 Owner's native `mise run test:focused`; select any existing pytest node with
 `HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused`.
 Both tasks invoke installed pytest directly, not a new harness.
@@ -36,6 +36,16 @@ Use
 `mise run verify` for the full Host Owner test gate; it can legitimately
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
+
+## Attention recovery model (one transaction cut)
+
+From the repository root, run `mise run host:formal:attention-reentry` with the existing pinned TLA+ JAR.
+The model covers interleaved relevant/unrelated change commits, monotone ACKs,
+one-page re-entry and one captured MVCC cut. Both mixed-snapshot Topic cursor
+and non-final page skipping are falsified with separate unsafe transitions.
+This is a bounded abstract model, not a PostgreSQL SQL/source refinement or
+installed Agent proof: retain the existing real PG18 single-snapshot and
+pagination consumer tests. No new Host database, Tool or model executor.
 
 ## Host formal verification: Human and Agent entrypoints
 
@@ -107,6 +117,16 @@ collaboration, Subscription and Attention navigation.
 
 Legacy `task.*` and `board.*` tools and their active PostgreSQL storage are physically retired. Historical recovery evidence is retained separately and does not constrain the active model.
 
+Work continuity is **current-snapshot-first**: the only mandatory revision is
+the current Work snapshot. Earlier revisions may be retained or pruned according to
+real consumer needs; missing historical revisions are not a Host health failure.
+`work.get(revision=old)` may return a typed not-found/conflict when that revision
+was pruned. The current snapshot's stored digest and payload must still agree,
+and PostgreSQL CAS must still arbitrate concurrent updates. The `history` Doctor
+verifies the integrity of any history that remains, but no longer requires
+a gap-free archive. This is a contract change, not proof that production
+has already compacted its older snapshots.
+
 The active ontology is intentionally orthogonal: `Work` owns revisioned semantic continuity, `Space`/`Topic`/`Message` own collaboration structure, and `Subscription`/`Attention` own rebuildable actor-scoped navigation. Work state is not chat history, social participation is not assignment or authorization, and Attention is not priority or scheduler truth.
 
 Re-entry uses two different cursors: `attention.*` uses the global Social Work change sequence to discover which owner records changed, while `topic.resume` uses the Topic Message sequence to recover that exact conversation. Agents must not substitute one cursor domain for the other.
@@ -115,8 +135,74 @@ Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy
 
 External-news publication is not a Host responsibility. Its unconsumed \`news_publications\` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
 
+The Host installer accepts an optional fifth argument --prepare-only
+only when the fourth argument pins an independently reviewed Host Git tree
+OID. Preparation verifies immutable Git source, MCP tool surface, exact
+Python/uv versions and the locked release-local package, but leaves current
+and the systemd process intact and prints activation=NOT_PERFORMED. A later
+ordinary activation independently revalidates the same immutable candidate.
+This mode does not authorize a deployment, reload secrets, provision Actor
+Grants or prove migration of the main/peer Gateway and Cloudflare clients.
+The separate Gateway Host/Security release check and live positive/negative
+Agent consumers must still pass before cutting over the single Host Writer.
+
 Production releases are immutable Git-SHA directories with a release-local `.venv`; systemd executes only `/opt/ordivon/host-v2/current/.venv/...`. This prevents a shared Python environment from retaining stale code when the package version is unchanged.
 
 Host v2 intentionally does not restore v1's SQLite Journal/WAL/file-lock machinery, filesystem CAS for normal JSON payloads, separate SQLite Board FTS sidecar, Runtime/Harness/provider proxying, historical cognition execution stack, or a separate ContinuityLens subsystem.
 
 See `docs/SOCIAL_WORK_FABRIC_R2_SPEC.md` for the active Social Work Fabric contracts and `docs/SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md` for source-bound implementation receipts. `docs/SOCIAL_WORK_FABRIC_R1.md` is historical evidence, not current schema or API authority.
+
+
+### PostgreSQL connection lifecycle
+
+The MCP process owns one native Psycopg ConnectionPool, created in main()
+and closed on stdio/HTTP server exit. Work, Social, Attention and Host status
+all borrow from that same bounded pool; each operation retains its existing
+Psycopg transaction and isolation level. build_server(dsn) and direct Store
+constructors still use single-use native Psycopg connections for callers that
+own no process pool (e.g. schema preflight and isolated tests).
+
+ORDIVON_HOST_V2_PG_POOL_MAX_SIZE defaults to 8 (accepted 1..64).
+The queue is limited to 64 waiters and checkout timeout is 5 seconds.
+This is backpressure, not a claim about domain completion or automatic retry.
+Use mise run test:postgres:disposable to run actual PostgreSQL 18 / Alembic
+and native-pool rollback, bound and full MCP consumer tests. Ordinary pytest
+runs without the disposable DSN skip PostgreSQL tests and do not constitute
+an installed-Host qualification.
+
+When a native pool checkout times out or its waiting queue rejects an
+unadmitted request, MCP returns a bounded typed Host error:
+DEADLINE_EXCEEDED for PoolTimeout, or RESOURCE_EXHAUSTED for
+TooManyRequests, with retryable=true and retry-with-bounded-backoff.
+These Psycopg errors occur before a connection checkout; the adapter
+does not retry effects or expose DSN/internal exception messages. Other
+operational failures such as a closed pool retain the normal generic
+internal error boundary.
+
+## Native PostgreSQL pool diagnostics (MCP Host surface epoch 6)
+
+The read-only host.pool.stats MCP tool uses Psycopg's official
+ConnectionPool.get_stats() in the serving Host process. It does not
+open a new database connection, run SQL, mutate counters, or introduce a
+metrics database/collector. Direct (unpooled) test servers report
+connectionMode=direct and stats=null, rather than pretending that
+a PostgreSQL pool exists. A real Host server reports the fixed set of
+15 upstream integer fields, filling omitted upstream zero-valued keys
+with 0 and never returning credentials, DSN or private exception details.
+
+Human: inspect host.pool.stats to read pool_size/pool_available,
+requests_waiting, requests_queued, requests_errors, requests_wait_ms,
+and connections_errors while diagnosing connection pressure. Stats are
+per-process snapshots: after systemd restart, counters start fresh.
+requests_wait_ms and usage_ms are cumulative milliseconds, not
+p95/p99 latency histograms. For those quantiles, use a time-series
+telemetry consumer with correct histogram instruments rather than
+mislabelled derived averages.
+
+Agent: treat this tool as process-local operational diagnostics, not Host
+Work/Social/Attention domain truth and not PostgreSQL-cluster-wide state.
+Do not call pop_stats() from a monitoring reader: it resets counters,
+so repeated consumers would interfere with each other. Never derive
+domain acceptance, scheduling priority, or a safe command retry from
+a pool gauge alone; typed pre-checkout rejections have their own
+MCP error contract.

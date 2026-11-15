@@ -1,14 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-  echo "usage: install_release.sh <repo> <commit> <prefix>" >&2
+# The fourth argument is the independently reviewed Host Git tree OID.
+# Preparing without activating is intentionally available ONLY with that
+# tree pin: a candidate Git commit alone can be an unrelated Merge Queue SHA.
+if [ "$#" -lt 3 ] || [ "$#" -gt 5 ] ||
+   { [ "$#" -eq 5 ] && [ "$5" != "--prepare-only" ]; }; then
+  echo "usage: install_release.sh <repo> <commit> <prefix> [expected_host_tree_oid] [--prepare-only]" >&2
   exit 2
 fi
 
 REPO=$1
 COMMIT=$2
 PREFIX=$3
+EXPECTED_HOST_TREE=${4:-}
+PREPARE_ONLY=false
+if [ "$#" -eq 5 ]; then
+  PREPARE_ONLY=true
+fi
 UV=${ORDIVON_HOST_V2_RELEASE_UV:-}
 PYTHON_INSTALL_DIR=${ORDIVON_HOST_V2_PYTHON_INSTALL_DIR:-$PREFIX/python}
 SOURCE_SUBTREE="services/host"
@@ -27,6 +36,20 @@ fi
 if ! git -C "$REPO" cat-file -e "$COMMIT:$SOURCE_SUBTREE/pyproject.toml" 2>/dev/null; then
   echo "release source must contain services/host/pyproject.toml" >&2
   exit 2
+fi
+
+# An exact commit alone can name a different adjacent Merge Queue PR.
+# If an independently reviewed Host tree identity is available, verify
+# native Git tree OID before creating directories or invoking tools.
+if [[ "$#" -ge 4 ]]; then
+  case "$EXPECTED_HOST_TREE" in
+    ''|*[!0-9a-f]*) echo "expected host tree must be a nonempty lowercase Git object ID" >&2; exit 2 ;;
+  esac
+  ACTUAL_HOST_TREE=$(git -C "$REPO" rev-parse --verify "$COMMIT:$SOURCE_SUBTREE")
+  if [[ "$ACTUAL_HOST_TREE" != "$EXPECTED_HOST_TREE" ]]; then
+    echo "release Host source tree differs from expected reviewed tree" >&2
+    exit 2
+  fi
 fi
 
 mkdir -p "$PREFIX/releases"
@@ -131,6 +154,19 @@ chmod -R a+rX "$PYTHON_INSTALL_DIR"
 # The lock file belongs to the immutable Git release. The venv belongs to that release too.
 UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"
 chmod -R a+rX "$RELEASE"
+
+# Build, lock and source-verify the complete candidate before changing any
+# serving symlink. Host upstream authentication cannot safely be switched
+# until the real Gateway/peer/Cloudflare consumers and Security Principal
+# grants are qualified. This mode is never a live release or a permission
+# to skip Gateway's independent Host/Security release admission gate.
+if [ "$PREPARE_ONLY" = true ]; then
+  printf 'prepared_release=%s\n' "$COMMIT"
+  printf 'prepared_host_tree=%s\n' "$EXPECTED_HOST_TREE"
+  printf 'prepared_dir=%s\n' "$RELEASE"
+  printf 'activation=NOT_PERFORMED\n'
+  exit 0
+fi
 
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"

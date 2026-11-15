@@ -1,5 +1,9 @@
 # Ordivon Finance — Human 操作指南（R1）
 
+**当前 Golden Road：** [Finance Golden Road R1](FINANCE_GOLDEN_ROAD_R1.md)。
+入口覆盖 Portfolio 原资金计划、Governance NON_LIVE、Qlib/Nautilus
+原生模拟、PostgreSQL 账务与独立读回；PIT、真实券商和账户权限需要另行准入。
+
 **Directory audit and Human/Agent roles:** [Finance Owner / LEGO audited guide](FINANCE_DIRECTORY_OWNER_AUDIT_R1.md). Use the existing natural Owners instead of recreating the retired Wave-A pipeline.
 
 > 多阶段情景树优化与严格非预见性说明：
@@ -32,6 +36,16 @@
 
 这些模块分别归属 Markets、Portfolio、Research、Risk、Governance、Accounting、Trading 七个已有源码 Owner。**Human 先选择目的，Agent 再选择经过验证的最小 LEGO；不能反过来因为存在某个模块就自动授予它资金权限。**
 
+
+### 历史行情的两个不同时间（Human 指南）
+
+Markets ETF EOD 原始快照中的 availableAt 可能只是数据源声称的发布时间；
+capturedAt 则是本次快照声明的采集时刻。在没有独立认证的历史归档时，
+Research 一律按本次采集时刻判定整份快照可用，绝不把今天下载的旧行情
+回填到过去投资者的决策。新增 etf_eod_capture_to_pit_vintages 复用原有
+Markets 准入，保留 SECONDARY_VENDOR_NOT_ATTESTED 来源状态及价格基准，
+并通过已有 Portfolio 条件优化消费者使用，不自动证明分红、拆股、实际
+发布时间或未来投资收益。详细合同见 PIT_JOINT_FORECAST_R1.md。
 
 ### 源码 LEGO 索引：CA01—CA10 的实际消费者是什么？
 
@@ -301,6 +315,45 @@ Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。�
 
 旧 SQLite 引擎、R0-R5 脚本和差分测试已退役。36 条两操作情景直接对真实 PostgreSQL 和独立账务预期进行比较，无需迁移旧 SQLite 数据。Human 可从 scripts/run-nonlive-capital-effect-matrix 了解模拟资金效果；这仍需要显式 PG DSN，且不构成外部交易授权。Agent 的操作顺序见现有 finance-paper-investment Skill。
 
+## 真实 ETF 历史研究与未来验证：第一个经济闭环（2026-11-08）
+
+**Human：** 已有 Finance 示例 60% SPY / 40% SHY 对比 100% SPY，
+用 GitHub 提供的 1,511,995 字节来源数据进行了 SHA-256 + Git Blob
+双哈希校验与独立 Decimal 经济重算。2025-01-02 至 2026-08-10
+期间，100,000 USD 模拟本金在给定费用下分别成为
+122,561.63 与 134,273.58 USD；前者最大回撤 11.15%，后者 18.77%。
+这是一项明确的收益—回撤取舍，不是后者对所有投资者绝对更优。
+
+**Agent：** 从现有
+evidence/finance-research/spy-shy-forward-20261108/README.md
+读取可重放研究流程，调用既有 Markets/Portfolio Paper Replay、
+独立算术核对与 Finance Research freeze-experiment，不要新增引擎。
+已在 2026-11-08 冻结 2026-11-09 至 2027-03-31 的未来实验。
+其当前证据为 UNKNOWN / NO_HOLDOUT_EVIDENCE，不能自称已取得未来收益、
+真实价格来源认证、独立 Alpha 或实盘授权。原始行情供应商、公司行动、
+交易成本和真正的历史 PIT 可用性仍需额外认证。
+
+## Agent 研究角色与权限：Human / Agent 指引（2026-11-08）
+
+**Human：** 决定真实经济研究问题、期限、现金/被动基准和研究资源预算。
+可以将普通研究和非实盘实验委托给 Agent，无需逐次审批每次代码运行；
+研究结束或另一 Agent 同意都不代表获得真实资金授权。
+真实账户效果始终由经独立资格验证的 Trading/Governance 消费者控制。
+
+**Agent：** 按任务组合 Research Director、Discovery、Quant Researcher
+和 Independent Reviewer 等角色，不创建七个常驻 Owner Agent。
+使用现有 finance-experiment-review Skill 的冻结实验、Holdout
+评价与候选经济重放，避免新建研究引擎。Reviewer 独立性来自
+分离的输入、评价合同及可追溯结果，不来自 role 文字标签。
+不得自己创建 Security 委派 Grant，也不得把研究自报结果提升
+为真实行情来源、已证实的 Alpha 或真实金融交易权限。
+
+**验证：** tests/test_finance_agent_role_composition.py 用真实 Research
+CLI 和 Security Owner OPA 合同测试了研究角色委派、越权动作、
+资源越界、Grant 过期、预算耗尽和高风险升级。测试身份和授权
+输入均为合成的已认证投影，未证明生产入口的身份认证、预算扣减
+或实际金融效果。
+
 ## Prospective Validation：日期对齐与真实数据证据
 
 `research/prospective_validation.py` 只负责一项纯计算：在冻结的决策时点与交易所时区下，找出所有必需资产**共同拥有、严格晚于决策日**的候选交易日期。它不接触行情原始响应，也无法核实首次观测时间、数据发布时间、使用许可和企业行动。
@@ -308,3 +361,28 @@ Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。�
 **Human：** `postDecisionSessionDatesAligned=true` 只说明日历条件满足；`POST_DECISION_DATES_ALIGNED_SOURCE_UNVERIFIED` 不是“样本外数据已经可用”。当前返回的 `postDecisionHoldoutAvailable=false` 是刻意保留的证据边界。不可把回填日期或尚未发生的日期当成真实的未来收益观察。
 
 **Agent：** 先固定 `decision_boundary` 与 `session_timezone`，调用已有 Research 日历算子得到 `alignedCommonSessionDates`；再到现有 Markets 与 Research Owner 核验原始来源摘要、首次观测/发布时间、企业行动和真实评价时点。上述证据缺失时保持 UNKNOWN，不得宣称 PIT 验证、OOS 评价完成、经济优越性或实盘交易权限。禁止再建时间数据目录、专用证明服务或第二套研究执行器。
+
+
+### Paper 日结中文报告：普通用户日常使用
+
+原有 Portfolio 的 paper_close_performance 消费已提交的 PostgreSQL
+Paper 日结、独立 Markets 估值绑定和 Risk 结果；原有机器 JSON
+输出仍为默认。新增可选 --format markdown，不开发第二账本、
+新资产估值或新收益算法。
+
+从 domains/capital 目录调用现有脚本：
+
+    export ORDIVON_CAPITAL_PAPER_PG_DSN='...经核实的专用Paper测试或模拟数据库...'
+    scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+      --account PAPER_ACCOUNT --session YYYY-MM-DD \
+      --previous-session YYYY-MM-DD \
+      --snapshot /path/to/private-market-snapshot.json \
+      --binding /path/to/source-binding.json --format markdown
+
+先以 Accounting 原有 --read-latest 查询该账户，再传递真实的前次
+日结日期。首次日结不传 --previous-session，必须显示无法计算
+投资收益。中文报告清楚区分本期外部入金、净值与扣除入金后的投资
+损益；文件来源则明确“未验证 PostgreSQL”，已提交数据库收据
+才显示“持久读回”。简单期间收益假设外部入金在期初，不是 GIPS
+认证的时间加权收益或 IRR。风险预算 UNSET、市场提供者与权利
+UNKNOWN、历史 PIT 不明时不可报告风险通过或授予真实交易效果。

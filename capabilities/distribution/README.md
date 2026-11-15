@@ -47,8 +47,11 @@ retired. Use Temporal or provider-native release tools at a real consumer when
 needed. The old composition declaration and local LEGO plan were removed because
 they had no actual execution consumer; no replacement registry or plan is needed.
 
-Dated R1-R10 documents and receipts describe their original source cuts.
-They do not declare a current runtime topology. Git retains retired code history.
+R1-R7/R9 migration notes were retired from the working tree; Git history
+retains their dated text. The R8 note remains as a cross-reference named in
+`evidence/r8-validation-20260912.json`, but that record's historical SHA-256
+does not match the current note. Neither describes an active executable path.
+Historical evidence JSON is source-cut evidence, not live deployment proof.
 
 ## Source verification
 

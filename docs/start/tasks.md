@@ -29,6 +29,8 @@ Neither grants authority or proves that an Owner is installed and ready.
    only for independently contractable responsibilities, not every file
    or Tool. For executable work, follow the
    [agent first-run](agent-first-run.md).
+   For substantial Agent architecture and formal-LEGO execution changes, see
+   [contract-driven delivery Spec](../architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md).
 3. Retire a source carrier or Workspace only after checking real
    callers, active Jobs, unreleased commits, installed readbacks and
    replay/retention obligations. Use native Owner/Git lifecycle operations;

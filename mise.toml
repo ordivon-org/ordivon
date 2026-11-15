@@ -68,6 +68,7 @@ uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 run = """
 set -euo pipefail
 python3 -m unittest tools/repo/test_tracked_secrets.py
+python3 -m unittest tools/repo/test_install_verified_cargo_deny.py
 python3 -m unittest tools/repo/test_source_history_legos.py
 python3 -m unittest discover -s catalogs/capabilities/tests -p 'test_external_capability_evaluation.py'
 uv run --with check-jsonschema==0.38.0 check-jsonschema --schemafile catalogs/capabilities/schemas/external-capability-candidate-r1.schema.json catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
@@ -384,6 +385,38 @@ for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'     
   printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
   printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
 done
+
+# Bounded Host/Gateway authentication cutover order; live consumers still
+# require independent Security and physical network acceptance.
+java -cp "$jar" tla2sany.SANY GatewayHostCutoverR1.tla
+cutover_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayHostCutoverR1.cfg GatewayHostCutoverR1.tla)
+printf '%s\n' "$cutover_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayHostCutoverR1.reachability.cfg:NeverFinished' 'GatewayHostCutoverR1.unsafe.cfg:HostProtectedNeedsQualifiedConsumers' 'GatewayHostCutoverR1.bearer-unsafe.cfg:GatewayPepNeedsVerifiedOwnerBearer'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayHostCutoverR1.tla 2>&1)
+  result=$?
+  set -e
+  test "$result" -ne 0
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+done
+
+# One bounded Agent consumer boundary, distinct from physical Runtime close.
+java -cp "$jar" tla2sany.SANY GatewayAgentWorkspaceBindingR1.tla
+workspace_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayAgentWorkspaceBindingR1.cfg GatewayAgentWorkspaceBindingR1.tla)
+printf '%s\n' "$workspace_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayAgentWorkspaceBindingR1.reachability.cfg:NeverAccepted' 'GatewayAgentWorkspaceBindingR1.unsafe.cfg:AcceptedRequiresExactOwnerWorkspace'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayAgentWorkspaceBindingR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+  printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
+done
 """
 
 [tasks."chaoxing:verify"]
@@ -409,3 +442,36 @@ uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_sour
 
 [tasks."formal:verify"]
 run = "cd tools/formal && mise run verify"
+
+# Host owns the model; repo root composes Runtime-owned pinned TLC toolchain.
+[tasks."host:formal:attention-reentry"]
+description = "TLC: coherent re-entry snapshot, no skipped event, and two negative controls"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+jar="${ORDIVON_TLA_TOOLS_JAR:-$repo_root/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
+if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
+  echo "Host Attention TLC requires the existing pinned absolute TLA+ JAR" >&2
+  exit 2
+fi
+expected="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
+observed="$(sha256sum -- "$jar" | cut -d' ' -f1)"
+test "$observed" = "$expected" || { echo "Host Attention TLA+ toolchain digest mismatch" >&2; exit 2; }
+cd "$repo_root/services/host/formal"
+java -cp "$jar" tla2sany.SANY HostAttentionReentryR1.tla >/dev/null
+positive="$(java -cp "$jar" tlc2.TLC -workers 1 -config HostAttentionReentryR1.cfg HostAttentionReentryR1.tla)"
+printf '%s\\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
+for case in 'HostAttentionReentryR1.unsafe.cfg:ReturnedCursorFromSameCut' 'HostAttentionReentryR1.unsafe-page.cfg:NoSkippedEligiblePageEvent'; do
+  config="${case%%:*}"
+  invariant="${case#*:}"
+  set +e
+  negative="$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" HostAttentionReentryR1.tla 2>&1)"
+  status=$?
+  set -e
+  if [[ "$status" -ne 12 ]]; then
+    printf '%s\\n' "$negative" | tail -30
+    exit 1
+  fi
+  printf '%s\\n' "$negative" | grep -Fx "Error: Invariant $invariant is violated."
+done
+"""

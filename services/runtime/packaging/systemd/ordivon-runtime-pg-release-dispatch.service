@@ -1,0 +1,13 @@
+[Unit]
+Description=Ordivon PostgreSQL-native independent Runtime release dispatcher
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+# Independent root-owned operator credential and approved service list; do not
+# inherit Runtime app's PG writer DSN or credentials from MCP requests.
+EnvironmentFile=/etc/ordivon/ordivon-runtime-pg-release-operator.env
+ExecStart=/opt/ordivon/runtime-pg-operator/.venv/bin/python /usr/local/libexec/ordivon/ordivon-runtime-pg-release-dispatch --config /etc/ordivon/ordivon-runtime-pg-release-operator.json
+TimeoutStartSec=180s
+NoNewPrivileges=yes

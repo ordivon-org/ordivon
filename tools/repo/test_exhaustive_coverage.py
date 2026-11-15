@@ -107,8 +107,8 @@ class FullCoverageTests(unittest.TestCase):
             if line.strip() and not line.lstrip().startswith("#")
         ]
         self.assertTrue(executable_lines)
-        self.assertEqual(executable_lines[-1], "python3 verify.py")
-        self.assertEqual(executable_lines.count("python3 verify.py"), 1)
+        self.assertEqual(executable_lines[-1], "python3 -I verify.py")
+        self.assertEqual(executable_lines.count("python3 -I verify.py"), 1)
         self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
                          ["standing"], "UNASSIGNED")
 
@@ -631,7 +631,7 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         self.assertEqual(counts["DECLARED_MOVE_CONSUMER_QUALIFICATION_REQUIRED"],
                          expected["PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER"])
         self.assertEqual(counts["DECLARED_SPLIT_CONSUMER_QUALIFICATION_REQUIRED"],
-                         expected["STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS"])
+                         expected.get("STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS", 0))
 
     def test_cross_plan_repeated_short_ids_are_not_identified_as_same_lego(self) -> None:
         rows = self.result["crossPlanIdentityScopeReviews"]

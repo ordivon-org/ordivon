@@ -3,10 +3,16 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+from dataclasses import asdict
 from importlib.metadata import version as package_version
 from typing import Any
 
-from .capability_projection import project_capability_search, project_execution_capability
+from .capability_projection import (
+    candidate_routes_for_search,
+    project_capability_search,
+    project_execution_capability,
+    project_native_release_capability,
+)
 from .contracts import (
     CapabilityDescriptor,
     CapabilityProjection,
@@ -24,6 +30,7 @@ from .upstream import OwnerToolCaller
 _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",
     "runtime.windows": "physical execution owner",
+    "runtime.harness": "issuer-fenced execution profile of the Linux Runtime owner",
     "host": "external semantic continuity owner",
     "skills": "procedural Skill discovery and exact binding owner",
     "research.composition": "non-authoritative Research composition metadata",
@@ -46,6 +53,20 @@ class CapabilityCatalog:
         self._caller = caller
         self._routes = routes
         self._projection_timeout_seconds = projection_timeout_seconds
+        # Hash only the immutable route contract, not transient observation errors,
+        # identity-bearing endpoint configuration, or Owner status.
+        route_payload = [asdict(routes[key]) for key in sorted(routes)]
+        self._route_digest = (
+            "sha256:"
+            + hashlib.sha256(
+                json.dumps(
+                    route_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                ).encode("utf-8")
+            ).hexdigest()
+        )
 
     def system_describe(self) -> SystemDescription:
         owners = [
@@ -63,6 +84,7 @@ class CapabilityCatalog:
         capabilities = set(self._routes)
         return SystemDescription(
             gateway_version=package_version("ordivon-gateway"),
+            route_digest=self._route_digest,
             owners=owners,
             capabilities=sorted(capabilities),
         )
@@ -76,7 +98,12 @@ class CapabilityCatalog:
             selected = [route]
         else:
             selected = [self._routes[key] for key in sorted(self._routes)]
+        return await self._describe_routes(selected)
 
+    async def _describe_routes(self, selected: list[CapabilityRoute]) -> CapabilityProjection:
+        # A search can restrict observations to matching routes before any I/O.
+        # Normalize order independently from search ranking for stable digests.
+        selected = sorted(selected, key=lambda route: route.capability)
         runtime_cache: dict[str, tuple[dict[str, Any] | None, str | None]] = {}
 
         async def observe_owner(
@@ -133,7 +160,9 @@ class CapabilityCatalog:
 
         # Only independent read-only observations fan out. TaskGroup keeps child
         # lifetimes inside this request; no cross-request cache or effect retry.
-        runtime_owners = {route.owner_id for route in selected if route.category == "execution"}
+        runtime_owners = {
+            route.owner_id for route in selected if route.category in {"execution", "release"}
+        }
         if any(route.capability == "artifact.runtime" for route in selected):
             runtime_owners.update(("runtime.linux", "runtime.windows"))
         host_probe = None
@@ -151,6 +180,24 @@ class CapabilityCatalog:
         for route in selected:
             if route.category == "execution":
                 values.append(await execution_descriptor(route))
+                continue
+
+            if route.category == "release":
+                owner_configured = _configured(self._caller, route.owner_id)
+                response, error = (
+                    await runtime_description(route.owner_id) if owner_configured else (None, None)
+                )
+                values.append(
+                    project_native_release_capability(
+                        route,
+                        configured_at_gateway=owner_configured,
+                        owner_response=response,
+                        observation_error=error,
+                        configuration_error=_configuration_error(self._caller, route.owner_id)
+                        if not owner_configured
+                        else None,
+                    )
+                )
                 continue
 
             if route.category == "research":
@@ -179,7 +226,17 @@ class CapabilityCatalog:
                 error: str | None = None
                 if host_probe is not None:
                     result, error = host_probe.result()
-                    available = result is not None
+                    if result is not None:
+                        # Host is the status contract owner: arbitrary JSON is not
+                        # evidence of a live, qualified Host status response.
+                        available = (
+                            isinstance(result, dict)
+                            and type(result.get("schemaVersion")) is int
+                            and result["schemaVersion"] == 3
+                            and result.get("kind") == "ordivon.host-status"
+                        )
+                        if not available:
+                            error = "invalid Host status projection"
                 values.append(
                     CapabilityDescriptor(
                         capability=route.capability,
@@ -295,6 +352,7 @@ class CapabilityCatalog:
         )
         return CapabilityProjection(
             projection_digest=digest,
+            route_digest=self._route_digest,
             capabilities=values,
         )
 
@@ -324,7 +382,17 @@ class CapabilityCatalog:
         if type(include_unavailable) is not bool:
             raise GatewayError("includeUnavailable must be boolean")
 
-        projection = await self.capability_describe()
+        # Find candidates from immutable routing metadata before any Owner RPC.
+        # A miss (or a Research-only match) cannot be delayed by unrelated
+        # Windows/Host observations. Filtering on real availability still occurs
+        # AFTER observing every matching route, so UNKNOWN is never guessed FALSE.
+        candidates = candidate_routes_for_search(
+            self._routes,
+            query=query,
+            category=category,
+            owner_id=owner_id,
+        )
+        projection = await self._describe_routes(candidates)
         return project_capability_search(
             projection,
             query=query,

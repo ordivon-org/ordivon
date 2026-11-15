@@ -116,7 +116,22 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     uv_call_log = tmp_path / "uv_calls.log"
     env["ORDIVON_TEST_UV_CALL_LOG"] = str(uv_call_log)
 
-    result = _run(str(INSTALL), str(repo), commit, str(prefix), env=env)
+    # Wrong Host source tree fails before files or toolchain side effects.
+    expected_tree = _git(repo, "rev-parse", f"{commit}:services/host")
+    wrong_tree = "0" * len(expected_tree)
+    # Explicitly providing an empty expected ID must not silently opt out.
+    empty = _run(str(INSTALL), str(repo), commit, str(prefix), "", env=env)
+    assert empty.returncode == 2, empty.stderr
+    assert "nonempty lowercase Git object ID" in empty.stderr
+    assert not (prefix / "releases").exists()
+    reject = _run(str(INSTALL), str(repo), commit, str(prefix), wrong_tree, env=env)
+    assert reject.returncode == 2, reject.stderr
+    assert "differs from expected reviewed tree" in reject.stderr
+    assert not (prefix / "releases").exists()
+    assert not uv_call_log.exists()
+    assert not mise_log.exists()
+
+    result = _run(str(INSTALL), str(repo), commit, str(prefix), expected_tree, env=env)
     assert result.returncode == 0, result.stderr
 
     release = prefix / "releases" / commit
@@ -163,7 +178,51 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     _git(repo, "commit", "--allow-empty", "-qm", "same tree, new release generation")
     next_commit = _git(repo, "rev-parse", "HEAD")
     staged_next = prefix / "releases" / next_commit
-    shutil.copytree(release, staged_next)
+    # A real candidate preparation qualifies the locked package and exact
+    # independently reviewed tree, while leaving the serving pointer intact.
+    before_current = (prefix / "current").resolve()
+    staged = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert staged.returncode == 0, staged.stderr
+    assert staged_next.is_dir()
+    assert (prefix / "current").resolve() == before_current
+    assert f"prepared_release={next_commit}" in staged.stdout
+    assert f"prepared_host_tree={expected_tree}" in staged.stdout
+    assert "activation=NOT_PERFORMED" in staged.stdout
+    assert "installed_release=" not in staged.stdout
+    assert not (prefix / "current.next").exists()
+
+    # The ordinary path can later activate the same Git-reviewed candidate.
+    # Restore the old serving pointer immediately in this disposable fixture
+    # so the drift and wrong-tree negative cases retain their original scope.
+    activated = _run(str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, env=env)
+    assert activated.returncode == 0, activated.stderr
+    assert f"installed_release={next_commit}" in activated.stdout
+    assert (prefix / "current").resolve() == staged_next
+    reverted = _run(str(INSTALL), str(repo), commit, str(prefix), expected_tree, env=env)
+    assert reverted.returncode == 0, reverted.stderr
+    assert (prefix / "current").resolve() == before_current
+
+    # Unsupported bypass forms never run the installer body.
+    call_log_before = uv_call_log.read_text(encoding="utf-8")
+    for invalid in ("--force", "--skip-preflight", "--activate-prepared", "garbage"):
+        denied = _run(
+            str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, invalid, env=env
+        )
+        assert denied.returncode == 2, denied.stderr
+        assert (prefix / "current").resolve() == before_current
+        assert uv_call_log.read_text(encoding="utf-8") == call_log_before
+
+    # Pre-staging may never silently omit the independently pinned Git tree.
+    denied_unpinned = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), "--prepare-only", env=env
+    )
+    assert denied_unpinned.returncode == 2
+    assert (prefix / "current").resolve() == before_current
+
+    # Even an already-prepared release must be reverified against Git before
+    # activation, including a tampered lockfile.
     (staged_next / "uv.lock").write_text("modified after creation\n", encoding="utf-8")
     uv_before = uv_call_log.read_text(encoding="utf-8")
     blocked = _run(str(INSTALL), str(repo), next_commit, str(prefix), env=env)
@@ -179,6 +238,19 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     blocked_mode = _run(str(INSTALL), str(repo), next_commit, str(prefix), env=env)
     assert blocked_mode.returncode == 2, blocked_mode.stderr
     assert "release source drift" in blocked_mode.stderr
+    assert (prefix / "current").resolve() == release
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+
+    # Valid different Git commit with a different Host tree is also rejected
+    # before any uv/mise or current-release pointer mutation.
+    (package / "__init__.py").write_text("VALUE = 'wrong adjacent PR'\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "different host tree after reviewed release")
+    wrong_commit = _git(repo, "rev-parse", "HEAD")
+    blocked_tree = _run(str(INSTALL), str(repo), wrong_commit, str(prefix), expected_tree, env=env)
+    assert blocked_tree.returncode == 2, blocked_tree.stderr
+    assert "differs from expected reviewed tree" in blocked_tree.stderr
+    assert not (prefix / "releases" / wrong_commit).exists()
     assert (prefix / "current").resolve() == release
     assert uv_call_log.read_text(encoding="utf-8") == uv_before
 

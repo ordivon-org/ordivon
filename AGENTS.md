@@ -1,5 +1,13 @@
 # Ordivon Monorepo Agent Rules
 
+**Linux PG Runtime Workspace lifecycle:** On workspace.open, read the returned
+retentionNotice. The hourly native cleanup can reclaim a clean, mainline-integrated
+Workspace after at least **4 hours of inactivity since its latest Runtime Job**
+once the last Job succeeds and no active/held consumer remains. Persist results
+to Git or Artifact storage; a Workspace is not durable evidence. This is a
+minimum quiet period, not a guaranteed four-hour reservation. Do not force-close
+dirty/unmerged Workspaces.
+
 First session in this repository? Use
 [Agent first verified task](docs/start/agent-first-run.md) and
 [task/owner navigation](docs/start/tasks.md) to find one real consumer. These
@@ -17,6 +25,7 @@ mandatory workflow. The rules below govern consequential changes.
 8. For a consequential testing-method or test-template choice, consult `docs/architecture/TESTING_UPSTREAM_ADOPTION_R1.md`; prefer existing Owner-native tools and mature Skills. Do not impose that read on routine edits. SKIP, NOT_RUN and ENV_BLOCKED are not PASS.
 9. For a nontrivial test or debugging task, discover the relevant current Skill only if it can change the method; use the Owner's actual `mise tasks ls` and focused native verification where applicable. An isolated test PASS is not whole-Owner or domain acceptance.
 10. In user-facing replies, reports, and handoffs, state the decision, result, or next action directly. Do not add generic disclaimers, defensive qualifications, obvious warnings, patronizing reminders, or repeated caveats after a clear answer. Explain uncertainty or a constraint only when it materially changes the decision or work; keep it precise and integrated into the answer. Give deeper analysis when requested.
+    For material second opinions, scoped Chinese prose editing, concrete error correction, or evidence-backed manuscript framing, discover only the relevant existing method Skill: evidence-calibrated-dialogue, natural-chinese-writing, feedback-grounded-repair, or research-claim-framing under .agents/skills/. They are optional advisory thinking methods, not global activation, effect permission or replacements for Owner-native verification.
 
 11. **Agent vocabulary / conceptual boundaries (on demand):** when Tool, Skill, Agent, Harness, Runtime, Workflow, Memory, MCP/A2A, Formal or LEGO distinctions affect work, read `docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md`. It is a scoped vocabulary reference, not a new owner or a permission source. Reuse the actual owner API and current evidence; do not claim a Task is complete merely because a model Run or Runtime Job finished. Skip this read for routine tasks where the roles are already clear.
 
@@ -25,6 +34,43 @@ mandatory workflow. The rules below govern consequential changes.
 14. **Proof and tests:** first state the property, assumptions, failure modes, current source/implementation and affected consumer. Select only relevant formal/model checking, implementation refinement, property/state-machine, differential/consumer-contract, integration/read-back, fault-injection/replay and Agent trajectory/holdout evaluations. Match tools to the Owner, not a universal checklist; see the testing guide. A model PASS does not prove code refinement; a test PASS does not prove universal correctness; a Runtime/Agent success does not establish domain completion.
 15. **Agent decision evidence:** distinguish OBSERVED, DECLARED, DERIVED, VERIFIED, UNKNOWN and FALSIFIED with provenance and currentness. Treat hypotheses and predictions as candidates; consider rival explanations and value of further evidence where material. A model belief, Skill read, evidence graph or Tool discovery never confers effect authority. Finish real work with implementation or justified subtraction, actual execution/observation, affected verification and repair; report explicit remaining UNKNOWN rather than fictitious success.
 16. **Integration discipline:** compare current main, relevant branches/PRs and actual consumers before retaining changes. For cross-Owner or PR-sized work, exchange evidence and counterexamples in the existing Space when useful; a message or Owner opinion is not a proof or a permission gate. Prefer the smallest verified contribution and retire superseded code rather than accumulating parallel implementations.
+
+## Evidence-backed detailed reporting and handoffs
+
+When a user requests a detailed progress/completion report, or when handing off a
+consequential multi-Owner or production change, report against **the actual
+consumer and acceptance authority**, not the amount of Agent activity.
+Keep routine replies concise; do not require every section for a trivial edit.
+
+- **Decision and standing:** lead with what is complete, what is not, and the
+  real consumer consequence. State the exact scope and the as-of time.
+- **Source and change identity:** record the exact Git revision/PR and
+  changed or retired responsibilities, distinguishing proposal, committed
+  branch, merged main and deployed source. Link the original evidence.
+- **Independent realization:** distinguish, when relevant, `SOURCE`,
+  `MERGED`, `INSTALLED`, `LOADED`, `EXECUTED` and `CONSUMED`.
+  Use owner-native exact readback (bytes, process/generation, kernel or
+  external provider) and the consumer's real acceptance, not job exit alone.
+- **Verification and falsification:** name the native commands, observed
+  results, tested assumptions and relevant negative controls. Mark failed,
+  skipped, unavailable and not-run checks distinctly; never inflate a
+  model, static source, CI, or service-health PASS into domain success.
+- **Open work:** give only consequential `UNKNOWN` or `FALSIFIED`
+  properties, their actual blocker or competing explanation, natural Owner,
+  next executable action and observable closure condition. Do not invent a
+  completion percentage, ETA, approval, deployment or ongoing monitoring.
+- **Incident mode only:** when an incident actually occurred, add observed
+  impact, chronological events, contributing causes and tracked mitigation
+  and prevention actions. Do not turn every engineering report into a
+  postmortem.
+
+This is a **presentation and handoff contract**, not a new status database,
+runtime, universal report generator or mandatory Skill. Reuse existing Host
+Work/Topic, GitHub PR/checks, Owner-native verification and domain receipts.
+Follow the scoped Owner Agent guide for concrete evidence (Network example:
+`platform/network/docs/AGENT_GUIDE.md`); use
+`.agents/skills/task-space-reentry/SKILL.md` only when a real Work/Space
+handoff is required.
 
 ## Practical consumer routing
 

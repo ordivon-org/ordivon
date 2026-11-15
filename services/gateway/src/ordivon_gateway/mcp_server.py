@@ -32,9 +32,13 @@ from .contracts import (
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
+    RuntimeReleaseAdmission,
+    RuntimeReleaseProjection,
     SystemDescription,
 )
 from .host_tools import register_host_tools
+from .http_ingress_guard import GatewayHTTPIngressGuard
+from .ingress_identity import identity_from_state, tool_context_state
 from .service import GatewayError, GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
@@ -69,20 +73,9 @@ async def _owner_boundary(call) -> Any:
 
 
 def _verified_execution_scope(context: Context | None) -> tuple[str, str] | None:
-    """Request-local authority from the existing verified HTTP ingress, if present."""
-    try:
-        request = context.request_context.request
-    except ValueError, AttributeError:
-        return None
-    scope = getattr(request, "scope", None)
-    state = scope.get("state") if isinstance(scope, dict) else None
-    if not isinstance(state, dict):
-        return None
-    principal = state.get("ordivon_access_principal")
-    issuer = state.get("ordivon_access_issuer")
-    if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
-        return None
-    return issuer, principal
+    """Extract ingress identity from the SDK Tool Context, not Tool arguments."""
+    identity = identity_from_state(tool_context_state(context))
+    return (identity.issuer, identity.principal) if identity is not None else None
 
 
 def _require_http_execution_identity(context: Context | None) -> None:
@@ -176,7 +169,15 @@ def build_server(
         lifespan=gateway_lifespan,
     )
     server.middleware.append(GatewayAuditMiddleware())
-    if capability_authorizer is not None or protect_artifact_reads:
+    if require_http_execution_identity:
+        server.middleware.append(GatewayHTTPIngressGuard())
+    # Verified HTTP Host reads and writes must reach the existing Security PEP
+    # even when the PDP is not configured (fail closed, not bearer=actor).
+    if (
+        capability_authorizer is not None
+        or protect_artifact_reads
+        or require_http_execution_identity
+    ):
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
     @server.tool(name="system.describe")
@@ -215,6 +216,40 @@ def build_server(
             agent_id=agentId,
         )
 
+    @server.tool(name="runtime.release.apply")
+    async def runtime_release_apply(
+        requestId: str,
+        workspaceId: str,
+        commit: str,
+        candidateManifestDigest: str,
+        expectedToolCount: int,
+        ctx: Context = None,
+    ) -> RuntimeReleaseAdmission:
+        # A verified principal + Security AuthZEN capability approval are
+        # required BEFORE any Runtime release owner call. Operator authority
+        # stays in Runtime's own ReleaseEffect/receipt; never use shell exec.
+        _require_http_execution_identity(ctx)
+        if not require_http_execution_identity or capability_authorizer is None:
+            raise ToolError("Runtime release requires a configured HTTP Security PEP")
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(
+            gateway.runtime_release_apply(
+                request_id=scoped,
+                workspace_id=workspaceId,
+                commit=commit,
+                candidate_manifest_digest=candidateManifestDigest,
+                expected_tool_count=expectedToolCount,
+            )
+        )
+
+    @server.tool(name="runtime.release.get")
+    async def runtime_release_get(requestId: str, ctx: Context = None) -> RuntimeReleaseProjection:
+        # The same original principal-scoped key must be used after response
+        # loss; no new release request, retry or operational preflight here.
+        _require_http_execution_identity(ctx)
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(gateway.runtime_release_get(request_id=scoped))
+
     @server.tool(name="execution.submit")
     async def execution_submit(
         capability: str,
@@ -226,6 +261,8 @@ def build_server(
         context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
+        stdoutLimitBytes: int | None = None,
+        stderrLimitBytes: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
@@ -243,6 +280,8 @@ def build_server(
                 context=context,
                 env=env,
                 timeout_ms=timeoutMs,
+                stdout_limit_bytes=stdoutLimitBytes,
+                stderr_limit_bytes=stderrLimitBytes,
                 authority_references=authorityReferences,
             )
         )

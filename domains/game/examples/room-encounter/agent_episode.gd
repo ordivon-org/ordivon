@@ -25,6 +25,8 @@ func _player_observation(game: Control) -> Dictionary:
     }
     if view.get_node("Hint").visible:
         observation["hint"] = view.get_node("Hint").text
+    if view.get_node("Outcome").visible:
+        observation["outcome"] = view.get_node("Outcome").text
     if dialogue.visible:
         var responses: Array[Dictionary] = []
         for node in dialogue.get_node("Choices").get_children():

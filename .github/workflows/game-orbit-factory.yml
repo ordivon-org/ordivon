@@ -1,0 +1,78 @@
+name: Game Factory Bevy native Linux preview
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "domains/game/examples/orbit-collector/**"
+      - "domains/game/formal/verify_orbit_rules.py"
+      - "domains/game/mise.toml"
+      - "domains/game/scripts/package_orbit_linux.sh"
+      - "domains/game/scripts/test_orbit_package_contract.py"
+      - ".github/workflows/game-orbit-factory.yml"
+  push:
+    branches: [main]
+    paths:
+      - "domains/game/examples/orbit-collector/**"
+      - "domains/game/formal/verify_orbit_rules.py"
+      - "domains/game/mise.toml"
+      - "domains/game/scripts/package_orbit_linux.sh"
+      - "domains/game/scripts/test_orbit_package_contract.py"
+      - ".github/workflows/game-orbit-factory.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-orbit-factory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  orbit-linux:
+    name: Bevy Orbit Collector native test and Linux preview
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      RUSTUP_TOOLCHAIN: "1.99.1"
+    steps:
+      - name: Checkout exact game revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install native Rust/X11/Vulkan and Python model requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends             pkg-config libx11-dev libxkbcommon-dev libxkbcommon-x11-0 libudev-dev             xvfb xauth mesa-vulkan-drivers libvulkan1 python3-venv
+          rustup toolchain install 1.99.1 --profile minimal
+          python3 -m venv /tmp/ordivon-orbit-z3
+          /tmp/ordivon-orbit-z3/bin/python -m pip install --disable-pip-version-check --no-input z3-solver==4.15.4.0
+      - name: Native Orbit rules, ECS tests and actual Rust executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/ordivon-orbit-z3/bin/python domains/game/formal/verify_orbit_rules.py
+          cargo test --locked --manifest-path domains/game/examples/orbit-collector/Cargo.toml
+          cargo check --locked --all-targets --manifest-path domains/game/examples/orbit-collector/Cargo.toml
+          cargo build --locked --manifest-path domains/game/examples/orbit-collector/Cargo.toml
+          test -s domains/game/examples/orbit-collector/target/debug/ordivon-orbit-collector
+      - name: Verify verified-preview failure semantics without graphics
+        shell: bash
+        run: python3 domains/game/scripts/test_orbit_package_contract.py
+      - name: Native window smoke and Linux player distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash domains/game/scripts/package_orbit_linux.sh
+      - name: Upload verified native Linux Orbit preview
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ordivon-game-orbit-linux-preview-${{ github.event.pull_request.head.sha || github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: domains/game/dist/orbit-collector/orbit-collector-linux-x86_64.tar.gz

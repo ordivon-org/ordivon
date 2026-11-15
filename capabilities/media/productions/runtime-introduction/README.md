@@ -1,5 +1,40 @@
 # Runtime introduction
 
+## 2026-11-09 outcome-first production edition
+
+The selected output bytes are in the current production.json, not inferred from
+the older P2/P3/P4 reconstruction notes below. This edition has five actual
+consumer-readable assets (English article; 78-second narrated 1920x1080 film;
+35-second Chinese 1080x1920 vertical edit with aligned English narration;
+self-contained interactive explanation; and ZIP portfolio). Before actual
+external publication, individual Output standing is approved while the parent
+Production remains review. Published standing requires a real provider release
+and external HTTP readback, not simply matching SHA-256 or a successful build.
+
+The original August 2026 evidence and R2/Blob selections below are intentionally
+preserved as historical inputs. The new film has a different exact digest after
+a fresh Remotion/FFmpeg build, although the reproduced Windows SAPI narration
+matches the historical 78-second WAV digest. The 35-second vertical excerpt
+reuses bounded passages and adds burned-in Chinese text. It is not a separate
+Chinese-language narration or a current Runtime capability snapshot.
+
+Selected new production source and deliverables:
+- render/runtime-introduction-20261109-en.mp4
+- render/runtime-introduction-20261109-zh-vertical.mp4
+- publish/runtime-introduction-en.md
+- interactive/runtime-architecture.html
+- publish/runtime-introduction-portfolio.zip
+- source/render-short-zh.py (native FFmpeg composition)
+- publish/build-portfolio.py (deterministic packaging + byte manifest)
+
+Produce the picture with the existing Remotion composition; build narration
+through scripts/build_sapi_narration.py (Windows SAPI, nine cue timing);
+mux the two streams with native FFmpeg (video stream copy, AAC mono);
+create the vertical version with source/render-short-zh.py; build the
+portfolio with publish/build-portfolio.py. Test delivered bytes using
+tests/test_runtime_intro_delivery.py; complete media and subtitle QC remain
+independent of human preference or audience response.
+
 This is the first real Ordivon Studio motion production and the primary acceptance case for source-bound multi-medium production.
 
 ## Bound source

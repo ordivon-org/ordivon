@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import subprocess
@@ -205,29 +206,86 @@ def owners_for_paths(
     return tuple(selected)
 
 
-def requires_core_formal_verification(paths: Iterable[str]) -> bool:
-    """Route proof-source edits to the *existing* Formal task, not a new Owner.
+def _formal_source_files() -> frozenset[str]:
+    """Read the Formal producer's literal SOURCE_FILES, without importing or executing it.
 
-    The affected-owner queue alone can legitimately be empty for tools/formal/.
-    A separate source-bound check is required so those edits never skip
-    verification in the protected root GitHub workflow.
+    There is one declaration of qualified proof inputs. The selector fails
+    closed if this declaration stops being a static literal tuple.
     """
-    # The root task definition consumes the Formal verifier too:
-    # editing the task wiring can change effects without changing proof files.
+    source = MANIFEST_PATH.resolve().parents[2] / "tools/formal/verify.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+    values = [
+        statement.value
+        for statement in tree.body
+        if isinstance(statement, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "SOURCE_FILES"
+            for target in statement.targets
+        )
+    ]
+    if len(values) != 1:
+        raise ValueError("Formal verifier must own exactly one literal SOURCE_FILES declaration")
+    paths = ast.literal_eval(values[0])
+    if (
+        not isinstance(paths, tuple)
+        or not paths
+        or not all(isinstance(path, str) and path and path == _normalize(path)
+                   for path in paths)
+        or len(set(paths)) != len(paths)
+    ):
+        raise ValueError("Formal SOURCE_FILES must be unique canonical relative paths")
+    return frozenset(paths)
+
+
+def requires_core_formal_verification(paths: Iterable[str]) -> bool:
+    """Select existing Formal gate from its producer-owned exact SOURCE_FILES.
+
+    Broad tools/formal edits retain their existing gate. All other paths are
+    admitted only when present in the authoritative source readset; no second
+    hand-maintained per-Owner registry or general media/doc blanket rule.
+    """
+    qualified_inputs = _formal_source_files()
     return any(
         (normalized := _normalize(path)) == "mise.toml"
         or normalized.startswith("tools/formal/")
-        # This exact Harness adapter is an executable input of the existing
-        # Formal SOURCE_FILES readset. Changing it invalidates the native
-        # timeout bridge proof regardless of owner-root classification.
-        or normalized == "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
-        or normalized.startswith("capabilities/media/formal/")
-        or normalized == "capabilities/media/src/ordivon_studio/agent_processing.py"
-        or normalized == "capabilities/media/src/ordivon_studio/creative_index_library.py"
-        or normalized == "capabilities/media/tests/test_creative_index.py"
-        or normalized == "capabilities/media/src/ordivon_studio/qc.py"
+        or normalized in qualified_inputs
         for path in paths
     )
+
+def _source_git_env() -> dict[str, str]:
+    """Use this repository's Git DAG, not a caller's foreign Git namespace."""
+    return {
+        **{key: value for key, value in os.environ.items()
+           if not key.startswith("GIT_")},
+        "GIT_GRAFT_FILE": os.devnull,
+    }
+
+
+def _resolve_source_commit(ref: str) -> str:
+    """Pin a moving Git ref to the immutable commit used for the source witness."""
+    return subprocess.check_output(
+        ["git", "--no-replace-objects", "rev-parse", "--verify",
+         "--end-of-options", f"{ref}^{{commit}}"],
+        env=_source_git_env(),
+        text=True,
+    ).strip()
+
+
+def _source_diff_base(base: str, head: str) -> str:
+    """Resolve the unique merge-base used for the qualified Git delta.
+
+    A requested base can diverge from the candidate head. The changed-path
+    readset starts at the merge-base, not at the requested base commit.
+    Multiple best merge-bases are ambiguous and cannot certify one readset.
+    """
+    merge_bases = subprocess.check_output(
+        ["git", "--no-replace-objects", "merge-base", "--all", base, head],
+        env=_source_git_env(),
+        text=True,
+    ).splitlines()
+    if len(merge_bases) != 1:
+        raise ValueError("exact SourceCut requires one unambiguous merge-base")
+    return merge_bases[0]
 
 
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
@@ -248,11 +306,7 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
         # inherited Git namespace/object-store overrides (e.g. agent tools
         # invoking this selector from another Git worktree). A different
         # repository must not determine required consumer verification.
-        env={
-            **{key: value for key, value in os.environ.items()
-               if not key.startswith("GIT_")},
-            "GIT_GRAFT_FILE": os.devnull,
-        },
+        env=_source_git_env(),
         check=True,
         stdout=subprocess.PIPE,
     )
@@ -277,16 +331,24 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
+    source_cut: dict[str, str] | None = None
     if args.all:
+        selection_basis = "ALL_OWNERS"
         selected = OWNERS
         paths: tuple[str, ...] = ()
     else:
         if args.changed_file:
+            selection_basis = "CALLER_DECLARED_PATHS"
             paths = tuple(args.changed_file)
         else:
             if not args.base or not args.head:
                 raise SystemExit("--base and --head are required unless --all or --changed-file is used")
-            paths = changed_paths(args.base, args.head)
+            selection_basis = "GIT_COMMIT_RANGE"
+            base = _resolve_source_commit(args.base)
+            head = _resolve_source_commit(args.head)
+            diff_base = _source_diff_base(base, head)
+            paths = changed_paths(diff_base, head)
+            source_cut = {"base": base, "head": head, "diffBase": diff_base}
         require_registered_execution_paths(paths)
         selected = owners_for_paths(paths)
 
@@ -303,6 +365,8 @@ def main() -> int:
         print(
             json.dumps(
                 {
+                    "selectionBasis": selection_basis,
+                    "sourceCut": source_cut,
                     "changedPaths": list(paths),
                     "owners": [
                         {

@@ -14,10 +14,10 @@ import type {
 
 import type { WebConfig } from "./config.ts";
 import { WebProblem } from "./errors.ts";
+import { stableDigest } from "./identity-digests.ts";
 import {
   SecurityContractAdmissionEvaluator,
   admissionInput,
-  stableEffectDigest,
   type AgentAdmissionEvaluator,
   type AgentRequestVerifier,
 } from "./agent-authority.ts";
@@ -576,7 +576,7 @@ export async function createWebApp(
     const resource = "/canary/notes";
     const effect: AgentEffectRequest = {
       effectId: effectId(request),
-      effectDigest: stableEffectDigest({
+      effectDigest: stableDigest({
         action: "canary.note.create",
         resource,
         content,
@@ -652,7 +652,7 @@ export async function createWebApp(
       const resource = "/canary/notes/" + params.noteId;
       const effect: AgentEffectRequest = {
         effectId: effectId(request),
-        effectDigest: stableEffectDigest({
+        effectDigest: stableDigest({
           action: "canary.note.publish",
           resource,
           noteId: params.noteId,
