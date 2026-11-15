@@ -45,6 +45,28 @@ python scripts/check_wheel.py "$(find dist -maxdepth 1 -type f -name '*.whl' -pr
 
 The base wheel keeps a small Host-free runtime dependency graph: pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport and `jsonschema` for opt-in local structured-result conformance verification. Standard Agent Plugin MCP consumption is isolated behind the exact `mcp` extra (`ordivon-harness[mcp]`), pinned to the official `mcp==2.3.0` Python SDK. Historical Harness identity canonicalization is packaged locally as the `anc_canonical` compatibility shim; it is not an external dependency and must not be extended into a new shared protocol layer. It does not install Host or expose a Host extra.
 
+## Opt-in physical Provider + PostgreSQL acceptance
+
+The built-in Python CLI uses the original PostgreSQL Journal and can run a
+real, caller-bound, no-Tool DeepSeek task. After the ordinary deterministic
+tests pass, verify the **actual** Provider/PG/CLI consumer when the test node
+has a valid `~/.config/ordivon/secrets/deepseek.json` and a dedicated
+PostgreSQL test DSN:
+
+```bash
+HARNESS_PG_TEST_DSN='<dedicated-test-DSN>' HARNESS_REAL_PROVIDER_TEST=1 \
+  uv run --locked python -m pytest -q \
+    tests/test_postgres_cli.py -k live_deepseek_cli
+```
+
+This is an explicit billable external model call; ordinary `verify`, CI and
+`pg:verify` do **not** make this request. The existing test fixture creates
+and drops a uniquely named temporary PG schema. It runs one model turn,
+then uses separate CLI processes to retrieve the final Run and receipt.
+The consumer claims only Provider execution/Run completion proposal,
+never caller-domain TaskSolved, native Rust production readiness or
+installed Gateway routing.
+
 ## Initialize independent state
 
 ```bash
