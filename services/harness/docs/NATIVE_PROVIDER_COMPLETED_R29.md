@@ -547,3 +547,50 @@ uncertain recovery. Ability LEGO: refined existing
 `harness-loop/tests/pg_provider_head.rs`, reused
 `harness-pg/src/journal_write.rs::append_events_with_provider_cas`
 unchanged, and R40 `provider_v4_author.rs` Event type. No new Store.
+
+
+## R42 PG-bound provider requires one pre-frozen HTTP body
+
+Source P0 physical-effect seam: `HttpModelProvider::new_provider_only_pg_bound`
+reads a CAS-backed immutable Provider transport configuration from
+the original verified PG Run, but previously inherited the generic
+`HttpModelProvider::query` fallback: if no exact outbound JSON request
+body had been frozen, it could compose new bytes *at send time*.
+A caller that had already persisted an original V4 DISPATCHING with
+an expected `providerRequestDigest` could therefore send a different
+or unbound request, despite the original Writer's causal and budget gates.
+
+True PG18 + actual localhost HTTP RED
+`job-01a1de78-ce3c-7397-a169-a612d44752be`: a freshly constructed,
+source-authenticated PG-bound provider called `turn(1, [])`
+without freezing; it **reached the wire**, consumed the source local
+server's only response, and violated the new pre-send negative.
+The source was not merely a mock function. No external LLM/provider
+was called.
+
+The narrow fix is in the **existing natural HTTP transport**, NOT a
+second authorization/replay wrapper. The PG-bound constructor sets a
+private `require_source_frozen_request` bit. Its query refuses a
+missing frozen request BEFORE HTTP send, quarantines the Provider
+instance, and returns the current conservative UNKNOWN observation;
+a new correctly frozen PG-bound Provider sends its exact source
+request normally. Ordinary standalone HTTP constructors retain the
+prior direct-request behavior. This guard does not prove external
+billing status or authorize a future retry.
+
+GREEN true PG18 `job-01a1de79-5b8a-77e5-9ee6-f93c7be2b113`:
+original source-bound loopback HTTP 1/1, V4 PG native 4/4,
+Python original Store readback positive/redacted/UNKNOWN and CAS
+rollback all pass; PostgreSQL scratch instance stopped/removed.
+It closes this local *unfrozen physical wire* escape hatch,
+not the production journal/credential/issuer bind: the natural
+Security owner credentialMaterializationBindings is still absent
+on installed Runtime and Gateway `execution.harness` remains absent.
+
+Thought LEGO: source-first Design by Contract, TDD RED/GREEN, TOCTOU
+risk control at natural physical-effect owner, no duplicate permission
+layer. Logical LEGO: L1 Run, L5 exact Provider wire, L6 PG Journal,
+L9 pre-send admission, L12 ambiguous recovery. Ability LEGO:
+refined existing `native_provider_http.rs` PG-bound constructor +
+query, test `native_pg_no_tool_http.rs` true local HTTP with
+original PG source; no new service/Store/credential provider.

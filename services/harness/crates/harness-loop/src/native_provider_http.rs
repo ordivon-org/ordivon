@@ -45,6 +45,9 @@ pub struct HttpModelProvider {
     last_wire_observation: Option<ProviderWireObservation>,
     unknown_requires_reconciliation: bool,
     prepared: Option<PreparedHttpRequest>,
+    /// Exactly source PG-bound requests must be frozen before physical send.
+    /// Ordinary non-PG transport constructors retain their old behavior.
+    require_source_frozen_request: bool,
 }
 impl HttpModelProvider {
     /// The only HTTP escape hatch is an exact loopback fixture. Real models
@@ -124,14 +127,16 @@ impl HttpModelProvider {
         {
             return Err(ProviderConfigError::InvalidCatalog);
         }
-        Self::build(
+        let mut provider = Self::build(
             config.endpoint(),
             config.model_id(),
             bearer,
             system,
             user,
             Vec::new(),
-        )
+        )?;
+        provider.require_source_frozen_request = true;
+        Ok(provider)
     }
 
     fn build(
@@ -180,6 +185,7 @@ impl HttpModelProvider {
             last_wire_observation: None,
             unknown_requires_reconciliation: false,
             prepared: None,
+            require_source_frozen_request: false,
         })
     }
 
@@ -283,6 +289,14 @@ impl HttpModelProvider {
                 // An externally frozen request mismatching its admitted
                 // observations is unusable until a source-authoritative
                 // caller reconciles which request was intended.
+                self.unknown_requires_reconciliation = true;
+                return ProviderResult::Unknown;
+            }
+            // A source-authenticated PG ProviderRequest must already have
+            // frozen its exact body digest before the original durable
+            // CLAIMED/DISPATCHING Events. Do not compose new physical wire
+            // bytes as an undocumented fallback after PG admission.
+            None if self.require_source_frozen_request => {
                 self.unknown_requires_reconciliation = true;
                 return ProviderResult::Unknown;
             }

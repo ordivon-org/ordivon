@@ -173,6 +173,30 @@ fn native_pg_verifiable_provider_only_http_loop() {
         Some(config_port),
     );
     assert_eq!(url, config.endpoint());
+    // R42 P0 RED: an authentic PG-bound Provider must NOT send a model
+    // request that was never frozen and bound to the current PG V4 Call.
+    // The same server has exactly one response. An unprepared request
+    // would consume it before the legitimate prepared request.
+    let mut unprepared = HttpModelProvider::new_provider_only_pg_bound(
+        &config,
+        &verified,
+        "credential:verified-source-r22",
+        "test",
+        "system",
+        "question",
+    )
+    .unwrap();
+    assert!(
+        matches!(
+            ordivon_harness_loop::native_loop::Provider::turn(&mut unprepared, 1, &[]),
+            ordivon_harness_loop::native_loop::ProviderResult::Unknown
+        ),
+        "PG-bound unfrozen Provider must fail BEFORE physical HTTP"
+    );
+    assert!(
+        unprepared.freeze_next_request_digest(&[]).is_err(),
+        "unprepared attempted Provider send must remain quarantined"
+    );
     let mut source_bound = HttpModelProvider::new_provider_only_pg_bound(
         &config,
         &verified,
@@ -183,6 +207,7 @@ fn native_pg_verifiable_provider_only_http_loop() {
     )
     .unwrap();
     use ordivon_harness_loop::native_loop::{Provider, ProviderResult};
+    assert!(source_bound.freeze_next_request_digest(&[]).is_ok());
     assert!(matches!(
         source_bound.turn(1,&[]),
         ProviderResult::Delivered(ModelDecision::ProposeCompletion(ref answer))
