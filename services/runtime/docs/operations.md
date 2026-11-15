@@ -480,8 +480,10 @@ open Workspace private Cargo targets can accumulate even after successful Jobs.
 The PG-only targeted operator adapter
 `scripts/ordivon-runtime-pg-buildcache-evict` reuses the mature cache operator's
 **detach under admission fence, unlink outside the fence** algorithm without
-opening SQLite or closing Git Workspaces. This adapter is a manual source
-capability unless separately installed into the operator's systemd lifecycle.
+opening SQLite or closing Git Workspaces. The adapter is now bundled with the canonical Runtime operator artifact set
+and becomes available in the installed operator directory after a qualified
+Runtime release. It remains a targeted **manual** capability; publishing it does
+not automatically add a new systemd timer or authorize arbitrary deletion.
 
 Use the **effective** installed PG Runtime configuration, preserving systemd
 `EnvironmentFile=` precedence: later overlays override earlier definitions.
