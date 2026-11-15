@@ -9,11 +9,11 @@ test('Game registers source-bound knowledge, native composition and effect respo
   const plan=load('planning/lego-plan-r1.json');
   assert.equal(plan.project.id,'ordivon-game');
   assert.equal(new Set(plan.nodes.map((n: any) => n.id)).size, plan.nodes.length);
-  for (const id of ['G01','G02','G03','G04','G05','G06','G07','G08','G09'])
+  for (const id of ['G01','G02','G03','G04','G05','G06','G08','G09'])
     assert.ok(plan.nodes.some((n: any) => n.id === id), 'missing observed responsibility '+id);
   assert.ok(plan.nodes.some((n: any) => n.id === 'G05' && n.kind === 'interface_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G06' && n.kind === 'verifier'));
-  assert.ok(plan.nodes.some((n: any) => n.id === 'G07' && n.kind === 'native_composition_capability'));
+  assert.ok(!plan.nodes.some((n: any) => n.id === 'G07'), 'archived Orbit must not remain an active Game capability');
   assert.ok(plan.nodes.some((n: any) => n.id === 'G08' && n.kind === 'native_effect_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G09' && n.kind === 'native_narrative_adapter'));
   for(const n of plan.nodes) {
@@ -46,7 +46,6 @@ function validateNativeGameConsumerClaims(plan: any): void {
     G04: ['scripts/design-counterexample-query.ts', 'test/game-design-counterexample-memory.test.ts'],
     G05: ['package.json', 'scripts/mechanism-relationship-query.ts', 'scripts/counterexample-synthesis-query.ts'],
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
-    G07: ['examples/orbit-collector/src/main.rs', 'examples/orbit-collector/src/gameplay.rs', 'examples/orbit-collector/Cargo.toml'],
     G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
     G09: ['examples/room-encounter/narrative/encounter_dialogue.gd', 'examples/room-encounter/narrative/gate_state.gd', 'examples/room-encounter/main.tscn', 'examples/room-encounter/narrative/acceptance.gd', 'mise.toml'],
     G10: ['examples/room-encounter/encounter_save_slot.gd', 'examples/room-encounter/assert.gd'],
@@ -109,7 +108,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
   assert.ok(godotTest.includes('load("res://main.tscn")'));
 }
 
-test('Game registered consumers resolve to native CLI, Godot and Bevy source ports', () => {
+test('Game registered consumers resolve to active native CLI and Godot source ports', () => {
   const plan = load('planning/lego-plan-r1.json');
   validateNativeGameConsumerClaims(plan);
 });

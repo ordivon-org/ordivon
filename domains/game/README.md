@@ -32,36 +32,32 @@ From domains/game:
     mise run factory:validate:godot
     mise run factory:package:room
     mise run factory:package:beacon
-    mise run factory:validate:bevy
-    mise run factory:build:bevy
-    mise run factory:package:orbit-linux
     mise run verify
 
-Beacon Relay is production batch 02: an independent Godot game composed from a pinned MIT-licensed official demo and game-specific pickup, delivery, escalation and replay. Native input tests and Linux/Windows exports run through factory:package:beacon. Room Encounter (Godot) remains the earlier technical preview, not a mandatory game product. Orbit Collector (Bevy) is an independent native Rust/ECS build line with unsigned Windows/Linux technical previews, not a store installer. Both are replaceable product consumers.
+Beacon Relay is production batch 02: an independent Godot game composed from a pinned MIT-licensed official demo and game-specific pickup, delivery, escalation and replay. Native input tests and Linux/Windows exports run through factory:package:beacon. Room Encounter (Godot) remains the earlier technical preview, not a mandatory next product. The Bevy Orbit Collector prototype has completed its engineering-validation purpose and is archived, not an active build line.
 
 Available source-read interfaces (inputs only): pnpm knowledge:external, pnpm knowledge:mechanisms, pnpm knowledge:relationships, pnpm knowledge:counterexamples, and pnpm knowledge:counterexample-themes.
 
-G01–G11 in planning/lego-plan-r1.json are available capabilities/evidence, not mandatory manufacturing stations. The knowledge/*.json corpus and existing read-only queries are inputs, not a separate game product authority.
+G01–G06 and G08–G11 in planning/lego-plan-r1.json are available current capabilities/evidence, not mandatory manufacturing stations. Retired G07 is preserved in the Orbit archive without reusing its identity. The knowledge/*.json corpus and existing read-only queries are inputs, not a separate game product authority.
 
 Pre-November PC01/PC02/PC03 dossiers, mechanism-census documents, historical experiments and the unconsumed prototype-composition query have been retired from the live tree. Exact historic revisions remain in Git; old EXECUTE_NEXT fields must not schedule current production work. Frozen R7 protocol/schema remain solely for their existing isolated research selftest.
 
 
 ## Consume and improve actual games
 
-**Orbit Collector — Windows and Linux native playable preview:**
-[download the unsigned Windows x86-64 ZIP or Linux x86-64 TAR.GZ](https://github.com/ordivon-org/ordivon/releases/tag/game-orbit-collector-linux-preview-20261115-1db37d1f).
-Extract the package and run its game executable; the archive includes gameplay
-instructions and upstream Rust/Bevy license notices. Windows requires a
-working Vulkan graphics driver; Linux is qualified on X11 with a working
-Vulkan renderer. The preview is not a store installer or general-device promise.
-[Give actual first-play Orbit feedback](https://github.com/ordivon-org/ordivon/issues/2282).
-
 **Beacon Relay and Room Encounter — native Linux/Windows preview:**
 [download Game Factory Edition 001](https://github.com/ordivon-org/ordivon/releases/tag/game-factory-edition-001-20261109-a2598a2c).
 [Report a first-play issue for those games](https://github.com/ordivon-org/ordivon/issues/new?template=game-player-feedback.yml).
 
-Linux Orbit previews are produced by `mise run factory:package:orbit-linux`
-and the existing native GitHub CI workflow. The Windows Orbit archive was
-cross-compiled for Windows and has an observed native Windows Session 1 window
-smoke, but no separate Windows GitHub Actions build yet. Neither smoke nor
-an Agent episode establishes real Human understanding, completion or enjoyment.
+## Archived technical products
+
+**Orbit Collector (Bevy; archived 2026-11-15):** The independent
+five-beacon/three-life prototype completed its source-to-Windows/Linux-preview
+engineering validation, not a quality or Human-play acceptance. Its original
+source, tests, formal model, packaging scripts, build-workflow definitions,
+and G07 contract are preserved at
+[Orbit archival record](archive/orbit-collector/ARCHIVE.md).
+The [original Windows/Linux pre-release](https://github.com/ordivon-org/ordivon/releases/tag/game-orbit-collector-linux-preview-20261115-1db37d1f)
+remains downloadable. The game is no longer built by routine Game checks
+or dependency updates. Future Bevy games should choose upstream provider
+capabilities based on actual player needs, not inherit this prototype.

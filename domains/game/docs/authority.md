@@ -20,7 +20,7 @@ As of this Game source audit, native product examples do not import the Game kno
 | --- | --- | --- |
 | Godot scene | game GUI and visible controls | factory:validate:godot (bounded native game and alternate component tests) |
 | Godot export | Linux/Windows desktop native binary | factory:package:room (native Linux smoke and both archives) |
-| Bevy app | native graphical build | factory:validate:bevy and factory:build:bevy (locked Cargo and source/ECS tests) |
+| Bevy Orbit (archived) | historical technical preview only | archive/orbit-collector/ARCHIVE.md and original source-bound release; no active Game gate |
 | Existing source knowledge | inspect cited references | pnpm knowledge queries (retrieval only) |
 | Isolated R7 research | separate frozen-study process only | test:autonomous-study, no candidate generation before independent protocol gates |
 
