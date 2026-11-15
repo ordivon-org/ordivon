@@ -626,7 +626,10 @@ class GatewayMcpRuntimeAdapter:
                 eof = artifact.get("eof")
                 digest = artifact.get("digest")
                 if (
-                    _gateway_field(artifact, "job_id", "jobId") != native_id
+                    _gateway_field(artifact, "native_id", "nativeId") != native_id
+                    or _gateway_field(artifact, "operation_ref", "operationRef") != operation_ref
+                    or _gateway_field(artifact, "owner_id", "ownerId")
+                    != "runtime." + self.grant.capability.removeprefix("execution.")
                     or _gateway_field(artifact, "artifact_id", "artifactId") != artifact_id
                     or type(offset) is not int
                     or offset != 0

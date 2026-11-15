@@ -279,7 +279,9 @@ class GatewayTextArtifacts(GatewayExecutionFixture):
             assert artifact_id in {"attempt-h2.stdout", "attempt-h2.stderr"}
             content = self.stdout if artifact_id.endswith(".stdout") else ""
             payload = {
-                "job_id": self.native_id,
+                "operation_ref": self.operation_ref,
+                "owner_id": "runtime.linux",
+                "native_id": self.native_id,
                 "artifact_id": artifact_id,
                 "offset": 0,
                 "next_offset": len(content.encode("utf-8")),
@@ -288,7 +290,11 @@ class GatewayTextArtifacts(GatewayExecutionFixture):
                 "digest": "sha256:" + "a" * 64,
             }
             if self.tamper == "wrong_job":
-                payload["job_id"] = "job-unrelated"
+                payload["native_id"] = "job-unrelated"
+            if self.tamper == "wrong_operation":
+                payload["operation_ref"] = "ordivon-exec:v1:runtime.linux:job-unrelated"
+            if self.tamper == "wrong_owner":
+                payload["owner_id"] = "runtime.windows"
             if self.tamper == "zero_progress" and artifact_id.endswith(".stdout"):
                 payload.update(next_offset=0, eof=False, content="")
             return False, payload
@@ -324,7 +330,7 @@ def test_gateway_observes_real_text_artifacts_for_next_model_turn() -> None:
     ]
 
 
-@pytest.mark.parametrize("tamper", ("wrong_job", "zero_progress"))
+@pytest.mark.parametrize("tamper", ("wrong_job", "wrong_operation", "wrong_owner", "zero_progress"))
 def test_gateway_rejects_artifact_window_not_owned_by_job(tamper: str) -> None:
     client = GatewayTextArtifacts(tamper=tamper)
     factory = _factory(client)
