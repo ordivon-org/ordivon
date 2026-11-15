@@ -281,6 +281,49 @@ fn require_dispatch_budget(
     Ok(())
 }
 
+/// Enforce the source Run's immutable content-retention authority inside
+/// the same transaction that stores CAS and appends the Provider Event.
+/// The caller's proposed journal adapter is NOT a privacy authority.
+///
+/// We check staged documents, Event edges and the Provider Event's direct
+/// resultObjectDigest field. This prevents both staged and pre-existing
+/// full-result CAS objects from being referenced by a metadata-only Run.
+/// Exact historical replays are reconciled before this check: replay does not
+/// introduce another physical or privacy effect.
+fn require_source_result_retention(
+    contract: &CanonicalDocument,
+    events: &[EventWrite],
+    staged: &[ProviderStagedCas<'_>],
+) -> Result<(), WriteError> {
+    let allowed = contract
+        .field("privacy")
+        .and_then(|p| p.field("allowModelContent"))
+        .and_then(|v| v.as_bool())
+        .ok_or(WriteError::Invalid("source Contract model privacy absent"))?;
+    if allowed {
+        return Ok(());
+    }
+    if staged
+        .iter()
+        .any(|s| s.kind == super::provider_cas::ProviderCasKind::AgentTurnResult)
+        || events.iter().any(|event| {
+            event
+                .referenced_objects
+                .iter()
+                .any(|r| r.kind == "agent-turn-result")
+                || event
+                    .data
+                    .field("resultObjectDigest")
+                    .is_some_and(|v| !v.is_null())
+        })
+    {
+        return Err(WriteError::Invalid(
+            "model content forbidden by source Contract",
+        ));
+    }
+    Ok(())
+}
+
 fn exact(
     tx: &mut Transaction<'_>,
     run: &str,
@@ -512,6 +555,7 @@ pub fn append_events_with_provider_cas(
         return Err(WriteError::Terminal);
     }
     require_lease(&mut tx, run, expected_revision, lease, lease_checked_at_ms)?;
+    require_source_result_retention(&contract, events, staged)?;
     // Budget is checked inside the same Run lock, after exact replay
     // reconciliation and before any dispatch Event may become durable.
     require_dispatch_budget(&mut tx, run, &contract, events)?;

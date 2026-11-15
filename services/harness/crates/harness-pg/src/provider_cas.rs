@@ -90,6 +90,14 @@ pub fn put_provider_cas(
     document: &CanonicalDocument,
     first_seen_at_ms: i64,
 ) -> Result<StoredRef, WriteError> {
+    // A standalone write has NO Run ID or original Contract, so it cannot
+    // establish model-content retention authority. The positive Result is
+    // valid ONLY when staged inside the source Run's atomic Event transaction.
+    if kind == ProviderCasKind::AgentTurnResult {
+        return Err(WriteError::Invalid(
+            "AgentTurnResult requires source Contract and atomic Event",
+        ));
+    }
     if !valid_schema(schema) {
         return Err(WriteError::Invalid("invalid Provider CAS schema"));
     }

@@ -131,3 +131,28 @@ no new Event/Run revision. Replaying the original completed event still
 returns Existing. This is a conservative upper bound on total dispatched
 physical attempts, NOT monetary budget, observed Token billing nor
 permission to redirect model, issue Tool effects or retry UNKNOWN.
+
+## R33 source privacy authority moved into original native PG Writer
+
+R30's source-driven retention lived in the test Provider Journal rather than
+the shared PG Writer. R33 makes the same authoritative policy an invariant
+of the original locked Run transaction: validated immutable Contract
+privacy.allowModelContent=false refuses any staged AgentTurnResult or Event
+reference / direct resultObjectDigest to a full model result. Because staged
+CAS inserts and Event admissions share the same PG transaction, this check
+cannot leak a Result CAS when an untrusted adapter proposes a validly shaped
+but privacy-forbidden positive result. Historical exact Event replay reconciles
+before new admission so no new side effect is fabricated.
+
+The former standalone put_provider_cas(AgentTurnResult) API is rejected
+unconditionally: it has no Run identity, Contract, or atomic Event, and so
+cannot establish content-retention authority. Existing standalone RecordV4
+and FailureReceipt paths retain source parity.
+
+Real original PG18 redacted Run negative with current valid rev4 lease,
+forged model-result Event, and staged private CAS returns source privacy
+Invalid; independent SELECT-only SQL verifies zero CAS and zero Event,
+same revision. A direct standalone AgentTurnResult put also rejects before
+any PG write. The retained-content positive Run and original UNKNOWN
+readback remain valid. Test-only consumer and PG hard gate are distinct;
+this is not a production-installed live model executor.

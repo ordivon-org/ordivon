@@ -901,6 +901,79 @@ fn verify_native_rust_pg_v4_completed_case(source_case: &str, retain_model_conte
         Ok(Admission::Existing)
     ));
     println!("PG18_SOURCE_PROVIDER_DISPATCH_BUDGET_GATE_PASS");
+    // R33: A caller-controlled adapter must NOT override the original
+    // immutable Run Contract's model-content retention policy. In particular,
+    // a positive Result sent against a privacy-redacted source cannot be
+    // independently written to the shared CAS, nor staged in a new event.
+    if !retain_model_content {
+        let standalone = put_provider_cas(
+            &mut denied_db,
+            &schema,
+            ProviderCasKind::AgentTurnResult,
+            &rejected,
+            1043,
+        );
+        assert!(
+            matches!(
+                standalone,
+                Err(WriteError::Invalid(
+                    "AgentTurnResult requires source Contract and atomic Event"
+                ))
+            ),
+            "standalone CAS writer bypassed source privacy: {standalone:?}"
+        );
+        let mut forged = batch[2].clone();
+        forged.event_id = format!("event:forged-private-result-{source_case}");
+        forged.recorded_at_ms = 1043;
+        forged.referenced_objects.push(rejected_ref.clone());
+        let ev_result = append_events_with_provider_cas(
+            &mut denied_db,
+            &schema,
+            run_id,
+            ProviderEventBatch {
+                events: &[forged.clone()],
+                staged: &[ProviderStagedCas {
+                    kind: ProviderCasKind::AgentTurnResult,
+                    document: &rejected,
+                    first_seen_at_ms: 1043,
+                }],
+            },
+            4,
+            &newer_lease,
+            1043,
+        );
+        assert!(
+            matches!(
+                ev_result,
+                Err(WriteError::Invalid(
+                    "model content forbidden by source Contract"
+                ))
+            ),
+            "untrusted adapter bypassed original source model privacy: {ev_result:?}"
+        );
+        let forbidden_count: i64 = readonly
+            .query_one(&rollback_sql, &[&rejected_ref.digest])
+            .unwrap()
+            .get(0);
+        assert_eq!(
+            forbidden_count, 0,
+            "forged private Result CAS leaked despite original Contract"
+        );
+        let forged_event_count: i64 = readonly
+            .query_one(&evt_sql, &[&forged.event_id])
+            .unwrap()
+            .get(0);
+        assert_eq!(forged_event_count, 0);
+        assert_eq!(
+            read_run_readonly(&mut readonly, &schema, run_id)
+                .unwrap()
+                .projection
+                .revision,
+            4
+        );
+        println!("PG18_SOURCE_MODEL_PRIVACY_FENCE_UNTRUSTED_WRITER_PASS");
+    }
+
     println!("PG18_REJECTED_COMPLETED_EVENT_NO_PRIVATE_CAS_ORPHAN_PASS");
     if retain_model_content {
         println!("PG18_NATIVE_RUST_POSITIVE_HTTP_PYTHON_SOURCE_V4_COMPLETED_READBACK_PASS");
