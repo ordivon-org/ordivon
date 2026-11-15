@@ -135,22 +135,6 @@ needs a consumer invariant or an actual known failure mode. Historical frozen
 evidence may have real downstream consumers: delete only after proving loss of
 reachability and fulfilling the actual retention/recovery authority.
 
-## Guidance by role
-
-**Human:** identify the final consumer, the business/scientific definition
-and the minimum specification. Demand a counterexample to proposed weak
-models, check which assumptions match reality and decide whether a test
-really became redundant. Approve a version migration by real consumer
-compatibility evidence, not by a passing synthetic model.
-
-**Agent:** resolve existing formal Skills and Owner-native tools first. Write
-an explicit input domain, postconditions, invariants and error states.
-Run Lean for the abstract model, CrossHair for the pure Python portion, and
-actual owner read-back at I/O edges. Record exact code SourceCut, verifier
-version, assumptions, negative oracle and relevant native consumer outcome.
-Never relabel `UNKNOWN` as `FALSIFIED` and never report bounded symbolic
-exploration as full installed-code refinement.
-
 ## Read-only product projection evidence boundary
 
 `src/ordivon_data/odps_projection.py` is a concrete ODPS v1.1-to-DCAT 3
@@ -184,20 +168,11 @@ from ODPS alone (the explicit operator binding is an additional assumption).
 Source identity, physical availability, rights and downstream acceptance
 must remain distinct from the Lean abstract digest verdict.
 
-## Cross-owner adoption without a new platform
+## Scope of the proof evidence
 
-- Runtime/Host/Harness: use their existing state-transition models, Rust
-  contracts and PostgreSQL read-back; choose TLA+/Quint only for consequential
-  concurrency/liveness questions.
-- Artifact/Media: reuse real byte/format validators, native QC and bounded
-  differential checks; formalize deterministic metadata and admission rules.
-- Finance: formalize point-in-time data semantics, portfolio constraints,
-  margin and state transitions; real provider snapshots and downstream
-  research acceptance remain separate.
-- Research: specify estimands, sampling/inference assumptions and reproducible
-  source identities; statistical assumptions cannot generally be proved from
-  software code.
-- ELE/Skills: model discovery/qualification state and provenance; external
-  facts and installation/permission effects still require direct observation.
-
-This file does not grant authority over those owners' code, tests or releases.
+The models and CrossHair check are current **source-level proof inputs**, not
+Data-owned production transaction services or automatic file reclamation.
+Runtime, Preservation, Artifact, Research and Finance retain the relevant
+installed/effect/consumer authority. See the owner README and root
+`.agents/skills/recursive-lego-calculus/SKILL.md` for workflow and contract
+selection; do not duplicate generic cross-owner instructions here.

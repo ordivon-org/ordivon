@@ -5,12 +5,16 @@ interoperability without taking custody of Research, Finance, Runtime, Artifact,
 Preservation or external-provider truth. This is a source package, **not** a
 second warehouse, scheduler, data registry, or universal data-product ontology.
 
-## Outcome-first business acceptance: one live consumer, no new platform
+## How to use Data
+
+Ask the natural domain Owner for the business or scientific outcome, not
+for a particular data port, checksum or SQL engine. For example, ask
+Research whether the current Episode corpus supports promotion of an
+autonomous Agent; Research obtains qualified Data input and issues its own
+decision. Data itself accepts no mandate to publish or delete domain data.
 
 Data supplies verified information requested by an Outcome Owner, not
-standalone success indicators. A human specifies the business goal; Research
-decides the science and Data selects/verifies the source without asking humans
-to run its CLIs. The current task-local Research implementation is
+standalone success indicators. The current task-local Research implementation is
 studies/experimental-episodes/experiments/evidence-consumer-pilot-r1/deliver_research.py.
 It consumes the existing source-owned Episode manifest through the Data
 projector, binding and file inspector, then independently checks the Research
@@ -162,13 +166,15 @@ Never persist this ephemeral local URI as the canonical cross-host identity.
 ## Verification and user instructions
 
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).
-- [Human workflow](docs/HUMAN.md)
-- [Agent workflow](docs/AGENT.md)
-- [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
-- [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
+- Human workflow and owner responsibility: this README.
+- Agent workflow and scope: [AGENTS.md](AGENTS.md).
+- Formal contract, abstract-versus-physical standing and versioned reader
+  lifetime: [Formal verification map](docs/FORMAL_VERIFICATION.md).
+- Historical file-by-file audit and retirement rationale:
+  [Brownfield audit spec](docs/BROWNFIELD_AUDIT_SPEC_R1.md).
 - Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.
 
-**Data product standard version law:** ODPS 1.1 is consumed by current historical
-products; ODPS 4.2 (released 2026-10-26) has a different document root and
-access model. It is a migration **candidate**, not a compatible in-place bump.
-Maintain consumer parity and native conformance evidence before moving a product.
+**Standard compatibility:** current producer contracts use Bitol ODPS 1.1.
+Do not confuse it with the separate OpenDataProducts.org ODPS 4.x family or
+treat a larger version number as an in-place compatible upgrade. A standard
+substitution must preserve existing producer and domain-consumer contracts.
