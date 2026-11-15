@@ -45,7 +45,16 @@ or a proof of adjusted/dividend total-return economics.
 Features RET1/MOM5/HILO/VOL5 are EOD-close-derived; LABEL0 is next
 TRADING SESSION open-to-close fractional return (for new entries). These predictions are
 UNCALIBRATED research scores, NOT a conditional return distribution or
-an admitted expected-return vector. The independent covariance-only
+an admitted expected-return vector.
+
+The native Qlib to Portfolio economic consumer requires the exact score
+column produced for its declared CLOSE or NEXT_OPEN forecast, in addition to
+datetime and instrument identity. A self-consistent artifact digest alone
+cannot authorize an inserted actual_return label as the first numeric column:
+positional selection would leak realized outcomes into the ranking. This is
+a source-consumer contract, not proof of genuine point-in-time market data.
+
+The independent covariance-only
 PyPortfolioOpt min-volatility calculation is MATH ONLY; the machine
 result explicitly carries portfolio_target=null and optimizer_policy_eligible=false.
 

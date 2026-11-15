@@ -39,7 +39,7 @@ def fixture(tmp_path, monkeypatch):
     ]
     prediction = tmp_path / "qlib_test_predictions.csv"
     prediction.write_text(
-        "datetime,instrument,prediction\n"
+        "datetime,instrument,predicted_next_open_to_close_fractional_return\n"
         + "".join(f"{d},{s},{v}\n" for d, s, v in rows)
     )
     index = pd.MultiIndex.from_tuples(
@@ -138,6 +138,62 @@ def test_every_etf_source_receipt_still_matters(tmp_path, monkeypatch, mutation)
         report["provider_receipts"][0]["provider"] = "unknown"
     with pytest.raises(ValueError, match="receipts|provider"):
         module._native_study_inputs(report)
+
+
+def test_native_study_rejects_label_leakage_even_with_matching_file_digest(
+    tmp_path, monkeypatch,
+):
+    """A self-consistent checksum cannot make the first CSV column a forecast."""
+    module, report = fixture(tmp_path, monkeypatch)
+    prediction = tmp_path / "qlib_test_predictions.csv"
+    original = prediction.read_text(encoding="utf-8")
+    # Native producer emits ONE semantic score column. A leading outcome
+    # column could otherwise become the winner-ranking predictor.
+    leaked = original.replace(
+        "datetime,instrument,predicted_next_open_to_close_fractional_return",
+        "datetime,instrument,actual_return,predicted_next_open_to_close_fractional_return",
+    )
+    leaked = leaked.replace(",0.01\n", ",0.97,0.01\n")
+    leaked = leaked.replace(",0.02\n", ",0.96,0.02\n")
+    leaked = leaked.replace(",0.03\n", ",0.95,0.03\n")
+    prediction.write_text(leaked, encoding="utf-8")
+    report["qlib_prediction_sha256"] = sha256(prediction.read_bytes()).hexdigest()
+    # Under the old positional algorithm, leaked realized outcomes would
+    # select SPY; the genuine forward score would select IWM.
+    from_position = pd.read_csv(prediction).set_index(["datetime", "instrument"]).iloc[:, 0]
+    assert from_position.loc[("2026-10-01", "SPY")] > from_position.loc[
+        ("2026-10-01", "IWM")
+    ]
+
+    with pytest.raises(ValueError, match="prediction column"):
+        module._native_study_inputs(report)
+
+
+def test_next_open_study_consumer_requires_matching_native_prediction_header(
+    tmp_path, monkeypatch,
+):
+    """The native CLOSE and NEXT_OPEN forecast providers have distinct outputs."""
+    module, report = fixture(tmp_path, monkeypatch)
+    report["signal_quality"]["exit_price_kind"] = "next_open"
+    report["forecast"]["exit_price_kind"] = "next_open"
+    report["forecast"]["target_horizon"] = "next_session_open_to_T_plus_21_open"
+    assert module._study_identity(report)["exitPriceKind"] == "next_open"
+    forecast = tmp_path / "qlib_test_predictions.csv"
+    # Same values and index, but a CLOSE semantic header cannot be consumed
+    # as a NEXT_OPEN model merely by updating the report's metadata.
+    with pytest.raises(ValueError, match="prediction column"):
+        module._native_study_inputs(report)
+    forecast.write_text(
+        forecast.read_text(encoding="utf-8").replace(
+            "predicted_next_open_to_close_fractional_return",
+            "predicted_next_open_to_next_open_fractional_return",
+        ),
+        encoding="utf-8",
+    )
+    report["qlib_prediction_sha256"] = sha256(forecast.read_bytes()).hexdigest()
+    predicted, labels, bars = module._native_study_inputs(report)
+    assert len(predicted) == len(labels) == 3
+    assert set(bars) == {"IWM", "QQQ", "SPY"}
 
 
 def test_missing_or_malformed_prediction_digest_fails_closed(tmp_path, monkeypatch):

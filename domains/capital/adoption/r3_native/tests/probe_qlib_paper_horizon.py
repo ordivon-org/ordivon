@@ -84,7 +84,20 @@ def _native_study_inputs(report: dict) -> tuple[pd.Series, pd.DataFrame, dict[st
         if not data["session_date"].is_unique:
             raise ValueError(f"{symbol} source dates are not unique")
         bars[symbol] = data.set_index("session_date").sort_index()
-    predictions = pd.read_csv(BytesIO(pred)).set_index(["datetime", "instrument"]).iloc[:, 0]
+    prediction_table = pd.read_csv(BytesIO(pred))
+    # Native Qlib producer writes one declared forecast column. Selecting
+    # iloc[:, 0] can silently promote a newly prepended realized label into
+    # the Portfolio winner selector even when the file digest is correct.
+    exit_kind = report["signal_quality"].get("exit_price_kind")
+    if exit_kind == "next_open":
+        expected_score = "predicted_next_open_to_next_open_fractional_return"
+    elif exit_kind == "close":
+        expected_score = "predicted_next_open_to_close_fractional_return"
+    else:
+        raise ValueError("unknown Qlib prediction exit event")
+    if list(prediction_table.columns) != ["datetime", "instrument", expected_score]:
+        raise ValueError("Qlib prediction column schema differs from native producer")
+    predictions = prediction_table.set_index(["datetime", "instrument"])[expected_score]
     labels = pd.read_parquet(BytesIO(dataset))
     if not predictions.index.is_unique or not labels.index.is_unique:
         raise ValueError("Duplicate historical prediction or label keys")
