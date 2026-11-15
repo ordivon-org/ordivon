@@ -155,6 +155,10 @@ chmod -R a+rX "$PYTHON_INSTALL_DIR"
 UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"
 chmod -R a+rX "$RELEASE"
 
+# Qualify the frozen release with the official MCP SDK before activation:
+# tool names alone cannot detect state or pagination argument drift.
+"$RELEASE/.venv/bin/python" "$RELEASE/packaging/verify_release.py"
+
 # Build, lock and source-verify the complete candidate before changing any
 # serving symlink. Host upstream authentication cannot safely be switched
 # until the real Gateway/peer/Cloudflare consumers and Security Principal

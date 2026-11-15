@@ -45,6 +45,19 @@ if [ "$1" = "python" ] && [ "$2" = "find" ]; then
 fi
 if [ "$1" = "sync" ]; then
   if [ "${ORDIVON_TEST_UV_REJECT_LOCK:-}" = "1" ]; then exit 42; fi
+  project=""
+  for arg in "$@"; do project="$arg"; done
+  test -f "$project/packaging/verify_release.py"
+  mkdir -p "$project/.venv/bin"
+  cat > "$project/.venv/bin/python" <<'NATIVE_SDK_FAKE'
+#!/bin/sh
+set -eu
+test -f "$1"
+if [ "${ORDIVON_TEST_NATIVE_SDK_REJECT:-}" = "1" ]; then exit 73; fi
+grep -q contractDigest "${1%/packaging/verify_release.py}/mcp-surface.json"
+printf 'native-sdk-contract-checked\n' >> "$ORDIVON_TEST_SDK_CALL_LOG"
+NATIVE_SDK_FAKE
+  chmod +x "$project/.venv/bin/python"
   exit 0
 fi
 printf 'unexpected uv args: %s\\n' "$*" >&2
@@ -87,7 +100,13 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     )
     (host / "mcp-surface.json").write_text(
         '{"schemaVersion":1,"kind":"ordivon.mcp-tool-surface","service":"ordivon-host-v2",'
-        '"packageVersion":"0.1.0","surfaceEpoch":1,"tools":["host.status"]}\n',
+        '"packageVersion":"0.1.0","surfaceEpoch":1,"tools":["host.status"],'
+        '"contractDigest":"sha256:' + "0" * 64 + '"}\n',
+        encoding="utf-8",
+    )
+    (host / "packaging").mkdir()
+    (host / "packaging" / "verify_release.py").write_text(
+        "# disposable SDK-check fixture; fake uv supplies this entrypoint\\n",
         encoding="utf-8",
     )
     (package / "__init__.py").write_text('VALUE = "monorepo-host"\n', encoding="utf-8")
@@ -115,6 +134,8 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     env["ORDIVON_HOST_V2_PYTHON_INSTALL_DIR"] = str(tmp_path / "python")
     uv_call_log = tmp_path / "uv_calls.log"
     env["ORDIVON_TEST_UV_CALL_LOG"] = str(uv_call_log)
+    sdk_log = tmp_path / "native-sdk-checks.log"
+    env["ORDIVON_TEST_SDK_CALL_LOG"] = str(sdk_log)
 
     # Wrong Host source tree fails before files or toolchain side effects.
     expected_tree = _git(repo, "rev-parse", f"{commit}:services/host")
@@ -145,6 +166,7 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     calls = uv_call_log.read_text(encoding="utf-8").splitlines()
     assert len(calls) == 1
     assert calls[0].startswith("sync --locked ")
+    assert sdk_log.read_text(encoding="utf-8").splitlines() == ["native-sdk-contract-checked"]
     assert all(not call.startswith("python ") for call in calls)
     assert mise_log.read_text(encoding="utf-8").splitlines() == [
         "which uv",
@@ -181,6 +203,12 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     # A real candidate preparation qualifies the locked package and exact
     # independently reviewed tree, while leaving the serving pointer intact.
     before_current = (prefix / "current").resolve()
+    rejected_sdk = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only",
+        env={**env, "ORDIVON_TEST_NATIVE_SDK_REJECT": "1"},
+    )
+    assert rejected_sdk.returncode == 73, rejected_sdk.stderr
+    assert (prefix / "current").resolve() == before_current
     staged = _run(
         str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
     )

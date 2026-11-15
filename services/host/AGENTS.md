@@ -70,3 +70,16 @@ an outer Gateway ALLOW. Distinguish Linux verified source behavior, unrun
 Windows source behavior (Host HTTP remains POSIX only), installed service
 credentials and authoritative Actor resource policy. Do not leak credential
 values into evidence.
+
+## Native Tool schema currentness
+
+MCP Tool names are insufficient for compatibility: the same `topic.list` name
+may add `includeArchived`, or `topic.state.set` may add `archived`. After a Tool
+signature change, update the existing `mcp-surface.json` contractDigest, epoch,
+package version and lock, then pass the official SDK `packaging/verify_release.py`
+and release guard. Compare **installed** tools/list with the consuming Agent's
+captured Tool definition; an SDK source test does not refresh stale clients.
+
+Consumer/source architecture readset: see
+[Consumer Architecture R1](docs/CONSUMER_ARCHITECTURE_R1.md) for the bounded
+DSM and lifecycle decisions; source, tests and natural Owner evidence remain authoritative.
