@@ -13,7 +13,9 @@ mod evidence;
 #[allow(dead_code)]
 mod execution_provider;
 mod host_dependency;
+#[cfg(feature = "transactional-runtime")]
 mod inspection;
+mod inspection_contract;
 mod job_attempt_state;
 mod lifecycle_locks;
 mod operation_circuit;
@@ -38,12 +40,8 @@ pub use doctor::{
 pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
 pub const RUNTIME_MAX_MIGRATION_VERSION: i64 = registry::MAX_MIGRATION_VERSION;
-pub use inspection::{
-    inspect_job, RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt,
-    RuntimeInspectionCondition, RuntimeInspectionConfig, RuntimeInspectionEpisodes,
-    RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
-    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT,
-};
+#[cfg(feature = "transactional-runtime")]
+pub use inspection::{inspect_job, RuntimeInspectionConfig};
 #[cfg(feature = "operator-tools")]
 pub use inspection::{
     inspect_registry, inspect_registry_activity, inspect_registry_archive,
@@ -64,6 +62,11 @@ pub use inspection::{
     RuntimeWorkspaceInspection, RuntimeWorkspaceInspectionConfig, RuntimeWorkspaceInspectionJob,
     DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
+};
+pub use inspection_contract::{
+    RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt, RuntimeInspectionCondition,
+    RuntimeInspectionEpisodes, RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
+    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT,
 };
 pub(crate) use registry::Registry;
 pub use registry::RegistryConfig;
