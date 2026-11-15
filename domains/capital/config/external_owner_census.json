@@ -859,7 +859,8 @@
     {
       "id": "portfolio-strategic-contribution-only",
       "sourcePatterns": [
-        "src/ordivon_capital/portfolio/strategic_contribution.py"
+        "src/ordivon_capital/portfolio/strategic_contribution.py",
+        "src/ordivon_capital/portfolio/paper_contribution_plan.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -869,7 +870,7 @@
         "QuantConnect or NautilusTrader only if an actual future execution contract is qualified"
       ],
       "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
-      "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
+      "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. The actual Paper account consumer obtains a committed Accounting head, applies an operator-bound Markets snapshot and reuses Risk available cash before the same no-sell Portfolio projection; unsettled receivables and existing payables are not investable. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
     },
     {
       "id": "markets-github-historical-close-byte-admission",
