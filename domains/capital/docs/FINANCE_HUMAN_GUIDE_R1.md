@@ -456,6 +456,20 @@ Agent：现有 Finance R3 Qlib 与 Riskfolio 实际消费同一个 Markets
 Capital 标准 tests 下，抽象 Z3 证明与实际消费者测试各有边界。
 具体研究结果与证据见 adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
 
+
+### Qlib HILO 行情形状先行核验（2026-11-15）
+
+Qlib 历史训练含 (high-low)/close 特征；使用方必须先经过
+Markets require_ohlcv_shape_for_hilo，不允许 high 小于 open/close，
+low 大于 open/close、负成交量、非有限值或布尔价格。
+既有私有 OpenBB/Cboe 来源 QQQ 2026-05-20 与
+IWM 2023-06-05 有真实物理反例，训练应停止并要求独立来源确认，
+而不是偷偷修复、删除行或据此发布更好的历史收益。
+XNYS 交易日完整性由现有独立 Markets 组件继续验证。
+这两种数据形状 PASS 均不证明发行方复权、历史首次可知时点、
+行情授权、真实成交或 Alpha。人类只需提供有资格的来源；
+Agent 无需再建行情、训练、账本或交易框架。
+
 ### Markets 日终交易日与实际收盘时刻的边界（2026-11-14）
 
 对 SPY、QQQ、IWM 等 US ETF 的研究或 Paper 日结，历史价格
