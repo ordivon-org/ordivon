@@ -416,7 +416,7 @@ def guarded_recover() -> dict:
                 if (quality.recent_failure_witness(datetime.now(timezone.utc)) is True
                         and quality.direct_underlay_witness() is True
                         and bounded_consumer_observe(seconds=12).get("standing")
-                        != "QUALIFIED_ACTIVE_SAMPLE"):
+                        == "NOT_QUALIFIED"):
                     restored = restart_existing_provider(
                         timeout=45, observe_seconds=18, checks=2,
                     )

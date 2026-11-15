@@ -454,7 +454,8 @@ def test_native_health_restart_failure_is_effect_unknown_and_bounded(monkeypatch
 # 2026-11-15 real consumer incident: three native country trials returned
 # TRIAL_UNKNOWN/rollback UNKNOWN_OR_FAILED while two host-direct origins
 # remained reachable, and all scoped Claude/Codex/PyPI consumers failed.
-def _failed_native_api_scenario(monkeypatch, *, direct=True, recovered=False, restart_timeout=False):
+def _failed_native_api_scenario(monkeypatch, *, direct=True, recovered=False,
+                                restart_timeout=False, unknown=False):
     import subprocess
     before={"type":"wireguard","provider":{"name":"surfshark",
              "server_selection":{"countries":["Malaysia"],"regions":[]}}}
@@ -479,6 +480,8 @@ def _failed_native_api_scenario(monkeypatch, *, direct=True, recovered=False, re
     observations=[]
     def consumer(seconds=25):
         observations.append(seconds)
+        if unknown:
+            return {"standing":"UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"}
         if "restart" in effects or (recovered and len(observations) >= 2):
             return {"standing":"QUALIFIED_ACTIVE_SAMPLE",
                     "currentCatalogCountry":"Malaysia"}
@@ -538,3 +541,12 @@ def test_api_trial_fallback_outside_budget_is_skipped(monkeypatch):
     result=switch.guarded_recover()
     assert result["standing"]=="NATIVE_SWITCH_FAILED"
     assert effects.count("restart")==0
+
+
+def test_api_trial_unknown_consumer_observation_does_not_authorize_restart(monkeypatch):
+    """UNKNOWN is not a failed business receipt, even with old failure samples."""
+    effects = _failed_native_api_scenario(monkeypatch, unknown=True)
+    result = switch.guarded_recover()
+    assert result["standing"] == "NATIVE_SWITCH_FAILED"
+    assert result["effectAttempted"] is True  # Original API PUT was attempted.
+    assert effects.count("restart") == 0
