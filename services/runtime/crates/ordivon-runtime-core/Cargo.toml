@@ -23,6 +23,11 @@ path = "src/bin/ordivon-runtime-job-fixture.rs"
 required-features = ["systemd-supervisor"]
 
 [[bin]]
+name = "ordivon-runtime-windows-pg-preflight"
+path = "src/bin/ordivon-runtime-windows-pg-preflight.rs"
+required-features = ["postgres-registry-admission"]
+
+[[bin]]
 name = "ordivon-runtime-runner"
 path = "src/bin/ordivon-runtime-runner.rs"
 required-features = ["universal-executor"]
@@ -72,7 +77,9 @@ windows-sys = { version = "0.61.2", features = [
   "Win32_Storage_FileSystem",
   "Win32_System_Services",
   "Win32_System_Threading",
+  "Win32_System_JobObjects",
 ] }
 
 [dev-dependencies]
+tempfile = "3.27"
 proptest = "1.7"

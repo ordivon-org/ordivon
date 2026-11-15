@@ -12,7 +12,8 @@ Harness owns Agent run, Security owns admission/PDP decisions.
 3. routing.py / capability_catalog.py / capability_projection.py — discovery.
 4. execution_* / execution_refs.py — Runtime delegation and correlation.
 5. host_*_tools.py / upstream*.py — Host/Owner forwarding.
-6. access_auth.py / capability_authz.py — trusted ingress and protected calls.
+6. access_auth.py / ingress_identity.py — verified ingress identity and shared request coordinates.
+7. authorization_targets.py / capability_authz.py — pure Owner request-target projection and Security PEP decision binding.
 
 ## Human
 Pin Git revision. Compare released tool surface with live system.describe and
@@ -35,10 +36,35 @@ the existence of `AuthZenPrincipalAuthorizer` or an injected test. The actual
 does not forward; configure both
 `ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT` and
 `ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE` for authenticated AuthZEN
-decisions. Only a Runtime Artifact read belongs to this PEP, not all MCP
-effects. The existing private token loader and PDP adapter are reused.
+decisions. The existing Security PEP also covers Host read/write operations
+and qualified Runtime release.apply; generic Runtime execution retains the
+independent verified-ingress/Runtime authority boundary. A valid machine
+bearer or Tool ActorRef is not a Security grant. The existing private token
+loader and PDP adapter are reused.
+The request target projection lives in `authorization_targets.py`; it derives
+the original Host Tool read/write partition and Runtime/Artifact exact resources
+without interpreting AuthZEN ALLOW. The PEP in `capability_authz.py` accepts
+only integer Security schema v2/v3, rejects floating versions, and requires a
+nonblank exactly echoed request ID for v3 interactive evidence. Source negative
+tests intentionally proved the previous ALLOW gap; the B02 TLA model now
+independently represents nonblank nonce qualification. This is NOT a proof
+that installed Security grants exist.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
+
+## Shared HTTP request identity (source contract)
+
+`ingress_identity.py` is the only Gateway source reader of the request-local
+`scope.state` Principal/Issuer pair. The Access middleware authenticates and
+populates this state; the pure reader **does not** authenticate arbitrary dicts.
+The HTTP guard, AuthZEN object PEP, audit correlation, and the MCP Tool execution
+Context all use the same non-blank pair or independently fail closed.
+`_HOST_READ_ONLY_TOOLS` derives from the canonical Host read-selector map,
+not a second hand-maintained Tool list. Native source tests verify this read/
+write partition against the existing `enforcement-surface.json` and Host
+Dispatcher. This changes no Security grants, owner credential, or installed
+authorization. Run `test_ingress_identity_contract.py` with the existing
+HTTP/Host/AuthZEN tests before any installed consumer inference.
 
 ## HTTP execution Principal — separate from STDIO
 
@@ -68,8 +94,12 @@ source build, locked formal checks and native consumer readback.
 ## B03 strict Owner observation
 Runtime configured/available fields must be literal JSON booleans;
 contradictory or malformed values are UNKNOWN, with an observation error.
-Run the bounded formal/check_owner_status_contract.py in the locked Gateway
-environment. Never treat a model result as proof of a live Runtime RPC.
+The B03 TLA+ model and original bounded Python consumer now additionally
+require a list-valued target inventory, exactly one matching target identity
+and list-valued explicitly provided context inventories before READY.
+The checker covers 100 status pairs plus nine real Python inventory/Context
+cases. Run both gateway:formal:verify and gateway:verify; neither establishes
+live Runtime readiness or a universal Python-to-TLA+ refinement proof.
 
 ## R04 Owner HTTP pool (MCP SDK native)
 McpOwnerCaller uses a process-scoped per-Owner HTTP connection pool and a
@@ -175,6 +205,25 @@ claim successful service admission from an unprivileged staging install.
 On 203/EXEC investigate the interpreter shebang and complete parent path,
 retain the last healthy release, and correct the interpreter location.
 
+## Agent receipt type fidelity (2026-11-14)
+
+Agent-facing `execution.submit` and `execution.cancel` only project
+nonempty native JSON string `status`/`attemptState` and optional
+`deliveryDisposition`. Do not convert malformed Owner values using
+Python `str()` or treat unknown variants as success. Preserve future
+nonempty string states as Owner-owned opaque vocabulary. Source TDD:
+`tests/test_execution_receipt_types.py`; native Gateway verification
+remains necessary. A typed receipt does not attest the physical effect.
+
+For Agent-facing execution.get Artifact completeness, the Owner's qualified
+job.get artifact count must match **distinct, nonblank Artifact IDs** from an
+explicitly list-valued, fully qualified job.observe inventory, not merely the
+number of rows. If an Owner response contains a malformed list, missing or
+invalid entries, or duplicate IDs, the Gateway performs its existing one
+bounded refresh; unresolved identity coverage stays incomplete even when the
+Owner summary count is 0. Never fabricate a missing Owner Artifact or treat
+an unqualified count as a success witness.
+
 ## R08 Linux PG Runtime real business Job and Artifact delivery
 
 **Human:** A real production Gateway-to-Linux Runtime Job executed and emitted
@@ -192,3 +241,104 @@ retain normal SDK output-schema validation. Test a real principal-owned
 Gateway execution.submit -> execution.resolve -> execution.get -> artifact.read
 flow and validate the Artifact digest; remove the adapter after the Runtime
 binary publishes corrected schemas with such a passing consumer flow.
+
+## Host exact-message consumer continuity (candidate source)
+
+message.get(messageRef, expectedDigest?) is a bounded-purpose
+read-only Host proxy for Agent re-entry/evidence readback. Keep its output
+on the Host's natural authority; bind messageRef and the *entire* requested
+digest to the existing Gateway host.legacy-read AuthZEN policy, never use
+an untrusted ActorRef as authorization. The existing message.search
+and topic.resume are not substitutes for an exact digest-checked message.
+Gateway sources/tests/mcp-surface.json describe a *candidate*, not the
+installed tool list. First qualify the real Host bearer and authenticated
+Principal/Actor consumer; do not bypass PEP to preserve old direct clients.
+
+## Host upstream identity after Host HTTP hardening
+
+Gateway Host requests use the existing `ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE`
+operator credential, read from a private file on every request. Host verifies
+the same service credential through the MCP SDK's native Bearer middleware.
+Configure both ends before enabling the authenticated Host HTTP release.
+The transport credential does **not** establish a caller's human or Agent
+identity or grant object-level Host authorization.
+
+## R12 native Linux Runtime structured release forwarding (source-only)
+
+The Gateway may expose `runtime.release.apply` and `runtime.release.get` as a
+fixed `runtime.linux`/`linux-pg` MCP Owner forwarding pair, **not** as general
+`execution.submit` or a second deployer. Apply accepts only the original
+requestId, Workspace, Runtime-owner Git commit, exact candidate manifest digest
+and expected Tool count. The existing Gateway HTTP verified Principal scopes the
+request ID; the existing Security AuthZEN PEP must explicitly allow the complete
+`runtime.release.linux` request before forwarding. Unavailable PDP/unknown
+authority stays DENY. Release GET reuses the original Principal-scoped key
+without resubmitting any physical effect. Runtime keeps all ReleaseEffect,
+operator installation, PostgreSQL, receipt, and rollback authority.
+
+Run `gateway:verify`, `gateway:formal:verify` with the pinned TLA+ JAR,
+`test_runtime_release_proxy.py`, then the exact native MCP `tools/list` surface
+check. Source acceptance is not proof that the installed Gateway, its current
+Security PDP, or the connected ChatGPT Gateway App exposes and authorizes these
+Tools. Do not promote the currently divergent Gateway release without proving
+all Host/Security consumers work under its AuthZEN credentials. Do not run
+`ordivon-runtime-deploy` using `execution.submit` to bypass a missing
+`runtime.release.apply` Tool: that lacks the caller's proper ReleaseEffect
+admission and original-result recovery contract.
+
+## R8 direct-Host connector migration evidence
+
+The existing ChatGPT `ordivon-host` connector is a real **separate**
+consumer of `host-mcp.ordivon.com`, not merely a Host subprocess.
+Before changing its endpoint, run the original native MCP SDK
+`python3 tools/repo/check_host_gateway_mcp_consumer_surface.py`
+from the monorepo root. This reports source tool-set and argument
+differences, never a deployment approval. The original Host exposes
+31 tools, candidate Gateway 41 with 30 common on source
+`682e4c00dad0f9a28792049a415bb236fb0135e3`; same input
+property/required sets do not imply output schema or real Agent
+permissions match. See
+`docs/HOST_DIRECT_CONSUMER_GATE_R7.md` for full physical evidence,
+compatibility obligation, and installed native Agent canaries.
+Do not reimplement Host output models inside Gateway or assume a
+Cloudflare DNS/ingress change migrates a connected ChatGPT Plugin.
+
+## R9 native Host Tool coverage before migration
+
+Run the existing `python3 tools/repo/check_host_gateway_mcp_consumer_surface.py`
+and require `sourceConsumerSurfaceQualified=true` **only for the
+source Tool name/required-argument baseline**. R9 now rejects any new
+Host business Tool absent from Gateway, not only differing arguments on
+Tools already shared. `host.pool.stats` is an original Host
+operator-only exception that must NOT silently become an Agent Tool.
+The comparison is native original Host+Gateway `tools/list`, not a new
+hardcoded list of all 30 Host Tools. R10 extends this same source checker
+to the original GatewayService `_SOCIAL_WORK_HOST_TOOLS` allowlist, observed
+in the locked Gateway environment. Require
+`sourceEndToEndSourceQualified=true` for Host business Tool public
+registration **and** internal dispatch closure; an absent/extra dispatcher
+name fails even when the two MCP Tool sets match. The original
+`sourceConsumerSurfaceQualified` is only the earlier public-name/required
+baseline, not the full dispatch proof. Input and output Schema differences
+remain explicit separate results, and live Security/installed-Plugin
+migration remains UNKNOWN until independently verified.
+
+## R13 Runtime self-release discovery (read only, not admission)
+
+The runtime.release.linux immutable route exposes existing native
+runtime.release.apply/get functionality through Gateway capability metadata.
+Discovery observes only runtime.describe on the fixed runtime.linux Owner;
+it does not attempt a release, ask Security to create a grant or execute a
+shell. Even if Runtime structuredReleaseConfigured=true, Gateway must keep
+available=false with readiness UNKNOWN until deployed tool identity, Security
+operator grant and Runtime ReleaseEffect qualification are independently
+observed. Exact structuredReleaseConfigured=false is NOT_READY, not a
+transport failure. Invalid node identity or boolean status is UNKNOWN.
+The MCP source tool input/output contract does not change for a new metadata
+route, but normal routeDigest and source package version do change.
+Exercise test_runtime_release_discovery.py plus gateway:verify and true
+post-deployment readback before claiming readiness. Ordinary execution
+readiness must also be grounded in one unambiguous Runtime target with typed
+context inventories: refer to README.md "Capability observation lifecycle"
+and test_capability_projection.py; malformed Owner data is UNKNOWN rather
+than a positive READY or a global discovery exception.

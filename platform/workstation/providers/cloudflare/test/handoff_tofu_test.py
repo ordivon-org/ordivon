@@ -188,7 +188,7 @@ class PlanSemanticGateTests(unittest.TestCase):
                         "resources": [
                             {
                                 "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
-                                "values": {"config": {"ingress": prior_ingress}},
+                                "values": {"tunnel_id": "production-tunnel", "config": {"ingress": prior_ingress}},
                             },
                             {
                                 "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
@@ -206,7 +206,7 @@ class PlanSemanticGateTests(unittest.TestCase):
                     "resources": [
                         {
                             "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
-                            "values": {"config": {"ingress": planned_ingress}},
+                            "values": {"tunnel_id": "production-tunnel", "config": {"ingress": planned_ingress}},
                         },
                         {
                             "address": "cloudflare_zero_trust_access_application.gateway_mcp",
@@ -236,7 +236,7 @@ class PlanSemanticGateTests(unittest.TestCase):
                             "address": "cloudflare_dns_record.gateway_mcp",
                             "values": {
                                 "name": "gateway-mcp.ordivon.com",
-                                "content": "native-tunnel.cfargotunnel.com",
+                                "content": "production-tunnel.cfargotunnel.com",
                                 "type": "CNAME",
                                 "proxied": True,
                             },
@@ -337,10 +337,22 @@ class PlanSemanticGateTests(unittest.TestCase):
         self.assertFalse(semantics["semantic_gate"])
         self.assertFalse(semantics["checks"]["native_runtime_canary_retained"])
 
-    def test_semantic_gate_rejects_gateway_dns_not_on_native_tunnel(self) -> None:
+    def test_source_gateway_primary_dns_is_wsl_until_native_qualified(self) -> None:
+        """Catch accidental HCL-only cutover, not just Python plan-schema drift."""
+        hcl = (
+            pathlib.Path(__file__).resolve().parents[3]
+            / "tofu"
+            / "agent-birth-handoff"
+            / "main.tf"
+        ).read_text(encoding="utf-8")
+        gateway_dns = hcl.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1]
+        self.assertIn('content = "${local.production_tunnel_id}.cfargotunnel.com"', gateway_dns)
+        self.assertNotIn('content = "${local.native_tunnel_id}.cfargotunnel.com"', gateway_dns)
+
+    def test_semantic_gate_rejects_gateway_dns_not_on_production_tunnel(self) -> None:
         plan = self._plan()
         dns = plan["planned_values"]["root_module"]["resources"][2]
-        dns["values"]["content"] = "production-tunnel.cfargotunnel.com"
+        dns["values"]["content"] = "native-tunnel.cfargotunnel.com"
         semantics = controller._handoff_semantics(plan)
         self.assertFalse(semantics["semantic_gate"])
         self.assertFalse(semantics["checks"]["gateway_dns_exact"])
@@ -428,12 +440,13 @@ class WindowsServiceAuthTests(unittest.TestCase):
 
 
 
-def test_gateway_mcp_dns_points_to_native_tunnel_and_handoff_reads_prior_state() -> None:
-    """Native Gateway cutover must not inherit the obsolete production-tunnel CNAME."""
+def test_gateway_mcp_dns_stays_on_active_production_tunnel_and_preserves_native_standby() -> None:
+    """A Native cutover needs a real Windows origin canary; WSL is active today."""
     tf = (ROOT.parents[1] / "tofu/agent-birth-handoff/main.tf").read_text()
     gateway = tf.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
     other = tf.split('resource "cloudflare_dns_record" "handoff" {', 1)[1].split("\n}", 1)[0]
-    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    assert 'content = "${local.production_tunnel_id}.cfargotunnel.com"' in gateway
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' not in gateway
     assert 'content = "${local.production_tunnel_id}.cfargotunnel.com"' in other
     assert 'cloudflare_zero_trust_tunnel_cloudflared_config.native,' in gateway
     handoff = MODULE_PATH.read_text()

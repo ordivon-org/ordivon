@@ -117,6 +117,85 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 
 源码发布走仓库现有的 GitHub PR、必需 CI、合并队列；只有合并之后再进行生产读回，才算实际发布完成。
 
+### 2026-11-14 ZTE 物理上游与原生 Windows Chrome 验收
+
+源生只读 `task provider:zte-u30pro:observe` 于北京时间 16:23
+实际确认当前网关为 **ZTE U30 Pro MU5358**，LAN `192.168.0.1`；
+当前运营商中国移动 5G，PPP WAN 已连接，RSRP -72 dBm、SNR 27 dB，
+十次低强度网关 ICMP 0% 丢包、平均约 1.98ms。该观察**不认证**
+当天 08:41–14:20 故障具体发生在设备、无线运营商还是更远上游，
+也没有发现第二条独立 WAN。无感地增加 USB 路由优先级不能修复同一网关掉线。
+
+Windows 原生 Chrome 的策略为固定代理 `127.0.0.1:19781`。
+16:16 使用独立临时 Chrome 用户目录启动 `--headless=new`，
+**不提供任何代理覆盖命令行参数**，真实访问 Cloudflare HTTP/TLS
+获得出口国家 **MY**、退出码 0，临时目录随即清理。
+这证明当前正常 Chrome 政策和被测 HTTPS 路径，
+不等于所有扩展、WebRTC、iOS 设备流量已被验证。
+
+### 2026-11-13 Windows/WSL 生产路径核验
+
+本次真实检查发现 Windows WLAN 和 USB RNDIS 虽然同时 Up，但都经
+`192.168.0.1` 网关及相同的网关 MAC `5C-7D-AE-44-90-1D`。
+两张网络接口不构成两条已经验证的独立 ISP/物理运营商出口；
+不应把任意接口切换或 Gluetun Endpoint 轮换报告成完成了物理高可用。
+
+交互用户 Chrome 有原生固定代理 `127.0.0.1:19781` 策略。
+Codex 当前开启 `respect_system_proxy=true`，需要分别检查
+Windows 用户级系统代理是否启用以及真实应用 HTTPS 是否成功。
+2026-11-13 已在单个交互会话内恢复 `ProxyEnable=1` 并完成
+WinINet 代理读回和 Windows HTTPS 测试；这不是重启后的持久性证明。
+
+历史登录启动项 `Ordivon-VPN-Bridge.cmd` 曾启动自研直连 CONNECT
+代理 `127.0.0.1:18081`，而非经 Gluetun 的 VPN Carrier。
+因没有发现实时连接及当前源码、安装脚本、已检查代理策略的消费者，
+本轮已可逆地禁用启动项并停止监听进程。历史脚本原文件仍保留，
+不可把未覆盖的外部调用者直接当作不存在。后续优先验证现代原生
+`19781` 路径，不要恢复旧直连桥。
+
+### 2026-11-14 真实事故：全应用断网时，先证明物理上游
+
+08:41:29（北京时间）Windows NCSI Event 4042 记录 WLAN 与 USB RNDIS
+**同时失去互联网连通性**；14:20:44 两者同时恢复。Windows 两接口
+虽然均显示为 Up，但都使用 192.168.0.1，且学习到相同网关 MAC。
+Prometheus 的宿主机**直连 IPv4**、Carrier 与 Claude / Codex / PyPI
+消费者在 09:00–13:59 每个完整小时的成功率都是 0%。
+Gluetun 在这段时间内部健康检查失败重连 3,178 次（6 个马来西亚
+WireGuard IP），**但这不证明马来西亚节点单独故障**。
+
+现有 Network 原生 systemd 两分钟恢复任务在事故期间给出
+169 个 `HOLD_SHARED_UNDERLAY_OR_UNKNOWN`，另有 159 个健康 HOLD，
+没有一次无证据的国家切换，也没有 systemd 恢复任务失败。
+Windows NCSI 恢复后 Carrier / PyPI / 直连 IPv4 首次采样成功
+分别约在 11 / 12 / 12 秒后，Claude 与 Codex 在约 22 / 34 秒后。
+这是首次成功采样相对 NCSI 事件的时间，**不是精确 TCP 中断时间**。
+
+#### 真正断网时的 Golden Road
+
+1. **所有应用都失败**：先检查 Windows NCSI、Wi-Fi/USB RNDIS
+   接口和网关，再对比宿主机直连 IPv4 与共享 VPN 的 Prometheus
+   Blackbox。同一时段两者都失败，按共享上游失效处理，不尝试
+   通过 Surfshark 国家轮换修复不可达的互联网。
+2. 在 Windows PowerShell 使用
+   `Get-NetRoute -AddressFamily IPv4 -DestinationPrefix 0.0.0.0/0`、
+   `Get-NetNeighbor -AddressFamily IPv4 -IPAddress 192.168.0.1`、
+   `Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-NCSI/Operational';Id=4042}`。
+   为验证当前**两个接口**可访问公网，可显式绑定不同源 IP 的
+   Windows 原生 `curl.exe --noproxy '*' --ipv4 --interface <源IP> --connect-timeout 3 --max-time 12 https://example.com/`。
+   这是**仅用于诊断**的直连请求；不要把该命令写入 Agent 业务绕过 VPN 的回退。
+3. 只有**独立物理互联网链路正常、VPN 三个原始采样时间戳均新鲜且
+   连续失败**，才允许现有 Gluetun 官方授权 API 按近期真实证据
+   试切国家。它必须继续通过 HTTPS/TLS 消费者验收，绝不连接香港。
+   旧日曾成功的国家仅是 `TRIAL_HINT`，不是现在在线的热备。
+4. 想要避免下一次相同上游 5 小时故障，先实际提供并独立验证
+   第二运营商/独立 SIM 上网或不同 ISP 网关。两个接口连向同一个
+   网关、同时掉线，**不等于双 WAN**。不要为了展示冗余而直接改
+   Windows 路由优先级、关闭 Gluetun 原生 Kill Switch 或禁用健康检查。
+5. 互联网恢复后分别运行 `task provider:gluetun:verify`、
+   `task consumer:codex:verify`、`task consumer:finance:verify` 与受影响
+   Consumer；移动 Tailscale 的服务端 READY **不能**替代 iPhone/iPad
+   自身的公网 IP / DNS 验收。
+
 ## 四、出问题时先找谁
 
 | 表现 | 先检查 | 真正的 Owner |
@@ -132,12 +211,21 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 
 ### 多个应用同时断网时如何定位
 
-从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：它只在 PyPI、Codex 与 Claude **三路每分钟 HTTPS 探针最近 90 秒都有样本、并持续两分钟同时失败**时成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席则须查看已有的单独 `absent()` 告警，不能把缺测当作成功或失败。
+从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：PyPI、Codex 与 Claude 的**三路每 30 秒 HTTPS 探针**需要在最近 90 秒内都有样本、共同失败持续两分钟，告警才成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席须查看 `NetworkConsumerEvidenceMissing`（观测缺失），而非把无样本解释为 NetworkVPN/Scoped `Unavailable` 的实测失败；不能把缺测当作成功或失败。
 
     curl -fsS http://127.0.0.1:29090/api/v1/alerts |
       jq '.data.alerts[] | select(.labels.alertname=="NetworkCorrelatedConsumerOutage")'
 
 随后顺序检查 `task provider:gluetun:verify`、Gluetun 原生日志、`task provider:gluetun:observe-exit`，最后复测受到影响的 Consumer。代理 CONNECT 200 但 HTTPS TLS 超时属于 **尚未完成源站请求**，不能宣布 READY；`systemctl active` 也不能取代源站探测。先使用 Gluetun 自带健康恢复，**不要在故障时另开一条 WireGuard 或重启全部 Consumer**。IPinfo 的未认证端点有共享限流，只用于一次性出口采样，不用来替代 Prometheus 健康检查。
+
+**告警与自动恢复准入是两个不同的消费者。** 告警的持续两分钟条件
+不能直接授权更换 Surfshark 国家。现有一分钟 systemd 恢复任务必须
+检查每路**三条原始采样**，最新年龄不超过 75 秒、最早不超过 165 秒、
+相邻采样不间断超过 45 秒，三路最新时间戳错位不超过 45 秒；
+还必须独立证实物理 WAN 通畅、目标国家允许、官方 API 授权、
+真实 HTTPS 业务完成。监控消失、数据陈旧或时间交错均返回 UNKNOWN。
+详见现有 [Gluetun Provider 指导](../providers/gluetun/README.md)，不要
+用旧的每分钟采样图表或猜测恢复动作。
 
 **DNS 故障与 VPN 故障不能混为一谈。** DNS 超时既可能导致健康检查受影响，也可能只是底层隧道故障的结果。应分别验证原生 IP/TLS 健康目标与 DNS 上游。不要为此添加第二个 VPN Watchdog：Gluetun 自带健康检查与自动恢复。
 
@@ -167,3 +255,23 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 先执行 `task core:sourcecut` 检查配置；再用 `task core:verify` 检查 DNS、HTTPS 与监控。
 正常收敛使用 `task core:converge`：源码匹配时不重复安装，已经运行的 systemd 服务不重启，外部网络故障由各自成熟的服务恢复机制处理。
 形式化检查：`mise run formal-core-convergence`；共享 Target 表示精化：`mise run formal-shared-egress-alias`。这两项仅证明指定的源码逻辑，不能代替真实公网访问验收。
+
+
+### Native systemd Target state monitoring
+
+After the Node Exporter systemd Collector and Prometheus fragment are
+admitted, run the existing Network Task command
+task observability:systemd:converge. This uses the distribution's
+prometheus-node-exporter.service (unprivileged node_exporter user),
+only six selected Target/service units, and Prometheus native SIGHUP
+reload without restarting VPN, Finance or Tailnet. The specific
+NetworkConsumerTargetDesynchronized rule joins active egress services
+against missing/inactive Targets and the separate
+NetworkSystemdCollectorUnavailable rule detects lost monitoring.
+A Target intentionally stopped with PartOf= will stop the service,
+so it is not falsely attributed to a running consumer.
+
+These are observable Prometheus alert states, not delivered human
+notifications. Until a real, user-authorized Alertmanager receiver
+is connected, Prometheus may fire locally but no external FIRING or
+RESOLVED delivery receipt is proven. See Issue #1916.

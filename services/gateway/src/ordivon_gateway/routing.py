@@ -33,6 +33,25 @@ def default_routes() -> dict[str, CapabilityRoute]:
             execution_target="local_linux",
             default_context="trusted_local",
         ),
+        # A distinct authenticated PostgreSQL Runtime principal/endpoint for
+        # Harness-issuer-bound effects. The physical owner remains Runtime;
+        # it shares PG/Runner with execution.linux, not an independent Registry.
+        # When not configured, capability discovery reports unavailable.
+        CapabilityRoute(
+            capability="execution.harness",
+            owner_id="runtime.harness",
+            category="execution",
+            owner_tool="workspace.exec",
+            context_mode="provider-defined-string",
+            truth_boundary=(
+                "Same PostgreSQL Runtime and native Runner; dedicated authenticated "
+                "Harness principal requires current issuer before NEW Job admission."
+            ),
+            description="Execute issuer-authorized Harness Tool effects through Runtime.",
+            tags=("execution", "harness", "issuer", "runtime"),
+            execution_target="local_linux",
+            default_context="trusted_local",
+        ),
         CapabilityRoute(
             capability="execution.windows",
             owner_id="runtime.windows",
@@ -44,6 +63,28 @@ def default_routes() -> dict[str, CapabilityRoute]:
             tags=("execution", "job", "runtime", "windows", "workspace"),
             execution_target="windows_native",
             default_context="limited",
+        ),
+        # Discover the native Linux ReleaseEffect without confusing it with
+        # execution.linux.  Observation is NOT a Security grant, and the MCP
+        # tool/installed service remains separately discoverable.
+        CapabilityRoute(
+            capability="runtime.release.linux",
+            owner_id="runtime.linux",
+            category="release",
+            owner_tool="release.apply",
+            context_mode="none",
+            truth_boundary=(
+                "Runtime owns qualified PG ReleaseEffect, operator install, "
+                "receipt and the original clientRequestId. Security owns "
+                "release authorization; Gateway only forwards native MCP."
+            ),
+            description=(
+                "Find the Linux Runtime structured release route; actual "
+                "runtime.release.apply/get requires an installed Gateway Tool, "
+                "authenticated operator AuthZEN grant and qualified Runtime candidate."
+            ),
+            tags=("release", "runtime", "linux", "deploy", "operator", "effect"),
+            execution_target="local_linux",
         ),
         CapabilityRoute(
             capability="continuity.external",

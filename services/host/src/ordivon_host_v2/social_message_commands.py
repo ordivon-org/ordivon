@@ -16,6 +16,10 @@ from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
 
+# Internal receipt only: the immutable Message row owns the large response body.
+# This marker is never returned over MCP.
+_MESSAGE_POST_RECEIPT_REF = "ordivon.host-message-post-receipt-ref"
+
 
 def _reply_target_precedes_source(source_sequence: int, target_sequence: int) -> bool:
     """Strictly earlier reply target, using exact PostgreSQL signed bigint order.
@@ -50,6 +54,22 @@ class SocialMessageCommands:
                 conn, value.client_request_id, "message.post", request_digest
             )
             if replay is not None:
+                if replay.get("kind") == _MESSAGE_POST_RECEIPT_REF:
+                    if (
+                        replay.get("messageRef") != value.message_ref
+                        or replay.get("messageDigest") != message_digest
+                    ):
+                        raise RuntimeError("message receipt reference differs from committed request")
+                    row = conn.execute(
+                        "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
+                        "message_kind,body,message_digest,recorded_at_ms,created_at "
+                        "FROM messages WHERE message_ref=%s",
+                        (value.message_ref,),
+                    ).fetchone()
+                    if row is None or row["message_digest"] != message_digest:
+                        raise RuntimeError("committed message receipt target is missing or changed")
+                    self._verify_message_content_digest(row)
+                    return self._post_message_response(row, admission="existing")
                 return replay
             self._require_actor(conn, value.author_actor_ref)
             self._require_space(conn, value.space_ref)
@@ -92,26 +112,42 @@ class SocialMessageCommands:
                     raise ConflictError("message_ref already exists with different content")
                 admission = "existing"
             self._verify_message_content_digest(row)
-            result = {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-message",
-                "admission": admission,
-                "sequence": int(row["sequence"]),
-                "messageRef": row["message_ref"],
-                "spaceRef": row["space_ref"],
-                "topicRef": row["topic_ref"],
-                "authorActorRef": row["author_actor_ref"],
-                "messageKind": row["message_kind"],
-                "body": row["body"],
-                "messageDigest": row["message_digest"],
-                "recordedAtMs": int(row["recorded_at_ms"]),
-                "createdAt": row["created_at"].isoformat(),
-                "truthBoundary": "durable collaboration message only; participation is not authorization and message content is not Work/domain truth",
-            }
+            result = self._post_message_response(row, admission=admission)
+            # Do not store a second copy of the (potentially large) Message
+            # body in command_receipts. The immutable Message row plus its
+            # digest is the canonical replay materialization authority.
             record_command_receipt(
-                conn, value.client_request_id, "message.post", request_digest, result
+                conn,
+                value.client_request_id,
+                "message.post",
+                request_digest,
+                {
+                    "schemaVersion": 1,
+                    "kind": _MESSAGE_POST_RECEIPT_REF,
+                    "messageRef": value.message_ref,
+                    "messageDigest": message_digest,
+                },
             )
             return result
+
+    @staticmethod
+    def _post_message_response(row: dict[str, Any], *, admission: str) -> dict[str, Any]:
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-message",
+            "admission": admission,
+            "sequence": int(row["sequence"]),
+            "messageRef": row["message_ref"],
+            "spaceRef": row["space_ref"],
+            "topicRef": row["topic_ref"],
+            "authorActorRef": row["author_actor_ref"],
+            "messageKind": row["message_kind"],
+            "body": row["body"],
+            "messageDigest": row["message_digest"],
+            "recordedAtMs": int(row["recorded_at_ms"]),
+            "createdAt": row["created_at"].isoformat(),
+            "truthBoundary": "durable collaboration message only; participation is not authorization and message content is not Work/domain truth",
+        }
 
     def add_message_relation(
         self, value: MessageRelationInput, *, client_request_id: str

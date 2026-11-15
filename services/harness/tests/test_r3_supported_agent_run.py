@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import tempfile
+import sqlite3
 import threading
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest.mock import patch
+
+import psycopg
 
 from anc_canonical import canonical_digest
+
+from tests.pg_test_support import PostgresAgentRunCase
 
 from ordivon_harness.api import (
     AgentTurnResult,
@@ -186,13 +192,52 @@ def execution_binding(value: HarnessRunContract) -> HarnessExecutionBinding:
     )
 
 
-class R3SupportedAgentRunTests(unittest.TestCase):
+class PublicRunPgOnlyNegativeTests(unittest.TestCase):
+    """Reject invalid public PG admission without opening a SQLite writer."""
+
+    def test_unreachable_pg_dsn_never_falls_back_to_sqlite(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dsn = (
+                f"host={root / 'missing-postgres-socket'} port=55454 "
+                "user=postgres dbname=missing connect_timeout=1"
+            )
+            with patch.object(
+                sqlite3,
+                "connect",
+                side_effect=AssertionError("public Run cannot probe a SQLite writer"),
+            ):
+                with self.assertRaises(psycopg.OperationalError):
+                    HarnessAgentRun.create(
+                        dsn,
+                        "harness",
+                        contract("unreachable-pg"),
+                        lambda _: ScriptedTurnAdapter((needs_input(),)),
+                    )
+            self.assertFalse(list(root.rglob("*.sqlite3")))
+
+    def test_removed_state_root_signature_cannot_be_used_as_public_api(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(TypeError):
+                HarnessAgentRun.create(
+                    root,
+                    contract("retired-state-root"),
+                    lambda _: ScriptedTurnAdapter((needs_input(),)),
+                )
+            self.assertFalse(list(root.rglob("*.sqlite3")))
+
+
+class R3SupportedAgentRunTests(PostgresAgentRunCase, unittest.TestCase):
+    def setUp(self) -> None:
+        self.set_up_pg()
+
     def test_create_run_pause_open_resume_hides_continuity_and_provider_source(self):
         with tempfile.TemporaryDirectory() as directory:
             clock = FixedClock()
             value = contract("resume")
             root = Path(directory) / "state"
-            first = HarnessAgentRun.create(
+            first = self.create_pg(
                 root,
                 value,
                 lambda _contract: ScriptedTurnAdapter((needs_input(),)),
@@ -201,7 +246,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             )
             paused = first.run(({"role": "user", "content": "start"},))
             self.assertTrue(paused.paused)
-            reopened = HarnessAgentRun.open(
+            reopened = self.open_pg(
                 root,
                 value.harness_run_id,
                 lambda _contract: ScriptedTurnAdapter((completed(),)),
@@ -218,7 +263,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             value = contract("cognition")
             adapter = ScriptedTurnAdapter((needs_input("model-call:r3-cognition"),))
             root = Path(directory) / "state"
-            run = HarnessAgentRun.create(
+            run = self.create_pg(
                 root,
                 value,
                 lambda _contract: adapter,
@@ -272,14 +317,14 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 HarnessAgentRunCompositionError, "requires exact execution binding"
             ):
-                HarnessAgentRun.create(
+                self.create_pg(
                     root,
                     value,
                     lambda _contract: adapter,
                     clock_ms=clock,
                     monotonic_ms=clock,
                 )
-            run = HarnessAgentRun.create(
+            run = self.create_pg(
                 root,
                 value,
                 lambda _contract: adapter,
@@ -296,7 +341,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "state"
             value = contract("concurrent")
-            HarnessAgentRun.create(
+            self.create_pg(
                 root,
                 value,
                 lambda _contract: ScriptedTurnAdapter((completed("model-call:r3-bootstrap"),)),
@@ -319,7 +364,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
 
             def execute(worker: int) -> str:
                 clock = FixedClock()
-                handle = HarnessAgentRun.open(
+                handle = self.open_pg(
                     root,
                     value.harness_run_id,
                     lambda _contract: CountingAdapter(worker),
@@ -353,7 +398,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 HarnessAgentRunCompositionError, "requires exact execution binding"
             ):
-                HarnessAgentRun.create(root, value, provider_factory)
+                self.create_pg(root, value, provider_factory)
             self.assertEqual(calls, 0)
             self.assertFalse(root.exists())
 
@@ -364,7 +409,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             wrong = ScriptedTurnAdapter((completed("model-call:r3-wrong"),))
             wrong.model_id = "model:r3-wrong"
             with self.assertRaisesRegex(HarnessAgentRunCompositionError, "requested model differs"):
-                HarnessAgentRun.create(root, value, lambda _contract: wrong)
+                self.create_pg(root, value, lambda _contract: wrong)
             self.assertFalse(root.exists())
 
     def test_cognition_privacy_fails_before_provider_factory_or_state_creation(self):
@@ -382,7 +427,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
                 HarnessAgentRunCompositionError,
                 "cognition requires Contract permission",
             ):
-                HarnessAgentRun.create(
+                self.create_pg(
                     root,
                     value,
                     provider_factory,
@@ -406,7 +451,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
                 HarnessAgentRunCompositionError,
                 "history requires Tool-content authority",
             ):
-                HarnessAgentRun.create(
+                self.create_pg(
                     root,
                     value,
                     provider_factory,
@@ -435,7 +480,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 HarnessAgentRunCompositionError, "differs from the independent Run binding"
             ):
-                HarnessAgentRun.create(
+                self.create_pg(
                     root,
                     value,
                     provider_factory,
@@ -475,7 +520,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 HarnessAgentRunCompositionError, "Contract reference differs"
             ):
-                HarnessAgentRun.create(
+                self.create_pg(
                     root,
                     value,
                     provider_factory,
@@ -511,7 +556,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 HarnessAgentRunCompositionError, "structured completion differs"
             ):
-                HarnessAgentRun.create(root, value, provider_factory)
+                self.create_pg(root, value, provider_factory)
             self.assertEqual(calls, 1)
             self.assertFalse(root.exists())
 
@@ -524,7 +569,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             value = HarnessRunContract.from_dict(raw)
             root = Path(directory) / "state"
             with self.assertRaisesRegex(HarnessAgentRunCompositionError, "does not implement"):
-                HarnessAgentRun.create(
+                self.create_pg(
                     root,
                     value,
                     lambda _contract: ScriptedTurnAdapter((completed(),)),

@@ -33,6 +33,27 @@ CARGO_ARGS = (
     "--nocapture",
     "--test-threads=1",
 )
+# Independent Windows PG witness consumer; same disposable PG18 fixture, not
+# a Windows production Writer or a second persistent test authority.
+WINDOWS_PG_WITNESS_CASE = (
+    "pg_admission::live_pg_tests::"
+    "windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
+)
+WINDOWS_PG_WITNESS_ARGS = (
+    "test",
+    "--locked",
+    "-p",
+    "ordivon-runtime-core",
+    "--no-default-features",
+    "--features",
+    "postgres-registry-admission",
+    WINDOWS_PG_WITNESS_CASE,
+    "--",
+    "--ignored",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1",
+)
 EXPECTED_PG18 = 18
 PG18_CASE = re.compile(r"^test pg_admission::live_pg_tests::pg18_[^ ]+ \.\.\. ok$", re.M)
 PG18_RESULT = re.compile(r"test result: ok\. (\d+) passed; 0 failed; 0 ignored;")
@@ -151,6 +172,26 @@ def main() -> int:
                 raise RuntimeError(f"PG18 native owner task failed: {output[-3500:]}")
             n = exact_test_count(output)
             print(f"DISPOSABLE_PG18_PASS={n}/{EXPECTED_PG18}")
+            windows_result = subprocess.run(
+                [cargo, *WINDOWS_PG_WITNESS_ARGS],
+                cwd=ROOT,
+                env=fixture_environment(os.environ, root, port),
+                capture_output=True,
+                text=True,
+                timeout=400,
+            )
+            windows_output = windows_result.stdout + "\n" + windows_result.stderr
+            witness_line = f"test {WINDOWS_PG_WITNESS_CASE} ... ok"
+            if (
+                windows_result.returncode != 0
+                or windows_output.count(witness_line) != 1
+                or not re.search(r"test result: ok\. 1 passed; 0 failed; 0 ignored;", windows_output)
+            ):
+                raise RuntimeError(
+                    "Windows PG evidence consumer unqualified: "
+                    + windows_output[-3000:]
+                )
+            print("DISPOSABLE_WINDOWS_PG_WITNESS_PASS=1/1")
         finally:
             if started:
                 run_checked(

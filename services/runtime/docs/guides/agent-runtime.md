@@ -39,6 +39,50 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 6. Read `artifact.read` and verify the retained output and evidence standing. If outcome is `lost`, `orphaned`, `unknown`, or delivery uncertain, do not translate it into `failed` or silently redispatch an effect-opaque operation.
 7. Check `workspace.diff`, `workspace.get`, and domain-specific acceptance. Close via `workspace.close` only when no consumer remains.
 
+## Preserve consumer-valued output before Workspace release
+
+Git-clean is **not** equivalent to disposable. Git ignores build caches and
+potentially valuable outputs in paths such as target/ and __pycache__/.
+Even **workspace.close(force=false)** may remove ignored files. The
+**consumerReleased=true** flag is a caller assertion, not identity proof,
+consumer consent, delivery evidence, or proof that external readers are gone.
+
+Use the **existing** carrier appropriate to the real consumer:
+
+1. For source changes, integrate the required Git commit and independently
+   read back its reachable contents before releasing the Workspace.
+2. For **bounded execution evidence**, inspect the registered Job/Attempt
+   Artifact with **artifact.read** or **artifact.content** before close. Check
+   its actual bytes, meaning, and **truncated=false**; if missing or truncated,
+   or the output must outlive the owning Runtime Registry, use step 3 instead.
+   Job Artifacts are retained only with that Registry, not a general file
+   publishing service or an indefinite archive. A successful process exit or
+   an Artifact's presence does not prove domain semantic success.
+3. For **consumer-valued** ignored files, large/binary outputs, or longer
+   retention, publish using the existing Artifact capability or the
+   destination's mature native API, then **read back the destination object**
+   and verify it is usable. Classify an ignored path by the actual consumer:
+   if acceptance or another actor still references it, or it is costly or
+   impossible to regenerate, treat it as a deliverable until handed off.
+   Cache-shaped path names alone are not evidence that output can be deleted.
+   If the consumer or preservation requirement is unknown, do not assert
+   release; resolve that uncertainty rather than blocking every cache.
+4. Confirm known readers/writers, external consumers, dependent Workspaces,
+   and active/held Jobs are finished. Runtime's Job/lease checks cannot
+   prove the absence of arbitrary foreign processes or open file handles;
+   if a known consumer is unresolved, **do not release**. Then request
+   **workspace.close(force=false, consumerReleased=true)** with the
+   **expectedSourceStateDigest** from **workspace.get**. Verify the reported
+   closure disposition and, for bounded Job evidence, read the same Artifact
+   again **after close**. Post-close readback detects retention failure;
+   it does **not** replace the pre-close durable handoff when that is needed.
+   **removed** means the worktree was retired, not that all external file
+   handles or cached disk blocks disappeared immediately.
+
+Delete disposable build caches through the established Workspace lifecycle;
+preserve actual deliverables through their natural Git/Artifact consumers.
+Do not add a second GC, publication registry, or evidence serializer.
+
 ## Operating boundaries
 
 - Linux and Windows are independently native Runtime providers. Do not use a Linux node as an implicit Windows runner, or guess an elevated token.
@@ -47,6 +91,17 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 - Use existing Git, systemd, SCM, PostgreSQL, Cargo, and OS utilities instead of inventing equivalent custom tools.
 - Prefer focused, evidence-bearing verification of changed contracts. Rust unit/property tests and TLA+ exploration are different evidence classes; passing one does not prove the other.
 - Run cleanup only against explicitly owned roots and use Runtime Workspace lifecycle APIs rather than raw directory deletion. Protect dirty workspaces, running/held Jobs, linked worktrees, deployment assets, and system paths.
+
+## PG ReleaseEffect as an autonomous outcome
+
+The Linux PG release.apply interface is only catalogued after exact
+out-of-band Operator qualification, its systemd timer and live PostgreSQL
+release stage are all present. It atomically admits an immutable effect,
+not a claim that an installation has finished. The independent host
+Operator performs the replacement and verifies the restarted MCP catalog.
+After any lost release.apply response, reuse release.get with the ORIGINAL
+clientRequestId. Never create a second release request due to transport
+uncertainty.
 
 ## Native PG operator vs Agent authority
 
@@ -116,3 +171,71 @@ A daemon schedules pending work and reconciles issued native work without client
 For CPU/memory-intensive build, model, or media jobs, explicitly set `execution.budget.scheduling.resources` from known workload evidence; do not assume that the default 128MiB request covers Cargo compilation. Use `runtime.describe.scheduling` to observe PSI and effective node headroom, and prefer work that can share idle capacity without forcing another Owner into thrash. The workload's physical systemd Unit is in `system.slice`; do not read the Runtime manager's separate service cgroup as if it were the workload's capacity. The Slice and ancestor restrictions are the physical inputs to admission.
 
 When cancelling, use the exact Job identity and then verify `job.get` reports terminal Attempt and released allocation; `lost` does not mean the external effect succeeded. If a heavy test materially raises PSI, cancel **that test only** and record its outcome as UNRUN/INCOMPLETE for the native test phase. For a scheduler patch, run `scripts/tla-formal check-resource` and `falsify-resource`, then obtain a real PostgreSQL/systemd consumer receipt; a parsed model alone is insufficient.
+
+
+## Read-only evidence admission before running repeated verification (2026-11-14)
+
+An Agent should not re-run a previously successful owner check just because
+its prior chat cannot recall it. Use existing GitHub Actions check-runs at the
+original **exact commit**, the repo's native SourceCut/Owner closure
+(`convergence_plan.py`), and the existing Harness evidence checker:
+
+```bash
+# Query PR #2177's original GitHub CI at its exact proof SourceCut.
+# Do not call Runtime Job replay, TLC, or a physical canary as a substitute.
+python3 services/runtime/scripts/agent_evidence_admission.py --pr 2177 --owner runtime --target cc294b72700c9aa02c067f9962fab47359836af6
+
+# A squash/Merge Queue may change commit identity. Query the new main
+# commit's OWN CI instead of transferring the old pull-request HEAD status.
+python3 services/runtime/scripts/agent_evidence_admission.py --commit cc294b72700c9aa02c067f9962fab47359836af6 --owner runtime --target cc294b72700c9aa02c067f9962fab47359836af6
+
+# The Agent/Harness consumer queries the independent Harness authority.
+# Runtime must not execute or import the higher-level Harness implementation.
+python3 services/harness/scripts/check_evidence.py --query-claim harness.runtime-correlation.h2
+```
+
+Commit and PR queries use the same original CI identity checks.
+The commit mode does not invent the missing PR base/Owner task selection,
+and never inherits PASS across different Git cuts merely because they
+result from a squash merge; the new commit needs its own official receipt.
+
+When Merge Queue and subsequent push produce duplicate Check Run names at
+the same Git SHA, the query binds a completed Monorepo Required Workflow Run
+by its original GitHub Job/Run identity. A later in-progress push does not
+erase the earlier completed workflow's positive SOURCE observation. A
+conflicting completed required workflow or incomplete same-run jobs remains
+UNKNOWN; a successful root workflow does not promote independent CodeQL
+or physical effect checks. No blanket replay is triggered by duplicate job
+names in the GitHub flat check-runs list.
+
+The Runtime query calls `gh api` read-only, requires official GitHub
+`root-verification` and exact-commit successful checks, then delegates
+SourceCut/consumer selection to the **existing** Owner planner. A missing,
+pending, ambiguous, failed, foreign or nonmatching receipt is UNKNOWN or
+not passed; it must not make a stale proof current. The Agent composes
+this Runtime source-CI query with the independently owned Harness claim
+read. It never promotes archived historical evidence into current verified
+evidence or makes Runtime depend on Harness. Different Git cuts remain separate.
+
+`EXACT_CUT_CI_OBSERVED` means **one source commit's CI passed**.
+It does NOT establish a production-installation receipt, closed dynamic
+dependency graph, Rust/TLA refinement proof or a live process effect
+(`proofReuseAdmissible=false`). `SCOPED_SOURCE_NO_OWNER_RECHECK`
+is only a source-level Owner policy projection.
+`UNKNOWN_SOURCE_RELATION` means investigate missing source relation,
+**not** blanket re-run unrelated historic experiments.
+
+This is on-demand Agent-consumable capability, **not yet wired automatically**
+into the Harness Run scheduling lifecycle. No second evidence registry,
+verifier service, or background monitoring job is introduced.
+
+### 2026-11-14 R5 native PG lost-result consumer regression
+
+A real disposable PG18/systemd native test now compares the same `lost` Job's
+`job.observe` and `job.list` northbound delivery: `unknown`,
+`resultAvailable=false`, single physical dispatch, and released reservation.
+Both existing `pg_vertical` tests for a failed retained Unit and for normal
+Runner success/cancel/replay were actually executed and passed on the tested
+main source `a31fe9e3882c6f912060954c0e9bc51c64fa5eb6`. These source
+consumer receipts do **not** establish that the installed Runtime executable
+has changed; use the native release receipt and post-install MCP readback.

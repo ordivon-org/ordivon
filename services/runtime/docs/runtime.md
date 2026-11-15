@@ -99,6 +99,7 @@ The Job expresses desired state and final resolution. The Attempt expresses one 
 - After that process tree is proven gone, a complete identity-bound Runner Result is terminal execution truth.
 - Execution truth is not automatically an external-effect receipt or semantic-completion proof.
 - Work that cannot be proven running or terminal becomes `lost` or `orphaned`; it is not guessed successful, guessed failed, or automatically redispatched.
+- PostgreSQL Job control terminality and execution-result delivery are distinct: a native cgroup stop can commit `lost` plus a `native_stop_evidence` Artifact with **no Runner `execution_result`**. The `job.observe` and `job.list` northbound delivery contract must project this as `unknown`, not `committed` execution delivery. `orphaned` remains `reconciliation_required`; a conclusive terminal requires its original Runner result for `committed`. This does not authorize an automatic retry or infer that external effects were rolled back.
 
 The complete Agent Effect Commit Kernel contract, current proof boundary, costs, and implementation gate are in [`effect-kernel.md`](effect-kernel.md). Other exact limits, states, fields, transitions, Tool arguments, and configuration belong to source, migrations, tests, generated schemas, and the live Runtime.
 

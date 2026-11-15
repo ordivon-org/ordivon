@@ -67,6 +67,9 @@ pub(crate) struct WorkspaceRecord {
 pub struct CompactWorkspaceOpenResult {
     pub workspace_id: String,
     pub source_revision: String,
+    /// PG Runtime opens warn the Agent of operator-owned ephemeral Workspace retention.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retention_notice: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]

@@ -1,6 +1,12 @@
 # Network execution program R1
 
-Date: 2026-11-05. This file is an immutable *source-bound acceptance/backlog DAG*, NOT a new task-state database or scheduler. Ordivon Host Work alone owns mutable task state; Git/PR owns source and release truth; Runtime owns execution truth; systemd, Podman, Gluetun, sing-box and Tailscale own installed/runtime effects.
+Date: 2026-11-05. This file is an immutable *source-bound acceptance/backlog DAG*, NOT a new task-state database or scheduler.
+Currentness notice (2026-11-13): this is the November 5 historical obligation set,
+NOT the current open-task count or production policy. In particular, the
+Singapore-only/SG-JP historical notes below were superseded by the
+non-Hong-Kong provider selector; multiple subsequent Network PRs also fulfilled
+parts of the listed obligations. Use current Git/source, actual installed/loaded
+effects, Host Work and independent consumer evidence before reopening any row. Ordivon Host Work alone owns mutable task state; Git/PR owns source and release truth; Runtime owns execution truth; systemd, Podman, Gluetun, sing-box and Tailscale own installed/runtime effects.
 
 ## Rules of composition
 

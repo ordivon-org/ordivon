@@ -19,7 +19,7 @@ uv run python -m pytest
 description = "Focused pytest/Hypothesis test on the Host public boundary (HOST_PYTEST_NODE)"
 run = """
 set -euo pipefail
-uv run python -m pytest -q "${HOST_PYTEST_NODE:-tests/test_canonical_property.py}"
+uv run python -m pytest -q "${HOST_PYTEST_NODE:-tests/test_canonical_json_property.py}"
 """
 
 [tasks."test:postgres:disposable"]

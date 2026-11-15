@@ -11,7 +11,7 @@ from typing import Any, Protocol
 import httpx2
 from mcp import Client, types
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
-from mcp.shared._otel import inject_trace_context
+from opentelemetry.propagate import inject as inject_trace_context
 
 from .upstream_identity import (
     OwnerCallError as OwnerCallError,
@@ -193,6 +193,10 @@ class McpOwnerCaller:
                 "url": "ORDIVON_GATEWAY_LINUX_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE",
             },
+            "runtime.harness": {
+                "url": "ORDIVON_GATEWAY_HARNESS_RUNTIME_URL",
+                "bearer": "ORDIVON_GATEWAY_HARNESS_RUNTIME_BEARER_TOKEN_FILE",
+            },
             "runtime.windows": {
                 "url": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE",
@@ -234,7 +238,7 @@ class McpOwnerCaller:
         if endpoint is None:
             return "owner endpoint is not configured"
         if (
-            owner_id.startswith("runtime.") or owner_id == "skills"
+            owner_id.startswith("runtime.") or owner_id in {"skills", "host"}
         ) and not _runtime_identity_configured(endpoint):
             return "owner authentication is not configured"
         return None

@@ -38,6 +38,12 @@ SOURCE_FILES = (
     "capabilities/media/formal/CreativeLibraryAcceptance.lean",
     "capabilities/media/formal/ProductionOutputByteIdentity.lean",
     "capabilities/media/formal/ProductionDependencyImpact.lean",
+    "capabilities/media/formal/ArchiveVisualSourcePreservation.lean",
+    "capabilities/media/productions/archive-archipelago-001/archive_source.py",
+    "capabilities/media/productions/archive-archipelago-001/generate.py",
+    "capabilities/media/productions/archive-archipelago-001/generate_owner_summary_vegalite.py",
+    "capabilities/media/tests/test_archive_graphics_source_truth.py",
+    "capabilities/media/tests/test_archive_vegalite_spec.py",
     "capabilities/media/schemas/operation-lineage.schema.json",
     "capabilities/media/src/ordivon_studio/operation_impact.py",
     "capabilities/media/tests/test_operation_impact.py",
@@ -454,8 +460,9 @@ def main() -> None:
     media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
     media_output_proof = REPO / "capabilities/media/formal/ProductionOutputByteIdentity.lean"
     media_dependency_proof = REPO / "capabilities/media/formal/ProductionDependencyImpact.lean"
+    media_archive_visual_proof = REPO / "capabilities/media/formal/ArchiveVisualSourcePreservation.lean"
     for proof_file in (source, variation, media_proof, media_library_proof,
-                       media_output_proof, media_dependency_proof):
+                       media_output_proof, media_dependency_proof, media_archive_visual_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -476,6 +483,8 @@ def main() -> None:
                           [executable("lean"), str(media_output_proof)]))
         probes.append(run("Lean kernel Media dependency impact model",
                           [executable("lean"), str(media_dependency_proof)]))
+        probes.append(run("Lean kernel Media archive visual relation conservation",
+                          [executable("lean"), str(media_archive_visual_proof)]))
         # Check all three FP queries, including the historical NaN
         # counterexample. Z3 process success by itself is not a proof.
         media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"

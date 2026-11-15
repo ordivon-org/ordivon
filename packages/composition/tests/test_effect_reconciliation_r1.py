@@ -140,6 +140,99 @@ def test_terminal_success_and_committed_delivery_do_not_prove_domain_effect():
     assert standings(result)["proof:write"] == "UNKNOWN"
 
 
+@pytest.mark.parametrize("owner_id", ["runtime.linux", "runtime.windows", "runtime.harness"])
+@pytest.mark.parametrize("terminal", [False, True])
+def test_gateway_native_reconciliation_required_is_actionable_not_a_protocol_error(
+    owner_id, terminal
+):
+    """Runtime/Gateway may report a committed decision needing effect reconciliation.
+
+    All three native Gateway execution owner routes must preserve the same
+    causal identity and the Composition operator must not invent a retry.
+    """
+    native_id = "job-native-bound"
+    op = f"ordivon-exec:v1:{owner_id}:{native_id}"
+    effect = f"effect:{op}"
+    observation = {
+        **gateway_observation(
+            state="succeeded" if terminal else "started",
+            terminal=terminal,
+            recovery=False,
+            delivery="reconciliation_required",
+        ),
+        "owner_id": owner_id,
+        "native_id": native_id,
+        "operation_ref": op,
+    }
+    result = qualify_execution_effect_frontier(
+        observation=observation,
+        expected_operation_ref=op,
+        proof_graph={
+            "authorityRefs": [effect, "source:unrelated"],
+            "obligations": [
+                {"id": "proof:effect", "dependsOn": [effect], "dependenciesComplete": True},
+                {
+                    "id": "proof:outside",
+                    "dependsOn": ["source:unrelated"],
+                    "dependenciesComplete": True,
+                },
+            ],
+        },
+    )
+    assert result["recommendedNextRead"] == "RECONCILE_ORIGINAL_OPERATION"
+    assert result["operationRef"] == op
+    assert result["effectRef"] == effect
+    assert result["automaticRetryAdmissible"] is False
+    assert result["providerEffectEstablished"] is False
+    assert result["proofReuseAdmissible"] is False
+    assert standings(result) == {"proof:effect": "UNKNOWN", "proof:outside": "REUSE_CANDIDATE"}
+
+
+@pytest.mark.parametrize("delivery", ["committed", "unknown"])
+def test_actual_pg_native_stop_lost_is_not_a_verified_terminal_effect(delivery):
+    """Live PG cancellation yielded lost+committed and no runner result.
+
+    Consumer must not mistake a mechanically converged control record for
+    conclusive process delivery; a prior partial file effect remains possible.
+    """
+    operation = "ordivon-exec:v1:runtime.linux:job-native-stop-lost"
+    effect = f"effect:{operation}"
+    obs = {
+        **gateway_observation(state="lost", terminal=True, delivery=delivery, recovery=False),
+        "owner_id": "runtime.linux",
+        "native_id": "job-native-stop-lost",
+        "operation_ref": operation,
+        "execution_disposition": "lost",
+        "exit_code": None,
+    }
+    result = qualify_execution_effect_frontier(
+        observation=obs,
+        expected_operation_ref=operation,
+        proof_graph={
+            "authorityRefs": [effect, "source:independent"],
+            "obligations": [
+                {
+                    "id": "proof:depends-on-effect",
+                    "dependsOn": [effect],
+                    "dependenciesComplete": True,
+                },
+                {
+                    "id": "proof:independent",
+                    "dependsOn": ["source:independent"],
+                    "dependenciesComplete": True,
+                },
+            ],
+        },
+    )
+    assert result["recommendedNextRead"] == "RECONCILE_ORIGINAL_OPERATION"
+    assert result["automaticRetryAdmissible"] is False
+    assert result["providerEffectEstablished"] is False
+    assert {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]} == {
+        "proof:depends-on-effect": "UNKNOWN",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+
+
 def test_active_operation_is_observed_not_retried():
     result = qualify(
         gateway_observation(state="started", terminal=False, delivery="in_progress", recovery=False)
@@ -261,7 +354,7 @@ def test_existing_cli_rejects_wrong_operation_and_emits_bounded_impact(tmp_path)
 
 
 def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstraction():
-    """72 classified abstract inputs; test relation, NOT proof of Python refinement.
+    """288 classified abstract inputs; test relation, NOT proof of Python refinement.
 
     The native pinned-TLC EffectReplayFence model exhausts this same input
     partition. Checking these concrete representative JSON inputs provides a
@@ -269,10 +362,20 @@ def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstra
     """
     tested = 0
     for state, terminal, recovery, delivery, indexed in product(
-        ("started", "reconcile_required", "completed"),
+        (
+            "started",
+            "reconcile_required",
+            "completed",
+            "succeeded",
+            "failed",
+            "timed_out",
+            "cancelled",
+            "lost",
+            "orphaned",
+        ),
         (False, True),
         (False, True),
-        ("unknown", "in_progress", "committed"),
+        ("unknown", "in_progress", "committed", "reconciliation_required"),
         (False, True),
     ):
         record = gateway_observation(
@@ -286,7 +389,11 @@ def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstra
             expected_operation_ref=OP,
             proof_graph=graph(indexed=indexed),
         )
-        if recovery or delivery == "unknown" or state == "reconcile_required":
+        if (
+            recovery
+            or delivery in {"unknown", "reconciliation_required"}
+            or state in {"reconcile_required", "lost", "orphaned"}
+        ):
             expected = "RECONCILE_ORIGINAL_OPERATION"
         elif not terminal:
             expected = "OBSERVE_ORIGINAL_OPERATION"
@@ -308,4 +415,4 @@ def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstra
         assert standings(result) == expected_standing
         assert result["selection"]["unindexedChangeRefs"] == ([] if indexed else [EFFECT])
         tested += 1
-    assert tested == 72
+    assert tested == 288

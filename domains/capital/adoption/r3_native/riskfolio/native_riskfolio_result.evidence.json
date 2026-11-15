@@ -1,0 +1,29 @@
+{
+  "broker_and_accounting_effect": "NONE",
+  "captured_at": "2026-11-11T15:13:34.887364+00:00",
+  "corporate_action_adjustment_basis": "UNKNOWN",
+  "economic_performance_validated": false,
+  "historical_point_in_time_qualified": false,
+  "kind": "ordivon.finance.r3.native-riskfolio-optimization-only",
+  "observations": 252,
+  "provider": "OpenBB V5 Cboe normalized historical closes",
+  "provider_normalized_sha256": {
+    "IWM": "9f8c78b9d860c8f6c123df68dc3c9d5b16540426d27905cadc7c6b0258f05f4d",
+    "QQQ": "c5eb35110544fb0e8d815eedd7ba6231da05ed70c3ee4811f005f57dbb4737ea",
+    "SPY": "bce793b53f97c5081e7a9b4b9d4a8b03a574977f25054eac42a55dcda9907a30"
+  },
+  "returns_unit": "daily fractional close-to-close",
+  "version": "7.4.1",
+  "weights": {
+    "min_covariance_variance": {
+      "IWM": 2.359258356175528e-08,
+      "QQQ": 6.109383662328171e-09,
+      "SPY": 0.9999999702980327
+    },
+    "min_empirical_cvar": {
+      "IWM": 1.0384450778778194e-09,
+      "QQQ": 1.2438024423319312e-10,
+      "SPY": 0.9999999988371747
+    }
+  }
+}

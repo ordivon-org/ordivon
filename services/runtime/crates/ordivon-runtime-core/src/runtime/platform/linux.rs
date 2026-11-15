@@ -534,29 +534,108 @@ pub(crate) fn systemctl_show(unit_name: &str) -> RuntimeResult<BTreeMap<String, 
         SYSTEMCTL_OBSERVATION_TIMEOUT,
         "systemctl show",
     )?;
-    if !output.status.success() && output.stdout.is_empty() {
+    parse_systemctl_show_output(output)
+}
+
+/// Strict native observation parses systemctl's completed output; the OS
+/// command's status is an observation, never an execution/disposition fact.
+fn parse_systemctl_show_output(output: Output) -> RuntimeResult<BTreeMap<String, String>> {
+    // A nonzero exit is not an authoritative partial snapshot, even when
+    // systemctl emitted some properties before losing its manager connection.
+    // No NativeStop/Runner recovery caller may infer negative Unit truth.
+    if !output.status.success() {
         return Err(RuntimeError::new(
             RuntimeErrorCode::ToolFailed,
             format!(
-                "systemctl show failed: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
+                "systemctl show did not complete successfully: {}",
+                String::from_utf8_lossy(&output.stderr)
+                    .trim()
+                    .chars()
+                    .take(512)
+                    .collect::<String>()
             ),
             None,
             true,
         ));
     }
+    let text = std::str::from_utf8(&output.stdout).map_err(|_| {
+        RuntimeError::new(
+            RuntimeErrorCode::ToolFailed,
+            "systemctl show emitted non-UTF8 properties",
+            None,
+            true,
+        )
+    })?;
     let mut properties = BTreeMap::new();
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
-        if let Some((key, value)) = line.split_once('=') {
-            properties.insert(key.to_string(), value.to_string());
+    for line in text.lines() {
+        let (key, value) = line.split_once('=').ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::ToolFailed,
+                "systemctl show emitted a malformed property",
+                None,
+                true,
+            )
+        })?;
+        if key.is_empty()
+            || properties
+                .insert(key.to_string(), value.to_string())
+                .is_some()
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ToolFailed,
+                "systemctl show emitted a duplicate or unnamed property",
+                None,
+                true,
+            ));
         }
     }
-    properties
-        .entry("LoadState".to_string())
-        .or_insert_with(|| "not-found".to_string());
-    properties
-        .entry("ActiveState".to_string())
-        .or_insert_with(|| "inactive".to_string());
+    // LoadState=not-found and ActiveState=inactive are POSITIVE observations
+    // of absence. Missing values must never be synthesized as that state.
+    // The absence of a Unit.Job is equally important: it gates irreversible
+    // LOST decisions after the cgroup is checked. systemctl explicitly emits
+    // "Job=" when there is no queued manager Job.
+    for required in [
+        "LoadState",
+        "ActiveState",
+        "SubState",
+        "Job",
+        "InvocationID",
+        "ControlGroup",
+        "MainPID",
+        "Result",
+        "ExecMainCode",
+        "ExecMainStatus",
+    ] {
+        if !properties.contains_key(required) {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ToolFailed,
+                format!("systemctl show omitted required {required}"),
+                Some(required),
+                true,
+            ));
+        }
+    }
+    if !matches!(
+        properties["LoadState"].as_str(),
+        "loaded" | "not-found" | "masked" | "error" | "bad-setting" | "merged" | "stub"
+    ) || !matches!(
+        properties["ActiveState"].as_str(),
+        "active"
+            | "activating"
+            | "deactivating"
+            | "inactive"
+            | "failed"
+            | "reloading"
+            | "refreshing"
+            | "maintenance"
+    ) {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ToolFailed,
+            "systemctl show returned an unknown Unit state",
+            None,
+            true,
+        ));
+    }
     Ok(properties)
 }
 
@@ -1036,6 +1115,120 @@ mod tests {
         .unwrap();
         assert!(command.get_args().any(|arg| arg == "--no-block"));
         assert!(command.get_args().any(|arg| arg == "--slice=system.slice"));
+    }
+
+    // All these samples are subprocess output, not mocked PG outcomes. Native
+    // systemd consumers must never learn "not-found" from missing output.
+    #[test]
+    fn incomplete_systemctl_show_cannot_invent_not_found_or_inactive() {
+        let output = Command::new("/usr/bin/sh")
+            .args(["-c", "printf 'ControlGroup=/system.slice/demo.service\\n'"])
+            .output()
+            .unwrap();
+        let error = parse_systemctl_show_output(output).unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
+        assert!(error.retryable);
+    }
+
+    #[test]
+    fn failed_systemctl_show_with_partial_stdout_is_not_native_truth() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=not-found\\nActiveState=inactive\\nJob=\\n'; exit 3",
+            ])
+            .output()
+            .unwrap();
+        let error = parse_systemctl_show_output(output).unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
+    }
+
+    #[test]
+    fn systemctl_show_without_manager_job_state_is_not_terminal_evidence() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=not-found\\nActiveState=inactive\\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn duplicate_systemctl_state_cannot_silently_override_first_observation() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=loaded\\nActiveState=active\\nActiveState=inactive\\nJob=\\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn unrecognized_systemctl_active_state_is_unknown_not_inactive() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=loaded\\nActiveState=indeterminate\\nJob=\\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn explicit_systemctl_not_found_is_native_negative_evidence() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=not-found\\nActiveState=inactive\\nSubState=dead\\nJob=\\nInvocationID=\\nControlGroup=\\nMainPID=0\\nResult=success\\nExecMainCode=0\\nExecMainStatus=0\\n'",
+            ])
+            .output()
+            .unwrap();
+        let properties = parse_systemctl_show_output(output).unwrap();
+        assert_eq!(
+            properties.get("LoadState").map(String::as_str),
+            Some("not-found")
+        );
+        assert_eq!(
+            properties.get("ActiveState").map(String::as_str),
+            Some("inactive")
+        );
+        assert!(!unit_has_pending_job(&properties));
+    }
+
+    #[test]
+    fn three_fields_without_full_systemd_witness_are_inconclusive() {
+        let output = Command::new("/usr/bin/sh")
+            .args([
+                "-c",
+                "printf 'LoadState=loaded\nActiveState=inactive\nJob=\n'",
+            ])
+            .output()
+            .unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    fn unrecognized_systemctl_load_state_is_unknown_not_false() {
+        let output = Command::new("/usr/bin/sh")
+            .args(["-c", "printf 'LoadState=BROKEN\nActiveState=inactive\nSubState=dead\nJob=\nInvocationID=\nControlGroup=\nMainPID=0\nResult=success\nExecMainCode=0\nExecMainStatus=0\n'"])
+            .output().unwrap();
+        assert!(parse_systemctl_show_output(output).is_err());
+    }
+
+    #[test]
+    #[ignore = "requires a running native Linux systemd manager"]
+    fn native_systemctl_missing_unit_is_explicit_negative_evidence() {
+        let properties = systemctl_show("ordivon-r9-unknown-unit-20261111.service").unwrap();
+        assert_eq!(properties["LoadState"], "not-found");
+        assert_eq!(properties["ActiveState"], "inactive");
+        assert_eq!(properties["Job"], "");
+        assert!(!unit_is_active(&properties));
+        assert!(!unit_has_pending_job(&properties));
     }
 
     #[test]

@@ -96,6 +96,7 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
             expected_adapter_digest=str(arguments["expectedAdapterDigest"]),
             input_path=str(arguments["inputPath"]),
             evidence_directory=str(arguments["evidenceDirectory"]),
+            expected_input_digest=arguments.get("expectedInputDigest"),
         )
     if name == "studio_equipment_propose":
         from .equipment import load_equipment_world, propose_operation

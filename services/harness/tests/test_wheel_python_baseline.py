@@ -31,3 +31,35 @@ def test_exact_project_python_passes_to_isolated_wheel_env():
 def test_wrong_or_unbound_interpreter_fails_closed(requirement, observed, executable):
     with pytest.raises(SystemExit):
         MODULE.wheel_python_interpreter(requirement, observed, executable)
+
+
+def test_pg_wheel_smoke_reports_not_run_without_dsn(monkeypatch, capsys):
+    monkeypatch.delenv("HARNESS_PG_TEST_DSN", raising=False)
+
+    def forbidden(_args):
+        pytest.fail("PG smoke dispatched without an explicit test authority")
+
+    monkeypatch.setattr(MODULE, "checked", forbidden)
+    assert MODULE.check_host_free_postgresql(Path("/opt/venv/bin/python")) is False
+    assert "NOT_RUN" in capsys.readouterr().err
+
+
+def test_pg_wheel_smoke_dispatches_only_with_dsn(monkeypatch):
+    monkeypatch.setenv("HARNESS_PG_TEST_DSN", "postgresql://dedicated-test-authority")
+    calls = []
+    monkeypatch.setattr(MODULE, "checked", lambda args: calls.append(args))
+    assert MODULE.check_host_free_postgresql(Path("/opt/venv/bin/python")) is True
+    assert calls == [
+        ["/opt/venv/bin/python", str(MODULE.ROOT / "scripts/check_harness_without_host.py")]
+    ]
+
+
+def test_pg_wheel_smoke_propagates_real_failure(monkeypatch):
+    monkeypatch.setenv("HARNESS_PG_TEST_DSN", "postgresql://dedicated-test-authority")
+
+    def failed(_args):
+        raise RuntimeError("PG consumer qualification failed")
+
+    monkeypatch.setattr(MODULE, "checked", failed)
+    with pytest.raises(RuntimeError, match="PG consumer qualification failed"):
+        MODULE.check_host_free_postgresql(Path("/opt/venv/bin/python"))
