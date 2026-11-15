@@ -794,3 +794,146 @@ def test_gateway_rejects_mismatched_route_and_capability_identity() -> None:
     route = default_routes()["execution.linux"]
     with pytest.raises(GatewayError, match="route identity"):
         GatewayService(FakeOwnerCaller(), routes={"execution.windows": route})
+
+
+@pytest.mark.parametrize(
+    "inventory",
+    [
+        [{"artifactId": "a"}, {"artifactId": "a"}],
+        [{"artifactId": "a"}, {"artifactId": ""}],
+        [{"artifactId": "a"}, {"artifactId": None}],
+        [{"artifactId": "a"}, "malformed"],
+    ],
+)
+def test_maintenance_artifact_inventory_must_have_distinct_qualified_ids(
+    inventory: object,
+) -> None:
+    """Native Owner artifact counts cannot validate lossy/duplicate identities."""
+    caller = FakeOwnerCaller()
+    owner = {
+        "jobId": "job-01011-inventory",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": inventory,
+    }
+    caller.responses[("runtime.linux", "job.observe")] = [dict(owner), dict(owner)]
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-01011-inventory"},
+        "artifacts": {"count": 2},
+    }
+    result = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-01011-inventory")
+    )
+    assert result.artifact_count == 2
+    assert result.artifact_projection_complete is False
+
+
+@pytest.mark.parametrize("inventory", [None, {"unexpected": []}, [{"artifactId": ""}]])
+def test_maintenance_malformed_zero_artifact_inventory_not_complete(
+    inventory: object,
+) -> None:
+    caller = FakeOwnerCaller()
+    owner = {
+        "jobId": "job-01011-zero",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": inventory,
+    }
+    caller.responses[("runtime.linux", "job.observe")] = [dict(owner), dict(owner)]
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-01011-zero"},
+        "artifacts": {"count": 0},
+    }
+    result = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-01011-zero")
+    )
+    assert result.artifact_count == 0
+    assert result.artifact_projection_complete is False
+
+
+@pytest.mark.parametrize("count", [None, True, -1, "2"])
+def test_maintenance_unqualified_owner_total_means_unknown(count: object) -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "job.observe")] = {
+        "jobId": "job-01011-unknown",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": [{"artifactId": "a.stdout"}],
+    }
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-01011-unknown"},
+        "artifacts": {"count": count},
+    }
+    result = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-01011-unknown")
+    )
+    assert result.artifact_projection_complete is None
+
+
+def test_maintenance_artifact_read_refuses_nonterminal_zero_progress() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "artifact.read")] = {
+        "jobId": "job-01011-cursor",
+        "artifactId": "a.stdout",
+        "offset": 23,
+        "nextOffset": 23,
+        "eof": False,
+        "digest": "sha256:synthetic",
+        "content": "",
+    }
+    with pytest.raises(GatewayError, match="artifact.*(cursor|progress)"):
+        asyncio.run(
+            GatewayService(caller).artifact_read(
+                "ordivon-exec:v1:runtime.linux:job-01011-cursor",
+                "a.stdout",
+                offset=23,
+                max_bytes=1,
+            )
+        )
+
+
+def test_maintenance_artifact_read_rejects_string_eof() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "artifact.read")] = {
+        "jobId": "job-01011-eof",
+        "artifactId": "a.stdout",
+        "offset": 0,
+        "nextOffset": 0,
+        "eof": "false",
+        "digest": "sha256:synthetic",
+        "content": "",
+    }
+    with pytest.raises(GatewayError, match="eof"):
+        asyncio.run(
+            GatewayService(caller).artifact_read(
+                "ordivon-exec:v1:runtime.linux:job-01011-eof",
+                "a.stdout",
+                offset=0,
+                max_bytes=1,
+            )
+        )
+
+
+def test_maintenance_artifact_read_preserves_true_empty_eof() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "artifact.read")] = {
+        "jobId": "job-01011-eof-true",
+        "artifactId": "a.stdout",
+        "offset": 23,
+        "nextOffset": 23,
+        "eof": True,
+        "digest": "sha256:synthetic",
+        "content": "",
+    }
+    result = asyncio.run(
+        GatewayService(caller).artifact_read(
+            "ordivon-exec:v1:runtime.linux:job-01011-eof-true",
+            "a.stdout",
+            offset=23,
+            max_bytes=1,
+        )
+    )
+    assert result.eof is True and result.next_offset == 23

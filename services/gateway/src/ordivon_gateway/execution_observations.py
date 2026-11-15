@@ -99,14 +99,32 @@ class ExecutionObservationMethods:
         if observed_native_id != native_id:
             raise GatewayError("Runtime job.observe returned mismatched job identity")
 
-        def artifact_ids(payload: dict[str, Any]) -> list[str]:
+        def artifact_ids(payload: dict[str, Any]) -> tuple[list[str], bool]:
+            # A filtered malformed Owner row is not proof of an empty inventory.
+            raw = payload.get("artifacts")
+            if not isinstance(raw, list):
+                return [], False
             values: list[str] = []
-            for item in payload.get("artifacts", []):
-                if isinstance(item, dict) and isinstance(item.get("artifactId"), str):
-                    values.append(item["artifactId"])
-            return values
+            qualified = True
+            for item in raw:
+                identifier = item.get("artifactId") if isinstance(item, dict) else None
+                if isinstance(identifier, str) and identifier.strip():
+                    values.append(identifier)
+                else:
+                    qualified = False
+            return values, qualified
 
-        artifacts = artifact_ids(result)
+        def identities_complete(
+            ids: list[str], expected_count: int, inventory_qualified: bool
+        ) -> bool:
+            # Count equality cannot prove coverage when IDs are duplicated or dropped.
+            return (
+                inventory_qualified
+                and len(ids) == expected_count
+                and len(set(ids)) == expected_count
+            )
+
+        artifacts, inventory_qualified = artifact_ids(result)
         artifacts_available = (
             bool(result["artifactsAvailable"])
             if isinstance(result.get("artifactsAvailable"), bool)
@@ -129,14 +147,11 @@ class ExecutionObservationMethods:
             if not isinstance(job, dict) or job.get("jobId") != native_id:
                 raise GatewayError("Runtime job.get returned mismatched job identity")
             summary = inspection.get("artifacts")
-            summary_count = (
-                int(summary["count"])
-                if isinstance(summary, dict) and isinstance(summary.get("count"), int)
-                else None
-            )
+            raw_count = summary.get("count") if isinstance(summary, dict) else None
+            summary_count = raw_count if type(raw_count) is int and raw_count >= 0 else None
             if summary_count is not None:
                 artifact_count = summary_count
-                if len(artifacts) != summary_count:
+                if not identities_complete(artifacts, summary_count, inventory_qualified):
                     refreshed = await self._caller.call_tool(
                         owner_id,
                         "job.observe",
@@ -153,15 +168,17 @@ class ExecutionObservationMethods:
                         raise GatewayError(
                             "Runtime job.observe refresh returned mismatched job identity"
                         )
-                    artifacts = artifact_ids(refreshed)
+                    artifacts, inventory_qualified = artifact_ids(refreshed)
                     artifacts_available = (
                         bool(refreshed["artifactsAvailable"])
                         if isinstance(refreshed.get("artifactsAvailable"), bool)
                         else artifacts_available
                     )
-                artifact_projection_complete = len(artifacts) == summary_count
-            else:
-                artifact_projection_complete = not artifacts_available or bool(artifacts)
+                artifact_projection_complete = identities_complete(
+                    artifacts, summary_count, inventory_qualified
+                )
+            # Missing, boolean, negative or otherwise unqualified Owner count
+            # is UNKNOWN, not success, regardless of observed Artifact IDs.
 
         return ExecutionObservation(
             operation_ref=operation_ref,
@@ -218,14 +235,33 @@ class ExecutionObservationMethods:
         )
         if result.get("jobId") != native_id or result.get("artifactId") != artifact_id:
             raise GatewayError("artifact owner returned mismatched identity")
+        observed_offset = result.get("offset")
+        next_offset = result.get("nextOffset")
+        if (
+            type(offset) is not int
+            or offset < 0
+            or type(max_bytes) is not int
+            or not 1 <= max_bytes <= 1_048_576
+            or type(observed_offset) is not int
+            or observed_offset != offset
+            or type(next_offset) is not int
+            or not offset <= next_offset <= offset + max_bytes
+        ):
+            raise GatewayError("artifact owner returned an invalid range/cursor")
+        eof = _required_bool(result, "eof")
+        if not eof and next_offset == offset:
+            raise GatewayError("artifact owner returned a non-progressing cursor before EOF")
+        content = result.get("content")
+        if not isinstance(content, str):
+            raise GatewayError("artifact owner returned invalid content")
         return ArtifactChunk(
             operation_ref=operation_ref,
             owner_id=owner_id,
             native_id=native_id,
             artifact_id=artifact_id,
-            offset=int(result.get("offset", offset)),
-            next_offset=int(result.get("nextOffset", offset)),
-            eof=bool(result.get("eof", False)),
+            offset=observed_offset,
+            next_offset=next_offset,
+            eof=eof,
             digest=_required_str(result, "digest"),
-            content=str(result.get("content", "")),
+            content=content,
         )

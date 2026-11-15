@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.15.1"
 
 [[package]]
@@ -442,7 +442,7 @@ wheels = [
 
 [[package]]
 name = "ordivon-gateway"
-version = "0.10.10"
+version = "0.10.11"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
