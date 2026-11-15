@@ -90,3 +90,15 @@ and preserve the declared public summary. A false equality invariant can block
 legitimate Agent `execution.submit/get/cancel` operations. Regression examples
 must come from the actual Rust producer; Gateway capability readiness TLA+
 models do not prove Job state equivalence or installed consumer behavior.
+
+## Retiring installed-schema exceptions
+
+A temporary native Owner SDK bypass may be retired only after the installed
+owner exposes the required full MCP output schemas and the official high-level
+MCP Client completes the same real business chain (submit once -> resolve ->
+observe -> artifact read, plus cancel separately). Source tests alone are not
+a release proof. Once the qualified native transport succeeds, delete the
+exception, adapt existing consumer tests, and retain SDK-managed transport,
+authorization and output validation instead of adding another bridge.
+Document natural Owner errors separately from SDK schema errors; do not retry
+an effect because post-call validation returned an uncertain result.
