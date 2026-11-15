@@ -501,7 +501,7 @@ Provider ownership is responsibility-specific rather than permanently assigned t
 - n8n as a bounded integration edge;
 - Runtime only for mechanical execution/evidence when operating the local service.
 
-Detailed acceptance evidence and the CRM provider-succession note are in `migrations/records/business-operations-erpnext-r1.md`.
+Detailed acceptance evidence and the CRM provider-succession note are in `docs/migration/retirement/business-operations-erpnext-r1.md`.
 
 ### Authority boundary
 

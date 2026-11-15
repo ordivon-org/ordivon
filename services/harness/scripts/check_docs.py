@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ast
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -211,6 +212,66 @@ def module_api_exports(relative: str) -> set[str]:
     return set()
 
 
+def validate_live_cli_examples(guides: dict[str, str] | None = None) -> list[str]:
+    """Check present-tense operator shell examples against the real source CLI.
+
+    Parse the native argparse definitions as source instead of introducing a
+    separate command catalog or importing optional Provider/Python dependencies
+    into the standalone docs checker. Runtime behavior is exercised separately
+    in tests/test_cli_currentness.py.
+    """
+    if guides is None:
+        guides = {
+            name: (ROOT / name).read_text(encoding="utf-8")
+            for name in (
+                "README.md",
+                "docs/QUICKSTART.md",
+                "docs/OPERATIONS.md",
+                "docs/STATUS.md",
+            )
+        }
+
+    cli_tree = ast.parse((ROOT / "src/ordivon_harness/cli.py").read_text(encoding="utf-8"))
+    supported = {
+        call.args[0].value
+        for call in ast.walk(cli_tree)
+        if isinstance(call, ast.Call)
+        and isinstance(call.func, ast.Attribute)
+        and call.func.attr == "add_parser"
+        and call.args
+        and isinstance(call.args[0], ast.Constant)
+        and isinstance(call.args[0].value, str)
+    }
+    errors: list[str] = []
+    for path, text in guides.items():
+        if "The Harness SQLite Journal/CAS is the current Run writer" in text:
+            errors.append(f"{path}: old SQLite writer is declared current")
+        if "The only current writer is the Harness SQLite Journal/CAS" in text:
+            errors.append(f"{path}: old SQLite writer is declared exclusive")
+
+        for block in re.findall(r"```(?:bash|sh)\n(.*?)\n```", text, re.DOTALL):
+            lines = iter(block.splitlines())
+            for line in lines:
+                command = line.strip()
+                if not command.startswith("ordivon-harness "):
+                    continue
+                while command.endswith("\\"):
+                    command = command[:-1] + " " + next(lines, "").strip()
+                try:
+                    words = shlex.split(command)
+                except ValueError:
+                    errors.append(f"{path}: invalid shell quoting in Harness CLI: {command}")
+                    continue
+                args = words[1:]
+                if args[:1] == ["--deepseek-secret"]:
+                    args = args[2:]
+                if args[:1] and args[0].startswith("-"):
+                    errors.append(f"{path}: unsupported Harness CLI global option: {command}")
+                elif not args or args[0] not in supported:
+                    errors.append(f"{path}: Harness CLI subcommand is not supported: {command}")
+    return errors
+
+
 def validate_public_contracts() -> list[str]:
     errors: list[str] = []
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -321,7 +382,7 @@ def validate_public_contracts() -> list[str]:
     ):
         if stale in data_privacy:
             errors.append(f"DATA_AND_PRIVACY.md retains removed Host-backed state claim: {stale}")
-    for required in ("independent Harness Journal/CAS", "Harness `store-backup`"):
+    for required in ("independent Harness Journal/CAS", "PostgreSQL-native"):
         if required not in data_privacy:
             errors.append(f"DATA_AND_PRIVACY.md lacks current independent-state marker: {required}")
 
@@ -373,7 +434,12 @@ def validate_public_contracts() -> list[str]:
 
 def main() -> int:
     errors: list[str] = []
-    for validator in (validate_frontmatter, validate_links, validate_public_contracts):
+    for validator in (
+        validate_frontmatter,
+        validate_links,
+        validate_public_contracts,
+        validate_live_cli_examples,
+    ):
         try:
             errors.extend(validator())
         except (DocumentError, OSError, SyntaxError, UnicodeError) as error:

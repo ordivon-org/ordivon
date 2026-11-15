@@ -4,16 +4,14 @@ import time
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
+from .postgres_connections import HostPostgresConnections
 
-REQUIRED_SCHEMA_VERSION = 12
+REQUIRED_SCHEMA_VERSION = 13
 
 
-class HostV2:
-    def __init__(self, dsn: str) -> None:
-        self.dsn = dsn
+class HostV2(HostPostgresConnections):
 
     def initialize(self) -> None:
         """Verify that Alembic already initialized the authority schema.
@@ -22,7 +20,7 @@ class HostV2:
         Production and tests must run ``alembic upgrade head`` before Host opens authority.
         """
         try:
-            with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
+            with self._connect() as conn:
                 row = conn.execute(
                     "SELECT schema_version FROM host_v2_schema WHERE singleton"
                 ).fetchone()
@@ -41,7 +39,10 @@ class HostV2:
         if detail not in {"summary", "integrity", "history"}:
             raise ValueError("detail must be summary, integrity, or history")
         observed_at_ms = time.time_ns() // 1_000_000
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
+        with self._connect() as conn:
+            # The multi-query doctor must observe one coherent MVCC snapshot.
+            if detail != "summary":
+                conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             schema_row = conn.execute(
                 "SELECT schema_version FROM host_v2_schema WHERE singleton"
             ).fetchone()
@@ -147,32 +148,41 @@ class HostV2:
                     f"incomplete={receipt_bad}",
                 )
 
-                if detail == "history":
-                    history_bad = int(
-                        conn.execute(
-                            "SELECT count(*) AS value FROM ("
-                            "SELECT w.work_ref,w.current_revision,count(s.revision) AS snapshots,"
-                            "min(s.revision) AS rmin,max(s.revision) AS rmax "
-                            "FROM works w LEFT JOIN work_snapshots s USING(work_ref) "
-                            "GROUP BY w.work_ref,w.current_revision"
-                            ") x WHERE snapshots<>current_revision OR rmin<>1 OR rmax<>current_revision"
-                        ).fetchone()["value"]
+                # A Work is healthy when its CURRENT revision and bytes are valid.
+                # Old snapshot revisions are optional retention, not a liveness contract.
+                current_payload_bad = 0
+                with conn.cursor(name="host_current_snapshot_digest_scan") as cursor:
+                    cursor.itersize = 128
+                    cursor.execute(
+                        "SELECT s.snapshot_digest,s.payload FROM works w JOIN work_snapshots s "
+                        "ON s.work_ref=w.work_ref AND s.revision=w.current_revision"
                     )
-                    add_check(
-                        "work.snapshot_history_contiguous",
-                        history_bad == 0,
-                        f"invalidWorks={history_bad}",
-                    )
-                    digest_bad = 0
-                    for row in conn.execute(
-                        "SELECT snapshot_digest,payload FROM work_snapshots ORDER BY work_ref,revision"
-                    ).fetchall():
+                    for row in cursor:
                         payload = row["payload"]
                         if (
                             not isinstance(payload, dict)
                             or canonical_digest(payload) != row["snapshot_digest"]
                         ):
-                            digest_bad += 1
+                            current_payload_bad += 1
+                add_check(
+                    "work.current_snapshot_payload_digest",
+                    current_payload_bad == 0,
+                    f"invalid={current_payload_bad}",
+                )
+                if detail == "history":
+                    digest_bad = 0
+                    # Stream history through Psycopg's native server cursor.
+                    # A full fetchall() would retain every JSONB payload in RAM.
+                    with conn.cursor(name="host_history_digest_scan") as cursor:
+                        cursor.itersize = 128
+                        cursor.execute("SELECT snapshot_digest,payload FROM work_snapshots")
+                        for row in cursor:
+                            payload = row["payload"]
+                            if (
+                                not isinstance(payload, dict)
+                                or canonical_digest(payload) != row["snapshot_digest"]
+                            ):
+                                digest_bad += 1
                     add_check(
                         "work.snapshot_history_digest",
                         digest_bad == 0,

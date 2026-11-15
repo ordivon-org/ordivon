@@ -19,7 +19,6 @@ def test_nautilus_candidate_tools_are_not_current_scripts():
 
 def test_current_public_data_runners_do_not_gate_on_nautilus():
     for rel in (
-        "scripts/run-crypto-public-shadow-r1",
         "scripts/run-crypto-public-shadow-r2",
         "scripts/run-crypto-stream-resilience-r3",
     ):

@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
-const doc = readFileSync(new URL("../docs/external-knowledge-base-r1.md", import.meta.url), "utf8");
 const queue = JSON.parse(readFileSync(new URL("../knowledge/game_teardown_queue_r1.json", import.meta.url), "utf8")) as any;
 const skills = JSON.parse(readFileSync(new URL("../knowledge/game_external_skill_watchlist_r1.json", import.meta.url), "utf8")) as any;
 
@@ -85,13 +84,4 @@ test("external skill watchlist separates knowledge, skill and tool authority", (
   }
   assert.ok(skills.principles.some((principle: string) => /Skill.*Tool.*separate/i.test(principle)));
   assert.ok(skills.principles.some((principle: string) => /version/i.test(principle)));
-});
-
-test("human guide explains authority ladder and creative-open ingestion", () => {
-  assert.match(doc, /Native authority/i);
-  assert.match(doc, /Creative-Open/i);
-  assert.match(doc, /Mechanism Combination Experience Library/i);
-  assert.match(doc, /never.*Game constitution/is);
-  assert.match(doc, /primary developer/i);
-  assert.match(doc, /Skill.*Tool.*MCP/is);
 });

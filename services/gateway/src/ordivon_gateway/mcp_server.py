@@ -22,6 +22,7 @@ from .access_auth import (
     CloudflareAccessVerifier,
 )
 from .audit import GatewayAuditMiddleware
+from .authzen_authorizer import AuthZenPrincipalAuthorizer
 from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
 from .contracts import (
     ArtifactChunk,
@@ -31,11 +32,15 @@ from .contracts import (
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
+    RuntimeReleaseAdmission,
+    RuntimeReleaseProjection,
     SystemDescription,
 )
 from .host_tools import register_host_tools
+from .http_ingress_guard import GatewayHTTPIngressGuard
+from .ingress_identity import identity_from_state, tool_context_state
 from .service import GatewayError, GatewayService
-from .upstream import McpOwnerCaller, OwnerCallError
+from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
 
 def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
@@ -68,20 +73,19 @@ async def _owner_boundary(call) -> Any:
 
 
 def _verified_execution_scope(context: Context | None) -> tuple[str, str] | None:
-    """Request-local authority from the existing verified HTTP ingress, if present."""
-    try:
-        request = context.request_context.request
-    except ValueError, AttributeError:
-        return None
-    scope = getattr(request, "scope", None)
-    state = scope.get("state") if isinstance(scope, dict) else None
-    if not isinstance(state, dict):
-        return None
-    principal = state.get("ordivon_access_principal")
-    issuer = state.get("ordivon_access_issuer")
-    if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
-        return None
-    return issuer, principal
+    """Extract ingress identity from the SDK Tool Context, not Tool arguments."""
+    identity = identity_from_state(tool_context_state(context))
+    return (identity.issuer, identity.principal) if identity is not None else None
+
+
+def _require_http_execution_identity(context: Context | None) -> None:
+    """HTTP execution tools must not downgrade to unqualified STDIO semantics.
+
+    In normal HTTP requests Cloudflare/loopback ingress populates verified
+    request state; an absent/malformed context must reject before an owner RPC.
+    """
+    if _verified_execution_scope(context) is None:
+        raise ToolError("HTTP execution requires verified ingress Principal identity")
 
 
 def _verified_execution_request_id(
@@ -145,6 +149,8 @@ def build_server(
     service: GatewayService | None = None,
     *,
     capability_authorizer: CapabilityAuthorizer | None = None,
+    protect_artifact_reads: bool = False,
+    require_http_execution_identity: bool = False,
 ) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
@@ -163,7 +169,15 @@ def build_server(
         lifespan=gateway_lifespan,
     )
     server.middleware.append(GatewayAuditMiddleware())
-    if capability_authorizer is not None:
+    if require_http_execution_identity:
+        server.middleware.append(GatewayHTTPIngressGuard())
+    # Verified HTTP Host reads and writes must reach the existing Security PEP
+    # even when the PDP is not configured (fail closed, not bearer=actor).
+    if (
+        capability_authorizer is not None
+        or protect_artifact_reads
+        or require_http_execution_identity
+    ):
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
     @server.tool(name="system.describe")
@@ -202,6 +216,40 @@ def build_server(
             agent_id=agentId,
         )
 
+    @server.tool(name="runtime.release.apply")
+    async def runtime_release_apply(
+        requestId: str,
+        workspaceId: str,
+        commit: str,
+        candidateManifestDigest: str,
+        expectedToolCount: int,
+        ctx: Context = None,
+    ) -> RuntimeReleaseAdmission:
+        # A verified principal + Security AuthZEN capability approval are
+        # required BEFORE any Runtime release owner call. Operator authority
+        # stays in Runtime's own ReleaseEffect/receipt; never use shell exec.
+        _require_http_execution_identity(ctx)
+        if not require_http_execution_identity or capability_authorizer is None:
+            raise ToolError("Runtime release requires a configured HTTP Security PEP")
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(
+            gateway.runtime_release_apply(
+                request_id=scoped,
+                workspace_id=workspaceId,
+                commit=commit,
+                candidate_manifest_digest=candidateManifestDigest,
+                expected_tool_count=expectedToolCount,
+            )
+        )
+
+    @server.tool(name="runtime.release.get")
+    async def runtime_release_get(requestId: str, ctx: Context = None) -> RuntimeReleaseProjection:
+        # The same original principal-scoped key must be used after response
+        # loss; no new release request, retry or operational preflight here.
+        _require_http_execution_identity(ctx)
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(gateway.runtime_release_get(request_id=scoped))
+
     @server.tool(name="execution.submit")
     async def execution_submit(
         capability: str,
@@ -213,9 +261,13 @@ def build_server(
         context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
+        stdoutLimitBytes: int | None = None,
+        stderrLimitBytes: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
         return await _owner_boundary(
             gateway.execution_submit(
@@ -228,6 +280,8 @@ def build_server(
                 context=context,
                 env=env,
                 timeout_ms=timeoutMs,
+                stdout_limit_bytes=stdoutLimitBytes,
+                stderr_limit_bytes=stderrLimitBytes,
                 authority_references=authorityReferences,
             )
         )
@@ -236,6 +290,8 @@ def build_server(
     async def execution_resolve(
         capability: str, requestId: str, ctx: Context = None
     ) -> ExecutionResolution:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
         result = await _owner_boundary(
             gateway.execution_resolve(capability=capability, request_id=owner_request_id)
@@ -255,6 +311,8 @@ def build_server(
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionObservation:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
@@ -267,6 +325,8 @@ def build_server(
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(gateway.execution_cancel(operationRef))
 
@@ -282,6 +342,8 @@ def build_server(
     ) -> ArtifactChunk:
         # Artifact bytes have the same original execution owner as observe/cancel.
         # Reuse the trusted HTTP ingress identity fence before any owner read.
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
@@ -396,11 +458,39 @@ def _reject_retired_worker_database_config() -> None:
         )
 
 
+def _capability_authorizer_from_env() -> CapabilityAuthorizer | None:
+    """Bind the existing AuthZEN PDP to Gateway's protected HTTP Tool path.
+
+    Read token bytes through the mature private-file helper per decision,
+    rather than freezing credentials at process start or exposing them to Tool
+    arguments. The policy service, not Gateway, owns authorization truth.
+    """
+    endpoint = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT", "").strip()
+    token_file = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", "").strip()
+    if bool(endpoint) != bool(token_file):
+        raise RuntimeError(
+            "Gateway AuthZEN requires both evaluation endpoint and private token file"
+        )
+    if not endpoint:
+        return None
+    return AuthZenPrincipalAuthorizer(
+        endpoint,
+        bearer_token_provider=lambda: _read_private_secret_file(
+            token_file, "Gateway AuthZEN bearer token"
+        ),
+    )
+
+
 def main() -> None:
     _reject_retired_worker_database_config()
-    gateway = GatewayService(McpOwnerCaller.from_env())
-    server = build_server(gateway)
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
+    gateway = GatewayService(McpOwnerCaller.from_env())
+    server = build_server(
+        gateway,
+        capability_authorizer=_capability_authorizer_from_env(),
+        protect_artifact_reads=(transport == "streamable-http"),
+        require_http_execution_identity=(transport == "streamable-http"),
+    )
     if transport == "stdio":
         server.run()
         return

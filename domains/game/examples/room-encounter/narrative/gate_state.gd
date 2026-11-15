@@ -1,5 +1,7 @@
 extends Node
 
+signal passage_advanced
+
 # Upstream Dialogue Manager is given this native port, not an independent token ledger.
 var rules: Node
 var tokens: int:
@@ -11,4 +13,5 @@ func bind_rules(source: Node) -> void:
 
 func spend_token() -> void:
     if rules != null and rules.snapshot()["phase"] == "cleared":
-        rules.advance()
+        if rules.advance():
+            passage_advanced.emit()

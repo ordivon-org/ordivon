@@ -141,13 +141,59 @@ Before a future verified-consequence outcome is valid, the natural producing Own
 
 ## Current observed integration gaps
 
-- The retired Gateway v1 source-only evaluator was not compatible with the current Gateway's resource-bound response. Gateway's AuthZEN-v3 adapter exists in source; deployment, coverage and complete Principal/Agent-Grants path require separate runtime evidence.
+- The retired Gateway v1 source-only evaluator was not compatible with the current Gateway's resource-bound response. Gateway's AuthZEN-v3 adapter exists in source. **2026-11-08 CLI source fix:** Gateway HTTP `main()` now installs `GatewayCapabilityAuthorizationMiddleware` for qualified Runtime `artifact.read` even without a configured PDP (which denies the protected read, instead of forwarding). With both AuthZEN endpoint and private token file configured it consumes the existing AuthZEN adapter and native private-file loader. This is source and native consumer evidence only; installed server, policy-decision availability, complete Tool coverage, Agent Grant/Principal delegation and actual Artifact effects remain separately unproven. Other Tools are not automatically protected by this PEP.
 - The Agent Admission lab uses SQLite for local experimental Grants and challenges. Its E2E and repository checks have concrete references; a PG production replacement must not be inferred from Runtime's PostgreSQL migration. The lab's `src/oauth-verifier.ts` largely duplicates the Security `contracts/agent-request-verifier-v1/src/index.ts` OAuth/DPoP verifier; this is a real refactoring candidate, but a source-file import alone would break separately installed pnpm package resolution. Reuse the real package only after the lab's pnpm workspace/lockfile and Keycloak E2E consumer are proven compatible; do not retain a second cryptographic protocol implementation as a permanent architecture.
 - Scorecard's official provider acceptance is not automatically current Ordivon-repository admission. Falco, ZAP, ClusterFuzzLite and image-tool provider acceptance are individually scoped.
 - The `agent-admission-input-v0` schema now permits an optional `approval.effectDigest` for compatibility; `agent_admission.rego` **requires exact `effectId` and `effectDigest`** for high-risk WebAuthn Step-up. `apps/web` and the lab's verified-approval projections supply the digest read through their actual pending/consumed approval queries. Older same-ID approvals lacking a digest now yield `STEP_UP`, not ALLOW. The historical v0 schema remains accepted for low-risk effects; full production consumer/currentness and WebAuthn cryptographic trust are separate obligations. The Security policy never authenticates a caller-supplied `verified` flag on its own. The new `formal/AgentApprovalBinding.lean` proves abstract content-binding and a concrete same-ID/changing-digest counterexample; public Python contract and native Web/Lab tests provide implementation-refinement evidence.
-- The Effect Admission Rego decision currently reads the authority record's `authorityDigest` into the output but does **not** compare an independently supplied request digest to it. The historical `range-effect-request` input and `scripts/differential_effect_admission.py` omit that request coordinate, whereas the Agent Admission projection includes it. This is an observed cross-contract representation gap, not a proven exploit in Gateway/Runtime. Do not add a digest check to the existing unversioned policy until all actual producers, difference fixtures and PEP consumers are migrated to a versioned bound contract; the required refinement property is `admitted -> request.authorityDigest == registry.authorityDigest`, with trusted registry identity and exact request source assumptions. Verify with native OPA + consumer traversal, and keep old compatibility explicitly qualified.
+- Effect Admission has moved to the single **input schemaVersion=2** source-bound contract. The policy now rejects missing/legacy/unknown versions, malformed SHA-256 digests, absent request authority digests and mismatches against the uniquely selected authority. The Agent public Python evaluator and Lab OPA adapter always supply v2 and refuse an ALLOW response lacking `authorityDigestBound=true`, `inputContractVersion=2`, or the exact projected authority digest. ZAP's authorized-local scan now supplies the same versioned input. The old Range differential script and dated snapshot guide had no current source/CI consumer and have been retired, avoiding a downgradeable v1 policy. This proves binding to the **supplied** authority record, NOT record provenance, freshness at effect commit, installed Gateway/Runtime PEP coverage or an independently authenticated source. Consumer-owned authority readback/revocation remains a separate implementation and deployment obligation.
 - No evidence from this source-only audit establishes a globally complete Security authorization or independent consequence verification chain across every Owner.
 
 ## Naming and retirement policy
 
 Prefer: `authorization`, `authentication`, `attestations`, `provenance`, `threat-model`, `security-observation`, `resource`, `principal`, `policy-decision`. Avoid `range-*` for generic effect decisions, unqualified `security-check` and a second custom `findings` model. Keep public versioned paths/names stable until their consumers are migrated; internal source semantics and provider-native formats take priority over cosmetic renames.
+
+
+## November 10 implementation update: source-bound consumer seams
+
+- Agent Admission's raw Rego entrypoint now validates admission-critical fields
+  before selecting a decision. A missing effect budget or step-up risk threshold
+  must never fall through to admitted; the public Python contract also retains
+  its JSON Schema boundary.
+- Resource prefixes are path-segment scopes at Security, Web Store and the
+  Agent Admission Lab. /canary/notes permits itself and descendants, not
+  /canary/notes-private. This preserves the existing Grant payload format.
+- Web calls the existing Security-owned evaluator asynchronously, with
+  bounded child lifetime and output. This is a responsiveness improvement,
+  not proof of lower end-to-end request latency.
+- Security VSA issuance builds content-addressed reference generations before
+  atomically publishing the final VSA pointer. The VSA remains unsigned;
+  referenced local report paths are not immutable Artifact SourceCuts.
+- Browser LKG reseal publishes complete immutable per-carrier generations
+  before switching a single indexed LKG pointer. The old multi-file
+  try/rollback writer has been retired.
+- Evidence, provenance and VSA file digests use bounded streaming reads,
+  lowering peak hashing memory without upgrading source/signature authority.
+
+### November 10 S1 scope-and-effect consumer refinement
+
+- For the current Agent Grant v1 profile, resourcePrefixes and effect.resource
+  are **Owner-qualified canonical absolute paths**, not raw URLs or filesystem
+  paths. Segment matching rejects dot segments, doubled separators, backslashes,
+  percent escapes, query/fragment suffixes and ASCII control characters.
+  A future non-path identity requires a versioned contract.
+- Raw Rego admission remains defined as DENY / invalid-input even when an entire
+  identity section is absent. The public Python evaluator independently rejects
+  schema-invalid input before invoking the policy.
+- Web and Lab stores reject noncanonical Grant coordinates and revalidate the
+  persisted Grant, Agent/Principal, audience, action, effect type and concrete
+  materialized resource within their existing effect transactions. Exact
+  committed replays do not consume a second budget or approval.
+- The Security owner native verify runs a finite OPA / real WebStore / real Lab
+  GrantStore scope refinement corpus. This is not a universal theorem or
+  deployed PEP acceptance; the consumers retain native TypeScript checks.
+
+Consumer-owned follow-ups remain: scan immutable Artifact SourceCuts, qualify
+Rust/TypeScript/Python-aware scanner profiles against actual release inputs,
+measure Web/Gateway policy latency under concurrency, and prove deployed PEP
+coverage plus model-to-code refinement. Provider selection alone does not
+justify new services, duplicate policy engines or premature lab retirement.

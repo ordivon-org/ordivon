@@ -1,15 +1,19 @@
+"""Gateway Security policy enforcement over separately projected Owner targets."""
+
 from __future__ import annotations
 
-import base64
-import unicodedata
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping
 from typing import Any, Protocol
 
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
-from .execution_refs import GatewayError, parse_execution_ref
+from .authorization_targets import (
+    AuthorizationTargetResolver,
+    CapabilityAuthorizationTargetError,
+    resolve_authorization_target,
+)
+from .ingress_identity import identity_from_state, request_state
 
 
 class CapabilityAuthorizer(Protocol):
@@ -33,141 +37,6 @@ class CapabilityAuthorizer(Protocol):
         arguments: Mapping[str, Any],
         request_state: Mapping[str, Any],
     ) -> Mapping[str, Any]: ...
-
-
-@dataclass(frozen=True, slots=True)
-class CapabilityAuthorizationTarget:
-    """Server-derived authorization target, distinct from caller-authored Tool arguments."""
-
-    capability: str
-    resource_type: str
-    resource_id: str
-    operation_ref: str
-    owner_id: str
-    job_id: str
-    artifact_id: str
-
-    def authzen_resource(self) -> dict[str, Any]:
-        return {
-            "type": self.resource_type,
-            "id": self.resource_id,
-            "properties": {
-                "identityContract": "ordivon.runtime-artifact-resource-key.v1",
-                "operationRef": self.operation_ref,
-                "ownerId": self.owner_id,
-                "jobId": self.job_id,
-                "artifactId": self.artifact_id,
-            },
-        }
-
-
-class CapabilityAuthorizationTargetError(ValueError):
-    def __init__(self, code: str, message: str, *, capability: str | None = None) -> None:
-        super().__init__(message)
-        self.code = code
-        self.capability = capability
-
-
-AuthorizationTargetResolver = Callable[
-    [str, Mapping[str, Any]], CapabilityAuthorizationTarget | None
-]
-
-_RUNTIME_ARTIFACT_OWNERS = frozenset({"runtime.linux", "runtime.windows"})
-
-
-def _base64url_text(value: str) -> str:
-    return base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
-
-
-def _artifact_resource_id(operation_ref: str, artifact_id: str) -> str:
-    """Collision-free public object id from two already-validated UTF-8 coordinates.
-
-    RFC 4648 base64url segments avoid delimiter ambiguity while preserving useful prefixes:
-    all Runtime artifacts share ``runtime-artifact:v1:`` and all artifacts for one operation
-    share the encoded operationRef segment.
-    """
-
-    return (
-        "runtime-artifact:v1:" + _base64url_text(operation_ref) + "." + _base64url_text(artifact_id)
-    )
-
-
-def _validate_artifact_id(value: object) -> str:
-    if not isinstance(value, str):
-        raise CapabilityAuthorizationTargetError(
-            "CAPABILITY_AUTHZ_TARGET_INVALID",
-            "artifact.read requires a string artifactId before authorization.",
-            capability="artifact.runtime",
-        )
-    encoded = value.encode("utf-8")
-    if (
-        not value.strip()
-        or len(encoded) > 256
-        or "\x00" in value
-        or any(unicodedata.category(ch) == "Cc" for ch in value)
-    ):
-        raise CapabilityAuthorizationTargetError(
-            "CAPABILITY_AUTHZ_TARGET_INVALID",
-            "artifact.read artifactId is outside the Runtime identifier contract.",
-            capability="artifact.runtime",
-        )
-    return value
-
-
-def resolve_authorization_target(
-    tool_name: str, arguments: Mapping[str, Any]
-) -> CapabilityAuthorizationTarget | None:
-    """Resolve the protected natural-owner object from trusted Gateway semantics.
-
-    Tool name alone is insufficient: the operation reference must resolve to a
-    qualified Runtime owner and artifact. Retired external worker references fail
-    closed before reaching Runtime or the authorization provider.
-    """
-
-    if tool_name != "artifact.read":
-        return None
-
-    operation_ref = arguments.get("operationRef")
-    if not isinstance(operation_ref, str) or not operation_ref:
-        raise CapabilityAuthorizationTargetError(
-            "CAPABILITY_AUTHZ_TARGET_INVALID",
-            "artifact.read requires a valid operationRef before authorization.",
-            capability="artifact.runtime",
-        )
-    try:
-        owner_id, native_id = parse_execution_ref(operation_ref)
-    except GatewayError as exc:
-        raise CapabilityAuthorizationTargetError(
-            "CAPABILITY_AUTHZ_TARGET_INVALID",
-            "artifact.read operationRef is not a valid Gateway execution reference.",
-            capability="artifact.runtime",
-        ) from exc
-
-    if owner_id not in _RUNTIME_ARTIFACT_OWNERS:
-        raise CapabilityAuthorizationTargetError(
-            "CAPABILITY_AUTHZ_TARGET_UNQUALIFIED",
-            "No Security authorization target is qualified for this artifact owner.",
-        )
-
-    artifact_id = _validate_artifact_id(arguments.get("artifactId"))
-    return CapabilityAuthorizationTarget(
-        capability="artifact.runtime",
-        resource_type="ordivon.runtime.artifact",
-        resource_id=_artifact_resource_id(operation_ref, artifact_id),
-        operation_ref=operation_ref,
-        owner_id=owner_id,
-        job_id=native_id,
-        artifact_id=artifact_id,
-    )
-
-
-def _request_state(ctx: ServerRequestContext[Any, Any]) -> dict[str, Any]:
-    request = ctx.request
-    scope = getattr(request, "scope", None)
-    if not isinstance(scope, dict):
-        return {}
-    state = scope.get("state")
-    return state if isinstance(state, dict) else {}
 
 
 def _error(code: str, message: str, *, capability: str | None) -> CallToolResult:
@@ -196,7 +65,7 @@ class GatewayCapabilityAuthorizationMiddleware:
 
     def __init__(
         self,
-        authorizer: CapabilityAuthorizer,
+        authorizer: CapabilityAuthorizer | None,
         *,
         target_resolver: AuthorizationTargetResolver = resolve_authorization_target,
     ) -> None:
@@ -225,18 +94,20 @@ class GatewayCapabilityAuthorizationMiddleware:
 
         capability = target.capability
         resource = target.authzen_resource()
-        state = _request_state(ctx)
-        principal = state.get("ordivon_access_principal")
-        issuer = state.get("ordivon_access_issuer")
-        if (
-            not isinstance(principal, str)
-            or not principal
-            or not isinstance(issuer, str)
-            or not issuer
-        ):
+        state = request_state(ctx)
+        identity = identity_from_state(state)
+        if identity is None:
             return _error(
                 "CAPABILITY_AUTHZ_INGRESS_IDENTITY_MISSING",
                 "Protected capability requires verified ingress identity.",
+                capability=capability,
+            )
+
+        principal, issuer = identity.principal, identity.issuer
+        if self._authorizer is None:
+            return _error(
+                "CAPABILITY_AUTHZ_UNAVAILABLE",
+                "Protected capability requires an installed Security authorizer.",
                 capability=capability,
             )
 
@@ -265,7 +136,8 @@ class GatewayCapabilityAuthorizationMiddleware:
             )
         schema_version = decision.get("schemaVersion")
         if (
-            schema_version not in {2, 3}
+            type(schema_version) is not int
+            or schema_version not in {2, 3}
             or decision.get("kind") != "ordivon.security.gateway-capability-authz"
             or decision.get("principalId") != principal
             or decision.get("issuer") != issuer
@@ -303,6 +175,7 @@ class GatewayCapabilityAuthorizationMiddleware:
                     or evidence.get("standard") != "openid-authzen-authorization-api-1.0"
                     or evidence.get("decision") is not True
                     or not isinstance(evidence.get("requestId"), str)
+                    or not evidence["requestId"].strip()
                     or evidence.get("responseRequestId") != evidence.get("requestId")
                     or decision.get("authorityProjection") is not None
                     or decision.get("effectAdmission") is not None

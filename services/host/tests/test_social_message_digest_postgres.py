@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
 from ordivon_host_v2.collaboration_inputs import MessageInput, MessageKind, SpaceInput, TopicInput
 from ordivon_host_v2.social_store import SocialStore
@@ -104,36 +105,98 @@ def test_postgresql_search_cjk_substring_reaches_original_message() -> None:
     assert [row["messageRef"] for row in found["messages"]] == [inserted.message_ref]
     assert social.search_messages("完全无关词", topic_ref=original.topic_ref)["messages"] == []
 
-def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None:
-    # Actual PostgreSQL consumer proves the LIKE escaping preserves strpos.
+def test_postgresql_unicode_gram_exact_search_preserves_reserved_chars() -> None:
+    # Actual PostgreSQL consumer checks candidate containment and exact matching.
     assert DSN
-    from ordivon_host_v2.social_message_queries import _cjk_literal_like_pattern
     social, original = _new_message()
     phrases = ("终端消费", "终端%消费", "终端_消费", "终端#消费",
                "终端\\消费", "中文测试")
     for i, phrase in enumerate(phrases):
         copied = original.model_copy(update={
-            "message_ref": f"{original.message_ref}:trgm:{i}",
-            "client_request_id": f"post:{original.message_ref}:trgm:{i}",
+            "message_ref": f"{original.message_ref}:unicode:{i}",
+            "client_request_id": f"post:{original.message_ref}:unicode:{i}",
             "body": f"证据边界:{phrase}:有真实消费者",
         })
         assert social.post_message(copied)["admission"] == "committed"
     with psycopg.connect(DSN) as conn:
         index = conn.execute(
             "SELECT i.indisvalid FROM pg_index i "
-            "WHERE i.indexrelid=to_regclass('message_body_trgm_idx')"
+            "WHERE i.indexrelid=to_regclass('message_unicode_ngrams3_idx')"
         ).fetchone()
         assert index == (True,)
+        assert conn.execute(
+            "SELECT host_unicode_ngrams3(%s)", ("终端消费",)
+        ).fetchone()[0] == ["端消费", "终端消"]
         for i, phrase in enumerate(phrases):
-            pattern = _cjk_literal_like_pattern(phrase)
             actual = conn.execute(
-                "SELECT strpos(%s::text,%s)>0, %s::text LIKE %s ESCAPE '#'",
+                "SELECT strpos(%s::text,%s)>0, "
+                "host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text)",
                 (f"证据边界:{phrase}:有真实消费者",phrase,
-                 f"证据边界:{phrase}:有真实消费者",pattern),
+                 f"证据边界:{phrase}:有真实消费者",phrase),
             ).fetchone()
             assert actual == (True,True)
             found = social.search_messages(phrase, topic_ref=original.topic_ref)
             assert [row["messageRef"] for row in found["messages"]] == [
-                f"{original.message_ref}:trgm:{i}"
+                f"{original.message_ref}:unicode:{i}"
             ]
     assert social.search_messages("中文测试_%#不匹配", topic_ref=original.topic_ref)["messages"] == []
+
+
+def test_postgresql_unicode_gram_candidate_false_positive_requires_exact_check() -> None:
+    """3-gram containment is necessary but not sufficient for exact substring."""
+    assert DSN
+    body = "证据终端消X端消费非连续"
+    phrase = "终端消费"
+    with psycopg.connect(DSN) as conn:
+        candidate, exact, refined = conn.execute(
+            "SELECT host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text), "
+            "strpos(%s::text,%s::text)>0, "
+            "(host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text) "
+            "AND strpos(%s::text,%s::text)>0)",
+            (body, phrase, body, phrase, body, phrase, body, phrase),
+        ).fetchone()
+    assert (candidate, exact, refined) == (True, False, False)
+
+
+def test_message_post_receipt_references_canonical_row_without_duplicating_body() -> None:
+    assert DSN is not None
+    social, message = _new_message()
+    with psycopg.connect(DSN) as conn:
+        receipt = conn.execute(
+            "SELECT response FROM command_receipts WHERE client_request_id=%s",
+            (message.client_request_id,),
+        ).fetchone()[0]
+    assert receipt == {
+        "schemaVersion": 1,
+        "kind": "ordivon.host-message-post-receipt-ref",
+        "messageRef": message.message_ref,
+        "messageDigest": social.get_message(message.message_ref)["messageDigest"],
+    }
+    replay = social.post_message(message)
+    assert replay["admission"] == "existing"
+    assert replay["body"] == message.body
+    assert replay["kind"] == "ordivon.host-message"
+
+
+def test_message_post_legacy_full_response_receipt_is_still_replayable() -> None:
+    assert DSN is not None
+    social, message = _new_message()
+    original = social.post_message(message)
+    with psycopg.connect(DSN) as conn:
+        conn.execute(
+            "UPDATE command_receipts SET response=%s WHERE client_request_id=%s",
+            (Jsonb(original), message.client_request_id),
+        )
+    assert social.post_message(message) == original
+
+
+def test_compact_message_post_receipt_rejects_drifted_canonical_row() -> None:
+    assert DSN is not None
+    social, message = _new_message()
+    with psycopg.connect(DSN) as conn:
+        conn.execute(
+            "UPDATE messages SET body=%s WHERE message_ref=%s",
+            ("tampered content", message.message_ref),
+        )
+    with pytest.raises(RuntimeError, match="message content digest"):
+        social.post_message(message)

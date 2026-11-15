@@ -33,7 +33,7 @@ from .model import (
 from .provider_lifecycle import ProviderCallLifecycle, ProviderLifecycleError
 from .run_contract import AgentLoopResult, RunBudget, RunStopCode
 from .run_recovery import (
-    _advance_turn_evidence,
+    _decide_turn_progress,
     _observation_evidence_signature,
     _recover_tool_batch,
     _retained_tool_calls,
@@ -959,26 +959,24 @@ class OrdivonAgentLoop:
         ) -> AgentLoopResult | None:
             nonlocal external_observation_gate_reason, no_progress_turns, observation_only_turns
             nonlocal evidence_signatures, search_evidence
-            assessment = _advance_turn_evidence(
+            decision = _decide_turn_progress(
                 calls,
                 tuple(turn_observations),
                 self.observation_only_tool_names,
                 evidence_signatures,
                 search_evidence,
+                prior_observation_only_turns=observation_only_turns,
+                prior_no_progress_turns=no_progress_turns,
+                budget=self.budget,
             )
+            assessment = decision.evidence
             evidence_signatures = assessment.evidence_signatures
             search_evidence = assessment.search_evidence
             observation_only = assessment.observation_only
             action_progress = assessment.action_progress
             new_evidence = assessment.new_evidence
-            observation_only_turns = (
-                observation_only_turns + 1 if observation_only else 0
-            )
-            no_progress_turns = (
-                0
-                if action_progress or new_evidence
-                else no_progress_turns + 1
-            )
+            observation_only_turns = decision.observation_only_turns
+            no_progress_turns = decision.no_progress_turns
             recorder.record(
                 "run_progress_evaluated",
                 {
@@ -990,10 +988,7 @@ class OrdivonAgentLoop:
                     "noProgressTurns": no_progress_turns,
                 },
             )
-            gate_reason = self.budget.observation_gate_reason(
-                no_progress_turns=no_progress_turns,
-                observation_only_turns=observation_only_turns,
-            )
+            gate_reason = decision.gate_reason
             if gate_reason is not None:
                 newly_closed = external_observation_gate_reason is None
                 external_observation_gate_reason = gate_reason

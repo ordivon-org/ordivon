@@ -5,6 +5,30 @@ interoperability without taking custody of Research, Finance, Runtime, Artifact,
 Preservation or external-provider truth. This is a source package, **not** a
 second warehouse, scheduler, data registry, or universal data-product ontology.
 
+## Outcome-first business acceptance: one live consumer, no new platform
+
+Data supplies verified information requested by an Outcome Owner, not
+standalone success indicators. A human specifies the business goal; Research
+decides the science and Data selects/verifies the source without asking humans
+to run its CLIs. The current task-local Research implementation is
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1/deliver_research.py.
+It consumes the existing source-owned Episode manifest through the Data
+projector, binding and file inspector, then independently checks the Research
+analysis receipt before issuing a concrete HOLD promotion decision. A missing,
+tampered or contradictory required source returns DATA_NOT_DELIVERED.
+Research requires the `episode-corpus-manifest-json` output port at contract
+version `1.0.0` separately from the product version; adding another
+same-name port at `2.0.0` does not veto the selected input. This is qualified
+by current producer metadata, exact source bytes and Research's own receipt,
+not by the separate inspection CLI.
+
+This is only one demonstrably closed consumer information handoff; it does
+not verify the unmaterialized Parquet port, create a universal autonomous Data
+service, or establish Agent learning success. Research owns the decision;
+Runtime, Artifact, Preservation and source Owners retain their natural
+authorities. Consumer acceptance and counterexamples are exercised by
+the normal data:verify CI task, which invokes the task-local Research tests.
+
 ## Existing production and evidence
 
 - Research owns scientific dataset definitions, estimands and study outputs.
@@ -60,15 +84,96 @@ file URI rather than silently rewriting the frozen evidence. The source owner
 should emit canonical URIs in a **new** versioned DCAT projection, preserving
 the historical R2 acceptance.
 
+## Current producer-owned ODPS discovery (no new registry)
+
+`python3 packages/data/scripts/project_owned_products.py` projects the
+currently **Git-tracked** producer-owned ODPS v1.1 records into a deterministic
+DCAT 3 JSON-LD view. The two presently tracked documents belong to Capital
+and Experimental Episode; the frozen three-product September federation still
+contains Research's external product. The generated view is **not** a claim
+that all three current products are accessible, installed, or publishable.
+
+```sh
+python3 packages/data/scripts/project_owned_products.py > /tmp/owner-products.jsonld
+python3 packages/data/scripts/inspect_federation.py --catalog /tmp/owner-products.jsonld --verify-local
+# To project a specific external owner's qualified ODPS 1.1 document:
+python3 packages/data/scripts/project_owned_products.py --product /approved/path/odps.json
+```
+
+The projection consumes upstream ODPS product IDs, versions, output ports and
+declared ODRL policy IDs without rewriting the owners' files. Output-port IDs
+and versions are **optional** under ODPS 1.1; a port version may differ from
+its containing product version. Missing port IDs never acquire invented
+stable IDs. A generated Distribution has no physical `dcat:accessURL` or
+file digest without an explicit owner binding, so the verifier returns
+`UNKNOWN`, not false `VERIFIED`. Producer source bytes are SHA-256 bound
+into the content-derived catalog identity. No central catalog daemon, new
+database or persisted product state is added.
+
+## Optional qualified owner-file binding
+
+The default projection does NOT infer physical availability. For an actual local
+file, use explicit producer ODPS `customProperties` as the authority for the
+relative source path and SHA-256. The operator selects the exact product, port,
+property names and owner root; the adapter hashes the opened regular file and
+rejects any mismatch or escape from the explicit root. Only then does it emit
+a local file URI and W3C DCAT 3 `spdx:checksum`, retaining `dct:identifier`
+for the producer's port identity. Legacy `sha256:` identifiers remain
+readable for the historical frozen catalog. That local URI is **not portable** to other
+workspaces or an implicit redistribution permission.
+
+```sh
+repo="$(git rev-parse --show-toplevel)"
+python3 packages/data/scripts/project_owned_products.py \
+  --bind-local d14d7457-c9aa-59e0-8bf5-7783cea39c1c \
+    public-shadow-json sourceRelativePath sourceSha256 "$repo/domains/capital" \
+  --bind-local 4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b \
+    episode-corpus-manifest-json corpusManifestRelativePath corpusManifestSha256 "$repo" \
+  > /tmp/ordivon-qualified-products.jsonld
+
+python3 packages/data/scripts/inspect_federation.py \
+  --catalog /tmp/ordivon-qualified-products.jsonld --verify-local
+```
+
+For this source cut, the producer-owned Finance JSON and Episode manifest are
+both Git-tracked with matching SHA-256 declarations and can be VERIFIED.
+The rebuildable Episode Parquet file is **not** present in Git, so remains
+UNKNOWN. The strict `--require-verified` gate appropriately refuses to
+declare the *whole* catalog publishable with that unbound port.
+
+For a consumer that reads **only one** verified product output, use a
+version-bound port-specific gate; the full catalog still reports
+`NOT_ESTABLISHED` when another port is unbound:
+
+```sh
+python3 packages/data/scripts/inspect_federation.py \
+  --catalog /tmp/ordivon-qualified-products.jsonld \
+  --verify-local \
+  --require-port 4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b 1.0.0 \
+    urn:uuid:4664e208-2cdc-5d4f-a83d-e70e187b046a
+```
+
+`selectedPortIntegrityGate=PASS` means the exact selected product,
+version and distribution passed the current scoped digest check; it is
+**not** full product publication or proof about other output ports, rights,
+freshness or scientific quality. Unknown/wrong-version port selections
+exit 3; a mismatch on the *selected* port exits 2. An unrelated
+FALSIFIED port remains visible in the full inspection report but does not
+veto a consumer's exact selected-port gate. Whole-catalog admission and
+ungated inspection still exit 2 when any distribution is FALSIFIED.
+
+The optional binding is a current observation: consumers must read back the file against
+its declared digest before using it, since mutable pathnames can change.
+Never persist this ephemeral local URI as the canonical cross-host identity.
+
 ## Verification and user instructions
 
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).
 - [Human workflow](docs/HUMAN.md)
 - [Agent workflow](docs/AGENT.md)
-- [Directory audit and decisions](docs/AUDIT_2026-11-07.md)
 - [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
 - [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
-- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean + CrossHair/Z3)
+- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.
 
 **Data product standard version law:** ODPS 1.1 is consumed by current historical
 products; ODPS 4.2 (released 2026-10-26) has a different document root and

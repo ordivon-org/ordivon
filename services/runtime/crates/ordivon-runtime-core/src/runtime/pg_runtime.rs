@@ -12,6 +12,7 @@ use serde_json::json;
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -22,25 +23,175 @@ pub struct PgRuntimeConfig {
     pub dsn: String,
     pub schema: String,
     pub source_sha256: String,
+    /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
+    pub harness_issuer_schema: Option<String>,
     pub executor: UniversalExecutorConfig,
+    /// Existing physical carrier guards shared with Runtime::workspace.open.
+    pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
+}
+
+/// Per-process progress cursors for bounded background reconciliation scans.
+/// They are hints, never durable execution authority: after a restart the scan
+/// restarts at the beginning, and ordinary Job state stays in PostgreSQL.
+#[derive(Clone, Default)]
+struct ReconciliationCursor {
+    key: Option<(i64, String)>,
+    upper_fence: Option<(i64, String)>,
+    generation: u64,
+}
+
+#[derive(Default)]
+struct ReconciliationCursors {
+    issued: ReconciliationCursor,
+    cancelled: ReconciliationCursor,
 }
 
 #[derive(Clone)]
 pub struct PgRuntime {
     config: PgRuntimeConfig,
+    reconciliation_cursors: Arc<Mutex<ReconciliationCursors>>,
+}
+
+/// Northbound delivery describes availability of an execution result, not
+/// whether PostgreSQL committed a terminal control record. A native-stop-only
+/// LOST result is mechanically converged but has no Runner result or proof of
+/// a domain effect. Keep job.list and job.observe on the same projection law.
+fn pg_delivery_disposition(
+    resolution: Option<&str>,
+    runner_result_available: bool,
+) -> &'static str {
+    match resolution {
+        None => "in_progress",
+        Some("lost") => "unknown",
+        Some("orphaned") => "reconciliation_required",
+        Some("succeeded" | "failed" | "timed_out" | "cancelled") if runner_result_available => {
+            "committed"
+        }
+        Some(_) => "reconciliation_required",
+    }
+}
+
+#[cfg(test)]
+mod pg_delivery_semantics_tests {
+    use super::pg_delivery_disposition;
+
+    #[test]
+    fn control_commit_is_not_runner_result_delivery() {
+        for (resolution, available, expected) in [
+            (None, false, "in_progress"),
+            (None, true, "in_progress"),
+            (Some("succeeded"), true, "committed"),
+            (Some("failed"), true, "committed"),
+            (Some("timed_out"), true, "committed"),
+            (Some("cancelled"), true, "committed"),
+            (Some("cancelled"), false, "reconciliation_required"),
+            (Some("succeeded"), false, "reconciliation_required"),
+            (Some("lost"), false, "unknown"),
+            (Some("lost"), true, "unknown"),
+            (Some("orphaned"), false, "reconciliation_required"),
+            (Some("orphaned"), true, "reconciliation_required"),
+            (Some("alien"), true, "reconciliation_required"),
+            (Some("alien"), false, "reconciliation_required"),
+        ] {
+            assert_eq!(pg_delivery_disposition(resolution, available), expected);
+        }
+    }
 }
 
 fn error(message: impl Into<String>) -> RuntimeError {
     RuntimeError::new(RuntimeErrorCode::RegistryUnavailable, message, None, false)
 }
+// A PostgreSQL serialization/deadlock abort has a definite failed transaction,
+// not a permanently unavailable Registry. Distinguish it at the shared
+// PgAdmissionError boundary. Never replay an already admitted Job: MCP retains
+// its committed operationId and the reconcile_first retry contract.
+fn transient_pg_transaction_abort(code: Option<&postgres::error::SqlState>) -> bool {
+    code.is_some_and(|code| {
+        code == &postgres::error::SqlState::T_R_SERIALIZATION_FAILURE
+            || code == &postgres::error::SqlState::T_R_DEADLOCK_DETECTED
+    })
+}
+
 fn pg(e: PgAdmissionError) -> RuntimeError {
-    let code = match e {
-        PgAdmissionError::IdempotencyConflict => RuntimeErrorCode::IdempotencyConflict,
-        PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
-        PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
-        _ => RuntimeErrorCode::RegistryUnavailable,
+    let issuer_not_current = matches!(&e, PgAdmissionError::IssuerNotCurrent);
+    let aborted = matches!(
+        &e,
+        PgAdmissionError::Database(err) if transient_pg_transaction_abort(err.code())
+    );
+    let code = if aborted {
+        RuntimeErrorCode::RegistryBusy
+    } else {
+        match &e {
+            PgAdmissionError::IdempotencyConflict => RuntimeErrorCode::IdempotencyConflict,
+            PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
+            PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
+            PgAdmissionError::WorkspaceStale => RuntimeErrorCode::WorkspaceStateMismatch,
+            PgAdmissionError::IssuerNotCurrent => RuntimeErrorCode::AuthorizationDenied,
+            _ => RuntimeErrorCode::RegistryUnavailable,
+        }
     };
-    RuntimeError::new(code, format!("PostgreSQL Runtime: {e:?}"), None, false)
+    let mut error = RuntimeError::new(
+        code,
+        format!("PostgreSQL Runtime: {e:?}"),
+        issuer_not_current.then_some("execution.foreignReferences"),
+        aborted,
+    );
+    if aborted {
+        error.retry_after_ms = Some(250);
+    }
+    error
+}
+
+#[cfg(test)]
+mod pg_transaction_error_contract_tests {
+    use super::*;
+
+    #[test]
+    fn only_true_postgres_transaction_aborts_are_transient() {
+        use postgres::error::SqlState;
+        for code in [
+            &SqlState::T_R_SERIALIZATION_FAILURE,
+            &SqlState::T_R_DEADLOCK_DETECTED,
+        ] {
+            assert!(transient_pg_transaction_abort(Some(code)));
+        }
+        assert!(!transient_pg_transaction_abort(Some(
+            &SqlState::UNIQUE_VIOLATION
+        )));
+        assert!(!transient_pg_transaction_abort(Some(
+            &SqlState::UNDEFINED_TABLE
+        )));
+        assert!(!transient_pg_transaction_abort(None));
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_abort_is_registry_busy_not_permanent_unavailable() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit disposable PostgreSQL connection required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (state, busy) in [
+            ("40001", true),  // actual server serialization abort
+            ("40P01", true),  // actual server deadlock abort
+            ("23505", false), // unrelated integrity violation
+        ] {
+            let actual = db
+                .batch_execute(&format!(
+                    "DO $$ BEGIN RAISE EXCEPTION SQLSTATE '{state}'; END $$;"
+                ))
+                .unwrap_err();
+            let mapped = pg(PgAdmissionError::Database(actual));
+            if busy {
+                assert_eq!(mapped.code, RuntimeErrorCode::RegistryBusy);
+                assert!(mapped.retryable);
+                assert_eq!(mapped.retry_after_ms, Some(250));
+            } else {
+                assert_eq!(mapped.code, RuntimeErrorCode::RegistryUnavailable);
+                assert!(!mapped.retryable);
+                assert_eq!(mapped.retry_after_ms, None);
+            }
+        }
+    }
 }
 fn io(e: impl std::fmt::Display) -> RuntimeError {
     error(e.to_string())
@@ -75,7 +226,11 @@ fn decode<T: serde::de::DeserializeOwned>(s: &str) -> RuntimeResult<T> {
 
 mod artifact;
 mod job;
+mod native_stop;
 mod node_query;
+mod reconciliation;
+mod release;
+mod scheduling;
 mod workspace;
 
 impl PgRuntime {
@@ -83,6 +238,7 @@ impl PgRuntime {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
+        super::engine::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
         {
@@ -91,7 +247,10 @@ impl PgRuntime {
                 "sourceSha256",
             ));
         }
-        let runtime = Self { config };
+        let runtime = Self {
+            config,
+            reconciliation_cursors: Arc::new(Mutex::new(ReconciliationCursors::default())),
+        };
         // Fail closed before advertising a live MCP endpoint. Schema existence is
         // NOT permission to admit new Jobs. Qualification is an external,
         // operator-owned PG record and must match the exact configured source.
@@ -214,332 +373,6 @@ impl PgRuntime {
                 false,
             )),
         }
-    }
-    fn attempt(
-        &self,
-        db: &mut PgAdmissionStore,
-        job: &str,
-    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
-        let r=db.client.query_one("SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest FROM attempts a JOIN jobs j ON j.job_id=a.job_id WHERE j.job_id=$1 ORDER BY a.attempt_number DESC LIMIT 1", &[&job]).map_err(io)?;
-        let a:AttemptRecord=serde_json::from_value(json!({"attemptId":r.get::<_,String>(0),"jobId":job,"attemptNumber":1,"state":r.get::<_,String>(1),"terminationIntent":r.get::<_,String>(2),"launchTokenDigest":r.get::<_,String>(3),"bundlePath":r.get::<_,String>(4),"unitName":r.get::<_,String>(5),"createdAtMs":r.get::<_,i64>(6),"rowVersion":r.get::<_,i64>(7),"bundleDigest":r.get::<_,Option<String>>(8)})).map_err(io)?;
-        let expected = self
-            .config
-            .executor
-            .store_root
-            .join("pg-attempts")
-            .join(&a.attempt_id);
-        if Path::new(&a.bundle_path) != expected {
-            return Err(error("Attempt bundle outside PG store"));
-        }
-        Ok((a, decode(&r.get::<_, String>(9))?, r.get(10)))
-    }
-    fn reconcile(&self, db: &mut PgAdmissionStore, job: &str) -> RuntimeResult<()> {
-        let (mut a, plan, operation) = self.attempt(db, job)?;
-        let provider: serde_json::Value = decode(
-            &db.client
-                .query_one(
-                    "SELECT workspace_snapshot_json FROM jobs WHERE job_id=$1",
-                    &[&job],
-                )
-                .map_err(io)?
-                .get::<_, String>(0),
-        )?;
-        if a.state == AttemptState::Accepted
-            && a.termination_intent == AttemptTerminationIntent::Natural
-        {
-            let runner = self
-                .config
-                .executor
-                .runner_path
-                .as_deref()
-                .ok_or_else(|| error("runner missing"))?;
-            super::platform::validate_runner(runner)?;
-            if provider["executionProvider"]["executableDigest"].as_str()
-                != Some(&universal::sha256_file(runner).map_err(io)?)
-            {
-                return Err(error("native runner changed after admission"));
-            }
-            // Revalidate the *committed* bytes before dispatch; Runner owns
-            // continuous path-drift witnessing after it starts.
-            super::host_dependency::verify_committed_bindings(&plan.host_dependencies)?;
-            let token = universal::sha256_bytes(
-                format!("runtime-launch-v1\0{}\0{operation}", a.attempt_id).as_bytes(),
-            );
-            if universal::sha256_bytes(token.as_bytes()) != a.launch_token_digest {
-                return Err(error("launch token mismatch"));
-            }
-            let req = RunnerRequest {
-                schema_version: 1,
-                job_id: Some(job.into()),
-                attempt_id: Some(a.attempt_id.clone()),
-                launch_token: Some(token),
-                unit_name: Some(a.unit_name.clone()),
-                payload: None,
-                inherit_host_environment: true,
-                task_id: a.attempt_id.clone(),
-                workspace_id: plan.workspace_id.clone(),
-                workspace_path: plan.workspace_path.clone(),
-                workspace_source_digest: plan.workspace_source_digest.clone(),
-                build_target_backing: None,
-                input_presentation_root: None,
-                input_commitments: vec![],
-                host_dependencies: plan
-                    .host_dependencies
-                    .iter()
-                    .map(|binding| universal::RunnerHostDependencyCommitment {
-                        path: binding.path.clone(),
-                        digest: binding.expected_digest.clone(),
-                    })
-                    .collect(),
-                executable: plan.executable.clone(),
-                executable_digest: plan.executable_digest.clone(),
-                args: plan.args.clone(),
-                cwd: plan.cwd.clone(),
-                env: plan.env.clone(),
-                steps: plan
-                    .steps
-                    .iter()
-                    .map(|step| universal::RunnerExecutionStep {
-                        id: step.id.clone(),
-                        executable: step.executable.clone(),
-                        executable_digest: step.executable_digest.clone(),
-                        args: step.args.clone(),
-                        cwd: step.cwd.clone(),
-                        env: step.env.clone(),
-                        timeout_ms: step.timeout_ms,
-                        continue_on_error: step.continue_on_error,
-                    })
-                    .collect(),
-                timeout_ms: plan.timeout_ms,
-                stdout_limit_bytes: plan.stdout_limit_bytes,
-                stderr_limit_bytes: plan.stderr_limit_bytes,
-            };
-            fs::create_dir_all(&a.bundle_path).map_err(io)?;
-            let request_path = Path::new(&a.bundle_path).join("request.json");
-            let bytes = serde_json::to_vec(&req).map_err(io)?;
-            // Existing published bytes must match; never replace a committed bundle.
-            if request_path.exists() {
-                if fs::read(&request_path).map_err(io)? != bytes {
-                    return Err(error("bundle bytes differ"));
-                }
-            } else {
-                universal::write_bytes_atomic(&request_path, &bytes).map_err(io)?;
-            }
-            let digest = universal::sha256_bytes(&bytes);
-            if a.bundle_digest.is_none() {
-                a.row_version = db
-                    .commit_bundle_ready_pg(&PgBundleReady {
-                        attempt_id: a.attempt_id.clone(),
-                        expected_row_version: a.row_version as i64,
-                        bundle_digest: digest.clone(),
-                        observed_at_ms: now()?,
-                        expected_source_sha256: self.config.source_sha256.clone(),
-                    })
-                    .map_err(pg)? as u64;
-            } else if a.bundle_digest.as_deref() != Some(&digest) {
-                return Err(error("bundle digest mismatch"));
-            }
-            // This commit is intent only. Never reissue a physical launch after this boundary.
-            db.mark_dispatch_issued_pg(&PgDispatchIssued {
-                attempt_id: a.attempt_id.clone(),
-                expected_row_version: a.row_version as i64,
-                expected_bundle_digest: digest,
-                observed_at_ms: now()?,
-                expected_source_sha256: self.config.source_sha256.clone(),
-            })
-            .map_err(pg)?;
-            let output = super::platform::systemd_run(&super::platform::SystemdRunSpec {
-                unit_name: &a.unit_name,
-                runner: self
-                    .config
-                    .executor
-                    .runner_path
-                    .as_deref()
-                    .ok_or_else(|| error("runner missing"))?,
-                bundle_path: Path::new(&a.bundle_path),
-                workspace_path: Path::new(&plan.workspace_path),
-                workspace_git_common_dir: None,
-                input_set_path: None,
-                credential_source_root: None,
-                credential_names: &[],
-                runtime_ceiling_ms: plan
-                    .timeout_ms
-                    .checked_add(5000)
-                    .ok_or_else(|| error("timeout overflow"))?,
-                budget: &plan.budget,
-                execution_profile: plan.execution_profile,
-                environment: &plan.env,
-            })?;
-            if !output.status.success() {
-                return Err(RuntimeError::new(
-                    RuntimeErrorCode::DispatchOutcomeUnknown,
-                    format!(
-                        "native launch not confirmed for Job {job}: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    ),
-                    Some("jobId"),
-                    false,
-                )
-                .with_operation_id(job.to_string()));
-            }
-            a = self.attempt(db, job)?.0;
-        }
-        let path = Path::new(&a.bundle_path);
-        if !a.state.is_terminal() && path.join("result.json").exists() {
-            // Reuse native identity, stdout/stderr digest and result validators.
-            let start: RunnerStartEvidence =
-                serde_json::from_slice(&fs::read(path.join("runner-start.json")).map_err(io)?)
-                    .map_err(io)?;
-            if start.job_id != job
-                || start.attempt_id != a.attempt_id
-                || start.launch_token_digest != a.launch_token_digest
-                || start.unit_name != a.unit_name
-                || start.invocation_id.is_empty()
-            {
-                return Err(error("runner start identity mismatch"));
-            }
-            let properties = super::platform::systemctl_show(&a.unit_name)?;
-            if super::platform::unit_is_active(&properties)
-                || super::platform::unit_has_pending_job(&properties)
-            {
-                return Ok(());
-            }
-            if super::platform::nonempty_property(&properties, "InvocationID")
-                .is_some_and(|v| v != start.invocation_id)
-                || super::platform::cgroup_has_processes(&start.control_group)?
-            {
-                return Err(error("runner process ownership has not converged"));
-            }
-            if start.runner_executable_digest.as_deref()
-                != provider["executionProvider"]["executableDigest"].as_str()
-            {
-                return Err(error("runner evidence provider mismatch"));
-            }
-            let mut terminal = super::evidence::prepare_runner_terminal_from_bundle(&a)?;
-            if let Some(artifact) = super::evidence::validate_workspace_source_observation_artifact(
-                &a,
-                plan.workspace_source_digest.as_deref(),
-                true,
-                super::evidence::SourceObservationRequirement::for_terminal(
-                    terminal.state,
-                    &terminal.reason_code,
-                ),
-            )? {
-                terminal.artifacts.push(artifact);
-            }
-            let input = PgTerminalNoArtifacts {
-                attempt_id: a.attempt_id.clone(),
-                expected_row_version: a.row_version as i64,
-                terminal_state: terminal.state.as_db().into(),
-                result_digest: terminal.result_digest,
-                reason_code: terminal.reason_code,
-                exit_code: terminal.exit_code,
-                finished_at_ms: terminal.finished_at_ms as i64,
-                expected_source_sha256: self.config.source_sha256.clone(),
-            };
-            let artifacts = terminal
-                .artifacts
-                .into_iter()
-                .map(|v| PgArtifactRegistration {
-                    artifact_id: v.artifact_id,
-                    kind: v.kind,
-                    relative_path: v.relative_path,
-                    digest: v.digest,
-                    media_type: v.media_type,
-                    byte_length: v.byte_length as i64,
-                    truncated: v.truncated,
-                    created_at_ms: input.finished_at_ms,
-                })
-                .collect::<Vec<_>>();
-            db.commit_terminal_with_artifacts(&input, &artifacts)
-                .map_err(pg)?;
-        }
-        Ok(())
-    }
-    fn project(
-        &self,
-        db: &mut PgAdmissionStore,
-        request: &JobObserveRequest,
-    ) -> RuntimeResult<JobObservation> {
-        let snapshot = match db
-            .observe_job_readonly(&request.job_id, &self.config.source_sha256)
-            .map_err(pg)?
-        {
-            PgJobReadback::Observed(s) => s,
-            _ => return Err(error("inconclusive PG lifecycle")),
-        };
-        let (a, p, operation) = self.attempt(db, &request.job_id)?;
-        let terminal = snapshot.resolution.is_some();
-        let rows=db.client.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(io)?;
-        let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":a.attempt_id,"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
-        let exit: Option<i32> = db
-            .client
-            .query_one(
-                "SELECT exit_code FROM attempts WHERE attempt_id=$1",
-                &[&a.attempt_id],
-            )
-            .map_err(io)?
-            .get(0);
-        let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":if terminal {"committed"} else {"in_progress"},"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":!terminal && a.state==AttemptState::Starting,"semanticCompletionEvaluated":false,"resultAvailable":terminal,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
-        for (kind, limit, offset) in [
-            ("stdout", request.stdout_tail_bytes, request.stdout_offset),
-            ("stderr", request.stderr_tail_bytes, request.stderr_offset),
-        ] {
-            // Lost/orphaned or other no-Artifact terminal outcomes have no
-            // committed stream bytes. Do not fail observation merely because
-            // a log is absent, and never project unregistered terminal bytes.
-            if terminal && !rows.iter().any(|row| row.get::<_, String>(1) == kind) {
-                continue;
-            }
-            let path = Path::new(&a.bundle_path).join(format!("{kind}.log"));
-            if path.exists() {
-                let bytes = {
-                    use std::io::Read;
-                    let file = fs::File::open(path).map_err(io)?;
-                    let mut bytes = vec![];
-                    file.take(self.config.executor.max_output_bytes + 1)
-                        .read_to_end(&mut bytes)
-                        .map_err(io)?;
-                    if bytes.len() as u64 > self.config.executor.max_output_bytes {
-                        return Err(error("output exceeds retained ceiling"));
-                    }
-                    bytes
-                };
-                let begin = offset
-                    .unwrap_or((bytes.len() as u64).saturating_sub(limit))
-                    .min(bytes.len() as u64) as usize;
-                let end = (begin as u64 + limit).min(bytes.len() as u64) as usize;
-                if terminal {
-                    // Terminal stdout/stderr are registered evidence, not a
-                    // mutable preview. Reuse the same PostgreSQL digest/size
-                    // commitment enforced by artifact.read, on the very bytes
-                    // returned to the Agent.
-                    let expected = rows
-                        .iter()
-                        .find(|row| row.get::<_, String>(1) == kind)
-                        .ok_or_else(|| error("terminal output Artifact registration missing"))?;
-                    if expected.get::<_, String>(5) != format!("{kind}.log")
-                        || expected.get::<_, i64>(3) != bytes.len() as i64
-                        || expected.get::<_, String>(2) != universal::sha256_bytes(&bytes)
-                    {
-                        return Err(RuntimeError::new(
-                            RuntimeErrorCode::ArtifactIdentityConflict,
-                            "terminal output bytes disagree with PostgreSQL Artifact evidence",
-                            Some("artifact"),
-                            false,
-                        ));
-                    }
-                }
-                value[format!("{kind}Tail")] = json!(String::from_utf8_lossy(&bytes[begin..end]));
-                value[format!("{kind}Offset")] = json!(begin);
-                value[format!("{kind}NextOffset")] = json!(end);
-                value[format!("{kind}AvailableBytes")] = json!(bytes.len());
-                value[format!("{kind}Eof")] = json!(end == bytes.len());
-            } else if terminal {
-                return Err(error("terminal output Artifact file missing"));
-            }
-        }
-        serde_json::from_value(value).map_err(io)
     }
 }
 

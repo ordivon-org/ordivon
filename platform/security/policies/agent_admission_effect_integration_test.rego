@@ -52,6 +52,7 @@ test_allowed_agent_projection_is_accepted_by_existing_effect_admission if {
 
 	projection := agent_decision.authorityProjection
 	effect_input := {
+		"schemaVersion": 2,
 		"actorIds": [projection.actorId],
 		"authorities": [{
 			"authorityId": projection.authorityId,
@@ -66,6 +67,9 @@ test_allowed_agent_projection_is_accepted_by_existing_effect_admission if {
 	effect_decision := data.ordivon.security.v2.effect_admission.decision with input as effect_input
 	effect_decision.admitted
 	effect_decision.reason == "admitted"
+	effect_decision.inputContractVersion == 2
+	effect_decision.authorityDigestBound == true
+	effect_decision.authorityDigest == projection.authorityDigest
 	effect_decision.requestId == base_input.effect.effectId
 	effect_decision.requestDigest == base_input.effect.effectDigest
 }

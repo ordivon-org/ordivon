@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ActorRefNotFound, ConflictError, WorkNotFound
 from .postgres_bounds import POSTGRES_BIGINT_MAX
+from .postgres_connections import HostPostgresConnections
 from .work_inputs import (
     ActorRefInput,
     WorkCreateInput,
@@ -31,20 +31,17 @@ def _next_work_revision(expected_revision: int) -> int:
     return expected_revision + 1
 
 
-class WorkStore(WorkRelationCommands, WorkReadQueries):
+class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
     """Greenfield Social Work Fabric Work Graph authority.
 
     This store owns durable Host semantic work continuity only. It deliberately does not
     inspect Runtime, Git, domain truth, social priority, assignment, or EffectAuthority.
     """
 
-    def __init__(self, dsn: str) -> None:
-        self.dsn = dsn
-
     def declare_actor(self, value: ActorRefInput, *, client_request_id: str) -> dict[str, Any]:
         request = {"operation": "actor.declare", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(conn, client_request_id, "actor.declare", request_digest)
             if replay is not None:
                 return replay
@@ -87,7 +84,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries):
             "initialSnapshot": payload,
         }
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(conn, client_request_id, "work.create", request_digest)
             if replay is not None:
                 return replay
@@ -166,7 +163,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries):
             "state": state.value,
         }
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
                 conn, client_request_id, "work.snapshot.commit", request_digest
             )

@@ -15,6 +15,41 @@ from urllib.parse import unquote, urlsplit
 from .verification import digest_verdict
 
 
+def _declared_sha256(distribution: dict[str, Any]) -> Any:
+    """Read DCAT 3 SPDX checksum; retain legacy sha256 dct:identifier support.
+
+    In W3C DCAT 3 dct:identifier identifies the Distribution, rather than
+    declaring its content digest. Historical Ordivon frozen catalogs placed
+    sha256:... there; those remain readable without rewriting old evidence.
+    """
+    legacy = distribution.get("dct:identifier")
+    checksum = distribution.get("spdx:checksum")
+    if checksum is None:
+        return legacy
+    if not isinstance(checksum, dict):
+        raise TypeError("spdx:checksum must be an object")
+    if checksum.get("@type") != "spdx:Checksum":
+        raise ValueError("spdx:checksum must identify an SPDX Checksum")
+    algorithm = checksum.get("spdx:algorithm")
+    if algorithm != {"@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"}:
+        # A different or unbound algorithm is not false evidence of SHA-256.
+        return None
+    typed_value = checksum.get("spdx:checksumValue")
+    if (
+        not isinstance(typed_value, dict)
+        or typed_value.get("@type") != "xsd:hexBinary"
+        or not isinstance(typed_value.get("@value"), str)
+    ):
+        raise ValueError("invalid SPDX hexBinary checksum value")
+    candidate = typed_value["@value"]
+    if len(candidate) != 64 or any(ch not in "0123456789abcdef" for ch in candidate):
+        raise ValueError("invalid SHA-256 checksum value")
+    declared = "sha256:" + candidate
+    if isinstance(legacy, str) and legacy.startswith("sha256:") and legacy != declared:
+        raise ValueError("conflicting legacy and SPDX digest bindings")
+    return declared
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -30,7 +65,7 @@ def inspect_distribution(
         "id": distribution.get("@id"),
         "title": distribution.get("dct:title"),
         "format": distribution.get("dct:format"),
-        "declaredDigest": distribution.get("dct:identifier"),
+        "declaredDigest": _declared_sha256(distribution),
         "uri": None,
         "verification": "NOT_CHECKED" if not verify_local else "UNKNOWN",
         "reason": "metadata_only" if not verify_local else "unbound",

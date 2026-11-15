@@ -28,7 +28,11 @@ def sha256_bytes(data: bytes) -> str:
 
 
 def sha256_file(path: Path) -> str:
-    return sha256_bytes(path.read_bytes())
+    digest = sha256()
+    with path.open("rb") as source:
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 def decode_bundle_statement(bundle_path: Path) -> tuple[dict[str, Any], bytes]:

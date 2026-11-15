@@ -103,6 +103,8 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
                 "execution.resolve",
                 "execution.get",
                 "execution.cancel",
+                "runtime.release.apply",
+                "runtime.release.get",
                 "artifact.read",
                 "host.status",
                 "actor.declare",
@@ -122,6 +124,7 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
                 "topic.list",
                 "topic.resume",
                 "topic.state.set",
+                "message.get",
                 "message.post",
                 "message.search",
                 "message.relation.add",
@@ -144,6 +147,8 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
             assert "string" in str(context_schema)
             assert "object" in str(context_schema)
             assert "enum" not in submit["properties"]["capability"]
+            assert "stdoutLimitBytes" in submit["properties"]
+            assert "stderrLimitBytes" in submit["properties"]
 
     asyncio.run(scenario())
 
@@ -192,6 +197,8 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
             cwd_relative=".",
             context="contained_local",
             timeout_ms=30_000,
+            stdout_limit_bytes=262_144,
+            stderr_limit_bytes=131_072,
             authority_references=[
                 {
                     "namespace": "ordivon.harness",
@@ -214,6 +221,8 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
     execution = payload["execution"]
     assert execution["executionTarget"] == "local_linux"
     assert execution["executionProfile"] == "contained_local"
+    assert execution["stdoutLimitBytes"] == 262_144
+    assert execution["stderrLimitBytes"] == 131_072
     assert "windowsAuthority" not in execution
     assert execution["foreignReferences"] == [
         {
@@ -223,6 +232,27 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
             "digest": "sha256:fence",
         }
     ]
+
+
+@pytest.mark.parametrize("field", ("stdout_limit_bytes", "stderr_limit_bytes"))
+@pytest.mark.parametrize("invalid", (0, -1, True, 1.0, "1048576", 2**65))
+def test_execution_output_limit_invalid_must_fail_before_owner_call(
+    field: str, invalid: object
+) -> None:
+    """Caller-selected physical byte ceilings are not approximate values."""
+    caller = FakeOwnerCaller()
+    with pytest.raises(GatewayError, match="positive JSON integer"):
+        asyncio.run(
+            GatewayService(caller).execution_submit(
+                capability="execution.linux",
+                request_id="req:source-bound",
+                workspace_id="ws-source-bound",
+                executable="/usr/bin/printf",
+                args=["hello"],
+                **{field: invalid},
+            )
+        )
+    assert caller.calls == []
 
 
 def test_execution_submit_windows_context_routes_legacy_or_structured_without_interpretation() -> (
@@ -459,6 +489,53 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
         "job.cancel",
         {"schemaVersion": 1, "jobId": "job-9"},
     )
+
+
+@pytest.mark.parametrize("owner_id", ["runtime.linux", "runtime.windows", "runtime.harness"])
+def test_execution_get_preserves_native_reconciliation_required_to_agent(owner_id: str) -> None:
+    """Gateway must carry an uncertain Runtime delivery without normalizing it.
+
+    Downstream Composition maps this exact wire token to reconciliation of the
+    original Job, not dispatch/retry. This owner-native test checks the actual
+    Gateway method, owner routing and emitted Pydantic observation fields.
+    """
+    caller = FakeOwnerCaller()
+    caller.responses[(owner_id, "job.observe")] = {
+        "jobId": "job-reconcile-native",
+        "status": "starting",
+        "attemptState": "starting",
+        "executionTerminal": False,
+        "deliveryDisposition": "reconciliation_required",
+        "executionDisposition": None,
+        "recoveryRequired": True,
+        "artifactsAvailable": False,
+        "resultAvailable": False,
+    }
+    ref = f"ordivon-exec:v1:{owner_id}:job-reconcile-native"
+    observed = asyncio.run(GatewayService(caller).execution_get(ref))
+    record = observed.model_dump(mode="json")
+    assert record["kind"] == "ordivon.gateway-execution-observation"
+    assert record["schema_version"] == 1
+    assert record["owner_id"] == owner_id
+    assert record["native_id"] == "job-reconcile-native"
+    assert record["operation_ref"] == ref
+    assert record["delivery_disposition"] == "reconciliation_required"
+    assert record["recovery_required"] is True
+    assert record["terminal"] is False
+    assert caller.calls == [
+        (
+            owner_id,
+            "job.observe",
+            {
+                "schemaVersion": 1,
+                "jobId": "job-reconcile-native",
+                "waitMs": 0,
+                "waitUntil": "change_or_terminal",
+                "stdoutTailBytes": 0,
+                "stderrTailBytes": 0,
+            },
+        )
+    ]
 
 
 def test_execution_get_reobserves_when_terminal_artifacts_lag_summary() -> None:
@@ -767,3 +844,217 @@ def test_gateway_rejects_mismatched_route_and_capability_identity() -> None:
     route = default_routes()["execution.linux"]
     with pytest.raises(GatewayError, match="route identity"):
         GatewayService(FakeOwnerCaller(), routes={"execution.windows": route})
+
+
+# B04: An Agent must never confuse an opaque/malformed Owner artifact response
+# with "EOF reached" or a qualified chunk from its requested range.
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    [
+        ("eof", "false"),
+        ("eof", 1),
+        ("offset", "0"),
+        ("offset", True),
+        ("offset", 1),
+        ("nextOffset", "3"),
+        ("nextOffset", False),
+        ("nextOffset", -1),
+        ("nextOffset", 40),
+        ("content", {"text": "abc"}),
+    ],
+)
+def test_artifact_chunk_rejects_malformed_owner_evidence(field: str, bad_value: object) -> None:
+    caller = FakeOwnerCaller()
+    payload = {
+        "jobId": "job-typed",
+        "artifactId": "artifact-typed",
+        "offset": 0,
+        "nextOffset": 3,
+        "eof": True,
+        "digest": "sha256:abc",
+        "content": "abc",
+    }
+    payload[field] = bad_value
+    caller.responses[("runtime.linux", "artifact.read")] = payload
+    with pytest.raises(GatewayError, match="artifact|eof"):
+        asyncio.run(
+            GatewayService(caller).artifact_read(
+                "ordivon-exec:v1:runtime.linux:job-typed",
+                "artifact-typed",
+                offset=0,
+                max_bytes=10,
+            )
+        )
+
+
+def test_execution_observation_rejects_boolean_exit_code() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "job.observe")] = {
+        "jobId": "job-exit-typed",
+        "status": "succeeded",
+        "executionTerminal": False,
+        "exitCode": True,
+        "artifactsAvailable": False,
+        "artifacts": [],
+    }
+    with pytest.raises(GatewayError, match="exitCode"):
+        asyncio.run(
+            GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-exit-typed")
+        )
+
+
+@pytest.mark.parametrize("invalid_count", [True, "1", -1, None])
+def test_unqualified_artifact_summary_never_reports_complete(
+    invalid_count: object,
+) -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "job.observe")] = {
+        "jobId": "job-summary",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": [{"artifactId": "artifact-one"}],
+    }
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-summary"},
+        "artifacts": {"count": invalid_count},
+    }
+    result = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-summary")
+    )
+    assert result.artifact_ids == ["artifact-one"]
+    assert result.artifact_projection_complete is None
+    assert result.artifact_count == 1
+
+
+def test_message_get_forwards_exact_owner_read_without_second_message_store() -> None:
+    caller = FakeOwnerCaller()
+    digest = "sha256:" + "a" * 64
+    expected = {
+        "schemaVersion": 1,
+        "kind": "ordivon.host-message-read",
+        "messageRef": "message:demo:one",
+        "messageDigest": digest,
+        "body": "Original Host message",
+    }
+    caller.responses[("host", "message.get")] = expected
+
+    async def scenario() -> None:
+        async with Client(build_server(GatewayService(caller)), raise_exceptions=True) as client:
+            actual = await client.call_tool(
+                "message.get",
+                {"messageRef": "message:demo:one", "expectedDigest": digest},
+            )
+            assert actual.structured_content == expected
+
+    asyncio.run(scenario())
+    assert caller.calls == [
+        (
+            "host",
+            "message.get",
+            {"messageRef": "message:demo:one", "expectedDigest": digest},
+        )
+    ]
+
+
+@pytest.mark.parametrize("refresh_unique", [False, True])
+def test_duplicate_runtime_artifact_ids_cannot_fake_complete_projection(
+    refresh_unique: bool,
+) -> None:
+    """Equal row count cannot imply complete Artifact identity coverage."""
+    caller = FakeOwnerCaller()
+
+    def observation(ids: list[str]) -> dict[str, Any]:
+        return {
+            "jobId": "job-duplicate",
+            "status": "succeeded",
+            "executionTerminal": True,
+            "artifactsAvailable": True,
+            "artifacts": [{"artifactId": value} for value in ids],
+        }
+
+    duplicate = ["a.stdout", "a.stdout"]
+    refreshed = ["a.stdout", "a.result"] if refresh_unique else duplicate
+    caller.responses[("runtime.windows", "job.observe")] = [
+        observation(duplicate),
+        observation(refreshed),
+    ]
+    caller.responses[("runtime.windows", "job.get")] = {
+        "job": {"jobId": "job-duplicate"},
+        "artifacts": {"count": 2},
+    }
+    observed = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.windows:job-duplicate")
+    )
+    assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]
+    assert observed.artifact_count == 2  # Count remains natural Runtime-owned.
+    assert observed.artifact_ids == refreshed
+    assert observed.artifact_projection_complete is refresh_unique
+
+
+def test_blank_artifact_id_is_not_an_agent_visible_complete_identity() -> None:
+    caller = FakeOwnerCaller()
+    invalid = {
+        "jobId": "job-blank",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": [{"artifactId": "a.stdout"}, {"artifactId": ""}],
+    }
+    caller.responses[("runtime.linux", "job.observe")] = [dict(invalid), dict(invalid)]
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-blank"},
+        "artifacts": {"count": 2},
+    }
+    observed = asyncio.run(
+        GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-blank")
+    )
+    assert observed.artifact_count == 2
+    assert observed.artifact_ids == ["a.stdout"]
+    assert observed.artifact_projection_complete is False
+    assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]
+
+
+@pytest.mark.parametrize(
+    "invalid_inventory",
+    [
+        "not-a-list",
+        None,
+        {"artifactId": "a.stdout"},
+        [{"artifactId": ""}],
+        [{"artifactId": "  "}],
+        [{"kind": "stdout"}],
+        [None],
+    ],
+)
+@pytest.mark.parametrize("refresh_valid", [False, True])
+def test_malformed_runtime_artifact_inventory_cannot_prove_empty_projection(
+    invalid_inventory: Any, refresh_valid: bool
+) -> None:
+    """A filtered malformed list must not masquerade as qualified zero Artifacts."""
+    caller = FakeOwnerCaller()
+    original = {
+        "jobId": "job-malformed-artifacts",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": invalid_inventory,
+    }
+    refreshed = {
+        **original,
+        "artifacts": [] if refresh_valid else invalid_inventory,
+    }
+    caller.responses[("runtime.linux", "job.observe")] = [original, refreshed]
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-malformed-artifacts"},
+        "artifacts": {"count": 0},
+    }
+    result = asyncio.run(
+        GatewayService(caller).execution_get(
+            "ordivon-exec:v1:runtime.linux:job-malformed-artifacts"
+        )
+    )
+    assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]
+    assert result.artifact_ids == []
+    assert result.artifact_count == 0
+    assert result.artifact_projection_complete is refresh_valid

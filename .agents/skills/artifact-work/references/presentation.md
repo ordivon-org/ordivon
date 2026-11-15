@@ -39,7 +39,10 @@ Optional, only when the task requires it: Temporal durability; OCI/ORAS packagin
 - Artifact release readiness != external publication/provider acceptance.
 - Do not create a universal presentation/document AST.
 
-## Source evidence
+## Source evidence and currentness
 
-- `/root/projects/ordivon/capabilities/artifact/docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md`
-- `/root/projects/ordivon/capabilities/artifact/docs/artifact-build-delivery-e2e-v1-r1-status.md`
+- [Current Artifact Owner guidance](../../../../capabilities/artifact/README.md) — current contracts and native verification; recheck installed target tools before execution.
+- [Source authority acceptance](../../../../capabilities/artifact/docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md) — historical source-cut evidence.
+- [34:10 Golden R2 acceptance](../../../../capabilities/artifact/artifact-delivery/golden/pdu-sdu-34x10-r1/pdu-sdu-34x10-acceptance-r2.json) — exact `ACCEPTED_IN_PROFILE` PPTX/PDF tuple, including PowerPoint target and delivery readback. This does not certify older 16:9 R1 artifacts, business assertions, accessibility or cross-workspace determinism.
+
+The former R1 delivery-status note remains in Git history at `4fd5814c51a7`; it is not a current blocker list. Verify current input, Profile and target evidence rather than inheriting the historical status.

@@ -19,3 +19,12 @@
    specification/model/implementation/consumer map; run `mise run
    data:formal:verify`, then `mise run data:verify` and the affected native
    consumer. Never claim CrossHair bounded search is a universal code proof.
+9. Selected-port admission is deliberately narrower than global catalog
+   integrity. Use exact product/version/port identities; an unrelated
+   FALSIFIED or UNKNOWN port remains visible but does not veto a VERIFIED
+   selected port. Selected FALSIFIED fails, selected UNKNOWN is unestablished.
+   Run the real CLI counterexample in test_odps_projection.py and the
+   independent Research consumer before claiming this behavior.
+10. For ongoing R1 source changes, follow planning/CONSUMER_BOUND_DELIVERY_SPEC_R1.md.
+    This is a temporary consumer-backed implementation spec, not an extra
+    authority, universal workflow, or permanent onboarding dependency.

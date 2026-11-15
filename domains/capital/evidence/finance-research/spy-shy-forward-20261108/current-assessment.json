@@ -1,0 +1,10 @@
+{
+  "capitalAllocationAuthorized": false,
+  "externalWriteAllowed": false,
+  "kind": "ordivon.capital.research.evidence-assessment",
+  "reasons": [
+    "NO_HOLDOUT_EVIDENCE"
+  ],
+  "schemaVersion": 1,
+  "standing": "UNKNOWN"
+}

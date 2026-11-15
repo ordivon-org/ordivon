@@ -42,7 +42,9 @@ cannot be reused after it is consumed. The lab's PrincipalStore only projects
 `verified=true` together with the exact pending `effectId` **and**
 `effectDigest`; the OPA policy requires both for high-risk Step-up. This is a
 content-binding refinement of the existing verification, not a new WebAuthn
-implementation.
+implementation. The Lab's OPA Effect consumer now always uses input schemaVersion
+2 and validates the returned Authority Digest binding, rather than accepting
+the legacy unversioned Range check.
 
 Grant issuance and Grant revocation are also WebAuthn challenges. Revocation
 prevents future effects but does not erase or invalidate an already committed

@@ -325,6 +325,22 @@ existing pinned `ttconv` smoke. Model proof does not establish general
 Python correctness, FFmpeg soundness, accessibility or publication.
 The existing R2.1 RenderQC contract and exact Git SourceCut remain the
 single capability/proof authority: no new engine or registry.
+## 2026-11-08: exact Blob identity from one observed byte stream
+
+`assets.hash_file` used to hash one file handle, then read size via
+a later pathname `stat`, which could refer to a different moment of
+a changing file. It now counts bytes through the hashed stream and
+compares descriptor identity/size/change-time metadata before and
+after read; mismatch fails instead of producing mixed-time BlobInfo.
+The existing OutputIdentity V05 LEGO remains the only semantic contract.
+
+Evidence: direct streamed-blob identity and metadata-drift rejection;
+real `live-relay-001` MP4 archived into a disposable CAS and recovered
+with the same SHA-256, size and FFprobe stream observations. All four
+existing Production manifest digests also matched. This is native
+filesystem evidence, not a kernel formal proof of arbitrary concurrent
+writes. The producer cannot make a hostile writer or an untrusted
+filesystem give a snapshot merely through `fstat`.
 
 ## Mature external baseline
 

@@ -300,3 +300,17 @@ External mature references:
 - **Human**：先识别每个节点的真实可观察信息、每月 1r 入金时间、当期应付负债和提供方融资合同，再选择是否求解。若市场发布时点、概率或券商合同未得到外部验证，不能把语义合同通过误写成真实可投资策略。
 - **Agent**：用 `from ordivon_capital.portfolio.information_tree import validate_information_tree` 作无优化器副作用的合同准入，再沿用 `ordivon_capital.portfolio.multistage_policy.solve_multistage`。分别记录合同验证、数值可行性及数值最优性上界；不要将 SciPy 成功、`ValidatedInformationTree` 或任何形式化抽象误报为真实价格/券商资格证据。
 - **成熟机制**：标准 PyPA `src/` 分层和 NumPy/SciPy 优化接口；参见 https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/ 和 https://docs.scipy.org/doc/scipy/reference/optimize.minimize-slsqp.html 。不新建平台、Solver、数据库或 Skill。
+
+## Markets → Research PIT：历史交易日不等于实际可用时间
+
+Finance Research 的 `market_capture_to_pit_vintages` 不新增行情数据库或第二套解析器；它直接调用 Markets 已有的 `historical_close_snapshot.admit_adjusted_close_csv`，验证输入 CSV 原始字节的 SHA-256、列身份、交易日期与价格结构。
+
+**关键时间合同：** 调用者分别提供最后交易日 `last_session`、该交易日真实收盘瞬间 `last_session_close_at`，以及本次文件实际取得瞬间 `captured_at`。两个时间必须有时区；最后收盘瞬间的美东日期应等于 `last_session`，且 `captured_at >= last_session_close_at`。调用者仍必须独立证明交易日历和真实捕获时间；函数不能从今日下载的历史价格推断过去何时发布。
+
+研究对象 `PriceVintage.published_at` 使用本次 `captured_at` 作为**保守的已知时间界限**，不声称它等于供应商最初发布时间。即使 CSV 包含五年前的收盘价，本次下载的整个版本也不能用于 `t < captured_at` 的历史决策。需要严格历史 PIT 回测时，必须取得当时确实归档的不同版本以及对应时间来源证据。
+
+**Human：** 使用先前已有的 Markets CSV 入库合同，提供原始字节、准确 SHA-256、证券列表、首末日与两个独立时间，再用现有 Research `empirical_joint_forecast` 和 `prequential_energy_evaluation` 进行只读研究。调后收盘价不是可执行成交报价，也不能直接等同于真实含分红税费的总回报。
+
+**Agent：** 保存原始文件摘要和 `SECONDARY_VENDOR_NOT_ATTESTED` 状态；数据来源认证、企业行动、分红口径、券商规则和现实经济回报仍是独立的 UNKNOWN。与 `research/prospective_validation` 联合使用时，先按捕获时间决定可见信息，再检查冻结实验之后的日历候选，不得用历史回填日期代替真实捕获。
+
+参考：ALFRED 对 historical vintages 的区分，OpenBB 的 unadjusted / splits_only / splits_and_dividends 价格口径，以及 NYSE 官方交易时段与提前收市日历。

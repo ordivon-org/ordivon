@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-import psycopg
-from psycopg.rows import dict_row
-
 from .canonical_json import canonical_digest
 from .collaboration_inputs import (
     TopicInput,
@@ -22,7 +19,7 @@ class SocialTopicCommands:
     def create_topic(self, value: TopicInput, *, client_request_id: str) -> dict[str, Any]:
         request = {"operation": "topic.create", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(conn, client_request_id, "topic.create", request_digest)
             if replay is not None:
                 return replay
@@ -94,7 +91,7 @@ class SocialTopicCommands:
             "expectedHighSequence": expected_high_sequence,
         }
         digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(conn, client_request_id, "topic.state.set", digest)
             if replay is not None:
                 return replay
@@ -154,7 +151,7 @@ class SocialTopicCommands:
             "cursor": cursor,
         }
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
                 conn, client_request_id, "topic.cursor.ack", request_digest
             )

@@ -1,0 +1,39 @@
+name: Game rule implementation proof
+
+on:
+  pull_request:
+    paths:
+      - "domains/game/examples/orbit-collector/src/rules.rs"
+      - "domains/game/formal/**"
+      - "domains/game/mise.toml"
+      - ".github/workflows/game-rules-proof.yml"
+  push:
+    branches: [main]
+    paths:
+      - "domains/game/examples/orbit-collector/src/rules.rs"
+      - "domains/game/formal/**"
+      - "domains/game/mise.toml"
+      - ".github/workflows/game-rules-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  orbit-kani:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install upstream Kani 0.68.0 with Cargo
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install --locked --version 0.68.0 kani-verifier
+          cargo kani setup
+
+      - name: Verify actual Game rule source using upstream Kani
+        shell: bash
+        working-directory: domains/game
+        run: |
+          set -euo pipefail
+          kani examples/orbit-collector/src/rules.rs

@@ -4,6 +4,7 @@ import json
 from functools import wraps
 
 from mcp.server.mcpserver.exceptions import ToolError
+from psycopg_pool import PoolTimeout, TooManyRequests
 from pydantic import ValidationError
 
 from .errors import ActorRefNotFound, ConflictError, WorkNotFound
@@ -57,6 +58,21 @@ def _domain_error_payload(exc: Exception) -> dict[str, object]:
             detail=str(exc),
             suggestedAction="reread-current-state-and-reconcile",
         )
+    elif isinstance(exc, PoolTimeout):
+        # Psycopg raises before a pooled connection is checked out. An Agent
+        # can retry after bounded backoff without claiming an effect committed
+        # or leaking the internal pool/DSN details.
+        payload.update(
+            code="DEADLINE_EXCEEDED",
+            retryable=True,
+            suggestedAction="retry-with-bounded-backoff",
+        )
+    elif isinstance(exc, TooManyRequests):
+        payload.update(
+            code="RESOURCE_EXHAUSTED",
+            retryable=True,
+            suggestedAction="retry-with-bounded-backoff",
+        )
     elif isinstance(exc, ValidationError):
         payload.update(
             code="INVALID_ARGUMENT",
@@ -88,6 +104,8 @@ def _project_domain_errors(func):
             TopicNotFound,
             MessageNotFound,
             ConflictError,
+            PoolTimeout,
+            TooManyRequests,
             ValidationError,
             ValueError,
         ) as exc:

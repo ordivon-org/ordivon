@@ -9,9 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import psycopg
-from psycopg.rows import dict_row
-
 from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
@@ -37,7 +34,7 @@ class SocialTopicReadQueries:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_space(conn, space_ref)
             rows = conn.execute(
@@ -97,7 +94,7 @@ class SocialTopicReadQueries:
         if type(after_sequence) is not int or after_sequence < 0:
             raise ValueError("after_sequence must be non-negative")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             topic = self._require_topic(conn, topic_ref)
             rows = conn.execute(
@@ -159,7 +156,7 @@ class SocialTopicReadQueries:
             }
 
     def get_topic_cursor(self, *, actor_ref: str, topic_ref: str) -> dict[str, Any]:
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             self._require_topic(conn, topic_ref)

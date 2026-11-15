@@ -1,0 +1,19 @@
+[project]
+name = "ordivon-security-gateway-authzen"
+version = "0.1.0"
+description = "Security-owned AuthZEN 1.0 PDP API with OPA/Rego policy decisions"
+requires-python = "==3.15.1"
+dependencies = ["starlette==1.6.0", "uvicorn==0.53.0"]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "ruff==0.17.2", "httpx2==2.13.0"]
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py315"
+line-length = 100
+[tool.ruff.lint]
+select = ["E4","E7","E9","F","I","UP"]

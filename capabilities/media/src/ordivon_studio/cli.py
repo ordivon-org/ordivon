@@ -161,6 +161,16 @@ def build_parser() -> argparse.ArgumentParser:
             "repeat for multiple bindings"
         ),
     )
+    production_context_parser.add_argument(
+        "--output-file",
+        action="append",
+        default=[],
+        metavar="OUTPUT_ID=PATH",
+        help=(
+            "optionally compare an exact consumer-selected local file with an Output's "
+            "declared blobDigest; repeat for multiple Outputs; read-only, no approval"
+        ),
+    )
     production_context_parser.set_defaults(handler=_command_production_context)
 
     ecology_parser = commands.add_parser(

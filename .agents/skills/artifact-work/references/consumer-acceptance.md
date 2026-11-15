@@ -4,6 +4,12 @@
 
 Artifact verification and consumer acceptance are **different statements**. This guidance applies to common native artifacts such as a game audio clip, still-image asset, FLAC interchange file, and a Parquet dataset. It is not a new verifier or registry and does not transfer a consumer's authority to Artifact.
 
+**Profile authority prerequisite:** the Profile registry fails closed
+on malformed, duplicate, schema-invalid or changed indexed source bytes.
+Canonical v2 interpretation is only refined from production v1 on explicitly
+shared facts, **not** all policy gates. Details and Human/Agent instructions:
+`capabilities/artifact/docs/ARTIFACT_PROFILE_AUTHORITY_REFINEMENT_R1.md`.
+
 ## Human guide
 
 1. **Name an actual consumer and a usable outcome.** For example: WAVE in a game/audio reader, FLAC in a media decoder, PNG in an image-display application, or Parquet in a research/analytics query.
@@ -18,6 +24,20 @@ Artifact verification and consumer acceptance are **different statements**. This
 - Source owner: `capabilities/artifact/`, with exact profile/Capability Binding and native tool identities.
 - Execution owner: the current Runtime/Harness Job mechanism; never replace an in-progress Job with an invented terminal state.
 - Consumer owner: Game, Media, Research, Finance or the real target application. Use its own readback/acceptance mechanism. Merely putting a consumer ID in the Artifact request **does not execute the consumer**.
+- Read `inputIdentity` before promoting native evidence. For self-contained
+  FLAC/WAVE/PNG the verifier reads a digest-bound private snapshot. The canonical
+  Profile is also snapshot-bound. Legacy sidecar-bearing formats still report
+  `ADMISSION_DIGEST_ONLY`; do not infer stronger identity. Temporary native paths
+  such as `verification.artifact.path` do **not** survive a service invocation.
+  Independently hash the actual bytes opened by the target consumer.
+- **Agent:** inspect `nativeIdentityAssessment` separately from
+  `requiredEvidenceAssessment`. Both must be complete before claiming complete
+  Profile evidence. A mismatching native Profile, subject digest, byte count
+  or contract digest is a contradiction; missing legacy fields are
+  `NOT_EVALUATED`, never implicit `PASS`.
+- **Human:** request a native report identifying exactly the submitted object
+  and contract. Native readback proves only the bytes it actually opened;
+  reconcile that identity with Artifact before accepting cross-Owner reuse.
 - Evidence must preserve three independent boundaries:
   1. **Byte identity** — the exact subject and contract that were validated
   2. **Profile claims** — every required native claim that is actually supported and complete

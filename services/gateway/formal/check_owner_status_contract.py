@@ -4,6 +4,8 @@ Specification:
   - Only literal JSON booleans are admissible Owner availability flags.
   - available=True implies configured=True.
   - Malformed/contradictory flags are UNKNOWN, never positive availability.
+  - Source Owner target inventory must be a list with exactly one matching
+    identity; explicitly supplied context inventories must be lists.
   - Gateway does not create physical Owner truth.
 
 This enumerates a finite adversarial input domain. It is not a universal
@@ -104,10 +106,47 @@ async def check() -> dict[str, int]:
 
     assert examined == len(VALUES) ** 2
     assert available == 1
+
+    # Source-refinement witnesses for the extended B03 TLA inventory/context
+    # abstraction. These are actual projection calls, not duplicated truth.
+    qualified: dict[str, Any] = {
+        "target": "windows_native",
+        "configured": True,
+        "available": True,
+        "windowsAuthorities": ["limited"],
+    }
+    inventory_cases: list[tuple[dict[str, Any], bool]] = [
+        ({}, False),  # Missing targets container.
+        ({"targets": None}, False),
+        ({"targets": {"target": qualified}}, False),
+        ({"targets": []}, False),  # No matching route.
+        ({"targets": [qualified, qualified]}, False),  # Ambiguous match.
+        ({"targets": [{**qualified, "windowsAuthorities": None}]}, False),
+        ({"targets": [{**qualified, "windowsContexts": None}]}, False),
+        ({"targets": [{"target": "windows_native", "configured": True, "available": True}]}, True),
+        ({"targets": [{**qualified, "windowsContexts": []}]}, True),
+    ]
+    malformed_inventories = 0
+    for response, should_be_available in inventory_cases:
+        projected = project_execution_capability(
+            route, configured_at_gateway=True, owner_response=response
+        )
+        assert projected.available is should_be_available
+        assert projected.readiness_state == ("ready" if should_be_available else "unknown")
+        assert (projected.observation_error is None) is should_be_available
+        malformed_inventories += int(not should_be_available)
+        service = GatewayService(SyntheticRuntime(response))
+        described = await service.capability_describe("execution.windows")
+        actual = described.capabilities[0]
+        assert actual.available is should_be_available
+        assert actual.readiness_state == projected.readiness_state
+
     return {
         "status_pairs": examined,
         "invalid_or_contradictory": invalid,
         "positively_available": available,
+        "inventory_cases": len(inventory_cases),
+        "invalid_or_ambiguous_inventories": malformed_inventories,
     }
 
 

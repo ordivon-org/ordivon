@@ -52,18 +52,15 @@ impl Plugin for OrbitCollectorPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<GameRun>()
             .add_systems(Startup, setup)
+            // Use Bevy's native fixed-timestep schedule for the authoritative
+            // simulation. A rendered frame may contain zero or multiple
+            // fixed steps; gameplay must not depend on the presentation FPS.
             .add_systems(
-                Update,
-                (
-                    restart,
-                    move_player,
-                    collect_goals,
-                    patrol_hazard,
-                    resolve_hazard,
-                    update_status,
-                )
-                    .chain(),
-            );
+                FixedUpdate,
+                (move_player, collect_goals, patrol_hazard, resolve_hazard).chain(),
+            )
+            // Read input and render HUD once per presentation frame.
+            .add_systems(Update, (restart, update_status).chain());
     }
 }
 
@@ -133,7 +130,7 @@ fn move_player(
     mut players: Query<&mut Transform, With<Player>>,
     run: Res<GameRun>,
 ) {
-    if run.rules.phase != Phase::Playing {
+    if run.rules.phase() != Phase::Playing {
         return;
     }
     let x = (keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyD)) as i32
@@ -155,7 +152,7 @@ fn collect_goals(
     goals: Query<(Entity, &Transform), With<Goal>>,
     mut run: ResMut<GameRun>,
 ) {
-    if run.rules.phase != Phase::Playing {
+    if run.rules.phase() != Phase::Playing {
         return;
     }
     let Ok(player) = players.single() else { return };
@@ -182,7 +179,7 @@ fn resolve_hazard(
     hazards: Query<&Transform, With<Hazard>>,
     mut run: ResMut<GameRun>,
 ) {
-    if run.rules.phase != Phase::Playing
+    if run.rules.phase() != Phase::Playing
         || time.elapsed_secs() - run.last_hit_at < HIT_COOLDOWN_SECS
     {
         return;
@@ -201,26 +198,31 @@ fn update_status(run: Res<GameRun>, mut labels: Query<&mut Text, With<StatusText
     let Ok(mut label) = labels.single_mut() else {
         return;
     };
-    let outcome = match run.rules.phase {
+    let outcome = match run.rules.phase() {
         Phase::Playing => "Collect the golden beacons. Avoid the red drone.",
         Phase::Won => "YOU WON! All beacons collected. Press R to replay.",
         Phase::Lost => "RUN ENDED! Press R to retry.",
     };
     **label = format!(
         "ORBIT COLLECTOR   {}/{}   Lives: {}\n{}\nWASD / arrows: move     R: restart",
-        run.rules.collected, run.rules.target, run.rules.lives, outcome
+        run.rules.collected(),
+        run.rules.target(),
+        run.rules.lives(),
+        outcome
     );
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bevy::time::TimeUpdateStrategy;
 
     #[test]
     fn actual_bevy_plugin_assembles_game_components_and_rules() {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(TimeUpdateStrategy::FixedTimesteps(1))
             .add_plugins(OrbitCollectorPlugin);
         app.update();
 
@@ -240,7 +242,7 @@ mod tests {
         assert_eq!(goal_count, GOALS.len());
         assert_eq!(player_count, 1);
         assert_eq!(hud_count, 1);
-        assert_eq!(world.resource::<GameRun>().rules.phase, Phase::Playing);
+        assert_eq!(world.resource::<GameRun>().rules.phase(), Phase::Playing);
     }
 
     #[test]
@@ -248,6 +250,7 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(TimeUpdateStrategy::FixedTimesteps(1))
             .add_plugins(OrbitCollectorPlugin);
         app.update();
 
@@ -257,9 +260,15 @@ mod tests {
             let mut player = query.single_mut(world).expect("player spawned by plugin");
             player.translation = GOALS[0].extend(2.0);
         }
+        // One display-only frame cannot secretly advance game rules.
+        app.insert_resource(TimeUpdateStrategy::FixedTimesteps(0));
         app.update();
+        assert_eq!(app.world().resource::<GameRun>().rules.collected(), 0);
 
-        assert_eq!(app.world().resource::<GameRun>().rules.collected, 1);
+        // One actual native Bevy fixed step collects the goal.
+        app.insert_resource(TimeUpdateStrategy::FixedTimesteps(1));
+        app.update();
+        assert_eq!(app.world().resource::<GameRun>().rules.collected(), 1);
         let world = app.world_mut();
         assert_eq!(
             world
@@ -277,10 +286,76 @@ mod tests {
     }
 
     #[test]
+    fn native_ecs_final_goal_and_restart_are_consistent_with_rules_and_hud() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(TimeUpdateStrategy::FixedTimesteps(1))
+            .add_plugins(OrbitCollectorPlugin);
+        app.update();
+
+        // Move all actual Goal entities onto the Player: this is a bounded
+        // ECS consumer exercise, not a second implementation of game rules.
+        {
+            let world = app.world_mut();
+            let mut goals = world.query_filtered::<&mut Transform, With<Goal>>();
+            for mut goal in goals.iter_mut(world) {
+                goal.translation = Vec3::new(0.0, -95.0, 1.0);
+            }
+        }
+        app.update();
+        assert_eq!(app.world().resource::<GameRun>().rules.phase(), Phase::Won);
+        assert_eq!(
+            app.world().resource::<GameRun>().rules.collected(),
+            GOALS.len()
+        );
+        {
+            let world = app.world_mut();
+            assert_eq!(
+                world
+                    .query_filtered::<Entity, With<Goal>>()
+                    .iter(world)
+                    .count(),
+                0
+            );
+            let mut labels = world.query_filtered::<&Text, With<StatusText>>();
+            assert!(labels.single(world).unwrap().0.contains("YOU WON!"));
+        }
+
+        // No remaining goals may be consumed again while the game is terminal.
+        app.update();
+        assert_eq!(app.world().resource::<GameRun>().rules.phase(), Phase::Won);
+        assert_eq!(
+            app.world().resource::<GameRun>().rules.collected(),
+            GOALS.len()
+        );
+
+        // Exercise the same native keyboard resource the real game consumes.
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::KeyR);
+        app.update();
+        let restored = &app.world().resource::<GameRun>().rules;
+        assert_eq!(restored.phase(), Phase::Playing);
+        assert_eq!(restored.collected(), 0);
+        assert_eq!(restored.lives(), INITIAL_LIVES);
+        let world = app.world_mut();
+        assert_eq!(
+            world
+                .query_filtered::<Entity, With<Goal>>()
+                .iter(world)
+                .count(),
+            GOALS.len(),
+        );
+        let mut labels = world.query_filtered::<&Text, With<StatusText>>();
+        assert!(labels.single(world).unwrap().0.contains("0/5"));
+    }
+
+    #[test]
     fn recipe_goal_count_matches_state_goal() {
         let run = GameRun::default();
-        assert_eq!(run.rules.target, GOALS.len());
-        assert_eq!(run.rules.lives, INITIAL_LIVES);
+        assert_eq!(run.rules.target(), GOALS.len());
+        assert_eq!(run.rules.lives(), INITIAL_LIVES);
         assert!(
             GOALS
                 .iter()

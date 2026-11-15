@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+import runpy
+import subprocess
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CODEX = ROOT / "consumers" / "codex"
@@ -20,12 +24,7 @@ def test_codex_policy_admits_only_bounded_provider_https():
     assert (upstream["type"], upstream["server"], upstream["server_port"]) == (
         "http", "10.252.246.2", 19680
     )
-    rules = policy["route"]["rules"]
-    assert rules[0]["port"] == [443]
-    assert rules[0]["network"] == ["tcp"]
-    assert rules[0]["outbound"] == upstream["tag"]
-    assert {"chatgpt.com", "auth.openai.com", "persistent.oaistatic.com"} <= set(rules[0]["domain"])
-    assert rules[-1] == {"action": "reject"}
+    assert policy["route"] == {"rules": [], "final": upstream["tag"]}
 
 
 def test_codex_relay_and_denial_path_wiring():
@@ -35,7 +34,7 @@ def test_codex_relay_and_denial_path_wiring():
     assert "-l 127.0.0.1:19982" in relay
     assert "127.0.0.1:19980" in relay
     assert "NetworkNamespacePath=/run/netns/nv2-browserless-prod" in proxy
-    assert "unknown_rc" in ready
+    assert "example.com/" in ready
 
 
 def test_mobile_tracks_provider_network_identity_and_exit_advertisement():
@@ -44,7 +43,11 @@ def test_mobile_tracks_provider_network_identity_and_exit_advertisement():
     assert 'nsenter -t "$provider_pid" -n' in runner
     assert "--tun=userspace-networking" in runner
     assert "set --advertise-exit-node" in runner
-    assert 'current_provider_pid" != "$provider_pid"' in runner
+    assert '"/proc/$provider_pid/ns/net" -ef "/proc/$child/ns/net"' in runner
+    # Physical namespace identity must not require a Podman inspect every second.
+    while_body = runner.split('while kill -0 "$child" 2>/dev/null; do', 1)[1]
+    assert "provider_pid)" not in while_body
+    assert "podman inspect" not in while_body
     assert "trap cleanup EXIT INT TERM" in runner
 
 
@@ -52,12 +55,89 @@ def test_mobile_ready_requires_admin_approval_and_upstream():
     ready = (MOBILE / "ready.py").read_text()
     for word in (
         "ADVERTISED_PENDING_ADMIN_APPROVAL",
-        "PROVIDER_EGRESS_NOT_READY",
+        "PROVIDER_HEALTH_NOT_READY",
         "NAMESPACE_MISMATCH",
         "network-v2-gluetun-owned-r1",
-        "browserless-provider-carrier-ready",
+        "/gluetun-entrypoint",
+        "healthcheck",
     ):
         assert word in ready
+
+
+def test_mobile_convergence_uses_sourcecut_not_external_health_to_select_restart():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:sourcecut:" in tasks
+    assert "consumer:mobile-tailnet-exit:materialize:" in tasks
+    assert "consumer:mobile-tailnet-exit:converge:" in tasks
+    sourcecut = tasks.split("consumer:mobile-tailnet-exit:sourcecut:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:materialize:", 1
+    )[0]
+    assert "consumer:mobile-tailnet-exit:classify" in sourcecut
+    assert "test \"$verdict\" = MATCH" in sourcecut
+    classifier = tasks.split("consumer:mobile-tailnet-exit:classify:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:sourcecut:", 1
+    )[0]
+    assert "cmp -s" in classifier
+    assert "NeedDaemonReload" in classifier
+    assert not any(x in classifier for x in ("curl ", "dig ", "systemctl start ", "systemctl restart "))
+    install = tasks.split("consumer:mobile-tailnet-exit:materialize:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:converge:", 1
+    )[0]
+    assert "status:" in install
+    assert "consumer:mobile-tailnet-exit:sourcecut" in install
+    converge = tasks.split("consumer:mobile-tailnet-exit:converge:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:ready:", 1
+    )[0]
+    assert "systemctl start network-v2-mobile-tailnet-exit.service" in converge
+    assert "systemctl restart network-v2-mobile-tailnet-exit.service" in converge
+    assert "consumer:mobile-tailnet-exit:sourcecut" in converge
+    assert "case \"$verdict\" in" in converge
+    assert "MATCH)" in converge and "DRIFT)" in converge
+    assert converge.index("systemctl start network-v2-mobile-tailnet-exit.service") < converge.index("systemctl restart network-v2-mobile-tailnet-exit.service")
+    assert "consumer:mobile-tailnet-exit:verify" in converge
+    assert "network-v2-gluetun-owned.service" not in converge
+
+
+def test_mobile_sourcecut_classifies_unknown_separately_from_drift():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:classify:" in tasks
+    classify = tasks.split("consumer:mobile-tailnet-exit:classify:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:sourcecut:", 1
+    )[0]
+    assert "UNKNOWN" in classify and "DRIFT" in classify and "MATCH" in classify
+    assert "cmp -s" in classify and "case" in classify
+    assert "NeedDaemonReload" in classify
+    assert "exit 2" in classify
+    materialize = tasks.split("consumer:mobile-tailnet-exit:materialize:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:converge:", 1
+    )[0]
+    converge = tasks.split("consumer:mobile-tailnet-exit:converge:", 1)[1].split(
+        "consumer:mobile-tailnet-exit:ready:", 1
+    )[0]
+    # A failed classifier must stop before the first file write or restart.
+    assert "consumer:mobile-tailnet-exit:classify" in materialize
+    assert "consumer:mobile-tailnet-exit:classify" in converge
+    assert "DRIFT)" in converge and "MATCH)" in converge and "*)" in converge
+    assert converge.index("consumer:mobile-tailnet-exit:classify") < converge.index(
+        "systemctl restart network-v2-mobile-tailnet-exit.service"
+    )
+
+
+def test_mobile_native_readiness_has_bounded_rejoin_and_no_provider_restart():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:ready:" in tasks
+    assert "/usr/bin/timeout" in tasks
+    assert "/usr/local/libexec/network-v2/mobile-tailnet-exit-ready" in tasks
+    assert "consumer:mobile-tailnet-exit:verify:" in tasks
+    assert "- task: consumer:mobile-tailnet-exit:ready" in tasks
+    assert "systemctl restart network-v2-gluetun-owned" not in tasks
+
+    # No unqualified persistent-Pod netns migration until native pre-WG
+    # fail-closed egress is independently admitted.
+    provider = (ROOT / "providers" / "gluetun" / "quadlet"
+                / "network-v2-gluetun-owned.container").read_text()
+    assert "Pod=" not in provider
+    assert "Network=network-v2-gluetun-owned.network" in provider
 
 
 def test_mobile_systemd_uses_bounded_native_backoff():
@@ -68,3 +148,57 @@ def test_mobile_systemd_uses_bounded_native_backoff():
         "ExecStart=/usr/local/libexec/network-v2/mobile-tailnet-exit-run",
     ):
         assert setting in unit
+
+
+@pytest.mark.parametrize(
+    ("health_exit", "expected_standing"),
+    ((0, "READY"), (1, "PROVIDER_HEALTH_NOT_READY")),
+)
+def test_mobile_readiness_uses_native_provider_health_without_business_origins(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    health_exit: int,
+    expected_standing: str,
+) -> None:
+    """Real ready.py decision, stubbed transport: vendor health is the sole
+    physical provider dependency, not OKX/LLM/registry availability."""
+    main = runpy.run_path(str(MOBILE / "ready.py"))["main"]
+    scope = main.__globals__
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(*args: str, timeout: int = 8) -> subprocess.CompletedProcess[str]:
+        calls.append(args)
+        if args[:2] == ("/usr/bin/systemctl", "is-active"):
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:2] == ("/usr/bin/podman", "inspect"):
+            return subprocess.CompletedProcess(args, 0, "4101", "")
+        if args[:2] == ("/usr/bin/podman", "exec"):
+            assert args == (
+                "/usr/bin/podman", "exec", "network-v2-gluetun-owned-r1",
+                "/gluetun-entrypoint", "healthcheck",
+            )
+            return subprocess.CompletedProcess(args, health_exit, "", "")
+        if args[0] == "/usr/bin/tailscale" and args[2] == "status":
+            return subprocess.CompletedProcess(
+                args, 0, json.dumps({
+                    "BackendState": "Running",
+                    "Self": {"Online": True, "ExitNodeOption": True, "HostName": "test-exit"},
+                }), "",
+            )
+        if args[0] == "/usr/bin/tailscale" and args[2] == "debug":
+            return subprocess.CompletedProcess(
+                args, 0, json.dumps({"AdvertiseRoutes": ["0.0.0.0/0", "::/0"]}), "",
+            )
+        raise AssertionError(f"unexpected external dependency: {args}")
+
+    monkeypatch.setitem(scope, "run", fake_run)
+    monkeypatch.setitem(scope, "read_pid", lambda _: 4102)
+    monkeypatch.setitem(scope, "netns", lambda pid: "net:[100]" if pid in (4101, 4102) else None)
+    result = main()
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["standing"] == expected_standing
+    assert result == (0 if health_exit == 0 else 3)
+    assert calls[-1][:2] == ("/usr/bin/podman", "exec")
+    if health_exit == 0:
+        assert receipt["providerHealth"] == "NATIVE_OK"
+        assert receipt["clientPublicExit"] == "NOT_EVALUATED"

@@ -47,17 +47,36 @@ of its actual requests is a separate consumer acceptance obligation.
 ## Windows process-level observation (DEV-01)
 
 Use the mature upstream psutil library for a read-only snapshot of already
-running Windows desktop and Codex processes in the interactive user context:
+running Windows desktop and Codex processes:
 
     uv run --no-project --with 'psutil>=7,<8' python consumers/codex/windows_process_egress.py
 
+The **default proxy port is now 19781**, matching the Windows Desktop
+system-proxy/shared-egress path. Port 19982 is the *distinct Linux scoped*
+Codex transport and can be explicitly selected with `--proxy-port 19982`.
+The older 19982 default silently missed the two real Session 1 Codex TCP
+connections observed on Windows at 127.0.0.1:19781.
+
 This source-owned one-shot LEGO reports only names/PIDs, HTTP(S) proxy
 environment binding classification, whether a process predates the .codex/.env
-file and aggregated local-proxy versus nonlocal TLS socket counts. It never
-prints proxy values, credentials, remote addresses or command lines. Unreadable
-processes are UNKNOWN, not empty. Its standing is always
-END_TO_END_EGRESS_UNKNOWN: a scoped environment and even an observed proxy TCP
-socket alone cannot certify Codex API traffic or Gluetun upstream forwarding.
+file and aggregated local-proxy versus nonlocal TLS socket counts.
+A local-proxy TCP socket is now reported **even when proxy environment is
+UNSET or UNREADABLE**: Windows Desktop commonly uses a system-proxy
+setting rather than HTTP_PROXY/HTTPS_PROXY. When both proxy and external
+TCP/443 sockets exist, the observation reports both without inventing
+which application request used either one. It also checks all established
+non-proxy TCP sockets: a publicly routable destination on *any TCP port* is
+labelled `DIRECT_PUBLIC_TCP_SOCKET_OBSERVED`, while absence is strictly
+`NOT_OBSERVED_IN_SNAPSHOT` (never `NO_BYPASS`). This is a useful
+**counterexample witness**, not proof of what business request owns a socket.
+It counts UDP *bound endpoints* separately and labels them
+`BOUND_ENDPOINTS_NOT_DATAGRAM_FLOW`; those endpoints do not reveal remote
+UDP/QUIC destinations, whether datagrams were sent, or DNS resolution.
+Unparseable remote socket addresses and unreadable socket APIs remain UNKNOWN.
+No raw remote IPs, proxy values, credentials or command lines are output.
+The overall standing stays `END_TO_END_EGRESS_UNKNOWN` until a
+time-correlated native WFP event, real Codex request and independent Gluetun
+Carrier observation close the same flow.
 Pair the result with the existing NS2 upstream spy and a fresh actual client
 request before any process-level route claim.
 
@@ -78,3 +97,90 @@ itself and has no remaining supported consumer.
 
 Do not recreate a manual CLI wrapper, second physical WireGuard identity,
 or Network-owned Windows system-proxy manager.
+
+## Windows WFP evidence boundary
+
+Microsoft's native `Get-NetTCPConnection -OwningProcess` permits a bounded
+current-process TCP snapshot; `Get-NetUDPEndpoint` only enumerates bound UDP
+endpoints, not datagram destinations. Native WFP Security audit events
+5156 (allowed connection) and 5157 (blocked connection) can provide
+application/PID, protocol and destination details **only if the audit policy
+was already enabled and the required log-read privilege exists**. Do not
+interpret an empty Security log as zero bypass. Packet Monitor (`pktmon`)
+is native and useful for a scoped packet/path experiment, but its packet
+filter does **not** by itself attribute packets to a Codex process.
+
+Read-only owner workflow: check `auditpol /get`, the current process PIDs,
+`Get-NetTCPConnection`, `Get-NetUDPEndpoint`, and when present the bounded
+5156/5157 events. Never silently enable connection-success auditing
+on the active desktop: it can generate very high volume. Do not add global
+outbound firewall rules without a separate disposable Windows experiment,
+a real consumer need and post-change independent application acceptance.
+
+### Native WFP event refinement (bounded, no raw endpoint export)
+
+Use `windows_wfp_evidence.py` to classify a bounded JSON envelope of native
+Windows Security Event 5156/5157 XML emitted by `Get-WinEvent` while the
+appropriate audit policy is explicitly active. The script never changes
+firewall/audit policy and exposes only per-process *counts*; no destination
+addresses, raw XML, credentials or packet payloads are printed. The envelope
+requires `windowStartUtc`, `windowEndUtc`,
+`auditEnabledDuringWindow`, `captureComplete`, and `events` (XML strings).
+These booleans are *input claims*, not independent proof of audit continuity.
+
+For the Windows Security resource values, `%%14592` is **inbound** and
+`%%14593` is **outbound**; do not reverse them. IPv4/IPv6 multicast DNS
+on UDP/5353, including local discovery blocked by WFP, is not public
+unicast egress. A real allowed public-unicast *outbound* event is a
+bounded socket-level counterexample candidate, not automatic proof of
+completed application requests or a policy violation.
+
+The 2026-11-08 native elevated, bounded audit probe generated 5156/5157
+and confirmed audit restoration; 8 observed `chatgpt.exe` UDP/5353
+5157 blocks were inbound IPv4/IPv6 multicast, not outbound VPN leaks.
+Do not keep success auditing enabled after the bounded experiment.
+
+## Windows MSIX token-to-firewall identity refinement (2026-11-08)
+
+See [PACKAGE_TOKEN_EVIDENCE.md](PACKAGE_TOKEN_EVIDENCE.md) and the one-shot
+`windows_package_token_evidence.py` witness. The installed
+`OpenAI.Codex_2p2nqsd0c76g0` package contains full-trust Win32 entrypoints.
+The upstream Windows token APIs were read against **all 18 currently sampled
+ChatGPT.exe, codex.exe and codex-code-mode-host.exe processes**: 18/18 token
+reads succeeded, zero process tokens were AppContainer, and zero tokens exposed
+the native derived package SID in TokenAppContainerSid or TokenGroups.
+
+This is an evidence-backed reason **not** to assume an MSIX package identity
+automatically yields an enforceable package-only firewall policy. Per-package
+NetFirewallRule effectiveness remains UNKNOWN until independently tested with
+a disposable packaged application that actually generates the same network
+traffic. Existing per-program native Windows Filtering Platform experiments
+are distinct from this package identity observation; no production filtering
+was changed by the token witness.
+
+Current cross-owner backlog: [Windows Codex WFP and carrier proof #1824](https://github.com/ordivon-org/ordivon/issues/1824).
+
+## Native Windows direct-versus-proxy counterexample (2026-11-08)
+
+Run the read-only, upstream-curl-based witness from a real Windows interactive
+user (no administrator permission is required):
+
+    python consumers/codex/windows_exit_differential.py
+
+This invokes `curl.exe -q` twice using explicit no-proxy and explicit
+`127.0.0.1:19781` proxy settings. The only external call is a GET to
+`https://ipinfo.io/json`; raw returned public IPs are replaced in-memory
+with per-run secret-key HMAC tags (not reversible deterministic IPv4 hashes). Distinct successful public exits constitute a
+**concrete counterexample to treating Windows system proxy as mandatory VPN
+isolation**, but do not attribute any native Codex/ChatGPT request, establish
+WFP enforcement, or prove no UDP/DoH/IPv6 bypass. If the two results happen
+to match, or a request fails, the evidence remains UNKNOWN rather than PASS.
+
+The 2026-11-08 interactive-user live test observed a successful Windows direct
+request and a successful explicitly proxied request with different public IP
+fingerprints. The proxied fingerprint matched independently observed Gluetun;
+Windows WFP Security Event 5156 also observed controlled curl.exe outbound
+connections to both local port 19781 and remote TCP/443 in a separate bounded
+administrator experiment. This establishes proxy bypass *capability for curl*;
+Codex mandatory routing remains UNKNOWN. Enforcement belongs to Workstation
+and Security; do not add a global outbound DROP or custom driver from Network.

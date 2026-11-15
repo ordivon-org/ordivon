@@ -26,14 +26,28 @@ class BlobInfo:
 def hash_file(path: Path, chunk_size: int = 1024 * 1024) -> BlobInfo:
     if not path.is_file():
         raise FileNotFoundError(path)
+    if type(chunk_size) is not int or chunk_size <= 0:
+        raise ValueError("hash chunk size must be a positive integer")
     digest = hashlib.sha256()
+    bytes_read = 0
     with path.open("rb") as handle:
+        before = os.fstat(handle.fileno())
         while chunk := handle.read(chunk_size):
             digest.update(chunk)
+            bytes_read += len(chunk)
+        after = os.fstat(handle.fileno())
+    # Digest and size must describe the SAME observed stream. A separate
+    # path.stat() after the read can report a newer file length. fstat on the
+    # opened descriptor also detects common concurrent source mutations.
+    identity = lambda stat: (
+        stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
+    )
+    if identity(before) != identity(after) or bytes_read != after.st_size:
+        raise RuntimeError(f"source file changed during hashing: {path}")
     media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return BlobInfo(
         digest=f"sha256:{digest.hexdigest()}",
-        size_bytes=path.stat().st_size,
+        size_bytes=bytes_read,
         media_type=media_type,
     )
 
