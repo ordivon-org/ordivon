@@ -1,12 +1,15 @@
 # Ordivon Monorepo Agent Rules
 
-**Linux PG Runtime Workspace lifecycle:** On workspace.open, read the returned
-retentionNotice. The hourly native cleanup can reclaim a clean, mainline-integrated
-Workspace after at least **4 hours of inactivity since its latest Runtime Job**
-once the last Job succeeds and no active/held consumer remains. Persist results
-to Git or Artifact storage; a Workspace is not durable evidence. This is a
-minimum quiet period, not a guaranteed four-hour reservation. Do not force-close
-dirty/unmerged Workspaces.
+**Linux PG Runtime Workspace lifecycle:** On `workspace.open`, read the returned
+`retentionNotice`. The installed `ordivon-runtime-lifecycle.timer` has an
+**operator-configured cadence**; do not assume an hourly sweep from the
+repository template. Four hours after the latest Runtime Job is a minimum
+quiet period, **not** a promised lease or automatic closure time. Native
+reclamation must independently qualify the installed policy, current Git
+source and dirty state, active/held Jobs, and other observed consumers.
+Publish deliverables to Git or Artifact; a Workspace is not durable storage.
+Do not force-close dirty or unintegrated Workspaces. For operational details,
+use [Runtime's current Agent entry](services/runtime/AGENTS.md).
 
 First session in this repository? Use
 [Agent first verified task](docs/start/agent-first-run.md) and
