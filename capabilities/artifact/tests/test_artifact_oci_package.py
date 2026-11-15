@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -200,6 +201,49 @@ class ArtifactOciPackageTests(unittest.TestCase):
             self.assertFalse(result["packageCreated"])
             self.assertFalse(package.exists())
             self.assertIn("raw evidence file fact failed: structural", result["failures"])
+
+
+    def test_rejected_or_incomplete_verify_stage_cannot_be_packaged(self):
+        """Release packaging must not erase the upstream verification verdict."""
+        if not MODULE.DEFAULT_ORAS.is_file():
+            self.skipTest("ORAS global carrier is unavailable")
+        for defect in ("stage_failed", "required_evidence_incomplete"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                # Only the unrelated .NET OpenXML gate is substituted. Keep
+                # native PPTX construction, real local VSA receipts and ORAS
+                # packaging so this test exercises the package/report seam.
+                with mock.patch(
+                    "artifact_operations.providers.direct_python.verify_openxml_artifact",
+                    return_value={
+                        "status": "PASS",
+                        "validatorOutput": {"validator": {"packageVersion": "fixture"}},
+                        "failures": [],
+                    },
+                ):
+                    profile, pptx, report, _ = self._profile_and_verified_artifact(root)
+                if defect == "stage_failed":
+                    control = MODULE.execute_oci_package_stage(
+                        profile, pptx, report, root / "valid-package",
+                        allow_local_unsigned=True,
+                    )
+                    self.assertEqual(control["status"], "PASS", control)
+                    self.assertTrue(control["packageCreated"], control)
+                    self.assertFalse(control["releaseReady"], control)
+                result_doc = json.loads(report.read_text(encoding="utf-8"))
+                if defect == "stage_failed":
+                    result_doc["status"] = "FAIL"
+                    result_doc["failures"] = ["native consumer rejected the output"]
+                else:
+                    result_doc["profileVerificationComplete"] = False
+                report.write_text(json.dumps(result_doc, sort_keys=True) + "\n", encoding="utf-8")
+                packaged = MODULE.execute_oci_package_stage(
+                    profile, pptx, report, root / "package", allow_local_unsigned=True
+                )
+                self.assertEqual(packaged["status"], "FAIL", packaged)
+                self.assertFalse(packaged["packageCreated"], packaged)
+                self.assertFalse(packaged["releaseReady"], packaged)
+                self.assertFalse((root / "package").exists())
 
 
 if __name__ == "__main__":
