@@ -140,6 +140,33 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "alloyJvm"):
                 formal.qualified_alloy_runtime_resources(str(exe))
 
+    def test_alloy_sat_requires_a_real_instance_not_a_field_name(self) -> None:
+        """A zero-instance UNSAT report must never be called a SAT witness.
+
+        The old root Formal gate accepted any rc=0 text containing
+        '"instances"', including an empty array or a quoted string.
+        """
+        import json
+
+        positive = json.dumps({
+            "instances": [{"state": 0, "values": {"Node$1": {}}}],
+            "duration": 30,
+        })
+        self.assertEqual(formal.qualify_alloy_sat_witness(positive), 1)
+        for output in (
+            "",  # Native Alloy UNSAT output is empty with exit status 0.
+            '{"instances":[]}',
+            '{"instances":null}',
+            '{"instances":{}}',
+            '{"instances":[null]}',
+            '{"instances":[{"state":0}]}',
+            '{"instances":[{"state":"0","values":{}}]}',
+            '{"message":"\\\"instances\\\""}',
+            "not-json \"instances\"",
+        ):
+            with self.subTest(output=output), self.assertRaisesRegex(ValueError, "Alloy"):
+                formal.qualify_alloy_sat_witness(output)
+
     def test_independently_callable_qualifiers_reject_preloaded_parent(self) -> None:
         """A source or tool receipt cannot trust a Python process already preloaded.
 

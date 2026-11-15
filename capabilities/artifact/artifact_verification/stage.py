@@ -369,6 +369,18 @@ def execute_verify_stage(
         evidence_issues.append(
             "non-required executed gate(s) failed: " + ", ".join(failed_nonrequired)
         )
+    # Receipt.status=FAIL has two meanings: a validated native falsification
+    # or an invalid/unverifiable local VSA. Only the former proves required FAIL.
+    for gate in sorted(set(executed_failures) & required_gates):
+        receipt = receipts[gate]
+        validation = receipt.get("vsaValidation")
+        if (
+            receipt.get("status") != "FAIL"
+            or receipt.get("verificationResult") != "FAILED"
+            or not isinstance(validation, dict)
+            or validation.get("status") != "PASS"
+        ):
+            evidence_issues.append(f"failed gate lacks validated receipt: {gate}")
     coverage = assess_required_statuses(
         required_gates,
         {name: item.get("status", "NOT_EVALUATED") for name, item in receipts.items()},

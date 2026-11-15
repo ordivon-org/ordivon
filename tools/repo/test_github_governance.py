@@ -63,6 +63,7 @@ _FORMAL_PROBE_ORACLES = (
     ("Lean kernel qualified variation frame and countermodels", 0),
     ("Lean kernel Media processing admission model", 0),
     ("Lean kernel Media Creative Library Catalog acceptance", 0),
+    ("Lean kernel Media TimedText delivery precision", 0),
     ("Lean kernel Media Output byte identity", 0),
     ("Lean kernel Media dependency impact model", 0),
     ("Lean kernel Media archive visual relation conservation", 0),

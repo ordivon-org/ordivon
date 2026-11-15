@@ -111,3 +111,30 @@ and the natural Owner's native entrypoint. Skills search/resolve/read supplies
 availability, confer provider authority, or satisfy domain acceptance.
 Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
 arguments, then verify the final consumer's result.
+
+## Optional: find the original Gateway execution after response loss
+
+For a **previously admitted Gateway** `execution.submit`, preserve the exact
+original `requestId`, `capability`, and caller identity. Do not infer the Job
+from a similar name, a Runtime Workspace ID, or an Artifact digest. If the
+Gateway response is missing or unclear, query the existing discovery and
+observation tools before deciding whether any further action is needed:
+
+```text
+execution.resolve(capability="execution.linux", requestId="<original-request-id>")
+# If resolution is found, take the exact operation_ref from that response:
+execution.get(operationRef="<returned-operation-ref>",
+              requestId="<original-request-id>", capability="execution.linux")
+```
+
+Use the capability originally selected; `execution.linux` is only an example.
+`found` binds one native operation to this caller; `absent` or `ambiguous` is
+**not** permission to repeat a possibly effectful submission. The verified
+Gateway may reject `execution.get` without the original request identity or
+when the operation belongs to another caller. For a Job submitted *directly*
+through Runtime rather than Gateway, use Runtime's native `job.observe`
+instead of inventing a Gateway correlation. A terminal, committed Runtime
+process result still does **not** prove an external Provider or domain effect.
+See [Agent execution causal chain](../AGENT_EXECUTION_CAUSAL_CHAIN_R2.md) for
+uncertain outcomes and natural-Owner reconciliation. Do not add a new recovery
+registry, retry wrapper, or proof layer for this read path.

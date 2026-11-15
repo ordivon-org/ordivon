@@ -1195,11 +1195,15 @@ case "${1:-check}" in
   falsify-windows-pg-attempt) check_windows_pg_attempt_counterexample ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound ;;
+  # Current fresh-PG epoch: no SQLite parity copy or Windows-first ordering.
+  # Preserve historical models and their independent negative controls on demand.
+  check) check_runtime_dispatch; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound ;;
+  check-historical) check_runtime_pg_cutover; check_windows_first_pg_order ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound ;;
+  falsify-historical) check_pg_cutover_counterexample; check_windows_first_pg_falsifiers ;;
   *)
-    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-runner-bound|falsify-runner-bound]" >&2
+    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound]" >&2
     exit 2
     ;;
 esac

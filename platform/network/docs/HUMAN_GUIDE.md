@@ -82,6 +82,8 @@ Linux 侧 `127.0.0.1:19982` 是独立的、目的域名受限的 Codex Consumer�
 
 如果某台 iOS 设备离线，服务器无法代替它完成选择和出口验收。服务端运行正常 ≠ 手机流量已经被转发。
 
+**Agent 调用预算与单次诊断：** 当前 `consumers/mobile-tailnet-exit/Taskfile.yml` 的 `consumer:mobile-tailnet-exit:ready` 使用原生 `timeout`，最多轮询 **120 秒**。如果通过 Runtime 提交完整 `verify`，Job 截止时间必须覆盖这一原生上限及源码校验开销；如果调用方先超时，只能报告该 Job `timed_out` 和实际采到的状态，不能冒称整个 `verify` 已 PASS 或 FAIL。只需快速区分服务端当前原因时，可以只读执行已安装的 `/usr/local/libexec/network-v2/mobile-tailnet-exit-ready` 一次，检查它输出的 `standing`；这是**单次服务端观测**，不能替代完整 SourceCut 验证，也不能替 iOS 设备验收公网流量。修改原生时间上限后以当前 Taskfile 为准。
+
 ### iPad 局域网直连与共享出口
 
 **既往局域网验收样本，不是当前吞吐或延迟保证：**当时 iPad 到 Exit Node 的 Tailscale 链路从东京 DERP

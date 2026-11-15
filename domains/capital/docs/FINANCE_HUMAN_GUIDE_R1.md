@@ -386,3 +386,56 @@ Paper 日结、独立 Markets 估值绑定和 Risk 结果；原有机器 JSON
 才显示“持久读回”。简单期间收益假设外部入金在期初，不是 GIPS
 认证的时间加权收益或 IRR。风险预算 UNSET、市场提供者与权利
 UNKNOWN、历史 PIT 不明时不可报告风险通过或授予真实交易效果。
+
+## Paper 月度新增资金配置：从已提交账户到只买不卖计划（2026-11-13）
+
+**普通用户目标：** 不再每月手工重新录入模拟账户持仓与现金，
+而是在账户已完成日结后，按照用户事先确定的目标比例，把
+**已经存入 Paper 的可用资金**配置到偏离目标的资产上；
+保留原有仓位，且不能提前动用尚未结算的卖出应收款和买单应付款。
+
+本次用既有成熟模块组合，不创建新回测器、经纪商、价格服务或账本：
+
+1. Accounting 的
+   `read_latest_committed_paper_close` 读取真正已提交的 Paper 账户头；
+   空账户、缺数据库或缺权限会拒绝，不自动充值或新建账户。
+2. Markets 用 `admit_etf_eod_snapshot` 对相同账户最近估值日
+   的原始 ETF 收盘价做绑定；若资产快照与账户日结不一致则拒绝。
+   接受调用方的证据字段不等于独立证明许可证、PIT 或公司行动。
+3. Risk 的 `review_paper_close_risk` 验证账务 NAV、持仓价值、
+   买入应付款、卖出应收款和已保护现金；只有已经入账的
+   未占用现金才可作为新增配置预算。
+4. Portfolio 直接调用既有 `plan_strategic_contribution`
+   计算只买不卖的目标缺口分配，全部以整数美分计算。
+   输出中未提供收盘价的新买入标的标记为 unpricedAllocationTargets，
+   不推导份额、订单、税费或实时风险批准。
+
+**使用前：** 首先在独立 Paper 数据库确实提交了入金及当日日结，
+已有 `--read-latest` 可确认最新收据。用户显式选择
+`targetWeightsBps`，例如在私有文件 `/path/to/targets.json`
+填入 `{"SPY":6000,"SHY":4000}`。示例不代表模型建议 60/40。
+
+在 `domains/capital` 执行：
+
+~~~sh
+export ORDIVON_CAPITAL_PAPER_PG_DSN='...已验证的专用Paper数据库DSN...'
+scripts/run-capability-python -m ordivon_capital.portfolio.paper_contribution_plan \
+  --account PAPER_ACCOUNT \
+  --market-snapshot /path/to/private-raw-eod.json \
+  --market-binding /path/to/validated-binding.json \
+  --target-weights /path/to/targets.json \
+  --invest-minor 20000 --format markdown
+~~~
+
+`--invest-minor 20000` 指已入账、未占用的 **200 美元**，不是
+向账户再转入 200 美元，也不是实际买卖授权。输出包含每只资产
+分配的美分金额、投入后剩余可用现金、受保护现金、未结算应收款、
+当前 Risk 评价以及需要额外价格的资产。只有 CLI 真正读取专用
+PostgreSQL 后才标记 `accountingPersistenceReverified=true`；
+纯函数使用者得到 false。机器端默认仍为 JSON。
+
+每次仅生成 **READ_ONLY_PAPER_ACCOUNT_PLAN**；
+`RISK_BUDGET_INCOMPLETE`、`marketRightsIndependentlyVerified=false`
+和 `executionAuthorized=false` 均不能被覆盖。若本月尚未有经
+认可的市场快照，则保留未知与阻断，而不是用历史回填价格伪装当日
+可交易行情。普通用户仍需提供自己的投资期限、现金储备和目标比例。
