@@ -12,11 +12,8 @@ from types import SimpleNamespace
 import pytest
 from mcp.server.mcpserver import Context
 
-from ordivon_gateway.capability_authz import (
-    _HOST_READ_ONLY_TOOLS,
-    _HOST_READ_SELECTORS,
-    GatewayCapabilityAuthorizationMiddleware,
-)
+from ordivon_gateway.authorization_targets import _HOST_READ_ONLY_TOOLS, _HOST_READ_SELECTORS
+from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
 from ordivon_gateway.http_ingress_guard import GatewayHTTPIngressGuard
 from ordivon_gateway.ingress_identity import (
     identity_from_state,

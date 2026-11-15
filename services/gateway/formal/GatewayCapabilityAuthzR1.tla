@@ -6,15 +6,18 @@ EXTENDS TLC
 \* "binding" means the Security decision echoes the exact server-derived
 \* principal, issuer, capability and resource (not Tool-supplied claims).
 \* V2 authority/effect booleans denote non-None admitted evidence.
-\* V3 authzen denotes the conjunction of standard, decision=TRUE and
-\* exact request-ID echo. V3 also requires authority/effect BOTH absent.
+\* V3 evidence covers the designated AuthZEN standard, a Boolean permit,
+\* and equality of the request and response identifiers.
+\* The separate nonce qualification flag requires a nonblank ID value.
+\* Equality of two absent/blank IDs is insufficient authorization evidence.
+\* V3 also requires authority/effect BOTH absent.
 \* Upstream PDP and real provider effects are outside the model.
 
 VARIABLES phase, target, ingress, version, binding, qualified,
-          outcome, authority, effect, authzen
+          outcome, authority, effect, authzen, authzenNonce
 
 vars == <<phase, target, ingress, version, binding, qualified,
-          outcome, authority, effect, authzen>>
+          outcome, authority, effect, authzen, authzenNonce>>
 
 Init ==
   /\ phase = "start"
@@ -27,6 +30,7 @@ Init ==
   /\ authority = FALSE
   /\ effect = FALSE
   /\ authzen = FALSE
+  /\ authzenNonce = FALSE
 
 ResolveTarget ==
   /\ phase = "start"
@@ -34,7 +38,7 @@ ResolveTarget ==
        /\ target' = t
        /\ phase' = IF t THEN "target" ELSE "rejected"
   /\ UNCHANGED <<ingress, version, binding, qualified, outcome,
-                 authority, effect, authzen>>
+                 authority, effect, authzen, authzenNonce>>
 
 ReadVerifiedIngress ==
   /\ phase = "target"
@@ -42,7 +46,7 @@ ReadVerifiedIngress ==
        /\ ingress' = i
        /\ phase' = IF i THEN "identity" ELSE "rejected"
   /\ UNCHANGED <<target, version, binding, qualified, outcome,
-                 authority, effect, authzen>>
+                 authority, effect, authzen, authzenNonce>>
 
 ReadSecurityDecision ==
   /\ phase = "identity"
@@ -53,6 +57,7 @@ ReadSecurityDecision ==
      \E a \in BOOLEAN:
      \E e \in BOOLEAN:
      \E z \in BOOLEAN:
+     \E n \in BOOLEAN:
        /\ version' = v
        /\ outcome' = o
        /\ binding' = b
@@ -60,6 +65,7 @@ ReadSecurityDecision ==
        /\ authority' = a
        /\ effect' = e
        /\ authzen' = z
+       /\ authzenNonce' = n
        /\ phase' = "decision"
   /\ UNCHANGED <<target, ingress>>
 
@@ -74,6 +80,7 @@ AllowDecision ==
          /\ effect
       \/ /\ version = "v3"
          /\ authzen
+         /\ authzenNonce
          /\ ~authority
          /\ ~effect)
 
@@ -82,14 +89,14 @@ Forward ==
   /\ AllowDecision
   /\ phase' = "forwarded"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen>>
+                 outcome, authority, effect, authzen, authzenNonce>>
 
 RejectDecision ==
   /\ phase = "decision"
   /\ ~AllowDecision
   /\ phase' = "rejected"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen>>
+                 outcome, authority, effect, authzen, authzenNonce>>
 
 Next ==
   \/ ResolveTarget
@@ -111,6 +118,7 @@ TypeOK ==
   /\ authority \in BOOLEAN
   /\ effect \in BOOLEAN
   /\ authzen \in BOOLEAN
+  /\ authzenNonce \in BOOLEAN
 
 ForwardImpliesBinding ==
   phase = "forwarded" =>
@@ -126,7 +134,7 @@ V2NeedsDelegatedEvidence ==
 
 V3NeedsInteractiveEvidence ==
   (phase = "forwarded" /\ version = "v3") =>
-    (authzen /\ ~authority /\ ~effect)
+    (authzen /\ authzenNonce /\ ~authority /\ ~effect)
 
 NoOtherVersionForwards ==
   phase = "forwarded" => version \in {"v2", "v3"}
@@ -139,7 +147,7 @@ UnsafeForwardWithUnboundDecision ==
   /\ ~binding
   /\ phase' = "forwarded"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen>>
+                 outcome, authority, effect, authzen, authzenNonce>>
 
 UnsafeNext == Next \/ UnsafeForwardWithUnboundDecision
 UnsafeSpec == Init /\ [][UnsafeNext]_vars

@@ -12,7 +12,8 @@ Harness owns Agent run, Security owns admission/PDP decisions.
 3. routing.py / capability_catalog.py / capability_projection.py — discovery.
 4. execution_* / execution_refs.py — Runtime delegation and correlation.
 5. host_*_tools.py / upstream*.py — Host/Owner forwarding.
-6. access_auth.py / ingress_identity.py / capability_authz.py — verified ingress identity, shared request coordinates and protected calls.
+6. access_auth.py / ingress_identity.py — verified ingress identity and shared request coordinates.
+7. authorization_targets.py / capability_authz.py — pure Owner request-target projection and Security PEP decision binding.
 
 ## Human
 Pin Git revision. Compare released tool surface with live system.describe and
@@ -40,6 +41,14 @@ and qualified Runtime release.apply; generic Runtime execution retains the
 independent verified-ingress/Runtime authority boundary. A valid machine
 bearer or Tool ActorRef is not a Security grant. The existing private token
 loader and PDP adapter are reused.
+The request target projection lives in `authorization_targets.py`; it derives
+the original Host Tool read/write partition and Runtime/Artifact exact resources
+without interpreting AuthZEN ALLOW. The PEP in `capability_authz.py` accepts
+only integer Security schema v2/v3, rejects floating versions, and requires a
+nonblank exactly echoed request ID for v3 interactive evidence. Source negative
+tests intentionally proved the previous ALLOW gap; the B02 TLA model now
+independently represents nonblank nonce qualification. This is NOT a proof
+that installed Security grants exist.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
 

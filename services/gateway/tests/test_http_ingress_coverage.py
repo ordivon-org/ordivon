@@ -126,7 +126,7 @@ def test_live_mcp_sdk_surface_has_complete_reviewed_security_projection() -> Non
             )
         )
         if entry["gatewayObjectPep"] == "runtime-release-authzen":
-            from ordivon_gateway.capability_authz import resolve_authorization_target
+            from ordivon_gateway.authorization_targets import resolve_authorization_target
 
             target = resolve_authorization_target(
                 "runtime.release.apply",
@@ -143,7 +143,7 @@ def test_live_mcp_sdk_surface_has_complete_reviewed_security_projection() -> Non
         if entry["gatewayObjectPep"] == "host-legacy-write-authzen":
             # The projected evidence must be checked against the *actual*
             # application PEP contract, not only a manually classified JSON.
-            from ordivon_gateway.capability_authz import resolve_authorization_target
+            from ordivon_gateway.authorization_targets import resolve_authorization_target
 
             claimed = (
                 {"authorActorRef": "actor:test:claim"}
@@ -154,7 +154,7 @@ def test_live_mcp_sdk_surface_has_complete_reviewed_security_projection() -> Non
             assert target is not None
             assert target.capability == "host.legacy-write"
         if entry["gatewayObjectPep"] == "host-legacy-read-authzen":
-            from ordivon_gateway.capability_authz import resolve_authorization_target
+            from ordivon_gateway.authorization_targets import resolve_authorization_target
 
             target = resolve_authorization_target(name, {})
             assert target is not None
