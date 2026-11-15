@@ -193,10 +193,15 @@ class GatewayMcpRuntimeAdapter:
         component: AgentPluginMcpComponent,
         client: HarnessMcpClient,
         grant: PluginGatewayExecutionGrant,
+        *,
+        artifact_read_enabled: bool = False,
     ) -> None:
         self.component = component
         self.client = client
         self.grant = grant
+        # Only the caller's existing privacy consent + source-discovered
+        # Gateway artifact.read enable text previews for the next model turn.
+        self._artifact_read_enabled = artifact_read_enabled
         self._operation_refs: dict[str, str] = {}
         self._operation_requests: dict[str, str] = {}
 
@@ -574,7 +579,7 @@ class GatewayMcpRuntimeAdapter:
             and delivery == "committed"
             and projection_complete is True
         )
-        return {
+        response: dict[str, JsonValue] = {
             "jobId": native_id,
             "status": _required_text(observed.get("state"), "state"),
             "executionTerminal": terminal,
@@ -587,6 +592,67 @@ class GatewayMcpRuntimeAdapter:
             "artifactsAvailable": bool(artifact_ids),
             "artifacts": [{"artifactId": item} for item in artifact_ids],
         }
+        # Reuse existing Gateway artifact.read and the original bounded Tool
+        # observation. Never fetch bytes for LOST/UNKNOWN or unqualified Jobs.
+        if self._artifact_read_enabled and result_available:
+            previews: dict[str, JsonValue] = {}
+            for stream in ("stdout", "stderr"):
+                matches = [
+                    artifact_id
+                    for artifact_id in artifact_ids
+                    if artifact_id.endswith(f".{stream}")
+                ]
+                if len(matches) > 1:
+                    raise HarnessRuntimeClientError(
+                        f"Gateway returned multiple {stream} Artifact identities"
+                    )
+                if not matches:
+                    continue
+                artifact_id = matches[0]
+                artifact = self._call(
+                    "artifact.read",
+                    {
+                        "operationRef": operation_ref,
+                        "artifactId": artifact_id,
+                        "offset": 0,
+                        "maxBytes": 4096,
+                        "requestId": request_id,
+                        "capability": self.grant.capability,
+                    },
+                )
+                text = artifact.get("content")
+                offset = artifact.get("offset")
+                next_offset = _gateway_field(artifact, "next_offset", "nextOffset")
+                eof = artifact.get("eof")
+                digest = artifact.get("digest")
+                if (
+                    _gateway_field(artifact, "job_id", "jobId") != native_id
+                    or _gateway_field(artifact, "artifact_id", "artifactId") != artifact_id
+                    or type(offset) is not int
+                    or offset != 0
+                    or type(next_offset) is not int
+                    or type(eof) is not bool
+                    or not isinstance(text, str)
+                    or not isinstance(digest, str)
+                    or not digest.startswith("sha256:")
+                    or not 0 <= next_offset <= 4096
+                    or next_offset != len(text.encode("utf-8"))
+                    or (not eof and next_offset == 0)
+                ):
+                    raise HarnessRuntimeClientError(
+                        f"Gateway {stream} Artifact read lacks a progressing Owner byte window"
+                    )
+                previews[stream] = {
+                    "artifactId": artifact_id,
+                    "text": text,
+                    "eof": eof,
+                    "nextOffset": next_offset,
+                    "truncated": not eof,
+                    "digest": digest,
+                }
+            if previews:
+                response["outputPreviews"] = previews
+        return response
 
 
 class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
@@ -808,6 +874,7 @@ class PluginGatewayExecutionBridgeFactory:
         "execution.resolve",
         "execution.submit",
     )
+    _OPTIONAL_REMOTE_TOOLS = ("artifact.read",)
 
     def __init__(
         self,
@@ -821,7 +888,10 @@ class PluginGatewayExecutionBridgeFactory:
         remote: dict[str, dict[str, JsonValue]] = {}
         for raw in client.list_tools():
             name = raw.get("name")
-            if isinstance(name, str) and name in self._REQUIRED_REMOTE_TOOLS:
+            if isinstance(name, str) and name in (
+                *self._REQUIRED_REMOTE_TOOLS,
+                *self._OPTIONAL_REMOTE_TOOLS,
+            ):
                 if name in remote:
                     raise ToolBridgeError(
                         f"Gateway MCP returned duplicate required Tool: {name}",
@@ -835,7 +905,7 @@ class PluginGatewayExecutionBridgeFactory:
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
             )
         self._remote_tool_digests = {
-            name: _tool_digest(remote[name]) for name in self._REQUIRED_REMOTE_TOOLS
+            name: _tool_digest(raw) for name, raw in sorted(remote.items())
         }
         self._definition = _model_execution_definition(grant)
         surface: dict[str, JsonValue] = {
@@ -855,6 +925,9 @@ class PluginGatewayExecutionBridgeFactory:
             "recoveryTools": ["execution.resolve", "execution.get"],
             "controlTools": ["execution.cancel"],
         }
+        if "artifact.read" in self._remote_tool_digests:
+            # This is an existing Gateway read capability, not a new grant or store.
+            grant_value["outputTools"] = ["artifact.read"]
         self.grant_digest = canonical_digest(grant_value)
 
     def build(
@@ -888,7 +961,15 @@ class PluginGatewayExecutionBridgeFactory:
             workspace_ref=self.execution_grant.workspace_id,
             runtime_references=references,
         )
-        runtime = GatewayMcpRuntimeAdapter(self.component, self.client, self.execution_grant)
+        runtime = GatewayMcpRuntimeAdapter(
+            self.component,
+            self.client,
+            self.execution_grant,
+            artifact_read_enabled=(
+                "artifact.read" in self._remote_tool_digests
+                and contract.privacy.allow_tool_content
+            ),
+        )
         return PluginGatewayExecutionBridge(
             contract,
             continuity,
