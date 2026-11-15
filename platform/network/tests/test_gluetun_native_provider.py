@@ -345,3 +345,22 @@ def test_gluetun_dot_upstream_observes_actual_provider_namespace_and_certificate
     assert 'VPN_NAMESPACE_DOT_UPSTREAM_DEGRADED' in t
     assert 'VPN_NAMESPACE_DOT_UPSTREAMS_UNAVAILABLE_OR_UNKNOWN' in t
     assert 'grep -Eq' in t and 'healthy=$((healthy + 1))' in t
+
+
+def test_native_provider_verify_includes_official_gluetun_health_sample():
+    """A healthy HTTPS carrier must not conceal a native Gluetun 500.
+
+    This is the 2026-11-15 real production counterexample: Carrier READY,
+    while mobile Exit Node returned PROVIDER_HEALTH_NOT_READY until restart.
+    """
+    taskfile = (
+        Path(__file__).resolve().parents[1]
+        / "providers/gluetun/Taskfile.yml"
+    ).read_text(encoding="utf-8")
+    verify = taskfile.split("  provider:gluetun:verify:\n", 1)[1].split(
+        "\n  provider:gluetun:", 1
+    )[0]
+    assert (
+        "/usr/bin/podman exec network-v2-gluetun-owned-r1 "
+        "/gluetun-entrypoint healthcheck"
+    ) in verify

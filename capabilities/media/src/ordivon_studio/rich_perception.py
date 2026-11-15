@@ -14,7 +14,8 @@ from .perception_profiles import (
     _z_profile,
     profile_signature,
 )
-from .perception_video_io import _parse_change_metadata
+from .perception_timing import video_timing
+from .perception_video_io import _parse_change_metadata, count_video_frames
 from .qc import probe_media
 from .rich_perception_comparison import (
     crossmodal_circular_shift_null as crossmodal_circular_shift_null,
@@ -69,18 +70,6 @@ def _video_stream(probe: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("exactly one video stream required")
     return videos[0]
 
-def _video_geometry(probe: dict[str, Any]) -> tuple[float, int, float]:
-    stream = _video_stream(probe)
-    frame_rate = stream.get("avg_frame_rate") or stream.get("r_frame_rate")
-    if not isinstance(frame_rate, str) or "/" not in frame_rate:
-        raise ValueError("video frame rate unavailable")
-    numerator, denominator = frame_rate.split("/", 1)
-    fps = float(numerator) / float(denominator)
-    duration = _media_duration(probe)
-    frame_count = stream.get("nb_frames")
-    total_frames = int(frame_count) if isinstance(frame_count, str) and frame_count.isdigit() else max(1, int(round(duration * fps)))
-    return fps, total_frames, duration
-
 def _parse_signal_metadata(text: str) -> list[dict[str, float]]:
     records: list[dict[str, float]] = []
     current: dict[str, float] | None = None
@@ -105,7 +94,6 @@ def _parse_signal_metadata(text: str) -> list[dict[str, float]]:
 def _observe_video_structure(
     path: Path,
     *,
-    fps: float,
     total_frames: int,
     sample_step_frames: int,
     ffmpeg: str,
@@ -156,7 +144,7 @@ def _observe_video_structure(
         return (
             _parse_change_metadata(
                 change_file.read_text(encoding="utf-8"),
-                fps=fps,
+                sample_step_frames=sample_step_frames,
                 total_frames=total_frames,
             ),
             _parse_signal_metadata(signal_file.read_text(encoding="utf-8")),
@@ -171,13 +159,20 @@ def video_structure_features(
     ffprobe: str = "/usr/bin/ffprobe",
 ) -> dict[str, Any]:
     probe = probe_media(path, ffprobe)
-    fps, total_frames, duration = _video_geometry(probe)
+    timing = video_timing(probe)
+    if timing.duration is None:
+        raise ValueError("media duration unavailable")
+    duration = float(timing.duration)
+    count_basis = timing.frame_count_basis
+    total_frames = timing.total_frames
+    if count_basis == "duration-times-reported-rate-estimate":
+        total_frames = count_video_frames(path, ffprobe)
+        count_basis = "native-ffprobe-decoded-frame-count"
+    # Keep the current mainline single native decode while preserving source-frame
+    # ordinals and filter PTS instead of manufacturing timing from average FPS.
     change, signal = _observe_video_structure(
-        path,
-        fps=fps,
-        total_frames=total_frames,
-        sample_step_frames=sample_step_frames,
-        ffmpeg=ffmpeg,
+        path, total_frames=total_frames,
+        sample_step_frames=sample_step_frames, ffmpeg=ffmpeg,
     )
     change_profile = _bin_series(
         [(float(item["timeSeconds"]), float(item["meanAbsoluteLumaDifference"])) for item in change],
@@ -202,7 +197,9 @@ def video_structure_features(
             "durationSeconds": duration,
             "width": stream.get("width"),
             "height": stream.get("height"),
-            "frameRate": stream.get("avg_frame_rate") or stream.get("r_frame_rate"),
+            "frameRate": timing.rate_label,
+            "frameCountBasis": count_basis,
+            "changeSampleTimeBasis": "native-ffmpeg-filter-pts",
             "audioStreams": audio_streams,
         },
         "profiles": {"change": change_profile, "luma": luma_profile, "saturation": saturation_profile},

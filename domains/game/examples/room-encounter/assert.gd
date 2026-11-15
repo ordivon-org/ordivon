@@ -112,6 +112,19 @@ func run_acceptance() -> void:
     root.add_child(alternate)
     var replacement_view = alternate.get_node("View")
     expect(replacement_view.modulate.g > 0.9, "alternative Godot scene has independent rendering")
+    expect(replacement_view.get_node("Title").text == "ALTERNATE PLAYER PRESENTATION",
+        "alternate scene preserves presentation title override")
+    for button_spec in [["Attack", "Strike"], ["Guard", "Defend"],
+                        ["Next", "Door"], ["Restart", "Reset"]]:
+        expect(replacement_view.get_node("Actions/" + button_spec[0]).text == button_spec[1],
+            "native inherited HUD preserves alternate action label " + button_spec[0])
+    expect(replacement_view.get_node("Hint") is Label
+        and replacement_view.get_node("Outcome") is Label
+        and replacement_view.get_node("Actions/Trial") is Button
+        and replacement_view.get_node("Actions/Classic") is Button,
+        "alternate presentation inherits current combat forecast/outcome and Trial controls")
+    expect(replacement_view.get_node("Actions/Attack").get_parent() is HFlowContainer,
+        "alternate presentation retains current responsive native action layout")
     replacement_view.get_node("Actions/Attack").pressed.emit()
     expect(alternate.get_node("Rules").snapshot()["phase"] == "cleared", "alternate button invokes unchanged rule action")
     expect(alternate.get_node("EncounterAudio").observed_play_count == 1, "alternate HUD retains sound consumer")

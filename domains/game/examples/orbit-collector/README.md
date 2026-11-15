@@ -50,6 +50,13 @@ a runtime dependency or implicit validator of player satisfaction.
 **Agent:** From domains/game run mise run test:bevy; it exercises the real Bevy ECS, player rules and HUD using Cargo.lock. This is source/state test evidence, not visual perception or a persistent interactive episode. Use mature upstream gameplay observation/control only when a real graphical consumer exists.
 
 **Distribution:** The Cargo target executable is not a signed installer or store release. Qualify native platform packaging and player behavior independently.
+The existing Linux preview packaging command now embeds the locked Rust/Bevy
+third-party license notices generated with upstream cargo-about 0.9.3.
+For local Linux packaging, put the upstream cargo-about executable on PATH and
+run cargo fetch --locked first; the existing Game Orbit GitHub workflow handles
+both automatically. Native X11/Vulkan smoke and real Human/device acceptance
+remain separate claims.
+
 
 ## Upstream Bevy feature selection
 
