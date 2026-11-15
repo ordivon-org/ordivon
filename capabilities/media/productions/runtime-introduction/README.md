@@ -7,8 +7,9 @@ the older P2/P3/P4 reconstruction notes below. This edition has five actual
 consumer-readable assets (English article; 78-second narrated 1920x1080 film;
 35-second Chinese 1080x1920 vertical edit with aligned English narration;
 self-contained interactive explanation; and ZIP portfolio). Before actual
-external publication, individual Output standing is approved while the parent
-Production remains review. Published standing requires a real provider release
+external publication, the four non-portfolio Outputs remain approved while
+the improved offline-caption ZIP is rendered and awaiting consumer review.
+The parent Production remains review. Published standing requires a real provider release
 and external HTTP readback, not simply matching SHA-256 or a successful build.
 
 The original August 2026 evidence and R2/Blob selections below are intentionally
