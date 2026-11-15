@@ -4,6 +4,24 @@ Clean-room, external-first reconstruction of Ordivon Host.
 
 Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_host` and does not copy its persistence implementation.
 
+## Production-compatible Topic archive release
+
+The currently installed direct Host Cloudflare Access connector and local
+Gateway consume the pre-existing loopback Host HTTP transport without a Host
+Owner bearer. A Schema14 function-only deployment may explicitly set
+ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP=true on the Host systemd service to retain
+that existing ingress while upgrading the native Topic archival schema.
+The listener still must bind loopback and requires the existing canonical
+ORDIVON_HOST_V2_PUBLIC_ORIGIN HTTPS setting. Cloudflare Access must remain
+active; this switch does not establish Principal or Host delegation.
+
+Without that explicit compatibility flag, the new Host HTTP service still
+requires ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE. Configuring both is an
+error rather than allowing anonymous override. Remove the compatibility
+mode only after all real direct MCP clients, Gateway/peer and Cloudflare
+consumers migrate to Owner-credentialed access. This does not alter any
+Tool semantics, PostgreSQL grants or the independent Gateway release gate.
+
 ## Substrate
 
 - PostgreSQL is the authority store.
