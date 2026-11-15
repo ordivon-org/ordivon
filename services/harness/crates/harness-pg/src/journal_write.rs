@@ -325,6 +325,331 @@ fn require_source_result_retention(
     Ok(())
 }
 
+/// Read the nearest current Provider transition under the same locked PG Run.
+/// In-batch events dominate the retained journal; a clearing event is also
+/// a boundary. This is shared by DISPATCHING and COMPLETED admission.
+fn current_provider_predecessor(
+    tx: &mut Transaction<'_>,
+    run: &str,
+    events: &[EventWrite],
+    position: usize,
+) -> Result<(String, Option<String>), WriteError> {
+    let recent = events[..position].iter().rev().find(|e| {
+        e.event_kind.starts_with("harness.provider-call-")
+            || provider_event_clears_head(&e.event_kind)
+    });
+    if let Some(recent) = recent {
+        let record = recent
+            .referenced_objects
+            .iter()
+            .find(|r| r.kind == "harness-provider-call-record");
+        return Ok((recent.event_kind.clone(), record.map(|r| r.digest.clone())));
+    }
+    let observed = tx.query_opt(
+        "SELECT event_id,event_kind FROM run_events \
+         WHERE harness_run_id=$1 AND ( \
+         event_kind LIKE 'harness.provider-call-%' OR \
+         event_kind IN ('harness.snapshot-recorded',\
+         'harness.working-set-recorded','harness.run-paused',\
+         'harness.tool-step-prepared','harness.run-stopped',\
+         'harness.run-completed','harness.run-failed')) \
+         ORDER BY run_revision DESC LIMIT 1",
+        &[&run],
+    )?;
+    if let Some(row) = observed {
+        let id: String = row.get("event_id");
+        let kind: String = row.get("event_kind");
+        let reference = tx.query_opt(
+            "SELECT r.digest FROM run_object_refs r \
+             JOIN objects o ON o.digest=r.digest \
+             WHERE r.event_id=$1 AND o.kind='harness-provider-call-record' \
+             LIMIT 1",
+            &[&id],
+        )?;
+        Ok((kind, reference.map(|r| r.get::<_, String>("digest"))))
+    } else {
+        Ok((String::new(), None))
+    }
+}
+
+/// A valid lease is not a license to change Provider identity or fabricate
+/// a DISPATCHING event. Authoritative Rust V4 admissions must use the original
+/// locked Run Contract and current same-attempt CLAIMED record, before HTTP.
+fn require_source_provider_admission(
+    tx: &mut Transaction<'_>,
+    run: &str,
+    contract: &CanonicalDocument,
+    events: &[EventWrite],
+) -> Result<(), WriteError> {
+    for (position, event) in events.iter().enumerate() {
+        let expected = match event.event_kind.as_str() {
+            "harness.provider-call-claimed" => ProviderStatus::Claimed,
+            "harness.provider-call-dispatching" => ProviderStatus::Dispatching,
+            _ => continue,
+        };
+        let mut records = event
+            .referenced_objects
+            .iter()
+            .filter(|r| r.kind == "harness-provider-call-record");
+        let record_ref = records
+            .next()
+            .ok_or(WriteError::Invalid("Provider admission missing V4 record"))?;
+        if records.next().is_some()
+            || event
+                .data
+                .field("providerCallRecordDigest")
+                .and_then(|v| v.as_str())
+                != Some(record_ref.digest.as_str())
+            || event
+                .data
+                .field("providerCallRecordObjectDigest")
+                .and_then(|v| v.as_str())
+                != Some(record_ref.digest.as_str())
+        {
+            return Err(WriteError::Invalid("Provider admission CAS/Event mismatch"));
+        }
+        let row = tx.query_one(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+            &[&record_ref.digest],
+        )?;
+        let doc = decode_cas(
+            &record_ref.digest,
+            "harness-provider-call-record",
+            &row.get::<_, String>("kind"),
+            row.get::<_, i64>("byte_length"),
+            &row.get::<_, Vec<u8>>("content"),
+        )?;
+        // Old V3 history is readable through the original Source Store,
+        // but newly admitted physical dispatch must have strict V4 identity.
+        if doc.field("schemaVersion").and_then(|v| v.integer_text()) != Some("4") {
+            return Err(WriteError::Invalid("native Provider admission requires V4"));
+        }
+        let parsed = inspect_v4(&doc)
+            .map_err(|_| WriteError::Invalid("Provider admission invalid V4 source"))?;
+        if parsed.status != expected
+            || parsed.canonical_digest != record_ref.digest
+            || doc.field("harnessRunId").and_then(|v| v.as_str()) != Some(run)
+            || doc.field("adapterId").and_then(|v| v.as_str())
+                != contract.field("adapterId").and_then(|v| v.as_str())
+            || doc.field("requestedModelId").and_then(|v| v.as_str())
+                != contract.field("requestedModelId").and_then(|v| v.as_str())
+            || doc.field("recordedAtMs").and_then(|v| v.integer_text())
+                != Some(event.recorded_at_ms.to_string().as_str())
+        {
+            return Err(WriteError::Invalid(
+                "Provider admission source identity/status mismatch",
+            ));
+        }
+        for key in ["stateObjectDigest", "requestObjectDigest"] {
+            if event.data.field(key).and_then(|v| v.as_str())
+                != doc.field(key).and_then(|v| v.as_str())
+            {
+                return Err(WriteError::Invalid(
+                    "Provider admission source data mismatch",
+                ));
+            }
+        }
+        if expected == ProviderStatus::Dispatching {
+            let previous_digest = parsed
+                .previous_record_digest
+                .as_deref()
+                .ok_or(WriteError::Invalid("Provider dispatch predecessor absent"))?;
+            let (kind, prior_digest) = current_provider_predecessor(tx, run, events, position)?;
+            if kind != "harness.provider-call-claimed"
+                || prior_digest.as_deref() != Some(previous_digest)
+            {
+                return Err(WriteError::Invalid(
+                    "Provider dispatch not linked to current durable claim",
+                ));
+            }
+            let previous_row = tx.query_one(
+                "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+                &[&previous_digest],
+            )?;
+            let previous_doc = decode_cas(
+                previous_digest,
+                "harness-provider-call-record",
+                &previous_row.get::<_, String>("kind"),
+                previous_row.get::<_, i64>("byte_length"),
+                &previous_row.get::<_, Vec<u8>>("content"),
+            )?;
+            let previous = inspect_v4(&previous_doc)
+                .map_err(|_| WriteError::Invalid("Provider claim invalid V4 source"))?;
+            if previous.status != ProviderStatus::Claimed
+                || !previous.same_attempt_identity(&parsed)
+            {
+                return Err(WriteError::Invalid(
+                    "Provider dispatch predecessor attempt identity mismatch",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// UNKNOWN/FAILED are durable recovery claims, not arbitrary failure labels.
+/// Check the same current V4 attempt and typed FailureReceipt under the
+/// original PG Run lock before permitting an ambiguous result to be recorded.
+/// This does not prove the external Provider's actual billing/effect.
+fn require_source_provider_failure(
+    tx: &mut Transaction<'_>,
+    run: &str,
+    contract: &CanonicalDocument,
+    events: &[EventWrite],
+) -> Result<(), WriteError> {
+    for (position, event) in events.iter().enumerate() {
+        let expected = match event.event_kind.as_str() {
+            "harness.provider-call-unknown" => ProviderStatus::Unknown,
+            "harness.provider-call-failed" => ProviderStatus::Failed,
+            _ => continue,
+        };
+        let mut records = event
+            .referenced_objects
+            .iter()
+            .filter(|r| r.kind == "harness-provider-call-record");
+        let record_ref = records
+            .next()
+            .ok_or(WriteError::Invalid("Provider failure missing V4 record"))?;
+        if records.next().is_some()
+            || event
+                .data
+                .field("providerCallRecordDigest")
+                .and_then(|v| v.as_str())
+                != Some(record_ref.digest.as_str())
+            || event
+                .data
+                .field("providerCallRecordObjectDigest")
+                .and_then(|v| v.as_str())
+                != Some(record_ref.digest.as_str())
+        {
+            return Err(WriteError::Invalid("Provider failure CAS/Event mismatch"));
+        }
+        let row = tx.query_one(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+            &[&record_ref.digest],
+        )?;
+        let doc = decode_cas(
+            &record_ref.digest,
+            "harness-provider-call-record",
+            &row.get::<_, String>("kind"),
+            row.get::<_, i64>("byte_length"),
+            &row.get::<_, Vec<u8>>("content"),
+        )?;
+        let parsed = inspect_v4(&doc)
+            .map_err(|_| WriteError::Invalid("Provider failure invalid V4 source"))?;
+        if parsed.status != expected
+            || parsed.canonical_digest != record_ref.digest
+            || doc.field("harnessRunId").and_then(|v| v.as_str()) != Some(run)
+            || doc.field("adapterId").and_then(|v| v.as_str())
+                != contract.field("adapterId").and_then(|v| v.as_str())
+            || doc.field("requestedModelId").and_then(|v| v.as_str())
+                != contract.field("requestedModelId").and_then(|v| v.as_str())
+            || doc.field("recordedAtMs").and_then(|v| v.integer_text())
+                != Some(event.recorded_at_ms.to_string().as_str())
+        {
+            return Err(WriteError::Invalid(
+                "Provider failure source identity/status mismatch",
+            ));
+        }
+        for key in [
+            "stateObjectDigest",
+            "requestObjectDigest",
+            "failureObjectDigest",
+        ] {
+            if event.data.field(key).and_then(|v| v.as_str())
+                != doc.field(key).and_then(|v| v.as_str())
+            {
+                return Err(WriteError::Invalid(
+                    "Provider failure event/source data mismatch",
+                ));
+            }
+        }
+        let mut receipts = event
+            .referenced_objects
+            .iter()
+            .filter(|r| r.kind == "harness-provider-call-failure");
+        let receipt_ref = receipts.next().ok_or(WriteError::Invalid(
+            "Provider failure missing referenced receipt",
+        ))?;
+        if receipts.next().is_some()
+            || doc.field("failureObjectDigest").and_then(|v| v.as_str())
+                != Some(receipt_ref.digest.as_str())
+            || parsed.failure_digest.as_deref() != Some(receipt_ref.digest.as_str())
+        {
+            return Err(WriteError::Invalid(
+                "Provider failure receipt binding mismatch",
+            ));
+        }
+        let receipt_row = tx.query_one(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+            &[&receipt_ref.digest],
+        )?;
+        let receipt = decode_cas(
+            &receipt_ref.digest,
+            "harness-provider-call-failure",
+            &receipt_row.get::<_, String>("kind"),
+            receipt_row.get::<_, i64>("byte_length"),
+            &receipt_row.get::<_, Vec<u8>>("content"),
+        )?;
+        if receipt
+            .field("schemaVersion")
+            .and_then(|v| v.integer_text())
+            != Some("1")
+            || receipt.field("kind").and_then(|v| v.as_str())
+                != Some("ordivon.harness-provider-call-failure")
+            || receipt.field("providerCallId").and_then(|v| v.as_str())
+                != Some(parsed.provider_call_id.as_str())
+            || receipt.field("requestDigest").and_then(|v| v.as_str())
+                != Some(parsed.request_digest.as_str())
+            || receipt
+                .field("providerRequestDigest")
+                .and_then(|v| v.as_str())
+                != Some(parsed.provider_request_digest.as_str())
+        {
+            return Err(WriteError::Invalid(
+                "Provider failure receipt attempt mismatch",
+            ));
+        }
+        let previous_digest = parsed
+            .previous_record_digest
+            .as_deref()
+            .ok_or(WriteError::Invalid("Provider failure predecessor absent"))?;
+        let (kind, prior_digest) = current_provider_predecessor(tx, run, events, position)?;
+        let predecessor_allowed = kind == "harness.provider-call-dispatching"
+            || (expected == ProviderStatus::Failed && kind == "harness.provider-call-claimed");
+        if !predecessor_allowed || prior_digest.as_deref() != Some(previous_digest) {
+            return Err(WriteError::Invalid(
+                "Provider failure not linked to current durable attempt",
+            ));
+        }
+        let prior_row = tx.query_one(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+            &[&previous_digest],
+        )?;
+        let prior_doc = decode_cas(
+            previous_digest,
+            "harness-provider-call-record",
+            &prior_row.get::<_, String>("kind"),
+            prior_row.get::<_, i64>("byte_length"),
+            &prior_row.get::<_, Vec<u8>>("content"),
+        )?;
+        let prior = inspect_v4(&prior_doc)
+            .map_err(|_| WriteError::Invalid("Provider failure predecessor invalid V4"))?;
+        if !prior.same_attempt_identity(&parsed)
+            || !matches!(
+                prior.status,
+                ProviderStatus::Claimed | ProviderStatus::Dispatching
+            )
+            || (expected == ProviderStatus::Unknown && prior.status != ProviderStatus::Dispatching)
+        {
+            return Err(WriteError::Invalid(
+                "Provider failure predecessor attempt identity mismatch",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// The authoritative original PG Run cannot acquire a Provider COMPLETED
 /// fact from a bare caller-chosen Event label. Its source CAS record must
 /// actually describe this Run, model, status and result. Reuse the *same* V4
@@ -433,43 +758,7 @@ fn require_source_provider_completion(
                 .ok_or(WriteError::Invalid(
                     "Provider completion source event absent",
                 ))?;
-            let recent = events[..position].iter().rev().find(|e| {
-                e.event_kind.starts_with("harness.provider-call-")
-                    || provider_event_clears_head(&e.event_kind)
-            });
-            let (kind, prior_digest) = if let Some(recent) = recent {
-                let record = recent
-                    .referenced_objects
-                    .iter()
-                    .find(|r| r.kind == "harness-provider-call-record");
-                (recent.event_kind.clone(), record.map(|r| r.digest.clone()))
-            } else {
-                let observed = tx.query_opt(
-                    "SELECT event_id,event_kind FROM run_events \
-                     WHERE harness_run_id=$1 AND ( \
-                     event_kind LIKE 'harness.provider-call-%' OR \
-                     event_kind IN ('harness.snapshot-recorded',\
-                     'harness.working-set-recorded','harness.run-paused',\
-                     'harness.tool-step-prepared','harness.run-stopped',\
-                     'harness.run-completed','harness.run-failed')) \
-                     ORDER BY run_revision DESC LIMIT 1",
-                    &[&run],
-                )?;
-                if let Some(row) = observed {
-                    let id: String = row.get("event_id");
-                    let kind: String = row.get("event_kind");
-                    let reference = tx.query_opt(
-                        "SELECT r.digest FROM run_object_refs r \
-                         JOIN objects o ON o.digest=r.digest \
-                         WHERE r.event_id=$1 AND o.kind='harness-provider-call-record' \
-                         LIMIT 1",
-                        &[&id],
-                    )?;
-                    (kind, reference.map(|r| r.get::<_, String>("digest")))
-                } else {
-                    (String::new(), None)
-                }
-            };
+            let (kind, prior_digest) = current_provider_predecessor(tx, run, events, position)?;
             if kind != "harness.provider-call-dispatching"
                 || prior_digest.as_deref() != Some(previous_digest)
             {
@@ -734,10 +1023,13 @@ pub fn append_events_with_provider_cas(
     }
     require_lease(&mut tx, run, expected_revision, lease, lease_checked_at_ms)?;
     require_source_result_retention(&contract, events, staged)?;
-    require_source_provider_completion(&mut tx, run, &contract, events)?;
-    // Budget is checked inside the same Run lock, after exact replay
-    // reconciliation and before any dispatch Event may become durable.
+    // Check the immutable per-Run physical dispatch limit first. A request
+    // over budget is rejected regardless of its additional wire/identity
+    // defects and must never acquire a physical send right.
     require_dispatch_budget(&mut tx, run, &contract, events)?;
+    require_source_provider_admission(&mut tx, run, &contract, events)?;
+    require_source_provider_failure(&mut tx, run, &contract, events)?;
+    require_source_provider_completion(&mut tx, run, &contract, events)?;
     let mut status = current.status.as_str();
     let mut when = current.updated_at_ms;
     let mut terminal: Option<&str> = None;

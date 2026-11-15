@@ -215,3 +215,64 @@ Source-allowed and privacy-redacted retained histories still converge
 to original Python Store's exact V4 and AgentTurnResult bytes. The
 Journal, SQL and native test servers remain isolated; this is NOT proof
 of real model payment, tool grant at physical spawn, or AgentSolved.
+
+
+## R36 current Provider admission and failure-state causality (P0)
+
+The original PG18 Writer's R35 V4 COMPLETED check was not sufficient
+to protect the earlier Provider transitions. A current Run lease plus a
+well-formed Event allowed a forged *different Adapter* DISPATCHING record
+to be committed. This is an actual RED, not a theoretical replay concern:
+real scratch PG18 original Writer admitted it as `Ok(Created)`; source
+test Job `job-01a1de23-5202-7366-aeb7-c19ab5c99bfe`.
+
+Reused the existing locked original PG Writer, original Run Contract,
+Core `inspect_v4` typed V4 record parser, shared
+`ProviderRecordHead::same_attempt_identity`, and the existing current
+Provider-head clearing semantics. No new Store, scheduler, Owner, router,
+or independent parser. A new CLAIMED/DISPATCHING admission must bind
+the CAS Event record to the original Run, Adapter, requested Model,
+recorded time, state and request references. DISPATCHING must follow
+the *current* same-attempt CLAIMED, not any earlier record. The same
+current-predecessor query is reused by V4 COMPLETED instead of
+duplicating another causal rule. The immutable Run dispatch-budget
+check remains inside the same Run lock and is evaluated before the
+other admission predicates. Exact replay still reconciles Existing
+before all new-write gates.
+
+A second concrete RED showed a forged *different ProviderCallId*
+UNKNOWN after actual durable DISPATCHING could also be committed.
+Failure-state admission now checks V4 identity/status, the referenced
+FailureReceipt's exact CAS and request identity, and the latest same
+ProviderAttempt predecessor. FAILED may follow an authentic CLAIMED
+or DISPATCHING, while UNKNOWN after possible send requires the
+current DISPATCHING predecessor. No failure label grants actual safe
+retries or proves Provider billing settlement.
+
+Genuine PG18 GREEN:
+- `job-01a1de26-979d-71df-a28a-3b7c43044aea`: wrong-Adapter dispatch
+  rejected, normal positive/redacted/UNKNOWN, budget, original Python
+  independent readback and CAS atomic rollback pass.
+- `job-01a1de2a-822b-7328-8fad-e245da20e1ee`: wrong-call UNKNOWN
+  rejected and its staged CAS rolled back. Native PG V4 4/4, original
+  no-Tool HTTP source test, independent Python readback pass; scratch
+  PG18 cluster stopped and removed. External LLM calls 0, physical
+  Tools 0, DomainSuccess 0.
+
+Owner truth scope: these proofs cover source-owned original PostgreSQL
+Writer admission for the tested V4 events. They do NOT prove that the
+production NativeAgentLoop is wired to this Journal, that the current
+Security Credential owner can materialize secrets, that Gateway has a
+deployed `execution.harness` route, or that real HTTP dispatch/Tool
+physical effects are authorized at spawn time. No installed production
+change, paid Provider call, or automatic retry is claimed.
+
+Thought LEGO: Design by Contract, Event Sourcing, causal ordering, FMEA
+failure-state analysis, RED/GREEN independent falsification, UNKNOWN
+not FALSE, DELETE-CUSTOM->REUSE->COMPOSE.
+Logical LEGO: L1 Run authority, L4 Provider identity, L6 Journal,
+L9 admission, L11 evidence, L12 recovery.
+Ability LEGO: reused and refined `harness-pg/src/journal_write.rs`,
+reused `harness-core/src/provider_head.rs`, extended the original
+`harness-loop/tests/pg_provider_head.rs` real PG18 consumer; no
+second Writer, Provider, scheduler or registry.

@@ -212,6 +212,70 @@ impl DurableJournal for SourcePgUnknownJournal {
             Some(1),
         )
         .map_err(|e| e.to_string())?;
+        // H01 P0 negative: a valid PG lease must NOT turn a fabricated
+        // Provider/Adapter identity into a durable DISPATCHING send right.
+        // Use the original source CLAIMED and swap only the Rust V4 dispatch
+        // record; the staged CAS must rollback together with the Event.
+        let mut forged_seed = native_seed(&self.python_first_source);
+        forged_seed.adapter_id = "adapter:foreign-provider-forged";
+        let forged = author_provider_v4(
+            &forged_seed,
+            ProviderV4Transition::Dispatching {
+                previous: &claim_ref.digest,
+            },
+            u64::try_from(self.batch[1].recorded_at_ms).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let forged_ref = StoredRef {
+            digest: digest_bytes(&canonical_bytes(&forged)),
+            kind: "harness-provider-call-record".into(),
+            byte_length: i64::try_from(canonical_bytes(&forged).len())
+                .map_err(|e| e.to_string())?,
+        };
+        let replaced = String::from_utf8(canonical_bytes(&self.batch[1].data))
+            .map_err(|e| e.to_string())?
+            .replace(&dispatch_ref.digest, &forged_ref.digest);
+        let mut forged_event = self.batch[1].clone();
+        forged_event.event_id = format!("event:foreign-model-dispatch-{}", self.run_id);
+        forged_event.data = loads_strict(&replaced).map_err(|e| e.to_string())?;
+        forged_event
+            .referenced_objects
+            .retain(|r| r.kind != "harness-provider-call-record");
+        forged_event.referenced_objects.push(forged_ref.clone());
+        let forged_events = [self.batch[0].clone(), forged_event];
+        let refused = append_events_with_provider_cas(
+            &mut db,
+            &self.schema,
+            &self.run_id,
+            ProviderEventBatch {
+                events: &forged_events,
+                staged: &[ProviderStagedCas {
+                    kind: ProviderCasKind::RecordV4,
+                    document: &forged,
+                    first_seen_at_ms: self.batch[1].recorded_at_ms,
+                }],
+            },
+            1,
+            &lease,
+            1008,
+        );
+        if !matches!(refused, Err(WriteError::Invalid(_))) {
+            return Err(format!(
+                "foreign Adapter Provider dispatch admitted: {refused:?}"
+            ));
+        }
+        let query = format!(
+            "SELECT count(*) FROM {}.objects WHERE digest=$1",
+            self.schema
+        );
+        let count: i64 = db
+            .query_one(&query, &[&forged_ref.digest])
+            .map_err(|e| e.to_string())?
+            .get(0);
+        if count != 0 {
+            return Err("foreign Provider dispatch CAS persisted after rejection".into());
+        }
+        println!("PG18_PROVIDER_DISPATCH_FOREIGN_MODEL_DENIED_PASS");
         match append_events(
             &mut db,
             &self.schema,
@@ -327,6 +391,70 @@ impl DurableJournal for SourcePgUnknownJournal {
             Some(3),
         )
         .map_err(|e| e.to_string())?;
+        // H09 P0 RED: after a real durable DISPATCHING event, an adapter
+        // with a valid current PG lease cannot fabricate a DIFFERENT Call
+        // identity as UNKNOWN and thereby poison subsequent recovery.
+        let mut foreign_seed = native_seed(&self.python_first_source);
+        foreign_seed.provider_call_id = "provider-call:foreign-unknown-forged";
+        let foreign_unknown = author_provider_v4(
+            &foreign_seed,
+            ProviderV4Transition::Unknown {
+                previous,
+                failure_digest: &fail_ref.digest,
+                failure_object_digest: &fail_ref.digest,
+            },
+            u64::try_from(self.batch[2].recorded_at_ms).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let foreign_ref = StoredRef {
+            digest: digest_bytes(&canonical_bytes(&foreign_unknown)),
+            kind: "harness-provider-call-record".into(),
+            byte_length: i64::try_from(canonical_bytes(&foreign_unknown).len())
+                .map_err(|e| e.to_string())?,
+        };
+        let changed = String::from_utf8(canonical_bytes(&self.batch[2].data))
+            .map_err(|e| e.to_string())?
+            .replace(&unknown_ref.digest, &foreign_ref.digest);
+        let mut foreign_event = self.batch[2].clone();
+        foreign_event.event_id = format!("event:foreign-unknown-{}", self.run_id);
+        foreign_event.data = loads_strict(&changed).map_err(|e| e.to_string())?;
+        foreign_event
+            .referenced_objects
+            .retain(|r| r.kind != "harness-provider-call-record");
+        foreign_event.referenced_objects.push(foreign_ref.clone());
+        let refused = append_events_with_provider_cas(
+            &mut db,
+            &self.schema,
+            &self.run_id,
+            ProviderEventBatch {
+                events: &[foreign_event],
+                staged: &[ProviderStagedCas {
+                    kind: ProviderCasKind::RecordV4,
+                    document: &foreign_unknown,
+                    first_seen_at_ms: self.batch[2].recorded_at_ms,
+                }],
+            },
+            3,
+            &lease,
+            1012,
+        );
+        if !matches!(refused, Err(WriteError::Invalid(_))) {
+            return Err(format!(
+                "foreign Provider UNKNOWN event admitted: {refused:?}"
+            ));
+        }
+        let query = format!(
+            "SELECT count(*) FROM {}.objects WHERE digest=$1",
+            self.schema
+        );
+        let count: i64 = db
+            .query_one(&query, &[&foreign_ref.digest])
+            .map_err(|e| e.to_string())?
+            .get(0);
+        if count != 0 {
+            return Err("foreign Provider UNKNOWN CAS persisted after rejection".into());
+        }
+        println!("PG18_PROVIDER_UNKNOWN_CROSS_ATTEMPT_DENIED_PASS");
         match append_events(
             &mut db,
             &self.schema,
