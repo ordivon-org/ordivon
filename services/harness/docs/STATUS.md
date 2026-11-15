@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-09
+updated: 2026-11-16
 summary: Current maturity claim for Harness as an independent durable cognitive execution substrate, with supported cognition, Provider and Tool continuity, composition, verification, and known limits.
 evidence_status: verified
 readiness: READY
@@ -108,7 +108,7 @@ The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibil
 ## Known limits
 
 - Harness is pre-1.0; public schemas and advanced exports may still change under the documented compatibility policy.
-- The primary CLI does not create Tool-bearing Runtime clients.
+- The primary CLI defaults to no-Tool DeepSeek; a caller may explicitly opt into an authenticated Gateway Tool profile, exact existing Workspace and executable grant. This provides a Tool-bearing CLI without minting Runtime authority. Tool UNKNOWN recovery beyond the current stopped Run, installed production release, and independent domain completion remain separately unqualified.
 - Harness begins at one exact `HarnessRunContract`; higher-level multi-Run orchestration/resource allocation and generic Strategy selection/evidence aggregation remain outside Harness.
 - Harness intentionally has no generic capability discovery/ranking service. Large heterogeneous capability ecologies should use their actual owner/tool substrate discovery surfaces; Harness receives exact caller/owner facts only where needed for one Run/turn.
 - Fresh-Agent V1/V2 did not earn a Harness semantic retriever. Reopen retrieval research only when a real owner substrate produces a discriminating discovery failure; current Harness pressure is compact consumption of already-current owner facts.
