@@ -527,7 +527,7 @@ POST:
 
 **Deletion policy:** remove redundant example-based tests **only after** their exact property is mapped to an executed proof harness and implementation refinement, and the relevant native effect has independent acceptance. Do not remove tests of real SQL isolation, systemd/cgroup, Windows Job Object, installer/deployment or external network behavior on the strength of a pure Rust decision proof.
 
-**Truth status as of this pass:** production classifier and Kani proof source written; formal Kani execution NOT RUN; native PG/systemd integration NOT RUN; installed Runtime NOT UPDATED; four stale `stopping` reservations still block Linux ordinary execution. Local source mutation is not proof, release or consumer acceptance.
+**Historical source-write checkpoint (superseded by the dated verification below):** the classifier and Kani proof source then existed, but formal Kani and native PG/systemd tests had not yet run; four stale `stopping` reservations were observed at that time. Do not interpret this earlier checkpoint as today's installed Runtime or scheduling status. The 2026-11-08 qualifications below and current native Runtime readback are distinct evidence.
 
 ## 2026-11-08 accepted evidence for production Rust native-stop classifier
 
