@@ -70,11 +70,23 @@ Never disable authentication or expose the drill's socket to other users.
 
 Use native `pg_ctl -w stop`, then remove **only the verified exact drill
 directory** after checking no postmaster remains. Preserve failure logs until
-classified. An `immediate` recovery pauses at the earliest consistent point;
-it does not prove latest-time PITR, writer promotion, application-level
-correctness, external Agent effects or a failover service switch. Those require
-separate real-consumer acceptance. Production PGDATA, original WAL backup
-repository, qualified Runtime epoch and other Agents' Workspaces are untouched.
+classified. An `immediate` recovery pauses at the earliest consistent point.
+
+A separate **time-target PITR** drill (2026-11-15) reused pgBackRest with
+`--type=time --target="2026-11-15 12:00:00+08" --target-action=pause`
+on a fresh isolated PGDATA. PostgreSQL 18 stopped *before* a commit at
+12:00:00.537749+08 and confirmed `pg_is_wal_replay_paused()=true`; the last
+replayed transaction was at 11:59:51.582089+08. Read-only SQL confirmed the
+same Host 21, Harness 6, Linux Runtime 16 application tables. **Count all
+non-system schemas**, not just `public`, or Runtime/Harness may falsely appear
+empty. Restore and isolated boot took 59.58 and 10.69 seconds respectively,
+excluding target replay and SQL checks.
+
+These drills prove selected backup/WAL/SQL recovery only, **not** current-time
+RPO, writer promotion, application-level correctness, external Agent effects
+or a failover service switch. Those require separate real-consumer acceptance.
+Production PGDATA, original WAL repository, qualified Runtime epoch and other
+Agents' Workspaces are untouched.
 
 ## PostgreSQL Runtime recovery branch qualification (source candidate)
 
