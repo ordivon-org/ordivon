@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import zipfile
@@ -21,9 +22,9 @@ SOURCES = {
 README = (
     "Ordivon Runtime Introduction — 2026 historical explanatory edition\n"
     "Open index.html in a browser after extracting this ZIP.\n"
-    "Videos and interactive HTML work locally. The optional WebVTT captions may\n"
-    "require an HTTP origin on browsers that disallow file:// caption tracks.\n"
-    "Use python3 -m http.server from the extracted folder if necessary.\n"
+    "Videos, English captions, and interactive HTML open locally via file://.\n"
+    "The HTML carries the exact WebVTT data for offline Chromium and Firefox.\n"
+    "Separate caption files are retained for downloads and video editors.\n"
     "All content is source-revision bound; it is not a current feature inventory.\n"
     "No claim of YouTube/Douyin/Upwork publication or audience response.\n"
 ).encode()
@@ -41,6 +42,19 @@ def main() -> None:
     for name, relative in SOURCES.items():
         path = ROOT / relative
         entries[name] = path.read_bytes()
+    # One selected WebVTT track must work from file:// in Chromium as well as
+    # over HTTP, without making nontechnical readers launch a local server.
+    # Keep the separate exact VTT/SRT downloads in the same ZIP.
+    track_src = 'src="captions/narration.en.vtt"'
+    index_html = entries["index.html"].decode("utf-8")
+    if index_html.count(track_src) != 1:
+        raise ValueError("portfolio template must contain exactly one English caption track")
+    embedded = "data:text/vtt;base64," + base64.b64encode(
+        entries["captions/narration.en.vtt"]
+    ).decode("ascii")
+    entries["index.html"] = index_html.replace(
+        track_src, f'src="{embedded}"'
+    ).encode("utf-8")
     entries["README.txt"] = README
     assets = {
         name: {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}

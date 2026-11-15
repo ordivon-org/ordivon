@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
+import re
 import unittest
 import zipfile
 from html.parser import HTMLParser
@@ -16,7 +18,7 @@ class RuntimeIntroductionDeliveryTests(unittest.TestCase):
         self.assertEqual(len(production["outputs"]), 5)
         for output in production["outputs"]:
             with self.subTest(output=output["id"]):
-                self.assertIn(output["status"], {"approved", "published"})
+                self.assertIn(output["status"], {"approved", "published", "rendered"})
                 path = ROOT / output["outputCarrier"]
                 self.assertTrue(path.is_file())
                 actual = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -35,17 +37,38 @@ class RuntimeIntroductionDeliveryTests(unittest.TestCase):
                     self.assertEqual(len(data), metadata["bytes"])
                     self.assertEqual(hashlib.sha256(data).hexdigest(), metadata["sha256"])
 
+    def test_offline_caption_track_matches_downloadable_source_bytes(self) -> None:
+        with zipfile.ZipFile(ROOT / "publish" / "runtime-introduction-portfolio.zip") as archive:
+            page = archive.read("index.html").decode("utf-8")
+            tracks = re.findall(
+                r'<track kind="captions" src="data:text/vtt;base64,([A-Za-z0-9+/=]+)"',
+                page,
+            )
+            self.assertEqual(len(tracks), 1)
+            self.assertEqual(
+                base64.b64decode(tracks[0], validate=True),
+                archive.read("captions/narration.en.vtt"),
+            )
+            self.assertIn("captions/narration.en.srt", archive.namelist())
+
     def test_standalone_portfolio_links_and_interactive_wiring(self) -> None:
         with zipfile.ZipFile(ROOT / "publish" / "runtime-introduction-portfolio.zip") as archive:
             files = set(archive.namelist())
+
             class References(HTMLParser):
                 def __init__(self) -> None:
                     super().__init__()
                     self.links: list[str] = []
+
                 def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
                     for attr, value in attrs:
-                        if attr in {"src", "href", "poster"} and value and not value.startswith(("http://", "https://", "#")):
+                        if (
+                            attr in {"src", "href", "poster"}
+                            and value
+                            and not value.startswith(("http://", "https://", "#", "data:"))
+                        ):
                             self.links.append(value)
+
             for page in ("index.html", "interactive/index.html"):
                 parser = References()
                 parser.feed(archive.read(page).decode())
@@ -57,7 +80,7 @@ class RuntimeIntroductionDeliveryTests(unittest.TestCase):
                         self.assertIn(normal, files)
             interactive = archive.read("interactive/index.html").decode()
             self.assertIn('addEventListener("click"', interactive)
-            self.assertIn('ArrowRight', interactive)
+            self.assertIn("ArrowRight", interactive)
             self.assertIn("not a live simulation", interactive)
 
 

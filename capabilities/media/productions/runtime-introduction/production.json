@@ -101,10 +101,10 @@
     {
       "id": "runtime-upwork-package",
       "kind": "publication-package",
-      "status": "approved",
+      "status": "rendered",
       "profile": "downloadable-portfolio-zip",
       "outputCarrier": "publish/runtime-introduction-portfolio.zip",
-      "blobDigest": "sha256:b13d578e1f4af64ae948177d30c8b05475c640618c7d34e6f645927479f094a4"
+      "blobDigest": "sha256:9cd254d13f147b73a466a55c0eed4be8257a0f93c668666dc5f15f484b8682fb"
     }
   ]
 }
