@@ -63,7 +63,7 @@ impl PgRuntimeServer {
         Self::catalog_enabled(false)
     }
     fn catalog_enabled(release_ready: bool) -> Vec<Tool> {
-        RuntimeServer::tool_router().list_all().into_iter().filter_map(|mut t| {
+        pg_portable_tool_catalog().into_iter().filter_map(|mut t| {
             let description = match t.name.as_ref() {
                 "runtime.describe" => "Describe only the executable PostgreSQL Runtime capabilities and native Linux runner provider.",
                 "job.list" => "Principal-scoped, newest-first PostgreSQL Job listing with exact cursor and no historical SQLite IDs.",

@@ -115,7 +115,7 @@ fn qualify_pg_scheduling_output_schema(tool: &mut Tool) {
     tool.output_schema = Some(Arc::new(schema));
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "legacy-runtime"))]
 mod pg_scheduling_output_contract_tests {
     use super::*;
 

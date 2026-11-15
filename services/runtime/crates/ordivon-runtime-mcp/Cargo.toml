@@ -12,13 +12,14 @@ publish = false
 [[bin]]
 name = "ordivon-runtime"
 path = "src/main.rs"
+required-features = ["legacy-runtime"]
 
 [dependencies]
 axum.workspace = true
 base64.workspace = true
 hex.workspace = true
 jsonwebtoken.workspace = true
-ordivon-runtime-core = { version = "=0.1.0", path = "../ordivon-runtime-core", default-features = false, features = ["transactional-runtime"] }
+ordivon-runtime-core = { version = "=0.1.0", path = "../ordivon-runtime-core", default-features = false, features = ["runtime-contract"] }
 reqwest.workspace = true
 rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
 schemars.workspace = true
@@ -36,6 +37,8 @@ tower-http.workspace = true
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Services"] }
 
 [features]
+default = ["legacy-runtime"]
+legacy-runtime = ["ordivon-runtime-core/transactional-runtime"]
 postgres-runtime = ["ordivon-runtime-core/postgres-registry-admission"]
 
 [[bin]]
