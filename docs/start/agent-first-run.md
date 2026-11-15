@@ -31,11 +31,18 @@ skills.read(skillId="project-ordivon-next/finance-paper-investment",
 
 The `skillId` above is an example of an actual qualified Skills Owner
 resolution; always use the exact returned ID, revisions and source currentness
-when available. The live test found all three project Finance procedures
-(`finance-paper-investment`, `finance-experiment-review` and
-`finance-paper-risk-review`) with that project context, and successfully
-read the first Skill. A global query returning no Finance results does not
-imply missing project packages.
+when available. **Search is an implicit-invocation discovery view, not a
+complete inventory of explicitly addressable Skills.** For example, on
+2026-11-15, scoped `skills.search(query="finance", workspaceId="ordivon-next")`
+did not include the project binding for `finance-experiment-review`, while
+`skills.resolve(ref="finance-experiment-review", workspaceId="ordivon-next",
+invocationMode="explicit")` resolved that exact project Skill with
+`implicitInvocation=false`, `scanState=WARN` and
+`riskTags=["CROSS_SKILL_ROUTING"]`. This is a dated observation, not a
+permanent Skill count or permission to auto-invoke the explicitly selected
+Skill. Inspect its actual current advisory metadata, selection and warnings;
+the final business action still belongs to the natural Owner. Unscoped search
+results also do not prove that project packages are absent.
 
 The named project registrations belong to the existing
 [Skills owner](../architecture/SKILLS.md). Check its active configuration
