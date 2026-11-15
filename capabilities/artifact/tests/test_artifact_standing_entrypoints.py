@@ -12,17 +12,9 @@ from pathlib import Path
 import pytest
 
 from artifact_operations.providers import DirectPythonOperationProvider
+from artifact_verification.claim_coverage import assess_required_statuses
 
 ROOT = Path(__file__).resolve().parents[1]
-
-STANDING_SPEC = importlib.util.spec_from_file_location(
-    "standing_decision_r1",
-    ROOT / "planning/prototypes/standing_decision_r1.py",
-)
-S = importlib.util.module_from_spec(STANDING_SPEC)
-assert STANDING_SPEC.loader is not None
-STANDING_SPEC.loader.exec_module(S)
-
 
 SERVICE_SPEC = importlib.util.spec_from_file_location(
     "artifact_verify_standing_fixture",
@@ -59,7 +51,7 @@ def make_wave(path: Path, *, rate: int = 48000, frames: int = 240) -> bytes:
     return raw
 
 
-class ArtifactStandingDecisionPressureR1Tests(unittest.TestCase):
+class ArtifactStandingEntrypointsTests(unittest.TestCase):
     def _legacy_stage(self, root: Path):
         profile_path = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
         pptx = root / "artifact.pptx"
@@ -122,100 +114,89 @@ class ArtifactStandingDecisionPressureR1Tests(unittest.TestCase):
         return result
 
     @pytest.mark.integration
-    def test_legacy_stage_pass_does_not_launder_missing_required_claims(self):
+    def test_v1_live_delivery_stage_has_bounded_coverage_not_full_profile_success(self):
         with tempfile.TemporaryDirectory() as d:
             native = self._legacy_stage(Path(d))
-            canonical = profile("pdu-sdu-presentation-r1")
-            claims = S.legacy_stage_claim_results(native)
-            decision = S.evaluate_standing(
-                canonical, claims, profile_authority="PRODUCTION"
-            )
             self.assertEqual(native["status"], "PASS")
             self.assertFalse(native["profileVerificationComplete"])
             self.assertEqual(
-                decision["standingVector"]["verificationStatus"], "PENDING"
+                native["standingCoverage"]["required"],
+                native["profileRequiredGates"],
             )
             self.assertEqual(
-                decision["standingVector"]["evidenceCompleteness"], "PARTIAL"
+                native["standingCoverage"]["missing"],
+                native["pendingRequiredGates"],
             )
-            self.assertTrue(
-                {"target", "visual", "deliveryReadback"}
-                & set(decision["missingRequiredClaims"])
+            self.assertEqual(
+                native["standingCoverage"]["verificationStatus"], "UNKNOWN"
+            )
+            self.assertEqual(
+                native["standingCoverage"]["consumerAcceptance"],
+                "EXTERNAL_NOT_EVALUATED",
             )
 
-    def test_wave_native_complete_claim_results_yield_profile_pass(self):
+    def test_wave_live_native_claims_share_production_coverage_semantics(self):
         with tempfile.TemporaryDirectory() as d:
             native = self._wave_service_result(Path(d))
             canonical = profile("audio-wave-pcm16-r1")
-            claims = S.family_explicit_claim_results(native, canonical)
-            decision = S.evaluate_standing(
-                canonical, claims, profile_authority="SHADOW"
+            required = sorted(
+                key for key, declaration in canonical["requiredEvidence"].items()
+                if declaration["required"] is True
             )
             self.assertEqual(native["status"], "PASS")
-            self.assertEqual(set(claims), set(canonical["requiredEvidence"]))
-            self.assertEqual(decision["missingRequiredClaims"], [])
+            self.assertEqual(native["standingCoverage"]["required"], required)
+            self.assertEqual(native["standingCoverage"]["missing"], [])
+            self.assertEqual(native["standingCoverage"]["verificationStatus"], "PASS")
+            self.assertTrue(native["standingCoverage"]["complete"])
+            self.assertTrue(native["profileVerificationComplete"])
             self.assertEqual(
-                decision["standingVector"]["verificationStatus"], "PASS"
-            )
-            self.assertEqual(
-                decision["standingVector"]["evidenceCompleteness"], "COMPLETE"
+                native["standingCoverage"]["consumerAcceptance"],
+                "EXTERNAL_NOT_EVALUATED",
             )
 
-    def test_explicit_complete_claim_results_can_yield_pass(self):
+    def test_production_pure_coverage_preserves_required_claims_and_failures(self):
         canonical = profile("audio-wave-pcm16-r1")
-        claims = {
-            key: {"status": "PASS", "source": "explicit-plugin-contract"}
-            for key in S.required_claim_keys(canonical)
+        required = {
+            name for name, row in canonical["requiredEvidence"].items()
+            if row["required"] is True
         }
-        decision = S.evaluate_standing(
-            canonical, claims, profile_authority="SHADOW"
-        )
+        statuses = {name: "PASS" for name in required}
+        accepted_statuses = assess_required_statuses(required, statuses)
+        self.assertEqual(accepted_statuses["verificationStatus"], "PASS")
+        self.assertTrue(accepted_statuses["complete"])
+        self.assertEqual(accepted_statuses["required"], sorted(required))
         self.assertEqual(
-            decision["standingVector"]["verificationStatus"], "PASS"
+            accepted_statuses["consumerAcceptance"], "EXTERNAL_NOT_EVALUATED"
         )
-        self.assertEqual(
-            decision["standingVector"]["evidenceCompleteness"], "COMPLETE"
-        )
-        self.assertEqual(decision["missingRequiredClaims"], [])
 
-    def test_explicit_failure_dominates_complete_coverage(self):
-        canonical = profile("audio-wave-pcm16-r1")
-        claims = {
-            key: {"status": "PASS", "source": "explicit-plugin-contract"}
-            for key in S.required_claim_keys(canonical)
-        }
-        claims["decoderMatrix"] = {
-            "status": "FAIL",
-            "source": "explicit-plugin-contract",
-        }
-        decision = S.evaluate_standing(
-            canonical, claims, profile_authority="SHADOW"
-        )
-        self.assertEqual(
-            decision["standingVector"]["verificationStatus"], "FAIL"
-        )
-        self.assertEqual(
-            decision["standingVector"]["evidenceCompleteness"], "COMPLETE"
-        )
-        self.assertEqual(decision["requiredFailures"], ["decoderMatrix"])
+        statuses["decoderMatrix"] = "FAIL"
+        negative = assess_required_statuses(required, statuses)
+        self.assertEqual(negative["verificationStatus"], "FAIL")
+        self.assertEqual(negative["failed"], ["decoderMatrix"])
+        self.assertFalse(negative["complete"])
 
-    def test_trust_and_release_axes_remain_independent(self):
+        ungrounded_failure = assess_required_statuses(
+            required, statuses, issues=("native status pointer mismatch",)
+        )
+        self.assertEqual(ungrounded_failure["verificationStatus"], "UNKNOWN")
+        self.assertFalse(ungrounded_failure["complete"])
+
+    def test_trust_release_and_domain_acceptance_are_external_to_projection(self):
         canonical = profile("still-image-png-srgb-r1")
-        claims = {
-            key: {"status": "PASS", "source": "explicit-plugin-contract"}
-            for key in S.required_claim_keys(canonical)
+        required = {
+            name for name, row in canonical["requiredEvidence"].items()
+            if row["required"] is True
         }
-        decision = S.evaluate_standing(
-            canonical,
-            claims,
-            profile_authority="SHADOW",
-            trust_status="NOT_EVALUATED",
-            release_status="NOT_EVALUATED",
+        decision = assess_required_statuses(
+            required, {name: "PASS" for name in required}
         )
-        vector = decision["standingVector"]
-        self.assertEqual(vector["verificationStatus"], "PASS")
-        self.assertEqual(vector["trustStatus"], "NOT_EVALUATED")
-        self.assertEqual(vector["releaseStatus"], "NOT_EVALUATED")
+        self.assertEqual(decision["verificationStatus"], "PASS")
+        self.assertNotIn("trustStatus", decision)
+        self.assertNotIn("releaseStatus", decision)
+        self.assertNotIn("profileAuthority", decision)
+        self.assertEqual(
+            decision["consumerAcceptance"], "EXTERNAL_NOT_EVALUATED"
+        )
 
 
 if __name__ == "__main__":
