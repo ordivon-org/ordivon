@@ -435,6 +435,18 @@ Harness 使用原有 `execution.resolve/get` 对账，不额外执行 `execution
 Owner 对账完成、物理 Tool 请求提交次数严格等于 1。这不是已安装 Gateway 的
 端到端验收，也不是 Agent 业务结果已被独立 DomainVerifier 接受。
 
+**真实安装 Gateway 的后续受控验收（2026-11-16）：** 上述 R45 源码的另一个
+独立单次试验使用 *脚本化 Provider*、已安装 Gateway 0.10.10、真实
+Linux Runtime 和原 PostgreSQL 18。测试客户端在 Gateway 已收到
+`execution.submit` 之后丢弃响应，并暂时阻断 `execution.resolve`：
+首次返回 `runtime_unknown`、原 Run `paused`、Tool Receipt `unknown`；
+之后允许查询，新的 `resume` 经原 `resolve/get` 恢复为
+`completed`、Tool Receipt `observed`、`reconciled=true`。
+完整试验 `execution.submit` 次数严格为 1，Linux Runtime 原 Job
+`job-01a1e0a1-efb0-74cd-9bdb-a6143f4d0a09` 独立读回
+`exitCode=0`、交付 committed、资源已释放。
+这只是客户端响应丢失这一类故障的单次证据，不证明任意物理
+竞态下 Exactly-once，亦不证明 PR 已部署。
 ## Recovery
 
 Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:

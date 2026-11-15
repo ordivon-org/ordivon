@@ -381,9 +381,14 @@ Gateway `execution.resolve/get` to reconcile its Owner effect; a second
 `execution.submit` is not authorized by response loss. Other
 `runtime_unknown` cases may still stop. This source-level recovery is
 qualified by disposable real PG and a test Gateway simulating response loss;
-live installed Gateway response-loss recovery, Rust native
-`DurableJournal` production binding and deployed release parity remain
-independently unqualified. Do not duplicate the Journal, Artifact Store,
+one installed-Gateway client-response-loss trial was independently qualified
+on 2026-11-16 with an actual native Linux Runtime Job and original scratch
+PostgreSQL: one physical submit, `paused`/UNKNOWN, later
+`resolve/get`, `completed`/reconciled, still one submit. This does **not**
+prove universal physical exactly-once, arbitrary crash recovery, or live
+deployment of this unmerged branch. Rust native `DurableJournal` production
+binding and deployed release parity remain unqualified. Do not duplicate
+the Journal, Artifact Store,
 credential authority, or tool execution engine.
 Tool-bearing Runs bind a complete Tool catalog digest and Tool grant digest. Before physical delivery, Harness records a Tool intent and dispatch fence. Runtime requests carry Harness authority references. Observation-only failures can be corrected by the Agent; ambiguous external effects require reconciliation and may terminate recovery as UNKNOWN.
 
