@@ -207,10 +207,12 @@ nonempty string states as Owner-owned opaque vocabulary. Source TDD:
 remains necessary. A typed receipt does not attest the physical effect.
 
 For Agent-facing execution.get Artifact completeness, the Owner's qualified
-job.get artifact count must match **distinct, nonblank Artifact IDs** from
-job.observe, not merely the number of rows. If identities repeat or are blank,
-the Gateway performs its existing one bounded refresh; unresolved identity
-coverage stays incomplete. Never fabricate a missing Owner Artifact or treat
+job.get artifact count must match **distinct, nonblank Artifact IDs** from an
+explicitly list-valued, fully qualified job.observe inventory, not merely the
+number of rows. If an Owner response contains a malformed list, missing or
+invalid entries, or duplicate IDs, the Gateway performs its existing one
+bounded refresh; unresolved identity coverage stays incomplete even when the
+Owner summary count is 0. Never fabricate a missing Owner Artifact or treat
 an unqualified count as a success witness.
 
 ## R08 Linux PG Runtime real business Job and Artifact delivery

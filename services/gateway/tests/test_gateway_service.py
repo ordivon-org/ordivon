@@ -1013,3 +1013,48 @@ def test_blank_artifact_id_is_not_an_agent_visible_complete_identity() -> None:
     assert observed.artifact_ids == ["a.stdout"]
     assert observed.artifact_projection_complete is False
     assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]
+
+
+@pytest.mark.parametrize(
+    "invalid_inventory",
+    [
+        "not-a-list",
+        None,
+        {"artifactId": "a.stdout"},
+        [{"artifactId": ""}],
+        [{"artifactId": "  "}],
+        [{"kind": "stdout"}],
+        [None],
+    ],
+)
+@pytest.mark.parametrize("refresh_valid", [False, True])
+def test_malformed_runtime_artifact_inventory_cannot_prove_empty_projection(
+    invalid_inventory: Any, refresh_valid: bool
+) -> None:
+    """A filtered malformed list must not masquerade as qualified zero Artifacts."""
+    caller = FakeOwnerCaller()
+    original = {
+        "jobId": "job-malformed-artifacts",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "artifactsAvailable": True,
+        "artifacts": invalid_inventory,
+    }
+    refreshed = {
+        **original,
+        "artifacts": [] if refresh_valid else invalid_inventory,
+    }
+    caller.responses[("runtime.linux", "job.observe")] = [original, refreshed]
+    caller.responses[("runtime.linux", "job.get")] = {
+        "job": {"jobId": "job-malformed-artifacts"},
+        "artifacts": {"count": 0},
+    }
+    result = asyncio.run(
+        GatewayService(caller).execution_get(
+            "ordivon-exec:v1:runtime.linux:job-malformed-artifacts"
+        )
+    )
+    assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]
+    assert result.artifact_ids == []
+    assert result.artifact_count == 0
+    assert result.artifact_projection_complete is refresh_valid

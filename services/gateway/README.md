@@ -543,9 +543,11 @@ eof, wrong/ill-typed offset, nextOffset outside the requested range,
 or non-string content; the string "false" cannot become EOF=True.
 An artifact_projection_complete=True claim requires an actual
 nonnegative JSON integer from job.get.artifacts.count corroborated by
-that many **distinct, nonblank** observed Artifact IDs. A duplicate row
-must not fake identity completeness; Gateway reuses its existing single
-bounded job.observe refresh and leaves unresolved coverage False. If the
+that many **distinct, nonblank** observed Artifact IDs from a fully valid,
+explicit list-valued Owner inventory. A malformed container or filtered
+invalid row cannot masquerade as an empty inventory even when the Owner
+summary count is 0. Gateway reuses its existing single bounded job.observe
+refresh and leaves unresolved coverage False. If the
 authoritative total is absent or malformed, completeness remains UNKNOWN
 (None), not True or False.
 Likewise exitCode=True cannot be treated as an integer code. Original
