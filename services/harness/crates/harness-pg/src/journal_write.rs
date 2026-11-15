@@ -470,10 +470,40 @@ fn require_source_provider_admission(
                     "Provider claim overlaps unresolved current attempt",
                 ));
             }
-            if kind == "harness.provider-call-completed" && prior.is_none() {
-                return Err(WriteError::Invalid(
+            if kind == "harness.provider-call-completed" {
+                let previous_digest = prior.as_deref().ok_or(WriteError::Invalid(
                     "Provider claim previous completed reference absent",
-                ));
+                ))?;
+                let previous_row = tx.query_one(
+                    "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+                    &[&previous_digest],
+                )?;
+                let previous_doc = decode_cas(
+                    previous_digest,
+                    "harness-provider-call-record",
+                    &previous_row.get::<_, String>("kind"),
+                    previous_row.get::<_, i64>("byte_length"),
+                    &previous_row.get::<_, Vec<u8>>("content"),
+                )?;
+                let previous = inspect_v4(&previous_doc).map_err(|_| {
+                    WriteError::Invalid("Provider next-turn predecessor invalid V4")
+                })?;
+                if previous.status != ProviderStatus::Completed
+                    || previous.provider_call_id == parsed.provider_call_id
+                    || !parsed
+                        .turn_sequence
+                        .is_immediate_successor_of(&previous.turn_sequence)
+                    || ["sourceKind", "sourceDigest", "sourceObjectDigest"]
+                        .iter()
+                        .any(|key| {
+                            doc.field(key).and_then(|v| v.as_str())
+                                != previous_doc.field(key).and_then(|v| v.as_str())
+                        })
+                {
+                    return Err(WriteError::Invalid(
+                        "Provider claim does not follow next source turn",
+                    ));
+                }
             }
         }
         if expected == ProviderStatus::Dispatching {

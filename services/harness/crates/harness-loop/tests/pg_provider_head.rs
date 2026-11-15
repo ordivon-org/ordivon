@@ -1200,6 +1200,73 @@ fn verify_native_rust_pg_v4_completed_case(source_case: &str, retain_model_conte
             .revision,
         4
     );
+    // R39 RED: an already COMPLETED model call does not entitle an
+    // adapter to repeat the SAME turn under a different ProviderCallId,
+    // even with a valid rev4 PG lease and an authentic predecessor.
+    let first_claim_record = loads_strict(
+        std::str::from_utf8(&source_records.index(0).unwrap().canonical_bytes()).unwrap(),
+    )
+    .unwrap();
+    let original_claim_ref = expected_ref(&batch[0], "harness-provider-call-record").unwrap();
+    let completed_ref = expected_ref(&batch[2], "harness-provider-call-record").unwrap();
+    let mut same_turn_seed = native_seed(&first_claim_record);
+    same_turn_seed.provider_call_id = "provider-call:repeated-completed-turn";
+    let duplicate_turn = author_provider_v4(
+        &same_turn_seed,
+        ProviderV4Transition::Claimed {
+            previous: Some(&completed_ref.digest),
+        },
+        1045,
+    )
+    .unwrap();
+    let duplicate_ref = StoredRef {
+        digest: digest_bytes(&canonical_bytes(&duplicate_turn)),
+        kind: "harness-provider-call-record".into(),
+        byte_length: i64::try_from(canonical_bytes(&duplicate_turn).len()).unwrap(),
+    };
+    let raw = String::from_utf8(canonical_bytes(&batch[0].data))
+        .unwrap()
+        .replace(&original_claim_ref.digest, &duplicate_ref.digest);
+    let mut duplicate_claim_event = batch[0].clone();
+    duplicate_claim_event.event_id = format!("event:repeated-completed-turn-{source_case}");
+    duplicate_claim_event.recorded_at_ms = 1045;
+    duplicate_claim_event.caused_by_event_id = Some(batch[2].event_id.clone());
+    duplicate_claim_event.data = loads_strict(&raw).unwrap();
+    duplicate_claim_event
+        .referenced_objects
+        .retain(|r| r.kind != "harness-provider-call-record");
+    duplicate_claim_event
+        .referenced_objects
+        .push(duplicate_ref.clone());
+    let repeated = append_events_with_provider_cas(
+        &mut denied_db,
+        &schema,
+        run_id,
+        ProviderEventBatch {
+            events: &[duplicate_claim_event],
+            staged: &[ProviderStagedCas {
+                kind: ProviderCasKind::RecordV4,
+                document: &duplicate_turn,
+                first_seen_at_ms: 1045,
+            }],
+        },
+        4,
+        &newer_lease,
+        1045,
+    );
+    assert!(
+        matches!(repeated, Err(WriteError::Invalid(_))),
+        "same completed turn was re-claimed under a different ProviderCallId: {repeated:?}",
+    );
+    let duplicate_count: i64 = readonly
+        .query_one(&rollback_sql, &[&duplicate_ref.digest])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        duplicate_count, 0,
+        "repeated completed-turn Provider CAS persisted"
+    );
+    println!("PG18_PROVIDER_COMPLETED_SAME_TURN_RECLAIM_DENIED_PASS");
     // Source-budget falsifier: the original Run Contract now has
     // maxModelCalls=1,maxModelRetries=0 and one durable DISPATCHING.
     // The existing valid rev4 lease is NOT enough to authorize another

@@ -375,3 +375,45 @@ Ability: one additional guard in the original
 scenario in `harness-loop/tests/pg_provider_head.rs`.
 No production installation, external model charges, physical Tool
 or independent DomainSuccess has been claimed.
+
+
+## R39 next-turn CLAIMED source identity and unbounded sequence
+
+A fourth distinct real PG18 admitted-causal-state counterexample:
+after a completed ProviderCall and a valid rev4 lease, an adapter
+could assign a different ProviderCallId but reuse the SAME old
+turnSequence and turnId, while binding the previous completed CAS.
+This passed R38's coarse "there is a completed predecessor" check.
+It is not a true next-turn claim under the original Python source
+`run_continuity.claim_provider_call` rule. RED actual scratch PG18:
+`job-01a1de40-6d89-70e3-9945-8dace4f38d90`; positive and
+redacted original cases both failed at the expected new negative.
+
+Reused the R38 locked current predecessor and original Core
+`ProviderRecordHead`. CLAIMED after current COMPLETED must carry
+a DIFFERENT ProviderCallId, exact next numeric turnSequence, and
+the same sourceKind/sourceDigest/sourceObjectDigest provenance.
+`NonnegativeDecimal::is_immediate_successor_of` is a tiny typed
+core primitive that handles the Python source's arbitrarily long
+integer identity without truncating to u64; positive and negative
+unit controls cover 9->10, u64 overflow and 400-digit transitions.
+The original next-turn semantic rule, not a new router/registry,
+is the authority. First claims after cleared heads remain allowed;
+unresolved prior dispatch remains blocked.
+
+GREEN true PG18: `job-01a1de41-d545-70cf-ad7e-6cd437f591a9`,
+`PG18_PROVIDER_COMPLETED_SAME_TURN_RECLAIM_DENIED_PASS`.
+Original Python PG Store and positive/redacted completed, legitimate
+UNKNOWN, wrong-Adapter, budget and failure-ABI negatives all pass
+on 4/4 V4 integration tests; one noTool real local HTTP test also
+passes. Scratch PG18 stopped/removed, external Provider 0, Tool 0,
+AgentSolved 0. This is source Writer state semantics, not evidence
+of a production model or external billing audit.
+
+LEGO thought: Design by Contract, Event Sourcing, original Python
+semantic parity, unbounded typed representation, falsification-first.
+Logical: L1 current Run, L4 Provider turn, L6 Event/CAS journal,
+L9 admissible next dispatch and L12 valid recovery.
+Capability: existing `harness-core/src/provider_head.rs`,
+`harness-pg/src/journal_write.rs`, original
+`harness-loop/tests/pg_provider_head.rs`; no new Store/Owner.

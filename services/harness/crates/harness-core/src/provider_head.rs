@@ -77,6 +77,27 @@ impl NonnegativeDecimal {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Preserve the Python source's unbounded next-turn counter contract.
+    /// Converting historical decimal identities to u64 would silently
+    /// reject legitimate large Run records.
+    pub fn is_immediate_successor_of(&self, previous: &Self) -> bool {
+        let mut successor = previous.0.as_bytes().to_vec();
+        let mut overflow = true;
+        for digit in successor.iter_mut().rev() {
+            if *digit == b'9' {
+                *digit = b'0';
+            } else {
+                *digit += 1;
+                overflow = false;
+                break;
+            }
+        }
+        if overflow {
+            successor.insert(0, b'1');
+        }
+        self.0.as_bytes() == successor
+    }
 }
 
 impl Ord for NonnegativeDecimal {
@@ -416,6 +437,15 @@ mod tests {
         assert!(NonnegativeDecimal("9".repeat(2048)) < NonnegativeDecimal("1".repeat(2049)));
     }
 
+    #[test]
+    fn next_turn_is_exact_immediate_successor_without_u64_truncation() {
+        let n = |s: &str| NonnegativeDecimal(s.to_owned());
+        assert!(n("10").is_immediate_successor_of(&n("9")));
+        assert!(n("18446744073709551616").is_immediate_successor_of(&n("18446744073709551615")));
+        assert!(!n("1").is_immediate_successor_of(&n("1")));
+        assert!(!n("3").is_immediate_successor_of(&n("1")));
+        assert!(n(&format!("1{}", "0".repeat(400))).is_immediate_successor_of(&n(&"9".repeat(400))));
+    }
     #[test]
     fn status_does_not_grant_physical_dispatch() {
         assert_eq!(
