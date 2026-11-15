@@ -23,6 +23,9 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the SQLite-backed P0 scale-acceptance executable path in favor of isolated PostgreSQL Run/Event/CAS acceptance, including a unique temporary schema, real reopen/full-history Doctor, PostgreSQL-native object-reference closure and clean teardown; reduced the legacy SQLite source-call budget without a migration. Local acceptance now requires a real test PG DSN. Immutable SQLite scale receipts remain historical.
+
+
 - promoted the existing PostgreSQL HarnessAgentRun.create/open(dsn, schema, ...) to the sole supported Python Agent Run entrypoints, aligned the independent CLI and PG consumer tests, and removed the two obsolete SQLite Agent Run entrypoints and the state-root fallback. Historical Python API consumer tests now target isolated real PostgreSQL schemas. The still-separate legacy SQLite Store and Browserless consumers require further retirement. No old runtime data is migrated, and neither entrypoint silently selects SQLite.
 
 
