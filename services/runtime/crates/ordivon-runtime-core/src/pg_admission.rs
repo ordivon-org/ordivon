@@ -315,7 +315,7 @@ pub struct PgAdmissionStore {
 // Only retry a server-confirmed, fully aborted SERIALIZABLE transaction.
 // An uncertain COMMIT or an external process effect is never eligible.
 const MAX_ABORTED_TRANSACTION_ATTEMPTS: u32 = 8;
-fn retry_aborted_transaction<T, E>(
+pub(crate) fn retry_aborted_transaction<T, E>(
     mut transaction: impl FnMut() -> Result<T, E>,
     is_serialization_abort: impl Fn(&E) -> bool,
     mut wait: impl FnMut(std::time::Duration),
