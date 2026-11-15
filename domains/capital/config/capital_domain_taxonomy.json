@@ -39,7 +39,8 @@
       "okx_sensor_capture.py",
       "websocket_proxy_lifecycle.py",
       "etf_eod_snapshot.py",
-      "historical_close_snapshot.py"
+      "historical_close_snapshot.py",
+      "equity_session_calendar.py"
     ],
     "trading": [
       "binance_usdm_private_capture.py",

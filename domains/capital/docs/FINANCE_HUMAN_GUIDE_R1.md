@@ -440,6 +440,33 @@ PostgreSQL 后才标记 `accountingPersistenceReverified=true`；
 认可的市场快照，则保留未知与阻断，而不是用历史回填价格伪装当日
 可交易行情。普通用户仍需提供自己的投资期限、现金储备和目标比例。
 
+## 2026-11-14：Finance R3 交易所会话资格（研究数据入口）
+
+Human：使用历史 SPY、QQQ、IWM 行情训练 Qlib 或运行 Riskfolio
+风险优化前，必须声明当次请求数据的起止日；Markets 的
+XNYS 日期资格组件独立验证真实交易会话是否完整，禁止以提供者
+自身返回的首末日期为完整性定义。已证实的反例包括 2025-05-26
+假交易日，以及遗漏真实请求末日 2026-10-30 的人为截断样本。
+
+Agent：现有 Finance R3 Qlib 与 Riskfolio 实际消费同一个 Markets
+只读日期资格接口，不开发新的交易所日历、策略模型或记录系统。
+所有示例仍为历史研究：日期资格只保证交易会话与请求日历
+形状一致，不保证市场价格准确、公司行动复权、历史首次可知
+时间、使用许可、模拟成交真实性或资金授权。新增反证测试位于
+Capital 标准 tests 下，抽象 Z3 证明与实际消费者测试各有边界。
+具体研究结果与证据见 adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
+
+### Markets 日终交易日与实际收盘时刻的边界（2026-11-14）
+
+对 SPY、QQQ、IWM 等 US ETF 的研究或 Paper 日结，历史价格
+不只需要 SHA、日期连续性，还需要交易所真实开市日期和
+真实收盘时间。现有 Markets ETF 日终快照准入会利用
+exchange-calendars XNYS 检验休市日、夏令时和提前收盘；
+PostgreSQL Paper 对被传入的已构造快照也会复查日历。
+Human 无须另装日历系统，Agent 重用自然 Markets 的公开规则。
+这不能证明经纪商成交、数据供应商或股息总回报；
+不要把历史普通收盘价自动当作可投资的总回报数据。
+
 ### Paper 价格来源修订后的绩效失效（2026-11-15）
 
 如果新 Markets EOD 快照的 `supersedesSha256` **明确指向前一期
