@@ -7,18 +7,24 @@ mod authority_contract;
 mod control_primitives;
 #[cfg(feature = "operator-tools")]
 mod doctor;
+#[cfg(feature = "transactional-runtime")]
 mod engine;
 mod error;
 mod evidence;
 #[allow(dead_code)]
 mod execution_provider;
 mod host_dependency;
+#[cfg(feature = "transactional-runtime")]
 mod inspection;
+mod inspection_contract;
 mod job_attempt_state;
+#[cfg(feature = "transactional-runtime")]
 mod lifecycle_locks;
 mod operation_circuit;
 mod platform;
+#[cfg(feature = "transactional-runtime")]
 mod registry;
+#[cfg(feature = "transactional-runtime")]
 mod registry_storage;
 #[cfg(feature = "operator-tools")]
 mod repair;
@@ -35,15 +41,13 @@ pub use doctor::{
     RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal, RuntimeDoctorReport,
     RuntimeDoctorReservationState, RuntimeDoctorSummary, RUNTIME_DOCTOR_SCHEMA_VERSION,
 };
+#[cfg(feature = "transactional-runtime")]
 pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
+#[cfg(feature = "transactional-runtime")]
 pub const RUNTIME_MAX_MIGRATION_VERSION: i64 = registry::MAX_MIGRATION_VERSION;
-pub use inspection::{
-    inspect_job, RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt,
-    RuntimeInspectionCondition, RuntimeInspectionConfig, RuntimeInspectionEpisodes,
-    RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
-    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT,
-};
+#[cfg(feature = "transactional-runtime")]
+pub use inspection::{inspect_job, RuntimeInspectionConfig};
 #[cfg(feature = "operator-tools")]
 pub use inspection::{
     inspect_registry, inspect_registry_activity, inspect_registry_archive,
@@ -65,9 +69,16 @@ pub use inspection::{
     DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
 };
+pub use inspection_contract::{
+    RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt, RuntimeInspectionCondition,
+    RuntimeInspectionEpisodes, RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
+    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT,
+};
+#[cfg(feature = "transactional-runtime")]
 pub(crate) use registry::Registry;
+#[cfg(feature = "transactional-runtime")]
 pub use registry::RegistryConfig;
-#[cfg(test)]
+#[cfg(all(test, feature = "transactional-runtime"))]
 pub(crate) use registry::{
     RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM, RUNTIME_MIGRATION_CHECKSUM,
     RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM, RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM,
@@ -129,9 +140,9 @@ pub use windows::{
 };
 pub use windows_broker::WindowsPrivilegedBrokerConfig;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "transactional-runtime"))]
 mod integration_tests;
-#[cfg(test)]
+#[cfg(all(test, feature = "transactional-runtime"))]
 mod tests;
 
 #[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]

@@ -48,7 +48,7 @@ pub(crate) fn resolve_existing_workspace_path(
     Ok(canonical)
 }
 
-#[cfg(feature = "transactional-runtime")]
+#[cfg(feature = "runtime-contract")]
 pub(crate) fn resolve_workspace_cwd(
     record: &WorkspaceRecord,
     relative: &str,
