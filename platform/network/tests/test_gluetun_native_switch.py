@@ -186,6 +186,7 @@ def test_recover_benign_policy_hold_is_process_success_but_auth_unknown_is_failu
 
 def test_systemd_health_gate_does_not_collect_full_history_when_green(monkeypatch):
     monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: True)
     monkeypatch.setattr(switch.quality, "observe",
         lambda **kw: (_ for _ in ()).throw(AssertionError("history should not load")))
     monkeypatch.setattr(switch, "api_call",
@@ -336,3 +337,111 @@ def test_catalog_cold_preference_never_overrides_shared_underlay_failure(monkeyp
     result=switch.guarded_recover()
     assert result["standing"]=="HOLD_SHARED_UNDERLAY_OR_UNKNOWN"
     assert result["effectAttempted"] is False
+
+
+def test_partial_consumer_native_health_stuck_restarts_only_existing_service(monkeypatch):
+    # Production counterexample 2026-11-15: three consumer jobs still had
+    # healthy samples, while native Gluetun health was 500 and mobile failed.
+    import subprocess
+    from types import SimpleNamespace
+    calls = []
+    states = iter([False, False, False, True])
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: next(states), raising=False)
+    monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: True)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch, "mark_attempt", lambda: calls.append("cooldown"))
+    monkeypatch.setattr(switch.time, "sleep", lambda sec: None)
+    monkeypatch.setattr(switch, "bounded_consumer_observe", lambda seconds=25: {
+        "standing": "QUALIFIED_ACTIVE_SAMPLE"
+    })
+    def native_run(args, **kwargs):
+        calls.append(tuple(args))
+        assert args == ["/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"]
+        return subprocess.CompletedProcess(args, 0, "", "")
+    monkeypatch.setattr(switch.subprocess, "run", native_run)
+    result = switch.guarded_recover()
+    assert result["standing"] == "NATIVE_HEALTH_RESTART_CONSUMED"
+    assert result["effectAttempted"] is True
+    assert calls == ["cooldown", (
+        "/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"
+    )]
+
+
+def test_native_health_one_bad_sample_does_not_restart(monkeypatch):
+    calls = iter([False, True])
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: next(calls), raising=False)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    assert switch.guarded_recover()["effectAttempted"] is False
+
+
+@pytest.mark.parametrize("underlay", [False, None])
+def test_native_health_bad_but_underlay_not_proven_never_restarts(monkeypatch, underlay):
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: False, raising=False)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: underlay)
+    monkeypatch.setattr(switch.time, "sleep", lambda sec: None)
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    result = switch.guarded_recover()
+    assert result["standing"] == "HOLD_NATIVE_HEALTH_UNDERLAY_UNKNOWN_OR_DOWN"
+    assert result["effectAttempted"] is False
+
+
+def test_native_health_bad_but_cooldown_blocks_restart(monkeypatch):
+    from datetime import datetime, timezone
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: False, raising=False)
+    monkeypatch.setattr(switch, "last_attempt", lambda: datetime.now(timezone.utc))
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    result = switch.guarded_recover()
+    assert result["standing"] == "HOLD_COOLDOWN"
+    assert result["effectAttempted"] is False
+
+
+def test_native_health_unknown_does_not_restart(monkeypatch):
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: None, raising=False)
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    result = switch.guarded_recover()
+    assert result["standing"] == "HOLD_NATIVE_HEALTH_UNKNOWN"
+    assert result["effectAttempted"] is False
+
+
+@pytest.mark.parametrize("returncode,output,expected", [
+    (0, "", True),
+    (1, "ERROR HTTP response status is not OK: 500 500 Internal Server Error", False),
+    (125, "Error: container exited", None),
+    (1, "some unrecognized native failure", None),
+])
+def test_native_health_only_classifies_official_500(monkeypatch, returncode, output, expected):
+    import subprocess
+    def fake_run(args, **kwargs):
+        assert args == ["/usr/bin/podman", "exec",
+                        "network-v2-gluetun-owned-r1", "/gluetun-entrypoint", "healthcheck"]
+        return subprocess.CompletedProcess(args, returncode, "", output)
+    monkeypatch.setattr(switch.subprocess, "run", fake_run)
+    assert switch.native_health_state() is expected
+
+
+def test_native_health_restart_failure_is_effect_unknown_and_bounded(monkeypatch):
+    import subprocess
+    states=iter([False, False, False])
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: next(states), raising=False)
+    monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: True)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch, "mark_attempt", lambda: None)
+    monkeypatch.setattr(switch.time, "sleep", lambda sec: None)
+    def fail_restart(args, **kwargs):
+        raise subprocess.TimeoutExpired(args, 70)
+    monkeypatch.setattr(switch.subprocess, "run", fail_restart)
+    result=switch.guarded_recover()
+    assert result["standing"] == "NATIVE_HEALTH_RESTART_UNQUALIFIED"
+    assert result["effectAttempted"] is True

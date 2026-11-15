@@ -214,18 +214,95 @@ def bounded_consumer_observe(seconds: int = 25) -> dict[str, object]:
         return {"standing": "UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"}
 
 
+def native_health_state() -> bool | None:
+    """Official Gluetun health, independently of proxy HTTPS readiness.
+
+    Only a definite upstream HTTP 500 means unhealthy. A missing container,
+    timeout, or changed vendor response remains UNKNOWN, never permission to
+    restart a shared provider.
+    """
+    try:
+        receipt = subprocess.run(
+            ["/usr/bin/podman", "exec", CONTAINER,
+             "/gluetun-entrypoint", "healthcheck"],
+            capture_output=True, text=True, timeout=8,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if receipt.returncode == 0:
+        return True
+    if (receipt.returncode == 1 and
+        "HTTP response status is not OK: 500" in
+        (receipt.stdout + receipt.stderr)):
+        return False
+    return None
+
+
+def repair_partial_native_health() -> dict:
+    """One existing systemd service restart on a sustained partial outage.
+
+    The already-running 1m timer invokes this function only when three fresh
+    consumer lanes have NOT all failed. A native HTTP 500 then must persist,
+    host-direct underlay must work, and the existing 10m VPN-effect cooldown
+    must have expired. No new watchdog, selector, VPN or persistent registry.
+    """
+    first = native_health_state()
+    if first is True:
+        return {"standing": "HOLD_CONSUMER_HEALTHY_OR_PARTIAL", "effectAttempted": False}
+    if first is None:
+        return {"standing": "HOLD_NATIVE_HEALTH_UNKNOWN", "effectAttempted": False}
+    previous = last_attempt()
+    if previous is not None and datetime.now(timezone.utc)-previous < COOLDOWN:
+        return {"standing": "HOLD_COOLDOWN", "effectAttempted": False}
+    time.sleep(3)
+    if native_health_state() is not False:
+        return {"standing": "HOLD_NATIVE_HEALTH_RECOVERED_OR_UNKNOWN",
+                "effectAttempted": False}
+    # Two different *host-direct* origins, but one shared physical WAN.
+    if quality.direct_underlay_witness() is not True:
+        return {"standing": "HOLD_NATIVE_HEALTH_UNDERLAY_UNKNOWN_OR_DOWN",
+                "effectAttempted": False}
+    # The independent underlay probe may itself take several seconds.
+    if native_health_state() is not False:
+        return {"standing": "HOLD_NATIVE_HEALTH_RECOVERED_OR_UNKNOWN",
+                "effectAttempted": False}
+    mark_attempt()  # Before the first possible restart effect.
+    try:
+        subprocess.run(
+            ["/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"],
+            capture_output=True, text=True, check=True, timeout=70,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {"standing": "NATIVE_HEALTH_RESTART_UNQUALIFIED",
+                "effectAttempted": True, "recoveryProved": False}
+    # A systemctl exit=0 is not a working VPN; insist on official health AND
+    # real provider business HTTPS before declaring the recovery consumed.
+    for attempt in range(3):
+        if native_health_state() is True:
+            live = bounded_consumer_observe(seconds=25)
+            if live.get("standing") == "QUALIFIED_ACTIVE_SAMPLE":
+                return {"standing": "NATIVE_HEALTH_RESTART_CONSUMED",
+                        "effectAttempted": True, "recoveryProved": True}
+        if attempt < 2:
+            time.sleep(3)
+    return {"standing": "NATIVE_HEALTH_RESTART_UNQUALIFIED",
+            "effectAttempted": True, "recoveryProved": False}
+
+
 def guarded_recover() -> dict:
-    # An existing Prometheus 3-lane Blackbox witness is a much cheaper trigger
-    # than resampling a fully healthy VPN every two-minute systemd invocation.
-    # Only three observed failures in all lanes justify the slower real checks.
+    # The existing three-lane raw Blackbox witness separates two actions:
+    # total scoped outage -> existing country trial; partial/healthy lanes ->
+    # check for a *persistent native health failure* hidden by good HTTPS.
+    # Missing or stale series authorize neither action.
     try:
         recent = quality.recent_failure_witness(datetime.now(timezone.utc))
     except (OSError, ValueError):
         recent = None
-    if recent is not True:
-        return {"standing": ("HOLD_CONSUMER_HEALTHY_OR_PARTIAL" if recent is False
-                             else "HOLD_CONSUMER_OBSERVATION_UNKNOWN"),
+    if recent is None:
+        return {"standing": "HOLD_CONSUMER_OBSERVATION_UNKNOWN",
                 "effectAttempted": False}
+    if recent is False:
+        return repair_partial_native_health()
     # A one-shot guarded native settings change, not a second autonomous
     # provider or an unconditional "speed optimization" when users are healthy.
     allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
@@ -336,7 +413,8 @@ def main() -> int:
     print(json.dumps(result, sort_keys=True))
     # Healthy/unknown hold is a successful NO-OP decision, not a service
     # failure. Auth/effect failure remains nonzero for native systemd callers.
-    if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY", "NATIVE_SWITCH_CONSUMED"):
+    if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY", "NATIVE_SWITCH_CONSUMED",
+                             "NATIVE_HEALTH_RESTART_CONSUMED"):
         return 0
     if args.recover and result.get("effectAttempted") is False and (
         result["standing"].startswith("HOLD_")
