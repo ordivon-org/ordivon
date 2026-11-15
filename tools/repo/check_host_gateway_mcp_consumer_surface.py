@@ -37,18 +37,27 @@ async def _emit_source(owner: str) -> dict[str, Any]:
         from ordivon_host_v2.mcp_server import build_server
 
         server = build_server("postgresql://source-schema-observation.invalid/test")
-    elif owner == "gateway":
+    elif owner in {"gateway", "gateway-conditional"}:
         from ordivon_gateway.mcp_server import build_server
 
-        server = build_server()
+        if owner == "gateway-conditional":
+            # SDK registration only. An object marker demonstrates that the
+            # HTTP+PDP branch exists; it is NOT an authenticated PDP/grant.
+            server = build_server(
+                service=object(),  # No Owner effects during tools/list.
+                capability_authorizer=object(),
+                require_http_execution_identity=True,
+                protect_artifact_reads=True,
+            )
+        else:
+            server = build_server()
     else:
         raise ValueError("unsupported natural Owner")
     # Native MCP SDK tools/list from the original Owner build, no Host PG/RPC.
     async with Client(server, raise_exceptions=True) as client:
         tools = (await client.list_tools()).tools
     return {
-        item.name: item.model_dump(mode="json", by_alias=True, exclude_none=True)
-        for item in tools
+        item.name: item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in tools
     }
 
 
@@ -57,6 +66,7 @@ def summarize(
     gateway: dict[str, dict[str, Any]],
     *,
     dispatcher_host_tools: set[str] | None = None,
+    conditional_gateway_tools: set[str] | None = None,
 ) -> dict[str, Any]:
     host_names, gateway_names = set(host), set(gateway)
     common = sorted(host_names & gateway_names)
@@ -69,20 +79,16 @@ def summarize(
     for name in common:
         host_input = host[name]["inputSchema"]
         gateway_input = gateway[name]["inputSchema"]
-        if set(host_input.get("properties", {})) != set(
-            gateway_input.get("properties", {})
-        ) or set(host_input.get("required", [])) != set(
-            gateway_input.get("required", [])
-        ):
+        if set(host_input.get("properties", {})) != set(gateway_input.get("properties", {})) or set(
+            host_input.get("required", [])
+        ) != set(gateway_input.get("required", [])):
             input_name_required_drift.append(name)
         if host_input != gateway_input:
             input_schema_different.append(name)
         if host[name].get("outputSchema") != gateway[name].get("outputSchema"):
             output_schema_different.append(name)
     input_names_match = bool(common) and not input_name_required_drift
-    business_surface_covered = (
-        bool(common) and not missing_business and not exposed_operator
-    )
+    business_surface_covered = bool(common) and not missing_business and not exposed_operator
     # A public Gateway MCP Tool can exist while GatewayService rejects the
     # forwarded name. Host->Gateway migration needs both public Tool coverage
     # and the existing internal dispatch allowlist to match natural Host Tools.
@@ -92,21 +98,27 @@ def summarize(
         if dispatcher_host_tools is not None
         else []
     )
+    # GatewayService may route a *conditionally registered* Rust candidate
+    # extension while the default public Gateway still faces the Python Host.
+    # Only native secured tools/list proves that source-registration branch.
+    # This does NOT qualify the Rust Owner, a PDP grant or installed Gateway.
+    conditional = conditional_gateway_tools or set()
     unexpected_dispatch = (
-        sorted(dispatcher_host_tools - expected_dispatch)
+        sorted((dispatcher_host_tools - expected_dispatch) - conditional)
         if dispatcher_host_tools is not None
         else []
+    )
+    orphan_conditional = (
+        sorted(conditional - dispatcher_host_tools) if dispatcher_host_tools is not None else []
     )
     dispatch_qualified = (
         None
         if dispatcher_host_tools is None
-        else not missing_dispatch and not unexpected_dispatch
+        else not missing_dispatch and not unexpected_dispatch and not orphan_conditional
     )
     public_surface_qualified = input_names_match and business_surface_covered
     end_to_end_source_qualified = (
-        None
-        if dispatch_qualified is None
-        else public_surface_qualified and dispatch_qualified
+        None if dispatch_qualified is None else public_surface_qualified and dispatch_qualified
     )
     return {
         "schemaVersion": 1,
@@ -125,6 +137,9 @@ def summarize(
         "sourceEndToEndSourceQualified": end_to_end_source_qualified,
         "missingGatewayDispatcherTools": missing_dispatch,
         "unexpectedGatewayDispatcherTools": unexpected_dispatch,
+        "conditionalGatewayOwnerTools": sorted(conditional),
+        "orphanConditionalGatewayTools": orphan_conditional,
+        "rustOwnerExtensionParityQualified": None,
         "inputPropertyOrRequiredDrift": input_name_required_drift,
         "inputSchemaDifferentTools": input_schema_different,
         "outputSchemaDifferentTools": output_schema_different,
@@ -137,8 +152,11 @@ def summarize(
             "MCP SDK source introspection only; input parity does not prove "
             "Gateway accepts all Host argument values, output-schema typing, "
             "real Owner authorization, installed Plugin shape or domain success. "
-            "The source dispatch witness comes from the original GatewayService "
-            "allowlist, not from installed HTTP or external Agent consumers"
+            "SourceEndToEnd only qualifies the *default Python Host* public "
+            "Gateway projection. Candidate Rust-only dispatcher entries may be "
+            "ignored here only after distinct verified-mode Gateway SDK tools/list "
+            "source discovery; this does not prove Rust Owner schema parity, "
+            "real Security grants, installed HTTP, or Agent migration."
         ),
     }
 
@@ -155,7 +173,11 @@ def _child_source(owner: str) -> dict[str, dict[str, Any]]:
             "--locked",
             "--offline",
             "--project",
-            str(ROOT / "services" / ("gateway" if owner == "gateway-dispatch" else owner)),
+            str(
+                ROOT
+                / "services"
+                / ("gateway" if owner in {"gateway-dispatch", "gateway-conditional"} else owner)
+            ),
             "python",
             program,
             "--emit",
@@ -175,7 +197,9 @@ def _child_source(owner: str) -> dict[str, dict[str, Any]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--emit", choices=["host", "gateway", "gateway-dispatch"])
+    parser.add_argument(
+        "--emit", choices=["host", "gateway", "gateway-conditional", "gateway-dispatch"]
+    )
     args = parser.parse_args()
     if args.emit:
         print(json.dumps(asyncio.run(_emit_source(args.emit)), sort_keys=True))
@@ -185,6 +209,9 @@ def main() -> int:
         host = _child_source("host")
         gateway = _child_source("gateway")
         dispatch = _child_source("gateway-dispatch")
+        secured_gateway = _child_source("gateway-conditional")
+        if not set(gateway) <= set(secured_gateway):
+            raise TypeError("verified-mode Gateway source drops a default MCP Tool")
         raw_dispatch = dispatch.get("dispatchHostToolNames")
         if (
             not isinstance(raw_dispatch, list)
@@ -192,7 +219,13 @@ def main() -> int:
             or len(set(raw_dispatch)) != len(raw_dispatch)
         ):
             raise TypeError("native GatewayService Host dispatcher source is malformed")
-        result = summarize(host, gateway, dispatcher_host_tools=set(raw_dispatch))
+        conditional_owner_routes = (set(secured_gateway) - set(gateway)) & set(raw_dispatch)
+        result = summarize(
+            host,
+            gateway,
+            dispatcher_host_tools=set(raw_dispatch),
+            conditional_gateway_tools=conditional_owner_routes,
+        )
         source = subprocess.run(
             ["/usr/bin/git", "rev-parse", "HEAD"],
             cwd=ROOT,

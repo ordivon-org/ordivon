@@ -13,6 +13,8 @@ from .host_tool_contracts import HostCollectionBytes
 def register_host_work_tools(
     server: MCPServer,
     _host: Callable[[str, dict[str, Any]], Awaitable[Any]],
+    *,
+    register_engagement: bool = False,
 ) -> None:
     @server.tool(name="host.status")
     async def host_status(
@@ -82,3 +84,55 @@ def register_host_work_tools(
                 "continuityDisposition": continuityDisposition,
             },
         )
+
+    # Versioned accountability tools are only registered by Gateway when
+    # verified HTTP ingress AND an installed Security authorizer are present.
+    # Legacy stdio/default Gateway must not expose an unauthenticated direct
+    # route for callers to claim the consumer ActorRef themselves.
+    if register_engagement:
+
+        @server.tool(name="work.engagement.advance")
+        async def work_engagement_advance(
+            workRef: str,
+            expectedRevision: int,
+            actorRef: str,
+            action: dict[str, Any],
+            clientRequestId: str,
+        ) -> dict[str, Any]:
+            # Never copy Work state transitions or accept policy in Gateway.
+            # The Rust owner validates the typed EngagementAction; Gateway's
+            # existing AuthZEN PEP verifies the Principal/Actor/Work/action.
+            return await _host(
+                "work.engagement.advance",
+                {
+                    "workRef": workRef,
+                    "expectedRevision": expectedRevision,
+                    "actorRef": actorRef,
+                    "action": action,
+                    "clientRequestId": clientRequestId,
+                },
+            )
+
+        @server.tool(name="work.engagement.list")
+        async def work_engagement_list(
+            phase: Literal["offered", "claimed", "submitted", "returned", "accepted", "cancelled"]
+            | None = None,
+            assigneeActorRef: str | None = None,
+            consumerActorRef: str | None = None,
+            limit: int = 50,
+            maxBytes: HostCollectionBytes = 262_144,
+            beforeUpdatedAt: str | None = None,
+            beforeWorkRef: str | None = None,
+        ) -> dict[str, Any]:
+            return await _host(
+                "work.engagement.list",
+                {
+                    "phase": phase,
+                    "assigneeActorRef": assigneeActorRef,
+                    "consumerActorRef": consumerActorRef,
+                    "limit": limit,
+                    "maxBytes": maxBytes,
+                    "beforeUpdatedAt": beforeUpdatedAt,
+                    "beforeWorkRef": beforeWorkRef,
+                },
+            )

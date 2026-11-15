@@ -10,6 +10,7 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
+from mcp import Client
 from mcp.server.mcpserver import Context
 
 from ordivon_gateway.capability_authz import (
@@ -23,7 +24,7 @@ from ordivon_gateway.ingress_identity import (
     request_state,
     tool_context_state,
 )
-from ordivon_gateway.mcp_server import _verified_execution_scope
+from ordivon_gateway.mcp_server import _verified_execution_scope, build_server
 
 PRINCIPAL = "principal:cf-access:" + "a" * 64
 ISSUER = "https://auth.example.test"
@@ -135,11 +136,30 @@ def test_host_read_and_write_security_partition_matches_actual_mcp_manifest() ->
         if item["routeOwner"] == "host" and item["operation"] == "write"
     }
     assert reads == _HOST_READ_ONLY_TOOLS
-    assert writes == _SOCIAL_WORK_HOST_TOOLS - _HOST_READ_ONLY_TOOLS
+    original_host_names = {item["name"] for item in manifest if item["routeOwner"] == "host"}
+    # The published manifest is the default Python Host (no policy configured).
+    # The Rust Engagement extension is intentionally conditional on a real
+    # HTTP Security PEP, not silently part of the original Host's tools/list.
+    conditional = _SOCIAL_WORK_HOST_TOOLS - original_host_names
+
+    async def registered_conditionally() -> set[str]:
+        async with Client(
+            build_server(
+                service=object(),  # Source registration only; never an Owner effect.
+                capability_authorizer=object(),  # Presence, NOT a valid PDP grant.
+                require_http_execution_identity=True,
+                protect_artifact_reads=True,
+            ),
+            raise_exceptions=True,
+        ) as client:
+            return {tool.name for tool in (await client.list_tools()).tools}
+
+    protected_names = asyncio.run(registered_conditionally())
+    assert conditional == protected_names - {item["name"] for item in manifest}
+    assert conditional == {"work.engagement.advance", "work.engagement.list"}
+    assert writes == original_host_names - _HOST_READ_ONLY_TOOLS
     assert not reads & writes
-    assert {
-        item["name"] for item in manifest if item["routeOwner"] == "host"
-    } == _SOCIAL_WORK_HOST_TOOLS
+    assert not conditional & original_host_names
 
 
 def test_audit_does_not_claim_a_partially_observed_principal(caplog) -> None:

@@ -121,7 +121,7 @@ def test_native_cli_exit_rejects_missing_business_tool(monkeypatch, capsys) -> N
             host
             if name == "host"
             else gateway
-            if name == "gateway"
+            if name in {"gateway", "gateway-conditional"}
             else {"dispatchHostToolNames": ["work.get"]}
         ),
     )
@@ -186,6 +186,47 @@ def test_original_host_sdk_tools_must_match_gateway_service_dispatcher() -> None
     assert qualified["domainConsumerMigrated"] is None
 
 
+def test_secured_only_rust_extension_does_not_downgrade_original_host_consumer() -> None:
+    """A conditional Rust owner route is not a Python Host public Tool.
+
+    It must be observed from an independently secured Gateway SDK tools/list;
+    merely declaring an extra GatewayService dispatcher is insufficient.
+    """
+    m = _audit()
+    host = {
+        "work.get": _tool("work.get"),
+        "host.pool.stats": _tool("host.pool.stats"),
+    }
+    gateway = {"work.get": _tool("work.get")}
+    dispatch = {"work.get", "work.engagement.advance", "work.engagement.list"}
+    unqualified = m.summarize(host, gateway, dispatcher_host_tools=dispatch)
+    assert unqualified["sourceGatewayDispatcherQualified"] is False
+
+    secured = m.summarize(
+        host,
+        gateway,
+        dispatcher_host_tools=dispatch,
+        conditional_gateway_tools={"work.engagement.advance", "work.engagement.list"},
+    )
+    assert secured["sourceEndToEndSourceQualified"] is True
+    assert secured["conditionalGatewayOwnerTools"] == [
+        "work.engagement.advance",
+        "work.engagement.list",
+    ]
+    assert secured["rustOwnerExtensionParityQualified"] is None
+    assert secured["installedConsumersQualified"] is None
+
+    # One tool unobserved in secured SDK remains an unqualified dispatcher.
+    partial = m.summarize(
+        host,
+        gateway,
+        dispatcher_host_tools=dispatch,
+        conditional_gateway_tools={"work.engagement.advance"},
+    )
+    assert partial["unexpectedGatewayDispatcherTools"] == ["work.engagement.list"]
+    assert partial["sourceEndToEndSourceQualified"] is False
+
+
 def test_unobserved_gateway_dispatcher_remains_unknown() -> None:
     m = _audit()
     host = {"work.get": _tool("work.get")}
@@ -215,6 +256,7 @@ def test_native_cli_rejects_gateway_dispatcher_gap_with_public_tools_intact(
         "host": host,
         "gateway": gateway,
         "gateway-dispatch": {"dispatchHostToolNames": ["work.get"]},
+        "gateway-conditional": gateway,
     }
     monkeypatch.setattr(m, "_child_source", reports.__getitem__)
     monkeypatch.setattr(

@@ -42,6 +42,9 @@ bearer or Tool ActorRef is not a Security grant. The existing private token
 loader and PDP adapter are reused.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
+Versioned Work Engagement on this successor branch still requires a real
+Security PDP decision for the exact Principal/Actor/Work request; source-only
+PEP tests do not qualify the installed policy or live owner identity.
 
 ## Shared HTTP request identity (source contract)
 
@@ -136,8 +139,8 @@ native Owner RPC, Gateway projection, Windows SCM source cut and Owner logs.
 
 ## HTTP MCP ingress security coverage (source cut)
 
-**Human:** HTTP mode uses `GatewayHTTPIngressGuard` before the narrow Runtime
-Artifact AuthZEN PEP. Only `system.describe`, `capability.describe`, and
+**Human:** HTTP uses `GatewayHTTPIngressGuard` before the shared Runtime
+Artifact plus protected Host-write AuthZEN PEP. Only `system.describe`, `capability.describe`, and
 `capability.search` are anonymous *metadata* tools. All other registered
 (and newly introduced/unknown) Tools require the verified Principal and issuer
 placed in request-local state by the configured ingress verifier; a forged
