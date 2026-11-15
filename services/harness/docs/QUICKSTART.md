@@ -384,6 +384,31 @@ ordivon-harness run ./authorized-gateway-contract.json \
 
 **证据边界：** R45 的真实一次性 PG18 5/5 消费者测试使用脚本化模型和测试 Gateway MCP；其中一次由测试 Gateway 客户端在已提交的原始 PG Tool Intent/Fence 后实际运行 `/usr/bin/rg` 并将 Owner 观察提交到同一 Run。它不是现役 Gateway 服务的远程 Tool 调用，也不能与 R44 独立的真实 DeepSeek/真实 Gateway 两条链路混同。当前生产仍缺少跨自然 Owner 的完整同 Run Issuer/物理接收与独立 DomainVerifier 验收。
 
+### 2026-11-16 Real Coding Agent single-business acceptance (candidate, not release)
+
+On source candidate `a2d5a30a40c57b299e9b203b531e93f0511c35da`
+(Draft PR #2311), a **real DeepSeek Flash model** used the existing
+`execution_submit` Gateway Tool three times in one original scratch
+PostgreSQL 18 Run. The caller provided a separate ephemeral Git Workspace
+containing only `SPEC.md`, `feature_flags.py` and `test_feature_flags.py`;
+the canonical hidden `HARNESS-EDIT-ADDRESSING-002` verifier and reference
+oracle were never included in the model-visible Git source.
+
+- Provider: four real model calls, 9,452 total tokens, no provider retries.
+- Gateway/Runtime: three physical Tool calls, original PG Tool Receipt `observed`.
+- Candidate Run: `completed` / `candidate_completed`, never treated as a
+  substitute for independent domain acceptance.
+- Independent verifier: **visible PASS and hidden PASS**, with only
+  `feature_flags.py` modified (`alpha_enabled=False`, `beta_enabled=True`).
+- One observed trial elapsed 9.94 seconds; not a benchmark distribution
+  and not evidence that this candidate is installed in production.
+
+The source-equivalent CLI smoke also passed a real DeepSeek → installed
+Gateway → Runtime → original PostgreSQL Run and fresh status readback.
+Both are deliberately opt-in, billable consumer checks; ordinary CI remains
+scripted/offline. Retain the real SourceCut and the independent verifier
+as distinct authorities. No second Journal, editing framework, or token
+reader is introduced by this acceptance.
 ## Pause and resume
 
 ```bash

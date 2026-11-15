@@ -241,7 +241,20 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
         ]
     )
     result = independent_cli.dispatch(cli, clock_ms=FixedClock())
-    assert result["stopCode"] == "candidate_completed"
+    # Keep real-process outcomes separate from Harness/Gateway semantic states:
+    # if CI differs from a local node, report the physical cause first.
+    assert client.physical is not None, "Gateway fixture never ran the real process"
+    assert client.physical.returncode == 0, (
+        "real ripgrep process failed", client.physical.returncode,
+        client.physical.stdout[-400:], client.physical.stderr[-400:],
+    )
+    assert result["stopCode"] == "candidate_completed", {
+        "runStatus": result["run"]["status"],
+        "ownerCalls": [name for name, _ in client.calls],
+        "realExitCode": client.physical.returncode,
+        "realStdoutTail": client.physical.stdout[-200:],
+        "realStderrTail": client.physical.stderr[-200:],
+    }
     assert client.pre_dispatch_passed
     assert client.dispatches == 1
     assert client.physical is not None and client.physical.returncode == 0
@@ -453,7 +466,8 @@ def test_live_deepseek_gateway_tool_one_original_pg_run(pg_schema, monkeypatch, 
     )
     requested = ["run", str(source), "--message", prompt, *gateway]
     if secret:
-        requested.extend(["--deepseek-secret", secret])
+        # argparse requires global options before the subcommand.
+        requested = ["--deepseek-secret", secret, *requested]
     result = cli(*requested)
     assert result["stopCode"] == "candidate_completed"
     assert result["run"]["status"] == "completed"
