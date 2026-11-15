@@ -25,6 +25,7 @@ POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_e
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
 POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER = "services/runtime/sql/pg_resource_scheduler_v1.sql"
 POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
+POSTGRESQL_HARNESS_WORKSPACE_CLAIM = "services/harness/sql/runtime_workspace_consumer_claim_r1.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
 # packages on an ephemeral CI runner. Keep them executable and bounded, not
@@ -260,7 +261,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA, POSTGRESQL_HARNESS_WORKSPACE_CLAIM}:
         return "postgresql"
     return None
 
@@ -443,6 +444,20 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
             issues.append(
                 f"PostgreSQL resource scheduler DDL structure changed: {name}"
             )
+    elif name == POSTGRESQL_HARNESS_WORKSPACE_CLAIM:
+        # The Harness private-schema migration is an explicit, reviewed
+        # BEGIN/DO/COMMIT carrier. Reject injected top-level GRANT, DROP, or
+        # unconstrained DDL. Embedded PL/pgSQL remains subject to real PG18
+        # execution/role negative controls, not this outer AST check alone.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        if (
+            observed != ("TransactionStmt", "DoStmt", "TransactionStmt")
+            or parsed[0].stmt.kind != 0
+            or parsed[-1].stmt.kind != 2
+        ):
+            issues.append(
+                f"PostgreSQL Harness Workspace claim migration structure changed: {name}"
+            )
     return issues
 
 
@@ -548,7 +563,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             issues.append("PostgreSQL AST parser version is not pinned to exact 8.6")
         for name in grouped["postgresql"]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
-            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
+            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_HARNESS_WORKSPACE_CLAIM):
                 issues.extend(pg_runtime_ddl_structure_issues(name, parsed))
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four

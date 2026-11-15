@@ -11,6 +11,7 @@ from tools.repo.check_sql_dialects import (
     OSQUERY_TIMEOUT_SECONDS,
     POSTGRESQL_RUNTIME_EPOCH,
     POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER,
+    POSTGRESQL_HARNESS_WORKSPACE_CLAIM,
     ROOT,
     SQLITE_LEGACY_SOURCE_CALLS,
     classify,
@@ -280,6 +281,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/sql/pg_resource_scheduler_v1.sql"), "postgresql")
         self.assertEqual(classify("catalogs/capabilities/ele/schema.sql"), "postgresql")
+        self.assertEqual(classify(POSTGRESQL_HARNESS_WORKSPACE_CLAIM), "postgresql")
 
     @staticmethod
     def _pg_ast_statement(kind: str, relation: str | None = None,
@@ -332,6 +334,39 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             with self.subTest(mutant=mutant):
                 self.assertTrue(pg_runtime_ddl_structure_issues(
                     POSTGRESQL_RUNTIME_EPOCH, statements))
+
+    def test_pg_harness_workspace_claim_exact_outer_ast_rejects_mutations(self):
+        row = self._pg_ast_statement
+        good = [
+            row("TransactionStmt", transaction_kind=0),
+            row("DoStmt"),
+            row("TransactionStmt", transaction_kind=2),
+        ]
+        self.assertEqual(
+            pg_runtime_ddl_structure_issues(POSTGRESQL_HARNESS_WORKSPACE_CLAIM, good),
+            [],
+        )
+        for name in ("extra_grant", "rogue_drop", "missing_do", "bad_begin", "bad_commit", "empty"):
+            from copy import deepcopy
+            mutant = deepcopy(good)
+            if name == "extra_grant":
+                mutant.insert(-1, row("GrantStmt"))
+            elif name == "rogue_drop":
+                mutant.insert(-1, row("DropStmt"))
+            elif name == "missing_do":
+                mutant.pop(1)
+            elif name == "bad_begin":
+                mutant[0].stmt.kind = 1
+            elif name == "bad_commit":
+                mutant[-1].stmt.kind = 1
+            elif name == "empty":
+                mutant = []
+            with self.subTest(case=name):
+                self.assertTrue(
+                    pg_runtime_ddl_structure_issues(
+                        POSTGRESQL_HARNESS_WORKSPACE_CLAIM, mutant
+                    ),
+                )
 
     def test_pg_resource_scheduler_full_ast_rejects_mutations(self):
         row = self._pg_ast_statement

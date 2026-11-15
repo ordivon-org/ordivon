@@ -159,6 +159,17 @@ allowed_fragment = "ordivon_harness.runtime_port"
 kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
 contract_ref = "services/harness/rust-migration/consumer-acceptance/real_native_pg_temporal_boundary.md"
 
+# H2 real disposable-PG18 cross-Owner test runs the existing Runtime Core
+# source test through the public Cargo manifest. This cannot grant Harness
+# physical Runtime ownership or access to installed service state.
+[[seams]]
+from_owner = "harness"
+to_owner = "runtime"
+source_glob = "services/harness/scripts/test_runtime_workspace_claims_pg18.sh"
+allowed_fragment = "cargo test --manifest-path services/runtime/Cargo.toml"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/runtime/docs/guides/runtime-h2-harness-consumer-claims-r1.md"
+
 # Harness consumes only Runtime's SHA-verified public upstream checker.
 [[seams]]
 from_owner = "harness"
