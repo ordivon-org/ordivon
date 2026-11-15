@@ -479,6 +479,87 @@ impl DurableJournal for SourcePgCompletedJournal {
             Some(3),
         )
         .map_err(|e| e.to_string())?;
+        // R35 identity falsifier BEFORE the real COMPLETED commit, while
+        // the current PG source head is exactly DISPATCHING (rev3).
+        // A validly authored V4 result pointing at that dispatch but with a
+        // DIFFERENT ProviderCallId must fail inside the common original
+        // PG Writer; the rejected CAS must not persist.
+        let mut forged_seed = native_seed(&self.base.python_first_source);
+        forged_seed.provider_call_id = "provider-call:forged-other-identity";
+        let foreign = author_provider_v4(
+            &forged_seed,
+            ProviderV4Transition::Completed {
+                previous,
+                result_digest: &result_digest,
+                result_object_digest: result_object.as_ref().map(|r| r.digest.as_str()),
+            },
+            u64::try_from(recorded_at).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let foreign_ref = StoredRef {
+            digest: digest_bytes(&canonical_bytes(&foreign)),
+            kind: "harness-provider-call-record".to_owned(),
+            byte_length: i64::try_from(canonical_bytes(&foreign).len())
+                .map_err(|e| e.to_string())?,
+        };
+        let swapped = String::from_utf8(canonical_bytes(&self.base.batch[2].data))
+            .map_err(|e| e.to_string())?
+            .replace(&completed_ref.digest, &foreign_ref.digest);
+        let mut foreign_event = self.base.batch[2].clone();
+        foreign_event.event_id =
+            format!("event:forged-cross-provider-completed-{}", self.base.run_id);
+        foreign_event.data = loads_strict(&swapped).map_err(|e| e.to_string())?;
+        foreign_event
+            .referenced_objects
+            .retain(|r| r.kind != "harness-provider-call-record");
+        foreign_event.referenced_objects.push(foreign_ref.clone());
+        let mut staged_foreign = vec![ProviderStagedCas {
+            kind: ProviderCasKind::RecordV4,
+            document: &foreign,
+            first_seen_at_ms: recorded_at,
+        }];
+        if source_allows_content {
+            staged_foreign.push(ProviderStagedCas {
+                kind: ProviderCasKind::AgentTurnResult,
+                document: &result,
+                first_seen_at_ms: recorded_at,
+            });
+        }
+        let refused = append_events_with_provider_cas(
+            &mut db,
+            &self.base.schema,
+            &self.base.run_id,
+            ProviderEventBatch {
+                events: &[foreign_event.clone()],
+                staged: &staged_foreign,
+            },
+            3,
+            &lease,
+            recorded_at,
+        );
+        if !matches!(
+            refused,
+            Err(WriteError::Invalid(
+                "Provider completed predecessor attempt identity mismatch"
+            ))
+        ) {
+            return Err(format!(
+                "untrusted different-call V4 completion admitted: {refused:?}"
+            ));
+        }
+        let probe = format!(
+            "SELECT count(*) FROM {}.objects WHERE digest=$1",
+            self.base.schema
+        );
+        let count: i64 = db
+            .query_one(&probe, &[&foreign_ref.digest])
+            .map_err(|e| e.to_string())?
+            .get(0);
+        if count != 0 {
+            return Err("forged cross-call Provider CAS persisted".into());
+        }
+        println!("PG18_PROVIDER_COMPLETED_DIFFERENT_ATTEMPT_IDENTITY_DENIED_PASS");
+
         match append_events_with_provider_cas(
             &mut db,
             &self.base.schema,
@@ -968,6 +1049,84 @@ fn verify_native_rust_pg_v4_completed_case(source_case: &str, retain_model_conte
         4
     );
     println!("PG18_SOURCE_PROVIDER_V4_COMPLETED_FORGERY_REJECTED_PASS");
+
+    // R35: a fully WELL-FORMED new V4 COMPLETED record with the right
+    // original Run/Model/Request but pointing to an OLD dispatch must not
+    // be committed after the current Provider head has already COMPLETED.
+    // This falsifies "some prior dispatch exists" as sufficient causality.
+    let first_source = loads_strict(
+        std::str::from_utf8(&source_records.index(0).unwrap().canonical_bytes()).unwrap(),
+    )
+    .unwrap();
+    let dispatch_ref = expected_ref(&batch[1], "harness-provider-call-record").unwrap();
+    let replayed_completion = author_provider_v4(
+        &native_seed(&first_source),
+        ProviderV4Transition::Completed {
+            previous: &dispatch_ref.digest,
+            result_digest: &positive_digest,
+            result_object_digest: retain_model_content.then_some(positive_digest.as_str()),
+        },
+        1044,
+    )
+    .unwrap();
+    let replayed_ref = StoredRef {
+        digest: digest_bytes(&canonical_bytes(&replayed_completion)),
+        kind: "harness-provider-call-record".to_owned(),
+        byte_length: i64::try_from(canonical_bytes(&replayed_completion).len()).unwrap(),
+    };
+    let original_completed = expected_ref(&batch[2], "harness-provider-call-record").unwrap();
+    let changed_data = String::from_utf8(canonical_bytes(&batch[2].data))
+        .unwrap()
+        .replace(&original_completed.digest, &replayed_ref.digest);
+    let mut second_completion = batch[2].clone();
+    second_completion.event_id = format!("event:stale-previous-completion-{source_case}");
+    second_completion.recorded_at_ms = 1044;
+    second_completion.data = loads_strict(&changed_data).unwrap();
+    second_completion
+        .referenced_objects
+        .retain(|r| r.kind != "harness-provider-call-record");
+    second_completion
+        .referenced_objects
+        .push(replayed_ref.clone());
+    let stale = append_events_with_provider_cas(
+        &mut denied_db,
+        &schema,
+        run_id,
+        ProviderEventBatch {
+            events: &[second_completion.clone()],
+            staged: &[ProviderStagedCas {
+                kind: ProviderCasKind::RecordV4,
+                document: &replayed_completion,
+                first_seen_at_ms: 1044,
+            }],
+        },
+        4,
+        &newer_lease,
+        1044,
+    );
+    assert!(
+        matches!(
+            stale,
+            Err(WriteError::Invalid(
+                "Provider completed not linked to current durable dispatch"
+            ))
+        ),
+        "an old Provider dispatch authorized second completion: {stale:?}"
+    );
+    let stale_event_count: i64 = readonly
+        .query_one(&evt_sql, &[&second_completion.event_id])
+        .unwrap()
+        .get(0);
+    let stale_cas_count: i64 = readonly
+        .query_one(&rollback_sql, &[&replayed_ref.digest])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        (stale_event_count, stale_cas_count),
+        (0, 0),
+        "stale predecessor left forged Provider Event or CAS"
+    );
+    println!("PG18_PROVIDER_COMPLETED_CURRENT_PREDECESSOR_FENCE_PASS");
 
     // R33: A caller-controlled adapter must NOT override the original
     // immutable Run Contract's model-content retention policy. In particular,

@@ -186,3 +186,32 @@ Run revision remains unchanged. Normal positive retained/redacted Results,
 budget, privacy, original UNKNOWN and Python Store history all remain
 accepted. This does NOT prove real Provider send authority at physical
 network dispatch nor independent AgentSolved.
+
+## R35 same-attempt causal predecessor as one shared formalizable kernel
+
+R34 proved that a fake COMPLETED label is invalid but checking *any*
+historical DISPATCHING reference was still insufficient: a well-formed
+new V4 result could reuse an older dispatch after that call had completed,
+or point to a different ProviderCallId under the same Run.
+
+R35 factors the immutable non-CLAIMED six-field attempt identity predicate
+into harness-core::provider_head::ProviderRecordHead::same_attempt_identity,
+reused in the original read-only PG Provider recovery and source PG Writer.
+The source current Provider head-clearing predicate is likewise centralized
+in the same core. Inside the existing locked PG18 transaction, a new V4
+COMPLETED must point to the most recent source-defined Provider predecessor
+since the last clearing Event, which must be DISPATCHING, have the exact
+previousRecordDigest and the same ProviderCallId, turn, sequence,
+claimGeneration, requestDigest and ProviderRequestDigest. A replay of a
+previously committed Event still reconciles as Existing without a new send.
+
+Independent PG18 falsification includes:
+(1) in rev3 DISPATCHING before valid completion, a *validly authored*
+V4 COMPLETED with a different ProviderCallId, same predecessor and
+source-real HTTP model response: rejected and no forged CAS;
+(2) after the legitimate COMPLETED rev4, an otherwise valid new V4
+COMPLETED referencing its old DISPATCHING: rejected, no CAS/Event.
+Source-allowed and privacy-redacted retained histories still converge
+to original Python Store's exact V4 and AgentTurnResult bytes. The
+Journal, SQL and native test servers remain isolated; this is NOT proof
+of real model payment, tool grant at physical spawn, or AgentSolved.

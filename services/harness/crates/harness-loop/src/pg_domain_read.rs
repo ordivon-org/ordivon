@@ -295,18 +295,7 @@ fn provider_event_status(event_kind: &str) -> Option<crate::provider_head::Provi
         _ => None,
     }
 }
-fn provider_event_clears_head(event_kind: &str) -> bool {
-    matches!(
-        event_kind,
-        "harness.snapshot-recorded"
-            | "harness.working-set-recorded"
-            | "harness.run-paused"
-            | "harness.tool-step-prepared"
-            | "harness.run-stopped"
-            | "harness.run-completed"
-            | "harness.run-failed"
-    )
-}
+use ordivon_harness_core::provider_head::provider_event_clears_head;
 fn event_text<'a>(
     doc: &'a CanonicalDocument,
     key: &str,
@@ -488,12 +477,7 @@ pub fn inspect_pg_provider_head(
                 ),
             )?
             || (parsed.status != crate::provider_head::ProviderStatus::Claimed
-                && (previous.provider_call_id != parsed.provider_call_id
-                    || previous.turn_id != parsed.turn_id
-                    || previous.turn_sequence != parsed.turn_sequence
-                    || previous.claim_generation != parsed.claim_generation
-                    || previous.request_digest != parsed.request_digest
-                    || previous.provider_request_digest != parsed.provider_request_digest))
+                && !previous.same_attempt_identity(&parsed))
         {
             return Err(PgProviderRecoveryError::EventRecordMismatch(
                 "Provider V4 causal predecessor identity/status mismatch",

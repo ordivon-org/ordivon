@@ -25,6 +25,22 @@ impl ProviderStatus {
     }
 }
 
+/// Original Python Run continuity clears the current Provider head after
+/// source-defined Snapshot/Tool/Run terminal boundaries. Both PG Writer
+/// and read-only recovery must apply exactly the same clearing semantics.
+pub fn provider_event_clears_head(event_kind: &str) -> bool {
+    matches!(
+        event_kind,
+        "harness.snapshot-recorded"
+            | "harness.working-set-recorded"
+            | "harness.run-paused"
+            | "harness.tool-step-prepared"
+            | "harness.run-stopped"
+            | "harness.run-completed"
+            | "harness.run-failed"
+    )
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RecoveryPosture {
     /// A claimed record alone is not a current lease, fence or dispatch grant.
@@ -92,6 +108,20 @@ pub struct ProviderRecordHead {
     pub failure_digest: Option<String>,
     pub previous_record_digest: Option<String>,
     pub canonical_digest: String,
+}
+
+/// Exact same physical Provider Call attempt identity across transitions.
+/// The Python Source permits a new-turn CLAIMED to switch ProviderCallId,
+/// but non-CLAIMED V4 transitions MUST preserve these six fields.
+impl ProviderRecordHead {
+    pub fn same_attempt_identity(&self, other: &Self) -> bool {
+        self.provider_call_id == other.provider_call_id
+            && self.turn_id == other.turn_id
+            && self.turn_sequence == other.turn_sequence
+            && self.claim_generation == other.claim_generation
+            && self.request_digest == other.request_digest
+            && self.provider_request_digest == other.provider_request_digest
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -9,7 +9,7 @@ use super::{
     contract_semantics, decode_cas, run_projection, transition, valid_schema, ReadError,
     RunProjection, CONTRACT_KIND,
 };
-use ordivon_harness_core::provider_head::{inspect_v4, ProviderStatus};
+use ordivon_harness_core::provider_head::{inspect_v4, provider_event_clears_head, ProviderStatus};
 use ordivon_harness_core::{canonical_bytes, digest_bytes, CanonicalDocument, CanonicalError};
 use postgres::{Client, Transaction};
 use std::{collections::BTreeSet, fmt};
@@ -417,31 +417,84 @@ fn require_source_provider_completion(
                     ));
                 }
             }
-            // The completed result cannot assert a successful physical send
-            // without a durable predecessor DISPATCHING Event in this Run.
-            // The previous event can be part of the same atomic batch.
-            let prev = parsed
+            // A mere historical DISPATCHING somewhere in the Run does not
+            // authorize a completed result. The predecessor must be the
+            // current head since the last source-defined clearing event,
+            // and MUST be the same ProviderCall/turn/request/generation.
+            // Use the same Core identity + head-clearing semantics as the
+            // independent read-only Provider recovery consumer.
+            let previous_digest = parsed
                 .previous_record_digest
                 .as_deref()
                 .ok_or(WriteError::Invalid("Provider completed predecessor absent"))?;
-            let local = events.iter().any(|e| {
-                e.event_kind == "harness.provider-call-dispatching"
-                    && e.referenced_objects.iter().any(|ref_| {
-                        ref_.kind == "harness-provider-call-record" && ref_.digest == prev
-                    })
+            let position = events
+                .iter()
+                .position(|e| e.event_id == event.event_id)
+                .ok_or(WriteError::Invalid(
+                    "Provider completion source event absent",
+                ))?;
+            let recent = events[..position].iter().rev().find(|e| {
+                e.event_kind.starts_with("harness.provider-call-")
+                    || provider_event_clears_head(&e.event_kind)
             });
-            let committed = tx
-                .query_opt(
-                    "SELECT e.event_id FROM run_events e JOIN run_object_refs r \
-                 ON e.event_id=r.event_id \
-                 WHERE e.harness_run_id=$1 AND e.event_kind='harness.provider-call-dispatching' \
-                   AND r.digest=$2 LIMIT 1",
-                    &[&run, &prev],
-                )?
-                .is_some();
-            if !local && !committed {
+            let (kind, prior_digest) = if let Some(recent) = recent {
+                let record = recent
+                    .referenced_objects
+                    .iter()
+                    .find(|r| r.kind == "harness-provider-call-record");
+                (recent.event_kind.clone(), record.map(|r| r.digest.clone()))
+            } else {
+                let observed = tx.query_opt(
+                    "SELECT event_id,event_kind FROM run_events \
+                     WHERE harness_run_id=$1 AND ( \
+                     event_kind LIKE 'harness.provider-call-%' OR \
+                     event_kind IN ('harness.snapshot-recorded',\
+                     'harness.working-set-recorded','harness.run-paused',\
+                     'harness.tool-step-prepared','harness.run-stopped',\
+                     'harness.run-completed','harness.run-failed')) \
+                     ORDER BY run_revision DESC LIMIT 1",
+                    &[&run],
+                )?;
+                if let Some(row) = observed {
+                    let id: String = row.get("event_id");
+                    let kind: String = row.get("event_kind");
+                    let reference = tx.query_opt(
+                        "SELECT r.digest FROM run_object_refs r \
+                         JOIN objects o ON o.digest=r.digest \
+                         WHERE r.event_id=$1 AND o.kind='harness-provider-call-record' \
+                         LIMIT 1",
+                        &[&id],
+                    )?;
+                    (kind, reference.map(|r| r.get::<_, String>("digest")))
+                } else {
+                    (String::new(), None)
+                }
+            };
+            if kind != "harness.provider-call-dispatching"
+                || prior_digest.as_deref() != Some(previous_digest)
+            {
                 return Err(WriteError::Invalid(
-                    "Provider completed lacks durable dispatch",
+                    "Provider completed not linked to current durable dispatch",
+                ));
+            }
+            let previous_row = tx.query_one(
+                "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+                &[&previous_digest],
+            )?;
+            let previous_doc = decode_cas(
+                previous_digest,
+                "harness-provider-call-record",
+                &previous_row.get::<_, String>("kind"),
+                previous_row.get::<_, i64>("byte_length"),
+                &previous_row.get::<_, Vec<u8>>("content"),
+            )?;
+            let previous = inspect_v4(&previous_doc)
+                .map_err(|_| WriteError::Invalid("Provider predecessor invalid V4"))?;
+            if previous.status != ProviderStatus::Dispatching
+                || !previous.same_attempt_identity(&parsed)
+            {
+                return Err(WriteError::Invalid(
+                    "Provider completed predecessor attempt identity mismatch",
                 ));
             }
         }
