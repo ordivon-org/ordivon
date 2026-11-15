@@ -36,6 +36,9 @@ SOURCE_FILES = (
     "tools/formal/RecursiveLegoVariationFrame.lean",
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
     "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+    "capabilities/media/formal/TimedTextDeliveryPrecision.lean",
+    "capabilities/media/src/ordivon_studio/timed_text.py",
+    "capabilities/media/tests/test_timed_text.py",
     "capabilities/media/formal/ProductionOutputByteIdentity.lean",
     "capabilities/media/formal/ProductionDependencyImpact.lean",
     "capabilities/media/formal/ArchiveVisualSourcePreservation.lean",
@@ -458,11 +461,13 @@ def main() -> None:
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
     media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
     media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
+    media_timed_text_proof = REPO / "capabilities/media/formal/TimedTextDeliveryPrecision.lean"
     media_output_proof = REPO / "capabilities/media/formal/ProductionOutputByteIdentity.lean"
     media_dependency_proof = REPO / "capabilities/media/formal/ProductionDependencyImpact.lean"
     media_archive_visual_proof = REPO / "capabilities/media/formal/ArchiveVisualSourcePreservation.lean"
     for proof_file in (source, variation, media_proof, media_library_proof,
-                       media_output_proof, media_dependency_proof, media_archive_visual_proof):
+                       media_output_proof, media_dependency_proof, media_archive_visual_proof,
+                       media_timed_text_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -479,6 +484,8 @@ def main() -> None:
                           [executable("lean"), str(media_proof)]))
         probes.append(run("Lean kernel Media Creative Library Catalog acceptance",
                           [executable("lean"), str(media_library_proof)]))
+        probes.append(run("Lean kernel Media TimedText delivery precision",
+                          [executable("lean"), str(media_timed_text_proof)]))
         probes.append(run("Lean kernel Media Output byte identity",
                           [executable("lean"), str(media_output_proof)]))
         probes.append(run("Lean kernel Media dependency impact model",
