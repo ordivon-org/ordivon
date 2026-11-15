@@ -276,3 +276,54 @@ Ability LEGO: reused and refined `harness-pg/src/journal_write.rs`,
 reused `harness-core/src/provider_head.rs`, extended the original
 `harness-loop/tests/pg_provider_head.rs` real PG18 consumer; no
 second Writer, Provider, scheduler or registry.
+
+
+## R37 FailureReceipt shared semantic admission (P0 + important P1 reuse)
+
+R36's source-owned Writer correctly fences the V4 UNKNOWN/FAILED event to
+the current ProviderAttempt, but its FailureReceipt check was weaker than
+the independent SELECT-only Rust recovery consumer: an exact CAS with a
+valid call/request identity and an invalid `dispatchSafety=blind_retry`
+could still enter the durable PostgreSQL Journal. The real PG18 negative
+test **failed as intended** on original R36:
+`job-01a1de32-bbd9-75aa-aaff-8b2ae65c26aa`.
+The affected test did not silently pass; a positive event was wrongly
+admitted, so the negative integration case failed. That is a source
+counterexample, not a physical model billing observation.
+
+DELETE-duplicate: extracted the source-defined eight-field, UTF-8
+bounded, Provider failure-code and dispatch-safety enum, canonical
+digest and same-attempt identity validation into one pure
+`harness-core::provider_head::validate_provider_failure_source`
+function. The natural original PG Writer and the existing SELECT-only
+`harness-loop::pg_domain_read` consumer now call that SAME function
+through their own narrow field projections. The Reader never receives
+raw private failure detail: it consumes its existing boolean
+detail validity projection; the Writer checks its locally owned
+canonical object, within the same PG Run transaction. No new DB, PG
+writer, retry service, V4 parser, secret materialization or scheduler.
+
+Genuine PostgreSQL18 GREEN:
+`job-01a1de35-0a59-72e8-895e-e5317718fe9c`: native PG V4 4/4,
+positive retained+redacted, source budget, wrong Adapter,
+foreign Unknown, invalid FailureReceipt enum and CAS rollback all
+pass; independent original Python Store validates recovered histories;
+scratch PG18 stopped and removed. Native full Cargo Workspace
+all-targets offline test passed, and strict clippy -Dwarnings passed
+`job-01a1de36-733e-720c-ae2d-ef4e17a21e86` after a small
+nested helper syntax cleanup.
+
+This closes *only* the tested original PG FailureReceipt Writer / Reader
+source semantic asymmetry. It does not implement production model
+credentials, external billing, installed Gateway `execution.harness`,
+ToolOwner physical receipt, real multiround Cognition recovery or
+DomainSuccess. Those remain explicit P0.
+
+LEGO: thought=Design-by-Contract, fail-closed error taxonomy, Event
+Sourcing, single-writer ownership, independent RED/GREEN falsification;
+logical=L1 current Run, L5 Provider result shape, L6 atomic Journal,
+L11 receipt evidence, L12 UNKNOWN reconciliation; capability=refined
+existing `harness-core/src/provider_head.rs` shared pure validator,
+reused `harness-loop/src/pg_domain_read.rs` SELECT-only reader,
+`harness-pg/src/journal_write.rs` current PG writer, existing real
+`harness-loop/tests/pg_provider_head.rs` PG18 scenario.

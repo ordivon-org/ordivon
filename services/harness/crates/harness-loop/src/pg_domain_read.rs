@@ -316,70 +316,29 @@ fn validate_provider_failure_receipt(
     receipt: &VerifiedProviderFailureReference,
     record: &crate::provider_head::ProviderRecordHead,
 ) -> Result<(), PgProviderRecoveryError> {
-    use PgProviderRecoveryError as Error;
+    use ordivon_harness_core::provider_head::{
+        validate_provider_failure_source, ProviderFailureSourceError, ProviderFailureSourceView,
+    };
     use ProviderFailureTextField as Field;
-    // A exposes exactly the six non-sensitive textual source fields,
-    // schema identity, field cardinality and a yes/no detail text check.
-    // The raw failure detail cannot escape through this consumer.
-    if receipt.field_count() != Some(8)
-        || !receipt.version_is_one()
-        || receipt.source_text_field(Field::Kind) != Some("ordivon.harness-provider-call-failure")
-        || !receipt.detail_is_source_valid(2048)
-    {
-        return Err(Error::InvalidProviderFailureReceipt);
-    }
-    let required = |field: Field, max_bytes: usize| -> Result<&str, PgProviderRecoveryError> {
-        let value = receipt
-            .source_text_field(field)
-            .ok_or(Error::InvalidProviderFailureReceipt)?;
-        if !crate::identity::valid_trimmed(value, max_bytes) {
-            return Err(Error::InvalidProviderFailureReceipt);
+    let view = ProviderFailureSourceView {
+        field_count: receipt.field_count(),
+        version_one: receipt.version_is_one(),
+        kind: receipt.source_text_field(Field::Kind),
+        detail_source_valid: receipt.detail_is_source_valid(2048),
+        provider_call_id: receipt.source_text_field(Field::ProviderCallId),
+        request_digest: receipt.source_text_field(Field::RequestDigest),
+        provider_request_digest: receipt.source_text_field(Field::ProviderRequestDigest),
+        failure_code: receipt.source_text_field(Field::FailureCode),
+        dispatch_safety: receipt.source_text_field(Field::DispatchSafety),
+    };
+    validate_provider_failure_source(view, receipt.digest(), record).map_err(|error| match error {
+        ProviderFailureSourceError::InvalidForm => {
+            PgProviderRecoveryError::InvalidProviderFailureReceipt
         }
-        Ok(value)
-    };
-    let call_id = required(Field::ProviderCallId, 512)?;
-    if !call_id.starts_with("provider-call:") {
-        return Err(Error::InvalidProviderFailureReceipt);
-    }
-    let request = required(Field::RequestDigest, 512)?;
-    let provider_request = required(Field::ProviderRequestDigest, 512)?;
-    let failure_code = required(Field::FailureCode, 512)?;
-    let dispatch_safety = required(Field::DispatchSafety, 512)?;
-    let is_sha = |text: &str| {
-        text.len() == 71
-            && text.starts_with("sha256:")
-            && text[7..]
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-    };
-    if !is_sha(request)
-        || !is_sha(provider_request)
-        || !matches!(
-            failure_code,
-            "provider_failed"
-                | "provider_timeout"
-                | "provider_transport_failed"
-                | "provider_rejected"
-                | "provider_unavailable"
-        )
-        || !matches!(
-            dispatch_safety,
-            "pre_dispatch_safe" | "provider_rejected" | "dispatch_ambiguous"
-        )
-    {
-        return Err(Error::InvalidProviderFailureReceipt);
-    }
-    // The canonical digest is A-authenticated. B verifies source-level
-    // receipt identity AND exact Request/ProviderRequest binding, beyond
-    // CAS kind/edge presence. UNKNOWN remains UNKNOWN, never a retry token.
-    if record.failure_digest.as_deref() != Some(receipt.digest())
-        || call_id != record.provider_call_id
-        || request != record.request_digest
-        || provider_request != record.provider_request_digest
-    {
-        return Err(Error::FailureReceiptBindingMismatch);
-    }
-    Ok(())
+        ProviderFailureSourceError::IdentityMismatch => {
+            PgProviderRecoveryError::FailureReceiptBindingMismatch
+        }
+    })
 }
 
 /// The Python source EventSourcedRunContinuity._heads() clears Provider heads

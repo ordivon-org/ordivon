@@ -455,6 +455,91 @@ impl DurableJournal for SourcePgUnknownJournal {
             return Err("foreign Provider UNKNOWN CAS persisted after rejection".into());
         }
         println!("PG18_PROVIDER_UNKNOWN_CROSS_ATTEMPT_DENIED_PASS");
+        // R37 real PG RED: a well-linked UNKNOWN V4 record must not
+        // smuggle an invalid original Python FailureReceipt enum.
+        // Previous R36 verified identity only; safe recovery requires full
+        // source protocol validation at writer admission as well.
+        let invalid_failure_wire = String::from_utf8(canonical_bytes(&fail))
+            .map_err(|e| e.to_string())?
+            .replace(
+                r#""dispatchSafety":"dispatch_ambiguous""#,
+                r#""dispatchSafety":"blind_retry""#,
+            );
+        let invalid_failure = loads_strict(&invalid_failure_wire).map_err(|e| e.to_string())?;
+        if invalid_failure == fail {
+            return Err("invalid FailureReceipt test mutation was a no-op".into());
+        }
+        let bad_fail_ref = StoredRef {
+            digest: digest_bytes(&canonical_bytes(&invalid_failure)),
+            kind: "harness-provider-call-failure".into(),
+            byte_length: i64::try_from(canonical_bytes(&invalid_failure).len())
+                .map_err(|e| e.to_string())?,
+        };
+        let bad_unknown = author_provider_v4(
+            &native_seed(&self.python_first_source),
+            ProviderV4Transition::Unknown {
+                previous,
+                failure_digest: &bad_fail_ref.digest,
+                failure_object_digest: &bad_fail_ref.digest,
+            },
+            u64::try_from(self.batch[2].recorded_at_ms).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let bad_unknown_ref = StoredRef {
+            digest: digest_bytes(&canonical_bytes(&bad_unknown)),
+            kind: "harness-provider-call-record".into(),
+            byte_length: i64::try_from(canonical_bytes(&bad_unknown).len())
+                .map_err(|e| e.to_string())?,
+        };
+        let altered = String::from_utf8(canonical_bytes(&self.batch[2].data))
+            .map_err(|e| e.to_string())?
+            .replace(&fail_ref.digest, &bad_fail_ref.digest)
+            .replace(&unknown_ref.digest, &bad_unknown_ref.digest);
+        let mut forged_event = self.batch[2].clone();
+        forged_event.event_id = format!("event:invalid-failure-enum-{}", self.run_id);
+        forged_event.data = loads_strict(&altered).map_err(|e| e.to_string())?;
+        forged_event.referenced_objects.retain(|r| {
+            r.kind != "harness-provider-call-record" && r.kind != "harness-provider-call-failure"
+        });
+        forged_event
+            .referenced_objects
+            .extend([bad_unknown_ref.clone(), bad_fail_ref.clone()]);
+        let invalid_admission = append_events_with_provider_cas(
+            &mut db,
+            &self.schema,
+            &self.run_id,
+            ProviderEventBatch {
+                events: &[forged_event],
+                staged: &[
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::RecordV4,
+                        document: &bad_unknown,
+                        first_seen_at_ms: self.batch[2].recorded_at_ms,
+                    },
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::FailureReceipt,
+                        document: &invalid_failure,
+                        first_seen_at_ms: self.batch[2].recorded_at_ms,
+                    },
+                ],
+            },
+            3,
+            &lease,
+            1012,
+        );
+        if !matches!(invalid_admission, Err(WriteError::Invalid(_))) {
+            return Err(format!(
+                "invalid original FailureReceipt dispatchSafety admitted: {invalid_admission:?}"
+            ));
+        }
+        let bad_count: i64 = db
+            .query_one(&query, &[&bad_fail_ref.digest])
+            .map_err(|e| e.to_string())?
+            .get(0);
+        if bad_count != 0 {
+            return Err("invalid FailureReceipt CAS persisted after rejected Event".into());
+        }
+        println!("PG18_PROVIDER_INVALID_FAILURE_ENUM_DENIED_PASS");
         match append_events(
             &mut db,
             &self.schema,

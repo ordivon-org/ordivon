@@ -9,7 +9,10 @@ use super::{
     contract_semantics, decode_cas, run_projection, transition, valid_schema, ReadError,
     RunProjection, CONTRACT_KIND,
 };
-use ordivon_harness_core::provider_head::{inspect_v4, provider_event_clears_head, ProviderStatus};
+use ordivon_harness_core::provider_head::{
+    inspect_v4, provider_event_clears_head, validate_provider_failure_source,
+    ProviderFailureSourceView, ProviderStatus,
+};
 use ordivon_harness_core::{canonical_bytes, digest_bytes, CanonicalDocument, CanonicalError};
 use postgres::{Client, Transaction};
 use std::{collections::BTreeSet, fmt};
@@ -591,25 +594,27 @@ fn require_source_provider_failure(
             receipt_row.get::<_, i64>("byte_length"),
             &receipt_row.get::<_, Vec<u8>>("content"),
         )?;
-        if receipt
-            .field("schemaVersion")
-            .and_then(|v| v.integer_text())
-            != Some("1")
-            || receipt.field("kind").and_then(|v| v.as_str())
-                != Some("ordivon.harness-provider-call-failure")
-            || receipt.field("providerCallId").and_then(|v| v.as_str())
-                != Some(parsed.provider_call_id.as_str())
-            || receipt.field("requestDigest").and_then(|v| v.as_str())
-                != Some(parsed.request_digest.as_str())
-            || receipt
-                .field("providerRequestDigest")
+        let view = ProviderFailureSourceView {
+            field_count: receipt.object_len(),
+            version_one: receipt
+                .field("schemaVersion")
+                .and_then(|v| v.integer_text())
+                == Some("1"),
+            kind: receipt.field("kind").and_then(|v| v.as_str()),
+            detail_source_valid: receipt
+                .field("detail")
                 .and_then(|v| v.as_str())
-                != Some(parsed.provider_request_digest.as_str())
-        {
-            return Err(WriteError::Invalid(
-                "Provider failure receipt attempt mismatch",
-            ));
-        }
+                .is_some_and(|v| ordivon_harness_core::valid_trimmed(v, 2048)),
+            provider_call_id: receipt.field("providerCallId").and_then(|v| v.as_str()),
+            request_digest: receipt.field("requestDigest").and_then(|v| v.as_str()),
+            provider_request_digest: receipt
+                .field("providerRequestDigest")
+                .and_then(|v| v.as_str()),
+            failure_code: receipt.field("failureCode").and_then(|v| v.as_str()),
+            dispatch_safety: receipt.field("dispatchSafety").and_then(|v| v.as_str()),
+        };
+        validate_provider_failure_source(view, &receipt_ref.digest, &parsed)
+            .map_err(|_| WriteError::Invalid("Provider failure invalid source receipt"))?;
         let previous_digest = parsed
             .previous_record_digest
             .as_deref()

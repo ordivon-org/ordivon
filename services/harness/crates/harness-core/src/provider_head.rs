@@ -124,6 +124,84 @@ impl ProviderRecordHead {
     }
 }
 
+/// Single source-semantic FailureReceipt admission shared by the A-owned
+/// PG Writer and the B-owned SELECT-only recovery consumer. The Reader
+/// projects only a boolean for private detail; it must never disclose it.
+#[derive(Clone, Copy)]
+pub struct ProviderFailureSourceView<'a> {
+    pub field_count: Option<usize>,
+    pub version_one: bool,
+    pub kind: Option<&'a str>,
+    pub detail_source_valid: bool,
+    pub provider_call_id: Option<&'a str>,
+    pub request_digest: Option<&'a str>,
+    pub provider_request_digest: Option<&'a str>,
+    pub failure_code: Option<&'a str>,
+    pub dispatch_safety: Option<&'a str>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProviderFailureSourceError {
+    InvalidForm,
+    IdentityMismatch,
+}
+
+/// Validate complete protocol shape, known retry-safety semantics and
+/// cross-Event attempt binding. It is neither a retry grant nor an
+/// observation of external billing/physical effects.
+pub fn validate_provider_failure_source(
+    view: ProviderFailureSourceView<'_>,
+    receipt_digest: &str,
+    record: &ProviderRecordHead,
+) -> Result<(), ProviderFailureSourceError> {
+    use ProviderFailureSourceError::{IdentityMismatch, InvalidForm};
+    if view.field_count != Some(8)
+        || !view.version_one
+        || view.kind != Some("ordivon.harness-provider-call-failure")
+        || !view.detail_source_valid
+    {
+        return Err(InvalidForm);
+    }
+    fn text(source: Option<&str>) -> Result<&str, ProviderFailureSourceError> {
+        let value = source.ok_or(InvalidForm)?;
+        if !crate::valid_trimmed(value, 512) {
+            return Err(InvalidForm);
+        }
+        Ok(value)
+    }
+    let call = text(view.provider_call_id)?;
+    let request = text(view.request_digest)?;
+    let provider_request = text(view.provider_request_digest)?;
+    let code = text(view.failure_code)?;
+    let safety = text(view.dispatch_safety)?;
+    if !call.starts_with("provider-call:")
+        || !is_digest(request)
+        || !is_digest(provider_request)
+        || !matches!(
+            code,
+            "provider_failed"
+                | "provider_timeout"
+                | "provider_transport_failed"
+                | "provider_rejected"
+                | "provider_unavailable"
+        )
+        || !matches!(
+            safety,
+            "pre_dispatch_safe" | "provider_rejected" | "dispatch_ambiguous"
+        )
+    {
+        return Err(InvalidForm);
+    }
+    if record.failure_digest.as_deref() != Some(receipt_digest)
+        || call != record.provider_call_id
+        || request != record.request_digest
+        || provider_request != record.provider_request_digest
+    {
+        return Err(IdentityMismatch);
+    }
+    Ok(())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProviderRecordError {
     InvalidV4Record,
