@@ -154,13 +154,13 @@ def assert_source_and_cache(root: Path, wid: str, head: str) -> Path:
     return cache
 
 
-def external_processes_using(path: Path) -> list[str]:
+def external_processes_using(path: Path, proc_root: Path = Path("/proc")) -> list[str]:
     # Advisory OS-consumer guard *in addition* to the PG Job admission fence.
     # A compiler can hold an open artifact FD while cwd is outside its cache.
     # Permission-denied observation is UNKNOWN, never evidence of no consumer.
     target = str(path) + os.sep
     matches = set()
-    for proc in Path("/proc").glob("[0-9]*"):
+    for proc in proc_root.glob("[0-9]*"):
         links = [proc / "cwd"]
         try:
             links.extend((proc / "fd").iterdir())

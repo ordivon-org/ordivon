@@ -87,15 +87,24 @@ class BuildCacheEvictionContractTests(unittest.TestCase):
 
 class OpenFdConsumerTests(unittest.TestCase):
     def test_open_fd_inside_cache_is_visible_even_when_cwd_is_elsewhere(self):
-        """An external compiler may hold an open artifact without cwd under cache."""
+        """Observe a real kernel FD without enumerating unrelated CI processes."""
         with tempfile.TemporaryDirectory() as tmp:
             cache = Path(tmp) / "build"
             cache.mkdir()
             artifact = cache / "held-output.o"
             artifact.write_bytes(b"compiler-output")
+
+            # The isolated /proc view contains only this test process. The FD
+            # directory itself is the real kernel-owned /proc/<pid>/fd.
+            pid = str(__import__("os").getpid())
+            proc_root = Path(tmp) / "proc"
+            proc = proc_root / pid
+            proc.mkdir(parents=True)
+            (proc / "cwd").symlink_to(Path.cwd(), target_is_directory=True)
+            (proc / "fd").symlink_to(Path("/proc") / pid / "fd", target_is_directory=True)
             with artifact.open("rb"):
-                consumers = evict.external_processes_using(cache)
-                self.assertIn(str(__import__("os").getpid()), consumers)
+                consumers = evict.external_processes_using(cache, proc_root)
+                self.assertIn(pid, consumers)
 
 
 if __name__ == "__main__":
