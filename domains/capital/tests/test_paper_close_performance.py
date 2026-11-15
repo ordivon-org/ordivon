@@ -396,3 +396,31 @@ def test_human_paper_daily_brief_genesis_never_invents_profit():
     displayed = render_paper_daily_markdown(report)
     assert "首次日结" in displayed
     assert "扣除外部入金的投资损益" not in displayed
+
+
+def test_superseded_previous_market_vintage_cannot_publish_period_gain():
+    """A genuine Markets source revision must invalidate dependent NAV comparison.
+
+    Positive example is a valid new EOD snapshot bound to the earlier raw
+    source digest, not an altered unverified input or a forged summary.
+    """
+    _, _, old_snapshot = _market(day="2026-01-08", price=10_100)
+    raw, binding, _, previous, current, _, _ = _case()
+    # Prior account valuation had shares marked under the old source. That
+    # committed valuation must not silently become the revised new basis.
+    previous["valuation"]["positions"] = {"ETF": 10}
+    previous["valuation"]["cash_minor"] = 899_000
+    previous["market_evidence"]["sha256"] = old_snapshot.sha256
+    previous["market_evidence"]["standing"] = "OPERATOR_BOUND_MARKS"
+    revised = json.loads(raw)
+    revised["supersedesSha256"] = old_snapshot.sha256
+    new_bytes = json.dumps(revised, sort_keys=True).encode()
+    binding["expected_sha256"] = "sha256:" + hashlib.sha256(new_bytes).hexdigest()
+    new_snapshot = admit_etf_eod_snapshot(new_bytes, **binding)
+    current["market_evidence"]["sha256"] = new_snapshot.sha256
+    current["market_evidence"]["supersedes_sha256"] = old_snapshot.sha256
+    with pytest.raises(PaperPerformanceError, match="superseded.*previous.*valuation"):
+        summarize_paper_period(
+            current_receipt=current, previous_receipt=previous,
+            snapshot=new_snapshot,
+        )

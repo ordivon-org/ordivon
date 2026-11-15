@@ -439,3 +439,19 @@ PostgreSQL 后才标记 `accountingPersistenceReverified=true`；
 和 `executionAuthorized=false` 均不能被覆盖。若本月尚未有经
 认可的市场快照，则保留未知与阻断，而不是用历史回填价格伪装当日
 可交易行情。普通用户仍需提供自己的投资期限、现金储备和目标比例。
+
+### Paper 价格来源修订后的绩效失效（2026-11-15）
+
+如果新 Markets EOD 快照的 `supersedesSha256` **明确指向前一期
+Paper Accounting 收据中 `market_evidence.sha256`**，现有
+`portfolio.paper_close_performance` 拒绝输出跨这两期的投资
+盈亏和简单收益率（`REJECTED`，提示先重新核验旧市场估值）。
+一个有效的原始新来源摘要不等于已重新结算旧账本。
+必须保留原始 PG 提交与来源历史，待 Accounting 自然 Owner
+依据可信修订/账本调整合同处理，而不是改写旧收据、默默更新
+历史收益、或者让 Agent 在研究策略中使用已失效结果。
+
+本保护是**显式修订指针命中旧来源**时的局部消费者负控；
+并不意味着未见指针就证明来源未修订，不会自动发现供应商的
+所有历史修正，也不认证公司行动、交易、PIT 或真实投资价值。
+没有独立资格时风险及资本行动仍保持未授权。
