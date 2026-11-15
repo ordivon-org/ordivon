@@ -258,3 +258,96 @@ def test_gateway_cli_rejects_foreign_tool_grant_before_pg_birth(
         with pytest.raises(KeyError):
             store.load_run(source.harness_run_id)
     assert client.calls == []
+
+
+def test_gateway_cli_resume_after_unknown_owner_response_without_redispatch(
+    monkeypatch,
+    pg_schema,
+    tmp_path: Path,
+):
+    # The first live process sends a physical request, loses its reply and
+    # cannot reconcile. A *new* CLI invocation must read the one original PG
+    # Intent and use execution.resolve/get, never submit the same effect again.
+    from ordivon_harness.ordivon.model import ScriptedTurnAdapter
+
+    class LostUntilRestart(GatewayExecutionFixture):
+        resolution_offline = True
+
+        def call_tool(self, name, arguments):
+            if name == "execution.resolve" and self.resolution_offline:
+                self.calls.append((name, dict(arguments)))
+                raise ConnectionError("owner reconciliation temporarily unreachable")
+            return super().call_tool(name, arguments)
+
+    client = LostUntilRestart(response_loss=True)
+    factory = _factory(client)
+    source = _contract(factory)
+    contract_file = tmp_path / "source-resume.json"
+    contract_file.write_text(json.dumps(source.to_dict()), encoding="utf-8")
+    monkeypatch.setattr(independent_cli, "configured_postgres", lambda: pg_schema)
+    monkeypatch.setattr(independent_cli, "OfficialMcpClient", lambda *args, **kwargs: client)
+    adapter_calls = {"value": 0}
+
+    def scripted_provider(contract, args):
+        adapter_calls["value"] += 1
+        # After the source UNKNOWN is reconciled, the Caller supplies a fresh
+        # Adapter capable of concluding from Owner evidence. Never blind retry.
+        turns = _adapter()._results
+        return ScriptedTurnAdapter(turns if adapter_calls["value"] == 1 else (turns[1],))
+
+    monkeypatch.setattr(independent_cli, "_adapter", scripted_provider)
+    clock = FixedClock()
+    first = build_parser().parse_args(
+        [
+            "run",
+            str(contract_file),
+            "--message",
+            "Try the tool once",
+            *gateway_args(),
+        ]
+    )
+    stopped = independent_cli.dispatch(first, clock_ms=clock)
+    assert stopped["stopCode"] == "runtime_unknown"
+    assert stopped["run"]["status"] == "paused"
+    assert [name for name, _ in client.calls] == [
+        "execution.submit",
+        "execution.resolve",
+    ]
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        step = EventSourcedRunContinuity.open(
+            store,
+            source.harness_run_id,
+        ).load_current_tool_step()
+        assert step.receipt is not None
+        assert step.receipt.status.value == "unknown"
+        snapshot = EventSourcedRunContinuity.open(
+            store, source.harness_run_id
+        ).load_current_snapshot()
+        assert snapshot.snapshot.pause_reason.value == "effect-dispatch-pending"
+        assert snapshot.snapshot.active_tool_step_intent_digests == (step.intent.digest,)
+
+    client.resolution_offline = False
+    second = build_parser().parse_args(
+        [
+            "resume",
+            source.harness_run_id,
+            "--message",
+            "Use existing Owner outcome",
+            *gateway_args(),
+        ]
+    )
+    recovered = independent_cli.dispatch(second, clock_ms=clock)
+    assert recovered["stopCode"] == "candidate_completed"
+    assert recovered["run"]["status"] == "completed"
+    names = [name for name, _ in client.calls]
+    assert names.count("execution.submit") == 1
+    assert names.count("execution.resolve") >= 2
+    assert "execution.get" in names
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, source.harness_run_id)
+        step = continuity.load_current_tool_step()
+        assert step.receipt is not None
+        assert step.receipt.status.value == "observed"
+        assert step.receipt.reconciled is True
+        assert step.receipt.runtime_job_ref == "job-h2"
+        store.validate_run_history(source.harness_run_id)

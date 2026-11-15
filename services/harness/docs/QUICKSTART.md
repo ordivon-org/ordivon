@@ -353,6 +353,24 @@ ordivon-harness \
   resume HARNESS_RUN_ID --message 'Additional caller input'
 ```
 
+### R46：Tool 结果不确定时保留可恢复的原始 Run
+
+当 `execution.submit` 已有 PG Tool Intent/Fence、真实 Owner 可能已经执行、但回复/查询失败时，
+原有 `HarnessToolStepReceipt` 记录 `unknown`。此前 Python Harness 在这里把 `runtime_unknown`
+写为 `harness.run-stopped`，后续 CLI `resume` 会拒绝这个终态 Run。
+
+现在只有**当前原始 ToolStep 是 UNKNOWN，且成功提交了 `harness.run-paused`** 时，
+才沿用已存在的 `HarnessRunPauseReason.EFFECT_DISPATCH_PENDING` 和同一个原始 Tool Intent。
+其 Snapshot 维持派发前的 Tool Batch 游标，UNKNOWN 仅保存在 Tool Receipt，不能把它当成
+已经消费的 Tool Observation。调用者在 Owner 可查询后通过同一 Run `resume`，
+Harness 使用原有 `execution.resolve/get` 对账，不额外执行 `execution.submit`。
+
+其他没有原始待对账 Tool 的 `runtime_unknown` 仍按原先的停止语义处理；
+此修复不新增重放缓存、Runtime Writer 或授权系统。真实一次性 PG18 测试使用
+脚本化模型和可模拟回复丢失的 Gateway MCP 测试客户端，验证一个 Run 内先暂停再
+Owner 对账完成、物理 Tool 请求提交次数严格等于 1。这不是已安装 Gateway 的
+端到端验收，也不是 Agent 业务结果已被独立 DomainVerifier 接受。
+
 ## Recovery
 
 Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:

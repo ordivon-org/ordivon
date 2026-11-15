@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field as dataclass_field
 from typing import Any, Callable
 
-from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict, validate_json_value
+from anc_canonical import (
+    JsonValue,
+    canonical_bytes,
+    canonical_digest,
+    loads_strict,
+    validate_json_value,
+)
 
 from .agent_tool_observation import HarnessArtifactReference, HarnessToolObservation
 from .core_contracts import HarnessRunContract
@@ -14,6 +20,7 @@ from .ordivon.run_store_port import HarnessRunStoreBinding
 from .store import (
     HarnessEventAdmission,
     HarnessStore,
+    HarnessRunStatus,
     StoredHarnessObject,
     new_execution_owner_id,
 )
@@ -174,19 +181,46 @@ class IndependentHarnessRunReceipt:
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> IndependentHarnessRunReceipt:
         expected = {
-            "schemaVersion", "kind", "harnessRunId", "callerId", "callerRunRef",
-            "contractDigest", "harnessImplementationId", "systemManifestDigest",
-            "startedAtMs", "finishedAtMs", "stopReason", "terminationCode",
-            "traceDigest", "contextDigests", "toolCatalogDigest", "toolGrantDigest",
-            "runtimeJobRefs", "artifactRefs", "usage", "conclusionDigest",
+            "schemaVersion",
+            "kind",
+            "harnessRunId",
+            "callerId",
+            "callerRunRef",
+            "contractDigest",
+            "harnessImplementationId",
+            "systemManifestDigest",
+            "startedAtMs",
+            "finishedAtMs",
+            "stopReason",
+            "terminationCode",
+            "traceDigest",
+            "contextDigests",
+            "toolCatalogDigest",
+            "toolGrantDigest",
+            "runtimeJobRefs",
+            "artifactRefs",
+            "usage",
+            "conclusionDigest",
         }
         _exact(value, expected, "IndependentHarnessRunReceipt")
-        if type(value["schemaVersion"]) is not int or value["schemaVersion"] != 1 or value["kind"] != "ordivon.independent-harness-run-receipt":
+        if (
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
+            or value["kind"] != "ordivon.independent-harness-run-receipt"
+        ):
             raise ValueError("IndependentHarnessRunReceipt version or kind is invalid")
         string_fields = (
-            "harnessRunId", "callerId", "callerRunRef", "contractDigest",
-            "harnessImplementationId", "systemManifestDigest", "stopReason",
-            "terminationCode", "traceDigest", "toolCatalogDigest", "toolGrantDigest",
+            "harnessRunId",
+            "callerId",
+            "callerRunRef",
+            "contractDigest",
+            "harnessImplementationId",
+            "systemManifestDigest",
+            "stopReason",
+            "terminationCode",
+            "traceDigest",
+            "toolCatalogDigest",
+            "toolGrantDigest",
         )
         if any(not isinstance(value[field], str) for field in string_fields):
             raise ValueError("IndependentHarnessRunReceipt identity fields must be strings")
@@ -194,7 +228,9 @@ class IndependentHarnessRunReceipt:
             if type(value[field]) is not int:
                 raise ValueError(f"IndependentHarnessRunReceipt {field} must be an integer")
         for field in ("contextDigests", "runtimeJobRefs"):
-            if not isinstance(value[field], list) or any(not isinstance(item, str) for item in value[field]):
+            if not isinstance(value[field], list) or any(
+                not isinstance(item, str) for item in value[field]
+            ):
                 raise ValueError(f"IndependentHarnessRunReceipt {field} must contain strings")
         artifacts = value["artifactRefs"]
         if not isinstance(artifacts, list) or any(not isinstance(item, dict) for item in artifacts):
@@ -205,18 +241,24 @@ class IndependentHarnessRunReceipt:
         if conclusion_digest is not None and not isinstance(conclusion_digest, str):
             raise ValueError("IndependentHarnessRunReceipt conclusion digest is invalid")
         return cls(
-            harness_run_id=value["harnessRunId"], caller_id=value["callerId"],
-            caller_run_ref=value["callerRunRef"], contract_digest=value["contractDigest"],
+            harness_run_id=value["harnessRunId"],
+            caller_id=value["callerId"],
+            caller_run_ref=value["callerRunRef"],
+            contract_digest=value["contractDigest"],
             harness_implementation_id=value["harnessImplementationId"],
             system_manifest_digest=value["systemManifestDigest"],
-            started_at_ms=value["startedAtMs"], finished_at_ms=value["finishedAtMs"],
-            stop_reason=value["stopReason"], termination_code=value["terminationCode"],
-            trace_digest=value["traceDigest"], context_digests=tuple(value["contextDigests"]),
+            started_at_ms=value["startedAtMs"],
+            finished_at_ms=value["finishedAtMs"],
+            stop_reason=value["stopReason"],
+            termination_code=value["terminationCode"],
+            trace_digest=value["traceDigest"],
+            context_digests=tuple(value["contextDigests"]),
             tool_catalog_digest=value["toolCatalogDigest"],
             tool_grant_digest=value["toolGrantDigest"],
             runtime_job_refs=tuple(value["runtimeJobRefs"]),
             artifact_refs=tuple(HarnessArtifactReference.from_dict(item) for item in artifacts),
-            usage=dict(value["usage"]), conclusion_digest=conclusion_digest,
+            usage=dict(value["usage"]),
+            conclusion_digest=conclusion_digest,
         )
 
 
@@ -290,9 +332,19 @@ class IndependentCompletionProposal:
         if type(version) is not int or version not in {1, 2}:
             raise ValueError("IndependentCompletionProposal version or kind is invalid")
         common = {
-            "schemaVersion", "kind", "completionProposalId", "harnessRunId",
-            "callerId", "callerRunRef", "contractDigest", "runReceiptDigest",
-            "traceDigest", "summary", "evidenceRefs", "artifactRefs", "usage",
+            "schemaVersion",
+            "kind",
+            "completionProposalId",
+            "harnessRunId",
+            "callerId",
+            "callerRunRef",
+            "contractDigest",
+            "runReceiptDigest",
+            "traceDigest",
+            "summary",
+            "evidenceRefs",
+            "artifactRefs",
+            "usage",
             "createdAtMs",
         }
         expected = common if version == 1 else common | {"unresolvedUnknowns"}
@@ -300,27 +352,44 @@ class IndependentCompletionProposal:
         if value["kind"] != "ordivon.independent-completion-proposal":
             raise ValueError("IndependentCompletionProposal version or kind is invalid")
         for field in (
-            "completionProposalId", "harnessRunId", "callerId", "callerRunRef",
-            "contractDigest", "runReceiptDigest", "traceDigest", "summary",
+            "completionProposalId",
+            "harnessRunId",
+            "callerId",
+            "callerRunRef",
+            "contractDigest",
+            "runReceiptDigest",
+            "traceDigest",
+            "summary",
         ):
             if not isinstance(value[field], str):
                 raise ValueError(f"IndependentCompletionProposal {field} must be a string")
         for field in ("evidenceRefs", "artifactRefs"):
-            if not isinstance(value[field], list) or any(not isinstance(item, str) for item in value[field]):
+            if not isinstance(value[field], list) or any(
+                not isinstance(item, str) for item in value[field]
+            ):
                 raise ValueError(f"IndependentCompletionProposal {field} must contain strings")
         unresolved = value.get("unresolvedUnknowns", [])
-        if not isinstance(unresolved, list) or any(not isinstance(item, str) for item in unresolved):
-            raise ValueError("IndependentCompletionProposal unresolvedUnknowns must contain strings")
+        if not isinstance(unresolved, list) or any(
+            not isinstance(item, str) for item in unresolved
+        ):
+            raise ValueError(
+                "IndependentCompletionProposal unresolvedUnknowns must contain strings"
+            )
         if not isinstance(value["usage"], dict) or type(value["createdAtMs"]) is not int:
             raise ValueError("IndependentCompletionProposal usage or time is invalid")
         return cls(
             completion_proposal_id=value["completionProposalId"],
-            harness_run_id=value["harnessRunId"], caller_id=value["callerId"],
-            caller_run_ref=value["callerRunRef"], contract_digest=value["contractDigest"],
-            run_receipt_digest=value["runReceiptDigest"], trace_digest=value["traceDigest"],
-            summary=value["summary"], evidence_refs=tuple(value["evidenceRefs"]),
+            harness_run_id=value["harnessRunId"],
+            caller_id=value["callerId"],
+            caller_run_ref=value["callerRunRef"],
+            contract_digest=value["contractDigest"],
+            run_receipt_digest=value["runReceiptDigest"],
+            trace_digest=value["traceDigest"],
+            summary=value["summary"],
+            evidence_refs=tuple(value["evidenceRefs"]),
             artifact_refs=tuple(value["artifactRefs"]),
-            unresolved_unknowns=tuple(unresolved), usage=dict(value["usage"]),
+            unresolved_unknowns=tuple(unresolved),
+            usage=dict(value["usage"]),
             created_at_ms=value["createdAtMs"],
         )
 
@@ -351,7 +420,10 @@ class IndependentRunRecorder:
         clock_ms: Callable[[], int],
     ) -> None:
         projection = store.load_run(contract.harness_run_id)
-        if projection.contract_digest != contract.digest or binding.harness_run_id != contract.harness_run_id:
+        if (
+            projection.contract_digest != contract.digest
+            or binding.harness_run_id != contract.harness_run_id
+        ):
             raise ValueError("independent Run Recorder identities differ")
         self.store = store
         self.contract = contract
@@ -402,7 +474,8 @@ class IndependentRunRecorder:
         events = self.store.list_run_events(self.contract.harness_run_id)
         existing = next(
             (
-                event for event in events
+                event
+                for event in events
                 if event.event_kind == _TRACE_EVENT_KIND
                 and event.data.get("traceDigest") == persistent_trace.digest
             ),
@@ -427,7 +500,8 @@ class IndependentRunRecorder:
                 data={
                     "traceDigest": persistent_trace.digest,
                     "traceObjectDigest": stored.digest,
-                    "segmentIndex": 1 + sum(event.event_kind == _TRACE_EVENT_KIND for event in events),
+                    "segmentIndex": 1
+                    + sum(event.event_kind == _TRACE_EVENT_KIND for event in events),
                 },
                 expected_revision=lease.run_revision,
                 recorded_at_ms=now_ms,
@@ -451,6 +525,23 @@ class IndependentRunRecorder:
         self.record_trace_segment(result.trace)
         if result.stop_code in _PAUSED_CODES:
             return None
+        # Tool UNKNOWN is recoverable only when the ORIGINAL Run's own
+        # durable Effect-Dispatch-Pending pause exists. Other runtime
+        # unknowns keep their existing stop/terminal semantics.
+        if result.stop_code in {RunStopCode.RUNTIME_UNKNOWN, RunStopCode.CANCEL_UNKNOWN}:
+            original = self.store.load_run(self.contract.harness_run_id)
+            if original.status is HarnessRunStatus.PAUSED:
+                pauses = (
+                    event
+                    for event in reversed(self.store.list_run_events(self.contract.harness_run_id))
+                    if event.event_kind == "harness.run-paused"
+                )
+                latest_pause = next(pauses, None)
+                if (
+                    latest_pause is not None
+                    and latest_pause.data.get("pauseReason") == "effect-dispatch-pending"
+                ):
+                    return None
         finished = self.clock_ms() if finished_at_ms is None else finished_at_ms
         if started_at_ms < 0 or finished < started_at_ms:
             raise ValueError("independent Run recording times are invalid")
@@ -538,7 +629,8 @@ class IndependentRunRecorder:
     def load_terminal_result(self) -> StoredIndependentRunResult:
         terminal = next(
             (
-                event for event in reversed(self.store.list_run_events(self.contract.harness_run_id))
+                event
+                for event in reversed(self.store.list_run_events(self.contract.harness_run_id))
                 if event.event_kind in _TERMINAL_EVENT_KINDS
             ),
             None,
@@ -638,19 +730,20 @@ class IndependentRunRecorder:
             or proposal.caller_run_ref != receipt.caller_run_ref
         ):
             raise ValueError("Completion Proposal identity differs from Run Receipt")
-        if proposal is not None and conclusion is not None and (
-            conclusion.status != "candidate_completed"
-            or proposal.summary != conclusion.summary
-            or proposal.evidence_refs != conclusion.evidence_refs
-            or proposal.artifact_refs != conclusion.artifact_refs
-            or proposal.usage != receipt.usage
-            or (
-                raw_proposal is not None
-                and (
-                    raw_proposal["schemaVersion"] == 2
-                    or bool(conclusion.unresolved_unknowns)
+        if (
+            proposal is not None
+            and conclusion is not None
+            and (
+                conclusion.status != "candidate_completed"
+                or proposal.summary != conclusion.summary
+                or proposal.evidence_refs != conclusion.evidence_refs
+                or proposal.artifact_refs != conclusion.artifact_refs
+                or proposal.usage != receipt.usage
+                or (
+                    raw_proposal is not None
+                    and (raw_proposal["schemaVersion"] == 2 or bool(conclusion.unresolved_unknowns))
+                    and proposal.unresolved_unknowns != conclusion.unresolved_unknowns
                 )
-                and proposal.unresolved_unknowns != conclusion.unresolved_unknowns
             )
         ):
             raise ValueError("Completion Proposal claims differ from source conclusion")
@@ -777,7 +870,8 @@ class IndependentRunRecorder:
             conclusion_digest=(
                 conclusion_digest
                 if conclusion_digest is not None
-                else None if result.conclusion is None
+                else None
+                if result.conclusion is None
                 else canonical_digest(result.conclusion.to_dict())
             ),
         )
@@ -838,7 +932,9 @@ class IndependentRunRecorder:
             "traceObjectDigest": trace_object.digest,
             "observationsObjectDigest": observations_object.digest,
             "conclusionDigest": conclusion_digest,
-            "conclusionObjectDigest": None if conclusion_object is None else conclusion_object.digest,
+            "conclusionObjectDigest": None
+            if conclusion_object is None
+            else conclusion_object.digest,
             "completionProposalDigest": None if proposal is None else proposal.digest,
             "completionProposalObjectDigest": (
                 None if proposal_object is None else proposal_object.digest
