@@ -3,6 +3,14 @@
 //! Execution, persistence, process ownership, cancellation, result, Artifact,
 //! capacity, and reconciliation semantics remain in `ordivon-runtime-core`.
 
+#[cfg(feature = "legacy-runtime")]
+pub mod server;
+#[cfg(all(
+    feature = "postgres-runtime",
+    not(feature = "legacy-runtime"),
+    target_os = "linux"
+))]
+#[path = "server/pg_only.rs"]
 pub mod server;
 pub mod trace;
 

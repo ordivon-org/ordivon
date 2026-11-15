@@ -988,6 +988,32 @@ def candidate_artifacts(args: argparse.Namespace) -> list[dict[str, object]]:
         for spec in release_artifact_specs(args)
     ]
 
+def candidate_build_commands(
+    cargo: Path, candidate_dir: Path, binary_names: list[str], *,
+    explicit_binary_selection: bool,
+) -> list[list[str]]:
+    """Build native PG and Runner separately so Cargo cannot unify SQLite features.
+
+    Cargo Feature unification is scoped to an invocation. The two production
+    native consumers share the target cache, not the legacy Runtime feature.
+    Other/legacy release profiles keep their previous full-Workspace build.
+    """
+    target = ["--target-dir", str(candidate_dir.parent)]
+    if explicit_binary_selection and set(binary_names) == {
+        "ordivon-runtime-pg", "ordivon-runtime-runner",
+    }:
+        return [
+            [str(cargo), "build", "--release", "-p", "ordivon-runtime-mcp",
+             "--bin", "ordivon-runtime-pg", "--no-default-features",
+             "--features", "postgres-runtime", *target],
+            [str(cargo), "build", "--release", "-p", "ordivon-runtime-core",
+             "--bin", "ordivon-runtime-runner", "--no-default-features",
+             "--features", "runtime-contract", *target],
+        ]
+    return [[str(cargo), "build", "--release", "--workspace",
+             "--all-features", *target]]
+
+
 def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
     binary_names = binaries(args)
     if args.candidate_dir.name != "release":
@@ -1008,19 +1034,11 @@ def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
         stage_operator_artifacts(args, build_source)
         if args.binaries is None:
             runtime_policy = candidate_runtime_policy(build_source)
-        run(
-            [
-                str(args.cargo),
-                "build",
-                "--release",
-                "--workspace",
-                "--all-features",
-                "--target-dir",
-                str(args.candidate_dir.parent),
-            ],
-            cwd=build_source,
-            env=build_env,
-        )
+        for command in candidate_build_commands(
+            args.cargo, args.candidate_dir, binary_names,
+            explicit_binary_selection=args.binaries is not None,
+        ):
+            run(command, cwd=build_source, env=build_env)
         post_build_status = git_text(
             Path("/usr/bin/git"),
             build_source,

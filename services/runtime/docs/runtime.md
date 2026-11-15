@@ -72,6 +72,30 @@ A Workspace isolates the checked-out code tree and Git state. It does not reduce
 
 Information reconstructable from these owners should not be persisted as a second proof system.
 
+
+### PG-only executable feature boundary
+
+The Linux PG native entrypoint is built from the same typed MCP input/output
+contracts as the legacy Router without compiling the SQLite Engine:
+
+```sh
+cargo check --locked -p ordivon-runtime-mcp --bin ordivon-runtime-pg \
+  --no-default-features --features postgres-runtime
+cargo tree --locked -p ordivon-runtime-mcp --no-default-features \
+  --features postgres-runtime -i rusqlite
+```
+
+The second query must find no `rusqlite` package in that selected graph.
+The PG catalog uses the existing Rust DTO/Serde/JsonSchema types; one independent
+contract test compares all 21 input schemas, output schemas, and Tool annotations
+against the legacy SDK Router. Native PG release `prepare` builds the PG MCP
+and Runner in **two separate Cargo invocations** with these minimal features,
+because `--workspace --all-features` would otherwise unify legacy SQLite into
+both compiled consumers. The legacy Windows R6 release retains its original
+profile until a separately verified Windows PostgreSQL writer cutover; a Linux
+PG build is not proof of Windows authority.
+
+
 ## Components
 
 ```text
