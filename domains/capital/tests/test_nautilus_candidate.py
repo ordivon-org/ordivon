@@ -268,11 +268,16 @@ def test_qlib_prediction_snapshot_cannot_claim_original_model_after_rewrite(tmp_
                 "holding_sessions": 5,
                 "exit_price_kind": "next_open",
                 "matches_native_fixed_holding_exit_event": True,
+                "label_forward_sessions": 6,
+                "horizon": "decision_after_T_close_entry_T_plus_1_open_exit_T_plus_6_open",
             },
             "portfolio_target": None,
             "forecast": {
                 "point_in_time_eligible": False,
                 "native_strategy_exit_event_matches_target": True,
+                "holding_sessions": 5,
+                "exit_price_kind": "next_open",
+                "target_horizon": "next_session_open_to_T_plus_6_open",
             },
             "qlib_prediction_sha256": sha256(original).hexdigest(),
         }),
@@ -320,4 +325,63 @@ def test_qlib_prediction_snapshot_cannot_claim_original_model_after_rewrite(tmp_
                             text=True, check=False)
     assert second.returncode != 0
     assert "Qlib prediction column schema" in second.stderr
+    assert not output.exists()
+
+
+
+@pytest.mark.provider_qualification
+@pytest.mark.native_nonlive
+@pytest.mark.parametrize("field,wrong", [
+    ("forecast.target_horizon", "next_session_open_to_T_plus_5_close"),
+    ("forecast.exit_price_kind", "close"),
+    ("forecast.holding_sessions", 20),
+    ("signal_quality.horizon", "decision_after_T_close_entry_T_plus_1_open_exit_T_plus_5_close"),
+    ("signal_quality.label_forward_sessions", 5),
+])
+def test_native_qlib_rejects_inconsistent_held_exit_horizon_before_simulation(
+    tmp_path, field, wrong
+):
+    """Reject a valid forecast CSV paired with incompatible native exit semantics."""
+    prediction = (
+        b"datetime,instrument,predicted_next_open_to_next_open_fractional_return\n"
+        b"2025-10-01,IWM,0.01\n"
+        b"2025-10-01,QQQ,0.02\n"
+        b"2025-10-01,SPY,0.03\n"
+    )
+    research = {
+        "signal_quality": {
+            "holding_sessions": 5,
+            "exit_price_kind": "next_open",
+            "matches_native_fixed_holding_exit_event": True,
+            "label_forward_sessions": 6,
+            "horizon": "decision_after_T_close_entry_T_plus_1_open_exit_T_plus_6_open",
+        },
+        "forecast": {
+            "point_in_time_eligible": False,
+            "native_strategy_exit_event_matches_target": True,
+            "holding_sessions": 5,
+            "exit_price_kind": "next_open",
+            "target_horizon": "next_session_open_to_T_plus_6_open",
+        },
+        "portfolio_target": None,
+        "qlib_prediction_sha256": sha256(prediction).hexdigest(),
+    }
+    section, key = field.split(".")
+    research[section][key] = wrong
+    (tmp_path / "native_study_result.json").write_text(json.dumps(research))
+    (tmp_path / "qlib_test_predictions.csv").write_bytes(prediction)
+    output = tmp_path / "native_holding"
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "adoption/r3_native/tests/probe_native_buy_hold_exit.py")],
+        cwd=ROOT,
+        env=os.environ | {
+            "PYTHONPATH": str(ROOT / "src"),
+            "ORDIVON_FINANCE_R3_HOLD_SESSIONS": "5",
+            "ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR": str(tmp_path),
+            "ORDIVON_FINANCE_R3_RUN_OUT_DIR": str(output),
+        },
+        capture_output=True, text=True, check=False,
+    )
+    assert proc.returncode != 0
+    assert "Qlib forecast horizon disagrees with native holding exit" in proc.stderr
     assert not output.exists()

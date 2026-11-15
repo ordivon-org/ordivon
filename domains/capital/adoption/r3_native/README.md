@@ -54,6 +54,10 @@ datetime and instrument identity. A self-consistent artifact digest alone
 cannot authorize an inserted actual_return label as the first numeric column:
 positional selection would leak realized outcomes into the ranking. This is
 a source-consumer contract, not proof of genuine point-in-time market data.
+For the H5/H20 NautilusTrader fixed-holding consumer, the same producer
+must also declare a matching forecast target (T+H+1 OPEN), holding length,
+label-forward session count and research horizon. A valid score CSV with
+inconsistent label timing is rejected before any simulated order is built.
 
 The independent covariance-only
 PyPortfolioOpt min-volatility calculation is MATH ONLY; the machine

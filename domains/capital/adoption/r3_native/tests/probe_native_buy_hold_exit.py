@@ -95,6 +95,20 @@ from math import isfinite
 scores = {r["instrument"]: float(r[score_column]) for r in signal_rows}
 if not all(isfinite(v) for v in scores.values()):
     raise RuntimeError("Qlib decision contains nonfinite OOS scores")
+# This native fixed-holding executor exits at T+H+1 OPEN. The Producer's
+# declared forecast/label horizon must match that physical exit event, not
+# merely call itself a NEXT_OPEN study.
+skill = MODEL_STUDY["signal_quality"]
+forecast = MODEL_STUDY["forecast"]
+if (
+    skill.get("label_forward_sessions") != HOLD + 1
+    or skill.get("horizon")
+    != f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD + 1}_open"
+    or forecast.get("holding_sessions") != HOLD
+    or forecast.get("exit_price_kind") != "next_open"
+    or forecast.get("target_horizon") != f"next_session_open_to_T_plus_{HOLD + 1}_open"
+):
+    raise RuntimeError("Qlib forecast horizon disagrees with native holding exit")
 # Explicit adversarial *test-only* score intervention, never represented as
 # real Qlib output. Tests that changing a decision changes the native fill.
 override = os.environ.get("ORDIVON_FINANCE_R3_TEST_FORCE_ASSET")
