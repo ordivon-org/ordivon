@@ -443,6 +443,29 @@ def run(label: str, args: list[str], *, input_text: str | None = None,
     return {"probe": label, "result": "PASS", "rc": p.returncode}
 
 
+def qualify_alloy_sat_witness(output: str) -> int:
+    """Only a real finite Alloy instance can satisfy the positive SAT probe.
+
+    An empty result or a printable JSON field name is not a model witness.
+    This checks the native Alloy CLI output shape, not model-to-code refinement.
+    """
+    try:
+        payload = json.loads(output)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Alloy SAT witness must be structured JSON") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Alloy SAT witness must be a JSON object")
+    instances = payload.get("instances")
+    if not isinstance(instances, list) or not instances:
+        raise ValueError("Alloy positive SAT probe has no model instance")
+    for instance in instances:
+        if (not isinstance(instance, dict)
+                or type(instance.get("state")) is not int
+                or not isinstance(instance.get("values"), dict)):
+            raise ValueError("Alloy SAT witness contains an invalid instance")
+    return len(instances)
+
+
 def main() -> None:
     require_unmodified_elf_loader_environment()
     source_before = qualified_source_cut()
@@ -577,9 +600,12 @@ def main() -> None:
         alloy = subprocess.run([executable("alloy"), "exec", "-o", "-", "-t", "json",
                                 str(ROOT / "Proof.als")], check=False,
                                capture_output=True, text=True, timeout=95)
-        if alloy.returncode or '"instances"' not in alloy.stdout:
-            raise AssertionError("Alloy failed actual SAT witness: " +
+        if alloy.returncode:
+            raise AssertionError("Alloy positive SAT execution failed: " +
                                  (alloy.stdout + alloy.stderr)[-1200:])
+        # Keep the existing three-field proof receipt consumed by protected CI.
+        # SAT instance non-vacuity is an admission condition, not a new schema.
+        qualify_alloy_sat_witness(alloy.stdout)
         probes.append({"probe": "Alloy finite SAT model", "result": "PASS",
                        "rc": alloy.returncode})
     source_after = qualified_source_cut()
