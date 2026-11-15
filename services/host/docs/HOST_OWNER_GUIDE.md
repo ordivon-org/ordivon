@@ -27,13 +27,13 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 | packaging/、tools/ | Git SHA 发布、systemd、tool surface、资格验证 | 保留，不触碰已安装系统服务 |
 | planning/lego-plan-r1.json | 仓库级 LEGO 图检查的现行输入 | 保留，不能仅凭 r1 删除 |
 | planning/lego-plan-r3.json | 当前 Host Owner 职责与复用边界 | 保留，不复制成新注册表 |
-| planning/social-work-fabric-r1.json | 架构测试实际使用 | 暂保留；消费者迁移后可退休 |
-| planning/host-friction-observatory-r1.json | R3 规划明确引用的旧测量证据 | 保留为旧证据；不能当作当前数值 |
+| planning/social-work-fabric-r1.json | 仓库级 `tools/repo/test_architecture_docs.py` 仍是实际消费者 | 保留直至 Repo Owner 迁移，不因旧命名误删 |
+| `git-blob:a5503d5be27a121b7b9a3d5fa2088ea44cac4c79` | 2026-09-20 的旧 Task/Board 指标，不属于当前 Work/Topic 运行模型 | 只留可核验 Git Blob；退役工作树 JSON，不能当当前生产指标 |
 | docs/SOCIAL_WORK_FABRIC_R1.md | 历史记录，README 和测试标明历史地位 | 不作为当前权威，当前未删除 |
 | docs/SOCIAL_WORK_FABRIC_R2_SPEC.md、SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md | 当前语义规范与实现说明 | 保留并以代码、PG、发布状态校验 |
 | mcp-surface.json、mise.toml、pyproject.toml、uv.lock、.python-version | 外部接口清单及固定工具链 | 保留单一声明，不在 README 重复工具总数 |
 
-本轮仅在独立 Git Workspace 修改源码、文档、引用和测试。未删除业务数据库行、外部 Workspace、systemd/系统目录或 Runtime Job 数据。尚无已证明无消费者的本地垃圾文件值得无条件删除。清理前必须证明消费者不可达，并区分历史材料、PG 数据与可重建缓存。
+仅在独立 Git Workspace 处理源码与历史文档，未删除业务数据库行、外部 Workspace、systemd/系统目录或 Runtime Job 数据。旧 `host-friction-observatory-r1.json` 的 R3 唯一活跃引用已改为精确 Git Blob，静态 R1 方案镜像测试（只读旧 JSON 与文件字面量）被退役；原始源码和历史证据均在 Git 中可追溯。PG、MCP、Attention/CAS 业务测试和 Repo Owner 架构检查仍保留。其他清理必须证明实际消费者闭包。
 
 ## 3. 外部成熟 LEGO 与本地 LEGO
 
