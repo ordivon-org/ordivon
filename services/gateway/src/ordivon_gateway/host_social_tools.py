@@ -132,8 +132,8 @@ def register_host_social_tools(
     async def topic_state_set(
         topicRef: str,
         actorRef: str,
-        state: Literal["open", "closed"],
-        expectedState: Literal["open", "closed"],
+        state: Literal["open", "closed", "archived"],
+        expectedState: Literal["open", "closed", "archived"],
         expectedHighSequence: int,
     ) -> dict[str, Any]:
         return await _host(
@@ -153,6 +153,7 @@ def register_host_social_tools(
         afterTopicRef: str | None = None,
         limit: int = 100,
         maxBytes: HostCollectionBytes = 262_144,
+        includeArchived: bool = False,
     ) -> dict[str, Any]:
         return await _host(
             "topic.list",
@@ -161,6 +162,7 @@ def register_host_social_tools(
                 "afterTopicRef": afterTopicRef,
                 "limit": limit,
                 "maxBytes": maxBytes,
+                "includeArchived": includeArchived,
             },
         )
 

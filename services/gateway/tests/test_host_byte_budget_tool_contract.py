@@ -69,3 +69,60 @@ def test_sdk_rejects_illegal_owner_budgets_before_any_host_call() -> None:
             assert caller.calls == []
 
     asyncio.run(scenario())
+
+
+def test_current_gateway_host_archive_forwarding() -> None:
+    """Only extend the installed Gateway's existing Host proxy; no new service."""
+    from mcp.server import MCPServer
+
+    from ordivon_gateway.host_social_tools import register_host_social_tools
+
+    async def scenario() -> None:
+        calls: list[tuple[str, dict]] = []
+
+        async def owner(tool: str, args: dict) -> dict:
+            calls.append((tool, args))
+            return {"fixture": True}
+
+        server = MCPServer("host-existing-proxy-contract", version="1.0")
+        register_host_social_tools(server, owner)
+        async with Client(server, raise_exceptions=True) as client:
+            tools = {tool.name: tool for tool in (await client.list_tools()).tools}
+            props = tools["topic.state.set"].input_schema["properties"]
+            assert "archived" in props["state"]["enum"]
+            assert "archived" in props["expectedState"]["enum"]
+            assert (
+                tools["topic.list"].input_schema["properties"]["includeArchived"]["default"]
+                is False
+            )
+            await client.call_tool(
+                "topic.state.set",
+                {
+                    "topicRef": "topic:existing",
+                    "actorRef": "actor:existing",
+                    "state": "archived",
+                    "expectedState": "closed",
+                    "expectedHighSequence": 10,
+                },
+            )
+            assert calls[-1] == (
+                "topic.state.set",
+                {
+                    "topicRef": "topic:existing",
+                    "actorRef": "actor:existing",
+                    "state": "archived",
+                    "expectedState": "closed",
+                    "expectedHighSequence": 10,
+                },
+            )
+            await client.call_tool(
+                "topic.list",
+                {
+                    "spaceRef": "space:existing",
+                    "includeArchived": True,
+                },
+            )
+            assert calls[-1][0] == "topic.list"
+            assert calls[-1][1]["includeArchived"] is True
+
+    asyncio.run(scenario())
