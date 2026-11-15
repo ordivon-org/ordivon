@@ -15,6 +15,11 @@ from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .equity_session_calendar import (
+    MarketSessionQualificationError,
+    require_xnys_eod_session_closes,
+)
+
 _MAX_BYTES = 2 * 1024 * 1024
 _MAX_SESSIONS = 366
 _MAX_INSTRUMENTS = 32
@@ -187,6 +192,14 @@ def admit_etf_eod_snapshot(
         if close.astimezone(eastern).date() != session:
             raise SnapshotAdmissionError("session close is outside the bound exchange date")
         closes[day] = close
+
+    # Operator-bound timestamps are not authoritative US equity sessions.
+    # Reuse the same independently maintained exchange-calendar rule that
+    # qualifies historical Qlib/Riskfolio data, including early closes/DST.
+    try:
+        require_xnys_eod_session_closes(closes)
+    except MarketSessionQualificationError as exc:
+        raise SnapshotAdmissionError(str(exc)) from exc
 
     raw_marks = data["marks"]
     if type(raw_marks) is not list or len(raw_marks) > _MAX_SESSIONS * _MAX_INSTRUMENTS:

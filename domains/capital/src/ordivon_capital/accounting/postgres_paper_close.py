@@ -14,6 +14,10 @@ import psycopg
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
+from ..markets.equity_session_calendar import (
+    MarketSessionQualificationError,
+    require_xnys_eod_session_closes,
+)
 from ..markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, admit_etf_eod_snapshot
 from ..trading.paper_fill_calendar import admit_paper_session_calendar
 from .paper_close import PaperSession, PaperValuation, decode_session, value_session
@@ -107,6 +111,18 @@ class PostgresPaperClose:
             raise ValueError("invalid paper account key")
         market_evidence = {"standing": "CALLER_SUPPLIED_MARKS"}
         if mark_snapshot is not None:
+            # A public Python dataclass can be constructed by a caller without
+            # calling Markets admission. Recheck independent exchange facts
+            # at the durable Accounting consumer boundary, not only by type.
+            closes = {}
+            for mark in mark_snapshot.marks:
+                earlier = closes.setdefault(mark.session_date, mark.session_close_at)
+                if earlier != mark.session_close_at:
+                    raise ValueError("inconsistent ETF exchange session closes")
+            try:
+                require_xnys_eod_session_closes(closes)
+            except MarketSessionQualificationError as exc:
+                raise ValueError(str(exc)) from exc
             if day.marks:
                 raise ValueError("inline marks cannot accompany an admitted snapshot")
             session = day.session.isoformat()

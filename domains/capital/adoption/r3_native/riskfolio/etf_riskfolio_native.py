@@ -9,6 +9,7 @@ import hashlib
 import importlib.metadata as im
 import json
 import os
+import sys
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -17,10 +18,15 @@ import pandas as pd
 import riskfolio as rp
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parents[2] / "src"))
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
+
 SOURCE = Path(
     os.environ.get("ORDIVON_FINANCE_R3_ETF_DATA_DIR", str(ROOT.parent / "output"))
 ).resolve()
 SYMBOLS = ("SPY", "QQQ", "IWM")
+REQUESTED_START = "2023-01-01"
+REQUESTED_END = "2026-10-31"
 
 # Use the SAME immutable capture receipt already consumed by Qlib and Nautilus.
 # A path's name or today's checksum alone cannot prove the bytes were sourced
@@ -53,6 +59,9 @@ for symbol in SYMBOLS:
         BytesIO(pinned_bytes),
         parse_dates=["session_date"],
         index_col="session_date",
+    )
+    require_xnys_session_grid(
+        frame.index, symbol=symbol, requested_start=REQUESTED_START, requested_end=REQUESTED_END
     )
     frames.append(frame["close"].astype(float).rename(symbol))
     receipts[symbol] = digest
