@@ -23,6 +23,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- corrected original PostgreSQL Tool UNKNOWN continuity: only a committed `effect-dispatch-pending` Pause for the exact source ToolStep permits subsequent `resume` to reconcile that same Gateway/Runtime Owner with `execution.resolve/get`. A response loss never authorizes another physical `execution.submit`; other UNKNOWN states remain stopped. This reuses the existing PG Journal and Tool Receipt rather than introducing a second recovery writer. Source-level PostgreSQL 18.7 and Harness owner queue were verified; installed production recovery behavior remains a separate qualification.
+
 - promoted the existing PostgreSQL HarnessAgentRun.create/open(dsn, schema, ...) to the sole supported Python Agent Run entrypoints, aligned the independent CLI and PG consumer tests, and removed the two obsolete SQLite Agent Run entrypoints and the state-root fallback. Historical Python API consumer tests now target isolated real PostgreSQL schemas. The still-separate legacy SQLite Store and Browserless consumers require further retirement. No old runtime data is migrated, and neither entrypoint silently selects SQLite.
 
 
