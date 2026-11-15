@@ -4,7 +4,7 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-game",
-    "purpose": "External-first Game LEGO research and substitution without legacy games.",
+    "purpose": "Compose, validate, package, and deliver playable games using mature Godot/Bevy native components; source knowledge remains advisory.",
     "sourceEvidence": [
       "README.md",
       "docs/authority.md"

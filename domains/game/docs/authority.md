@@ -14,6 +14,8 @@ For tasks use [the production line](factory-pipeline.md) and ../AGENTS.md. Real 
 
 The existing planning/lego-plan-r1.json records available G01–G11 responsibilities and actual consumer witnesses, not an obligation to refine every LEGO. Existing Game knowledge JSON and TypeScript read-only CLIs are advisory input only. The old product-selection/profile documents and unconsumed prototype-composition query are retired.
 
+As of this Game source audit, native product examples do not import the Game knowledge JSON or TypeScript query CLI as gameplay dependencies. Known repository consumers are query scripts and their tests; unrecorded external Agent invocations remain UNKNOWN. A passing retrieval self-test is neither player acceptance nor sufficient evidence to delete data with a possible dynamic consumer.
+
 | Consumer | Native Human route | Actual Agent/CI evidence scope |
 | --- | --- | --- |
 | Godot scene | game GUI and visible controls | factory:validate:godot (bounded native game and alternate component tests) |
