@@ -98,6 +98,18 @@ def summarize_paper_period(
             raise PaperPerformanceError("previous close must precede the current session")
         if predecessor != previous_digest:
             raise PaperPerformanceError("Accounting receipt predecessor chain is broken")
+        # Markets' supersession pointer names a prior *source*, not a
+        # revaluation of the old immutable Accounting receipt.  Publishing a
+        # cross-period gain would silently compare two incompatible vintages.
+        prior_market = prior.get("market_evidence")
+        if (
+            snapshot.supersedes_sha256 is not None
+            and type(prior_market) is dict
+            and prior_market.get("sha256") == snapshot.supersedes_sha256
+        ):
+            raise PaperPerformanceError(
+                "superseded previous market valuation requires independent requalification"
+            )
     elif predecessor is not None:
         raise PaperPerformanceError("previous Accounting receipt is required")
     # The genesis absence is distinguishable from an omitted predecessor.
