@@ -36,6 +36,22 @@ ZERO = "0"
 OPENING = "1000"  # investment sleeve only; $9,000 remains protected cash
 
 
+def _native_prediction_scores(exit_kind: str) -> pd.Series:
+    """Read the exact Qlib producer forecast field, never a realized label."""
+    names = {
+        "close": "predicted_next_open_to_close_fractional_return",
+        "next_open": "predicted_next_open_to_next_open_fractional_return",
+    }
+    expected = names.get(exit_kind)
+    if expected is None:
+        raise ValueError("unknown native Qlib prediction exit event")
+    table = pd.read_csv(OUT / "qlib_test_predictions.csv")
+    if list(table.columns) != ["datetime", "instrument", expected]:
+        raise ValueError("Qlib prediction column schema differs from native producer")
+    return table.set_index(["datetime", "instrument"])[expected]
+
+
+
 
 def run_multisession(report: dict, hold: int) -> dict:
     """Compare pre-fixed, disjoint H-session holdings using existing Portfolio.
@@ -69,9 +85,7 @@ def run_multisession(report: dict, hold: int) -> dict:
     assert allocation["allocationsMinor"]["SPY"] == 100_000
     assert allocation["executionAuthorized"] is False
 
-    predictions = pd.read_csv(OUT / "qlib_test_predictions.csv").set_index(
-        ["datetime", "instrument"]
-    ).iloc[:, 0]
+    predictions = _native_prediction_scores(exit_price)
     labels = pd.read_parquet(OUT / "qlib_static_dataset.parquet")["label"]["LABEL0"]
     assert len(predictions) == skill["sample_rows"]
     bars = {
@@ -227,9 +241,7 @@ def run() -> dict:
     assert allocation["allocationsMinor"]["SPY"] == 100_000
     assert allocation["protectedReserveMinor"] == 900_000
     assert allocation["executionAuthorized"] is False
-    predictions = pd.read_csv(OUT / "qlib_test_predictions.csv").set_index(
-        ["datetime", "instrument"]
-    ).iloc[:, 0]
+    predictions = _native_prediction_scores("close")
     dataset = pd.read_parquet(OUT / "qlib_static_dataset.parquet")
     labels = dataset["label"]["LABEL0"]
     assert predictions.index.is_unique and labels.index.is_unique
