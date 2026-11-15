@@ -4,13 +4,16 @@
 mod document;
 mod encode;
 mod error;
+mod identity;
 mod parse;
+pub mod provider_head;
 
 pub use document::{CanonicalDocument, CanonicalRef};
 pub use encode::{
     canonical_bytes, canonical_bytes_from_json, canonical_digest_from_json, digest_bytes,
 };
 pub use error::CanonicalError;
+pub use identity::valid_trimmed;
 pub use parse::loads_strict;
 
 #[cfg(test)]

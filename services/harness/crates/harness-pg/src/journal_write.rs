@@ -9,6 +9,7 @@ use super::{
     contract_semantics, decode_cas, run_projection, transition, valid_schema, ReadError,
     RunProjection, CONTRACT_KIND,
 };
+use ordivon_harness_core::provider_head::{inspect_v4, ProviderStatus};
 use ordivon_harness_core::{canonical_bytes, digest_bytes, CanonicalDocument, CanonicalError};
 use postgres::{Client, Transaction};
 use std::{collections::BTreeSet, fmt};
@@ -324,6 +325,130 @@ fn require_source_result_retention(
     Ok(())
 }
 
+/// The authoritative original PG Run cannot acquire a Provider COMPLETED
+/// fact from a bare caller-chosen Event label. Its source CAS record must
+/// actually describe this Run, model, status and result. Reuse the *same* V4
+/// parser used by the native Provider author and read-only recovery consumer,
+/// now in harness-core. Do not invent a second Provider V4 interpretation.
+fn require_source_provider_completion(
+    tx: &mut Transaction<'_>,
+    run: &str,
+    contract: &CanonicalDocument,
+    events: &[EventWrite],
+) -> Result<(), WriteError> {
+    for event in events {
+        if event.event_kind != "harness.provider-call-completed" {
+            continue;
+        }
+        let mut records = event
+            .referenced_objects
+            .iter()
+            .filter(|r| r.kind == "harness-provider-call-record");
+        let record_ref = records.next().ok_or(WriteError::Invalid(
+            "Provider completed missing bound record",
+        ))?;
+        if records.next().is_some()
+            || event
+                .data
+                .field("providerCallRecordDigest")
+                .and_then(|v| v.as_str())
+                != Some(record_ref.digest.as_str())
+            || event
+                .data
+                .field("providerCallRecordObjectDigest")
+                .and_then(|v| v.as_str())
+                != Some(record_ref.digest.as_str())
+        {
+            return Err(WriteError::Invalid(
+                "Provider completed record/event mismatch",
+            ));
+        }
+        let row = tx.query_one(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=$1",
+            &[&record_ref.digest],
+        )?;
+        let doc = decode_cas(
+            &record_ref.digest,
+            "harness-provider-call-record",
+            &row.get::<_, String>("kind"),
+            row.get::<_, i64>("byte_length"),
+            &row.get::<_, Vec<u8>>("content"),
+        )?;
+        if doc.field("harnessRunId").and_then(|v| v.as_str()) != Some(run)
+            || doc.field("status").and_then(|v| v.as_str()) != Some("completed")
+            || doc.field("adapterId").and_then(|v| v.as_str())
+                != contract.field("adapterId").and_then(|v| v.as_str())
+            || doc.field("requestedModelId").and_then(|v| v.as_str())
+                != contract.field("requestedModelId").and_then(|v| v.as_str())
+        {
+            return Err(WriteError::Invalid(
+                "Provider completed source identity/status mismatch",
+            ));
+        }
+        if doc.field("schemaVersion").and_then(|v| v.integer_text()) == Some("4") {
+            let parsed = inspect_v4(&doc)
+                .map_err(|_| WriteError::Invalid("Provider completed invalid V4 source"))?;
+            if parsed.status != ProviderStatus::Completed
+                || parsed.canonical_digest != record_ref.digest
+                || doc.field("recordedAtMs").and_then(|v| v.integer_text())
+                    != Some(event.recorded_at_ms.to_string().as_str())
+            {
+                return Err(WriteError::Invalid(
+                    "Provider completed V4 status/time mismatch",
+                ));
+            }
+            let event_result = event
+                .data
+                .field("resultObjectDigest")
+                .and_then(|v| v.as_str());
+            if event_result != parsed.result_object_digest.as_deref() {
+                return Err(WriteError::Invalid(
+                    "Provider completed result binding mismatch",
+                ));
+            }
+            if let Some(digest) = parsed.result_object_digest.as_deref() {
+                if !event
+                    .referenced_objects
+                    .iter()
+                    .any(|r| r.kind == "agent-turn-result" && r.digest == digest)
+                {
+                    return Err(WriteError::Invalid(
+                        "Provider completed Result CAS edge absent",
+                    ));
+                }
+            }
+            // The completed result cannot assert a successful physical send
+            // without a durable predecessor DISPATCHING Event in this Run.
+            // The previous event can be part of the same atomic batch.
+            let prev = parsed
+                .previous_record_digest
+                .as_deref()
+                .ok_or(WriteError::Invalid("Provider completed predecessor absent"))?;
+            let local = events.iter().any(|e| {
+                e.event_kind == "harness.provider-call-dispatching"
+                    && e.referenced_objects.iter().any(|ref_| {
+                        ref_.kind == "harness-provider-call-record" && ref_.digest == prev
+                    })
+            });
+            let committed = tx
+                .query_opt(
+                    "SELECT e.event_id FROM run_events e JOIN run_object_refs r \
+                 ON e.event_id=r.event_id \
+                 WHERE e.harness_run_id=$1 AND e.event_kind='harness.provider-call-dispatching' \
+                   AND r.digest=$2 LIMIT 1",
+                    &[&run, &prev],
+                )?
+                .is_some();
+            if !local && !committed {
+                return Err(WriteError::Invalid(
+                    "Provider completed lacks durable dispatch",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn exact(
     tx: &mut Transaction<'_>,
     run: &str,
@@ -556,6 +681,7 @@ pub fn append_events_with_provider_cas(
     }
     require_lease(&mut tx, run, expected_revision, lease, lease_checked_at_ms)?;
     require_source_result_retention(&contract, events, staged)?;
+    require_source_provider_completion(&mut tx, run, &contract, events)?;
     // Budget is checked inside the same Run lock, after exact replay
     // reconciliation and before any dispatch Event may become durable.
     require_dispatch_budget(&mut tx, run, &contract, events)?;

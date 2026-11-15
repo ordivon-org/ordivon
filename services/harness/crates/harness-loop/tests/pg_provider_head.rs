@@ -901,6 +901,74 @@ fn verify_native_rust_pg_v4_completed_case(source_case: &str, retain_model_conte
         Ok(Admission::Existing)
     ));
     println!("PG18_SOURCE_PROVIDER_DISPATCH_BUDGET_GATE_PASS");
+    // R34: a caller must not forge a COMPLETED fact by merely relabeling
+    // a previous DISPATCHING event. The one original source V4 parser now
+    // lives in Core and is consumed by both the Loop and PG Writer.
+    let mut fake_completed = batch[1].clone();
+    fake_completed.event_id = format!("event:forged-completed-dispatch-{source_case}");
+    fake_completed.event_kind = "harness.provider-call-completed".into();
+    fake_completed.recorded_at_ms = 1041;
+    let forged = append_events(
+        &mut denied_db,
+        &schema,
+        run_id,
+        &[fake_completed.clone()],
+        4,
+        &newer_lease,
+        1041,
+    );
+    assert!(
+        matches!(
+            forged,
+            Err(WriteError::Invalid(
+                "Provider completed source identity/status mismatch"
+            ))
+        ),
+        "DISPATCHING cannot become COMPLETED by Event relabel: {forged:?}"
+    );
+    let fake_count: i64 = readonly
+        .query_one(&evt_sql, &[&fake_completed.event_id])
+        .unwrap()
+        .get(0);
+    assert_eq!(fake_count, 0, "forged Provider completion event committed");
+    let mut no_record = batch[2].clone();
+    no_record.event_id = format!("event:forged-completed-empty-{source_case}");
+    no_record.recorded_at_ms = 1041;
+    no_record
+        .referenced_objects
+        .retain(|r| r.kind != "harness-provider-call-record");
+    let missing = append_events(
+        &mut denied_db,
+        &schema,
+        run_id,
+        &[no_record.clone()],
+        4,
+        &newer_lease,
+        1041,
+    );
+    assert!(
+        matches!(
+            missing,
+            Err(WriteError::Invalid(
+                "Provider completed missing bound record"
+            ))
+        ),
+        "source model call without Provider record was admitted: {missing:?}"
+    );
+    let missing_count: i64 = readonly
+        .query_one(&evt_sql, &[&no_record.event_id])
+        .unwrap()
+        .get(0);
+    assert_eq!(missing_count, 0);
+    assert_eq!(
+        read_run_readonly(&mut readonly, &schema, run_id)
+            .unwrap()
+            .projection
+            .revision,
+        4
+    );
+    println!("PG18_SOURCE_PROVIDER_V4_COMPLETED_FORGERY_REJECTED_PASS");
+
     // R33: A caller-controlled adapter must NOT override the original
     // immutable Run Contract's model-content retention policy. In particular,
     // a positive Result sent against a privacy-redacted source cannot be

@@ -156,3 +156,33 @@ same revision. A direct standalone AgentTurnResult put also rejects before
 any PG write. The retained-content positive Run and original UNKNOWN
 readback remain valid. Test-only consumer and PG hard gate are distinct;
 this is not a production-installed live model executor.
+
+## R34 one V4 representation kernel, PG Writer and Loop shared
+
+Critical consumer graph debt: original strict Provider V4 parser
+(provider_head.rs) lived inside harness-loop while the original PG Writer
+accepted a generic 'provider-call-completed' Event if CAS existed and the
+Run lease/revision matched. A caller could relabel a DISPATCHING Event
+as COMPLETED, or claim completion with no bound Provider record.
+
+R34 MOVED the source parser, status type, natural recovery posture, numeric
+unbounded sequence handling and exact field validation into
+`harness-core/src/provider_head.rs`. Loop retains a thin re-export with
+no separate duplicate validator; shared identity text validator likewise
+now lives in harness-core. The original PG Writer consumes this exact
+parser under its already-locked source Run transaction for new V4 completed
+events: Event must bind exactly one original Provider record reference;
+record CAS must match digest, Run, source adapter/requested model, status,
+recorded time, result object edge and an actually durable predecessor
+DISPATCHING Event. Legacy source v3 record fields remain admitted with
+their original existing semantics; this is not permission for new v4
+completions to lack causal evidence.
+
+True disposable PG18 adversarial tests relabel the source DISPATCHING
+record to COMPLETED and separately remove the Provider record edge while
+holding the current valid Run lease. Both are rejected by the original
+PG writer; independent SELECT-only read confirms no forged Event and
+Run revision remains unchanged. Normal positive retained/redacted Results,
+budget, privacy, original UNKNOWN and Python Store history all remain
+accepted. This does NOT prove real Provider send authority at physical
+network dispatch nor independent AgentSolved.
