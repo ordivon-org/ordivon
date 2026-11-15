@@ -1,4 +1,6 @@
-# Current substrate census — initial 2026-09-11; refreshed through 2026-09-14
+# Historical substrate census — initial 2026-09-11; refreshed through 2026-09-14
+
+For the 2026-11-15 current-source repository/toolchain, Linux/Windows identity-scoped and update-candidate observations, see [Toolchain dependency census](../docs/TOOLCHAIN_DEPENDENCY_CENSUS_20261115.md). This older baseline remains historical evidence, not a live installed-software assertion.
 
 This is a factual snapshot, not a universal semantic-health declaration.
 
