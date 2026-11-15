@@ -40,7 +40,11 @@ distributed files merely to reduce future development work.
 
 ## Complete retained inventory
 
-- source/Cargo.toml and source/Cargo.lock: original Rust and Bevy build recipe
+- source/Cargo.toml.archived and source/Cargo.lock.archived: original
+  Rust/Bevy build recipe preserved byte-for-byte under inactive archive names.
+  These are intentionally not discoverable as Cargo project manifests or
+  candidates for routine dependency updates. Restore exact names in a
+  disposable checkout of the original release revision if build is desired.
 - source/src/main.rs: Bevy application and native window entry
 - source/src/gameplay.rs: ECS, keyboard, fixed-step movement, hazards, goal
   collection, text HUD, restart and native integration tests
@@ -97,7 +101,9 @@ that source revision. Do not schedule them in routine Game verification.
   historical files in this archive; they no longer trigger builds or Kani.
 - Removed the retired Cargo directory from active Dependabot paths.
 - Moved exact source, proof, build and negative-test material out of the live
-  Game source/test paths.
+  Game source/test paths, with Cargo manifest filenames suffixed .archived.
+  This satisfies the repository rule that every *active* Cargo.toml has one
+  real update owner, without adding a fake owner or an exemption to the rule.
 - Removed G07 and its GS4 slice from the active Game LEGO graph without
   reassigning stable identifiers; exact historical fields remain here.
 - Preserved all other Game products and their required acceptance work.
