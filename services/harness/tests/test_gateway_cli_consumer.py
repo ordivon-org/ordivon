@@ -174,9 +174,13 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
         physical: subprocess.CompletedProcess[str] | None = None
         dispatches = 0
         pre_dispatch_passed = False
+        submit_attempts = 0
+        submit_phase = "not_called"
 
         def call_tool(self, name, arguments):
             if name == "execution.submit":
+                self.submit_attempts += 1
+                self.submit_phase = "before_pg_fence_read"
                 with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
                     continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
                     step = continuity.load_current_tool_step()
@@ -189,10 +193,12 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
                         for ref in arguments["authorityReferences"]
                     )
                     self.pre_dispatch_passed = True
+                    self.submit_phase = "pg_fence_validated"
                 assert arguments["workspaceId"] == "ws-plugin-h2"
                 assert arguments["executable"] == "/usr/bin/rg"
                 assert arguments["args"] == ["needle", "."]
                 self.dispatches += 1
+                self.submit_phase = "before_native_process"
                 self.physical = subprocess.run(
                     [arguments["executable"], *arguments["args"]],
                     cwd=tmp_path,
@@ -201,6 +207,7 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
                     timeout=10,
                     check=False,
                 )
+                self.submit_phase = "native_process_returned"
             error, payload = super().call_tool(name, arguments)
             if name == "execution.get":
                 assert self.physical is not None
@@ -243,7 +250,16 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
     result = independent_cli.dispatch(cli, clock_ms=FixedClock())
     # Keep real-process outcomes separate from Harness/Gateway semantic states:
     # if CI differs from a local node, report the physical cause first.
-    assert client.physical is not None, "Gateway fixture never ran the real process"
+    assert client.physical is not None, {
+        "reason": "Gateway fixture never ran the real process",
+        "stopCode": result["stopCode"],
+        "runStatus": result["run"]["status"],
+        "submitAttempts": client.submit_attempts,
+        "submitPhase": client.submit_phase,
+        "preDispatchPassed": client.pre_dispatch_passed,
+        "dispatches": client.dispatches,
+        "gatewayCalls": [name for name, _ in client.calls],
+    }
     assert client.physical.returncode == 0, (
         "real ripgrep process failed", client.physical.returncode,
         client.physical.stdout[-400:], client.physical.stderr[-400:],
