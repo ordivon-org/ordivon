@@ -1,4 +1,4 @@
-"""Actual Gateway business-consumer contracts through upstream typed MCP SDK."""
+"""Actual Gateway business-consumer contracts through the full MCP SDK Client."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from mcp import types
 
 from ordivon_gateway import upstream
 from ordivon_gateway.service import GatewayService
@@ -33,6 +32,7 @@ def _fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, owner_error=Fa
     class Client:
         def __init__(self, transport, *, mode, raise_exceptions):
             assert not raise_exceptions
+            self.url = transport
             self.session = self
 
         async def __aenter__(self):
@@ -43,15 +43,10 @@ def _fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, owner_error=Fa
 
         async def call_tool(self, name, arguments, *, meta=None):
             events.append(("high-level", name))
-            return SimpleNamespace(
-                is_error=False, structured_content={"owner": "other"}, content=[]
-            )
-
-        async def send_request(self, request, result_type):
-            assert isinstance(request, types.CallToolRequest)
-            assert result_type is types.CallToolResult
-            name = request.params.name
-            events.append(("typed-sdk", name))
+            if "linux.test" not in self.url:
+                return SimpleNamespace(
+                    is_error=False, structured_content={"owner": "other"}, content=[]
+                )
             if owner_error:
                 return SimpleNamespace(
                     is_error=True,
@@ -113,8 +108,11 @@ def _fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, owner_error=Fa
             }[name]
             return SimpleNamespace(is_error=False, structured_content=data, content=[])
 
+        async def send_request(self, request, result_type):
+            raise AssertionError("Linux SDK typed bypass must remain retired")
+
     monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: Pool())
-    monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client: object())
+    monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client: url)
     monkeypatch.setattr(upstream, "Client", Client)
     token = tmp_path / "fixture-token"
     token.write_text("not-a-real-credential", encoding="utf-8")
@@ -165,15 +163,15 @@ def test_runtime_business_submit_resolve_observe_artifact_delivers_real_content(
 
     asyncio.run(run())
     assert events == [
-        ("typed-sdk", "workspace.exec"),
-        ("typed-sdk", "job.list"),
-        ("typed-sdk", "job.observe"),
-        ("typed-sdk", "job.get"),
-        ("typed-sdk", "artifact.read"),
+        ("high-level", "workspace.exec"),
+        ("high-level", "job.list"),
+        ("high-level", "job.observe"),
+        ("high-level", "job.get"),
+        ("high-level", "artifact.read"),
     ]
 
 
-def test_other_owners_still_use_full_official_sdk(
+def test_all_owners_use_full_official_sdk(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -191,7 +189,7 @@ def test_other_owners_still_use_full_official_sdk(
     assert events == [
         ("high-level", "host.status"),
         ("high-level", "job.get"),
-        ("typed-sdk", "job.cancel"),
+        ("high-level", "job.cancel"),
     ]
 
 
@@ -207,4 +205,4 @@ def test_owner_error_remains_error_and_is_not_retried(
         await caller.aclose()
 
     asyncio.run(run())
-    assert events == [("typed-sdk", "workspace.exec")]
+    assert events == [("high-level", "workspace.exec")]

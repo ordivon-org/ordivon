@@ -40,16 +40,6 @@ _LOG = logging.getLogger("ordivon_gateway.upstream")
 # SDK-supported choices; this is not a new Gateway protocol or a cache.
 _SUPPORTED_OWNER_MCP_MODES = frozenset({"auto", "legacy", "2026-07-28"})
 
-# Temporary installed PG Runtime output-schema drift: its live Job replies
-# include scheduling while its published SDK outputSchema does not. The
-# Runtime source already has the correct schema. Do not lose a completed
-# effect during high-level post-call validation; use the public SDK's typed
-# CallToolRequest/CallToolResult until that Runtime binary is released.
-# No effect retries, alternate HTTP client, or cross-Owner bypass.
-_LINUX_PG_INSTALLED_SCHEMA_BRIDGE_TOOLS = frozenset(
-    {"workspace.exec", "job.list", "job.observe", "job.get", "job.cancel", "artifact.read"}
-)
-
 
 def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
     leaves: list[BaseException] = []
@@ -278,10 +268,10 @@ class McpOwnerCaller:
                 # after the Owner has completed the status read. Use the SDK's
                 # public typed send_request only for this one operation;
                 # Gateway then validates Runtime status with strict B03 rules.
-                # Other Owners retain the full SDK driver, including MRTR,
-                # output-schema validation and protocol-defined recovery.
-                # Only the observed Linux PG Job/Artifact consumer is also
-                # typed here, pending deployment of its corrected owner schema.
+                # Linux Runtime business operations now also use the full
+                # upstream Client.call_tool driver; no six-tool schema bypass.
+                # This is backed by an installed Owner MCP SDK read/execute/
+                # observe/cancel/Artifact consumer, not by source alone.
                 typed_runtime_read = (
                     owner_id == "runtime.windows"
                     and endpoint.mcp_mode == "2026-07-28"
@@ -290,22 +280,11 @@ class McpOwnerCaller:
                     and type(arguments.get("schemaVersion")) is int
                     and arguments["schemaVersion"] == 1
                 )
-                linux_pg_business_bridge = (
-                    owner_id == "runtime.linux"
-                    and tool_name in _LINUX_PG_INSTALLED_SCHEMA_BRIDGE_TOOLS
-                )
-                typed_owner_call = typed_runtime_read or linux_pg_business_bridge
-                phase = (
-                    "typed_readonly_call"
-                    if typed_runtime_read
-                    else "typed_linux_business_call"
-                    if linux_pg_business_bridge
-                    else "sdk_client_call"
-                )
+                phase = "typed_readonly_call" if typed_runtime_read else "sdk_client_call"
                 meta: dict[str, Any] = {}
                 inject_trace_context(meta)
                 try:
-                    if typed_owner_call:
+                    if typed_runtime_read:
                         result = await client.session.send_request(
                             types.CallToolRequest(
                                 params=types.CallToolRequestParams(
@@ -331,8 +310,6 @@ class McpOwnerCaller:
                     phase = (
                         "typed_readonly_call_cancelled"
                         if typed_runtime_read
-                        else "typed_linux_business_call_cancelled"
-                        if linux_pg_business_bridge
                         else "sdk_client_call_cancelled"
                     )
                     raise
