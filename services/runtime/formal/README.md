@@ -2,6 +2,15 @@
 
 > **Currentness note (2026-11-07):** `RuntimePgCutoverR1` formalizes a historical **SQLite snapshot migration and content-parity cutover**; `RuntimeWindowsFirstPgR1` formalizes a historical **Windows-first rollout order**. Neither is the current operator requirement: expendable legacy Runtime state is intentionally discarded, Linux is already PG-native, and Windows still requires separate PG admission/readback and native execution acceptance. Keep these models as bounded historical evidence while referenced by the formal harness; do **not** require their migration/parity or Windows-first constraints for the current fresh-PG epoch. `RuntimeDispatchR1` retains valid at-most-once and ambiguity invariants, but is not a proof of the installed native PG stopping/cgroup reconciliation implementation.
 
+For the current fresh-PostgreSQL epoch, `scripts/tla-formal check` and
+`scripts/tla-formal falsify` verify only current Runtime obligations.
+The historical SQLite-content-parity and Windows-first rollout models are
+**retained, not deleted**. Reproduce their original native TLC proofs with
+`scripts/tla-formal check-historical` and their named counterexample controls
+with `scripts/tla-formal falsify-historical`. Neither historical command is
+a fresh-PG release gate, and retiring it from the default path does not
+retire current PG writer/consumer safety obligations.
+
 This directory contains small TLA+ models for concurrency/recovery properties that are
 more important than prose-only architecture claims.
 
