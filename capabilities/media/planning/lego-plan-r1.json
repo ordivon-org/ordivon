@@ -433,6 +433,7 @@
           "type": "predicate",
           "guarantees": [
             "technical probe/loudness violations are explicit",
+            "selected sampled video change peaks preserve source-frame index and native FFmpeg PTS instead of FPS-rounded index",
             "SRT/WebVTT delivery rejects selected source cues whose exact millisecond timestamps collapse",
             "measurements remain attached to selected media identity"
           ]
@@ -442,6 +443,7 @@
           "guarantees": [
             "a mechanical PASS never implies artistic approval",
             "nonfinite/invalid numeric evidence is not silently admitted",
+            "estimated video timing never claims to be native source PTS",
             "no source TimedText cue is silently stretched to force target millisecond precision",
             "no native Resolve edit is claimed without a matched host receipt"
           ]
@@ -478,6 +480,9 @@
             "src/ordivon_studio/review.py",
             "src/ordivon_studio/assets.py",
             "tests/test_qc.py",
+            "src/ordivon_studio/perception_timing.py",
+            "src/ordivon_studio/perception_video_io.py",
+            "tests/test_perception.py",
             "src/ordivon_studio/timed_text.py",
             "formal/TimedTextDeliveryPrecision.lean",
             "tests/test_timed_text.py"
@@ -492,6 +497,9 @@
             "src/ordivon_studio/review.py",
             "src/ordivon_studio/assets.py",
             "tests/test_qc.py",
+            "src/ordivon_studio/perception_timing.py",
+            "src/ordivon_studio/perception_video_io.py",
+            "tests/test_perception.py",
             "src/ordivon_studio/timed_text.py",
             "formal/TimedTextDeliveryPrecision.lean",
             "tests/test_timed_text.py"
