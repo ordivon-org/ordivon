@@ -37,7 +37,7 @@ From domains/game:
     mise run factory:package:orbit-linux
     mise run verify
 
-Beacon Relay is production batch 02: an independent Godot game composed from a pinned MIT-licensed official demo and game-specific pickup, delivery, escalation and replay. Native input tests and Linux/Windows exports run through factory:package:beacon. Room Encounter (Godot) remains the earlier technical preview, not a mandatory game product. Orbit Collector (Bevy) is an independent native Rust/ECS build line, not an installer release. Both are replaceable product consumers.
+Beacon Relay is production batch 02: an independent Godot game composed from a pinned MIT-licensed official demo and game-specific pickup, delivery, escalation and replay. Native input tests and Linux/Windows exports run through factory:package:beacon. Room Encounter (Godot) remains the earlier technical preview, not a mandatory game product. Orbit Collector (Bevy) is an independent native Rust/ECS build line with unsigned Windows/Linux technical previews, not a store installer. Both are replaceable product consumers.
 
 Available source-read interfaces (inputs only): pnpm knowledge:external, pnpm knowledge:mechanisms, pnpm knowledge:relationships, pnpm knowledge:counterexamples, and pnpm knowledge:counterexample-themes.
 
@@ -48,12 +48,20 @@ Pre-November PC01/PC02/PC03 dossiers, mechanism-census documents, historical exp
 
 ## Consume and improve actual games
 
-Download the persistent, source-bound Linux/Windows previews at:
-https://github.com/ordivon-org/ordivon/releases/tag/game-factory-edition-001-20261109-a2598a2c
+**Orbit Collector — Windows and Linux native playable preview:**
+[download the unsigned Windows x86-64 ZIP or Linux x86-64 TAR.GZ](https://github.com/ordivon-org/ordivon/releases/tag/game-orbit-collector-linux-preview-20261115-1db37d1f).
+Extract the package and run its game executable; the archive includes gameplay
+instructions and upstream Rust/Bevy license notices. Windows requires a
+working Vulkan graphics driver; Linux is qualified on X11 with a working
+Vulkan renderer. The preview is not a store installer or general-device promise.
+[Give actual first-play Orbit feedback](https://github.com/ordivon-org/ordivon/issues/2282).
 
-Give actual player experience or repeatable consumer failures through the native GitHub issue form:
-https://github.com/ordivon-org/ordivon/issues/new?template=game-player-feedback.yml
+**Beacon Relay and Room Encounter — native Linux/Windows preview:**
+[download Game Factory Edition 001](https://github.com/ordivon-org/ordivon/releases/tag/game-factory-edition-001-20261109-a2598a2c).
+[Report a first-play issue for those games](https://github.com/ordivon-org/ordivon/issues/new?template=game-player-feedback.yml).
 
-Distinguish real Human, observed Human and Agent evidence; a smoke test does not qualify as Human enjoyment.
-The independent Bevy Orbit Collector Linux distribution uses
-mise run factory:package:orbit-linux and its separate native CI producer.
+Linux Orbit previews are produced by `mise run factory:package:orbit-linux`
+and the existing native GitHub CI workflow. The Windows Orbit archive was
+cross-compiled for Windows and has an observed native Windows Session 1 window
+smoke, but no separate Windows GitHub Actions build yet. Neither smoke nor
+an Agent episode establishes real Human understanding, completion or enjoyment.
