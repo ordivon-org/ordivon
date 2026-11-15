@@ -13,7 +13,7 @@ import os
 import re
 import sys
 from datetime import date
-from decimal import ROUND_HALF_EVEN, Decimal, localcontext
+from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation, localcontext
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,7 @@ from ordivon_capital.markets.etf_eod_snapshot import (
     AdmittedEtfEodSnapshot,
     admit_etf_eod_snapshot,
 )
+from ordivon_capital.portfolio.strategic_contribution import plan_strategic_contribution
 from ordivon_capital.risk.paper_close_risk import review_paper_close_risk
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
@@ -72,6 +73,7 @@ def summarize_paper_period(
     current_receipt: dict[str, Any],
     previous_receipt: dict[str, Any] | None,
     snapshot: AdmittedEtfEodSnapshot,
+    cash_what_if: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Project funding-neutral gain without calculating a second NAV.
 
@@ -127,7 +129,7 @@ def summarize_paper_period(
                 (Decimal(gain) / Decimal(capital_base)).quantize(_DECIMAL18), "f"
             )
 
-    return {
+    summary = {
         "schemaVersion": 1,
         "kind": "ordivon.finance.portfolio.paper-close-economic-summary",
         "standing": "READ_ONLY_ACCOUNTING_RECEIPT_CONSUMER",
@@ -155,6 +157,98 @@ def summarize_paper_period(
         "risk": risk["risk"],
         "capitalAuthority": "SIMULATION_ONLY",
         "realMoneyOrdersAuthorized": False,
+    }
+    if cash_what_if is not None:
+        summary["cashDeploymentScenario"] = _paper_cash_whatif(
+            summary=summary, current=current, snapshot=snapshot, request=cash_what_if
+        )
+    return summary
+
+
+def _paper_cash_whatif(
+    *, summary: dict[str, Any], current: dict[str, Any],
+    snapshot: AdmittedEtfEodSnapshot, request: dict[str, Any],
+) -> dict[str, Any]:
+    """Compose verified Paper/Risk facts with the existing contribution planner.
+
+    Only reallocates *existing unencumbered simulated cash* hypothetically.
+    This does not fund the account, post an order, or certify issuer data.
+    """
+    expected = {
+        "schemaVersion", "kind", "accountKey", "requestSha256",
+        "marketSha256", "currency", "contributionMinor", "targetWeightsBps",
+    }
+    if type(request) is not dict or set(request) != expected:
+        raise PaperPerformanceError("cash what-if request schema mismatch")
+    if (
+        type(request["schemaVersion"]) is not int
+        or request["schemaVersion"] != 1
+        or request["kind"] != "ordivon.finance.portfolio.paper-cash-deployment-whatif"
+        or request["accountKey"] != summary["accountKey"]
+        or request["requestSha256"] != summary["requestSha256"]
+        or request["marketSha256"] != summary["marketSha256"]
+        or request["currency"] != "USD"
+    ):
+        raise PaperPerformanceError("cash what-if differs from exact Paper and Markets evidence")
+
+    def cents_from_risk(raw: Any) -> int:
+        if type(raw) is not str:
+            raise PaperPerformanceError("invalid Risk exposure amount")
+        try:
+            cents = Decimal(raw) * 100
+        except InvalidOperation as exc:
+            raise PaperPerformanceError("invalid Risk exposure decimal") from exc
+        if (
+            not cents.is_finite() or cents < 0 or cents > _MAX_MINOR
+            or cents != cents.to_integral_value()
+        ):
+            raise PaperPerformanceError("Risk exposure cannot map to exact USD cents")
+        return int(cents)
+
+    exposure = summary["risk"]["nodes"]["exposureLedger"]
+    holdings = {
+        pos["instrumentId"]: cents_from_risk(pos["signedNotionalUsd"])
+        for pos in exposure["positions"]
+    }
+    targets = request["targetWeightsBps"]
+    if type(targets) is not dict:
+        raise PaperPerformanceError("cash what-if requires target weights")
+    marks = snapshot.prices_for(summary["session"])
+    if set(holdings) - set(targets) or set(targets) - set(marks):
+        raise PaperPerformanceError(
+            "cash what-if targets must cover held assets and current admitted market marks"
+        )
+    available = cents_from_risk(exposure["availableEquityUsd"])
+    reserve = _minor(current["valuation"]["protected_minor"], "protected cash")
+    if available + reserve > _MAX_MINOR:
+        raise PaperPerformanceError("cash what-if available envelope exceeds int64")
+
+    # All capital-allocation mathematics remain the original CA09 Portfolio
+    # LEGO. Risk already checked Accounting payable/receivable and all marks.
+    allocation = plan_strategic_contribution({
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.portfolio.strategic-contribution-request",
+        "currency": "USD",
+        "cashMinor": available + reserve,
+        "protectedReserveMinor": reserve,
+        "contributionMinor": request["contributionMinor"],
+        "holdingsMinor": {symbol: holdings.get(symbol, 0) for symbol in targets},
+        "targetWeightsBps": targets,
+    })
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.portfolio.paper-cash-deployment-scenario",
+        "standing": "HYPOTHETICAL_UNQUALIFIED_NO_ACTION",
+        "decision": "NO_ACTION",
+        "fundingConvention": "EXISTING_UNENCUMBERED_PAPER_CASH_NOT_NEW_DEPOSIT",
+        "accountingRequestSha256": summary["requestSha256"],
+        "marketSha256": summary["marketSha256"],
+        "availableUnencumberedMinor": available,
+        "riskStanding": summary["riskStanding"],
+        "sourceProviderAuthenticityIndependentlyVerified": False,
+        "capitalAuthority": "SIMULATION_ONLY",
+        "realMoneyOrdersAuthorized": False,
+        "allocation": allocation,
     }
 
 
@@ -216,6 +310,32 @@ def render_paper_daily_markdown(summary: dict[str, Any]) -> str:
         "主动策略与被动基准比较需另有同日期、同资金流、同费用证据。",
         "",
     ])
+    scenario = summary.get("cashDeploymentScenario")
+    if scenario is not None:
+        if (
+            type(scenario) is not dict
+            or scenario.get("standing") != "HYPOTHETICAL_UNQUALIFIED_NO_ACTION"
+            or scenario.get("decision") != "NO_ACTION"
+            or scenario.get("accountingRequestSha256") != summary["requestSha256"]
+            or scenario.get("marketSha256") != summary["marketSha256"]
+            or scenario.get("realMoneyOrdersAuthorized") is not False
+            or scenario.get("allocation", {}).get("executionAuthorized") is not False
+        ):
+            raise PaperPerformanceError("cash what-if must remain source-bound and non-executable")
+        allocation = scenario["allocation"]
+        lines.extend([
+            "## 模拟现金条件性配置",
+            "",
+            f"当前可用模拟现金：{money(scenario['availableUnencumberedMinor'])}",
+            f"假设从现有现金部署：{money(allocation['contributionMinor'])}；不是新入金。",
+            *[
+                f"- {symbol}：假设新增 {money(amount)}"
+                for symbol, amount in sorted(allocation["allocationsMinor"].items())
+            ],
+            "**行动：NO_ACTION。** 风险预算或行情来源未独立认证；"
+            "仅作为既定目标权重下的数学情景，不发出模拟或真实订单。",
+            "",
+        ])
     return "\n".join(lines)
 
 
@@ -253,6 +373,7 @@ def main() -> int:
     parser.add_argument("--previous-session")
     parser.add_argument("--snapshot", type=Path, required=True)
     parser.add_argument("--binding", type=Path, required=True)
+    parser.add_argument("--cash-what-if", type=Path)
     parser.add_argument("--format", choices=("json", "markdown"), default="json")
     args = parser.parse_args()
     if bool(args.account) != bool(args.session):
@@ -287,7 +408,8 @@ def main() -> int:
                 _read_json(args.previous_receipt) if args.previous_receipt else None
             )
         summary = summarize_paper_period(
-            current_receipt=current, previous_receipt=previous, snapshot=snapshot
+            current_receipt=current, previous_receipt=previous, snapshot=snapshot,
+            cash_what_if=_read_json(args.cash_what_if) if args.cash_what_if else None,
         )
         if persistent:
             summary["accountingPersistenceReverified"] = True

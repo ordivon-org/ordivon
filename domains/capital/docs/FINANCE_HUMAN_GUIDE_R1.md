@@ -403,3 +403,42 @@ Paper Accounting 收据中 `market_evidence.sha256`**，现有
 并不意味着未见指针就证明来源未修订，不会自动发现供应商的
 所有历史修正，也不认证公司行动、交易、PIT 或真实投资价值。
 没有独立资格时风险及资本行动仍保持未授权。
+
+
+### 已结算 Paper 账户的“模拟现金怎样配置”情景（2026-11-15）
+
+现有 `portfolio.paper_close_performance` CLI 支持可选
+`--cash-what-if /private/cash_whatif.json`，默认仍只返回原日结。
+此选项**不是新入金、真实订单、Paper 交易指令或投资建议**：
+仅复用当期 Accounting 估值、已绑定 Markets 快照、Risk
+暴露及现有 Portfolio `strategic_contribution`，计算
+“如果把已经结算、未被买入应付/保护现金占用的一笔模拟现金，
+按调用者既定目标权重只买不卖地分配”的条件性方案。
+
+调用者 JSON 必须严格包含：
+`schemaVersion=1`，
+`kind="ordivon.finance.portfolio.paper-cash-deployment-whatif"`，
+`accountKey`、`requestSha256`（当前原生 Accounting 收据）、
+`marketSha256`（当前已准入 Markets 快照）、`currency="USD"`、
+整数美分 `contributionMinor`，以及 `targetWeightsBps`。
+所有现有资产都必须出现在目标权重中，目标标的必须有当期
+Markets 收盘价；目标权重总和 10000 bps。不能用应收卖款、
+未结应付或保护资金补充可部署现金。计划返回
+`cashDeploymentScenario`、`fundingConvention=
+EXISTING_UNENCUMBERED_PAPER_CASH_NOT_NEW_DEPOSIT`、
+`decision=NO_ACTION`、`executionAuthorized=false`。
+风险预算与来源不合格时绝不提升为可执行方案。
+如果已观察到行情明确替代前期估值源，则必须首先完成
+前期经济核验，`--cash-what-if` 同样不能绕过。
+
+    scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+      --account PAPER_ACCOUNT --session YYYY-MM-DD \
+      --previous-session YYYY-MM-DD \
+      --snapshot /private/market.json --binding /private/binding.json \
+      --cash-what-if /private/cash_whatif.json --format markdown
+
+只有独立 PostgreSQL 收据读回才可显示已提交；
+离线 `--current-receipt` 只能声明“输入文件未验证持久状态”。
+真实 ETF 基础信息、公司行动、价格许可、PIT 与独立
+风险准入目前仍为 UNKNOWN；因此输出可帮助 Human/Agent
+理解当前模拟资金与目标配置的差距，但不能驱动交易。

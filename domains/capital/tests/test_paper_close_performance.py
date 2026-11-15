@@ -336,6 +336,35 @@ def test_postgresql_committed_paper_close_readback_to_portfolio(tmp_path):
     assert "历史 PIT 均未经独立认证" in markdown.stdout
     assert "无真实金融写入权限" in markdown.stdout
 
+    # Same production-facing CLI now composes the existing PG readback with
+    # a read-only target allocation, without modifying or revaluing PG.
+    scenario = {
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.portfolio.paper-cash-deployment-whatif",
+        "accountKey": account,
+        "requestSha256": newer["request_sha256"],
+        "marketSha256": snapshot.sha256,
+        "currency": "USD",
+        "contributionMinor": 10_000,
+        "targetWeightsBps": {"ETF": 10_000},
+    }
+    whatif_path = tmp_path / "cash-what-if.json"
+    whatif_path.write_text(json.dumps(scenario), encoding="utf-8")
+    with_cash_scenario = subprocess.run(
+        p.args + ["--cash-what-if", str(whatif_path)],
+        env=os.environ | {
+            "PYTHONPATH": str(ROOT / "src"),
+            "ORDIVON_CAPITAL_PAPER_PG_DSN": dsn,
+        }, cwd=ROOT, capture_output=True, text=True, check=False,
+    )
+    assert with_cash_scenario.returncode == 0, with_cash_scenario.stderr
+    answer = json.loads(with_cash_scenario.stdout)
+    assert answer["accountingPersistenceReverified"] is True
+    assert answer["cashDeploymentScenario"]["decision"] == "NO_ACTION"
+    assert answer["cashDeploymentScenario"]["allocation"]["executionAuthorized"] is False
+    assert answer["cashDeploymentScenario"]["allocation"]["allocationsMinor"] == {"ETF": 10_000}
+    assert newer == read_committed_paper_close(dsn, account, second.session)
+
 
 
 @pytest.mark.parametrize("rounding", [ROUND_UP, ROUND_DOWN])
@@ -423,4 +452,94 @@ def test_superseded_previous_market_vintage_cannot_publish_period_gain():
         summarize_paper_period(
             current_receipt=current, previous_receipt=previous,
             snapshot=new_snapshot,
+        )
+
+
+def test_paper_daily_cli_composes_cash_deployment_whatif_without_order_effects(tmp_path):
+    """Public Finance CLI reuses Accounting/Markets/Risk and Portfolio allocation."""
+    raw, binding, snapshot, previous, current, _, _ = _case()
+    paths = {
+        "snapshot": tmp_path / "snapshot.json",
+        "binding": tmp_path / "binding.json",
+        "previous": tmp_path / "previous.json",
+        "current": tmp_path / "current.json",
+        "scenario": tmp_path / "scenario.json",
+    }
+    docs = {
+        "snapshot": raw,
+        "binding": json.dumps(binding).encode(),
+        "previous": json.dumps(previous).encode(),
+        "current": json.dumps(current).encode(),
+        "scenario": json.dumps({
+            "schemaVersion": 1,
+            "kind": "ordivon.finance.portfolio.paper-cash-deployment-whatif",
+            "accountKey": current["account_key"],
+            "requestSha256": current["request_sha256"],
+            "marketSha256": snapshot.sha256,
+            "currency": "USD",
+            "contributionMinor": 10_000,
+            "targetWeightsBps": {"ETF": 10_000},
+        }).encode(),
+    }
+    for role, path in paths.items():
+        path.write_bytes(docs[role])
+    base = [
+        sys.executable, "-m", "ordivon_capital.portfolio.paper_close_performance",
+        "--current-receipt", str(paths["current"]),
+        "--previous-receipt", str(paths["previous"]),
+        "--snapshot", str(paths["snapshot"]),
+        "--binding", str(paths["binding"]),
+        "--cash-what-if", str(paths["scenario"]),
+    ]
+    env = os.environ | {"PYTHONPATH": str(ROOT / "src")}
+    result = subprocess.run(base, cwd=ROOT, env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    result_body = json.loads(result.stdout)
+    assert result_body["fundingNeutralEconomicGainMinor"] == 1_900
+    whatif = result_body["cashDeploymentScenario"]
+    assert whatif["standing"] == "HYPOTHETICAL_UNQUALIFIED_NO_ACTION"
+    assert whatif["decision"] == "NO_ACTION"
+    assert whatif["allocation"]["allocationsMinor"] == {"ETF": 10_000}
+    assert whatif["allocation"]["cashAfterMinor"] == 989_900
+    assert whatif["allocation"]["executionAuthorized"] is False
+    assert whatif["marketSha256"] == snapshot.sha256
+    assert whatif["accountingRequestSha256"] == current["request_sha256"]
+    assert whatif["availableUnencumberedMinor"] == 699_900
+    md = subprocess.run(base + ["--format", "markdown"], cwd=ROOT, env=env,
+                        capture_output=True, text=True)
+    assert md.returncode == 0, md.stderr
+    assert "模拟现金条件性配置" in md.stdout
+    assert "NO_ACTION" in md.stdout
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid", "reason"),
+    [
+        ("requestSha256", "0" * 64, "exact Paper"),
+        ("marketSha256", "sha256:" + "0" * 64, "exact Paper"),
+        ("contributionMinor", 699_901, "protected cash reserve"),
+        ("contributionMinor", True, "integer cents"),
+        ("targetWeightsBps", {"QQQ": 10_000}, "targets must cover"),
+        ("currency", "EUR", "exact Paper"),
+    ],
+)
+def test_paper_next_cash_scenario_rejects_false_funding_or_identity(
+    field, invalid, reason,
+):
+    _, _, snapshot, previous, current, _, _ = _case()
+    request = {
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.portfolio.paper-cash-deployment-whatif",
+        "accountKey": current["account_key"],
+        "requestSha256": current["request_sha256"],
+        "marketSha256": snapshot.sha256,
+        "currency": "USD",
+        "contributionMinor": 10_000,
+        "targetWeightsBps": {"ETF": 10_000},
+    }
+    request[field] = invalid
+    with pytest.raises(ValueError, match=reason):
+        summarize_paper_period(
+            current_receipt=current, previous_receipt=previous,
+            snapshot=snapshot, cash_what_if=request,
         )
