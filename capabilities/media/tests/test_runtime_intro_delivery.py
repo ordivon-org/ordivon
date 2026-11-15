@@ -70,6 +70,14 @@ class RuntimeIntroductionDeliveryTests(unittest.TestCase):
             self.assertIn("article/runtime-introduction-en.html", archive.read("index.html").decode())
             self.assertIn("../article/runtime-introduction-en.html", archive.read("interactive/index.html").decode())
 
+    def test_standalone_interactive_links_reach_real_source_carriers(self) -> None:
+        source = ROOT / "interactive" / "runtime-architecture.html"
+        links = re.findall(r'href="([^"]+)"', source.read_text(encoding="utf-8"))
+        self.assertEqual(len(links), 3)
+        for relative in links:
+            with self.subTest(link=relative):
+                self.assertTrue((source.parent / relative).is_file(), relative)
+
     def test_standalone_portfolio_links_and_interactive_wiring(self) -> None:
         with zipfile.ZipFile(ROOT / "publish" / "runtime-introduction-portfolio.zip") as archive:
             files = set(archive.namelist())
