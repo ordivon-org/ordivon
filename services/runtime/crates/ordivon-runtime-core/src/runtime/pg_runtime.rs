@@ -238,7 +238,7 @@ impl PgRuntime {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
-        super::engine::validate_workspace_headroom(&config.workspace_headroom)?;
+        super::workspace_headroom::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
         {

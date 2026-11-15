@@ -487,7 +487,8 @@ impl PgRuntime {
             // FD198 plans continue to use the original Runner compatibility path.
             // Do not rewrite a committed environment or its source identity.
             let build_target_backing =
-                if crate::runtime::engine::requires_private_cargo_build_target(&plan) {
+                if crate::runtime::build_target_contract::requires_private_cargo_build_target(&plan)
+                {
                     let backing = self
                         .config
                         .executor
@@ -606,13 +607,14 @@ impl PgRuntime {
                 bundle_path: Path::new(&a.bundle_path),
                 workspace_path: Path::new(&plan.workspace_path),
                 workspace_git_common_dir: plan.workspace_git_common_dir.as_deref().map(Path::new),
-                cargo_target_mount: if crate::runtime::engine::requires_native_cargo_target_mount(
-                    &plan,
-                ) {
-                    req.build_target_backing.as_deref().map(Path::new)
-                } else {
-                    None
-                },
+                cargo_target_mount:
+                    if crate::runtime::build_target_contract::requires_native_cargo_target_mount(
+                        &plan,
+                    ) {
+                        req.build_target_backing.as_deref().map(Path::new)
+                    } else {
+                        None
+                    },
                 input_set_path: None,
                 credential_source_root: None,
                 credential_names: &[],

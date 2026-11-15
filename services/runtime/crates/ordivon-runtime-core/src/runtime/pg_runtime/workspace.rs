@@ -388,7 +388,7 @@ impl PgRuntime {
         let tx = self.begin_workspace_effect_tx(&mut db)?;
         // Both host VHD backing and guest PostgreSQL/worktree carriers must
         // pass while the existing PG Workspace effect/admission lock is held.
-        super::engine::ensure_workspace_headroom(&self.config.workspace_headroom)?;
+        super::workspace_headroom::ensure_workspace_headroom(&self.config.workspace_headroom)?;
         let mut result = universal::create_git_workspace(&self.config.executor, request)
             .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.open")?;
