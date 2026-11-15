@@ -85,5 +85,18 @@ class BuildCacheEvictionContractTests(unittest.TestCase):
             self.assertEqual(receipt.read_bytes(), original)
 
 
+class OpenFdConsumerTests(unittest.TestCase):
+    def test_open_fd_inside_cache_is_visible_even_when_cwd_is_elsewhere(self):
+        """An external compiler may hold an open artifact without cwd under cache."""
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "build"
+            cache.mkdir()
+            artifact = cache / "held-output.o"
+            artifact.write_bytes(b"compiler-output")
+            with artifact.open("rb"):
+                consumers = evict.external_processes_using(cache)
+                self.assertIn(str(__import__("os").getpid()), consumers)
+
+
 if __name__ == "__main__":
     unittest.main()
