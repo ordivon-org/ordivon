@@ -10,10 +10,14 @@ Gateway owns only:
 - correlation/reference normalization.
 
 **Formal Gateway authorization boundary (B02, source-model proof):** the
-protected `artifact.read` path is modeled by
+protected Security PEP decision path, originally modeled for `artifact.read`,
+is abstracted by
 [`formal/GatewayCapabilityAuthzR1.tla`](formal/GatewayCapabilityAuthzR1.tla).
+Its assumptions apply to protected Host read/write and qualified Runtime
+release targets only where the same exact Security decision path is used.
 It enumerates target validity, verified ingress identity, exact PDP binding,
-qualification, delegated v2 evidence and interactive AuthZEN v3 evidence.
+qualification, delegated v2 evidence and interactive AuthZEN v3 evidence,
+including a **nonblank exact-echo AuthZEN request ID**.
 Safe forwarding requires all matching evidence; a decision mismatch,
 STEP_UP/DENY, unsupported version, or incomplete evidence cannot forward.
 The model is a **finite Owner-local transition abstraction**, not proof of
@@ -25,10 +29,12 @@ artifact bytes or installed behavior. No global registry or second PEP exists.
   `ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar` when
   the Workspace has no local cache. Inspect the four TLC invariants and the
   two expected counterexamples. For physical behavior run `mise run gateway:verify`.
-- **Agent:** first pin the Git SourceCut, reuse
-  `src/ordivon_gateway/capability_authz.py` and
-  `tests/test_capability_authz_middleware.py` as the concrete
-  producer/consumer contract, then invoke `gateway:formal:verify`.
+- **Agent:** first pin the Git SourceCut, inspect the original
+  `src/ordivon_gateway/authorization_targets.py` for the pure requested
+  Owner resource projection and `src/ordivon_gateway/capability_authz.py`
+  for its independent fail-closed Security PEP, then use
+  `tests/test_capability_authz_middleware.py` plus Host/Release and HTTP
+  native consumers and invoke `gateway:formal:verify`.
   The safe model must complete exhaustive finite-state exploration; the
   reachability and deliberately unsafe model must each yield the **named**
   counterexample. Classify `MODEL_VERIFIED`, `SOURCE_CONSUMER_TESTED`,
@@ -60,9 +66,15 @@ empty-routes cases. This is Gateway projection validation, not authorization to
 execute any Runtime or Host effect.
 
 Host read Tool names are derived from the *existing* Host authorization
-selector map; the native source-security test also checks that its partition
-agrees with `enforcement-surface.json` and the real Host Dispatcher. Do not
-add another manually maintained Host read-name catalog.
+selector map in `authorization_targets.py`; the native source-security test
+also checks that its partition agrees with `enforcement-surface.json` and
+the original Host Dispatcher. Do not add another manually maintained Host
+read-name catalog. The target module constructs **requested** Host,
+Runtime-release and Artifact resources, not a grant; `capability_authz.py`
+only consumes the exact resource and validates the Security result. The
+decision schema version must be a literal JSON integer 2/3, not a float with
+equal Python numeric value. A v3 ALLOW with an empty/blank echoed request ID
+fails closed before Owner forwarding.
 
 Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run truth, OAuth/credential authority, Plugin/Skill semantics, or domain completion.
 
@@ -78,6 +90,14 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   agree on the complete non-blank Principal/Issuer request-state pair.
   This is a projection of already verified Access state, not an authenticator,
   token issuer, Actor grant, or alternate Security policy.
+- **Authorization resource projection** (src/ordivon_gateway/authorization_targets.py):
+  derive Host read/write, Runtime release and Artifact request targets from the
+  original Gateway Tool/Owner inputs; no Principal authentication or Security
+  decision is issued here. A single existing Host dispatcher remains authoritative.
+- **Gateway Security PEP** (src/ordivon_gateway/capability_authz.py):
+  only resolves a target via the original projection, reads verified ingress,
+  binds PDP response, validates versioned decision/evidence, and forwards or
+  denies. No second Owner or Policy engine.
 - **Gateway application facade** (src/ordivon_gateway/service.py):
   stable public signatures, execution dispatch, artifact reads and Host delegation.
   Its discovery methods delegate rather than duplicating catalog rules.
@@ -172,7 +192,7 @@ or proof of physical bytes. The existing stdio lane has a different local OS
 trust boundary and is **not** claimed to use HTTP ingress/PDP authentication.
 
 **Original Host read/write PEP (compatibility release):** Reuses the same
-Security AuthZEN middleware for the 16 original Host read and 13 original
+Security AuthZEN middleware for the 17 original Host read and 13 original
 Host write tools on verified HTTP ingress, with canonical request binding,
 actual Owner selectors and an explicit global-read distinction. For
 message.post, the real author is authorActorRef; an ignored caller actorRef

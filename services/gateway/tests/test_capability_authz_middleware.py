@@ -9,10 +9,8 @@ from typing import Any
 import pytest
 
 from ordivon_gateway.access_auth import CloudflareAccessMiddleware
-from ordivon_gateway.capability_authz import (
-    GatewayCapabilityAuthorizationMiddleware,
-    resolve_authorization_target,
-)
+from ordivon_gateway.authorization_targets import resolve_authorization_target
+from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
 from ordivon_gateway.mcp_server import build_server
 
 
@@ -544,7 +542,7 @@ def test_legacy_host_mutation_resource_identity_binds_entire_request_and_tool_na
         "expectedRevision": 2,
         "snapshot": {"objective": "preserve", "nextActions": ["verify"]},
     }
-    from ordivon_gateway.capability_authz import resolve_authorization_target
+    from ordivon_gateway.authorization_targets import resolve_authorization_target
 
     original = resolve_authorization_target("work.snapshot.commit", original_args)
     equivalent = resolve_authorization_target(
@@ -582,7 +580,7 @@ def test_legacy_host_mutation_resource_identity_binds_entire_request_and_tool_na
 
 
 def test_legacy_host_write_wrong_bound_security_decision_cannot_call_owner() -> None:
-    from ordivon_gateway.capability_authz import resolve_authorization_target
+    from ordivon_gateway.authorization_targets import resolve_authorization_target
 
     proper_args = {
         "workRef": "work:immutable",
@@ -633,7 +631,7 @@ def test_legacy_host_write_wrong_bound_security_decision_cannot_call_owner() -> 
 
 @pytest.mark.parametrize("wrong", [{"unjson": {1, 2}}, {"float": float("nan")}])
 def test_non_json_legacy_host_mutation_auth_target_is_rejected_before_pdp(wrong) -> None:
-    from ordivon_gateway.capability_authz import (
+    from ordivon_gateway.authorization_targets import (
         CapabilityAuthorizationTargetError,
         resolve_authorization_target,
     )
@@ -645,7 +643,7 @@ def test_non_json_legacy_host_mutation_auth_target_is_rejected_before_pdp(wrong)
 
 
 def test_legacy_host_readonly_stays_read_and_all_owner_writes_default_to_pep() -> None:
-    from ordivon_gateway.capability_authz import (
+    from ordivon_gateway.authorization_targets import (
         _HOST_READ_ONLY_TOOLS,
         _legacy_host_mutation_target,
     )
@@ -672,7 +670,7 @@ def test_legacy_host_readonly_stays_read_and_all_owner_writes_default_to_pep() -
 
 
 def test_legacy_message_author_cannot_be_shadowed_by_untrusted_actor_argument() -> None:
-    from ordivon_gateway.capability_authz import (
+    from ordivon_gateway.authorization_targets import (
         CapabilityAuthorizationTargetError,
         _legacy_host_mutation_target,
     )
@@ -697,3 +695,57 @@ def test_legacy_message_author_cannot_be_shadowed_by_untrusted_actor_argument() 
     with pytest.raises(CapabilityAuthorizationTargetError, match="qualified actorRef") as error:
         _legacy_host_mutation_target("work.snapshot.commit", {"workRef": "work:abc"})
     assert error.value.capability == "host.legacy-write"
+
+
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        {"schemaVersion": 3.0},
+        {"schemaVersion": 2.0},
+        {
+            "authorizationEvidence": {
+                "standard": "openid-authzen-authorization-api-1.0",
+                "decision": True,
+                "requestId": "",
+                "responseRequestId": "",
+            }
+        },
+        {
+            "authorizationEvidence": {
+                "standard": "openid-authzen-authorization-api-1.0",
+                "decision": True,
+                "requestId": "   ",
+                "responseRequestId": "   ",
+            }
+        },
+    ],
+)
+def test_malformed_security_allow_cannot_cross_owner_pep(malformed: dict[str, Any]) -> None:
+    """Security ALLOW must carry an exact integer version and qualified AuthZEN nonce."""
+    args = {"workRef": "work:test:one"}
+    target = resolve_authorization_target("work.get", args)
+    assert target is not None
+    decision = _host_allow("host.legacy-read", target.authzen_resource())
+    decision.update(malformed)
+    if decision.get("schemaVersion") == 2.0:
+        # A floating version 2.0 must not inherit a version-2 delegated policy.
+        decision["authorityProjection"] = {"authorityId": "grant:forged"}
+        decision["effectAdmission"] = {"admitted": True}
+    entered: list[str] = []
+
+    async def owner(_ctx):
+        entered.append("owner")
+        return {"structuredContent": {"ownerReached": True}}
+
+    observed = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(FakeAuthorizer(decision))(
+            _ctx(tool="work.get", state=_verified_state(), arguments=args),
+            owner,
+        )
+    )
+    assert observed.is_error is True
+    assert observed.structured_content["error"]["code"] in {
+        "CAPABILITY_AUTHZ_BINDING_MISMATCH",
+        "CAPABILITY_AUTHZ_ALLOW_INCOMPLETE",
+    }
+    assert entered == []

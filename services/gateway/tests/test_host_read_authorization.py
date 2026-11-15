@@ -6,12 +6,12 @@ from typing import Any
 
 import pytest
 
-from ordivon_gateway.capability_authz import (
+from ordivon_gateway.authorization_targets import (
     _HOST_READ_ONLY_TOOLS,
     CapabilityAuthorizationTargetError,
-    GatewayCapabilityAuthorizationMiddleware,
     resolve_authorization_target,
 )
+from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
 
 # These are the existing Gateway Host read routes, not an extra API surface.
 READ_REQUESTS = {

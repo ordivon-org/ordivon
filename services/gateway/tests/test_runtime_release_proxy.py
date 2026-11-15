@@ -8,10 +8,8 @@ from typing import Any
 
 import pytest
 
-from ordivon_gateway.capability_authz import (
-    GatewayCapabilityAuthorizationMiddleware,
-    resolve_authorization_target,
-)
+from ordivon_gateway.authorization_targets import resolve_authorization_target
+from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
 from ordivon_gateway.mcp_server import _verified_execution_request_id, build_server
 from ordivon_gateway.service import GatewayError, GatewayService
 
