@@ -104,6 +104,7 @@ tasks:
       - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer /etc/systemd/system/network-v2-gluetun-owned-reconcile.timer
       - systemctl is-active --quiet network-v2-gluetun-owned.target
       - systemctl is-active --quiet network-v2-gluetun-owned-reconcile.timer
+      - /usr/bin/podman exec network-v2-gluetun-owned-r1 /gluetun-entrypoint healthcheck
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
 
   provider:gluetun:observe-exit:
