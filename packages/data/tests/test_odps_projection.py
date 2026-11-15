@@ -5,11 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[3]
 import sys
@@ -298,6 +297,47 @@ class OwnerProductProjectionTests(unittest.TestCase):
                         ),
                     ),
                 )
+
+    def test_distinct_versioned_ports_can_each_bind_valid_local_evidence(self) -> None:
+        # One product may legitimately expose v1 and v2 simultaneously.
+        # Neither independently qualified consumer should disable the other.
+        product = json.loads(self.sources[1].read_text(encoding="utf-8"))
+        manifest = next(
+            port
+            for port in product["outputPorts"]
+            if port["name"] == "episode-corpus-manifest-json"
+        )
+        v2 = dict(manifest)
+        v2.pop("id", None)
+        v2["version"] = "2.0.0"
+        product["outputPorts"].append(v2)
+        with TemporaryDirectory() as temp:
+            candidate = Path(temp) / "parallel-version-odps.json"
+            candidate.write_text(json.dumps(product), encoding="utf-8")
+            bindings = tuple(
+                LocalEvidenceBinding(
+                    product["id"],
+                    "episode-corpus-manifest-json",
+                    "corpusManifestRelativePath",
+                    "corpusManifestSha256",
+                    ROOT,
+                    port_version=version,
+                )
+                for version in ("1.0.0", "2.0.0")
+            )
+            catalog = project_catalog([candidate], bindings=bindings)
+            ports = [
+                port
+                for port in catalog["dcat:dataset"][0]["dcat:distribution"]
+                if port["dct:title"] == "episode-corpus-manifest-json"
+            ]
+            self.assertEqual(
+                {port["dcat:version"] for port in ports},
+                {"1.0.0", "2.0.0"},
+            )
+            self.assertTrue(all("spdx:checksum" in port for port in ports))
+            with self.assertRaisesRegex(ValueError, "duplicate local evidence"):
+                project_catalog([candidate], bindings=(bindings[0], bindings[0]))
 
     def test_cli_verified_binding_is_read_only_and_missing_is_unknown(self) -> None:
         import subprocess

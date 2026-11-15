@@ -71,6 +71,12 @@ def qualified_local_distribution(
             )
         raise ValueError("binding requires exactly one named output port")
     index = selected[0]
+    # The selected distribution is already identified by ODPS (name, version).
+    # Reuse it as the one binding authority; name-only de-duplication would
+    # incorrectly block independent consumers of coexisting port versions.
+    distribution = projected["dcat:distribution"][index]
+    if "dcat:accessURL" in distribution or "spdx:checksum" in distribution:
+        raise ValueError("duplicate local evidence binding for output port")
     if ports[index].get("type") not in ("file/json", "file/parquet", "file/csv"):
         raise ValueError("binding requires a supported file output port")
     props = product.get("customProperties", [])
@@ -112,14 +118,9 @@ def qualified_local_distribution(
     if actual_digest != declared_digest:
         raise ValueError("producer file digest differs from ODPS declaration")
 
-    distribution = projected["dcat:distribution"][index]
-    if "dcat:accessURL" in distribution:
-        raise ValueError("distribution already has an access URL")
     distribution["dcat:accessURL"] = {"@id": actual_path.as_uri()}
     # DCAT 3 uses SPDX checksums, keeping the producer's port identifier
     # (dct:identifier) separate from content-integrity evidence.
-    if "spdx:checksum" in distribution:
-        raise ValueError("distribution already has a checksum binding")
     distribution["spdx:checksum"] = {
         "@type": "spdx:Checksum",
         "spdx:algorithm": {"@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"},
