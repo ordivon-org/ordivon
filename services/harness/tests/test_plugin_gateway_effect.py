@@ -1563,6 +1563,43 @@ def test_terminal_observation_confirms_original_grant_without_new_gateway_schema
     assert [x[0] for x in client.calls] == ["execution.get", "execution.resolve"]
 
 
+def test_h2_run_birth_serializes_with_runtime_workspace_close_lock(pg_schema, monkeypatch) -> None:
+    """Native PG: a Run claim cannot appear mid-Workspace close transaction."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    import time
+    import psycopg
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    contract = _contract(factory)
+    entered_birth = Event()
+    original = PostgresHarnessStore.create_run
+
+    def observed_birth(self, candidate, *, workspace_id=None):
+        entered_birth.set()
+        return original(self, candidate, workspace_id=workspace_id)
+
+    monkeypatch.setattr(PostgresHarnessStore, "create_run", observed_birth)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with psycopg.connect(pg_schema[0], autocommit=True) as close_tx:
+            with close_tx.transaction():
+                close_tx.execute("SELECT pg_advisory_xact_lock(%s)", (79245017,))
+                future = pool.submit(
+                    HarnessAgentRun.create,
+                    pg_schema[0], pg_schema[1], contract,
+                    lambda _: _adapter(),
+                    tool_bridge_factory=factory,
+                )
+                assert entered_birth.wait(timeout=5)
+                time.sleep(0.12)
+                assert not future.done(), "Run birth bypassed native Workspace admission fence"
+            completed = future.result(timeout=10)
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        assert completed.harness_run_id == contract.harness_run_id
+        assert store.workspace_claim_state(completed.harness_run_id, "ws-plugin-h2") == "held"
+
+
 def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_schema) -> None:
     from dataclasses import replace
 
@@ -1609,3 +1646,47 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         projection = store.load_run(second.harness_run_id)
         assert projection.status.terminal is False
+
+        # A's normal terminal receipt is NOT a cross-Run release.
+        active = store.connection.execute(
+            "SELECT harness_workspace_unreleased_count(%s) AS held",
+            ("ws-plugin-h2",),
+        ).fetchone()
+        assert active["held"] == 2
+        assert store.workspace_claim_state(first.harness_run_id, "ws-plugin-h2") == "held"
+        assert store.workspace_claim_state(second.harness_run_id, "ws-plugin-h2") == "held"
+        # PostgreSQL RESTRICT: deleting an unfinished Run cannot silently
+        # erase its long-lived consumer claim through an FK CASCADE.
+        import psycopg
+        with pytest.raises(psycopg.errors.RestrictViolation):
+            store.connection.execute(
+                "DELETE FROM runs WHERE harness_run_id=%s",
+                (second.harness_run_id,),
+            )
+        assert store.workspace_claim_state(second.harness_run_id, "ws-plugin-h2") == "held"
+        from ordivon_harness.store_errors import HarnessTerminalConflict
+
+        with pytest.raises(HarnessTerminalConflict):
+            store.release_workspace_claim(
+                second.harness_run_id, "ws-plugin-h2",
+                expected_run_revision=projection.revision,
+            )
+        terminal = store.load_run(first.harness_run_id)
+        assert store.release_workspace_claim(
+            first.harness_run_id, "ws-plugin-h2",
+            expected_run_revision=terminal.revision,
+        ) is True
+        assert store.release_workspace_claim(
+            first.harness_run_id, "ws-plugin-h2",
+            expected_run_revision=terminal.revision,
+        ) is False
+        assert store.connection.execute(
+            "SELECT harness_workspace_unreleased_count(%s) AS held",
+            ("ws-plugin-h2",),
+        ).fetchone()["held"] == 1
+        # A cannot forge B's relinquishment, and an unrelated Workspace is
+        # never counted as if it held B's independently scoped claim.
+        assert store.connection.execute(
+            "SELECT harness_workspace_unreleased_count(%s) AS held",
+            ("ws-other",),
+        ).fetchone()["held"] == 0

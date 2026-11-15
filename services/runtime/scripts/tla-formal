@@ -800,6 +800,44 @@ falsify_workspace_multi_agent_release() {
   done
 }
 
+# H2 R2 explicit formal gap: shared PG admission lock is necessary but
+# insufficient when a new Agent Run may be born AFTER physical Workspace
+# closure, or when a future consumer has no durable scope yet. The positive
+# model assumes a pending consumer scope that SOURCE DOES NOT IMPLEMENT.
+check_workspace_claim_birth_r2() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY \
+    "$ROOT/formal/RuntimeWorkspaceClaimBirthR2.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config RuntimeWorkspaceClaimBirthR2.cfg RuntimeWorkspaceClaimBirthR2.tla)
+}
+
+falsify_workspace_claim_birth_r2() {
+  verify_jar
+  local label invariant result output
+  for label in reachable unsafe-claim unsafe-birth; do
+    case "$label" in
+      reachable) invariant=NeverClosed ;;
+      unsafe-claim) invariant=ClosedNoUnbornIntent ;;
+      unsafe-birth) invariant=ClosedNoHeldClaim ;;
+    esac
+    set +e
+    output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config "RuntimeWorkspaceClaimBirthR2.$label.cfg" \
+      RuntimeWorkspaceClaimBirthR2.tla 2>&1)
+    result=$?
+    set -e
+    if [[ "$result" != 12 ]] ||
+       ! printf '%s\n' "$output" | grep -Fxq "Error: Invariant $invariant is violated." ||
+       ! printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'; then
+      echo "H2 ClaimBirth R2 $label formal falsifier FAILED" >&2
+      printf '%s\n' "$output" | tail -38 >&2
+      exit 1
+    fi
+    echo "H2 ClaimBirth R2 $label named formal falsifier PASS"
+  done
+}
+
 workspace_close_expect_named_counterexample() {
   local folder="$1" config="$2" property="$3" label="$4"
   local output="$folder/result.log" result
@@ -1140,11 +1178,13 @@ case "${1:-check}" in
   check-pg-buildcache) check_pg_build_cache_eviction ;;
   falsify-pg-buildcache) falsify_pg_build_cache_eviction ;;
   falsify-windows-pg-attempt) check_windows_pg_attempt_counterexample ;;
+  check-h2-claim) check_workspace_claim_birth_r2 ;;
+  falsify-h2-claim) falsify_workspace_claim_birth_r2 ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_workspace_claim_birth_r2; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; falsify_workspace_claim_birth_r2; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2

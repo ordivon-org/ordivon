@@ -56,6 +56,23 @@ class HarnessAgentRunCompositionError(ValueError):
     """The exact Run Contract cannot be composed by this supported surface."""
 
 
+def _runtime_consumer_workspace_ref(
+    execution_binding: HarnessExecutionBinding | None,
+    tool_bridge_factory: HarnessToolBridgeFactory | None,
+) -> str | None:
+    """Extract only proven source-owned Run execution bindings, never model input."""
+    workspace = execution_binding.workspace_ref if execution_binding is not None else None
+    if tool_bridge_factory is not None:
+        from .plugin_gateway_effect import PluginGatewayExecutionBridgeFactory
+
+        if isinstance(tool_bridge_factory, PluginGatewayExecutionBridgeFactory):
+            granted = tool_bridge_factory.execution_grant.workspace_id
+            if workspace is not None and workspace != granted:
+                raise HarnessAgentRunCompositionError("Run Workspace bindings differ")
+            workspace = granted
+    return workspace
+
+
 @dataclass(slots=True)
 class HarnessAgentRun:
     """One caller-bound Agent Run over current independent Harness authority.
@@ -104,11 +121,18 @@ class HarnessAgentRun:
         adapter = cls._resolve_adapter(contract, adapter_factory)
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
+        # A long-lived consumer hold is born atomically with the Harness Run,
+        # BEFORE any Gateway/Runtime effect. A Job or short writer lease cannot
+        # stand in for this cross-Job ownership. The caller-supplied grant is
+        # never a release proof.
+        workspace_ref = _runtime_consumer_workspace_ref(
+            execution_binding, tool_bridge_factory
+        )
         with factory() as store:
             try:
                 projection = store.load_run(contract.harness_run_id)
             except KeyError:
-                store.create_run(contract)
+                store.create_run(contract, workspace_id=workspace_ref)
             else:
                 if (projection.contract_digest != contract.digest
                     or projection.caller_id != contract.caller_id
@@ -116,6 +140,10 @@ class HarnessAgentRun:
                     raise HarnessAgentRunCompositionError(
                         "existing Harness PG Run differs from supplied Contract"
                     )
+                if workspace_ref is not None and (
+                    store.workspace_claim_state(contract.harness_run_id, workspace_ref) != "held"
+                ):
+                    raise HarnessAgentRunCompositionError("existing Run Workspace claim was released")
         return cls._bind(
             contract, adapter, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,
@@ -147,6 +175,18 @@ class HarnessAgentRun:
             contract = EventSourcedRunContinuity.open(
                 store, harness_run_id, clock_ms=clock_ms
             ).contract
+            workspace_ref = _runtime_consumer_workspace_ref(
+                execution_binding, tool_bridge_factory
+            )
+            if workspace_ref is not None:
+                claim_state = store.workspace_claim_state(harness_run_id, workspace_ref)
+                projection = store.load_run(harness_run_id)
+                if claim_state != "held" and not (
+                    claim_state == "released" and projection.status.terminal
+                ):
+                    raise HarnessAgentRunCompositionError(
+                        "Run Workspace consumer hold is not current"
+                    )
         cls._validate_structure(
             contract, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,

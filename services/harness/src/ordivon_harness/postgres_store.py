@@ -86,7 +86,41 @@ CREATE TABLE IF NOT EXISTS run_leases (
  run_revision bigint NOT NULL CHECK (run_revision >= 1),
  expires_at_ms bigint NOT NULL CHECK (expires_at_ms >= 0)
 );
+-- A Run-scoped Workspace hold is NOT a short-lived Run writer lease.
+-- Only explicit relinquishment after terminal consumer handoff releases it.
+CREATE TABLE IF NOT EXISTS run_workspace_claims (
+ harness_run_id text PRIMARY KEY REFERENCES runs(harness_run_id) ON DELETE RESTRICT,
+ workspace_id text NOT NULL, claim_state text NOT NULL CHECK (claim_state IN ('held','released')),
+ registered_at_ms bigint NOT NULL CHECK (registered_at_ms >= 0),
+ released_at_ms bigint,
+ CHECK ((claim_state='held' AND released_at_ms IS NULL)
+     OR (claim_state='released' AND released_at_ms >= registered_at_ms))
+);
+CREATE INDEX IF NOT EXISTS idx_run_workspace_claims_held
+ ON run_workspace_claims(workspace_id) WHERE claim_state='held';
 """
+# SECURITY DEFINER exposes only the aggregate close barrier, not private
+# Harness Run identities, Contracts or Journal content to the Runtime role.
+# Operator must explicitly GRANT EXECUTE to the qualified Runtime service role.
+_WORKSPACE_CLAIM_FUNCTION = """
+CREATE OR REPLACE FUNCTION {schema}.harness_workspace_unreleased_count(p_workspace_id text)
+RETURNS bigint LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+ SELECT CASE WHEN EXISTS (
+     SELECT 1 FROM {schema}.runs r
+     WHERE r.status NOT IN ('completed','stopped','failed')
+       AND NOT EXISTS (
+         SELECT 1 FROM {schema}.run_workspace_claims c
+         WHERE c.harness_run_id=r.harness_run_id)
+   ) THEN (-1)::bigint
+   ELSE (SELECT count(*) FROM {schema}.run_workspace_claims
+         WHERE workspace_id=p_workspace_id AND claim_state='held')
+ END
+$$;
+REVOKE ALL ON FUNCTION {schema}.harness_workspace_unreleased_count(text) FROM PUBLIC;
+"""
+
+_WORKSPACE_EFFECT_ADMISSION_LOCK = 79245017
+
 _EVENT_PAYLOAD_KIND = "ordivon.harness-run-event-payload"
 _CONTRACT_OBJECT_KIND = "harness-run-contract"
 _MAX_EVENT_BATCH = 256
@@ -213,6 +247,11 @@ class PostgresHarnessStore:
                             schema=sql.Identifier(schema)
                         )
                     )
+                    self.connection.execute(
+                        sql.SQL(_WORKSPACE_CLAIM_FUNCTION).format(
+                            schema=sql.Identifier(schema)
+                        )
+                    )
             row = self.connection.execute(
                 "SELECT value FROM schema_info WHERE key='schema_version'"
             ).fetchone()
@@ -313,7 +352,66 @@ class PostgresHarnessStore:
             "data": data,
         }
 
-    def create_run(self, contract: HarnessRunContract) -> HarnessEventAdmission:
+    def _require_workspace_claim(self, harness_run_id: str, workspace_id: str) -> str:
+        row = self.connection.execute(
+            "SELECT workspace_id,claim_state FROM run_workspace_claims "
+            "WHERE harness_run_id=%s", (harness_run_id,)
+        ).fetchone()
+        if row is None or row["workspace_id"] != workspace_id:
+            raise HarnessEventConflict("Harness Run Workspace ownership is missing or different")
+        return str(row["claim_state"])
+
+    def workspace_claim_state(self, harness_run_id: str, workspace_id: str) -> str:
+        """Read an exact same-PG long-lived consumer hold; never infer it from a Job."""
+        return self._require_workspace_claim(harness_run_id, workspace_id)
+
+    def release_workspace_claim(
+        self, harness_run_id: str, workspace_id: str, *, expected_run_revision: int
+    ) -> bool:
+        """Relinquish only this terminal Run's held claim after caller-owned handoff.
+
+        This is not automatic on Runtime Job completion or Run writer-lease expiry.
+        """
+        if type(expected_run_revision) is not int or expected_run_revision < 1:
+            raise ValueError("exact terminal Run revision is required")
+        with self.connection.transaction():
+            self.connection.execute(
+                "SELECT pg_advisory_xact_lock(%s)", (_WORKSPACE_EFFECT_ADMISSION_LOCK,)
+            )
+            row = self.connection.execute(
+                "SELECT status,revision FROM runs WHERE harness_run_id=%s FOR UPDATE",
+                (harness_run_id,),
+            ).fetchone()
+            if row is None or row["revision"] != expected_run_revision:
+                raise HarnessRevisionConflict("Workspace claim release Run revision differs")
+            if not HarnessRunStatus(row["status"]).terminal:
+                raise HarnessTerminalConflict("Workspace claim cannot release a live Run")
+            state = self._require_workspace_claim(harness_run_id, workspace_id)
+            if state == "released":
+                return False
+            if state != "held":
+                raise HarnessEventConflict("unknown Workspace claim state")
+            now_ms: int = self.connection.execute(
+                "SELECT (EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint AS now"
+            ).fetchone()["now"]
+            updated = self.connection.execute(
+                "UPDATE run_workspace_claims SET claim_state='released',"
+                "released_at_ms=GREATEST(%s,registered_at_ms) "
+                "WHERE harness_run_id=%s AND workspace_id=%s AND claim_state='held'",
+                (now_ms, harness_run_id, workspace_id),
+            ).rowcount
+            if updated != 1:
+                raise HarnessEventConflict("Workspace claim changed during exact release")
+            return True
+
+    def create_run(
+        self, contract: HarnessRunContract, *, workspace_id: str | None = None
+    ) -> HarnessEventAdmission:
+        if workspace_id is not None and (
+            not isinstance(workspace_id, str) or not workspace_id.strip()
+            or workspace_id != workspace_id.strip() or len(workspace_id) > 96
+        ):
+            raise ValueError("Runtime Workspace identity must be a bounded trimmed string")
         event_id = (
             "event:harness-run-created:"
             + canonical_digest(
@@ -321,6 +419,13 @@ class PostgresHarnessStore:
             )[7:]
         )
         with self.connection.transaction():
+            if workspace_id is not None:
+                # Shared PG lock with Runtime Job admission and Workspace.close.
+                # READ COMMITTED obtains post-lock snapshots. Never register
+                # after the Run is visible to another consumer.
+                self.connection.execute(
+                    "SELECT pg_advisory_xact_lock(%s)", (_WORKSPACE_EFFECT_ADMISSION_LOCK,)
+                )
             contract_object = self._object(
                 contract.to_dict(), _CONTRACT_OBJECT_KIND, now_ms=contract.created_at_ms
             )
@@ -366,6 +471,10 @@ class PostgresHarnessStore:
                     contract.created_at_ms,
                     (contract_object,),
                 )
+                if workspace_id is not None and (
+                    self._require_workspace_claim(contract.harness_run_id, workspace_id) != "held"
+                ):
+                    raise HarnessEventConflict("existing Run Workspace claim is released")
                 return HarnessEventAdmission.EXISTING
             try:
                 with self.connection.transaction():
@@ -396,6 +505,13 @@ class PostgresHarnessStore:
                 contract.created_at_ms,
                 (contract_object,),
             )
+            if workspace_id is not None:
+                self.connection.execute(
+                    "INSERT INTO run_workspace_claims("
+                    "harness_run_id,workspace_id,claim_state,registered_at_ms) "
+                    "VALUES(%s,%s,'held',%s)",
+                    (contract.harness_run_id, workspace_id, contract.created_at_ms),
+                )
         return HarnessEventAdmission.CREATED
 
     def load_run(self, harness_run_id: str) -> HarnessRunProjection:

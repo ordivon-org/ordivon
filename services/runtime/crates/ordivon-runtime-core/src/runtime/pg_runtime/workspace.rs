@@ -20,6 +20,52 @@ const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
 // consumerReleased=true remains the caller's separate release assertion.
 const WORKSPACE_JOB_CONTINUATION_HOLD_MS: i64 = 4 * 60 * 60 * 1000;
 
+/// A caller's consumerReleased flag never discharges a second Harness Run.
+/// When the operator has selected a SAME-PG Harness issuer, require its
+/// SECURITY DEFINER aggregate read inside the EXISTING PG admission/close lock.
+/// No new Runtime Registry, scheduler or independently trusted caller list.
+/// A missing function, wrong GRANT or unavailable PG result FAILS CLOSED.
+fn require_harness_workspace_claims_released(
+    tx: &mut postgres::Transaction<'_>,
+    issuer_schema: &str,
+    workspace_id: &str,
+) -> RuntimeResult<()> {
+    if issuer_schema.is_empty()
+        || issuer_schema.len() > 63
+        || !issuer_schema.as_bytes()[0].is_ascii_alphabetic()
+        || issuer_schema == "public"
+        || issuer_schema == "information_schema"
+        || issuer_schema.starts_with("pg_")
+        || !issuer_schema
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    {
+        return Err(RuntimeError::invalid(
+            "operator-selected Harness schema is invalid",
+            "harnessIssuerSchema",
+        ));
+    }
+    let query = format!("SELECT \"{issuer_schema}\".harness_workspace_unreleased_count($1)");
+    let count: i64 = tx.query_one(&query, &[&workspace_id]).map_err(io)?.get(0);
+    if count < 0 {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "Harness has nonterminal Runs without classified Workspace ownership",
+            Some("workspaceId"),
+            false,
+        ));
+    }
+    if count != 0 {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ConcurrencyLimit,
+            "Workspace has unrelinquished Harness Run consumer claims",
+            Some("workspaceId"),
+            false,
+        ));
+    }
+    Ok(())
+}
+
 // Read committed AFTER the shared admission lock, so a recently completed
 // Job no longer listed in activeJobIds still retains the Workspace long
 // enough for consumers to inspect artifacts and source.
@@ -115,6 +161,15 @@ impl PgRuntime {
                 Some("workspaceId"),
                 false,
             ));
+        }
+        if let Some(issuer_schema) = self.config.harness_issuer_schema.as_deref() {
+            // This check is mandatory even when consumerReleased=true or the
+            // last Job completed long ago. It shares the EXACT admission fence.
+            require_harness_workspace_claims_released(
+                &mut tx,
+                issuer_schema,
+                &request.workspace_id,
+            )?;
         }
         if !request.consumer_released {
             // The external lifecycle script's initial PG snapshot is
@@ -617,5 +672,88 @@ mod workspace_lock_snapshot_tests {
         if let Err(panic) = result {
             std::panic::resume_unwind(panic);
         }
+    }
+}
+
+#[cfg(test)]
+mod harness_workspace_close_fence_tests {
+    use super::*;
+
+    /// Real PostgreSQL aggregate under the same advisory-lock cut as the
+    /// existing Runtime close. This never touches production schema/tables.
+    /// Cross-owner SQL contract: use the actual source-authored Harness
+    /// migration and function, not the Rust unit fixture's stand-in table.
+    #[test]
+    #[ignore = "requires disposable PG18 with original Harness SQL migration"]
+    fn native_pg_original_harness_aggregate_enforces_cross_run_close() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN").expect("test-only PG18");
+        let schema = std::env::var("ORDIVON_H2_TEST_SCHEMA")
+            .expect("original Harness SQL migration fixture missing");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (workspace, held) in [("ws-shared", true), ("ws-unheld", false)] {
+            let mut tx = db.transaction().unwrap();
+            tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+                .unwrap();
+            let result = require_harness_workspace_claims_released(&mut tx, &schema, workspace);
+            assert_eq!(
+                result.is_err(),
+                held,
+                "original Harness SQL / Runtime close disagreement"
+            );
+            tx.rollback().unwrap();
+        }
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_harness_claim_blocks_close_even_with_caller_release() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("dedicated disposable PostgreSQL cluster required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        let name = format!("harness_claim_{}", uuid::Uuid::now_v7().simple());
+        db.batch_execute(&format!(
+            "CREATE SCHEMA \"{name}\"; CREATE TABLE \"{name}\".claims(
+             workspace_id text NOT NULL, held boolean NOT NULL);
+             CREATE FUNCTION \"{name}\".harness_workspace_unreleased_count(p_workspace_id text)
+             RETURNS bigint LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+             SELECT count(*) FROM \"{name}\".claims WHERE workspace_id=p_workspace_id AND held $$"
+        ))
+        .unwrap();
+        db.execute(
+            &format!("INSERT INTO \"{name}\".claims(workspace_id,held) VALUES($1,true),($1,true)"),
+            &[&"ws-shared"],
+        )
+        .unwrap();
+        {
+            let mut tx = db.transaction().unwrap();
+            tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+                .unwrap();
+            let rejected = require_harness_workspace_claims_released(&mut tx, &name, "ws-shared");
+            assert!(rejected.is_err());
+            tx.rollback().unwrap();
+        }
+        db.execute(
+            &format!("UPDATE \"{name}\".claims SET held=false WHERE workspace_id=$1"),
+            &[&"ws-shared"],
+        )
+        .unwrap();
+        {
+            let mut tx = db.transaction().unwrap();
+            tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+                .unwrap();
+            require_harness_workspace_claims_released(&mut tx, &name, "ws-shared").unwrap();
+            tx.rollback().unwrap();
+        }
+        // A missing function (or revoked Runtime EXECUTE) is NEVER count=0.
+        let mut tx = db.transaction().unwrap();
+        assert!(require_harness_workspace_claims_released(
+            &mut tx,
+            "harness_claim_missing",
+            "ws-shared"
+        )
+        .is_err());
+        tx.rollback().unwrap();
+        db.batch_execute(&format!("DROP SCHEMA \"{name}\" CASCADE"))
+            .unwrap();
     }
 }

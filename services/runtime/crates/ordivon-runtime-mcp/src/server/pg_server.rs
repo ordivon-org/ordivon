@@ -74,7 +74,7 @@ impl PgRuntimeServer {
                 "workspace.file" => "Project a digest-verified bounded Workspace binary file into a native MCP resource.",
                 "workspace.content" => "Project an exact digest-bound PNG or JPEG Workspace image using the mature native Workspace reader.",
                 "artifact.content" => "Read an exact digest-verified PostgreSQL Artifact as a native MCP embedded binary resource.",
-                "workspace.close" => "Close a fresh-epoch Git Workspace only after the PostgreSQL Job admission fence finds no active or held consumer.",
+                "workspace.close" => "Close only after PG excludes active/held Jobs AND, if configured, the SAME-PG Harness issuer proves no unrelinquished Run Workspace claims; caller consumerReleased cannot override a foreign claim.",
                 "workspace.mutate" => "Apply the mature atomic Workspace mutation contract, serialized against active PostgreSQL Job admission.",
                 "workspace.read" => "Read bounded UTF-8 files from an isolated fresh-epoch Workspace using the native Workspace path authority.",
                 "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. Agent notice: PG Workspaces are ephemeral, and the hourly lifecycle timer may close an inactive, successfully completed, clean, merged Workspace after 4 hours from its latest Job activity. Commit/publish deliverables to Git or Artifact; never use Workspace files as durable evidence. The successful open response includes retentionNotice.",
