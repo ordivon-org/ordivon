@@ -93,10 +93,10 @@
     {
       "id": "runtime-architecture-interactive",
       "kind": "interactive",
-      "status": "approved",
+      "status": "rendered",
       "profile": "offline-web-html",
       "outputCarrier": "interactive/runtime-architecture.html",
-      "blobDigest": "sha256:e4c5fd6df2ea8950d2c7c89e0debfe91439e1cfc922362729ad471363548392a"
+      "blobDigest": "sha256:84a4c1acc463b7e1872593866cbc1da4e6d0ea0ff089cb6844f00cfc85c07f8e"
     },
     {
       "id": "runtime-upwork-package",

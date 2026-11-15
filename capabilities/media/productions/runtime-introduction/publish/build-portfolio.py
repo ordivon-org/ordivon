@@ -125,12 +125,21 @@ def main() -> None:
     entries["index.html"] = index.replace(
         f'href="{article_source}"', f'href="{article_reader}"'
     ).encode("utf-8")
+    # Source interactive HTML links to real Production-relative files.
+    # Its ZIP copy instead needs the consumer package's own layout.
     interactive = entries["interactive/index.html"].decode("utf-8")
-    if interactive.count(f'href="../{article_source}"') != 1:
-        raise ValueError("interactive index has no unique article link")
-    entries["interactive/index.html"] = interactive.replace(
-        f'href="../{article_source}"', f'href="../{article_reader}"'
-    ).encode("utf-8")
+    for source_link, package_link in (
+        ('href="../README.md">Back to production overview',
+         'href="../index.html">Back to the edition'),
+        ('href="../publish/runtime-introduction-en.md">Read the source article',
+         f'href="../{article_reader}">Read the article'),
+        ('href="../render/runtime-introduction-20261109-en.mp4"',
+         'href="../video/runtime-introduction-en.mp4"'),
+    ):
+        if interactive.count(source_link) != 1:
+            raise ValueError("interactive source link is missing or ambiguous")
+        interactive = interactive.replace(source_link, package_link, 1)
+    entries["interactive/index.html"] = interactive.encode("utf-8")
     entries[article_reader] = render_article(entries[article_source])
     entries["README.txt"] = README
     assets = {
