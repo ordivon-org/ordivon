@@ -48,7 +48,7 @@ fn pg_private_cargo_environment(
         environment
             .entry("CARGO_TARGET_DIR".to_string())
             .or_insert_with(|| {
-                crate::runtime::engine::TRUSTED_BUILD_TARGET_PRESENTATION.to_string()
+                crate::runtime::build_target_contract::TRUSTED_BUILD_TARGET_PRESENTATION.to_string()
             });
     }
     environment

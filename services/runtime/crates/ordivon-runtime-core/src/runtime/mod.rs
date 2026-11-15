@@ -1,5 +1,7 @@
 mod admission_validation;
 mod artifact_release_state;
+mod build_target_contract;
+mod workspace_headroom;
 pub(crate) use artifact_release_state::ReleaseStateContract;
 mod authority_contract;
 mod control_primitives;
@@ -33,9 +35,7 @@ pub use doctor::{
     RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal, RuntimeDoctorReport,
     RuntimeDoctorReservationState, RuntimeDoctorSummary, RUNTIME_DOCTOR_SCHEMA_VERSION,
 };
-pub use engine::{
-    ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig, WorkspaceHeadroomConfig,
-};
+pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
 pub const RUNTIME_MAX_MIGRATION_VERSION: i64 = registry::MAX_MIGRATION_VERSION;
 pub use inspection::{
@@ -136,3 +136,5 @@ mod tests;
 
 #[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
 pub mod pg_runtime;
+
+pub use workspace_headroom::WorkspaceHeadroomConfig;

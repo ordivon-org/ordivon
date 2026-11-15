@@ -14,6 +14,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
+use super::build_target_contract::{
+    requires_private_cargo_build_target, TRUSTED_BUILD_TARGET_PRESENTATION,
+};
 use super::evidence::{
     prepare_runner_terminal_from_bundle, validate_workspace_source_observation_artifact,
 };
@@ -26,6 +29,9 @@ use super::supervisor::{
     SupervisorObservation, SupervisorRecoveryDisposition, SupervisorUnitState, TerminationIntent,
 };
 use super::windows::*;
+use super::workspace_headroom::{
+    ensure_workspace_headroom, validate_workspace_headroom, WorkspaceHeadroomConfig,
+};
 use super::workspace_state::{
     ensure_workspace_close_allowed, ensure_workspace_mutation_allowed, project_workspace_summary,
     WorkspaceProjectionFacts,
@@ -83,33 +89,6 @@ const DEFAULT_EXECUTION_HOME: &str = "/root";
 const STALE_PREPARED_INPUT_AGE_MS: u64 = 60_000;
 const WINDOWS_NATIVE_OUTER_DEADLINE_GRACE_MS: u64 = 5_000;
 const HOST_DEPENDENCY_CONTINUITY_SCOPE: &str = "runtime_host_namespace_path_witness";
-/// Per-Job systemd bind mount: stable compiler-visible path, Workspace-private bytes.
-/// Unlike /proc/self/fd/198, ordinary subprocesses may close inherited FDs.
-pub(crate) const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/run/ordivon/cargo-target";
-/// Old committed PG plans keep the original FD implementation; never rewrite their env.
-pub(crate) const LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
-
-fn plan_uses_cargo_target(plan: &RuntimeExecutionPlan, target: &str) -> bool {
-    plan.env.get("CARGO_TARGET_DIR").map(String::as_str) == Some(target)
-        || plan
-            .steps
-            .iter()
-            .any(|step| step.env.get("CARGO_TARGET_DIR").map(String::as_str) == Some(target))
-}
-
-pub(crate) fn requires_private_cargo_build_target(plan: &RuntimeExecutionPlan) -> bool {
-    plan.execution_target == crate::runtime::ExecutionTarget::LocalLinux
-        && plan.execution_profile == crate::runtime::ExecutionProfile::TrustedLocal
-        && (plan_uses_cargo_target(plan, TRUSTED_BUILD_TARGET_PRESENTATION)
-            || plan_uses_cargo_target(plan, LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION))
-}
-
-pub(crate) fn requires_native_cargo_target_mount(plan: &RuntimeExecutionPlan) -> bool {
-    plan.execution_target == crate::runtime::ExecutionTarget::LocalLinux
-        && plan.execution_profile == crate::runtime::ExecutionProfile::TrustedLocal
-        && plan_uses_cargo_target(plan, TRUSTED_BUILD_TARGET_PRESENTATION)
-}
-
 const WINDOWS_INPUT_PRESENTATION_COMPONENTS: [&str; 1] = ["OrdivonImmutableInputs"];
 
 fn set_environment_value_case_insensitive(
@@ -218,12 +197,6 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
     }
     thread::sleep(adaptive_poll_delay(*poll_index).min(remaining));
     *poll_index = poll_index.saturating_add(1);
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorkspaceHeadroomConfig {
-    pub path: PathBuf,
-    pub minimum_free_bytes: u64,
 }
 
 #[derive(Clone, Debug)]

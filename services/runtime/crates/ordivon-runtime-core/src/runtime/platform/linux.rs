@@ -211,7 +211,7 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
         crate::runtime::ExecutionProfile::TrustedLocal => {
             append_trusted_environment(&mut command);
             if spec.environment.get("CARGO_TARGET_DIR").map(String::as_str)
-                == Some(super::super::engine::TRUSTED_BUILD_TARGET_PRESENTATION)
+                == Some(super::super::build_target_contract::TRUSTED_BUILD_TARGET_PRESENTATION)
                 && spec.cargo_target_mount.is_none()
             {
                 return Err(RuntimeError::invalid(
@@ -231,7 +231,7 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
                 let source = systemd_path_value(&backing)?;
                 command.arg(format!(
                     "--property=BindPaths={source}:{}",
-                    super::super::engine::TRUSTED_BUILD_TARGET_PRESENTATION
+                    super::super::build_target_contract::TRUSTED_BUILD_TARGET_PRESENTATION
                 ));
             }
             if let Some(input_set_path) = input_set_path {
