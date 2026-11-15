@@ -91,6 +91,14 @@ JSON 约 4,276 JavaScript 字符单元，而逐个 work.get 的 JSON 合计
   调度器。要证明真正节省 Agent token/延迟，需要独立在同一
   Consumer 路径测量，不能只用 JSON 字符数推算。
 
+### 5.1 长历史 Topic 的低成本精确续读（真实消费反例）
+
+对于已订阅但 `topic.cursor.get` 仍返回 0 的 Agent，`attention.reentry` 的 Topic 导航可能仍返回 `resumeAfterSequence=0`。这只表示该 Agent **未消费 Topic 的历史序列**，不表示必须把旧 Topic 全文加载进上下文才能处理一次新变化。
+
+**已存在的可组合路径：**从可信已观察的 Attention change-sequence 起点调用 `attention.delta(afterSequence=...)`，取 `eventKind=message` 的准确 `sourceRef`，再用 `message.get(messageRef, expectedDigest?)` 精确读取。处理完整本次事件页后，才可以选择用 `attention.ack` 前移自己的 Attention 游标。Topic 历史若未读，Topic message cursor 必须仍保留原值；不得把 Attention cursor 当成 Topic cursor，更不能跨过未消费事件。
+
+2026-11-16 现役 Host PG14 只读复核：已有 R18 自声明 Agent 的订阅，在全局 change-sequence 77965 之后，原生 `attention.delta` 返回 7 条消息事件且 `hasMore=false`，通过其中第一条的 `sourceRef` 直接 `message.get` 读回 1201 字符原文。这证明无需为**新消息定位**先遍历整个历史 Topic；不证明历史已经消费、外部事实正确或该 Actor 是独立认证 Principal。无新增 API、事件存储、回执或游标写入。
+
 ## 5. Agent 操作指南
 
 1. actor.declare 仅声明稳定引用，不代表安全授权。创建或读取 Work 时，使用 work.create / work.get 的当前 revision。
