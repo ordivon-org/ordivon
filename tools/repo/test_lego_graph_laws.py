@@ -2540,7 +2540,14 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     assert {"HostService schema gate", "WorkStore PostgreSQL transaction consumer",
             "SocialStore PostgreSQL transaction consumer",
             "AttentionStore PostgreSQL transaction consumer"} <= set(nodes["O04"]["consumers"])
-    assert "REQUIRED_SCHEMA_VERSION = 13" in host_text
+    # Bind the live Host service schema gate to the actual Alembic source
+    # HEAD, not a duplicate hard-coded version in this consumer test.
+    migrations = ROOT / "services/host/migrations/versions"
+    latest = max(
+        int(path.name.split("_", 1)[0])
+        for path in migrations.glob("????_*.py")
+    )
+    assert f"REQUIRED_SCHEMA_VERSION = {latest}" in host_text
     assert "schema_version" in host_text
 
 

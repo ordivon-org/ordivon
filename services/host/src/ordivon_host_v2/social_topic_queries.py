@@ -30,18 +30,22 @@ class SocialTopicReadQueries:
         after_topic_ref: str | None = None,
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+        include_archived: bool = False,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
+        if type(include_archived) is not bool:
+            raise ValueError("include_archived must be a boolean")
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_space(conn, space_ref)
             rows = conn.execute(
                 "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
-                "WHERE space_ref=%s AND (%s::text IS NULL OR topic_ref>%s) "
+                "WHERE space_ref=%s AND (%s OR state <> 'archived') "
+                "AND (%s::text IS NULL OR topic_ref>%s) "
                 "ORDER BY topic_ref LIMIT %s",
-                (space_ref, after_topic_ref, after_topic_ref, limit + 1),
+                (space_ref, include_archived, after_topic_ref, after_topic_ref, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
             candidates = [
