@@ -452,6 +452,30 @@ fn require_source_provider_admission(
                 ));
             }
         }
+        // Source claims must not silently start a new ProviderCall while a
+        // previous physical dispatch remains unresolved. A first claim can
+        // omit previousRecordDigest only if the original current Provider
+        // head was cleared; a new-turn claim must point to the current
+        // completed Provider record. Reuse the same locked Run predecessor
+        // scan as DISPATCHING/COMPLETED/UNKNOWN, never a second Registry.
+        if expected == ProviderStatus::Claimed {
+            let (kind, prior) = current_provider_predecessor(tx, run, events, position)?;
+            if parsed.previous_record_digest.as_deref() != prior.as_deref() {
+                return Err(WriteError::Invalid(
+                    "Provider claim missing current durable predecessor",
+                ));
+            }
+            if prior.is_some() && kind != "harness.provider-call-completed" {
+                return Err(WriteError::Invalid(
+                    "Provider claim overlaps unresolved current attempt",
+                ));
+            }
+            if kind == "harness.provider-call-completed" && prior.is_none() {
+                return Err(WriteError::Invalid(
+                    "Provider claim previous completed reference absent",
+                ));
+            }
+        }
         if expected == ProviderStatus::Dispatching {
             let previous_digest = parsed
                 .previous_record_digest

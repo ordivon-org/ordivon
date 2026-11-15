@@ -455,6 +455,67 @@ impl DurableJournal for SourcePgUnknownJournal {
             return Err("foreign Provider UNKNOWN CAS persisted after rejection".into());
         }
         println!("PG18_PROVIDER_UNKNOWN_CROSS_ATTEMPT_DENIED_PASS");
+        // R38 current PG Run has a durably dispatched, potentially billed
+        // ProviderCall. A new first-generation CLAIMED with no predecessor
+        // must not be admitted simply because the actor has a valid lease.
+        let mut overlapping_seed = native_seed(&self.python_first_source);
+        overlapping_seed.provider_call_id = "provider-call:overlap-during-unknown-dispatch";
+        overlapping_seed.turn_id = "turn:overlapping-with-previous";
+        overlapping_seed.turn_sequence = 2;
+        let overlap = author_provider_v4(
+            &overlapping_seed,
+            ProviderV4Transition::Claimed { previous: None },
+            u64::try_from(self.batch[2].recorded_at_ms).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let overlap_ref = StoredRef {
+            digest: digest_bytes(&canonical_bytes(&overlap)),
+            kind: "harness-provider-call-record".into(),
+            byte_length: i64::try_from(canonical_bytes(&overlap).len())
+                .map_err(|e| e.to_string())?,
+        };
+        let original_claim = expected_ref(&self.batch[0], "harness-provider-call-record")?;
+        let overlap_data = String::from_utf8(canonical_bytes(&self.batch[0].data))
+            .map_err(|e| e.to_string())?
+            .replace(&original_claim.digest, &overlap_ref.digest);
+        let mut overlap_event = self.batch[0].clone();
+        overlap_event.event_id = format!("event:overlapping-provider-claim-{}", self.run_id);
+        overlap_event.recorded_at_ms = self.batch[2].recorded_at_ms;
+        overlap_event.data = loads_strict(&overlap_data).map_err(|e| e.to_string())?;
+        overlap_event
+            .referenced_objects
+            .retain(|r| r.kind != "harness-provider-call-record");
+        overlap_event.referenced_objects.push(overlap_ref.clone());
+        let refused_overlap = append_events_with_provider_cas(
+            &mut db,
+            &self.schema,
+            &self.run_id,
+            ProviderEventBatch {
+                events: &[overlap_event],
+                staged: &[ProviderStagedCas {
+                    kind: ProviderCasKind::RecordV4,
+                    document: &overlap,
+                    first_seen_at_ms: self.batch[2].recorded_at_ms,
+                }],
+            },
+            3,
+            &lease,
+            1012,
+        );
+        if !matches!(refused_overlap, Err(WriteError::Invalid(_))) {
+            return Err(format!(
+                "Provider CLAIMED overlapped current DISPATCHING: {refused_overlap:?}"
+            ));
+        }
+        let overlap_count: i64 = db
+            .query_one(&query, &[&overlap_ref.digest])
+            .map_err(|e| e.to_string())?
+            .get(0);
+        if overlap_count != 0 {
+            return Err("overlapping Provider CLAIMED CAS persisted".into());
+        }
+        println!("PG18_PROVIDER_OVERLAPPING_CLAIM_DENIED_PASS");
+
         // R37 real PG RED: a well-linked UNKNOWN V4 record must not
         // smuggle an invalid original Python FailureReceipt enum.
         // Previous R36 verified identity only; safe recovery requires full

@@ -327,3 +327,51 @@ existing `harness-core/src/provider_head.rs` shared pure validator,
 reused `harness-loop/src/pg_domain_read.rs` SELECT-only reader,
 `harness-pg/src/journal_write.rs` current PG writer, existing real
 `harness-loop/tests/pg_provider_head.rs` PG18 scenario.
+
+
+## R38 current CLAIMED predecessor safety (H01/H09 P0)
+
+A third independent original PG Writer admission counterexample was
+reproduced: after one real source PostgreSQL Run was already at
+DISPATCHING (the HTTP request may have been sent), an adapter with
+a currently valid lease could append a different first-generation
+CLAIMED ProviderCall **without** the source-required previousRecordDigest.
+The source Python `run_continuity.claim_provider_call` rejects a new
+call while an active DISPATCHING requires reconciliation; the existing
+Rust read-only recovery checks prior V4 digests, but the original PG
+Writer R37 did not yet check CLAIMED causal currentness.
+
+RED genuine PostgreSQL18:
+`job-01a1de3c-5557-7536-afb9-68aaef98bc69`: test caught
+`Ok(Created)` from the original source Writer for a forged overlapping
+first-generation CLAIMED. This is a durable fact counterexample, not
+an externally billed model call.
+
+The narrow source fix uses the ALREADY EXISTING
+`current_provider_predecessor` under the original PG Run row lock.
+CLAIMED may omit a predecessor only when the currently active Provider
+head is absent/cleared; when a predecessor exists, it must match the
+exact current source CAS, and an unresolved CLAIMED/DISPATCHING/FAILED/
+UNKNOWN head cannot be bypassed by authoring an unrelated fresh call.
+The admissible next-turn predecessor is a completed call; final
+business-domain next-turn sequencing and physical Provider issuer
+remain separately owned. No second concurrency gate, Writer or
+scheduler is created.
+
+GREEN genuine PostgreSQL18:
+`job-01a1de3d-3e69-77dd-b9bc-4fda497f86a7`:
+`PG18_PROVIDER_OVERLAPPING_CLAIM_DENIED_PASS`, normal Provider
+positive/redacted, valid UNKNOWN, existing budget/identity/invalid
+FailureReceipt checks, original Python Store independent recovery
+all pass; PG18 V4 4/4 and original noTool real localhost HTTP test
+pass, scratch PG18 stopped and removed.
+
+LEGO thought: Event Sourcing current-head causal semantics, contract
+refinement, TDD real PG RED/GREEN, UNKNOWN not FALSE.
+Logical: L1 Run, L4 Provider identity, L6 Journal, L9 dispatch
+admission, L12 recovery.
+Ability: one additional guard in the original
+`harness-pg/src/journal_write.rs` and one source-owned adversarial
+scenario in `harness-loop/tests/pg_provider_head.rs`.
+No production installation, external model charges, physical Tool
+or independent DomainSuccess has been claimed.
