@@ -315,7 +315,11 @@ disposition.
 
 The exact completion Contract is part of `HarnessRunContract.digest`. `StandaloneHarnessRunner` fails closed if a `structured-result-v1` Contract is paired with an Adapter that was not bound to the same completion Contract. DeepSeek receives the caller schema as the `submit_run_conclusion.result` Tool schema. Harness carries the returned JSON in the optional versioned `AgentRunConclusion.structured_result` field, whose canonical value is explicitly bounded to one MiB; the ordinary `summary` remains compact human/control metadata containing only the result digest. When model-content retention is authorized, the existing terminal conclusion CAS object durably stores the carrier—there is no second result store and no Host-specific result type. `decode_structured_completion_result` reads the carrier first and remains backward-compatible with historical results encoded directly in `summary`; when the local conformance policy is bound it also enforces the same mechanical schema check. **Caller/domain verification remains mandatory**: a result carrier and local schema conformance are not semantic admission.
 
-## Gateway Tool CLI（R45/R46：复用现有 MCP/Tool Bridge）
+## Gateway Tool CLI（R45–R47：复用现有 MCP/Tool Bridge）
+
+R47 补全实际 Coding Agent 观察闭环：已提交的原始 Tool Intent → 现役 Gateway `execution.get` 确认 Owner Job terminal/committed、Artifact 投影完整 → **复用 Gateway `artifact.read`** 只读取对应 stdout/stderr Artifact 的各最多 4096 字节 UTF-8 前缀，并保留 `eof`、`truncated`、原 Artifact ID 和来源 digest。模型下一轮 Tool Observation 现在可以看见这些真实字节；超过 4096 字节的输出显式标明截断，不能作为完整文本。仅 `privacy.allowToolContent=true` 才执行内容读取；metadata-only 不读取、不持久化工具内容。读回的 Owner/Job/Operation/Artifact/offset 身份不匹配时拒绝绑定。无新的 Artifact Store、日志服务、重放管理器。
+
+新增显式开启的物理验收两种场景：①真实 DeepSeek 调用 Gateway Python canary 并读回 stdout；②真实 DeepSeek 调用 `/usr/bin/rg` 读取仓库 `agent_plugin.py` 的真实类声明，将**输出内容**写入结论，再由不依赖模型的 Python 源文件读取 Oracle 对四个类名和顺序验收。它证明这一条小型代码检索任务的结果，不代表任意 Coding Agent 工作自动领域正确，也不代表候选 Harness 已作为现役服务安装。
 
 默认 `ordivon-harness run` 仍只执行原来的 no-Tool Run。启用 `execution.linux` 须显式提供原始 PostgreSQL Run Contract、实际 Gateway MCP 服务、已有 Workspace 和可执行程序；不自动继承运行者的额外权限。
 

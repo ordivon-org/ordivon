@@ -196,10 +196,13 @@ class GatewayMcpRuntimeAdapter:
         component: AgentPluginMcpComponent,
         client: HarnessMcpClient,
         grant: PluginGatewayExecutionGrant,
+        *,
+        capture_tool_output: bool = False,
     ) -> None:
         self.component = component
         self.client = client
         self.grant = grant
+        self.capture_tool_output = capture_tool_output
         self._operation_refs: dict[str, str] = {}
         self._operation_requests: dict[str, str] = {}
 
@@ -475,6 +478,82 @@ class GatewayMcpRuntimeAdapter:
             operation_ref, native_id, wait_ms=max(0, min(wait_ms, 30_000))
         )
 
+    def _read_owner_output(
+        self,
+        operation_ref: str,
+        native_id: str,
+        request_id: str,
+        artifact_ids: list[str],
+    ) -> dict[str, JsonValue]:
+        """Read bounded text from the existing Gateway Artifact owner.
+
+        This is only an observation of an already-committed physical Job.
+        It does not submit, replay or copy an Artifact into a second store.
+        The returned prefix is explicitly labelled when not at EOF.
+        """
+        output: dict[str, JsonValue] = {}
+        for kind in ("stdout", "stderr"):
+            matches = [item for item in artifact_ids if item.endswith("." + kind)]
+            if len(matches) > 1:
+                raise HarnessRuntimeClientError(
+                    f"Gateway projected multiple {kind} Artifact identities"
+                )
+            if not matches:
+                continue
+            artifact_id = matches[0]
+            limit = 4096
+            chunk = self._call(
+                "artifact.read",
+                {
+                    "operationRef": operation_ref,
+                    "artifactId": artifact_id,
+                    "offset": 0,
+                    "maxBytes": limit,
+                    "requestId": request_id,
+                    "capability": self.grant.capability,
+                },
+            )
+            content = chunk.get("content")
+            offset = chunk.get("offset")
+            next_offset = _gateway_field(chunk, "next_offset", "nextOffset")
+            eof = chunk.get("eof")
+            owner = _gateway_field(chunk, "owner_id", "ownerId")
+            native = _gateway_field(chunk, "native_id", "nativeId")
+            identity = _gateway_field(chunk, "operation_ref", "operationRef")
+            returned_id = _gateway_field(chunk, "artifact_id", "artifactId")
+            digest = chunk.get("digest")
+            if (
+                chunk.get("kind") != "ordivon.gateway-artifact-chunk"
+                or identity != operation_ref
+                or native != native_id
+                or owner != "runtime." + self.grant.capability.removeprefix("execution.")
+                or returned_id != artifact_id
+                or type(offset) is not int
+                or offset != 0
+                or type(next_offset) is not int
+                or not isinstance(content, str)
+                or not isinstance(eof, bool)
+                or not isinstance(digest, str)
+                or not digest.startswith("sha256:")
+                or len(digest) != 71
+            ):
+                raise HarnessRuntimeClientError(
+                    f"Gateway {kind} Artifact bytes lack the exact Owner/offset/digest identity"
+                )
+            read_bytes = len(content.encode("utf-8"))
+            if next_offset != read_bytes or read_bytes > limit or (not eof and read_bytes == 0):
+                raise HarnessRuntimeClientError(
+                    f"Gateway {kind} Artifact read made invalid UTF-8 byte progress"
+                )
+            output[kind] = {
+                "content": content,
+                "eof": eof,
+                "truncated": not eof,
+                "artifactId": artifact_id,
+                "digest": digest,
+            }
+        return output
+
     def _observe_operation(
         self, operation_ref: str, native_id: str, *, wait_ms: int
     ) -> dict[str, JsonValue]:
@@ -549,8 +628,16 @@ class GatewayMcpRuntimeAdapter:
             and not recovery
             and (delivery == "unknown" or (delivery == "committed" and projection_complete is True))
         )
+        # Only an unambiguous committed terminal Owner may supply bytes to
+        # the next Provider turn; metadata-only Runs must not fetch content.
+        tool_output = (
+            self._read_owner_output(operation_ref, native_id, request_id, artifact_ids)
+            if result_available and delivery == "committed" and self.capture_tool_output
+            else {}
+        )
         return {
             "jobId": native_id,
+            **tool_output,
             "status": _required_text(observed.get("state"), "state"),
             "executionTerminal": terminal,
             "executionDisposition": disposition,
@@ -863,7 +950,12 @@ class PluginGatewayExecutionBridgeFactory:
             workspace_ref=self.execution_grant.workspace_id,
             runtime_references=references,
         )
-        runtime = GatewayMcpRuntimeAdapter(self.component, self.client, self.execution_grant)
+        runtime = GatewayMcpRuntimeAdapter(
+            self.component,
+            self.client,
+            self.execution_grant,
+            capture_tool_output=contract.privacy.allow_tool_content,
+        )
         return PluginGatewayExecutionBridge(
             contract,
             continuity,

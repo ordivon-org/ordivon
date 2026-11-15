@@ -387,14 +387,18 @@ def test_gateway_cli_resume_after_unknown_owner_response_without_redispatch(
     __import__("os").environ.get("HARNESS_REAL_GATEWAY_TOOL_TEST") != "1",
     reason="explicit billable Provider + installed Gateway/Runtime acceptance only",
 )
-def test_live_deepseek_gateway_tool_one_original_pg_run(pg_schema, monkeypatch, tmp_path: Path):
-    """Real DeepSeek -> public CLI -> installed Gateway -> native Job -> original PG ToolStep.
+@pytest.mark.parametrize("scenario", ("canary", "repo-class-list"))
+def test_live_deepseek_gateway_tool_one_original_pg_run(
+    pg_schema, monkeypatch, tmp_path: Path, scenario: str
+):
+    """Real DeepSeek -> installed Gateway -> real Tool output -> original PG Run.
 
     The test node selects an already authorized Workspace, Gateway address and
     private bearer file; no fixture grants execution, mints credentials or
     substitutes a Scripted Provider/Gateway response.
     """
     import os
+    import re
     import sys
     import time
     import uuid
@@ -416,11 +420,12 @@ def test_live_deepseek_gateway_tool_one_original_pg_run(pg_schema, monkeypatch, 
     )
     monkeypatch.setenv("HARNESS_PG_DSN", pg_schema[0])
     monkeypatch.setenv("HARNESS_PG_SCHEMA", pg_schema[1])
+    executable = "/usr/bin/python3" if scenario == "canary" else "/usr/bin/rg"
     gateway = [
         "--gateway-url", url,
         "--gateway-bearer-token-file", token_file,
         "--gateway-workspace-id", workspace_id,
-        "--gateway-executable", "/usr/bin/python3",
+        "--gateway-executable", executable,
         "--gateway-max-timeout-ms", "120000",
     ]
 
@@ -476,10 +481,22 @@ def test_live_deepseek_gateway_tool_one_original_pg_run(pg_schema, monkeypatch, 
     source = tmp_path / "contract.json"
     source.write_text(json.dumps(contract.to_dict()), encoding="utf-8")
     prompt = (
-        "必须先调用已授权的 execution_submit 工具一次，指定 "
-        "executable=/usr/bin/python3，args=[\"-c\", "
-        "\"print('ORDIVON_LIVE_HARNESS_GATEWAY_TOOL_OK')\"]，"
-        "cwdRelative='.'，timeoutMs=45000；等待工具结果，再提交结论。"
+        (
+            "必须先调用已授权的 execution_submit 工具一次，指定 "
+            "executable=/usr/bin/python3，args=[\"-c\", "
+            "\"print('ORDIVON_LIVE_HARNESS_GATEWAY_TOOL_OK')\"]，"
+            "cwdRelative='.'，timeoutMs=45000；等待工具结果，再提交结论。"
+        )
+        if scenario == "canary"
+        else (
+            "这是一个真实的源码检查任务。必须先通过 execution_submit "
+            "运行 executable=/usr/bin/rg，"
+            "args=[\"--no-filename\", \"^class \", "
+            "\"services/harness/src/ordivon_harness/agent_plugin.py\"]，"
+            "cwdRelative='.'，timeoutMs=45000。观察命令 stdout 后，"
+            "在 submit_run_conclusion 的 summary 中按出现顺序写出全部 class 名称，"
+            "不要省略或猜测，也不要重复调用 Tool。"
+        )
     )
     requested = ["run", str(source), "--message", prompt, *gateway]
     if secret:
@@ -491,6 +508,36 @@ def test_live_deepseek_gateway_tool_one_original_pg_run(pg_schema, monkeypatch, 
     assert result["usage"]["toolCalls"] == 1
     assert result["runReceipt"] is not None
     assert result["completionProposal"] is not None
+    # DomainVerifier independently reads source bytes; model never sees this oracle.
+    expected_stdout = "ORDIVON_LIVE_HARNESS_GATEWAY_TOOL_OK\n"
+    if scenario == "repo-class-list":
+        source_file = (
+            Path(__file__).parents[3]
+            / "services/harness/src/ordivon_harness/agent_plugin.py"
+        )
+        source_lines = source_file.read_text(encoding="utf-8").splitlines()
+        expected_names = [
+            line.split()[1].split("(")[0].rstrip(":")
+            for line in source_lines if line.startswith("class ")
+        ]
+        assert expected_names
+        expected_stdout = (
+            "\n".join(line for line in source_lines if line.startswith("class ")) + "\n"
+        )
+        summary = result["completionProposal"]["summary"]
+        # Full identifier boundaries matter: AgentPluginComposition is a
+        # prefix of AgentPluginCompositionError, not an earlier match.
+        full_matches = [
+            re.search(r"(?<![\w])" + re.escape(name) + r"(?![\w])", summary)
+            for name in expected_names
+        ]
+        positions = [-1 if match is None else match.start() for match in full_matches]
+        assert all(position >= 0 for position in positions), (
+            "Provider completion did not consume real source-class evidence",
+            expected_names,
+            summary,
+        )
+        assert positions == sorted(positions), "class order differs from real source"
     assert cli("status", run_id)["run"]["status"] == "completed"
     assert cli("inspect", run_id)["run"]["status"] == "completed"
 
@@ -502,6 +549,12 @@ def test_live_deepseek_gateway_tool_one_original_pg_run(pg_schema, monkeypatch, 
         assert step.receipt.harness_run_id == run_id
         assert step.observation is not None
         assert step.observation["structuredContent"]["executionDisposition"] == "succeeded"
+        # The physical stdout, not only the terminal Job metadata, reached
+        # the original private Tool Observation used by the next model turn.
+        stdout = step.observation["structuredContent"]["stdout"]
+        assert stdout["content"] == expected_stdout
+        assert stdout["eof"] is True
+        assert stdout["truncated"] is False
         job_id = step.receipt.runtime_job_ref
         request_id = step.intent.client_request_id
         assert job_id is not None

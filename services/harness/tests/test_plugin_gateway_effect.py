@@ -1440,3 +1440,162 @@ def test_real_pg_harness_stays_unknown_when_gateway_owner_identity_cannot_be_pro
         step = continuity.load_current_tool_step()
         assert step.fence is not None
         assert step.receipt is None or step.receipt.status.value != "observed"
+
+
+def test_gateway_owner_artifact_stdout_reaches_original_pg_tool_and_model(
+    pg_schema,
+):
+    """The real business seam is Tool output content, not just Job status."""
+    class HasBoundedStdout(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            if name == "artifact.read":
+                self.calls.append((name, dict(arguments)))
+                return False, {
+                    "schema_version": 1,
+                    "kind": "ordivon.gateway-artifact-chunk",
+                    "operation_ref": self.operation_ref,
+                    "owner_id": "runtime.linux",
+                    "native_id": self.native_id,
+                    "artifact_id": "attempt-h2.stdout",
+                    "offset": 0,
+                    "next_offset": len("REAL_SEARCH_RESULT\n".encode("utf-8")),
+                    "eof": True,
+                    "digest": _digest("actual-stdout-artifact"),
+                    "content": "REAL_SEARCH_RESULT\n",
+                }
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload.update(
+                    artifact_ids=["attempt-h2.stdout"],
+                    artifact_count=1,
+                    artifact_projection_complete=True,
+                )
+            return error, payload
+
+    client = HasBoundedStdout()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], _contract(factory),
+        lambda _: _adapter(), tool_bridge_factory=factory,
+        clock_ms=clock, monotonic_ms=clock,
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "candidate_completed"
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+        step = continuity.load_current_tool_step()
+        assert step.receipt is not None
+        assert step.receipt.status.value == "observed"
+        assert step.observation["structuredContent"]["stdout"]["content"] == "REAL_SEARCH_RESULT\n"
+        assert step.observation["structuredContent"]["stdout"]["eof"] is True
+        store.validate_run_history("harness-run:plugin-h2")
+    assert [name for name, _ in client.calls] == [
+        "execution.submit", "execution.get", "artifact.read"
+    ]
+    read_args = client.calls[-1][1]
+    assert read_args["operationRef"] == client.operation_ref
+    assert read_args["requestId"] == client.calls[0][1]["requestId"]
+    assert read_args["capability"] == "execution.linux"
+    assert read_args["artifactId"] == "attempt-h2.stdout"
+
+
+def test_gateway_artifact_foreign_owner_does_not_become_model_output():
+    from ordivon_harness.runtime_port import HarnessRuntimeClientError
+    class ForeignOutput(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            if name == "artifact.read":
+                return False, {
+                    "schema_version": 1,
+                    "kind": "ordivon.gateway-artifact-chunk",
+                    "operation_ref": self.operation_ref,
+                    "owner_id": "runtime.windows",
+                    "native_id": self.native_id,
+                    "artifact_id": "attempt-h2.stdout",
+                    "offset": 0, "next_offset": 4, "eof": True,
+                    "digest": _digest("fake-artifact"), "content": "FAKE",
+                }
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload.update(
+                    artifact_ids=["attempt-h2.stdout"],
+                    artifact_count=1,
+                    artifact_projection_complete=True,
+                )
+            return error, payload
+    client = ForeignOutput()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component, client, factory.execution_grant,
+        capture_tool_output=True,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "request:h2"
+    with pytest.raises(HarnessRuntimeClientError, match="Artifact|artifact"):
+        adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+
+
+def test_gateway_artifact_metadata_only_does_not_read_private_output():
+    class HasOutput(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            if name == "artifact.read":
+                raise AssertionError("metadata-only may not read tool bytes")
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload.update(
+                    artifact_ids=["attempt-h2.stdout"], artifact_count=1,
+                    artifact_projection_complete=True,
+                )
+            return error, payload
+    client = HasOutput()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component, client, factory.execution_grant,
+        capture_tool_output=False,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "request:h2"
+    observed = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert observed["resultAvailable"] is True
+    assert "stdout" not in observed
+
+
+def test_gateway_stdout_prefix_reports_incomplete_without_claiming_full_output():
+    """A bounded readable prefix is useful; claiming whole output would be false."""
+    class LargeOutput(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            if name == "artifact.read":
+                assert arguments["maxBytes"] == 4096
+                return False, {
+                    "schema_version": 1,
+                    "kind": "ordivon.gateway-artifact-chunk",
+                    "operation_ref": self.operation_ref,
+                    "owner_id": "runtime.linux",
+                    "native_id": self.native_id,
+                    "artifact_id": "attempt-h2.stdout",
+                    "offset": 0, "next_offset": 4096,
+                    "eof": False,
+                    "digest": _digest("full-output-exists-on-owner"),
+                    "content": "A" * 4096,
+                }
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload.update(
+                    artifact_ids=["attempt-h2.stdout"], artifact_count=1,
+                    artifact_projection_complete=True,
+                )
+            return error, payload
+    client = LargeOutput()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component, client, factory.execution_grant,
+        capture_tool_output=True,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "request:h2"
+    observed = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    stdout = observed["stdout"]
+    assert stdout["content"] == "A" * 4096
+    assert stdout["eof"] is False
+    assert stdout["truncated"] is True
+    assert len(stdout["content"].encode("utf-8")) <= 4096
