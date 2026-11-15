@@ -53,6 +53,26 @@ def _grant() -> dict[str, Any]:
     }
 
 
+def test_existing_agent_actor_reference_is_a_qualified_grant_candidate(preflight: Any) -> None:
+    """The Security policy accepts exact Agent ActorRefs, not only actor: aliases.
+
+    This preflight is necessary-condition detection, never the PDP's ALLOW.
+    A real Host collaboration actor already uses the agent: namespace.
+    """
+    grant = {**_grant(), "actorRef": "agent:chatgpt:gpt6-host-continuation"}
+    observed = preflight.assess(
+        _operator_data([grant]),
+        (
+            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+        ),
+        now=1_500,
+        anonymous_host_initialize_denied=True,
+    )
+    assert observed["activeHostDelegationCount"] == 1
+    assert "HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE" not in observed["reasons"]
+
+
 def test_real_missing_operator_grants_and_owner_credential_are_blocked(preflight: Any) -> None:
     result = preflight.assess(
         _operator_data([]), "", now=1_500, anonymous_host_initialize_denied=True

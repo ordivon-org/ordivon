@@ -190,8 +190,10 @@ def _active_host_grant_count(document: dict[str, Any], *, now: int) -> int:
             and grant["principalId"].startswith("principal:")
             and isinstance(grant.get("issuer"), str)
             and bool(grant["issuer"])
+            # Rego grants bind exact Host ActorRefs, including existing agent: names.
+            # This necessary check is not an AuthZEN ALLOW or Host actor proof.
             and isinstance(grant.get("actorRef"), str)
-            and grant["actorRef"].startswith("actor:")
+            and bool(grant["actorRef"])
             and isinstance(tools, list)
             and any(isinstance(tool, str) and tool in HOST_TOOLS for tool in tools)
         )
@@ -291,6 +293,9 @@ def _authenticated_host_initialize_accepted(
             and protocol.get("protocolVersion") == "2025-06-18"
             and isinstance(protocol.get("capabilities"), dict)
             and isinstance(protocol.get("serverInfo"), dict)
+            and protocol["serverInfo"].get("name") == "ordivon-host-v2"
+            and isinstance(protocol["serverInfo"].get("version"), str)
+            and bool(protocol["serverInfo"]["version"].strip())
         )
     except OSError, http.client.HTTPException, ValueError, UnicodeDecodeError:
         return False

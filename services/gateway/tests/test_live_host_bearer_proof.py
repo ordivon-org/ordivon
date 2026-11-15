@@ -50,6 +50,8 @@ def _private_credential(tmp_path: Path) -> Path:
     ("status", "response", "accepted"),
     [
         (200, VALID_RESULT, True),
+        (200, VALID_RESULT.replace(b"ordivon-host-v2", b"other-service"), False),
+        (200, VALID_RESULT.replace(b'"version": "0.8.0"', b'"version": ""'), False),
         (200, b'{"jsonrpc":"2.0","id":"other","result":{}}', False),
         (
             200,
