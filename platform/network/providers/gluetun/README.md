@@ -416,6 +416,21 @@ remain the only owners of those functions. Physical and DNS failures
 must still be independently measured; this configuration does not prove
 that future reconnect storms have ceased.
 
+For a native Gluetun healthcheck returning HTTP 500, first distinguish the
+**health-server standing** from the actual VPN namespace and application
+consumers. Compare a one-shot `/gluetun-entrypoint healthcheck` with the
+existing `task provider:gluetun:observe-exit`, `dns-consumer`,
+`dns-dot-upstreams` and the actual affected `consumer:*:verify`. A successful
+TLS dial to a configured health target at a later instant does **not** prove
+why Gluetun's internal startup check remained failed; conversely HTTP 500
+does not prove every Carrier consumer is offline. If sampled business HTTPS
+and DNS still succeed, do not restart the shared Provider, change countries,
+replace native health targets or disable its kill switch merely to clear the
+status. The mobile Tailnet server may still report `PROVIDER_HEALTH_NOT_READY`;
+that is not a device-origin iOS egress verdict. Use the original systemd/
+Gluetun recovery and independently qualified physical underlay only when
+actual consumer effects require intervention.
+
 The existing Custom provider candidate environment remains a valid
 credential materialization input and recovery source. Deployment is
 a new native environment SourceCut followed by a controlled physical
