@@ -77,7 +77,7 @@ mod cargo_issuer_environment_tests {
         let actual = pg_private_cargo_environment(Default::default(), enabled);
         assert_eq!(
             actual.get("CARGO_TARGET_DIR").map(String::as_str),
-            Some("/proc/self/fd/198")
+            Some("/run/ordivon/cargo-target")
         );
         assert!(preserve_qualified_issuer_environment(
             Some("harness"),
@@ -119,7 +119,7 @@ mod cargo_issuer_environment_tests {
         let empty = BTreeMap::new();
         assert_eq!(
             pg_private_cargo_environment(empty, false)["CARGO_TARGET_DIR"],
-            "/proc/self/fd/198"
+            "/run/ordivon/cargo-target"
         );
         let explicit = BTreeMap::from([(
             "CARGO_TARGET_DIR".to_owned(),

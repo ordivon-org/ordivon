@@ -122,6 +122,7 @@ pub(crate) struct SystemdRunSpec<'a> {
     pub(crate) bundle_path: &'a Path,
     pub(crate) workspace_path: &'a Path,
     pub(crate) workspace_git_common_dir: Option<&'a Path>,
+    pub(crate) cargo_target_mount: Option<&'a Path>,
     pub(crate) input_set_path: Option<&'a Path>,
     pub(crate) credential_source_root: Option<&'a Path>,
     pub(crate) credential_names: &'a [String],
@@ -209,6 +210,30 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     match execution_profile {
         crate::runtime::ExecutionProfile::TrustedLocal => {
             append_trusted_environment(&mut command);
+            if spec.environment.get("CARGO_TARGET_DIR").map(String::as_str)
+                == Some(super::super::engine::TRUSTED_BUILD_TARGET_PRESENTATION)
+                && spec.cargo_target_mount.is_none()
+            {
+                return Err(RuntimeError::invalid(
+                    "trusted Cargo target requires its Workspace-private native mount",
+                    "execution.environment.CARGO_TARGET_DIR",
+                ));
+            }
+            if let Some(backing) = spec.cargo_target_mount {
+                let backing = fs::canonicalize(backing)
+                    .map_err(|error| io_error("resolve private Cargo target", error))?;
+                if !backing.is_dir() {
+                    return Err(RuntimeError::invalid(
+                        "private Cargo target backing is not a directory",
+                        "execution.environment.CARGO_TARGET_DIR",
+                    ));
+                }
+                let source = systemd_path_value(&backing)?;
+                command.arg(format!(
+                    "--property=BindPaths={source}:{}",
+                    super::super::engine::TRUSTED_BUILD_TARGET_PRESENTATION
+                ));
+            }
             if let Some(input_set_path) = input_set_path {
                 let source = systemd_path_value(input_set_path)?;
                 command.arg(format!(
@@ -232,6 +257,12 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
             }
         }
         super::super::ExecutionProfile::ContainedLocal => {
+            if spec.cargo_target_mount.is_some() {
+                return Err(RuntimeError::invalid(
+                    "private Cargo target unit binding is only for trusted_local",
+                    "execution.executionProfile",
+                ));
+            }
             if !credential_names.is_empty() || credential_source_root.is_some() {
                 return Err(RuntimeError::invalid(
                     "credential delivery is not admitted for contained_local",
@@ -1104,6 +1135,7 @@ mod tests {
             bundle_path: Path::new("/tmp/ordivon-test-bundle"),
             workspace_path: Path::new("/tmp/ordivon-test-workspace"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1115,6 +1147,39 @@ mod tests {
         .unwrap();
         assert!(command.get_args().any(|arg| arg == "--no-block"));
         assert!(command.get_args().any(|arg| arg == "--slice=system.slice"));
+    }
+
+    #[test]
+    fn trusted_workspace_cargo_target_requires_native_unit_mount() {
+        let budget = super::super::super::ExecutionBudget::default();
+        let environment = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/run/ordivon/cargo-target".to_owned(),
+        )]);
+        let command = build_systemd_run_command(&SystemdRunSpec {
+            unit_name: "ordivon-cargo-mount-contract.service",
+            runner: Path::new("/usr/bin/true"),
+            bundle_path: Path::new("/tmp/ordivon-cargo-mount-bundle"),
+            workspace_path: Path::new("/tmp/ordivon-cargo-mount-workspace"),
+            workspace_git_common_dir: None,
+            cargo_target_mount: Some(Path::new("/tmp")),
+            input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
+            runtime_ceiling_ms: 5_000,
+            budget: &budget,
+            execution_profile: super::super::super::ExecutionProfile::TrustedLocal,
+            environment: &environment,
+        })
+        .unwrap();
+        let args = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            args.iter().any(|arg| arg == "--property=BindPaths=/tmp:/run/ordivon/cargo-target"),
+            "trusted Workspace-private Cargo target requires a stable native systemd path binding: {args:?}"
+        );
     }
 
     // All these samples are subprocess output, not mocked PG outcomes. Native
@@ -1284,6 +1349,7 @@ mod tests {
             bundle_path: Path::new("/tmp/ordivon-credential-bundle"),
             workspace_path: Path::new("/tmp/ordivon-credential-workspace"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: Some(Path::new("/tmp/job-credentials/job-test")),
             credential_names: &credential_names,
