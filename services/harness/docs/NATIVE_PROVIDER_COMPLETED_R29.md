@@ -417,3 +417,72 @@ L9 admissible next dispatch and L12 valid recovery.
 Capability: existing `harness-core/src/provider_head.rs`,
 `harness-pg/src/journal_write.rs`, original
 `harness-loop/tests/pg_provider_head.rs`; no new Store/Owner.
+
+
+## R40 source-owned native Provider Event Author and actual PG consumer
+
+P0 H01 source-only advance, **not production deployment**. R39's typed
+Rust ProviderRecordV4 CAS was already used by the genuine NativeAgentLoop
+and original PG18 Writer, but the PG Event's six-field `data` payload and
+reference ordering still came from a Python *test Oracle template*.
+That is a test seam rather than a native reusable Provider Journal input.
+
+TDD RED: a new Rust consumer in `provider_v4_source.rs` demanded the
+reusable `author_provider_event_v4` producer and failed to compile because
+the capability did not exist (Job `job-01a1de61-d6d3-7172-aba6-a89f3c650c45`).
+GREEN: placed the pure typed event producer adjacent to the existing
+`author_provider_v4` in `harness-loop/src/provider_v4_author.rs`.
+Its only input is an already valid source V4 record, the original State
+and optional Request/Result/Failure CAS references grouped in a small
+`ProviderV4EventRefs`, one exact Event identity and recorded time. It
+does not write PG, create a new Store, grant Provider dispatch, read a
+credential or infer successful domain completion. Event status and CAS
+reference presence must match the original V4 record.
+
+The existing `pg_provider_head.rs` real original PG18 consumer now
+authors **actual submitted EventWrite data in Rust** for
+CLAIMED, DISPATCHING, UNKNOWN and COMPLETED; before the original PG
+Writer commits them, an independent original Python pure Source Oracle
+checks their exact canonical JSON bytes, reference order and kind.
+Positive retained-content, positive redacted-content, ambiguous
+transport UNKNOWN, original Source PG CAS rollback and unrelated forged
+Event negatives are still exercised through the SAME Writer. The
+original Python Store independently reads and validates persisted
+Run history. No additional proxy, scheduler, feature switch or native
+PG Writer has been created.
+
+Genuine PG18 after Rust source-event author integration:
+`job-01a1de68-a813-76e1-b1d3-d0e193085422`,
+Provider V4 suite 4/4 PASS, source no-Tool local HTTP PASS,
+original Python Store readback true, temporary PG18 stopped/removed,
+external Provider calls 0, physical Tool calls 0. Native Rust
+Cargo workspace all-target tests, fmt, strict Clippy -D warnings pass
+(`job-01a1de68-48de-71c6-9084-e655c7766b6d`).
+This qualifies a *native representation producer* and actual
+isolated source consumers. It does not prove live production
+`DurableJournal`, physical Provider credential at send, installed Gateway
+`execution.harness`, Tool OwnerReceipt or independently verified
+Coding AgentSolved.
+
+Peer-Agent branch audit (read-only, no cherry-pick): current branch
+already contains current Gateway Owner Job identity, delivery enum and
+duplicated-tool/catalog checks in
+`src/ordivon_harness/plugin_gateway_effect.py`. Historical Structure
+Agent branches `feat/harness-b-r24-owner-receipt-identity` and
+`integration/harness-r23-owner-fidelity-converged` are older, diverged
+sources and should NOT be blindly merged, especially if doing so
+would regress current checks. Review `feat/harness-r25-samepg-admission-current-no-second-store`
+as a separate original Python/Runtime consumer cut; it is NOT a
+native Credential/ToolPort integration and should not spawn a
+competing PG owner. Other Agent evidence is source history only,
+not a claim of current production install or active independent run.
+
+LEGO: thought=Representation-first, TDD Red-Green, source ownership,
+anti-corruption layer by direct composition (not wrapper proliferation),
+independent cross-language falsification, UNKNOWN not FALSE;
+logical=L4 Provider status, L5 exact typed Event representation,
+L6 one original PostgreSQL Writer, L11 independent source evidence;
+ability=reused `provider_v4_author.rs`, the exact `EventWrite` and
+`append_events_with_provider_cas` from the original PG owner,
+existing `pg_provider_head.rs` source consumer. No additional
+persistent ledger or approval layer.

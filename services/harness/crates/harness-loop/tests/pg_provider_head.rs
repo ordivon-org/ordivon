@@ -27,8 +27,9 @@ use ordivon_harness_loop::pg_domain_read::{
 use ordivon_harness_loop::pg_provider_config::inspect_pg_provider_transport;
 use ordivon_harness_loop::provider_head::{ProviderStatus, RecoveryPosture};
 use ordivon_harness_loop::provider_v4_author::{
-    author_provider_failure, author_provider_v4, DispatchSafety, ProviderFailureCode,
-    ProviderFailureSpec, ProviderV4Seed, ProviderV4Transition,
+    author_provider_event_v4, author_provider_failure, author_provider_v4, DispatchSafety,
+    ProviderFailureCode, ProviderFailureSpec, ProviderV4EventKind, ProviderV4EventRefs,
+    ProviderV4Seed, ProviderV4Transition,
 };
 use ordivon_harness_pg::{
     journal_write::{
@@ -96,6 +97,51 @@ fn expected_ref<'a>(e: &'a EventWrite, kind: &str) -> Result<&'a StoredRef, Stri
         .find(|r| r.kind == kind)
         .ok_or_else(|| format!("source reference absent for kind {kind}"))
 }
+/// Independently author the exact Python source Provider Event bytes in
+/// native Rust, then use THOSE bytes for the actual PG admission. The Python
+/// oracle provides only source identity/expected references, not the payload
+/// that the original Writer physically commits.
+fn source_checked_native_event(
+    oracle: &EventWrite,
+    native_record: &CanonicalDocument,
+) -> Result<EventWrite, String> {
+    let kind = match oracle.event_kind.as_str() {
+        "harness.provider-call-claimed" => ProviderV4EventKind::Claimed,
+        "harness.provider-call-superseded" => ProviderV4EventKind::Superseded,
+        "harness.provider-call-dispatching" => ProviderV4EventKind::Dispatching,
+        "harness.provider-call-completed" => ProviderV4EventKind::Completed,
+        "harness.provider-call-failed" => ProviderV4EventKind::Failed,
+        "harness.provider-call-unknown" => ProviderV4EventKind::Unknown,
+        _ => return Err("unsupported source Provider Event kind".into()),
+    };
+    let reference = |kind: &str| oracle.referenced_objects.iter().find(|r| r.kind == kind);
+    let state = reference("harness-run-state").ok_or("original Python source omitted State CAS")?;
+    let native = author_provider_event_v4(
+        &oracle.event_id,
+        kind,
+        native_record,
+        ProviderV4EventRefs {
+            state,
+            request: reference("agent-turn-request"),
+            result: reference("agent-turn-result"),
+            failure: reference("harness-provider-call-failure"),
+        },
+        oracle.caused_by_event_id.as_deref(),
+        oracle.recorded_at_ms,
+    )
+    .map_err(|e| format!("native Provider Event author: {e:?}"))?;
+    if canonical_bytes(&native.data) != canonical_bytes(&oracle.data)
+        || native.referenced_objects != oracle.referenced_objects
+        || native.event_kind != oracle.event_kind
+        || native.event_id != oracle.event_id
+        || native.recorded_at_ms != oracle.recorded_at_ms
+        || native.caused_by_event_id != oracle.caused_by_event_id
+    {
+        return Err("native Provider Event diverges from Python source oracle".into());
+    }
+    Ok(native)
+}
+
 fn source_event_batch(native: &CanonicalDocument) -> Vec<EventWrite> {
     let events = native.get("events").expect("source event oracle");
     assert_eq!(events.as_borrowed().array_len(), Some(3));
@@ -276,11 +322,13 @@ impl DurableJournal for SourcePgUnknownJournal {
             return Err("foreign Provider dispatch CAS persisted after rejection".into());
         }
         println!("PG18_PROVIDER_DISPATCH_FOREIGN_MODEL_DENIED_PASS");
+        let native_claimed = source_checked_native_event(&self.batch[0], &claimed)?;
+        let native_dispatching = source_checked_native_event(&self.batch[1], &dispatching)?;
         match append_events(
             &mut db,
             &self.schema,
             &self.run_id,
-            &self.batch[..2],
+            &[native_claimed, native_dispatching],
             1,
             &lease,
             1008,
@@ -601,11 +649,12 @@ impl DurableJournal for SourcePgUnknownJournal {
             return Err("invalid FailureReceipt CAS persisted after rejected Event".into());
         }
         println!("PG18_PROVIDER_INVALID_FAILURE_ENUM_DENIED_PASS");
+        let native_unknown = source_checked_native_event(&self.batch[2], &unknown)?;
         match append_events(
             &mut db,
             &self.schema,
             &self.run_id,
-            &self.batch[2..],
+            &[native_unknown],
             3,
             &lease,
             1012,
@@ -839,7 +888,10 @@ impl DurableJournal for SourcePgCompletedJournal {
             &self.base.schema,
             &self.base.run_id,
             ProviderEventBatch {
-                events: &self.base.batch[2..],
+                events: &[source_checked_native_event(
+                    &self.base.batch[2],
+                    &completed,
+                )?],
                 staged: &staged,
             },
             3,

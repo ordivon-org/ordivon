@@ -265,6 +265,136 @@ pub fn author_provider_v4(
     Ok(record)
 }
 
+/// The exact original Python Provider Event shape, produced from a typed
+/// source V4 record. This is a pure Journal input, not an independent Writer,
+/// live credential, issuer or physical Provider dispatch permission.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProviderV4EventKind {
+    Claimed,
+    Superseded,
+    Dispatching,
+    Completed,
+    Failed,
+    Unknown,
+}
+impl ProviderV4EventKind {
+    fn names(self) -> (&'static str, crate::provider_head::ProviderStatus) {
+        use crate::provider_head::ProviderStatus;
+        match self {
+            Self::Claimed => ("harness.provider-call-claimed", ProviderStatus::Claimed),
+            Self::Superseded => ("harness.provider-call-superseded", ProviderStatus::Claimed),
+            Self::Dispatching => (
+                "harness.provider-call-dispatching",
+                ProviderStatus::Dispatching,
+            ),
+            Self::Completed => ("harness.provider-call-completed", ProviderStatus::Completed),
+            Self::Failed => ("harness.provider-call-failed", ProviderStatus::Failed),
+            Self::Unknown => ("harness.provider-call-unknown", ProviderStatus::Unknown),
+        }
+    }
+}
+
+/// Source CAS references carried directly in the original Event; grouping
+/// avoids an extra immutable registry, request parser or Journal layer.
+pub struct ProviderV4EventRefs<'a> {
+    pub state: &'a ordivon_harness_pg::journal_write::StoredRef,
+    pub request: Option<&'a ordivon_harness_pg::journal_write::StoredRef>,
+    pub result: Option<&'a ordivon_harness_pg::journal_write::StoredRef>,
+    pub failure: Option<&'a ordivon_harness_pg::journal_write::StoredRef>,
+}
+
+/// Author a journal Event from the same source V4 record that the existing
+/// PostgreSQL Writer atomically commits. The original State/Request references
+/// remain pre-existing source CAS; optional model Result and failure CAS must
+/// be staged in the SAME existing Writer transaction by its caller.
+///
+/// Unlike the historic test-only Python Event templates, this pure operation
+/// can be used by a native Provider Journal. It deliberately does NOT claim
+/// that its caller holds a current PG lease, Provider credential or Tool grant.
+pub fn author_provider_event_v4(
+    event_id: &str,
+    kind: ProviderV4EventKind,
+    record: &CanonicalDocument,
+    refs: ProviderV4EventRefs<'_>,
+    caused_by_event_id: Option<&str>,
+    recorded_at_ms: i64,
+) -> Result<ordivon_harness_pg::journal_write::EventWrite, ProviderRecordError> {
+    use ordivon_harness_pg::journal_write::{EventWrite, StoredRef};
+    let invalid = ProviderRecordError::InvalidV4Record;
+    let (event_kind, expected) = kind.names();
+    let head = inspect_v4(record)?;
+    let field = |name: &str| record.field(name).and_then(|value| value.as_str());
+    let refs_match = |name: &str, value: Option<&StoredRef>, expected_kind: &str| {
+        value.is_none_or(|v| v.kind == expected_kind)
+            && field(name) == value.map(|v| v.digest.as_str())
+    };
+    if !event_id.starts_with("event:")
+        || event_id.len() > 300
+        || event_id.trim() != event_id
+        || recorded_at_ms < 0
+        || record.field("recordedAtMs").and_then(|v| v.integer_text())
+            != Some(recorded_at_ms.to_string().as_str())
+        || head.status != expected
+        || refs.state.kind != "harness-run-state"
+        || field("stateObjectDigest") != Some(refs.state.digest.as_str())
+        || !refs_match("requestObjectDigest", refs.request, "agent-turn-request")
+        || !refs_match("resultObjectDigest", refs.result, "agent-turn-result")
+        || !refs_match(
+            "failureObjectDigest",
+            refs.failure,
+            "harness-provider-call-failure",
+        )
+        || (refs.result.is_some() && expected != crate::provider_head::ProviderStatus::Completed)
+        || (refs.failure.is_some()
+            != matches!(
+                expected,
+                crate::provider_head::ProviderStatus::Failed
+                    | crate::provider_head::ProviderStatus::Unknown
+            ))
+    {
+        return Err(invalid);
+    }
+    let record_bytes = canonical_bytes(record);
+    let record_ref = StoredRef {
+        digest: head.canonical_digest.clone(),
+        kind: "harness-provider-call-record".into(),
+        byte_length: i64::try_from(record_bytes.len()).map_err(|_| invalid)?,
+    };
+    let data = CanonicalDocument::object(vec![
+        ("providerCallRecordDigest".into(), txt(&record_ref.digest)),
+        (
+            "providerCallRecordObjectDigest".into(),
+            txt(&record_ref.digest),
+        ),
+        ("stateObjectDigest".into(), txt(&refs.state.digest)),
+        (
+            "requestObjectDigest".into(),
+            nullable(refs.request.map(|r| r.digest.as_str())),
+        ),
+        (
+            "resultObjectDigest".into(),
+            nullable(refs.result.map(|r| r.digest.as_str())),
+        ),
+        (
+            "failureObjectDigest".into(),
+            nullable(refs.failure.map(|r| r.digest.as_str())),
+        ),
+    ])
+    .map_err(|_| invalid)?;
+    let mut references = vec![record_ref, refs.state.clone()];
+    references.extend(refs.request.cloned());
+    references.extend(refs.result.cloned());
+    references.extend(refs.failure.cloned());
+    Ok(EventWrite {
+        event_id: event_id.to_owned(),
+        event_kind: event_kind.to_owned(),
+        data,
+        recorded_at_ms,
+        caused_by_event_id: caused_by_event_id.map(str::to_owned),
+        referenced_objects: references,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
