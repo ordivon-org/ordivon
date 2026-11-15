@@ -248,3 +248,14 @@ invocation, **not** source-path continuity or later consumer readback.
 This is a current **source-path map**, not proof of installed deployment,
 active job routing, or a final business consumer. The source/subject identity
 fix for Ogg/Matroska does not change any of those independent boundaries.
+
+## Portable Artifact handoff (source-only R1)
+
+`artifact_operations/portable_bundle.py` reuses native verification to construct a
+relocatable ZIP of subject bytes, object contract, canonical Profile snapshot
+and fresh evidence. The consumer checks the embedded Profile against its
+installed authority and **re-verifies** under a new path. Original absolute
+paths remain provenance, never the consumer's source location. This is not
+a claim of target application acceptance or remote publication.
+See `docs/ARTIFACT_PORTABLE_HANDOFF_R1.md` and
+`tests/test_artifact_portable_bundle.py`.
