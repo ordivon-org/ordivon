@@ -231,3 +231,7 @@ privileged debug snapshots remain unavailable by default. Agents do not
 become Human research participants by reading this text.
 
 Rendered geometry checks passed with both the project-native 1152x648 viewport and the compact 800x500 command-line window; those two view sizes do not establish every device or accessibility requirement.
+
+## Optional consent-gated Human study
+
+The existing `../../docs/room-encounter-playtest.md` specifies the uncoached first-play procedure. Optional `../../research/room_encounter_playtest.py` generates local anonymous AB/BA assignments tied to one native release SHA-256 and produces descriptive summaries only from consenting observer-entered rows. Run `mise run test:human-playtest-protocol` for synthetic negative controls; generated plans are not Human play evidence.
