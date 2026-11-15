@@ -5,7 +5,7 @@ pub(crate) fn workspace_diff(
     request.validate_shape()?;
     let record = load_workspace_record(config, &request.workspace_id)?;
     let workspace = Path::new(&record.workspace_path);
-    let mut command = Command::new("git");
+    let mut command = workspace_git_command();
     command
         .arg("--no-optional-locks")
         .arg("-C")
@@ -33,7 +33,7 @@ pub(crate) fn workspace_diff(
 fn workspace_changed_paths(
     workspace: &Path,
 ) -> Result<WorkspaceChangeProjection, UniversalExecError> {
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(workspace)
@@ -178,7 +178,7 @@ pub(crate) fn workspace_change_projection_at(
 ) -> Result<WorkspaceChangeProjection, UniversalExecError> {
     let workspace = canonical_directory(workspace, "workspacePath")?;
     let mut changes = workspace_changed_paths(&workspace)?;
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(&workspace)
@@ -580,7 +580,7 @@ fn scan_tracked_changes(
     workspace: &Path,
     collector: &mut ChangePageCollector,
 ) -> Result<(), UniversalExecError> {
-    let mut command = Command::new("git");
+    let mut command = workspace_git_command();
     command
         .arg("--no-optional-locks")
         .arg("-C")
@@ -639,7 +639,7 @@ fn scan_untracked_changes(
     workspace: &Path,
     collector: &mut ChangePageCollector,
 ) -> Result<(), UniversalExecError> {
-    let mut command = Command::new("git");
+    let mut command = workspace_git_command();
     command
         .arg("--no-optional-locks")
         .arg("-C")
