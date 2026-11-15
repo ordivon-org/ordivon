@@ -229,7 +229,7 @@ does not retry effects or expose DSN/internal exception messages. Other
 operational failures such as a closed pool retain the normal generic
 internal error boundary.
 
-## Native PostgreSQL pool diagnostics (MCP Host surface epoch 6)
+## Native PostgreSQL pool diagnostics (introduced with Host surface epoch 6)
 
 The read-only host.pool.stats MCP tool uses Psycopg's official
 ConnectionPool.get_stats() in the serving Host process. It does not
@@ -256,3 +256,24 @@ so repeated consumers would interfere with each other. Never derive
 domain acceptance, scheduling priority, or a safe command retry from
 a pool gauge alone; typed pre-checkout rejections have their own
 MCP error contract.
+
+## MCP input/output consumer contract release gate
+
+The published MCP surface is not only a set of Tool names. Agents cache tool
+input/output schemas and cannot use newly added arguments if their discovery is
+stale. `mcp-surface.json` carries the native SDK `tools/list` contract digest;
+`packaging/verify_tool_surface.py` requires a new surface epoch and package
+version whenever Tool names or input/output contracts change. After the frozen
+release-local `uv sync --locked`, `packaging/verify_release.py` asks the official
+MCP SDK for the actual Host schemas and checks the digest **before** the service
+symlink can move. This reuses the existing Gateway technique; it adds no second
+registry, database or new public Tool. Client reconnect/recapture is still
+required when a consuming platform serves an older cached Tool schema. A source
+check alone is not an installed Agent consumer acceptance.
+
+## Bounded consumer architecture
+
+[Consumer Architecture R1](docs/CONSUMER_ARCHITECTURE_R1.md) records the
+current Work/Social/Attention dependency direction, real consumers, rejected
+second authorities and closure conditions. It does not replace the MCP surface,
+PG migration chain or the installed Agent consumer observations.
