@@ -168,47 +168,44 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
     # NOT the installed live Gateway. Its *process* is real and its receipt
     # is tied to the exact original PG Run/ToolStep; no fake process success
     # is accepted for this focused local business consumer.
+    from ordivon_harness.ordivon.model import ScriptedTurnAdapter
+    from ordivon_harness.plugin_gateway_effect import PluginGatewayExecutionBridgeFactory
+
+    # Use the actual Python runtime already required by Harness, not a
+    # distro-specific ripgrep location absent on some GitHub runners.
+    # Keep the model grant, Tool Request, and real executable IDENTICAL.
+    import sys
+
     (tmp_path / "source.txt").write_text("needle was really found here\\n", encoding="utf-8")
+    physical_program = (
+        "from pathlib import Path; "
+        "text = Path('source.txt').read_text(encoding='utf-8'); "
+        "assert 'needle' in text; print(text.strip())"
+    )
 
     class LocalPhysicalGateway(GatewayExecutionFixture):
         physical: subprocess.CompletedProcess[str] | None = None
         dispatches = 0
         pre_dispatch_passed = False
-        submit_attempts = 0
-        submit_phase = "not_called"
 
         def call_tool(self, name, arguments):
             if name == "execution.submit":
-                self.submit_attempts += 1
-                self.submit_phase = "before_pg_fence_read"
                 with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
-                    self.submit_phase = "pg_store_opened"
                     continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
-                    self.submit_phase = "pg_continuity_opened"
                     step = continuity.load_current_tool_step()
-                    self.submit_phase = "pg_tool_step_loaded"
                     assert step.fence is not None
-                    self.submit_phase = "pg_fence_exists"
                     assert step.receipt is None
-                    self.submit_phase = "pg_receipt_absent"
                     assert step.intent.runtime_operation == "workspace.exec"
-                    self.submit_phase = "pg_runtime_operation_valid"
                     assert any(
                         ref.get("type") == "dispatch_fence"
                         and ref.get("digest") == step.fence.digest
                         for ref in arguments["authorityReferences"]
                     )
                     self.pre_dispatch_passed = True
-                    self.submit_phase = "pg_fence_validated"
-                self.submit_phase = "before_gateway_arguments_check"
                 assert arguments["workspaceId"] == "ws-plugin-h2"
-                self.submit_phase = "workspace_arg_valid"
-                assert arguments["executable"] == "/usr/bin/rg"
-                self.submit_phase = "executable_arg_valid"
-                assert arguments["args"] == ["needle", "."]
-                self.submit_phase = "process_args_valid"
+                assert arguments["executable"] == sys.executable
+                assert arguments["args"] == ["-c", physical_program]
                 self.dispatches += 1
-                self.submit_phase = "before_native_process"
                 self.physical = subprocess.run(
                     [arguments["executable"], *arguments["args"]],
                     cwd=tmp_path,
@@ -217,7 +214,6 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
                     timeout=10,
                     check=False,
                 )
-                self.submit_phase = "native_process_returned"
             error, payload = super().call_tool(name, arguments)
             if name == "execution.get":
                 assert self.physical is not None
@@ -233,8 +229,29 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
             return error, payload
 
     client = LocalPhysicalGateway()
-    factory = _factory(client)
+    standard = _factory(client)
+    factory = PluginGatewayExecutionBridgeFactory(
+        standard.component,
+        client,
+        replace(standard.execution_grant, executable_allowlist=(sys.executable,)),
+    )
     source = _contract(factory)
+    first, last = _adapter()._results
+    call = first.tool_calls[0]
+    physical_adapter = ScriptedTurnAdapter(
+        (
+            replace(first, tool_calls=(replace(call, arguments={
+                "executable": sys.executable,
+                "args": ["-c", physical_program],
+                "cwdRelative": ".",
+                "env": {"ORDIVON_TEST": "1"},
+                "timeoutMs": 5000,
+            }),)),
+            last,
+        )
+    )
+    tool_args = gateway_args()
+    tool_args[tool_args.index("/usr/bin/rg")] = sys.executable
     contract_file = tmp_path / "source-run.json"
     contract_file.write_text(json.dumps(source.to_dict()), encoding="utf-8")
     monkeypatch.setattr(independent_cli, "configured_postgres", lambda: pg_schema)
@@ -246,7 +263,7 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
     monkeypatch.setattr(
         independent_cli,
         "_adapter",
-        lambda _contract, _args: _adapter(),
+        lambda _contract, _args: physical_adapter,
     )
     cli = build_parser().parse_args(
         [
@@ -254,24 +271,20 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
             str(contract_file),
             "--message",
             "Find the source marker",
-            *gateway_args(),
+            *tool_args,
         ]
     )
     result = independent_cli.dispatch(cli, clock_ms=FixedClock())
     # Keep real-process outcomes separate from Harness/Gateway semantic states:
     # if CI differs from a local node, report the physical cause first.
-    assert client.physical is not None, json.dumps({
-        "reason": "Gateway fixture never ran the real process",
-        "stopCode": result["stopCode"],
+    assert client.physical is not None, {
+        "reason": "authorized physical Python file-reader never launched",
         "runStatus": result["run"]["status"],
-        "submitAttempts": client.submit_attempts,
-        "submitPhase": client.submit_phase,
-        "preDispatchPassed": client.pre_dispatch_passed,
-        "dispatches": client.dispatches,
-        "gatewayCalls": [name for name, _ in client.calls],
-    }, ensure_ascii=False, sort_keys=True)
+        "stopCode": result["stopCode"],
+        "ownerCalls": [name for name, _ in client.calls],
+    }
     assert client.physical.returncode == 0, (
-        "real ripgrep process failed", client.physical.returncode,
+        "real Python file-reader process failed", client.physical.returncode,
         client.physical.stdout[-400:], client.physical.stderr[-400:],
     )
     assert result["stopCode"] == "candidate_completed", {
@@ -283,7 +296,6 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
     }
     assert client.pre_dispatch_passed
     assert client.dispatches == 1
-    assert client.physical is not None and client.physical.returncode == 0
     assert "needle was really found here" in client.physical.stdout
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         history = EventSourcedRunContinuity.open(store, source.harness_run_id)
