@@ -315,9 +315,25 @@ disposition.
 
 The exact completion Contract is part of `HarnessRunContract.digest`. `StandaloneHarnessRunner` fails closed if a `structured-result-v1` Contract is paired with an Adapter that was not bound to the same completion Contract. DeepSeek receives the caller schema as the `submit_run_conclusion.result` Tool schema. Harness carries the returned JSON in the optional versioned `AgentRunConclusion.structured_result` field, whose canonical value is explicitly bounded to one MiB; the ordinary `summary` remains compact human/control metadata containing only the result digest. When model-content retention is authorized, the existing terminal conclusion CAS object durably stores the carrier—there is no second result store and no Host-specific result type. `decode_structured_completion_result` reads the carrier first and remains backward-compatible with historical results encoded directly in `summary`; when the local conformance policy is bound it also enforces the same mechanical schema check. **Caller/domain verification remains mandatory**: a result carrier and local schema conformance are not semantic admission.
 
-## Gateway Tool CLI（R45：复用现有 MCP/Tool Bridge）
+## Gateway Tool CLI（R45/R46：复用现有 MCP/Tool Bridge）
 
 默认 `ordivon-harness run` 仍只执行原来的 no-Tool Run。启用 `execution.linux` 须显式提供原始 PostgreSQL Run Contract、实际 Gateway MCP 服务、已有 Workspace 和可执行程序；不自动继承运行者的额外权限。
+
+R46 修复实际 DeepSeek API 拒绝模型工具名 `execution.submit` 的消费者断点：模型只看到符合 OpenAI/DeepSeek Chat Completions 命名规则的 `execution_submit`；已有 Gateway MCP 物理工具仍为 `execution.submit`，既有 PG Intent/Fence/Owner Receipt 不变。现役本机 Gateway 可使用**已有**的精确 `http://127.0.0.1:<port>/mcp` LoopbackMcpEndpoint 与第一方私有 Bearer 文件；其他 HTTP 地址一律拒绝，外部 Agent Plugin 仍必须 HTTPS。
+
+按需执行一个真实 DeepSeek → 本机 Gateway → Linux Runtime → 同一 PostgreSQL Run 的付费物理验收：
+
+```bash
+HARNESS_PG_TEST_DSN='<dedicated-test-DSN>' \
+HARNESS_REAL_GATEWAY_TOOL_TEST=1 \
+HARNESS_REAL_GATEWAY_URL='http://127.0.0.1:8899/mcp' \
+HARNESS_REAL_GATEWAY_BEARER_TOKEN_FILE='/path/to/existing/private-client-token' \
+HARNESS_REAL_GATEWAY_WORKSPACE_ID='ws-existing-operator-selected' \
+  uv run --locked python -m pytest -q \
+  tests/test_gateway_cli_consumer.py -k live_deepseek_gateway_tool
+```
+
+该验收通过原有 `pg_schema` fixture 使用独立临时 Schema；普通 CI/Owner `queue` 不会触发真实外部 API。只有明示配置的测试节点才调用模型并执行单条 `/usr/bin/python3 -c print(...)`；验证原 PG ToolStep、物理 Gateway Owner Receipt 与独立 CLI 再读取，**不**把物理完成当作用户领域 TaskSolved。
 
 先读取当前 Tool Schema 和当前授权工具摘要，不连接 PostgreSQL、不创建 Run：
 

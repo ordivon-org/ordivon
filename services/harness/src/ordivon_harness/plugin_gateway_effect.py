@@ -74,7 +74,10 @@ class PluginGatewayExecutionGrant:
 
 def _model_execution_definition(grant: PluginGatewayExecutionGrant) -> AgentToolDefinition:
     return AgentToolDefinition(
-        name="execution.submit",
+        # DeepSeek/OpenAI function names cannot contain ".". This is the
+        # single model-facing alias; the remote MCP operation remains
+        # exactly "execution.submit" in GatewayMcpRuntimeAdapter.
+        name="execution_submit",
         description=(
             "Run one caller-authorized process through the Ordivon Gateway. "
             "Capability, workspace, context, request identity, and authority references are fixed by the Host."
@@ -659,7 +662,7 @@ class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
     def _lower_runtime_tool_call(
         self, call: AgentToolCall, *, step_id: str
     ) -> tuple[str, dict[str, JsonValue], str | None]:
-        if call.name != "execution.submit":
+        if call.name != "execution_submit":
             raise ToolBridgeError(
                 f"Gateway execution bridge does not expose {call.name}",
                 kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,

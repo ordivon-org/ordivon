@@ -64,8 +64,37 @@ def test_gateway_cli_profile_is_existing_tool_surface_and_does_not_open_pg(monke
     profile = independent_cli.dispatch(args, clock_ms=FixedClock())
     assert profile["toolCatalogDigest"] == expected.catalog_digest
     assert profile["toolGrantDigest"] == expected.grant_digest
-    assert profile["modelToolDefinition"]["name"] == "execution.submit"
+    # DeepSeek/OpenAI Chat Completions function names forbid dots.
+    assert profile["modelToolDefinition"]["name"] == "execution_submit"
     assert "bearer" not in json.dumps(profile).lower()
+
+
+def test_gateway_cli_uses_existing_authenticated_loopback_mcp_without_pg(monkeypatch):
+    """Accept only exact first-party loopback; remote HTTP is never authorized."""
+    client = GatewayExecutionFixture()
+    monkeypatch.setattr(
+        independent_cli, "OfficialMcpClient", lambda *args, **kwargs: client,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        independent_cli, "configured_postgres",
+        lambda: (_ for _ in ()).throw(AssertionError("profile accessed PG")),
+    )
+    arguments = gateway_args()
+    arguments[arguments.index(GATEWAY)] = "http://127.0.0.1:8899/mcp"
+    profile = independent_cli.dispatch(
+        build_parser().parse_args(["gateway-profile", *arguments]),
+        clock_ms=FixedClock(),
+    )
+    assert profile["modelToolDefinition"]["name"] == "execution_submit"
+    assert profile["toolCatalogDigest"].startswith("sha256:")
+    assert "http://127.0.0.1:8899/mcp" not in profile.get("proofBoundary", "")
+    arguments[arguments.index("http://127.0.0.1:8899/mcp")] = "http://localhost:8899/mcp"
+    with pytest.raises((ValueError, Exception)):
+        independent_cli.dispatch(
+            build_parser().parse_args(["gateway-profile", *arguments]),
+            clock_ms=FixedClock(),
+        )
 
 
 def test_gateway_cli_existing_run_retains_owner_tool_receipt_in_original_pg(
@@ -351,3 +380,153 @@ def test_gateway_cli_resume_after_unknown_owner_response_without_redispatch(
         assert step.receipt.reconciled is True
         assert step.receipt.runtime_job_ref == "job-h2"
         store.validate_run_history(source.harness_run_id)
+
+
+@pytest.mark.node_qualification
+@pytest.mark.skipif(
+    __import__("os").environ.get("HARNESS_REAL_GATEWAY_TOOL_TEST") != "1",
+    reason="explicit billable Provider + installed Gateway/Runtime acceptance only",
+)
+def test_live_deepseek_gateway_tool_one_original_pg_run(pg_schema, monkeypatch, tmp_path: Path):
+    """Real DeepSeek -> public CLI -> installed Gateway -> native Job -> original PG ToolStep.
+
+    The test node selects an already authorized Workspace, Gateway address and
+    private bearer file; no fixture grants execution, mints credentials or
+    substitutes a Scripted Provider/Gateway response.
+    """
+    import os
+    import sys
+    import time
+    import uuid
+
+    from anc_canonical import canonical_digest
+    from ordivon_harness.core_contracts import (
+        HarnessBoundReference, HarnessPrivacyPolicy, HarnessRunContract,
+    )
+    from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
+    from ordivon_harness.ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
+
+    url = os.environ["HARNESS_REAL_GATEWAY_URL"]
+    workspace_id = os.environ["HARNESS_REAL_GATEWAY_WORKSPACE_ID"]
+    token_file = os.environ["HARNESS_REAL_GATEWAY_BEARER_TOKEN_FILE"]
+    secret = os.environ.get("HARNESS_REAL_DEEPSEEK_SECRET_FILE")
+    settings = (
+        DeepSeekSettings.from_secret_file(secret)
+        if secret else DeepSeekSettings.from_secret_file()
+    )
+    monkeypatch.setenv("HARNESS_PG_DSN", pg_schema[0])
+    monkeypatch.setenv("HARNESS_PG_SCHEMA", pg_schema[1])
+    gateway = [
+        "--gateway-url", url,
+        "--gateway-bearer-token-file", token_file,
+        "--gateway-workspace-id", workspace_id,
+        "--gateway-executable", "/usr/bin/python3",
+        "--gateway-max-timeout-ms", "120000",
+    ]
+
+    def cli(*arguments: str) -> dict[str, object]:
+        result = subprocess.run(
+            [sys.executable, "-m", "ordivon_harness.cli", *arguments],
+            capture_output=True, text=True, timeout=230,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr[-1200:]
+        value = json.loads(result.stdout)
+        assert value["ok"]
+        return value
+
+    profile = cli("gateway-profile", *gateway)
+    assert profile["modelToolDefinition"]["name"] == "execution_submit"
+    run_id = "harness-run:live-owner-" + uuid.uuid4().hex[:16]
+
+    def ref(kind: str) -> HarnessBoundReference:
+        return HarnessBoundReference(
+            f"{kind}:r46-live-owner", kind,
+            canonical_digest({"liveGatewayTest": kind}),
+        )
+
+    contract = HarnessRunContract(
+        harness_run_id=run_id,
+        harness_implementation_id="ordivon-harness@live-owner-acceptance",
+        caller_id="caller:live-gateway-acceptance",
+        caller_run_ref="trial:one-real-model-tool",
+        objective_ref=ref("objective"),
+        context_refs=(ref("context"),),
+        provider_id="provider:deepseek",
+        adapter_id=DeepSeekTurnAdapter.adapter_id,
+        requested_model_id=settings.model,
+        tool_catalog_digest=profile["toolCatalogDigest"],
+        tool_grant_digest=profile["toolGrantDigest"],
+        budget={
+            "maxModelCalls": 3, "maxToolCalls": 1,
+            "maxObservationBytes": 65536, "maxWallTimeMs": 200000,
+            "maxTotalTokens": 18000, "maxModelRetries": 0,
+            "maxToolCorrections": 1, "maxConclusionCorrections": 1,
+            "maxObservationOnlyTurns": 2, "maxNoProgressTurns": 2,
+        },
+        completion_contract={"mode": "record"},
+        system_manifest_ref=ref("system-manifest"),
+        created_at_ms=int(time.time() * 1000),
+        privacy=HarnessPrivacyPolicy(
+            content_policy="bounded-private-content",
+            allow_model_content=True,
+            allow_tool_content=True,
+        ),
+    )
+    source = tmp_path / "contract.json"
+    source.write_text(json.dumps(contract.to_dict()), encoding="utf-8")
+    prompt = (
+        "必须先调用已授权的 execution_submit 工具一次，指定 "
+        "executable=/usr/bin/python3，args=[\"-c\", "
+        "\"print('ORDIVON_LIVE_HARNESS_GATEWAY_TOOL_OK')\"]，"
+        "cwdRelative='.'，timeoutMs=45000；等待工具结果，再提交结论。"
+    )
+    requested = ["run", str(source), "--message", prompt, *gateway]
+    if secret:
+        requested.extend(["--deepseek-secret", secret])
+    result = cli(*requested)
+    assert result["stopCode"] == "candidate_completed"
+    assert result["run"]["status"] == "completed"
+    assert result["usage"]["modelCalls"] >= 2
+    assert result["usage"]["toolCalls"] == 1
+    assert result["runReceipt"] is not None
+    assert result["completionProposal"] is not None
+    assert cli("status", run_id)["run"]["status"] == "completed"
+    assert cli("inspect", run_id)["run"]["status"] == "completed"
+
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, run_id)
+        step = continuity.load_current_tool_step()
+        assert step.fence is not None
+        assert step.receipt is not None and step.receipt.status.value == "observed"
+        assert step.receipt.harness_run_id == run_id
+        assert step.observation is not None
+        assert step.observation["structuredContent"]["executionDisposition"] == "succeeded"
+        job_id = step.receipt.runtime_job_ref
+        request_id = step.intent.client_request_id
+        assert job_id is not None
+        store.validate_run_history(run_id)
+
+    # Observe the real Owner through the same authenticated Gateway, not a
+    # second trust layer. This check is separate from model self-report.
+    if url.startswith("http://"):
+        endpoint = LoopbackMcpEndpoint(url)
+    else:
+        from ordivon_harness.agent_plugin import AgentPluginMcpComponent
+        endpoint = AgentPluginMcpComponent(
+            name="ordivon-gateway", transport="streamable-http", url=url
+        )
+    client = OfficialMcpClient(endpoint, bearer_token_file=Path(token_file))
+    error, owner = client.call_tool("execution.get", {
+        "operationRef": f"ordivon-exec:v1:runtime.linux:{job_id}",
+        "requestId": request_id,
+        "capability": "execution.linux",
+        "eventLimit": 10,
+        "waitMs": 0,
+    })
+    assert error is False
+    assert owner["native_id"] == job_id
+    assert owner["terminal"] is True
+    assert owner["execution_disposition"] == "succeeded"
+    assert owner["delivery_disposition"] == "committed"
+    assert owner["exit_code"] == 0

@@ -8,7 +8,7 @@ from anc_canonical import JsonValue, validate_json_value
 
 from .agent_run import HarnessAgentRun
 from .agent_plugin import AgentPluginMcpComponent
-from .mcp_http_client import OfficialMcpClient
+from .mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
 from .plugin_gateway_effect import (
     PluginGatewayExecutionBridgeFactory,
     PluginGatewayExecutionGrant,
@@ -166,10 +166,16 @@ def _gateway_factory(args, *, required: bool = False) -> PluginGatewayExecutionB
             "Gateway execution needs --gateway-workspace-id, --gateway-executable "
             "and --gateway-bearer-token-file"
         )
-    component = AgentPluginMcpComponent(
-        name="ordivon-gateway",
-        transport="streamable-http",
-        url=url,
+    # Reuse the existing exact 127.0.0.1 MCP endpoint for a first-party
+    # installed Gateway. External Agent Plugin endpoints stay HTTPS-only.
+    component = (
+        LoopbackMcpEndpoint(url, name="ordivon-gateway")
+        if url.startswith("http://")
+        else AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url=url,
+        )
     )
     grant = PluginGatewayExecutionGrant(
         capability="execution.linux",
