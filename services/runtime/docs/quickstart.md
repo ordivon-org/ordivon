@@ -42,7 +42,7 @@ rustc --version
 python3 --version
 ```
 
-The repository fixes Rust 1.95.0 through `rust-toolchain.toml`. Python operational scripts support Python 3.11 or newer.
+The repository fixes Rust 1.99.1 through `rust-toolchain.toml`. Python operational scripts support Python 3.11 or newer.
 
 ## Steps
 

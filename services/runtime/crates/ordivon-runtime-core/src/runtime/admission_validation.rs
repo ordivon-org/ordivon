@@ -1,7 +1,50 @@
+//! Storage-neutral admission and request validation consumed by legacy Engine and PostgreSQL.
+//! Keep execution-policy validation independent from Registry/Engine lifecycle effects.
+use super::error::map_universal_error;
+use super::*;
+use std::{collections::BTreeMap, path::Path};
+
+const CONTAINED_RUNTIME_ENVIRONMENT: [&str; 15] = [
+    "HOME",
+    "TMPDIR",
+    "XDG_CACHE_HOME",
+    "CARGO_TARGET_DIR",
+    "UV_CACHE_DIR",
+    "PIP_CACHE_DIR",
+    "npm_config_cache",
+    "PNPM_HOME",
+    "COREPACK_HOME",
+    "BUN_INSTALL_CACHE_DIR",
+    "GOMODCACHE",
+    "GOCACHE",
+    "GIT_OPTIONAL_LOCKS",
+    "ORDIVON_PAYLOAD_UID",
+    "ORDIVON_PAYLOAD_GID",
+];
+
+fn validate_text_id(value: &str, field: &str) -> RuntimeResult<()> {
+    if value.trim().is_empty()
+        || value.len() > 256
+        || value.as_bytes().contains(&0)
+        || value.chars().any(char::is_control)
+    {
+        return Err(RuntimeError::invalid(
+            format!("{field} must be non-empty, bounded, and control-free"),
+            field,
+        ));
+    }
+    Ok(())
+}
+
 // Request structure and admission policy qualification, separate from durable admission effects.
 // No new policy authority, side effects, or public wire surface.
-fn validate_run_request_structure(request:&JobRunRequest)->RuntimeResult<()>{validate_run_request_structure_mode(request,true)}
-fn validate_run_request_structure_mode(request: &JobRunRequest,legacy_count:bool) -> RuntimeResult<()> {
+pub(super) fn validate_run_request_structure(request: &JobRunRequest) -> RuntimeResult<()> {
+    validate_run_request_structure_mode(request, true)
+}
+fn validate_run_request_structure_mode(
+    request: &JobRunRequest,
+    legacy_count: bool,
+) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION {
         return Err(RuntimeError::invalid(
             "unsupported runtime schema version",
@@ -186,10 +229,21 @@ fn validate_exec_payload_for_target(
     }
 }
 
-pub(crate) fn validate_run_proposal_structure(proposal:&super::JobRunProposal)->RuntimeResult<()>{validate_run_proposal_mode(proposal,true)}
-#[cfg(feature="postgres-registry-admission")]
-pub(crate) fn validate_resource_run_proposal_structure(proposal:&super::JobRunProposal)->RuntimeResult<()>{validate_run_proposal_mode(proposal,false)}
-fn validate_run_proposal_mode(proposal: &super::JobRunProposal,legacy_count:bool) -> RuntimeResult<()> {
+pub(super) fn validate_run_proposal_structure(
+    proposal: &super::JobRunProposal,
+) -> RuntimeResult<()> {
+    validate_run_proposal_mode(proposal, true)
+}
+#[cfg(feature = "postgres-registry-admission")]
+pub(crate) fn validate_resource_run_proposal_structure(
+    proposal: &super::JobRunProposal,
+) -> RuntimeResult<()> {
+    validate_run_proposal_mode(proposal, false)
+}
+fn validate_run_proposal_mode(
+    proposal: &super::JobRunProposal,
+    legacy_count: bool,
+) -> RuntimeResult<()> {
     let validation_request = JobRunRequest {
         schema_version: proposal.schema_version,
         client_request_id: proposal.client_request_id.clone(),
@@ -230,10 +284,10 @@ fn validate_run_proposal_mode(proposal: &super::JobRunProposal,legacy_count:bool
         stdout_tail_bytes: proposal.stdout_tail_bytes,
         stderr_tail_bytes: proposal.stderr_tail_bytes,
     };
-    validate_run_request_structure_mode(&validation_request,legacy_count)
+    validate_run_request_structure_mode(&validation_request, legacy_count)
 }
 
-fn validate_new_admission_policy(
+pub(super) fn validate_new_admission_policy(
     request: &JobRunRequest,
     max_runtime_ms: u64,
     max_output_bytes: u64,
@@ -259,7 +313,7 @@ fn validate_new_admission_policy(
     Ok(())
 }
 
-fn effective_limits_from_plan_json(
+pub(super) fn effective_limits_from_plan_json(
     execution_plan_json: &str,
 ) -> RuntimeResult<super::EffectiveExecutionLimits> {
     let plan: RuntimeExecutionPlan =
@@ -328,7 +382,7 @@ fn validate_contained_environment(
     Ok(())
 }
 
-fn validate_observe_request(request: &JobObserveRequest) -> RuntimeResult<()> {
+pub(super) fn validate_observe_request(request: &JobObserveRequest) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION {
         return Err(RuntimeError::invalid(
             "unsupported runtime schema version",
