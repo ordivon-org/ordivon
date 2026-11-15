@@ -587,9 +587,11 @@ def main() -> None:
         if alloy.returncode:
             raise AssertionError("Alloy positive SAT execution failed: " +
                                  (alloy.stdout + alloy.stderr)[-1200:])
-        instance_count = qualify_alloy_sat_witness(alloy.stdout)
+        # Keep the existing three-field proof receipt consumed by protected CI.
+        # SAT instance non-vacuity is an admission condition, not a new schema.
+        qualify_alloy_sat_witness(alloy.stdout)
         probes.append({"probe": "Alloy finite SAT model", "result": "PASS",
-                       "rc": alloy.returncode, "instances": instance_count})
+                       "rc": alloy.returncode})
     source_after = qualified_source_cut()
     if source_after != source_before:
         raise ValueError("Git formal SourceCut changed during toolchain checks")
