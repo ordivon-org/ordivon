@@ -104,22 +104,34 @@ class ExecutionObservationMethods:
         if observed_native_id != native_id:
             raise GatewayError("Runtime job.observe returned mismatched job identity")
 
-        def artifact_ids(payload: dict[str, Any]) -> list[str]:
+        def artifact_ids(payload: dict[str, Any]) -> tuple[list[str], bool]:
+            # A filtered invalid Owner row is not proof that zero Artifacts
+            # exist. Observe only explicitly list-valued, well-formed inventory.
+            raw = payload.get("artifacts")
+            if not isinstance(raw, list):
+                return [], False
             values: list[str] = []
-            for item in payload.get("artifacts", []):
-                if (
-                    isinstance(item, dict)
-                    and isinstance(item.get("artifactId"), str)
-                    and item["artifactId"]
-                ):
-                    values.append(item["artifactId"])
-            return values
+            qualified = True
+            for item in raw:
+                artifact_id = item.get("artifactId") if isinstance(item, dict) else None
+                if isinstance(artifact_id, str) and artifact_id.strip():
+                    values.append(artifact_id)
+                else:
+                    qualified = False
+            return values, qualified
 
-        def identities_complete(ids: list[str], expected_count: int) -> bool:
-            # A row count cannot prove distinct Owner Artifact identities.
-            return len(ids) == expected_count and len(set(ids)) == expected_count
+        def identities_complete(
+            ids: list[str], expected_count: int, inventory_qualified: bool
+        ) -> bool:
+            # Every raw row must be a valid identity before an Owner count
+            # can establish complete coverage; filtering is lossy.
+            return (
+                inventory_qualified
+                and len(ids) == expected_count
+                and len(set(ids)) == expected_count
+            )
 
-        artifacts = artifact_ids(result)
+        artifacts, inventory_qualified = artifact_ids(result)
         artifacts_available = (
             bool(result["artifactsAvailable"])
             if isinstance(result.get("artifactsAvailable"), bool)
@@ -149,7 +161,7 @@ class ExecutionObservationMethods:
             summary_count = raw_count if type(raw_count) is int and raw_count >= 0 else None
             if summary_count is not None:
                 artifact_count = summary_count
-                if not identities_complete(artifacts, summary_count):
+                if not identities_complete(artifacts, summary_count, inventory_qualified):
                     refreshed = await self._caller.call_tool(
                         owner_id,
                         "job.observe",
@@ -166,13 +178,15 @@ class ExecutionObservationMethods:
                         raise GatewayError(
                             "Runtime job.observe refresh returned mismatched job identity"
                         )
-                    artifacts = artifact_ids(refreshed)
+                    artifacts, inventory_qualified = artifact_ids(refreshed)
                     artifacts_available = (
                         bool(refreshed["artifactsAvailable"])
                         if isinstance(refreshed.get("artifactsAvailable"), bool)
                         else artifacts_available
                     )
-                artifact_projection_complete = identities_complete(artifacts, summary_count)
+                artifact_projection_complete = identities_complete(
+                    artifacts, summary_count, inventory_qualified
+                )
             # Without the Owner's qualified total, any completeness claim is
             # UNKNOWN even if the projected list contains some Artifact IDs.
 
