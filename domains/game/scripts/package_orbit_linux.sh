@@ -23,13 +23,27 @@ payload="$stage/linux-x86_64"
 mkdir -p "$payload"
 install -m 0755 examples/orbit-collector/target/debug/ordivon-orbit-collector "$payload/ordivon-orbit-collector"
 cp LICENSE "$payload/PROJECT_APACHE_2_LICENSE.txt"
+
+# Reuse cargo-about rather than shipping a homegrown dependency-license parser.
+# A public preview must include notices for the actual locked Rust/Bevy build.
+if ! command -v cargo-about >/dev/null 2>&1; then
+  echo "ORBIT_LICENSE_NOTICE_ENV_BLOCKED missing=cargo-about" >&2
+  exit 3
+fi
+cargo-about about generate --locked --offline --fail \
+  --manifest-path examples/orbit-collector/Cargo.toml \
+  --config examples/orbit-collector/about.toml \
+  examples/orbit-collector/about.hbs \
+  --output-file "$payload/THIRD_PARTY_LICENSES.html"
+test -s "$payload/THIRD_PARTY_LICENSES.html"
+echo ORBIT_THIRD_PARTY_NOTICE_READY
 cat > "$payload/HOW_TO_PLAY.txt" <<'ORBIT_README'
 Orbit Collector (Bevy 0.20.1, Rust 1.99.1) - Linux x86-64 native preview
 Extract this archive and run ./ordivon-orbit-collector on an X11 graphical desktop.
 WASD / arrow keys move. Collect five yellow beacons; avoid the red moving
 hazard. Three hits lose. R restarts. This is an unsigned prototype preview.
-The game has no third-party art/audio; Bevy dependency licenses are determined
-by the pinned Cargo.lock and upstream dependency source.
+The game has no third-party art/audio. Full Rust/Bevy dependency license
+notices are included in THIRD_PARTY_LICENSES.html alongside this file.
 ORBIT_README
 
 source_commit="$(git rev-parse HEAD)"
@@ -38,6 +52,7 @@ binary_digest="$(sha256sum examples/orbit-collector/target/debug/ordivon-orbit-c
 # Scope this to the actual Rust inputs plus the build and packaging recipes.
 source_inputs_digest="$(sha256sum \
     examples/orbit-collector/Cargo.toml examples/orbit-collector/Cargo.lock \
+    examples/orbit-collector/about.toml examples/orbit-collector/about.hbs \
     examples/orbit-collector/src/*.rs mise.toml scripts/package_orbit_linux.sh \
     | sha256sum | cut -d' ' -f1)"
 source_dirty=clean
@@ -76,8 +91,8 @@ printf '%s\n' \
   "LOG_SHA256=$(sha256sum "$payload/launch.log" | cut -d' ' -f1)" \
   > "$payload/SMOKE_EVIDENCE.txt"
 tar -czf "$stage/$archive_name" -C "$payload" \
-  ordivon-orbit-collector PROJECT_APACHE_2_LICENSE.txt HOW_TO_PLAY.txt \
-  BUILD_SOURCE.txt launch.log SMOKE_EVIDENCE.txt
+  ordivon-orbit-collector PROJECT_APACHE_2_LICENSE.txt THIRD_PARTY_LICENSES.html \
+  HOW_TO_PLAY.txt BUILD_SOURCE.txt launch.log SMOKE_EVIDENCE.txt
 test -s "$stage/$archive_name"
 # Replace only after the complete archive and native smoke have been verified.
 mv -f -- "$stage/$archive_name" "$destination/$archive_name"
