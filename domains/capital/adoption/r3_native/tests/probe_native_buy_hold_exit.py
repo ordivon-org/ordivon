@@ -79,17 +79,20 @@ if (MODEL_STUDY.get("signal_quality", {}).get("exit_price_kind") != "next_open"
 prediction_bytes = (RESEARCH / "qlib_test_predictions.csv").read_bytes()
 if MODEL_STUDY.get("qlib_prediction_sha256") != sha256(prediction_bytes).hexdigest():
     raise RuntimeError("Qlib prediction snapshot does not match recorded study")
+# The native Qlib producer emits ONE NEXT_OPEN forecast column. A
+# hash-matching CSV with a prepended realized-return column must not
+# change which instrument Nautilus subsequently simulates.
+score_column = "predicted_next_open_to_next_open_fractional_return"
 with StringIO(prediction_bytes.decode("utf-8")) as fp:
-    signal_rows = [
-        row for row in csv.DictReader(fp) if row["datetime"] == DECISION_DAY
-    ]
+    reader = csv.DictReader(fp)
+    if reader.fieldnames != ["datetime", "instrument", score_column]:
+        raise RuntimeError("Qlib prediction column schema differs from native producer")
+    signal_rows = [row for row in reader if row["datetime"] == DECISION_DAY]
 if len(signal_rows) != 3 or {r["instrument"] for r in signal_rows} != {"IWM", "QQQ", "SPY"}:
     raise RuntimeError("Qlib predicted test day/ETF universe not exact")
 from math import isfinite
 
-scores = {r["instrument"]: float(next(v for k, v in r.items()
-                                  if k not in {"datetime", "instrument"}))
-          for r in signal_rows}
+scores = {r["instrument"]: float(r[score_column]) for r in signal_rows}
 if not all(isfinite(v) for v in scores.values()):
     raise RuntimeError("Qlib decision contains nonfinite OOS scores")
 # Explicit adversarial *test-only* score intervention, never represented as

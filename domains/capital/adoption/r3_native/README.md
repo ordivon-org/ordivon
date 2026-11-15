@@ -47,7 +47,8 @@ TRADING SESSION open-to-close fractional return (for new entries). These predict
 UNCALIBRATED research scores, NOT a conditional return distribution or
 an admitted expected-return vector.
 
-The native Qlib to Portfolio economic consumer requires the exact score
+The native Qlib to Portfolio economic and NautilusTrader simulation
+consumers require the exact score
 column produced for its declared CLOSE or NEXT_OPEN forecast, in addition to
 datetime and instrument identity. A self-consistent artifact digest alone
 cannot authorize an inserted actual_return label as the first numeric column:

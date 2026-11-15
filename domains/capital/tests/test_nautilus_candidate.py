@@ -282,18 +282,19 @@ def test_qlib_prediction_snapshot_cannot_claim_original_model_after_rewrite(tmp_
     assert tampered != original
     (tmp_path / "qlib_test_predictions.csv").write_bytes(tampered)
     output = tmp_path / "native_output"
+    proc_env = os.environ | {
+        "PYTHONPATH": str(ROOT / "src"),
+        "ORDIVON_FINANCE_R3_HOLD_SESSIONS": "5",
+        "ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR": str(tmp_path),
+        "ORDIVON_FINANCE_R3_RUN_OUT_DIR": str(output),
+    }
     proc = subprocess.run(
         [
             sys.executable,
             str(ROOT / "adoption/r3_native/tests/probe_native_buy_hold_exit.py"),
         ],
         cwd=ROOT,
-        env=os.environ | {
-            "PYTHONPATH": str(ROOT / "src"),
-            "ORDIVON_FINANCE_R3_HOLD_SESSIONS": "5",
-            "ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR": str(tmp_path),
-            "ORDIVON_FINANCE_R3_RUN_OUT_DIR": str(output),
-        },
+        env=proc_env,
         capture_output=True,
         text=True,
         check=False,
@@ -301,3 +302,22 @@ def test_qlib_prediction_snapshot_cannot_claim_original_model_after_rewrite(tmp_
     assert proc.returncode != 0
     assert "Qlib prediction snapshot does not match recorded study" in proc.stderr
     assert not (output / "native_holding_result.json").exists()
+    # A checked prediction digest cannot authorize a prepended outcome column.
+    # This native consumer places a Qlib score into an actual BacktestNode's
+    # instrument selector, so positional values can change simulated orders.
+    extra = original.replace(
+        b"datetime,instrument,predicted_next_open_to_next_open_fractional_return",
+        b"datetime,instrument,actual_return,predicted_next_open_to_next_open_fractional_return",
+    )
+    extra = extra.replace(b"IWM,0.01", b"IWM,0.95,0.01")
+    extra = extra.replace(b"QQQ,0.02", b"QQQ,0.96,0.02")
+    extra = extra.replace(b"SPY,0.03", b"SPY,0.97,0.03")
+    study_payload = json.loads(study.read_text(encoding="utf-8"))
+    study_payload["qlib_prediction_sha256"] = sha256(extra).hexdigest()
+    study.write_text(json.dumps(study_payload), encoding="utf-8")
+    (tmp_path / "qlib_test_predictions.csv").write_bytes(extra)
+    second = subprocess.run(proc.args, cwd=ROOT, env=proc_env, capture_output=True,
+                            text=True, check=False)
+    assert second.returncode != 0
+    assert "Qlib prediction column schema" in second.stderr
+    assert not output.exists()
