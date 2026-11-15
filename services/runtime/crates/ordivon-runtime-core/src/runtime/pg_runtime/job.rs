@@ -645,12 +645,44 @@ impl PgRuntime {
             )
             .with_operation_id(&request.job_id));
         }
-        db.request_cancel_intent(&PgCancelIntent {
-            job_id: request.job_id.clone(),
-            observed_at_ms: now()?,
-            expected_source_sha256: self.config.source_sha256.clone(),
-        })
-        .map_err(pg)?;
+        let cancel_outcome = db
+            .request_cancel_intent(&PgCancelIntent {
+                job_id: request.job_id.clone(),
+                observed_at_ms: now()?,
+                expected_source_sha256: self.config.source_sha256.clone(),
+            })
+            .map_err(pg)?;
+        if matches!(cancel_outcome, PgCancelOutcome::Existing(_)) {
+            // A terminal Job deliberately clears current_attempt_id; the
+            // existing PG cancel transaction performs no write in this case.
+            // Return the qualified historical Attempt projection instead of
+            // attempting native stop against a nonexistent current Attempt.
+            // Do not short-circuit an orphaned Job with held native capacity.
+            if let PgJobReadback::Observed(snapshot) = db
+                .observe_job_readonly(&request.job_id, &self.config.source_sha256)
+                .map_err(pg)?
+            {
+                if snapshot
+                    .resolution
+                    .as_deref()
+                    .is_some_and(|state| state != "orphaned")
+                {
+                    return self.project(
+                        &mut db,
+                        &JobObserveRequest {
+                            schema_version: 1,
+                            job_id: request.job_id.clone(),
+                            wait_ms: 0,
+                            wait_until: JobObserveWaitUntil::Terminal,
+                            stdout_tail_bytes: 4096,
+                            stderr_tail_bytes: 4096,
+                            stdout_offset: None,
+                            stderr_offset: None,
+                        },
+                    );
+                }
+            }
+        }
         let (a, _, _) = self.attempt(&mut db, &request.job_id)?;
         if !a.state.is_terminal() {
             fs::create_dir_all(&a.bundle_path).map_err(io)?;
