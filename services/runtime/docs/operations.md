@@ -46,6 +46,36 @@ Treat unhealthy service state, unresolved Registry conditions, held reservations
 
 Recover through Runtime reconciliation, documented repair or quarantine paths, explicit Workspace close/reclaim operations, and receipt-bound Git rollback. Never delete live state or redispatch ambiguous work as a substitute for diagnosis.
 
+## PostgreSQL backup recovery: verified isolated consumer path
+
+Prefer the already installed **pgBackRest + PostgreSQL 18**, not a new backup
+registry or a repeated logical-`pg_restore` rebuild of every Host search GIN
+index. As of 2026-11-15, production stanza `ordivon` had seven retained full
+backups. A fresh, never-used `/var/tmp` target recovered with pgBackRest
+`--type=immediate` in 59.6 seconds, and the isolated PostgreSQL server reached
+read-only SQL in another 10.8 seconds. These are measured trial durations,
+**not an end-to-end failover RTO or current-data RPO**.
+
+For an operator-owned isolated drill: confirm an adequate free-space budget,
+create and chown a distinct empty PGDATA and private Unix-socket directory,
+and inspect `pgbackrest info` as the PostgreSQL service user. Run existing
+`pgbackrest --stanza=ordivon --pg1-path=/isolated/pgdata --type=immediate restore`. Start the restored server using its **restored**
+`postgresql.conf`, an isolated socket and unique port, and no TCP listener.
+Crucially, retain recovery-critical source settings: the initial drill
+failed because its `max_connections=12` was below the primary WAL's `100`.
+With `max_connections=100` the original native PostgreSQL 18 WAL archive
+restored to consistency, `pg_is_in_recovery()` returned true, and read-only SQL
+confirmed Host 21, Harness 6 and Linux Runtime 16 application tables.
+Never disable authentication or expose the drill's socket to other users.
+
+Use native `pg_ctl -w stop`, then remove **only the verified exact drill
+directory** after checking no postmaster remains. Preserve failure logs until
+classified. An `immediate` recovery pauses at the earliest consistent point;
+it does not prove latest-time PITR, writer promotion, application-level
+correctness, external Agent effects or a failover service switch. Those require
+separate real-consumer acceptance. Production PGDATA, original WAL backup
+repository, qualified Runtime epoch and other Agents' Workspaces are untouched.
+
 ## PostgreSQL Runtime recovery branch qualification (source candidate)
 
 The opt-in PostgreSQL-native Runtime has TWO distinct conditions in its
