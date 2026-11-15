@@ -319,3 +319,14 @@ source_glob = "services/gateway/tests/native_rust_host_engagement_consumer.py"
 allowed_fragment = "platform/security/services/gateway-authzen"
 kind = "TEST_ONLY_OWNER_LOCATOR"
 contract_ref = "services/host/rust/docs/HOST_R7_MCP_ENGAGEMENT_CONSUMER_PROOF.md"
+
+# Security's own native OPA/HTTP consumer checks the Gateway PUBLIC read
+# surface as a test-only source contract. This grants no runtime API, policy
+# authority or private Python dependency to Security.
+[[seams]]
+from_owner = "security"
+to_owner = "gateway"
+source_glob = "platform/security/services/gateway-authzen/tests/test_gateway_host_delegation.py"
+allowed_fragment = "services/gateway/enforcement-surface.json"
+kind = "TEST_ONLY_PUBLIC_TOOL_SURFACE"
+contract_ref = "services/gateway/enforcement-surface.json"

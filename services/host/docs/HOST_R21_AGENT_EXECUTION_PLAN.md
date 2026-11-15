@@ -1,5 +1,7 @@
 # Host R2.1 Contract-Driven Execution — Implementation Plan
 
+> **Historical investigation — superseded contract.** This document records the earlier full-history incident and original options. Current Host authority is defined by README.md, work_queries.py, service.py, and native test_host_history_doctor_postgres.py: the CURRENT Work snapshot is mandatory; older historical revisions are optional retention, checked for integrity when present and never fabricated. The historical checklist below is not a current implementation or production release gate.
+
 > For agentic workers: adopt the already installed `obra-superpowers/writing-plans`, `matt-native/tdd`, `ecc-native/ai-regression-testing`, and `obra-superpowers/verification-before-completion`. Do not install a duplicate process framework. Execute each independent vertical slice with RED→GREEN and read the actual Owner test output.
 
 **Goal:** Improve Host's semantic continuity and historical evidence truth without allowing stale Work hygiene to terminate a real Goal.

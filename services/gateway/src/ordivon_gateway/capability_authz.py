@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
 import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
 from .execution_refs import GatewayError, parse_execution_ref
+from .ingress_identity import identity_from_state, request_state
 from .service import _SOCIAL_WORK_HOST_TOOLS
 
 
@@ -209,28 +211,6 @@ def _resolve_work_engagement_target(
 # in the single Gateway route registry is a write and REQUIRES Security PEP.
 # New Owner tools therefore fail closed by default instead of inheriting an
 # accidentally public state-changing route.
-_HOST_READ_ONLY_TOOLS = frozenset(
-    {
-        "host.status",
-        "work.get",
-        "work.list",
-        "space.get",
-        "space.list",
-        "space.participation.list",
-        "space.subject.list",
-        "topic.cursor.get",
-        "topic.list",
-        "topic.resume",
-        "message.search",
-        "message.relation.list",
-        "subscription.list",
-        "attention.get",
-        "attention.delta",
-        "attention.reentry",
-    }
-)
-
-
 # Authorization selectors are derived from the *actual* read interface. Extra
 # caller-supplied fields cannot impersonate an Actor or narrow an Owner query.
 # A query without a recognized object selector is explicitly global and
@@ -246,6 +226,7 @@ _HOST_READ_SELECTORS: dict[str, tuple[str, ...]] = {
     "topic.cursor.get": ("actorRef", "topicRef"),
     "topic.list": ("spaceRef",),
     "topic.resume": ("topicRef",),
+    "message.get": ("messageRef",),
     "message.search": ("spaceRef", "topicRef"),
     "message.relation.list": ("messageRef",),
     "subscription.list": ("actorRef",),
@@ -253,6 +234,9 @@ _HOST_READ_SELECTORS: dict[str, tuple[str, ...]] = {
     "attention.delta": ("actorRef",),
     "attention.reentry": ("actorRef",),
 }
+
+# Derive the Host read names from the semantic selectors actually enforced.
+_HOST_READ_ONLY_TOOLS = frozenset(_HOST_READ_SELECTORS)
 
 
 def _host_request_sha256(arguments: Mapping[str, Any], *, capability: str, action: str) -> str:
@@ -363,6 +347,67 @@ def _legacy_host_mutation_target(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class RuntimeReleaseAuthorizationTarget:
+    """Exact Linux Runtime release effect request; Security grants the operator action."""
+
+    capability: str
+    resource_id: str
+    attributes: Mapping[str, Any]
+
+    def authzen_resource(self) -> dict[str, Any]:
+        return {
+            "type": "ordivon.runtime.native-release-request",
+            "id": self.resource_id,
+            "properties": dict(self.attributes),
+        }
+
+
+def _runtime_release_target(
+    tool_name: str, arguments: Mapping[str, Any]
+) -> RuntimeReleaseAuthorizationTarget | None:
+    if tool_name != "runtime.release.apply":
+        return None
+    required = (
+        "requestId",
+        "workspaceId",
+        "commit",
+        "candidateManifestDigest",
+        "expectedToolCount",
+    )
+    if (
+        any(name not in arguments for name in required)
+        or any(
+            not isinstance(arguments[name], str) or not arguments[name] for name in required[:-1]
+        )
+        or type(arguments["expectedToolCount"]) is not int
+        or not 1 <= arguments["expectedToolCount"] <= 2**32 - 1
+        or len(arguments["requestId"].encode("utf-8")) > 256
+        or len(arguments["workspaceId"].encode("utf-8")) > 96
+        or not re.fullmatch(r"[a-f0-9]{40}", arguments["commit"])
+        or not re.fullmatch(r"sha256:[a-f0-9]{64}", arguments["candidateManifestDigest"])
+    ):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "Runtime release requires an exact request, Workspace, commit, manifest and Tool count.",
+            capability="runtime.release.linux",
+        )
+    identity = {name: arguments[name] for name in required}
+    raw = json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    digest = hashlib.sha256(raw).hexdigest()
+    return RuntimeReleaseAuthorizationTarget(
+        capability="runtime.release.linux",
+        resource_id="runtime-release:v1:" + digest,
+        attributes={
+            "identityContract": "ordivon.gateway-native-runtime-release-request.v1",
+            "nodeId": "linux-pg",
+            "ownerId": "runtime.linux",
+            "requestSha256": digest,
+            **identity,
+        },
+    )
+
+
 class CapabilityAuthorizationTargetError(ValueError):
     def __init__(self, code: str, message: str, *, capability: str | None = None) -> None:
         super().__init__(message)
@@ -372,7 +417,10 @@ class CapabilityAuthorizationTargetError(ValueError):
 
 AuthorizationTargetResolver = Callable[
     [str, Mapping[str, Any]],
-    CapabilityAuthorizationTarget | HostAccountabilityAuthorizationTarget | None,
+    CapabilityAuthorizationTarget
+    | HostAccountabilityAuthorizationTarget
+    | RuntimeReleaseAuthorizationTarget
+    | None,
 ]
 
 _RUNTIME_ARTIFACT_OWNERS = frozenset({"runtime.linux", "runtime.windows", "runtime.harness"})
@@ -419,7 +467,12 @@ def _validate_artifact_id(value: object) -> str:
 
 def resolve_authorization_target(
     tool_name: str, arguments: Mapping[str, Any]
-) -> CapabilityAuthorizationTarget | HostAccountabilityAuthorizationTarget | None:
+) -> (
+    CapabilityAuthorizationTarget
+    | HostAccountabilityAuthorizationTarget
+    | RuntimeReleaseAuthorizationTarget
+    | None
+):
     """Resolve the protected natural-owner object from trusted Gateway semantics.
 
     Tool name alone is insufficient: the operation reference must resolve to a
@@ -430,6 +483,9 @@ def resolve_authorization_target(
     engagement = _resolve_work_engagement_target(tool_name, arguments)
     if engagement is not None:
         return engagement
+    release = _runtime_release_target(tool_name, arguments)
+    if release is not None:
+        return release
     legacy_read = _legacy_host_read_target(tool_name, arguments)
     if legacy_read is not None:
         return legacy_read
@@ -471,15 +527,6 @@ def resolve_authorization_target(
         job_id=native_id,
         artifact_id=artifact_id,
     )
-
-
-def _request_state(ctx: ServerRequestContext[Any, Any]) -> dict[str, Any]:
-    request = ctx.request
-    scope = getattr(request, "scope", None)
-    if not isinstance(scope, dict):
-        return {}
-    state = scope.get("state")
-    return state if isinstance(state, dict) else {}
 
 
 def _error(code: str, message: str, *, capability: str | None) -> CallToolResult:
@@ -537,21 +584,16 @@ class GatewayCapabilityAuthorizationMiddleware:
 
         capability = target.capability
         resource = target.authzen_resource()
-        state = _request_state(ctx)
-        principal = state.get("ordivon_access_principal")
-        issuer = state.get("ordivon_access_issuer")
-        if (
-            not isinstance(principal, str)
-            or not principal
-            or not isinstance(issuer, str)
-            or not issuer
-        ):
+        state = request_state(ctx)
+        identity = identity_from_state(state)
+        if identity is None:
             return _error(
                 "CAPABILITY_AUTHZ_INGRESS_IDENTITY_MISSING",
                 "Protected capability requires verified ingress identity.",
                 capability=capability,
             )
 
+        principal, issuer = identity.principal, identity.issuer
         if self._authorizer is None:
             return _error(
                 "CAPABILITY_AUTHZ_UNAVAILABLE",

@@ -109,18 +109,37 @@ def test_live_mcp_sdk_surface_has_complete_reviewed_security_projection() -> Non
         )
         assert needs_verified_ingress(name) == (name not in PUBLIC_METADATA_TOOLS)
         assert entry["gatewayObjectPep"] == (
-            "runtime-artifact-authzen"
-            if name == "artifact.read"
+            "runtime-release-authzen"
+            if name == "runtime.release.apply"
             else (
-                "host-legacy-write-authzen"
-                if entry["routeOwner"] == "host" and entry["operation"] == "write"
+                "runtime-artifact-authzen"
+                if name == "artifact.read"
                 else (
-                    "host-legacy-read-authzen"
-                    if entry["routeOwner"] == "host" and entry["operation"] == "read"
-                    else "none"
+                    "host-legacy-write-authzen"
+                    if entry["routeOwner"] == "host" and entry["operation"] == "write"
+                    else (
+                        "host-legacy-read-authzen"
+                        if entry["routeOwner"] == "host" and entry["operation"] == "read"
+                        else "none"
+                    )
                 )
             )
         )
+        if entry["gatewayObjectPep"] == "runtime-release-authzen":
+            from ordivon_gateway.capability_authz import resolve_authorization_target
+
+            target = resolve_authorization_target(
+                "runtime.release.apply",
+                {
+                    "requestId": "verified-1",
+                    "workspaceId": "ws-1",
+                    "commit": "a" * 40,
+                    "candidateManifestDigest": "sha256:" + "b" * 64,
+                    "expectedToolCount": 26,
+                },
+            )
+            assert target is not None
+            assert target.capability == "runtime.release.linux"
         if entry["gatewayObjectPep"] == "host-legacy-write-authzen":
             # The projected evidence must be checked against the *actual*
             # application PEP contract, not only a manually classified JSON.

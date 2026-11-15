@@ -97,6 +97,10 @@ impl PgRuntime {
                     }
                 })
                 .unwrap_or_else(|_| ".".into());
+            let delivery = pg_delivery_disposition(
+                resolution.as_deref(),
+                finished.is_some() && r.get::<_, bool>(15),
+            );
             jobs.push(json!({
                 "jobId":r.get::<_,String>(0),
                 "operationDigest":r.get::<_,String>(1),
@@ -112,7 +116,7 @@ impl PgRuntime {
                 "startedAtMs":started,"finishedAtMs":finished,
                 "executionTerminal":resolution.is_some(),
                 "executionDisposition":resolution,
-                "deliveryDisposition":if finished.is_some(){"committed"}else{"in_progress"},
+                "deliveryDisposition":delivery,
                 "recoveryRequired":finished.is_none() && r.get::<_,Option<String>>(8).as_deref().is_some_and(|state| matches!(state,"starting"|"stopping"|"recovering")),
                 "semanticCompletionEvaluated":false,
                 "sourceRevision":plan.source_revision,

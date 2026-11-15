@@ -15,7 +15,7 @@ import sys
 
 import native_profile as native
 
-ROOT = Path(__file__).resolve().parents[2]
+NATIVE_PROFILE = Path(__file__).resolve().with_name("native_profile.py")
 PROXY = "http://10.252.246.2:19680"
 CONTAINER = "network-v2-gluetun-owned-r1"
 
@@ -94,7 +94,7 @@ def curl_business(url: str) -> tuple[bool, float]:
 
 def observe() -> dict[str, object]:
     # Source and installed/loaded admission is separate from current health.
-    run("/usr/bin/python3", str(ROOT / "providers/gluetun/native_profile.py"), "--verify")
+    run("/usr/bin/python3", str(NATIVE_PROFILE), "--verify")
     selected = native.read_selector_policy()
     allowed = native.parse_allowed_policy(native.ALLOW_POLICY.read_text())
     pid = run(

@@ -16,6 +16,8 @@ pub mod pg_admission;
 #[cfg(feature = "postgres-registry-admission")]
 mod pg_readback;
 #[cfg(feature = "postgres-registry-admission")]
+pub mod pg_windows_evidence;
+#[cfg(feature = "postgres-registry-admission")]
 pub use pg_readback::{PgJobReadback, PgJobSnapshot};
 #[cfg(feature = "transactional-runtime")]
 mod runtime;

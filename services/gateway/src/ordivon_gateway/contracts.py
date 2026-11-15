@@ -92,6 +92,47 @@ class CapabilityProjection(StrictModel):
     capabilities: list[CapabilityDescriptor]
 
 
+class RuntimeReleaseProjection(StrictModel):
+    """Natural Runtime receipt projection, not Gateway effect authority."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    contract: Literal["runtime_release_v1"]
+    effect_id: str = Field(alias="effectId")
+    client_request_id: str = Field(alias="clientRequestId")
+    job_id: str = Field(alias="jobId")
+    workspace_id: str = Field(alias="workspaceId")
+    commit: str
+    candidate_manifest_digest: str = Field(alias="candidateManifestDigest")
+    expected_tool_count: int = Field(alias="expectedToolCount", ge=1, le=2**32 - 1)
+    effect_disposition: Literal[
+        "admitted",
+        "in_progress",
+        "deployed",
+        "not_committed",
+        "rolled_back",
+        "reconciliation_required",
+    ] = Field(alias="effectDisposition")
+    effect_terminal: bool = Field(alias="effectTerminal")
+    receipt_available: bool = Field(alias="receiptAvailable")
+    receipt_digest: str | None = Field(default=None, alias="receiptDigest")
+    deployed_tool_count: int | None = Field(default=None, alias="deployedToolCount")
+    tool_catalog_digest: str | None = Field(default=None, alias="toolCatalogDigest")
+    rollback_status: str | None = Field(default=None, alias="rollbackStatus")
+    reconciliation_issue: str | None = Field(default=None, alias="reconciliationIssue")
+    attempt_state: str | None = Field(default=None, alias="attemptState")
+    execution_terminal: bool = Field(alias="executionTerminal")
+    execution_disposition: str | None = Field(default=None, alias="executionDisposition")
+    delivery_disposition: str = Field(alias="deliveryDisposition")
+    recovery_required: bool = Field(alias="recoveryRequired")
+    semantic_completion_evaluated: Literal[False] = Field(alias="semanticCompletionEvaluated")
+
+
+class RuntimeReleaseAdmission(StrictModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    replayed: bool
+    release: RuntimeReleaseProjection
+
+
 class ExecutionReceipt(StrictModel):
     schema_version: Literal[1] = 1
     kind: Literal["ordivon.gateway-execution-receipt"] = "ordivon.gateway-execution-receipt"

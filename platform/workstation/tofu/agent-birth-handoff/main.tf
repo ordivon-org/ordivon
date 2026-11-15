@@ -364,12 +364,15 @@ resource "cloudflare_dns_record" "handoff" {
 resource "cloudflare_dns_record" "gateway_mcp" {
   zone_id = local.production_zone_id
   name    = local.gateway.hostname
-  content = "${local.native_tunnel_id}.cfargotunnel.com"
+  # Keep the active Gateway on the verified production WSL origin.
+  # The Windows native origin at :19000 is not yet reachable; switching DNS
+  # to it is a separate future release after a real MCP/Agent canary.
+  content = "${local.production_tunnel_id}.cfargotunnel.com"
   type    = "CNAME"
   ttl     = 1
   proxied = true
 
-  # The native route must exist before the stable hostname can move to the Windows carrier.
+  # Keep the native route staged without cutting the active Gateway CNAME over.
   depends_on = [
     cloudflare_zero_trust_tunnel_cloudflared_config.production,
     cloudflare_zero_trust_tunnel_cloudflared_config.native,

@@ -2754,6 +2754,33 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
         final_observation["structuredContent"]["resultAvailable"],
         false
     );
+    // Real systemd Runner death produces a durable PG control terminal but
+    // no Runner result. This is the native R4 counterexample consumed by
+    // Gateway and Harness: this test qualifies Runtime's projection only.
+    assert_eq!(
+        final_observation["structuredContent"]["deliveryDisposition"], "unknown",
+        "mechanical PG convergence is not execution result delivery: {final_observation}"
+    );
+    assert_eq!(
+        final_observation["structuredContent"]["recoveryRequired"], false,
+        "the native cgroup is quiescent; result uncertainty is independent of control recovery"
+    );
+    let listed = call(
+        &endpoint,
+        "job.list",
+        json!({"clientRequestId":"pg-failed-transient-exact-runner","limit":2}),
+    );
+    assert_ne!(listed["isError"], true, "{listed}");
+    let rows = listed["structuredContent"]["jobs"].as_array().unwrap();
+    assert_eq!(
+        rows.len(),
+        1,
+        "the original Job must have one exact owner identity"
+    );
+    assert_eq!(rows[0]["jobId"], job_id);
+    assert_eq!(rows[0]["executionDisposition"], "lost");
+    assert_eq!(rows[0]["deliveryDisposition"], "unknown", "{listed}");
+    assert_eq!(rows[0]["resultAvailable"], false, "{listed}");
     assert!(
         !PathBuf::from(&bundle).join("result.json").exists(),
         "this case specifically requires OS-only recovery"
@@ -3225,6 +3252,10 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         assert_eq!(
             observed["structuredContent"]["resultAvailable"], false,
             "OS-only LOST terminal must not advertise a Runner result: {observed}"
+        );
+        assert_eq!(
+            observed["structuredContent"]["deliveryDisposition"], "unknown",
+            "a native-stop Artifact cannot convert LOST into a delivered Runner result: {observed}"
         );
         assert!(
             observed["structuredContent"]["artifacts"]

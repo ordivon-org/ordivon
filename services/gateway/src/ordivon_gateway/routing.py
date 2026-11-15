@@ -64,6 +64,28 @@ def default_routes() -> dict[str, CapabilityRoute]:
             execution_target="windows_native",
             default_context="limited",
         ),
+        # Discover the native Linux ReleaseEffect without confusing it with
+        # execution.linux.  Observation is NOT a Security grant, and the MCP
+        # tool/installed service remains separately discoverable.
+        CapabilityRoute(
+            capability="runtime.release.linux",
+            owner_id="runtime.linux",
+            category="release",
+            owner_tool="release.apply",
+            context_mode="none",
+            truth_boundary=(
+                "Runtime owns qualified PG ReleaseEffect, operator install, "
+                "receipt and the original clientRequestId. Security owns "
+                "release authorization; Gateway only forwards native MCP."
+            ),
+            description=(
+                "Find the Linux Runtime structured release route; actual "
+                "runtime.release.apply/get requires an installed Gateway Tool, "
+                "authenticated operator AuthZEN grant and qualified Runtime candidate."
+            ),
+            tags=("release", "runtime", "linux", "deploy", "operator", "effect"),
+            execution_target="local_linux",
+        ),
         CapabilityRoute(
             capability="continuity.external",
             owner_id="host",

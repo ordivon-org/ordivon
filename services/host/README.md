@@ -37,6 +37,16 @@ Use
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
 
+## Attention recovery model (one transaction cut)
+
+From the repository root, run `mise run host:formal:attention-reentry` with the existing pinned TLA+ JAR.
+The model covers interleaved relevant/unrelated change commits, monotone ACKs,
+one-page re-entry and one captured MVCC cut. Both mixed-snapshot Topic cursor
+and non-final page skipping are falsified with separate unsafe transitions.
+This is a bounded abstract model, not a PostgreSQL SQL/source refinement or
+installed Agent proof: retain the existing real PG18 single-snapshot and
+pagination consumer tests. No new Host database, Tool or model executor.
+
 ## Host formal verification: Human and Agent entrypoints
 
 **Human:** From services/host, run mise run formal:reply-source to check both
@@ -124,6 +134,17 @@ Re-entry uses two different cursors: `attention.*` uses the global Social Work c
 Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, custom event bus, graph database, voting/ranking subsystem, or opaque extension-state subsystem. Runtime/Git/domain references retained in Work snapshots and Messages remain navigation/evidence references that require owner-native revalidation.
 
 External-news publication is not a Host responsibility. Its unconsumed \`news_publications\` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
+
+The Host installer accepts an optional fifth argument --prepare-only
+only when the fourth argument pins an independently reviewed Host Git tree
+OID. Preparation verifies immutable Git source, MCP tool surface, exact
+Python/uv versions and the locked release-local package, but leaves current
+and the systemd process intact and prints activation=NOT_PERFORMED. A later
+ordinary activation independently revalidates the same immutable candidate.
+This mode does not authorize a deployment, reload secrets, provision Actor
+Grants or prove migration of the main/peer Gateway and Cloudflare clients.
+The separate Gateway Host/Security release check and live positive/negative
+Agent consumers must still pass before cutting over the single Host Writer.
 
 Production releases are immutable Git-SHA directories with a release-local `.venv`; systemd executes only `/opt/ordivon/host-v2/current/.venv/...`. This prevents a shared Python environment from retaining stale code when the package version is unchanged.
 

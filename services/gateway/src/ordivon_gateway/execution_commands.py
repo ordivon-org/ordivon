@@ -7,7 +7,12 @@ from .contracts import (
 )
 from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
-from .owner_protocol import _required_bool, _required_str
+from .owner_protocol import (
+    _owner_optional_disposition,
+    _owner_receipt_state,
+    _required_bool,
+    _required_str,
+)
 from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
 
@@ -106,13 +111,9 @@ class ExecutionCommandMethods:
             capability=capability,
             owner_id=route.owner_id,
             native_id=native_id,
-            state=str(result.get("status", result.get("attemptState", "unknown"))),
+            state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=(
-                str(result["deliveryDisposition"])
-                if result.get("deliveryDisposition") is not None
-                else None
-            ),
+            delivery_disposition=_owner_optional_disposition(result, "deliveryDisposition"),
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
@@ -135,11 +136,7 @@ class ExecutionCommandMethods:
             ),
             owner_id=owner_id,
             native_id=observed_native_id,
-            state=str(result.get("status", "unknown")),
+            state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=(
-                str(result["deliveryDisposition"])
-                if result.get("deliveryDisposition") is not None
-                else None
-            ),
+            delivery_disposition=_owner_optional_disposition(result, "deliveryDisposition"),
         )

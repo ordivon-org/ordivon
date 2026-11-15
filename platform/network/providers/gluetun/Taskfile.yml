@@ -5,6 +5,7 @@ tasks:
     desc: Validate existing Quadlet-owned single-session provider and recovery lifecycle without effects
     cmds:
       - bash -n providers/gluetun/identity-exclusive.sh
+      - python3 providers/gluetun/native_bundle.py --validate
       - python3 -c 'import ast; ast.parse(open("providers/gluetun/native_profile.py").read())'
       - python3 -c 'import importlib.util; s=importlib.util.spec_from_file_location("native", "providers/gluetun/native_profile.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.read_selector_policy()'
       - grep -q '^Environment=WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
@@ -90,6 +91,7 @@ tasks:
     deps: [provider:gluetun:validate]
     cmds:
       - python3 providers/gluetun/native_profile.py --verify
+      - python3 providers/gluetun/native_bundle.py --verify
       - task provider:gluetun:dns-dot-upstreams
       - task provider:gluetun:dns-consumer
       - cmp -s providers/gluetun/identity-exclusive.sh /usr/local/libexec/network-v2/provider-identity-exclusive
@@ -132,6 +134,21 @@ tasks:
     desc: Prove installed native Gluetun role bytes without claiming process readback
     cmds:
       - python3 providers/gluetun/auth_profile.py --verify
+
+  provider:gluetun:native-bundle:validate:
+    desc: Source-only proof that the existing native systemd timer consumes one Gluetun recovery script
+    cmds:
+      - python3 providers/gluetun/native_bundle.py --validate
+
+  provider:gluetun:native-bundle:install:
+    desc: Materialize tested nonsecret Gluetun recovery source into existing systemd timer without restarting Provider
+    cmds:
+      - python3 providers/gluetun/native_bundle.py --install
+
+  provider:gluetun:native-bundle:verify:
+    desc: Compare source and installed Python configuration files and require loaded systemd ExecStartPost
+    cmds:
+      - python3 providers/gluetun/native_bundle.py --verify
 
   provider:gluetun:native-control-preflight:
     desc: One-shot read-only authorization/SourceCut probe for Gluetun official settings GET; never exposes secret or changes tunnel

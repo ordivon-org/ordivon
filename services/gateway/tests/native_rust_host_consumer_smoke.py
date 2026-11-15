@@ -58,13 +58,19 @@ async def consume_owner(url: str, child: subprocess.Popen) -> None:
                 await asyncio.sleep(0.15)
         async with Client(build_server(gateway), raise_exceptions=False) as agent:
             registered = {tool.name for tool in (await agent.list_tools()).tools}
-            # Gateway is intentionally a thinner 29-tool Host projection; the
-            # versioned Work engagement extension has not been installed here.
-            assert {"work.get", "host.status", "space.list", "topic.resume"} <= registered
+            # The original Host business projection includes message.get on
+            # current Gateway main. Rust-only Engagement remains discoverable
+            # only on the separately verified HTTP+PDP candidate surface.
+            assert {
+                "work.get",
+                "host.status",
+                "space.list",
+                "topic.resume",
+                "message.get",
+            } <= registered
             assert "work.engagement.advance" not in registered
             assert "work.engagement.list" not in registered
             assert "host.pool.stats" not in registered
-            assert "message.get" not in registered
 
             async def roundtrip(name: str, args: dict) -> dict:
                 expected = await owner.call_tool("host", name, args)
@@ -108,6 +114,25 @@ async def consume_owner(url: str, child: subprocess.Popen) -> None:
                 {"topicRef": "topic:test:rust-mcp-social", "afterSequence": 0},
             )
             assert len(topic["messages"]) >= 2
+            # The new mainline Gateway message.get is a real Agent evidence
+            # consumer. Preserve the exact persisted bytes and digest across
+            # Rust Host HTTP -> Gateway upstream -> Agent MCP.
+            observed_message = topic["messages"][0]
+            message_ref = observed_message["messageRef"]
+            digest = observed_message["messageDigest"]
+            exact = await roundtrip(
+                "message.get", {"messageRef": message_ref, "expectedDigest": digest}
+            )
+            assert exact["messageRef"] == message_ref
+            assert exact["messageDigest"] == digest
+            mismatched = await agent.call_tool(
+                "message.get",
+                {"messageRef": message_ref, "expectedDigest": "sha256:" + "0" * 64},
+            )
+            assert mismatched.is_error, mismatched
+            mismatch_error = mismatched.structured_content
+            assert isinstance(mismatch_error, dict)
+            assert mismatch_error.get("error", {}).get("code") == "CONFLICT", mismatch_error
 
             missing = await agent.call_tool(
                 "work.get",
@@ -127,7 +152,7 @@ async def consume_owner(url: str, child: subprocess.Popen) -> None:
             print(
                 "GATEWAY_REAL_RUST_OWNER_CONSUMER_PASS"
                 " sdk_gateway=true sdk_upstream=true rust_http=true"
-                " actual_payloads=4 typed_missing=1"
+                " actual_payloads=5 typed_missing=1 digest_mismatch=denied"
                 " installed_gateway=false production_effect=false",
                 flush=True,
             )

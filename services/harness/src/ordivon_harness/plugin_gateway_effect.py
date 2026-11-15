@@ -504,7 +504,27 @@ class GatewayMcpRuntimeAdapter:
         terminal = _gateway_field(observed, "terminal", "terminal")
         if not isinstance(terminal, bool):
             raise HarnessRuntimeClientError("Gateway observation omitted terminal")
+        # A terminal Job alone cannot establish that the observation belongs
+        # to this Agent's granted Workspace. Reuse the existing Gateway
+        # execution.resolve / Runtime job.list source-owned identity witness;
+        # do NOT change Gateway's frozen MCP public schema or invent a lease.
+        binding_confirmed = True
+        if terminal:
+            qualified = self._resolve(
+                {
+                    "clientRequestId": request_id,
+                    "workspaceId": self.grant.workspace_id,
+                }
+            )
+            matches = qualified["jobs"]
+            binding_confirmed = bool(matches)
+            if matches and matches[0]["jobId"] != native_id:
+                raise HarnessRuntimeClientError(
+                    "Gateway terminal observation conflicts with Runtime request/Workspace identity"
+                )
         delivery = _gateway_delivery_disposition(observed)
+        if terminal and not binding_confirmed:
+            delivery = "reconciliation_required"
         disposition = _gateway_field(observed, "execution_disposition", "executionDisposition")
         if disposition is not None and not isinstance(disposition, str):
             raise HarnessRuntimeClientError("Gateway executionDisposition is invalid")
@@ -513,6 +533,8 @@ class GatewayMcpRuntimeAdapter:
             recovery = False
         if not isinstance(recovery, bool):
             raise HarnessRuntimeClientError("Gateway recoveryRequired is invalid")
+        if terminal and not binding_confirmed:
+            recovery = True
         artifact_ids = _gateway_field(observed, "artifact_ids", "artifactIds")
         if artifact_ids is None:
             artifact_ids = []
@@ -541,10 +563,16 @@ class GatewayMcpRuntimeAdapter:
                 raise HarnessRuntimeClientError(
                     "Gateway artifact count differs from exact artifact identities"
                 )
+        # Gateway's artifact_projection_complete proves the *listed artifact
+        # identities*, not existence of an original Runner execution_result.
+        # In particular LOST + unknown + native_stop_evidence is NOT an
+        # available Runner result. Do not synthesize one from an unknown
+        # delivery label; the original native Owner remains the readback path.
         result_available = (
             terminal
             and not recovery
-            and (delivery == "unknown" or (delivery == "committed" and projection_complete is True))
+            and delivery == "committed"
+            and projection_complete is True
         )
         return {
             "jobId": native_id,

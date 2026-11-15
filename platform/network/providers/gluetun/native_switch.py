@@ -84,17 +84,24 @@ def selected_snapshot(raw: dict, allowed: set[str]) -> dict:
         raise ValueError("Unexpected VPN provider")
     s = provider.get("server_selection", {})
     countries = s.get("countries")
-    if not isinstance(countries, list) or not countries or any(
-        not isinstance(c, str) or c not in allowed or c == "Hong Kong"
-        for c in countries
-    ):
+    if not isinstance(countries, list) or not countries:
+        raise ValueError("Gluetun control country selection violates policy")
+    # Official Gluetun v3.41.3 lowercases source SERVER_COUNTRIES in its
+    # GET /v1/vpn/settings output. Compare with a case-folded permission map,
+    # but always return canonical source names for PUT and rollback.
+    canonical_names = {name.casefold(): name for name in allowed}
+    if len(canonical_names) != len(allowed):
+        raise ValueError("Ambiguous allowed countries after case normalization")
+    if any(not isinstance(c, str) or not c or c.casefold() not in canonical_names
+           or c.casefold() == "hong kong" for c in countries):
         raise ValueError("Gluetun control country selection violates policy")
     if any(s.get(field) for field in ("regions", "cities", "hostnames", "names",
                                      "isps", "numbers")):
         raise ValueError("Unexpected other native server selection filters")
-    if len(countries) != len(set(countries)):
+    canonical = [canonical_names[c.casefold()] for c in countries]
+    if len(canonical) != len(set(canonical)):
         raise ValueError("Duplicate native selected country")
-    return {"countries": list(countries), "vpn": raw.get("type"), "provider": provider.get("name")}
+    return {"countries": canonical, "vpn": raw.get("type"), "provider": provider.get("name")}
 
 
 def internal_http(method: str) -> int:
@@ -188,7 +195,37 @@ def initial_preflight() -> dict:
             "forbiddenCountrySelected": False, "effectAttempted": False}
 
 
+def bounded_consumer_observe(seconds: int = 25) -> dict[str, object]:
+    """Real user traffic check with a hard wall clock bound during outages.
+
+    A hung TLS origin cannot consume an unlimited portion of the original
+    systemd one'shot timeout and prevent native settings restoration.
+    """
+    try:
+        receipt = subprocess.run(
+            ["/usr/bin/python3", str(Path(__file__).resolve().with_name("observe_active.py"))],
+            capture_output=True, text=True, timeout=seconds,
+        )
+        data = json.loads(receipt.stdout)
+        if not isinstance(data, dict) or not isinstance(data.get("standing"), str):
+            raise ValueError("Unrecognized native consumer observation")
+        return data
+    except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
+        return {"standing": "UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"}
+
+
 def guarded_recover() -> dict:
+    # An existing Prometheus 3-lane Blackbox witness is a much cheaper trigger
+    # than resampling a fully healthy VPN every two-minute systemd invocation.
+    # Only three observed failures in all lanes justify the slower real checks.
+    try:
+        recent = quality.recent_failure_witness(datetime.now(timezone.utc))
+    except (OSError, ValueError):
+        recent = None
+    if recent is not True:
+        return {"standing": ("HOLD_CONSUMER_HEALTHY_OR_PARTIAL" if recent is False
+                             else "HOLD_CONSUMER_OBSERVATION_UNKNOWN"),
+                "effectAttempted": False}
     # A one-shot guarded native settings change, not a second autonomous
     # provider or an unconditional "speed optimization" when users are healthy.
     allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
@@ -196,19 +233,25 @@ def guarded_recover() -> dict:
     outcome = plan["recommended"]
     if outcome["decision"] != "TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF":
         return {"standing": outcome["decision"], "effectAttempted": False}
-    chosen = outcome["trialCountry"]
-    patch = country_patch(chosen, allowed)
+    # Keep only two distinct, verified historical countries. A failed
+    # first candidate must not permanently starve the next successful one.
+    countries = outcome.get("trialCountries") or [outcome["trialCountry"]]
+    chosen_countries = []
+    for country in countries:
+        country_patch(country, allowed)  # policy and HK rejection, no API call
+        if country not in chosen_countries:
+            chosen_countries.append(country)
+        if len(chosen_countries) == 2:
+            break
     initial_preflight()
     current = selected_snapshot(api_call("GET"), allowed)
     previous = current["countries"]
-    if previous == [chosen]:
+    chosen_countries = [c for c in chosen_countries if previous != [c]]
+    if not chosen_countries:
         return {"standing": "HOLD_ALREADY_SELECTED", "effectAttempted": False}
     # A previous failure cannot justify a fresh global cutover if the user
     # consumer is already healthy again. Revalidate immediately at effect edge.
-    try:
-        active = observer.observe()
-    except (OSError, ValueError, subprocess.SubprocessError):
-        active = {"standing": "UNKNOWN_CONSUMER_PROBE_INCOMPLETE"}
+    active = bounded_consumer_observe(seconds=25)
     if active.get("standing") == "QUALIFIED_ACTIVE_SAMPLE":
         return {"standing": "HOLD_CONSUMER_RECOVERED", "effectAttempted": False}
     if quality.recent_failure_witness(datetime.now(timezone.utc)) is not True:
@@ -218,41 +261,58 @@ def guarded_recover() -> dict:
         return {"standing": "HOLD_COOLDOWN", "effectAttempted": False}
     started = time.monotonic()
     switched = False
+    trials: list[dict[str, object]] = []
     try:
         mark_attempt()
-        switched = True  # a timed-out native PUT might still be applied
-        api_call("PUT", patch)
-        if selected_snapshot(api_call("GET"), allowed)["countries"] != [chosen]:
-            raise ValueError("Native Gluetun settings did not adopt requested candidate")
-        # Exact trial effect is checked by new real tunnel and real business
-        # origin, not only by HTTP 200 from the API.
-        while time.monotonic() - started < 85:
+        for country in chosen_countries:
+            # Per-country wait is bounded, so a dead former preferred country
+            # cannot monopolize this 3-minute systemd recovery invocation.
+            # A slow candidate is not a certified hot standby.
+            if time.monotonic() - started >= 118:
+                break
+            trial_started = time.monotonic()
             try:
-                checked = observer.observe()
-                if checked.get("standing") == "QUALIFIED_ACTIVE_SAMPLE" and (
-                    checked.get("currentCatalogCountry") == chosen
-                ):
-                    return {
-                        "standing": "NATIVE_SWITCH_CONSUMED", "country": chosen,
-                        "recoverySeconds": round(time.monotonic()-started, 1),
-                        "effectAttempted": True, "sourceRuntimeOverride": True,
-                    }
-            except (OSError, ValueError, subprocess.SubprocessError):
-                pass
-            time.sleep(6)
-        raise ValueError("New country did not pass real provider and consumer acceptance")
+                switched = True  # a timed-out PUT might still be applied
+                api_call("PUT", country_patch(country, allowed))
+                if selected_snapshot(api_call("GET"), allowed)["countries"] != [country]:
+                    raise ValueError("Native settings did not adopt requested candidate")
+                # The full provider proof includes kernel endpoint + 2 real
+                # TLS/HTTP consumers, not only the control-plane HTTP 200.
+                while time.monotonic() - trial_started < 43:
+                    try:
+                        checked = bounded_consumer_observe(seconds=20)
+                        if (checked.get("standing") == "QUALIFIED_ACTIVE_SAMPLE"
+                                and checked.get("currentCatalogCountry") == country):
+                            return {
+                                "standing": "NATIVE_SWITCH_CONSUMED",
+                                "country": country,
+                                "countriesTried": [x["country"] for x in trials] + [country],
+                                "recoverySeconds": round(time.monotonic()-started, 1),
+                                "effectAttempted": True, "sourceRuntimeOverride": True,
+                            }
+                    except (OSError, ValueError, subprocess.SubprocessError):
+                        pass
+                    if time.monotonic() - trial_started < 43:
+                        time.sleep(3)
+                trials.append({"country": country, "standing": "TRIAL_UNQUALIFIED"})
+            except (OSError, ValueError, subprocess.SubprocessError) as exc:
+                trials.append({"country": country, "standing": "TRIAL_UNKNOWN",
+                               "reasonClass": type(exc).__name__})
+        raise ValueError("No recent-success candidate passed live business acceptance")
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
-        # Return to the previous native selection; this is a selection rollback,
-        # not a guarantee that the original endpoint IP or TCP sessions survive.
+        # Never claim a working old session simply because PUT was accepted.
+        # Verify the old *filter* was restored via authorized API readback.
         rollback = "NOT_NEEDED"
         if switched:
             try:
                 api_call("PUT", {"provider": {"server_selection": {"countries": previous}}})
-                rollback = "REQUESTED"
+                check = selected_snapshot(api_call("GET"), allowed)["countries"]
+                rollback = ("SELECTION_READBACK_VERIFIED" if check == previous
+                            else "READBACK_MISMATCH")
             except (OSError, ValueError, subprocess.SubprocessError):
-                rollback = "FAILED"
+                rollback = "UNKNOWN_OR_FAILED"
         return {"standing": "NATIVE_SWITCH_FAILED", "reasonClass": type(exc).__name__,
-                "rollback": rollback, "effectAttempted": switched}
+                "trials": trials, "rollback": rollback, "effectAttempted": switched}
 
 
 def main() -> int:
@@ -274,8 +334,16 @@ def main() -> int:
             result = {"standing": "HOLD_NATIVE_API_NOT_READY",
                       "reasonClass": type(e).__name__, "effectAttempted": False}
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY",
-                                      "NATIVE_SWITCH_CONSUMED") else 1
+    # Healthy/unknown hold is a successful NO-OP decision, not a service
+    # failure. Auth/effect failure remains nonzero for native systemd callers.
+    if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY", "NATIVE_SWITCH_CONSUMED"):
+        return 0
+    if args.recover and result.get("effectAttempted") is False and (
+        result["standing"].startswith("HOLD_")
+        and result["standing"] != "HOLD_NATIVE_API_NOT_READY"
+    ):
+        return 0
+    return 1
 
 
 if __name__ == "__main__":
