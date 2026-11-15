@@ -172,7 +172,7 @@ fn resolve_workspace_write_path(
 
 fn resolve_git_commit(repo: &Path, source_revision: &str) -> Result<String, UniversalExecError> {
     let revision_spec = format!("{source_revision}^{{commit}}");
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(repo)
@@ -181,7 +181,7 @@ fn resolve_git_commit(repo: &Path, source_revision: &str) -> Result<String, Univ
         .output()
         .map_err(|error| tool_unavailable("git", error))?;
     if !output.status.success() {
-        let repository_probe = Command::new("git")
+        let repository_probe = workspace_git_command()
             .arg("--no-optional-locks")
             .arg("-C")
             .arg(repo)
@@ -222,7 +222,7 @@ fn git_output<'a>(
     repo: &Path,
     args: impl IntoIterator<Item = &'a str>,
 ) -> Result<String, UniversalExecError> {
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(repo)
@@ -291,7 +291,7 @@ fn git_output_bytes<'a>(
     repo: &Path,
     args: impl IntoIterator<Item = &'a str>,
 ) -> Result<Vec<u8>, UniversalExecError> {
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(repo)
@@ -310,7 +310,7 @@ fn remove_git_worktree(
     workspace: &Path,
     force: bool,
 ) -> Result<(), UniversalExecError> {
-    let mut command = Command::new("git");
+    let mut command = workspace_git_command();
     command
         .arg("-C")
         .arg(source_repo)

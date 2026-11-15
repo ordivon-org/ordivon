@@ -790,7 +790,7 @@ fn try_create_rescue_ref_if_absent(
     reference: &str,
     final_head: &str,
 ) -> Result<std::process::Output, UniversalExecError> {
-    Command::new("git")
+    workspace_git_command()
         .arg("-C")
         .arg(git_root)
         .args(["update-ref", reference, final_head, ""])
@@ -810,7 +810,7 @@ fn ensure_rescue_ref(
     }
     // A simultaneous closure may have won the creation transaction. Accept
     // only the exact same immutable HEAD; never turn a losing CAS into a write.
-    let existing = Command::new("git")
+    let existing = workspace_git_command()
         .arg("-C")
         .arg(git_root)
         .args(["rev-parse", "--verify", "--quiet", &reference])
@@ -888,7 +888,7 @@ fn remove_registered_workspace_with_broken_metadata(
         }
     }
 
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("-C")
         .arg(source_repo)
         .args(["worktree", "prune", "--expire", "now"])
@@ -915,7 +915,7 @@ fn registered_workspace_head(
     if !source_repo.is_dir() {
         return Ok(None);
     }
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("-C")
         .arg(source_repo)
         .args(["worktree", "list", "--porcelain"])
@@ -957,7 +957,7 @@ fn recover_missing_workspace_head(
         return Ok(None);
     }
     let rescue_ref = format!("refs/ordivon/closed/{}", record.workspace_id);
-    let rescued = Command::new("git")
+    let rescued = workspace_git_command()
         .arg("-C")
         .arg(source_repo)
         .args(["rev-parse", "--verify", "--quiet", &rescue_ref])
@@ -975,7 +975,7 @@ fn recover_missing_workspace_head(
                 )
             });
     }
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("-C")
         .arg(source_repo)
         .args(["worktree", "list", "--porcelain"])
@@ -1018,7 +1018,7 @@ fn remove_git_worktree_from_workspace(
         ["rev-parse", "--path-format=absolute", "--git-common-dir"],
     )?;
     let common_dir = PathBuf::from(common_dir.trim());
-    let mut command = Command::new("git");
+    let mut command = workspace_git_command();
     command
         .arg("--git-dir")
         .arg(common_dir)
@@ -1042,7 +1042,7 @@ mod rescue_ref_atomicity_tests {
     use super::*;
 
     fn git(root: &Path, args: &[&str]) -> String {
-        let output = Command::new("git")
+        let output = workspace_git_command()
             .arg("-C")
             .arg(root)
             .args(args)

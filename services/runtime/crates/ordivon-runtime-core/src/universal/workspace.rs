@@ -95,6 +95,19 @@ struct WorkspaceSourceEntry {
     digest: String,
 }
 
+// A Git subprocess must use its explicit -C repository, never a foreign
+// repository/object store inherited from an Agent's ambient environment.
+// Keep PATH/HOME and other non-Git tool settings; no separate Git authority.
+fn workspace_git_command() -> Command {
+    let mut command = Command::new("git");
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+}
+
 include!("workspace/records.rs");
 include!("workspace/file_io.rs");
 include!("workspace/changes.rs");
@@ -106,6 +119,82 @@ include!("workspace/paths_git.rs");
 mod bounded_output_tests {
     use super::*;
     use std::time::{Duration, Instant};
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn workspace_owner_git_env_isolation() {
+        fn clean_git(repo: &Path, args: &[&str]) -> String {
+            let output = Command::new("/usr/bin/git")
+                .env_clear()
+                .arg("-C")
+                .arg(repo)
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8(output.stdout).unwrap().trim().to_string()
+        }
+
+        fn init_clean_repo(repo: &Path) -> String {
+            fs::create_dir_all(repo).unwrap();
+            clean_git(repo, &["init", "-q"]);
+            clean_git(repo, &["config", "user.name", "Git Boundary Test"]);
+            clean_git(
+                repo,
+                &["config", "user.email", "git-boundary@example.invalid"],
+            );
+            fs::write(repo.join("marker"), repo.to_string_lossy().as_bytes()).unwrap();
+            clean_git(repo, &["add", "marker"]);
+            clean_git(repo, &["commit", "-qm", "owner Git commit"]);
+            clean_git(repo, &["rev-parse", "HEAD"])
+        }
+
+        if std::env::var_os("ORDIVON_GIT_TEST_CHILD").is_none() {
+            let temp = tempfile::tempdir().unwrap();
+            let foreign = temp.path().join("foreign");
+            init_clean_repo(&foreign);
+            let test_name =
+                "universal::workspace::bounded_output_tests::workspace_owner_git_env_isolation";
+            let executable = std::env::current_exe().unwrap();
+            for (key, value) in [
+                ("GIT_DIR", foreign.join(".git")),
+                ("GIT_OBJECT_DIRECTORY", foreign.join(".git/objects")),
+            ] {
+                let output = Command::new(&executable)
+                    .args(["--exact", test_name, "--nocapture"])
+                    .env("ORDIVON_GIT_TEST_CHILD", "1")
+                    .env(key, value)
+                    .output()
+                    .unwrap();
+                assert!(
+                    output.status.success()
+                        && String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+                    "{key}: stdout={} stderr={}",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+            return;
+        }
+
+        let temp = tempfile::tempdir().unwrap();
+        let owner = temp.path().join("owner");
+        let owner_head = init_clean_repo(&owner);
+        // Every Owner-native Git query must follow -C owner rather than the
+        // unrelated environment-level Git repository/object store.
+        assert_eq!(resolve_git_commit(&owner, &owner_head).unwrap(), owner_head);
+        let (status_head, _, dirty) = workspace_head_and_dirty_at(&owner).unwrap();
+        assert_eq!(status_head, owner_head);
+        assert!(!dirty);
+        assert_eq!(
+            git_output(&owner, ["rev-parse", "HEAD"]).unwrap().trim(),
+            owner_head
+        );
+    }
 
     #[test]
     fn bounded_command_stdout_stops_after_one_byte_beyond_budget() {

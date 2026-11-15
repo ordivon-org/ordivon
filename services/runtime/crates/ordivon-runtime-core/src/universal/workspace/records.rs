@@ -164,7 +164,7 @@ pub(crate) fn create_git_workspace_record(
                 return Err(unfinished_open_error("Git still registers an absent worktree"));
             }
         }
-        let output = Command::new("git")
+        let output = workspace_git_command()
             .arg("-C")
             .arg(&source_repo)
             .args(["worktree", "add", "--detach"])
