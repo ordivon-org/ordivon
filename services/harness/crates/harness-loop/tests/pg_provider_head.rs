@@ -216,14 +216,12 @@ impl DurableJournal for SourcePgUnknownJournal {
             u64::try_from(self.batch[0].recorded_at_ms).map_err(|e| e.to_string())?,
         )
         .map_err(|e| format!("{e:?}"))?;
-        let claim_ref = put_provider_cas(
-            &mut db,
-            &self.schema,
-            ProviderCasKind::RecordV4,
-            &claimed,
-            self.batch[0].recorded_at_ms,
-        )
-        .map_err(|e| e.to_string())?;
+        // Pure original Python oracle is an expectation only; no metadata
+        // CAS is pre-stored outside the current Run's source PG Event TX.
+        let claim_ref = expected_ref(&self.batch[0], "harness-provider-call-record")?.clone();
+        if claim_ref.digest != digest_bytes(&canonical_bytes(&claimed)) {
+            return Err("native claimed V4 bytes differ from original Python source".into());
+        }
         if &claim_ref != expected_ref(&self.batch[0], "harness-provider-call-record")? {
             return Err("Rust V4 claimed bytes differ from independent Python source".into());
         }
@@ -235,19 +233,16 @@ impl DurableJournal for SourcePgUnknownJournal {
             u64::try_from(self.batch[1].recorded_at_ms).map_err(|e| e.to_string())?,
         )
         .map_err(|e| format!("{e:?}"))?;
-        let dispatch_ref = put_provider_cas(
-            &mut db,
-            &self.schema,
-            ProviderCasKind::RecordV4,
-            &dispatching,
-            self.batch[1].recorded_at_ms,
-        )
-        .map_err(|e| e.to_string())?;
+        let dispatch_ref = expected_ref(&self.batch[1], "harness-provider-call-record")?.clone();
+        if dispatch_ref.digest != digest_bytes(&canonical_bytes(&dispatching)) {
+            return Err("native dispatch V4 bytes differ from original Python source".into());
+        }
         if &dispatch_ref != expected_ref(&self.batch[1], "harness-provider-call-record")? {
             return Err("Rust V4 dispatch bytes differ from independent Python source".into());
         }
-        // Only after the CAS witnesses exist, obtain a live PG lease and
-        // commit the exact two Event transitions before physical HTTP.
+        // No standalone V4 CAS writes. Obtain a live original PG lease and
+        // atomically stage BOTH V4 records with their Event transitions
+        // before physical HTTP. One original Writer owns the transaction.
         let lease = acquire_run_lease(
             &mut db,
             &self.schema,
@@ -258,6 +253,23 @@ impl DurableJournal for SourcePgUnknownJournal {
             Some(1),
         )
         .map_err(|e| e.to_string())?;
+        // R41 RED: one authoritative PG Event transaction, not separate
+        // pre-Event ProviderRecord CAS writes. Rejected admission must leave
+        // zero unreferenced metadata CAS objects and zero new Events.
+        let object_count_sql = format!(
+            "SELECT count(*) FROM {}.objects WHERE digest IN ($1,$2)",
+            self.schema
+        );
+        let orphan_count: i64 = db
+            .query_one(
+                &object_count_sql,
+                &[&claim_ref.digest, &dispatch_ref.digest],
+            )
+            .map_err(|e| e.to_string())?
+            .get(0);
+        if orphan_count != 0 {
+            return Err("R41 PRE-EVENT PROVIDER CAS ORPHAN DETECTED".into());
+        }
         // H01 P0 negative: a valid PG lease must NOT turn a fabricated
         // Provider/Adapter identity into a durable DISPATCHING send right.
         // Use the original source CLAIMED and swap only the Rust V4 dispatch
@@ -288,18 +300,28 @@ impl DurableJournal for SourcePgUnknownJournal {
             .referenced_objects
             .retain(|r| r.kind != "harness-provider-call-record");
         forged_event.referenced_objects.push(forged_ref.clone());
-        let forged_events = [self.batch[0].clone(), forged_event];
+        let forged_events = [
+            source_checked_native_event(&self.batch[0], &claimed)?,
+            forged_event,
+        ];
         let refused = append_events_with_provider_cas(
             &mut db,
             &self.schema,
             &self.run_id,
             ProviderEventBatch {
                 events: &forged_events,
-                staged: &[ProviderStagedCas {
-                    kind: ProviderCasKind::RecordV4,
-                    document: &forged,
-                    first_seen_at_ms: self.batch[1].recorded_at_ms,
-                }],
+                staged: &[
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::RecordV4,
+                        document: &claimed,
+                        first_seen_at_ms: self.batch[0].recorded_at_ms,
+                    },
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::RecordV4,
+                        document: &forged,
+                        first_seen_at_ms: self.batch[1].recorded_at_ms,
+                    },
+                ],
             },
             1,
             &lease,
@@ -324,11 +346,25 @@ impl DurableJournal for SourcePgUnknownJournal {
         println!("PG18_PROVIDER_DISPATCH_FOREIGN_MODEL_DENIED_PASS");
         let native_claimed = source_checked_native_event(&self.batch[0], &claimed)?;
         let native_dispatching = source_checked_native_event(&self.batch[1], &dispatching)?;
-        match append_events(
+        match append_events_with_provider_cas(
             &mut db,
             &self.schema,
             &self.run_id,
-            &[native_claimed, native_dispatching],
+            ProviderEventBatch {
+                events: &[native_claimed, native_dispatching],
+                staged: &[
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::RecordV4,
+                        document: &claimed,
+                        first_seen_at_ms: self.batch[0].recorded_at_ms,
+                    },
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::RecordV4,
+                        document: &dispatching,
+                        first_seen_at_ms: self.batch[1].recorded_at_ms,
+                    },
+                ],
+            },
             1,
             &lease,
             1008,
@@ -397,14 +433,10 @@ impl DurableJournal for SourcePgUnknownJournal {
         let mut db = Client::connect(&self.writer_dsn, NoTls).map_err(|e| e.to_string())?;
         // The failure receipt and UNKNOWN V4 record are created only AFTER
         // NativeAgentLoop observed a truly ambiguous HTTP response.
-        let fail_ref = put_provider_cas(
-            &mut db,
-            &self.schema,
-            ProviderCasKind::FailureReceipt,
-            &fail,
-            self.batch[2].recorded_at_ms,
-        )
-        .map_err(|e| e.to_string())?;
+        let fail_ref = expected_ref(&self.batch[2], "harness-provider-call-failure")?.clone();
+        if fail_ref.digest != digest_bytes(&canonical_bytes(&fail)) {
+            return Err("native FailureReceipt differs from original Python source".into());
+        }
         if &fail_ref != expected_ref(&self.batch[2], "harness-provider-call-failure")? {
             return Err("Rust failure CAS differs from Python source oracle".into());
         }
@@ -418,14 +450,10 @@ impl DurableJournal for SourcePgUnknownJournal {
             u64::try_from(self.batch[2].recorded_at_ms).map_err(|e| e.to_string())?,
         )
         .map_err(|e| format!("{e:?}"))?;
-        let unknown_ref = put_provider_cas(
-            &mut db,
-            &self.schema,
-            ProviderCasKind::RecordV4,
-            &unknown,
-            self.batch[2].recorded_at_ms,
-        )
-        .map_err(|e| e.to_string())?;
+        let unknown_ref = expected_ref(&self.batch[2], "harness-provider-call-record")?.clone();
+        if unknown_ref.digest != digest_bytes(&canonical_bytes(&unknown)) {
+            return Err("native UNKNOWN V4 bytes differ from original Python source".into());
+        }
         if &unknown_ref != expected_ref(&self.batch[2], "harness-provider-call-record")? {
             return Err("Rust unknown CAS differs from Python source oracle".into());
         }
@@ -476,11 +504,18 @@ impl DurableJournal for SourcePgUnknownJournal {
             &self.run_id,
             ProviderEventBatch {
                 events: &[foreign_event],
-                staged: &[ProviderStagedCas {
-                    kind: ProviderCasKind::RecordV4,
-                    document: &foreign_unknown,
-                    first_seen_at_ms: self.batch[2].recorded_at_ms,
-                }],
+                staged: &[
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::FailureReceipt,
+                        document: &fail,
+                        first_seen_at_ms: self.batch[2].recorded_at_ms,
+                    },
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::RecordV4,
+                        document: &foreign_unknown,
+                        first_seen_at_ms: self.batch[2].recorded_at_ms,
+                    },
+                ],
             },
             3,
             &lease,
@@ -649,12 +684,39 @@ impl DurableJournal for SourcePgUnknownJournal {
             return Err("invalid FailureReceipt CAS persisted after rejected Event".into());
         }
         println!("PG18_PROVIDER_INVALID_FAILURE_ENUM_DENIED_PASS");
+        // R41 second RED: an ambiguous HTTP response may never leave
+        // independent FAILURE/UNKNOWN V4 CAS before its Event is admitted.
+        let incomplete_sql = format!(
+            "SELECT count(*) FROM {}.objects WHERE digest IN ($1,$2)",
+            self.schema
+        );
+        let pre_event_count: i64 = db
+            .query_one(&incomplete_sql, &[&fail_ref.digest, &unknown_ref.digest])
+            .map_err(|e| e.to_string())?
+            .get(0);
+        if pre_event_count != 0 {
+            return Err("R41 PRE-EVENT UNKNOWN/FAILURE CAS ORPHAN DETECTED".into());
+        }
         let native_unknown = source_checked_native_event(&self.batch[2], &unknown)?;
-        match append_events(
+        match append_events_with_provider_cas(
             &mut db,
             &self.schema,
             &self.run_id,
-            &[native_unknown],
+            ProviderEventBatch {
+                events: &[native_unknown],
+                staged: &[
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::FailureReceipt,
+                        document: &fail,
+                        first_seen_at_ms: self.batch[2].recorded_at_ms,
+                    },
+                    ProviderStagedCas {
+                        kind: ProviderCasKind::RecordV4,
+                        document: &unknown,
+                        first_seen_at_ms: self.batch[2].recorded_at_ms,
+                    },
+                ],
+            },
             3,
             &lease,
             1012,

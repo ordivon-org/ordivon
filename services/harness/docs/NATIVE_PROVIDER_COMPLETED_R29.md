@@ -486,3 +486,64 @@ ability=reused `provider_v4_author.rs`, the exact `EventWrite` and
 `append_events_with_provider_cas` from the original PG owner,
 existing `pg_provider_head.rs` source consumer. No additional
 persistent ledger or approval layer.
+
+
+## R41 Provider metadata staged in one original PG Event transaction
+
+The original real PG18 source test adapter still wrote native Rust-authored
+CLAIMED and DISPATCHING Provider V4 CAS in separate transactions BEFORE
+its corresponding original PostgreSQL Run Event admission. This unnecessarily
+left orphan metadata objects if the Event/lease failed, in contrast with the
+already existing original `append_events_with_provider_cas` path used
+for private model Result content since R31.
+
+True PG18 TDD RED: `job-01a1de6d-cacc-733a-98e3-8e8363e3354f`
+observed existing claimed/dispatching objects before their Event.
+The FIX changes ONLY the existing no-Tool Rust test Journal adapter,
+not the original `harness-pg` Writer: native CLAIMED and DISPATCHING
+records are constructed and compared against independent Python source
+CAS digest expectations, but are not separately stored. Instead, both
+typed `ProviderStagedCas::RecordV4` and their R40 Rust-authored Event
+objects pass through one pre-existing Writer transaction, under the
+same original Run Lease, revision, current identity and budget checks.
+A forged foreign-Adapter dispatch negative now stages both legitimate
+claimed and forged dispatch CAS so its rejection cannot be a trivial
+missing-prerequisite failure.
+
+The adjacent lost-response UNKNOWN path had the same pre-Event
+metadata-orphan flaw for the Provider failure receipt and UNKNOWN V4.
+The original PG18 RED `job-01a1de6f-c980-70f8-9c8f-4a9defabb6fe`
+caught the previously committed failure/unknown CAS before the Event.
+Both objects are now staged together with the Rust-authored UNKNOWN
+Event inside the SAME original PG Writer transaction. Existing foreign
+ProviderCall and malformed failure-enum negatives stage their necessary
+source CAS so rejection remains meaningful. No second Writer, registry,
+replay layer, or additional authority was added.
+
+Real PG18 GREEN `job-01a1de70-6e1a-71c8-8ad6-eff2fc235a5b`:
+Provider V4 4/4, original Python Store readback, positive retained
+and redacted content, causal FAILED/UNKNOWN adversarial cases, source
+model dispatch budget and original no-Tool local HTTP all PASS;
+scratch PG18 stopped and removed. Full native Cargo fmt/all-targets
+tests/Clippy `-D warnings` PASS
+`job-01a1de70-f5dc-7028-a551-fdf6d065915f`.
+No real external Provider call, physical Tool or independent domain
+TaskSolved occurred.
+
+Scope boundary: this is an important **test/source Journal producer
+cutover**, improving the source-equivalent reusable transactional
+seam for H01. It DOES NOT mean `NativeAgentLoop` has a production
+registered `DurableJournal`, Security-owned credential materialization,
+installed Gateway `execution.harness`, or physical Tool receipt.
+Avoid building yet another CAS/PG/replay permission layer; the remaining
+H01 hard core is composing the existing source PG Writer/Provider into
+one actual supported production Run entrypoint.
+
+Thought LEGO: Event Sourcing, TDD RED/GREEN, ACID transaction atomicity,
+delete-duplicate/reuse-mature, independent Python source Oracle,
+UNKNOWN not FALSE. Logical LEGO: L4 Provider Call, L5 typed Event source,
+L6 original PG Writer, L9 source admission, L11 provenance and L12
+uncertain recovery. Ability LEGO: refined existing
+`harness-loop/tests/pg_provider_head.rs`, reused
+`harness-pg/src/journal_write.rs::append_events_with_provider_cas`
+unchanged, and R40 `provider_v4_author.rs` Event type. No new Store.
