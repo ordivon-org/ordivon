@@ -238,6 +238,31 @@ def native_health_state() -> bool | None:
     return None
 
 
+def restart_existing_provider(*, timeout: int = 70,
+                              observe_seconds: int = 25, checks: int = 3) -> bool:
+    """One bounded restart of the SAME native provider, then business proof.
+
+    Reuse this capability for both partial native-health failure and a
+    confirmed total consumer outage whose Gluetun API trial/rollback cannot
+    be verified. This does not create a second service or VPN identity.
+    """
+    try:
+        subprocess.run(
+            ["/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"],
+            capture_output=True, text=True, check=True, timeout=timeout,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    for attempt in range(checks):
+        if native_health_state() is True:
+            live = bounded_consumer_observe(seconds=observe_seconds)
+            if live.get("standing") == "QUALIFIED_ACTIVE_SAMPLE":
+                return True
+        if attempt + 1 < checks:
+            time.sleep(3)
+    return False
+
+
 def repair_partial_native_health() -> dict:
     """One existing systemd service restart on a sustained partial outage.
 
@@ -267,26 +292,10 @@ def repair_partial_native_health() -> dict:
         return {"standing": "HOLD_NATIVE_HEALTH_RECOVERED_OR_UNKNOWN",
                 "effectAttempted": False}
     mark_attempt()  # Before the first possible restart effect.
-    try:
-        subprocess.run(
-            ["/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"],
-            capture_output=True, text=True, check=True, timeout=70,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return {"standing": "NATIVE_HEALTH_RESTART_UNQUALIFIED",
-                "effectAttempted": True, "recoveryProved": False}
-    # A systemctl exit=0 is not a working VPN; insist on official health AND
-    # real provider business HTTPS before declaring the recovery consumed.
-    for attempt in range(3):
-        if native_health_state() is True:
-            live = bounded_consumer_observe(seconds=25)
-            if live.get("standing") == "QUALIFIED_ACTIVE_SAMPLE":
-                return {"standing": "NATIVE_HEALTH_RESTART_CONSUMED",
-                        "effectAttempted": True, "recoveryProved": True}
-        if attempt < 2:
-            time.sleep(3)
-    return {"standing": "NATIVE_HEALTH_RESTART_UNQUALIFIED",
-            "effectAttempted": True, "recoveryProved": False}
+    restored = restart_existing_provider()
+    return {"standing": ("NATIVE_HEALTH_RESTART_CONSUMED" if restored
+                         else "NATIVE_HEALTH_RESTART_UNQUALIFIED"),
+            "effectAttempted": True, "recoveryProved": restored}
 
 
 def guarded_recover() -> dict:
@@ -348,13 +357,16 @@ def guarded_recover() -> dict:
             if time.monotonic() - started >= 118:
                 break
             trial_started = time.monotonic()
+            trial_phase = "PUT"
             try:
                 switched = True  # a timed-out PUT might still be applied
                 api_call("PUT", country_patch(country, allowed))
+                trial_phase = "GET"
                 if selected_snapshot(api_call("GET"), allowed)["countries"] != [country]:
                     raise ValueError("Native settings did not adopt requested candidate")
                 # The full provider proof includes kernel endpoint + 2 real
                 # TLS/HTTP consumers, not only the control-plane HTTP 200.
+                trial_phase = "CONSUMER"
                 while time.monotonic() - trial_started < 43:
                     try:
                         checked = bounded_consumer_observe(seconds=20)
@@ -374,6 +386,7 @@ def guarded_recover() -> dict:
                 trials.append({"country": country, "standing": "TRIAL_UNQUALIFIED"})
             except (OSError, ValueError, subprocess.SubprocessError) as exc:
                 trials.append({"country": country, "standing": "TRIAL_UNKNOWN",
+                               "failureStage": trial_phase,
                                "reasonClass": type(exc).__name__})
         raise ValueError("No recent-success candidate passed live business acceptance")
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
@@ -388,6 +401,34 @@ def guarded_recover() -> dict:
                             else "READBACK_MISMATCH")
             except (OSError, ValueError, subprocess.SubprocessError):
                 rollback = "UNKNOWN_OR_FAILED"
+        # Real production counterexample, 2026-11-15: repeated authenticated
+        # native API trial errors with an UNKNOWN rollback during a *confirmed*
+        # VPN-only outage. Once both direct origins work and the three fresh
+        # consumer lanes still fail, the native service is the next mature
+        # recovery boundary. The existing cooldown was marked before PUT.
+        #
+        # Limit this to an early failed trial in the ORIGINAL 4-minute
+        # systemd one-shot, rather than adding a second long recovery loop.
+        if (switched and rollback == "UNKNOWN_OR_FAILED"
+                and any(x.get("standing") == "TRIAL_UNKNOWN" for x in trials)
+                and time.monotonic() - started <= 45):
+            try:
+                if (quality.recent_failure_witness(datetime.now(timezone.utc)) is True
+                        and quality.direct_underlay_witness() is True
+                        and bounded_consumer_observe(seconds=12).get("standing")
+                        != "QUALIFIED_ACTIVE_SAMPLE"):
+                    restored = restart_existing_provider(
+                        timeout=45, observe_seconds=18, checks=2,
+                    )
+                    return {
+                        "standing": ("NATIVE_SWITCH_RESTART_CONSUMED" if restored
+                                     else "NATIVE_SWITCH_RESTART_UNQUALIFIED"),
+                        "reasonClass": type(exc).__name__,
+                        "trials": trials, "rollback": rollback,
+                        "effectAttempted": True, "recoveryProved": restored,
+                    }
+            except (OSError, ValueError, subprocess.SubprocessError):
+                pass
         return {"standing": "NATIVE_SWITCH_FAILED", "reasonClass": type(exc).__name__,
                 "trials": trials, "rollback": rollback, "effectAttempted": switched}
 
@@ -414,7 +455,7 @@ def main() -> int:
     # Healthy/unknown hold is a successful NO-OP decision, not a service
     # failure. Auth/effect failure remains nonzero for native systemd callers.
     if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY", "NATIVE_SWITCH_CONSUMED",
-                             "NATIVE_HEALTH_RESTART_CONSUMED"):
+                             "NATIVE_HEALTH_RESTART_CONSUMED", "NATIVE_SWITCH_RESTART_CONSUMED"):
         return 0
     if args.recover and result.get("effectAttempted") is False and (
         result["standing"].startswith("HOLD_")
