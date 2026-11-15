@@ -184,6 +184,48 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             )
         self.assertEqual(self.git("rev-parse", ref), self.base)
 
+    def test_git_queries_remain_bound_to_owner_despite_foreign_git_environment(self):
+        import subprocess
+        from unittest.mock import patch
+
+        foreign = self.root / "foreign"
+        foreign.mkdir()
+        clean_env = {key: value for key, value in os.environ.items()
+                     if not key.startswith("GIT_")}
+        for argv in (
+            ("init", "-q"),
+            ("config", "user.name", "Foreign"),
+            ("config", "user.email", "foreign@example.invalid"),
+        ):
+            subprocess.run(["git", "-C", str(foreign), *argv],
+                           env=clean_env, check=True, capture_output=True)
+        (foreign / "different").write_text("foreign git identity")
+        for argv in (("add", "."), ("commit", "-qm", "foreign")):
+            subprocess.run(["git", "-C", str(foreign), *argv],
+                           env=clean_env, check=True, capture_output=True)
+
+        for field, value in (
+            ("GIT_DIR", str(foreign / ".git")),
+            ("GIT_OBJECT_DIRECTORY", str(foreign / ".git" / "objects")),
+        ):
+            with self.subTest(field=field), patch.dict(os.environ, {field: value}):
+                # Prove the counterexample actually poisons a raw Git call.
+                raw = subprocess.run(
+                    ["git", "-C", str(self.repo), "cat-file", "-t", self.head],
+                    capture_output=True, text=True,
+                )
+                self.assertNotEqual(raw.returncode, 0)
+
+                # The existing reclaim Git reader must never cross the owner.
+                qualified = mod._git(self.repo, "cat-file", "-t", self.head)
+                self.assertEqual(qualified.returncode, 0, qualified.stderr)
+                self.assertEqual(qualified.stdout.strip(), "commit")
+                self.assertTrue(mod._unintegrated_head(self.repo, self.head))
+                self.assertIn(
+                    (self.workspace, self.head),
+                    mod._worktrees(self.repo, self.workspaces),
+                )
+
     def test_git_membership_error_cannot_be_misread_as_policy_unintegrated(self):
         from unittest.mock import patch
         import subprocess
