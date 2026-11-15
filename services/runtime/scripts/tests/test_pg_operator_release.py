@@ -360,6 +360,56 @@ class NativePgReleaseOperator(unittest.TestCase):
                 client.return_value.call_tool.call_args.args[0],"release.get"
             )
 
+    def test_release_drain_does_not_hold_source_lock_while_waiting(self) -> None:
+        """Native PG proof: a terminal writer must progress during Release drain.
+
+        The active-job projection is simulated, but a second *real* PG session
+        must acquire the production source row lock to clear that condition.
+        Holding FOR UPDATE while waiting creates a self-inflicted timeout.
+        """
+        from threading import Event, Thread
+
+        cleared = Event()
+        started = Event()
+        worker_errors: list[str] = []
+        workers: list[Thread] = []
+        self.args.drain_seconds = 0.8
+
+        def terminal_writer() -> None:
+            try:
+                with op.pg_connection(self.dsn, "fresh") as other:
+                    with other.transaction():
+                        other.execute(
+                            "SELECT state FROM _stage_control WHERE id='source' FOR UPDATE"
+                        )
+                    cleared.set()
+            except Exception as error:
+                worker_errors.append(str(error))
+                cleared.set()
+
+        def observed_active(conn, release_job_id):
+            if not started.is_set():
+                started.set()
+                thread = Thread(target=terminal_writer, daemon=True)
+                workers.append(thread)
+                thread.start()
+            return [] if cleared.is_set() else ["agent-finishing-in-pg"]
+
+        try:
+            with patch.object(op, "active_executions", side_effect=observed_active), \
+                 patch.object(op, "pg_mcp_readiness", return_value={
+                     "toolCount": 20,
+                     "toolCatalogDigest": "sha256:" + "f" * 64,
+                 }), patch.dict(op.DEPLOY, {"run": lambda _args: None}), \
+                 patch.object(op, "verified_release_consumer"):
+                outcome = op.apply_release(self.args)
+            self.assertEqual(outcome["status"], "deployed")
+            self.assertTrue(cleared.is_set(), "PG terminal writer must progress during drain")
+            self.assertFalse(worker_errors, worker_errors)
+        finally:
+            for thread in workers:
+                thread.join(timeout=3)
+
     def test_release_exactly_once_and_terminal_receipt(self) -> None:
         def run(args):
             self.calls.append(tuple(args))

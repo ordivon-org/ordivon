@@ -581,11 +581,22 @@ def operator_fenced_install(
     stopped = False
     source_epoch = None
     try:
-        # This is an independent PostgreSQL connection/transaction from the
-        # already COMMITTED operator-dispatch event. Keep the source row
-        # FOR UPDATE until the actual systemd cutover is complete, fencing
-        # ordinary PG admissions while preserving the immutable issue record.
+        # An Agent's terminal PG writer may need the same source row as
+        # admission. Never hold that row (or the shared admission lock)
+        # while waiting for existing Jobs to finish: that blocks the very
+        # convergence whose absence the drain loop is waiting for.
         conn.isolation_level = psycopg.IsolationLevel.READ_COMMITTED
+        deadline = time.monotonic() + args.drain_seconds
+        while True:
+            active = active_executions(conn, row["job_id"])
+            if not active:
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError("PG execution drain timed out: " + ", ".join(active))
+            time.sleep(0.1)
+        # Recheck after acquiring the EXISTING PG admission/source fence.
+        # A new Job racing the wait is a fail-closed release, not permission
+        # to stop a Runtime that owns active work.
         with conn.transaction():
             conn.execute("SELECT pg_advisory_xact_lock(%s)", (ADMISSION_LOCK,))
             qualified_operator(conn, args.source_sha256, lock=True)
@@ -593,16 +604,8 @@ def operator_fenced_install(
                 "SELECT source_sha256 FROM _stage_control WHERE id='epoch'"
             ).fetchone()
             source_epoch = epoch["source_sha256"] if epoch else None
-            deadline = time.monotonic() + args.drain_seconds
-            while True:
-                active = active_executions(conn, row["job_id"])
-                if not active:
-                    break
-                if time.monotonic() >= deadline:
-                    raise RuntimeError("PG execution drain timed out: " + ", ".join(active))
-                time.sleep(0.1)
-            # All ordinary Jobs are drained; new admission is blocked by
-            # the PostgreSQL source row lock, not a local SQLite file.
+            if active_executions(conn, row["job_id"]):
+                raise RuntimeError("new PG Job appeared before release cutover")
             DEPLOY["run"]([str(args.systemctl), "stop", args.service])
             stopped = True
             if active_executions(conn, row["job_id"]):
