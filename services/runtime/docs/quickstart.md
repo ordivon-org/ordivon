@@ -107,7 +107,8 @@ At minimum:
 - keep `ORDIVON_BEARER_TOKEN_FILE` pointed at a private regular file containing at least 32 non-whitespace characters; the legacy inline `ORDIVON_BEARER_TOKEN` remains migration-only, and configuring both fails closed;
 - keep `ORDIVON_BIND` on loopback;
 - confirm `ORDIVON_EXEC_PATH` and `ORDIVON_EXEC_HOME` expose only intended trusted toolchains;
-- set host policy explicitly, including `ORDIVON_GLOBAL_MAX_CONCURRENCY`, `ORDIVON_DEFAULT_RUNTIME_MS`, `ORDIVON_MAX_RUNTIME_MS`, `ORDIVON_MAX_OUTPUT_BYTES`, reconciliation cadence/batch size, and cache limits;
+- configure `ORDIVON_DEFAULT_RUNTIME_MS`, `ORDIVON_MAX_RUNTIME_MS`, `ORDIVON_MAX_OUTPUT_BYTES`, reconciliation cadence/batch size, and cache limits for the exact Runtime binary being installed;
+- for the legacy `ordivon-runtime-mcp` binary built by this guide, `ORDIVON_GLOBAL_MAX_CONCURRENCY` is a fixed Job-count limit: the example sets it to `16`, and omitting it defaults to `8` in `crates/ordivon-runtime-mcp/src/main.rs`. This is **not** the scheduling policy of every Runtime node. In particular, a separately installed PostgreSQL resource-aware node may report `globalExecutionLimit: null` through its own `runtime.describe`. Inspect the actual connected node and its installed release before applying a legacy example configuration; do not silently replace a dynamic-capacity installation with the legacy fixed-count profile.
 - enable Cloudflare Access trust only when the loopback origin is reachable exclusively through the operator-owned authenticated tunnel.
 
 ## 5. Deploy with a receipt
