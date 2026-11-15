@@ -34,6 +34,13 @@ an admitted expected-return vector. The independent covariance-only
 PyPortfolioOpt min-volatility calculation is MATH ONLY; the machine
 result explicitly carries portfolio_target=null and optimizer_policy_eligible=false.
 
+New HILO research uses the existing Markets `equity_ohlcv_shape` check on
+the exact loaded OHLCV rows **before** feature calculation. QQQ 2026-05-20
+(HIGH < CLOSE) and IWM 2023-06-05 (HIGH < OPEN) recorded-source shapes
+must be rejected, not rewritten, silently dropped, or treated as a reason
+to certify market-source authenticity. Old frozen research is historical,
+not a passed validation under this new consumer rule.
+
 Source historical_available_at/corporate_actions/adjustment/rights remain
 UNKNOWN; backfill today != knowable then. The Cboe V5 native daily endpoint
 does not provide adj_close/dividend/split_ratio in its Cboe-specific model.
