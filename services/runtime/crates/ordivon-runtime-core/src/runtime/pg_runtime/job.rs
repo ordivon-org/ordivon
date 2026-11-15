@@ -48,33 +48,45 @@ fn preserve_qualified_issuer_environment(
         })
 }
 
-// Resolve the existing native Runtime Cargo build-cache LEGO at PG admission.
-// User-supplied CARGO_TARGET_DIR remains explicit; defaults are recorded in
-// the immutable PG plan rather than silently changed only at physical launch.
-fn pg_private_cargo_environment(
+// Reuse the existing Workspace-owned disposable cache, outside the Git tree,
+// for ordinary PostgreSQL Jobs. A trusted Cargo build target already uses
+// its native private mount; Python bytecode and Ruff reuse the same cache owner.
+// A project virtualenv is deliberately NOT redirected: one Workspace may
+// contain multiple independent pyproject roots with incompatible dependencies.
+fn pg_workspace_tool_environment(
     mut environment: std::collections::BTreeMap<String, String>,
     preserve_harness_fenced_request: bool,
+    workspace_cache: &std::path::Path,
 ) -> std::collections::BTreeMap<String, String> {
-    // The same-PG Harness issuer guard authenticates the exact original
-    // physical request. An implicit Runtime-owned environment default would
-    // change its immutable digest and incorrectly deny a legitimate Tool Job.
-    // Keep the exact source-authored environment when carrying a Harness dispatch fence; an
-    // explicitly supplied build target is already covered by the source
-    // digest and remains available. Ordinary PG Jobs reuse the native cache.
+    // Qualified same-PG Harness dispatch fences bind the caller's exact source
+    // environment. Never silently alter their immutable effect identity.
     if !preserve_harness_fenced_request {
         environment
             .entry("CARGO_TARGET_DIR".to_string())
             .or_insert_with(|| {
                 crate::runtime::build_target_contract::TRUSTED_BUILD_TARGET_PRESENTATION.to_string()
             });
+        for (name, path) in [
+            ("XDG_CACHE_HOME", workspace_cache.to_path_buf()),
+            (
+                "PYTHONPYCACHEPREFIX",
+                workspace_cache.join("python-bytecode"),
+            ),
+            ("RUFF_CACHE_DIR", workspace_cache.join("ruff")),
+        ] {
+            environment
+                .entry(name.to_string())
+                .or_insert_with(|| path.to_string_lossy().into_owned());
+        }
     }
     environment
 }
 
 #[cfg(test)]
 mod cargo_issuer_environment_tests {
-    use super::{pg_private_cargo_environment, preserve_qualified_issuer_environment};
+    use super::{pg_workspace_tool_environment, preserve_qualified_issuer_environment};
     use crate::runtime::ForeignReference;
+    use std::path::Path;
 
     fn candidate_fence() -> ForeignReference {
         ForeignReference {
@@ -91,7 +103,11 @@ mod cargo_issuer_environment_tests {
         let fence = candidate_fence();
         let enabled = preserve_qualified_issuer_environment(None, std::slice::from_ref(&fence));
         assert!(!enabled);
-        let actual = pg_private_cargo_environment(Default::default(), enabled);
+        let actual = pg_workspace_tool_environment(
+            Default::default(),
+            enabled,
+            Path::new("/tmp/test-cache"),
+        );
         assert_eq!(
             actual.get("CARGO_TARGET_DIR").map(String::as_str),
             Some("/run/ordivon/cargo-target")
@@ -118,7 +134,7 @@ mod cargo_issuer_environment_tests {
     fn issuer_bound_private_cargo_environment_keeps_exact_source_env() {
         let original = BTreeMap::from([("LANG".to_owned(), "C".to_owned())]);
         assert_eq!(
-            pg_private_cargo_environment(original.clone(), true),
+            pg_workspace_tool_environment(original.clone(), true, Path::new("/tmp/test-cache")),
             original
         );
         let explicit = BTreeMap::from([(
@@ -126,8 +142,45 @@ mod cargo_issuer_environment_tests {
             "/proc/self/fd/198".to_owned(),
         )]);
         assert_eq!(
-            pg_private_cargo_environment(explicit.clone(), true),
+            pg_workspace_tool_environment(explicit.clone(), true, Path::new("/tmp/test-cache")),
             explicit
+        );
+    }
+
+    #[test]
+    fn ordinary_job_places_python_and_ruff_caches_outside_workspace_without_clobbering_intent() {
+        let cache = Path::new("/runtime/cache/workspaces/ws-A");
+        let actual = pg_workspace_tool_environment(Default::default(), false, cache);
+        assert_eq!(actual["XDG_CACHE_HOME"], "/runtime/cache/workspaces/ws-A");
+        assert_eq!(
+            actual["PYTHONPYCACHEPREFIX"],
+            "/runtime/cache/workspaces/ws-A/python-bytecode"
+        );
+        assert_eq!(
+            actual["RUFF_CACHE_DIR"],
+            "/runtime/cache/workspaces/ws-A/ruff"
+        );
+        assert!(!actual.contains_key("UV_PROJECT_ENVIRONMENT"));
+        let custom = std::collections::BTreeMap::from([
+            ("XDG_CACHE_HOME".to_string(), "/custom/xdg".to_string()),
+            ("PYTHONPYCACHEPREFIX".to_string(), "/custom/pyc".to_string()),
+            ("RUFF_CACHE_DIR".to_string(), "/custom/ruff".to_string()),
+        ]);
+        let preserved = pg_workspace_tool_environment(custom.clone(), false, cache);
+        assert_eq!(preserved["XDG_CACHE_HOME"], custom["XDG_CACHE_HOME"]);
+        assert_eq!(
+            preserved["PYTHONPYCACHEPREFIX"],
+            custom["PYTHONPYCACHEPREFIX"]
+        );
+        assert_eq!(preserved["RUFF_CACHE_DIR"], custom["RUFF_CACHE_DIR"]);
+        let unrelated = pg_workspace_tool_environment(
+            Default::default(),
+            false,
+            Path::new("/runtime/cache/workspaces/ws-B"),
+        );
+        assert_ne!(
+            actual["PYTHONPYCACHEPREFIX"],
+            unrelated["PYTHONPYCACHEPREFIX"]
         );
     }
 
@@ -135,17 +188,17 @@ mod cargo_issuer_environment_tests {
     fn ordinary_pg_job_reuses_native_private_cargo_default_without_overriding_explicit() {
         let empty = BTreeMap::new();
         assert_eq!(
-            pg_private_cargo_environment(empty, false)["CARGO_TARGET_DIR"],
+            pg_workspace_tool_environment(empty, false, Path::new("/tmp/test-cache"))
+                ["CARGO_TARGET_DIR"],
             "/run/ordivon/cargo-target"
         );
         let explicit = BTreeMap::from([(
             "CARGO_TARGET_DIR".to_owned(),
             "/custom/agent/target".to_owned(),
         )]);
-        assert_eq!(
-            pg_private_cargo_environment(explicit.clone(), false),
-            explicit
-        );
+        let actual =
+            pg_workspace_tool_environment(explicit.clone(), false, Path::new("/tmp/test-cache"));
+        assert_eq!(actual["CARGO_TARGET_DIR"], explicit["CARGO_TARGET_DIR"]);
     }
 }
 impl PgRuntime {
@@ -238,6 +291,10 @@ impl PgRuntime {
         super::platform::validate_runner(runner)?;
         let record = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
             .map_err(super::super::error::map_universal_error)?;
+        let workspace_generated_cache = self
+            .config
+            .executor
+            .workspace_cache_path(&record.workspace_id);
         let cwd =
             universal::resolve_workspace_cwd(&record, &e.cwd_relative, "execution.cwdRelative")
                 .map_err(io)?;
@@ -285,9 +342,10 @@ impl PgRuntime {
                 executable_digest: universal::sha256_file(&path).map_err(io)?,
                 args: step.args.clone(),
                 cwd: cwd.to_string_lossy().into_owned(),
-                env: pg_private_cargo_environment(
+                env: pg_workspace_tool_environment(
                     step.env.clone(),
                     preserve_harness_fenced_request,
+                    &workspace_generated_cache,
                 ),
                 timeout_ms: ceiling,
                 continue_on_error: step.continue_on_error,
@@ -317,7 +375,11 @@ impl PgRuntime {
             executable_digest: universal::sha256_file(&executable).map_err(io)?,
             args: e.args.clone(),
             cwd: cwd.to_string_lossy().into_owned(),
-            env: pg_private_cargo_environment(e.env.clone(), preserve_harness_fenced_request),
+            env: pg_workspace_tool_environment(
+                e.env.clone(),
+                preserve_harness_fenced_request,
+                &workspace_generated_cache,
+            ),
             timeout_ms: timeout,
             stdout_limit_bytes: stdout,
             stderr_limit_bytes: stderr,
