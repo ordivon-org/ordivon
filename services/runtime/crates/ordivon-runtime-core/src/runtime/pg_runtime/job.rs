@@ -133,7 +133,7 @@ mod cargo_issuer_environment_tests {
 }
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
-        super::engine::validate_resource_run_proposal_structure(proposal)?;
+        super::admission_validation::validate_resource_run_proposal_structure(proposal)?;
         proposal
             .execution
             .budget

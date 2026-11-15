@@ -103,7 +103,7 @@ The complete Runtime path requires:
 
 - Linux with systemd as PID 1 and cgroup v2;
 - Git;
-- Rust 1.95.0, fixed by [`rust-toolchain.toml`](rust-toolchain.toml);
+- Rust 1.99.1, fixed by [`rust-toolchain.toml`](rust-toolchain.toml);
 - Python 3.11 or newer for operational scripts;
 - root or an equivalently privileged dedicated service account for the current trusted-local deployment model.
 
@@ -136,7 +136,7 @@ For installation and receipted deployment, follow [`docs/quickstart.md`](docs/qu
 ## Focused native Rust testing
 
 `mise install` now obtains official
-[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.148** using the
+[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.149** using the
 upstream [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
 and a GitHub Release mirror. This Runtime-local Linux x64 install pins the
 official GitHub release-asset SHA-256, so the mirror is only a transport.

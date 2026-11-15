@@ -1,3 +1,4 @@
+mod admission_validation;
 mod artifact_release_state;
 pub(crate) use artifact_release_state::ReleaseStateContract;
 mod authority_contract;

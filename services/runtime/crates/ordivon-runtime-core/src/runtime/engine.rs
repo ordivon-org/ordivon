@@ -31,11 +31,10 @@ use super::workspace_state::{
     WorkspaceProjectionFacts,
 };
 use super::{
-    runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
-    validate_logical_id, AdmissionOutcome, ArtifactContentMetadata, ArtifactContentReadResult,
-    ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest, ArtifactReadResult,
-    ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent,
-    CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
+    runtime_release_effect_id, runtime_release_request_identity_digest, AdmissionOutcome,
+    ArtifactContentMetadata, ArtifactContentReadResult, ArtifactContentRequest, ArtifactDescriptor,
+    ArtifactReadRequest, ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
+    AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
     ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode,
     InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
     JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunRequest, Registry, RegistryConfig,
@@ -46,7 +45,7 @@ use super::{
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
     RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TerminalCommit,
-    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
     canonical_directory, create_git_workspace, list_open_workspace_record_inventory,
@@ -112,23 +111,6 @@ pub(crate) fn requires_native_cargo_target_mount(plan: &RuntimeExecutionPlan) ->
 }
 
 const WINDOWS_INPUT_PRESENTATION_COMPONENTS: [&str; 1] = ["OrdivonImmutableInputs"];
-const CONTAINED_RUNTIME_ENVIRONMENT: [&str; 15] = [
-    "HOME",
-    "TMPDIR",
-    "XDG_CACHE_HOME",
-    "CARGO_TARGET_DIR",
-    "UV_CACHE_DIR",
-    "PIP_CACHE_DIR",
-    "npm_config_cache",
-    "PNPM_HOME",
-    "COREPACK_HOME",
-    "BUN_INSTALL_CACHE_DIR",
-    "GOMODCACHE",
-    "GOCACHE",
-    "GIT_OPTIONAL_LOCKS",
-    "ORDIVON_PAYLOAD_UID",
-    "ORDIVON_PAYLOAD_GID",
-];
 
 fn set_environment_value_case_insensitive(
     environment: &mut BTreeMap<String, String>,
@@ -491,7 +473,10 @@ include!("engine/terminal_evidence.rs");
 include!("engine/workspace_evidence.rs");
 include!("engine/job_activity_evidence.rs");
 include!("engine/input_bindings.rs");
-include!("engine/admission_validation.rs");
+use super::admission_validation::{
+    effective_limits_from_plan_json, validate_new_admission_policy, validate_observe_request,
+    validate_run_proposal_structure, validate_run_request_structure,
+};
 include!("engine/artifact_projection.rs");
 mod output;
 use self::output::{decode_utf8_range_bytes, read_output_text, OutputView, RangeFields};
@@ -723,20 +708,6 @@ fn now_ms() -> RuntimeResult<u64> {
                 false,
             )
         })
-}
-
-fn validate_text_id(value: &str, field: &str) -> RuntimeResult<()> {
-    if value.trim().is_empty()
-        || value.len() > 256
-        || value.as_bytes().contains(&0)
-        || value.chars().any(char::is_control)
-    {
-        return Err(RuntimeError::invalid(
-            format!("{field} must be non-empty, bounded, and control-free"),
-            field,
-        ));
-    }
-    Ok(())
 }
 
 fn serialization_error(error: serde_json::Error) -> RuntimeError {
