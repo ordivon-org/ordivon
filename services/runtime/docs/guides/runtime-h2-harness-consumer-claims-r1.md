@@ -114,7 +114,16 @@ Source paths: services/harness/src/ordivon_harness/postgres_store.py,
 services/harness/src/ordivon_harness/agent_run.py,
 services/runtime/crates/ordivon-runtime-core/src/runtime/pg_runtime/workspace.rs,
 services/runtime/formal/RuntimeWorkspaceClaimBirthR2.tla,
-services/harness/scripts/test_runtime_workspace_claims_pg18.sh.
+tools/repo/test_harness_runtime_workspace_claims_pg18.sh.
 
 This graph is source evidence, not a statement that any installed Runtime
 service already consumes the new aggregate function or SQL migration.
+
+## Verification orchestration locality
+
+The disposable PG18 test orchestrates source-owned Harness and Runtime
+tests in the repository mechanics source region at
+tools/repo/test_harness_runtime_workspace_claims_pg18.sh. It is a test
+consumer only: it does not establish a production Harness->Runtime
+dependency, and MUST NOT modify the canonical cross-Owner dependency
+closure. Source PG/OS authority remains with each natural owner.
