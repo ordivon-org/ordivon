@@ -1058,3 +1058,51 @@ def test_malformed_runtime_artifact_inventory_cannot_prove_empty_projection(
     assert result.artifact_ids == []
     assert result.artifact_count == 0
     assert result.artifact_projection_complete is refresh_valid
+
+
+def test_artifact_read_rejects_nonterminal_zero_progress_from_runtime_owner() -> None:
+    """UTF-8 tiny-page Owner regression must not become an Agent infinite read loop."""
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "artifact.read")] = {
+        "jobId": "job-utf8",
+        "artifactId": "artifact-utf8",
+        "offset": 1,
+        "nextOffset": 1,
+        "eof": False,
+        "digest": "sha256:abc",
+        "content": "",
+    }
+    with pytest.raises(GatewayError, match="artifact.*(progress|cursor)"):
+        asyncio.run(
+            GatewayService(caller).artifact_read(
+                "ordivon-exec:v1:runtime.linux:job-utf8",
+                "artifact-utf8",
+                offset=1,
+                max_bytes=1,
+            )
+        )
+    assert [call[1] for call in caller.calls] == ["artifact.read"]
+
+
+def test_artifact_read_allows_empty_chunk_at_true_owner_eof() -> None:
+    """An empty finished range is valid; only non-EOF zero progress is rejected."""
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "artifact.read")] = {
+        "jobId": "job-utf8",
+        "artifactId": "artifact-utf8",
+        "offset": 1,
+        "nextOffset": 1,
+        "eof": True,
+        "digest": "sha256:abc",
+        "content": "",
+    }
+    chunk = asyncio.run(
+        GatewayService(caller).artifact_read(
+            "ordivon-exec:v1:runtime.linux:job-utf8",
+            "artifact-utf8",
+            offset=1,
+            max_bytes=1,
+        )
+    )
+    assert chunk.eof is True
+    assert chunk.next_offset == 1
