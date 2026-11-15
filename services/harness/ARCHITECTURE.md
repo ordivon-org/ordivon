@@ -157,6 +157,25 @@ implementation had no non-test current source consumer and is retired rather tha
 kept as a misleading generic Store interface. Native PG backup/recovery belongs
 to the PostgreSQL owner and its installed operational workflow.
 
+**SQLite Harness Store consumer census (Git source, 2026-11-16):**
+`SQLiteHarnessStore` is implemented by
+`src/ordivon_harness/sqlite_store.py` and directly imported by two
+non-test Harness scripts:
+`scripts/harness_p0_scale_acceptance.py` and
+`scripts/run_adaptive_edit_r2_live_ab.py`. No direct
+`SQLiteHarnessStore` import was found under `apps/`,
+`services/runtime/` or `services/gateway/`. The standard
+`ordivon-harness` CLI and isolated wheel use only PostgreSQL; retired
+SQLite tests and experimental scripts are *historical consumers*, not
+production PG authority. Other independent SQLite ledgers under
+Agent Automation/Browserless are separate systems and are not part of
+this Harness Journal cutover. **Retire the legacy Store only after**
+the scale-acceptance and AdaptiveEdit A/B test consumers have
+real-PG-equivalent coverage or an explicit archive decision; retain
+September's useful AdaptiveEdit codec and hidden QA evidence instead
+of rewriting the editor. No bulk old-SQLite data import is required
+to qualify a new PG Run.
+
 **Human operators:** begin with `ordivon-harness doctor` and the existing
 `mise` Owner commands. Use a specifically disposable PostgreSQL test database
 for destructive DB admission/recovery tests. Determine service readiness from
