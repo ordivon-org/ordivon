@@ -134,6 +134,12 @@ global calculus or independently proven formal LEGO):
 
 **P0** Release schema fidelity: implement and test native SDK contract gate;
 verify real consuming client schema after new deployment or recapture.
+**P0** Efficient long-Topic delta re-entry: the native `attention.delta`
+event `sourceRef` already supports direct `message.get` without paging a
+zero-cursor historical Topic; do not acknowledge unprocessed Topic history.
+The current Skill `.agents/skills/task-space-reentry/SKILL.md` and Owner Guide
+carry the consumer method (live read-only R18 subscription verified
+2026-11-16). Do not add another Host inbox or new MCP Tool.
 **P0** Independent Agent handoff: two genuinely distinct authenticated
 principals, Work→Attention→Topic→owner-native readback→CAS, measure missed
 facts, tool calls and model context.
