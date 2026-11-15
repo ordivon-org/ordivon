@@ -215,3 +215,22 @@ observation, not a new workflow scheduler or permission to re-render.
 Human users should check changed file bytes and execute approved steps
 separately; Agents should preserve UNKNOWN, select only the implicated
 dependency closure, and obtain independent Runtime + provider evidence.
+
+
+## Archive source-to-visual relation conservation (Lean model R1)
+
+`ArchiveVisualSourcePreservation.lean` specifies a narrowly scoped partial
+admission function over *already parsed* opaque Work IDs and typed relation
+edges. The Lean kernel proves exact edge preservation and matching edge count
+when admission succeeds, rejection of invalid catalogs, and known endpoints
+for admitted edges. It checks positive, orphan-edge, and duplicate-ID examples.
+
+The actual implementation maps JSON records into that typed domain through
+`productions/archive-archipelago-001/archive_source.py`; the independent
+falsification/refinement witnesses are
+`tests/test_archive_graphics_source_truth.py` and
+`tests/test_archive_vegalite_spec.py`. The exact source and witness file blobs
+are included in `tools/formal/verify.py`'s existing Git SourceCut readset.
+This is not a proof that arbitrary Python values refine the Lean model, nor
+of SVG appearance, JSON hash resistance, GPU or user perception. Retain the
+existing byte-identical frozen-approved SVG test and real renderer checks.
