@@ -87,6 +87,37 @@ class HostGatewayRefinementTests(unittest.TestCase):
         ):
             self.compare_synthetic(source, gateway)
 
+    def test_promoted_message_get_is_required_while_pool_diagnostics_stay_private(self) -> None:
+        """Gateway main promotes exact Message evidence, not PG pool diagnostics."""
+        def tool(name: str) -> dict:
+            return {"name": name, "inputSchema": {"type": "object", "properties": {}}}
+
+        host = {name: tool(name) for name in ("work.get", "message.get", "host.pool.stats")}
+        gateway = {name: tool(name) for name in ("work.get", "message.get")}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            host_root, gateway_root = root / "host", root / "gateway"
+            host_root.mkdir()
+            gateway_root.mkdir()
+            (host_root / "mcp-surface.json").write_text(json.dumps({"tools": sorted(host)}))
+            (gateway_root / "mcp-surface.json").write_text(
+                json.dumps({"tools": sorted(gateway)})
+            )
+            with patch.object(checker, "HOST", host_root), patch.object(
+                checker, "GATEWAY", gateway_root
+            ):
+                report = checker.compare_source_to_gateway(host, gateway)
+                self.assertEqual(report["gatewayOmittedHostTools"], ["host.pool.stats"])
+                # Keep the *native manifest* in step with the deliberate
+                # negative source fixture; only then test the omission law.
+                (gateway_root / "mcp-surface.json").write_text(
+                    json.dumps({"tools": ["work.get"]})
+                )
+                with self.assertRaisesRegex(RuntimeError, "Unexpected northbound"):
+                    checker.compare_source_to_gateway(
+                        host, {"work.get": tool("work.get")}
+                    )
+
     def test_extra_or_missing_host_tool_requires_explicit_review(self) -> None:
         source = {"host.status": {"name": "host.status", "inputSchema": {}}}
         with self.assertRaisesRegex(RuntimeError, "Unexpected northbound Gateway Host omissions"):

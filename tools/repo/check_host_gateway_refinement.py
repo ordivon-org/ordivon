@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[2]
 HOST = ROOT / "services/host"
 GATEWAY = ROOT / "services/gateway"
 AUDITOR = HOST / "rust/tools/audit_mcp_surface.py"
-HOST_OMISSIONS = frozenset({"host.pool.stats", "message.get"})
+# Host-only native Psycopg diagnostics are not an Agent/Gateway surface. Current main DOES publish message.get for exact evidence readback.
+HOST_OMISSIONS = frozenset({"host.pool.stats"})
 HOST_NAMESPACES = ("actor.", "attention.", "host.", "message.", "space.",
                    "subscription.", "topic.", "work.")
 # An upstream Host-external extension needs its own explicit release review.
