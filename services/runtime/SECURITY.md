@@ -6,7 +6,7 @@ Do not open a public Issue, Discussion, or pull request for a suspected vulnerab
 
 Use GitHub's private vulnerability reporting channel:
 
-- `https://github.com/zycxfyh/ordivon-runtime/security/advisories/new`
+- `https://github.com/ordivon-org/ordivon/security/advisories/new`
 
 Include:
 

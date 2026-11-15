@@ -1,7 +1,7 @@
-# Commercial Strategy Current Facts R1
+# Commercial strategy working baseline — September 2026
 
 Date: 2026-09-19  
-Status: CURRENT COMPANY-SPECIFIC WORKING FACTS / OPEN STRATEGIC CHOICES — not an Ordivon strategy framework.
+Status: company-specific working baseline recorded in September 2026; not a live business-state observation or an Ordivon strategy framework.
 
 ## 0. Boundary
 
@@ -15,9 +15,9 @@ This document separates **company strategy** from the existing enterprise operat
 
 None of those references proves market demand. Customer behavior, paid work, delivery economics, retention/repeat purchase and real outcomes remain the evidence.
 
-## 1. Current established facts
+## 1. Recorded baseline claims
 
-The following claims are supported by current local source/evidence and should not be confused with future aspirations:
+These claims were recorded for the September 2026 baseline. Current business state requires newer owner evidence; the recorded assertions are not a live operational inventory:
 
 - Ordivon is still PRE-T0 as a legal company; no registered entity, corporate bank account, corporate payment rail or real company revenue is currently evidenced.
 - The intended near-term commercialization motion is **service first, then productize repeated paid work** rather than building a speculative SaaS product before customer evidence.
@@ -130,56 +130,44 @@ A product candidate becomes worth explicit evaluation only after paid work shows
 
 No fixed numeric threshold is frozen before the first paid engagements. The evidence set should make it possible to show that software reuse can reduce marginal delivery cost or improve speed/quality without destroying the service's value.
 
-## 8. Current strategic debts
+## 8. Open questions in the recorded baseline
 
 The following remain intentionally open rather than being papered over by architecture:
 
 1. **ICP** — no initial customer segment is frozen.
 2. **Beachhead workflow** — no workflow is frozen.
 3. **First paid offer** — no exact offer/price is frozen.
-4. **Distribution channel** — `COMMERCIAL_CHANNEL_EXPERIMENT_R1` now defines the first bounded falsification across founder-led outbound, evidence-driven content and technical-community distribution, but no contact/publication effect, qualified pipeline or winning channel is yet evidenced.
+4. **Distribution channel** — Founder-led outreach, technical content and community distribution remained competing hypotheses. No tracked channel-experiment plan or resulting buyer-response evidence is present in this SourceCut.
 5. **Learning-rights architecture in contracts** — principles are now explicit, but no real customer agreement has tested them.
 6. **Outcome/evaluation dataset** — no external-customer outcome corpus exists.
 7. **Service-to-product promotion evidence** — no real paid repetition exists.
 8. **Economic thresholds** — target contribution margin, sales-cycle tolerance, cash-collection policy and customer-concentration limits are not yet evidence-calibrated.
 9. **Moat claim** — workflow/learning-loop advantage is a hypothesis, not an established moat.
 
-## 8A. Active discovery surface — university students
+## 8A. Historical student-discovery hypotheses (September 2026)
 
-As of 2026-09-20, university students are admitted only as a **high-priority discovery population**, not a validated ICP.
-
-Current task-local census and experiment plans:
-
-- `STUDENT_MARKET_PRIMITIVE_CENSUS_R1.md` — initial global/high-agency decomposition;
-- `STUDENT_BEACHHEAD_DISCOVERY_EXPERIMENTS_R1.md`;
-- `CHINA_UNIVERSITY_STUDENT_WORKFLOW_CENSUS_R2.md` — mainland-China-specific campus/information/deadline/transition workflows;
-- `planning/china-student-market-discovery-r2.md`;
-- `CHINA_STUDENT_SEED_PORTFOLIO_R3.md` — seed-level decomposition of opportunity/eligibility/deadline/evidence/action loops;
-- `CHINA_STUDENT_SEED_EXPERIMENTS_R3.md` — concierge experiments before product build;
-- `CHINA_STUDENT_SEED_DEEP_STRUCTURES_R3.md` — shared primitives/economic classes, graduation-risk/evidence-reuse/change-detection seeds, source-access difficulty and negative-space analysis.
-
-R2 broadens the discovery surface beyond high-agency students. Current hypotheses now have two market layers:
+University students were a candidate discovery population, not a validated ICP. The R1–R3 census and experiment filenames previously listed here are absent from the current tracked tree; this is not an executable current research plan. The recorded hypotheses distinguished two market layers:
 
 1. **mass student utility** — opportunity intelligence, campus obligations, second-classroom/competition/internship information, postgraduate/recommendation/public-recruitment/study-abroad navigation;
 2. **high-agency premium workflows** — research execution/reproducibility, technical projects/GitHub/competition execution, evidence-backed career transition, student-founder execution.
 
 Generic tutoring, generic coding assistance, literature search, résumé generation and generic job search remain intentionally outside the beachhead because mature providers already occupy those layers.
 
-A new China-specific strategic hypothesis is that the broad residual value may be:
+The recorded China-specific hypothesis was that residual value might be:
 `verified information + personal eligibility + deadline/prerequisite graph + next action + evidence/outcome`,
 with AI hidden as an implementation primitive rather than sold as a chatbot.
 
 No student ICP, payer or beachhead is validated until interviews, commitment-quality evidence and paid pilots exist.
 
-## 9. Immediate order of work
+## 9. Proposed market-testing sequence (historical)
 
-The next commercial work should therefore be market-facing rather than infrastructure-facing:
+The recorded plan prioritized market-facing tests over additional infrastructure:
 
 ```text
 candidate workflow portfolio
  -> customer/problem discovery
  -> narrow first offer
- -> run COMMERCIAL_CHANNEL_EXPERIMENT_R1
+ -> design a task-local channel experiment with observed buyer responses
  -> founder-led outreach / evidence content / technical-community distribution as separately authorized
  -> paid pilot
  -> delivery + acceptance + economics

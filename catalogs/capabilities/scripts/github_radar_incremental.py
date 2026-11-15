@@ -24,47 +24,65 @@ GAIN = re.compile(r"([0-9][0-9,]*)\s+stars?\s+(today|this week|this month)", re.
 
 
 class TrendingParser(HTMLParser):
+    """Collect one complete Box-row article at a time, not generic tag depth.
+
+    HTML void elements (img/wbr/br/etc.) do not emit end tags, so counting
+    every HTML start/end as a balanced pair silently drops Trending cards.
+    """
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.depth = 0
+        self.article_depth = 0
         self.h2_depth = 0
         self.hrefs: list[str] = []
         self.bits: list[str] = []
         self.results: list[dict] = []
+        self.unparseable_cards = 0
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
-        if tag == "article" and "Box-row" in a.get("class", "").split():
-            self.depth = 1
-            self.h2_depth = 0
-            self.hrefs, self.bits = [], []
+        if tag == "article":
+            if self.article_depth:
+                self.article_depth += 1
+                return
+            if "Box-row" in a.get("class", "").split():
+                self.article_depth = 1
+                self.h2_depth = 0
+                self.hrefs, self.bits = [], []
             return
-        if not self.depth:
+        if not self.article_depth:
             return
-        self.depth += 1
         if tag == "h2":
             self.h2_depth += 1
-        if self.h2_depth and tag == "a":
+        elif tag == "a" and self.h2_depth:
             self.hrefs.append(a.get("href", ""))
 
     def handle_endtag(self, tag):
-        if not self.depth:
+        if not self.article_depth:
+            return
+        if tag == "article":
+            self.article_depth -= 1
+            if not self.article_depth:
+                self._finish_card()
             return
         if tag == "h2" and self.h2_depth:
             self.h2_depth -= 1
-        self.depth -= 1
-        if self.depth != 0:
-            return
-        repo = next((v.strip("/") for v in self.hrefs if REPO.fullmatch(v.strip("/"))), None)
+
+    def _finish_card(self):
+        repo = next((v.strip("/") for v in self.hrefs
+                     if REPO.fullmatch(v.strip("/"))), None)
         if not repo:
+            self.unparseable_cards += 1
             return
         desc = " ".join("".join(self.bits).split())
         match = GAIN.search(desc)
-        self.results.append({"repo": repo, "newStars": int(match.group(1).replace(",", "")) if match else None,
-                             "sourceWindowLabel": match.group(2).lower() if match else None})
+        self.results.append({
+            "repo": repo,
+            "newStars": int(match.group(1).replace(",", "")) if match else None,
+            "sourceWindowLabel": match.group(2).lower() if match else None,
+        })
 
     def handle_data(self, text):
-        if self.depth:
+        if self.article_depth:
             self.bits.append(text)
 
 
@@ -73,6 +91,11 @@ def parse_trending(html: str, window: str) -> list[dict]:
         raise ValueError("unknown Trending window")
     parser = TrendingParser()
     parser.feed(html)
+    parser.close()
+    if parser.article_depth:
+        raise ValueError("unterminated GitHub Trending article; source window unverified")
+    if parser.unparseable_cards:
+        raise ValueError("unparseable GitHub Trending article; source window unverified")
     if not parser.results:
         raise ValueError("GitHub Trending article markup missing; cannot silently fall back")
     return [{"repo": e["repo"], "newStars": e["newStars"],
@@ -95,27 +118,39 @@ def fetch_json(repo: str) -> dict:
 def live_observation(limit: int) -> dict:
     observed = datetime.now(timezone.utc).isoformat()
     windows = []
+    failures: dict[str, str] = {}
     repos: set[str] = set()
+    # Try all three official pages. A temporary failure in one window must not
+    # discard verified observations from the others or masquerade as full coverage.
     for win in WINDOWS:
         url = GH + "/trending?since=" + win
-        response = subprocess.run(
-            ["curl", "--fail", "--location", "--silent", "--show-error",
-             "--connect-timeout", "10", "--max-time", "45", "--retry", "2",
-             "--user-agent", "Mozilla/5.0 Ordivon-Radar/1.0", url],
-            capture_output=True, timeout=130)
-        if response.returncode != 0 or len(response.stdout) < 1000:
-            raise RuntimeError("official GitHub Trending " + win + " failed: " +
-                               response.stderr.decode("utf-8", errors="replace")[-250:])
-        body = response.stdout[:2_000_000].decode("utf-8", errors="replace")
-        records = parse_trending(body, win)[:limit]
-        windows.append({"window": win, "sourceUrl": url, "retrievedAt": datetime.now(timezone.utc).isoformat(),
+        try:
+            response = subprocess.run(
+                ["curl", "--fail", "--location", "--silent", "--show-error",
+                 "--connect-timeout", "10", "--max-time", "45", "--retry", "2",
+                 "--user-agent", "Mozilla/5.0 Ordivon-Radar/1.0", url],
+                capture_output=True, timeout=130)
+            if response.returncode != 0 or len(response.stdout) < 1000:
+                raise RuntimeError(
+                    "official GitHub Trending " + win + " fetch failed: " +
+                    response.stderr.decode("utf-8", errors="replace")[-250:])
+            body = response.stdout[:2_000_000].decode("utf-8", errors="replace")
+            records = parse_trending(body, win)[:limit]
+        except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as exc:
+            failures[win] = str(exc)[:300]
+            continue
+        windows.append({"window": win, "sourceUrl": url,
+                        "retrievedAt": datetime.now(timezone.utc).isoformat(),
                         "sourceBodySha256": "sha256:" + hashlib.sha256(response.stdout).hexdigest(),
                         "entries": records})
         repos.update(x["repo"] for x in records)
+    if not windows:
+        raise RuntimeError("all official GitHub Trending windows failed: " +
+                           "; ".join(win + ": " + failures[win] for win in WINDOWS))
     return {"kind": "ordivon.github-trending-observation-r1", "snapshotDay": observed[:10],
             "observedAt": observed, "origin": "github-official-trending-pages",
-            "windows": windows, "repositories": {r: fetch_json(r) for r in sorted(repos)}}
-
+            "windows": windows, "windowFailures": failures,
+            "repositories": {r: fetch_json(r) for r in sorted(repos)}}
 
 def previous_repositories(history: Path, today: date, out: Path) -> set[str]:
     seen: set[str] = set()
@@ -141,8 +176,20 @@ def normalize(raw: dict, history: set[str]) -> dict:
     if raw.get("kind") != "ordivon.github-trending-observation-r1":
         raise ValueError("input is not a declared GitHub Trending observation")
     day = date.fromisoformat(raw["snapshotDay"])
+    if not raw.get("windows"):
+        raise ValueError("no official Trending window observation")
     indexed: dict[str, dict] = {}
+    observed_windows: set[str] = set()
+    failures = raw.get("windowFailures", {})
+    if (not isinstance(failures, dict) or
+            any(k not in WINDOWS or not isinstance(v, str) or not v for k, v in failures.items())):
+        raise ValueError("invalid source window failure details")
     for window in raw["windows"]:
+        if not window.get("entries"):
+            raise ValueError("empty official Trending window observation")
+        if window["window"] in observed_windows:
+            raise ValueError("duplicate official Trending window")
+        observed_windows.add(window["window"])
         win = window["window"]
         if win not in WINDOWS or window.get("sourceUrl") != GH + "/trending?since=" + win:
             raise ValueError("not an official window URL")
@@ -158,6 +205,15 @@ def normalize(raw: dict, history: set[str]) -> dict:
             c["officialTrending"].append({"window": win, "stars": gain, "label": item.get("sourceWindowLabel"),
                                            "sourceUrl": window["sourceUrl"], "retrievedAt": window["retrievedAt"],
                                            "sourceBodySha256": window.get("sourceBodySha256")})
+    if observed_windows.intersection(failures):
+        raise ValueError("source window cannot be observed and failed")
+    coverage = {
+        "observedWindows": [w for w in WINDOWS if w in observed_windows],
+        "failedWindows": [w for w in WINDOWS if w in failures],
+        "unobservedWindows": [w for w in WINDOWS if w not in observed_windows and w not in failures],
+        "complete": observed_windows == set(WINDOWS),
+        "failureNotes": {w: failures[w] for w in WINDOWS if w in failures},
+    }
     for repo, value in indexed.items():
         api = raw.get("repositories", {}).get(repo, {})
         value["totalStars"] = api.get("totalStars")
@@ -175,6 +231,7 @@ def normalize(raw: dict, history: set[str]) -> dict:
         value["adoptionStanding"] = "DISCOVERY_ONLY"
     return {"kind": "ordivon.github-radar-candidates-r1", "snapshotDay": day.isoformat(),
             "observedAt": raw["observedAt"], "origin": raw["origin"],
+            "sourceCoverage": coverage,
             "candidates": [indexed[k] for k in sorted(indexed)],
             "nonClaims": ["Official Trending display windows are not UTC rolling windows",
                           "No arbitrary GitHub API historical star delta inferred",
@@ -199,7 +256,8 @@ def main() -> int:
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(args.output), "candidateCount": len(result["candidates"]),
                       "repeatCount": sum(x["repeatedWithin7Days"] for x in result["candidates"]),
-                      "standing": "DISCOVERY_ONLY"}))
+                      "standing": "DISCOVERY_ONLY",
+                      "sourceCoverage": result["sourceCoverage"]}))
     return 0
 
 

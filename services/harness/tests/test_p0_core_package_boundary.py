@@ -21,6 +21,23 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         )
         return json.loads(completed.stdout)
 
+    def test_public_agent_run_api_has_only_postgres_state_authority(self) -> None:
+        import inspect
+        from ordivon_harness.agent_run import HarnessAgentRun
+        self.assertEqual(
+            tuple(inspect.signature(HarnessAgentRun.create).parameters)[:4],
+            ("dsn", "schema", "contract", "adapter_factory"),
+        )
+        self.assertEqual(
+            tuple(inspect.signature(HarnessAgentRun.open).parameters)[:4],
+            ("dsn", "schema", "harness_run_id", "adapter_factory"),
+        )
+        self.assertFalse(hasattr(HarnessAgentRun, "create_postgres"))
+        self.assertFalse(hasattr(HarnessAgentRun, "open_postgres"))
+        self.assertFalse(hasattr(HarnessAgentRun, "_create_sqlite_legacy"))
+        self.assertNotIn("state_root", HarnessAgentRun.__dataclass_fields__)
+        self.assertNotIn("sqlite_store", inspect.getsource(HarnessAgentRun))
+
     def test_package_root_and_api_do_not_eagerly_load_host(self) -> None:
         observed = self.run_probe(
             "import json,sys,ordivon_harness; "

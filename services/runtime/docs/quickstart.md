@@ -35,8 +35,8 @@ Use the portable path to inspect or contribute from any supported Linux developm
 ## Prerequisites
 
 ```bash
-git clone https://github.com/zycxfyh/ordivon-runtime.git
-cd ordivon-runtime
+git clone https://github.com/ordivon-org/ordivon.git
+cd ordivon/services/runtime
 git status --short --branch
 rustc --version
 python3 --version

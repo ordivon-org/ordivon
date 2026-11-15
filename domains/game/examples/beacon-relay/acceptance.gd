@@ -117,6 +117,13 @@ func _run() -> void:
         quit(1)
         return
     print("GAME_BEACON_RELAY_PASS assertions=%d keyboard_frames=%d delivery_cycles=4 endpoints=win,loss,retry upstream_physics=yes" % [count, moves])
-    game.queue_free()
-    await process_frame
+    # The game uses real Ogg/WAV AudioStreamPlayer nodes during victory/loss.
+    # Stop and unbind the streams before freeing the scene; otherwise the
+    # AudioServer can retain playback/resource references at process exit.
+    for name in ["Music", "DeathSound"]:
+        var player_audio: AudioStreamPlayer = game.get_node(name)
+        player_audio.stop()
+        player_audio.stream = null
+    game.free()
+    await create_timer(0.15).timeout
     quit()

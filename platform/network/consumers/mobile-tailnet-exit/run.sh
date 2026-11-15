@@ -79,8 +79,10 @@ fi
 
 while kill -0 "$child" 2>/dev/null; do
   sleep 1
-  current_provider_pid="$(provider_pid)"
-  if ! valid_pid "$current_provider_pid" || test "$current_provider_pid" != "$provider_pid"; then
+  # The live provider's network namespace is the identity, not its Podman
+  # container-name lookup. Bash -ef compares the kernel namespace inodes
+  # without spawning a Podman CLI process on every heartbeat.
+  if [[ ! "/proc/$provider_pid/ns/net" -ef "/proc/$child/ns/net" ]]; then
     echo "mobile-tailnet-exit: provider namespace changed; restarting" >&2
     exit 75
   fi

@@ -3,7 +3,7 @@ pub struct ServerConfig {
     pub runtime: RuntimeConfig,
     pub input_authorities: Vec<InputAuthority>,
     pub credential_authorities: Vec<CredentialAuthority>,
-    pub workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
     pub execution: ExecutionContext,
     pub release: Option<RuntimeReleaseExecutionConfig>,
     pub input_ingress: Option<InputIngressExecutionConfig>,
@@ -83,7 +83,7 @@ impl RuntimeServer {
                 }
             }
         }
-        let runtime = Runtime::new_with_authorities_default_runtime_and_workspace_headroom(
+        let runtime = Runtime::new_with_authorities_default_runtime_and_workspace_headrooms(
             config.runtime, config.input_authorities, config.credential_authorities,
             default_runtime_ms, config.workspace_headroom,
         )

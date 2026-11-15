@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
 
 import pytest
@@ -27,7 +26,7 @@ from ordivon_harness.plugin_gateway_effect import (
     PluginGatewayExecutionBridgeFactory,
     PluginGatewayExecutionGrant,
 )
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.runtime_port import HarnessRuntimeClientError
 
 
@@ -247,14 +246,247 @@ def _adapter(timeout_ms: int | None = 5_000) -> ScriptedTurnAdapter:
     )
 
 
-def test_omitted_timeout_is_bounded_by_actual_harness_grant() -> None:
+def test_effect_gateway_factory_rejects_duplicate_required_tool_names() -> None:
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    class DuplicateRequired(GatewayExecutionFixture):
+        def list_tools(self):
+            tools = super().list_tools()
+            duplicate = dict(tools[0])
+            duplicate["inputSchema"] = {"type": "object", "maxProperties": 0}
+            return (*tools, duplicate)
+
+    with pytest.raises(ToolBridgeError, match="duplicate"):
+        _factory(DuplicateRequired())
+
+
+def test_effect_gateway_runtime_validation_rejects_duplicate_required_tool_names(
+    pg_schema,
+) -> None:
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    class DuplicateAfterAdmission(GatewayExecutionFixture):
+        def __init__(self):
+            super().__init__()
+            self.duplicated = False
+
+        def list_tools(self):
+            tools = super().list_tools()
+            if self.duplicated:
+                return (*tools, dict(tools[-1]))
+            return tools
+
+    client = DuplicateAfterAdmission()
+    factory = _factory(client)
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        contract,
+        lambda _: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        bridge = factory.build(contract, continuity)
+        bridge.validate_runtime_catalog()
+        client.duplicated = True
+        with pytest.raises(ToolBridgeError, match="duplicate"):
+            bridge.validate_runtime_catalog()
+
+
+def test_effect_gateway_rejects_tool_schema_drift_after_run_preflight_before_intent(
+    pg_schema,
+) -> None:
+    class MutatedAfterLoopCheck(GatewayExecutionFixture):
+        def __init__(self):
+            super().__init__()
+            self.list_calls = 0
+
+        def list_tools(self):
+            self.list_calls += 1
+            tools = list(super().list_tools())
+            if self.list_calls >= 3:
+                tools[0]["inputSchema"] = {"type": "object", "maxProperties": 0}
+            return tuple(tools)
+
+    client = MutatedAfterLoopCheck()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "invalid_tool_call", (
+        result.loop_result.stop_code.value,
+        [e.payload for e in result.loop_result.trace.events if e.kind == "run_stopped"],
+    )
+    assert client.list_calls >= 3
+    assert client.calls == []
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+        # A stale MCP schema is rejected before any prepared durable effect.
+        with pytest.raises(KeyError, match="no current Tool Step"):
+            continuity.load_current_tool_step()
+
+
+def test_effect_gateway_catalog_transport_loss_before_intent_is_typed_and_non_dispatching(
+    pg_schema,
+) -> None:
+    class ListTransportLoss(GatewayExecutionFixture):
+        def __init__(self):
+            super().__init__()
+            self.catalog_reads = 0
+
+        def list_tools(self):
+            self.catalog_reads += 1
+            if self.catalog_reads >= 3:
+                raise ConnectionError("MCP catalog session lost before ToolStep intent")
+            return super().list_tools()
+
+    client = ListTransportLoss()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "invalid_tool_call", (
+        result.loop_result.stop_code.value,
+        client.catalog_reads,
+        [e.payload for e in result.loop_result.trace.events if e.kind == "run_stopped"],
+    )
+    assert client.catalog_reads >= 3
+    assert client.calls == []
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+        with pytest.raises(KeyError, match="no current Tool Step"):
+            continuity.load_current_tool_step()
+
+
+def test_effect_gateway_real_mcp_http_schema_drift_before_pg_intent_never_dispatches(
+    pg_schema,
+) -> None:
+    """SDK-native Streamable HTTP tool catalog changes between two real Run stages."""
+    import asyncio
+    import socket
+    import threading
+    import time
+
+    import uvicorn
+    from mcp import types
+    from mcp.server import MCPServer
+
+    from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
+
+    owner = MCPServer("h2-native-gateway-mcp-catalog-drift")
+    tool_names = ("execution.submit", "execution.get", "execution.resolve", "execution.cancel")
+
+    for tool_name in tool_names:
+
+        @owner.tool(name=tool_name)
+        def owner_execution_tool(arguments: dict | None = None) -> dict[str, str]:
+            return {"owner": "simulation", "requested": str(arguments)}
+
+    listing_count = [0]
+    dispatched = []
+
+    async def list_current_tools(context, params: types.PaginatedRequestParams):
+        listing_count[0] += 1
+        all_tools = list(await owner.list_tools())
+        assert {tool.name for tool in all_tools} == set(tool_names)
+        if listing_count[0] >= 3:
+            all_tools = [
+                tool.model_copy(update={"input_schema": {"type": "object", "maxProperties": 0}})
+                if tool.name == "execution.submit"
+                else tool
+                for tool in all_tools
+            ]
+        return types.ListToolsResult(tools=all_tools)
+
+    async def call_never_expected(context, params: types.CallToolRequestParams):
+        dispatched.append(params.name)
+        return types.CallToolResult(
+            content=[types.TextContent(type="text", text="unexpected owner call")],
+            structured_content={"unexpected": True},
+        )
+
+    owner._lowlevel_server.add_request_handler(
+        "tools/list", types.PaginatedRequestParams, list_current_tools
+    )
+    owner._lowlevel_server.add_request_handler(
+        "tools/call", types.CallToolRequestParams, call_never_expected
+    )
+    app = owner.streamable_http_app(stateless_http=True, json_response=True)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", log_level="error"))
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(8)
+    port = sock.getsockname()[1]
+    thread = threading.Thread(target=lambda: asyncio.run(server.serve(sockets=[sock])), daemon=True)
+    thread.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert server.started
+        # Real local transport is distinct from the canonical Plugin's
+        # externally declared HTTPS endpoint. This fixture does not authorize
+        # Runtime physical execution or use a production Gateway.
+        client = OfficialMcpClient(LoopbackMcpEndpoint(f"http://127.0.0.1:{port}/mcp"))
+        factory = _factory(client)
+        clock = FixedClock()
+        run = HarnessAgentRun.create(
+            pg_schema[0],
+            pg_schema[1],
+            _contract(factory),
+            lambda _: _adapter(),
+            tool_bridge_factory=factory,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        result = run.run(())
+        assert listing_count[0] >= 3
+        assert result.loop_result.stop_code.value == "invalid_tool_call", (
+            result.loop_result.stop_code.value,
+            [e.payload for e in result.loop_result.trace.events if e.kind == "run_stopped"],
+        )
+        assert dispatched == []
+        with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+            continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+            with pytest.raises(KeyError, match="no current Tool Step"):
+                continuity.load_current_tool_step()
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        sock.close()
+        assert not thread.is_alive()
+
+
+def test_omitted_timeout_is_bounded_by_actual_harness_grant(pg_schema) -> None:
     """A valid optional tool input must not acquire Runtime's wider default."""
-    with tempfile.TemporaryDirectory() as directory:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture()
         factory = _factory(client)  # exact caller grant: 10,000ms
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(timeout_ms=None),
             tool_bridge_factory=factory,
@@ -270,13 +502,12 @@ def test_omitted_timeout_is_bounded_by_actual_harness_grant() -> None:
         assert calls[0][1]["timeoutMs"] == 10_000
 
 
-def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch(pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         observed_pre_dispatch = {"checked": False}
 
         def probe(arguments) -> None:
-            with SQLiteHarnessStore(root) as store:
+            with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
                 continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
                 step = continuity.load_current_tool_step()
                 assert step.receipt is None
@@ -294,7 +525,8 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         contract = _contract(factory)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            root,
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -306,20 +538,25 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert result.loop_result.stop_code.value == "candidate_completed"
         assert observed_pre_dispatch["checked"] is True
         names = [name for name, _ in client.calls]
-        assert names == ["execution.submit", "execution.get"]
+        assert names == ["execution.submit", "execution.get", "execution.resolve"]
         assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[2][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[2][1]["capability"] == "execution.linux"
+        assert names.count("execution.submit") == 1
         assert client.calls[1][1]["capability"] == "execution.linux"
         submit = client.calls[0][1]
         assert submit["capability"] == "execution.linux"
         assert submit["workspaceId"] == "ws-plugin-h2"
         assert submit["executable"] == "/usr/bin/rg"
         assert submit["timeoutMs"] == 5_000  # explicitly admitted value is unchanged
+        assert submit["stdoutLimitBytes"] == 262_144
+        assert submit["stderrLimitBytes"] == 262_144
         assert submit["requestId"].startswith("request:harness-gateway:")
 
 
 @pytest.mark.parametrize("tamper", ("request_id", "capability"))
-def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str) -> None:
-    with tempfile.TemporaryDirectory() as directory:
+def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture(response_loss=True)
         original = client.call_tool
 
@@ -334,7 +571,8 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str) 
         factory = _factory(client)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -347,16 +585,85 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str) 
         assert names == ["execution.submit", "execution.resolve"]
 
 
-def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+@pytest.mark.parametrize(
+    "tamper",
+    (
+        "executable",
+        "arguments",
+        "client_request_id",
+        "omit_run_contract_grant",
+        "wrong_fence_digest",
+        "duplicate_fence",
+    ),
+)
+def test_durable_effect_handoff_rejects_post_intent_mutation_before_owner_call(
+    tamper: str, pg_schema, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Real PG18 Intent/Fence must bind exact physical request, not merely its ID.
+
+    This is a malicious/buggy gateway adapter's handoff mutation, not a model
+    permission test: the frozen physical request has already been journaled.
+    No execution.submit may occur if its bytes or the bound fence drift.
+    """
+    from ordivon_harness.plugin_gateway_effect import PluginGatewayExecutionBridge
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    original = PluginGatewayExecutionBridge._with_dispatch_fence
+
+    def mutate_after_preparation(request, fence):
+        result = original(request, fence)
+        execution = dict(result["execution"])
+        refs = [dict(value) for value in execution["foreignReferences"]]
+        if tamper == "executable":
+            execution["executable"] = "/usr/bin/false"
+        elif tamper == "arguments":
+            execution["args"] = ["forged", "."]
+        elif tamper == "client_request_id":
+            result["clientRequestId"] = "request:forged-after-prepare"
+        elif tamper == "omit_run_contract_grant":
+            refs = [value for value in refs if value.get("type") != "tool_grant"]
+        elif tamper == "wrong_fence_digest":
+            refs[-1]["digest"] = canonical_digest({"forged": "fence"})
+        elif tamper == "duplicate_fence":
+            refs.append(dict(refs[-1]))
+        execution["foreignReferences"] = refs
+        result["execution"] = execution
+        return result
+
+    monkeypatch.setattr(
+        PluginGatewayExecutionBridge, "_with_dispatch_fence", staticmethod(mutate_after_preparation)
+    )
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    try:
+        run.run(())
+    except ToolBridgeError:
+        pass
+    assert not [name for name, _ in client.calls if name == "execution.submit"], (
+        f"{tamper}: a request different from committed Tool Intent reached its Owner"
+    )
+
+
+def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture(response_loss=True)
         factory = _factory(client)
         contract = _contract(factory)
         clock = FixedClock()
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            root,
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -367,13 +674,18 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
 
         assert result.loop_result.stop_code.value == "candidate_completed"
         names = [name for name, _ in client.calls]
-        assert names == ["execution.submit", "execution.resolve", "execution.get"]
-        assert client.calls[2][1]["requestId"] == client.calls[0][1]["requestId"]
-        assert client.calls[2][1]["capability"] == "execution.linux"
+        assert names == [
+            "execution.submit",
+            "execution.resolve",
+            "execution.get",
+            "execution.resolve",
+        ]
+        for index in (1, 2, 3):
+            assert client.calls[index][1]["requestId"] == client.calls[0][1]["requestId"]
+            assert client.calls[index][1]["capability"] == "execution.linux"
         assert names.count("execution.submit") == 1
-        assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
 
-        with SQLiteHarnessStore(root) as store:
+        with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
             continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
             step = continuity.load_current_tool_step()
             assert step.receipt is not None
@@ -388,8 +700,8 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
 
 
 @pytest.mark.parametrize("mutation", ("missing_workspace", "wrong_workspace"))
-def test_gateway_recovery_requires_owner_observed_workspace(mutation: str) -> None:
-    with tempfile.TemporaryDirectory() as directory:
+def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture(response_loss=True)
         original_call_tool = client.call_tool
 
@@ -406,7 +718,8 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str) -> No
         client.call_tool = forged_resolution  # type: ignore[method-assign]
         factory = _factory(client)
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -417,6 +730,86 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str) -> No
         assert result.loop_result.stop_code.value == "runtime_unknown"
         names = [name for name, _ in client.calls]
         assert names == ["execution.submit", "execution.resolve"]
+
+
+@pytest.mark.parametrize("field", ("stdoutLimitBytes", "stderrLimitBytes"))
+@pytest.mark.parametrize("invalid", (True, 0, -1, 1.0, "262144"))
+def test_gateway_adapter_refuses_non_integer_native_output_caps_before_owner_call(
+    field: str, invalid: object
+) -> None:
+    """An invalid caller output bound must not be silently defaulted."""
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    execution = {
+        "workspaceId": "ws-plugin-h2",
+        "foreignReferences": [],
+        "executable": "/usr/bin/rg",
+        "args": ["needle"],
+        "cwdRelative": ".",
+        field: invalid,
+    }
+    with pytest.raises(HarnessRuntimeClientError, match="invalid"):
+        adapter.call_tool(
+            "workspace.exec",
+            {"clientRequestId": "request:output-bound", "execution": execution},
+        )
+    assert client.calls == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("budget", {"memoryBytes": 500_000_000}),
+        ("hostDependencies", []),
+        ("steps", [{"id": "first"}]),
+        ("executionTarget", "windows_native"),
+        ("executionProfile", "contained_local"),
+        ("windowsAuthority", "active_user"),
+        ("stdin", "uncommitted"),
+    ),
+)
+def test_gateway_refuses_frozen_physical_fields_it_cannot_represent(
+    field: str, value: object
+) -> None:
+    """Fail before Owner call; no silent request corruption at the adapter."""
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    with pytest.raises(HarnessRuntimeClientError, match="cannot faithfully lower"):
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:physical-unsupported",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "executable": "/usr/bin/rg",
+                    "foreignReferences": [],
+                    field: value,
+                },
+            },
+        )
+    assert client.calls == []
+
+
+def test_gateway_refuses_frozen_native_output_bound_outside_u64() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    with pytest.raises(HarnessRuntimeClientError, match="invalid stdoutLimitBytes"):
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:physical-overflow",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "executable": "/usr/bin/rg",
+                    "foreignReferences": [],
+                    "stdoutLimitBytes": 2**65,
+                },
+            },
+        )
+    assert client.calls == []
 
 
 def test_gateway_native_job_identity_cannot_rebind_to_another_request() -> None:
@@ -481,12 +874,17 @@ def test_gateway_operation_ref_cannot_attach_to_a_different_job() -> None:
     client = GatewayExecutionFixture()
     factory = _factory(client)
     adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+
     def submit(request_id: str) -> dict:
         return {
             "clientRequestId": request_id,
-            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
-                          "executable": "/usr/bin/rg"},
+            "execution": {
+                "workspaceId": "ws-plugin-h2",
+                "foreignReferences": [],
+                "executable": "/usr/bin/rg",
+            },
         }
+
     original_job = client.native_id
     adapter.call_tool("workspace.exec", submit("request:one"))
     client.native_id = "job-alias"
@@ -500,6 +898,7 @@ def test_gateway_operation_ref_cannot_attach_to_a_different_job() -> None:
 def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: str) -> None:
     client = GatewayExecutionFixture()
     original = client.call_tool
+
     def forged(name, arguments):
         is_error, receipt = original(name, arguments)
         if name == "execution.submit":
@@ -509,22 +908,28 @@ def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: 
             else:
                 receipt.pop("state")
         return is_error, receipt
+
     client.call_tool = forged
     factory = _factory(client)
     adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
     with pytest.raises(HarnessRuntimeClientError):
-        adapter.call_tool("workspace.exec", {
-            "clientRequestId": "request:untrusted",
-            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
-                          "executable": "/usr/bin/rg"},
-        })
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:untrusted",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "foreignReferences": [],
+                    "executable": "/usr/bin/rg",
+                },
+            },
+        )
     assert adapter._operation_refs == {}
     assert adapter._operation_requests == {}
 
 
-def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+def test_gateway_effect_bridge_propagates_cooperative_control_cancellation(pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         clock = FixedClock()
         cancellation = CancellationToken(monotonic_ms=clock)
         client = GatewayExecutionFixture(cancellation=cancellation)
@@ -532,7 +937,8 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> 
         contract = _contract(factory)
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            root,
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -547,7 +953,7 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> 
         assert client.calls[1][1]["capability"] == "execution.linux"
         assert result.loop_result.stop_code.value == "cancel_unknown"
 
-        with SQLiteHarnessStore(root) as store:
+        with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
             continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
             step = continuity.load_current_tool_step()
             assert step.receipt is not None
@@ -650,8 +1056,47 @@ def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection(
     assert observed["resultAvailable"] is False
 
 
+def test_gateway_native_stop_unknown_lost_does_not_invent_runner_result() -> None:
+    """Gateway artifact projection != native execution result availability."""
+
+    class NativeStopOnly(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            is_error, record = super().call_tool(name, arguments)
+            if name == "execution.get":
+                record.update(
+                    state="lost",
+                    execution_disposition="lost",
+                    delivery_disposition="unknown",
+                    terminal=True,
+                    exit_code=None,
+                    recovery_required=False,
+                    artifact_ids=["artifact-attempt-native-stop"],
+                    artifact_count=1,
+                    artifact_projection_complete=True,
+                )
+            return is_error, record
+
+    client = NativeStopOnly()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_requests[client.native_id] = "request:native-stop-recovery"
+    observed = adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+    assert observed["executionTerminal"] is True
+    assert observed["executionDisposition"] == "lost"
+    assert observed["deliveryDisposition"] == "unknown"
+    assert observed["resultAvailable"] is False
+    assert observed["semanticCompletionEvaluated"] is False
+
+
 @pytest.mark.parametrize("invalid", [None, True, False, 0, -1, 10_001, "10"])
-def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object) -> None:
+def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object, pg_schema) -> None:
     """An invalid canonical JSON value must not reach Gateway execution.submit."""
     from dataclasses import replace
 
@@ -671,10 +1116,11 @@ def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object) -
         second,
     )
 
-    with tempfile.TemporaryDirectory() as directory:
+    with tempfile.TemporaryDirectory():
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -706,3 +1152,460 @@ def test_canonical_json_timeout_input_is_narrower_than_json_schema_numeric_integ
             name="execution.submit",
             arguments=raw,
         )
+
+
+@pytest.mark.parametrize(
+    ("path", "mutation"),
+    [
+        ("submit", "unhashable_list"),
+        ("submit", "unhashable_dict"),
+        ("submit", "wrong_owner"),
+        ("submit", "wrong_capability"),
+        ("submit", "wrong_operation_job"),
+        ("observe", "unhashable_list"),
+        ("observe", "unhashable_dict"),
+        ("observe", "wrong_owner"),
+        ("observe", "wrong_capability"),
+        ("observe", "wrong_operation_job"),
+        ("resolve", "wrong_owner"),
+        ("resolve", "wrong_operation_job"),
+        ("cancel", "wrong_owner"),
+        ("cancel", "wrong_operation_job"),
+    ],
+)
+def test_gateway_owner_receipt_identity_and_type_boundary_fails_closed(
+    path: str, mutation: str
+) -> None:
+    """A Gateway payload's fields must describe ONE owner Job before attachment.
+
+    This test replays the production adapter with a malicious/buggy source
+    response. The effect is already handled by the Owner; none of these
+    negative cases permits a new physical dispatch or attaches foreign
+    Job evidence to the saved Harness request.
+    """
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+
+    def tamper(name, arguments):
+        is_error, payload = original(name, arguments)
+        expected_tool = {
+            "submit": "execution.submit",
+            "observe": "execution.get",
+            "resolve": "execution.resolve",
+            "cancel": "execution.cancel",
+        }[path]
+        if name == expected_tool:
+            payload = dict(payload)
+            if mutation == "unhashable_list":
+                payload["delivery_disposition"] = ["committed"]
+            elif mutation == "unhashable_dict":
+                payload["delivery_disposition"] = {"state": "committed"}
+            elif mutation == "wrong_owner":
+                payload["owner_id"] = "runtime.windows"
+            elif mutation == "wrong_capability":
+                payload["capability"] = "execution.windows"
+            elif mutation == "wrong_operation_job":
+                payload["operation_ref"] = "ordivon-exec:v1:runtime.linux:job:foreign"
+        return is_error, payload
+
+    client.call_tool = tamper  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    request_id = "request:owner-evidence"
+    submission = {
+        "clientRequestId": request_id,
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle", "."],
+        },
+    }
+    if path == "submit":
+        with pytest.raises(HarnessRuntimeClientError):
+            adapter.call_tool("workspace.exec", submission)
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    elif path == "resolve":
+        with pytest.raises(HarnessRuntimeClientError):
+            adapter.call_tool(
+                "task.list",
+                {"workspaceId": "ws-plugin-h2", "clientRequestId": request_id},
+            )
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    else:
+        # A trusted earlier request was observed, so only the later
+        # untrusted Owner observation/cancel result is changed.
+        adapter._operation_refs[client.native_id] = client.operation_ref
+        adapter._operation_requests[client.native_id] = request_id
+        if path == "observe":
+            with pytest.raises(HarnessRuntimeClientError):
+                adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+        else:
+            with pytest.raises(HarnessRuntimeClientError):
+                adapter.cancel_job(client.native_id)
+        assert adapter._operation_refs == {client.native_id: client.operation_ref}
+        assert adapter._operation_requests == {client.native_id: request_id}
+
+
+@pytest.mark.parametrize(
+    ("path", "shadow_field", "shadow_value"),
+    (
+        ("submit", "ownerId", "runtime.windows"),
+        ("submit", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("submit", "nativeId", "job-unrelated"),
+        ("submit", "deliveryDisposition", "unknown"),
+        ("resolve", "ownerId", "runtime.windows"),
+        ("resolve", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("resolve", "nativeId", "job-unrelated"),
+        ("resolve", "workspaceId", "ws-unrelated"),
+        ("observe", "ownerId", "runtime.windows"),
+        ("observe", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("observe", "nativeId", "job-unrelated"),
+        ("observe", "deliveryDisposition", "unknown"),
+        # Python considers 0 == False; JSON does not. Both aliases present
+        # with unequal token TYPES are a source contradiction, not equality.
+        ("observe", "artifactCount", False),
+        ("observe", "recoveryRequired", 0),
+        ("cancel", "ownerId", "runtime.windows"),
+        ("cancel", "operationRef", "ordivon-exec:v1:runtime.linux:job-unrelated"),
+        ("cancel", "nativeId", "job-unrelated"),
+        ("cancel", "deliveryDisposition", "unknown"),
+    ),
+)
+def test_gateway_owner_shadow_alias_conflict_must_not_bind_foreign_job(
+    path: str, shadow_field: str, shadow_value: str
+) -> None:
+    """Both valid wire aliases with conflicting values cannot express one Owner fact.
+
+    This falsifies the shared source decoder, not just one endpoint's
+    validation. Exact existing snake_case Gateway receipts stay admissible.
+    """
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+    operation_name = {
+        "submit": "execution.submit",
+        "resolve": "execution.resolve",
+        "observe": "execution.get",
+        "cancel": "execution.cancel",
+    }[path]
+
+    def shadow(name, arguments):
+        is_error, payload = original(name, arguments)
+        if name == operation_name:
+            payload = {**payload, shadow_field: shadow_value}
+        return is_error, payload
+
+    client.call_tool = shadow  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    request_id = "request:shadow-owner"
+    submission = {
+        "clientRequestId": request_id,
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle", "."],
+        },
+    }
+    if path == "submit":
+        with pytest.raises(HarnessRuntimeClientError, match="conflicting"):
+            adapter.call_tool("workspace.exec", submission)
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    elif path == "resolve":
+        with pytest.raises(HarnessRuntimeClientError, match="conflicting"):
+            adapter.call_tool(
+                "task.list",
+                {"workspaceId": "ws-plugin-h2", "clientRequestId": request_id},
+            )
+        assert adapter._operation_refs == {}
+        assert adapter._operation_requests == {}
+    else:
+        adapter._operation_refs[client.native_id] = client.operation_ref
+        adapter._operation_requests[client.native_id] = request_id
+        with pytest.raises(HarnessRuntimeClientError, match="conflicting"):
+            if path == "observe":
+                adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+            else:
+                adapter.cancel_job(client.native_id)
+        assert adapter._operation_refs == {client.native_id: client.operation_ref}
+        assert adapter._operation_requests == {client.native_id: request_id}
+
+
+@pytest.mark.parametrize("path", ("submit", "resolve", "observe", "cancel"))
+def test_gateway_equal_wire_aliases_preserve_one_source_fact(path: str) -> None:
+    """A redundant alias with an identical JSON value is not schema drift."""
+    client = GatewayExecutionFixture()
+    base = client.call_tool
+    endpoint = {
+        "submit": "execution.submit",
+        "resolve": "execution.resolve",
+        "observe": "execution.get",
+        "cancel": "execution.cancel",
+    }[path]
+
+    def equal_wire_aliases(name, arguments):
+        is_error, payload = base(name, arguments)
+        if name == endpoint:
+            payload = {
+                **payload,
+                "ownerId": payload["owner_id"],
+                "nativeId": payload["native_id"],
+                "operationRef": payload["operation_ref"],
+            }
+        return is_error, payload
+
+    client.call_tool = equal_wire_aliases  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    request_id = "request:equal-owner-source"
+    if path == "submit":
+        reply = adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": request_id,
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "foreignReferences": [],
+                    "executable": "/usr/bin/rg",
+                },
+            },
+        )
+        assert reply["jobId"] == client.native_id
+    elif path == "resolve":
+        reply = adapter.call_tool(
+            "task.list",
+            {"workspaceId": "ws-plugin-h2", "clientRequestId": request_id},
+        )
+        assert reply["jobs"][0]["jobId"] == client.native_id
+    else:
+        adapter._operation_refs[client.native_id] = client.operation_ref
+        adapter._operation_requests[client.native_id] = request_id
+        if path == "observe":
+            reply = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+            assert reply["jobId"] == client.native_id
+        else:
+            _, reply = adapter.cancel_job(client.native_id)
+            assert reply["jobId"] == client.native_id
+
+
+@pytest.mark.parametrize("path", ("submit_nonterminal", "submit_terminal", "cancel"))
+def test_gateway_owner_optional_delivery_is_still_source_compatible(path: str) -> None:
+    """The Gateway DTO permits None; a present malformed value must not pass."""
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+
+    def source_optional(name, arguments):
+        is_error, payload = original(name, arguments)
+        payload = dict(payload)
+        if name == "execution.submit":
+            payload["delivery_disposition"] = None
+            if path == "submit_terminal":
+                payload["terminal"] = True
+                payload["state"] = "succeeded"
+        if name == "execution.cancel":
+            payload["delivery_disposition"] = None
+        return is_error, payload
+
+    client.call_tool = source_optional  # type: ignore[method-assign]
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    source_request = {
+        "clientRequestId": "request:source-optional",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+        },
+    }
+    first = adapter.call_tool("workspace.exec", source_request)
+    if path == "submit_nonterminal":
+        assert first["deliveryDisposition"] == "in_progress"
+    elif path == "submit_terminal":
+        assert first["deliveryDisposition"] == "committed"
+        assert first["resultAvailable"] is True
+    else:
+        result, payload = adapter.cancel_job(client.native_id)
+        assert result == "cancel-requested"
+        assert payload["jobId"] == client.native_id
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    ("wrong_owner", "wrong_capability", "wrong_operation_job", "unhashable_delivery"),
+)
+def test_real_pg_harness_stays_unknown_when_gateway_owner_identity_cannot_be_proven(
+    tamper: str, pg_schema
+) -> None:
+    """Actual Python Harness Postgres source never attaches a foreign Job receipt.
+
+    This test deliberately does NOT execute a physical Owner effect. A real
+    Gateway with Runtime Owner credential is a separate authorization
+    boundary. The source PG Run/Intent and UNKNOWN recovery are real.
+    """
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+
+    def forge(name, arguments):
+        is_error, payload = original(name, arguments)
+        if name in {"execution.submit", "execution.resolve"}:
+            payload = dict(payload)
+            if tamper == "wrong_owner":
+                payload["owner_id"] = "runtime.windows"
+            elif tamper == "wrong_capability":
+                payload["capability"] = "execution.windows"
+            elif tamper == "wrong_operation_job":
+                payload["operation_ref"] = "ordivon-exec:v1:runtime.linux:job:other"
+            elif name == "execution.submit":
+                payload["delivery_disposition"] = ["committed"]
+            else:
+                payload["owner_id"] = "runtime.windows"
+        return is_error, payload
+
+    client.call_tool = forge  # type: ignore[method-assign]
+    factory = _factory(client)
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=FixedClock(),
+        monotonic_ms=FixedClock(),
+    )
+    result = run.run(())
+    assert result.loop_result.stop_code.value == "runtime_unknown"
+    names = [name for name, _ in client.calls]
+    assert names.count("execution.submit") == 1
+    assert names.count("execution.resolve") == 1
+    assert "execution.get" not in names
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+        step = continuity.load_current_tool_step()
+        assert step.fence is not None
+        assert step.receipt is None or step.receipt.status.value != "observed"
+
+
+@pytest.mark.parametrize("forged", ["ws-another-agent", "", 1, False])
+def test_terminal_observation_rejects_wrong_runtime_workspace_resolution(forged: object) -> None:
+    class ForeignResolution(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                payload["workspace_id"] = forged
+            return error, payload
+
+    client = ForeignResolution()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    with pytest.raises(HarnessRuntimeClientError):
+        adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert [x[0] for x in client.calls] == ["execution.get", "execution.resolve"]
+
+
+def test_terminal_observation_absent_resolution_remains_unknown() -> None:
+    class MissingResolution(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            error, payload = super().call_tool(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                payload["resolution"] = "absent"
+            return error, payload
+
+    client = MissingResolution()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    result = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert result["executionTerminal"] is True
+    assert result["deliveryDisposition"] == "reconciliation_required"
+    assert result["recoveryRequired"] is True
+    assert result["resultAvailable"] is False
+
+
+def test_terminal_observation_confirms_original_grant_without_new_gateway_schema() -> None:
+    client = GatewayExecutionFixture()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    adapter._operation_requests[client.native_id] = "req-owned"
+    result = adapter.call_tool("task.observe", {"jobId": client.native_id, "waitMs": 0})
+    assert result["resultAvailable"] is True
+    assert not result["recoveryRequired"]
+    assert [x[0] for x in client.calls] == ["execution.get", "execution.resolve"]
+
+
+def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_schema) -> None:
+    from dataclasses import replace
+
+    # Native Runtime's Workspace grant is not an exclusive long-lived consumer
+    # claim. Independent PG Run histories can refer to the same Workspace.
+    # Completing A MUST NOT be treated as authority to close it for B.
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    original = _contract(factory)
+    overlapping = replace(
+        original,
+        harness_run_id="harness-run:plugin-h2-second-consumer",
+        caller_run_ref="trial:plugin-h2-second-consumer",
+    )
+    clock = FixedClock()
+    first = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        original,
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    second = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        overlapping,
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    assert first.harness_run_id != second.harness_run_id
+    assert factory.execution_grant.workspace_id == "ws-plugin-h2"
+
+    result_a = first.run(())
+    assert result_a.loop_result.stop_code.value == "candidate_completed"
+    assert first.inspect_terminal().receipt.harness_run_id == original.harness_run_id
+    with pytest.raises(KeyError, match="no independent terminal result"):
+        second.inspect_terminal()
+    # B's lack of a terminal record is durable PG readback, not authorization
+    # for a cross-Run consumerReleased=true.
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        projection = store.load_run(second.harness_run_id)
+        assert projection.status.terminal is False

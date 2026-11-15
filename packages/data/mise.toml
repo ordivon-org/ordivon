@@ -4,6 +4,8 @@ set -euo pipefail
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 uv run --no-project --with pytest==9.1.1 python -m pytest -q ../../studies/data-lifecycle/tests
 python3 scripts/inspect_federation.py --verify-local >/dev/null
+# Real Research consumer acceptance, including source corruption counterexamples.
+python3 -m unittest discover -s ../../studies/experimental-episodes/experiments/evidence-consumer-pilot-r1 -p 'test_*.py' -v
 """
 
 [tasks."verify:formal"]

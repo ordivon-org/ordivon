@@ -132,6 +132,9 @@ impl Fixture {
         self.endpoint_for_principal("pg-consumer")
     }
     fn endpoint_for_principal(&mut self, principal: &str) -> String {
+        self.endpoint_with_release(principal, false)
+    }
+    fn endpoint_with_release(&mut self, principal: &str, qualified_release: bool) -> String {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let bind = listener.local_addr().unwrap();
         drop(listener);
@@ -149,28 +152,54 @@ impl Fixture {
             runner.display()
         );
         let output = fs::File::create(self.root.join("endpoint.log")).unwrap();
-        self.endpoint = Some(
-            Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"))
-                .env(
-                    "ORDIVON_PG_DSN",
-                    format!(
-                        "host={} user=runtime_app dbname=postgres",
-                        self.root.display()
-                    ),
+        let mut endpoint = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"));
+        endpoint
+            .env(
+                "ORDIVON_PG_DSN",
+                format!(
+                    "host={} user=runtime_app dbname=postgres",
+                    self.root.display()
+                ),
+            )
+            .env("ORDIVON_PG_SCHEMA", "fresh")
+            .env("ORDIVON_PG_SOURCE_SHA256", "a".repeat(64))
+            .env("ORDIVON_PG_STORE_ROOT", self.root.join("store"))
+            .env("ORDIVON_PG_RUNNER", runner)
+            .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
+            .env("ORDIVON_PG_BIND", bind.to_string())
+            .env("ORDIVON_PG_TOKEN", "p".repeat(32))
+            .env("ORDIVON_PG_PRINCIPAL", principal)
+            .stdout(Stdio::null())
+            .stderr(output);
+        if qualified_release {
+            let source = self.root.join("release-source");
+            let receipts = self.root.join("receipts");
+            fs::create_dir(&source).unwrap();
+            fs::create_dir(&receipts).unwrap();
+            let operator = self.root.join("operator");
+            fs::write(
+                &operator,
+                "#!/bin/sh
+exit 0
+",
+            )
+            .unwrap();
+            self.db
+                .execute(
+                    "INSERT INTO fresh._stage_control VALUES ('release','QUALIFIED_RELEASE',$1,true)",
+                    &[&"a".repeat(64)],
                 )
-                .env("ORDIVON_PG_SCHEMA", "fresh")
-                .env("ORDIVON_PG_SOURCE_SHA256", "a".repeat(64))
-                .env("ORDIVON_PG_STORE_ROOT", self.root.join("store"))
-                .env("ORDIVON_PG_RUNNER", runner)
-                .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
-                .env("ORDIVON_PG_BIND", bind.to_string())
-                .env("ORDIVON_PG_TOKEN", "p".repeat(32))
-                .env("ORDIVON_PG_PRINCIPAL", principal)
-                .stdout(Stdio::null())
-                .stderr(output)
-                .spawn()
-                .unwrap(),
-        );
+                .unwrap();
+            endpoint
+                .env("ORDIVON_PG_RELEASE_SOURCE_REPO", &source)
+                .env("ORDIVON_PG_RELEASE_OPERATOR_BIN", &operator)
+                .env("ORDIVON_PG_RELEASE_RECEIPT_ROOT", &receipts)
+                .env(
+                    "ORDIVON_PG_RELEASE_DISPATCH_TIMER",
+                    "ordivon-pg-disposable-test.timer",
+                );
+        }
+        self.endpoint = Some(endpoint.spawn().unwrap());
         let deadline = Instant::now() + Duration::from_secs(10);
         while std::net::TcpStream::connect(bind).is_err() {
             assert!(
@@ -259,7 +288,10 @@ fn committed_40001_job_id(result: &Value) -> Option<&str> {
     if result.get("isError")?.as_bool() != Some(true)
         || error.get("commitState")?.as_str() != Some("committed")
         || error.get("retryClass")?.as_str() != Some("reconcile_first")
-        || error.get("code")?.as_str() != Some("REGISTRY_UNAVAILABLE")
+        || !matches!(
+            error.get("code")?.as_str()?,
+            "REGISTRY_BUSY" | "REGISTRY_UNAVAILABLE"
+        )
         || !error.get("message")?.as_str()?.contains("E40001")
     {
         return None;
@@ -314,7 +346,13 @@ fn committed_observation_retry_never_reclassifies_uncommitted_effect() {
         "code":"REGISTRY_UNAVAILABLE","operationId":"job-known",
         "message":"PostgreSQL: SqlState(E40001)"
     }}});
-    assert_eq!(committed_40001_job_id(&value), Some("job-known"));
+    // Current PostgreSQL 40001 is REGISTRY_BUSY; historical adapters may
+    // project REGISTRY_UNAVAILABLE. Only committed E40001 is safe to observe.
+    for code in ["REGISTRY_BUSY", "REGISTRY_UNAVAILABLE"] {
+        let mut variant = value.clone();
+        variant["structuredContent"]["error"]["code"] = json!(code);
+        assert_eq!(committed_40001_job_id(&variant), Some("job-known"));
+    }
     for replacement in [
         json!({"commitState":"not_committed"}),
         json!({"retryClass":"safe_same_request"}),
@@ -328,6 +366,32 @@ fn committed_observation_retry_never_reclassifies_uncommitted_effect() {
         }
         assert_eq!(committed_40001_job_id(&mutant), None, "{mutant}");
     }
+}
+
+/// Production regression: the real PG release row must be examined while
+/// #[tokio::main] drives startup and async MCP catalog/tool handlers.
+#[test]
+#[ignore = "launches disposable PG18 and native MCP with qualified release configuration"]
+fn qualified_pg_release_does_not_nest_tokio_on_startup_or_mcp_calls() {
+    let mut fixture = Fixture::new();
+    let endpoint = fixture.endpoint_with_release("qualified-release", true);
+    let listed = rpc(&endpoint, "tools/list", json!({}));
+    let names = listed["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|item| item["name"].as_str())
+        .collect::<Vec<_>>();
+    assert!(names.contains(&"release.get"), "{listed}");
+    assert!(
+        !names.contains(&"release.apply"),
+        "synthetic timer must not become release authority"
+    );
+    let described = call(&endpoint, "runtime.describe", json!({}));
+    assert_eq!(
+        described["structuredContent"]["structuredReleaseConfigured"], false,
+        "{described}"
+    );
 }
 
 /// A real PG+MCP contract test: an ordinary executed Job is NOT a Release
@@ -469,12 +533,15 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
         "release.get",
         json!({"clientRequestId":client_id}),
     );
-    assert_ne!(readback["isError"], true, "{readback}");
-    let projection = &readback["structuredContent"];
-    assert_eq!(projection["jobId"], job);
-    assert_eq!(projection["receiptAvailable"], false);
-    assert_ne!(projection["effectDisposition"], "deployed");
-    assert_eq!(projection["semanticCompletionEvaluated"], false);
+    // This fixture has deliberately grafted ReleaseEffect data onto a
+    // *normal Runner-exited Job*, without any operator dispatch or
+    // RELEASE_EFFECT_RECEIPTED event. Never mistake its PROCESS_EXITED
+    // event for a qualified installer terminal proof.
+    assert_eq!(readback["isError"], true, "{readback}");
+    assert_eq!(
+        readback["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "synthetic Runner terminal is not a ReleaseEffect receipt: {readback}"
+    );
 
     fs::create_dir(&receipt).unwrap();
     fs::write(
@@ -487,14 +554,10 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
         "release.get",
         json!({"clientRequestId":client_id}),
     );
-    assert_ne!(forged["isError"], true, "{forged}");
+    assert_eq!(forged["isError"], true, "{forged}");
     assert_eq!(
-        forged["structuredContent"]["effectDisposition"],
-        "reconciliation_required"
-    );
-    assert_eq!(
-        forged["structuredContent"]["reconciliationIssue"],
-        "RELEASE_EFFECT_REQUEST_MISMATCH"
+        forged["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "false Runner terminal must fail before even opening the forged receipt"
     );
 
     fixture
@@ -803,6 +866,130 @@ fn pg_release_effect_atomic_admission_and_generic_dispatch_fence() {
 }
 
 #[test]
+#[ignore = "launches disposable PostgreSQL18, real HTTP MCP and Git physical files"]
+fn pg_native_mutation_crash_intent_fences_new_jobs_and_close_until_exact_replay() {
+    use sha2::Digest as _;
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let id = "ws-pg-batch-crash";
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let request = json!({
+        "workspaceId":id,
+        "mutations":[
+            {"mode":"WRITE","relativePath":"first.txt","content":"first-committed"},
+            {"mode":"WRITE","relativePath":"second.txt","content":"second-committed"}
+        ]
+    });
+    let typed: ordivon_runtime_core::WorkspaceMutateRequest =
+        serde_json::from_value(request.clone()).unwrap();
+    let digest = |v: &[u8]| format!("sha256:{}", hex::encode(sha2::Sha256::digest(v)));
+    let request_digest = digest(&serde_json::to_vec(&typed).unwrap());
+    let intent = fixture
+        .root
+        .join("store/cache/workspaces")
+        .join(id)
+        .join("pending-mutation-v1.json");
+    fs::create_dir_all(intent.parent().unwrap()).unwrap();
+    let pending = json!({
+        "schemaVersion":1,"workspaceId":id,"requestDigest":request_digest,
+        "entries":[
+            {"relativePath":"first.txt","beforeContent":null,"beforeDigest":null,
+             "afterContent":"first-committed","afterDigest":digest(b"first-committed")},
+            {"relativePath":"second.txt","beforeContent":null,"beforeDigest":null,
+             "afterContent":"second-committed","afterDigest":digest(b"second-committed")}
+        ]
+    });
+    fs::write(&intent, serde_json::to_vec(&pending).unwrap()).unwrap();
+    fs::File::open(&intent).unwrap().sync_all().unwrap();
+    let worktree = fixture.root.join("store/workspaces").join(id);
+    fs::write(worktree.join("first.txt"), "first-committed").unwrap();
+    assert!(!worktree.join("second.txt").exists());
+    assert!(intent.is_file());
+
+    let denied_close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":id,"consumerReleased":true,"force":true}),
+    );
+    assert_eq!(
+        denied_close["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "{denied_close}"
+    );
+    let denied_job = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-batch-crash-job-must-not-be-admitted",
+            "execution":{"workspaceId":id,"cwdRelative":".","executable":"/usr/bin/true",
+            "timeoutMs":10000},"waitMs":0}),
+    );
+    assert_eq!(denied_job["isError"], true, "{denied_job}");
+    assert_eq!(
+        denied_job["structuredContent"]["error"]["code"], "WORKSPACE_STATE_MISMATCH",
+        "{denied_job}"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM jobs WHERE client_request_id='pg-batch-crash-job-must-not-be-admitted'",
+                &[],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+    let another = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":id,"mutations":[
+            {"mode":"WRITE","relativePath":"unrelated.txt","content":"NO"}
+        ]}),
+    );
+    assert_eq!(
+        another["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "{another}"
+    );
+    assert!(intent.is_file());
+    assert!(!worktree.join("unrelated.txt").exists());
+
+    let recovered = call(&endpoint, "workspace.mutate", request);
+    assert_ne!(recovered["isError"], true, "{recovered}");
+    assert_eq!(
+        fs::read_to_string(worktree.join("first.txt")).unwrap(),
+        "first-committed"
+    );
+    assert_eq!(
+        fs::read_to_string(worktree.join("second.txt")).unwrap(),
+        "second-committed"
+    );
+    assert!(!intent.exists());
+    // Only after the physical batch completed may the same PG Job admission
+    // owner issue a new execution. A failed prior attempt was never persisted.
+    let allowed = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-batch-crash-job-after-recovery",
+            "execution":{"workspaceId":id,"cwdRelative":".","executable":"/usr/bin/true",
+            "timeoutMs":10000},"waitMs":0}),
+    );
+    assert_ne!(allowed["isError"], true, "{allowed}");
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+}
+
+#[test]
 #[ignore = "launches a disposable native PostgreSQL cluster; run explicitly"]
 fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     let mut fixture = Fixture::new();
@@ -1006,6 +1193,31 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         inventoried["structuredContent"]["workspaces"][0]["workspaceId"],
         "ws-pg-consumer"
     );
+    assert!(
+        inventoried["structuredContent"]["workspaces"][0]
+            .get("sourceStateDigest")
+            .is_none(),
+        "lightweight list must omit the optional digest: {inventoried}"
+    );
+    let exact = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":"ws-pg-consumer"}),
+    );
+    let inventoried_with_digest = call(
+        &endpoint,
+        "workspace.list",
+        json!({"limit":10, "includeSourceStateDigest":true}),
+    );
+    assert_ne!(
+        inventoried_with_digest["isError"], true,
+        "{inventoried_with_digest}"
+    );
+    assert_eq!(
+        inventoried_with_digest["structuredContent"]["workspaces"][0]["sourceStateDigest"],
+        exact["structuredContent"]["sourceStateDigest"],
+        "opt-in list digest must use the same canonical workspace source observation"
+    );
     // PG must preserve the existing native Runtime inventory uncertainty contract:
     // an invalid physical Workspace must not vanish as if it never existed.
     fs::create_dir(fixture.root.join("store/workspaces/invalid current id")).unwrap();
@@ -1024,6 +1236,60 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
             })),
         "PG Workspace inventory falsely hid an invalid physical candidate: {inventory_with_issue}"
     );
+    // Real PG MCP regression: list(limit=1) must not inspect every older
+    // Workspace or fail the entire page because one Git checkout is corrupt.
+    // Its physical cursor must still advance past an unprojectable record.
+    let broken_open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-00-corrupt-list","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(broken_open["isError"], true, "{broken_open}");
+    let broken_git = fixture
+        .root
+        .join("store/workspaces/ws-00-corrupt-list/.git");
+    let original_git = fs::read(&broken_git).expect("Git worktree metadata file");
+    fs::write(&broken_git, "gitdir: /nonexistent/broken-workspace-list\n").unwrap();
+    let broken_page = call(&endpoint, "workspace.list", json!({"limit":1}));
+    assert_ne!(broken_page["isError"], true, "{broken_page}");
+    assert_eq!(
+        broken_page["structuredContent"]["workspaces"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0,
+        "invalid page must not silently claim a healthy Workspace: {broken_page}"
+    );
+    assert!(
+        broken_page["structuredContent"]["issues"]
+            .as_array()
+            .is_some_and(|issues| issues.iter().any(|issue| {
+                issue["workspaceId"] == "ws-00-corrupt-list" && issue["stage"] == "projection"
+            })),
+        "PG list must explicitly report a local projection failure: {broken_page}"
+    );
+    let page_cursor = broken_page["structuredContent"]["nextCursor"].clone();
+    assert!(
+        page_cursor.is_object(),
+        "broken page must advance: {broken_page}"
+    );
+    let healthy_page = call(
+        &endpoint,
+        "workspace.list",
+        json!({"limit":1, "cursor":page_cursor}),
+    );
+    assert_ne!(healthy_page["isError"], true, "{healthy_page}");
+    assert_eq!(
+        healthy_page["structuredContent"]["workspaces"][0]["workspaceId"], "ws-pg-consumer",
+        "next page must remain visible after a corrupt earlier Workspace"
+    );
+    fs::write(&broken_git, original_git).unwrap();
+    let broken_close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":"ws-00-corrupt-list","consumerReleased":true}),
+    );
+    assert_ne!(broken_close["isError"], true, "{broken_close}");
     let text = call(
         &endpoint,
         "workspace.read",
@@ -1315,6 +1581,790 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     eprintln!("real PostgreSQL + HTTP MCP verified; native initial launch outcome: {exec}");
 }
 
+/// Cross-owner Harness dispatch fencing carries Runtime-native ForeignReference
+/// correlation, not a capability or a new Runtime-owned authority. The PG Job
+/// must freeze it in the exact request digest + native Runner plan. Repeating
+/// the same request cannot create another Job, while changing the fence
+/// generation/digest under the same idempotency key cannot replay the old Job.
+/// This is true PostgreSQL + authenticated HTTP MCP + native systemd Runner,
+/// not a Python fixture pretending PG accepted metadata.
+#[test]
+#[ignore = "launches disposable PostgreSQL18, native HTTP MCP and systemd Runner"]
+fn native_pg_harness_dispatch_fence_is_frozen_identity_not_authority() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let ws = format!("ws-harness-fence-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":ws,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let key = format!("harness-fence-{}", Uuid::now_v7().simple());
+    let fence_id = format!("fence-{}", Uuid::now_v7().simple());
+    let refs = json!([
+        {
+            "namespace":"ordivon.host",
+            "type":"harness_run",
+            "id":"run-source-verified-1",
+            "generation":"1",
+            "digest":format!("sha256:{}", "a".repeat(64))
+        },
+        {
+            "namespace":"ordivon.harness",
+            "type":"dispatch_fence",
+            "id":fence_id,
+            "generation":"3",
+            "digest":format!("sha256:{}", "b".repeat(64))
+        }
+    ]);
+    let mut request = json!({
+        "clientRequestId":key,
+        "execution":{
+            "workspaceId":ws,
+            "executable":"/usr/bin/printf",
+            "args":["harness-fence-pg-native"],
+            "cwdRelative":".",
+            "timeoutMs":15000,
+            "foreignReferences":refs
+        },
+        "waitMs":0
+    });
+    let first = call(&endpoint, "workspace.exec", request.clone());
+    assert_ne!(
+        first["isError"], true,
+        "PG Runtime must accept validated identity-only Harness refs, not reject all ForeignReferences: {first}"
+    );
+    let job = first["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(!job.is_empty());
+    let persisted = fixture
+        .db
+        .query_one(
+            "SELECT request_digest,execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&job],
+        )
+        .unwrap();
+    let frozen_identity: String = persisted.get(0);
+    assert!(
+        frozen_identity.starts_with("runtime-request-v2:"),
+        "PG must retain the Runtime-owned canonical proposal identity, not a fabricated digest prefix"
+    );
+    let frozen_plan: serde_json::Value =
+        serde_json::from_str(&persisted.get::<_, String>(1)).unwrap();
+    assert_eq!(
+        frozen_plan["foreignReferences"], request["execution"]["foreignReferences"],
+        "cross-owner references must survive durable PG plan without dropping, sorting, or inventing authority"
+    );
+    let repeat = call(&endpoint, "workspace.exec", request.clone());
+    assert_ne!(
+        repeat["isError"], true,
+        "exact replay must resolve committed PG identity: {repeat}"
+    );
+    assert_eq!(repeat["structuredContent"]["jobId"], job);
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    // The same key with a changed foreign Fence represents a distinct intent,
+    // so it cannot quietly borrow or relaunch the original admitted Job.
+    request["execution"]["foreignReferences"][1]["generation"] = json!("4");
+    let wrong_generation = call(&endpoint, "workspace.exec", request.clone());
+    assert_eq!(wrong_generation["isError"], true, "{wrong_generation}");
+    assert_eq!(
+        wrong_generation["structuredContent"]["error"]["code"], "IDEMPOTENCY_CONFLICT",
+        "{wrong_generation}"
+    );
+    request["execution"]["foreignReferences"][1]["generation"] = json!("3");
+    request["execution"]["foreignReferences"][1]["digest"] =
+        json!(format!("sha256:{}", "c".repeat(64)));
+    let wrong_digest = call(&endpoint, "workspace.exec", request.clone());
+    assert_eq!(wrong_digest["isError"], true, "{wrong_digest}");
+    assert_eq!(
+        wrong_digest["structuredContent"]["error"]["code"], "IDEMPOTENCY_CONFLICT",
+        "{wrong_digest}"
+    );
+    request["execution"]["foreignReferences"][1]["digest"] =
+        json!(format!("sha256:{}", "b".repeat(64)));
+    let original = request["execution"]["foreignReferences"][1].clone();
+    request["clientRequestId"] = json!(format!("harness-invalid-{}", Uuid::now_v7()));
+    request["execution"]["foreignReferences"]
+        .as_array_mut()
+        .unwrap()
+        .push(original);
+    let duplicate = call(&endpoint, "workspace.exec", request);
+    assert_eq!(duplicate["isError"], true, "{duplicate}");
+    assert_eq!(
+        duplicate["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+        "{duplicate}"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    let deadline = Instant::now() + Duration::from_secs(70);
+    loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":7000,"waitUntil":"terminal",
+                "stdoutTailBytes":256,"stderrTailBytes":256}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                observed["structuredContent"]["status"], "succeeded",
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["stdoutTail"],
+                "harness-fence-pg-native"
+            );
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "native fenced Job did not converge"
+        );
+    }
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[&job],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        1,
+        "replay/tamper must not launch a second native effect"
+    );
+    let retained: String = fixture
+        .db
+        .query_one(
+            "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&retained).unwrap()["foreignReferences"],
+        frozen_plan["foreignReferences"]
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT request_digest FROM jobs WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, String>(0),
+        frozen_identity
+    );
+}
+
+/// A real native MCP process can snapshot a Git Workspace before entering PG
+/// admission, while another MCP process closes the Workspace in between.
+/// The Git wrapper pauses AFTER the last source-state Git ls-files --others
+/// finishes, so it does not fake source contents or alter the git operation.
+/// Only the exact PG admission linearization guard can prevent an orphaned Job.
+#[test]
+#[ignore = "launches disposable PostgreSQL18, two native HTTP MCP services and real Git"]
+fn fresh_pg_mcp_run_rejects_workspace_closed_after_source_plan_before_admit() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let normal_endpoint = fixture.endpoint();
+    let id = format!("ws-prelock-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &normal_endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":id,
+            "sourceRepo":repo,
+            "sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    let shim_dir = fixture.root.join("shim");
+    let barrier = fixture.root.join("prelock_barrier");
+    fs::create_dir_all(&shim_dir).unwrap();
+    fs::create_dir_all(&barrier).unwrap();
+    // A second MCP process alone inherits this PATH; the normal MCP and Git
+    // close operation continue to use the actual installed git executable.
+    let shim = shim_dir.join("git");
+    fs::write(
+        &shim,
+        r#"#!/bin/sh
+printf '%s\n' "$*" >> "$ORDIVON_TEST_GIT_BARRIER/invocations"
+if [ "$4" = "ls-files" ] && [ "$5" = "--others" ]; then
+    /usr/bin/git "$@" > "$ORDIVON_TEST_GIT_BARRIER/real-git-output"
+    result=$?
+    if [ "$result" -ne 0 ]; then exit "$result"; fi
+    : > "$ORDIVON_TEST_GIT_BARRIER/entered"
+    n=0
+    while [ ! -f "$ORDIVON_TEST_GIT_BARRIER/release" ]; do
+      if [ "$n" -gt 300 ]; then exit 73; fi
+      n=$((n + 1))
+      sleep 0.05
+    done
+    cat "$ORDIVON_TEST_GIT_BARRIER/real-git-output"
+    exit 0
+fi
+exec /usr/bin/git "$@"
+"#,
+    )
+    .unwrap();
+    fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(listener);
+    let runner = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("ordivon-runtime-runner");
+    assert!(runner.is_file(), "native Runner binary required");
+    let path = format!("{}:{}", shim_dir.display(), std::env::var("PATH").unwrap());
+    let log = fs::File::create(fixture.root.join("barrier-endpoint.log")).unwrap();
+    let child = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"))
+        .env(
+            "ORDIVON_PG_DSN",
+            format!(
+                "host={} user=runtime_app dbname=postgres",
+                fixture.root.display()
+            ),
+        )
+        .env("ORDIVON_PG_SCHEMA", "fresh")
+        .env("ORDIVON_PG_SOURCE_SHA256", "a".repeat(64))
+        .env("ORDIVON_PG_STORE_ROOT", fixture.root.join("store"))
+        .env("ORDIVON_PG_RUNNER", runner)
+        .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
+        .env("ORDIVON_PG_BIND", addr.to_string())
+        .env("ORDIVON_PG_TOKEN", "p".repeat(32))
+        .env("ORDIVON_PG_PRINCIPAL", "pg-consumer")
+        .env("ORDIVON_TEST_GIT_BARRIER", &barrier)
+        .env("PATH", path)
+        .stdout(Stdio::null())
+        .stderr(log)
+        .spawn()
+        .unwrap();
+    struct EndpointGuard(Child);
+    impl Drop for EndpointGuard {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let _endpoint_guard = EndpointGuard(child);
+    let deadline = Instant::now() + Duration::from_secs(12);
+    while std::net::TcpStream::connect(addr).is_err() {
+        assert!(
+            Instant::now() < deadline,
+            "2nd native MCP service failed to start: {}",
+            fs::read_to_string(fixture.root.join("barrier-endpoint.log")).unwrap()
+        );
+        thread::sleep(Duration::from_millis(25));
+    }
+    let isolated_endpoint = format!("http://{addr}/mcp");
+    let request_id = format!("pg-source-prelock-{}", Uuid::now_v7());
+    let id_for_job = id.clone();
+    let thread = thread::spawn(move || {
+        call(
+            &isolated_endpoint,
+            "workspace.exec",
+            json!({
+                "clientRequestId":request_id,
+                "execution":{
+                    "workspaceId":id_for_job,"cwdRelative":".",
+                    "executable":"/usr/bin/true","args":[],
+                    "timeoutMs":10000
+                },
+                "waitMs":0
+            }),
+        )
+    });
+    let entered = barrier.join("entered");
+    let wait_until = Instant::now() + Duration::from_secs(12);
+    while !entered.exists() {
+        if thread.is_finished() {
+            panic!(
+                "Job finished before physical source barrier: {}; shim invocations: {}",
+                thread.join().unwrap(),
+                fs::read_to_string(barrier.join("invocations")).unwrap_or_default()
+            );
+        }
+        assert!(
+            Instant::now() < wait_until,
+            "Job did not reach Git barrier: {}\nShim invocations: {}",
+            fs::read_to_string(fixture.root.join("barrier-endpoint.log")).unwrap(),
+            fs::read_to_string(barrier.join("invocations")).unwrap_or_default()
+        );
+        thread::sleep(Duration::from_millis(25));
+    }
+
+    let closed = call(
+        &normal_endpoint,
+        "workspace.close",
+        json!({
+            "workspaceId":id,"consumerReleased":true
+        }),
+    );
+    assert_ne!(
+        closed["isError"], true,
+        "close must be physically permitted before the Job obtains PG admission: {closed}"
+    );
+    assert_eq!(closed["structuredContent"]["removed"], true, "{closed}");
+    // The historical plan's complete Git observations are now returned, and
+    // control proceeds to its actual PostgreSQL admission stage.
+    fs::write(barrier.join("release"), b"resume").unwrap();
+    let result = thread.join().unwrap();
+    let count: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM jobs WHERE workspace_id=$1", &[&id])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        count, 0,
+        "Job must not be durably admitted for the physically closed Workspace; result={result}"
+    );
+    assert_eq!(
+        result["isError"], true,
+        "closed Workspace must fail admission: {result}"
+    );
+    assert!(
+        result.to_string().contains("WORKSPACE_STATE_MISMATCH"),
+        "post-lock physical identity mismatch needs exact error, not a successful launch: {result}"
+    );
+}
+
+/// A source-clean Workspace can have zero active Jobs after a newly
+/// completed Job. The original Python lifecycle pre-scan is NOT a durable
+/// quiet-period proof. Native close must recheck the last PG Job activity
+/// while holding its existing advisory lock and refuse the physical Git
+/// removal despite consumerReleased=false.
+/// The actual production PostgreSQL Workspace.open must apply both carrier
+/// budgets while holding its native PG Workspace-effect lock. Legacy Runtime
+/// unit tests cannot prove this separate owner path.
+#[test]
+#[ignore = "launches an isolated PostgreSQL18 cluster and native Git worktree"]
+fn pg_workspace_open_fails_on_either_carrier_before_git_effect() {
+    use ordivon_runtime_core::{
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceHeadroomConfig,
+    };
+
+    let fixture = Fixture::new();
+    let repo = fixture.repo();
+    let path = fixture.root.clone();
+    let baseline = PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    };
+    let threshold = |minimum_free_bytes| WorkspaceHeadroomConfig {
+        path: path.clone(),
+        minimum_free_bytes,
+    };
+    for (first_minimum, second_minimum, rejected) in
+        [(u64::MAX, 1_u64, "first"), (1_u64, u64::MAX, "second")]
+    {
+        let runtime = PgRuntime::new(PgRuntimeConfig {
+            workspace_headroom: vec![threshold(first_minimum), threshold(second_minimum)],
+            ..baseline.clone()
+        })
+        .unwrap();
+        let workspace_id = format!("pg-guard-{}-{}", rejected, Uuid::now_v7().simple());
+        let result = runtime.open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        });
+        let error = result.expect_err("guest or host floor must reject PG open");
+        assert_eq!(
+            error.code,
+            ordivon_runtime_core::RuntimeErrorCode::WorkspaceCapacityExceeded,
+            "{rejected} carrier should independently deny PG open: {error}"
+        );
+        assert!(!fixture
+            .root
+            .join("store/workspaces")
+            .join(&workspace_id)
+            .exists());
+    }
+
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        workspace_headroom: vec![threshold(1), threshold(1)],
+        ..baseline
+    })
+    .unwrap();
+    let admitted = runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: format!("pg-guard-valid-{}", Uuid::now_v7().simple()),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .expect("both carrier floors satisfied must preserve real PG workspace.open");
+    assert!(fixture
+        .root
+        .join("store/workspaces")
+        .join(&admitted.workspace_id)
+        .is_dir());
+}
+
+#[test]
+#[ignore = "launches an isolated PostgreSQL18 cluster and native Git worktree"]
+fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
+    use ordivon_runtime_core::{
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceCloseRequest,
+    };
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let workspace_id = format!("ws-quiet-recheck-{}", Uuid::now_v7().simple());
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    })
+    .unwrap();
+    runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .unwrap();
+
+    // Give the physical carrier an old creation time: otherwise the
+    // universal 4h workspace-creation guard would mask the missing PG
+    // last-Job guard, and the test would falsely pass on the wrong reason.
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let record_file = fixture
+        .root
+        .join("store/workspace-records")
+        .join(format!("{workspace_id}.json"));
+    let mut record: Value = serde_json::from_slice(&fs::read(&record_file).unwrap()).unwrap();
+    assert!(record["createdUnixMs"].is_number());
+    record["createdUnixMs"] = json!(now_ms - 7 * 60 * 60 * 1000);
+    fs::write(&record_file, serde_json::to_vec(&record).unwrap()).unwrap();
+
+    // A terminally successful Job was admitted after the reclaimer's
+    // hypothetical earlier PG scan. There are no active leases left; Git
+    // HEAD and source digest remain unchanged. Prior native close would
+    // REMOVE this still-consumed Workspace after the old creation grace.
+    let job_id = format!("job-{}", Uuid::now_v7());
+    let request_id = format!("pg-recent-terminal-{}", Uuid::now_v7());
+    fixture
+        .db
+        .execute(
+            "INSERT INTO jobs (
+            job_id,principal,client_request_id,request_digest,operation_digest,
+            workspace_id,workspace_snapshot_json,execution_plan_json,
+            execution_plan_digest,created_at_ms,desired_state,resolution
+         ) VALUES ($1,'quiet-consumer',$2,'sha256:request','sha256:effect',
+                   $3,'{}','{}','sha256:plan',$4,'run','succeeded')",
+            &[&job_id, &request_id, &workspace_id, &now_ms],
+        )
+        .unwrap();
+
+    let visible = runtime
+        .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+        })
+        .unwrap();
+    assert_eq!(
+        visible["activeJobIds"],
+        json!([]),
+        "the Job has truly completed, and active-only readback is empty"
+    );
+
+    let denied = runtime
+        .close_workspace(&WorkspaceCloseRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            force: false,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        })
+        .expect_err(
+            "the PG-native lock must reject a recently completed Job even when activeJobIds=[]",
+        );
+    assert_eq!(
+        denied.code.as_str(),
+        "WORKSPACE_STATE_MISMATCH",
+        "{denied:?}"
+    );
+    assert_eq!(denied.field.as_deref(), Some("consumerReleased"));
+    assert!(
+        denied.message.contains("recent PG Job activity"),
+        "{denied:?}"
+    );
+    assert!(
+        fixture
+            .root
+            .join("store/workspaces")
+            .join(&workspace_id)
+            .is_dir(),
+        "source Git Workspace must survive the native PG close refusal"
+    );
+    assert!(runtime
+        .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
+            schema_version: 1,
+            workspace_id,
+        })
+        .is_ok());
+}
+
+/// End-to-end native PostgreSQL application regression for the lock/snapshot
+/// boundary: a real PgAdmissionStore.admit() transaction is queued AHEAD of
+/// Workspace.close() while a third session holds the shared global advisory
+/// lock. Once admission commits, close must observe the new accepted Job and
+/// preserve the actual Git worktree. Under old SERIALIZABLE Workspace
+/// transactions the snapshot was pinned BEFORE acquiring the lock, so close
+/// could physically remove a Workspace with a newly accepted active consumer.
+#[test]
+#[ignore = "launches an isolated native PostgreSQL cluster and real Git worktree"]
+fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock() {
+    use ordivon_runtime_core::{
+        pg_admission::{PgAdmissionInput, PgAdmissionOutcome, PgAdmissionStore},
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceCloseRequest,
+    };
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let workspace_id = format!("ws-r2-lock-{}", Uuid::now_v7().simple());
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    })
+    .unwrap();
+    runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .unwrap();
+
+    let job_id = format!("job-{}", Uuid::now_v7());
+    let attempt_id = format!("attempt-{}", Uuid::now_v7());
+    let input = PgAdmissionInput {
+        job_id: job_id.clone(),
+        attempt_id: attempt_id.clone(),
+        reservation_id: format!("reservation-{}", Uuid::now_v7()),
+        principal: "pg-consumer".into(),
+        client_request_id: format!("ws-r2-lease-race-{}", Uuid::now_v7()),
+        request_digest: format!("sha256:{}", "b".repeat(64)),
+        operation_digest: format!("sha256:{}", "c".repeat(64)),
+        workspace_id: workspace_id.clone(),
+        workspace_snapshot_json: "{}".into(),
+        execution_plan_json: "{}".into(),
+        execution_plan_digest: format!("sha256:{}", "d".repeat(64)),
+        launch_token_digest: format!("sha256:{}", "e".repeat(64)),
+        bundle_path: fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&attempt_id)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{attempt_id}.service"),
+        global_limit: 4,
+        created_at_ms: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let app_dsn = format!(
+        "host={} user=runtime_app dbname=postgres",
+        fixture.root.display()
+    );
+    let mut probe = Client::connect(
+        &format!(
+            "host={} user=postgres dbname=postgres",
+            fixture.root.display()
+        ),
+        NoTls,
+    )
+    .unwrap();
+    // Fixture::new() qualifies an isolated schema, but a fresh superuser
+    // connection begins on public; explicitly scope the lease readback.
+    probe.batch_execute("SET search_path TO fresh").unwrap();
+    let mut holder = fixture
+        .db
+        .build_transaction()
+        .isolation_level(postgres::IsolationLevel::Serializable)
+        .start()
+        .unwrap();
+    holder
+        .query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+        .unwrap();
+    holder
+        .query_one(
+            "SELECT state FROM _stage_control WHERE id='source' FOR UPDATE",
+            &[],
+        )
+        .unwrap();
+
+    // The two separate codepaths genuinely queue on the SAME global PG lock.
+    let (admit_started, admit_rx) = std::sync::mpsc::sync_channel(1);
+    let admission = thread::spawn(move || {
+        let mut db = PgAdmissionStore::connect(&app_dsn, "fresh").unwrap();
+        admit_started.send(()).unwrap();
+        db.admit(&input)
+    });
+    admit_rx.recv_timeout(Duration::from_secs(4)).unwrap();
+
+    let waiters = |probe: &mut Client| -> i64 {
+        probe
+            .query_one(
+                "SELECT count(*) FROM pg_stat_activity \
+             WHERE wait_event_type='Lock' AND wait_event='advisory'",
+                &[],
+            )
+            .unwrap()
+            .get(0)
+    };
+    let wait_until = |probe: &mut Client, count: i64| {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while waiters(probe) < count {
+            assert!(
+                Instant::now() < deadline,
+                "expected real PG advisory lock wait"
+            );
+            thread::sleep(Duration::from_millis(20));
+        }
+    };
+    wait_until(&mut probe, 1);
+
+    let runtime_for_close = runtime.clone();
+    let id_for_close = workspace_id.clone();
+    let (close_started, close_rx) = std::sync::mpsc::sync_channel(1);
+    let closer = thread::spawn(move || {
+        close_started.send(()).unwrap();
+        runtime_for_close.close_workspace(&WorkspaceCloseRequest {
+            schema_version: 1,
+            workspace_id: id_for_close,
+            force: false,
+            consumer_released: true,
+            expected_source_state_digest: None,
+        })
+    });
+    close_rx.recv_timeout(Duration::from_secs(4)).unwrap();
+    wait_until(&mut probe, 2);
+    // Required global order: holder -> genuine admission -> Workspace.close.
+    holder.commit().unwrap();
+    assert!(
+        matches!(
+            admission.join().unwrap().unwrap(),
+            PgAdmissionOutcome::Created(_)
+        ),
+        "first waiter must durably commit real PG Job and active reservation"
+    );
+    let denied = closer.join().unwrap().expect_err(
+        "Workspace.close must not physically remove a Workspace whose Job committed while it waited on the advisory lock"
+    );
+    assert_eq!(
+        denied.code.as_str(), "CONCURRENCY_LIMIT",
+        "close must see the newly committed Job (rather than a stale SERIALIZABLE snapshot): {denied:?}"
+    );
+    let count: i64 = probe
+        .query_one(
+            "SELECT count(*) FROM jobs j JOIN attempts a ON a.job_id=j.job_id \
+         JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id \
+         WHERE j.job_id=$1 AND j.workspace_id=$2 AND j.resolution IS NULL \
+           AND r.state='active'",
+            &[&job_id, &workspace_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        count, 1,
+        "native admission must actually own an active PG lease"
+    );
+    let workspace_root = fixture.root.join("store/workspaces").join(&workspace_id);
+    assert!(workspace_root.is_dir(), "real Git worktree must remain");
+    assert!(
+        runtime
+            .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
+                schema_version: 1,
+                workspace_id,
+            })
+            .is_ok(),
+        "Git Workspace identity and source must survive the rejected close"
+    );
+}
+
 #[test]
 #[ignore = "launches an isolated native PostgreSQL cluster"]
 fn postgres_runtime_startup_requires_exact_qualified_writer() {
@@ -1327,6 +2377,8 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
             workspace_root: None,
@@ -1454,6 +2506,338 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         }).is_err(),
         "a long-lived Runtime must not keep accepting the app after operator grants it control mutation"
     );
+}
+
+#[test]
+#[ignore = "requires disposable PostgreSQL 18 and native systemd Runner"]
+fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
+    let mut fixture = Fixture::new();
+    let source = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let id = "ws-pg-private-cargo";
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":id,"sourceRepo":source,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    // Exercise the real PG admission -> systemd Runner -> physical filesystem,
+    // not a mock plan or a pre-set CARGO_TARGET_DIR from the caller.
+    let script = "import os\nfrom pathlib import Path\np=Path(os.environ['CARGO_TARGET_DIR'])\np.mkdir(parents=True,exist_ok=True)\n(p/'pg-private-marker').write_text('PRIVATE_ONLY')\nprint(os.environ['CARGO_TARGET_DIR'])\n";
+    let result = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-private-cargo-physical",
+              "execution":{"workspaceId":id,"executable":"/usr/bin/python3",
+                           "args":["-c",script],"cwdRelative":".","timeoutMs":10000},
+              "waitMs":15000,"stdoutTailBytes":1024}),
+    );
+    assert_ne!(result["isError"], true, "{result}");
+    assert_eq!(
+        result["structuredContent"]["executionDisposition"], "succeeded",
+        "private build target must be a physically usable native Runner FD: {result}"
+    );
+    assert_eq!(
+        result["structuredContent"]["stdoutTail"]
+            .as_str()
+            .map(str::trim),
+        Some("/proc/self/fd/198"),
+    );
+    let cache = fixture
+        .root
+        .join("store/cache/build")
+        .join(id)
+        .join("cargo");
+    assert_eq!(
+        fs::read_to_string(cache.join("pg-private-marker")).unwrap(),
+        "PRIVATE_ONLY"
+    );
+    assert!(
+        !fixture
+            .root
+            .join("store/workspaces")
+            .join(id)
+            .join("target")
+            .exists(),
+        "tool output must not land in Git-ignored source worktree target/"
+    );
+    // A multi-step PG plan must project the same private target into each
+    // Runner step, not only into its job-wide environment.
+    let plan_result = call(
+        &endpoint,
+        "workspace.execPlan",
+        json!({"clientRequestId":"pg-private-cargo-multi-step",
+              "execution":{"workspaceId":id,"steps":[
+                  {"id":"first","executable":"/usr/bin/python3","cwdRelative":".",
+                   "args":["-c","import os; from pathlib import Path; (Path(os.environ['CARGO_TARGET_DIR'])/'multi-first').write_text('FIRST')"],
+                   "timeoutMs":10000},
+                  {"id":"second","executable":"/usr/bin/python3","cwdRelative":".",
+                   "args":["-c","import os; from pathlib import Path; (Path(os.environ['CARGO_TARGET_DIR'])/'multi-second').write_text('SECOND')"],
+                   "timeoutMs":10000}
+              ]},"waitMs":25000}),
+    );
+    assert_ne!(plan_result["isError"], true, "{plan_result}");
+    assert_eq!(
+        plan_result["structuredContent"]["executionDisposition"], "succeeded",
+        "{plan_result}"
+    );
+    assert_eq!(
+        fs::read_to_string(cache.join("multi-first")).unwrap(),
+        "FIRST"
+    );
+    assert_eq!(
+        fs::read_to_string(cache.join("multi-second")).unwrap(),
+        "SECOND"
+    );
+    let plan_id = plan_result["structuredContent"]["jobId"].as_str().unwrap();
+    let frozen: String = fixture
+        .db
+        .query_one(
+            "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&plan_id],
+        )
+        .unwrap()
+        .get(0);
+    let plan: Value = serde_json::from_str(&frozen).unwrap();
+    for step in plan["steps"].as_array().unwrap() {
+        assert_eq!(step["env"]["CARGO_TARGET_DIR"], "/proc/self/fd/198");
+    }
+    // An explicitly authored path is a real execution input, not a default
+    // the Runtime may silently replace.
+    let overridden = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-private-cargo-custom-explicit",
+              "execution":{"workspaceId":id,"executable":"/usr/bin/python3",
+                           "args":["-c","import os; print(os.environ['CARGO_TARGET_DIR'])"],
+                           "env":{"CARGO_TARGET_DIR":"EXPLICIT_AGENT_VALUE"},
+                           "cwdRelative":".","timeoutMs":10000},
+              "waitMs":15000}),
+    );
+    assert_ne!(overridden["isError"], true, "{overridden}");
+    assert_eq!(
+        overridden["structuredContent"]["executionDisposition"], "succeeded",
+        "{overridden}"
+    );
+    assert_eq!(
+        overridden["structuredContent"]["stdoutTail"]
+            .as_str()
+            .map(str::trim),
+        Some("EXPLICIT_AGENT_VALUE")
+    );
+
+    // The pre-existing native close already owns private-cache reclamation.
+    let closed = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":id,"force":false,"consumerReleased":true}),
+    );
+    assert_ne!(closed["isError"], true, "{closed}");
+    assert_eq!(closed["structuredContent"]["removed"], true);
+    assert!(
+        !cache.exists(),
+        "native close must reclaim workspace-private build cache"
+    );
+}
+
+#[test]
+#[ignore = "real PostgreSQL18 + transient systemd timeout; verified LOST without reset-failed"]
+fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
+    struct TestUnitCleanup(String);
+    impl Drop for TestUnitCleanup {
+        fn drop(&mut self) {
+            // Only clean the disposable UUID-scoped unit created by this test.
+            // A RED test must not leave a stopped failed unit behind.
+            let _ = Command::new("systemctl").args(["stop", &self.0]).output();
+            let _ = Command::new("systemctl")
+                .args(["reset-failed", &self.0])
+                .output();
+        }
+    }
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-failed-transient","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    // Force a *systemd* timeout while Runner is unable to write result.json.
+    // This is the exact production counterexample: CollectMode=inactive keeps
+    // a failed Unit loaded even though its kernel cgroup has been removed.
+    let admitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-failed-transient-exact-runner",
+               "execution":{"workspaceId":"ws-pg-failed-transient",
+                            "executable":"/usr/bin/sleep","args":["60"],
+                            "cwdRelative":".","timeoutMs":9000},
+               "waitMs":0}),
+    );
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    let job_id = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .expect("exact committed PG Job")
+        .to_owned();
+    let (bundle, unit): (String, String) = {
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT bundle_path,unit_name FROM attempts WHERE job_id=$1",
+                &[&job_id],
+            )
+            .unwrap();
+        (row.get(0), row.get(1))
+    };
+    assert!(
+        unit.starts_with("ordivon-pg-attempt-") && unit.ends_with(".service"),
+        "only UUID-scoped disposable PG unit may be stopped: {unit}"
+    );
+    let _cleanup = TestUnitCleanup(unit.clone());
+    let start_file = PathBuf::from(&bundle).join("runner-start.json");
+    let start_deadline = Instant::now() + Duration::from_secs(8);
+    while !start_file.is_file() && Instant::now() < start_deadline {
+        thread::sleep(Duration::from_millis(30));
+    }
+    assert!(
+        start_file.is_file(),
+        "real Runner start witness is required"
+    );
+    let start: Value = serde_json::from_slice(&fs::read(&start_file).unwrap()).unwrap();
+    assert_eq!(start["jobId"], job_id);
+    assert_eq!(start["unitName"], unit);
+    assert_eq!(
+        start["controlGroup"],
+        format!("/system.slice/{unit}"),
+        "exact cgroup identity required"
+    );
+
+    // Freeze only this test Runner's main PID. systemd RuntimeMaxSec then
+    // terminates its whole cgroup; no user command is restarted or reissued.
+    let frozen = Command::new("systemctl")
+        .args(["kill", "--signal=STOP", "--kill-whom=main", &unit])
+        .output()
+        .unwrap();
+    assert!(
+        frozen.status.success(),
+        "freeze only the disposable Runner: {}",
+        String::from_utf8_lossy(&frozen.stderr)
+    );
+
+    let deadline = Instant::now() + Duration::from_secs(42);
+    let final_observation = loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId": job_id, "waitMs": 2000, "stdoutTailBytes":500}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            break observed;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "failed retained systemd Unit left PG Job running: {observed}"
+        );
+        thread::sleep(Duration::from_millis(150));
+    };
+    assert_eq!(
+        final_observation["structuredContent"]["executionDisposition"],
+        "lost",
+        "a dead Runner without result.json can only become LOST, never success: {final_observation}"
+    );
+    assert_eq!(
+        final_observation["structuredContent"]["resultAvailable"],
+        false
+    );
+    // Real systemd Runner death produces a durable PG control terminal but
+    // no Runner result. This is the native R4 counterexample consumed by
+    // Gateway and Harness: this test qualifies Runtime's projection only.
+    assert_eq!(
+        final_observation["structuredContent"]["deliveryDisposition"], "unknown",
+        "mechanical PG convergence is not execution result delivery: {final_observation}"
+    );
+    assert_eq!(
+        final_observation["structuredContent"]["recoveryRequired"], false,
+        "the native cgroup is quiescent; result uncertainty is independent of control recovery"
+    );
+    let listed = call(
+        &endpoint,
+        "job.list",
+        json!({"clientRequestId":"pg-failed-transient-exact-runner","limit":2}),
+    );
+    assert_ne!(listed["isError"], true, "{listed}");
+    let rows = listed["structuredContent"]["jobs"].as_array().unwrap();
+    assert_eq!(
+        rows.len(),
+        1,
+        "the original Job must have one exact owner identity"
+    );
+    assert_eq!(rows[0]["jobId"], job_id);
+    assert_eq!(rows[0]["executionDisposition"], "lost");
+    assert_eq!(rows[0]["deliveryDisposition"], "unknown", "{listed}");
+    assert_eq!(rows[0]["resultAvailable"], false, "{listed}");
+    assert!(
+        !PathBuf::from(&bundle).join("result.json").exists(),
+        "this case specifically requires OS-only recovery"
+    );
+    let receipt: Value = serde_json::from_slice(
+        &fs::read(PathBuf::from(&bundle).join("native-stop-evidence.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(receipt["terminalState"], "lost");
+    assert_eq!(
+        receipt["failedUnitInvocationBound"], true,
+        "identity-bound failed retained systemd Unit must be the actual reason for convergence: {receipt}"
+    );
+    assert_eq!(receipt["activeState"], "failed");
+    assert_eq!(receipt["loadState"], "loaded");
+    assert_eq!(receipt["nativeCgroupState"], "removed");
+    assert_eq!(receipt["kernelCgroupRemoved"], true);
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT r.state FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$1",
+            &[&job_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reservation, "released");
+    let count: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(count, 1, "native recovery must not relaunch the attempt");
+
+    // The systemd failed Unit must be retained until the PG terminal commit,
+    // then unloaded by the EXISTING terminal-only cleanup, not by the
+    // disposable test's Drop guard. Otherwise the root incident is merely
+    // shifted from leaked PG reservations to leaked supervisor failed units.
+    let unloaded_deadline = Instant::now() + Duration::from_secs(4);
+    loop {
+        let unit_state = Command::new("systemctl")
+            .args(["show", &unit, "--property=LoadState"])
+            .output()
+            .unwrap();
+        assert!(unit_state.status.success());
+        let state = String::from_utf8_lossy(&unit_state.stdout);
+        if state.trim() == "LoadState=not-found" {
+            break;
+        }
+        assert!(
+            Instant::now() < unloaded_deadline,
+            "committed LOST must release the failed transient Unit too: {state}"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
 }
 
 #[test]
@@ -1869,6 +3253,10 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
             observed["structuredContent"]["resultAvailable"], false,
             "OS-only LOST terminal must not advertise a Runner result: {observed}"
         );
+        assert_eq!(
+            observed["structuredContent"]["deliveryDisposition"], "unknown",
+            "a native-stop Artifact cannot convert LOST into a delivered Runner result: {observed}"
+        );
         assert!(
             observed["structuredContent"]["artifacts"]
                 .as_array()
@@ -2141,6 +3529,8 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("self-qualified-attempt"),
             workspace_root: None,
@@ -2195,6 +3585,8 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         dsn,
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("session-authority-candidate"),
             workspace_root: None,

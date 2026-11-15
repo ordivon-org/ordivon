@@ -1,5 +1,30 @@
 # Data — Agent operating instructions
 
+## Outcome-first autonomous information supply (default)
+
+1. Accept the Outcome Owner's information need, use constraints and acceptance
+   predicate. Do not delegate internal port selection or ordinary tooling to a human.
+2. Select only needed producer-owned ODPS/ODCS outputs. Reuse original Data
+   projection and source binding logic; never invent product access URLs.
+3. Verify source bytes at the consumer's read, bind exact versions and verify
+   the natural business Owner's independent acceptance.
+4. Delegate acquisition to the actual source Owner, file verification to
+   Artifact, execution to Runtime and specialty results to their Owner.
+   Data is accountable for information supply; Research/Finance/Game/Media
+   retain domain outcome authority.
+5. Contradictory, missing and unavailable sources fail closed without a
+   fictitious success or a human checklist. Unrelated unknown ports must
+   not block a verified selected output.
+6. Incorporate actual consumer feedback into future data selection or
+   collection; a nontrivial improvement claim requires a concrete change
+   observed through a later consumer.
+7. A product checksum, tool exit code or correct fact answer is not proof
+   that an autonomous Agent's task-solving ability improved.
+
+**Current executable consumer:** Research's deliver_research.py in
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1,
+with positive/negative acceptance tests included in data:verify.
+
 ## SourceCut before execution
 
 Select one final consumer. Capture the exact source revision, data-product
@@ -36,9 +61,10 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    exit 3 means UNKNOWN/not established, while exit 2 means a conflicting
    digest or invalid catalog. For a consumer bound to one stable output-port
    identity, use `--verify-local --require-port PRODUCT_ID PRODUCT_VERSION
-   DISTRIBUTION_URN`. A selected-port PASS must not be promoted to a
-   global product PASS. The unmaterialized Episode Parquet stays UNKNOWN. Do not interpret these as a right to publish.
-   directory path or catalog version as proof of deployed data.
+   DISTRIBUTION_URN`. A selected-port PASS does not establish a global
+   product PASS or permission to publish. The unmaterialized Episode Parquet
+   remains UNKNOWN. A directory path or catalog version does not prove
+   that data is deployed.
 2. Verify the exact physical bytes under explicit scope. Unknown remains
    typed UNKNOWN rather than FALSE or PASS. A file digest match does not
    prove statistics, correctness, licenses, or scientific causal claims.

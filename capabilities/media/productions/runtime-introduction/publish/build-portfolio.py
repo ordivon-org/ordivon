@@ -26,7 +26,7 @@ README = (
     "Use python3 -m http.server from the extracted folder if necessary.\n"
     "All content is source-revision bound; it is not a current feature inventory.\n"
     "No claim of YouTube/Douyin/Upwork publication or audience response.\n"
-).encode("utf-8")
+).encode()
 
 
 def entry(name: str, data: bytes) -> tuple[zipfile.ZipInfo, bytes]:

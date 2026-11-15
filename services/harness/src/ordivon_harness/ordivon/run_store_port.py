@@ -253,7 +253,12 @@ class HarnessRunContinuityStore(Protocol):
         requested_model_id: str,
     ) -> HarnessRunState | None: ...
 
-    def prepare_tool_step(self, intent: HarnessToolStepIntent) -> StoredHarnessRunSnapshot: ...
+    def prepare_tool_step(
+        self,
+        intent: HarnessToolStepIntent,
+        *,
+        original_request: dict[str, JsonValue] | None = None,
+    ) -> StoredHarnessRunSnapshot: ...
 
     def assert_dispatch_fence_current(
         self,

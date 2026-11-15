@@ -19,34 +19,57 @@ _FRAME_LINE = re.compile(r"^frame:\d+\s+pts:\S+\s+pts_time:(?P<time>-?[0-9.]+)$"
 _YAVG_LINE = re.compile(r"^lavfi\.signalstats\.YAVG=(?P<value>[0-9.]+)$")
 
 
-def _extract_frame(video_path: Path, frame: int, output_path: Path, ffmpeg: str) -> None:
-    if frame < 0:
-        raise ValueError("review frame must be non-negative")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        [
-            ffmpeg,
-            "-v",
-            "error",
-            "-y",
-            "-i",
-            str(video_path),
-            "-vf",
-            f"select=eq(n\\,{frame})",
-            "-fps_mode",
-            "passthrough",
-            "-frames:v",
-            "1",
-            str(output_path),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"ffmpeg failed to extract frame {frame}")
-    if not output_path.is_file() or output_path.stat().st_size == 0:
-        raise RuntimeError(f"ffmpeg produced no review frame for {frame}")
+def extract_review_frames(
+    video_path: Path, frames: list[int], output_directory: Path, ffmpeg: str
+) -> list[Path]:
+    """Extract selected frames with one FFmpeg decode, not one decode per frame.
+
+    The filter is selected by exact frame indices, with passthrough timestamps.
+    FFmpeg's output image sequence is ordinal; stage first, then rename to the
+    selected source-frame identities only after all expected images exist.
+    """
+    if not frames:
+        return []
+    if any(type(frame) is not int or frame < 0 for frame in frames):
+        raise ValueError("review frames must be non-negative integers")
+    if frames != sorted(set(frames)):
+        raise ValueError("review frames must be unique and sorted")
+
+    output_directory.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".ordivon-review-", dir=output_directory) as temporary:
+        staged_root = Path(temporary)
+        expression = "+".join(f"eq(n\\,{frame})" for frame in frames)
+        result = subprocess.run(
+            [
+                ffmpeg,
+                "-v",
+                "error",
+                "-y",
+                "-i",
+                str(video_path),
+                "-vf",
+                f"select={expression}",
+                "-fps_mode",
+                "passthrough",
+                "-frames:v",
+                str(len(frames)),
+                "-start_number",
+                "0",
+                str(staged_root / "selected-%06d.png"),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or "ffmpeg failed to extract review frames")
+        staged = [staged_root / f"selected-{index:06d}.png" for index in range(len(frames))]
+        if any(not path.is_file() or path.stat().st_size == 0 for path in staged):
+            raise RuntimeError("ffmpeg produced an incomplete review-frame set")
+        outputs = [output_directory / f"frame-{frame:06d}.png" for frame in frames]
+        for source, destination in zip(staged, outputs, strict=True):
+            source.replace(destination)
+        return outputs
 
 
 def _parse_change_metadata(text: str, *, fps: float, total_frames: int) -> list[dict[str, Any]]:
@@ -82,7 +105,9 @@ def analyze_temporal_change(
 ) -> list[dict[str, Any]]:
     if sample_step_frames < 1:
         raise ValueError("sample_step_frames must be positive")
-    with tempfile.NamedTemporaryFile(prefix="ordivon-change-", suffix=".txt", delete=False) as handle:
+    with tempfile.NamedTemporaryFile(
+        prefix="ordivon-change-", suffix=".txt", delete=False
+    ) as handle:
         metadata_path = Path(handle.name)
     try:
         filter_graph = (
@@ -92,14 +117,28 @@ def analyze_temporal_change(
             f"metadata=print:file={metadata_path}"
         )
         result = subprocess.run(
-            [ffmpeg, "-v", "error", "-i", str(video_path), "-vf", filter_graph, "-an", "-f", "null", "-"],
+            [
+                ffmpeg,
+                "-v",
+                "error",
+                "-i",
+                str(video_path),
+                "-vf",
+                filter_graph,
+                "-an",
+                "-f",
+                "null",
+                "-",
+            ],
             check=False,
             capture_output=True,
             text=True,
         )
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip() or "ffmpeg temporal-change analysis failed")
-        return _parse_change_metadata(metadata_path.read_text(encoding="utf-8"), fps=fps, total_frames=total_frames)
+        return _parse_change_metadata(
+            metadata_path.read_text(encoding="utf-8"), fps=fps, total_frames=total_frames
+        )
     finally:
         metadata_path.unlink(missing_ok=True)
 
@@ -121,14 +160,29 @@ def build_contact_sheet(
     args = [ffmpeg, "-v", "error", "-y"]
     for path in frame_paths:
         args.extend(["-i", str(path)])
-    chains = [f"[{index}:v]scale={thumbnail_width}:{thumbnail_height}[v{index}]" for index in range(len(frame_paths))]
+    chains = [
+        f"[{index}:v]scale={thumbnail_width}:{thumbnail_height}[v{index}]"
+        for index in range(len(frame_paths))
+    ]
     inputs = "".join(f"[v{index}]" for index in range(len(frame_paths)))
     layout = "|".join(
         f"{(index % effective_columns) * thumbnail_width}_{(index // effective_columns) * thumbnail_height}"
         for index in range(len(frame_paths))
     )
     chains.append(f"{inputs}xstack=inputs={len(frame_paths)}:layout={layout}:fill=black[out]")
-    args.extend(["-filter_complex", ";".join(chains), "-map", "[out]", "-frames:v", "1", "-update", "1", str(output_path)])
+    args.extend(
+        [
+            "-filter_complex",
+            ";".join(chains),
+            "-map",
+            "[out]",
+            "-frames:v",
+            "1",
+            "-update",
+            "1",
+            str(output_path),
+        ]
+    )
     result = subprocess.run(args, check=False, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or "ffmpeg contact-sheet generation failed")

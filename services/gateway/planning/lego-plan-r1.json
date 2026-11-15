@@ -176,7 +176,11 @@
         "src/ordivon_gateway/execution_commands.py",
         "src/ordivon_gateway/execution_observations.py",
         "src/ordivon_gateway/execution_refs.py",
-        "src/ordivon_gateway/owner_protocol.py"
+        "src/ordivon_gateway/owner_protocol.py",
+        "formal/GatewayAgentWorkspaceBindingR1.tla",
+        "formal/GatewayAgentWorkspaceBindingR1.cfg",
+        "formal/GatewayAgentWorkspaceBindingR1.reachability.cfg",
+        "formal/GatewayAgentWorkspaceBindingR1.unsafe.cfg"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",

@@ -1,0 +1,406 @@
+"""Server-derived Owner authorization targets; never a Security decision.
+
+This is a pure projection of Gateway route/Tool arguments into the exact
+AuthZEN resource requested from Security. It neither authenticates a Principal
+nor permits any Owner effect. The existing Security PEP remains in
+capability_authz.py and the natural Owners retain domain truth.
+"""
+
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+import re
+import unicodedata
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from typing import Any
+
+from .execution_refs import GatewayError, parse_execution_ref
+from .service import _SOCIAL_WORK_HOST_TOOLS
+
+
+@dataclass(frozen=True, slots=True)
+class CapabilityAuthorizationTarget:
+    """Server-derived authorization target, distinct from caller-authored Tool arguments."""
+
+    capability: str
+    resource_type: str
+    resource_id: str
+    operation_ref: str
+    owner_id: str
+    job_id: str
+    artifact_id: str
+
+    def authzen_resource(self) -> dict[str, Any]:
+        return {
+            "type": self.resource_type,
+            "id": self.resource_id,
+            "properties": {
+                "identityContract": "ordivon.runtime-artifact-resource-key.v1",
+                "operationRef": self.operation_ref,
+                "ownerId": self.owner_id,
+                "jobId": self.job_id,
+                "artifactId": self.artifact_id,
+            },
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class HostAccountabilityAuthorizationTarget:
+    """A claim about an accountable Actor, NOT proof that a Principal owns it.
+
+    Security alone decides whether a verified Principal may make that claim.
+    The resource includes each authorization-relevant untrusted coordinate,
+    so a valid decision for one actor/action/filter cannot authorize another.
+    """
+
+    capability: str
+    resource_type: str
+    resource_id: str
+    attributes: Mapping[str, Any]
+
+    def authzen_resource(self) -> dict[str, Any]:
+        return {
+            "type": self.resource_type,
+            "id": self.resource_id,
+            "properties": dict(self.attributes),
+        }
+
+
+def _qualified_host_reference(
+    value: object, field: str, *, capability: str = "host.legacy-read"
+) -> str:
+    if (
+        not isinstance(value, str)
+        or not 3 <= len(value.encode("utf-8")) <= 512
+        or ":" not in value
+        or not value.strip()
+        or any(unicodedata.category(char) == "Cc" for char in value)
+    ):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            f"Host authorization requires a qualified {field}.",
+            capability=capability,
+        )
+    return value
+
+
+# These original Host projections only read state. Every other Host operation
+# in the single Gateway route registry is a write and REQUIRES Security PEP.
+# New Owner tools therefore fail closed by default instead of inheriting an
+# accidentally public state-changing route.
+# Authorization selectors are derived from the *actual* read interface. Extra
+# caller-supplied fields cannot impersonate an Actor or narrow an Owner query.
+# A query without a recognized object selector is explicitly global and
+# requires the PDP to grant that breadth (e.g., work.list or host.status).
+_HOST_READ_SELECTORS: dict[str, tuple[str, ...]] = {
+    "host.status": (),
+    "work.get": ("workRef",),
+    "work.list": (),
+    "space.get": ("spaceRef",),
+    "space.list": ("actorRef", "subjectRef"),
+    "space.participation.list": ("spaceRef",),
+    "space.subject.list": ("spaceRef",),
+    "topic.cursor.get": ("actorRef", "topicRef"),
+    "topic.list": ("spaceRef",),
+    "topic.resume": ("topicRef",),
+    "message.get": ("messageRef",),
+    "message.search": ("spaceRef", "topicRef"),
+    "message.relation.list": ("messageRef",),
+    "subscription.list": ("actorRef",),
+    "attention.get": ("actorRef",),
+    "attention.delta": ("actorRef",),
+    "attention.reentry": ("actorRef",),
+}
+
+# Derive the Host read names from the semantic selectors actually enforced.
+_HOST_READ_ONLY_TOOLS = frozenset(_HOST_READ_SELECTORS)
+
+
+def _host_request_sha256(arguments: Mapping[str, Any], *, capability: str, action: str) -> str:
+    """Bind the complete request, including paging/filter fields, to one PDP ALLOW."""
+    try:
+        canonical = json.dumps(
+            arguments,
+            ensure_ascii=False,
+            sort_keys=True,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            f"Host {action} requires a JSON-compatible request.",
+            capability=capability,
+        ) from exc
+    if len(canonical) > 4_194_304:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            f"Host {action} request exceeds maximum authorization budget.",
+            capability=capability,
+        )
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _legacy_host_read_target(
+    tool_name: str, arguments: Mapping[str, Any]
+) -> HostAccountabilityAuthorizationTarget | None:
+    """Complete mediation of Host reads by the existing AuthZEN PEP.
+
+    The resource is an untrusted requested target, NEVER a claim that the
+    Principal owns a supplied ActorRef or object. Broad scans are explicit.
+    """
+    fields = _HOST_READ_SELECTORS.get(tool_name)
+    if fields is None:
+        return None
+    capability = "host.legacy-read"
+    selectors: dict[str, str] = {}
+    for field in fields:
+        value = arguments.get(field)
+        if value is not None:
+            selectors[field] = _qualified_host_reference(value, field, capability=capability)
+    digest = _host_request_sha256(arguments, capability=capability, action="read")
+    return HostAccountabilityAuthorizationTarget(
+        capability=capability,
+        resource_type="ordivon.host.legacy-read-request",
+        resource_id="host-legacy-read:v1:" + _base64url_text(tool_name) + "." + digest,
+        attributes={
+            "identityContract": "ordivon.host-legacy-read-resource.v1",
+            "toolName": tool_name,
+            "requestSha256": digest,
+            "requestedSelectors": selectors,
+            "unscoped": not selectors,
+        },
+    )
+
+
+def _legacy_host_mutation_target(
+    tool_name: str, arguments: Mapping[str, Any]
+) -> HostAccountabilityAuthorizationTarget | None:
+    """Single PEP for Host writes lacking versioned Engagement's typed target.
+
+    The whole canonical request is digested, not just the untrusted actorRef:
+    a PDP ALLOW for a different Work, role, tool or action cannot be replayed
+    by modifying Tool arguments. No Domain validation or authorization is
+    reimplemented here. Missing Security remains DENY, not service-bearer ALLOW.
+    """
+    if tool_name not in _SOCIAL_WORK_HOST_TOOLS or tool_name in _HOST_READ_ONLY_TOOLS:
+        return None
+    # Message author identity has a different wire field from other Host writers.
+    # Never let a supplied ignored actorRef shadow the persisted authorActorRef.
+    claimed_actor = (
+        arguments.get("authorActorRef")
+        if tool_name == "message.post"
+        else arguments.get("actorRef")
+    )
+    _qualified_host_reference(
+        claimed_actor,
+        "authorActorRef" if tool_name == "message.post" else "actorRef",
+        capability="host.legacy-write",
+    )
+    digest = _host_request_sha256(arguments, capability="host.legacy-write", action="mutation")
+    return HostAccountabilityAuthorizationTarget(
+        capability="host.legacy-write",
+        resource_type="ordivon.host.legacy-write-request",
+        resource_id="host-legacy-write:v1:" + _base64url_text(tool_name) + "." + digest,
+        attributes={
+            "identityContract": "ordivon.host-legacy-write-resource.v1",
+            "toolName": tool_name,
+            "requestSha256": digest,
+            "claimedActorRef": claimed_actor,
+            "workRef": arguments.get("workRef"),
+            "spaceRef": arguments.get("spaceRef"),
+            "topicRef": arguments.get("topicRef"),
+            "messageRef": arguments.get("messageRef"),
+            # Requested coordinates are not authorization evidence. The full
+            # request digest binds any omitted fields too.
+            "sourceMessageRef": arguments.get("sourceMessageRef"),
+            "targetRef": arguments.get("targetRef"),
+            "targetKind": arguments.get("targetKind"),
+            "expectedRevision": arguments.get("expectedRevision"),
+            "expectedState": arguments.get("expectedState"),
+            "requestedState": arguments.get("state"),
+            "requestedStanding": arguments.get("standing"),
+        },
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeReleaseAuthorizationTarget:
+    """Exact Linux Runtime release effect request; Security grants the operator action."""
+
+    capability: str
+    resource_id: str
+    attributes: Mapping[str, Any]
+
+    def authzen_resource(self) -> dict[str, Any]:
+        return {
+            "type": "ordivon.runtime.native-release-request",
+            "id": self.resource_id,
+            "properties": dict(self.attributes),
+        }
+
+
+def _runtime_release_target(
+    tool_name: str, arguments: Mapping[str, Any]
+) -> RuntimeReleaseAuthorizationTarget | None:
+    if tool_name != "runtime.release.apply":
+        return None
+    required = (
+        "requestId",
+        "workspaceId",
+        "commit",
+        "candidateManifestDigest",
+        "expectedToolCount",
+    )
+    if (
+        any(name not in arguments for name in required)
+        or any(
+            not isinstance(arguments[name], str) or not arguments[name] for name in required[:-1]
+        )
+        or type(arguments["expectedToolCount"]) is not int
+        or not 1 <= arguments["expectedToolCount"] <= 2**32 - 1
+        or len(arguments["requestId"].encode("utf-8")) > 256
+        or len(arguments["workspaceId"].encode("utf-8")) > 96
+        or not re.fullmatch(r"[a-f0-9]{40}", arguments["commit"])
+        or not re.fullmatch(r"sha256:[a-f0-9]{64}", arguments["candidateManifestDigest"])
+    ):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "Runtime release requires an exact request, Workspace, commit, manifest and Tool count.",
+            capability="runtime.release.linux",
+        )
+    identity = {name: arguments[name] for name in required}
+    raw = json.dumps(identity, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    digest = hashlib.sha256(raw).hexdigest()
+    return RuntimeReleaseAuthorizationTarget(
+        capability="runtime.release.linux",
+        resource_id="runtime-release:v1:" + digest,
+        attributes={
+            "identityContract": "ordivon.gateway-native-runtime-release-request.v1",
+            "nodeId": "linux-pg",
+            "ownerId": "runtime.linux",
+            "requestSha256": digest,
+            **identity,
+        },
+    )
+
+
+class CapabilityAuthorizationTargetError(ValueError):
+    def __init__(self, code: str, message: str, *, capability: str | None = None) -> None:
+        super().__init__(message)
+        self.code = code
+        self.capability = capability
+
+
+AuthorizationTargetResolver = Callable[
+    [str, Mapping[str, Any]],
+    CapabilityAuthorizationTarget
+    | HostAccountabilityAuthorizationTarget
+    | RuntimeReleaseAuthorizationTarget
+    | None,
+]
+
+_RUNTIME_ARTIFACT_OWNERS = frozenset({"runtime.linux", "runtime.windows", "runtime.harness"})
+
+
+def _base64url_text(value: str) -> str:
+    return base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
+
+
+def _artifact_resource_id(operation_ref: str, artifact_id: str) -> str:
+    """Collision-free public object id from two already-validated UTF-8 coordinates.
+
+    RFC 4648 base64url segments avoid delimiter ambiguity while preserving useful prefixes:
+    all Runtime artifacts share ``runtime-artifact:v1:`` and all artifacts for one operation
+    share the encoded operationRef segment.
+    """
+
+    return (
+        "runtime-artifact:v1:" + _base64url_text(operation_ref) + "." + _base64url_text(artifact_id)
+    )
+
+
+def _validate_artifact_id(value: object) -> str:
+    if not isinstance(value, str):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "artifact.read requires a string artifactId before authorization.",
+            capability="artifact.runtime",
+        )
+    encoded = value.encode("utf-8")
+    if (
+        not value.strip()
+        or len(encoded) > 256
+        or "\x00" in value
+        or any(unicodedata.category(ch) == "Cc" for ch in value)
+    ):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "artifact.read artifactId is outside the Runtime identifier contract.",
+            capability="artifact.runtime",
+        )
+    return value
+
+
+def resolve_authorization_target(
+    tool_name: str, arguments: Mapping[str, Any]
+) -> (
+    CapabilityAuthorizationTarget
+    | HostAccountabilityAuthorizationTarget
+    | RuntimeReleaseAuthorizationTarget
+    | None
+):
+    """Resolve the protected natural-owner object from trusted Gateway semantics.
+
+    Tool name alone is insufficient: the operation reference must resolve to a
+    qualified Runtime owner and artifact. Retired external worker references fail
+    closed before reaching Runtime or the authorization provider.
+    """
+
+    release = _runtime_release_target(tool_name, arguments)
+    if release is not None:
+        return release
+    legacy_read = _legacy_host_read_target(tool_name, arguments)
+    if legacy_read is not None:
+        return legacy_read
+    legacy_mutation = _legacy_host_mutation_target(tool_name, arguments)
+    if legacy_mutation is not None:
+        return legacy_mutation
+    if tool_name != "artifact.read":
+        return None
+
+    operation_ref = arguments.get("operationRef")
+    if not isinstance(operation_ref, str) or not operation_ref:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "artifact.read requires a valid operationRef before authorization.",
+            capability="artifact.runtime",
+        )
+    try:
+        owner_id, native_id = parse_execution_ref(operation_ref)
+    except GatewayError as exc:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "artifact.read operationRef is not a valid Gateway execution reference.",
+            capability="artifact.runtime",
+        ) from exc
+
+    if owner_id not in _RUNTIME_ARTIFACT_OWNERS:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_UNQUALIFIED",
+            "No Security authorization target is qualified for this artifact owner.",
+        )
+
+    artifact_id = _validate_artifact_id(arguments.get("artifactId"))
+    return CapabilityAuthorizationTarget(
+        capability="artifact.runtime",
+        resource_type="ordivon.runtime.artifact",
+        resource_id=_artifact_resource_id(operation_ref, artifact_id),
+        operation_ref=operation_ref,
+        owner_id=owner_id,
+        job_id=native_id,
+        artifact_id=artifact_id,
+    )

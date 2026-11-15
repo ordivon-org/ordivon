@@ -7,15 +7,15 @@
 | MF0 | Media / Structured Mediation | frozen | historical/current corpus under `../../expression/foundations/` |
 | MF1 | Signal | frozen | historical/current corpus under `../../expression/foundations/` |
 | MF2 | Perception | frozen | `media-foundations-mf2h-20260817.md`, `media-foundations-mf2i-20260817.md` and closeouts |
-| MF3 | Representation | frozen | MF3A–MF3I research chain and closeouts |
-| MF4 | Composition | frozen | MF4A–MF4K research chain and closeouts |
+| MF3 | Representation | frozen | canonical MF3I closeout; historical intermediate stages in Git history |
+| MF4 | Composition | frozen | canonical MF4K closeout; historical intermediate stages in Git history |
 | MF5 | Space | frozen | canonical closeout `media-foundations-mf5i-20260817.md` |
 | MF6 | Time | frozen | canonical closeout `media-foundations-mf6f-20260817.md` |
 | MF7 | State / Dynamics / Control | frozen | canonical closeout `media-foundations-mf7h-20260817.md` |
 | MF8 | Agency / Action | frozen | canonical v1 `media-foundations-mf8-agency-v1-20260818.md` |
 | MF9 | Experience | frozen | canonical v1 `media-foundations-mf9-experience-v1-20260818.md` |
 
-All referenced filenames live in [`../../expression/foundations/`](../../expression/foundations/README.md). The whole-chain closeout is [`media-deep-foundations-mf0-mf9-closeout-and-domain-coverage-handoff-20260818.md`](../../expression/foundations/media-deep-foundations-mf0-mf9-closeout-and-domain-coverage-handoff-20260818.md).
+The retained summary filenames live in [`../../expression/foundations/`](../../expression/foundations/README.md). The whole-chain closeout is [`media-deep-foundations-mf0-mf9-closeout-and-domain-coverage-handoff-20260818.md`](../../expression/foundations/media-deep-foundations-mf0-mf9-closeout-and-domain-coverage-handoff-20260818.md).
 
 ## Admission state
 

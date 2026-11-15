@@ -7,6 +7,7 @@ import argparse
 from email import policy
 from email.parser import BytesParser
 import json
+import os
 import re
 from pathlib import Path
 import shutil
@@ -78,7 +79,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/core_contracts.py",
     "ordivon_harness/independent_cli.py",
     "ordivon_harness/independent_result.py",
-    "ordivon_harness/sqlite_store.py",
+    "ordivon_harness/postgres_store.py",
     "ordivon_harness/standalone.py",
     "ordivon_harness/store.py",
     "ordivon_harness/tool_program.py",
@@ -132,13 +133,11 @@ CLI_COMMANDS = (
     "doctor",
     "status",
     "inspect",
+    "explain",
     "run",
     "resume",
     "store-init",
     "store-doctor",
-    "store-backup",
-    "store-verify-backup",
-    "store-restore",
     "store-inspect",
     "store-events",
 )
@@ -235,6 +234,19 @@ def wheel_python_interpreter(
     return interpreter
 
 
+def check_host_free_postgresql(python: Path) -> bool:
+    """Qualify real PG only with an explicit dedicated DSN, never a fake PASS."""
+    if not os.environ.get("HARNESS_PG_TEST_DSN"):
+        print(
+            "wheel: Host-free PostgreSQL create/reopen/inspect NOT_RUN "
+            "(HARNESS_PG_TEST_DSN absent; supply a dedicated test database)",
+            file=sys.stderr,
+        )
+        return False
+    checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
+    return True
+
+
 def install_smoke(wheel: Path, version: str) -> dict[str, object]:
     uv = shutil.which("uv")
     if uv is None:
@@ -274,7 +286,17 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             fail("extracted Skills owner reappeared in isolated Harness installation")
         if probe["mcpInstalled"]:
             fail("base Harness installation unexpectedly pulled the optional MCP adapter")
-        checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
+        checked([str(python), "-c", (
+            "import inspect,sys;"
+            "from ordivon_harness.api import HarnessAgentRun;"
+            "assert tuple(inspect.signature(HarnessAgentRun.create).parameters)[:4]"
+            " == ('dsn','schema','contract','adapter_factory');"
+            "assert tuple(inspect.signature(HarnessAgentRun.open).parameters)[:4]"
+            " == ('dsn','schema','harness_run_id','adapter_factory');"
+            "assert 'state_root' not in HarnessAgentRun.__dataclass_fields__;"
+            "assert 'ordivon_harness.sqlite_store' not in sys.modules"
+        )])
+        postgres_verified = check_host_free_postgresql(python)
         help_text = checked([str(cli), "--help"]).stdout
         for command in CLI_COMMANDS:
             if command not in help_text:
@@ -286,6 +308,10 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             "cutover-status",
             "cutover-activate",
             "--harness-state-root",
+            "--state-root",
+            "store-backup",
+            "store-verify-backup",
+            "store-restore",
         ):
             if removed in help_text:
                 fail(f"CLI still advertises removed surface: {removed}")
@@ -326,7 +352,8 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
 
         return {
             "installedVersion": version,
-            "hostFreeHarnessVerified": True,
+            "hostFreeHarnessVerified": postgres_verified,
+            "hostFreePostgresStanding": "VERIFIED" if postgres_verified else "NOT_RUN",
             "baseMcpAbsentVerified": True,
             "mcpAdapterExtraVerified": True,
             "cliCommandsVerified": len(CLI_COMMANDS),

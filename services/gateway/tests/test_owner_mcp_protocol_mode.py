@@ -112,6 +112,7 @@ def test_opt_in_is_never_implicitly_enabled(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_pinned_incompatible_server_fails_without_automatic_retry(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     attempts = []
 
@@ -133,9 +134,14 @@ def test_pinned_incompatible_server_fails_without_automatic_retry(
     monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: FakePool())
     monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client: object())
     monkeypatch.setattr(upstream, "Client", RejectingClient)
+    credential = _private(tmp_path / "host-owner-bearer", "fixture-only-not-production-secret")
     caller = McpOwnerCaller(
         {
-            "host": OwnerEndpoint("http://host.test/mcp", mcp_mode="2026-07-28"),
+            "host": OwnerEndpoint(
+                "http://host.test/mcp",
+                bearer_token_file=credential,
+                mcp_mode="2026-07-28",
+            ),
         }
     )
 

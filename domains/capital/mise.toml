@@ -110,13 +110,29 @@ fi
 printf '%s\\n' "$observed"
 """
 
+[tasks."verify:nonlive:nautilus"]
+description = "Run pinned upstream NautilusTrader rc9 through existing Finance nonlive reconciliation"
+run = """
+set -euo pipefail
+uv lock --check
+uv run --locked --group nonlive python -c 'import nautilus_trader; assert nautilus_trader.__version__ == "2.0.0rc9"'
+PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/nonlive_effect_matrix.py
+PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/equity_paper_qualification.py
+# This physical/non-live subset is source-qualified independently from other
+# provider tests requiring secrets or node-local external binaries.
+uv run --isolated --locked --group test --group nonlive python -m pytest --strict-markers -m native_nonlive \
+    tests/test_nautilus_candidate.py tests/test_native_dbn.py
+"""
+
 [tasks."verify:provider"]
 description = "Run node-local external-provider and credential-bound qualification tests"
 run = """
 set -euo pipefail
 uv lock --check
-uv sync --locked --group test
-uv run --group test python -m pytest -m provider_qualification
+# Provider tests call the legacy run-capability-python, which syncs the project
+# .venv with only research/test and removes optional nonlive. Preserve a
+# separate isolated Python environment for this test runner.
+uv run --isolated --locked --group test --group nonlive python -m pytest -m provider_qualification
 """
 
 [tasks."verify:formal:risk-exposure"]

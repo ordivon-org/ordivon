@@ -17,7 +17,7 @@ Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_hos
 ## Tests with mature upstream tools
 
 The public canonical-JSON boundary has a real [Hypothesis](https://github.com/HypothesisWorks/hypothesis)
-property/regression test in `tests/test_canonical_property.py`. Run the local
+property/regression test in `tests/test_canonical_json_property.py`. Run the local
 Owner's native `mise run test:focused`; select any existing pytest node with
 `HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused`.
 Both tasks invoke installed pytest directly, not a new harness.
@@ -36,6 +36,16 @@ Use
 `mise run verify` for the full Host Owner test gate; it can legitimately
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
+
+## Attention recovery model (one transaction cut)
+
+From the repository root, run `mise run host:formal:attention-reentry` with the existing pinned TLA+ JAR.
+The model covers interleaved relevant/unrelated change commits, monotone ACKs,
+one-page re-entry and one captured MVCC cut. Both mixed-snapshot Topic cursor
+and non-final page skipping are falsified with separate unsafe transitions.
+This is a bounded abstract model, not a PostgreSQL SQL/source refinement or
+installed Agent proof: retain the existing real PG18 single-snapshot and
+pagination consumer tests. No new Host database, Tool or model executor.
 
 ## Host formal verification: Human and Agent entrypoints
 
@@ -107,6 +117,16 @@ collaboration, Subscription and Attention navigation.
 
 Legacy `task.*` and `board.*` tools and their active PostgreSQL storage are physically retired. Historical recovery evidence is retained separately and does not constrain the active model.
 
+Work continuity is **current-snapshot-first**: the only mandatory revision is
+the current Work snapshot. Earlier revisions may be retained or pruned according to
+real consumer needs; missing historical revisions are not a Host health failure.
+`work.get(revision=old)` may return a typed not-found/conflict when that revision
+was pruned. The current snapshot's stored digest and payload must still agree,
+and PostgreSQL CAS must still arbitrate concurrent updates. The `history` Doctor
+verifies the integrity of any history that remains, but no longer requires
+a gap-free archive. This is a contract change, not proof that production
+has already compacted its older snapshots.
+
 The active ontology is intentionally orthogonal: `Work` owns revisioned semantic continuity, `Space`/`Topic`/`Message` own collaboration structure, and `Subscription`/`Attention` own rebuildable actor-scoped navigation. Work state is not chat history, social participation is not assignment or authorization, and Attention is not priority or scheduler truth.
 
 Re-entry uses two different cursors: `attention.*` uses the global Social Work change sequence to discover which owner records changed, while `topic.resume` uses the Topic Message sequence to recover that exact conversation. Agents must not substitute one cursor domain for the other.
@@ -114,6 +134,17 @@ Re-entry uses two different cursors: `attention.*` uses the global Social Work c
 Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, custom event bus, graph database, voting/ranking subsystem, or opaque extension-state subsystem. Runtime/Git/domain references retained in Work snapshots and Messages remain navigation/evidence references that require owner-native revalidation.
 
 External-news publication is not a Host responsibility. Its unconsumed \`news_publications\` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
+
+The Host installer accepts an optional fifth argument --prepare-only
+only when the fourth argument pins an independently reviewed Host Git tree
+OID. Preparation verifies immutable Git source, MCP tool surface, exact
+Python/uv versions and the locked release-local package, but leaves current
+and the systemd process intact and prints activation=NOT_PERFORMED. A later
+ordinary activation independently revalidates the same immutable candidate.
+This mode does not authorize a deployment, reload secrets, provision Actor
+Grants or prove migration of the main/peer Gateway and Cloudflare clients.
+The separate Gateway Host/Security release check and live positive/negative
+Agent consumers must still pass before cutting over the single Host Writer.
 
 Production releases are immutable Git-SHA directories with a release-local `.venv`; systemd executes only `/opt/ordivon/host-v2/current/.venv/...`. This prevents a shared Python environment from retaining stale code when the package version is unchanged.
 

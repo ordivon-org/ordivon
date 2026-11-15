@@ -333,7 +333,7 @@ not the current installed Runtime.
 The existing upstream-locked TLA+/TLC owner tool is reused by
 mise run formal:verify. Scoped properties:
 
-- FreshActiveConsumerCannotBeClosed: inside the 24h fresh-state abstraction,
+- FreshActiveConsumerCannotBeClosed: inside the 4h fresh-state abstraction,
   close requires an honest finished-and-released consumer.
 - ClosedHasNoLiveJob and ClosedHasNoGitDependent: existing native close
   exclusions remain independent of any release.
@@ -370,6 +370,93 @@ spoofed-release negative controls. Maintain one present-day model for
 this Owner safety obligation, not duplicate finite proof registries.
 
 No second solver, custom formal DSL, new scheduler or global registry is added.
+
+**R2 candidate profile (2026-11-09).** The same
+`WorkspaceConsumerCloseR1.tla` now also provides
+`WorkspaceConsumerCloseR1.r2-candidate.cfg`.
+Its `R2CandidateClose` requires the abstract consumer to be finished,
+while the historical R1 `Close` remains untouched and still has a named
+age-only active-consumer counterexample. The R2 candidate independently
+checks safety, conditional weak-fairness liveness, and mutation controls for
+both missing consumer guard and missing fairness. The candidate is NOT
+a source-authenticated assertion: `consumer="finished"` is abstract and
+must be bound to actual Runtime/PG/OS/Host/Artifact evidence before claiming
+CODE_REFINED or INSTALLED_CURRENT. The model is intentionally abstract and remains unchanged. The active code-only modernization audit is tracked at ../../../docs/architecture/audits/2026-11-10-brownfield/AUDIT_SCOPE.md; old consumer-expansion plans have been retired from the working tree and remain in Git history.
+
+**2026-11-09 formal-first extension.** The separate
+WorkspaceConsumerCloseR1.liveness.cfg checks
+StableEligibleEventuallyClosed under the explicitly assumed weak fairness
+WF_vars(Close). That property says only this: if the *abstract* Close
+preconditions become permanently true and the Close transition receives weak
+fair scheduling, the model cannot stutter forever instead of closing. It
+does not imply native systemd, PG or other consumers are guaranteed to finish.
+
+The existing age-based abstraction still permits a concrete finite
+counterexample in which age="expired", consumer="active", released=FALSE
+and Close transitions phase to "closed". The named falsifier
+ExpiredActiveConsumerCannotBeClosed is intentionally NOT in the normal
+invariant configuration until a real consumer/lease/disposition contract and
+Rust/PG refinement justify making it true. The falsify command checks both
+this age-only trace and a fairness-removal temporal counterexample; parser
+failure or a generic nonzero exit is never accepted as proof. These witnesses
+are design obligations, not evidence that installed Runtime deleted a
+particular live consumer.
+
+
+## Agent-Run consumer: Gateway Workspace observation refinement (2026-11-13)
+
+The existing WorkspaceConsumerCloseR1 and R2 candidate continue to prove only
+bounded physical-close guards under an *assumed* trustworthy consumer. They do
+NOT prove the caller assertion consumerReleased=true.
+
+The distinct cross-owner Job-observation obligation is now modeled by
+services/gateway/formal/GatewayAgentWorkspaceBindingR1.tla and invoked by the
+existing gateway:formal:verify task. Existing Gateway execution.resolve
+projects Runtime job.list's request-to-Job-to-Workspace identity. Harness
+reuses this on terminal execution.get results and compares it with the fixed
+PluginGatewayExecutionGrant. Positive TLC checks exact matching, wrong-Workspace
+rejection, and UNKNOWN reconciliation. Two negative TLC profiles prove that
+acceptance remains reachable and accepting on Job terminality alone violates
+the owner-binding invariant.
+
+Source consumer: Harness plugin_gateway_effect.py. Existing Gateway
+execution_observations.py and ExecutionResolution.workspace_id remain unchanged.
+This finite model assumes Runtime job.list's identity is truthful and does NOT
+prove Runtime-to-TLA code refinement, HTTP principal authorization, Agent Run
+completion, deliverable preservation, consumer release, Windows parity, or
+installed correctness.
+Keep the existing Rust/PG/Gateway/Harness physical consumer tests alongside
+this abstract proof. Do not create another persistence ledger for the bridge.
+
+## Multiple Agent Runs sharing one Workspace: separate P0 release candidate (2026-11-14)
+
+The existing WorkspaceConsumerCloseR1 proves the bounded policy of one
+abstract consumer; GatewayAgentWorkspaceBindingR1 establishes a Job's source
+Workspace identity, not continuous Agent scope ownership. Neither represents
+two Harness Runs simultaneously using the same physical Workspace.
+
+WorkspaceMultiAgentReleaseR1.tla is a separate finite refinement candidate
+using the EXISTING digest-pinned Runtime scripts/tla-formal checker. Two
+independent Run consumers may each finish/release while the other remains
+active; physical Job and Git dependencies are separate guards. Positive
+fair-TLC checks 74 reachable states (source canary); negative profiles
+independently falsify closure after one Run release and age-only closure,
+while a third negative control proves valid full release is reachable.
+
+A disposable LIVE PG native Workspace canary (2026-11-14) submitted two
+successful Gateway Job steps for distinct logical consumers, then asserted
+consumerReleased=true for the first while the second logically needed another
+step. Runtime correctly applied the single CALLER assertion and removed
+the clean, idle Workspace; the second continuation was rejected. This is a
+cross-Run orchestration gap, NOT proof of a bug inside the explicitly
+single-caller native Runtime Close protocol.
+
+Formal assumption: Release(c) is accurate and belongs to c. Real source does
+not yet establish durable multi-Run claim registration, signed/authorized
+relinquishment, all-consumers knowledge, or a recovery/expiry policy for
+abandoned consumers. The strong all-released close is MODEL_VERIFIED as a
+candidate only; it is NOT CODE_REFINED or INSTALLED. Do not auto-close other
+Agents' Workspaces on this model or on a four-hour clock alone.
 
 ## PostgreSQL R06 failed-cutover abort before PG authority (CEGAR)
 

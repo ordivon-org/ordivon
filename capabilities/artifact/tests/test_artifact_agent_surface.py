@@ -16,7 +16,7 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
         self.assertTrue(surface["runtimeOwnsPhysicalExecution"])
         self.assertFalse(surface["mcpRequired"])
         names = {x["name"] for x in surface["tools"]}
-        self.assertEqual(names, {"artifact_family_status", "artifact_profile_coverage", "artifact_verify_propose", "artifact_build_propose", "artifact_toolchain_doctor_propose", "artifact_cad_admission_status"})
+        self.assertEqual(names, {"artifact_family_status", "artifact_profile_coverage", "artifact_verify_propose", "artifact_build_propose",  "artifact_deliver_html_propose", "artifact_toolchain_doctor_propose", "artifact_cad_admission_status"})
 
     def test_published_tool_input_schema_rejects_extra_missing_and_wrong_types(self):
         # The published JSON Schema is the only input authority.

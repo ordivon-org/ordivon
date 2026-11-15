@@ -1,0 +1,159 @@
+# Gateway Artifact PDP — Security Owner (OpenID AuthZEN 1.0 + OPA)
+
+This is a narrow standards adapter over OPA/Rego, not a second Gateway
+policy authority. It listens only on loopback, requires a distinct systemd
+workload credential, returns the AuthZEN boolean decision and echoes the
+authenticated X-Request-ID. Failures use HTTP 4xx/503 and are rejected by
+the existing Gateway PEP. The installed OPA executable must be digest-qualified.
+
+Boundary: the policy grants evaluation solely for Runtime Artifact coordinate
+formats and verified Gateway principals. Gateway MUST independently verify
+Cloudflare/loopback ingress identity, requalify principal-scoped Runtime Job
+identity before forwarding bytes, bind exact Artifact resource, enforce the
+Security decision and return only the Owner's actual bytes. The PDP does NOT
+certify Job ownership, Agent Grants, or business completion.
+
+Production setup uses systemd LoadCredential for a distinct root-owned PDP
+bearer secret and TLS private key. Install the exact Security source commit
+under an immutable /opt/ordivon/security/gateway-authzen/releases directory,
+pin interpreter/OPA binary, start the unit on loopback HTTPS, and configure the
+Gateway's EXISTING AuthZEN endpoint/credential settings and a local trusted
+CA bundle. Do not relax ingress security or enable a fail-open policy.
+
+Native validation: use uv run --locked --project
+platform/security/services/gateway-authzen --group dev python -m pytest
+platform/security/services/gateway-authzen/tests -q, plus opa check --strict.
+
+No live credentials or issuer-specific deployments belong in Git.
+
+## Host Actor delegation — reuse existing trusted OPA policy data
+
+The same gateway_artifact.rego, AuthZEN HTTP endpoint, OPA process and systemd
+LoadCredential policy-data file qualify Host state-changing operations,
+Actor-filtered Work Engagement inbox queries, and the 16 original Host read
+operations. There is no new policy daemon, Identity DB or Agent-issued
+authorization API. With no
+operator-provisioned Host grant the answer is DENY, even for an authenticated
+Gateway machine bearer.
+
+An authorized Security operator may add an array under the existing policy
+data key ordivon.security.gateway_host_actor_grants. Each grant has:
+active, principalId, issuer, actorRef, notBeforeEpochSeconds,
+expiresAtEpochSeconds, allowedTools, allowedActions, exactRefs, and
+namespacePrefixes. The optional bool allowUnscopedReads=true permits the
+explicitly allowedTools to perform broad Host reads only; it never expands
+a tool's authorization, write authority, identity grant or Actor identity.
+A namespace prefix must end in a colon boundary
+(such as work:project:) rather than being an unqualified substring.
+
+For Gateway 0.10.10 / Surface Epoch 11, the existing Security Rego
+read-selector contract additionally accepts message.get with a mandatory
+messageRef, subject to exact allowedTools and delegated object scope.
+Security does not verify message bytes or expectedDigest: Gateway binds the
+complete requested digest in the AuthZEN resource and Host checks the actual
+message digest. This source update neither provisions a grant nor deploys.
+
+The decision requires exact verified Principal, issuer, claimed Actor,
+actual Owner tool, permitted resource and, for versioned Work, allowed
+submit/review/etc action. For a relation the target is separately checked.
+Inbox queries must be filtered to that Actor; global or foreign inbox queries
+DENY. Host reads with object selectors require every provided selector to
+match the delegated Actor or approved exactRef/namespacePrefix. A global
+Host read (for example host.status, work.list, unfiltered message.search) is
+allowed only with an explicit operator allowUnscopedReads grant and an
+exact matching allowedTools entry. A request with a known mandatory selector
+omitted is not silently downgraded to a broad scan. The Gateway binds the
+complete read request (including revision, pagination and search filter) into
+the AuthZEN object identity; Security never trusts an injected Actor claim.
+This is explicit trusted policy data, never a value from an MCP Tool argument
+or Host actor.declare. The original Runtime Artifact allow rule is retained.
+
+For a principal that intentionally operates multiple Agents, Security can
+optionally use a trusted, explicit role=operator grant and
+delegatedActorPrefixes (for example agent:chatgpt:). The default grant
+continues to bind **one exact** actorRef. Operator prefixes must each end
+in a colon segment boundary, have a nonempty suffix, and are evaluated only
+inside the authorized Principal/issuer/expiry/tool/resource/action fences.
+The scope of namespacePrefixes, exactRefs, allowedTools and
+allowUnscopedReads remains independent and mandatory. This is the
+existing OPA role/attribute-based decision engine, not a second IAM.
+The operator role delegates the ability to use those Actor identities; it
+does **not** prove which autonomous Agent generated the request. Do not
+provision the elevated role based on an MCP-supplied actorRef or a mere
+observed message author. In production, bind it only to a positively
+identified, trusted project-operator Principal; log/review changes and
+test revocation through the installed PDP.
+
+Production rules: grant provisioning, Principal-to-Actor delegation evidence,
+scope, issue/expiry/revocation and release must be authorized and audited by
+the real operator. The systemd LoadCredential source is copied at unit start;
+changing the source file requires controlled credential reload and readback
+before a revocation is trusted. No real grant or deployment credentials are
+included here. The native OPA + Starlette HTTP tests use only disposable,
+test-owned policy-data files. Installed HTTPS ALLOW/DENY, legitimate Agent
+grant, and actual Host PG receipt still require separate production evidence.
+
+
+## Native Linux Runtime self-release authorization (Gateway R12 consumer)
+
+This is an extension of the **same Security AuthZEN/OPA policy** and current
+systemd LoadCredential policy-data carrier, not an Agent ACL, scheduler,
+deployment engine, or additional Policy Decision Point.
+
+Gateway's source-level `runtime.release.apply` derives one typed resource
+(`ordivon.runtime.native-release-request`) for capability
+`runtime.release.linux` and an exact `runtime.release.apply` tool. Security
+recomputes the SHA-256 over the ASCII canonical JSON tuple
+`{requestId,workspaceId,commit,candidateManifestDigest,expectedToolCount}`
+using the same sorted JSON object property ordering as Gateway's Python
+producer. Inputs with non-ASCII request IDs do not acquire this operator grant.
+The original typed Gateway request rejects invalid nonempty fields and the
+native Runtime separately validates source ownership, qualified candidate,
+immutable manifest, expected MCP Tool count and idempotent ReleaseEffect.
+
+An actual Security operator can add the following **illustrative structure**
+beneath the existing **trusted policy data**
+`ordivon.security.gateway_runtime_release_grants`, using actual independently
+verified issuer/Principal and time boundaries:
+
+```json
+{
+  "active": true,
+  "role": "operator",
+  "principalId": "principal:cf-access:<actual-verified-principal-hash>",
+  "issuer": "https://<actual-trusted-issuer>",
+  "ownerId": "runtime.linux",
+  "nodeId": "linux-pg",
+  "allowedTools": ["runtime.release.apply"],
+  "allowQualifiedCandidates": true,
+  "notBeforeEpochSeconds": 0,
+  "expiresAtEpochSeconds": 0
+}
+```
+
+The zero dates above are intentionally **NON-ACTIVE EXAMPLE VALUES**, not a
+deployable permission. Only an operator may provision a real time-bounded
+grant. `allowQualifiedCandidates` intentionally grants the named trusted
+operator repeated access to Runtime's *existing* qualified-release validation,
+not to raw shell installation or arbitrary execution. This is distinct from
+`gateway_host_actor_grants`; Host Actor permissions never grant a Runtime
+release, and a Runtime release grant never grants Host or Artifact operations.
+The service workload bearer authenticates Gateway→PDP but is not an operator
+Principal, an approval, or permission to release.
+
+To test the source, use the existing Security owner
+`mise run security:verify` and native OPA/AuthZEN tests at
+`tests/test_runtime_release_operator.py`. Tests include real OPA, exact
+resource-hash parity, grant expiry/revocation, wrong issuer/Principal and
+tampering of request/Manifest/commit/Tool count; they are not deployed
+authorization. On production, install the source-qualified Security policy and
+an authorized operator grant through the existing credential management
+process, recheck loaded PDP policy after a controlled restart/credential
+refresh, and observe both ALLOW and DENY using the actual Gateway caller.
+The credential loaded at service start is a snapshot: writing its original
+source file does not prove that a running service has refreshed the grant.
+
+The current Gateway R12 tool is **source merged**, but installed Gateway and
+the connected ChatGPT action catalog must independently expose it. Do not
+use `execution.linux` to substitute a shell installer for the ReleaseEffect,
+or claim installed Runtime success without the native `release.get` receipt.

@@ -431,7 +431,7 @@ Use `ordivon_capital.portfolio.information_tree` for the **pure, solver-free** r
 
 Only after validation should an Agent call the **existing** `ordivon_capital.portfolio.multistage_policy.solve_multistage`; no duplicate optimizer, ledger or execution authority is created. The existing Research/PIT `multistage_policy.InformationNode` and `MultistageProblem` remain the **same Python types** as the canonical information-tree module, not shadow DTOs. Prefer the canonical `information_tree` import in new direct validators. To validate behavior, use `tests/test_multistage_policy.py`, `tests/test_pit_joint_forecast.py`, and `tests/test_capital_domain_taxonomy.py`.
 
-Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.
+Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `domains/capital/docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.
 
 ## PostgreSQL-only Accounting retirement (no legacy oracle)
 

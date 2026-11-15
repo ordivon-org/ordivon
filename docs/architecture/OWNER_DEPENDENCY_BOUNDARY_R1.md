@@ -2,7 +2,7 @@
 
 Source implementation: `tools/repo/check_owner_boundaries.py`, policy: `tools/repo/dependency_contracts.toml`.
 
-Updated: 2026-11-06. Status: **IMPLEMENTED** — bounded source-literal dependency check.
+Updated: 2026-11-10. Status: **IMPLEMENTED** — bounded source-literal and public Python AST dependency check.
 
 ## Contract
 
@@ -12,7 +12,7 @@ named public contract or narrow observed source seam. The existing guard scans
 active tracked code/config and rejects undeclared literal references and stale
 or overlapping policy exceptions.
 
-## Observed seams (2026-11-06; main 21ae23a)
+## Observed seams (2026-11-10; main ef17d6879d12faa61fff3bb762b0d500d73c9113)
 
 | Consumer | Producer | Boundary |
 | --- | --- | --- |
@@ -24,11 +24,11 @@ or overlapping policy exceptions.
 | Harness / Composition | Runtime | Pinned public formal toolchain, not Job/Attempt authority |
 | Composition | Runtime | Source-bound formal trace test contract |
 | Artifact | Authority Catalog | Test-only publication venue locator |
+| Capability Catalog ELE | Artifact / Preservation / Capital / Network / Harness / Media | Source-qualified research projections only; no effect or truth transfer |
+| Data | Capital | Test-only ODPS source contract |
+| Composition | Capital | Test-only Finance public source contracts |
 
-Observed check: **2,136 active tracked files; 19 seam declarations;
-21 literal references; zero undeclared literal edges**.
-These are source-text observations, not proof that a referenced consumer
-is exercised in the deployed system.
+The table is a **dated, source-qualified illustration** from Git SourceCut `ef17d6879d12faa61fff3bb762b0d500d73c9113`, not a permanent count or exception registry. For the **actual currently selected source revision**, run the existing `python3 tools/repo/check_owner_boundaries.py`. Its `active_files`, `packages`, `seams` and `references` output is derived from that revision's tracked source, Owner manifest and dependency contracts; it can change as files are retired or public seams are corrected. A PASS proves only the bounded source-literal/public-Python-AST policy. It is not proof of installed or dynamic consumer reachability.
 
 ## Retired ownership
 

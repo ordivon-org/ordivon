@@ -118,6 +118,15 @@ def validate_tool_event(
     require_tool_intent_binding(intent, harness_run_id, binding)
     if data.get("toolStepIntentDigest") != intent.digest:
         raise ValueError("Harness Tool Step Intent event digest differs")
+    physical_digest = data.get("physicalExecutionDigest")
+    if physical_digest is not None:
+        if (
+            intent.runtime_operation != "workspace.exec"
+            or not isinstance(physical_digest, str)
+            or len(physical_digest) != 71
+            or not physical_digest.startswith("sha256:")
+        ):
+            raise ValueError("Harness physical execution commitment invalid")
     fence_object_digest = data.get("dispatchFenceObjectDigest")
     if fence_object_digest is not None:
         if not isinstance(fence_object_digest, str):

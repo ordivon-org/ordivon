@@ -10,6 +10,48 @@ from pathlib import Path
 
 GAME = Path(__file__).resolve().parent
 PREFIX = "GAME_AGENT_EPISODE_JSON="
+_NATIVE_ACTIONS = frozenset({"attack", "guard", "advance", "trial", "classic"})
+_PLAYER_OBSERVATION_KEYS = frozenset({
+    "title", "status", "encounter", "actions", "hint", "outcome", "dialogue",
+})
+
+
+def assert_native_trace_contract(receipt: dict, actions: str, mode: str) -> None:
+    """Check REAL native-Godot receipt coherence; this does not model game rules."""
+    expected_actions = [part.strip() for part in actions.split(",")] if actions else []
+    assert receipt["schema_version"] == 2
+    assert receipt["game"] == "room-encounter"
+    assert receipt["observation_mode"] == (
+        "authoritative_debug_state_not_pixels" if mode == "debug" else "player_visible_ui"
+    )
+    steps = receipt["steps"]
+    assert len(steps) == len(expected_actions) <= 64
+    previous = receipt["initial"]
+    observations = [previous]
+    for action, step in zip(expected_actions, steps, strict=True):
+        assert step["action"] == action
+        assert step["before"] == previous, "broken native observation chain"
+        if mode == "debug":
+            assert isinstance(step["accepted"], bool)
+            assert step["recognized"] is (action in _NATIVE_ACTIONS)
+            assert isinstance(step["control_path"], str) and step["control_path"]
+            if not step["accepted"]:
+                assert step["after"] == step["before"], "rejected native action mutated rule state"
+        else:
+            assert set(step) == {"action", "before", "after"}, "debug field leaked to player step"
+        previous = step["after"]
+        observations.append(previous)
+    assert receipt["final"] == previous, "native final observation inconsistent with last step"
+    assert isinstance(receipt["terminal"], bool)
+    if mode == "debug":
+        assert receipt["terminal"] is (previous["phase"] in {"won", "lost"})
+    else:
+        for observation in observations:
+            assert set(observation).issubset(_PLAYER_OBSERVATION_KEYS), (
+                "privileged native rule field leaked to player observation"
+            )
+            assert isinstance(observation["status"], str)
+            assert isinstance(observation["encounter"], str)
 
 
 def episode(actions, observation="debug"):
@@ -28,7 +70,10 @@ def episode(actions, observation="debug"):
     lines = [line[len(PREFIX):] for line in run.stdout.splitlines()
              if line.startswith(PREFIX)]
     assert len(lines) == 1, f"missing or duplicate episode receipt: {run.stdout}\n{run.stderr}"
-    return run.returncode, json.loads(lines[0]), run.stderr
+    receipt = json.loads(lines[0])
+    if run.returncode == 0:
+        assert_native_trace_contract(receipt, actions, observation or "player")
+    return run.returncode, receipt, run.stderr
 
 
 def main():
@@ -49,6 +94,19 @@ def main():
     assert first["steps"][3]["accepted"]
     assert first["final"]["phase"] == "fighting"
     assert not first["terminal"]
+    # Negative controls mutate a RECEIPT FROM THE REAL GODOT SCENE, not a second simulator.
+    for violation in ("broken_before", "false_rejection"):
+        corrupt = json.loads(json.dumps(first))
+        if violation == "broken_before":
+            corrupt["steps"][1]["before"] = {"tampered": True}
+        else:
+            corrupt["steps"][0]["accepted"] = False
+        try:
+            assert_native_trace_contract(corrupt, "attack,attack,advance,guard", "debug")
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"native trace oracle accepted {violation}")
     status_repeat, repeat, _ = episode("attack,attack,advance,guard")
     assert status_repeat == 0 and repeat == first, "same real native run must replay deterministically"
 
