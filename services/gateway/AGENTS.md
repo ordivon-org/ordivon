@@ -17,6 +17,17 @@ producer cases must be included in execution submit/get/cancel consumer tests.
 claims; status text alone never establishes physical or domain completion.
 Gateway B03 capability readiness TLA+ does not verify Job state semantics.
 
+## Official MCP SDK Owner transport
+The Linux PG six-tool exception for `workspace.exec`, `job.list`,
+`job.observe`, `job.get`, `job.cancel`, and `artifact.read` is retired in
+source: the current installed Runtime supports the full official
+`Client.call_tool` driver, verified by real Job/Artifact/Cancel consumer runs.
+Do not restore the old `ClientSession.send_request` bypass merely because a
+historical Owner version once published incomplete output schemas. Keep the
+independent Windows `runtime.describe` typed read-only optimization. A source
+passing high-level SDK tests does not qualify Gateway production rollout or
+prove the Runtime UTF-8 subcharacter-page issue fixed at its natural Owner.
+
 ## Readset
 1. README.md / mcp-surface.json — declared surface, not installed evidence.
 2. src/ordivon_gateway/mcp_server.py / service.py — MCP and API facade.

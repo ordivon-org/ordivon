@@ -516,30 +516,40 @@ This is a service-account execution acceptance test, not a proof of all
 systemd namespace isolation or production effect correctness. See the
 upstream systemd.exec User, DynamicUser and ProtectHome contracts.
 
-## Linux PG Runtime business delivery (temporary installed-schema adapter)
+## Linux PG Runtime business delivery (official MCP SDK)
 
-The actual production Linux Runtime has returned a successfully executed Job
-and retained stdout Artifacts, but its installed MCP tool outputSchema still
-omits the scheduling field present in the physical PostgreSQL Job projections.
-The high-level MCP Python SDK correctly rejects this schema mismatch AFTER
-the Owner has committed and completed a Job, so Gateway submission receipts,
-request recovery, and Artifact reads are unusable through that route.
+Gateway forwards real Linux Runtime Job and Artifact operations through the full
+upstream MCP SDK `Client.call_tool`. The former six-tool special case for
+`workspace.exec`, `job.list`, `job.observe`, `job.get`, `job.cancel`
+and `artifact.read` has been retired from Gateway source: the natural Owner
+supports high-level SDK output-schema validation for these tools.
 
-The Runtime source already contains exact PostgreSQL scheduling output schema
-declarations. Until that source is published to the active Runtime service,
-Gateway uses the upstream MCP SDK public ClientSession.send_request with typed
-CallToolRequest and CallToolResult only for the six Linux Runtime operations
-actually consumed here: workspace.exec, job.list, job.observe, job.get,
-job.cancel, and artifact.read. The SDK still owns HTTP transport, credential
-refresh, session negotiation, structured errors and result decoding. Gateway
-keeps its strict Job/Workspace/Artifact identity checks. There is NO retry of
-uncertain effects, no second Job registry and no homemade wire client.
+This removal follows **actual installed Owner consumer proof**, not merely
+merged source. On 2026-11-16 the connected PostgreSQL Runtime v1 was queried
+using high-level MCP Client calls for all six tools. A real one-shot
+`workspace.exec` returned a native Job; `job.list` matched the request ID,
+`job.get` and `job.observe` returned terminal physical receipts, and
+`artifact.read` returned exact UTF-8 stdout with a source digest. A separate
+bounded `sleep` Job was physically cancelled with high-level `job.cancel`,
+then observed as cancelled. The first attempt to cancel an *already completed*
+Job returned the natural Runtime's typed `RECONCILIATION_REQUIRED` error;
+that is a distinct Owner semantic issue, not an SDK schema failure.
 
-This is deliberately not a permanent replacement for complete SDK
-output-schema validation. Do not copy the exception to Host, Skills, or
-Windows effect calls. Retire the limited Linux bridge when the installed
-Runtime advertises conformant schemas AND a real Gateway submit -> resolve ->
-observe -> artifact.read business workflow succeeds with high-level SDK calls.
+Earlier installed Runtime instances had an incomplete outputSchema for Job
+responses and forced Gateway to bypass high-level SDK validation after a
+completed physical effect. That observation is historical, not an ongoing
+justification for maintaining a parallel adapter. The current source returns
+to the mature SDK driver with no second HTTP client, retry, Job store or
+effect authority. Preserve public Gateway Tool names and Owner identity
+bindings unchanged.
+
+**Currentness boundary:** this source test does not imply the Gateway main
+release is deployed. The installed Gateway 0.10.11 may still contain its
+previous typed bridge until a qualified release. Likewise, Linux Runtime
+UTF-8 subcharacter reads are independently faulty until its merged Owner
+patch is physically installed; Gateway's current maintenance release stops
+non-progress cursors rather than fabricating completion. Recheck both
+installed layers separately after any release.
 
 Proof of business delivery requires the original owner Job identity, terminal
 evidence, source-qualified output bytes, and an independently verified Artifact
