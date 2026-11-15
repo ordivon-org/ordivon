@@ -196,3 +196,48 @@ def test_frozen_png_metadata_observation_alias_keeps_its_actual_semantics() -> N
     # A different family cannot inherit this one specific native alias.
     profile["id"] = "unrelated-profile"
     assert assess_required_evidence(profile, native)["complete"] is False
+
+
+def test_v1_invalid_failed_receipt_does_not_prove_falsification() -> None:
+    """A native FAIL without a valid local VSA receipt is UNKNOWN standing."""
+    from artifact_verification.evidence import write_gate_receipt
+
+    with tempfile.TemporaryDirectory() as root:
+        directory = Path(root)
+        profile_path = directory / "profile.json"
+        profile_path.write_text("{}")
+        subject = directory / "bad.docx"
+        subject.write_bytes(b"fixture")
+        hooks = SimpleNamespace(
+            validate_profile=lambda _: {
+                "status": "PASS",
+                "profile": {
+                    "id": "failed-required-with-invalid-receipt",
+                    "artifactClass": "document",
+                    "gates": {"profileSchema": True, "structural": True},
+                },
+            },
+            primary_suffix=lambda _: ".docx",
+            verify_openxml_artifact=lambda _: {
+                "status": "FAIL",
+                "validatorOutput": {"validator": {"packageVersion": "test"}},
+                "failures": ["invalid OpenXML"],
+            },
+        )
+
+        def invalid_receipt(*args, **kwargs):
+            receipt = write_gate_receipt(*args, **kwargs)
+            if receipt["gate"] == "structural":
+                receipt["vsaValidation"] = {"status": "FAIL"}
+            return receipt
+
+        with mock.patch.object(
+            stage, "write_gate_receipt", side_effect=invalid_receipt
+        ):
+            result = stage.execute_verify_stage(
+                profile_path, subject, directory / "evidence", hooks=hooks
+            )
+        assert result["status"] == "FAIL"
+        assert result["receipts"]["structural"]["status"] == "FAIL"
+        assert result["standingCoverage"]["verificationStatus"] == "UNKNOWN"
+        assert result["standingCoverage"]["complete"] is False
