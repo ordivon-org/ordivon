@@ -8,7 +8,7 @@ import psycopg
 from .canonical_json import canonical_digest
 from .postgres_connections import HostPostgresConnections
 
-REQUIRED_SCHEMA_VERSION = 13
+REQUIRED_SCHEMA_VERSION = 14
 
 
 class HostV2(HostPostgresConnections):

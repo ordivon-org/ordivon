@@ -111,7 +111,7 @@ class TopicResponse(TypedDict):
     topicRef: str
     spaceRef: str
     title: str
-    state: Literal["open", "closed"]
+    state: Literal["open", "closed", "archived"]
     createdByActorRef: str
     createdAt: str
     updatedAt: str

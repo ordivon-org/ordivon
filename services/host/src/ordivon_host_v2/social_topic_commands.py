@@ -68,18 +68,22 @@ class SocialTopicCommands:
         *,
         topic_ref: str,
         actor_ref: str,
-        state: Literal["open", "closed"],
-        expected_state: Literal["open", "closed"],
+        state: Literal["open", "closed", "archived"],
+        expected_state: Literal["open", "closed", "archived"],
         expected_high_sequence: int,
         client_request_id: str,
     ) -> dict[str, Any]:
-        """Compare-and-set topic openness; retain all messages and replay evidence.
+        """CAS for open, closed and logical archive; never deletes message bytes.
 
-        The topic row lock is the same lock used before message sequence allocation,
-        so closing cannot silently overtake a concurrent message.post.
+        The same row lock fences message posting. Archive requires a closed
+        topic; restoring to writeable requires two explicit transitions.
         """
-        if state not in ("open", "closed") or expected_state not in ("open", "closed"):
-            raise ValueError("topic state must be open or closed")
+        if state not in ("open", "closed", "archived") or expected_state not in (
+            "open",
+            "closed",
+            "archived",
+        ):
+            raise ValueError("topic state must be open, closed, or archived")
         if type(expected_high_sequence) is not int or expected_high_sequence < 0:
             raise ValueError("expected_high_sequence must be a non-negative integer")
         request = {
@@ -107,6 +111,10 @@ class SocialTopicCommands:
                 raise ConflictError("topic state changed since expected state")
             if high != expected_high_sequence:
                 raise ConflictError("topic messages changed since expected high sequence")
+            if state == "archived" and topic["state"] == "open":
+                raise ConflictError("topic must be closed before archiving")
+            if state == "open" and topic["state"] == "archived":
+                raise ConflictError("restore archived topic to closed before reopening")
             admission = "existing" if state == topic["state"] else "committed"
             if admission == "committed":
                 topic = conn.execute(

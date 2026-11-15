@@ -37,6 +37,38 @@ Use
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
 
+## Work / Topic / Message lifecycle and archival boundary
+
+Host owns semantic continuity, not the lifecycle of an external Runtime Job or
+domain Goal. Do not terminalize records because they have been idle for N days.
+
+- Work: open may be explicitly committed via the existing CAS to completed or
+  abandoned, with a final current checkpoint. Terminal Work remains readable
+  by work.get and may be excluded from an Agent's active inventory with the
+  existing work.list(state="open") filter. Old Work revisions are optional
+  retained history, not mandatory duplicate archives.
+- Topic: open accepts messages; closed rejects new messages but may be
+  reopened. A closed Topic may be changed via existing topic.state.set CAS to
+  archived; archived rejects posts and is hidden from default topic.list.
+  topic.list(includeArchived=true) exposes it, and topic.resume still reads
+  its original messages. Explicit restoration: archived -> closed -> open,
+  each transition rechecking the topic's message horizon.
+- Message: Messages are immutable. Their logical archive tier is inherited
+  from the Topic; message.get(messageRef, expectedDigest) still retrieves the
+  exact content after Topic archive. Existing direct search and historical
+  references remain available. This is not physical deletion or off-host cold
+  storage.
+
+Physical retention is a separate operator decision. A candidate can be
+inspected based on closed/archived Topic, terminal Work and record age, but no
+time threshold alone proves that linked Work snapshots, message_relations
+(including text target references), subscriptions, Topic/Attention cursors,
+command receipts or external consumers are released. Physical purge requires
+a verified restorable archive and exact consumer closure; current source does
+not automatically purge Messages, Topics, Works, or references. Keep existing
+pgBackRest backup separate from a selective retrievable archive; backup
+verification is not consumer-safe deletion proof.
+
 ## Attention recovery model (one transaction cut)
 
 From the repository root, run `mise run host:formal:attention-reentry` with the existing pinned TLA+ JAR.
@@ -108,7 +140,7 @@ Work Graph relation commands and cycle detection now live in src/ordivon_host_v2
 
 ## Current product surface
 
-Host v2 runs Social Work Fabric schema 13. The release-owned
+Host v2 runs Social Work Fabric schema 14 **when this source release is installed**; the running production schema must be read independently. The release-owned
 [`mcp-surface.json`](mcp-surface.json) is the single declared inventory of
 MCP tools; native tests compare that manifest with the actual server surface.
 Do not maintain an independent count or partial list of current tools here.

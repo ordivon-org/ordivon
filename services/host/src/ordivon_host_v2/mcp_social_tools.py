@@ -152,8 +152,8 @@ def register_social_tools(
     def topic_state_set(
         topicRef: str,
         actorRef: str,
-        state: Literal["open", "closed"],
-        expectedState: Literal["open", "closed"],
+        state: Literal["open", "closed", "archived"],
+        expectedState: Literal["open", "closed", "archived"],
         expectedHighSequence: int,
     ) -> TopicResponse:
         request = {
@@ -179,9 +179,14 @@ def register_social_tools(
         afterTopicRef: str | None = None,
         limit: int = 100,
         maxBytes: int = 262_144,
+        includeArchived: bool = False,
     ) -> TopicListResponse:
         return social.list_topics(
-            spaceRef, after_topic_ref=afterTopicRef, limit=limit, max_bytes=maxBytes
+            spaceRef,
+            after_topic_ref=afterTopicRef,
+            limit=limit,
+            max_bytes=maxBytes,
+            include_archived=includeArchived,
         )
 
     @mcp.tool(name="topic.cursor.get")

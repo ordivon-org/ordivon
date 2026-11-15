@@ -80,7 +80,7 @@ class SocialMessageCommands:
             if topic["space_ref"] != value.space_ref:
                 raise ConflictError("topic does not belong to the supplied space")
             if topic["state"] != "open":
-                raise ConflictError("closed topic does not accept new messages")
+                raise ConflictError(f"{topic['state']} topic does not accept new messages")
             row = conn.execute(
                 "INSERT INTO messages(message_ref,client_request_id,space_ref,topic_ref,author_actor_ref,"
                 "message_kind,body,message_digest,recorded_at_ms) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
