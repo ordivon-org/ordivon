@@ -9,6 +9,18 @@ This is an optional mise tool group; normal repo:ci does not download
 the large proof systems. No new mathematical kernel, graph authority,
 package manager or agent is created.
 
+For read-only incremental input impact before contemplating another
+expensive Formal run, use the already deployed repository source
+consumer in tools/repo/evidence_validity.py with --current-sha,
+--prior-sha and --formal-source-delta. It compares this runner's
+historical SOURCE_FILES declarations and Git mode/blob identities;
+it DOES NOT run Lean/Z3, certify the current binary toolchain,
+replay a proof or grant proofReuseAdmissible. The native formal:verify
+producer already emits the required original proof probes, source
+blobs, binaries and observed resources, and GitHub CI validates those
+receipts; retain that owner evidence. No new proof database or
+shadow tool runner is necessary for source-only delta questions.
+
 Lean 4: kernel-checked relational/refinement lemmas. The Media native-processing
 admission model is also proved by this existing runner and binds its current
 Python producer to the Git source cut. This DOES NOT prove the producer's
@@ -34,3 +46,34 @@ The Quint Apalache backend v0.62.1 currently fails download in this
 environment: do not label Quint simulation as MODEL_VERIFIED.
 Rocq/Isabelle/other heavy proof ecosystems are separate options pending
 a reproducible installation source and an actually distinguishable consumer.
+
+
+## Historical Formal receipts for evidence-first Agents (2026-11-14)
+
+The existing Formal verifier already emits a source-qualified PASS JSON report
+with Git blobs, toolchain binary/resource hashes and model probe results.
+GitHub CI validates this exact report and now publishes it AFTER successful
+validation using its existing pinned official Artifact Action. Artifact name:
+ordivon-core-formal-<GitHub SHA>, retained 30 days. There is no new proof run.
+
+The read-only existing repository evidence consumer can use the original
+GitHub Check Run and official gh run download when explicitly requested:
+tools/repo/evidence_validity.py --prior-sha FULL_PROOF_ANCESTOR_SHA
+--current-sha FULL_CURRENT_SHA --formal-source-delta
+--fetch-historical-formal-report.
+
+The source-bound report is not a proof that an unchanged Git blob implies
+unchanged installed consumers, dynamic loader behavior or verifier toolchain
+across time. Those facts remain UNKNOWN, and proofReuseAdmissible remains
+false. An unselected, missing or expired report does not cause retries.
+
+
+### CI PR Head versus executed Formal SourceCut
+
+On pull_request, a GitHub Check Run points to PR Head but the actual
+Formal JSON and Artifact refer to GitHub's synthetic merge commit.
+The read-only evidence consumer resolves the original Artifact from
+its GitHub Run and validates the two-parent Git commit relation. Its
+executionInputsVsCandidate compares immutable declared source input
+snapshots; it does not assert that the synthetic merge is an ancestor
+of the PR Head or that a mathematical proof may be reused.

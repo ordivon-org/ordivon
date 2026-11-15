@@ -777,5 +777,133 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     formal.qualified_source_cut()
 
 
+class ContainedZ3SourceConsumerTests(unittest.TestCase):
+    """Tests of a very narrow new Z3 sandbox plan; not broad proof reuse."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "ordivon_contained_z3_contract",
+            FORMAL / "contained_z3.py",
+        )
+        assert spec is not None and spec.loader is not None
+        cls.contained = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.contained)
+
+    def test_selected_tool_staging_rejects_wrong_sha(self) -> None:
+        import hashlib
+        with tempfile.TemporaryDirectory() as td:
+            original = Path(td) / "actual"
+            original.write_bytes(b"selected z3 tool")
+            destination = Path(td) / "copy"
+            with self.assertRaisesRegex(ValueError, "changed before isolated"):
+                self.contained._stage_verified_file(
+                    original, destination, hashlib.sha256(b"old binary").hexdigest()
+                )
+
+    def test_staging_rejects_symlink_and_malformed_digest(self) -> None:
+        import hashlib
+        with tempfile.TemporaryDirectory() as td:
+            original = Path(td) / "actual"
+            original.write_bytes(b"selected z3 tool")
+            symlink = Path(td) / "link"
+            symlink.symlink_to(original)
+            with self.assertRaisesRegex(ValueError, "regular file"):
+                self.contained._stage_verified_file(
+                    symlink, Path(td) / "copy", hashlib.sha256(original.read_bytes()).hexdigest()
+                )
+            with self.assertRaisesRegex(ValueError, "digest"):
+                self.contained._stage_verified_file(
+                    original, Path(td) / "copy", "not-a-sha"
+                )
+
+    def test_contained_command_uses_only_explicit_read_only_inputs(self) -> None:
+        import hashlib
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            z3 = root / "fake-z3"
+            z3.write_bytes(b"fake selected Z3 executable")
+            libraries = root / "selected"
+            libraries.mkdir()
+            interpreter = libraries / "ld-linux-x86-64.so.2"
+            interpreter.write_bytes(b"fake native loader")
+            runtime = libraries / "libstdc++.so.6.0.36"
+            runtime.write_bytes(b"fake C++ runtime")
+            digests = {
+                str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in (interpreter, runtime)
+            }
+            stage = root / "stage"
+            stage.mkdir()
+            with patch.object(self.contained, "SHARED_LIB_ROOT", libraries), patch.object(
+                self.contained.shutil, "which", return_value="/usr/bin/bwrap"
+            ):
+                command, staged = self.contained._command_for_staged_inputs(
+                    z3_source=z3, z3_digest=hashlib.sha256(z3.read_bytes()).hexdigest(),
+                    libraries=digests, stage=stage,
+                )
+            self.assertEqual(command[:5], [
+                "/usr/bin/bwrap", "--die-with-parent", "--new-session",
+                "--unshare-all", "--clearenv",
+            ])
+            self.assertIn("--tmpfs", command)
+            self.assertNotIn("/etc", command)
+            self.assertNotIn("/proc", command)
+            self.assertNotIn("/dev", command)
+            self.assertNotIn("/home", command)
+            self.assertNotIn("PARENT_PROC_HOST", command)
+            self.assertEqual(command[-3:], ["/z3", "-smt2", "-in"])
+            self.assertEqual(len(staged), 3)
+            self.assertEqual((stage / "z3").stat().st_mode & 0o111, 0o111)
+            self.assertEqual((stage / "lib-0").stat().st_mode & 0o111, 0o111)
+            self.assertIn("/usr/lib/libstdc++.so.6", command)
+            self.assertNotIn(["--ro-bind", "/", "/"], [command[i:i+3] for i in range(len(command)-2)])
+
+    def test_contained_input_selection_rejects_non_selected_library_root(self) -> None:
+        import hashlib
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            z3 = root / "z3"
+            z3.write_bytes(b"binary")
+            outside = root / "unqualified.so"
+            outside.write_bytes(b"unqualified library")
+            stage = root / "stage"
+            stage.mkdir()
+            with patch.object(self.contained.shutil, "which", return_value="/usr/bin/bwrap"):
+                with self.assertRaisesRegex(ValueError, "finite /usr/lib"):
+                    self.contained._command_for_staged_inputs(
+                        z3_source=z3,
+                        z3_digest=hashlib.sha256(z3.read_bytes()).hexdigest(),
+                        libraries={str(outside): hashlib.sha256(outside.read_bytes()).hexdigest()},
+                        stage=stage,
+                    )
+
+    def test_contained_requires_real_bubblewrap(self) -> None:
+        import hashlib
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            z3 = root / "z3"
+            z3.write_bytes(b"binary")
+            with patch.object(self.contained.shutil, "which", return_value=None):
+                with self.assertRaisesRegex(ValueError, "unsupported local Bubblewrap"):
+                    self.contained._command_for_staged_inputs(
+                        z3_source=z3,
+                        z3_digest=hashlib.sha256(z3.read_bytes()).hexdigest(),
+                        libraries={"/usr/lib/libc.so.6": "a" * 64},
+                        stage=root,
+                    )
+
+    def test_real_contained_z3_only_when_explicitly_enabled(self) -> None:
+        """Physical Linux namespace is an opt-in owner check, not a CI assumption."""
+        if os.environ.get("ORDIVON_CONTAINED_Z3_LIVE") != "1":
+            self.skipTest("live Bubblewrap capability is opt-in by natural owner")
+        result = self.contained.run_bounded_media_z3()
+        self.assertEqual(result["outcomes"], ["sat", "unsat", "sat"])
+        self.assertTrue(result["hostEtcPasswdAccessDenied"])
+        self.assertFalse(result["historicalProofReuseAdmissible"])
+        self.assertEqual(result["claimScope"], "THIS_Z3_MEDIA_SAT_UNSAT_SAT_CONSUMER_ONLY")
+
+
+
 if __name__ == "__main__":
     unittest.main()

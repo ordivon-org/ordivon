@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-07
+updated: 2026-11-14
 summary: Canonical world model for Harness as the durable cognitive execution substrate of an Agent, including cognition, control, effects, continuity and caller/Runtime/Host boundaries.
 evidence_status: verified
 readiness: READY
@@ -188,6 +188,24 @@ caller / domain / workflow / resource allocator
 Higher-level multi-Run planning, aggregate resource envelopes, profile discovery, Strategy rationale, prior-attempt accounting, successor selection, and retry policy are outside Harness. The former `HarnessExecutionMandate`, `HarnessExecutionProfile`, `HarnessExecutionStrategy`, `HarnessMandateConsumption`, `CompiledHarnessAttempt`, and `compile_harness_attempt()` layer is retired rather than preserved as a second orchestration/resource-allocation ontology.
 
 Harness now executes one current Agent-loop scheduling kernel. The experimental LoopDriver/morphology identity layer is retired because current authoritative state contains no bound LoopDriver records and no independent consumer selects an alternate mode. Explicit deliberate-then-tool behavior is caller/domain composition: perform a no-Tool Agent turn under owner authority, retain whatever cognition evidence that owner chooses, then enter `DomainToolLoopRunner` with the exact Tool grant. Harness does not own a generic two-phase lifecycle or strategy policy.
+
+## External verification evidence and execution semantics
+
+A caller/Agent may consume the repository's read-only exact-commit
+GitHub Check Run decision, natural Owner change-impact projection, and
+optional Formal declared Git readset comparison before proposing
+another verification. This is evidence context, not a Harness Run
+Tool-effect permission. Existing OperationalClaimStandingView projects
+roles only for already-admitted evidence, not domain truth.
+
+Generic Agent Loop -> ToolBridge -> Runtime workspace.exec also carries
+compilation, experiments, browser work and other valid effects. Suppressing
+them by command text or an old Check Run PASS would break the exact
+Tool Intent, Dispatch Fence and Receipt contract. A future typed
+verification-specific Task must bind the actual task identity, current
+SourceCut, accepted evidence and closed proof readset before deciding
+NO_DISPATCH. No general Harness pre-dispatch gate is installed by the
+present read-only query.
 
 ## Self-change evidence and promotion authority
 
