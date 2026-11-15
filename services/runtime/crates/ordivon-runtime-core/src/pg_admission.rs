@@ -425,7 +425,6 @@ impl PgAdmissionStore {
     /// Internal PG-only release admission. No MCP caller can invoke this until
     /// an independently qualified operator installation/reconciliation contract
     /// exists. No filesystem or systemd effects occur in this transaction.
-    #[cfg(feature = "transactional-runtime")]
     pub fn admit_release_effect(
         &mut self,
         input: &PgAdmissionInput,
@@ -496,7 +495,6 @@ impl PgAdmissionStore {
     /// The callback is performed only for a NEW Job after exact replay is
     /// resolved; it must be read-only and may not make external side effects.
     /// It executes while the same global advisory lock guards close/mutate.
-    #[cfg(feature = "transactional-runtime")]
     pub(crate) fn admit_with_workspace_guard(
         &mut self,
         i: &PgAdmissionInput,

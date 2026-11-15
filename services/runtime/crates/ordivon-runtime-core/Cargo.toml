@@ -13,9 +13,10 @@ publish = false
 default = ["transactional-runtime"]
 systemd-supervisor = ["dep:libc"]
 universal-executor = ["dep:libc"]
-transactional-runtime = ["universal-executor", "dep:rusqlite", "dep:uuid"]
+runtime-contract = ["universal-executor", "dep:uuid"]
+transactional-runtime = ["runtime-contract", "dep:rusqlite"]
 operator-tools = ["transactional-runtime"]
-postgres-registry-admission = ["dep:postgres", "dep:uuid"]
+postgres-registry-admission = ["runtime-contract", "dep:postgres"]
 
 [[bin]]
 name = "ordivon-runtime-job-fixture"
