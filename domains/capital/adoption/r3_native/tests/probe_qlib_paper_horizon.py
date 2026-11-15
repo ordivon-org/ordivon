@@ -30,6 +30,8 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT.parents[1] / "src"))
+from ordivon_capital.markets.equity_ohlcv_shape import require_ohlcv_shape_for_hilo
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
 from ordivon_capital.portfolio.passive_benchmark import replay_passive_benchmark
 from ordivon_capital.portfolio.strategic_contribution import plan_strategic_contribution
 
@@ -81,9 +83,29 @@ def _native_study_inputs(report: dict) -> tuple[pd.Series, pd.DataFrame, dict[st
             item.get("normalized_sha256"), role=f"{symbol} OHLCV",
         )
         data = pd.read_csv(BytesIO(payload))
-        if not data["session_date"].is_unique:
-            raise ValueError(f"{symbol} source dates are not unique")
-        bars[symbol] = data.set_index("session_date").sort_index()
+        # A matching digest authenticates study bytes, not market semantics.
+        # Recompute the existing Markets contracts on the very same bytes;
+        # do not accept a fake holiday or impossible HILO bar as economics.
+        date_receipt = item.get("session_grid_qualification")
+        if not isinstance(date_receipt, dict):
+            raise ValueError(f"{symbol}: missing source session qualification")
+        if "session_date" not in data.columns:
+            raise ValueError(f"{symbol}: source session_date column missing")
+        date_actual = require_xnys_session_grid(
+            data["session_date"], symbol=symbol,
+            requested_start=date_receipt.get("requestedStart"),
+            requested_end=date_receipt.get("requestedEnd"),
+        )
+        if date_actual != date_receipt:
+            raise ValueError(f"{symbol}: source session qualification differs from study receipt")
+        shape_receipt = item.get("hilo_source_shape_qualification")
+        if not isinstance(shape_receipt, dict):
+            raise ValueError(f"{symbol}: missing source OHLCV qualification")
+        indexed = data.set_index("session_date")
+        shape_actual = require_ohlcv_shape_for_hilo(indexed, symbol=symbol)
+        if shape_actual != shape_receipt:
+            raise ValueError(f"{symbol}: source OHLCV qualification differs from study receipt")
+        bars[symbol] = indexed.sort_index()
     predictions = pd.read_csv(BytesIO(pred)).set_index(["datetime", "instrument"]).iloc[:, 0]
     labels = pd.read_parquet(BytesIO(dataset))
     if not predictions.index.is_unique or not labels.index.is_unique:

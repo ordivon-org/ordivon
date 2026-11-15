@@ -62,3 +62,13 @@ def test_only_bounded_usable_dataframes_admitted():
     for source in ({}, pd.DataFrame()):
         with pytest.raises(EquityOhlcvShapeError, match="nonempty"):
             require_ohlcv_shape_for_hilo(source, symbol="SPY")
+
+
+@pytest.mark.parametrize("field", ["low", "volume"])
+def test_boolean_vendor_primitive_is_not_a_numerical_market_measurement(field):
+    """A boolean can otherwise become float 1.0 and pass OHLCV bounds."""
+    frame = valid()
+    frame[field] = frame[field].astype(object)
+    frame.at[frame.index[0], field] = True
+    with pytest.raises(EquityOhlcvShapeError, match="boolean"):
+        require_ohlcv_shape_for_hilo(frame, symbol="QQQ")

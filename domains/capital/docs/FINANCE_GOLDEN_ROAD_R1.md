@@ -418,3 +418,29 @@ H20 NEXT_OPEN 假设固定 13 次 IWM 的价格比较
 历史价格/条件现金情景，不是新 R9 NEXT_OPEN
 Qlib 模型重放，不是已认证的总回报，
 更不提供实盘/PG 影响。
+
+
+## 2026-11-15 R7：原生 Qlib→Portfolio 不能只凭来源哈希接受经济数据
+
+Portfolio 的既有研究经济消费者
+`adoption/r3_native/tests/probe_qlib_paper_horizon.py`
+在读取确切摘要绑定的预测、标签和三 ETF 原始 CSV 后，
+必须在 **同一次已核对字节读取** 上重新调用 Markets 自然
+Owner 的 `require_xnys_session_grid` 和
+`require_ohlcv_shape_for_hilo`。其返回值还必须与原研究的
+`session_grid_qualification` 和 `hilo_source_shape_qualification`
+完整一致。遗失旧资格回执应当明确拒绝并重新生成研究，
+而不能自动补上来源资格、捏造供应商信息或沿用旧经济收益。
+
+独立 RED→GREEN 反例：人为写入假交易日或不可能的 high，
+即便同步更改同一来源 CSV SHA 仍不能进入经济比较；
+删除原日历资格也不得进入经济比较。
+Markets 对 DataFrame 原始布尔 LOW/VOLUME 的 `True -> 1.0`
+隐式转换同样必须先于数值转换拒绝。均只修改已有 Markets
+与 Portfolio 自然消费者，不新增 Market Data Framework。
+
+这只证明**内部结构与原研究资格口径一致**；不能凭本地
+重新计算认证原始供应商真实性、NYSE Arca/Nasdaq 实际
+ETF 主场资格、原始数据合法再分发、历史 PIT、股息/复权、
+真实交易执行或投资 Alpha。恢复真实来源后仍须精确重训和
+独立前瞻评价。无需为了过关而修改旧数据或旧 Qlib 模型。

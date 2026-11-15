@@ -13,6 +13,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from ordivon_capital.markets.equity_ohlcv_shape import require_ohlcv_shape_for_hilo
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
+
 SOURCE = Path(__file__).resolve().parents[1] / (
     "adoption/r3_native/tests/probe_qlib_paper_horizon.py"
 )
@@ -58,10 +61,18 @@ def fixture(tmp_path, monkeypatch):
             "2026-10-01,100,102,98,100,10000\n"
             "2026-10-02,101,103,99,102,10100\n"
         )
+        source_frame = pd.read_csv(source)
         receipts.append({
             "symbol": ticker,
             "provider": "cboe",
             "normalized_sha256": sha256(source.read_bytes()).hexdigest(),
+            "session_grid_qualification": require_xnys_session_grid(
+                source_frame["session_date"], symbol=ticker,
+                requested_start="2026-10-01", requested_end="2026-10-02",
+            ),
+            "hilo_source_shape_qualification": require_ohlcv_shape_for_hilo(
+                source_frame.set_index("session_date"), symbol=ticker,
+            ),
         })
 
     report = {
@@ -144,4 +155,36 @@ def test_missing_or_malformed_prediction_digest_fails_closed(tmp_path, monkeypat
     module, report = fixture(tmp_path, monkeypatch)
     report["qlib_prediction_sha256"] = "UNKNOWN"
     with pytest.raises(ValueError, match="missing exact study"):
+        module._native_study_inputs(report)
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected"),
+    [
+        ("invented_holiday", "XNYS_SESSION_GRID_MISMATCH"),
+        ("impossible_high", "OHLC_BOUNDS_INVALID_FOR_HILO"),
+    ],
+)
+def test_portfolio_qualifies_same_bytes_market_shape_and_session_even_with_matching_sha(
+    tmp_path, monkeypatch, failure, expected,
+):
+    """A newly recomputed source hash alone must not authorize economic use."""
+    module, report = fixture(tmp_path, monkeypatch)
+    source = tmp_path / "openbb_cboe_SPY_normalized.csv"
+    raw = source.read_text()
+    if failure == "invented_holiday":
+        changed = raw.replace("2026-10-02,101,103,99,102", "2026-10-03,101,103,99,102")
+    else:
+        changed = raw.replace("2026-10-01,100,102,98,100", "2026-10-01,100,99,98,100")
+    assert changed != raw
+    source.write_text(changed)
+    report["provider_receipts"][2]["normalized_sha256"] = sha256(source.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match=expected):
+        module._native_study_inputs(report)
+
+
+def test_portfolio_requires_original_market_qualification_claims(tmp_path, monkeypatch):
+    module, report = fixture(tmp_path, monkeypatch)
+    report["provider_receipts"][2].pop("session_grid_qualification", None)
+    with pytest.raises(ValueError, match="source session qualification"):
         module._native_study_inputs(report)

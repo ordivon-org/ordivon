@@ -31,6 +31,11 @@ def require_ohlcv_shape_for_hilo(source: Any, *, symbol: str) -> dict[str, objec
     required = ("open", "high", "low", "close", "volume")
     if any(source.columns.tolist().count(key) != 1 for key in required):
         raise EquityOhlcvShapeError("exactly one OHLCV column for each primitive is required")
+    # Pandas numeric coercion otherwise converts bool True to 1.0, which
+    # can produce an apparently valid LOW or VOLUME with no market meaning.
+    for key in required:
+        if bool(source[key].map(lambda value: isinstance(value, (bool, np.bool_))).any()):
+            raise EquityOhlcvShapeError("boolean OHLCV primitive is not a market measurement")
     try:
         numbers = source.loc[:, list(required)].apply(
             pd.to_numeric, errors="raise"
