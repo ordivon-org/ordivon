@@ -6,6 +6,17 @@ names, capability projection, owner routing, wire compatibility and references.
 Runtime owns Job/Attempt/physical Artifact, Host owns semantic continuity,
 Harness owns Agent run, Security owns admission/PDP decisions.
 
+## Native Runtime Job/Attempt truth
+Runtime's `status` is a compatibility **Job summary**, not an alias for
+`attemptState`: the native producer projects `accepted|starting` to `queued`
+and `running|stopping|recovering` to `working`. Gateway validates both wire
+fields when present but preserves the original Job summary as public `state`.
+Never require equality between fields with different semantics; source-backed
+producer cases must be included in execution submit/get/cancel consumer tests.
+`executionTerminal` and `executionDisposition` remain separate explicit Owner
+claims; status text alone never establishes physical or domain completion.
+Gateway B03 capability readiness TLA+ does not verify Job state semantics.
+
 ## Readset
 1. README.md / mcp-surface.json — declared surface, not installed evidence.
 2. src/ordivon_gateway/mcp_server.py / service.py — MCP and API facade.
