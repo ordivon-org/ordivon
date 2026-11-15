@@ -116,6 +116,41 @@ class ArchiveVisualContractTests(unittest.TestCase):
         self.assertNotEqual(run.returncode, 0)
         self.assertIn('unsupported catalogued relation type', run.stderr)
 
+    def test_equal_relation_aliases_keep_the_existing_visual_graph(self):
+        def equivalent(catalog):
+            edge = catalog['relations'][0]
+            edge['from'] = edge['child_work_id']
+            edge['to'] = edge['parent_work_id']
+            edge['type'] = edge['relation_type']
+
+        run, outputs = self.run_fixture(equivalent)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        manifest = json.loads(outputs['render/build-manifest.json'])
+        self.assertEqual(manifest['mappedRelationCount'], 45)
+
+    def test_conflicting_relation_aliases_are_rejected(self):
+        source = json.loads(SOURCE.read_text(encoding='utf-8'))
+        edge = source['relations'][0]
+        work_id = next(
+            row['workId'] for row in source['works']
+            if row['workId'] not in {edge['child_work_id'], edge['parent_work_id']}
+        )
+        alternative_kind = (
+            'DERIVATIVE_OF' if edge['relation_type'] == 'CONSUMER_OF' else 'CONSUMER_OF'
+        )
+        for alias, alternative in (
+            ('from', work_id),
+            ('to', work_id),
+            ('type', alternative_kind),
+        ):
+            with self.subTest(alias=alias):
+                def conflict(catalog):
+                    catalog['relations'][0][alias] = alternative
+
+                run, _ = self.run_fixture(conflict)
+                self.assertNotEqual(run.returncode, 0)
+                self.assertIn('conflicting relation aliases', run.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

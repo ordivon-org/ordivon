@@ -22,6 +22,18 @@ class ArchiveSnapshot:
     byte_sha256: str
 
 
+def _relation_alias(relation: dict[str, Any], *names: str) -> str | None:
+    """Normalize legacy field aliases without silently choosing conflicting facts."""
+    values = [relation[name] for name in names if name in relation and relation[name] is not None]
+    if not values:
+        return None
+    if any(not isinstance(value, str) or not value.strip() for value in values):
+        raise ValueError(f'invalid relation alias for {names[0]}')
+    if len(set(values)) != 1:
+        raise ValueError(f'conflicting relation aliases for {names[0]}')
+    return values[0]
+
+
 def load_archive_snapshot(path: Path) -> ArchiveSnapshot:
     source = path.read_bytes()
     catalog = json.loads(source)
@@ -41,9 +53,9 @@ def load_archive_snapshot(path: Path) -> ArchiveSnapshot:
     known = set(ids)
     relations = []
     for relation in raw_relations:
-        a = relation.get('child_work_id') or relation.get('childWorkId') or relation.get('from')
-        b = relation.get('parent_work_id') or relation.get('parentWorkId') or relation.get('to')
-        kind = relation.get('relation_type') or relation.get('relationType') or relation.get('type')
+        a = _relation_alias(relation, 'child_work_id', 'childWorkId', 'from')
+        b = _relation_alias(relation, 'parent_work_id', 'parentWorkId', 'to')
+        kind = _relation_alias(relation, 'relation_type', 'relationType', 'type')
         if a not in known or b not in known:
             raise ValueError(f'relation references unknown work: {a!r} -> {b!r}')
         # Existing authored map only has two semantically distinct visual routes.
