@@ -39,6 +39,7 @@ from qlib.workflow.record_temp import SigAnaRecord, SignalRecord
 from qlib.workflow.task.gen import trunc_segments
 from qlib.workflow.task.utils import TimeAdjuster
 
+from ordivon_capital.markets.equity_ohlcv_shape import require_ohlcv_shape_for_hilo
 from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
 
 SYMBOLS = ("SPY", "QQQ", "IWM")
@@ -108,6 +109,10 @@ for symbol in SYMBOLS:
         print("EXACT_DUPLICATE_REMOVED", symbol, "rows", duplicate_rows, "same_values_verified", True)
     if len(raw_normalized) < 400 or raw_normalized.index.has_duplicates:
         raise ValueError(f"Provider {symbol} insufficient/duplicate rows: {len(raw_normalized)}")
+    # HILO uses HIGH/LOW. Reject impossible bars *before* producing Qlib
+    # features, even when source bytes and trading-session dates are verified.
+    # Never auto-repair captured QQQ/IWM OHLCV or rewrite frozen research.
+    hilo_input_qualification = require_ohlcv_shape_for_hilo(raw_normalized, symbol=symbol)
     # The provider is NOT authoritative for whether the exchange actually
     # traded. Reject fake holidays and missing sessions before generating any
     # labels, TimeAdjuster calendar, MLflow recorder or Portfolio evidence.
@@ -125,6 +130,7 @@ for symbol in SYMBOLS:
         raise ValueError(f"Immutable capture was altered during replay: {symbol}")
     provider_receipts.append({
         "session_grid_qualification": date_grid,
+        "hilo_source_shape_qualification": hilo_input_qualification,
         "input_mode": "hash_verified_local_replay" if capture_dir is not None else "OpenBB_native_provider_capture",
         "symbol": symbol,
         "provider": provider_name,
