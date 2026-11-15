@@ -9,7 +9,9 @@ consumer-readable assets (English article; 78-second narrated 1920x1080 film;
 self-contained interactive explanation; and ZIP portfolio). Before actual
 external publication, the four non-portfolio Outputs remain approved while
 the improved offline-caption ZIP is rendered and awaiting consumer review.
-The parent Production remains review. Published standing requires a real provider release
+The source Markdown article is retained alongside a formatted offline HTML reader
+in the revised ZIP; the other four Output masters are unchanged. The parent
+Production remains review. Published standing requires a real provider release
 and external HTTP readback, not simply matching SHA-256 or a successful build.
 
 The original August 2026 evidence and R2/Blob selections below are intentionally
@@ -32,7 +34,9 @@ Produce the picture with the existing Remotion composition; build narration
 through scripts/build_sapi_narration.py (Windows SAPI, nine cue timing);
 mux the two streams with native FFmpeg (video stream copy, AAC mono);
 create the vertical version with source/render-short-zh.py; build the
-portfolio with publish/build-portfolio.py. Test delivered bytes using
+portfolio from capabilities/media with
+uv run --frozen python productions/runtime-introduction/publish/build-portfolio.py
+(the existing Media uv.lock pins markdown-it-py). Test delivered bytes using
 tests/test_runtime_intro_delivery.py; complete media and subtitle QC remain
 independent of human preference or audience response.
 

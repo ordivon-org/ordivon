@@ -51,6 +51,25 @@ class RuntimeIntroductionDeliveryTests(unittest.TestCase):
             )
             self.assertIn("captions/narration.en.srt", archive.namelist())
 
+    def test_offline_reader_is_semantic_html_and_preserves_editable_markdown(self) -> None:
+        with zipfile.ZipFile(ROOT / "publish" / "runtime-introduction-portfolio.zip") as archive:
+            members = set(archive.namelist())
+            self.assertIn("article/runtime-introduction-en.md", members)
+            self.assertIn("article/runtime-introduction-en.html", members)
+            page = archive.read("article/runtime-introduction-en.html").decode("utf-8")
+            self.assertIn('<html lang="en">', page)
+            self.assertIn("<article", page)
+            self.assertIn("<h1>", page)
+            self.assertIn("<table>", page)
+            self.assertIn("<th>", page)
+            self.assertIn("00:37", page)
+            self.assertIn("historical", page.lower())
+            self.assertIn('href="../index.html"', page)
+            self.assertIn('href="runtime-introduction-en.md"', page)
+            self.assertNotIn('src="https://', page)
+            self.assertIn("article/runtime-introduction-en.html", archive.read("index.html").decode())
+            self.assertIn("../article/runtime-introduction-en.html", archive.read("interactive/index.html").decode())
+
     def test_standalone_portfolio_links_and_interactive_wiring(self) -> None:
         with zipfile.ZipFile(ROOT / "publish" / "runtime-introduction-portfolio.zip") as archive:
             files = set(archive.namelist())
