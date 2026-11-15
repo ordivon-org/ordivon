@@ -162,6 +162,9 @@ def test_closed_topic_archive_hides_inventory_preserves_messages_and_restores() 
     )
     assert archived["state"] == "archived"
     assert all(item["topicRef"] != topic for item in social.list_topics(space)["topics"])
+    active_space_view = social.get_space(space)
+    assert active_space_view["topics"] == []
+    assert active_space_view["topicCount"] == 0
     archived_page = social.list_topics(space, include_archived=True)
     assert any(
         item["topicRef"] == topic and item["state"] == "archived"

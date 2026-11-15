@@ -271,7 +271,8 @@ class SocialSpaceReadQueries:
         )
         topic_count = int(
             conn.execute(
-                "SELECT count(*) AS n FROM topics WHERE space_ref=%s", (space_ref,)
+                "SELECT count(*) AS n FROM topics WHERE space_ref=%s AND state <> 'archived'",
+                (space_ref,),
             ).fetchone()["n"]
         )
         subject_rows = conn.execute(
@@ -284,7 +285,7 @@ class SocialSpaceReadQueries:
         ).fetchall()
         topic_rows = conn.execute(
             "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
-            "WHERE space_ref=%s ORDER BY topic_ref LIMIT %s",
+            "WHERE space_ref=%s AND state <> 'archived' ORDER BY topic_ref LIMIT %s",
             (space_ref, topic_limit + 1),
         ).fetchall()
         subjects = [row["subject_ref"] for row in subject_rows[:128]]
