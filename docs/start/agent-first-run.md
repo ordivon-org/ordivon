@@ -14,6 +14,21 @@ by the fact or external effect you must inspect. For this exercise, use
 The model's familiarity with a package or old documentation is not evidence
 that its deployment, data source, release or consumer is current.
 
+## Tool discovery under the real execution identity
+
+For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
+and choose the **actual node and Runtime identity** before probing. The
+read-only `probe_executables.py` reports PATH resolution only; missing from
+PATH never proves the application is not installed. A Windows service context
+and the interactive desktop user can have different tools and PATH entries.
+
+For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
+and the natural Owner's native entrypoint. Skills search/resolve/read supplies
+**advisory procedures**; it does not install a CLI, establish connected MCP
+availability, confer provider authority, or satisfy domain acceptance.
+Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
+arguments, then verify the final consumer's result.
+
 ## 2. Discover a project Skill without confusing Workspace identities
 
 When the Ordivon Skills MCP is connected, project Skills are deliberately
@@ -103,21 +118,6 @@ generic `SUCCESS` status.
 
 This page is a starting tutorial, **not** a second mandatory global workflow
 or a new Agent authority.
-
-## Tool discovery under the real execution identity
-
-For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
-and choose the **actual node and Runtime identity** before probing. The
-read-only `probe_executables.py` reports PATH resolution only; missing from
-PATH never proves the application is not installed. A Windows service context
-and the interactive desktop user can have different tools and PATH entries.
-
-For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
-and the natural Owner's native entrypoint. Skills search/resolve/read supplies
-**advisory procedures**; it does not install a CLI, establish connected MCP
-availability, confer provider authority, or satisfy domain acceptance.
-Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
-arguments, then verify the final consumer's result.
 
 ## Optional: find the original Gateway execution after response loss
 
