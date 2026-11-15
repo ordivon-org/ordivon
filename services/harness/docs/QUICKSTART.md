@@ -292,7 +292,7 @@ For Agent-owned durable cognition, the same surface accepts `HarnessCognitionPro
 
 For already-selected cross-Run knowledge/procedure sources, the external application/Host/domain owns repository identity, discovery/ranking, semantic evaluation, canonical promotion, and any digest/currentness fence. After verifying one exact `HarnessWorkingViewSource`, it supplies that source directly as a `HarnessCognitionSeedSource`. Harness performs the normal Run privacy and WorkingSet admission only; there is no Harness reusable-reference/resolver/topology subsystem, and external procedure classification grants no Tool authority.
 
-A Tool-bearing application supplies a `HarnessRuntimeClient` through the Python API instead of the primary CLI. `call_tool()` is only the success-shape Protocol. The caller must also translate its transport and Runtime rejection failures into `HarnessRuntimeClientError` / `HarnessRuntimeToolRejected` with a `HarnessRuntimeErrorDetail`. In particular, a Runtime rejection with `commit_state` `not_started` or `not_committed` remains model-correctable; passing an unrelated client exception through unchanged loses that recovery meaning and is treated as a Harness failure. The recommended API exports `HarnessExecutionBinding` and the independent search catalog/grant digests required by the current `HarnessRuntimeBridge`. `HarnessExecutionBinding.runtime_references` accepts Runtime-native `foreignReferences` mappings directly (`namespace`, `type`, `id`, optional `generation`/`digest`); Harness no longer mints a duplicate Python reference value type.
+A Tool-bearing application normally supplies a `HarnessRuntimeClient` through the Python API; the explicit CLI Gateway profile now composes the same official MCP Client and existing Tool Bridge for `execution.linux` without adding another Runtime client. `call_tool()` is only the success-shape Protocol. The caller must also translate its transport and Runtime rejection failures into `HarnessRuntimeClientError` / `HarnessRuntimeToolRejected` with a `HarnessRuntimeErrorDetail`. In particular, a Runtime rejection with `commit_state` `not_started` or `not_committed` remains model-correctable; passing an unrelated client exception through unchanged loses that recovery meaning and is treated as a Harness failure. The recommended API exports `HarnessExecutionBinding` and the independent search catalog/grant digests required by the current `HarnessRuntimeBridge`. `HarnessExecutionBinding.runtime_references` accepts Runtime-native `foreignReferences` mappings directly (`namespace`, `type`, `id`, optional `generation`/`digest`); Harness no longer mints a duplicate Python reference value type.
 
 Advanced integrations may opt a Run loop into bounded ToolProgram actions. When admitted, the Provider sees a Harness control action that can compose a linear sequence over only the exact Runtime/World Tools present on that `AgentTurnRequest`. Later step arguments may reference exact JSON values from prior observations; every inner step remains a normal physical Tool Call with the existing Tool budget, intent/fence/receipt, cancellation and UNKNOWN handling. Intermediate Tool content is consumed mechanically and is not replayed into model context; the next Provider turn receives one compact program result. This is not a new Runtime Tool, does not grant additional Tools, and is not a general code-execution surface.
 
@@ -337,6 +337,78 @@ disposition.
 
 The exact completion Contract is part of `HarnessRunContract.digest`. `StandaloneHarnessRunner` fails closed if a `structured-result-v1` Contract is paired with an Adapter that was not bound to the same completion Contract. DeepSeek receives the caller schema as the `submit_run_conclusion.result` Tool schema. Harness carries the returned JSON in the optional versioned `AgentRunConclusion.structured_result` field, whose canonical value is explicitly bounded to one MiB; the ordinary `summary` remains compact human/control metadata containing only the result digest. When model-content retention is authorized, the existing terminal conclusion CAS object durably stores the carrier—there is no second result store and no Host-specific result type. `decode_structured_completion_result` reads the carrier first and remains backward-compatible with historical results encoded directly in `summary`; when the local conformance policy is bound it also enforces the same mechanical schema check. **Caller/domain verification remains mandatory**: a result carrier and local schema conformance are not semantic admission.
 
+## Gateway Tool CLI（R45/R46：复用现有 MCP/Tool Bridge）
+
+默认 `ordivon-harness run` 仍只执行原来的 no-Tool Run。启用 `execution.linux` 须显式提供原始 PostgreSQL Run Contract、实际 Gateway MCP 服务、已有 Workspace 和可执行程序；不自动继承运行者的额外权限。
+
+R46 修复实际 DeepSeek API 拒绝模型工具名 `execution.submit` 的消费者断点：模型只看到符合 OpenAI/DeepSeek Chat Completions 命名规则的 `execution_submit`；已有 Gateway MCP 物理工具仍为 `execution.submit`，既有 PG Intent/Fence/Owner Receipt 不变。现役本机 Gateway 可使用**已有**的精确 `http://127.0.0.1:<port>/mcp` LoopbackMcpEndpoint 与第一方私有 Bearer 文件；其他 HTTP 地址一律拒绝，外部 Agent Plugin 仍必须 HTTPS。
+
+按需执行一个真实 DeepSeek → 本机 Gateway → Linux Runtime → 同一 PostgreSQL Run 的付费物理验收：
+
+```bash
+HARNESS_PG_TEST_DSN='<dedicated-test-DSN>' \
+HARNESS_REAL_GATEWAY_TOOL_TEST=1 \
+HARNESS_REAL_GATEWAY_URL='http://127.0.0.1:8899/mcp' \
+HARNESS_REAL_GATEWAY_BEARER_TOKEN_FILE='/path/to/existing/private-client-token' \
+HARNESS_REAL_GATEWAY_WORKSPACE_ID='ws-existing-operator-selected' \
+  uv run --locked python -m pytest -q \
+  tests/test_gateway_cli_consumer.py -k live_deepseek_gateway_tool
+```
+
+该验收通过原有 `pg_schema` fixture 使用独立临时 Schema；普通 CI/Owner `queue` 不会触发真实外部 API。只有明示配置的测试节点才调用模型并执行单条 `/usr/bin/python3 -c print(...)`；验证原 PG ToolStep、物理 Gateway Owner Receipt 与独立 CLI 再读取，**不**把物理完成当作用户领域 TaskSolved。
+
+先读取当前 Tool Schema 和当前授权工具摘要，不连接 PostgreSQL、不创建 Run：
+
+```bash
+ordivon-harness gateway-profile \
+  --gateway-url https://YOUR-GATEWAY.example/mcp \
+  --gateway-bearer-token-file /private/gateway-bearer \
+  --gateway-workspace-id YOUR-EXISTING-WORKSPACE \
+  --gateway-executable /usr/bin/python3 \
+  --gateway-max-timeout-ms 300000
+```
+
+输出的 `toolCatalogDigest` 和 `toolGrantDigest` 必须由 Caller 原样写入普通 `HarnessRunContract`，不得让 CLI 隐式修改来源授权。使用同样的选项运行已绑定 Contract：
+
+```bash
+ordivon-harness run ./authorized-gateway-contract.json \
+  --message 'Use the caller-approved tool to inspect the task' \
+  --gateway-url https://YOUR-GATEWAY.example/mcp \
+  --gateway-bearer-token-file /private/gateway-bearer \
+  --gateway-workspace-id YOUR-EXISTING-WORKSPACE \
+  --gateway-executable /usr/bin/python3 \
+  --gateway-max-timeout-ms 300000
+```
+
+暂停 Run 的 `resume` 同样显式传递这一组配置并通过当前 Source Tool 校验。可选 `--gateway-env-variable NAME` 和 `--gateway-context NAME`，复用已有 `PluginGatewayExecutionGrant`。官方 MCP 客户端来自现有 `ordivon-harness[mcp]`；私有 Bearer 文件通过原有读取器使用，不会进入 Run Contract、PG 对象或模型上下文。
+
+**证据边界：** R45 的真实一次性 PG18 5/5 消费者测试使用脚本化模型和测试 Gateway MCP；其中一次由测试 Gateway 客户端在已提交的原始 PG Tool Intent/Fence 后实际运行 `/usr/bin/rg` 并将 Owner 观察提交到同一 Run。它不是现役 Gateway 服务的远程 Tool 调用，也不能与 R44 独立的真实 DeepSeek/真实 Gateway 两条链路混同。当前生产仍缺少跨自然 Owner 的完整同 Run Issuer/物理接收与独立 DomainVerifier 验收。
+
+### 2026-11-16 Real Coding Agent single-business acceptance (candidate, not release)
+
+On source candidate `a2d5a30a40c57b299e9b203b531e93f0511c35da`
+(Draft PR #2311), a **real DeepSeek Flash model** used the existing
+`execution_submit` Gateway Tool three times in one original scratch
+PostgreSQL 18 Run. The caller provided a separate ephemeral Git Workspace
+containing only `SPEC.md`, `feature_flags.py` and `test_feature_flags.py`;
+the canonical hidden `HARNESS-EDIT-ADDRESSING-002` verifier and reference
+oracle were never included in the model-visible Git source.
+
+- Provider: four real model calls, 9,452 total tokens, no provider retries.
+- Gateway/Runtime: three physical Tool calls, original PG Tool Receipt `observed`.
+- Candidate Run: `completed` / `candidate_completed`, never treated as a
+  substitute for independent domain acceptance.
+- Independent verifier: **visible PASS and hidden PASS**, with only
+  `feature_flags.py` modified (`alpha_enabled=False`, `beta_enabled=True`).
+- One observed trial elapsed 9.94 seconds; not a benchmark distribution
+  and not evidence that this candidate is installed in production.
+
+The source-equivalent CLI smoke also passed a real DeepSeek → installed
+Gateway → Runtime → original PostgreSQL Run and fresh status readback.
+Both are deliberately opt-in, billable consumer checks; ordinary CI remains
+scripted/offline. Retain the real SourceCut and the independent verifier
+as distinct authorities. No second Journal, editing framework, or token
+reader is introduced by this acceptance.
 ## Pause and resume
 
 ```bash

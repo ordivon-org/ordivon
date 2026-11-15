@@ -220,7 +220,7 @@ def _adapter(timeout_ms: int | None = 5_000) -> ScriptedTurnAdapter:
                 tool_calls=(
                     AgentToolCall(
                         tool_call_id="tool-call:plugin-h2",
-                        name="execution.submit",
+                        name="execution_submit",
                         arguments=arguments,
                     ),
                 ),

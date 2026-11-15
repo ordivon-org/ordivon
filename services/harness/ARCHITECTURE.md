@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-07
+updated: 2026-11-16
 summary: Canonical world model for Harness as the durable cognitive execution substrate of an Agent, including cognition, control, effects, continuity and caller/Runtime/Host boundaries.
 evidence_status: verified
 readiness: READY
@@ -352,9 +352,37 @@ A Provider turn that simultaneously requests ordinary Tools and submits a Run co
 
 ## Tool lifecycle
 
+### Current consumer-critical path and owner boundaries
+
+The source-owned, default no-Tool CLI remains intact. A caller who explicitly
+selects Gateway execution can first inspect the original MCP Tool schemas
+with `gateway-profile` **without creating a Run or opening PostgreSQL**.
+The returned catalog/grant digests must match the caller's immutable
+`HarnessRunContract` before dispatch.
+
+| Logical LEGO | Current capability | Physical/semantic truth owner |
+| --- | --- | --- |
+| L1 Run admission | `core_contracts.py`, `agent_run.py`, `independent_cli.py` | Harness PostgreSQL Run |
+| L2–L4 cognition, loop, Provider | `working_view.py`, `ordivon/loop.py`, `ordivon/deepseek.py` | Harness for Run/Provider only |
+| L5 effect proposal and fence | `plugin_gateway_effect.py`, `ordivon/runtime_bridge.py` | Harness Intent; Runtime admission is separate |
+| L6/L8 journal and uncertainty | `postgres_store.py`, `ordivon/run_continuity.py` | One existing Harness PG writer; UNKNOWN is not safe retry |
+| L7 physical observations | Gateway MCP `execution.get`, `artifact.read` and native Runtime Artifact | Runtime/Gateway owner receipts; byte-bounded model projection |
+| L9 task success | original independent `evals/harness-edit-addressing-002/qa.py` and domain callers | Domain verifier, not model `candidate_completed` |
+
+A native process exit code, a committed Tool Receipt, and a model's
+`candidate_completed` are insufficient on their own to prove a coding TaskSolved.
+The domain-hidden verifier remains outside the model-visible Workspace.
+
+**Unresolved current-source boundary:** after an ambiguous effect response,
+the current release-source Run can stop as `runtime_unknown`; a complete
+pause/reopen/single-Owner reconciliation path is a separate unmerged R45
+refinement and must not be inferred from this CLI integration. Rust native
+`DurableJournal` production binding and installed service parity are also
+independent qualifications. Do not duplicate the Journal, Artifact Store,
+credential authority, or tool execution engine to close these gaps.
 Tool-bearing Runs bind a complete Tool catalog digest and Tool grant digest. Before physical delivery, Harness records a Tool intent and dispatch fence. Runtime requests carry Harness authority references. Observation-only failures can be corrected by the Agent; ambiguous external effects require reconciliation and may terminate recovery as UNKNOWN.
 
-The primary CLI intentionally supports only the canonical no-Tool DeepSeek profile. Tool-bearing applications use `ordivon_harness.api`/`core` with an application-supplied `HarnessRuntimeClient`.
+The primary CLI defaults to the canonical no-Tool DeepSeek profile. The opt-in `gateway-profile`/Gateway Run path consumes a caller-selected authenticated MCP endpoint, existing Workspace, explicit executable grant and the original PostgreSQL Journal; it does not discover or mint Runtime authority. Other Tool-bearing applications continue to use `ordivon_harness.api` with an application-supplied `HarnessRuntimeClient`.
 
 ## Pause, resume and recovery
 
