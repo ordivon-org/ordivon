@@ -182,11 +182,17 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
                 self.submit_attempts += 1
                 self.submit_phase = "before_pg_fence_read"
                 with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+                    self.submit_phase = "pg_store_opened"
                     continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
+                    self.submit_phase = "pg_continuity_opened"
                     step = continuity.load_current_tool_step()
+                    self.submit_phase = "pg_tool_step_loaded"
                     assert step.fence is not None
+                    self.submit_phase = "pg_fence_exists"
                     assert step.receipt is None
+                    self.submit_phase = "pg_receipt_absent"
                     assert step.intent.runtime_operation == "workspace.exec"
+                    self.submit_phase = "pg_runtime_operation_valid"
                     assert any(
                         ref.get("type") == "dispatch_fence"
                         and ref.get("digest") == step.fence.digest
@@ -194,9 +200,13 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
                     )
                     self.pre_dispatch_passed = True
                     self.submit_phase = "pg_fence_validated"
+                self.submit_phase = "before_gateway_arguments_check"
                 assert arguments["workspaceId"] == "ws-plugin-h2"
+                self.submit_phase = "workspace_arg_valid"
                 assert arguments["executable"] == "/usr/bin/rg"
+                self.submit_phase = "executable_arg_valid"
                 assert arguments["args"] == ["needle", "."]
+                self.submit_phase = "process_args_valid"
                 self.dispatches += 1
                 self.submit_phase = "before_native_process"
                 self.physical = subprocess.run(
@@ -250,7 +260,7 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
     result = independent_cli.dispatch(cli, clock_ms=FixedClock())
     # Keep real-process outcomes separate from Harness/Gateway semantic states:
     # if CI differs from a local node, report the physical cause first.
-    assert client.physical is not None, {
+    assert client.physical is not None, json.dumps({
         "reason": "Gateway fixture never ran the real process",
         "stopCode": result["stopCode"],
         "runStatus": result["run"]["status"],
@@ -259,7 +269,7 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
         "preDispatchPassed": client.pre_dispatch_passed,
         "dispatches": client.dispatches,
         "gatewayCalls": [name for name, _ in client.calls],
-    }
+    }, ensure_ascii=False, sort_keys=True)
     assert client.physical.returncode == 0, (
         "real ripgrep process failed", client.physical.returncode,
         client.physical.stdout[-400:], client.physical.stderr[-400:],
