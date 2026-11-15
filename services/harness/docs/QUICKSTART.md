@@ -434,6 +434,40 @@ Harness 使用原有 `execution.resolve/get` 对账，不额外执行 `execution
 Owner 对账完成、物理 Tool 请求提交次数严格等于 1。这不是已安装 Gateway 的
 端到端验收，也不是 Agent 业务结果已被独立 DomainVerifier 接受。
 
+### R45 installed Owner response-loss qualification (2026-11-16)
+
+A separate opt-in regression now exercises an **actual** authenticated Gateway
+and Linux Runtime, not just the scripted Gateway used by normal CI. The
+client deliberately discards the first genuine `execution.submit` response
+and temporarily makes `execution.resolve` unavailable. The original
+PostgreSQL Run must persist an `effect-dispatch-pending` Pause. Reopening
+the same Run reconciles the one original Owner Job; it never submits another
+physical effect.
+
+The standalone test uses an existing Bearer client file, a separately admitted
+Workspace and a disposable PostgreSQL 18 database/schema. Its Provider is
+`ScriptedTurnAdapter` to avoid charging for a fault-injection test; it is
+**not** a model quality or semantic TaskSolved claim. Run only on an explicitly
+qualified node:
+
+```bash
+HARNESS_PG_TEST_DSN='<disposable-postgresql-18-DSN>' \
+HARNESS_REAL_GATEWAY_UNKNOWN_TEST=1 \
+HARNESS_REAL_GATEWAY_URL='http://127.0.0.1:8899/mcp' \
+HARNESS_REAL_GATEWAY_BEARER_TOKEN_FILE='<existing-private-bearer-file>' \
+HARNESS_REAL_GATEWAY_WORKSPACE_ID='<separate-existing-workspace>' \
+  uv run --locked python -m pytest -q -s \
+  tests/test_live_gateway_unknown_recovery.py
+```
+
+Original-source result for merged `acbb494a3d9f8c811093a0eab1b1c16e33f2bdfc`:
+native verification Job `job-01a1e0fe-e3cb-75ca-bb68-6319b1d70c4c`
+reported 1 PASS; real Runtime Owner Job
+`job-01a1e0fe-f7cd-740f-9d2e-56ca9b8152a3` was admitted exactly once,
+reconciled from the original PostgreSQL Intent and then independently
+resolved again by the official Gateway client. This is a single bounded
+scenario, not a production failure-rate or liveness guarantee.
+
 ## Recovery
 
 Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:
