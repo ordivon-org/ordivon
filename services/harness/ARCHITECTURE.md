@@ -157,6 +157,25 @@ implementation had no non-test current source consumer and is retired rather tha
 kept as a misleading generic Store interface. Native PG backup/recovery belongs
 to the PostgreSQL owner and its installed operational workflow.
 
+**SQLite Harness Store consumer census (Git source, 2026-11-16):**
+`SQLiteHarnessStore` is implemented by
+`src/ordivon_harness/sqlite_store.py` and directly imported by two
+non-test Harness scripts:
+`scripts/harness_p0_scale_acceptance.py` and
+`scripts/run_adaptive_edit_r2_live_ab.py`. No direct
+`SQLiteHarnessStore` import was found under `apps/`,
+`services/runtime/` or `services/gateway/`. The standard
+`ordivon-harness` CLI and isolated wheel use only PostgreSQL; retired
+SQLite tests and experimental scripts are *historical consumers*, not
+production PG authority. Other independent SQLite ledgers under
+Agent Automation/Browserless are separate systems and are not part of
+this Harness Journal cutover. **Retire the legacy Store only after**
+the scale-acceptance and AdaptiveEdit A/B test consumers have
+real-PG-equivalent coverage or an explicit archive decision; retain
+September's useful AdaptiveEdit codec and hidden QA evidence instead
+of rewriting the editor. No bulk old-SQLite data import is required
+to qualify a new PG Run.
+
 **Human operators:** begin with `ordivon-harness doctor` and the existing
 `mise` Owner commands. Use a specifically disposable PostgreSQL test database
 for destructive DB admission/recovery tests. Determine service readiness from
@@ -373,13 +392,23 @@ A native process exit code, a committed Tool Receipt, and a model's
 `candidate_completed` are insufficient on their own to prove a coding TaskSolved.
 The domain-hidden verifier remains outside the model-visible Workspace.
 
-**Unresolved current-source boundary:** after an ambiguous effect response,
-the current release-source Run can stop as `runtime_unknown`; a complete
-pause/reopen/single-Owner reconciliation path is a separate unmerged R45
-refinement and must not be inferred from this CLI integration. Rust native
-`DurableJournal` production binding and installed service parity are also
-independent qualifications. Do not duplicate the Journal, Artifact Store,
-credential authority, or tool execution engine to close these gaps.
+**Current R45 recovery source boundary:** when the original PostgreSQL
+ToolStep has a committed Intent/Fence and an UNKNOWN receipt, Harness may
+persist `EFFECT_DISPATCH_PENDING` as a recoverable `paused` Run. A subsequent
+caller-invoked `resume` uses the same original Tool identity and existing
+Gateway `execution.resolve/get` to reconcile its Owner effect; a second
+`execution.submit` is not authorized by response loss. Other
+`runtime_unknown` cases may still stop. This source-level recovery is
+qualified by disposable real PG and a test Gateway simulating response loss;
+one installed-Gateway client-response-loss trial was independently qualified
+on 2026-11-16 with an actual native Linux Runtime Job and original scratch
+PostgreSQL: one physical submit, `paused`/UNKNOWN, later
+`resolve/get`, `completed`/reconciled, still one submit. This does **not**
+prove universal physical exactly-once, arbitrary crash recovery, or live
+deployment of this unmerged branch. Rust native `DurableJournal` production
+binding and deployed release parity remain unqualified. Do not duplicate
+the Journal, Artifact Store,
+credential authority, or tool execution engine.
 Tool-bearing Runs bind a complete Tool catalog digest and Tool grant digest. Before physical delivery, Harness records a Tool intent and dispatch fence. Runtime requests carry Harness authority references. Observation-only failures can be corrected by the Agent; ambiguous external effects require reconciliation and may terminate recovery as UNKNOWN.
 
 The primary CLI defaults to the canonical no-Tool DeepSeek profile. The opt-in `gateway-profile`/Gateway Run path consumes a caller-selected authenticated MCP endpoint, existing Workspace, explicit executable grant and the original PostgreSQL Journal; it does not discover or mint Runtime authority. Other Tool-bearing applications continue to use `ordivon_harness.api` with an application-supplied `HarnessRuntimeClient`.

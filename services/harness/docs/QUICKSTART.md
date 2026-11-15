@@ -409,6 +409,7 @@ Both are deliberately opt-in, billable consumer checks; ordinary CI remains
 scripted/offline. Retain the real SourceCut and the independent verifier
 as distinct authorities. No second Journal, editing framework, or token
 reader is introduced by this acceptance.
+
 ## Pause and resume
 
 ```bash
@@ -416,6 +417,36 @@ ordivon-harness \
   resume HARNESS_RUN_ID --message 'Additional caller input'
 ```
 
+### R45：Tool 结果不确定时保留可恢复的原始 Run
+
+当 `execution.submit` 已有 PG Tool Intent/Fence、真实 Owner 可能已经执行、但回复/查询失败时，
+原有 `HarnessToolStepReceipt` 记录 `unknown`。此前 Python Harness 在这里把 `runtime_unknown`
+写为 `harness.run-stopped`，后续 CLI `resume` 会拒绝这个终态 Run。
+
+现在只有**当前原始 ToolStep 是 UNKNOWN，且成功提交了 `harness.run-paused`** 时，
+才沿用已存在的 `HarnessRunPauseReason.EFFECT_DISPATCH_PENDING` 和同一个原始 Tool Intent。
+其 Snapshot 维持派发前的 Tool Batch 游标，UNKNOWN 仅保存在 Tool Receipt，不能把它当成
+已经消费的 Tool Observation。调用者在 Owner 可查询后通过同一 Run `resume`，
+Harness 使用原有 `execution.resolve/get` 对账，不额外执行 `execution.submit`。
+
+其他没有原始待对账 Tool 的 `runtime_unknown` 仍按原先的停止语义处理；
+此修复不新增重放缓存、Runtime Writer 或授权系统。真实一次性 PG18 测试使用
+脚本化模型和可模拟回复丢失的 Gateway MCP 测试客户端，验证一个 Run 内先暂停再
+Owner 对账完成、物理 Tool 请求提交次数严格等于 1。这不是已安装 Gateway 的
+端到端验收，也不是 Agent 业务结果已被独立 DomainVerifier 接受。
+
+**真实安装 Gateway 的后续受控验收（2026-11-16）：** 上述 R45 源码的另一个
+独立单次试验使用 *脚本化 Provider*、已安装 Gateway 0.10.10、真实
+Linux Runtime 和原 PostgreSQL 18。测试客户端在 Gateway 已收到
+`execution.submit` 之后丢弃响应，并暂时阻断 `execution.resolve`：
+首次返回 `runtime_unknown`、原 Run `paused`、Tool Receipt `unknown`；
+之后允许查询，新的 `resume` 经原 `resolve/get` 恢复为
+`completed`、Tool Receipt `observed`、`reconciled=true`。
+完整试验 `execution.submit` 次数严格为 1，Linux Runtime 原 Job
+`job-01a1e0a1-efb0-74cd-9bdb-a6143f4d0a09` 独立读回
+`exitCode=0`、交付 committed、资源已释放。
+这只是客户端响应丢失这一类故障的单次证据，不证明任意物理
+竞态下 Exactly-once，亦不证明 PR 已部署。
 ## Recovery
 
 Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:

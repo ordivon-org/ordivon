@@ -328,7 +328,7 @@ def test_gateway_cli_rejects_foreign_tool_grant_before_pg_birth(
     assert client.calls == []
 
 
-def test_gateway_cli_unknown_owner_result_does_not_blindly_redispatch(
+def test_gateway_cli_resume_after_unknown_owner_response_without_redispatch(
     monkeypatch,
     pg_schema,
     tmp_path: Path,
@@ -376,18 +376,48 @@ def test_gateway_cli_unknown_owner_result_does_not_blindly_redispatch(
     )
     stopped = independent_cli.dispatch(first, clock_ms=clock)
     assert stopped["stopCode"] == "runtime_unknown"
-    # Current main ends unresolved Tool effect as a stopped Run. Reopening
-    # requires the separate R45 recovery refinement; never claim it here.
-    assert stopped["run"]["status"] == "stopped"
+    assert stopped["run"]["status"] == "paused"
+    assert [name for name, _ in client.calls] == [
+        "execution.submit",
+        "execution.resolve",
+    ]
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        step = EventSourcedRunContinuity.open(
+            store,
+            source.harness_run_id,
+        ).load_current_tool_step()
+        assert step.receipt is not None
+        assert step.receipt.status.value == "unknown"
+        snapshot = EventSourcedRunContinuity.open(
+            store, source.harness_run_id
+        ).load_current_snapshot()
+        assert snapshot.snapshot.pause_reason.value == "effect-dispatch-pending"
+        assert snapshot.snapshot.active_tool_step_intent_digests == (step.intent.digest,)
+
+    client.resolution_offline = False
+    second = build_parser().parse_args(
+        [
+            "resume",
+            source.harness_run_id,
+            "--message",
+            "Use existing Owner outcome",
+            *gateway_args(),
+        ]
+    )
+    recovered = independent_cli.dispatch(second, clock_ms=clock)
+    assert recovered["stopCode"] == "candidate_completed"
+    assert recovered["run"]["status"] == "completed"
     names = [name for name, _ in client.calls]
     assert names.count("execution.submit") == 1
-    assert names.count("execution.resolve") >= 1
+    assert names.count("execution.resolve") >= 2
+    assert "execution.get" in names
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         continuity = EventSourcedRunContinuity.open(store, source.harness_run_id)
         step = continuity.load_current_tool_step()
-        assert step.fence is not None
-        assert step.receipt is not None and step.receipt.status.value == "unknown"
-        assert store.load_run(source.harness_run_id).status.value == "stopped"
+        assert step.receipt is not None
+        assert step.receipt.status.value == "observed"
+        assert step.receipt.reconciled is True
+        assert step.receipt.runtime_job_ref == "job-h2"
         store.validate_run_history(source.harness_run_id)
 
 
