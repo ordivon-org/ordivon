@@ -79,3 +79,14 @@ Validate exact Owner semantics through independent real loopback RPCs, not
 only mocked connector calls; do not infer production latency from loopback.
 Preserve long-running Runtime Jobs on HTTP cancellation; never blindly replay
 an execution submission after uncertain delivery.
+
+## Runtime Job versus Attempt projection (consumer check)
+
+Do not treat `status` and `attemptState` as equivalent fields. In the natural
+Runtime producer `project_job`, `status` summarizes accepted/starting as queued
+and running/stopping/recovering as working, while `attemptState` retains the
+exact physical Attempt state. Validate each supplied JSON field independently
+and preserve the declared public summary. A false equality invariant can block
+legitimate Agent `execution.submit/get/cancel` operations. Regression examples
+must come from the actual Rust producer; Gateway capability readiness TLA+
+models do not prove Job state equivalence or installed consumer behavior.
