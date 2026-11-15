@@ -84,19 +84,31 @@ const DEFAULT_EXECUTION_HOME: &str = "/root";
 const STALE_PREPARED_INPUT_AGE_MS: u64 = 60_000;
 const WINDOWS_NATIVE_OUTER_DEADLINE_GRACE_MS: u64 = 5_000;
 const HOST_DEPENDENCY_CONTINUITY_SCOPE: &str = "runtime_host_namespace_path_witness";
-pub(crate) const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
+/// Per-Job systemd bind mount: stable compiler-visible path, Workspace-private bytes.
+/// Unlike /proc/self/fd/198, ordinary subprocesses may close inherited FDs.
+pub(crate) const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/run/ordivon/cargo-target";
+/// Old committed PG plans keep the original FD implementation; never rewrite their env.
+pub(crate) const LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 
-/// Shared Runner capability: the existing fd-backed Cargo cache is meaningful
-/// only for trusted Linux Jobs whose *committed plan* uses its stable path.
+fn plan_uses_cargo_target(plan: &RuntimeExecutionPlan, target: &str) -> bool {
+    plan.env.get("CARGO_TARGET_DIR").map(String::as_str) == Some(target)
+        || plan
+            .steps
+            .iter()
+            .any(|step| step.env.get("CARGO_TARGET_DIR").map(String::as_str) == Some(target))
+}
+
 pub(crate) fn requires_private_cargo_build_target(plan: &RuntimeExecutionPlan) -> bool {
     plan.execution_target == crate::runtime::ExecutionTarget::LocalLinux
         && plan.execution_profile == crate::runtime::ExecutionProfile::TrustedLocal
-        && (plan.env.get("CARGO_TARGET_DIR").map(String::as_str)
-            == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
-            || plan.steps.iter().any(|step| {
-                step.env.get("CARGO_TARGET_DIR").map(String::as_str)
-                    == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
-            }))
+        && (plan_uses_cargo_target(plan, TRUSTED_BUILD_TARGET_PRESENTATION)
+            || plan_uses_cargo_target(plan, LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION))
+}
+
+pub(crate) fn requires_native_cargo_target_mount(plan: &RuntimeExecutionPlan) -> bool {
+    plan.execution_target == crate::runtime::ExecutionTarget::LocalLinux
+        && plan.execution_profile == crate::runtime::ExecutionProfile::TrustedLocal
+        && plan_uses_cargo_target(plan, TRUSTED_BUILD_TARGET_PRESENTATION)
 }
 
 const WINDOWS_INPUT_PRESENTATION_COMPONENTS: [&str; 1] = ["OrdivonImmutableInputs"];
@@ -1018,6 +1030,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: Some(&inputs),
             credential_source_root: None,
             credential_names: &[],
@@ -1043,6 +1056,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: Some(&inputs),
             credential_source_root: None,
             credential_names: &[],
@@ -1685,6 +1699,7 @@ mod trusted_systemd_command_tests {
             bundle_path: Path::new("/var/lib/ordivon/attempts/attempt-test"),
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1742,6 +1757,7 @@ mod trusted_systemd_command_tests {
             bundle_path: Path::new("/var/lib/ordivon/attempts/attempt-budget"),
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1790,6 +1806,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],

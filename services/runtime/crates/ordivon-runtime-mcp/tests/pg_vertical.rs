@@ -2545,7 +2545,18 @@ fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
 
     // Exercise the real PG admission -> systemd Runner -> physical filesystem,
     // not a mock plan or a pre-set CARGO_TARGET_DIR from the caller.
-    let script = "import os\nfrom pathlib import Path\np=Path(os.environ['CARGO_TARGET_DIR'])\np.mkdir(parents=True,exist_ok=True)\n(p/'pg-private-marker').write_text('PRIVATE_ONLY')\nprint(os.environ['CARGO_TARGET_DIR'])\n";
+    let script = r#"import os, subprocess
+from pathlib import Path
+p = Path(os.environ["CARGO_TARGET_DIR"])
+assert p.is_dir()
+(p / "pg-private-marker").write_text("PRIVATE_ONLY")
+subprocess.run(
+    ["/usr/bin/python3", "-c",
+     "import os,pathlib; p=pathlib.Path(os.environ['CARGO_TARGET_DIR']); (p/'pg-private-child-marker').write_text('NESTED')"],
+    check=True, close_fds=True,
+)
+print(os.environ["CARGO_TARGET_DIR"])
+"#;
     let result = call(
         &endpoint,
         "workspace.exec",
@@ -2563,7 +2574,7 @@ fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
         result["structuredContent"]["stdoutTail"]
             .as_str()
             .map(str::trim),
-        Some("/proc/self/fd/198"),
+        Some("/run/ordivon/cargo-target"),
     );
     let cache = fixture
         .root
@@ -2574,6 +2585,11 @@ fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
         fs::read_to_string(cache.join("pg-private-marker")).unwrap(),
         "PRIVATE_ONLY"
     );
+    assert_eq!(
+        fs::read_to_string(cache.join("pg-private-child-marker")).unwrap(),
+        "NESTED",
+        "nested native subprocess must not lose its private Cargo target"
+    );
     assert!(
         !fixture
             .root
@@ -2583,6 +2599,70 @@ fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
             .exists(),
         "tool output must not land in Git-ignored source worktree target/"
     );
+
+    // Two live Jobs share the stable lexical Cargo path but NOT physical
+    // backing bytes. The systemd mount namespace is the native isolation.
+    let other_id = "ws-pg-private-cargo-other";
+    let other_open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":other_id,"sourceRepo":source,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(other_open["isError"], true, "{other_open}");
+    let other_script = script
+        .replace("PRIVATE_ONLY", "OTHER_ONLY")
+        .replace("NESTED", "NESTED_OTHER");
+    let other_result = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-private-cargo-other-physical",
+              "execution":{"workspaceId":other_id,"executable":"/usr/bin/python3",
+                           "args":["-c",other_script],"cwdRelative":".","timeoutMs":10000},
+              "waitMs":15000,"stdoutTailBytes":1024}),
+    );
+    assert_ne!(other_result["isError"], true, "{other_result}");
+    assert_eq!(
+        other_result["structuredContent"]["executionDisposition"], "succeeded",
+        "{other_result}"
+    );
+    assert_eq!(
+        other_result["structuredContent"]["stdoutTail"]
+            .as_str()
+            .map(str::trim),
+        Some("/run/ordivon/cargo-target"),
+    );
+    let other_cache = fixture
+        .root
+        .join("store/cache/build")
+        .join(other_id)
+        .join("cargo");
+    assert_eq!(
+        fs::read_to_string(other_cache.join("pg-private-marker")).unwrap(),
+        "OTHER_ONLY"
+    );
+    assert_eq!(
+        fs::read_to_string(other_cache.join("pg-private-child-marker")).unwrap(),
+        "NESTED_OTHER"
+    );
+    assert_eq!(
+        fs::read_to_string(cache.join("pg-private-marker")).unwrap(),
+        "PRIVATE_ONLY"
+    );
+    assert_eq!(
+        fs::read_to_string(cache.join("pg-private-child-marker")).unwrap(),
+        "NESTED"
+    );
+    let other_close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":other_id,"force":false,"consumerReleased":true}),
+    );
+    assert_ne!(other_close["isError"], true, "{other_close}");
+    assert!(
+        !other_cache.exists(),
+        "secondary private backing must be reclaimed"
+    );
+
     // A multi-step PG plan must project the same private target into each
     // Runner step, not only into its job-wide environment.
     let plan_result = call(
@@ -2622,7 +2702,7 @@ fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
         .get(0);
     let plan: Value = serde_json::from_str(&frozen).unwrap();
     for step in plan["steps"].as_array().unwrap() {
-        assert_eq!(step["env"]["CARGO_TARGET_DIR"], "/proc/self/fd/198");
+        assert_eq!(step["env"]["CARGO_TARGET_DIR"], "/run/ordivon/cargo-target");
     }
     // An explicitly authored path is a real execution input, not a default
     // the Runtime may silently replace.

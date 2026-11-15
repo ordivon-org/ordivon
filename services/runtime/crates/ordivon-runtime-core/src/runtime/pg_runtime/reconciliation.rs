@@ -482,10 +482,10 @@ impl PgRuntime {
             if universal::sha256_bytes(token.as_bytes()) != a.launch_token_digest {
                 return Err(error("launch token mismatch"));
             }
-            // Reuse the existing native Runner FD presentation and Workspace-
-            // private cache. The PG plan already froze the effective env at
-            // admission; reconstruct only its deterministic physical backing.
-            // Old committed plans without the FD keep their original behavior.
+            // Derive the Workspace-private Cargo backing from the committed plan.
+            // New plans bind it into one native systemd mount namespace; old
+            // FD198 plans continue to use the original Runner compatibility path.
+            // Do not rewrite a committed environment or its source identity.
             let build_target_backing =
                 if crate::runtime::engine::requires_private_cargo_build_target(&plan) {
                     let backing = self
@@ -606,6 +606,13 @@ impl PgRuntime {
                 bundle_path: Path::new(&a.bundle_path),
                 workspace_path: Path::new(&plan.workspace_path),
                 workspace_git_common_dir: plan.workspace_git_common_dir.as_deref().map(Path::new),
+                cargo_target_mount: if crate::runtime::engine::requires_native_cargo_target_mount(
+                    &plan,
+                ) {
+                    req.build_target_backing.as_deref().map(Path::new)
+                } else {
+                    None
+                },
                 input_set_path: None,
                 credential_source_root: None,
                 credential_names: &[],
