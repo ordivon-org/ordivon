@@ -38,13 +38,18 @@ def _required_bool(payload: dict[str, Any], key: str) -> bool:
 
 def _owner_receipt_state(response: dict[str, Any]) -> str:
     """Runtime State is an open native text vocabulary, never Python coerced."""
+    values: list[str] = []
     for field in ("status", "attemptState"):
         if field in response:
             value = response[field]
             if not isinstance(value, str) or not value:
                 raise GatewayError(f"Runtime owner response requires string {field}")
-            return value
-    return "unknown"
+            values.append(value)
+    # Both fields describe the same observed native Attempt state. Do not let
+    # a plausible-looking status mask a contradictory Owner witness.
+    if len(values) == 2 and values[0] != values[1]:
+        raise GatewayError("Runtime owner response has conflicting state aliases")
+    return values[0] if values else "unknown"
 
 
 def _owner_optional_disposition(response: dict[str, Any], field: str) -> str | None:

@@ -114,3 +114,23 @@ def test_agent_receipt_absent_optional_text_is_unknown_not_success() -> None:
     receipt = submit(caller)
     assert receipt.state == "unknown"
     assert receipt.delivery_disposition is None
+
+
+@pytest.mark.parametrize("method", [submit, cancel])
+@pytest.mark.parametrize("attempt_state", ["failed", 7, None, ""])
+def test_owner_receipt_rejects_conflicting_or_invalid_state_alias(
+    method, attempt_state: Any
+) -> None:
+    """A successful status cannot hide a contradictory/malformed attemptState."""
+    caller = OwnerReceiptCaller(
+        {
+            "jobId": "job-receipt-contract",
+            "status": "succeeded",
+            "attemptState": attempt_state,
+            "executionTerminal": True,
+            "deliveryDisposition": "committed",
+        }
+    )
+    with pytest.raises(GatewayError, match="Runtime owner response"):
+        method(caller)
+    assert len(caller.calls) == 1

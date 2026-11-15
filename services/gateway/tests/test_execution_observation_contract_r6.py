@@ -115,3 +115,18 @@ def test_observation_absent_wire_fields_preserve_unknown_not_success() -> None:
     assert result.execution_disposition is None
     assert result.artifacts_available is None
     assert result.terminal is False
+
+
+def test_observation_rejects_conflicting_status_and_attempt_state() -> None:
+    caller = ObservationOwner(
+        {
+            "jobId": "job-r6-type-observe",
+            "status": "succeeded",
+            "attemptState": "failed",
+            "executionTerminal": False,
+            "artifactsAvailable": False,
+        }
+    )
+    with pytest.raises(GatewayError, match="Runtime owner response"):
+        observe(caller)
+    assert caller.calls == ["job.observe"]

@@ -259,6 +259,11 @@ class ExecutionObservationMethods:
         ):
             raise GatewayError("artifact owner returned an invalid range/cursor")
         eof = _required_bool(result, "eof")
+        # A nonterminal zero-progress range cannot be consumed by any Agent:
+        # the Owner is not proof of EOF and repeating this cursor would loop.
+        # True EOF may legitimately return an empty final range.
+        if not eof and next_offset == offset:
+            raise GatewayError("artifact owner returned a non-progressing cursor before EOF")
         content = result.get("content")
         if not isinstance(content, str):
             raise GatewayError("artifact owner returned invalid content")
