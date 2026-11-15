@@ -1,4 +1,5 @@
 mod artifact_release_state;
+pub(crate) use artifact_release_state::ReleaseStateContract;
 mod authority_contract;
 mod control_primitives;
 #[cfg(feature = "operator-tools")]

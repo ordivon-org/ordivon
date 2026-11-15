@@ -62,6 +62,20 @@ timedTextDocument (TTML). Unknown profile kinds have no advertised input
 roles and no executable adapter. These role names are discovery hints, not
 proof that a supplied file matches its role.
 
+For an already materialized **local Linux Runtime input**, callers can also pass
+the optional \`expectedInputDigest\` (lowercase \`sha256:<hex>\`) to
+\`studio_processing_probe_plan\`. In that case Studio validates the selected
+source bytes, resolves the actual file pathname and emits the existing Runtime
+\`execution.hostDependencies\` for the exact input, profile and adapter files.
+Compile and execute in the **same Runtime host/workspace namespace**: the
+absolute committed paths must refer to those very files at admission. Existing
+plans without this optional field remain source-only proposals; they do not
+bind input bytes. Runtime validates declared dependencies on admission and
+dispatch, watches host-namespace path continuity, but cannot prove that an
+opaque tool consumed those bytes. The consuming Production must compare the
+adapter's raw \`artifact.digest\` or \`input.digest\` with the selected digest.
+No new registry, executor, or adapter-specific digest engine is created.
+
 The compiler does not implement FFmpeg, OTIO, or subtitle processing; it
 does not check tool installation, mutate source media, or grant execution
 authority. A profile check is a mechanical predicate, never aesthetic or

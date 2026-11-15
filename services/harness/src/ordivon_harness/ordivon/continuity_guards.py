@@ -10,12 +10,11 @@ from ..protocol import (
     HarnessToolStepReceipt,
 )
 from ..run_state import HarnessRunState
-from ..sqlite_store import SQLiteHarnessStore
-from ..store import HarnessRunEventRecord
+from ..store import HarnessRunEventRecord, HarnessStore
 from .continuity_records import HarnessDispatchFenceV2
 from .run_store_port import HarnessRunStoreBinding
 
-# Contract checks and read-only Tool Event validation; callers retain SQLite leases and event writes.
+# Read-only contract and Tool Event validation; Store transactions belong to the caller.
 
 
 _TOOL_EVENT_KINDS = frozenset(
@@ -102,7 +101,7 @@ def required_event_digest(data: dict[str, JsonValue], field: str) -> str:
 def validate_tool_event(
     event: HarnessRunEventRecord,
     *,
-    store: SQLiteHarnessStore,
+    store: HarnessStore,
     harness_run_id: str,
     binding: HarnessRunStoreBinding,
     allow_tool_content: bool,
@@ -119,6 +118,15 @@ def validate_tool_event(
     require_tool_intent_binding(intent, harness_run_id, binding)
     if data.get("toolStepIntentDigest") != intent.digest:
         raise ValueError("Harness Tool Step Intent event digest differs")
+    physical_digest = data.get("physicalExecutionDigest")
+    if physical_digest is not None:
+        if (
+            intent.runtime_operation != "workspace.exec"
+            or not isinstance(physical_digest, str)
+            or len(physical_digest) != 71
+            or not physical_digest.startswith("sha256:")
+        ):
+            raise ValueError("Harness physical execution commitment invalid")
     fence_object_digest = data.get("dispatchFenceObjectDigest")
     if fence_object_digest is not None:
         if not isinstance(fence_object_digest, str):

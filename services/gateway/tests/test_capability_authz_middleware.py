@@ -6,11 +6,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from ordivon_gateway.access_auth import CloudflareAccessMiddleware
-from ordivon_gateway.capability_authz import (
-    GatewayCapabilityAuthorizationMiddleware,
-    resolve_authorization_target,
-)
+from ordivon_gateway.authorization_targets import resolve_authorization_target
+from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
 from ordivon_gateway.mcp_server import build_server
 
 
@@ -356,3 +356,396 @@ def test_build_server_adds_pep_only_when_trusted_authorizer_is_injected() -> Non
     assert names.index("GatewayCapabilityAuthorizationMiddleware") > names.index(
         "GatewayAuditMiddleware"
     )
+
+
+def test_http_artifact_pep_without_pdp_denies_instead_of_bypassing() -> None:
+    """The CLI HTTP path must not silently omit the protected Artifact PEP."""
+    server = build_server(service=object(), protect_artifact_reads=True)  # type: ignore[arg-type]
+    peps = [
+        entry
+        for entry in server.middleware
+        if isinstance(entry, GatewayCapabilityAuthorizationMiddleware)
+    ]
+    assert len(peps) == 1
+    reached = False
+
+    async def forbidden_owner(_ctx: Any) -> dict[str, Any]:
+        nonlocal reached
+        reached = True
+        return {"structuredContent": {"ownerReached": True}}
+
+    denied = asyncio.run(peps[0](_ctx(state=_verified_state()), forbidden_owner))
+    assert denied.is_error is True
+    assert denied.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_UNAVAILABLE"
+    assert reached is False
+
+    # The PEP intentionally owns only the qualified Runtime Artifact target.
+    discovered = asyncio.run(
+        peps[0](_ctx(tool="capability.search", state=_verified_state()), _next)
+    )
+    assert discovered["structuredContent"]["ok"] is True
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_gateway_main_http_installs_artifact_pep_with_or_without_pdp(
+    monkeypatch,
+    tmp_path: Path,
+    configured: bool,
+) -> None:
+    """Exercise actual CLI server composition in both protected HTTP modes."""
+    from ordivon_gateway import mcp_server
+
+    monkeypatch.setenv("ORDIVON_GATEWAY_TRANSPORT", "streamable-http")
+    monkeypatch.delenv("ORDIVON_GATEWAY_TRUST_CF_ACCESS", raising=False)
+    monkeypatch.delenv("ORDIVON_GATEWAY_LOCAL_BEARER_TOKEN_FILE", raising=False)
+    monkeypatch.delenv("ORDIVON_GATEWAY_PUBLIC_ORIGIN", raising=False)
+    if configured:
+        credential = tmp_path / "authzen.token"
+        credential.write_text("x" * 48, encoding="utf-8")
+        credential.chmod(0o600)
+        monkeypatch.setenv(
+            "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT",
+            "https://pdp.example.test/access/v1/evaluation",
+        )
+        monkeypatch.setenv(
+            "ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE",
+            str(credential),
+        )
+    else:
+        monkeypatch.delenv("ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT", raising=False)
+        monkeypatch.delenv("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", raising=False)
+
+    observed: dict[str, Any] = {}
+    monkeypatch.setattr(mcp_server.McpOwnerCaller, "from_env", lambda: object())
+    monkeypatch.setattr(mcp_server, "GatewayService", lambda _owner: object())
+
+    def capture_build(_service: Any, **kwargs: Any) -> object:
+        observed.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(mcp_server, "build_server", capture_build)
+    monkeypatch.setattr(mcp_server, "build_http_app", lambda *_args, **_kw: object())
+    monkeypatch.setattr(mcp_server.uvicorn, "run", lambda *_args, **_kw: None)
+    mcp_server.main()
+    assert observed["protect_artifact_reads"] is True
+    assert observed["require_http_execution_identity"] is True
+    if configured:
+        assert isinstance(
+            observed["capability_authorizer"],
+            mcp_server.AuthZenPrincipalAuthorizer,
+        )
+    else:
+        assert observed["capability_authorizer"] is None
+
+
+def test_gateway_authzen_env_requires_paired_private_token_file(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    """Reuse the existing private-file loader; no new secret store."""
+    from ordivon_gateway.authzen_authorizer import AuthZenPrincipalAuthorizer
+    from ordivon_gateway.mcp_server import _capability_authorizer_from_env
+
+    monkeypatch.setenv(
+        "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT",
+        "https://pdp.example.test/access/v1/evaluation",
+    )
+    monkeypatch.delenv("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", raising=False)
+    with pytest.raises(RuntimeError, match="both"):
+        _capability_authorizer_from_env()
+
+    file = tmp_path / "pdp.token"
+    file.write_text("t" * 48, encoding="utf-8")
+    file.chmod(0o600)
+    monkeypatch.setenv("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", str(file))
+    adapter = _capability_authorizer_from_env()
+    assert isinstance(adapter, AuthZenPrincipalAuthorizer)
+    assert adapter._bearer_token_provider() == "t" * 48
+
+
+def _host_allow(
+    tool: str,
+    resource: dict[str, Any],
+    *,
+    principal: str = "principal:local-service:harness",
+) -> dict[str, Any]:
+    return {
+        "schemaVersion": 3,
+        "kind": "ordivon.security.gateway-capability-authz",
+        "principalId": principal,
+        "issuer": "ordivon-local-service",
+        "requestedCapability": tool,
+        "requestedResource": resource,
+        "qualificationTarget": True,
+        "authorizationProfile": "interactive-principal-authzen",
+        "outcome": "ALLOW",
+        "reason": "test-only",
+        "authorizationEvidence": {
+            "standard": "openid-authzen-authorization-api-1.0",
+            "requestId": "test-r10",
+            "responseRequestId": "test-r10",
+            "decision": True,
+        },
+        "authorityProjection": None,
+        "effectAdmission": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "tool,arguments",
+    [
+        ("actor.declare", {"actorRef": "actor:claimed", "actorKind": "agent"}),
+        ("work.create", {"workRef": "work:abc", "actorRef": "actor:claimed"}),
+        (
+            "work.snapshot.commit",
+            {"workRef": "work:abc", "actorRef": "actor:claimed", "expectedRevision": 1},
+        ),
+        ("space.create", {"spaceRef": "space:abc", "actorRef": "actor:claimed"}),
+        ("space.participation.set", {"spaceRef": "space:abc", "actorRef": "actor:claimed"}),
+        ("topic.create", {"topicRef": "topic:abc", "actorRef": "actor:claimed"}),
+        ("topic.cursor.ack", {"topicRef": "topic:abc", "actorRef": "actor:claimed"}),
+        ("topic.state.set", {"topicRef": "topic:abc", "actorRef": "actor:claimed"}),
+        ("message.post", {"topicRef": "topic:abc", "authorActorRef": "actor:claimed"}),
+        ("message.relation.add", {"messageRef": "message:abc", "actorRef": "actor:claimed"}),
+        ("subscription.follow", {"topicRef": "topic:abc", "actorRef": "actor:claimed"}),
+        ("subscription.unfollow", {"topicRef": "topic:abc", "actorRef": "actor:claimed"}),
+        ("attention.ack", {"actorRef": "actor:claimed", "sequence": 3}),
+    ],
+)
+def test_all_legacy_host_mutations_deny_without_pdp_even_with_verified_ingress(
+    tool,
+    arguments,
+) -> None:
+    """Gateway's machine Host credential cannot authorize caller-claimed Actor effects."""
+    effects: list[str] = []
+
+    async def owner(_ctx: Any):
+        effects.append(tool)
+        return await _next(_ctx)
+
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(None)(
+            _ctx(tool=tool, state=_verified_state(), arguments=arguments),
+            owner,
+        )
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_UNAVAILABLE"
+    assert effects == []
+
+
+def test_legacy_host_mutation_resource_identity_binds_entire_request_and_tool_name() -> None:
+    """A decision for one legacy request must not authorize another tool/Actor."""
+    original_args = {
+        "workRef": "work:test:legacy",
+        "actorRef": "actor:test:one",
+        "expectedRevision": 2,
+        "snapshot": {"objective": "preserve", "nextActions": ["verify"]},
+    }
+    from ordivon_gateway.authorization_targets import resolve_authorization_target
+
+    original = resolve_authorization_target("work.snapshot.commit", original_args)
+    equivalent = resolve_authorization_target(
+        "work.snapshot.commit",
+        dict(reversed(list(original_args.items()))),
+    )
+    actor_spoof = resolve_authorization_target(
+        "work.snapshot.commit", {**original_args, "actorRef": "actor:test:other"}
+    )
+    payload_change = resolve_authorization_target(
+        "work.snapshot.commit",
+        {**original_args, "snapshot": {"objective": "altered", "nextActions": ["verify"]}},
+    )
+    tool_change = resolve_authorization_target("work.create", original_args)
+    assert original is not None and equivalent is not None
+    assert actor_spoof is not None and payload_change is not None and tool_change is not None
+    assert original.authzen_resource() == equivalent.authzen_resource()
+    assert (
+        len(
+            {
+                original.resource_id,
+                actor_spoof.resource_id,
+                payload_change.resource_id,
+                tool_change.resource_id,
+            }
+        )
+        == 4
+    )
+    assert original.capability == "host.legacy-write"
+    assert original.authzen_resource()["properties"]["claimedActorRef"] == "actor:test:one"
+    assert original.authzen_resource()["properties"]["toolName"] == "work.snapshot.commit"
+    assert original.authzen_resource()["properties"]["identityContract"] == (
+        "ordivon.host-legacy-write-resource.v1"
+    )
+
+
+def test_legacy_host_write_wrong_bound_security_decision_cannot_call_owner() -> None:
+    from ordivon_gateway.authorization_targets import resolve_authorization_target
+
+    proper_args = {
+        "workRef": "work:immutable",
+        "actorRef": "actor:reviewer",
+        "expectedRevision": 2,
+        "snapshot": {"objective": "write"},
+    }
+    resource = resolve_authorization_target("work.snapshot.commit", proper_args).authzen_resource()
+    denied = _host_allow("host.legacy-write", resource)
+    denied["outcome"] = "DENY"
+    unavailable = FakeAuthorizer(fail=True)
+
+    async def scenario(authorizer, arguments):
+        invoked = []
+
+        async def effect(_ctx):
+            invoked.append("effect")
+            return await _next(_ctx)
+
+        result = await GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(tool="work.snapshot.commit", state=_verified_state(), arguments=arguments),
+            effect,
+        )
+        return result, invoked
+
+    for authorizer, args, expected in (
+        (FakeAuthorizer(denied), proper_args, "CAPABILITY_AUTHZ_DENIED"),
+        (unavailable, proper_args, "CAPABILITY_AUTHZ_UNAVAILABLE"),
+        (
+            FakeAuthorizer(_host_allow("host.legacy-write", resource)),
+            {**proper_args, "actorRef": "actor:spoof"},
+            "CAPABILITY_AUTHZ_BINDING_MISMATCH",
+        ),
+    ):
+        result, invoked = asyncio.run(scenario(authorizer, args))
+        assert result.is_error is True
+        assert result.structured_content["error"]["code"] == expected
+        assert not invoked
+
+    # Only a request-bound Security ALLOW can pass this isolated PEP check.
+    # The artificial policy is NOT a production Agent/Actor grant.
+    pass_through, invoked = asyncio.run(
+        scenario(FakeAuthorizer(_host_allow("host.legacy-write", resource)), proper_args)
+    )
+    assert pass_through["structuredContent"]["ok"] is True
+    assert invoked == ["effect"]
+
+
+@pytest.mark.parametrize("wrong", [{"unjson": {1, 2}}, {"float": float("nan")}])
+def test_non_json_legacy_host_mutation_auth_target_is_rejected_before_pdp(wrong) -> None:
+    from ordivon_gateway.authorization_targets import (
+        CapabilityAuthorizationTargetError,
+        resolve_authorization_target,
+    )
+
+    with pytest.raises(CapabilityAuthorizationTargetError, match="JSON-compatible"):
+        resolve_authorization_target(
+            "message.post", {"authorActorRef": "actor:test:author", **wrong}
+        )
+
+
+def test_legacy_host_readonly_stays_read_and_all_owner_writes_default_to_pep() -> None:
+    from ordivon_gateway.authorization_targets import (
+        _HOST_READ_ONLY_TOOLS,
+        _legacy_host_mutation_target,
+    )
+    from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
+
+    assert _HOST_READ_ONLY_TOOLS <= _SOCIAL_WORK_HOST_TOOLS
+    assert "work.snapshot.commit" not in _HOST_READ_ONLY_TOOLS
+    assert "attention.delta" in _HOST_READ_ONLY_TOOLS
+    assert "work.engagement.advance" not in _HOST_READ_ONLY_TOOLS
+    for name in _SOCIAL_WORK_HOST_TOOLS - _HOST_READ_ONLY_TOOLS:
+        assert (
+            _legacy_host_mutation_target(
+                name,
+                (
+                    {"authorActorRef": "actor:test:claim"}
+                    if name == "message.post"
+                    else {"actorRef": "actor:test:claim"}
+                ),
+            )
+            is not None
+        )
+    for name in _HOST_READ_ONLY_TOOLS:
+        assert _legacy_host_mutation_target(name, {"actorRef": "actor:test:claim"}) is None
+
+
+def test_legacy_message_author_cannot_be_shadowed_by_untrusted_actor_argument() -> None:
+    from ordivon_gateway.authorization_targets import (
+        CapabilityAuthorizationTargetError,
+        _legacy_host_mutation_target,
+    )
+
+    request = {
+        "authorActorRef": "actor:actual:author",
+        "actorRef": "actor:forged:shadow",
+        "topicRef": "topic:messages",
+        "messageRef": "message:one",
+        "body": "actual persisted authorship",
+    }
+    target = _legacy_host_mutation_target("message.post", request)
+    assert target is not None
+    assert target.authzen_resource()["properties"]["claimedActorRef"] == "actor:actual:author"
+    different = _legacy_host_mutation_target(
+        "message.post", {**request, "authorActorRef": "actor:different:author"}
+    )
+    assert different is not None
+    assert target.resource_id != different.resource_id
+    with pytest.raises(CapabilityAuthorizationTargetError, match="qualified authorActorRef"):
+        _legacy_host_mutation_target("message.post", {**request, "authorActorRef": "invalid"})
+    with pytest.raises(CapabilityAuthorizationTargetError, match="qualified actorRef") as error:
+        _legacy_host_mutation_target("work.snapshot.commit", {"workRef": "work:abc"})
+    assert error.value.capability == "host.legacy-write"
+
+
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        {"schemaVersion": 3.0},
+        {"schemaVersion": 2.0},
+        {
+            "authorizationEvidence": {
+                "standard": "openid-authzen-authorization-api-1.0",
+                "decision": True,
+                "requestId": "",
+                "responseRequestId": "",
+            }
+        },
+        {
+            "authorizationEvidence": {
+                "standard": "openid-authzen-authorization-api-1.0",
+                "decision": True,
+                "requestId": "   ",
+                "responseRequestId": "   ",
+            }
+        },
+    ],
+)
+def test_malformed_security_allow_cannot_cross_owner_pep(malformed: dict[str, Any]) -> None:
+    """Security ALLOW must carry an exact integer version and qualified AuthZEN nonce."""
+    args = {"workRef": "work:test:one"}
+    target = resolve_authorization_target("work.get", args)
+    assert target is not None
+    decision = _host_allow("host.legacy-read", target.authzen_resource())
+    decision.update(malformed)
+    if decision.get("schemaVersion") == 2.0:
+        # A floating version 2.0 must not inherit a version-2 delegated policy.
+        decision["authorityProjection"] = {"authorityId": "grant:forged"}
+        decision["effectAdmission"] = {"admitted": True}
+    entered: list[str] = []
+
+    async def owner(_ctx):
+        entered.append("owner")
+        return {"structuredContent": {"ownerReached": True}}
+
+    observed = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(FakeAuthorizer(decision))(
+            _ctx(tool="work.get", state=_verified_state(), arguments=args),
+            owner,
+        )
+    )
+    assert observed.is_error is True
+    assert observed.structured_content["error"]["code"] in {
+        "CAPABILITY_AUTHZ_BINDING_MISMATCH",
+        "CAPABILITY_AUTHZ_ALLOW_INCOMPLETE",
+    }
+    assert entered == []

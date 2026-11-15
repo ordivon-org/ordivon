@@ -17,11 +17,6 @@ def build_parser() -> argparse.ArgumentParser:
         description="Caller-neutral Harness Run execution and durable recovery.",
     )
     parser.add_argument(
-        "--state-root",
-        type=Path,
-        help="Harness Journal/CAS root",
-    )
-    parser.add_argument(
         "--deepseek-secret",
         type=Path,
         default=DEFAULT_DEEPSEEK_SECRET_PATH,
@@ -46,13 +41,6 @@ def build_parser() -> argparse.ArgumentParser:
     _add_input_options(resume)
     commands.add_parser("store-init")
     commands.add_parser("store-doctor")
-    store_backup = commands.add_parser("store-backup")
-    store_backup.add_argument("destination", type=Path)
-    store_verify = commands.add_parser("store-verify-backup")
-    store_verify.add_argument("backup", type=Path)
-    store_restore = commands.add_parser("store-restore")
-    store_restore.add_argument("backup", type=Path)
-    store_restore.add_argument("destination", type=Path)
     store_inspect = commands.add_parser("store-inspect")
     store_inspect.add_argument("harness_run_id")
     store_events = commands.add_parser("store-events")
@@ -95,13 +83,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _dispatch_store(args: argparse.Namespace) -> dict[str, object]:
-    if args.state_root is not None:
-        raise ValueError("--state-root is retired; Harness uses PostgreSQL only")
     dsn, schema = configured_postgres()
-    if args.command in {"store-backup", "store-verify-backup", "store-restore"}:
-        raise ValueError(
-            "legacy SQLite backup and restore are retired; use native PostgreSQL recovery"
-        )
     with PostgresHarnessStore(dsn, schema=schema, initialize=args.command == "store-init") as store:
         if args.command in {"store-init", "store-doctor"}:
             return {

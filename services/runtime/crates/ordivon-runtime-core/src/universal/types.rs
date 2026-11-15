@@ -67,6 +67,9 @@ pub(crate) struct WorkspaceRecord {
 pub struct CompactWorkspaceOpenResult {
     pub workspace_id: String,
     pub source_revision: String,
+    /// PG Runtime opens warn the Agent of operator-owned ephemeral Workspace retention.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retention_notice: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
@@ -721,6 +724,9 @@ pub(crate) struct RunnerRequest {
     pub workspace_path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workspace_source_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_read_paths: Option<Vec<String>>,
+
     /// Runtime-owned private backing for a stable compiler-visible target path.
     /// This is internal execution realization, not caller-authored authority.
     #[serde(default, skip_serializing_if = "Option::is_none")]

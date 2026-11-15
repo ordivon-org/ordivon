@@ -149,6 +149,26 @@ class AttestationEmissionBoundaryTests(unittest.TestCase):
         self.assertEqual(statement["predicate"]["verificationResult"], "PASSED")
         self.assertEqual(len(statement["predicate"]["inputAttestations"]), 6)
 
+    def test_reissuance_uses_immutable_references_and_keeps_prior_vsa_on_failure(self) -> None:
+        self.create_gate()
+        first = self.emit()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        original = (self.output / "verification-summary.vsa.intoto.json").read_bytes()
+        statement = json.loads(original)
+        references = statement["predicate"]["inputAttestations"]
+        self.assertEqual(len(references), 6)
+        self.assertTrue(all("/reference-generations/" in item["uri"] for item in references))
+        generation = self.output / "reference-generations"
+        self.assertEqual(len(list(generation.iterdir())), 1)
+        repeated = self.emit()
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        self.assertEqual(original, (self.output / "verification-summary.vsa.intoto.json").read_bytes())
+        self.assertEqual(len(list(generation.iterdir())), 1)
+        (self.artifacts / "gitleaks.sarif").write_bytes(b'{"tampered":true}')
+        bad = self.emit()
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertEqual(original, (self.output / "verification-summary.vsa.intoto.json").read_bytes())
+
     def test_rejects_mutated_evidence_before_writing_vsa(self) -> None:
         self.create_gate()
         (self.artifacts / "gitleaks.sarif").write_bytes(b'{"new":"content"}')

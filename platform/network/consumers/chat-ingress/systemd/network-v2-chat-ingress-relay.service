@@ -1,7 +1,7 @@
 [Unit]
 Description=Loopback relay from host ChatIngress port into Network v2 Browserless namespace
-BindsTo=network-v2-browserless.target
-After=network-v2-browserless.target network-v2-chat-ingress-proxy.service
+BindsTo=network-v2-shared-egress.target
+After=network-v2-shared-egress.target network-v2-chat-ingress-proxy.service
 Requires=network-v2-chat-ingress-proxy.service
 PartOf=network-v2-chat-ingress.target
 

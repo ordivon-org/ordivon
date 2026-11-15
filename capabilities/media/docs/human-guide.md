@@ -44,6 +44,57 @@ mise exec -- python3 scripts/materialize-python.py
 
 The context is a read-only projection, not a render or publication action. Use `scripts/owner-environment doctor` when an installed tool or dependency is missing. This Python-only path avoids materializing the JavaScript renderer for a read-only context query. Use the full `scripts/owner-environment bootstrap` only when a task actually needs Node/renderer dependencies. Do not bootstrap solely to list production IDs or processing profiles.
 
+## Verify the bytes of a selected Output
+
+Choose the actual Production and one Output. The read-only Production Context
+now includes `outputByteIdentity`. A `sourceCarrier` names bytes directly
+taken from a declared source; an `outputCarrier` names a locally materialized,
+possibly transformed deliverable. Both are Production-relative, SHA-256
+checked when inspected, and separate from rights or publication. For an
+external rendered/encoded Output with neither carrier, supply the actual file:
+
+```bash
+cd capabilities/media
+uv run --frozen ordivon-studio production-context \
+  productions/runtime-introduction \
+  --output-file runtime-film-en-landscape=/absolute/path/to/selected.mp4
+```
+
+`MATCHES_DECLARED_DIGEST` verifies only the observed bytes at inspection.
+`DIFFERS_FROM_DECLARED_DIGEST` means the selected file does not match the
+declared Output; `UNKNOWN_*` means no usable byte observation was made.
+An absent local `outputCarrier` yields UNKNOWN, without invalidating the
+historical Output. The original Output status (e.g., `approved`) and parent
+Production status remain independently source-owned. A matching digest never grants rights,
+human approval or authorization to publish; those need separate real evidence.
+
+## Revalidate only selected local operation descendants
+
+For the existing Convergence Sonic Ident Work, Studio exposes a bounded
+read-only dependency graph through the regular Production Context:
+
+```bash
+cd capabilities/media
+uv run --frozen ordivon-studio production-context \
+  productions/convergence-sonic-ident
+```
+
+The `operationLineage` field names five source-owned native production
+steps. It now rejects a dependency edge unless the downstream
+`inputFiles` contains the exact path and SHA-256 of an upstream retained
+file or selected Output carrier. Check `dependencyByteLinks` for the
+named bytes; it does **not** prove the historical command consumed them.
+`revalidateStepIds` contains only steps in the known byte-change
+closure. `unresolvedStepIds` retains missing/invalid evidence as UNKNOWN.
+No step may claim a reusable cache key because historical tools, full
+commands and environment inputs have not been qualified. Matching bytes
+do not grant publication, runtime execution or skip-build authority.
+
+For Agent users, `studio_production_context` returns the same projection
+when `productionId` is `convergence-sonic-ident`. All other existing
+Productions return `operationLineage: null` unless they explicitly declare
+a supported source document. No central Media dependency engine is installed.
+
 ## Inspect technical processing options
 
 ```bash

@@ -1,7 +1,7 @@
 //! Single native Host Dependency validation and pre-dispatch authority.
 //! Shared by the original Runtime engine and the fresh PostgreSQL Runtime.
 
-use super::engine::map_universal_error;
+use super::error::map_universal_error;
 use super::{
     ExecutionProfile, ExecutionTarget, HostDependencyBinding, RuntimeError, RuntimeErrorCode,
     RuntimeResult,

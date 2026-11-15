@@ -49,10 +49,6 @@ SOURCES = (
     ),
     (
         "finance_qualification",
-        "domains/capital/docs/EXTERNAL_IMPLEMENTATION_QUALIFICATION_R1.md",
-    ),
-    (
-        "finance_qualification",
         "domains/capital/docs/ORDIVON_CAPITAL_EXTERNAL_OWNER_CENSUS_R1.md",
     ),
     (

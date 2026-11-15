@@ -57,11 +57,36 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 
 ## 4. Human 操作指南
 
-1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。
+1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。 当前 integrity 模式必须检查每个 Work 的当前 Snapshot 指针与 payload 摘要；旧修订不要求连续也不应因为被裁剪而判定 Host 不健康。history 模式可额外复核仍然保留的 Snapshot，但缺失的历史版本不得伪造；历史读回可以返回缺失。此规则不宣称生产已实施历史裁剪。
 2. 接手工作：work.get 读取版本化 WorkSnapshot；topic.resume 恢复讨论；work.list、space.list、message.search 使用数量与字节预算分页。
 3. 研发变更：进入 services/host 执行 mise run verify；存在独立 Docker 环境时运行 mise run test:postgres:disposable；运行 mise run formal:reply-source 检查源码级纯函数契约。PG 集成 SKIP 不可算成 PASS。
 4. 发布：校验准确 Git SourceCut、不可变安装目录、mcp-surface.json 与真实注册工具一致，再进行已安装服务和 PG 验证。
 5. 清理：检查 PG 外键、业务关联、活跃消费者和审计要求。禁止把系统文件、运行时别人的 Workspace 或数据库行当成普通缓存强删。
+
+## 4.1 当前消费者驱动的低成本 Work 恢复（2026-11-15 只读核查）
+
+一次真实 Host PG/官方 MCP 只读采样：14 个 Work 的 work.list 元数据
+JSON 约 4,276 JavaScript 字符单元，而逐个 work.get 的 JSON 合计
+268,498 字符单元，最大一个 Work 达 130,530；它的 established
+条目已经是接口允许的 128 条上限。这是当时 JSON 文本长度，
+不是 token、生产耗时或 p95 指标，也不代表其它日期的容量。
+
+- 对 Agent 日常恢复，先调用 work.list 的有界、无排序语义的元数据，
+  按真实当前消费者和引用选定 WorkRef，再对该 Work 调用 work.get；
+  rankingApplied=false 不能被解释为任务重要性排序。
+- 对巨型 Work，WorkSnapshot 负责当前可行动状态；完整历史与
+  独立证据仍由现有 Topic/Message 及外部 Owner 引用承载。不要把每次
+  调查结论永久附加到 established，也不要为了绕过最大条目数而
+  擅自删除有消费者的事实。
+- 需要归并时先证明历史证据仍可被目标 Agent 通过
+  workRef → topicRef/messageRef/referenceRefs 找回，取得真实
+  消费者验收，然后使用最新 expectedRevision 的 CAS 提交
+  精化的 Frontier/Established/Unresolved。发生竞争就重读、
+  合并，不能覆盖其它 Agent 的修订。
+- 这套操作复用现有 Host work.list/work.get/topic.resume
+  /work.snapshot.commit，不产生第二份注册表、快照数据库或
+  调度器。要证明真正节省 Agent token/延迟，需要独立在同一
+  Consumer 路径测量，不能只用 JSON 字符数推算。
 
 ## 5. Agent 操作指南
 
@@ -172,3 +197,83 @@ and do not infer ranking or domain completion from search results.
 
 Sources: https://www.postgresql.org/docs/current/gin.html
 https://www.postgresql.org/docs/current/sql-createindex.html
+
+
+## 13. Unicode-gram proof and real consumer refinement (2026-11-08)
+
+Theorem source: `formal/HostUnicodeGram.lean` (pinned Lean 4), invoked by
+`mise run formal:unicode-search` and by Host `mise run verify`. The
+abstract model treats a UTF-8 text as a finite sequence of Unicode scalar
+values and each three-codepoint window as a contiguous sublist. It proves,
+for arbitrary sequences and lengths, that **every true substring match is
+retained by the 3-gram candidate filter**. A second theorem proves that
+candidate containment combined with the original exact substring predicate
+is equivalent to exact substring matching. Axioms must be reported as none.
+
+The theorem assumes that the PostgreSQL `host_unicode_ngrams3(text)` SQL
+function computes those codepoint windows and that `@>` implements set
+containment. These are **implementation refinement obligations**, not
+consequences of the Lean theorem: maintain real PostgreSQL 18 tests for
+Unicode, %/_/#, backslash, and an adversarial false positive where all
+3-grams are present but the complete substring is absent. Preserve the
+published MCP `message.search` readback for installed evidence.
+
+Production observed after schema 13 release `79cb0d7538b9...`:
+`message_unicode_ngrams3_idx` valid and ready, 118 MB; read-only SQL
+EXPLAIN for the literal phrase 终端消费 used Bitmap Index Scan (6.271,
+0.336, 0.175, 0.164 ms over four sequential executions); 25 matches.
+The 0.256 ms median is **not** a workload-level latency or throughput
+promise, nor an independent proof of PostgreSQL implementation correctness.
+Host integrity reported all six checks OK and live MCP readback preserved
+sequence_desc and bounded cursor behavior.
+
+Proof tiers: SPECIFICATION → ABSTRACT_LEAN_THEOREM → NATIVE_SQL_REFINEMENT
+→ INSTALLED_INDEX_PLAN → MCP_CONSUMER. None proves provenance or domain
+acceptance of the retrieved messages.
+
+
+## 14. Attention re-entry single-snapshot MVCC contract (2026-11-08)
+
+attention.get, attention.delta, and attention.reentry each establish one native
+PostgreSQL REPEATABLE READ, READ ONLY transaction per public call.
+For re-entry this single snapshot covers the actor's attention cursor (when
+omitted), the change horizon, the delta event projection, any adaptive maxBytes
+page reduction, and the related Topic consumption cursors. It does not hold
+a database transaction across multiple MCP calls; separate pages may
+legitimately observe later commits.
+
+Counterexample addressed: after delta captures a prior change horizon, another
+Agent commits topic.cursor.ack. Under the former multi-connection implementation
+reentry could return a Topic resume cursor from that newer commit while
+returning older delta events. The new read keeps the prior cursor; a fresh
+re-entry request sees the newer acknowledgement. No event bus, copy of messages,
+custom MVCC algorithm, schema migration or extra cross-request lock is needed.
+
+Proof tier: native PG18 tests schedule concurrent ack after _delta_in_tx
+under both pooled and direct Psycopg connections. Separate checkout-count tests
+require exactly one DB checkout per public read. These are concrete SQL/behavior
+oracles, not a general proof of future latency or all possible schedules.
+
+Human: run mise run test:postgres:disposable; distinguish Attention change
+horizons from Topic Message sequences. Agent: attention.reentry is navigation,
+not scheduling or domain acceptance. Never infer latest global state from a
+historical page; call the published tool again to obtain a fresh snapshot.
+
+## Host release SourceCut content-anchor refinement
+
+The native packaging entrypoint accepts an optional fourth argument:
+install_release.sh <repo> <main_commit> <prefix> <reviewed_host_tree_oid>.
+
+Human: obtain expected Host Git tree ID from the independently reviewed PR
+head via git rev-parse <head>:services/host; cross-check the actual merge
+event against fetched main ancestry and commit subject. Pass the reviewed
+tree ID as argument four. A wrong adjacent Merge Queue SHA with a different
+Host tree fails before directory creation, dependency resolution or symlink
+mutation. The three-argument native installation path stays compatible.
+
+Agent: never compute the expected tree from the *same untrusted release
+commit*: that would prove an identity against itself. Git native tree objects
+obviate a second hash or independent custom release registry. This is a
+content identity witness, not a signed SLSA provenance attestation or proof
+of builder identity. Continue Git chronology, Merge Queue checks, immutable
+archive verification and live MCP consumer readback. UNKNOWN remains UNKNOWN.

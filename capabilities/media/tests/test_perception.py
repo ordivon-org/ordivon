@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from fractions import Fraction
 from pathlib import Path
+from unittest.mock import patch
 
 from ordivon_studio.perception import build_video_perception_bundle
 from ordivon_studio.perception_selection import select_perception_frames
@@ -15,6 +16,7 @@ from ordivon_studio.perception_video_io import (
     _parse_change_metadata,
     analyze_temporal_change,
     count_video_frames,
+    extract_review_frames,
 )
 
 
@@ -39,7 +41,9 @@ class PerceptionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unavailable source frame"):
             _parse_change_metadata(text, sample_step_frames=5, total_frames=5)
 
-    def test_selection_combines_coverage_change_and_requested_without_calling_it_meaning(self) -> None:
+    def test_selection_combines_coverage_change_and_requested_without_calling_it_meaning(
+        self,
+    ) -> None:
         samples = [
             {"frame": 25, "meanAbsoluteLumaDifference": 8.0},
             {"frame": 30, "meanAbsoluteLumaDifference": 7.0},
@@ -120,6 +124,67 @@ class PerceptionTests(unittest.TestCase):
             selected = next(row for row in report["selectedFrames"] if row["frame"] == 10)
             self.assertEqual(selected["timeSeconds"], 3.0)
             self.assertEqual(selected["timeSecondsBasis"], "native-ffmpeg-filter-pts")
+    def test_review_frames_are_extracted_by_one_native_process(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            observed: list[list[str]] = []
+
+            def fake_ffmpeg(args, **_kwargs):
+                observed.append(args)
+                pattern = str(args[-1])
+                for index in range(3):
+                    Path(pattern.replace("%06d", f"{index:06d}")).write_bytes(
+                        f"selected-{index}".encode()
+                    )
+                return subprocess.CompletedProcess(args, 0, "", "")
+
+            with patch(
+                "ordivon_studio.perception_video_io.subprocess.run",
+                side_effect=fake_ffmpeg,
+            ) as runner:
+                selected = extract_review_frames(
+                    root / "source.mp4", [0, 75, 179], root / "frames", "ffmpeg"
+                )
+            self.assertEqual(runner.call_count, 1)
+            self.assertEqual(
+                [path.name for path in selected],
+                ["frame-000000.png", "frame-000075.png", "frame-000179.png"],
+            )
+            self.assertEqual(
+                [path.read_bytes() for path in selected],
+                [b"selected-0", b"selected-1", b"selected-2"],
+            )
+            self.assertIn("select=eq(n\\,0)+eq(n\\,75)+eq(n\\,179)", observed[0])
+
+    def test_incomplete_native_batch_does_not_publish_partial_frames(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "frames"
+            output.mkdir()
+            selected = output / "frame-000000.png"
+            selected.write_bytes(b"previous complete frame")
+
+            def incomplete_ffmpeg(args, **_kwargs):
+                Path(str(args[-1]).replace("%06d", "000000")).write_bytes(b"only-one")
+                return subprocess.CompletedProcess(args, 0, "", "")
+
+            with patch(
+                "ordivon_studio.perception_video_io.subprocess.run",
+                side_effect=incomplete_ffmpeg,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "incomplete review-frame set"):
+                    extract_review_frames(root / "video.mp4", [0, 10], output, "ffmpeg")
+            self.assertEqual(selected.read_bytes(), b"previous complete frame")
+            self.assertFalse((output / "frame-000010.png").exists())
+            self.assertFalse(any(output.glob(".ordivon-review-*")))
+
+    def test_review_frame_batch_rejects_invalid_order_and_negative_indices(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for indices in ([5, 2], [2, 2], [-1], [True]):
+                with self.subTest(indices=indices):
+                    with self.assertRaises(ValueError):
+                        extract_review_frames(root / "video.mp4", indices, root, "ffmpeg")
 
     def test_small_contact_sheet_contract_does_not_assume_four_real_columns(self) -> None:
         # Layout arithmetic is tested indirectly here as a design invariant: a short source may

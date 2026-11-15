@@ -1,14 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-  echo "usage: install_release.sh <repo> <commit> <prefix>" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ] || { [ "$#" -eq 4 ] && [ "$4" != "--prepare-only" ]; }; then
+  echo "usage: install_release.sh <repo> <commit> <prefix> [--prepare-only]" >&2
   exit 2
 fi
 
 REPO=$1
 COMMIT=$2
 PREFIX=$3
+PREPARE_ONLY=false
+if [ "$#" -eq 4 ]; then
+  PREPARE_ONLY=true
+fi
 UV=${ORDIVON_GATEWAY_RELEASE_UV:-/usr/bin/uv}
 PYTHON_INSTALL_DIR=${ORDIVON_GATEWAY_PYTHON_INSTALL_DIR:-$PREFIX/python}
 SCRIPT_DIR=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd)
@@ -87,6 +91,48 @@ chmod -R a+rX "$RELEASE"
 # Source manifests are necessary but not enough: execute the installed
 # Gateway package's existing official MCP SDK surface contract before promote.
 "$RELEASE/.venv/bin/python" "$RELEASE/packaging/windows/verify_release.py"
+
+# In a live systemd deployment, root-side SDK checks alone cannot prove that
+# the service's DynamicUser can traverse the selected interpreter/shebang.
+# Prefer the native runuser command for the explicit release service identity.
+# Keep this opt-in so disposable CI/other prefixes need no host service account.
+SERVICE_USER=${ORDIVON_GATEWAY_RELEASE_SERVICE_USER:-}
+if [ -n "$SERVICE_USER" ]; then
+  if ! command -v runuser >/dev/null 2>&1; then
+    echo "service-user preflight requires runuser" >&2
+    exit 1
+  fi
+  if ! id "$SERVICE_USER" >/dev/null 2>&1; then
+    echo "release service user is unavailable" >&2
+    exit 1
+  fi
+  runuser -u "$SERVICE_USER" -- "$RELEASE/.venv/bin/python" -c 'import ordivon_gateway'
+  runuser -u "$SERVICE_USER" -- "$RELEASE/.venv/bin/opentelemetry-instrument" --help >/dev/null
+  printf 'service_user_preflight=pass user=%s\n' "$SERVICE_USER"
+fi
+
+# Pre-staging prepares and verifies the exact immutable candidate using the
+# same installed native MCP SDK and optional service-user checks, but MUST NOT
+# promote it or change any running service. This decouples dependency builds
+# from an Operator-coordinated Host/Gateway cutover. The ordinary 3-argument
+# activation path below ALWAYS rechecks live Host/Security/consumer conditions
+# before any production symlink promotion. Staging is never an authorization
+# or a successful migration witness.
+if [ "$PREPARE_ONLY" = true ]; then
+  printf 'prepared_release=%s\n' "$COMMIT"
+  printf 'prepared_dir=%s\n' "$RELEASE"
+  printf 'activation=NOT_PERFORMED\n'
+  exit 0
+fi
+
+# Real host-delegation and service-owner-identity facts are necessary for a
+# production Gateway upgrade. This protects Agent Host Work/Space/Topic
+# continuity without deciding Security grants in Gateway or relaxing the PEP.
+# Isolated test/staging prefixes keep their existing official install path.
+if [ "$(realpath -m "$PREFIX")" = "/opt/ordivon/gateway" ]; then
+  "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py" \
+    --policy-data "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer"
+fi
 
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"

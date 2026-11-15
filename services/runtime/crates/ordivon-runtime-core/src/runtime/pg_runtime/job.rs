@@ -1,25 +1,185 @@
 //! PostgreSQL Runtime Job admission, observation, cancellation, and projection.
 use super::*;
 
+// Direct PostgreSQL Client reads must not erase SQLSTATE through io(Display).
+// Keep the one shared PgAdmissionError taxonomy used by Recovery and admission.
+fn pg_read_error(error: postgres::Error) -> RuntimeError {
+    pg(PgAdmissionError::Database(error))
+}
+
+// Once PG has durably admitted this Job (including an exact idempotent replay),
+// a later observation failure cannot retract the committed operation identity.
+// The existing MCP error projection uses this witness to demand reconciliation
+// instead of falsely reporting commitState=not_committed.
+fn preserve_committed_job_identity<T>(
+    job_id: &str,
+    observed: RuntimeResult<T>,
+) -> RuntimeResult<T> {
+    observed.map_err(|error| error.with_operation_id(job_id))
+}
+
+// A foreign reference is caller-authored metadata, never execution authority.
+// Without a configured same-PG issuer verifier it cannot affect the environment.
+// With a verifier, preserve exact source intent for the PG transactional guard.
+fn preserve_qualified_issuer_environment(
+    issuer_schema: Option<&str>,
+    references: &[ForeignReference],
+) -> bool {
+    issuer_schema.is_some()
+        && references.iter().any(|reference| {
+            reference.namespace == "ordivon.harness" && reference.reference_type == "dispatch_fence"
+        })
+}
+
+// Resolve the existing native Runtime Cargo build-cache LEGO at PG admission.
+// User-supplied CARGO_TARGET_DIR remains explicit; defaults are recorded in
+// the immutable PG plan rather than silently changed only at physical launch.
+fn pg_private_cargo_environment(
+    mut environment: std::collections::BTreeMap<String, String>,
+    preserve_harness_fenced_request: bool,
+) -> std::collections::BTreeMap<String, String> {
+    // The same-PG Harness issuer guard authenticates the exact original
+    // physical request. An implicit Runtime-owned environment default would
+    // change its immutable digest and incorrectly deny a legitimate Tool Job.
+    // Keep the exact source-authored environment when carrying a Harness dispatch fence; an
+    // explicitly supplied build target is already covered by the source
+    // digest and remains available. Ordinary PG Jobs reuse the native cache.
+    if !preserve_harness_fenced_request {
+        environment
+            .entry("CARGO_TARGET_DIR".to_string())
+            .or_insert_with(|| {
+                crate::runtime::engine::TRUSTED_BUILD_TARGET_PRESENTATION.to_string()
+            });
+    }
+    environment
+}
+
+#[cfg(test)]
+mod cargo_issuer_environment_tests {
+    use super::{pg_private_cargo_environment, preserve_qualified_issuer_environment};
+    use crate::runtime::ForeignReference;
+
+    fn candidate_fence() -> ForeignReference {
+        ForeignReference {
+            namespace: "ordivon.harness".into(),
+            reference_type: "dispatch_fence".into(),
+            id: "harness-dispatch-fence:test".into(),
+            generation: None,
+            digest: None,
+        }
+    }
+
+    #[test]
+    fn spoofed_harness_hint_without_issuer_cannot_bypass_private_cargo_default() {
+        let fence = candidate_fence();
+        let enabled = preserve_qualified_issuer_environment(None, std::slice::from_ref(&fence));
+        assert!(!enabled);
+        let actual = pg_private_cargo_environment(Default::default(), enabled);
+        assert_eq!(
+            actual.get("CARGO_TARGET_DIR").map(String::as_str),
+            Some("/proc/self/fd/198")
+        );
+        assert!(preserve_qualified_issuer_environment(
+            Some("harness"),
+            &[fence]
+        ));
+        assert!(!preserve_qualified_issuer_environment(Some("harness"), &[]));
+    }
+
+    #[test]
+    fn unrelated_reference_does_not_change_cargo_environment() {
+        let mut other = candidate_fence();
+        other.namespace = "unrelated.owner".into();
+        assert!(!preserve_qualified_issuer_environment(
+            Some("harness"),
+            &[other]
+        ));
+    }
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn issuer_bound_private_cargo_environment_keeps_exact_source_env() {
+        let original = BTreeMap::from([("LANG".to_owned(), "C".to_owned())]);
+        assert_eq!(
+            pg_private_cargo_environment(original.clone(), true),
+            original
+        );
+        let explicit = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/proc/self/fd/198".to_owned(),
+        )]);
+        assert_eq!(
+            pg_private_cargo_environment(explicit.clone(), true),
+            explicit
+        );
+    }
+
+    #[test]
+    fn ordinary_pg_job_reuses_native_private_cargo_default_without_overriding_explicit() {
+        let empty = BTreeMap::new();
+        assert_eq!(
+            pg_private_cargo_environment(empty, false)["CARGO_TARGET_DIR"],
+            "/proc/self/fd/198"
+        );
+        let explicit = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/custom/agent/target".to_owned(),
+        )]);
+        assert_eq!(
+            pg_private_cargo_environment(explicit.clone(), false),
+            explicit
+        );
+    }
+}
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
-        super::engine::validate_run_proposal_structure(proposal)?;
+        super::engine::validate_resource_run_proposal_structure(proposal)?;
+        proposal
+            .execution
+            .budget
+            .scheduling
+            .clone()
+            .unwrap_or_default()
+            .validate()
+            .map_err(|e| RuntimeError::invalid(e, "execution.budget.scheduling"))?;
         let identity = super::types::proposal_request_identity_digest(proposal)?;
         let mut db = self.store()?;
         // Replay before consulting mutable Workspace/executable state or policy.
-        if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(io)? {
+        if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(pg_read_error)? {
             if row.get::<_,String>(1)!=identity { return Err(pg(PgAdmissionError::IdempotencyConflict)); }
-            return self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:row.get(0),wait_ms:proposal.wait_ms,wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None });
+            let committed_job: String = row.get(0);
+            return preserve_committed_job_identity(
+                &committed_job,
+                self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:committed_job.clone(),wait_ms:proposal.wait_ms,wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None }),
+            );
         }
         let e = &proposal.execution;
+        // ForeignReferences are not authorization. A real Harness dispatch
+        // fence is only a source-owned exact-physical-intent indicator: do not
+        // modify its environment before the actual issuer authority check.
+        // Only an operator-configured issuer path may preserve the source environment;
+        // the hint never authenticates the caller and PG still checks currentness.
+        let preserve_harness_fenced_request = preserve_qualified_issuer_environment(
+            self.config.harness_issuer_schema.as_deref(),
+            &e.foreign_references,
+        );
+
         if e.execution_target != ExecutionTarget::LocalLinux
             || e.execution_profile != ExecutionProfile::TrustedLocal
             || e.windows_context.is_some()
             || e.windows_authority != WindowsAuthority::Limited
-            || !e.foreign_references.is_empty()
         {
             return Err(RuntimeError::invalid(
-                "PG vertical supports a trusted_local local_linux execution (only Host Dependency bindings supported)",
+                "PG vertical supports trusted_local local_linux execution only",
+                "execution",
+            ));
+        }
+        // A current Issuer must not authorize unrelated physical steps/budgets.
+        if self.config.harness_issuer_schema.is_some()
+            && (!e.steps.is_empty() || !e.host_dependencies.is_empty() || !e.budget.is_empty())
+        {
+            return Err(RuntimeError::invalid(
+                "issuer-fenced execution does not authorize custom budget/steps/host prerequisites",
                 "execution",
             ));
         }
@@ -59,7 +219,7 @@ impl PgRuntime {
             .ok_or_else(|| error("native runner required"))?;
         super::platform::validate_runner(runner)?;
         let record = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
-            .map_err(super::engine::map_universal_error)?;
+            .map_err(super::super::error::map_universal_error)?;
         let cwd =
             universal::resolve_workspace_cwd(&record, &e.cwd_relative, "execution.cwdRelative")
                 .map_err(io)?;
@@ -107,7 +267,10 @@ impl PgRuntime {
                 executable_digest: universal::sha256_file(&path).map_err(io)?,
                 args: step.args.clone(),
                 cwd: cwd.to_string_lossy().into_owned(),
-                env: step.env.clone(),
+                env: pg_private_cargo_environment(
+                    step.env.clone(),
+                    preserve_harness_fenced_request,
+                ),
                 timeout_ms: ceiling,
                 continue_on_error: step.continue_on_error,
             });
@@ -125,7 +288,7 @@ impl PgRuntime {
                 "execution.timeoutMs",
             ));
         }
-        let plan = RuntimeExecutionPlan {
+        let mut plan = RuntimeExecutionPlan {
             schema_version: 1,
             workspace_id: e.workspace_id.clone(),
             workspace_path: record.workspace_path.clone(),
@@ -136,7 +299,7 @@ impl PgRuntime {
             executable_digest: universal::sha256_file(&executable).map_err(io)?,
             args: e.args.clone(),
             cwd: cwd.to_string_lossy().into_owned(),
-            env: e.env.clone(),
+            env: pg_private_cargo_environment(e.env.clone(), preserve_harness_fenced_request),
             timeout_ms: timeout,
             stdout_limit_bytes: stdout,
             stderr_limit_bytes: stderr,
@@ -147,13 +310,94 @@ impl PgRuntime {
             windows_authority: e.windows_authority,
             windows_context: None,
             windows_execution_context: None,
-            foreign_references: vec![],
+            // ForeignReference is an externally supplied identity/correlation
+            // commitment, NEVER a credential or an authorization to dispatch.
+            // Structural uniqueness is checked by the shared Runtime validator,
+            // request identity hashes it, and the PG plan freezes it verbatim
+            // for the native Runner and later terminal evidence.
+            foreign_references: e.foreign_references.clone(),
             host_dependencies,
             input_set_id: None,
             effective_inputs: vec![],
             credential_set_id: None,
             principal: proposal.principal.clone(),
         };
+        let mut contract = self.scheduling_contract(&plan)?;
+        if e.budget.scheduling.is_none() {
+            if let Some(max) = plan.budget.memory_max_bytes {
+                contract.resources.memory_bytes = contract.resources.memory_bytes.min(max);
+            }
+            if let Some(max) = plan.budget.tasks_max {
+                contract.resources.pids = contract.resources.pids.min(max);
+            }
+            if let Some(max) = plan.budget.cpu_quota_percent {
+                contract.resources.cpu_millis =
+                    contract.resources.cpu_millis.min(max.saturating_mul(10));
+            }
+        }
+        if plan
+            .budget
+            .memory_max_bytes
+            .is_some_and(|v| v < contract.resources.memory_bytes)
+            || plan
+                .budget
+                .tasks_max
+                .is_some_and(|v| v < contract.resources.pids)
+            || plan
+                .budget
+                .cpu_quota_percent
+                .is_some_and(|v| v.saturating_mul(10) < contract.resources.cpu_millis)
+        {
+            return Err(RuntimeError::invalid(
+                "resource request exceeds its hard execution ceiling",
+                "execution.budget.scheduling",
+            ));
+        }
+        if let (Some(high), Some(max)) = (contract.memory_high_bytes, plan.budget.memory_max_bytes)
+        {
+            if high > max {
+                return Err(RuntimeError::invalid(
+                    "memoryHighBytes exceeds memoryMaxBytes",
+                    "execution.budget.scheduling",
+                ));
+            }
+        }
+        for relative in &contract.workspace_access.write_paths {
+            let path =
+                fs::canonicalize(Path::new(&plan.workspace_path).join(relative)).map_err(io)?;
+            if !path.starts_with(&plan.workspace_path) || !path.is_dir() {
+                return Err(RuntimeError::invalid(
+                    "writePaths requires existing contained directories",
+                    "execution.budget.scheduling.workspaceAccess",
+                ));
+            }
+        }
+        if contract.workspace_access.read_only || !contract.workspace_access.write_paths.is_empty()
+        {
+            plan.workspace_git_common_dir = Some(
+                universal::workspace_git_common_dir_at(Path::new(&plan.workspace_path))
+                    .map_err(io)?
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
+        if !contract.workspace_access.write_paths.is_empty() {
+            let _ = universal::workspace_source_readset_digest_at(
+                Path::new(&plan.workspace_path),
+                &contract.workspace_access.write_paths,
+            )
+            .map_err(io)?;
+        }
+        if !contract.workspace_access.read_paths.is_empty() {
+            plan.workspace_source_digest = Some(
+                universal::workspace_source_readset_digest_at(
+                    Path::new(&plan.workspace_path),
+                    &contract.workspace_access.read_paths,
+                )
+                .map_err(io)?,
+            );
+        }
+        plan.budget.scheduling = Some(contract);
         let plan_json = encode(&plan)?;
         let plan_digest = universal::sha256_bytes(plan_json.as_bytes());
         // An Operation commits to the resolved execution world and native
@@ -196,25 +440,53 @@ impl PgRuntime {
             launch_token_digest: universal::sha256_bytes(token.as_bytes()),
             bundle_path: bundle.to_string_lossy().into_owned(),
             unit_name: format!("ordivon-pg-{attempt}.service"),
-            global_limit: i32::try_from(proposal.global_limit).map_err(io)?,
+            global_limit: 0,
             created_at_ms: now()?,
             expected_source_sha256: self.config.source_sha256.clone(),
         };
-        let job = match db.admit(&input).map_err(pg)? {
+        // Planning is intentionally outside the coarse PG admission lock:
+        // Git/source hashing is potentially expensive. The exact Workspace
+        // lifetime identity MUST nonetheless be rebound after acquiring the
+        // same global lock as workspace.close/open/mutate, before INSERT jobs.
+        // The native Runner separately verifies frozen source/readset bytes
+        // before physical execution; this cheap fence prevents an orphaned
+        // durable Job when the Workspace was closed or replaced meanwhile.
+        let workspace_guard = || {
+            universal::ensure_workspace_mutation_quiescent(&self.config.executor, &e.workspace_id)
+                .map_err(|_| PgAdmissionError::WorkspaceStale)?;
+            let current = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
+                .map_err(|_| PgAdmissionError::WorkspaceStale)?;
+            if current != record {
+                return Err(PgAdmissionError::WorkspaceStale);
+            }
+            Ok(())
+        };
+        let job = match db
+            .admit_with_workspace_guard(
+                &input,
+                &workspace_guard,
+                self.config.harness_issuer_schema.as_deref(),
+            )
+            .map_err(pg)?
+        {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,
         };
-        self.observe(
-            &proposal.principal,
-            &JobObserveRequest {
-                schema_version: 1,
-                job_id: job,
-                wait_ms: proposal.wait_ms,
-                wait_until: JobObserveWaitUntil::Terminal,
-                stdout_tail_bytes: proposal.stdout_tail_bytes,
-                stderr_tail_bytes: proposal.stderr_tail_bytes,
-                stdout_offset: None,
-                stderr_offset: None,
-            },
+        let _ = self.schedule_pending_jobs();
+        preserve_committed_job_identity(
+            &job,
+            self.observe(
+                &proposal.principal,
+                &JobObserveRequest {
+                    schema_version: 1,
+                    job_id: job.clone(),
+                    wait_ms: proposal.wait_ms,
+                    wait_until: JobObserveWaitUntil::Terminal,
+                    stdout_tail_bytes: proposal.stdout_tail_bytes,
+                    stderr_tail_bytes: proposal.stderr_tail_bytes,
+                    stdout_offset: None,
+                    stderr_offset: None,
+                },
+            ),
         )
     }
     pub fn observe(
@@ -234,11 +506,27 @@ impl PgRuntime {
         }
         let deadline = Instant::now() + Duration::from_millis(request.wait_ms);
         let mut initial_signature = None;
+        let mut db = self.store()?;
+        let mut verified_committed_job = false;
         loop {
-            let mut db = self.store()?;
-            self.authorize(&mut db, &request.job_id, principal)?;
-            self.reconcile(&mut db, &request.job_id)?;
-            let value = self.project(&mut db, request)?;
+            // An authorization success proves this durable Job identity.
+            // Every later PG projection/observation failure must preserve it
+            // for reconcile-first semantics, including after a LISTEN wait.
+            self.authorize(&mut db, &request.job_id, principal)
+                .map_err(|e| {
+                    if verified_committed_job {
+                        e.with_operation_id(&request.job_id)
+                    } else {
+                        e
+                    }
+                })?;
+            verified_committed_job = true;
+            preserve_committed_job_identity(
+                &request.job_id,
+                self.reconcile(&mut db, &request.job_id),
+            )?;
+            let value =
+                preserve_committed_job_identity(&request.job_id, self.project(&mut db, request))?;
             // Gateway observes change_or_terminal. Only compare durable
             // observable state, not time-dependent display projections.
             let signature = (
@@ -266,9 +554,45 @@ impl PgRuntime {
             {
                 return Ok(value);
             }
-            thread::sleep(
-                Duration::from_millis(50).min(deadline.saturating_duration_since(Instant::now())),
-            );
+            if value.attempt_state == Some(AttemptState::Accepted) {
+                use postgres::fallible_iterator::FallibleIterator;
+                db.client
+                    .batch_execute("LISTEN ordivon_runtime_schedule")
+                    .map_err(pg_read_error)
+                    .map_err(|e| e.with_operation_id(&request.job_id))?;
+                let wait = deadline
+                    .saturating_duration_since(Instant::now())
+                    .min(Duration::from_secs(1));
+                let _ = db
+                    .client
+                    .notifications()
+                    .timeout_iter(wait)
+                    .next()
+                    .map_err(pg_read_error)
+                    .map_err(|e| e.with_operation_id(&request.job_id))?;
+            } else if let Some(attempt_id) = value.attempt_id.as_deref() {
+                let bundle = self
+                    .config
+                    .executor
+                    .store_root
+                    .join("pg-attempts")
+                    .join(attempt_id);
+                let start = fs::read(bundle.join("runner-start.json"))
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<RunnerStartEvidence>(&bytes).ok());
+                super::platform::wait_for_attempt_change(
+                    &bundle,
+                    start
+                        .as_ref()
+                        .map(|evidence| evidence.control_group.as_str()),
+                    deadline.saturating_duration_since(Instant::now()),
+                );
+            } else {
+                thread::sleep(
+                    Duration::from_millis(250)
+                        .min(deadline.saturating_duration_since(Instant::now())),
+                );
+            }
         }
     }
     pub fn cancel(
@@ -284,6 +608,25 @@ impl PgRuntime {
         }
         let mut db = self.store()?;
         self.authorize(&mut db, &request.job_id, principal)?;
+        // A generic Job cancellation is not an operator Release rollback.
+        let is_release: bool = db
+            .client
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)",
+                &[&request.job_id],
+            )
+            .map_err(pg_read_error)
+            .map_err(|e| e.with_operation_id(&request.job_id))?
+            .get(0);
+        if is_release {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::DeploymentInProgress,
+                "Runtime ReleaseEffect requires operator receipt reconciliation",
+                Some("runtimeReleaseEffect"),
+                false,
+            )
+            .with_operation_id(&request.job_id));
+        }
         db.request_cancel_intent(&PgCancelIntent {
             job_id: request.job_id.clone(),
             observed_at_ms: now()?,
@@ -298,7 +641,8 @@ impl PgRuntime {
                 &json!({"requestedAtMs":now()?}),
             )
             .map_err(io)?;
-            if a.bundle_digest.is_none() {
+            if a.state == AttemptState::Accepted {
+                self.reconcile(&mut db, &request.job_id)?;
                 return self.project(
                     &mut db,
                     &JobObserveRequest {
@@ -313,12 +657,27 @@ impl PgRuntime {
                     },
                 );
             }
-            let output = super::platform::stop_unit_no_block(&a.unit_name)?;
-            if !output.status.success() {
-                return Err(error(format!(
-                    "cancel intent persisted; native stop not confirmed for {}",
-                    request.job_id
-                )));
+            // systemd-run already sets KillMode=control-group,
+            // TimeoutStopSec=2s and SendSIGKILL=yes. Reuse that native
+            // stop policy: no extra PID walker, custom signal escalation or
+            // immediate hard-kill wrapper is needed.
+            if a.unit_name != format!("ordivon-pg-{}.service", a.attempt_id) {
+                return Err(error("Attempt native unit identity mismatch"));
+            }
+            let stop = super::platform::stop_unit_no_block(&a.unit_name)?;
+            if !stop.status.success() {
+                // A transient Unit may already have been collected. This
+                // failed submission is not proof of an active process; native
+                // reconciliation owns the terminal/no-result decision.
+                let unit = super::platform::systemctl_show(&a.unit_name)?;
+                if super::platform::unit_is_active(&unit)
+                    || super::platform::unit_has_pending_job(&unit)
+                {
+                    return Err(error(format!(
+                        "cancel intent persisted; native stop not confirmed for {}",
+                        request.job_id
+                    )));
+                }
             }
         }
         self.observe(
@@ -354,15 +713,15 @@ impl PgRuntime {
             PgJobReadback::Observed(s) => s,
             _ => return Err(error("inconclusive PG lifecycle")),
         };
-        let (a, p, operation) = self.attempt(&mut db, job)?;
+        let (a, p, operation) = self.readback_attempt(&mut db, &snapshot)?;
         let j = db
             .client
             .query_one(
                 "SELECT client_request_id,created_at_ms FROM jobs WHERE job_id=$1",
                 &[&job],
             )
-            .map_err(io)?;
-        let counts=db.client.query_one("SELECT count(*),COALESCE(sum(byte_length),0)::bigint,count(*) FILTER(WHERE truncated) FROM artifacts WHERE job_id=$1",&[&job]).map_err(io)?;
+            .map_err(pg_read_error)?;
+        let counts=db.client.query_one("SELECT count(*),COALESCE(sum(byte_length),0)::bigint,count(*) FILTER(WHERE truncated) FROM artifacts WHERE job_id=$1",&[&job]).map_err(pg_read_error)?;
         let mut by_kind = std::collections::BTreeMap::new();
         for row in db
             .client
@@ -370,11 +729,11 @@ impl PgRuntime {
                 "SELECT kind,count(*) FROM artifacts WHERE job_id=$1 GROUP BY kind",
                 &[&job],
             )
-            .map_err(io)?
+            .map_err(pg_read_error)?
         {
             by_kind.insert(row.get(0), row.get::<_, i64>(1) as u64);
         }
-        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(io)?;
+        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(pg_read_error)?;
         let created = j.get::<_, i64>(1) as u64;
         let mut previous = created;
         let timeline = events
@@ -406,7 +765,7 @@ impl PgRuntime {
                 "SELECT exit_code FROM attempts WHERE attempt_id=$1",
                 &[&a.attempt_id],
             )
-            .map_err(io)?
+            .map_err(pg_read_error)?
             .get(0);
         Ok(RuntimeJobInspection {
             schema_version: 2,
@@ -435,7 +794,7 @@ impl PgRuntime {
             },
             attempts: vec![RuntimeInspectionAttempt {
                 attempt_id: a.attempt_id,
-                attempt_number: 1,
+                attempt_number: a.attempt_number,
                 state: a.state,
                 termination_intent: a.termination_intent,
                 created_at_ms: a.created_at_ms,
@@ -443,7 +802,7 @@ impl PgRuntime {
                 finished_at_ms: snapshot.finished_at_ms.map(|v| v as u64),
                 duration_ms: None,
                 exit_code: exit,
-                result_available: terminal,
+                result_available: terminal && by_kind.contains_key("execution_result"),
                 reservation_state: ReservationState::parse(&snapshot.reservation_state)?,
                 reservation_release_reason: None,
                 conditions: vec![],
@@ -462,5 +821,57 @@ impl PgRuntime {
             timeline,
             events_truncated: events.len() > event_limit as usize,
         })
+    }
+}
+
+#[cfg(test)]
+mod committed_observation_tests {
+    use super::*;
+
+    #[test]
+    fn post_admission_observation_error_keeps_committed_job_identity() {
+        let failed: RuntimeResult<()> = Err(RuntimeError::new(
+            RuntimeErrorCode::RegistryUnavailable,
+            "serializable PG observation failed after Job admission",
+            None,
+            false,
+        ));
+        let error = preserve_committed_job_identity("job-exact", failed).unwrap_err();
+        assert_eq!(error.operation_id.as_deref(), Some("job-exact"));
+        assert_eq!(error.code, RuntimeErrorCode::RegistryUnavailable);
+        assert_eq!(
+            preserve_committed_job_identity("job-exact", Ok::<_, RuntimeError>(7)).unwrap(),
+            7
+        );
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_direct_job_queries_preserve_sqlstate_and_exact_operation_id() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit disposable PostgreSQL server required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (state, expected) in [
+            ("40001", RuntimeErrorCode::RegistryBusy),
+            ("40P01", RuntimeErrorCode::RegistryBusy),
+            ("23505", RuntimeErrorCode::RegistryUnavailable),
+        ] {
+            let postgres_error = db
+                .batch_execute(&format!(
+                    "DO $$ BEGIN RAISE EXCEPTION SQLSTATE '{state}'; END $$;"
+                ))
+                .unwrap_err();
+            let failed: RuntimeResult<()> = Err(pg_read_error(postgres_error));
+            let observed =
+                preserve_committed_job_identity("job-real-direct-PG", failed).unwrap_err();
+            assert_eq!(observed.code, expected, "SQLSTATE {state}");
+            assert_eq!(observed.operation_id.as_deref(), Some("job-real-direct-PG"));
+            if expected == RuntimeErrorCode::RegistryBusy {
+                assert!(observed.retryable);
+                assert_eq!(observed.retry_after_ms, Some(250));
+            } else {
+                assert!(!observed.retryable);
+            }
+        }
     }
 }

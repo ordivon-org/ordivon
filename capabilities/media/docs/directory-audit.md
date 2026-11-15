@@ -331,6 +331,22 @@ present in the sampled native metadata remain labeled
 the exact FFmpeg filter graph and native readback**; this is not a
 general VFR timecode engine, not a universal source decoder proof, and
 not a reason to add a separate media task runner.
+## 2026-11-08: exact Blob identity from one observed byte stream
+
+`assets.hash_file` used to hash one file handle, then read size via
+a later pathname `stat`, which could refer to a different moment of
+a changing file. It now counts bytes through the hashed stream and
+compares descriptor identity/size/change-time metadata before and
+after read; mismatch fails instead of producing mixed-time BlobInfo.
+The existing OutputIdentity V05 LEGO remains the only semantic contract.
+
+Evidence: direct streamed-blob identity and metadata-drift rejection;
+real `live-relay-001` MP4 archived into a disposable CAS and recovered
+with the same SHA-256, size and FFprobe stream observations. All four
+existing Production manifest digests also matched. This is native
+filesystem evidence, not a kernel formal proof of arbitrary concurrent
+writes. The producer cannot make a hostile writer or an untrusted
+filesystem give a snapshot merely through `fstat`.
 
 ## Mature external baseline
 

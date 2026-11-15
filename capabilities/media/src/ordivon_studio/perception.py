@@ -14,10 +14,10 @@ from .assets import hash_file
 from .perception_selection import select_perception_frames
 from .perception_timing import video_timing
 from .perception_video_io import (
-    _extract_frame,
     analyze_temporal_change,
     build_contact_sheet,
     count_video_frames,
+    extract_review_frames,
 )
 
 
@@ -55,11 +55,8 @@ def build_video_perception_bundle(
     samples_by_frame = {sample["frame"]: sample for sample in change_samples}
     frames_directory = output_directory / "frames"
     frame_records: list[dict[str, Any]] = []
-    frame_paths: list[Path] = []
-    for frame in selected:
-        output_path = frames_directory / f"frame-{frame:06d}.png"
-        _extract_frame(video_path, frame, output_path, ffmpeg)
-        frame_paths.append(output_path)
+    frame_paths = extract_review_frames(video_path, selected, frames_directory, ffmpeg)
+    for frame, output_path in zip(selected, frame_paths, strict=True):
         frame_records.append(
             {
                 "frame": frame,
@@ -108,8 +105,17 @@ def build_video_perception_bundle(
         ],
         "inspectionLayers": [
             {"order": 1, "kind": "coarse-temporal-scan", "inputs": [contact["path"]]},
-            {"order": 2, "kind": "full-resolution-frame-inspection", "inputs": [record["path"] for record in frame_records]},
-            {"order": 3, "kind": "continuous-playback", "inputs": ["reviewed-artifact"], "when": "timing, pacing, continuity, animation, or audio-image relation remains material"},
+            {
+                "order": 2,
+                "kind": "full-resolution-frame-inspection",
+                "inputs": [record["path"] for record in frame_records],
+            },
+            {
+                "order": 3,
+                "kind": "continuous-playback",
+                "inputs": ["reviewed-artifact"],
+                "when": "timing, pacing, continuity, animation, or audio-image relation remains material",
+            },
         ],
         "interpretationBoundary": "Mechanical sampling prepares real pixels for perception; it does not infer hierarchy, legibility, causality, affect, truth, or aesthetic quality.",
     }

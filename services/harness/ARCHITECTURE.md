@@ -268,7 +268,7 @@ Privacy does not weaken effect fencing. A digest-only completed Provider Call st
 
 These are structural content laws, not semantic taint tracking: ordinary model text can semantically repeat Tool-derived information, and Harness does not currently prove otherwise.
 
-Ordinary Store open validates global physical authority: schema, SQLite `quick_check`, and retained CAS object identity/content. It does **not** replay every unrelated Run. Opening a Run continuity boundary validates that Run's complete semantic history before execution; explicit full Doctor remains the authority-wide history replay. This keeps fail-closed semantics local to the Run being executed instead of making every worker pay an all-Runs startup cost.
+Store integrity checks are backend-specific: the supported PostgreSQL Store validates its configured schema and verifies the digest and canonical content of persisted CAS objects when read; SQLite `PRAGMA quick_check` belongs only to the separately reachable legacy SQLite Store, not the PostgreSQL CLI. Ordinary Store admission does **not** replay every unrelated Run. Opening a Run continuity boundary validates that Run's complete semantic history before execution; explicit full Doctor remains the authority-wide history replay. This keeps fail-closed semantics local to the Run being executed instead of making every worker pay an all-Runs startup cost.
 
 Durable event and request identities remain deterministic for idempotent replay. Execution ownership does not: Continuity Stores, Agent Bridges, and terminal recorders use process-instance owner identities for leases and Provider claims so two workers cannot consume one durable dispatch admission as two physical executions.
 

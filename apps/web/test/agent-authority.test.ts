@@ -295,7 +295,9 @@ for (const kind of ["create", "publish"] as const) {
       resource: note === null ? "/canary/notes" : "/canary/notes/" + note.noteId,
       audience: config.origin,
       riskClass: "R2" as const,
-      effectType: "write",
+      effectType: kind === "create"
+        ? "website.canary.note.create"
+        : "website.canary.note.publish",
     };
     if (kind === "publish") {
       f.store.putEffectApproval(
@@ -335,3 +337,118 @@ for (const kind of ["create", "publish"] as const) {
     f.store.close();
   });
 }
+
+test("Grant resource matching preserves path-component boundaries", async () => {
+  const f = await fixture();
+  assert.equal(
+    f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes", f.now()).grantId,
+    "grant:test",
+  );
+  assert.equal(
+    f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes/child", f.now()).grantId,
+    "grant:test",
+  );
+  assert.throws(
+    () => f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes-private", f.now()),
+    /No active Agent Grant/,
+  );
+  await f.app.close();
+  f.store.close();
+});
+
+
+test("Grant scopes reject normalization aliases in both issuance and lookup", async () => {
+  const f = await fixture();
+  for (const resource of [
+    "/canary/notes/../account", "/canary/notes/%2e%2e/account",
+    "/canary/notes//child", "/canary/notes/./child",
+    "/canary/notes/child?privileged=1", "/canary/notes/child#private",
+    "/canary/notes\\..\\account", "/canary/notes/\nadmin",
+  ]) {
+    assert.throws(() =>
+      f.store.resolveAgentGrant(f.agent.agentId, config.origin,
+        "canary.note.create", resource, f.now()), /No active Agent Grant/, resource);
+  }
+  for (const prefix of ["/canary/notes//", "/canary/notes/../", "/canary%2fnotes", "canary/notes"]) {
+    assert.throws(() => f.store.createAgentGrant({
+      grantId: "invalid:" + prefix, principalId: "principal:test",
+      agentId: f.agent.agentId, audience: config.origin,
+      allowedActions: ["canary.note.create"], resourcePrefixes: [prefix],
+      expiresAtEpochSeconds: f.now() + 300, maxRiskClass: "R2",
+      stepUpAtOrAbove: "R4", remainingEffects: 1,
+    }, f.now()), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "invalid-agent-grant-scope",
+    );
+  }
+  await f.app.close();
+  f.store.close();
+});
+
+
+test("Web commit PEP binds actual create target, action, Agent and replay coordinate", async () => {
+  const f = await fixture();
+  const effect = {
+    effectId: effectId("commit-pep"), effectDigest: effectId("commit-pep-content"),
+    action: "canary.note.create", resource: "/canary/notes", audience: config.origin,
+    riskClass: "R2" as const, effectType: "website.canary.note.create",
+  };
+  const commit = (proposal: typeof effect, agentId = f.agent.agentId, grant = f.grant) =>
+    f.store.commitAgentCanaryCreate(grant, agentId, proposal, "draft", f.now());
+  for (const candidate of [
+    { ...effect, resource: "/canary/notes/../account" },
+    { ...effect, resource: "/canary/notes-private" },
+    { ...effect, resource: "/canary/notes/another" },
+    { ...effect, action: "canary.note.publish" },
+    { ...effect, audience: "https://other.example" },
+    { ...effect, effectType: "website.canary.note.publish" },
+  ]) {
+    assert.throws(() => commit(candidate), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "agent-effect-not-authorized");
+  }
+  assert.throws(() => commit(effect, f.agent.agentId, { ...f.grant, principalId: "principal:other" }),
+    (error: unknown) => error instanceof Error && "code" in error && error.code === "agent-effect-not-authorized");
+  assert.equal(f.store.getAgentGrant(f.grant.grantId).remainingEffects, f.grant.remainingEffects);
+  const first = commit(effect);
+  assert.equal(first.replayed, false);
+  for (const candidate of [
+    { ...effect, resource: "/canary/notes/other" },
+    { ...effect, action: "canary.note.publish" },
+  ]) {
+    assert.throws(() => commit(candidate), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "effect-conflict");
+  }
+  assert.equal(commit(effect).replayed, true);
+  await f.app.close();
+  f.store.close();
+});
+
+test("Web publish PEP cannot consume approval on a switched materialized target", async () => {
+  const f = await fixture();
+  const note = f.store.createCanaryNote("principal:test", "ready", f.now());
+  const effect = {
+    effectId: effectId("publish-pep"), effectDigest: effectId("publish-pep-content"),
+    action: "canary.note.publish", resource: "/canary/notes/" + note.noteId,
+    audience: config.origin, riskClass: "R4" as const,
+    effectType: "website.canary.note.publish",
+  };
+  f.store.putEffectApproval("principal:test", "credential:test",
+    effect.effectId, effect.effectDigest, f.now());
+  const commit = (candidate: typeof effect, target: string) =>
+    f.store.commitAgentCanaryPublish(f.grant, f.agent.agentId, candidate, target, f.now());
+  for (const [candidate, target] of [
+    [effect, "not-the-approved-note"],
+    [{ ...effect, action: "canary.note.create" }, note.noteId],
+    [{ ...effect, audience: "https://other.example" }, note.noteId],
+  ] as const) {
+    assert.throws(() => commit(candidate, target),
+      (error: unknown) => error instanceof Error && "code" in error && error.code === "agent-effect-not-authorized");
+  }
+  const approval = f.store.db.prepare(
+    "SELECT consumed_at FROM effect_approvals WHERE effect_id = ?",
+  ).get(effect.effectId) as { consumed_at: number | null };
+  assert.equal(approval.consumed_at, null);
+  assert.equal(f.store.getAgentGrant(f.grant.grantId).remainingEffects, f.grant.remainingEffects);
+  assert.equal(commit(effect, note.noteId).replayed, false);
+  await f.app.close();
+  f.store.close();
+});

@@ -15,7 +15,7 @@ from .perception_profiles import (
     profile_signature,
 )
 from .perception_timing import video_timing
-from .perception_video_io import analyze_temporal_change, count_video_frames
+from .perception_video_io import _parse_change_metadata, count_video_frames
 from .qc import probe_media
 from .rich_perception_comparison import (
     crossmodal_circular_shift_null as crossmodal_circular_shift_null,
@@ -91,27 +91,64 @@ def _parse_signal_metadata(text: str) -> list[dict[str, float]]:
         records.append(current)
     return records
 
-def analyze_video_signal(
+def _observe_video_structure(
     path: Path,
     *,
-    sample_step_frames: int = 6,
-    ffmpeg: str = "/usr/bin/ffmpeg",
-) -> list[dict[str, float]]:
-    with tempfile.NamedTemporaryFile(prefix="ordivon-video-signal-", suffix=".txt", delete=False) as handle:
-        metadata = Path(handle.name)
-    try:
-        filter_graph = f"select='not(mod(n\\,{sample_step_frames}))',signalstats,metadata=print:file={metadata}"
+    total_frames: int,
+    sample_step_frames: int,
+    ffmpeg: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, float]]]:
+    """Analyze temporal differences and frame signal in one native decode.
+
+    Two FFmpeg filter branches receive the same decoded source frames. Relative
+    metadata filenames avoid the platform-dependent escaping of absolute
+    paths inside FFmpeg filtergraph expressions.
+    """
+    if sample_step_frames < 1:
+        raise ValueError("sample_step_frames must be positive")
+    with tempfile.TemporaryDirectory(prefix="ordivon-video-structure-") as directory:
+        root = Path(directory)
+        change_file = root / "change-metadata.txt"
+        signal_file = root / "signal-metadata.txt"
+        selection = f"select='not(mod(n\\,{sample_step_frames}))'"
+        change_filter = (
+            f"{selection},tblend=all_mode=difference,signalstats,"
+            "metadata=print:file=change-metadata.txt"
+        )
+        signal_filter = f"{selection},signalstats,metadata=print:file=signal-metadata.txt"
+        graph = (
+            f"[0:v]split=2[change][signal];"
+            f"[change]{change_filter}[observed_change];"
+            f"[signal]{signal_filter}[observed_signal]"
+        )
         result = subprocess.run(
-            [ffmpeg, "-v", "error", "-i", str(path), "-vf", filter_graph, "-an", "-f", "null", "-"],
+            [
+                ffmpeg,
+                "-v", "error",
+                "-i", str(path.resolve()),
+                "-filter_complex", graph,
+                "-map", "[observed_change]",
+                "-map", "[observed_signal]",
+                "-an",
+                "-f", "null", "-",
+            ],
+            cwd=root,
+            check=False,
             capture_output=True,
             text=True,
-            check=False,
         )
         if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or "ffmpeg signalstats failed")
-        return _parse_signal_metadata(metadata.read_text(encoding="utf-8"))
-    finally:
-        metadata.unlink(missing_ok=True)
+            raise RuntimeError(result.stderr.strip() or "ffmpeg video structure analysis failed")
+        if not change_file.is_file() or not signal_file.is_file():
+            raise RuntimeError("ffmpeg did not produce both video structure observations")
+        return (
+            _parse_change_metadata(
+                change_file.read_text(encoding="utf-8"),
+                sample_step_frames=sample_step_frames,
+                total_frames=total_frames,
+            ),
+            _parse_signal_metadata(signal_file.read_text(encoding="utf-8")),
+        )
 
 def video_structure_features(
     path: Path,
@@ -131,8 +168,12 @@ def video_structure_features(
     if count_basis == "duration-times-reported-rate-estimate":
         total_frames = count_video_frames(path, ffprobe)
         count_basis = "native-ffprobe-decoded-frame-count"
-    change = analyze_temporal_change(path, total_frames=total_frames, sample_step_frames=sample_step_frames, ffmpeg=ffmpeg)
-    signal = analyze_video_signal(path, sample_step_frames=sample_step_frames, ffmpeg=ffmpeg)
+    # Keep the current mainline single native decode while preserving source-frame
+    # ordinals and filter PTS instead of manufacturing timing from average FPS.
+    change, signal = _observe_video_structure(
+        path, total_frames=total_frames,
+        sample_step_frames=sample_step_frames, ffmpeg=ffmpeg,
+    )
     change_profile = _bin_series(
         [(float(item["timeSeconds"]), float(item["meanAbsoluteLumaDifference"])) for item in change],
         duration=duration,
@@ -156,7 +197,7 @@ def video_structure_features(
             "durationSeconds": duration,
             "width": stream.get("width"),
             "height": stream.get("height"),
-            "frameRate": stream.get("avg_frame_rate") or stream.get("r_frame_rate"),
+            "frameRate": timing.rate_label,
             "frameCountBasis": count_basis,
             "changeSampleTimeBasis": "native-ffmpeg-filter-pts",
             "audioStreams": audio_streams,

@@ -7,7 +7,12 @@ from .contracts import (
 )
 from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
-from .owner_protocol import _required_bool, _required_str
+from .owner_protocol import (
+    _owner_optional_disposition,
+    _owner_receipt_state,
+    _required_bool,
+    _required_str,
+)
 from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
 
@@ -30,6 +35,8 @@ class ExecutionCommandMethods:
         context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeout_ms: int | None = None,
+        stdout_limit_bytes: int | None = None,
+        stderr_limit_bytes: int | None = None,
         authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
         route = self._routes.get(capability)
@@ -47,7 +54,7 @@ class ExecutionCommandMethods:
             "cwdRelative": cwd_relative,
             "executionTarget": route.execution_target,
         }
-        if route.owner_id == "runtime.linux":
+        if route.owner_id in {"runtime.linux", "runtime.harness"}:
             if isinstance(context, dict):
                 raise GatewayError("execution.linux context must be a provider-defined string")
             execution["executionProfile"] = context or route.default_context
@@ -73,6 +80,17 @@ class ExecutionCommandMethods:
             execution["env"] = dict(env)
         if timeout_ms is not None:
             execution["timeoutMs"] = timeout_ms
+        # Native Runtime already owns the actual allowed output-size bound.
+        # Gateway must not silently change the caller's frozen physical
+        # request to Runtime's wider defaults when the issuer specified caps.
+        for field, value in (
+            ("stdoutLimitBytes", stdout_limit_bytes),
+            ("stderrLimitBytes", stderr_limit_bytes),
+        ):
+            if value is not None:
+                if type(value) is not int or not 1 <= value <= 2**64 - 1:
+                    raise GatewayError(f"{field} must be a positive JSON integer within u64")
+                execution[field] = value
         if authority_references is not None:
             if any(not isinstance(item, dict) for item in authority_references):
                 raise GatewayError("authorityReferences must contain objects")
@@ -93,13 +111,9 @@ class ExecutionCommandMethods:
             capability=capability,
             owner_id=route.owner_id,
             native_id=native_id,
-            state=str(result.get("status", result.get("attemptState", "unknown"))),
+            state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=(
-                str(result["deliveryDisposition"])
-                if result.get("deliveryDisposition") is not None
-                else None
-            ),
+            delivery_disposition=_owner_optional_disposition(result, "deliveryDisposition"),
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
@@ -115,15 +129,14 @@ class ExecutionCommandMethods:
         return ExecutionReceipt(
             operation_ref=operation_ref,
             capability=(
-                "execution.windows" if owner_id == "runtime.windows" else "execution.linux"
+                {
+                    "runtime.windows": "execution.windows",
+                    "runtime.harness": "execution.harness",
+                }.get(owner_id, "execution.linux")
             ),
             owner_id=owner_id,
             native_id=observed_native_id,
-            state=str(result.get("status", "unknown")),
+            state=_owner_receipt_state(result),
             terminal=_required_bool(result, "executionTerminal"),
-            delivery_disposition=(
-                str(result["deliveryDisposition"])
-                if result.get("deliveryDisposition") is not None
-                else None
-            ),
+            delivery_disposition=_owner_optional_disposition(result, "deliveryDisposition"),
         )

@@ -82,6 +82,7 @@ def processing_probe_plan(
     expected_adapter_digest: str,
     input_path: str,
     evidence_directory: str,
+    expected_input_digest: str | None = None,
 ) -> dict[str, Any]:
     """Compile a native Runtime command from exact, already-discovered inputs.
 
@@ -101,7 +102,7 @@ def processing_probe_plan(
         raise ValueError("selected Media processing adapter is unavailable")
     if not input_path.strip() or not evidence_directory.strip():
         raise ValueError("processing input and evidence directory must be non-empty")
-    return {
+    plan = {
         "schemaVersion": 1,
         "kind": "ordivon.studio-native-processing-probe-plan",
         "profileId": profile_id,
@@ -130,3 +131,53 @@ def processing_probe_plan(
             "effect admission or a source-byte immutability guarantee."
         ),
     }
+
+    # Opt-in execution-time binding: Runtime owns the host path/digest
+    # commitments and the witness. Studio does not claim immutable inputs or
+    # proof that an opaque Provider consumed the committed bytes.
+    if expected_input_digest is not None:
+        import re
+
+        if re.fullmatch(r"sha256:[0-9a-f]{64}", expected_input_digest) is None:
+            raise ValueError("expected Media input digest must be lowercase sha256:<hex>")
+        from .assets import hash_file
+
+        source = Path(input_path)
+        if not source.is_absolute():
+            source = root / source
+        source = source.resolve(strict=True)
+        if not source.is_file():
+            raise ValueError(f"selected Media input must be a regular file: {source}")
+        if hash_file(source).digest != expected_input_digest:
+            raise ValueError("selected Media input digest changed")
+
+        # The execution's resolved input path and Runtime's committed input
+        # path must be identical. The existing adapters independently report
+        # the actual processed file digest for the consuming Production.
+        plan["execution"]["args"][1] = str(source)
+        dependencies = [
+            {"path": str(source), "expectedDigest": expected_input_digest},
+            {
+                "path": str((root / selected["profilePath"]).resolve(strict=True)),
+                "expectedDigest": selected["profileDigest"],
+            },
+            {
+                "path": str((root / selected["adapterPath"]).resolve(strict=True)),
+                "expectedDigest": selected["adapterDigest"],
+            },
+        ]
+        plan["execution"]["hostDependencies"] = sorted(
+            dependencies, key=lambda item: item["path"]
+        )
+        plan["inputByteBinding"] = {
+            "inputPath": str(source),
+            "expectedDigest": expected_input_digest,
+            "witnessScope": "runtime_host_namespace_path_witness",
+            "status": "proposed-not-executed",
+            "consumerObligation": (
+                "Read the native adapter evidence artifact/input digest and "
+                "compare with this selected digest. Runtime host dependency "
+                "witnesses do not prove target-namespace consumption."
+            ),
+        }
+    return plan

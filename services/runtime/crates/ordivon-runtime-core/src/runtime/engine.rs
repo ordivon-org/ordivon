@@ -1,3 +1,5 @@
+// Runtime inspection consumers intentionally use this shared projection.
+pub(super) use super::error::map_universal_error;
 use super::lifecycle_locks::WorkspaceLeaseTable;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -82,7 +84,21 @@ const DEFAULT_EXECUTION_HOME: &str = "/root";
 const STALE_PREPARED_INPUT_AGE_MS: u64 = 60_000;
 const WINDOWS_NATIVE_OUTER_DEADLINE_GRACE_MS: u64 = 5_000;
 const HOST_DEPENDENCY_CONTINUITY_SCOPE: &str = "runtime_host_namespace_path_witness";
-const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
+pub(crate) const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
+
+/// Shared Runner capability: the existing fd-backed Cargo cache is meaningful
+/// only for trusted Linux Jobs whose *committed plan* uses its stable path.
+pub(crate) fn requires_private_cargo_build_target(plan: &RuntimeExecutionPlan) -> bool {
+    plan.execution_target == crate::runtime::ExecutionTarget::LocalLinux
+        && plan.execution_profile == crate::runtime::ExecutionProfile::TrustedLocal
+        && (plan.env.get("CARGO_TARGET_DIR").map(String::as_str)
+            == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+            || plan.steps.iter().any(|step| {
+                step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+                    == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+            }))
+}
+
 const WINDOWS_INPUT_PRESENTATION_COMPONENTS: [&str; 1] = ["OrdivonImmutableInputs"];
 const CONTAINED_RUNTIME_ENVIRONMENT: [&str; 15] = [
     "HOME",
@@ -269,7 +285,7 @@ pub struct Runtime {
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
-    workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    workspace_headroom: Vec<WorkspaceHeadroomConfig>,
     topology_lock: Arc<Mutex<()>>,
     workspace_leases: WorkspaceLeaseTable,
     control_terminal_lock: Arc<Mutex<()>>,
@@ -732,35 +748,6 @@ fn workspace_issue(
         message: error.message,
         retryable: error.retryable,
     }
-}
-
-pub(crate) fn map_universal_error(error: crate::UniversalExecError) -> RuntimeError {
-    use crate::UniversalExecErrorCode as UniversalCode;
-
-    let code = match error.code {
-        UniversalCode::InvalidRequest => RuntimeErrorCode::InvalidRequest,
-        UniversalCode::WorkspaceExists => RuntimeErrorCode::WorkspaceExists,
-        UniversalCode::WorkspaceNotFound => RuntimeErrorCode::WorkspaceNotFound,
-        UniversalCode::WorkspacePathNotFound => RuntimeErrorCode::WorkspacePathNotFound,
-        UniversalCode::WorkspaceDirty => RuntimeErrorCode::WorkspaceDirty,
-        UniversalCode::WorkspacePathDenied => RuntimeErrorCode::WorkspacePathDenied,
-        UniversalCode::RevisionNotFound => RuntimeErrorCode::RevisionNotFound,
-        UniversalCode::RevisionMismatch => RuntimeErrorCode::RevisionMismatch,
-        UniversalCode::WorkspaceStateMismatch
-        | UniversalCode::InputStateMismatch
-        | UniversalCode::HostDependencyRuntimeDrift
-        | UniversalCode::ExecutableRuntimeDrift => RuntimeErrorCode::WorkspaceStateMismatch,
-        UniversalCode::WorkspaceMutationIncomplete => RuntimeErrorCode::ReconciliationRequired,
-        UniversalCode::ArtifactNotFound => RuntimeErrorCode::ArtifactNotFound,
-        UniversalCode::ArtifactNotUtf8 => RuntimeErrorCode::ArtifactNotUtf8,
-        UniversalCode::OutputLimitExceeded => RuntimeErrorCode::OutputLimitExceeded,
-        UniversalCode::ToolUnavailable => RuntimeErrorCode::ToolUnavailable,
-        UniversalCode::ToolFailed => RuntimeErrorCode::ToolFailed,
-        UniversalCode::IoError => RuntimeErrorCode::IoError,
-        UniversalCode::WorkspaceCapacityExceeded => RuntimeErrorCode::WorkspaceCapacityExceeded,
-        UniversalCode::MetadataCorrupt => RuntimeErrorCode::MetadataCorrupt,
-    };
-    RuntimeError::new(code, error.message, error.field.as_deref(), error.retryable)
 }
 
 fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
@@ -1746,6 +1733,7 @@ mod trusted_systemd_command_tests {
             memory_max_bytes: Some(512 * 1024 * 1024),
             tasks_max: Some(64),
             cpu_quota_percent: Some(250),
+            scheduling: None,
         };
         let environment = BTreeMap::new();
         let command = build_systemd_run_command(&SystemdRunSpec {

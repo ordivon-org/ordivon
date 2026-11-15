@@ -1,5 +1,30 @@
 # Data — Agent operating instructions
 
+## Outcome-first autonomous information supply (default)
+
+1. Accept the Outcome Owner's information need, use constraints and acceptance
+   predicate. Do not delegate internal port selection or ordinary tooling to a human.
+2. Select only needed producer-owned ODPS/ODCS outputs. Reuse original Data
+   projection and source binding logic; never invent product access URLs.
+3. Verify source bytes at the consumer's read, bind exact versions and verify
+   the natural business Owner's independent acceptance.
+4. Delegate acquisition to the actual source Owner, file verification to
+   Artifact, execution to Runtime and specialty results to their Owner.
+   Data is accountable for information supply; Research/Finance/Game/Media
+   retain domain outcome authority.
+5. Contradictory, missing and unavailable sources fail closed without a
+   fictitious success or a human checklist. Unrelated unknown ports must
+   not block a verified selected output.
+6. Incorporate actual consumer feedback into future data selection or
+   collection; a nontrivial improvement claim requires a concrete change
+   observed through a later consumer.
+7. A product checksum, tool exit code or correct fact answer is not proof
+   that an autonomous Agent's task-solving ability improved.
+
+**Current executable consumer:** Research's deliver_research.py in
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1,
+with positive/negative acceptance tests included in data:verify.
+
 ## SourceCut before execution
 
 Select one final consumer. Capture the exact source revision, data-product
@@ -15,7 +40,13 @@ Discovery metadata is only a candidate until its producing owner confirms it.
   and PyArrow differential reader. Do not replace with ad-hoc CSV parsing.
 - Analytics/transformations -> DuckDB, native domain SQL/Python/Polars
   when available in that task's lockfile; do not assume global Python imports.
-- Product discovery -> current DCAT projection and this read-only CLI.
+- Product discovery -> the frozen DCAT projection for historical acceptance,
+  or `scripts/project_owned_products.py` to derive a fresh read-only DCAT
+  projection from currently tracked owner ODPS records. Do not confuse the
+  two-source Git projection with the three-product frozen 2026-09 snapshot.
+  Do not mint port UUIDs, URLs, digest or reuse rights; ODPS v1.1 outputPort
+  IDs and versions are optional and their versions need not match the product.
+
 - Product contract -> producing owner's ODCS/ODPS document and native tests.
 - Job/Attempt/process/Artifact effect -> Runtime; not this package.
 - Long-lived general workflow -> proven Temporal/runtime owner; persistent
@@ -28,8 +59,15 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    zero exit in discovery mode as a product-integrity admission. Use
    `--verify-local --require-verified` when requiring real byte evidence;
    exit 3 means UNKNOWN/not established, while exit 2 means a conflicting
-   digest or invalid catalog. Do not interpret these as a right to publish.
-   directory path or catalog version as proof of deployed data.
+   digest or invalid catalog. In a selected-port gate, only a selected
+   FALSIFIED distribution vetoes that consumer; unrelated mismatches remain
+   reported and still fail a whole-catalog gate. Structural catalog errors
+   are never scoped away. For a consumer bound to one stable output-port
+   identity, use `--verify-local --require-port PRODUCT_ID PRODUCT_VERSION
+   DISTRIBUTION_URN`. A selected-port PASS does not establish a global
+   product PASS or permission to publish. The unmaterialized Episode Parquet
+   remains UNKNOWN. A directory path or catalog version does not prove
+   that data is deployed.
 2. Verify the exact physical bytes under explicit scope. Unknown remains
    typed UNKNOWN rather than FALSE or PASS. A file digest match does not
    prove statistics, correctness, licenses, or scientific causal claims.
@@ -46,6 +84,29 @@ Discovery metadata is only a candidate until its producing owner confirms it.
 7. For cleanup, use actual consumer/recovery/retention paths; no age-based
    deletion, guessed rename or wiping shared worktrees. Prefer owner-native
    Git/workspace management and temporary cache pruning.
+
+Local producer byte binding: use explicit `--bind-local` only after reading
+the producer's declared ODPS properties, qualified owner root and *exact*
+output-port name. The tool checks the actual regular file SHA-256 and emits DCAT 3
+`spdx:checksum` without overwriting `dct:identifier`. Never fabricate
+port/file matching, claim a portable URL, or promote a missing
+Episode Parquet materialization to VERIFIED. Native consumers must recheck
+byte identity at their read boundary.
+
+For a two-generation reader/version switch, additionally use Lean
+`formal/DataMultiVersion.lean`. Its proof covers abstract validated V2
+publication, existing V1 reader preservation and reclaim-after-no-reader
+plus retention release. Real PostgreSQL Paper 18.6 source witnesses are
+in `domains/capital/tests/test_paper_head_readback.py` and need a
+*disposable* test DSN to run (missing DSN means SKIP, never success).
+Do not identify a PostgreSQL MVCC reader with a durable Artifact lease,
+or apply model reclamation to real bytes without domain/retention authority.
+
+For publication/retirement changes, reuse the Lean `formal/DataPublication.lean`
+safety model. It proves *abstract* publish-after-validate/commit and
+reclaim-after-zero-readers/retention-release, but an installed SQL/Artifact
+implementation requires independent transaction/refinement/read-back evidence.
+Do not auto-delete data based on model success alone.
 
 Formal contract: [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md).
 Run `mise run data:formal:verify` for Lean / CrossHair evidence; the result

@@ -1,5 +1,7 @@
 # Ordivon Capital — Finance investment and research owner
 
+**Cross-Owner Finance outcome work:** when a task must deliver a Finance economic result or retire a historical implementation chain, use [Finance Contractual Execution R1](../../packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md) for the task-local consumer, evidence and verification obligations. This SPEC is not a financial authority or second execution platform.
+
 
 **Directory/Owner audit:** [Finance directory and LEGO boundary audit](docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md) records consumer-backed retirement decisions and separate Human/Agent operating paths. It is source evidence, not a current market or broker authority.
 
@@ -420,4 +422,17 @@ checks that via pg_attribute.attnotnull and compares other constraints
 independently. The strict PG deparser comparison deliberately fails closed
 after a server upgrade until the actual installed version is requalified.
 These checks do not amount to a proof of arbitrary SQL equivalence or a
-production deployment certificate.
+production deployment certificate.\r\n\r\n## Agent tool selection and local execution
+
+Select the financial consumer first: `markets/` for market observations,
+`research/` for hypotheses/experiments, `portfolio/` for decisions,
+`risk/` for exposure, `accounting/` for simulated ledger effects, and
+`trading/` for execution adapters. The
+[Finance Paper Investment Skill](../../.agents/skills/finance-paper-investment/SKILL.md)
+and [Finance Experiment Review Skill](../../.agents/skills/finance-experiment-review/SKILL.md)
+give methods, **not** market-data credentials or broker authority.
+Executable entrypoints remain the source-backed `scripts/run-finance-lego`,
+`scripts/run-strategic-contribution-brief` and Owner-native `mise tasks ls`.
+Probe chosen provider/tool in the exact node/identity via
+[Workstation inventory](../../platform/workstation/inventory/README.md);
+read back actual financial consumer evidence before claiming completion.
