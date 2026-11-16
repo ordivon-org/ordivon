@@ -131,6 +131,16 @@ The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibil
 - Provider-specific opaque continuation is not a current generic Harness surface; integrations that require it must preserve their own Provider-local authority without assuming metadata-only Harness continuity can recover private transcript state.
 - cache hit rate, prompt locality and Provider-specific request efficiency are measured properties rather than correctness thresholds.
 
+- The historical R4 Coding evidence proves one independent hidden
+  `DomainQA_PASS` but did not require persistent output and does not
+  establish that a downstream consumer received the exact edited
+  source. Delivery remains `DELIVERY_TO_CONSUMER_UNVERIFIED` (not proven
+  permanently lost); a candidate's QA result is not a release ACK.
+- Source-level `STOPPED` terminality, or the latest Tool event alone,
+  does not prove all earlier Provider/Tool effects settled. Native
+  Workspace finalization needs the complete original PG event chain
+  and natural Git/Artifact/domain delivery qualification.
+
 ## Verification
 
 Current code/test/evidence binding is defined by [`VERIFICATION.md`](VERIFICATION.md). Exact source, deterministic tests and digest-bound receipts outrank historical summaries.

@@ -87,6 +87,13 @@ delivery permits a *qualified* per-Run finalizer, not immediate deletion
 of another Run's Workspace. Missing or uncertain evidence is a HOLD and
 should be reported to the natural Harness/Runtime owners.
 
+**Finalizer rule:** Before certifying release, inspect the full
+Harness PostgreSQL ordered Run event chain, not merely `terminal=true`
+or the latest Tool head; verify every uncertain external effect is
+settled. A hidden QA PASS without a persisted candidate and downstream
+byte-level acceptance is not a delivery certificate. Other PAUSED
+Runs sharing this Workspace may still have their own HELD claims.
+
 ## Provider recovery
 
 Retained Provider Call status controls the next action. A safely failed pre-dispatch call may be retried within budget. A lost response after durable completion is replayed from Store. Ambiguous dispatch remains UNKNOWN until reconciled; transport loss is not implicit redispatch permission.

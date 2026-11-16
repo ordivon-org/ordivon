@@ -457,6 +457,28 @@ Pause snapshots retain Provider source identity plus the Run state content or co
 
 Harness can conclude that an Agent Run produced a candidate-completed result and can record a `CompletionProposal`. That is not the same as caller/domain completion. Final verification and commitment remain outside Harness.
 
+### R8 Domain QA, durable delivery and finalization are different facts
+
+A real Coding Run can pass independent hidden QA and still leave its
+edited candidate inaccessible to its intended user. The historical R4
+HARNESS-EDIT-ADDRESSING-002 evidence supports `DomainQA_PASS`, but the
+task required no delivered artifacts, its merged test/evidence PR did not
+contain the model-edited candidate, and its ephemeral native Workspace
+is now closed. The strongest supported delivery status is therefore
+`DELIVERY_TO_CONSUMER_UNVERIFIED`; permanent loss has not been proven.
+New Coding task acceptance requires the exact output Git commit/patch
+or Runtime Artifact to be durable and byte-read-back by the downstream
+consumer before releasing its Workspace claim.
+
+Run terminality is also insufficient as a certified-release condition:
+`STOPPED` is terminal under source semantics even for certain UNKNOWN
+reasons, and only the latest Tool event may appear in a current-head
+projection. A finalizer must review the original PostgreSQL ordered Run
+event chain for *every* Provider/Tool effect, verify no unresolved
+UNKNOWN/Prepared effects, and pair that source fact with independent
+Git/Artifact/domain delivery evidence. Never infer safe release from
+`terminal=true`, latest Tool head or native Job exit code alone.
+
 ## Integration boundary
 
 Higher-level orchestrators integrate through the caller-neutral Harness Python API or CLI. The package no longer ships a Host-specific external-executor adapter; orchestration lifecycle remains outside Harness while Harness retains its own execution, snapshot, Provider, Tool, trace, and terminal evidence.

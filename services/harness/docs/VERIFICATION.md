@@ -136,12 +136,14 @@ a mocked Gateway or a passing TLA model alone is insufficient.
 | Provider or Tool outcome UNKNOWN | Never certify Run finalization, release a needed claim, or blindly redispatch an uncertain external effect |
 | Authenticated terminal / explicit successor and real output delivery | Native claim release succeeds only after grant seal, Tool settlement and Git/Artifact/domain consumer evidence; legal close then succeeds with a freshly read close-CAS digest |
 | No-Tool or non-Workspace tool Run | Remains executable without unnecessary long-lived Workspace claim or deadlocked cleanup |
+| Coding hidden DomainQA PASS without required artifacts | Delivery stays unverified until the exact Git commit/patch or Runtime Artifact is persisted and a downstream consumer independently reads the bytes and acknowledges them |
+| Terminal Run with any earlier unsettled Provider/Tool intent | Read the complete original PG ordered Run event chain; any UNKNOWN or unqualified effect prevents certified release |
 | Issuer revoked after admission but before native process spawn | Separately qualify native issuer currentness; Workspace claim success is **not** an OS-spawn revocation proof |
 
 For the normal Coding path also use the existing real-Provider
 `tests/test_live_coding_task_r4.py` and independent
 `evals/harness-edit-addressing-002/qa.py` hidden verifier.
-Its historical successful run proves one specific task only. Check the
+Its historical success proves one specific hidden QA result, not durable delivery of the model-edited patch. For this case, record `DomainQA_PASS` and `DELIVERY_TO_CONSUMER_UNVERIFIED` until an original-byte consumer readback exists. Check the
 original Harness PostgreSQL Provider/Tool rows, native Runtime Job/Artifact
 bytes, the model's later Tool-output consumption, the exact Git diff,
 domain PASS/FAIL/UNKNOWN and measured token/cost/time separately. No
