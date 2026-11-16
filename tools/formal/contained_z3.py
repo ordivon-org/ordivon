@@ -65,6 +65,24 @@ def _stage_verified_file(source: Path, destination: Path, expected_digest: str) 
         raise ValueError("selected tool input changed before isolated execution")
 
 
+def _require_native_namespace_layout() -> None:
+    """Check the physical host layout only for an actual native execution.
+
+    The command builder below constructs a guest namespace explicitly and
+    remains independently testable on GitHub runners with different /lib
+    symlink layouts. This check still fails closed before any live spawn.
+    """
+    try:
+        supported = (
+            Path("/lib").readlink() == Path("usr/lib")
+            and Path("/lib64").readlink() == Path("usr/lib")
+        )
+    except OSError:
+        supported = False
+    if not supported:
+        raise ValueError("unsupported local Bubblewrap/ELF namespace layout")
+
+
 def _command_for_staged_inputs(
     *,
     z3_source: Path,
@@ -73,12 +91,7 @@ def _command_for_staged_inputs(
     stage: Path,
 ) -> tuple[list[str], list[dict[str, str]]]:
     """No whole-root, /etc, /home, /proc, /dev, or network mount."""
-    if (
-        Path("/lib").readlink() != Path("usr/lib")
-        or Path("/lib64").readlink() != Path("usr/lib")
-        or shutil.which("bwrap") != "/usr/bin/bwrap"
-        or not libraries
-    ):
+    if shutil.which("bwrap") != "/usr/bin/bwrap" or not libraries:
         raise ValueError("unsupported local Bubblewrap/ELF namespace layout")
     ordered = sorted(libraries.items())
     command = [
@@ -140,6 +153,7 @@ def run_bounded_media_z3() -> dict[str, object]:
     """Run only one existing real media SMT model under restricted mounts."""
     native = _native_formal()
     native.require_unmodified_elf_loader_environment()
+    _require_native_namespace_layout()
     source = native.qualified_source_cut()
     sha = source["gitHead"]
     model_file = ROOT / MODEL

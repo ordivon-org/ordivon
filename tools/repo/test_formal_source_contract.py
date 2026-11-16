@@ -837,6 +837,10 @@ class ContainedZ3SourceConsumerTests(unittest.TestCase):
             stage.mkdir()
             with patch.object(self.contained, "SHARED_LIB_ROOT", libraries), patch.object(
                 self.contained.shutil, "which", return_value="/usr/bin/bwrap"
+            ), patch.object(
+                self.contained.Path,
+                "readlink",
+                side_effect=OSError("host layout differs"),
             ):
                 command, staged = self.contained._command_for_staged_inputs(
                     z3_source=z3, z3_digest=hashlib.sha256(z3.read_bytes()).hexdigest(),
@@ -877,6 +881,12 @@ class ContainedZ3SourceConsumerTests(unittest.TestCase):
                         libraries={str(outside): hashlib.sha256(outside.read_bytes()).hexdigest()},
                         stage=stage,
                     )
+
+    def test_live_namespace_guard_rejects_wrong_layout(self) -> None:
+        with patch.object(
+            self.contained.Path, "readlink", return_value=Path("elsewhere")
+        ), self.assertRaisesRegex(ValueError, "unsupported local Bubblewrap/ELF"):
+            self.contained._require_native_namespace_layout()
 
     def test_contained_requires_real_bubblewrap(self) -> None:
         import hashlib
