@@ -471,7 +471,13 @@ impl PgRuntime {
             if provider["executionProvider"]["executableDigest"].as_str()
                 != Some(&universal::sha256_file(runner).map_err(io)?)
             {
-                return Err(error("native runner changed after admission"));
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ProviderStateMismatch,
+                    "native runner changed after admission",
+                    Some("executionProvider"),
+                    false,
+                )
+                .with_operation_id(job));
             }
             // Revalidate the *committed* bytes before dispatch; Runner owns
             // continuous path-drift witnessing after it starts.
