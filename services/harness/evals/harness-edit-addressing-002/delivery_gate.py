@@ -16,6 +16,7 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
+import tempfile
 from typing import Any
 
 
@@ -111,7 +112,20 @@ def qualify(
     if task["taskId"] != task_id:
         raise DeliveryGateError("wrong independent QA task")
     trial_count = task["reproducibility"]["cleanRebuildTrials"]
-    qa_results = [qa.run_candidate("delivered-candidate", candidate) for _ in range(trial_count)]
+    # Test a frozen byte representation, not a file an Agent can edit between
+    # visible/hidden QA and the subsequent immutable consumer-Git readback.
+    source_bytes = candidate.read_bytes()
+    with tempfile.TemporaryDirectory(prefix="harness-coding-qa-snapshot-") as directory:
+        snapshot = Path(directory) / target_filename
+        snapshot.write_bytes(source_bytes)
+        qa_results = [
+            qa.run_candidate("delivered-candidate", snapshot)
+            for _ in range(trial_count)
+        ]
+        if snapshot.read_bytes() != source_bytes:
+            raise DeliveryGateError("QA snapshot changed during verification")
+    if candidate.read_bytes() != source_bytes:
+        raise DeliveryGateError("candidate changed during independent QA")
     if not all(r["visiblePassed"] and r["hiddenPassed"] for r in qa_results):
         raise DeliveryGateError("independent public/hidden DomainQA did not pass")
 
@@ -131,7 +145,8 @@ def qualify(
     if not (tree_entry.startswith("100644 blob ") or tree_entry.startswith("100755 blob ")):
         raise DeliveryGateError("delivered Git path is not a regular tracked blob")
     delivered = _git(repo, "show", consumer_commit + ":" + relative)
-    source_bytes = candidate.read_bytes()
+    if candidate.read_bytes() != source_bytes:
+        raise DeliveryGateError("candidate changed during independent QA")
     if delivered != source_bytes:
         raise DeliveryGateError("consumer Git blob does not match the independently QA-passed candidate")
     source_sha = "sha256:" + hashlib.sha256(source_bytes).hexdigest()

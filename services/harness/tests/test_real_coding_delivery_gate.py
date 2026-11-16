@@ -157,3 +157,31 @@ def test_unknown_task_id_does_not_load_arbitrary_qa(tmp_path: Path) -> None:
     repo, commit = _consumer_repo(tmp_path, candidate, "pipeline.py")
     with pytest.raises(GATE.DeliveryGateError, match="unsupported"):
         GATE.qualify(candidate, repo, commit, task_id="../../evil")
+
+
+def test_candidate_mutating_after_last_qa_must_not_be_qualified(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The tested bytes must be those actually recovered from consumer Git."""
+    candidate = tmp_path / "candidate.py"
+    shutil.copyfile(ORACLE, candidate)
+    # The consumer has a stale/collateral revision B, not QA-passed oracle A.
+    repo, commit = _consumer_repo(tmp_path, INVALID)
+    qa = GATE._task_qa()
+    original = qa.run_candidate
+    calls = 0
+
+    def mutate_after_last_original_qa(label: str, source: Path) -> dict:
+        nonlocal calls
+        outcome = original(label, source)
+        calls += 1
+        if calls == qa.validate_task()["reproducibility"]["cleanRebuildTrials"]:
+            # Simulate an Agent edit interleaving after QA success but before
+            # the gate binds Git delivery bytes. No threads or sleeps.
+            shutil.copyfile(INVALID, candidate)
+        return outcome
+
+    monkeypatch.setattr(qa, "run_candidate", mutate_after_last_original_qa)
+    monkeypatch.setattr(GATE, "_task_qa", lambda task_id=GATE.TASK_ID: qa)
+    with pytest.raises(GATE.DeliveryGateError, match="candidate changed during"):
+        GATE.qualify(candidate, repo, commit)
