@@ -225,6 +225,7 @@ fn decode<T: serde::de::DeserializeOwned>(s: &str) -> RuntimeResult<T> {
 }
 
 mod artifact;
+mod claim;
 mod job;
 mod native_stop;
 mod node_query;
@@ -232,8 +233,7 @@ mod reconciliation;
 mod release;
 mod scheduling;
 mod workspace;
-mod claim;
-pub use claim::{WorkspaceClaimReserveRequest, WorkspaceClaimKeyRequest, WorkspaceClaimProjection};
+pub use claim::{WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
 
 impl PgRuntime {
     pub fn new(config: PgRuntimeConfig) -> RuntimeResult<Self> {
@@ -284,7 +284,11 @@ impl PgRuntime {
         // Fail startup if the operator has not installed the Runtime-owned
         // claim fence. A missing table must NEVER silently downgrade Close
         // to the older Job-only protection.
-        db.client.query("SELECT claim_id FROM workspace_consumer_claims LIMIT 0", &[])
+        db.client
+            .query(
+                "SELECT claim_id FROM workspace_consumer_claims LIMIT 0",
+                &[],
+            )
             .map_err(io)?;
         // Authorization includes the independently controlled app-role
         // privilege check in store(); only now may native paths be created.

@@ -119,17 +119,29 @@ impl PgRuntime {
         // A Harness Run may be paused between Jobs for an arbitrary duration.
         // Its physical claim lives here, in this Runtime DB and lock domain.
         // This guard is NEVER bypassed by a caller's consumerReleased=true.
-        let claimed: i64 = tx.query_one(
-            "SELECT count(*) FROM workspace_consumer_claims
+        let claimed: i64 = tx
+            .query_one(
+                "SELECT count(*) FROM workspace_consumer_claims
              WHERE store_root=$1 AND workspace_id=$2 AND state='held'",
-            &[&self.config.executor.canonical_store_root().map_err(io)?
-                .to_string_lossy().into_owned(), &request.workspace_id],
-        ).map_err(io)?.get(0);
+                &[
+                    &self
+                        .config
+                        .executor
+                        .canonical_store_root()
+                        .map_err(io)?
+                        .to_string_lossy()
+                        .into_owned(),
+                    &request.workspace_id,
+                ],
+            )
+            .map_err(io)?
+            .get(0);
         if claimed != 0 {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ConcurrencyLimit,
                 "Workspace has Runtime-owned long-lived consumer Claims",
-                Some("workspaceId"), false
+                Some("workspaceId"),
+                false,
             ));
         }
         if !request.consumer_released {

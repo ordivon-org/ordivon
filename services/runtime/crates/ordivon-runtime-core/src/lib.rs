@@ -119,6 +119,6 @@ pub use runtime::{
 
 #[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
 pub use runtime::pg_runtime::{
-    PgRuntime, PgRuntimeConfig, WorkspaceClaimReserveRequest,
-    WorkspaceClaimKeyRequest, WorkspaceClaimProjection,
+    PgRuntime, PgRuntimeConfig, WorkspaceClaimKeyRequest, WorkspaceClaimProjection,
+    WorkspaceClaimReserveRequest,
 };
