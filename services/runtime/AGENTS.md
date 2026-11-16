@@ -1,6 +1,6 @@
 ## Ephemeral Runtime Workspaces (Linux PG)
 
-On workspace.open, read the returned retentionNotice. The installed
+On workspace.open, first allocate and persist a unique stable workspaceId in the owning Agent/Run; omission is invalid, and response loss requires workspace.get readback on the same ID (never a fresh ID). Read the returned retentionNotice. The installed
 ordivon-runtime-lifecycle.timer is an **operator-configured periodic timer**:
 read the actual systemd unit and latest receipts before assuming its cadence
 or whether physical reclamation is installed and successful. The **4 hours

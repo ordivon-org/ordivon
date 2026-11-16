@@ -29,3 +29,46 @@ include!("tool_error.rs");
 include!("pg_catalog.rs");
 include!("pg_output_contract.rs");
 include!("pg_server.rs");
+
+#[cfg(test)]
+mod workspace_open_identity_negative_tests {
+    use super::*;
+
+    #[test]
+    fn pg_only_workspace_open_requires_caller_owned_stable_identity() {
+        let input = serde_json::json!({
+            "sourceRepo": "/tmp/source",
+            "sourceRevision": "HEAD",
+        });
+        assert!(
+            serde_json::from_value::<WorkspaceOpenRequest>(input).is_err(),
+            "a lost response without a caller-owned ID must never create a second Git worktree"
+        );
+        let null_id = serde_json::json!({
+            "workspaceId": null,
+            "sourceRepo": "/tmp/source",
+            "sourceRevision": "HEAD",
+        });
+        assert!(serde_json::from_value::<WorkspaceOpenRequest>(null_id).is_err());
+
+        let explicit: WorkspaceOpenRequest = serde_json::from_value(serde_json::json!({
+            "workspaceId": "ws-stable-request-001",
+            "sourceRepo": "/tmp/source",
+            "sourceRevision": "HEAD",
+        }))
+        .unwrap();
+        assert_eq!(explicit.bind().workspace_id, "ws-stable-request-001");
+    }
+
+    #[test]
+    fn pg_only_workspace_open_schema_requires_workspace_id_in_caller_contract() {
+        let schema = serde_json::to_value(schemars::schema_for!(WorkspaceOpenRequest)).unwrap();
+        let required = schema
+            .pointer("/required")
+            .and_then(serde_json::Value::as_array)
+            .unwrap();
+        assert!(required.iter().any(|x| x == "workspaceId"));
+        assert!(required.iter().any(|x| x == "sourceRepo"));
+        assert!(required.iter().any(|x| x == "sourceRevision"));
+    }
+}

@@ -165,6 +165,8 @@ workspace.diff
 workspace.close
 ```
 
+Before calling `workspace.open`, choose and persist a unique stable `workspaceId` in the real Agent/Run; **it is required**. If the creation response is lost, call `workspace.get` with the same ID rather than creating a new Workspace. Existing Native OPENING-intent reconciliation accepts only an exact same-ID/source replay; a closed, missing, or mismatched physical carrier cannot be presumed safe from a lost Tool response.
+
 The exact Tool names and descriptions are generated in [`reference/tools.md`](reference/tools.md). A complete executable client implementation is available in `scripts/mcp_e2e.py`.
 
 ## 8. Recover or remove
