@@ -1984,8 +1984,13 @@ internal static class OrdivonWindowsJobLauncher
                 ThrowWin32("GetExitCodeProcess");
             }
 
-            // Closing the final Job handle kills any descendants that outlived the direct child.
-            // Only after that boundary can captured output be finalized without later mutation.
+            // A diagnostic or foreign reader may still retain a named Job Object handle.
+            // KILL_ON_JOB_CLOSE only fires on the last handle, so explicitly terminate
+            // any remaining descendants before publishing the Attempt result.
+            if (!timedOut && !cancelled)
+            {
+                TerminateWholeJob(job, CancelledExit);
+            }
             CloseHandle(job);
             job = IntPtr.Zero;
             stdoutThread.Join();
