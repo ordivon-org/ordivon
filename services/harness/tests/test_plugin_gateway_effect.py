@@ -1948,3 +1948,55 @@ def test_r8_pg_owner_readback_error_refuses_effect_without_job_reconciliation(pg
         assert step.receipt is not None
         assert step.receipt.status.value == "rejected"
         assert step.observation["structuredContent"]["physicalDispatch"] is False
+
+
+def test_r8_qualified_gateway_timeout_projection_remains_exact_before_submit() -> None:
+    """Port readback stays before the source-qualified timeout->effect frame.
+
+    This Source TestDouble is NOT a native issuer. The original formal AST
+    checker separately anchors the final Gateway timeout projection.
+    """
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    admission = _SourceOnlyWorkspaceAdmission()
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        workspace_admission=admission,
+        require_workspace_admission=True,
+        run_ref="harness-run:plugin-h2",
+        grant_digest=factory.grant_digest,
+    )
+    request = _effect_request_for_claim_contract()
+    request["execution"]["timeoutMs"] = 1_234
+    result = adapter.call_tool("workspace.exec", request)
+    assert isinstance(result, dict)
+    assert len(admission.effects) == 1
+    assert len(client.calls) == 1
+    operation, args = client.calls[0]
+    assert operation == "execution.submit"
+    assert args["timeoutMs"] == 1_234
+    assert args["requestId"] == request["clientRequestId"]
+    assert args["workspaceId"] == factory.execution_grant.workspace_id
+    assert request["execution"]["timeoutMs"] == 1_234
+
+
+def test_r8_bogus_bool_workspace_admission_is_not_native_qualification() -> None:
+    """An externally injected TestDouble returning False cannot mint HELD."""
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    admission = _SourceOnlyWorkspaceAdmission()
+    admission.require_effect_ready = lambda **_kwargs: False
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        workspace_admission=admission,
+        require_workspace_admission=True,
+        run_ref="harness-run:plugin-h2",
+        grant_digest=factory.grant_digest,
+    )
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="unauthenticated"):
+        adapter.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert client.calls == []
