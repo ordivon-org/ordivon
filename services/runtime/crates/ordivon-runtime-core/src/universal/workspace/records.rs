@@ -356,6 +356,20 @@ fn decode_open_workspace_record(
         {
             return unfinished_open_error("durable opening is unfinished; retry exact original workspace.open with the same workspaceId");
         }
+        // A crash during native Git removal must not expose the worktree to
+        // a new Job/Run while the durable close intent awaits reconciliation.
+        if serde_json::from_slice::<serde_json::Value>(bytes)
+            .ok()
+            .and_then(|value| value.get("state").and_then(|state| state.as_str()).map(str::to_owned))
+            .as_deref() == Some("closing")
+        {
+            return UniversalExecError::new(
+                UniversalExecErrorCode::WorkspaceStateMismatch,
+                "Workspace close is pending native Git reconciliation",
+                Some("workspaceId"),
+                true,
+            );
+        }
         UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,
             format!("invalid workspace record: {error}"),
