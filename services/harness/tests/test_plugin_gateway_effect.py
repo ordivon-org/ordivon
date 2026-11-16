@@ -1951,10 +1951,11 @@ def test_r8_pg_owner_readback_error_refuses_effect_without_job_reconciliation(pg
 
 
 def test_r8_qualified_gateway_timeout_projection_remains_exact_before_submit() -> None:
-    """Port readback stays before the source-qualified timeout->effect frame.
+    """The same frozen timeout must reach Gateway after a claim readback.
 
-    This Source TestDouble is NOT a native issuer. The original formal AST
-    checker separately anchors the final Gateway timeout projection.
+    This Source TestDouble is NOT a native issuer. The existing formal AST
+    observer currently rejects the post-projection claim guard; Formal Owner
+    must refine the exact guarded-effect source frame independently.
     """
     client = GatewayExecutionFixture()
     factory = _factory(client)

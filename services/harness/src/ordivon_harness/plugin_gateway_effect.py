@@ -359,12 +359,12 @@ class GatewayMcpRuntimeAdapter:
                         f"Gateway execution lowering has invalid {field} u64 bound"
                     )
                 gateway_args[field] = value
-        # The single trusted Runtime admission Port consumes immutable scalar
-        # Owner/Run/Grant identities only. Run this after source argument and
-        # output-limit validation, but BEFORE the formal source-bound final
-        # timeout projection / immediate execution.submit frame. No external
-        # call or alias mutation may intervene in that final effect frame.
-        # This still does not claim a native spawn-current fence.
+        if "timeoutMs" in execution:
+            gateway_args["timeoutMs"] = execution["timeoutMs"]
+
+        # The final public Gateway boundary consumes the SAME trusted Runtime
+        # Claim Port as the built-in Bridge. This checks lifetime/issuer only;
+        # durable ToolIntent/Fence identity is separately verified upstream.
         if self._workspace_admission_required and self._workspace_admission is None:
             raise HarnessWorkspaceAdmissionUnavailable(
                 "Gateway execution requires a certified Runtime Workspace Claim"
@@ -390,11 +390,6 @@ class GatewayMcpRuntimeAdapter:
                 raise HarnessWorkspaceAdmissionUnavailable(
                     "Gateway Workspace Port returned an unauthenticated caller token"
                 )
-        # Keep this exact frame mechanically source-qualified by the existing
-        # formal timeout verifier: no authorization readback, retry, alias
-        # mutation or untrusted adapter call follows the timeout projection.
-        if "timeoutMs" in execution:
-            gateway_args["timeoutMs"] = execution["timeoutMs"]
         receipt = self._call("execution.submit", gateway_args)
         operation_ref = _required_text(
             _gateway_field(receipt, "operation_ref", "operationRef"), "operationRef"
