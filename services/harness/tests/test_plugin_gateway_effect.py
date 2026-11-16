@@ -2039,3 +2039,54 @@ def test_gateway_committed_inventory_cannot_forge_complete_artifact_id_set(
     adapter._operation_requests[client.native_id] = "request:exact-inventory-p0"
     with pytest.raises(HarnessRuntimeClientError, match=expected_error):
         adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+
+
+@pytest.mark.parametrize(
+    ("fault", "reason"),
+    (
+        ("missing-recovery", "recoveryRequired"),
+        ("null-recovery", "recoveryRequired"),
+        ("missing-execution", "executionDisposition"),
+        ("uncertain-execution", "executionDisposition"),
+        ("unknown-enum", "executionDisposition"),
+    ),
+)
+def test_gateway_terminal_committed_needs_complete_conclusive_runtime_status_before_artifact_read(
+    fault: str, reason: str
+) -> None:
+    """An incomplete Runtime projection must not be promoted to Tool success.
+
+    The Gateway wire observation's two Optional fields are unknown until
+    established by the physical Runtime Owner. No model preview read should
+    occur under terminal/committed/complete projection alone.
+    """
+
+    class UnqualifiedTerminal(GatewayTextArtifacts):
+        def call_tool(self, name, arguments):
+            is_error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload = dict(payload)
+                if fault == "missing-recovery":
+                    payload.pop("recovery_required")
+                elif fault == "null-recovery":
+                    payload["recovery_required"] = None
+                elif fault == "missing-execution":
+                    payload.pop("execution_disposition")
+                elif fault == "uncertain-execution":
+                    payload["execution_disposition"] = "lost"
+                else:
+                    payload["execution_disposition"] = "fake_succeeded"
+            return is_error, payload
+
+    client = UnqualifiedTerminal()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        artifact_read_enabled=True,
+    )
+    adapter._operation_requests[client.native_id] = "request:strict-physical-terminal-evidence"
+    with pytest.raises(HarnessRuntimeClientError, match=reason):
+        adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+    assert [name for name, _ in client.calls] == ["execution.get", "execution.resolve"]

@@ -168,6 +168,12 @@ def _gateway_field(payload: dict[str, JsonValue], snake: str, camel: str) -> Jso
 _GATEWAY_DELIVERY_DISPOSITIONS = frozenset(
     {"committed", "reconciliation_required", "unknown", "in_progress"}
 )
+# Only these physical Runtime outcomes can support a committed result. Lost or
+# orphaned are distinct UNKNOWN states; the Gateway cannot turn them into a
+# successful Tool observation by asserting artifact_projection_complete.
+_GATEWAY_CONCLUSIVE_EXECUTION_RESOLUTIONS = frozenset(
+    {"succeeded", "failed", "timed_out", "cancelled"}
+)
 
 
 def _gateway_delivery_disposition(
@@ -578,7 +584,18 @@ class GatewayMcpRuntimeAdapter:
         disposition = _gateway_field(observed, "execution_disposition", "executionDisposition")
         if disposition is not None and not isinstance(disposition, str):
             raise HarnessRuntimeClientError("Gateway executionDisposition is invalid")
+        if terminal and delivery == "committed" and (
+            disposition not in _GATEWAY_CONCLUSIVE_EXECUTION_RESOLUTIONS
+        ):
+            # The Owner's terminal status, committed delivery, and listed
+            # Artifact IDs cannot certify an absent or uncertain Runner result.
+            # UNKNOWN must not become resultAvailable or trigger artifact.read.
+            raise HarnessRuntimeClientError(
+                "Gateway committed executionDisposition lacks conclusive Runner evidence"
+            )
         recovery = _gateway_field(observed, "recovery_required", "recoveryRequired")
+        if terminal and recovery is None:
+            raise HarnessRuntimeClientError("Gateway terminal observation omitted recoveryRequired")
         if recovery is None:
             recovery = False
         if not isinstance(recovery, bool):
