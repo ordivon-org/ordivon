@@ -4564,7 +4564,7 @@ fn workspace_list_surfaces_invalid_current_physical_candidate() {
 }
 
 #[test]
-fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
+fn workspace_list_surfaces_corrupt_record_only_history_without_inventing_open_workspace() {
     let (_sandbox, runtime, executor) =
         workspace_fixture("workspace-list-history-poison", "workspace-list-current");
     fs::write(
@@ -4586,7 +4586,16 @@ fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
 
     assert_eq!(result.workspaces.len(), 1);
     assert_eq!(result.workspaces[0].workspace_id, "workspace-list-current");
-    assert!(result.issues.is_empty());
+    // The bytes cannot tell us whether this was irrelevant history or an
+    // interrupted CLOSING intent. UNKNOWN is diagnostic, never absent or
+    // eligible for automatic close; it must not invent an OPEN Workspace.
+    assert_eq!(result.issues.len(), 1);
+    assert_eq!(result.issues[0].workspace_id, "historical-poison");
+    assert_eq!(
+        result.issues[0].stage,
+        RuntimeWorkspaceIssueStage::Inventory
+    );
+    assert_eq!(result.issues[0].code, "METADATA_CORRUPT");
 }
 
 #[test]

@@ -1701,6 +1701,80 @@ mod durable_closing_intent_tests {
     }
 
     #[test]
+    fn record_only_closing_is_discoverable_without_auto_release_and_resumable_by_exact_request() {
+        let (_temp, config, record, digest) =
+            source_workspace("ws-close-record-only-inventory");
+        let request = closing_fixture(&config, &record, &digest);
+        remove_git_worktree_from_workspace(Path::new(&record.workspace_path), false)
+            .expect("simulate Git physical removal before CLOSED tombstone");
+        assert!(!Path::new(&record.workspace_path).exists());
+        assert!(config.workspace_record_path(&record.workspace_id).exists());
+        let inventory = list_open_workspace_record_inventory(&config)
+            .expect("native inventory must enumerate durable record-only closing");
+        assert!(inventory.records.is_empty(), "CLOSING is not an OPEN worktree");
+        let issue = inventory.issues.iter()
+            .find(|issue| issue.workspace_id == record.workspace_id)
+            .expect("record-only CLOSING must be diagnosable without the Git directory");
+        assert_eq!(issue.error.code, UniversalExecErrorCode::WorkspaceStateMismatch, "{}", issue.error.message);
+        assert!(issue.error.message.contains("CLOSING"));
+
+        let unauthorized = WorkspaceCloseRequest {
+            schema_version: 1,
+            workspace_id: record.workspace_id.clone(),
+            force: false,
+            consumer_released: false,
+            expected_source_state_digest: Some(digest.clone()),
+        };
+        let denied = remove_git_workspace(&config, &unauthorized)
+            .expect_err("inventory cannot confer missing original release authority");
+        assert_eq!(denied.code, UniversalExecErrorCode::WorkspaceStateMismatch);
+        assert!(config.workspace_record_path(&record.workspace_id).exists());
+
+        let recovered = remove_git_workspace(&config, &request)
+            .expect("only original exact request can finish native reconciliation");
+        assert_eq!(recovered.closure_disposition, WorkspaceClosureDisposition::RecoveredMissing);
+        let after = list_open_workspace_record_inventory(&config)
+            .expect("closed tombstone no longer needs recovery");
+        assert!(after.records.is_empty());
+        assert!(after.issues.is_empty(), "CLOSED tombstone is not a pending CLOSING");
+    }
+
+    #[test]
+    fn corrupt_record_only_closing_is_reported_not_silently_dropped() {
+        let (_temp, config, record, digest) = source_workspace("ws-close-record-corrupt");
+        closing_fixture(&config, &record, &digest);
+        remove_git_worktree_from_workspace(Path::new(&record.workspace_path), false)
+            .expect("disposable Git removal");
+        fs::write(config.workspace_record_path(&record.workspace_id), b"{not-json")
+            .expect("simulate corrupt native record after crash");
+        let inventory = list_open_workspace_record_inventory(&config).unwrap();
+        assert!(inventory.records.is_empty());
+        assert_eq!(inventory.issues.len(), 1);
+        assert_eq!(inventory.issues[0].workspace_id, record.workspace_id);
+        assert_eq!(inventory.issues[0].error.code, UniversalExecErrorCode::MetadataCorrupt);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn record_only_symlink_cannot_import_foreign_record_authority() {
+        let (temp, config, record, digest) = source_workspace("ws-close-record-symlink");
+        closing_fixture(&config, &record, &digest);
+        remove_git_worktree_from_workspace(Path::new(&record.workspace_path), false)
+            .expect("disposable Git removal");
+        let path = config.workspace_record_path(&record.workspace_id);
+        let foreign = temp.path().join("foreign-record.json");
+        fs::rename(&path, &foreign).expect("move only disposable fixture record");
+        std::os::unix::fs::symlink(&foreign, &path)
+            .expect("simulate record file substituted with symlink");
+        let inventory = list_open_workspace_record_inventory(&config).unwrap();
+        assert!(inventory.records.is_empty());
+        assert_eq!(inventory.issues.len(), 1);
+        assert_eq!(inventory.issues[0].workspace_id, record.workspace_id);
+        assert_eq!(inventory.issues[0].error.code, UniversalExecErrorCode::MetadataCorrupt);
+        assert!(foreign.exists(), "inventory must not consume or delete external record");
+    }
+
+    #[test]
     fn crash_after_git_removal_retains_original_digest_and_closed_tombstone() {
         let (_temp, config, record, digest) = source_workspace("ws-close-crash-after-git");
         let request = closing_fixture(&config, &record, &digest);
