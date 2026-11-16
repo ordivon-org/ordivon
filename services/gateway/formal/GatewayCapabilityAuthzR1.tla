@@ -14,10 +14,10 @@ EXTENDS TLC
 \* Upstream PDP and real provider effects are outside the model.
 
 VARIABLES phase, target, ingress, version, binding, qualified,
-          outcome, authority, effect, authzen, authzenNonce
+          outcome, authority, effect, authzen, authzenNonce, obligations
 
 vars == <<phase, target, ingress, version, binding, qualified,
-          outcome, authority, effect, authzen, authzenNonce>>
+          outcome, authority, effect, authzen, authzenNonce, obligations>>
 
 Init ==
   /\ phase = "start"
@@ -31,6 +31,7 @@ Init ==
   /\ effect = FALSE
   /\ authzen = FALSE
   /\ authzenNonce = FALSE
+  /\ obligations = FALSE
 
 ResolveTarget ==
   /\ phase = "start"
@@ -38,7 +39,7 @@ ResolveTarget ==
        /\ target' = t
        /\ phase' = IF t THEN "target" ELSE "rejected"
   /\ UNCHANGED <<ingress, version, binding, qualified, outcome,
-                 authority, effect, authzen, authzenNonce>>
+                 authority, effect, authzen, authzenNonce, obligations>>
 
 ReadVerifiedIngress ==
   /\ phase = "target"
@@ -46,7 +47,7 @@ ReadVerifiedIngress ==
        /\ ingress' = i
        /\ phase' = IF i THEN "identity" ELSE "rejected"
   /\ UNCHANGED <<target, version, binding, qualified, outcome,
-                 authority, effect, authzen, authzenNonce>>
+                 authority, effect, authzen, authzenNonce, obligations>>
 
 ReadSecurityDecision ==
   /\ phase = "identity"
@@ -58,6 +59,7 @@ ReadSecurityDecision ==
      \E e \in BOOLEAN:
      \E z \in BOOLEAN:
      \E n \in BOOLEAN:
+     \E u \in BOOLEAN:
        /\ version' = v
        /\ outcome' = o
        /\ binding' = b
@@ -66,6 +68,7 @@ ReadSecurityDecision ==
        /\ effect' = e
        /\ authzen' = z
        /\ authzenNonce' = n
+       /\ obligations' = u
        /\ phase' = "decision"
   /\ UNCHANGED <<target, ingress>>
 
@@ -81,6 +84,7 @@ AllowDecision ==
       \/ /\ version = "v3"
          /\ authzen
          /\ authzenNonce
+         /\ ~obligations
          /\ ~authority
          /\ ~effect)
 
@@ -89,14 +93,14 @@ Forward ==
   /\ AllowDecision
   /\ phase' = "forwarded"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen, authzenNonce>>
+                 outcome, authority, effect, authzen, authzenNonce, obligations>>
 
 RejectDecision ==
   /\ phase = "decision"
   /\ ~AllowDecision
   /\ phase' = "rejected"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen, authzenNonce>>
+                 outcome, authority, effect, authzen, authzenNonce, obligations>>
 
 Next ==
   \/ ResolveTarget
@@ -119,6 +123,7 @@ TypeOK ==
   /\ effect \in BOOLEAN
   /\ authzen \in BOOLEAN
   /\ authzenNonce \in BOOLEAN
+  /\ obligations \in BOOLEAN
 
 ForwardImpliesBinding ==
   phase = "forwarded" =>
@@ -134,7 +139,10 @@ V2NeedsDelegatedEvidence ==
 
 V3NeedsInteractiveEvidence ==
   (phase = "forwarded" /\ version = "v3") =>
-    (authzen /\ authzenNonce /\ ~authority /\ ~effect)
+    (authzen /\ authzenNonce /\ ~authority /\ ~effect /\ ~obligations)
+
+NoUnfulfilledV3Obligations ==
+  (phase = "forwarded" /\ version = "v3") => ~obligations
 
 NoOtherVersionForwards ==
   phase = "forwarded" => version \in {"v2", "v3"}
@@ -147,7 +155,29 @@ UnsafeForwardWithUnboundDecision ==
   /\ ~binding
   /\ phase' = "forwarded"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen, authzenNonce>>
+                 outcome, authority, effect, authzen, authzenNonce, obligations>>
+
+\* Counterexample-only action: a v3 PERMIT with an unfulfilled mandatory
+\* obligation reaches the Owner even though this PEP cannot perform it.
+UnsafeForwardWithUnfulfilledObligation ==
+  /\ phase = "decision"
+  /\ target
+  /\ ingress
+  /\ version = "v3"
+  /\ binding
+  /\ qualified
+  /\ outcome = "allow"
+  /\ authzen
+  /\ authzenNonce
+  /\ obligations
+  /\ ~authority
+  /\ ~effect
+  /\ phase' = "forwarded"
+  /\ UNCHANGED <<target, ingress, version, binding, qualified,
+                 outcome, authority, effect, authzen, authzenNonce, obligations>>
+
+UnsafeObligationNext == Next \/ UnsafeForwardWithUnfulfilledObligation
+UnsafeObligationSpec == Init /\ [][UnsafeObligationNext]_vars
 
 UnsafeNext == Next \/ UnsafeForwardWithUnboundDecision
 UnsafeSpec == Init /\ [][UnsafeNext]_vars
