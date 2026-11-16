@@ -23,6 +23,10 @@ class ExecutionCommandMethods:
     _caller: OwnerToolCaller
     _routes: dict[str, CapabilityRoute]
 
+    def __init__(self, caller: OwnerToolCaller, routes: dict[str, CapabilityRoute]) -> None:
+        self._caller = caller
+        self._routes = routes
+
     async def execution_submit(
         self,
         *,

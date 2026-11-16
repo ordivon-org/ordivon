@@ -564,8 +564,12 @@ the natural domain consumer. Gateway owns the public MCP contract,
 caller/Owner reference qualification and faithful projection of the
 native Runtime outcome. Runtime's PG Job/Attempt and retained Artifact
 truth remain authoritative; terminal Job does not prove Research/Finance
-domain completion. Reuse the existing GatewayService, native
-ExecutionObservationMethods and HTTP/Owner MCP SDK, not another Scheduler.
+domain completion. Reuse the existing GatewayService and its explicit composition of native
+ExecutionCommandMethods and ExecutionObservationMethods, with the official
+HTTP/Owner MCP SDK, not another Scheduler. Gateway does not use a multiple-
+inheritance ExecutionCoordinator shell; each existing component receives the
+same immutable route mapping and Owner caller explicitly. Its public MCP
+Tool Surface and Job/Artifact ownership remain unchanged.
 
 **Critical result projection**: A Runtime Artifact chunk is a typed
 bounded range, not free-form data. Gateway must reject a non-JSON-boolean

@@ -227,6 +227,18 @@ claim successful service admission from an unprivileged staging install.
 On 203/EXEC investigate the interpreter shebang and complete parent path,
 retain the last healthy release, and correct the interpreter location.
 
+## Explicit Gateway Execution composition (2026-11-16)
+
+GatewayService owns explicit ExecutionCommandMethods and
+ExecutionObservationMethods instances with the same OwnerToolCaller and
+CapabilityRoute mapping. Do not restore the former empty multiple-inheritance
+ExecutionCoordinator shell: it had no separate state or business consumer.
+Preserve the existing GatewayService execution.submit/resolve/get/cancel and
+artifact.read boundaries, native Runtime identity and physical receipts;
+composition does not authorize a new Owner Job table, effect retry, or MCP
+Tool Surface change. Existing source regression:
+`tests/test_execution_explicit_composition.py`.
+
 ## Agent receipt type fidelity (2026-11-14)
 
 Agent-facing `execution.submit` and `execution.cancel` only project
