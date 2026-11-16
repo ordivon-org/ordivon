@@ -603,7 +603,13 @@ fn reconcile_closing_workspace(
     Ok(WorkspaceCloseResult {
         workspace_id: workspace_id.clone(),
         removed: target_meta.is_some(),
-        closure_disposition: WorkspaceClosureDisposition::RecoveredMissing,
+        // Distinguish a physical removal completed by this replay from a
+        // prior removal whose missing directory we merely reconciled.
+        closure_disposition: if target_meta.is_some() {
+            WorkspaceClosureDisposition::Removed
+        } else {
+            WorkspaceClosureDisposition::RecoveredMissing
+        },
         source_state_digest: Some(closing.source_state_digest),
     })
 }
@@ -1701,7 +1707,7 @@ mod durable_closing_intent_tests {
         let request = closing_fixture(&config, &record, &digest);
         let completed = remove_git_workspace(&config, &request)
             .expect("idempotent exact replay of authorized physical Git close");
-        assert_eq!(completed.closure_disposition, WorkspaceClosureDisposition::RecoveredMissing);
+        assert_eq!(completed.closure_disposition, WorkspaceClosureDisposition::Removed);
         assert!(completed.removed);
         assert_eq!(completed.source_state_digest.as_deref(), Some(digest.as_str()));
         assert!(!Path::new(&record.workspace_path).exists());
