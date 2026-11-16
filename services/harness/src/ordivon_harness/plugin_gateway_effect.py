@@ -584,6 +584,21 @@ class GatewayMcpRuntimeAdapter:
         disposition = _gateway_field(observed, "execution_disposition", "executionDisposition")
         if disposition is not None and not isinstance(disposition, str):
             raise HarnessRuntimeClientError("Gateway executionDisposition is invalid")
+        # Native Runtime projects terminal status and executionDisposition
+        # from one committed JobResolution. A mixed-version/stale Gateway
+        # observation cannot certify the physical result merely by claiming
+        # artifact inventory completeness; reject it before artifact.read.
+        owner_state = _required_text(observed.get("state"), "state")
+        if terminal and disposition is not None and owner_state != disposition:
+            raise HarnessRuntimeClientError(
+                "Gateway terminal state conflicts with executionDisposition"
+            )
+        if terminal and delivery == "committed" and disposition == "succeeded":
+            success_exit = _gateway_field(observed, "exit_code", "exitCode")
+            if type(success_exit) is not int or success_exit != 0:
+                raise HarnessRuntimeClientError(
+                    "Gateway succeeded execution lacks verified zero exitCode"
+                )
         if terminal and delivery == "committed" and (
             disposition not in _GATEWAY_CONCLUSIVE_EXECUTION_RESOLUTIONS
         ):
