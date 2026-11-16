@@ -101,7 +101,10 @@ fn qualify_pg_scheduling_output_schema(tool: &mut Tool) {
         properties
             .insert(
                 "scheduling".to_owned(),
-                json!({"$ref":"#/$defs/PgJobSchedulingReadback"}),
+                json!({"oneOf": [
+                    {"$ref": "#/$defs/PgJobSchedulingReadback"},
+                    {"type": "null"}
+                ]}),
             )
             .is_none(),
         "scheduler annotation must not shadow a Core field"
@@ -138,8 +141,11 @@ mod pg_scheduling_output_contract_tests {
             );
             assert_eq!(schema["oneOf"].as_array().unwrap().len(), 2, "{tool_name}");
             assert_eq!(
-                schema["$defs"][definition]["properties"]["scheduling"]["$ref"],
-                "#/$defs/PgJobSchedulingReadback",
+                schema["$defs"][definition]["properties"]["scheduling"]["oneOf"],
+                json!([
+                    {"$ref": "#/$defs/PgJobSchedulingReadback"},
+                    {"type": "null"}
+                ]),
                 "{tool_name}"
             );
             assert!(
@@ -172,6 +178,44 @@ mod pg_scheduling_output_contract_tests {
                 schema["$defs"]["PgJobSchedulingState"]["enum"],
                 json!(["pending", "allocated", "released"]),
                 "{tool_name}"
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_plan_projection_can_be_null_without_fabricating_resource_request() {
+        // When an accepted execution plan is corrupt, the Job and its durable
+        // events remain observable, but no ResourceScheduling can be decoded.
+        // Preserve the closed PG wire contract and require an explicit null.
+        for (tool_name, definition) in [
+            ("workspace.exec", "JobObservation"),
+            ("workspace.execPlan", "JobObservation"),
+            ("job.observe", "JobObservation"),
+            ("job.cancel", "JobObservation"),
+            ("job.list", "RuntimeJobSummary"),
+            ("job.get", "RuntimeJobInspection"),
+        ] {
+            let tool = PgRuntimeServer::catalog()
+                .into_iter()
+                .find(|tool| tool.name.as_ref() == tool_name)
+                .expect("PG Tool must exist");
+            let schema = serde_json::Value::Object(
+                tool.output_schema.expect("schema").as_ref().clone(),
+            );
+            assert_eq!(
+                schema["$defs"][definition]["properties"]["scheduling"],
+                json!({"oneOf": [
+                    {"$ref": "#/$defs/PgJobSchedulingReadback"},
+                    {"type": "null"}
+                ]}),
+                "{tool_name}: known scheduling or explicitly unknown, never a fake default"
+            );
+            assert!(
+                schema["$defs"][definition]["required"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!("scheduling")),
+                "{tool_name}: missing scheduling must not become silent success"
             );
         }
     }
