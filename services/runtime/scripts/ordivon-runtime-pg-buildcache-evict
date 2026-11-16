@@ -50,8 +50,11 @@ def direct_directory(path: Path) -> Path:
 
 
 def git(root: Path, *args: str) -> str:
+    # -C does not override inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE.
+    # Reuse the installed native PG reclaimer's owner-repo Git isolation.
+    clean_env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     result = subprocess.run(["/usr/bin/git", "-C", str(root), *args],
-                            capture_output=True, text=True, timeout=12)
+                            capture_output=True, text=True, timeout=12, env=clean_env)
     if result.returncode:
         raise RuntimeError("Git Workspace observation unavailable")
     return result.stdout.strip()
