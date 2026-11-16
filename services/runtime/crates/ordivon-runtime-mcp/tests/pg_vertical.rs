@@ -20,6 +20,9 @@ struct Fixture {
     pg: Child,
     endpoint: Option<Child>,
     db: Client,
+    /// Opt in only for an E2E test that executes a sibling native systemd Unit
+    /// across Cargo's private sandbox mount. Other fixtures are unchanged.
+    host_visible_test_runner: bool,
 }
 impl Fixture {
     fn new() -> Self {
@@ -147,6 +150,7 @@ impl Fixture {
             pg,
             endpoint: None,
             db,
+            host_visible_test_runner: false,
         }
     }
     fn endpoint(&mut self) -> String {
@@ -172,6 +176,17 @@ impl Fixture {
             "run cargo test --workspace to build the native runner: {}",
             runner.display()
         );
+        let runner = if self.host_visible_test_runner {
+            // An actual sibling systemd unit cannot execute through Cargo's
+            // private source mount. Copy only this disposable Fixture binary
+            // into the same private PG test root; never touch installed units.
+            let test_runner = self.root.join("ordivon-runtime-runner");
+            fs::copy(&runner, &test_runner).unwrap();
+            fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755)).unwrap();
+            test_runner
+        } else {
+            runner
+        };
         let output = fs::File::create(self.root.join("endpoint.log")).unwrap();
         let mut endpoint = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"));
         endpoint
@@ -4252,4 +4267,221 @@ fn resource_queue_owner_fairness_and_idle_borrowing() {
         assert!(Instant::now() < deadline, "fair-share jobs did not finish");
         thread::sleep(Duration::from_millis(100));
     }
+}
+
+#[test]
+#[ignore = "disposable PG18 plus actual native MCP, systemd Runner and Artifacts"]
+fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
+    let mut f = Fixture::new();
+    f.host_visible_test_runner = true;
+    let repo = f.repo();
+    let endpoint = f.endpoint();
+    let ws = format!("ws-b-r3-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":ws,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    let seed = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+      "clientRequestId":format!("b-r3-seed-{}",Uuid::now_v7()),
+      "execution":{"workspaceId":ws,"executable":"/usr/bin/printf","args":["B_R3_SEED"],
+                   "cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+    );
+    assert_ne!(seed["isError"], true, "{seed}");
+    let seed_id = seed["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let seed_deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let seen = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":seed_id,"waitMs":2000}),
+        );
+        assert_ne!(seen["isError"], true, "{seen}");
+        if seen["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        assert!(
+            Instant::now() < seed_deadline,
+            "seed did not finish: {seen}"
+        );
+    }
+
+    let seed_row=f.db.query_one("SELECT workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,operation_digest FROM jobs WHERE job_id=$1",&[&seed_id]).unwrap();
+    let workspace: String = seed_row.get(0);
+    let original_snapshot: String = seed_row.get(1);
+    let valid_plan: String = seed_row.get(2);
+    let plan_digest: String = seed_row.get(3);
+    let op_digest: String = seed_row.get(4);
+    let mut provider_json: Value = serde_json::from_str(&original_snapshot).unwrap();
+    assert!(
+        provider_json["executionProvider"]["executableDigest"].is_string(),
+        "{provider_json}"
+    );
+    provider_json["executionProvider"]["executableDigest"] =
+        json!(format!("sha256:{}", "0".repeat(64)));
+    let broken_provider = provider_json.to_string();
+    let bad_plan = "{not-valid-json";
+    let corrupt_id = format!("job-{}", Uuid::now_v7());
+    let provider_id = format!("job-{}", Uuid::now_v7());
+    let corrupt_attempt = format!("attempt-{}", Uuid::now_v7());
+    let provider_attempt = format!("attempt-{}", Uuid::now_v7());
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    // Stage both malformed accepted states atomically before background scheduler sees them.
+    let mut tx = f.db.transaction().unwrap();
+    for (i, (job, attempt, plan, snapshot)) in [
+        (&corrupt_id, &corrupt_attempt, bad_plan, &original_snapshot),
+        (
+            &provider_id,
+            &provider_attempt,
+            valid_plan.as_str(),
+            &broken_provider,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let req = format!("b-r3-injected-{}-{}", i, Uuid::now_v7());
+        let digest = format!("sha256:{}", "a".repeat(64));
+        tx.execute("INSERT INTO jobs(job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id,row_version)
+        VALUES($1,'pg-consumer',$2,$3,$4,$5,$6,$7,$8,$9,'run',NULL,$10,0)",
+        &[job,&req,&digest,&op_digest,&workspace,snapshot,&plan,&plan_digest,&(now_ms+i as i64),attempt]).unwrap();
+        tx.execute("INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version)
+        VALUES($1,$2,1,'accepted','natural',$3,$4,$5,$6,0)",
+        &[attempt,job,&digest,&f.root.join("store/pg-attempts").join(attempt).to_string_lossy().to_string(),
+          &format!("ordivon-pg-{attempt}.service"),&(now_ms+i as i64)]).unwrap();
+        tx.execute("INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms)
+        VALUES($1,$2,0,'active',$3,$3)",&[&format!("reservation-{}",Uuid::now_v7()),attempt,&now_ms]).unwrap();
+    }
+    tx.commit().unwrap();
+    let good = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+      "clientRequestId":format!("b-r3-good-{}",Uuid::now_v7()),
+      "execution":{"workspaceId":ws,"executable":"/usr/bin/printf","args":["B_R3_HEALTHY_NATIVE"],
+                   "cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+    );
+    assert_ne!(good["isError"], true, "{good}");
+    let good_id = good["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let finished = loop {
+        let seen = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":good_id,"waitMs":2000,"stdoutTailBytes":1024}),
+        );
+        assert_ne!(seen["isError"], true, "{seen}");
+        if seen["structuredContent"]["executionTerminal"] == true {
+            break seen;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "healthy Job blocked by poisoned accepted Job: {seen}"
+        );
+    };
+    assert_eq!(
+        finished["structuredContent"]["executionDisposition"], "succeeded",
+        "{finished}"
+    );
+    assert!(
+        finished["structuredContent"]["stdoutTail"]
+            .as_str()
+            .unwrap_or("")
+            .contains("B_R3_HEALTHY_NATIVE"),
+        "{finished}"
+    );
+    let issued: i64 =
+        f.db.query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&good_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(issued, 1, "must issue exactly once");
+    let original_attempt_state: String =
+        f.db.query_one(
+            "SELECT a.state FROM attempts a WHERE a.job_id=$1",
+            &[&good_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(original_attempt_state, "succeeded");
+    let artifact_id: String =
+        f.db.query_one(
+            "SELECT artifact_id FROM artifacts WHERE job_id=$1 AND kind='stdout' LIMIT 1",
+            &[&good_id],
+        )
+        .unwrap()
+        .get(0);
+    let exact = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":good_id,"artifactId":artifact_id,"offset":0,"maxBytes":512}),
+    );
+    assert_ne!(exact["isError"], true, "{exact}");
+    let data = exact["structuredContent"].to_string();
+    assert!(data.contains("B_R3_HEALTHY_NATIVE"), "{exact}");
+    // An already diagnosed attempt must not write an event on each 1s tick.
+    let issue_deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let n: i64 =
+            f.db.query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='SCHEDULER_ISSUE'",
+                &[&provider_id],
+            )
+            .unwrap()
+            .get(0);
+        if n > 0 {
+            break;
+        }
+        assert!(
+            Instant::now() < issue_deadline,
+            "provider mismatch did not yield durable issue"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    thread::sleep(Duration::from_millis(2200));
+    for (job, expected) in [
+        (&corrupt_id, "SCHEDULER_CANDIDATE_INVALID"),
+        (&provider_id, "SCHEDULER_RECONCILIATION_BLOCKED"),
+    ] {
+        let row=f.db.query_one("SELECT count(*),min(reason_code) FROM job_events WHERE job_id=$1 AND event_type='SCHEDULER_ISSUE'",&[job]).unwrap();
+        assert_eq!(
+            row.get::<_, i64>(0),
+            1,
+            "diagnostic must be bounded per Attempt"
+        );
+        assert_eq!(row.get::<_, String>(1), expected);
+    }
+    let provider_read = call(
+        &endpoint,
+        "job.get",
+        json!({"jobId":provider_id,"eventLimit":20}),
+    );
+    assert_ne!(provider_read["isError"], true, "{provider_read}");
+    assert_eq!(
+        provider_read["structuredContent"]["scheduling"]["pendingReason"],
+        Value::Null
+    );
+    assert!(
+        provider_read
+            .to_string()
+            .contains("SCHEDULER_RECONCILIATION_BLOCKED"),
+        "{provider_read}"
+    );
+    eprintln!("B_R3_PG18_NATIVE_GREEN good={good_id} bad={corrupt_id} provider={provider_id} issue_count=1 stdout=B_R3_HEALTHY_NATIVE");
 }
