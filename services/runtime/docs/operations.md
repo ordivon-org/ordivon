@@ -717,6 +717,46 @@ dispatcher timer/service across reboots, and attest installation and
 rollback under its existing Root credential before enabling a new release.
 The 2026-11-12 historical one-time first-install bootstraps covered only
 Server/Runner payloads, not the Root control plane and not those conditions.
+
+The existing deployer now contains a **private Linux filesystem exchange
+primitive** and conservative two-directory readback, intentionally without a
+Root install CLI or MCP endpoint. For a trusted Root-owned staging directory
+on the *same device and same parent* as the live Root bundle,
+renameat2(RENAME_EXCHANGE) switches the two nonempty directories at one
+namespace linearization point without changing the effective systemd
+ExecStart address. The old directory is retained at the staging path for
+rollback, rather than lost by successive per-file overwrites. The primitive
+uses O_DIRECTORY|O_NOFOLLOW for directory descriptors, synchronizes both
+directories before the exchange and the parent directory afterward, and
+returns RECONCILIATION_REQUIRED if a post-exchange durability/readback
+operation fails. The classifier returns PREPARED, EXCHANGED, or UNKNOWN
+from five old/new real file byte sets; identical old/new byte sets, wrong
+file modes, missing files, unexpected staged importable scripts / bytecode,
+or drift are always UNKNOWN, never an auto-approved retry. Only the five
+committed candidate files and its optional stage manifest may occupy the
+NEW Root directory before activation; the old directory can retain its
+separate historical artifacts as a protected rollback preimage. Python
+normally creates __pycache__ on first import: the packaged one-shot
+dispatcher therefore runs its interpreter with the native -B flag, so
+the future Root bundle stays a closed five-file import namespace. The
+physical Root owner must compare the **effective installed systemd ExecStart**
+to this package definition before applying/accepting a switch; changing
+the package source alone cannot update a running unit. On unsupported
+Linux filesystems there is **no non-atomic fallback**.
+
+**This primitive is not yet a production upgrader**. The natural Root
+operator must still journal exact candidate/preimage inode and SHA evidence
+outside the two mutable directories, bind approval to the protected Git
+commit and independent Root credential, revoke PostgreSQL Release admission
+under the existing shared advisory lock, verify all outstanding Release
+effects are settled, persistently stop the dispatcher timer and confirm its
+one-shot service is inactive. Only then may its own trusted process consume
+the internal directory switch, authenticate five new on-disk files and
+effective systemd imports, attest a Root-owned rollback/terminal receipt and
+restore Release admission/timer. Uncertain physical effects must be
+reconciled against that journal rather than reissued. Existing Agent
+Workspace staging output remains **untrusted** and must never be used as
+a Root-owned preimage or physical approval.
 Install the hash-locked Python venv, and
 set root-owned independent Operator env/config under /etc/ordivon/. The PG
 Operator DSN and allowed service list are never sent by an MCP caller.

@@ -218,6 +218,254 @@ class RootOperatorBundlePlanTests(unittest.TestCase):
             self.stage(candidate_dir=alias/"staged")
         self.assertFalse((actual/"staged").exists())
 
+    def exchanged_directories(self) -> tuple[
+        Path, dict[str, str], dict[str, str],
+    ]:
+        import json
+
+        old = {
+            row["name"]: row["installedSha256"]
+            for row in self.plan()["bundle"]
+        }
+        self.stage()
+        # A current=current test cannot distinguish PREPARED from EXCHANGED
+        # by bytes, and would give vacuous evidence of a successful switch.
+        for name in (
+            "ordivon-runtime-deploy",
+            "ordivon-runtime-pg-release-dispatch",
+            "ordivon_runtime_pg_operator.py",
+        ):
+            (self.installed / name).write_text("legacy-root:" + name)
+            old[name] = deploy.sha256(self.installed / name)
+        new = {
+            row["name"]: row["digest"]
+            for row in json.loads(
+                (self.temp / "staged" / "ordivon-root-bundle-candidate.json").read_text()
+            )["artifacts"]
+        }
+        return self.temp / "staged", old, new
+
+    def test_packaged_dispatcher_consumes_root_bundle_without_new_bytecode(self) -> None:
+        unit=(SCRIPTS.parent/"packaging/systemd"/
+              "ordivon-runtime-pg-release-dispatch.service").read_text()
+        expected=(
+            "ExecStart=/opt/ordivon/runtime-pg-operator/.venv/bin/python -B "
+            "/usr/local/libexec/ordivon/pg-release-operator/"
+            "ordivon-runtime-pg-release-dispatch --config "
+            "/etc/ordivon/ordivon-runtime-pg-release-operator.json"
+        )
+        self.assertIn(expected,unit)
+        self.assertEqual(unit.count("ExecStart="),1)
+
+    def test_linux_atomic_directory_exchange_is_one_reversible_five_file_switch(self) -> None:
+        candidate, old, new = self.exchanged_directories()
+        # Real native Linux renameat2, not a patched os.rename or mock.
+        for name in old:
+            (self.installed / name).write_text("preimage:" + name)
+            old[name] = deploy.sha256(self.installed / name)
+        self.assertEqual(
+            deploy.root_bundle_exchange_readback(
+                self.installed,candidate,
+                old_artifacts=old,candidate_artifacts=new,
+            ), "PREPARED",
+        )
+        deploy.linux_exchange_sibling_root_bundle_directories(
+            self.installed, candidate,
+        )
+        self.assertEqual(
+            deploy.root_bundle_exchange_readback(
+                self.installed,candidate,
+                old_artifacts=old,candidate_artifacts=new,
+            ),"EXCHANGED",
+        )
+        for name in new:
+            self.assertEqual(deploy.sha256(self.installed / name),new[name])
+            self.assertEqual(deploy.sha256(candidate / name),old[name])
+        deploy.linux_exchange_sibling_root_bundle_directories(
+            self.installed, candidate,
+        )
+        self.assertEqual(
+            deploy.root_bundle_exchange_readback(
+                self.installed,candidate,
+                old_artifacts=old,candidate_artifacts=new,
+            ),"PREPARED",
+        )
+
+    def test_readback_never_qualifies_mixed_or_damaged_root_directory(self) -> None:
+        candidate, old, new = self.exchanged_directories()
+        name = "ordivon-runtime-pg-release-dispatch"
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"PREPARED")
+        (self.installed/name).write_bytes(b"mixed-wrong-live-operator")
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+        (self.installed/name).chmod(0o777)
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+
+    def test_identical_old_and_new_bytes_are_not_an_exchange_receipt(self) -> None:
+        candidate,old,new=self.exchanged_directories()
+        for name,mode in deploy.ROOT_OPERATOR_BUNDLE:
+            (self.installed/name).write_bytes((candidate/name).read_bytes())
+            (self.installed/name).chmod(mode)
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=new,candidate_artifacts=new,
+        ),"UNKNOWN")
+
+    def test_staged_root_rejects_unknown_python_imports_or_bytecode(self) -> None:
+        candidate,old,new=self.exchanged_directories()
+        unexpected=candidate/"sitecustomize.py"
+        unexpected.write_text("import os")
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+        unexpected.unlink()
+        cache=candidate/"__pycache__"
+        cache.mkdir()
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+        cache.rmdir()
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"PREPARED")
+
+    def test_swapped_live_root_extra_import_cannot_be_certified(self) -> None:
+        candidate,old,new=self.exchanged_directories()
+        deploy.linux_exchange_sibling_root_bundle_directories(
+            self.installed,candidate,
+        )
+        extra=self.installed/"ordivon_runtime_pg_operator.py.pre-shadow.py"
+        extra.write_bytes(b"shadow module")
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+        extra.unlink()
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"EXCHANGED")
+
+    def test_readback_rejects_missing_blob_or_incomplete_journal(self) -> None:
+        candidate, old, new = self.exchanged_directories()
+        with self.assertRaisesRegex(RuntimeError,"exactly the five"):
+            deploy.root_bundle_exchange_readback(
+                self.installed,candidate,
+                old_artifacts={name:value for name,value in old.items()
+                               if name!="mcp_probe.py"},
+                candidate_artifacts=new,
+            )
+        with self.assertRaisesRegex(RuntimeError,"invalid artifact digest"):
+            deploy.root_bundle_exchange_readback(
+                self.installed,candidate,
+                old_artifacts=old,
+                candidate_artifacts={**new,"mcp_probe.py":"corrupt"},
+            )
+        (candidate/"mcp_probe.py").unlink()
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+
+    def test_native_exchange_rejects_symlink_sibling_and_missing_directory(self) -> None:
+        candidate, old, new = self.exchanged_directories()
+        alias = self.temp/"symlink-candidate"
+        alias.symlink_to(candidate,target_is_directory=True)
+        with self.assertRaises((OSError,RuntimeError)):
+            deploy.linux_exchange_sibling_root_bundle_directories(
+                self.installed,alias,
+            )
+        with self.assertRaises((OSError,RuntimeError)):
+            deploy.linux_exchange_sibling_root_bundle_directories(
+                self.installed,self.temp/"missing",
+            )
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"PREPARED")
+
+    def test_native_exchange_rejects_same_directory_and_parent_child_paths(self) -> None:
+        candidate, old, new = self.exchanged_directories()
+        with self.assertRaisesRegex(RuntimeError,"two distinct direct sibling"):
+            deploy.linux_exchange_sibling_root_bundle_directories(
+                self.installed,self.installed,
+            )
+        with self.assertRaisesRegex(RuntimeError,"two distinct direct sibling"):
+            deploy.linux_exchange_sibling_root_bundle_directories(
+                self.installed,self.installed/"child",
+            )
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"PREPARED")
+
+    def test_post_effect_directory_fsync_failure_requires_reconciliation(self) -> None:
+        candidate, old, new = self.exchanged_directories()
+        native_fsync = deploy.os.fsync
+        calls = [0]
+
+        def fail_after_exchange(descriptor: int) -> None:
+            calls[0] += 1
+            # Initial two directory fsyncs succeed; parent fsync happens
+            # AFTER the Linux atomic exchange and now fails.
+            if calls[0] == 3:
+                raise OSError("injected post-rename parent fsync failure")
+            native_fsync(descriptor)
+
+        with patch.object(deploy.os, "fsync", side_effect=fail_after_exchange):
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                deploy.linux_exchange_sibling_root_bundle_directories(
+                    self.installed,candidate,
+                )
+        self.assertEqual(calls[0], 3)
+        self.assertEqual(
+            deploy.root_bundle_exchange_readback(
+                self.installed,candidate,
+                old_artifacts=old,candidate_artifacts=new,
+            ),"EXCHANGED",
+            "a failing post-effect flush must not license another exchange",
+        )
+
+    def test_exchange_parent_symlink_is_rejected_without_effect(self) -> None:
+        candidate,old,new=self.exchanged_directories()
+        parent_link=self.temp.parent/("link-"+self.temp.name)
+        parent_link.symlink_to(self.temp,target_is_directory=True)
+        self.addCleanup(parent_link.unlink)
+        with self.assertRaisesRegex(RuntimeError,"two distinct direct sibling"):
+            deploy.linux_exchange_sibling_root_bundle_directories(
+                parent_link/self.installed.name,
+                parent_link/candidate.name,
+            )
+        self.assertEqual(
+            deploy.root_bundle_exchange_readback(
+                self.installed,candidate,
+                old_artifacts=old,candidate_artifacts=new,
+            ),"PREPARED",
+        )
+
+    def test_missing_linux_renameat2_fails_without_nonatomic_fallback(self) -> None:
+        candidate, old, new = self.exchanged_directories()
+        with patch.object(deploy.ctypes,"CDLL",return_value=object()):
+            with self.assertRaisesRegex(RuntimeError,"unavailable"):
+                deploy.linux_exchange_sibling_root_bundle_directories(
+                    self.installed,candidate,
+                )
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"PREPARED")
+
     def test_five_git_sources_match_root_owned_installation(self) -> None:
         before = [(p.name, p.read_bytes()) for p in sorted(self.installed.iterdir())]
         plan = self.plan()
