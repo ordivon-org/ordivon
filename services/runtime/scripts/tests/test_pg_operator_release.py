@@ -177,7 +177,23 @@ class NativePgReleaseOperator(unittest.TestCase):
         (self.install/"ordivon-runtime-pg").write_bytes(b"old-pg-runtime")
         (self.candidate/"ordivon-runtime-runner").write_bytes(b"new-runner")
         (self.install/"ordivon-runtime-runner").write_bytes(b"old-runner")
-        for name in ("ordivon-runtime-pg", "ordivon-runtime-runner"):
+        qualified_helper = self._testMethodName in {
+            "test_pg_reclaimer_helper_installs_with_native_pair_and_receipt",
+            "test_pg_reclaimer_helper_rolls_back_with_native_pair",
+            "test_pg_reclaimer_helper_candidate_digest_fails_before_dispatch",
+            "test_actual_systemd_pg_binary_replacement_and_http_mcp_readback",
+        }
+        if qualified_helper:
+            (self.candidate/"ordivon-runtime-pg-reclaim").write_bytes(
+                b"new-qualified-pg-reclaimer"
+            )
+            (self.install/"ordivon-runtime-pg-reclaim").write_bytes(
+                b"old-qualified-pg-reclaimer"
+            )
+        installed_names = ("ordivon-runtime-pg", "ordivon-runtime-runner")
+        if qualified_helper:
+            installed_names += ("ordivon-runtime-pg-reclaim",)
+        for name in installed_names:
             (self.candidate/name).chmod(0o755)
             (self.install/name).chmod(0o755)
         self.manifest=self.work/"candidate.json"
@@ -190,6 +206,14 @@ class NativePgReleaseOperator(unittest.TestCase):
             )
             for name in ("ordivon-runtime-pg", "ordivon-runtime-runner")
         ]
+        if qualified_helper:
+            artifacts.append(
+                op.DEPLOY["artifact_description"](
+                    self.candidate/"ordivon-runtime-pg-reclaim",
+                    {"name": "ordivon-runtime-pg-reclaim",
+                     "kind": "operator", "mode": 0o755},
+                )
+            )
         tool={"version":"test","resolvedPath":"/usr/bin/true",
               "digest":"sha256:"+"b"*64}
         candidate_json={
@@ -202,7 +226,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             "builtAtMs":1234,
             "toolchain":{"cargo":tool,"rustc":tool,"host":"x86_64-unknown-linux-gnu"},
             "artifacts":artifacts,
-            "binaries":artifacts,
+            "binaries":[item for item in artifacts if item["kind"] == "binary"],
         }
         self.manifest.write_text(json.dumps(candidate_json),encoding="utf-8")
         request_id="native-operator-"+uuid.uuid4().hex[:20]
@@ -224,6 +248,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             allowed_services=["ordivon-test-runtime.service"],
             required_tools=["runtime.describe","release.get"],
             binaries=["ordivon-runtime-pg","ordivon-runtime-runner"],
+            include_pg_reclaimer=qualified_helper,
             require_ref="HEAD",
             drain_seconds=3.,wait_seconds=2.,
             lock_file=self.work/"operator.lock",
@@ -409,6 +434,107 @@ class NativePgReleaseOperator(unittest.TestCase):
         finally:
             for thread in workers:
                 thread.join(timeout=3)
+
+    def test_pg_reclaimer_helper_installs_with_native_pair_and_receipt(self) -> None:
+        """The same PG ReleaseEffect must own every installed consumer byte."""
+        self.args.include_pg_reclaimer = True
+        calls = []
+        with patch.object(op, "pg_mcp_readiness", return_value={
+            "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+        }), patch.dict(op.DEPLOY, {"run": lambda command: calls.append(tuple(command))}), (
+            patch.object(op, "verified_release_consumer")
+        ):
+            result = op.apply_release(self.args)
+            self.assertEqual(result["status"], "deployed")
+            self.assertEqual(result["pgTerminal"], "succeeded")
+            self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                             b"new-qualified-pg-reclaimer")
+            self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(),
+                             b"new-pg-runtime")
+            self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(),
+                             b"new-runner")
+            self.assertEqual(len(calls), 2)
+            receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+            previous = json.loads((receipt / "manifest.json").read_text())
+            self.assertEqual(
+                {record["name"] for record in previous["previous"]},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            self.assertEqual((receipt / "previous" /
+                              "ordivon-runtime-pg-reclaim").read_bytes(),
+                             b"old-qualified-pg-reclaimer")
+            self.assertEqual(
+                {record["name"] for record in result["installed"]},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            replay = op.apply_release(self.args)
+            self.assertTrue(replay["replayed"])
+            self.assertEqual(len(calls), 2, "receipt replay must not reinstall helper")
+
+    def test_pg_reclaimer_helper_rolls_back_with_native_pair(self) -> None:
+        """Systemd start failure must roll back the helper, not just binaries."""
+        self.args.include_pg_reclaimer = True
+        calls = []
+
+        def failed_start(command):
+            calls.append(tuple(command))
+            if command[-2:] == ["start", self.args.service]:
+                raise RuntimeError("injected start failure")
+
+        def restore(previous, install_dir, records, systemctl, service, env_file, wait_seconds):
+            self.assertEqual(
+                {item["name"] for item in records},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            for item in records:
+                op.DEPLOY["atomic_copy"](
+                    previous / item["name"], install_dir / item["name"],
+                    mode=item["mode"],
+                )
+            return {"serviceActive": True, "probe": {"recovered": True}}
+
+        with patch.dict(op.DEPLOY, {
+            "run": failed_start,
+            "restore_previous": restore,
+        }):
+            with self.assertRaisesRegex(RuntimeError, "rolled_back"):
+                op.apply_release(self.args)
+        self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                         b"old-qualified-pg-reclaimer")
+        self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(),
+                         b"old-pg-runtime")
+        self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(),
+                         b"old-runner")
+        self.assertEqual(len(calls), 2)
+        receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+        result = json.loads((receipt / "result.json").read_text())
+        self.assertEqual(result["status"], "rolled_back")
+        self.assertEqual(
+            self.db.execute("SELECT resolution FROM jobs WHERE job_id=%s",
+                            (self.job_id,)).fetchone()["resolution"], "failed",
+        )
+
+    def test_pg_reclaimer_helper_candidate_digest_fails_before_dispatch(self) -> None:
+        """A changed helper cannot borrow an older two-binary ReleaseEffect."""
+        self.args.include_pg_reclaimer = True
+        (self.candidate / "ordivon-runtime-pg-reclaim").write_bytes(
+            b"candidate-changed-after-manifest"
+        )
+        with self.assertRaisesRegex(RuntimeError, "release artifact"):
+            op.apply_release(self.args)
+        self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                         b"old-qualified-pg-reclaimer")
+        self.assertFalse((self.args.receipt_root /
+                          f"effect-{self.args.effect_id}").exists())
+        self.assertEqual(
+            self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s", (self.job_id, op.DISPATCH_EVENT),
+            ).fetchone()["n"], 0,
+        )
 
     def test_release_exactly_once_and_terminal_receipt(self) -> None:
         def run(args):
@@ -608,7 +734,15 @@ class NativePgReleaseOperator(unittest.TestCase):
                 {"name":name,"kind":"binary","mode":0o755},
             ) for name in self.args.binaries
         ]
-        obj["binaries"]=obj["artifacts"]
+        if self.args.include_pg_reclaimer:
+            obj["artifacts"].append(
+                op.DEPLOY["artifact_description"](
+                    self.candidate/"ordivon-runtime-pg-reclaim",
+                    {"name":"ordivon-runtime-pg-reclaim","kind":"operator","mode":0o755},
+                )
+            )
+        obj["binaries"]=[item for item in obj["artifacts"]
+                         if item["kind"]=="binary"]
         self.manifest.write_text(json.dumps(obj),encoding="utf-8")
         fresh_manifest=op.DEPLOY["sha256"](self.manifest)
         self.args.candidate_manifest_digest=fresh_manifest
@@ -754,6 +888,14 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed["status"],"deployed")
             self.assertEqual(observed["pgTerminal"],"succeeded")
             self.assertEqual(original.read_bytes(),pg_binary.read_bytes())
+            self.assertEqual(
+                (self.install/"ordivon-runtime-pg-reclaim").read_bytes(),
+                (self.candidate/"ordivon-runtime-pg-reclaim").read_bytes(),
+            )
+            self.assertIn(
+                "ordivon-runtime-pg-reclaim",
+                {entry["name"] for entry in observed["installed"]},
+            )
             self.assertEqual(observed["probe"]["toolCount"],20)
             active=observed["probe"]["activeRuntimeImage"]
             self.assertEqual(active["path"],str(original))
