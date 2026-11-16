@@ -522,6 +522,25 @@ fn reconcile_closing_workspace(
             false,
         ));
     }
+    // Same path is not enough if another Git repository was installed at
+    // that path after the first physical removal. The original exact HEAD
+    // must remain an object of the recorded source repository before
+    // reconstructing a CLOSED tombstone from the persisted witness.
+    let expected_commit = format!("{}^{{commit}}", closing.final_head);
+    let verified_commit = workspace_git_command()
+        .arg("-C")
+        .arg(source_repo)
+        .args(["cat-file", "-e", &expected_commit])
+        .output()
+        .map_err(|error| tool_unavailable("git cat-file closing HEAD", error))?;
+    if !verified_commit.status.success() {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::RevisionMismatch,
+            "original Workspace closing HEAD is no longer present in its source Git repository",
+            Some("workspaceId"),
+            false,
+        ));
+    }
     let target_meta = match fs::symlink_metadata(target) {
         Ok(metadata) => Some(metadata),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
@@ -1792,6 +1811,34 @@ mod durable_closing_intent_tests {
                 .unwrap()
                 .is_some(),
             "unfinished close intent remains for operator reconciliation"
+        );
+    }
+
+    #[test]
+    fn replaced_source_git_repository_cannot_validate_missing_worktree_recovery() {
+        let (_temp, config, record, digest) = source_workspace("ws-close-replaced-source");
+        let request = closing_fixture(&config, &record, &digest);
+        remove_git_worktree_from_workspace(Path::new(&record.workspace_path), false)
+            .expect("simulate completed Git removal and crash before CLOSED record");
+        let source = Path::new(&record.source_repo);
+        fs::remove_dir_all(source.join(".git"))
+            .expect("only disposable test repository Git metadata may be replaced");
+        git(source, &["init", "-q"]);
+        git(source, &["config", "user.name", "Replacement Repository"]);
+        git(source, &["config", "user.email", "replacement@example.invalid"]);
+        fs::write(source.join("unrelated.txt"), b"different Git source content")
+            .expect("replacement repository commit payload");
+        git(source, &["add", "unrelated.txt"]);
+        git(source, &["commit", "-qm", "unrelated replacement"]);
+        assert_ne!(git(source, &["rev-parse", "HEAD"]), record.source_revision);
+        let denied = remove_git_workspace(&config, &request)
+            .expect_err("a new Git repository at the old path is not the original source");
+        assert_eq!(denied.code, UniversalExecErrorCode::RevisionMismatch);
+        assert!(
+            decode_closing_workspace_record(&fs::read(config.workspace_record_path(&record.workspace_id)).unwrap())
+                .unwrap()
+                .is_some(),
+            "the durable closing intent must survive a source authority mismatch"
         );
     }
 
