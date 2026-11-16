@@ -181,6 +181,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             "test_pg_reclaimer_helper_installs_with_native_pair_and_receipt",
             "test_pg_reclaimer_helper_rolls_back_with_native_pair",
             "test_pg_reclaimer_helper_candidate_digest_fails_before_dispatch",
+            "test_actual_systemd_pg_binary_replacement_and_http_mcp_readback",
         }
         if qualified_helper:
             (self.candidate/"ordivon-runtime-pg-reclaim").write_bytes(
@@ -733,7 +734,15 @@ class NativePgReleaseOperator(unittest.TestCase):
                 {"name":name,"kind":"binary","mode":0o755},
             ) for name in self.args.binaries
         ]
-        obj["binaries"]=obj["artifacts"]
+        if self.args.include_pg_reclaimer:
+            obj["artifacts"].append(
+                op.DEPLOY["artifact_description"](
+                    self.candidate/"ordivon-runtime-pg-reclaim",
+                    {"name":"ordivon-runtime-pg-reclaim","kind":"operator","mode":0o755},
+                )
+            )
+        obj["binaries"]=[item for item in obj["artifacts"]
+                         if item["kind"]=="binary"]
         self.manifest.write_text(json.dumps(obj),encoding="utf-8")
         fresh_manifest=op.DEPLOY["sha256"](self.manifest)
         self.args.candidate_manifest_digest=fresh_manifest
@@ -879,6 +888,14 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed["status"],"deployed")
             self.assertEqual(observed["pgTerminal"],"succeeded")
             self.assertEqual(original.read_bytes(),pg_binary.read_bytes())
+            self.assertEqual(
+                (self.install/"ordivon-runtime-pg-reclaim").read_bytes(),
+                (self.candidate/"ordivon-runtime-pg-reclaim").read_bytes(),
+            )
+            self.assertIn(
+                "ordivon-runtime-pg-reclaim",
+                {entry["name"] for entry in observed["installed"]},
+            )
             self.assertEqual(observed["probe"]["toolCount"],20)
             active=observed["probe"]["activeRuntimeImage"]
             self.assertEqual(active["path"],str(original))
