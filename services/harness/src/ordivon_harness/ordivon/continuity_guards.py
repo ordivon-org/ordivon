@@ -5,9 +5,12 @@ from anc_canonical import JsonValue, canonical_digest
 from ..core_contracts import HarnessRunContract
 from ..protocol import (
     HarnessDispatchFence,
+    HarnessProviderCallStatus,
     HarnessRunSnapshot,
     HarnessToolStepIntent,
     HarnessToolStepReceipt,
+    HarnessToolStepStatus,
+    tool_receipt_successor_allowed,
 )
 from ..run_state import HarnessRunState
 from ..store import HarnessRunEventRecord, HarnessStore
@@ -176,3 +179,116 @@ def validate_tool_event(
         raise ValueError(
             "Harness Tool Observation content was authorized but its event object is missing"
         )
+
+def inspect_all_unsettled_effect_sources(
+    events: tuple[HarnessRunEventRecord, ...],
+    *,
+    store: HarnessStore,
+    harness_run_id: str,
+    binding: HarnessRunStoreBinding,
+    allow_tool_content: bool,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Read all source-owned effect heads; never certify external release.
+
+    The ordinary current Tool head is for continuation, not for proving that
+    every older Intent has settled. UNKNOWN remains unresolved even though
+    HarnessToolStepReceipt.terminal is True for recovery purposes.
+    """
+    from .continuity_records import HarnessProviderCallRecordV3, HarnessProviderCallRecordV4
+
+    providers: dict[str, HarnessProviderCallStatus] = {}
+    tools: dict[str, HarnessToolStepReceipt | None] = {}
+    provider_events = {
+        "harness.provider-call-claimed",
+        "harness.provider-call-superseded",
+        "harness.provider-call-dispatching",
+        "harness.provider-call-completed",
+        "harness.provider-call-failed",
+        "harness.provider-call-unknown",
+    }
+    for event in events:
+        if event.event_kind in provider_events:
+            digest = required_event_digest(event.data, "providerCallRecordObjectDigest")
+            raw = store.get_object(digest, expected_kind="harness-provider-call-record")
+            if not isinstance(raw, dict):
+                raise ValueError("finalization Provider record is not an object")
+            version = raw.get("schemaVersion")
+            if version == 3:
+                record = HarnessProviderCallRecordV3.from_dict(raw)
+            elif version == 4:
+                record = HarnessProviderCallRecordV4.from_dict(raw)
+            else:
+                raise ValueError("finalization Provider record version is unsupported")
+            if record.harness_run_id != harness_run_id:
+                raise ValueError("finalization Provider record belongs to another Run")
+            providers[record.provider_call_id] = record.status
+        elif event.event_kind in _TOOL_EVENT_KINDS:
+            validate_tool_event(
+                event,
+                store=store,
+                harness_run_id=harness_run_id,
+                binding=binding,
+                allow_tool_content=allow_tool_content,
+            )
+            intent_digest = required_event_digest(event.data, "toolStepIntentDigest")
+            if event.event_kind == "harness.tool-step-prepared":
+                if intent_digest in tools or event.data.get("receiptObjectDigest") is not None:
+                    raise ValueError("finalization Tool Intent was prepared twice or with Receipt")
+                tools[intent_digest] = None
+                continue
+            if intent_digest not in tools:
+                raise ValueError("finalization Tool Receipt lacks original prepared Intent")
+            receipt_digest = required_event_digest(event.data, "receiptObjectDigest")
+            raw_receipt = store.get_object(
+                receipt_digest, expected_kind="harness-tool-step-receipt"
+            )
+            if not isinstance(raw_receipt, dict):
+                raise ValueError("finalization Tool Receipt is not an object")
+            receipt = HarnessToolStepReceipt.from_dict(raw_receipt)
+            previous = tools[intent_digest]
+            if (
+                receipt.intent_digest != intent_digest
+                or receipt.harness_run_id != harness_run_id
+                or receipt.previous_receipt_digest != (
+                    None if previous is None else previous.digest
+                )
+                or (
+                    previous is not None
+                    and not tool_receipt_successor_allowed(previous, receipt)
+                )
+            ):
+                raise ValueError("finalization Tool Receipt predecessor or identity differs")
+            expected_event = (
+                "harness.tool-step-unknown"
+                if receipt.status is HarnessToolStepStatus.UNKNOWN
+                else "harness.tool-step-reconciled"
+                if receipt.reconciled
+                else "harness.tool-step-recorded"
+            )
+            if event.event_kind != expected_event:
+                raise ValueError("finalization Tool Receipt event kind differs from status")
+            tools[intent_digest] = receipt
+    pending_providers = tuple(
+        sorted(
+            identity
+            for identity, status in providers.items()
+            if status in {
+                HarnessProviderCallStatus.CLAIMED,
+                HarnessProviderCallStatus.DISPATCHING,
+                HarnessProviderCallStatus.UNKNOWN,
+            }
+        )
+    )
+    pending_tools = tuple(
+        sorted(
+            identity
+            for identity, receipt in tools.items()
+            if receipt is None
+            or receipt.status not in {
+                HarnessToolStepStatus.OBSERVED,
+                HarnessToolStepStatus.REJECTED,
+                HarnessToolStepStatus.CANCELLED,
+            }
+        )
+    )
+    return pending_providers, pending_tools
