@@ -50,6 +50,21 @@ struct ClosedWorkspaceRecord {
     _legacy_removal_result: Option<String>,
 }
 
+// A close-intent lives in the EXISTING native record path. Unlike a PG-only
+// transaction, this survives interruption between Git worktree removal and
+// writing the final closed tombstone, with the original physical CAS witness.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ClosingWorkspaceRecord {
+    schema_version: u32,
+    state: String,
+    record: WorkspaceRecord,
+    source_state_digest: String,
+    final_head: String,
+    force: bool,
+    consumer_released: bool,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorkspaceHeadMode {
     Detached,
