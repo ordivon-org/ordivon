@@ -175,13 +175,6 @@ fn native_resource_error(message: impl std::fmt::Display) -> RuntimeError {
     )
 }
 
-/// An OS supply visibility error applies node-wide; unlike an isolated
-/// Job reconciliation failure, it must reach the scheduler's error channel.
-fn is_native_resource_observation(error: &RuntimeError) -> bool {
-    error.code == RuntimeErrorCode::ToolFailed
-        && error.field.as_deref() == Some("scheduling.resources")
-}
-
 /// A corrupt committed candidate is a Job-local *invalid request*, not a
 /// failed PostgreSQL Registry. Preserve that distinction in Job events so an
 /// Agent does not mistake one poisoned row for a node-wide database outage.
@@ -748,21 +741,8 @@ mod scheduler_candidate_tests {
         let error = native_resource_error("missing /proc/pressure/memory");
         assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
         assert!(error.retryable);
-        assert!(is_native_resource_observation(&error));
-        // Per-Job Tool failures and known constraints do not abort this
-        // scheduler batch; only the native node visibility gap does.
-        assert!(!is_native_resource_observation(&RuntimeError::new(
-            RuntimeErrorCode::ToolFailed,
-            "runner error",
-            Some("execution"),
-            true,
-        )));
-        assert!(!is_native_resource_observation(&RuntimeError::new(
-            RuntimeErrorCode::ConcurrencyLimit,
-            "capacity exhausted",
-            Some("scheduling.resources"),
-            true,
-        )));
+        assert_eq!(error.field.as_deref(), Some("scheduling.resources"));
+        assert!(!is_job_scoped_reconciliation_error(&error));
         assert!(!error
             .message
             .contains("resource pressure or workspace lease"));
