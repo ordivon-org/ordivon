@@ -12,14 +12,23 @@ GAME = Path(__file__).resolve().parent
 SCRIPT_FAILURES = ("SCRIPT ERROR:", "Parse Error:", "ERROR: Failed to load")
 
 
-def verify_receipt(exit_code: int, stdout: str, stderr: str, receipt: str) -> None:
+def verify_receipt(exit_code: int, stdout: str, stderr: str, receipt: str) -> str:
     combined = stdout + "\n" + stderr
     if exit_code != 0 or any(term in combined for term in SCRIPT_FAILURES):
         raise AssertionError(
             f"native Godot failed or silently emitted script error: exit={exit_code} "
             f"stdout={stdout[-3000:]} stderr={stderr[-3000:]}")
-    if receipt not in stdout:
-        raise AssertionError(f"missing native success receipt {receipt}: {combined[-3500:]}")
+    # Godot can exit 0 after an engine error. A success token must begin exactly
+    # one complete stdout line, never be embedded in unrelated/fake output.
+    matching = [
+        line for line in stdout.splitlines()
+        if line == receipt or line.startswith(receipt + " ")
+    ]
+    if len(matching) != 1:
+        raise AssertionError(
+            f"expected one anchored native success receipt {receipt}, got {len(matching)}: "
+            f"{combined[-3500:]}")
+    return matching[0]
 
 
 def engine(script: str, receipt: str, extra=()):
@@ -27,8 +36,8 @@ def engine(script: str, receipt: str, extra=()):
         ["godot", "--headless", "--path", str(GAME),
          "--script", "res://" + script, *extra],
         capture_output=True, text=True, timeout=65)
-    verify_receipt(process.returncode, process.stdout, process.stderr, receipt)
-    print(next(line for line in process.stdout.splitlines() if receipt in line))
+    native_receipt = verify_receipt(process.returncode, process.stdout, process.stderr, receipt)
+    print(native_receipt)
 
 
 def main():
@@ -37,19 +46,31 @@ def main():
                         required=True)
     suite = parser.parse_args().suite
     if suite == "selftest":
-        verify_receipt(0, "GAME_ROOM_ENCOUNTER_PASS", "", "GAME_ROOM_ENCOUNTER_PASS")
-        for rc, out, err in [
-            (0, "GAME_ROOM_ENCOUNTER_PASS", "SCRIPT ERROR: missing typed node"),
-            (0, "GAME_ROOM_ENCOUNTER_PASS", "Parse Error: invalid script"),
-            (0, "unrelated success", "",),
-            (1, "GAME_ROOM_ENCOUNTER_PASS", "")
-        ]:
+        receipt = "GAME_ROOM_ENCOUNTER_PASS"
+        positive = [
+            receipt,
+            receipt + " assertions=23",
+            "engine prelude\n" + receipt + " assertions=23",
+        ]
+        for out in positive:
+            assert verify_receipt(0, out, "", receipt).startswith(receipt)
+        negative = [
+            (0, receipt, "SCRIPT ERROR: missing typed node"),
+            (0, receipt, "Parse Error: invalid script"),
+            (0, "unrelated success", ""),
+            (1, receipt, ""),
+            (0, "NOT_" + receipt + "_FAKE", ""),
+            (0, receipt + "_FABRICATED", ""),
+            (0, "engine prelude " + receipt, ""),
+            (0, receipt + "\n" + receipt, ""),
+        ]
+        for rc, out, err in negative:
             try:
-                verify_receipt(rc, out, err, "GAME_ROOM_ENCOUNTER_PASS")
+                verify_receipt(rc, out, err, receipt)
             except AssertionError:
                 continue
             raise AssertionError("native error-injection control failed")
-        print("GAME_NATIVE_RECEIPT_FAIL_CLOSED_PASS cases=5")
+        print(f"GAME_NATIVE_RECEIPT_FAIL_CLOSED_PASS cases={len(positive) + len(negative)}")
         return
     imported = subprocess.run(
         ["godot", "--headless", "--editor", "--import", "--path", str(GAME)],
