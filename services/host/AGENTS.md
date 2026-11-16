@@ -11,9 +11,9 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 
 ## Locate the actual owner
 
-- **Work semantic state:** `src/ordivon_host_v2/work_store.py` (CAS), `work_queries.py` (reads), `work_relation_commands.py` (internal DAG relation mutation).
+- **Work semantic state:** `src/ordivon_host_v2/work_store.py` (CAS), `work_queries.py` (reads and explicit same-transaction `read_work_in_tx`), `work_relation_commands.py` (internal DAG relation mutation).
 - **Message search:** Native GIN array_ops on Unicode codepoint 3-grams for 3+ CJK, with exact strpos post-filter; short CJK still uses strpos and other terms FTS. See migrations/versions/0013_unicode_substring_gin.py and the Owner Guide.
-- **Collaboration:** `social_store.py` composes `social_space_*`, `social_topic_*`, `social_message_*` and `coordination_intent_commands.py`.
+- **Collaboration:** `social_store.py` composes `social_space_*`, `social_topic_*`, `social_message_*` and `coordination_intent_commands.py`; `social_message_records.py` is the explicit conn-scoped Message integrity/lookup helper shared by commands and queries.
 - **Attention:** `attention_store.py` (subscriptions/acks), `attention_projections.py` and `attention_sql.py` (rebuildable navigation).
 - **MCP:** `mcp_server.py`, `mcp_tool_registration.py`, `mcp_*_tools.py`; do not invent additional northbound tools.
 - **Schema/release:** `migrations/versions/` via Alembic; `packaging/` handles immutable release and systemd.

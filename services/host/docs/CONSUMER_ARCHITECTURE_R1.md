@@ -329,3 +329,53 @@ navigation/test cost. A reorganized directory that only relocates the same
 100 dependency edges does not pass this gate. No live migration, Docker
 upgrade, schema rewrite, or remote MCP catalog recapture is implied by this
 candidate.
+
+
+## 9. R28 M1 narrow implementation evidence — branch candidate, not installed
+
+The actual R28 source experiment converts only two cross-Mixin private
+execution dependencies, **without moving existing modules or changing DB
+schema**:
+
+- `src/ordivon_host_v2/social_message_records.py` owns a pure
+  `verify_message_content_digest(row)` and a
+  `require_message(conn, message_ref)` query on the **caller's same PG
+  transaction**. Message post/replay, relation add, message get/search and
+  Topic resume import the exact same helpers. The old private MessageReadMixin
+  methods are no longer required on SocialStore. The digest's seven immutable
+  fields and RuntimeError text remain unchanged.
+- `work_queries.py:read_work_in_tx(conn,work_ref,revision)` is the one
+  transaction-bound Work snapshot projection shared by WorkReadQueries and
+  WorkStore create/commit; it preserves canonical digest/current pointer
+  checks and historical_state_unknown. The inherited hidden
+  `_get_work_in_tx` method is removed; the externally available WorkStore
+  methods and MCP responses remain unchanged.
+- The former `test_social_query_boundary.py` and
+  `test_work_query_boundary.py` MRO/private-method location assertions now
+  guard explicit helper reuse/public read API and no-duplicate-query-write
+  boundaries. All four Work mock-connection digest/refinement examples were
+  redirected to the actual new function; new Message helper valid/corrupt
+  row and conn-scoped missing-message examples added to the existing test.
+
+**R28 isolated source evidence at head-before-commit** (not an installed
+service claim): `mise run verify` **401 PASS, 58 DB SKIP**; locked CrossHair,
+Z3 bounded DAG/negative control, axiom-free Lean DAG/Unicode PASS;
+`mise run test:postgres:disposable` **459 PASS** on an isolated PostgreSQL
+18 container after Alembic migrations 0001→0014. The previous unchanged-main
+baseline was 399 source PASS/58 DB SKIP and 457 real PG PASS, so this branch
+adds exactly two direct helper tests; it **does not** claim extra database
+semantics or a performance improvement. Repo architecture 198 PASS, official
+Host/Gateway source tool-name/required/dispatch observation PASS. Native
+Host public tools/list complete input/output Schema must remain at the
+existing manifest digest; installed Connector recapture and authenticated
+principal handoff remain separate UNKNOWN obligations.
+
+**Consumer and review boundaries:** retain `mcp_server.py` public entrypoint,
+SocialStore/WorkStore public methods, same PG transaction and lock scope,
+`mcp-surface.json` 31-tool/epoch/digest, Alembic0001–0014, Attention's
+MVCC-only union and both independent cursors. No generic Repository/UoW,
+new inbox/event store, separate identity registry or Rust replacement. The
+R26 M2 wire/domain package split and M3 internal `git mv` remain **not
+implemented**; they require independent review of source-path consumers and
+real Agent cost before promotion. The prior R26 section is historic design
+baseline, not a claim the current source still has those hidden methods.

@@ -15,6 +15,7 @@ from .errors import ConflictError
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
+from .social_message_records import require_message, verify_message_content_digest
 
 # Internal receipt only: the immutable Message row owns the large response body.
 # This marker is never returned over MCP.
@@ -59,7 +60,9 @@ class SocialMessageCommands:
                         replay.get("messageRef") != value.message_ref
                         or replay.get("messageDigest") != message_digest
                     ):
-                        raise RuntimeError("message receipt reference differs from committed request")
+                        raise RuntimeError(
+                            "message receipt reference differs from committed request"
+                        )
                     row = conn.execute(
                         "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
                         "message_kind,body,message_digest,recorded_at_ms,created_at "
@@ -68,7 +71,7 @@ class SocialMessageCommands:
                     ).fetchone()
                     if row is None or row["message_digest"] != message_digest:
                         raise RuntimeError("committed message receipt target is missing or changed")
-                    self._verify_message_content_digest(row)
+                    verify_message_content_digest(row)
                     return self._post_message_response(row, admission="existing")
                 return replay
             self._require_actor(conn, value.author_actor_ref)
@@ -111,7 +114,7 @@ class SocialMessageCommands:
                 if row["message_digest"] != message_digest:
                     raise ConflictError("message_ref already exists with different content")
                 admission = "existing"
-            self._verify_message_content_digest(row)
+            verify_message_content_digest(row)
             result = self._post_message_response(row, admission=admission)
             # Do not store a second copy of the (potentially large) Message
             # body in command_receipts. The immutable Message row plus its
@@ -161,7 +164,7 @@ class SocialMessageCommands:
             if replay is not None:
                 return replay
             self._require_actor(conn, value.actor_ref)
-            source = self._require_message(conn, value.source_message_ref)
+            source = require_message(conn, value.source_message_ref)
             self._validate_relation_target(conn, source, value)
             row = conn.execute(
                 "INSERT INTO message_relations(source_message_ref,relation,target_ref,created_by_actor_ref) "
@@ -208,7 +211,7 @@ class SocialMessageCommands:
             MessageRelationKind.ACKNOWLEDGES,
             MessageRelationKind.SUPERSEDES,
         }:
-            target = self._require_message(conn, value.target_ref)
+            target = require_message(conn, value.target_ref)
             if target["space_ref"] != source["space_ref"]:
                 raise ConflictError(f"{value.relation.value} cannot cross spaces")
             if (
