@@ -200,6 +200,28 @@ class HarnessAgentRun:
         with self._open_store() as store:
             return store.load_run(self.harness_run_id).to_dict()
 
+    def inspect_unsettled_tool_sources(self) -> dict[str, JsonValue]:
+        """Read every unsettled original Tool identity from authoritative PG.
+
+        This consumer only exposes C's exact read-only source projection. It
+        cannot reconcile, redispatch, sign Runtime HELD, or permit Workspace
+        release; the natural physical Owner must check the original Job.
+        """
+        with self._open_store() as store:
+            return self._continuity(store).inspect_unsettled_tool_sources()
+
+    def inspect_finalization_source(self) -> dict[str, JsonValue]:
+        """Read PG-only finalization blockers, not an external delivery ACK.
+
+        The revision in this projection is a read coordinate, not a stable
+        certificate: original PG CAS and Native Runtime issuer remain owners
+        of all subsequent physical release decisions. An active Run's empty
+        unsettled Provider/Tool lists are not a computed no-pending proof;
+        sourceStanding=blocked must never be upgraded to source-settled.
+        """
+        with self._open_store() as store:
+            return self._continuity(store).inspect_finalization_source()
+
     def explain(self) -> dict[str, JsonValue]:
         """Project the validated in-process Harness composition."""
 
