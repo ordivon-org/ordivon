@@ -682,11 +682,23 @@ guard replay, unknown commit, restart recovery, rollback and readback.
 No additional Registry, workflow engine or scheduler is introduced.
 
 Production installation is NOT performed by checking in this source.
-Install the exact source operator and dispatcher under
-/usr/local/libexec/ordivon/, install the hash-locked Python venv, and set
-root-owned independent Operator env/config under /etc/ordivon/. The PG
+The separately controlled Root release-operator bundle (dispatcher,
+its Python operator module, the existing ordivon-runtime-deploy helper and
+mcp_probe.py) is installed together under
+/usr/local/libexec/ordivon/pg-release-operator/, distinct from the released
+Server/Runner/Reclaimer payloads under /usr/local/libexec/ordivon/.
+The packaged dispatcher systemd unit must reference that *effective*
+Root-bundle path; check systemctl show ExecStart and the actual installed
+script hashes before deployment. Install the hash-locked Python venv, and
+set root-owned independent Operator env/config under /etc/ordivon/. The PG
 Operator DSN and allowed service list are never sent by an MCP caller.
 The Runtime app role must not be able to alter the qualification stage.
+A Git source merge or package Unit edit is not a Root-bundle upgrade:
+the trusted Root owner must qualify its own exact preimage, replacement,
+rollback and readback before enabling includePgReclaimer in the operator
+JSON. The ordinary PG ReleaseEffect then installs the three payloads under
+one exact manifest; do not manually copy binaries or enable the automatic
+Workspace GC timer while external PAUSED Run Finalizer remains unqualified.
 
 After the independent release stage is qualified and the systemd timer
 is installed and running, configure the actual PG Runtime service with:
