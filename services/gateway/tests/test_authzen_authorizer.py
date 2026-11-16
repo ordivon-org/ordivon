@@ -21,11 +21,13 @@ class FakeResponse:
         decision: object = True,
         request_id: str | None = None,
         json_error: bool = False,
+        context: object = ...,
     ) -> None:
         self.status_code = status_code
         self._decision = decision
         self._request_id = request_id
         self._json_error = json_error
+        self._context = context
         self.headers: dict[str, str] = {}
 
     def bind_request_id(self, request_id: str) -> None:
@@ -34,7 +36,10 @@ class FakeResponse:
     def json(self) -> dict[str, object]:
         if self._json_error:
             raise ValueError("invalid json")
-        return {"decision": self._decision}
+        result: dict[str, object] = {"decision": self._decision}
+        if self._context is not ...:
+            result["context"] = self._context
+        return result
 
 
 class FakeSession:
@@ -247,3 +252,60 @@ def test_gateway_middleware_blocks_h2_authzen_deny_and_invalid_evidence() -> Non
     assert result.is_error is True
     assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_ALLOW_INCOMPLETE"
     assert reached is False
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        {
+            "obligations": [
+                {"id": "step-up-1", "type": "step-up", "properties": {"acr_value": "high"}}
+            ]
+        },
+        {"obligations": ["unrecognized"]},
+        {"obligations": "not-an-array"},
+        {"obligations": None},
+        {"obligations": {}},
+    ],
+)
+@pytest.mark.parametrize("decision", [True, False])
+def test_authzen_unfulfilled_obligation_never_reaches_owner(
+    context: object,
+    decision: bool,
+) -> None:
+    """PDP decisions with mandatory actions cannot silently reach the owner."""
+    authorizer, _ = _authorizer(FakeResponse(decision=decision, context=context))
+    with pytest.raises(AuthZenAuthorizerError, match="obligations"):
+        _authorize(authorizer)
+
+    reached = False
+
+    async def forbidden_next(_ctx: Any) -> dict[str, Any]:
+        nonlocal reached
+        reached = True
+        return {"structuredContent": {"ownerReached": True}}
+
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(_ctx(), forbidden_next)
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_UNAVAILABLE"
+    assert reached is False
+
+
+def test_authzen_ordinary_context_and_empty_obligations_preserve_decision() -> None:
+    for ctx in ({}, {"trace": "opaque"}, {"obligations": []}):
+        authorizer, _ = _authorizer(FakeResponse(decision=True, context=ctx))
+        assert _authorize(authorizer)["outcome"] == "ALLOW"
+
+    denied, _ = _authorizer(FakeResponse(decision=False, context={"obligations": []}))
+    assert _authorize(denied)["outcome"] == "DENY"
+
+
+@pytest.mark.parametrize("invalid_context", [None, [], "context", True])
+def test_authzen_malformed_context_is_not_an_authorization_decision(
+    invalid_context: object,
+) -> None:
+    authorizer, _ = _authorizer(FakeResponse(decision=True, context=invalid_context))
+    with pytest.raises(AuthZenAuthorizerError, match="decision context"):
+        _authorize(authorizer)
