@@ -484,12 +484,69 @@ mod claim_physical_pg_tests {
                 ..
             })
         ));
+
+        // A normal coding Run changes the Git source. A persistent Run claim
+        // binds the original physical Workspace, NOT the mutable source hash.
+        // The original source digest is only the admission-time CAS witness.
+        let checkout = config.workspace_path(workspace_id);
+        fs::write(
+            checkout.join("README.md"),
+            b"committed coding edit after HOLD\n",
+        )
+        .unwrap();
+        git(&checkout, &["add", "README.md"]);
+        git(
+            &checkout,
+            &["commit", "-qm", "coding result after held claim"],
+        );
+        let edited_digest = universal::workspace_source_state_digest(&config, workspace_id)
+            .expect("current source after real native Git edit");
+        assert_ne!(exact, edited_digest);
+        let after_edit = rt
+            .get_workspace_claim("disposable-principal", &key)
+            .unwrap();
+        assert_eq!(after_edit.claim_id, claim.claim_id);
+        assert_eq!(after_edit.state, "held");
+        assert_eq!(after_edit.source_state_digest_at_reserve, exact);
+        assert!(
+            matches!(
+                rt.reserve_workspace_claim(
+                    "disposable-principal",
+                    &WorkspaceClaimReserveRequest {
+                        expected_source_state_digest: edited_digest.clone(),
+                        ..req.clone()
+                    }
+                ),
+                Err(RuntimeError {
+                    code: RuntimeErrorCode::IdempotencyConflict,
+                    ..
+                })
+            ),
+            "same Run must GET its original claim, never re-reserve with a moving Git digest"
+        );
+
+        // Two independent logical Runs share one physical Workspace. Releasing
+        // Run A may not delete Run B's still-PAUSED physical substrate.
+        let other_request = WorkspaceClaimReserveRequest {
+            client_request_id: "caller-claim-B".into(),
+            run_ref: "harness-run-B".into(),
+            expected_source_state_digest: edited_digest.clone(),
+            ..req.clone()
+        };
+        let other_claim = rt
+            .reserve_workspace_claim("disposable-principal", &other_request)
+            .unwrap();
+        assert_eq!(other_claim.state, "held");
+        let other_key = WorkspaceClaimKeyRequest {
+            schema_version: 1,
+            client_request_id: other_request.client_request_id.clone(),
+        };
         let close = WorkspaceCloseRequest {
             schema_version: 1,
             workspace_id: workspace_id.into(),
             force: false,
             consumer_released: true,
-            expected_source_state_digest: Some(exact.clone()),
+            expected_source_state_digest: Some(edited_digest),
         };
         assert!(
             matches!(
@@ -499,7 +556,7 @@ mod claim_physical_pg_tests {
                     ..
                 })
             ),
-            "caller consumerReleased=true cannot override actual held logical Run"
+            "caller consumerReleased=true cannot override both held logical Runs"
         );
         assert_eq!(
             rt.release_workspace_claim("disposable-principal", &key)
@@ -513,6 +570,28 @@ mod claim_physical_pg_tests {
                 .state,
             "released",
             "release response-loss replay is idempotent"
+        );
+        assert!(
+            matches!(
+                rt.close_workspace(&close),
+                Err(RuntimeError {
+                    code: RuntimeErrorCode::ConcurrencyLimit,
+                    ..
+                })
+            ),
+            "Run B remains held even after Run A releases"
+        );
+        assert_eq!(
+            rt.get_workspace_claim("disposable-principal", &other_key)
+                .unwrap()
+                .claim_id,
+            other_claim.claim_id,
+        );
+        assert_eq!(
+            rt.release_workspace_claim("disposable-principal", &other_key)
+                .unwrap()
+                .state,
+            "released"
         );
         assert!(rt.close_workspace(&close).unwrap().removed);
         let after = WorkspaceClaimReserveRequest {
