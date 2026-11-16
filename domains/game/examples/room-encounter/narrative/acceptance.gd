@@ -60,6 +60,27 @@ func run_product() -> void:
     expect(rules.reset_run(), "native rules reset")
     await process_frame
     expect(not gate.visible and rules.snapshot() != cleared, "reset hides narrative")
+    # Hidden presentation is not authorization to bypass the real Dialogue
+    # Manager Unlock choice. The only passage effect is the gate's native
+    # semantic response and subsequent passage_advanced event.
+    expect(rules.attack(), "fresh native encounter clears before hidden-gate test")
+    await process_frame
+    await process_frame
+    var before_hidden_gate: Dictionary = rules.snapshot().duplicate(true)
+    gate.hide()
+    product.get_node("View/Actions/Next").pressed.emit()
+    await process_frame
+    await process_frame
+    expect(rules.snapshot() == before_hidden_gate,
+        "hidden gate cannot turn Open Door into a direct Rules.advance bypass")
+    expect(gate.visible, "Open Door restores cleared-room native dialogue presentation")
+    if gate.visible and rules.snapshot()["phase"] == "cleared":
+        if gate.available_responses.is_empty():
+            await gate.response_settled
+        expect(gate.choose_response("unlock"), "restored gate admits actual semantic Unlock")
+        await gate.response_settled
+        expect(rules.snapshot()["room"] == 2,
+            "only semantic Unlock can commit passage after hidden-gate recovery")
     audio.stop()
     audio.stream = null
     product.free()

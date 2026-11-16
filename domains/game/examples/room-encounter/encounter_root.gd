@@ -7,27 +7,24 @@ extends Control
 @onready var gate_dialogue: VBoxContainer = $GateDialogue
 var view: VBoxContainer
 const TACTICAL_TRIAL: Resource = preload("res://configs/tactical_trial.tres")
-var tactical_mode: bool = false
 
 func start_tactical_trial() -> bool:
     if not rules.reset_run(TACTICAL_TRIAL):
         return false
-    tactical_mode = true
     view.get_node("Title").text = "TACTICAL TRIAL | READ THE NEXT STRIKE BEFORE COMMITTING"
     return true
 
 func start_classic_run() -> bool:
     if not rules.reset_run():
         return false
-    tactical_mode = false
     view.get_node("Title").text = "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
     return true
 
 func restart_run() -> void:
-    if tactical_mode:
-        rules.reset_run(TACTICAL_TRIAL)
-    else:
-        rules.reset_run()
+    # Rules owns the admitted tuning Resource. Do not shadow its mode in
+    # the presentation/input adapter; a selected variant survives Restart.
+    if rules.active != null:
+        rules.reset_run(rules.active)
 
 func _ready() -> void:
     view = view_scene.instantiate()
@@ -86,7 +83,9 @@ func load_run() -> void:
     view.get_node("Storage").text = "Run resumed." if loaded else "No compatible save."
 
 func request_door() -> void:
-    if gate_dialogue.visible:
-        gate_dialogue.show_line("start")
-    else:
-        rules.advance()
+    # Hidden/delayed dialogue is never authority to bypass native Unlock.
+    # The semantic Dialogue Manager response alone drives the passage effect.
+    if rules.snapshot()["phase"] != "cleared":
+        return
+    gate_dialogue.show()
+    gate_dialogue.show_line("start")

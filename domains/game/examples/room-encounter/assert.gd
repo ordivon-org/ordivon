@@ -334,6 +334,19 @@ func run_acceptance() -> void:
                         prediction[key], "every accepted native action obeys its pre-action forecast")
                 invariant(state_after)
 
+    # A direct, valid Rule Resource replacement must not be silently
+    # overridden by a second root-local mode flag on Restart.
+    expect(game.start_classic_run(), "prepare Classic root before direct Rule trial replacement")
+    expect(rules.reset_run(trace_trial), "direct typed Trial Resource accepted by one native Rules owner")
+    game.restart_run()
+    expect(rules.snapshot().has("forecast") and rules.snapshot()["foes"] == 2,
+        "Restart preserves the active Rule-selected Trial Resource")
+    expect(rules.reset_run(variant), "direct typed variant Resource accepted by Rules")
+    game.restart_run()
+    expect(rules.snapshot()["total_rooms"] == 2,
+        "Restart preserves a valid active Rule variant, not root-local Classic fallback")
+    expect(game.start_classic_run(), "restore normal Classic before remaining checkpoint controls")
+
     var damaged := ConfigFile.new()
     damaged.set_value("run", "schema_version", 1)
     var bad_checkpoint: Dictionary = rules.checkpoint()

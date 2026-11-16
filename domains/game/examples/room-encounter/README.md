@@ -70,9 +70,13 @@ storage engine or renderer is introduced.
     godot --headless --path examples/room-encounter --script res://agent_episode.gd -- --actions attack,advance,attack,attack
 
 The single `GAME_AGENT_EPISODE_JSON=` line uses `schema_version=2`.
-By default, `--observation player` projects only what the native
-Godot HUD and currently visible dialogue controls show: status, encounter
-text, enabled player inputs and visible dialogue response text. It does not expose the authoritative rules snapshot. Each player-mode
+By default, `--observation player` projects a **bounded, explicitly supported
+subset** of the native Godot UI: status, encounter, hints/results, the
+Attack/Guard/Open Door/Trial/Classic button availability and visible dialogue
+text. Save/Load/Restart are real Human controls, but this bounded Agent port
+does not accept or enumerate them as Agent actions. This is **not** a complete
+UI accessibility tree, pixel observation, or Human-equivalent control surface.
+It does not expose the authoritative rules snapshot. Each player-mode
 step contains only the submitted action and the visible before/after UI.
 Private accepted/recognized results and the internal control path are
 **debug-only**, not exposed to a player-mode Agent.
@@ -83,11 +87,15 @@ before/after and final fields under the label
 `authoritative_debug_state_not_pixels`. This mode must never be
 claimed as a fair player-information Agent. Both modes use the real
 Dialogue Manager `choose_response("unlock")` API and real
-`passage_advanced` commit event. The agent no longer waits an
+`passage_advanced` commit event. **Agent `advance` is a high-level native
+Unlock-choice macro** once the room is cleared; Human Open Door [N/Enter]
+only opens the narrative choices, and a Human must separately select Unlock
+or Leave. Sharing Rules and the Dialogue Manager does not make those two
+action granularity contracts identical. The agent no longer waits an
 arbitrary number of frames for startup, but native dialogue completion
 remains asynchronous. Neither mode proves pixel perception or enjoyment.
 
-Each process starts a new scene and fresh run, does not write save files, and accepts at most 64 actions. Agents may submit a growing action prefix to inspect later states; this is bounded deterministic replay, **not** a persistent online environment, browser controller or visual playtest.
+Each process starts a new scene and fresh run, does not write save files, and accepts at most 64 actions. The Python `agent_episode_acceptance.py` consumer applies a 60-second subprocess timeout, but a direct Godot `agent_episode.gd` invocation has **no independent wall-clock limit**, so an asynchronous dialogue hang is not proven bounded by the 64-action check. Agents may submit a growing action prefix to inspect later states; this is bounded deterministic replay, **not** a persistent online environment, browser controller or visual playtest.
 
 `mise run test:agent-episode` verifies HUD-only default observations, explicit debug mode, native scene transitions, deterministic replay, pre-clear narrative gate rejection, an actual terminal win through the native Unlock choice, and the action limit. `mise run verify` first imports the native dialogue asset through `test:encounter`, then runs this Agent acceptance. Real players and Agents use the same authoritative encounter rules; they do not share an evidence claim about subjective experience.
 
