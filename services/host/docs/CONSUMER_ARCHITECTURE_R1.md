@@ -379,3 +379,59 @@ R26 M2 wire/domain package split and M3 internal `git mv` remain **not
 implemented**; they require independent review of source-path consumers and
 real Agent cost before promotion. The prior R26 section is historic design
 baseline, not a claim the current source still has those hidden methods.
+
+
+## 10. R29 M2 domain-owned response wire (2026-11-16, isolated candidate)
+
+R28 M1 is now **GitHub MERGED** into main at `bc30e4377fad481846275346e74abf52978cd135`
+(PR #2337); this establishes the source baseline, **not** installed production
+currentness. The exact R29 M2 candidate keeps the existing flat Python package,
+same published `mcp_server.py` entry point and all 31 native MCP Tool functions.
+It does not move Work, Social, Attention persistence or modify PostgreSQL/Alembic.
+
+- `work_contracts.py` now owns five existing Work/Actor response TypedDicts.
+  `mcp_work_tools.py` imports them directly from their Work owner.
+- `attention_contracts.py` owns six existing Subscription/Attention
+  TypedDicts. `mcp_attention_tools.py` imports them directly.
+- `social_contracts.py` retains fifteen existing Space/Topic/Message/
+  Participation/Coordination response TypedDicts; `mcp_social_tools.py`
+  remains its actual consumer.
+- `wire_common.py` holds only the existing
+  `AdmissionWire = Literal["committed", "existing"]` vocabulary. It contains
+  no state, validation system, registry, new source of truth, or public Tool.
+  The old cross-domain re-export is deliberately not duplicated: an exact
+  repo search found only the three native `mcp_*_tools.py` imported response
+  types from `social_contracts.py`, and all those imports are updated.
+- No TypedDict field, `Literal`, `NotRequired`, default, model type, input
+  annotation or return annotation is changed; only the **owning module** and
+  imports change. This is narrower than a bulk `git mv` for M3.
+
+**Independent actual candidate acceptance:** after native Ruff-isort repair,
+`mise run verify` reported 401 passed + 58 PostgreSQL cases SKIPPED
+(these skips are not PG evidence); full standalone PostgreSQL 18 disposable
+instance with Alembic 0001–0014 reported **459 passed**; repository architecture
+pytest **198 passed** and architecture doc checker passed. The official native
+MCP SDK `packaging/verify_release.py` enumerated exactly **31 tools**,
+package/server version **0.9.0**, epoch **7**, and exact unchanged
+input+output `contractDigest =
+sha256:0c3553e4fb9b9134d9e3867e0419d7b119c78b3a55d48463e5d938810b4a2f3a`.
+`tools/repo/check_host_gateway_mcp_consumer_surface.py` returned exit0
+while still reporting existing 16 shared inputSchema / 30 outputSchema
+differences; its source coverage is not a full schema or installed consumer
+compatibility proof. Do **not** claim Client tool recapture or two distinct
+authenticated principals from this verification.
+
+**Consumer acceptance boundary:** the authoritative Postgres data contract,
+MCP tool-name/arguments/output bytes, immutable release manifest, and
+Gateway route remain unchanged. If a future domain wire change alters the
+native SDK digest, it is an explicit new public contract requiring controlled
+version/epoch and installed Agent re-discovery; do not silently hide it via
+alias/re-export. This M2 source-level organization does not independently
+prove a reduction in Agent model tokens or p95; its intended measurable
+benefit is smaller *source-level* domain contract navigation/change radius.
+
+**Remaining:** M3 bulk file moves are not approved absent demonstrated
+consumer benefit, accurate source-path closure and formal/prod tests. M4
+PG integration test organization awaits consumer-driven evidence. Principal
+identity, legacy ingress and Plugin archive parameter capture remain P0
+with their natural Gateway/Security/Harness owners.

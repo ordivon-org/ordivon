@@ -2,54 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypedDict
 
-AdmissionWire = Literal["committed", "existing"]
-
-
-class ActorRefResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-actor-ref"]
-    admission: AdmissionWire
-    actorRef: str
-    actorKind: Literal["unknown", "human", "agent", "service", "organization"]
-    createdAt: str
-    truthBoundary: str
-
-
-class WorkResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-work"]
-    admission: NotRequired[AdmissionWire]
-    workRef: str
-    workKind: str
-    state: str
-    revision: int
-    snapshotDigest: str
-    snapshot: dict[str, Any]
-    writerActorRef: str
-    createdByActorRef: str
-    createdAt: str
-    updatedAt: str
-    truthBoundary: str
-
-
-class WorkRelationResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-work-relation"]
-    admission: AdmissionWire
-    sourceWorkRef: str
-    relation: Literal["parent_of", "depends_on", "blocks", "relates_to"]
-    targetWorkRef: str
-    createdByActorRef: str
-    createdAt: str
-    truthBoundary: str
-
-
-class WorkRelationsResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-work-relations"]
-    workRef: str
-    relations: list[dict[str, Any]]
-    truthBoundary: str
+from .wire_common import AdmissionWire
 
 
 class SpaceResponse(TypedDict):
@@ -224,74 +177,6 @@ class CoordinationIntentResponse(TypedDict):
     truthBoundary: str
 
 
-class SubscriptionResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-subscription", "ordivon.host-subscription-unfollow"]
-    admission: AdmissionWire
-    actorRef: str
-    targetKind: Literal["work", "space", "topic"]
-    targetRef: str
-    createdAt: NotRequired[str]
-    changeSequence: NotRequired[int]
-    truthBoundary: str
-
-
-class AttentionEventWire(TypedDict):
-    changeSequence: int
-    eventKind: str
-    sourceRef: str
-    contextRef: str
-    reasons: list[str]
-    navigationKind: Literal["work", "space", "topic", "subject"]
-    navigationRef: str
-
-
-class AttentionDeltaResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-attention-delta-r1"]
-    actorRef: str
-    afterSequence: int
-    snapshotHighSequence: int
-    events: list[AttentionEventWire]
-    hasMore: bool
-    nextAfterSequence: int
-    rankingApplied: Literal[False]
-    truthBoundary: str
-
-
-class AttentionAckResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-attention-ack"]
-    actorRef: str
-    previousCursor: int
-    cursor: int
-    truthBoundary: str
-
-
-class AttentionReentryResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-attention-reentry-r1"]
-    actorRef: str
-    afterSequence: int
-    snapshotHighSequence: int
-    items: list[dict[str, Any]]
-    rawEventCount: int
-    hasMore: bool
-    nextAfterSequence: int
-    rankingApplied: Literal[False]
-    truthBoundary: str
-
-
-class WorkListResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-work-list"]
-    works: list[dict[str, Any]]
-    hasMore: bool
-    nextCursor: dict[str, str] | None
-    rankingApplied: Literal[False]
-    truthBoundary: str
-
-
 class SpaceListResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-space-list"]
@@ -311,17 +196,4 @@ class MessageSearchResponse(TypedDict):
     nextBeforeSequence: int | None
     rankingApplied: Literal[False]
     ordering: Literal["sequence_desc"]
-    truthBoundary: str
-
-
-class SubscriptionListResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-subscription-list"]
-    actorRef: str
-    subscriptions: list[dict[str, Any]]
-    hasMore: bool
-    truncated: bool
-    nextAfterTargetKind: str | None
-    nextAfterTargetRef: str | None
-    rankingApplied: Literal[False]
     truthBoundary: str
