@@ -2,7 +2,10 @@ extends SceneTree
 
 # Bounded, engine-native symbolic episode port for this one game fixture.
 # Input: -- --actions attack,guard,advance,trial,classic [--observation player|debug].
-# Default player mode projects native rendered HUD/dialogue, never full rules state.
+# Default player mode projects a selected set of native HUD/dialogue text and
+# five supported actions, never a complete UI tree or hidden rules state.
+# The `advance` command is a semantic Unlock-choice macro, NOT equivalent
+# to the Human Open Door key (which first exposes native narrative choices).
 # This is not a generic Game service, screen reader, or human-playtest proxy.
 const MAX_ACTIONS: int = 64
 const PREFIX: String = "GAME_AGENT_EPISODE_JSON="
