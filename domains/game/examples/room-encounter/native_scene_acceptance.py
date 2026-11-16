@@ -4,6 +4,7 @@ Godot sometimes returns exit code 0 after an uncaught GDScript error.
 Verify a positive receipt AND absence of script exceptions, not just rc=0.
 """
 import argparse
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -18,17 +19,20 @@ def verify_receipt(exit_code: int, stdout: str, stderr: str, receipt: str) -> st
         raise AssertionError(
             f"native Godot failed or silently emitted script error: exit={exit_code} "
             f"stdout={stdout[-3000:]} stderr={stderr[-3000:]}")
-    # Godot can exit 0 after an engine error. A success token must begin exactly
-    # one complete stdout line, never be embedded in unrelated/fake output.
-    matching = [
-        line for line in stdout.splitlines()
-        if line == receipt or line.startswith(receipt + " ")
-    ]
-    if len(matching) != 1:
+    # Admit only the exact native Godot producer format, not an arbitrary suffix.
+    # The process-restart receipt already contains its exact checks/phase values.
+    if receipt == "GAME_ROOM_ENCOUNTER_PASS":
+        pattern = re.escape(receipt) + r" assertions=[1-9][0-9]* traces=[1-9][0-9]*"
+    elif receipt == "GAME_INTEGRATED_ROOM_DIALOGUE_PASS":
+        pattern = re.escape(receipt) + r" checks=[1-9][0-9]*"
+    else:
+        pattern = re.escape(receipt)
+    claimed = [line for line in stdout.splitlines() if line.startswith(receipt)]
+    if len(claimed) != 1 or re.fullmatch(pattern, claimed[0]) is None:
         raise AssertionError(
-            f"expected one anchored native success receipt {receipt}, got {len(matching)}: "
+            f"expected one format-qualified native success receipt {receipt}: "
             f"{combined[-3500:]}")
-    return matching[0]
+    return claimed[0]
 
 
 def engine(script: str, receipt: str, extra=()):
@@ -46,30 +50,41 @@ def main():
                         required=True)
     suite = parser.parse_args().suite
     if suite == "selftest":
-        receipt = "GAME_ROOM_ENCOUNTER_PASS"
+        room = "GAME_ROOM_ENCOUNTER_PASS"
+        dialogue = "GAME_INTEGRATED_ROOM_DIALOGUE_PASS"
+        save = "GAME_ROOM_PROCESS_RESTART_PASS checks=8 phase=save"
+        load = "GAME_ROOM_PROCESS_RESTART_PASS checks=9 phase=load"
         positive = [
-            receipt,
-            receipt + " assertions=23",
-            "engine prelude\n" + receipt + " assertions=23",
+            (room, room + " assertions=23 traces=486"),
+            (room, "engine prelude\n" + room + " assertions=23 traces=486"),
+            (dialogue, dialogue + " checks=20"),
+            (save, save),
+            (load, load),
         ]
-        for out in positive:
-            assert verify_receipt(0, out, "", receipt).startswith(receipt)
+        for expected, out in positive:
+            assert verify_receipt(0, out, "", expected) == out.splitlines()[-1]
         negative = [
-            (0, receipt, "SCRIPT ERROR: missing typed node"),
-            (0, receipt, "Parse Error: invalid script"),
-            (0, "unrelated success", ""),
-            (1, receipt, ""),
-            (0, "NOT_" + receipt + "_FAKE", ""),
-            (0, receipt + "_FABRICATED", ""),
-            (0, "engine prelude " + receipt, ""),
-            (0, receipt + "\n" + receipt, ""),
+            (room, 0, room + " assertions=23 traces=486", "SCRIPT ERROR: missing typed node"),
+            (room, 0, room + " assertions=23 traces=486", "Parse Error: invalid script"),
+            (room, 0, "unrelated success", ""),
+            (room, 1, room + " assertions=23 traces=486", ""),
+            (room, 0, "NOT_" + room + "_FAKE", ""),
+            (room, 0, room + "_FABRICATED", ""),
+            (room, 0, "engine prelude " + room + " assertions=23 traces=486", ""),
+            (room, 0, room + " assertions=23 traces=486\n" + room + " assertions=24 traces=486", ""),
+            (room, 0, room + " GARBAGE", ""),
+            (room, 0, room + " assertions=bogus traces=486", ""),
+            (room, 0, room + " assertions=0 traces=486", ""),
+            (room, 0, room + " assertions=23 traces=0", ""),
+            (dialogue, 0, dialogue + " checks=bogus", ""),
+            (save, 0, save + " trailer", ""),
         ]
-        for rc, out, err in negative:
+        for expected, rc, out, err in negative:
             try:
-                verify_receipt(rc, out, err, receipt)
+                verify_receipt(rc, out, err, expected)
             except AssertionError:
                 continue
-            raise AssertionError("native error-injection control failed")
+            raise AssertionError(f"native error-injection control failed: {out!r}")
         print(f"GAME_NATIVE_RECEIPT_FAIL_CLOSED_PASS cases={len(positive) + len(negative)}")
         return
     imported = subprocess.run(
