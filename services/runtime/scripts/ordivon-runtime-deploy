@@ -20,6 +20,11 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+# A production Root entrypoint must not mutate its sealed import namespace
+# just because an operator invokes CLI help or a read-only inspection.
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
 from mcp_probe import load_bearer_token, load_environment_file, probe_catalog
 
 SCHEMA_VERSION = 2

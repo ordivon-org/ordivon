@@ -25,6 +25,12 @@ from typing import Any
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+
+# This implementation is also a direct executable module, not only an import
+# from the bundled wrapper/dispatcher. Never write unqualified local pyc.
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
 from mcp_probe import McpClient
 
 _RELEASE_SCRIPT = Path(__file__).with_name("ordivon-runtime-deploy")
