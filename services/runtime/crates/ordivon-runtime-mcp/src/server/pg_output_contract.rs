@@ -109,6 +109,24 @@ fn qualify_pg_scheduling_output_schema(tool: &mut Tool) {
             .is_none(),
         "scheduler annotation must not shadow a Core field"
     );
+    // Only PG job.list can project a previously accepted corrupt Plan as a
+    // partial JSON readback. Its trusted Job/Attempt/Workspace identities
+    // remain mandatory; executable/cwd cannot be reconstructed from that Plan.
+    // This is deliberately NOT a Core RuntimeJobSummary or Legacy ABI change.
+    if tool.name.as_ref() == "job.list" {
+        for field in ["executableName", "cwdRelative"] {
+            let value = properties
+                .get_mut(field)
+                .expect("Core JobList must declare the expected plan-derived field");
+            assert_eq!(
+                *value,
+                json!({"type": "string"}),
+                "unexpected Core JobList field {field}; review the PG override"
+            );
+            *value = json!({"type": ["string", "null"]});
+        }
+    }
+
     target
         .get_mut("required")
         .and_then(serde_json::Value::as_array_mut)
@@ -216,6 +234,58 @@ mod pg_scheduling_output_contract_tests {
                     .unwrap()
                     .contains(&json!("scheduling")),
                 "{tool_name}: missing scheduling must not become silent success"
+            );
+        }
+    }
+
+    #[test]
+    fn pg_list_corrupt_plan_retains_identity_and_explicit_unknown_plan_details() {
+        // PG JobList is JSON-projected from independently committed Job/Attempt
+        // and Workspace snapshot facts. A corrupt accepted execution plan must
+        // not force false executable/cwd claims or destroy a healthy entire page.
+        let pg = PgRuntimeServer::catalog()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "job.list")
+            .expect("PG job.list must exist");
+        let schema = serde_json::Value::Object(
+            pg.output_schema.expect("PG output schema").as_ref().clone(),
+        );
+        let job = &schema["$defs"]["RuntimeJobSummary"];
+        for field in ["executableName", "cwdRelative"] {
+            assert_eq!(
+                job["properties"][field],
+                json!({"type": ["string", "null"]}),
+                "{field}: an unavailable immutable Plan detail must be explicit null"
+            );
+            assert!(
+                job["required"].as_array().unwrap().contains(&json!(field)),
+                "{field}: missing information must not be silently omitted"
+            );
+        }
+        for field in ["jobId", "clientRequestId", "workspaceId", "sourceRevision"] {
+            assert_eq!(
+                job["properties"][field]["type"],
+                json!("string"),
+                "{field}: the reliable Job/Workspace identity must remain a string"
+            );
+            assert!(job["required"].as_array().unwrap().contains(&json!(field)));
+        }
+        assert_eq!(job["additionalProperties"], false);
+
+        // The original portable/Legacy contract still requires real strings.
+        let portable = RuntimeServer::tool_router()
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "job.list")
+            .expect("portable job.list");
+        let old = serde_json::Value::Object(
+            portable.output_schema.expect("portable schema").as_ref().clone(),
+        );
+        for field in ["executableName", "cwdRelative"] {
+            assert_eq!(
+                old["$defs"]["RuntimeJobSummary"]["properties"][field]["type"],
+                json!("string"),
+                "PG partial truth must not break legacy JobList"
             );
         }
     }
