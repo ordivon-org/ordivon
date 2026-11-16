@@ -434,6 +434,9 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 reopened, run.harness_run_id, clock_ms=clock
             ).inspect_finalization_source()
         self.assertEqual(done["sourceStanding"], "source-settled")
+        self.assertEqual(done["contractDigest"], run.digest)
+        self.assertEqual(done["toolGrantDigest"], run.tool_grant_digest)
+        self.assertIsInstance(done["runReceiptDigest"], str)
         self.assertEqual(done["blockers"], [])
         self.assertEqual(done["externalDeliveryStanding"], "unknown")
         self.assertEqual(done["runtimeClaimStanding"], "unknown")
