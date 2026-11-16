@@ -189,7 +189,7 @@ def initial_preflight() -> dict:
     )
     key = protected_key()  # do not log or expose
     del key
-    allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
+    allowed = set(native.read_selector_policy()["selectedCountries"])
     current = selected_snapshot(api_call("GET"), allowed)
     return {"standing": "NATIVE_API_AUTHORIZED_READONLY", "countryCount": len(current["countries"]),
             "forbiddenCountrySelected": False, "effectAttempted": False}
@@ -314,7 +314,7 @@ def guarded_recover() -> dict:
         return repair_partial_native_health()
     # A one-shot guarded native settings change, not a second autonomous
     # provider or an unconditional "speed optimization" when users are healthy.
-    allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
+    allowed = set(native.read_selector_policy()["selectedCountries"])
     plan = quality.observe(hours=48)
     outcome = plan["recommended"]
     if outcome["decision"] != "TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF":
