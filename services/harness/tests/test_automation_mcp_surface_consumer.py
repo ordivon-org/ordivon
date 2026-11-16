@@ -102,3 +102,124 @@ def test_cli_exit_code_breaking_and_safe_names_only(tmp_path: Path, capsys: pyte
     assert audit.main(args) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["releaseQualified"] is False
+
+
+def test_same_name_new_required_tool_argument_is_not_static_compatible() -> None:
+    installed = _mcp_source(("campaign.launch",))
+    candidate = installed.replace("def f0(): pass", "def f0(required_new: str): pass")
+    result = audit.compare(frozenset({"campaign.launch"}), installed, candidate)
+    assert result["status"] == "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
+    assert result["changedToolSignatures"] == ["campaign.launch"]
+    assert result["releaseQualified"] is False
+
+
+def test_same_name_default_removed_is_not_static_compatible() -> None:
+    installed = _mcp_source(("campaign.launch",)).replace(
+        "def f0(): pass", "def f0(request: str = 'optional'): pass",
+    )
+    candidate = installed.replace("request: str = 'optional'", "request: str")
+    result = audit.compare(frozenset({"campaign.launch"}), installed, candidate)
+    assert result["status"] == "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
+    assert result["changedToolSignatures"] == ["campaign.launch"]
+
+
+def test_same_campaign_field_name_with_new_type_or_requiredness_is_not_safe() -> None:
+    installed = _mcp_source(("campaign.launch",)).replace(
+        "workBinding: str", "workBinding: str | None = None",
+    )
+    candidate = installed.replace("workBinding: str | None = None", "workBinding: str")
+    result = audit.compare(frozenset({"campaign.launch"}), installed, candidate)
+    assert result["status"] == "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
+    assert result["changedCampaignFieldShapes"] == ["workBinding"]
+
+
+def test_only_tool_body_changed_is_not_falsely_called_contract_shape_change() -> None:
+    installed = _mcp_source(("campaign.launch",))
+    candidate = installed.replace("def f0(): pass", "def f0(): return 1")
+    result = audit.compare(frozenset({"campaign.launch"}), installed, candidate)
+    assert result["status"] == "NO_NAME_OR_FIELD_SUBTRACTION_DETECTED_NOT_RELEASE_APPROVED"
+    assert result["releaseQualified"] is False
+
+
+def test_async_tool_entrypoint_replacing_sync_is_unknown() -> None:
+    installed = _mcp_source(("campaign.launch",))
+    candidate = installed.replace("def f0(): pass", "async def f0(): pass")
+    result = audit.compare(frozenset({"campaign.launch"}), installed, candidate)
+    assert result["status"] == "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
+    assert result["changedToolSignatures"] == ["campaign.launch"]
+
+
+def test_cli_fail_closed_exit_3_for_same_name_required_argument_change(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    installed = _mcp_source(("campaign.launch",))
+    candidate = installed.replace("def f0(): pass", "def f0(required_new: str): pass")
+    live = tmp_path / "live.json"
+    live.write_text(json.dumps([{"name": "campaign.launch"}]))
+    old = tmp_path / "installed.py"
+    new = tmp_path / "candidate.py"
+    old.write_text(installed)
+    new.write_text(candidate)
+    assert audit.main([
+        "--live-names-json", str(live), "--installed-source", str(old),
+        "--candidate-source", str(new),
+    ]) == 3
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
+    assert result["releaseQualified"] is False
+
+
+def test_same_name_tool_return_schema_annotation_change_is_unknown() -> None:
+    installed = _mcp_source(("campaign.launch",)).replace(
+        "def f0(): pass", "def f0() -> str: pass",
+    )
+    candidate = installed.replace("def f0() -> str", "def f0() -> dict")
+    result = audit.compare(frozenset({"campaign.launch"}), installed, candidate)
+    assert result["status"] == "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
+    assert result["changedToolSignatures"] == ["campaign.launch"]
+
+
+def test_same_name_tool_readonly_annotation_change_is_unknown() -> None:
+    installed = _mcp_source(("campaign.launch",)).replace(
+        "@server.tool(name='campaign.launch')",
+        "@server.tool(name='campaign.launch', annotations={'readOnlyHint': True})",
+    )
+    candidate = installed.replace(
+        "annotations={'readOnlyHint': True}",
+        "annotations={'readOnlyHint': False}",
+    )
+    result = audit.compare(frozenset({"campaign.launch"}), installed, candidate)
+    assert result["status"] == "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
+    assert result["changedToolSignatures"] == ["campaign.launch"]
+
+
+def test_dynamic_registration_keyword_expansion_is_unknown_not_crash() -> None:
+    source = _mcp_source(("campaign.launch",)).replace(
+        "@server.tool(name='campaign.launch')",
+        "@server.tool(name='campaign.launch', annotations={'readOnlyHint': True}, **runtime_options)",
+    )
+    with pytest.raises(audit.ContractIndeterminate, match="dynamic"):
+        audit.inspect_source(source)
+
+
+def test_cli_unknown_dynamic_registration_metadata_has_structured_exit3(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    installed = _mcp_source(("campaign.launch",))
+    candidate = installed.replace(
+        "@server.tool(name='campaign.launch')",
+        "@server.tool(name='campaign.launch', annotations={'readOnlyHint': True}, **runtime_options)",
+    )
+    live = tmp_path / "live.json"
+    live.write_text(json.dumps([{"name": "campaign.launch"}]))
+    old = tmp_path / "installed.py"
+    new = tmp_path / "candidate.py"
+    old.write_text(installed)
+    new.write_text(candidate)
+    assert audit.main([
+        "--live-names-json", str(live), "--installed-source", str(old),
+        "--candidate-source", str(new),
+    ]) == 3
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "INDETERMINATE"
+    assert result["releaseQualified"] is False

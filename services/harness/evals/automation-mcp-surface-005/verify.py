@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Read-only MCP installed-vs-candidate name/field subtraction diagnostic.
+"""Read-only MCP installed-vs-candidate source interface subtraction diagnostic.
 
 The live baseline is supplied as a names-only JSON capture from *tools/list*.
 Both Python sources are inspected by AST only; they are never imported or run.
-A clean result is NOT evidence of consumer non-use, actual runtime tool
-readiness, schema compatibility, user consent, or authorization to deploy.
+An unchanged static surface is NOT proof of actual MCP inputSchema, downstream
+consumer compatibility, runtime readiness, user consent, or release approval.
 """
 from __future__ import annotations
 
@@ -40,26 +40,43 @@ def _tool_name_from_decorator(decorator: ast.expr) -> str | None:
         and decorator.func.value.id == "server"
     ):
         return None
+    # Unpacked runtime registration metadata can change permissions, naming
+    # and transport schemas without changing static names; no safe AST proof.
+    if any(kw.arg is None for kw in decorator.keywords):
+        raise ContractIndeterminate("dynamic @server.tool registration options")
     keyword_names = [kw.value for kw in decorator.keywords if kw.arg == "name"]
     if len(keyword_names) != 1 or not isinstance(keyword_names[0], ast.Constant):
         raise ContractIndeterminate("dynamic or missing @server.tool(name=...)")
     return _checked_name(keyword_names[0].value)
 
 
-def inspect_source(code: str) -> tuple[frozenset[str], frozenset[str]]:
-    """Project only source-visible declarations; dynamic registration is UNKNOWN."""
+def _source_projection(
+    code: str,
+) -> tuple[frozenset[str], frozenset[str], dict[str, tuple[str, ...]], dict[str, tuple[str, str | None]]]:
+    """AST-only declared shapes. Never import, execute or expose defaults/annotations."""
     try:
         tree = ast.parse(code)
     except SyntaxError as error:
         raise ContractIndeterminate(f"candidate source cannot be parsed: {error.msg}") from error
 
     names: list[str] = []
+    tool_shapes: dict[str, tuple[str, ...]] = {}
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for decorator in node.decorator_list:
                 name = _tool_name_from_decorator(decorator)
                 if name is not None:
                     names.append(name)
+                    tool_shapes[name] = (
+                        "async" if isinstance(node, ast.AsyncFunctionDef) else "sync",
+                        ast.dump(node.args, include_attributes=False),
+                        ast.dump(node.returns, include_attributes=False)
+                        if node.returns is not None else "UNANNOTATED_RETURN",
+                        repr(sorted(
+                            (kw.arg, ast.dump(kw.value, include_attributes=False))
+                            for kw in decorator.keywords if kw.arg != "name"
+                        )),
+                    )
     if not names or len(names) != len(set(names)):
         raise ContractIndeterminate("no static registrations or duplicate MCP tool name")
 
@@ -67,12 +84,24 @@ def inspect_source(code: str) -> tuple[frozenset[str], frozenset[str]]:
     if len(classes) != 1:
         raise ContractIndeterminate("CampaignSpecInput declaration is absent or duplicated")
     fields: list[str] = []
+    field_shapes: dict[str, tuple[str, str | None]] = {}
     for member in classes[0].body:
         if isinstance(member, ast.AnnAssign) and isinstance(member.target, ast.Name):
             fields.append(member.target.id)
+            field_shapes[member.target.id] = (
+                ast.dump(member.annotation, include_attributes=False),
+                ast.dump(member.value, include_attributes=False)
+                if member.value is not None else None,
+            )
     if not fields or len(fields) != len(set(fields)):
         raise ContractIndeterminate("CampaignSpecInput has no statically named fields")
-    return frozenset(names), frozenset(fields)
+    return frozenset(names), frozenset(fields), tool_shapes, field_shapes
+
+
+def inspect_source(code: str) -> tuple[frozenset[str], frozenset[str]]:
+    """Retain existing two-set API for source-only tool and field queries."""
+    names, fields, _, _ = _source_projection(code)
+    return names, fields
 
 
 def capture_live_names(value: object) -> frozenset[str]:
@@ -90,16 +119,28 @@ def capture_live_names(value: object) -> frozenset[str]:
 
 
 def compare(live_names: frozenset[str], installed_text: str, candidate_text: str) -> dict[str, object]:
-    installed, installed_fields = inspect_source(installed_text)
-    candidate, candidate_fields = inspect_source(candidate_text)
+    installed, installed_fields, installed_tools, installed_shapes = _source_projection(installed_text)
+    candidate, candidate_fields, candidate_tools, candidate_shapes = _source_projection(candidate_text)
     installed_live_diff = sorted(live_names.symmetric_difference(installed))
     removed = sorted(live_names - candidate)
     added = sorted(candidate - live_names)
     removed_fields = sorted(installed_fields - candidate_fields)
+    changed_tools = sorted(
+        name for name in installed & candidate
+        if installed_tools[name] != candidate_tools[name]
+    )
+    changed_fields = sorted(
+        name for name in installed_fields & candidate_fields
+        if installed_shapes[name] != candidate_shapes[name]
+    )
     if installed_live_diff:
         status = "INDETERMINATE_INSTALLED_SOURCE_LIVE_MISMATCH"
     elif removed or removed_fields:
         status = "BREAKING_NAME_OR_FIELD_SUBTRACTION_DETECTED"
+    elif changed_tools or changed_fields:
+        # Source differences are enough to HOLD, not proof the actual MCP
+        # inputSchema or natural consumers changed in a breaking way.
+        status = "INDETERMINATE_TOOL_OR_FIELD_SHAPE_CHANGED"
     else:
         status = "NO_NAME_OR_FIELD_SUBTRACTION_DETECTED_NOT_RELEASE_APPROVED"
     return {
@@ -113,13 +154,17 @@ def compare(live_names: frozenset[str], installed_text: str, candidate_text: str
         "removedLiveToolNames": removed,
         "candidateAddedToolNames": added,
         "removedCampaignSpecFields": removed_fields,
+        "changedToolSignatures": changed_tools,
+        "changedCampaignFieldShapes": changed_fields,
         "releaseQualified": False,
         "callerUsageProven": False,
         "transportAndSemanticCompatibilityProven": False,
         "truthBoundary": (
-            "Only observed live MCP names, static Python source declarations, and "
-            "CampaignSpecInput field-name subtraction. No candidate import, calls, "
-            "provider SEND, production effect, or dynamic consumer usage was measured."
+            "Only observed live MCP names, static tool parameter/return/decorator shapes and "
+            "CampaignSpecInput annotated/default shapes. Static differences mandate "
+            "UNKNOWN until official MCP inputSchema/consumers validate them; equality "
+            "does not prove schemas or semantics. No candidate import, calls, Provider "
+            "SEND, production effect, or consumer usage was measured."
         ),
     }
 
