@@ -2,7 +2,7 @@
 """Task-local Successor Contract R1 mechanics.
 
 This module binds one exact predecessor to one exact candidate successor and
-evaluates verifier-owned succession gates. It deliberately does not generate
+summarizes caller-supplied succession-gate reports. It deliberately does not generate
 candidates, choose objectives, define domain metrics, grant promotion authority,
 write Git/release state, or declare that a candidate is globally better.
 """
@@ -196,13 +196,13 @@ def evaluate_successor_gates(
     unresolved = sorted(contract["unresolvedAssumptions"])
 
     if unsatisfied:
-        standing = "SUCCESSOR_GATES_UNSATISFIED"
+        standing = "SUCCESSOR_GATES_REPORTED_UNSATISFIED"
     elif not required or missing or unknown or unresolved:
         # Zero required Gates is an empty proof obligation, not verified
         # successor closure. Preserve the contract as descriptive/open.
         standing = "SUCCESSOR_GATES_OPEN"
     else:
-        standing = "SUCCESSOR_GATES_SATISFIED"
+        standing = "SUCCESSOR_GATES_REPORTED_SATISFIED"
 
     projection: dict[str, Any] = {
         "schemaVersion": 1,
@@ -222,14 +222,20 @@ def evaluate_successor_gates(
         "unknownGateIds": unknown,
         "missingGateIds": missing,
         "unresolvedAssumptions": unresolved,
-        "mechanicalSuccessorClosure": standing == "SUCCESSOR_GATES_SATISFIED",
+        # Caller-submitted strings and IDs are not authoritative proof receipts.
+        # Return a declared gate summary only; native verifier qualification
+        # remains at the natural Owner/consumer boundary.
+        "declaredGateClosure": standing == "SUCCESSOR_GATES_REPORTED_SATISFIED",
+        "evidenceVerificationStanding": "UNKNOWN",
+        "mechanicalSuccessorClosure": False,
         "promotionAuthorityEstablished": False,
         "domainImprovementEstablished": False,
         "claimBoundary": (
-            "Mechanical successor closure requires at least one required verifier-owned "
+            "Reported gate closure requires at least one required caller-declared "
             "gate for this exact predecessor/candidate contract to be SATISFIED, all "
             "other required Gates SATISFIED, and no "
-            "contract assumption remains unresolved. Promotion authority and domain "
+            "contract assumption remains unresolved. No native verifier is executed or "
+            "its receipt validated here; proof standing remains UNKNOWN. Promotion authority and domain "
             "improvement remain with their natural owners."
         ),
     }

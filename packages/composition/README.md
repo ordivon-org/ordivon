@@ -21,8 +21,9 @@ This package is not a planner, scheduler, capability registry, workflow engine, 
 system, credential store, domain verifier, verifier registry/ranker, generic verifier
 executor, RSI controller, universal evaluator, promotion authority, or truth owner.
 A mechanically closed circuit or resolved verifier binding does not establish domain
-acceptance, and mechanically closed succession gates do not establish that a candidate is
-globally better or authorized for promotion.
+acceptance. Successor gate records are currently caller-declared: even if all reported
+statuses agree, neither verifier execution nor evidence authenticity is established.
+A declared successor is not globally better or authorized for promotion.
 
 ## Consumer boundary
 

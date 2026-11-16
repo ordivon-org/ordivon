@@ -18,8 +18,9 @@ Rules:
 2. Seam-specific adapters stay with the concrete consumer/composition/study.
 3. No provider catalog, workflow database, retry engine, verifier registry/ranker, universal
    verifier, universal fitness function, or self-improvement controller may grow here.
-4. Preserve \`mechanicalClosure != domainAcceptanceEstablished\` and
-   \`mechanicalSuccessorClosure != promotionAuthorityEstablished\`.
+4. Preserve `mechanicalClosure != domainAcceptanceEstablished`; never promote
+   caller-supplied Successor Gate standing/evidence references into a verifier
+   result. `declaredGateClosure` does not imply `mechanicalSuccessorClosure`.
 5. Meta-improvement measurement remains study/domain evidence unless a narrower reusable
    mechanism earns promotion through repeated evidence.
 6. Run \`mise run verify\` before integration.
