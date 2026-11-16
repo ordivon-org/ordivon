@@ -22,10 +22,9 @@ from .contracts import (
     SystemDescription,
 )
 from .execution_refs import GatewayError
-from .owner_protocol import _configuration_error, _configured
+from .owner_protocol import OwnerToolCaller, _configuration_error, _configured
 from .research_resolution import resolve_research_capability
 from .routing import CapabilityRoute
-from .upstream import OwnerToolCaller
 
 _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",

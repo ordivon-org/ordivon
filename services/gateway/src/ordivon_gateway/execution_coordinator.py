@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from .execution_commands import ExecutionCommandMethods
 from .execution_observations import ExecutionObservationMethods
+from .owner_protocol import OwnerToolCaller
 from .routing import CapabilityRoute
-from .upstream import OwnerToolCaller
 
 
 class ExecutionCoordinator(ExecutionCommandMethods, ExecutionObservationMethods):
