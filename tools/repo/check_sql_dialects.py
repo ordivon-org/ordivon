@@ -23,6 +23,7 @@ SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+POSTGRESQL_RUNTIME_CLAIMS = "services/runtime/crates/ordivon-runtime-core/sql/pg_workspace_claim_r1.sql"
 POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER = "services/runtime/sql/pg_resource_scheduler_v1.sql"
 POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
 
@@ -260,7 +261,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
         return "postgresql"
     return None
 
@@ -392,8 +393,8 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
         expected = (
             "TransactionStmt", "DoStmt",
             "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
-            "CreateStmt", "IndexStmt", "CreateStmt", "CreateStmt",
-            "IndexStmt", "CreateStmt", "CreateStmt", "TransactionStmt",
+            "CreateStmt", "IndexStmt", "CreateStmt", "IndexStmt",
+            "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt", "CreateStmt", "TransactionStmt",
         )
         named = [
             (type(statement.stmt).__name__,
@@ -408,6 +409,8 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
                          "concurrency_reservations", "job_allocations")
         ] + [
             ("IndexStmt", "job_allocations", "idx_job_allocations_active"),
+            ("CreateStmt", "workspace_consumer_claims", None),
+            ("IndexStmt", "workspace_consumer_claims", "idx_workspace_consumer_claims_held"),
             ("CreateStmt", "job_events", None),
             ("CreateStmt", "job_runtime_release_effects", None),
             ("IndexStmt", "job_runtime_release_effects",
@@ -423,6 +426,30 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
         ):
             issues.append(
                 f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
+            )
+    elif name == POSTGRESQL_RUNTIME_CLAIMS:
+        # The additive migration is operator-scoped to exactly the Runtime PG
+        # owner schema. One guarded DO, one new table, one partial held-claim
+        # index: no DROP/GRANT/COPY, no unmanaged schema or second registry.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        named = [
+            (type(statement.stmt).__name__, statement.stmt.relation.relname,
+             getattr(statement.stmt, "idxname", None))
+            for statement in parsed
+            if type(statement.stmt).__name__ in ("CreateStmt", "IndexStmt")
+        ]
+        if (
+            observed != ("TransactionStmt", "DoStmt", "CreateStmt",
+                         "IndexStmt", "TransactionStmt")
+            or named != [
+                ("CreateStmt", "workspace_consumer_claims", None),
+                ("IndexStmt", "workspace_consumer_claims", "idx_workspace_consumer_claims_held"),
+            ]
+            or parsed[0].stmt.kind != 0
+            or parsed[-1].stmt.kind != 2
+        ):
+            issues.append(
+                f"PostgreSQL Runtime Claim additive DDL statement structure changed: {name}"
             )
     elif name == POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER:
         # Resource allocation schema is a schema-owner migration,
@@ -548,7 +575,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             issues.append("PostgreSQL AST parser version is not pinned to exact 8.6")
         for name in grouped["postgresql"]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
-            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
+            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
                 issues.extend(pg_runtime_ddl_structure_issues(name, parsed))
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four
