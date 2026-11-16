@@ -1022,10 +1022,21 @@ internal static class OrdivonWindowsJobLauncher
         return args[index++];
     }
 
+    // Exit code 259 (STILL_ACTIVE) is also a legal process exit status.
+    // Query the signaled process handle instead of guessing liveness from its exit code.
+    private static bool ProcessHandleIsRunning(IntPtr process, string operation)
+    {
+        uint wait = WaitForSingleObject(process, 0);
+        if (wait == 0) return false;
+        if (wait == WaitTimeout) return true;
+        if (wait == 0xffffffff) ThrowWin32(operation);
+        throw new InvalidOperationException(operation + " returned an unexpected wait status");
+    }
+
     private static int DescribeProcessOwner(Options options)
     {
         uint processId = options.DescribeProcessId.Value;
-        IntPtr process = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+        IntPtr process = OpenProcess(ProcessQueryLimitedInformation | Synchronize, false, processId);
         if (process == IntPtr.Zero)
         {
             int error = Marshal.GetLastWin32Error();
@@ -1041,12 +1052,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
-            {
-                ThrowWin32("GetExitCodeProcess(process owner)");
-            }
-            if (exitCode != StillActive)
+            if (!ProcessHandleIsRunning(process, "WaitForSingleObject(process owner)"))
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"
@@ -1103,12 +1109,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
-            {
-                ThrowWin32("GetExitCodeProcess(deadline owner termination)");
-            }
-            if (exitCode != StillActive)
+            if (!ProcessHandleIsRunning(process, "WaitForSingleObject(deadline owner termination)"))
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"
