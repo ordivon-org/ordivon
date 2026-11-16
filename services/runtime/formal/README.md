@@ -619,3 +619,47 @@ reachability, cross-DB unsafe close, late claim after close, and unauthorized
 grant. This is not a production Runtime Claim API, a cross-DB ACID commit,
 source-to-installed refinement, legacy Run migration or ignored Artifact
 finalization proof.
+
+## RootBundleTransitionR1 — Root control-plane trusted upgrade design
+
+This finite Root Controller model uses the existing pinned TLA+ harness.
+Real consumers: privileged Release Operator, systemd one-shot Dispatcher,
+old/new Python import namespace, original PG release qualification,
+Root-owned durable journal, complete five-file package, and downstream
+actual Agent MCP/Runner/Helper currentness.
+
+It models none/old/new running Interpreter versions; separate PG admission,
+independent timer and original operator flock; old/new pending Effects;
+compatible packaged Unit; PREPARED-versus-exchanged bytes; Root process
+crash and fresh-process requalification; final receipt and reverse rollback.
+
+Commands (also wired into existing default check / falsify):
+
+    scripts/tla-formal check-root-bundle
+    scripts/tla-formal falsify-root-bundle
+
+Four deliberately unsafe transitions must generate named counterexamples:
+old Dispatcher still executing during forward swap, new Dispatcher still
+executing during reverse swap, PG release reopened with only a PREPARED
+journal, and partially replaced per-file Root payload. Three separate
+legitimate transitions must be reachable: successful upgrade, certified
+rollback, and specifically post-swap/pre-journal-update Root process crash
+followed by fresh-process recovery.
+
+MODEL only, not CODE_REFINED / INSTALLED_CURRENT / DOMAIN_ACCEPTED.
+The abstraction cannot prove Root credentials, PostgreSQL physical
+failover/PITR, OS crash/power-loss durability, process-tree exhaustiveness,
+genuine Python imports or the authenticated MCP tool catalog.
+Independent physical job evidence in the R3 Host Topic:
+PG18 WAL crash recovery job-01a1e5a5-57e1-72ae-832b-3479d82078ad;
+Root exchanged but PREPARED journal recovery
+job-01a1e59d-4e33-7541-adb1-831c6314eaaf;
+reuse of original operator flock
+job-01a1e5a0-93e6-73a5-8312-3311d1619727;
+old-entry/new-module live systemd counterexample
+job-01a1e57a-a76c-727e-bd7e-94c8463cd909.
+Actual Owner-approved Root Installer, original PG Hold, installed -B
+Unit, real PID-tree quiescence, three-artifact Native Runtime payload,
+SHA readback and Agent MCP consumers remain independent P0 gates.
+The Workspace auto-reclaimer must stay disabled until Run Finalizer
+certification is independently proven.
