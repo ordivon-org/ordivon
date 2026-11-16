@@ -5,15 +5,15 @@ from typing import Literal
 
 from mcp.server import MCPServer
 
-from .attention_store import AttentionStore
-from .mcp_domain_errors import _project_domain_errors
-from .social_contracts import (
+from .attention_contracts import (
     AttentionAckResponse,
     AttentionDeltaResponse,
     AttentionReentryResponse,
     SubscriptionListResponse,
     SubscriptionResponse,
 )
+from .attention_store import AttentionStore
+from .mcp_domain_errors import _project_domain_errors
 
 
 def register_attention_tools(
