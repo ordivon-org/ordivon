@@ -288,3 +288,66 @@ obviate a second hash or independent custom release registry. This is a
 content identity witness, not a signed SLSA provenance attestation or proof
 of builder identity. Continue Git chronology, Merge Queue checks, immutable
 archive verification and live MCP consumer readback. UNKNOWN remains UNKNOWN.
+
+
+## R30 — Space create/read projection explicit same-transaction capability (2026-11-16)
+
+**Baseline Git SourceCut:** `1dafd707ecb4090df9b18bb460e9b1ea62f03e70`;
+this is source-level evidence, **not a claim of installed Host currentness**.
+The previous SocialSpaceCommands.create_space called
+`self._get_space_in_tx(conn,...)` even though that method was defined
+only on the SocialSpaceReadQueries mixin. It worked through
+SocialStore's multiple-inheritance lookup, so neither the write command
+nor the read method stated its exact required provider module.
+
+The R30 candidate moves that **same existing 98-line PG read projection**
+into `social_space_records.py:read_space_in_tx(conn,space_ref,...)`,
+consumed explicitly by the existing `social_space_commands.py`
+and `social_space_queries.py`. No independent checkout, repository,
+cache, schema migration, event bus or new state authority is created.
+The existing SQL/table read-set, canonical byte-budget reduction, response
+envelope and Space error stay unchanged; the public SocialStore facade and
+MCP Tool names/inputs/outputs remain unchanged. The removed private
+mixin method was not an officially declared extension point.
+
+**Stronger concrete negative control:** the existing PostgreSQL integration
+test file `tests/test_social_creation_linearizability.py` gains
+`test_space_create_reads_new_subjects_in_same_uncommitted_transaction`.
+It observes the newly created Space and sorted Subject rows through the
+actual command's connection and separately verifies a **different real
+PG connection cannot see them before commit**. The command's returned
+Space response must already include both rows; an accidental second
+checkout would fail this test instead of silently being accepted by
+source-string assertions.
+
+Candidate verification actually executed:
+`mise run verify` **401 PASS / 59 PG SKIP**, CrossHair/Z3/Lean source
+obligations unchanged; `mise run test:postgres:disposable` on independent
+PostgreSQL 18 after Alembic 0001–0014 **460 PASS**. The baseline 459 PG
+tests remains valid for prior source; the extra test verifies the new
+transaction boundary. Native MCP SDK full schema digest and Repo architecture
+checks remain required before source/PR promotion and installed client
+currentness is separate.
+
+**R2.1/LEGO obligation:**
+I = caller's PG transaction connection, SpaceRef, original pagination budgets;
+O = existing Space typed response or error;
+S = same Host PG Space/Subjects/Participation/Topic committed-or-own-write
+snapshot;
+pre = transaction and expected tables exist;
+post = exact existing response and bounded canonical byte envelope;
+inv = no extra checkout/transaction can observe or fabricate uncommitted rows;
+eff = read-only SQL within caller transaction, no new database writer;
+c/epsilon = UNKNOWN for latency/reliability beyond tested examples;
+prov = exact Git candidate + PG negative control + SDK contract digest;
+unfold = SocialSpaceCommands.create_space → read_space_in_tx(existing conn)
+and SocialSpaceReadQueries.get_space → read_space_in_tx(existing conn).
+This is an implementation-backed contract candidate; the abstract
+universal refinement claim is not proven by one regression test.
+
+**Stop condition:** do not carry this one-line consumer dependency fix
+forward into bulk M3 directory moves unless a current consumer graph and
+business value justify the extra churn. Other `_require_actor/_require_topic`
+inherited lookup helpers may remain intentionally in the SocialStore facade,
+but if changing them, use a separate consumer-specific case and native PG
+oracle rather than a global Repository/UoW/DI rewrite.
