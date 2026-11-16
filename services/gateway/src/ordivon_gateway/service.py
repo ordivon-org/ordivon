@@ -17,7 +17,8 @@ from .contracts import (
     RuntimeReleaseProjection,
     SystemDescription,
 )
-from .execution_coordinator import ExecutionCoordinator
+from .execution_commands import ExecutionCommandMethods
+from .execution_observations import ExecutionObservationMethods
 from .execution_refs import GatewayError
 from .execution_refs import parse_execution_ref as parse_execution_ref
 from .host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
@@ -48,7 +49,8 @@ class GatewayService:
         ):
             raise GatewayError("route identity must match its capability")
         self._catalog = CapabilityCatalog(caller, self._routes, projection_timeout_seconds)
-        self._execution = ExecutionCoordinator(caller, self._routes)
+        self._execution_commands = ExecutionCommandMethods(caller, self._routes)
+        self._execution_observations = ExecutionObservationMethods(caller, self._routes)
         self._runtime_release = RuntimeReleaseProxy(caller)
 
     async def aclose(self) -> None:
@@ -129,7 +131,7 @@ class GatewayService:
         stderr_limit_bytes: int | None = None,
         authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
-        return await self._execution.execution_submit(
+        return await self._execution_commands.execution_submit(
             capability=capability,
             request_id=request_id,
             workspace_id=workspace_id,
@@ -145,17 +147,19 @@ class GatewayService:
         )
 
     async def execution_resolve(self, *, capability: str, request_id: str) -> ExecutionResolution:
-        return await self._execution.execution_resolve(capability=capability, request_id=request_id)
+        return await self._execution_observations.execution_resolve(
+            capability=capability, request_id=request_id
+        )
 
     async def execution_get(
         self, operation_ref: str, *, event_limit: int = 10, wait_ms: int = 0
     ) -> ExecutionObservation:
-        return await self._execution.execution_get(
+        return await self._execution_observations.execution_get(
             operation_ref, event_limit=event_limit, wait_ms=wait_ms
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
-        return await self._execution.execution_cancel(operation_ref)
+        return await self._execution_commands.execution_cancel(operation_ref)
 
     async def artifact_read(
         self,
@@ -165,7 +169,7 @@ class GatewayService:
         offset: int = 0,
         max_bytes: int = 1_048_576,
     ) -> ArtifactChunk:
-        return await self._execution.artifact_read(
+        return await self._execution_observations.artifact_read(
             operation_ref, artifact_id, offset=offset, max_bytes=max_bytes
         )
 
