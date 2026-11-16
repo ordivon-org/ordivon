@@ -535,7 +535,9 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                                     "workspaceId": "ws-gateway-native",
                                     "force": False,
                                     "consumerReleased": True,
-                                    "expectedSourceStateDigest": native_workspace["sourceStateDigest"],
+                                    "expectedSourceStateDigest": native_workspace[
+                                        "sourceStateDigest"
+                                    ],
                                 },
                             )
                         except OwnerCallError as denied:
