@@ -2267,3 +2267,59 @@ def test_bound_replay_cannot_observe_legacy_job_before_required_workspace_admiss
             },
         )
     assert client.calls == []
+
+
+@pytest.mark.parametrize(
+    "replay_mutation",
+    ("args", "executable", "timeout", "foreignReferences"),
+)
+def test_gateway_bound_original_job_rejects_same_request_id_but_changed_physical_bytes(
+    replay_mutation: str,
+) -> None:
+    """A local replay must preserve the Owner's exact operation identity.
+
+    The original Runtime would reject idempotency-key reuse with different
+    physical request bytes. Replacing submit with resolve/get must not
+    silently skip that predicate and return the old Job as if it ran the
+    mutated command. This remains an ephemeral source guard; original PG
+    durable ToolIntent is the cross-process authority.
+    """
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    original = {
+        "clientRequestId": "request:bound-exact-original-physical-command",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle"],
+            "cwdRelative": ".",
+            "timeoutMs": 1000,
+        },
+    }
+    first = adapter.call_tool("workspace.exec", original)
+    assert first["jobId"] == client.native_id
+    replay = {
+        "clientRequestId": original["clientRequestId"],
+        "execution": dict(original["execution"]),
+    }
+    changed = replay["execution"]
+    if replay_mutation == "args":
+        changed["args"] = ["different-search"]
+    elif replay_mutation == "executable":
+        changed["executable"] = "/usr/bin/false"
+    elif replay_mutation == "timeout":
+        changed["timeoutMs"] = 900
+    else:
+        changed["foreignReferences"] = [{
+            "namespace": "ordivon.fake",
+            "type": "source",
+            "id": "unrelated",
+            "generation": "1",
+            "digest": _digest("foreign"),
+        }]
+    with pytest.raises(HarnessRuntimeClientError, match="original|bytes|request|digest"):
+        adapter.call_tool("workspace.exec", replay)
+    assert [name for name, _ in client.calls].count("execution.submit") == 1
+    assert [name for name, _ in client.calls].count("execution.get") == 0

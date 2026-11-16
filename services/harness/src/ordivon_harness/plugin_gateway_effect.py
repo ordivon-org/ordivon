@@ -227,6 +227,9 @@ class GatewayMcpRuntimeAdapter:
             raise ValueError("Gateway admission Port requires frozen Run and Tool Grant identities")
         self._operation_refs: dict[str, str] = {}
         self._operation_requests: dict[str, str] = {}
+        # Local-only exact physical request fingerprint, never an authority
+        # store. Original PG ToolIntent remains the durable identity source.
+        self._operation_request_digests: dict[str, str] = {}
 
     def _verify_owner_job_identity(
         self,
@@ -365,6 +368,7 @@ class GatewayMcpRuntimeAdapter:
                         f"Gateway execution lowering has invalid {field} u64 bound"
                     )
                 gateway_args[field] = value
+        physical_request_digest = canonical_digest(arguments)
         # Replaying a *locally bound* physical request is an Owner readback,
         # never a second execution.submit. The verified Gateway may derive a
         # different native request key after the caller's ingress Principal
@@ -409,6 +413,14 @@ class GatewayMcpRuntimeAdapter:
                     "Gateway existing request has ambiguous local physical Job bindings"
                 )
             original_native_id = bound_jobs[0]
+            # Replacing a repeated submit with readback must NOT discard
+            # native idempotency-key conflict detection. Different executable,
+            # args, timeout or Owner references under one request ID are not
+            # the same physical effect, even if a prior Job exists.
+            if self._operation_request_digests.get(original_native_id) != physical_request_digest:
+                raise HarnessRuntimeClientError(
+                    "Gateway bound original physical request bytes differ or cannot be proven"
+                )
             recovered = self._resolve(
                 {
                     "clientRequestId": request_id,
@@ -471,6 +483,7 @@ class GatewayMcpRuntimeAdapter:
         state = _required_text(receipt.get("state"), "state")
         delivery = _gateway_delivery_disposition(receipt, allow_missing=True)
         self._retain_operation_binding(native_id, operation_ref, request_id)
+        self._operation_request_digests[native_id] = physical_request_digest
         if terminal:
             return self._observe_operation(operation_ref, native_id, wait_ms=0)
         return {
