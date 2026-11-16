@@ -390,39 +390,92 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/ordivon-runtime-release-publisher"
           python3 - "$root" <<'PY_SUBJECTS'
+          import ast
           import hashlib
           import json
           import os
+          import subprocess
           import sys
+          import tomllib
           from pathlib import Path
 
           root = Path(sys.argv[1])
           identity = json.loads((root / "release-identity.json").read_text(encoding="utf-8"))
           manifest = json.loads((root / "candidate-manifest.json").read_text(encoding="utf-8"))
-          if identity.get("tag") != os.environ["GITHUB_REF_NAME"]:
-              raise SystemExit("RUNTIME_RELEASE_TAG_IDENTITY_MISMATCH")
-          if identity.get("repositoryCommit") != os.environ["GITHUB_SHA"]:
-              raise SystemExit("RUNTIME_RELEASE_SOURCE_IDENTITY_MISMATCH")
-          if identity.get("owner") != "services/runtime":
-              raise SystemExit("RUNTIME_RELEASE_OWNER_IDENTITY_MISMATCH")
-          if manifest.get("sourceOwnerPrefix") != "services/runtime":
-              raise SystemExit("RUNTIME_RELEASE_MANIFEST_OWNER_MISMATCH")
+
+          def git(*args):
+              return subprocess.check_output(
+                  ["git", *args], text=True, timeout=15
+              ).strip()
+
+          # Derive the Runtime owner from the actual checkout. A downloaded
+          # manifest / identity file is data, never source authority.
+          source_cut = os.environ["GITHUB_SHA"]
+          owner_commit = git(
+              "-C", "services/runtime", "log", "-1", "--format=%H",
+              source_cut, "--", "."
+          )
+          owner_tree = git("rev-parse", owner_commit + ":services/runtime")
+          with Path("services/runtime/Cargo.toml").open("rb") as stream:
+              version = tomllib.load(stream)["workspace"]["package"]["version"]
+          exact_identity = {
+              "schemaVersion": 1,
+              "tag": os.environ["GITHUB_REF_NAME"],
+              "repositoryCommit": source_cut,
+              "owner": "services/runtime",
+              "ownerCommit": owner_commit,
+              "ownerTree": owner_tree,
+              "version": version,
+          }
+          if identity != exact_identity or manifest.get("commit") != owner_commit:
+              raise SystemExit("RUNTIME_RELEASE_GIT_IDENTITY_NOT_BOUND")
+          if (manifest.get("sourceOwnerPrefix") != "services/runtime"
+              or manifest.get("sourceMaterialization") != "detached_git_checkout"):
+              raise SystemExit("RUNTIME_RELEASE_MANIFEST_SOURCE_MISMATCH")
+
+          # Reuse the same native Deployer declarations as the builder.
+          # The subject count is not a maintained number in this publisher.
+          native = ast.parse(
+              Path("services/runtime/scripts/ordivon-runtime-deploy").read_text(
+                  encoding="utf-8"
+              )
+          )
+          canonical = {}
+          for node in native.body:
+              if isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id in (
+                          "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                      ):
+                          canonical[target.id] = ast.literal_eval(node.value)
+          if set(canonical) != {"DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"}:
+              raise SystemExit("RUNTIME_RELEASE_NATIVE_ARTIFACT_DECLARATIONS_MISSING")
+          declared = set(canonical["DEFAULT_BINARIES"]) | {
+              entry[0] for entry in canonical["DEFAULT_OPERATOR_ARTIFACTS"]
+          }
           artifacts = manifest.get("artifacts")
-          if not isinstance(artifacts, list) or len(artifacts) != 13:
+          if not isinstance(artifacts, list) or len(artifacts) != len(declared):
               raise SystemExit("RUNTIME_RELEASE_NONCANONICAL_SUBJECTS")
           expected = {}
           for item in artifacts:
               name = item.get("name") if isinstance(item, dict) else None
-              if not isinstance(name, str) or not name or Path(name).name != name or name in expected:
+              if (not isinstance(name, str) or not name
+                  or Path(name).name != name or name in expected):
                   raise SystemExit("RUNTIME_RELEASE_INVALID_SUBJECT")
               expected[name] = item.get("digest")
-          actual = list((root / "attest-subjects").iterdir())
-          if {item.name for item in actual} != set(expected) or len(actual) != len(expected):
+          if set(expected) != declared:
+              raise SystemExit("RUNTIME_RELEASE_SUBJECTS_NOT_FROM_NATIVE_DEPLOYER")
+          folder = root / "attest-subjects"
+          if folder.is_symlink() or not folder.is_dir():
+              raise SystemExit("RUNTIME_RELEASE_SUBJECT_DIRECTORY_UNTRUSTED")
+          actual = list(folder.iterdir())
+          if {item.name for item in actual} != declared or len(actual) != len(declared):
               raise SystemExit("RUNTIME_RELEASE_SUBJECT_SET_CHANGED")
           for item in actual:
               if not item.is_file() or item.is_symlink():
                   raise SystemExit("RUNTIME_RELEASE_SUBJECT_IS_NOT_REGULAR_FILE")
-              digest = "sha256:" + hashlib.sha256(item.read_bytes()).hexdigest()
+              with item.open("rb") as stream:
+                  digest = "sha256:" + hashlib.file_digest(stream, "sha256").hexdigest()
               if expected[item.name] != digest:
                   raise SystemExit("RUNTIME_RELEASE_SUBJECT_DIGEST_CHANGED")
           PY_SUBJECTS
@@ -472,6 +525,7 @@ jobs:
           gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
             --json tagName,isDraft,assets > "$root/created-release.json"
           python3 - "$root" <<'PY_RELEASE'
+          import hashlib
           import json
           import os
           import sys
@@ -479,17 +533,31 @@ jobs:
 
           root = Path(sys.argv[1])
           release = json.loads((root / "created-release.json").read_text())
-          expected = {p.name: p.stat().st_size for p in (root / "attest-subjects").iterdir()}
-          for name in ("candidate-manifest.json", "prepare.json", "release-identity.json", "subjects.sha256", "sbom.spdx.json"):
-              path = root / name
-              expected[name] = path.stat().st_size
-          assets = release.get("assets") or []
-          observed = {a["name"]: a["size"] for a in assets}
+          local_files = list((root / "attest-subjects").iterdir())
+          local_files.extend(root / name for name in (
+              "candidate-manifest.json", "prepare.json", "release-identity.json",
+              "subjects.sha256", "sbom.spdx.json",
+          ))
+          expected = {}
+          for path in local_files:
+              if not path.is_file() or path.is_symlink() or path.name in expected:
+                  raise SystemExit("RUNTIME_RELEASE_INVALID_LOCAL_ASSET")
+              with path.open("rb") as source:
+                  digest = "sha256:" + hashlib.file_digest(source, "sha256").hexdigest()
+              expected[path.name] = {"size": path.stat().st_size, "digest": digest}
+          assets = release.get("assets")
+          if not isinstance(assets, list):
+              raise SystemExit("RUNTIME_RELEASE_MISSING_REMOTE_ASSETS")
+          actual = {
+              asset["name"]: {"size": asset.get("size"), "digest": asset.get("digest")}
+              for asset in assets
+          }
           if (release.get("tagName") != os.environ["GITHUB_REF_NAME"]
               or release.get("isDraft") is not True
+              or len(expected) != len(local_files)
               or len(assets) != len(expected)
-              or observed != expected):
-              raise SystemExit("RUNTIME_GITHUB_RELEASE_DRAFT_ASSET_MISMATCH")
+              or actual != expected):
+              raise SystemExit("RUNTIME_GITHUB_RELEASE_DRAFT_ASSET_DIGEST_MISMATCH")
           PY_RELEASE
 
           gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
@@ -504,8 +572,24 @@ jobs:
           root = Path(sys.argv[1])
           before = json.loads((root / "created-release.json").read_text())
           after = json.loads((root / "published-release.json").read_text())
+
+          def asset_identity(release):
+              assets = release.get("assets")
+              if not isinstance(assets, list):
+                  raise SystemExit("RUNTIME_GITHUB_RELEASE_ASSETS_MISSING")
+              observed = {
+                  item["name"]: (item.get("size"), item.get("digest"))
+                  for item in assets
+              }
+              if len(observed) != len(assets) or any(
+                  not isinstance(value[1], str) or not value[1].startswith("sha256:")
+                  for value in observed.values()
+              ):
+                  raise SystemExit("RUNTIME_GITHUB_RELEASE_ASSET_DIGEST_MISSING")
+              return observed
+
           if (after.get("isDraft") is not False
               or after.get("tagName") != os.environ["GITHUB_REF_NAME"]
-              or before.get("assets") != after.get("assets")):
+              or asset_identity(before) != asset_identity(after)):
               raise SystemExit("RUNTIME_GITHUB_RELEASE_NOT_PUBLISHED_OR_ASSETS_DRIFT")
           PY_PUBLISHED

@@ -174,9 +174,9 @@ The current inventory and deletion rules are [`compatibility.md`](compatibility.
 
 The live monorepo release authority is the root workflow `.github/workflows/runtime-release.yml`, triggered only by `runtime-v*` tags. The tag name must exactly match the Runtime workspace package version. The tag checkout must also prove that the exact tagged Commit is reachable from the checked-out protected origin/main history before installing tools or building artifacts; missing main refs and off-main commits fail closed. This protects the current workflow release admission, but is not itself a provider-side tag-immutability rule, proof of historical workflow versions, or evidence of installed release. The workflow records both the tagged repository Commit and the owner-scoped Runtime Commit resolved from `services/runtime`; unrelated sibling-owner commits therefore do not become Runtime release identity.
 
-The tagged workflow runs the Runtime owner verification and cargo-deny policy first, then reuses `scripts/ordivon-runtime-deploy prepare` to build the canonical 13-artifact release set from the exact owner Commit. The candidate manifest remains the authority for artifact names, modes, byte lengths, SHA-256 digests, toolchain identity, owner prefix, and Runtime policy, including whether the optional global execution-concurrency field is owned by that release.
+The tagged workflow runs the Runtime owner verification and cargo-deny policy first, then reuses `scripts/ordivon-runtime-deploy prepare` to build the canonical release set declared by the native Deployer at the exact owner Commit. The candidate manifest remains the authority for artifact names, modes, byte lengths, SHA-256 digests, toolchain identity, owner prefix, and Runtime policy, including whether the optional global execution-concurrency field is owned by that release.
 
-Attestation subjects are derived from that manifest and re-verified before staging. Only the 13 canonical artifacts enter the clean SBOM scan root. Syft produces SPDX JSON, and GitHub artifact attestations bind the exact subject checksums to build provenance and to the SPDX SBOM. The workflow also retains the candidate manifest, prepare result, checksums, SBOM, and a release-identity record connecting tag, repository Commit, owner Commit, owner tree, and package version.
+Attestation subjects are derived from that manifest and re-verified before staging. Only the native Deployer's complete canonical subject set enters the clean SBOM scan root; its cardinality is source-derived, not maintained in release workflow code. Syft produces SPDX JSON, and GitHub artifact attestations bind the exact subject checksums to build provenance and to the SPDX SBOM. The workflow also retains the candidate manifest, prepare result, checksums, SBOM, and a release-identity record connecting tag, repository Commit, owner Commit, owner tree, and package version.
 
 These standardized attestations complement rather than replace Runtime deployment receipts. A deployment receipt proves the exact artifact set installed on one Runtime node and supports rollback/reconciliation. A GitHub attestation proves what the tagged workflow produced under its workflow identity. Repository configuration alone is not evidence that a particular tag has been attested: the tag's attestation must exist and verify through GitHub's attestation verification surface before a provenance claim is made. No SLSA level is inferred merely from the presence of this workflow.
 
@@ -193,9 +193,12 @@ updates and deletions while allowing initial tag creation. The publisher
 checks that the tag, checked-out commit, protected-main ancestry, upstream
 build identity, signed canonical artifacts and provenance agree.
 
-The publisher uploads the 13 already-attested Runtime subjects and five
-evidence files into a GitHub **draft Release**, reads back all 18 assets
-and their sizes, then publishes the draft and checks final asset standing.
+The publisher uploads the exact source-declared and already-attested Runtime
+subjects plus five evidence files into one GitHub **draft Release**. It reads
+back the dynamically computed complete asset set with SHA-256 digests and
+byte lengths against the actual local files, then publishes and checks that
+asset byte identities are unchanged. An equal-size substitution or missing
+provider digest fails closed; download-count metadata is not evidence of byte drift.
 An ambiguous provider response or incomplete draft is **not** a retry
 authorization. Reconcile GitHub's existing Release and assets before
 recovery. Repository-wide Immutable Releases, if later admitted across

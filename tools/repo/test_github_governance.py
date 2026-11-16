@@ -1589,68 +1589,236 @@ exit 0
         self.assertEqual(len(release_mise), 1)
         self.assertIs(release_mise[0]["with"]["cache"], False)
 
-    def test_runtime_publication_subject_verifier_rejects_mutated_bytes(self) -> None:
-        """Run the actual publisher Python verifier, without a network attestation claim."""
+    def test_runtime_release_publisher_rejects_equal_size_asset_substitution(self) -> None:
+        """Execute the actual provider readback Python: bytes, not size, decide."""
+        import ast
         import hashlib
         import json
         import os
         import yaml
 
-        workflow = yaml.safe_load(
+        source = ast.parse(
+            (ROOT / "services/runtime/scripts/ordivon-runtime-deploy").read_text()
+        )
+        declarations = {}
+        for node in source.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                    ):
+                        declarations[target.id] = ast.literal_eval(node.value)
+        native_names = sorted(set(declarations["DEFAULT_BINARIES"]) | {
+            entry[0] for entry in declarations["DEFAULT_OPERATOR_ARTIFACTS"]
+        })
+
+        doc = yaml.safe_load(
             (ROOT / ".github/workflows/runtime-release.yml").read_text()
         )
-        body = workflow["jobs"]["publish-runtime-release"]["steps"][3]["run"]
-        code = body.split("<<'PY_SUBJECTS'\n", 1)[1].split("\nPY_SUBJECTS\n", 1)[0]
+        step = doc["jobs"]["publish-runtime-release"]["steps"][4]["run"]
+        created_code = step.split("<<'PY_RELEASE'\n", 1)[1].split(
+            "\nPY_RELEASE\n", 1
+        )[0]
+        published_code = step.split("<<'PY_PUBLISHED'\n", 1)[1].split(
+            "\nPY_PUBLISHED\n", 1
+        )[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subjects = root / "attest-subjects"
+            subjects.mkdir()
+            for n, name in enumerate(native_names):
+                (subjects / name).write_bytes(f"content-{n}".encode())
+            for name in (
+                "candidate-manifest.json", "prepare.json", "release-identity.json",
+                "subjects.sha256", "sbom.spdx.json",
+            ):
+                (root / name).write_bytes(f"evidence:{name}".encode())
+            names = sorted(
+                list(subjects.iterdir())
+                + [root / name for name in (
+                    "candidate-manifest.json", "prepare.json", "release-identity.json",
+                    "subjects.sha256", "sbom.spdx.json",
+                )]
+            )
+            correct = [
+                {
+                    "name": path.name,
+                    "size": path.stat().st_size,
+                    "digest": "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
+                }
+                for path in names
+            ]
+            tag = "runtime-v0.1.0"
+            env = {**os.environ, "GITHUB_REF_NAME": tag}
+
+            def verify(script: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, "-c", script, str(root)],
+                    env=env, text=True, capture_output=True, timeout=15,
+                    check=False,
+                )
+
+            def write_releases(before: list, after: list | None = None):
+                (root / "created-release.json").write_text(
+                    json.dumps({"tagName": tag, "isDraft": True, "assets": before})
+                )
+                (root / "published-release.json").write_text(
+                    json.dumps({
+                        "tagName": tag, "isDraft": False,
+                        "assets": before if after is None else after,
+                    })
+                )
+
+            write_releases(correct)
+            self.assertEqual(verify(created_code).returncode, 0)
+            self.assertEqual(verify(published_code).returncode, 0)
+
+            # A wrong asset with the exact same file size must not publish.
+            forged = [dict(item) for item in correct]
+            forged[0]["digest"] = "sha256:" + "0" * 64
+            self.assertEqual(forged[0]["size"], correct[0]["size"])
+            write_releases(forged)
+            rejected = verify(created_code)
+            self.assertNotEqual(
+                rejected.returncode, 0,
+                "equal-size substituted remote release asset was admitted",
+            )
+
+            missing_digest = [dict(item) for item in correct]
+            missing_digest[0]["digest"] = None
+            write_releases(missing_digest)
+            self.assertNotEqual(verify(created_code).returncode, 0)
+
+            # Publication must reject a second-party edit after draft audit.
+            write_releases(correct, forged)
+            self.assertNotEqual(verify(published_code).returncode, 0)
+
+            # Non-security metadata changes must not poison byte acceptance.
+            before = [{**asset, "downloadCount": 1} for asset in correct]
+            after = [{**asset, "downloadCount": 2} for asset in correct]
+            write_releases(before, after)
+            self.assertEqual(
+                verify(published_code).returncode, 0,
+                "download-count-only changes must not invalidate asset identities",
+            )
+
+    def test_runtime_release_identity_must_be_derived_from_git_source(self) -> None:
+        """A plausible manifest cannot invent a different Runtime owner source."""
+        import ast
+        import hashlib
+        import json
+        import os
+        import subprocess
+        import tomllib
+        import yaml
+
+        doc = yaml.safe_load((ROOT / ".github/workflows/runtime-release.yml").read_text())
+        body = doc["jobs"]["publish-runtime-release"]["steps"][3]["run"]
+        verifier = body.split("<<'PY_SUBJECTS'\n", 1)[1].split(
+            "\nPY_SUBJECTS\n", 1
+        )[0]
+
+        def git(*args: str) -> str:
+            return subprocess.check_output(
+                ["git", *args], cwd=ROOT, text=True, timeout=15
+            ).strip()
+
+        source = git("rev-parse", "HEAD")
+        owner_commit = git(
+            "-C", "services/runtime", "log", "-1", "--format=%H", source, "--", "."
+        )
+        owner_tree = git("rev-parse", owner_commit + ":services/runtime")
+        with (ROOT / "services/runtime/Cargo.toml").open("rb") as stream:
+            version = tomllib.load(stream)["workspace"]["package"]["version"]
+        tree = ast.parse(
+            (ROOT / "services/runtime/scripts/ordivon-runtime-deploy").read_text()
+        )
+        native = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                    ):
+                        native[target.id] = ast.literal_eval(node.value)
+        names = sorted(set(native["DEFAULT_BINARIES"]) | {
+            entry[0] for entry in native["DEFAULT_OPERATOR_ARTIFACTS"]
+        })
+        self.assertGreater(len(names), 0)
+
+        tag = "runtime-v" + version
+        identity = {
+            "schemaVersion": 1, "tag": tag, "repositoryCommit": source,
+            "owner": "services/runtime", "ownerCommit": owner_commit,
+            "ownerTree": owner_tree, "version": version,
+        }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             folder = root / "attest-subjects"
             folder.mkdir()
-            subjects = []
-            for i in range(13):
-                name = f"canonical-{i:02}"
+            artifacts = []
+            for i, name in enumerate(names):
                 payload = bytes([i]) * (i + 1)
                 (folder / name).write_bytes(payload)
-                subjects.append({
-                    "name": name, "digest": "sha256:" + hashlib.sha256(payload).hexdigest()
+                artifacts.append({
+                    "name": name, "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
                 })
-            manifest = root / "candidate-manifest.json"
-            identity = root / "release-identity.json"
-            tag = "runtime-v0.1.0"
-            sha = "a" * 40
-            manifest.write_text(json.dumps({
-                "sourceOwnerPrefix": "services/runtime", "artifacts": subjects,
-            }))
-            identity.write_text(json.dumps({
-                "tag": tag, "repositoryCommit": sha, "owner": "services/runtime",
-            }))
-            env = {**os.environ, "GITHUB_REF_NAME": tag, "GITHUB_SHA": sha}
+            manifest = {
+                "commit": owner_commit, "sourceOwnerPrefix": "services/runtime",
+                "sourceMaterialization": "detached_git_checkout",
+                "artifacts": artifacts,
+            }
+            metadata = root / "release-identity.json"
+            manifest_file = root / "candidate-manifest.json"
+            env = {**os.environ, "GITHUB_REF_NAME": tag, "GITHUB_SHA": source}
 
-            def check():
+            def verify(change_identity=None, change_manifest=None):
+                metadata.write_text(json.dumps(
+                    identity if change_identity is None else change_identity
+                ))
+                manifest_file.write_text(json.dumps(
+                    manifest if change_manifest is None else change_manifest
+                ))
                 return subprocess.run(
-                    [sys.executable, "-c", code, str(root)], env=env,
-                    text=True, capture_output=True, timeout=12, check=False,
+                    [sys.executable, "-c", verifier, str(root)],
+                    cwd=ROOT, env=env, text=True, capture_output=True,
+                    timeout=18, check=False,
                 )
 
-            self.assertEqual(check().returncode, 0)
-            (folder / "canonical-00").write_bytes(b"substituted")
-            self.assertNotEqual(check().returncode, 0)
-            (folder / "canonical-00").write_bytes(bytes([0]))
-            self.assertEqual(check().returncode, 0)
-            (folder / "canonical-12").unlink()
-            self.assertNotEqual(check().returncode, 0)
-            (folder / "canonical-12").write_bytes(bytes([12]) * 13)
-            self.assertEqual(check().returncode, 0)
-            identity.write_text(json.dumps({
-                "tag": tag, "repositoryCommit": "b" * 40, "owner": "services/runtime",
-            }))
-            self.assertNotEqual(check().returncode, 0)
-            identity.write_text(json.dumps({
-                "tag": tag, "repositoryCommit": sha, "owner": "services/runtime",
-            }))
-            manifest.write_text(json.dumps({
-                "sourceOwnerPrefix": "services/runtime", "artifacts": subjects[:-1],
-            }))
-            self.assertNotEqual(check().returncode, 0)
+            accepted = verify()
+            self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+            for key, forged in (
+                ("ownerCommit", "a" * 40), ("ownerTree", "b" * 40),
+                ("version", "9.9.9"),
+            ):
+                with self.subTest(identity_field=key):
+                    rejected = verify({**identity, key: forged})
+                    self.assertNotEqual(rejected.returncode, 0)
+            self.assertNotEqual(verify(change_manifest={
+                **manifest, "commit": "f" * 40,
+            }).returncode, 0)
+            for field, false_source in (
+                ("repositoryCommit", "f" * 40),
+                ("owner", "different-owner"),
+            ):
+                self.assertNotEqual(verify(change_identity={
+                    **identity, field: false_source,
+                }).returncode, 0)
+            first = folder / names[0]
+            original_bytes = first.read_bytes()
+            first.write_bytes(b"tampered")
+            self.assertNotEqual(verify().returncode, 0)
+            first.write_bytes(original_bytes)
+            self.assertEqual(verify().returncode, 0)
+            last = folder / names[-1]
+            last_bytes = last.read_bytes()
+            last.unlink()
+            self.assertNotEqual(verify().returncode, 0)
+            last.write_bytes(last_bytes)
+            self.assertEqual(verify().returncode, 0)
+            self.assertNotEqual(verify(change_manifest={
+                **manifest, "artifacts": artifacts[:-1],
+            }).returncode, 0)
 
     def test_runtime_publication_policy_rejects_untrusted_tag_and_ruleset(self) -> None:
         """Run the actual publisher admission Bash against a real temporary Git DAG."""
