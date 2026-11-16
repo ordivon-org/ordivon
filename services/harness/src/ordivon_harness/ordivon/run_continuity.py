@@ -1516,29 +1516,6 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         try:
             self._require_provider_source_current(source)
             self._require_current_working_view_request(request)
-            # The original PG Journal may contain an unresolved Tool or an
-            # older Provider hidden behind the current Provider head. Keep the
-            # entire Run's effects mutually fenced before authorizing a new
-            # Provider claim. Allow this same Provider identity to be read or
-            # reclaimed by its established recovery/expiry rules.
-            unsettled_providers, unsettled_tools = inspect_all_unsettled_effect_sources(
-                self.store.list_run_events(self.harness_run_id),
-                store=self.store,
-                harness_run_id=self.harness_run_id,
-                binding=self.binding,
-                allow_tool_content=self.contract.privacy.allow_tool_content,
-                provider_record_reader=self._load_provider_from_event,
-            )
-            if unsettled_tools:
-                raise HarnessProviderCallRecoveryRequired(
-                    "unresolved Tool Step remains in original PG history; "
-                    "new Provider Call needs exact Owner reconciliation"
-                )
-            if any(identity != provider_call_id for identity in unsettled_providers):
-                raise HarnessProviderCallRecoveryRequired(
-                    "unresolved previous Provider Call remains in original PG history; "
-                    "new Provider Call needs exact Owner reconciliation"
-                )
             active = self._load_current_provider_call_or_none()
             previous = None
             generation = 1
@@ -1607,6 +1584,30 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                     raise HarnessProviderCallRecoveryRequired(
                         "another Provider Call record is still active"
                     )
+            # Exact same-Provider replay can return the already committed
+            # record above without new dispatch authority. Guard only NEW
+            # Claim/Supersede Journal Events against every other unresolved
+            # Provider and Tool in the original PG history. This is inside
+            # the original PG Lease, so the admission read and append cannot
+            # race another Writer on this Run.
+            unsettled_providers, unsettled_tools = inspect_all_unsettled_effect_sources(
+                self.store.list_run_events(self.harness_run_id),
+                store=self.store,
+                harness_run_id=self.harness_run_id,
+                binding=self.binding,
+                allow_tool_content=self.contract.privacy.allow_tool_content,
+                provider_record_reader=self._load_provider_from_event,
+            )
+            if unsettled_tools:
+                raise HarnessProviderCallRecoveryRequired(
+                    "unresolved Tool Step remains in original PG history; "
+                    "new Provider Call needs exact Owner reconciliation"
+                )
+            if any(identity != provider_call_id for identity in unsettled_providers):
+                raise HarnessProviderCallRecoveryRequired(
+                    "unresolved previous Provider Call remains in original PG history; "
+                    "new Provider Call needs exact Owner reconciliation"
+                )
             recorded_at_ms = self._recorded_time(
                 now_ms,
                 previous_recorded_at_ms=(None if previous is None else previous.recorded_at_ms),

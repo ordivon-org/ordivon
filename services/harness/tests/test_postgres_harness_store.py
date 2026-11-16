@@ -827,6 +827,64 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         )
         self.assertEqual(claimed.record.status.value, "claimed")
 
+    def test_legacy_pending_tool_allows_exact_provider_readonly_replay(self) -> None:
+        """Legacy Tool A pending + Provider B claimed: a read-only claim
+        replay of the *same* B must not be blocked as a new physical effect.
+        """
+        from unittest.mock import patch
+
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        legacy = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        legacy.bind_state(state())
+        binding = legacy.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:legacy-tool-before-provider",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:legacy-tool-before-provider",
+            tool_call_id="tool-call:legacy-tool-before-provider",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"toolCall": "legacy-before-provider"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
+            client_request_id="request:legacy-before-provider",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        snapshot = legacy.prepare_tool_step(intent)
+        claim_args = dict(
+            source=legacy.snapshot_provider_source(snapshot),
+            turn_id="turn:legacy-provider-after-tool",
+            turn_sequence=1,
+            request_digest=canonical_digest({"request": "legacy-provider-after-tool"}),
+            provider_request_digest=canonical_digest({"wire": "legacy-provider-after-tool"}),
+            adapter_id=run.adapter_id,
+            requested_model_id=run.requested_model_id,
+            holder_id="holder:legacy-provider-after-tool",
+            ttl_ms=10_000,
+        )
+        # Simulate only an old admission policy. The real original PostgreSQL
+        # Writer persists the original B claim and A is still unreceipted.
+        with patch(
+            "ordivon_harness.ordivon.run_continuity.inspect_all_unsettled_effect_sources",
+            return_value=((), ()),
+        ):
+            claimed = legacy.claim_provider_call(**claim_args)
+        self.assertEqual(claimed.record.status.value, "claimed")
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            resumed = EventSourcedRunContinuity.open(
+                reopened, run.harness_run_id, clock_ms=clock
+            )
+            resumed.bind_state(state())
+            revision = reopened.load_run(run.harness_run_id).revision
+            replay = resumed.claim_provider_call(**claim_args)
+            self.assertEqual(replay.record.digest, claimed.record.digest)
+            self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
+
     def test_legacy_hidden_pending_tool_still_blocks_next_prepare(self) -> None:
         """Old PG Journal: A prepared, B observed, A remains unresolved.
 
