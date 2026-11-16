@@ -21,6 +21,11 @@ from typing import Any
 
 TASK_ID = "HARNESS-EDIT-ADDRESSING-002"
 HERE = Path(__file__).resolve().parent
+# Closed-world task adapters. Do not accept arbitrary caller supplied Python QA paths.
+TASK_TARGETS = {
+    "HARNESS-EDIT-ADDRESSING-002": ("harness-edit-addressing-002", "feature_flags.py"),
+    "HARNESS-EDIT-MULTIREGION-003": ("harness-edit-multiregion-003", "pipeline.py"),
+}
 COMMIT_RE = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
 GIT = "/usr/bin/git"
 
@@ -29,8 +34,15 @@ class DeliveryGateError(ValueError):
     pass
 
 
-def _task_qa():
-    spec = importlib.util.spec_from_file_location("existing_harness_edit_qa", HERE / "qa.py")
+def _task_qa(task_id: str = TASK_ID):
+    try:
+        task_dir, _ = TASK_TARGETS[task_id]
+    except KeyError as error:
+        raise DeliveryGateError("unsupported independent Coding task") from error
+    spec = importlib.util.spec_from_file_location(
+        "existing_harness_edit_qa_" + task_id.replace("-", "_"),
+        HERE.parent / task_dir / "qa.py",
+    )
     if spec is None or spec.loader is None:
         raise DeliveryGateError("existing independent QA is not loadable")
     module = importlib.util.module_from_spec(spec)
@@ -53,7 +65,7 @@ def _git(repo: Path, *args: str) -> bytes:
     return result.stdout
 
 
-def _path_in_commit(value: str) -> str:
+def _path_in_commit(value: str, *, target_filename: str = "feature_flags.py") -> str:
     if not isinstance(value, str) or not value or "\x00" in value or "\\" in value:
         raise DeliveryGateError("invalid delivered path")
     path = PurePosixPath(value)
@@ -61,7 +73,7 @@ def _path_in_commit(value: str) -> str:
         raise DeliveryGateError("delivered path must stay relative within consumer Git")
     if path.as_posix() != value:
         raise DeliveryGateError("delivered path is not canonical")
-    if path.name != "feature_flags.py":
+    if path.name != target_filename:
         raise DeliveryGateError("delivery must be the task's edited source file")
     return value
 
@@ -70,7 +82,9 @@ def qualify(
     candidate_path: Path,
     consumer_repo: Path,
     consumer_commit: str,
-    delivered_path: str = "feature_flags.py",
+    delivered_path: str | None = None,
+    *,
+    task_id: str = TASK_ID,
 ) -> dict[str, Any]:
     """Require hidden DomainQA and exact bytes read from an independent Git commit.
 
@@ -89,9 +103,12 @@ def qualify(
     if candidate == repo or repo in candidate.parents:
         raise DeliveryGateError("candidate and consumer source cannot be the same tree")
 
-    qa = _task_qa()
+    if task_id not in TASK_TARGETS:
+        raise DeliveryGateError("unsupported independent Coding task")
+    _, target_filename = TASK_TARGETS[task_id]
+    qa = _task_qa(task_id)
     task = qa.validate_task()
-    if task["taskId"] != TASK_ID:
+    if task["taskId"] != task_id:
         raise DeliveryGateError("wrong independent QA task")
     trial_count = task["reproducibility"]["cleanRebuildTrials"]
     qa_results = [qa.run_candidate("delivered-candidate", candidate) for _ in range(trial_count)]
@@ -100,7 +117,10 @@ def qualify(
 
     if not isinstance(consumer_commit, str) or not COMMIT_RE.fullmatch(consumer_commit):
         raise DeliveryGateError("delivery requires one immutable full Git commit ID")
-    relative = _path_in_commit(delivered_path)
+    relative = _path_in_commit(
+        delivered_path if delivered_path is not None else target_filename,
+        target_filename=target_filename,
+    )
     repo_root = Path(_git(repo, "rev-parse", "--show-toplevel").decode().strip()).resolve()
     if repo_root != repo:
         raise DeliveryGateError("consumer repo must be the exact independent Git root")
@@ -118,7 +138,7 @@ def qualify(
     return {
         "schemaVersion": 1,
         "kind": "ordivon.harness-coding-consumer-delivery-qualification",
-        "taskId": TASK_ID,
+        "taskId": task_id,
         "domainQA": "passed",
         "domainQATrials": trial_count,
         "consumerGitByteReadback": "verified",
@@ -142,7 +162,8 @@ def main() -> int:
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--consumer-repo", type=Path, required=True)
     parser.add_argument("--consumer-commit", required=True)
-    parser.add_argument("--consumer-path", default="feature_flags.py")
+    parser.add_argument("--consumer-path", default=None)
+    parser.add_argument("--task-id", choices=tuple(TASK_TARGETS), default=TASK_ID)
     args = parser.parse_args()
     try:
         value = qualify(
@@ -150,11 +171,12 @@ def main() -> int:
             args.consumer_repo,
             args.consumer_commit,
             delivered_path=args.consumer_path,
+            task_id=args.task_id,
         )
     except (DeliveryGateError, FileNotFoundError, OSError, subprocess.TimeoutExpired) as error:
         print(json.dumps({
             "kind": "ordivon.harness-coding-consumer-delivery-qualification",
-            "taskId": TASK_ID,
+            "taskId": args.task_id,
             "consumerGitByteReadbackQualified": False,
             "finalUserDeliveryProven": False,
             "userAcknowledgement": "UNKNOWN",
