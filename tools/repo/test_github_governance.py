@@ -1589,6 +1589,221 @@ exit 0
         self.assertEqual(len(release_mise), 1)
         self.assertIs(release_mise[0]["with"]["cache"], False)
 
+    def test_runtime_publication_subject_verifier_rejects_mutated_bytes(self) -> None:
+        """Run the actual publisher Python verifier, without a network attestation claim."""
+        import hashlib
+        import json
+        import os
+        import yaml
+
+        workflow = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        body = workflow["jobs"]["publish-runtime-release"]["steps"][3]["run"]
+        code = body.split("<<'PY_SUBJECTS'\n", 1)[1].split("\nPY_SUBJECTS\n", 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "attest-subjects"
+            folder.mkdir()
+            subjects = []
+            for i in range(13):
+                name = f"canonical-{i:02}"
+                payload = bytes([i]) * (i + 1)
+                (folder / name).write_bytes(payload)
+                subjects.append({
+                    "name": name, "digest": "sha256:" + hashlib.sha256(payload).hexdigest()
+                })
+            manifest = root / "candidate-manifest.json"
+            identity = root / "release-identity.json"
+            tag = "runtime-v0.1.0"
+            sha = "a" * 40
+            manifest.write_text(json.dumps({
+                "sourceOwnerPrefix": "services/runtime", "artifacts": subjects,
+            }))
+            identity.write_text(json.dumps({
+                "tag": tag, "repositoryCommit": sha, "owner": "services/runtime",
+            }))
+            env = {**os.environ, "GITHUB_REF_NAME": tag, "GITHUB_SHA": sha}
+
+            def check():
+                return subprocess.run(
+                    [sys.executable, "-c", code, str(root)], env=env,
+                    text=True, capture_output=True, timeout=12, check=False,
+                )
+
+            self.assertEqual(check().returncode, 0)
+            (folder / "canonical-00").write_bytes(b"substituted")
+            self.assertNotEqual(check().returncode, 0)
+            (folder / "canonical-00").write_bytes(bytes([0]))
+            self.assertEqual(check().returncode, 0)
+            (folder / "canonical-12").unlink()
+            self.assertNotEqual(check().returncode, 0)
+            (folder / "canonical-12").write_bytes(bytes([12]) * 13)
+            self.assertEqual(check().returncode, 0)
+            identity.write_text(json.dumps({
+                "tag": tag, "repositoryCommit": "b" * 40, "owner": "services/runtime",
+            }))
+            self.assertNotEqual(check().returncode, 0)
+            identity.write_text(json.dumps({
+                "tag": tag, "repositoryCommit": sha, "owner": "services/runtime",
+            }))
+            manifest.write_text(json.dumps({
+                "sourceOwnerPrefix": "services/runtime", "artifacts": subjects[:-1],
+            }))
+            self.assertNotEqual(check().returncode, 0)
+
+    def test_runtime_publication_policy_rejects_untrusted_tag_and_ruleset(self) -> None:
+        """Run the actual publisher admission Bash against a real temporary Git DAG."""
+        import json
+        import os
+        import yaml
+
+        doc = yaml.safe_load((ROOT / ".github/workflows/runtime-release.yml").read_text())
+        step = doc["jobs"]["publish-runtime-release"]["steps"][2]
+        script = step["run"]
+        with tempfile.TemporaryDirectory() as directory:
+            cwd = Path(directory)
+            fake_bin = cwd / "bin"
+            fake_bin.mkdir()
+            fake_gh = fake_bin / "gh"
+            fake_gh.write_text(
+                "#!/usr/bin/env python3\n"
+                "import os,sys\n"
+                "if len(sys.argv)<3 or sys.argv[1]!='api': sys.exit(2)\n"
+                "if sys.argv[2].endswith('/rulesets'): print('42')\n"
+                "elif sys.argv[2].endswith('/rulesets/42'): print(os.environ['RULESET_JSON'])\n"
+                "else: sys.exit(3)\n"
+            )
+            fake_gh.chmod(0o755)
+            env_base = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+            env_base["PATH"] = str(fake_bin) + os.pathsep + env_base["PATH"]
+
+            def git(*args: str) -> str:
+                return subprocess.run(
+                    ["git", *args], cwd=cwd, env=env_base,
+                    text=True, capture_output=True, timeout=15, check=True,
+                ).stdout.strip()
+
+            git("init", "-q")
+            git("config", "user.name", "Native Release Test")
+            git("config", "user.email", "release@example.invalid")
+            (cwd / "sample").write_text("main\n")
+            git("add", "sample")
+            git("commit", "-qm", "main release source")
+            base = git("rev-parse", "HEAD")
+            git("update-ref", "refs/remotes/origin/main", base)
+            tag = "runtime-v0.1.0"
+            git("tag", tag)
+            gate = {
+                "name": "runtime-release-tag-immutability-r1",
+                "target": "tag",
+                "enforcement": "active",
+                "bypass_actors": [],
+                "conditions": {
+                    "ref_name": {"include": ["refs/tags/runtime-v*"], "exclude": []},
+                },
+                "rules": [{"type": "update"}, {"type": "deletion"}],
+            }
+
+            def admit(payload: dict, sha: str, *, expected: str | None = None):
+                env = {
+                    **env_base, "RULESET_JSON": json.dumps(payload),
+                    "GITHUB_REPOSITORY": "ordivon-org/ordivon",
+                    "GITHUB_REF": "refs/tags/" + tag,
+                    "GITHUB_REF_NAME": tag,
+                    "GITHUB_SHA": sha, "EXPECTED_COMMIT": expected or sha,
+                    "RUNNER_TEMP": str(cwd),
+                }
+                return subprocess.run(
+                    ["bash", "-c", script], cwd=cwd, env=env,
+                    text=True, capture_output=True, timeout=15, check=False,
+                )
+
+            valid = admit(gate, base)
+            self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
+            mutations = [
+                {**gate, "bypass_actors": [{"actor_id": 1}]},
+                {**gate, "enforcement": "disabled"},
+                {**gate, "rules": [{"type": "deletion"}]},
+                {**gate, "rules": [{"type": "update"}, {"type": "deletion"}, {"type": "creation"}]},
+                {**gate, "conditions": {"ref_name": {"include": ["refs/tags/other-*"], "exclude": []}}},
+                {**gate, "target": "branch"},
+            ]
+            for i, mutation in enumerate(mutations):
+                with self.subTest(i=i):
+                    rejected = admit(mutation, base)
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn("RUNTIME_TAG_IMMUTABILITY_NOT_ADMITTED", rejected.stderr)
+
+            wrong_cut = admit(gate, base, expected="0" * 40)
+            self.assertNotEqual(wrong_cut.returncode, 0)
+            git("tag", "-d", tag)
+            self.assertNotEqual(admit(gate, base).returncode, 0)
+            git("switch", "-q", "--detach", base)
+            (cwd / "sample").write_text("off-main\n")
+            git("commit", "-qam", "off-main release source")
+            other = git("rev-parse", "HEAD")
+            git("tag", tag)
+            rejected = admit(gate, other)
+            self.assertNotEqual(rejected.returncode, 0)
+
+    def test_runtime_tagged_release_has_provider_native_publication_boundary(self) -> None:
+        """Publication is a separate fail-closed capability, not a 30-day CI artifact."""
+        import yaml
+
+        workflow = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        build = workflow["jobs"]["runtime-release"]
+        publish = workflow["jobs"]["publish-runtime-release"]
+        self.assertEqual(build["permissions"]["contents"], "read")
+        self.assertEqual(publish["permissions"]["contents"], "write")
+        self.assertNotIn("id-token", publish["permissions"])
+        self.assertEqual(publish["needs"], "runtime-release")
+        self.assertIn("vars.ORDIVON_RUNTIME_RELEASE_PUBLISH", publish["if"])
+        self.assertIn("'enabled'", publish["if"])
+        self.assertEqual(
+            build["outputs"]["repository_commit"],
+            "$" + "{{ steps.release.outputs.repository_commit }}",
+        )
+        names = [step["name"] for step in publish["steps"]]
+        self.assertEqual(names, [
+            "Checkout exact tagged revision for publication",
+            "Download verified Runtime release candidate",
+            "Admit protected Runtime release publication",
+            "Verify exact downloaded Runtime attestations",
+            "Publish exact Runtime GitHub Release",
+        ])
+        fetch = publish["steps"][0]
+        self.assertEqual(fetch["with"]["fetch-depth"], 0)
+        self.assertIs(fetch["with"]["persist-credentials"], False)
+        self.assertRegex(publish["steps"][1]["uses"], r"^actions/download-artifact@[0-9a-f]{40}$")
+        policy = publish["steps"][2]["run"]
+        proof = publish["steps"][3]["run"]
+        effect = publish["steps"][4]["run"]
+        self.assertIn("refs/remotes/origin/main", policy)
+        self.assertIn("--no-replace-objects", policy)
+        self.assertIn("runtime-release-tag-immutability-r1", policy)
+        self.assertIn("bypass_actors", policy)
+        self.assertIn("refs/tags/runtime-v*", policy)
+        self.assertEqual(
+            publish["steps"][2]["env"]["EXPECTED_COMMIT"],
+            "$" + "{{ needs.runtime-release.outputs.repository_commit }}",
+        )
+        self.assertIn('test "$GITHUB_SHA" = "$EXPECTED_COMMIT"', policy)
+        self.assertIn("sha256sum --check --strict", proof)
+        self.assertIn("gh attestation verify", proof)
+        self.assertIn("--signer-workflow", proof)
+        self.assertIn("--source-digest", proof)
+        self.assertIn("gh release create", effect)
+        self.assertIn("--verify-tag", effect)
+        self.assertIn("--draft", effect)
+        self.assertIn("gh release edit", effect)
+        self.assertIn("--draft=false", effect)
+        self.assertIn("gh release view", effect)
+        self.assertLess(effect.index("gh release create"), effect.index("gh release edit"))
+        self.assertNotIn("--clobber", effect)
+
     def test_runtime_tag_requires_reachable_protected_main_source(self) -> None:
         """Execute the real tagged-release source gate against distinct Git DAGs.
 

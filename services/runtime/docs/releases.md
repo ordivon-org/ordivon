@@ -180,6 +180,36 @@ Attestation subjects are derived from that manifest and re-verified before stagi
 
 These standardized attestations complement rather than replace Runtime deployment receipts. A deployment receipt proves the exact artifact set installed on one Runtime node and supports rollback/reconciliation. A GitHub attestation proves what the tagged workflow produced under its workflow identity. Repository configuration alone is not evidence that a particular tag has been attested: the tag's attestation must exist and verify through GitHub's attestation verification surface before a provenance claim is made. No SLSA level is inferred merely from the presence of this workflow.
 
+### GitHub Release publication is a separate admission
+
+The tag-triggered build Job retains its `contents: read` permission and
+produces only verified candidate assets. A separate `publish-runtime-release`
+Job has the narrow `contents: write` permission. Its native GitHub Release
+effect is **disabled unless** the repository variable
+`ORDIVON_RUNTIME_RELEASE_PUBLISH` is exactly `enabled` **and** the
+Security-owner-admitted active `runtime-release-tag-immutability-r1` GitHub
+tag Ruleset covers `refs/tags/runtime-v*` with zero bypass actors, blocking
+updates and deletions while allowing initial tag creation. The publisher
+checks that the tag, checked-out commit, protected-main ancestry, upstream
+build identity, signed canonical artifacts and provenance agree.
+
+The publisher uploads the 13 already-attested Runtime subjects and five
+evidence files into a GitHub **draft Release**, reads back all 18 assets
+and their sizes, then publishes the draft and checks final asset standing.
+An ambiguous provider response or incomplete draft is **not** a retry
+authorization. Reconcile GitHub's existing Release and assets before
+recovery. Repository-wide Immutable Releases, if later admitted across
+Game/Media/Runtime owners, would additionally lock published asset bytes
+and generate a Release Attestation; the Runtime tag Ruleset alone locks
+tags, **not** Release assets.
+
+A successful 30-day Actions Artifact or a passed build Job does not prove
+that a GitHub Release exists. A published GitHub Release does not prove a
+Runtime node installed it. Production acceptance still needs a source
+and artifact-bound node deployment receipt and independent consumer
+readback. No real `runtime-v*` tag has exercised this new publisher,
+so neither a real Runtime Release nor an install is claimed.
+
 The owner-local `services/runtime/.github/workflows/release-acceptance.yml` remains portable source for a future extracted Runtime repository; GitHub does not treat nested owner workflow directories as the monorepo's live Actions entry point.
 
 ## Publication

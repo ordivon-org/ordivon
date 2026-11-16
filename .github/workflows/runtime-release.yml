@@ -22,6 +22,8 @@ jobs:
       id-token: write
       attestations: write
       artifact-metadata: write
+    outputs:
+      repository_commit: ${{ steps.release.outputs.repository_commit }}
     steps:
       - name: Checkout exact tagged revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -313,3 +315,197 @@ jobs:
             ${{ runner.temp }}/ordivon-runtime-tagged-release/sbom.spdx.json
           if-no-files-found: error
           retention-days: 30
+
+
+  # Builder stays read-only; GitHub-native publishing has a separate token.
+  publish-runtime-release:
+    name: publish-runtime-release
+    needs: runtime-release
+    if: ${{ vars.ORDIVON_RUNTIME_RELEASE_PUBLISH == 'enabled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      attestations: read
+    steps:
+      - name: Checkout exact tagged revision for publication
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download verified Runtime release candidate
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ordivon-runtime-release-${{ github.ref_name }}
+          path: ${{ runner.temp }}/ordivon-runtime-release-publisher
+
+      - name: Admit protected Runtime release publication
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ needs.runtime-release.outputs.repository_commit }}
+        run: |
+          set -euo pipefail
+          export GIT_GRAFT_FILE=/dev/null GIT_NO_REPLACE_OBJECTS=1
+          test "$GITHUB_SHA" = "$EXPECTED_COMMIT"
+          test "$GITHUB_REF" = "refs/tags/$GITHUB_REF_NAME"
+          [[ "$GITHUB_REF_NAME" == runtime-v* ]]
+          checkout="$(git --no-replace-objects rev-parse --verify 'HEAD^{commit}')"
+          tag_commit="$(git --no-replace-objects rev-parse --verify "refs/tags/$GITHUB_REF_NAME^{commit}")"
+          main="$(git --no-replace-objects rev-parse --verify 'refs/remotes/origin/main^{commit}')"
+          test "$GITHUB_SHA" = "$checkout"
+          test "$GITHUB_SHA" = "$tag_commit"
+          git --no-replace-objects merge-base --is-ancestor "$GITHUB_SHA" "$main"
+          id="$(gh api "repos/$GITHUB_REPOSITORY/rulesets" --jq             '.[] | select(.name == "runtime-release-tag-immutability-r1" and .target == "tag" and .enforcement == "active") | .id')"
+          test -n "$id"
+          gh api "repos/$GITHUB_REPOSITORY/rulesets/$id" > "$RUNNER_TEMP/runtime-tag-ruleset.json"
+          python3 - "$RUNNER_TEMP/runtime-tag-ruleset.json" <<'PY_POLICY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              rule = json.load(stream)
+          kinds = {item.get("type") for item in rule.get("rules", [])}
+          refs = rule.get("conditions", {}).get("ref_name", {})
+          if not (
+              rule.get("name") == "runtime-release-tag-immutability-r1"
+              and rule.get("target") == "tag"
+              and rule.get("enforcement") == "active"
+              and rule.get("bypass_actors") == []
+              and refs.get("include") == ["refs/tags/runtime-v*"]
+              and refs.get("exclude") == []
+              and {"update", "deletion"} <= kinds
+              and "creation" not in kinds
+          ):
+              raise SystemExit("RUNTIME_TAG_IMMUTABILITY_NOT_ADMITTED")
+          PY_POLICY
+
+
+      - name: Verify exact downloaded Runtime attestations
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ordivon-runtime-release-publisher"
+          python3 - "$root" <<'PY_SUBJECTS'
+          import hashlib
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          identity = json.loads((root / "release-identity.json").read_text(encoding="utf-8"))
+          manifest = json.loads((root / "candidate-manifest.json").read_text(encoding="utf-8"))
+          if identity.get("tag") != os.environ["GITHUB_REF_NAME"]:
+              raise SystemExit("RUNTIME_RELEASE_TAG_IDENTITY_MISMATCH")
+          if identity.get("repositoryCommit") != os.environ["GITHUB_SHA"]:
+              raise SystemExit("RUNTIME_RELEASE_SOURCE_IDENTITY_MISMATCH")
+          if identity.get("owner") != "services/runtime":
+              raise SystemExit("RUNTIME_RELEASE_OWNER_IDENTITY_MISMATCH")
+          if manifest.get("sourceOwnerPrefix") != "services/runtime":
+              raise SystemExit("RUNTIME_RELEASE_MANIFEST_OWNER_MISMATCH")
+          artifacts = manifest.get("artifacts")
+          if not isinstance(artifacts, list) or len(artifacts) != 13:
+              raise SystemExit("RUNTIME_RELEASE_NONCANONICAL_SUBJECTS")
+          expected = {}
+          for item in artifacts:
+              name = item.get("name") if isinstance(item, dict) else None
+              if not isinstance(name, str) or not name or Path(name).name != name or name in expected:
+                  raise SystemExit("RUNTIME_RELEASE_INVALID_SUBJECT")
+              expected[name] = item.get("digest")
+          actual = list((root / "attest-subjects").iterdir())
+          if {item.name for item in actual} != set(expected) or len(actual) != len(expected):
+              raise SystemExit("RUNTIME_RELEASE_SUBJECT_SET_CHANGED")
+          for item in actual:
+              if not item.is_file() or item.is_symlink():
+                  raise SystemExit("RUNTIME_RELEASE_SUBJECT_IS_NOT_REGULAR_FILE")
+              digest = "sha256:" + hashlib.sha256(item.read_bytes()).hexdigest()
+              if expected[item.name] != digest:
+                  raise SystemExit("RUNTIME_RELEASE_SUBJECT_DIGEST_CHANGED")
+          PY_SUBJECTS
+          (
+            cd "$root/attest-subjects"
+            sha256sum --check --strict ../subjects.sha256
+          )
+          for subject in "$root"/attest-subjects/*; do
+            for predicate in "https://slsa.dev/provenance/v1" "https://spdx.dev/Document/v2.3"; do
+              gh attestation verify "$subject" \
+                --repo "$GITHUB_REPOSITORY" \
+                --predicate-type "$predicate" \
+                --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/runtime-release.yml" \
+                --source-digest "$GITHUB_SHA" \
+                --source-ref "$GITHUB_REF" > /dev/null
+            done
+          done
+
+
+      - name: Publish exact Runtime GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ordivon-runtime-release-publisher"
+          for evidence in candidate-manifest.json prepare.json release-identity.json subjects.sha256 sbom.spdx.json; do
+            test -f "$root/$evidence"
+          done
+          # Never create a new tag, overwrite release assets, or silently
+          # retry an ambiguous provider effect. A partial draft is retained
+          # for explicit provider reconciliation, not blind second creation.
+          gh release create "$GITHUB_REF_NAME" \
+            "$root"/attest-subjects/* \
+            "$root"/candidate-manifest.json \
+            "$root"/prepare.json \
+            "$root"/release-identity.json \
+            "$root"/subjects.sha256 \
+            "$root"/sbom.spdx.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --verify-tag \
+            --draft --prerelease --latest=false \
+            --title "Ordivon Runtime $GITHUB_REF_NAME" \
+            --notes "Exact Runtime build subjects, release identity, manifest, SPDX SBOM and verified build attestations."
+
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,assets > "$root/created-release.json"
+          python3 - "$root" <<'PY_RELEASE'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          release = json.loads((root / "created-release.json").read_text())
+          expected = {p.name: p.stat().st_size for p in (root / "attest-subjects").iterdir()}
+          for name in ("candidate-manifest.json", "prepare.json", "release-identity.json", "subjects.sha256", "sbom.spdx.json"):
+              path = root / name
+              expected[name] = path.stat().st_size
+          assets = release.get("assets") or []
+          observed = {a["name"]: a["size"] for a in assets}
+          if (release.get("tagName") != os.environ["GITHUB_REF_NAME"]
+              or release.get("isDraft") is not True
+              or len(assets) != len(expected)
+              or observed != expected):
+              raise SystemExit("RUNTIME_GITHUB_RELEASE_DRAFT_ASSET_MISMATCH")
+          PY_RELEASE
+
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,assets > "$root/published-release.json"
+          python3 - "$root" <<'PY_PUBLISHED'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          before = json.loads((root / "created-release.json").read_text())
+          after = json.loads((root / "published-release.json").read_text())
+          if (after.get("isDraft") is not False
+              or after.get("tagName") != os.environ["GITHUB_REF_NAME"]
+              or before.get("assets") != after.get("assets")):
+              raise SystemExit("RUNTIME_GITHUB_RELEASE_NOT_PUBLISHED_OR_ASSETS_DRIFT")
+          PY_PUBLISHED
