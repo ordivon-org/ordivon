@@ -16,7 +16,7 @@ from .work_inputs import (
     WorkSnapshotInput,
     WorkState,
 )
-from .work_queries import WorkReadQueries
+from .work_queries import WorkReadQueries, read_work_in_tx
 from .work_relation_commands import WorkRelationCommands
 
 
@@ -130,7 +130,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
                 ):
                     raise ConflictError("work_ref already exists with different initial semantics")
                 admission = "existing"
-            result = self._get_work_in_tx(conn, value.work_ref, None)
+            result = read_work_in_tx(conn, value.work_ref, None)
             result["admission"] = admission
             record_command_receipt(conn, client_request_id, "work.create", request_digest, result)
             return result
@@ -147,10 +147,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
     ) -> dict[str, Any]:
         # Revision is a typed CAS identity, not Python numeric equality:
         # bool is an int subclass, and 1.0 compares equal to 1.
-        if (
-            type(expected_revision) is not int
-            or not 1 <= expected_revision < POSTGRES_BIGINT_MAX
-        ):
+        if type(expected_revision) is not int or not 1 <= expected_revision < POSTGRES_BIGINT_MAX:
             raise ValueError("expected_revision must be a positive PostgreSQL BIGINT predecessor")
         payload = snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
@@ -190,7 +187,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
                     and prior["writer_actor_ref"] == actor_ref
                     and current["state"] == state.value
                 ):
-                    result = self._get_work_in_tx(conn, work_ref, next_revision)
+                    result = read_work_in_tx(conn, work_ref, next_revision)
                     result["admission"] = "existing"
                     record_command_receipt(
                         conn,
@@ -218,7 +215,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
                 "VALUES (%s,%s,%s,%s,%s)",
                 (work_ref, next_revision, snapshot_digest, Jsonb(payload), actor_ref),
             )
-            result = self._get_work_in_tx(conn, work_ref, next_revision)
+            result = read_work_in_tx(conn, work_ref, next_revision)
             result["admission"] = "committed"
             record_command_receipt(
                 conn, client_request_id, "work.snapshot.commit", request_digest, result

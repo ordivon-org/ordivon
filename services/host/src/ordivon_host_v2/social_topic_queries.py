@@ -16,6 +16,7 @@ from .collection_pagination import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .social_message_records import verify_message_content_digest
 
 
 class SocialTopicReadQueries:
@@ -110,7 +111,7 @@ class SocialTopicReadQueries:
             ).fetchall()
             sql_more = len(rows) > limit
             for row in rows[:limit]:
-                self._verify_message_content_digest(row)
+                verify_message_content_digest(row)
             candidates = [
                 {
                     "sequence": int(row["sequence"]),
