@@ -698,6 +698,25 @@ current, drifted, missing and unsafe source-to-install byte identities;
 neither a GREEN plan nor five matching bytes grant permission to mutate
 the Root control plane. Treat the plan as an operator review input, not an
 installer, a signed authorization, or a live Service receipt.
+
+An isolated Root candidate may now be **staged but never installed** using
+the same existing deployer command with the root-bundle-stage subcommand and
+the plan's source-repo, commit, require-ref, expected-owner-tree and live
+install-dir inputs, plus a fresh absolute candidate-dir outside the live
+bundle. The command rejects an existing candidate directory, checks Git
+blob identity twice, preserves each original installed preimage digest only
+as a **read-only observation**, and writes a five-file candidate manifest.
+It never calls systemctl, changes release admission, copies over installed
+Root scripts, writes the operator config, or issues a PG ReleaseEffect.
+The resulting candidate directory belongs to the staging caller, **not**
+to Root's authorization or rollback domain; do not copy or trust it merely
+because its manifest reports correct bytes. The independent Root owner must
+revalidate the protected Git SourceCut and all five files, retain a root-owned
+durable preimage, fence new PG release admissions, quiesce the independent
+dispatcher timer/service across reboots, and attest installation and
+rollback under its existing Root credential before enabling a new release.
+The 2026-11-12 historical one-time first-install bootstraps covered only
+Server/Runner payloads, not the Root control plane and not those conditions.
 Install the hash-locked Python venv, and
 set root-owned independent Operator env/config under /etc/ordivon/. The PG
 Operator DSN and allowed service list are never sent by an MCP caller.

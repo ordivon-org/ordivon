@@ -85,6 +85,139 @@ class RootOperatorBundlePlanTests(unittest.TestCase):
         with patch.object(Path, "stat", root_owned_test_fixture):
             return deploy.root_operator_bundle_plan(argparse.Namespace(**data))
 
+    def stage(self, **overrides: object) -> dict[str, object]:
+        data = {
+            "git": Path("/usr/bin/git"),
+            "source_repo": self.owner,
+            "commit": self.head,
+            "require_ref": "origin/main",
+            "expected_owner_tree": self.tree,
+            "install_dir": self.installed,
+            "candidate_dir": self.temp / "staged",
+        }
+        data.update(overrides)
+        native_stat = Path.stat
+
+        def root_owned_test_fixture(path: Path, *args: object, **kwargs: object):
+            metadata = native_stat(path, *args, **kwargs)
+            if path == self.installed or path.parent == self.installed:
+                fields = list(metadata)
+                fields[4] = 0
+                return os.stat_result(fields)
+            return metadata
+
+        with patch.object(Path, "stat", root_owned_test_fixture):
+            return deploy.stage_root_operator_bundle(argparse.Namespace(**data))
+
+    def test_exact_git_bundle_is_staged_without_install_effect(self) -> None:
+        import json
+
+        before = [(p.name, p.read_bytes()) for p in sorted(self.installed.iterdir())]
+        result = self.stage()
+        self.assertEqual(result["artifactCount"], 5)
+        self.assertTrue(result["rootOwnerApprovalRequired"])
+        self.assertFalse(result["productionInstallExecuted"])
+        path = self.temp / "staged" / "ordivon-root-bundle-candidate.json"
+        self.assertEqual(result["candidateManifestDigest"], deploy.sha256(path))
+        manifest = json.loads(path.read_text())
+        self.assertEqual(manifest["sourceOwnerTree"], self.tree)
+        self.assertFalse(manifest["trustedRollbackPreimageCaptured"])
+        self.assertFalse(manifest["physicalServiceQuiesced"])
+        self.assertFalse(manifest["releaseAdmissionFenced"])
+        self.assertEqual(
+            {entry["name"] for entry in manifest["artifacts"]},
+            {name for name, _ in deploy.ROOT_OPERATOR_BUNDLE},
+        )
+        for entry in manifest["artifacts"]:
+            source = self.scripts / entry["name"]
+            staged = self.temp / "staged" / entry["name"]
+            self.assertEqual(staged.read_bytes(), source.read_bytes())
+            self.assertEqual(entry["digest"], deploy.sha256(staged))
+        self.assertEqual(
+            before,
+            [(p.name, p.read_bytes()) for p in sorted(self.installed.iterdir())],
+        )
+
+    def test_stage_existing_candidate_is_never_overwritten(self) -> None:
+        result = self.stage()
+        candidate = self.temp / "staged"
+        before = sorted((p.name,p.read_bytes()) for p in candidate.iterdir())
+        with self.assertRaisesRegex(RuntimeError,"already exists"):
+            self.stage()
+        self.assertEqual(
+            sorted((p.name,p.read_bytes()) for p in candidate.iterdir()),
+            before,
+        )
+
+    def test_stage_refuses_candidate_inside_or_parent_of_live_root(self) -> None:
+        for destination in (
+            self.installed / "staged",
+            self.temp,
+            self.installed,
+        ):
+            with self.subTest(destination=destination):
+                with self.assertRaisesRegex(RuntimeError,"separate from"):
+                    self.stage(candidate_dir=destination)
+
+    def test_stage_refuses_changed_required_owner_tree(self) -> None:
+        old_head, old_tree = self.head,self.tree
+        (self.scripts/"ordivon-runtime-deploy").write_text("new",encoding="utf-8")
+        self.commit("new protected owner tree")
+        with self.assertRaisesRegex(RuntimeError,"not Git-qualified"):
+            self.stage(commit=old_head,expected_owner_tree=old_tree)
+        self.assertFalse((self.temp/"staged").exists())
+
+    def test_stage_refuses_ref_drift_after_candidate_bytes_were_copied(self) -> None:
+        original = deploy.required_ref_authority
+        call_count = [0]
+
+        def changed_ref(*args: object, **kwargs: object) -> dict[str, object]:
+            call_count[0] += 1
+            qualification = original(*args, **kwargs)
+            if call_count[0] > 1:
+                qualification = dict(qualification)
+                qualification["authorized"] = False
+            return qualification
+
+        with patch.object(deploy, "required_ref_authority", side_effect=changed_ref):
+            with self.assertRaisesRegex(RuntimeError, "required Git ref"):
+                self.stage()
+        self.assertGreaterEqual(call_count[0], 2)
+        self.assertFalse((self.temp / "staged").exists())
+
+    def test_stage_refuses_unsafe_live_preimage_without_staging(self) -> None:
+        (self.installed/"ordivon-runtime-deploy").chmod(0o777)
+        with self.assertRaisesRegex(RuntimeError,"not Git-qualified"):
+            self.stage()
+        self.assertFalse((self.temp/"staged").exists())
+
+    def test_stage_failure_removes_only_newly_created_candidate(self) -> None:
+        original = deploy.sha256
+
+        def fail_candidate_only(path: Path) -> str:
+            result = original(path)
+            if path.parent == self.temp/"staged" and path.name == "ordivon-runtime-pg-operator":
+                return "sha256:" + "0" * 64
+            return result
+
+        with patch.object(deploy,"sha256",side_effect=fail_candidate_only):
+            with self.assertRaisesRegex(RuntimeError,"stage bytes changed"):
+                self.stage()
+        self.assertFalse((self.temp/"staged").exists())
+        self.assertEqual(
+            {p.name for p in self.installed.iterdir()},
+            {n for n,_ in deploy.ROOT_OPERATOR_BUNDLE},
+        )
+
+    def test_stage_rejects_untrusted_symlink_candidate_parent(self) -> None:
+        actual = self.temp/"candidate-parent"
+        actual.mkdir()
+        alias = self.temp/"candidate-parent-link"
+        alias.symlink_to(actual)
+        with self.assertRaisesRegex(RuntimeError,"aliases a symlink"):
+            self.stage(candidate_dir=alias/"staged")
+        self.assertFalse((actual/"staged").exists())
+
     def test_five_git_sources_match_root_owned_installation(self) -> None:
         before = [(p.name, p.read_bytes()) for p in sorted(self.installed.iterdir())]
         plan = self.plan()
