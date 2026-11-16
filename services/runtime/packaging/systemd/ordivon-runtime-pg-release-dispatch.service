@@ -8,6 +8,8 @@ Type=oneshot
 # Independent root-owned operator credential and approved service list; do not
 # inherit Runtime app's PG writer DSN or credentials from MCP requests.
 EnvironmentFile=/etc/ordivon/ordivon-runtime-pg-release-operator.env
-ExecStart=/opt/ordivon/runtime-pg-operator/.venv/bin/python /usr/local/libexec/ordivon/pg-release-operator/ordivon-runtime-pg-release-dispatch --config /etc/ordivon/ordivon-runtime-pg-release-operator.json
+# A Root bundle switch must not create an unqualified __pycache__ after
+# the stage was sealed; -B preserves byte-closed rollback/recovery readback.
+ExecStart=/opt/ordivon/runtime-pg-operator/.venv/bin/python -B /usr/local/libexec/ordivon/pg-release-operator/ordivon-runtime-pg-release-dispatch --config /etc/ordivon/ordivon-runtime-pg-release-operator.json
 TimeoutStartSec=180s
 NoNewPrivileges=yes

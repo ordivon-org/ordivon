@@ -245,6 +245,18 @@ class RootOperatorBundlePlanTests(unittest.TestCase):
         }
         return self.temp / "staged", old, new
 
+    def test_packaged_dispatcher_consumes_root_bundle_without_new_bytecode(self) -> None:
+        unit=(SCRIPTS.parent/"packaging/systemd"/
+              "ordivon-runtime-pg-release-dispatch.service").read_text()
+        expected=(
+            "ExecStart=/opt/ordivon/runtime-pg-operator/.venv/bin/python -B "
+            "/usr/local/libexec/ordivon/pg-release-operator/"
+            "ordivon-runtime-pg-release-dispatch --config "
+            "/etc/ordivon/ordivon-runtime-pg-release-operator.json"
+        )
+        self.assertIn(expected,unit)
+        self.assertEqual(unit.count("ExecStart="),1)
+
     def test_linux_atomic_directory_exchange_is_one_reversible_five_file_switch(self) -> None:
         candidate, old, new = self.exchanged_directories()
         # Real native Linux renameat2, not a patched os.rename or mock.

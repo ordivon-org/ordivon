@@ -735,8 +735,14 @@ file modes, missing files, unexpected staged importable scripts / bytecode,
 or drift are always UNKNOWN, never an auto-approved retry. Only the five
 committed candidate files and its optional stage manifest may occupy the
 NEW Root directory before activation; the old directory can retain its
-separate historical artifacts as a protected rollback preimage. On
-unsupported Linux filesystems there is **no non-atomic fallback**.
+separate historical artifacts as a protected rollback preimage. Python
+normally creates __pycache__ on first import: the packaged one-shot
+dispatcher therefore runs its interpreter with the native -B flag, so
+the future Root bundle stays a closed five-file import namespace. The
+physical Root owner must compare the **effective installed systemd ExecStart**
+to this package definition before applying/accepting a switch; changing
+the package source alone cannot update a running unit. On unsupported
+Linux filesystems there is **no non-atomic fallback**.
 
 **This primitive is not yet a production upgrader**. The natural Root
 operator must still journal exact candidate/preimage inode and SHA evidence

@@ -32,7 +32,7 @@ class PgReleaseDispatchPackagedUnitTests(unittest.TestCase):
         )
         self.assertEqual(
             properties["ExecStart"],
-            "/opt/ordivon/runtime-pg-operator/.venv/bin/python "
+            "/opt/ordivon/runtime-pg-operator/.venv/bin/python -B "
             "/usr/local/libexec/ordivon/pg-release-operator/ordivon-runtime-pg-release-dispatch "
             "--config /etc/ordivon/ordivon-runtime-pg-release-operator.json",
         )
