@@ -55,6 +55,7 @@ from .continuity_guards import (
     require_tool_intent_binding,
     validate_snapshot_state,
     validate_tool_event,
+    inspect_all_unsettled_effect_sources,
 )
 from .continuity_records import (
     HarnessDispatchFenceV2,
@@ -2063,6 +2064,24 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             # the original Owner resolves that exact request identity.
             raise HarnessSuperseded(
                 "unresolved Tool Step must be owner-reconciled before a new Intent"
+            )
+        # A previous installed Writer could prepare B while A was unresolved,
+        # then observe B. The latest Tool head is B and is not a proof that A
+        # settled. Reuse the same full-Journal source observer as Finalization.
+        # The exact observed_revision below is still fenced by the PG Lease
+        # acquisition; a concurrent Writer cannot bypass this admission CAS.
+        _, unsettled_tool_digests = inspect_all_unsettled_effect_sources(
+            self.store.list_run_events(self.harness_run_id),
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
+        )
+        if unsettled_tool_digests:
+            raise HarnessSuperseded(
+                "unresolved Tool Step remains in original PG history; "
+                "exact Owner reconciliation required before a new Intent"
             )
         now_ms = self.clock_ms()
         try:

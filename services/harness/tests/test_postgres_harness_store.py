@@ -632,6 +632,93 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         continuity.prepare_tool_step(second)
         self.assertEqual(continuity.load_current_tool_step().intent, second)
 
+    def test_legacy_hidden_pending_tool_still_blocks_next_prepare(self) -> None:
+        """Old PG Journal: A prepared, B observed, A remains unresolved.
+
+        Simulate the removed legacy admission guard only while preparing B.
+        The actual PG writes and receipts still use the normal Store/Writer.
+        A modern reopened consumer must not treat the latest B as global truth.
+        """
+        from unittest.mock import patch
+        from ordivon_harness.ordivon.continuity_guards import (
+            inspect_all_unsettled_effect_sources,
+        )
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        legacy = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        legacy.bind_state(state())
+        binding = legacy.binding
+
+        def intent_for(label: str) -> HarnessToolStepIntent:
+            return HarnessToolStepIntent(
+                intent_id=f"harness-tool-step-intent:legacy-{label}",
+                harness_run_id=run.harness_run_id,
+                assignment_id=binding.assignment_id,
+                assignment_generation=binding.assignment_generation,
+                assignment_digest=binding.assignment_digest,
+                turn_id=f"turn:legacy-{label}",
+                tool_call_id=f"tool-call:legacy-{label}",
+                tool_name="workspace.read",
+                tool_call_digest=canonical_digest({"legacyToolCall": label}),
+                runtime_operation="workspace.read",
+                runtime_arguments_digest=canonical_digest({"relativePath": label}),
+                client_request_id=f"request:legacy-{label}",
+                recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+                created_at_ms=clock(),
+            )
+
+        first = intent_for("A")
+        second = intent_for("B")
+        third = intent_for("C")
+        legacy.prepare_tool_step(first)
+        # Legacy admission allowed B despite unresolved A. The real original
+        # PostgreSQL Journal persists both effects, including B's receipt.
+        with (
+            patch.object(legacy, "load_current_tool_step", side_effect=KeyError),
+            patch(
+                "ordivon_harness.ordivon.run_continuity.inspect_all_unsettled_effect_sources",
+                return_value=((), ()),
+            ),
+        ):
+            legacy.prepare_tool_step(second)
+        observation = {"schemaVersion": 1, "kind": "pg.legacy-observation", "status": "observed"}
+        receipt = HarnessToolStepReceipt(
+            receipt_id="harness-tool-step-receipt:legacy-B",
+            intent_digest=second.digest,
+            harness_run_id=run.harness_run_id,
+            tool_call_id=second.tool_call_id,
+            status=HarnessToolStepStatus.OBSERVED,
+            runtime_job_ref="runtime-job:legacy-B",
+            observation_digest=canonical_digest(observation),
+            reconciled=False,
+            created_at_ms=clock(),
+        )
+        legacy.record_tool_step_receipt(receipt, observation)
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            current = EventSourcedRunContinuity.open(
+                reopened, run.harness_run_id, clock_ms=clock
+            )
+            self.assertEqual(
+                current.load_current_tool_step().receipt.status,
+                HarnessToolStepStatus.OBSERVED,
+            )
+            _, unsettled = inspect_all_unsettled_effect_sources(
+                reopened.list_run_events(run.harness_run_id),
+                store=reopened,
+                harness_run_id=run.harness_run_id,
+                binding=current.binding,
+                allow_tool_content=run.privacy.allow_tool_content,
+                provider_record_reader=current._load_provider_from_event,
+            )
+            self.assertEqual(unsettled, (first.digest,))
+            revision = reopened.load_run(run.harness_run_id).revision
+            current.bind_state(state())
+            with self.assertRaisesRegex(HarnessSuperseded, "unresolved Tool"):
+                current.prepare_tool_step(third)
+            self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
+
     def test_invalid_second_event_rolls_back_entire_pg_batch_and_keeps_lease(self) -> None:
         """A partial event commit must be impossible under native PG transaction."""
         run = contract()
