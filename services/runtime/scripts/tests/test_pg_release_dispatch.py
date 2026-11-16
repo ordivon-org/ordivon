@@ -21,6 +21,28 @@ dispatcher=importlib.util.module_from_spec(spec)
 loader.exec_module(dispatcher)
 
 
+class PgReleaseDispatchPackagedUnitTests(unittest.TestCase):
+    """The distributed Unit must invoke the separately installed trusted Root bundle."""
+
+    def test_unit_execstart_uses_actual_root_operator_bundle(self) -> None:
+        unit = SCRIPTS.parent / "packaging/systemd/ordivon-runtime-pg-release-dispatch.service"
+        properties = dict(
+            line.split("=", 1) for line in unit.read_text(encoding="utf-8").splitlines()
+            if line.startswith(("ExecStart=", "EnvironmentFile=", "NoNewPrivileges="))
+        )
+        self.assertEqual(
+            properties["ExecStart"],
+            "/opt/ordivon/runtime-pg-operator/.venv/bin/python "
+            "/usr/local/libexec/ordivon/pg-release-operator/ordivon-runtime-pg-release-dispatch "
+            "--config /etc/ordivon/ordivon-runtime-pg-release-operator.json",
+        )
+        self.assertEqual(
+            properties["EnvironmentFile"],
+            "/etc/ordivon/ordivon-runtime-pg-release-operator.env",
+        )
+        self.assertEqual(properties["NoNewPrivileges"], "yes")
+
+
 class PgReleaseDispatchTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp=tempfile.TemporaryDirectory(prefix="ordivon-pg-dispatch-")
