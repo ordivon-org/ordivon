@@ -2442,3 +2442,58 @@ def test_gateway_factory_rejects_frozen_catalog_drift_before_model_or_tool(
     with pytest.raises(ToolBridgeError, match="frozen|drift|Grant|catalog"):
         factory.build(contract, SimpleNamespace(harness_run_id=contract.harness_run_id))
     assert client.calls == []
+
+
+def test_gateway_factory_build_uses_one_original_grant_snapshot_after_binding_hook(
+    pg_schema, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An adversarial mid-build W1->W2 mutation cannot mix the same RunRoot.
+
+    Source race injection deliberately swaps the mutable Factory attribute
+    after the first W1 HarnessExecutionBinding is constructed, but before
+    Runtime adapter/bridge construction. A real Native issuer certificate
+    is not implied by this Source-level consistency negative.
+    """
+    from dataclasses import replace
+
+    import ordivon_harness.plugin_gateway_effect as effect
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    contract = _contract(factory)
+    old_binding_constructor = effect.HarnessExecutionBinding
+    original_remote_get_digest = factory._remote_tool_digests["execution.get"]
+    original_gateway_url = factory.component.url
+    mutations = []
+
+    def swap_factory_after_binding(*args, **kwargs):
+        original_binding = old_binding_constructor(*args, **kwargs)
+        factory.execution_grant = replace(
+            factory.execution_grant, workspace_id="ws-w2-midbuild"
+        )
+        factory.component = replace(factory.component, url="https://untrusted.example/mcp")
+        factory._remote_tool_digests["execution.get"] = _digest("recovery-catalog-midbuild")
+        factory._definition.input_schema["properties"]["executable"]["enum"] = ["/usr/bin/false"]
+        factory._definition = replace(factory._definition, description="changed after original guard")
+        factory.client = GatewayExecutionFixture()
+        mutations.append(factory.execution_grant.workspace_id)
+        return original_binding
+
+    monkeypatch.setattr(effect, "HarnessExecutionBinding", swap_factory_after_binding)
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        store.create_run(contract)
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        bridge = factory.build(contract, continuity)
+        assert mutations == ["ws-w2-midbuild"]
+        assert bridge.execution_binding.workspace_ref == "ws-plugin-h2"
+        assert bridge.runtime.grant.workspace_id == "ws-plugin-h2"
+        assert bridge.gateway_grant.workspace_id == "ws-plugin-h2"
+        assert bridge.runtime.component.url == original_gateway_url
+        assert bridge.runtime.client is client
+        assert bridge.gateway_remote_tool_digests["execution.get"] == original_remote_get_digest
+        assert bridge.definitions()[0].input_schema["properties"]["executable"]["enum"] == [
+            "/usr/bin/rg"
+        ]
+        assert bridge.definitions()[0].description != "changed after original guard"
+        assert bridge.contract.tool_grant_digest == contract.tool_grant_digest
+        assert client.calls == []

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
@@ -1092,29 +1093,38 @@ class PluginGatewayExecutionBridgeFactory:
         self.catalog_digest = self._current_catalog_digest()
         self.grant_digest = self._current_grant_digest()
 
-    def _current_catalog_digest(self) -> str:
-        """One model Tool/remote Gateway catalog witness for RunBirth replay.
-
-        No second catalog: reconstruct the original source format at bridge
-        creation so mutable factory attributes cannot bypass the Contract.
-        """
+    def _current_catalog_digest(
+        self,
+        *,
+        component: AgentPluginMcpComponent | None = None,
+        definition: AgentToolDefinition | None = None,
+        remote_tool_digests: dict[str, str] | None = None,
+    ) -> str:
+        """Reconstruct the existing ToolSurface from one captured source view."""
+        current_component = self.component if component is None else component
+        current_definition = self._definition if definition is None else definition
+        remote = self._remote_tool_digests if remote_tool_digests is None else remote_tool_digests
         surface: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.plugin-gateway-execution-tool-surface",
-            "component": self.component.to_dict(),
-            "modelTools": [self._definition.to_dict()],
-            "remoteRecoveryToolDigests": dict(self._remote_tool_digests),
+            "component": current_component.to_dict(),
+            "modelTools": [current_definition.to_dict()],
+            "remoteRecoveryToolDigests": dict(remote),
         }
         return canonical_digest(surface)
 
-    def _current_grant_digest(self) -> str:
-        """Reconstruct the frozen Tool Grant from *current* factory values.
-
-        This is the original source grant schema, not a second run root.
-        Caller-mutated factory fields must not move W1's immutable Run
-        Contract to W2 under the prior toolGrantDigest.
-        """
-        if not isinstance(self.execution_grant, PluginGatewayExecutionGrant):
+    def _current_grant_digest(
+        self,
+        *,
+        component: AgentPluginMcpComponent | None = None,
+        grant: PluginGatewayExecutionGrant | None = None,
+        remote_tool_digests: dict[str, str] | None = None,
+    ) -> str:
+        """Reconstruct existing ToolGrant without inventing a second RunRoot."""
+        current_component = self.component if component is None else component
+        current_grant = self.execution_grant if grant is None else grant
+        remote = self._remote_tool_digests if remote_tool_digests is None else remote_tool_digests
+        if not isinstance(current_grant, PluginGatewayExecutionGrant):
             raise ToolBridgeError(
                 "Gateway factory frozen Tool Grant type drifted",
                 kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
@@ -1122,13 +1132,13 @@ class PluginGatewayExecutionBridgeFactory:
         grant_value: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.plugin-gateway-execution-tool-grant",
-            "component": self.component.to_dict(),
-            "grant": self.execution_grant.to_dict(),
+            "component": current_component.to_dict(),
+            "grant": current_grant.to_dict(),
             "modelTools": ["execution.submit"],
             "recoveryTools": ["execution.resolve", "execution.get"],
             "controlTools": ["execution.cancel"],
         }
-        if "artifact.read" in self._remote_tool_digests:
+        if "artifact.read" in remote:
             grant_value["outputTools"] = ["artifact.read"]
         return canonical_digest(grant_value)
 
@@ -1139,15 +1149,29 @@ class PluginGatewayExecutionBridgeFactory:
         *,
         provider_source=None,
     ) -> PluginGatewayExecutionBridge:
-        # Recheck the original immutable Tool Grant at the *last* factory
-        # boundary before creating a bridge or admitting a Model/Tool effect.
-        # An accidentally reused/mutated Factory is not a Native Workspace
-        # root authority, even if its old cached digest matches OriginalPG.
+        # One SOURCE snapshot before admission; all descendants consume
+        # these captured values, never mutable Factory attributes again.
+        # Grant and Component are frozen dataclasses, but the Tool definition
+        # contains a mutable nested schema and remote digests are a dict.
+        component = self.component
+        client = self.client
+        grant = self.execution_grant
+        definition = deepcopy(self._definition)
+        remote_tool_digests = dict(self._remote_tool_digests)
+        workspace_admission = self._workspace_admission
+        require_workspace_admission = self._workspace_admission_required
+        frozen_grant_digest = self.grant_digest
+        frozen_catalog_digest = self.catalog_digest
         if (
-            self._current_grant_digest() != self.grant_digest
-            or self._current_catalog_digest() != self.catalog_digest
-            or contract.tool_grant_digest != self.grant_digest
-            or contract.tool_catalog_digest != self.catalog_digest
+            self._current_grant_digest(
+                component=component, grant=grant, remote_tool_digests=remote_tool_digests
+            ) != frozen_grant_digest
+            or self._current_catalog_digest(
+                component=component, definition=definition,
+                remote_tool_digests=remote_tool_digests,
+            ) != frozen_catalog_digest
+            or contract.tool_grant_digest != frozen_grant_digest
+            or contract.tool_catalog_digest != frozen_catalog_digest
         ):
             raise ToolBridgeError(
                 "Gateway factory frozen Tool Grant or catalog drifted from Original Run",
@@ -1169,40 +1193,40 @@ class PluginGatewayExecutionBridgeFactory:
                 "namespace": "ordivon.harness",
                 "type": "tool_grant",
                 "id": "plugin-gateway-execution",
-                "digest": self.grant_digest,
+                "digest": frozen_grant_digest,
             },
         )
         binding = HarnessExecutionBinding(
             harness_run_id=contract.harness_run_id,
-            workspace_ref=self.execution_grant.workspace_id,
+            workspace_ref=grant.workspace_id,
             runtime_references=references,
         )
         runtime = GatewayMcpRuntimeAdapter(
-            self.component,
-            self.client,
-            self.execution_grant,
+            component,
+            client,
+            grant,
             artifact_read_enabled=(
-                "artifact.read" in self._remote_tool_digests
+                "artifact.read" in remote_tool_digests
                 and contract.privacy.allow_tool_content
             ),
-            workspace_admission=self._workspace_admission,
-            require_workspace_admission=self._workspace_admission_required,
+            workspace_admission=workspace_admission,
+            require_workspace_admission=require_workspace_admission,
             run_ref=contract.harness_run_id,
-            grant_digest=self.grant_digest,
+            grant_digest=frozen_grant_digest,
         )
         return PluginGatewayExecutionBridge(
             contract,
             continuity,
             binding,
             runtime,
-            grant=self.execution_grant,
-            definition=self._definition,
-            catalog_digest=self.catalog_digest,
-            grant_digest=self.grant_digest,
-            remote_tool_digests=self._remote_tool_digests,
+            grant=grant,
+            definition=definition,
+            catalog_digest=frozen_catalog_digest,
+            grant_digest=frozen_grant_digest,
+            remote_tool_digests=remote_tool_digests,
             provider_source=provider_source,
-            workspace_admission=self._workspace_admission,
-            require_workspace_admission=self._workspace_admission_required,
+            workspace_admission=workspace_admission,
+            require_workspace_admission=require_workspace_admission,
         )
 
 
