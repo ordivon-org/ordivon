@@ -8,6 +8,7 @@ from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
     CapabilityResolution,
+    CapabilityRoute,
     CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
@@ -21,7 +22,7 @@ from .execution_refs import GatewayError
 from .execution_refs import parse_execution_ref as parse_execution_ref
 from .host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
 from .owner_protocol import OwnerToolCaller
-from .routing import CapabilityRoute, default_routes
+from .routing import default_routes
 from .runtime_release import RuntimeReleaseProxy
 
 

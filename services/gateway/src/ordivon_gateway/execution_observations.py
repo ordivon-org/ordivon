@@ -4,6 +4,7 @@ from typing import Any
 
 from .contracts import (
     ArtifactChunk,
+    CapabilityRoute,
     ExecutionObservation,
     ExecutionResolution,
 )
@@ -16,7 +17,6 @@ from .owner_protocol import (
     _required_bool,
     _required_str,
 )
-from .routing import CapabilityRoute
 
 
 class ExecutionObservationMethods:

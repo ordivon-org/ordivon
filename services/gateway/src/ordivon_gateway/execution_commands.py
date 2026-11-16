@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .contracts import (
+    CapabilityRoute,
     ExecutionReceipt,
 )
 from .execution_refs import GatewayError, parse_execution_ref
@@ -14,7 +15,6 @@ from .owner_protocol import (
     _required_bool,
     _required_str,
 )
-from .routing import CapabilityRoute
 
 
 class ExecutionCommandMethods:
