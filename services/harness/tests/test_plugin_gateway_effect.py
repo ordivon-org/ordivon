@@ -2090,3 +2090,61 @@ def test_gateway_terminal_committed_needs_complete_conclusive_runtime_status_bef
     with pytest.raises(HarnessRuntimeClientError, match=reason):
         adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
     assert [name for name, _ in client.calls] == ["execution.get", "execution.resolve"]
+
+
+@pytest.mark.parametrize(
+    ("fault", "reason"),
+    (
+        ("queued-terminal", "state"),
+        ("working-terminal", "state"),
+        ("failed-status-success-disposition", "state"),
+        ("succeeded-status-failed-disposition", "state"),
+        ("nonzero-success-exit", "exitCode"),
+        ("missing-success-exit", "exitCode"),
+        ("boolean-success-exit", "exitCode"),
+    ),
+)
+def test_gateway_terminal_owner_state_and_exit_evidence_cannot_launder_tool_success(
+    fault: str, reason: str
+) -> None:
+    """The native Job Owner reports status from the same committed resolution.
+
+    A mixed-version/stale Gateway state or missing/nonzero OS success exit
+    must not become a successful Harness Tool message or trigger artifact.read.
+    This consumer test does not claim the installed Gateway has emitted such
+    a mixed record.
+    """
+
+    class ContradictoryOwnerTerminal(GatewayTextArtifacts):
+        def call_tool(self, name, arguments):
+            is_error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload = dict(payload)
+                if fault == "queued-terminal":
+                    payload["state"] = "queued"
+                elif fault == "working-terminal":
+                    payload["state"] = "working"
+                elif fault == "failed-status-success-disposition":
+                    payload["state"] = "failed"
+                elif fault == "succeeded-status-failed-disposition":
+                    payload["execution_disposition"] = "failed"
+                elif fault == "nonzero-success-exit":
+                    payload["exit_code"] = 7
+                elif fault == "missing-success-exit":
+                    payload.pop("exit_code")
+                else:
+                    payload["exit_code"] = True
+            return is_error, payload
+
+    client = ContradictoryOwnerTerminal()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        artifact_read_enabled=True,
+    )
+    adapter._operation_requests[client.native_id] = "request:owner-terminal-truth"
+    with pytest.raises(HarnessRuntimeClientError, match=reason):
+        adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+    assert [name for name, _ in client.calls] == ["execution.get", "execution.resolve"]
