@@ -64,6 +64,7 @@ internal static class OrdivonWindowsJobLauncher
     private const uint Synchronize = 0x00100000;
     private const uint StillActive = 259;
     private const int ErrorInvalidParameter = 87;
+    private const int ErrorAlreadyExists = 183;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct JobObjectBasicLimitInformation
@@ -1825,9 +1826,18 @@ internal static class OrdivonWindowsJobLauncher
         {
             VerifyRuntimeRequestDigest(options);
             job = CreateJobObject(IntPtr.Zero, options.JobName);
+            int jobCreationError = Marshal.GetLastWin32Error();
             if (job == IntPtr.Zero)
             {
                 ThrowWin32("CreateJobObject");
+            }
+            // A committed Attempt must own a freshly created Job Object, not join
+            // a preexisting named object with foreign processes or mutable limits.
+            // Check ERROR_ALREADY_EXISTS *before* changing limits or starting a child.
+            if (jobCreationError == ErrorAlreadyExists)
+            {
+                throw new InvalidOperationException(
+                    "native Runtime Job Object name already exists; refusing non-exclusive Attempt ownership");
             }
             ConfigureExtendedLimits(job, options);
             uint cpuRate = ConfigureCpuRate(job, options.CpuQuotaPercent);
