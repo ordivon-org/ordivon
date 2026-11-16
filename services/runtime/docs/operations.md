@@ -682,11 +682,51 @@ guard replay, unknown commit, restart recovery, rollback and readback.
 No additional Registry, workflow engine or scheduler is introduced.
 
 Production installation is NOT performed by checking in this source.
-Install the exact source operator and dispatcher under
-/usr/local/libexec/ordivon/, install the hash-locked Python venv, and set
-root-owned independent Operator env/config under /etc/ordivon/. The PG
+The separately controlled Root release-operator bundle (dispatcher,
+its Python operator module, the existing ordivon-runtime-deploy helper and
+mcp_probe.py) is installed together under
+/usr/local/libexec/ordivon/pg-release-operator/, distinct from the released
+Server/Runner/Reclaimer payloads under /usr/local/libexec/ordivon/.
+The packaged dispatcher systemd unit must reference that *effective*
+Root-bundle path; check systemctl show ExecStart and the actual installed
+script hashes before deployment. The existing Runtime deployer also has a
+**read-only** Root-bundle currentness consumer (root-bundle-plan): provide
+its full, approved Git commit and independently recorded Runtime owner-tree
+OID using source-repo, commit, expected-owner-tree, require-ref
+and the actual install-dir options. Its five-entry output distinguishes
+current, drifted, missing and unsafe source-to-install byte identities;
+neither a GREEN plan nor five matching bytes grant permission to mutate
+the Root control plane. Treat the plan as an operator review input, not an
+installer, a signed authorization, or a live Service receipt.
+
+An isolated Root candidate may now be **staged but never installed** using
+the same existing deployer command with the root-bundle-stage subcommand and
+the plan's source-repo, commit, require-ref, expected-owner-tree and live
+install-dir inputs, plus a fresh absolute candidate-dir outside the live
+bundle. The command rejects an existing candidate directory, checks Git
+blob identity twice, preserves each original installed preimage digest only
+as a **read-only observation**, and writes a five-file candidate manifest.
+It never calls systemctl, changes release admission, copies over installed
+Root scripts, writes the operator config, or issues a PG ReleaseEffect.
+The resulting candidate directory belongs to the staging caller, **not**
+to Root's authorization or rollback domain; do not copy or trust it merely
+because its manifest reports correct bytes. The independent Root owner must
+revalidate the protected Git SourceCut and all five files, retain a root-owned
+durable preimage, fence new PG release admissions, quiesce the independent
+dispatcher timer/service across reboots, and attest installation and
+rollback under its existing Root credential before enabling a new release.
+The 2026-11-12 historical one-time first-install bootstraps covered only
+Server/Runner payloads, not the Root control plane and not those conditions.
+Install the hash-locked Python venv, and
+set root-owned independent Operator env/config under /etc/ordivon/. The PG
 Operator DSN and allowed service list are never sent by an MCP caller.
 The Runtime app role must not be able to alter the qualification stage.
+A Git source merge or package Unit edit is not a Root-bundle upgrade:
+the trusted Root owner must qualify its own exact preimage, replacement,
+rollback and readback before enabling includePgReclaimer in the operator
+JSON. The ordinary PG ReleaseEffect then installs the three payloads under
+one exact manifest; do not manually copy binaries or enable the automatic
+Workspace GC timer while external PAUSED Run Finalizer remains unqualified.
 
 After the independent release stage is qualified and the systemd timer
 is installed and running, configure the actual PG Runtime service with:

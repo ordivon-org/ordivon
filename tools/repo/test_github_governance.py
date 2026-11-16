@@ -669,6 +669,11 @@ exit 0
             forged_effect_frame = copy.deepcopy(full_report)
             forged_effect_frame["sourceFragmentRefinement"]["effectFrameObserved"] = "implementation_proven"
             invalid_receipts["forged-effect-frame-evidence"] = json.dumps(forged_effect_frame)
+            unqualified_guard = copy.deepcopy(full_report)
+            unqualified_guard["sourceFragmentRefinement"]["effectFrameObserved"] = (
+                "exact_post_projection_native_claim_guard_then_unqualified_dispatch"
+            )
+            invalid_receipts["unqualified-native-guard-frame"] = json.dumps(unqualified_guard)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
