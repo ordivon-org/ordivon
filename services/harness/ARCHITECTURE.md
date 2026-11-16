@@ -386,6 +386,69 @@ Tool-bearing Runs bind a complete Tool catalog digest and Tool grant digest. Bef
 
 The primary CLI defaults to the canonical no-Tool DeepSeek profile. The opt-in `gateway-profile`/Gateway Run path consumes a caller-selected authenticated MCP endpoint, existing Workspace, explicit executable grant and the original PostgreSQL Journal; it does not discover or mint Runtime authority. Other Tool-bearing applications continue to use `ordivon_harness.api` with an application-supplied `HarnessRuntimeClient`.
 
+### R8 cross-database Workspace consumer lifetime (open production gap)
+
+**Observed on 2026-11-16, not yet a deployed fix.** An independent Runtime
+consumer reproduced a Harness PostgreSQL Run paused for `needs_input` with a
+frozen Gateway Tool grant pointing to a native Git Workspace. Even with zero
+Tool calls and no active Runtime Job, a non-force native Workspace close with
+`consumerReleased=true` removed that Workspace. The original Harness Run still
+reopened as `PAUSED`, but its frozen physical Workspace no longer existed.
+The disposable reproduction is recorded as Runtime Job
+`job-01a1e41a-ca97-775b-ab8d-48c231b6455a` and Host #28453.
+This is a confirmed physical *counterexample*, not proof that production
+customer source was lost. Runtime's caller release assertion is not the
+Harness Run's authenticated consumer release certificate.
+
+The minimal **target contract** below is accepted for R8 architecture review;
+it is not a claim that the current Runtime or installed Harness enforces it:
+
+| Phase | Owner and required fact | Can the original Workspace be closed? |
+| --- | --- | --- |
+| PROVISIONAL | Harness PG creates/opens an immutable Run and frozen grant without claiming physical Workspace readiness | Not proven safe by Harness status alone |
+| HELD | A trusted Harness issuer binds the Run, frozen grant epoch and stable native Workspace incarnation; Runtime PG commits a per-Run consumer claim under its own native-close admission fence and certifies exact-key readback | No while any matching native claim remains held |
+| ACTIVE or PAUSED | A Workspace-backed Run obtains HELD **before its first model turn that can pause**, and the physical submission path checks the current native grant/claim epoch again | No; PAUSED is not terminal |
+| SEALED | Original Harness PG authority forbids new Tool intents; Provider/Tool UNKNOWN effects are reconciled; the Run is terminal or has an explicit safe successor; Git/Artifact/domain delivery is attested by its natural consumer | Not yet, until the per-Run native release commits |
+| RELEASED | A trusted issuer submits a source-qualified finalizer for the exact claim and epoch; Runtime PG verifies the claim release under the same native lock, and each other Run sharing the Workspace releases separately | Only after every native Job, Git/source and external consumer qualification permits native close |
+
+**Identity and concurrency.** A native Workspace incarnation is immutable
+over ordinary source editing; mutable `sourceStateDigest` belongs to the
+*current* Workspace-close source CAS and must not invalidate a long-lived
+claim after a legitimate Agent edit. Harness and Runtime PostgreSQL schemas
+may live in different databases: identical advisory-lock integers across
+different databases do **not** protect one shared physical Workspace.
+Short native Runtime PG transactions fence claim reserve, actual effect
+admission and close; a persistent HELD claim protects long user waits without
+holding a database transaction open. Lost reserve/release responses require
+same-key native readback; UNKNOWN must not be interpreted as permission to
+submit another effect or release a claim.
+
+**Effect paths and exceptions.** The existing `HarnessAgentRun.run/resume`
+composition and both `PluginGatewayExecutionBridgeFactory` /
+`GatewayMcpRuntimeAdapter._submit` and built-in `HarnessRuntimeBridge`
+must consume one thin authenticated Workspace-eligibility contract.
+A custom Tool bridge needs it only if it truly uses a Runtime-owned
+Workspace. No-Tool Runs and tools unrelated to Runtime Workspaces require no
+such claim. An old PAUSED Run that predates the claim contract must be
+inspected and explicitly repaired or superseded; neither a new Workspace
+with the same display name nor a bare Harness PG Run status authorizes
+silent physical recovery.
+
+**Other outstanding risk.** The already demonstrated revocation window
+between a Runtime job's admission and physical OS spawn is an *independent*
+issuer-currentness problem. A successful Workspace claim alone does not
+prove that a revoked high-risk effect cannot start. Native effect startup,
+issuer credentials and risk-tiered revocation semantics belong to Runtime
+and Gateway natural owners; Harness does not create a second executor,
+credential authority, queue or distributed transaction coordinator.
+
+The existing Harness PostgreSQL Journal, `ToolStep` Intent/Receipt,
+`runtime_port.py` and owner-native Runtime Claim prototype remain the
+preferred composition points. Actual acceptance must reproduce the failing
+cross-PG native close, then prove its safe rejection, safe legal release,
+multi-Run sharing, editing during HELD, and independent domain TaskSolved.
+See `docs/VERIFICATION.md` and `docs/OPERATIONS.md`.
+
 ## Pause, resume and recovery
 
 Pause snapshots retain Provider source identity plus the Run state content or content digests authorized by the Contract. Exact-content resume starts from an authorized snapshot and may append caller messages. In the non-projected path those messages remain part of the canonical Provider-visible transcript. In a projected WorkingView Run, plain caller `user` messages following a `needs_input` Snapshot are now a separate caller-owned cognition ingress: they are projected after any current-attempt Tool exchanges that happened before that pause, survive WorkingSet transitions, precede Tool exchanges produced after the caller reply, and expire when the next `needs_input` Snapshot starts a new interaction. Their exact bytes are recovered from the authorized Snapshot/RunState continuation and revalidated before Provider dispatch; a forged bridge cannot invent them. Because this is model content rather than a Tool channel, exact caller ingress requires model-content authority but not Tool-content authority. Digest-only recovery remains conservative and cannot reconstruct omitted caller bytes.
