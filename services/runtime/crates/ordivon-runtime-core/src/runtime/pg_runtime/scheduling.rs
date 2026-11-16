@@ -182,6 +182,20 @@ fn is_native_resource_observation(error: &RuntimeError) -> bool {
         && error.field.as_deref() == Some("scheduling.resources")
 }
 
+/// A corrupt committed candidate is a Job-local *invalid request*, not a
+/// failed PostgreSQL Registry. Preserve that distinction in Job events so an
+/// Agent does not mistake one poisoned row for a node-wide database outage.
+fn decode_accepted_candidate(raw: &str) -> RuntimeResult<RuntimeExecutionPlan> {
+    serde_json::from_str(raw).map_err(|parse| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("committed accepted Job has invalid execution plan: {parse}"),
+            Some("executionPlan"),
+            false,
+        )
+    })
+}
+
 /// Only a local, explicitly attributable failure may be isolated. A broken
 /// PostgreSQL writer/transaction or unknown node observation applies to the
 /// entire scheduler and must remain UNKNOWN rather than skipping all jobs.
@@ -467,7 +481,7 @@ impl PgRuntime {
             let job: String = row.get(0);
             let attempt_id: String = row.get(3);
             let decoded: RuntimeResult<(RuntimeExecutionPlan, ResourceScheduling)> =
-                decode(&row.get::<_, String>(2))
+                decode_accepted_candidate(&row.get::<_, String>(2))
                     .and_then(|plan| self.scheduling_contract(&plan).map(|spec| (plan, spec)));
             let (plan, spec) = match decoded {
                 Ok(decoded) => decoded,
@@ -696,6 +710,14 @@ mod scheduler_candidate_tests {
             memory_pressure: 0.0,
             io_pressure: 0.0,
         }
+    }
+
+    #[test]
+    fn invalid_accepted_plan_is_job_scoped_not_registry_unavailable() {
+        let error = decode_accepted_candidate("{not-valid-json").unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("executionPlan"));
+        assert!(!error.retryable);
     }
 
     #[test]
