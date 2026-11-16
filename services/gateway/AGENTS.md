@@ -49,6 +49,17 @@ Keep SPECIFIED, MODEL_VERIFIED, BOUNDED_IMPLEMENTATION_CHECKED,
 SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED as distinct facts;
 unexecuted or unqualified stages are UNKNOWN.
 
+## Fail-closed Host preflight: independent diagnosis is not release proof
+
+When the production preflight cannot read Security's service-private policy
+credential, it remains NO_GO with the original unobservable reason. Its
+additional independentHostReadinessObservations are bounded, read-only Host
+route/anonymous/peer/socket probes and never transmit a bearer in that branch.
+A missing positive Host credential proof is not a claim that the token file
+does not exist; a failed probe is UNKNOWN and a momentarily empty socket view
+does not prove Cloudflare migration. Use this result to coordinate with the
+natural Security, Host and Network owners, never to bypass AuthZEN.
+
 ## HTTP Security PEP and actual CLI wiring
 
 For human and Agent alike, do not infer Gateway capability protection from

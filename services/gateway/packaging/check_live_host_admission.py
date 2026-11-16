@@ -529,6 +529,67 @@ def assess(
     }
 
 
+def _independent_host_readiness_observations() -> dict[str, Any]:
+    """Diagnose independent blockers without crossing Owner credential boundaries.
+
+    This is only reached after qualified Security evidence failed: no inspection
+    of another systemd unit's private credentials, bearer transmission, PDP
+    evaluation, or change to the original fail-closed admission verdict.
+    A probe error is UNKNOWN, never an inferred clean system.
+    """
+
+    def observe(probe: Any) -> Any:
+        try:
+            return probe()
+        except Exception:
+            # Bounded diagnostic probes cannot override the original NO_GO.
+            # Neither their exception text nor a credential is an output.
+            return None
+
+    environment = observe(lambda: _qualified_systemd_environment(GATEWAY_UNIT))
+    route_qualified = (
+        _owner_route_is_probed_endpoint(environment) if isinstance(environment, str) else None
+    )
+    credential_declared = (
+        _declares_host_owner_identity(environment) if isinstance(environment, str) else None
+    )
+    anonymous_denied = observe(_rejects_unauthenticated_host_initialize)
+    clients = observe(_observed_non_gateway_host_tcp_clients)
+    # Deliberately NEVER transmit an Owner token in this diagnostic branch.
+    peers = observe(lambda: _unqualified_active_peer_host_consumers(anonymous_denied=False))
+    if type(anonymous_denied) is not bool:
+        anonymous_denied = None
+    if not isinstance(clients, list) or any(not isinstance(v, str) for v in clients):
+        clients = None
+    if not isinstance(peers, (tuple, list)) or any(not isinstance(v, str) for v in peers):
+        peers = None
+
+    blockers: list[str] = []
+    if route_qualified is False:
+        blockers.append("HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY")
+    if credential_declared is False:
+        blockers.append("GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED")
+    if anonymous_denied is False:
+        blockers.append("HOST_DIRECT_ANONYMOUS_MCP_NOT_PROVEN_DENIED")
+    if clients:
+        blockers.append("HOST_DIRECT_NON_GATEWAY_TCP_CONSUMER_OBSERVED")
+    if peers:
+        blockers.append("ACTIVE_HOST_PEER_AUTHENTICATED_MCP_NOT_PROVEN")
+
+    return {
+        "hostOwnerRouteQualified": route_qualified,
+        "hostOwnerCredentialDeclared": credential_declared,
+        "anonymousHostInitializeDenied": anonymous_denied,
+        "observedDirectHostTcpConsumerClasses": clients,
+        "unverifiedActiveHostPeerConsumers": sorted(peers) if peers is not None else None,
+        "independentBlockers": blockers,
+        "truthBoundary": (
+            "read-only independent diagnostics, not Security authorization or "
+            "Host release admission; empty socket observation does not prove migration"
+        ),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -588,6 +649,7 @@ def main() -> int:
             "kind": "ordivon.gateway-host-release-precondition",
             "status": "NO_GO",
             "reasons": ["HOST_SECURITY_PRECONDITIONS_UNOBSERVABLE"],
+            "independentHostReadinessObservations": _independent_host_readiness_observations(),
             "truthBoundary": "release precondition only; Security PDP and Host remain authoritative",
         }
     print(json.dumps(standing, sort_keys=True))

@@ -656,12 +656,16 @@ uninterrupted availability, a genuine Actor grant or real service effects.
 The native Gateway installer now calls its read-only
 packaging/check_live_host_admission.py **only** for the real
 /opt/ordivon/gateway production prefix, before changing current.
-It reuses the existing Gateway Host Tool registry and reads the
-currently loaded Security PDP systemd credential from
-/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer,
-not the /etc source file that may not yet have been loaded by the
-running PDP. It also checks that the Security PDP is active and that
-the Gateway unit declares a Host Owner bearer credential.
+It reuses the existing Gateway Host Tool registry and tries to
+qualify the Security PDP's current service-private systemd credential at
+/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer.
+That credential is not a cross-Owner public read interface: when systemd
+isolates it from the Gateway/Runtime operator namespace, its grant count is
+UNKNOWN, not zero, and the protected release must remain NO_GO. Do not copy
+or relax access to another service's private credentials. The natural
+Security AuthZEN evaluation API, using actual scoped positive/negative
+decisions, is the preferred future cross-Owner proof rather than another
+Gateway policy database. The script also checks independent Host conditions.
 
 A result of status=NO_GO (exit code 3) means that at least one
 **necessary** installed continuity prerequisite is absent or cannot
