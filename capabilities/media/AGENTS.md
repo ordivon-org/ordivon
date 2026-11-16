@@ -11,6 +11,55 @@ Scope: `capabilities/media/`. Inherit the monorepo `AGENTS.md`; follow this Owne
 5. Select existing LEGO by required postcondition, exact inputs, tool read-back and source/version. The current `planning/lego-plan-r1.json` and `processing/profiles/*.json` supply the native Media planning/profile evidence; **do not** duplicate them into a new registry or invent an extra broker.
 6. Only after selection, materialize relevant dependencies or submit the compiled physical effect through Runtime. Parameterized Python-only context queries may use `mise exec -- python3 scripts/materialize-python.py` and `.venv/bin/python scripts/studio-agent-surface.py`; do not install renderer dependencies for discovery. Bind resulting receipt/bytes to the **real consuming Production/Output/Claim** before declaring a result.
 
+## Mature media engines first: build production capability, not filler output
+
+When changing Studio architecture, the deliverable is a **more capable real
+consumer workflow**, not a larger number of demo videos, experiments, assets,
+or custom abstractions. Read the existing
+[external-capability-evaluation Skill](../../.agents/skills/external-capability-evaluation/SKILL.md)
+and the [compositional-contracts Skill](../../.agents/skills/compositional-contracts/SKILL.md)
+when a proposed replacement crosses an actual implementation boundary.
+
+1. Select a real existing Production/Agent workflow, its editable source,
+   intended Output, and the smallest missing capability. If the existing
+   source Owner or native tool can solve it directly, do not open a new Media
+   Production or build a wrapper.
+2. Before writing new effects, timeline models, renderers or provider APIs,
+   inspect the official mature implementation at an exact upstream commit,
+   including source files, advertised interface, license, limitations, and
+   the relevant native consumer. Use a **bounded/sparse checkout** when
+   source inspection helps; avoid vendoring complete engines by default.
+3. Reuse the appropriate native operator: FFmpeg/FFprobe for AV mechanics and
+   technical observations; OpenTimelineIO for **editorial interchange**, not
+   media rendering; Remotion for TypeScript/React programmatic motion; MLT
+   only when an actual multitrack nonlinear-editing consumer needs its engine;
+   OBS/libobs only for a real capture/live pipeline; Resolve through its
+   supported native API for editable professional finishing. These are
+   capability candidates, **not** mandatory dependencies or a new unified
+   Studio engine. Remotion is source-available with license-specific terms,
+   not an unrestricted OSI-open-source component.
+4. Compare KEEP / DELETE-CUSTOM / DIRECT-REUSE / COMPOSE / MINIMAL-ADAPTER
+   against exact local files and consumers. State what existing code or
+   operational steps the adoption **removes**; reject a new abstraction
+   that merely wraps a working mature tool without discharging a consumer
+   obligation. Do not turn Creative Index, Asset, Runtime or Provider state
+   into a second registry.
+5. Check substitution at both boundaries: editable source and exact native
+   result. Preserve timebase/ranges, media-reference identity, selected
+   profile/adapter versions, tool effects, receipts, technical QC and the
+   final consumer's ability to open, edit and use the Output. A native tool
+   PASS is not a Production acceptance or publication claim.
+6. Use an existing real Production for positive/read-back verification and
+   only the minimal negative fixture necessary to falsify a changed
+   contract. Do **not** create placeholder Productions, toy artworks, or
+   repetitive media experiments to inflate capability or coverage counts.
+   Keep source/licensing qualification, Git adoption, native execution and
+   real downstream consumption as distinct evidence stages.
+
+Prioritize changes that remove custom maintenance, increase editability,
+shorten Agent workflows or prevent real delivery failures. Keep unqualified
+external engines at REFERENCE_ONLY rather than installing speculative stacks.
+
 ## Route to existing capability
 
 | Consumer needs | Existing Media entry / Owner boundary |
