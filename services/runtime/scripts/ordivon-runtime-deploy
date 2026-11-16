@@ -51,6 +51,16 @@ DEFAULT_OPERATOR_ARTIFACTS = (
     ),
     ("mcp_probe.py", "scripts/mcp_probe.py", 0o644, "support"),
 )
+# The independent Root control plane is a different installation authority
+# from the Server/Runner/Reclaimer payloads. Plan only: never self-promote.
+ROOT_OPERATOR_BUNDLE = (
+    ("ordivon-runtime-deploy", 0o755),
+    ("ordivon-runtime-pg-operator", 0o755),
+    ("ordivon-runtime-pg-release-dispatch", 0o755),
+    ("ordivon_runtime_pg_operator.py", 0o644),
+    ("mcp_probe.py", 0o644),
+)
+
 DEFAULT_REQUIRED_TOOLS = (
     "release.apply",
     "release.get",
@@ -88,6 +98,18 @@ STRUCTURED_RELEASE_DRAIN_TIMEOUT_ENV = "ORDIVON_RELEASE_DRAIN_TIMEOUT_MS"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="ordivon-runtime-deploy")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    root_plan = subparsers.add_parser(
+        "root-bundle-plan",
+        help="read-only SourceCut and installed Root operator bundle comparison",
+    )
+    root_plan.add_argument("--source-repo", type=absolute_path, required=True)
+    root_plan.add_argument("--commit", type=exact_commit, required=True)
+    root_plan.add_argument("--require-ref", default="origin/main")
+    root_plan.add_argument("--expected-owner-tree", required=True)
+    root_plan.add_argument("--install-dir", type=absolute_path, required=True)
+    root_plan.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
+    root_plan.add_argument("--pretty", action="store_true")
 
     prepare = subparsers.add_parser(
         "prepare", help="build one exact clean commit and write a digest-bound candidate manifest"
@@ -373,6 +395,96 @@ def required_ref_authority(
         "candidateOwnerTree": candidate_owner_tree,
         "requiredRefOwnerTree": required_ref_owner_tree,
         "authorized": candidate_is_ancestor and candidate_owner_tree == required_ref_owner_tree,
+    }
+
+
+def root_operator_bundle_plan(args: argparse.Namespace) -> dict[str, object]:
+    """Read-only Root controller qualification; not an installer or approval."""
+    git = args.git
+    repo = args.source_repo
+    commit = args.commit
+    root = args.install_dir
+    expected_tree = args.expected_owner_tree
+    if not COMMIT_PATTERN.fullmatch(expected_tree):
+        raise RuntimeError("expected Root owner tree must be one exact Git tree OID")
+    if not root.is_absolute() or ".." in root.parts or root.is_symlink():
+        raise RuntimeError("Root bundle install path must be absolute without aliases")
+    if not root.is_dir() or not root.resolve(strict=True) == root:
+        raise RuntimeError("Root bundle install path is absent or resolves through a symlink")
+    directory_metadata = root.stat()
+    if directory_metadata.st_uid != 0 or directory_metadata.st_mode & 0o022:
+        raise RuntimeError("Root bundle directory is not root-owned and nonwritable by others")
+    resolved = git_text(git, repo, ["rev-parse", "--verify", f"{commit}^{{commit}}"])
+    if resolved != commit:
+        raise RuntimeError("Root bundle Commit is not an exact Git commit")
+    authority = required_ref_authority(git, repo, commit, args.require_ref)
+    git_root, owner_prefix = release_source_layout(git, repo)
+    owner_tree = git_text(git, git_root, ["rev-parse", f"{commit}:{owner_prefix.as_posix()}"])
+    if not COMMIT_PATTERN.fullmatch(owner_tree):
+        raise RuntimeError("Root bundle owner tree is not a Git object ID")
+    bundle: list[dict[str, object]] = []
+    for name, mode in ROOT_OPERATOR_BUNDLE:
+        relative = committed_source_path(git, repo, Path("scripts") / name)
+        ls_tree = git_text(git, git_root, ["ls-tree", commit, "--", relative])
+        record = ls_tree.split("\t", 1)
+        if len(record) != 2 or record[1] != relative:
+            raise RuntimeError(f"Root bundle Git source missing: {name}")
+        git_mode, kind, blob_oid = record[0].split()
+        if kind != "blob" or git_mode != ("100755" if mode == 0o755 else "100644") or not COMMIT_PATTERN.fullmatch(blob_oid):
+            raise RuntimeError(f"Root bundle Git file is not a regular expected-mode blob: {name}")
+        contents = subprocess.run(
+            [str(git), "-C", str(git_root), "cat-file", "blob", blob_oid],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).stdout
+        source_hash = "sha256:" + hashlib.sha256(contents).hexdigest()
+        target = root / name
+        installed_hash: str | None = None
+        installed_mode: int | None = None
+        installed_uid: int | None = None
+        status = "missing"
+        if target.exists() or target.is_symlink():
+            if target.is_symlink() or not target.is_file():
+                status = "unsafe"
+            else:
+                metadata = target.stat()
+                installed_mode = stat.S_IMODE(metadata.st_mode)
+                installed_uid = metadata.st_uid
+                if installed_uid != 0 or installed_mode != mode or metadata.st_nlink != 1:
+                    status = "unsafe"
+                else:
+                    installed_hash = sha256(target)
+                    status = "current" if source_hash == installed_hash else "drift"
+        bundle.append({
+            "name": name,
+            "sourcePath": relative,
+            "sourceBlobOid": blob_oid,
+            "sourceSha256": source_hash,
+            "installedSha256": installed_hash,
+            "installedMode": installed_mode,
+            "installedUid": installed_uid,
+            "expectedMode": mode,
+            "currentness": status,
+        })
+    authorized = bool(authority["authorized"]) and owner_tree == expected_tree
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.runtime-root-bundle-readonly-plan",
+        "truthBoundary": "source Git objects and local root files; no bootstrap, root authority, or release executed",
+        "commit": commit,
+        "sourceOwnerTree": owner_tree,
+        "expectedOwnerTree": expected_tree,
+        "requiredRefAuthority": authority,
+        "installDir": str(root),
+        "bundle": bundle,
+        "currentCount": sum(x["currentness"] == "current" for x in bundle),
+        "drifted": [x["name"] for x in bundle if x["currentness"] == "drift"],
+        "missing": [x["name"] for x in bundle if x["currentness"] == "missing"],
+        "unsafe": [x["name"] for x in bundle if x["currentness"] == "unsafe"],
+        "sourceAuthorized": authorized,
+        "eligibleForRootOwnerReview": authorized and all(x["currentness"] != "unsafe" for x in bundle),
+        "productionInstallExecuted": False,
     }
 
 
@@ -2287,6 +2399,10 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
 def main() -> int:
     try:
         args = parse_args()
+        if args.command == "root-bundle-plan":
+            value = root_operator_bundle_plan(args)
+            print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
+            return 0 if value["eligibleForRootOwnerReview"] else 2
         if args.command == "prepare":
             value = prepare_candidate(args)
             print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))

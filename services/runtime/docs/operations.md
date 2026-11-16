@@ -689,7 +689,16 @@ mcp_probe.py) is installed together under
 Server/Runner/Reclaimer payloads under /usr/local/libexec/ordivon/.
 The packaged dispatcher systemd unit must reference that *effective*
 Root-bundle path; check systemctl show ExecStart and the actual installed
-script hashes before deployment. Install the hash-locked Python venv, and
+script hashes before deployment. The existing Runtime deployer also has a
+**read-only** Root-bundle currentness consumer (root-bundle-plan): provide
+its full, approved Git commit and independently recorded Runtime owner-tree
+OID using source-repo, commit, expected-owner-tree, require-ref
+and the actual install-dir options. Its five-entry output distinguishes
+current, drifted, missing and unsafe source-to-install byte identities;
+neither a GREEN plan nor five matching bytes grant permission to mutate
+the Root control plane. Treat the plan as an operator review input, not an
+installer, a signed authorization, or a live Service receipt.
+Install the hash-locked Python venv, and
 set root-owned independent Operator env/config under /etc/ordivon/. The PG
 Operator DSN and allowed service list are never sent by an MCP caller.
 The Runtime app role must not be able to alter the qualification stage.
