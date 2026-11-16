@@ -110,11 +110,12 @@ fn qualify_pg_scheduling_output_schema(tool: &mut Tool) {
         "scheduler annotation must not shadow a Core field"
     );
     // Only PG job.list can project a previously accepted corrupt Plan as a
-    // partial JSON readback. Its trusted Job/Attempt/Workspace identities
-    // remain mandatory; executable/cwd cannot be reconstructed from that Plan.
+    // partial JSON readback. Qualified Job identities remain mandatory.
+    // If the frozen Workspace snapshot also cannot be authenticated, its
+    // sourceRevision is UNKNOWN too; never use an unrelated Plan revision.
     // This is deliberately NOT a Core RuntimeJobSummary or Legacy ABI change.
     if tool.name.as_ref() == "job.list" {
-        for field in ["executableName", "cwdRelative"] {
+        for field in ["sourceRevision", "executableName", "cwdRelative"] {
             let value = properties
                 .get_mut(field)
                 .expect("Core JobList must declare the expected plan-derived field");
@@ -251,22 +252,25 @@ mod pg_scheduling_output_contract_tests {
             pg.output_schema.expect("PG output schema").as_ref().clone(),
         );
         let job = &schema["$defs"]["RuntimeJobSummary"];
-        for field in ["executableName", "cwdRelative"] {
+        // A bad frozen Plan AND a damaged immutable Workspace snapshot leave
+        // sourceRevision unverified; never trust an unrelated Plan revision.
+        for field in ["sourceRevision", "executableName", "cwdRelative"] {
             assert_eq!(
                 job["properties"][field],
                 json!({"type": ["string", "null"]}),
-                "{field}: an unavailable immutable Plan detail must be explicit null"
+                "{field}: unverified frozen source/Plan detail must be explicit null"
             );
             assert!(
                 job["required"].as_array().unwrap().contains(&json!(field)),
                 "{field}: missing information must not be silently omitted"
             );
         }
-        for field in ["jobId", "clientRequestId", "workspaceId", "sourceRevision"] {
+        // The verified PostgreSQL Job identity survives both corrupt blobs.
+        for field in ["jobId", "operationDigest", "clientRequestId", "workspaceId"] {
             assert_eq!(
                 job["properties"][field]["type"],
                 json!("string"),
-                "{field}: the reliable Job/Workspace identity must remain a string"
+                "{field}: qualified PG Job identity must remain a string"
             );
             assert!(job["required"].as_array().unwrap().contains(&json!(field)));
         }
@@ -281,7 +285,7 @@ mod pg_scheduling_output_contract_tests {
         let old = serde_json::Value::Object(
             portable.output_schema.expect("portable schema").as_ref().clone(),
         );
-        for field in ["executableName", "cwdRelative"] {
+        for field in ["sourceRevision", "executableName", "cwdRelative"] {
             assert_eq!(
                 old["$defs"]["RuntimeJobSummary"]["properties"][field]["type"],
                 json!("string"),
