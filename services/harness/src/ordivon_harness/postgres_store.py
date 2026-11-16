@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 import os
+from collections.abc import Callable, Mapping
 from types import TracebackType
 
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict
@@ -42,6 +43,50 @@ from .store import (
     harness_run_status_after_event,
     validate_harness_event_identity,
 )
+
+# Native Runtime workspace.get is the physical authority. A successfully
+# acquired *PostgreSQL* advisory lock by itself does not prove that this
+# Workspace is still OPEN: another NativeClose may already have completed.
+# The trusted operator binds a bounded authenticated Runtime reader here.
+# Never accept a caller-authored bool, cached preflight, or an MCP error body.
+_WORKSPACE_SHA_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
+_WORKSPACE_GIT_REV_RE = re.compile(r"[0-9a-f]{40,64}\Z")
+WorkspaceOpenReader = Callable[[str], Mapping[str, JsonValue]]
+
+
+def _require_native_workspace_open(
+    workspace_id: str, workspace_open_reader: WorkspaceOpenReader | None
+) -> None:
+    if workspace_open_reader is None:
+        raise HarnessEventConflict(
+            "Workspace Run birth requires operator-bound native workspace.get"
+        )
+    try:
+        observed = workspace_open_reader(workspace_id)
+    except Exception as error:
+        raise HarnessEventConflict(
+            "native Workspace OPEN witness unavailable; no Run/Claim admitted"
+        ) from error
+    if (
+        not isinstance(observed, Mapping)
+        or observed.get("workspaceId") != workspace_id
+        or not isinstance(observed.get("sourceRepo"), str)
+        or not observed["sourceRepo"].startswith("/")
+        or not isinstance(observed.get("sourceRevision"), str)
+        or _WORKSPACE_GIT_REV_RE.fullmatch(observed["sourceRevision"]) is None
+        or not isinstance(observed.get("currentHeadRevision"), str)
+        or _WORKSPACE_GIT_REV_RE.fullmatch(observed["currentHeadRevision"]) is None
+        or not isinstance(observed.get("sourceStateDigest"), str)
+        or _WORKSPACE_SHA_RE.fullmatch(observed["sourceStateDigest"]) is None
+        or observed.get("headMode") not in ("detached", "branch")
+        or type(observed.get("dirty")) is not bool
+        or type(observed.get("createdAtMs")) is not int
+        or observed["createdAtMs"] < 0
+    ):
+        raise HarnessEventConflict(
+            "native Workspace OPEN witness has no exact current physical identity"
+        )
+
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_info (key text PRIMARY KEY, value text NOT NULL);
@@ -243,14 +288,10 @@ class PostgresHarnessStore:
                 with self.connection.transaction():
                     self.connection.execute(_SCHEMA)
                     self.connection.execute(
-                        sql.SQL(_ISSUER_ADMISSION_FUNCTION).format(
-                            schema=sql.Identifier(schema)
-                        )
+                        sql.SQL(_ISSUER_ADMISSION_FUNCTION).format(schema=sql.Identifier(schema))
                     )
                     self.connection.execute(
-                        sql.SQL(_WORKSPACE_CLAIM_FUNCTION).format(
-                            schema=sql.Identifier(schema)
-                        )
+                        sql.SQL(_WORKSPACE_CLAIM_FUNCTION).format(schema=sql.Identifier(schema))
                     )
             row = self.connection.execute(
                 "SELECT value FROM schema_info WHERE key='schema_version'"
@@ -354,8 +395,8 @@ class PostgresHarnessStore:
 
     def _require_workspace_claim(self, harness_run_id: str, workspace_id: str) -> str:
         row = self.connection.execute(
-            "SELECT workspace_id,claim_state FROM run_workspace_claims "
-            "WHERE harness_run_id=%s", (harness_run_id,)
+            "SELECT workspace_id,claim_state FROM run_workspace_claims WHERE harness_run_id=%s",
+            (harness_run_id,),
         ).fetchone()
         if row is None or row["workspace_id"] != workspace_id:
             raise HarnessEventConflict("Harness Run Workspace ownership is missing or different")
@@ -405,11 +446,17 @@ class PostgresHarnessStore:
             return True
 
     def create_run(
-        self, contract: HarnessRunContract, *, workspace_id: str | None = None
+        self,
+        contract: HarnessRunContract,
+        *,
+        workspace_id: str | None = None,
+        workspace_open_reader: WorkspaceOpenReader | None = None,
     ) -> HarnessEventAdmission:
         if workspace_id is not None and (
-            not isinstance(workspace_id, str) or not workspace_id.strip()
-            or workspace_id != workspace_id.strip() or len(workspace_id) > 96
+            not isinstance(workspace_id, str)
+            or not workspace_id.strip()
+            or workspace_id != workspace_id.strip()
+            or len(workspace_id) > 96
         ):
             raise ValueError("Runtime Workspace identity must be a bounded trimmed string")
         event_id = (
@@ -426,6 +473,10 @@ class PostgresHarnessStore:
                 self.connection.execute(
                     "SELECT pg_advisory_xact_lock(%s)", (_WORKSPACE_EFFECT_ADMISSION_LOCK,)
                 )
+                # Native close holds exactly this lock in the SAME database.
+                # Checking OPEN here prevents close-before-birth and
+                # preflight-before-close-before-birth ghost grants.
+                _require_native_workspace_open(workspace_id, workspace_open_reader)
             contract_object = self._object(
                 contract.to_dict(), _CONTRACT_OBJECT_KIND, now_ms=contract.created_at_ms
             )
@@ -761,7 +812,9 @@ class PostgresHarnessStore:
         for row in rows:
             payload = self._decode_object_row(
                 row["payload_digest"],
-                None if row["object_kind"] is None else {
+                None
+                if row["object_kind"] is None
+                else {
                     "kind": row["object_kind"],
                     "byte_length": row["object_byte_length"],
                     "content": row["object_content"],

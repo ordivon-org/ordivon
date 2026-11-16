@@ -23,7 +23,7 @@ from .ordivon.runtime_bridge import (
     HarnessRuntimeBridge,
 )
 from .runtime_port import HarnessRuntimeClient
-from .postgres_store import PostgresHarnessStore
+from .postgres_store import PostgresHarnessStore, WorkspaceOpenReader
 from .standalone import (
     HarnessAgentExecution,
     HarnessCognitionProfile,
@@ -106,6 +106,7 @@ class HarnessAgentRun:
         runtime: HarnessRuntimeClient | None = None,
         tool_bridge: ToolBridge | None = None,
         tool_bridge_factory: HarnessToolBridgeFactory | None = None,
+        workspace_open_reader: WorkspaceOpenReader | None = None,
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
@@ -114,41 +115,69 @@ class HarnessAgentRun:
         No SQLite state root, implicit schema creation, or dual writes.
         """
         cls._validate_structure(
-            contract, cognition_profile=cognition_profile,
-            execution_binding=execution_binding, runtime=runtime,
-            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+            contract,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            tool_bridge=tool_bridge,
+            tool_bridge_factory=tool_bridge_factory,
         )
         adapter = cls._resolve_adapter(contract, adapter_factory)
+
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
+
         # A long-lived consumer hold is born atomically with the Harness Run,
         # BEFORE any Gateway/Runtime effect. A Job or short writer lease cannot
         # stand in for this cross-Job ownership. The caller-supplied grant is
         # never a release proof.
-        workspace_ref = _runtime_consumer_workspace_ref(
-            execution_binding, tool_bridge_factory
-        )
+        workspace_ref = _runtime_consumer_workspace_ref(execution_binding, tool_bridge_factory)
+        # The native get is an operator-supplied capability, NOT a Tool grant
+        # or untrusted Run Contract field. Direct Runtime clients can supply
+        # the exact current OPEN projection. Gateway-only consumers MUST
+        # provide a trusted bounded Native reader; no reader => no Run birth.
+        if workspace_ref is not None and workspace_open_reader is None and runtime is not None:
+
+            def runtime_native_workspace_open_reader(workspace_id: str):
+                return runtime.call_tool(
+                    "workspace.get", {"schemaVersion": 1, "workspaceId": workspace_id}
+                )
+
+            workspace_open_reader = runtime_native_workspace_open_reader
         with factory() as store:
             try:
                 projection = store.load_run(contract.harness_run_id)
             except KeyError:
-                store.create_run(contract, workspace_id=workspace_ref)
+                store.create_run(
+                    contract,
+                    workspace_id=workspace_ref,
+                    workspace_open_reader=workspace_open_reader,
+                )
             else:
-                if (projection.contract_digest != contract.digest
+                if (
+                    projection.contract_digest != contract.digest
                     or projection.caller_id != contract.caller_id
-                    or projection.caller_run_ref != contract.caller_run_ref):
+                    or projection.caller_run_ref != contract.caller_run_ref
+                ):
                     raise HarnessAgentRunCompositionError(
                         "existing Harness PG Run differs from supplied Contract"
                     )
                 if workspace_ref is not None and (
                     store.workspace_claim_state(contract.harness_run_id, workspace_ref) != "held"
                 ):
-                    raise HarnessAgentRunCompositionError("existing Run Workspace claim was released")
+                    raise HarnessAgentRunCompositionError(
+                        "existing Run Workspace claim was released"
+                    )
         return cls._bind(
-            contract, adapter, cognition_profile=cognition_profile,
-            execution_binding=execution_binding, runtime=runtime,
-            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
-            clock_ms=clock_ms, monotonic_ms=monotonic_ms,
+            contract,
+            adapter,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            tool_bridge=tool_bridge,
+            tool_bridge_factory=tool_bridge_factory,
+            clock_ms=clock_ms,
+            monotonic_ms=monotonic_ms,
             store_factory=factory,
         )
 
@@ -169,15 +198,15 @@ class HarnessAgentRun:
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
         """Reopen from the authoritative PostgreSQL Journal after process loss."""
+
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
+
         with factory() as store:
             contract = EventSourcedRunContinuity.open(
                 store, harness_run_id, clock_ms=clock_ms
             ).contract
-            workspace_ref = _runtime_consumer_workspace_ref(
-                execution_binding, tool_bridge_factory
-            )
+            workspace_ref = _runtime_consumer_workspace_ref(execution_binding, tool_bridge_factory)
             if workspace_ref is not None:
                 claim_state = store.workspace_claim_state(harness_run_id, workspace_ref)
                 projection = store.load_run(harness_run_id)
@@ -188,16 +217,24 @@ class HarnessAgentRun:
                         "Run Workspace consumer hold is not current"
                     )
         cls._validate_structure(
-            contract, cognition_profile=cognition_profile,
-            execution_binding=execution_binding, runtime=runtime,
-            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+            contract,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            tool_bridge=tool_bridge,
+            tool_bridge_factory=tool_bridge_factory,
         )
         adapter = cls._resolve_adapter(contract, adapter_factory)
         return cls._bind(
-            contract, adapter, cognition_profile=cognition_profile,
-            execution_binding=execution_binding, runtime=runtime,
-            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
-            clock_ms=clock_ms, monotonic_ms=monotonic_ms,
+            contract,
+            adapter,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            tool_bridge=tool_bridge,
+            tool_bridge_factory=tool_bridge_factory,
+            clock_ms=clock_ms,
+            monotonic_ms=monotonic_ms,
             store_factory=factory,
         )
 
@@ -399,9 +436,7 @@ class HarnessAgentRun:
         return self.store_factory()
 
     def _continuity(self, store: HarnessStore) -> EventSourcedRunContinuity:
-        return EventSourcedRunContinuity.open(
-            store, self.harness_run_id, clock_ms=self.clock_ms
-        )
+        return EventSourcedRunContinuity.open(store, self.harness_run_id, clock_ms=self.clock_ms)
 
     def _runner(
         self,
@@ -430,9 +465,7 @@ class HarnessAgentRun:
         provider_source=None,
     ) -> ToolBridge:
         if self._no_tool_surface:
-            return HarnessAgentBridge(
-                self.contract, continuity, provider_source=provider_source
-            )
+            return HarnessAgentBridge(self.contract, continuity, provider_source=provider_source)
         if self.tool_bridge_factory is not None:
             return self.tool_bridge_factory.build(
                 self.contract,

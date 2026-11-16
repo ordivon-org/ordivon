@@ -43,6 +43,21 @@ def _digest(label: str) -> str:
     return canonical_digest({"harness-plugin-h2": label})
 
 
+def _fixture_native_workspace_open_reader(workspace_id: str) -> dict[str, object]:
+    """Unit-only mocked trusted Runtime workspace.get. Physical Git is tested separately."""
+    assert workspace_id == "ws-plugin-h2"
+    return {
+        "workspaceId": workspace_id,
+        "sourceRepo": "/tmp/harness-plugin-h2-source-fixture",
+        "sourceRevision": "a" * 40,
+        "currentHeadRevision": "a" * 40,
+        "sourceStateDigest": "sha256:" + "a" * 64,
+        "headMode": "detached",
+        "dirty": False,
+        "createdAtMs": 20_000,
+    }
+
+
 class GatewayExecutionFixture:
     def __init__(
         self,
@@ -286,6 +301,7 @@ def test_effect_gateway_runtime_validation_rejects_duplicate_required_tool_names
         contract,
         lambda _: _adapter(),
         tool_bridge_factory=factory,
+        workspace_open_reader=_fixture_native_workspace_open_reader,
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -322,6 +338,7 @@ def test_effect_gateway_rejects_tool_schema_drift_after_run_preflight_before_int
         _contract(factory),
         lambda _: _adapter(),
         tool_bridge_factory=factory,
+        workspace_open_reader=_fixture_native_workspace_open_reader,
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -362,6 +379,7 @@ def test_effect_gateway_catalog_transport_loss_before_intent_is_typed_and_non_di
         _contract(factory),
         lambda _: _adapter(),
         tool_bridge_factory=factory,
+        workspace_open_reader=_fixture_native_workspace_open_reader,
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -457,6 +475,7 @@ def test_effect_gateway_real_mcp_http_schema_drift_before_pg_intent_never_dispat
             _contract(factory),
             lambda _: _adapter(),
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -490,6 +509,7 @@ def test_omitted_timeout_is_bounded_by_actual_harness_grant(pg_schema) -> None:
             _contract(factory),
             lambda _contract: _adapter(timeout_ms=None),
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -530,6 +550,7 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
             contract,
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -576,6 +597,7 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, 
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -642,6 +664,7 @@ def test_durable_effect_handoff_rejects_post_intent_mutation_before_owner_call(
         _contract(factory),
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_open_reader=_fixture_native_workspace_open_reader,
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -667,6 +690,7 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_sc
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -723,6 +747,7 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_sc
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=FixedClock(),
             monotonic_ms=FixedClock(),
         )
@@ -942,6 +967,7 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation(pg_sc
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -1124,6 +1150,7 @@ def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object, p
             _contract(factory),
             lambda _contract: adapter,
             tool_bridge_factory=factory,
+            workspace_open_reader=_fixture_native_workspace_open_reader,
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -1473,6 +1500,7 @@ def test_real_pg_harness_stays_unknown_when_gateway_owner_identity_cannot_be_pro
         _contract(factory),
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_open_reader=_fixture_native_workspace_open_reader,
         clock_ms=FixedClock(),
         monotonic_ms=FixedClock(),
     )
@@ -1576,9 +1604,14 @@ def test_h2_run_birth_serializes_with_runtime_workspace_close_lock(pg_schema, mo
     entered_birth = Event()
     original = PostgresHarnessStore.create_run
 
-    def observed_birth(self, candidate, *, workspace_id=None):
+    def observed_birth(self, candidate, *, workspace_id=None, workspace_open_reader=None):
         entered_birth.set()
-        return original(self, candidate, workspace_id=workspace_id)
+        return original(
+            self,
+            candidate,
+            workspace_id=workspace_id,
+            workspace_open_reader=workspace_open_reader,
+        )
 
     monkeypatch.setattr(PostgresHarnessStore, "create_run", observed_birth)
     with ThreadPoolExecutor(max_workers=1) as pool:
@@ -1587,9 +1620,12 @@ def test_h2_run_birth_serializes_with_runtime_workspace_close_lock(pg_schema, mo
                 close_tx.execute("SELECT pg_advisory_xact_lock(%s)", (79245017,))
                 future = pool.submit(
                     HarnessAgentRun.create,
-                    pg_schema[0], pg_schema[1], contract,
+                    pg_schema[0],
+                    pg_schema[1],
+                    contract,
                     lambda _: _adapter(),
                     tool_bridge_factory=factory,
+                    workspace_open_reader=_fixture_native_workspace_open_reader,
                 )
                 assert entered_birth.wait(timeout=5)
                 time.sleep(0.12)
@@ -1621,6 +1657,7 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
         original,
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_open_reader=_fixture_native_workspace_open_reader,
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -1630,6 +1667,7 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
         overlapping,
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_open_reader=_fixture_native_workspace_open_reader,
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -1658,6 +1696,7 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
         # PostgreSQL RESTRICT: deleting an unfinished Run cannot silently
         # erase its long-lived consumer claim through an FK CASCADE.
         import psycopg
+
         with pytest.raises(psycopg.errors.RestrictViolation):
             store.connection.execute(
                 "DELETE FROM runs WHERE harness_run_id=%s",
@@ -1668,25 +1707,176 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
 
         with pytest.raises(HarnessTerminalConflict):
             store.release_workspace_claim(
-                second.harness_run_id, "ws-plugin-h2",
+                second.harness_run_id,
+                "ws-plugin-h2",
                 expected_run_revision=projection.revision,
             )
         terminal = store.load_run(first.harness_run_id)
-        assert store.release_workspace_claim(
-            first.harness_run_id, "ws-plugin-h2",
-            expected_run_revision=terminal.revision,
-        ) is True
-        assert store.release_workspace_claim(
-            first.harness_run_id, "ws-plugin-h2",
-            expected_run_revision=terminal.revision,
-        ) is False
-        assert store.connection.execute(
-            "SELECT harness_workspace_unreleased_count(%s) AS held",
-            ("ws-plugin-h2",),
-        ).fetchone()["held"] == 1
+        assert (
+            store.release_workspace_claim(
+                first.harness_run_id,
+                "ws-plugin-h2",
+                expected_run_revision=terminal.revision,
+            )
+            is True
+        )
+        assert (
+            store.release_workspace_claim(
+                first.harness_run_id,
+                "ws-plugin-h2",
+                expected_run_revision=terminal.revision,
+            )
+            is False
+        )
+        assert (
+            store.connection.execute(
+                "SELECT harness_workspace_unreleased_count(%s) AS held",
+                ("ws-plugin-h2",),
+            ).fetchone()["held"]
+            == 1
+        )
         # A cannot forge B's relinquishment, and an unrelated Workspace is
         # never counted as if it held B's independently scoped claim.
-        assert store.connection.execute(
-            "SELECT harness_workspace_unreleased_count(%s) AS held",
-            ("ws-other",),
-        ).fetchone()["held"] == 0
+        assert (
+            store.connection.execute(
+                "SELECT harness_workspace_unreleased_count(%s) AS held",
+                ("ws-other",),
+            ).fetchone()["held"]
+            == 0
+        )
+
+
+def test_h2_run_birth_rechecks_real_git_worktree_after_close(pg_schema, tmp_path) -> None:
+    """PG18+real Git: stale preflight never makes a postclose Harness Run/Claim."""
+    import os
+    import subprocess
+    import hashlib
+    from ordivon_harness.store_errors import HarnessEventConflict
+
+    git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    git_env.update(
+        {
+            "GIT_AUTHOR_NAME": "Disposable Birth Test",
+            "GIT_AUTHOR_EMAIL": "birth@localhost.invalid",
+            "GIT_COMMITTER_NAME": "Disposable Birth Test",
+            "GIT_COMMITTER_EMAIL": "birth@localhost.invalid",
+        }
+    )
+    source = tmp_path / "source"
+    source.mkdir()
+    worktree = tmp_path / "ws-physical-test"
+
+    def git(*args: str) -> str:
+        result = subprocess.run(
+            ["/usr/bin/git", "-C", str(source), *args],
+            env=git_env,
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=20,
+        )
+        return result.stdout.strip()
+
+    git("init", "-q")
+    (source / "README.md").write_text("physical OPEN/close interleaving test\n")
+    git("add", "README.md")
+    git("commit", "-qm", "open")
+    revision = git("rev-parse", "HEAD")
+    git("worktree", "add", "--detach", "-q", str(worktree), revision)
+
+    def native_git_get(workspace_id: str) -> dict[str, object]:
+        # Test adapter to the *real* Git carrier. In deployment this adapter
+        # MUST bind authenticated Runtime.workspace.get, not a cached JSON.
+        registered = git("worktree", "list", "--porcelain")
+        if not worktree.is_dir() or f"worktree {worktree}" not in registered:
+            raise RuntimeError("Native Runtime workspace.get: Workspace is closed")
+        head = subprocess.check_output(
+            ["/usr/bin/git", "-C", str(worktree), "rev-parse", "HEAD"],
+            env=git_env,
+            text=True,
+            timeout=20,
+        ).strip()
+        return {
+            "workspaceId": workspace_id,
+            "sourceRepo": str(source),
+            "sourceRevision": revision,
+            "currentHeadRevision": head,
+            "sourceStateDigest": "sha256:"
+            + hashlib.sha256((str(worktree) + head).encode()).hexdigest(),
+            "headMode": "detached",
+            "dirty": False,
+            "createdAtMs": 1,
+        }
+
+    workspace_id = "ws-physical-native-close"
+    # This is the vulnerable old path: Get outside the lock, then Close, then
+    # create_run blindly registers a held Claim. The new code MUST call Get
+    # again AFTER taking the exact same PG advisory transaction lock.
+    old_preflight = native_git_get(workspace_id)
+    assert old_preflight["workspaceId"] == workspace_id
+    git("worktree", "remove", str(worktree))
+    assert not worktree.exists()
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        contract = _contract(_factory(GatewayExecutionFixture()))
+        with pytest.raises(HarnessEventConflict, match="native Workspace OPEN witness unavailable"):
+            store.create_run(
+                contract,
+                workspace_id=workspace_id,
+                workspace_open_reader=native_git_get,
+            )
+        with pytest.raises(KeyError):
+            store.load_run(contract.harness_run_id)
+        count = store.connection.execute(
+            "SELECT count(*) AS n FROM run_workspace_claims"
+        ).fetchone()["n"]
+        assert count == 0
+    assert not worktree.exists()
+
+
+@pytest.mark.parametrize(
+    "invalidity",
+    (
+        "missing_reader",
+        "transport_loss",
+        "wrong_identity",
+        "missing_exact_digest",
+    ),
+)
+def test_h2_run_birth_requires_typed_current_native_open_witness(
+    pg_schema, invalidity: str
+) -> None:
+    from ordivon_harness.store_errors import HarnessEventConflict
+
+    contract = _contract(_factory(GatewayExecutionFixture()))
+    workspace_id = "ws-plugin-h2"
+    reader = _fixture_native_workspace_open_reader
+    if invalidity == "missing_reader":
+        reader = None
+    elif invalidity == "transport_loss":
+
+        def reader(_ws: str) -> dict[str, object]:
+            raise TimeoutError("native Runtime get outcome UNKNOWN")
+    elif invalidity == "wrong_identity":
+
+        def reader(ws: str) -> dict[str, object]:
+            return {**_fixture_native_workspace_open_reader(ws), "workspaceId": "ws-foreign"}
+    elif invalidity == "missing_exact_digest":
+
+        def reader(ws: str) -> dict[str, object]:
+            return {**_fixture_native_workspace_open_reader(ws), "sourceStateDigest": ""}
+
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        with pytest.raises(HarnessEventConflict):
+            store.create_run(
+                contract,
+                workspace_id=workspace_id,
+                workspace_open_reader=reader,
+            )
+        with pytest.raises(KeyError):
+            store.load_run(contract.harness_run_id)
+        assert (
+            store.connection.execute("SELECT count(*) AS n FROM run_workspace_claims").fetchone()[
+                "n"
+            ]
+            == 0
+        )
