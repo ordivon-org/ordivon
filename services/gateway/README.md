@@ -568,7 +568,7 @@ domain completion. Reuse the existing GatewayService and its explicit compositio
 ExecutionCommandMethods and ExecutionObservationMethods, with the official
 HTTP/Owner MCP SDK, not another Scheduler. Gateway does not use a multiple-
 inheritance ExecutionCoordinator shell; each existing component receives the
-same immutable route mapping and Owner caller explicitly. Its public MCP
+same validated route mapping and Owner caller explicitly. Its public MCP
 Tool Surface and Job/Artifact ownership remain unchanged.
 
 **Critical result projection**: A Runtime Artifact chunk is a typed
