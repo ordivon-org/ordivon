@@ -250,3 +250,24 @@ def test_three_study_route_dogfood_preserves_axis_and_authority_separation() -> 
         assert resolved.observation_errors == ["skills: owner endpoint is not configured"]
         assert any("not authorization" in item for item in resolved.non_claims)
         assert any("Runtime execution success" in item for item in resolved.non_claims)
+
+
+def test_research_study_birth_source_refs_preserve_external_repository_authority() -> None:
+    """Public resolution must not describe research-v2 references as monorepo-only."""
+    caller = ResolverCaller()
+    resolved = asyncio.run(
+        GatewayService(caller).capability_resolve(capability="research.study.birth")
+    )
+    assert caller.calls == []  # no unobserved owner execution or availability claim
+    assert {ref for ref in resolved.source_refs if ref.startswith("research-v2:")} == {
+        "research-v2:profiles/research_birth_policy.toml",
+        "research-v2:src/ordivon_research/study_birth.py",
+    }
+    source_claims = [claim for claim in resolved.non_claims if "sourceRefs" in claim]
+    assert len(source_claims) == 1
+    assert "unprefixed" in source_claims[0]
+    assert "repository-prefixed" in source_claims[0]
+    assert "source authority" in source_claims[0]
+    assert "revision" in source_claims[0]
+    assert resolved.selected_skill is None
+    assert resolved.observation_errors == []

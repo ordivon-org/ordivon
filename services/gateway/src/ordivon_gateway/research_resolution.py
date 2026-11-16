@@ -96,7 +96,7 @@ async def resolve_research_capability(
         "A resolved Skill is advisory procedural content, not scientific truth authority.",
         "Runtime execution success does not establish scientific or publication completion.",
         "Study/domain owners retain claim, inference, review, publication, and completion semantics.",
-        "sourceRefs are current monorepo paths at the release SourceCut only; independently requalify newer source and external Study authority before use.",
+        "sourceRefs identify source locations, not verified source bytes: unprefixed paths are relative to this monorepo's release SourceCut; repository-prefixed paths require independent source authority and revision verification before use.",
     ]
     digest_payload = {
         "capability": spec.capability,
