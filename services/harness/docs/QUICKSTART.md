@@ -468,6 +468,41 @@ reconciled from the original PostgreSQL Intent and then independently
 resolved again by the official Gateway client. This is a single bounded
 scenario, not a production failure-rate or liveness guarantee.
 
+### 2026-11-16 R4: live autonomous coding task and hidden-domain acceptance
+
+On exact main source `659e526e60bd6bf02ed068fa92be49819a12e4c4`,
+one independent DeepSeek Flash autonomous coding task used the installed
+authenticated Gateway (`execution.linux`) and native Linux Runtime in one
+disposable PostgreSQL 18.7 Harness Run. The model-visible Git Workspace
+contained only the three public `HARNESS-EDIT-ADDRESSING-002` task files,
+never the hidden verifier or reference oracle. The Agent first read the
+source, then changed `feature_flags.py`, then ran its public unittest.
+
+- 4 genuine model calls; 3 original physical Owner tool calls; 9,550 total tokens.
+- Original PG Run `harness-run:real-coding-r4-c4cc2d5ff6e340c5`: `completed`;
+  latest physical ToolStep Receipt `observed`, independent Gateway Owner
+  `execution.get` confirmed native Job/exit0/delivery committed.
+- Independent domain verifier: public test **PASS**, hidden QA **PASS**;
+  only `feature_flags.py` modified, `SPEC.md` and test unmodified.
+- Live source test Job: `job-01a1e2f7-73d7-721e-a9be-944da28967dd`,
+  `1 passed in 15.59s`. Evidence summary:
+  `evidence/r4-real-coding-deepseek-gateway-postgres-hidden-qa-20261116.json`.
+
+To reproduce, supply a fresh separate Git Workspace containing only the
+three public fixture files, an existing first-party Gateway bearer file,
+an existing DeepSeek secret file, and an isolated scratch PostgreSQL 18 DSN.
+Then explicitly run the opt-in `tests/test_live_coding_task_r4.py` with
+`HARNESS_REAL_CODING_TASK_R4=1`, `HARNESS_REAL_CODING_WORKSPACE_ID`,
+`HARNESS_REAL_GATEWAY_URL`, `HARNESS_REAL_GATEWAY_BEARER_TOKEN_FILE`,
+`HARNESS_REAL_DEEPSEEK_SECRET_FILE`, `HARNESS_PG_TEST_DSN` set.
+Ordinary CI skips this test; it does not mint credentials or charge models.
+
+The verified result is one genuine Domain TaskSolved case, **not**
+a statistical success rate and **not** a machine-checked Rust production
+AgentLoop refinement. The original PG18 scratch server was removed after
+the test, while the retained native Owner Jobs and source/QA evidence can
+be independently re-observed. `candidate_completed` alone is not TaskSolved.
+
 ## Recovery
 
 Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:
