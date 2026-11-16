@@ -488,6 +488,97 @@ pub(crate) fn list_open_workspace_record_inventory(
         }
         records.push(record);
     }
+    // A crash after native Git removal may leave only the durable CLOSING
+    // record. Scanning workspaces_root alone would make this incomplete close
+    // invisible to workspace.list and to its natural lifecycle consumer.
+    // This is an observation, NOT permission to replay close or release a Run.
+    let records_root = config.workspace_records_root();
+    for entry in
+        fs::read_dir(&records_root).map_err(|error| io_error(&records_root, "list", error))?
+    {
+        let entry =
+            entry.map_err(|error| io_error(&records_root, "read directory entry", error))?;
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("json") {
+            continue;
+        }
+        let Some(workspace_id) = path.file_stem().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if let Err(error) = super::validate_id(workspace_id, "workspaceId") {
+            issues.push(WorkspaceRecordInventoryIssue {
+                workspace_id: workspace_id.to_string(),
+                error,
+            });
+            continue;
+        }
+        // The physical first pass already reported this identity, including
+        // corrupt/closing records. A record-only entry is a separate exception.
+        if config.workspace_path(workspace_id).exists() {
+            continue;
+        }
+        let error = match entry.file_type() {
+            Ok(file_type) if file_type.is_file() && !file_type.is_symlink() => {
+                match read_workspace_record_bytes(&path) {
+                    Ok(bytes) => match decode_closed_workspace_record(&bytes) {
+                        Ok(Some(closed)) => {
+                            // Valid CLOSED tombstones are intentional and must
+                            // not be returned as unfinished physical work.
+                            if let Err(error) = validate_closed_identity(&closed, workspace_id) {
+                                Some(error)
+                            } else {
+                                None
+                            }
+                        }
+                        Ok(None) => match decode_closing_workspace_record(&bytes) {
+                            Ok(Some(closing)) => {
+                                if let Err(error) =
+                                    validate_open_identity(&closing.record, workspace_id)
+                                {
+                                    Some(error)
+                                } else if let Err(error) =
+                                    bind_workspace_record_path(config, workspace_id, closing.record)
+                                {
+                                    // Use the SAME legacy/modern source-path binder
+                                    // as exact native close reconciliation.
+                                    Some(error)
+                                } else {
+                                    Some(UniversalExecError::new(
+                                        UniversalExecErrorCode::WorkspaceStateMismatch,
+                                        "record-only CLOSING needs the original close request and native/PG owner reconciliation; do not auto-release or delete",
+                                        Some("workspaceId"),
+                                        true,
+                                    ))
+                                }
+                            }
+                            // Preserve historical OPEN/OPENING inventory semantics;
+                            // this repair only makes durable CLOSING visible.
+                            // The existing NativeClose protocol remains the sole
+                            // authority for recovering other record states.
+                            Ok(None) => None,
+                            Err(error) => Some(error),
+                        },
+                        Err(error) => Some(error),
+                    },
+                    Err(error) => Some(error),
+                }
+            }
+            Ok(_) => Some(UniversalExecError::new(
+                UniversalExecErrorCode::MetadataCorrupt,
+                "record-only Workspace identity is not a regular non-symlink JSON file",
+                Some("workspaceId"),
+                false,
+            )),
+            Err(error) => Some(io_error(&path, "inspect record-only Workspace", error)),
+        };
+        if let Some(error) = error {
+            issues.push(WorkspaceRecordInventoryIssue {
+                workspace_id: workspace_id.to_string(),
+                error,
+            });
+        }
+    }
+
     records.sort_by(|left, right| {
         right
             .created_unix_ms
