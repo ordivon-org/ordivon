@@ -365,6 +365,67 @@ class GatewayMcpRuntimeAdapter:
                         f"Gateway execution lowering has invalid {field} u64 bound"
                     )
                 gateway_args[field] = value
+        # Replaying a *locally bound* physical request is an Owner readback,
+        # never a second execution.submit. The verified Gateway may derive a
+        # different native request key after the caller's ingress Principal
+        # changes, even when the public clientRequestId stays identical.
+        # Reject absent/conflicting original Job evidence before any new send.
+        bound_jobs = [
+            native_id
+            for native_id, original_request in self._operation_requests.items()
+            if original_request == request_id
+        ]
+        if bound_jobs:
+            # A readback via Gateway execution.get can reconcile and in a
+            # Legacy Runtime may dispatch an already Accepted native Job.
+            # Preserve the same strict native effect gate on this path too.
+            # The original exact Formal final-dispatch frame stays untouched.
+            replay_port = self._workspace_admission
+            if self._workspace_admission_required and replay_port is None:
+                raise HarnessWorkspaceAdmissionUnavailable(
+                    "Gateway bound replay requires a certified Runtime Workspace Claim"
+                )
+            if replay_port is not None:
+                try:
+                    replay_evidence = replay_port.require_effect_ready(
+                        run_ref=_required_text(self._run_ref, "bound Harness Run"),
+                        workspace_id=self.grant.workspace_id,
+                        tool_grant_digest=_required_text(self._grant_digest, "bound Tool Grant"),
+                        runtime_operation="workspace.exec",
+                        client_request_id=request_id,
+                    )
+                except HarnessWorkspaceAdmissionUnavailable:
+                    raise
+                except Exception as error:
+                    raise HarnessWorkspaceAdmissionUnavailable(
+                        f"Gateway replay Workspace qualification unavailable: {type(error).__name__}"
+                    ) from error
+                if replay_evidence is not None:
+                    raise HarnessWorkspaceAdmissionUnavailable(
+                        "Gateway replay Port returned an unauthenticated caller token"
+                    )
+            if len(bound_jobs) != 1:
+                raise HarnessRuntimeClientError(
+                    "Gateway existing request has ambiguous local physical Job bindings"
+                )
+            original_native_id = bound_jobs[0]
+            recovered = self._resolve(
+                {
+                    "clientRequestId": request_id,
+                    "workspaceId": self.grant.workspace_id,
+                }
+            )
+            matches = recovered["jobs"]
+            if len(matches) != 1 or matches[0]["jobId"] != original_native_id:
+                raise HarnessRuntimeClientError(
+                    "Gateway original bound Job is absent under current verified Principal"
+                )
+            operation_ref = _required_text(
+                self._operation_refs.get(original_native_id), "existing operationRef"
+            )
+            return self._observe_operation(operation_ref, original_native_id, wait_ms=0)
+
+
         if "timeoutMs" in execution:
             gateway_args["timeoutMs"] = execution["timeoutMs"]
 
