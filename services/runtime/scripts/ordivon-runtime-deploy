@@ -98,6 +98,7 @@ def parse_args() -> argparse.Namespace:
     prepare.add_argument("--candidate-manifest", type=absolute_path, required=True)
     prepare.add_argument("--cargo", type=absolute_path, required=True)
     prepare.add_argument("--binary", action="append", dest="binaries")
+    prepare.add_argument("--include-pg-reclaimer", action="store_true")
     prepare.add_argument("--pretty", action="store_true")
 
     plan = subparsers.add_parser("plan", help="validate a candidate deployment without mutation")
@@ -143,6 +144,7 @@ def add_deployment_arguments(parser: argparse.ArgumentParser, *, require_confirm
     parser.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
     parser.add_argument("--lock-file", type=absolute_path, default=Path("/run/ordivon-runtime-deploy.lock"))
     parser.add_argument("--binary", action="append", dest="binaries")
+    parser.add_argument("--include-pg-reclaimer", action="store_true")
     parser.add_argument("--required-tool", action="append", dest="required_tools")
     parser.add_argument("--expected-tool-count", type=nonnegative_int)
     parser.add_argument("--require-ref", default="origin/main")
@@ -210,18 +212,37 @@ def binaries(args: argparse.Namespace) -> tuple[str, ...]:
     return values
 
 
+def release_operator_artifacts(
+    args: argparse.Namespace,
+) -> tuple[tuple[str, str, int, str], ...]:
+    """Select only explicitly qualified support files for a native PG release.
+
+    The two-binary PG build must not use the legacy --all-features build path,
+    while its lifecycle consumer should not be an unreceipted sidecar.
+    """
+    if args.binaries is None:
+        return DEFAULT_OPERATOR_ARTIFACTS
+    if not getattr(args, "include_pg_reclaimer", False):
+        return ()
+    names = binaries(args)
+    if len(names) != 2 or set(names) != {
+        "ordivon-runtime-pg", "ordivon-runtime-runner",
+    }:
+        raise RuntimeError("PG Reclaimer release requires the full native PG binary pair")
+    return tuple(
+        item for item in DEFAULT_OPERATOR_ARTIFACTS
+        if item[0] == "ordivon-runtime-pg-reclaim"
+    )
+
+
 def release_artifact_specs(args: argparse.Namespace) -> tuple[dict[str, object], ...]:
     specs: list[dict[str, object]] = [
         {"name": name, "kind": "binary", "mode": 0o755} for name in binaries(args)
     ]
-    # An explicit --binary list is an intentional subset mode used by tests and
-    # exceptional maintenance. The default production release is the complete
-    # Runtime executable/support artifact set.
-    if args.binaries is None:
-        specs.extend(
-            {"name": name, "source": source, "mode": mode, "kind": kind}
-            for name, source, mode, kind in DEFAULT_OPERATOR_ARTIFACTS
-        )
+    specs.extend(
+        {"name": name, "source": source, "mode": mode, "kind": kind}
+        for name, source, mode, kind in release_operator_artifacts(args)
+    )
     names = [str(spec["name"]) for spec in specs]
     if len(names) != len(set(names)):
         raise RuntimeError("release artifact names must be unique")
@@ -229,9 +250,7 @@ def release_artifact_specs(args: argparse.Namespace) -> tuple[dict[str, object],
 
 
 def stage_operator_artifacts(args: argparse.Namespace, source_root: Path) -> None:
-    if args.binaries is not None:
-        return
-    for name, relative_source, mode, _kind in DEFAULT_OPERATOR_ARTIFACTS:
+    for name, relative_source, mode, _kind in release_operator_artifacts(args):
         source = source_root / relative_source
         if source.is_symlink() or not source.is_file():
             raise RuntimeError(f"release operator artifact is missing or unsafe: {source}")
