@@ -1089,27 +1089,48 @@ class PluginGatewayExecutionBridgeFactory:
             name: _tool_digest(raw) for name, raw in sorted(remote.items())
         }
         self._definition = _model_execution_definition(grant)
+        self.catalog_digest = self._current_catalog_digest()
+        self.grant_digest = self._current_grant_digest()
+
+    def _current_catalog_digest(self) -> str:
+        """One model Tool/remote Gateway catalog witness for RunBirth replay.
+
+        No second catalog: reconstruct the original source format at bridge
+        creation so mutable factory attributes cannot bypass the Contract.
+        """
         surface: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.plugin-gateway-execution-tool-surface",
-            "component": component.to_dict(),
+            "component": self.component.to_dict(),
             "modelTools": [self._definition.to_dict()],
             "remoteRecoveryToolDigests": dict(self._remote_tool_digests),
         }
-        self.catalog_digest = canonical_digest(surface)
+        return canonical_digest(surface)
+
+    def _current_grant_digest(self) -> str:
+        """Reconstruct the frozen Tool Grant from *current* factory values.
+
+        This is the original source grant schema, not a second run root.
+        Caller-mutated factory fields must not move W1's immutable Run
+        Contract to W2 under the prior toolGrantDigest.
+        """
+        if not isinstance(self.execution_grant, PluginGatewayExecutionGrant):
+            raise ToolBridgeError(
+                "Gateway factory frozen Tool Grant type drifted",
+                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
+            )
         grant_value: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.plugin-gateway-execution-tool-grant",
-            "component": component.to_dict(),
-            "grant": grant.to_dict(),
+            "component": self.component.to_dict(),
+            "grant": self.execution_grant.to_dict(),
             "modelTools": ["execution.submit"],
             "recoveryTools": ["execution.resolve", "execution.get"],
             "controlTools": ["execution.cancel"],
         }
         if "artifact.read" in self._remote_tool_digests:
-            # This is an existing Gateway read capability, not a new grant or store.
             grant_value["outputTools"] = ["artifact.read"]
-        self.grant_digest = canonical_digest(grant_value)
+        return canonical_digest(grant_value)
 
     def build(
         self,
@@ -1118,6 +1139,20 @@ class PluginGatewayExecutionBridgeFactory:
         *,
         provider_source=None,
     ) -> PluginGatewayExecutionBridge:
+        # Recheck the original immutable Tool Grant at the *last* factory
+        # boundary before creating a bridge or admitting a Model/Tool effect.
+        # An accidentally reused/mutated Factory is not a Native Workspace
+        # root authority, even if its old cached digest matches OriginalPG.
+        if (
+            self._current_grant_digest() != self.grant_digest
+            or self._current_catalog_digest() != self.catalog_digest
+            or contract.tool_grant_digest != self.grant_digest
+            or contract.tool_catalog_digest != self.catalog_digest
+        ):
+            raise ToolBridgeError(
+                "Gateway factory frozen Tool Grant or catalog drifted from Original Run",
+                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
+            )
         references: tuple[dict[str, JsonValue], ...] = (
             {
                 "namespace": "ordivon.harness",

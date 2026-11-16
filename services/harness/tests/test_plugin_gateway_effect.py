@@ -2323,3 +2323,122 @@ def test_gateway_bound_original_job_rejects_same_request_id_but_changed_physical
         adapter.call_tool("workspace.exec", replay)
     assert [name for name, _ in client.calls].count("execution.submit") == 1
     assert [name for name, _ in client.calls].count("execution.get") == 0
+
+
+def test_gateway_original_run_contract_rejects_factory_workspace_rebind_before_build() -> None:
+    """Frozen Run Contract W1 may not construct W2 under the original Tool Grant digest.
+
+    A mutable Factory field is not the authenticated Native issuer. This
+    Source-level preflight should reject before even allocating a Tool bridge.
+    """
+    from dataclasses import replace
+
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    contract = _contract(factory)
+    original_digest = contract.tool_grant_digest
+    factory.execution_grant = replace(factory.execution_grant, workspace_id="ws-w2-foreign")
+    assert factory.grant_digest == original_digest
+    assert factory.execution_grant.workspace_id == "ws-w2-foreign"
+    from types import SimpleNamespace
+
+    with pytest.raises(ToolBridgeError, match="frozen|drift|Grant|grant"):
+        factory.build(contract, SimpleNamespace(harness_run_id=contract.harness_run_id))
+    assert [name for name, _ in client.calls if name == "execution.submit"] == []
+
+
+def test_gateway_paused_original_pg_run_rejects_mutated_factory_workspace_before_tool(
+    pg_schema,
+) -> None:
+    """Real OriginalPG Run Born with W1 must not execute W2 after Factory mutation.
+
+    The Native Tool is a fixture, NOT an observed OS Job: this is a concrete
+    Source/PG exposure test pending authenticated Runtime Native Root Birth.
+    """
+    from dataclasses import replace
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    contract = _contract(factory)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        contract,
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    factory.execution_grant = replace(factory.execution_grant, workspace_id="ws-w2-foreign")
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    with pytest.raises(ToolBridgeError, match="frozen|drift|Grant|grant"):
+        run.run(())
+    assert [args for name, args in client.calls if name == "execution.submit"] == []
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        source = store.load_run(contract.harness_run_id)
+        assert source.contract_digest == contract.digest
+
+
+@pytest.mark.parametrize(
+    "grant_field",
+    ("workspace_id", "capability", "context", "executable_allowlist", "env_allowlist", "max_timeout_ms"),
+)
+def test_gateway_factory_rejects_all_material_grant_drift_before_bridge(
+    grant_field: str,
+) -> None:
+    """All caller authority changes must invalidate the *one original* Grant.
+
+    No new store, issuer or extra digest; reuse source canonical grant schema.
+    """
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    contract = _contract(factory)
+    changes = {
+        "workspace_id": "ws-w2-rebound",
+        "capability": "execution.windows",
+        "context": "context:rebound",
+        "executable_allowlist": ("/usr/bin/false",),
+        "env_allowlist": ("ORDIVON_DIFFERENT",),
+        "max_timeout_ms": 9_000,
+    }
+    factory.execution_grant = replace(factory.execution_grant, **{grant_field: changes[grant_field]})
+    assert factory.grant_digest == contract.tool_grant_digest
+    with pytest.raises(ToolBridgeError, match="frozen|drift|Grant|grant"):
+        factory.build(contract, SimpleNamespace(harness_run_id=contract.harness_run_id))
+    assert client.calls == []
+
+
+@pytest.mark.parametrize("catalog_part", ("remote_recovery_tool", "component_route", "model_tool"))
+def test_gateway_factory_rejects_frozen_catalog_drift_before_model_or_tool(
+    catalog_part: str,
+) -> None:
+    """The *same* immutable Run Surface must reach Model and Gateway Tools."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    contract = _contract(factory)
+    if catalog_part == "remote_recovery_tool":
+        factory._remote_tool_digests["execution.get"] = _digest("unrelated-tool-spec")
+    elif catalog_part == "component_route":
+        factory.component = replace(
+            factory.component, url="https://other-gateway.ordivon.com/mcp"
+        )
+    else:
+        factory._definition = replace(factory._definition, description="a different model tool")
+    assert factory.catalog_digest == contract.tool_catalog_digest
+    with pytest.raises(ToolBridgeError, match="frozen|drift|Grant|catalog"):
+        factory.build(contract, SimpleNamespace(harness_run_id=contract.harness_run_id))
+    assert client.calls == []
