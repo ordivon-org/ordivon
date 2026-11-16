@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import fcntl
 import hashlib
 import json
@@ -605,6 +606,148 @@ def stage_root_operator_bundle(args: argparse.Namespace) -> dict[str, object]:
         # failed candidates must never remain next to a live Root installation.
         shutil.rmtree(candidate_dir)
         raise
+
+
+@contextmanager
+def _directory_descriptor(path: Path):
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        yield descriptor
+    finally:
+        os.close(descriptor)
+
+
+def linux_exchange_sibling_root_bundle_directories(
+    live: Path, staged: Path,
+) -> None:
+    """One Linux same-filesystem atomic directory exchange, NOT Root approval.
+
+    The Root operator must first provide *its own* evidence of: a trusted
+    exact Git candidate; existing live preimage; PG Release admission fully
+    fenced; zero unresolved effects; dispatcher timer persistently disabled;
+    dispatcher service inactive; a durable recovery journal and ownership
+    lock. This internal physical primitive does none of those operations.
+    It must never be published directly as a caller-invokable MCP effect.
+
+    Linux renameat2(RENAME_EXCHANGE) is one namespace linearization point for
+    TWO NONEMPTY sibling directories. Ordinary os.rename has no equivalent
+    semantics, so unsupported platforms/filesystems fail closed.
+    """
+    if (
+        not live.is_absolute()
+        or not staged.is_absolute()
+        or live == staged
+        or live.parent != staged.parent
+        or live.name in (".", "..")
+        or staged.name in (".", "..")
+        or "/" in live.name
+        or "/" in staged.name
+        or live.parent.is_symlink()
+        or live.parent.resolve(strict=True) != live.parent
+    ):
+        raise RuntimeError("Root exchange requires two distinct direct sibling directories")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    with _directory_descriptor(live.parent) as parent_fd:
+        names = [live.name.encode(), staged.name.encode()]
+        snapshots: list[os.stat_result] = []
+        for name in names:
+            descriptor = os.open(name, flags, dir_fd=parent_fd)
+            try:
+                item = os.fstat(descriptor)
+                if not stat.S_ISDIR(item.st_mode):
+                    raise RuntimeError("Root exchange target is not an actual directory")
+                snapshots.append(item)
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+        if (
+            snapshots[0].st_dev != snapshots[1].st_dev
+            or snapshots[0].st_ino == snapshots[1].st_ino
+        ):
+            raise RuntimeError("Root exchange requires two different directories on one device")
+        linux_libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        syscall = getattr(linux_libc, "renameat2", None)
+        if syscall is None:
+            raise RuntimeError("Linux renameat2(RENAME_EXCHANGE) unavailable")
+        syscall.argtypes = [
+            ctypes.c_int, ctypes.c_char_p, ctypes.c_int,
+            ctypes.c_char_p, ctypes.c_uint,
+        ]
+        syscall.restype = ctypes.c_int
+        if syscall(parent_fd, names[0], parent_fd, names[1], 2) != 0:
+            error_number = ctypes.get_errno()
+            raise OSError(
+                error_number, f"atomic Root directory exchange failed: {os.strerror(error_number)}",
+            )
+        # After renameat2 succeeds, ANY error is a post-effect ambiguity.
+        # Even an fsync failure does not justify retrying blindly: a future
+        # Root owner must classify both byte sets against its durable journal.
+        try:
+            os.fsync(parent_fd)
+            new_live = os.stat(names[0], dir_fd=parent_fd, follow_symlinks=False)
+            new_staged = os.stat(names[1], dir_fd=parent_fd, follow_symlinks=False)
+            if (
+                (new_live.st_dev, new_live.st_ino) !=
+                (snapshots[1].st_dev, snapshots[1].st_ino)
+                or (new_staged.st_dev, new_staged.st_ino) !=
+                (snapshots[0].st_dev, snapshots[0].st_ino)
+            ):
+                raise RuntimeError("directory identities drifted during Root exchange")
+        except (OSError, RuntimeError) as error:
+            raise RuntimeError(
+                "RECONCILIATION_REQUIRED: atomic Root exchange may already have "
+                "committed; classify the journal and both directories"
+            ) from error
+
+
+def root_bundle_exchange_readback(
+    live: Path,
+    staged: Path,
+    *,
+    old_artifacts: dict[str, str],
+    candidate_artifacts: dict[str, str],
+) -> str:
+    """Classify a durable Root journal against two real directory byte sets.
+
+    This is only physical namespace/byte evidence, never an installed service
+    or PG release qualification. Unknown or partially damaged state stays
+    UNKNOWN; the owner cannot automatically retry or resume the timer.
+    """
+    names = {name for name, _ in ROOT_OPERATOR_BUNDLE}
+    if set(old_artifacts) != names or set(candidate_artifacts) != names:
+        raise RuntimeError("Root journal lacks exactly the five qualified artifact names")
+    if any(
+        not SHA256_PATTERN.fullmatch(value)
+        for value in [*old_artifacts.values(), *candidate_artifacts.values()]
+    ):
+        raise RuntimeError("Root journal contains an invalid artifact digest")
+    # Identical version byte sets cannot establish whether an exchange
+    # happened. The natural Root owner should treat this as a no-op rather
+    # than granting an unobserved installation or rollback receipt.
+    if old_artifacts == candidate_artifacts:
+        return "UNKNOWN"
+    actual: list[dict[str, str]] = []
+    for path in (live, staged):
+        if path.is_symlink() or not path.is_dir():
+            return "UNKNOWN"
+        records: dict[str, str] = {}
+        for name, mode in ROOT_OPERATOR_BUNDLE:
+            item = path / name
+            if item.is_symlink() or not item.is_file():
+                return "UNKNOWN"
+            metadata = item.stat()
+            if (
+                stat.S_IMODE(metadata.st_mode) != mode
+                or metadata.st_nlink != 1
+            ):
+                return "UNKNOWN"
+            records[name] = sha256(item)
+        actual.append(records)
+    if actual == [old_artifacts, candidate_artifacts]:
+        return "PREPARED"
+    if actual == [candidate_artifacts, old_artifacts]:
+        return "EXCHANGED"
+    return "UNKNOWN"
 
 
 @contextmanager
