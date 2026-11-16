@@ -2488,6 +2488,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             harness_run_id=self.harness_run_id,
             binding=self.binding,
             allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
         )
         blockers: list[str] = []
         if terminal.receipt.stop_reason == "unknown":

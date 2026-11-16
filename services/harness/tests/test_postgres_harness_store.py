@@ -531,6 +531,7 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 harness_run_id=run.harness_run_id,
                 binding=replayed.binding,
                 allow_tool_content=run.privacy.allow_tool_content,
+                provider_record_reader=replayed._load_provider_from_event,
             )
             self.assertEqual(provider_ids, ())
             self.assertEqual(tool_ids, (intent.digest,))
@@ -557,6 +558,7 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 harness_run_id=run.harness_run_id,
                 binding=continuity.binding,
                 allow_tool_content=run.privacy.allow_tool_content,
+                provider_record_reader=continuity._load_provider_from_event,
             )
             self.assertEqual(provider_ids, ())
             self.assertEqual(tool_ids, ())

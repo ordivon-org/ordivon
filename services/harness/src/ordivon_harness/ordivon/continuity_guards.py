@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from anc_canonical import JsonValue, canonical_digest
 
 from ..core_contracts import HarnessRunContract
@@ -15,7 +17,7 @@ from ..protocol import (
 from ..run_state import HarnessRunState
 from ..store import HarnessRunEventRecord, HarnessStore
 from .continuity_records import HarnessDispatchFenceV2
-from .run_store_port import HarnessRunStoreBinding
+from .run_store_port import HarnessRunStoreBinding, StoredHarnessProviderCall
 
 # Read-only contract and Tool Event validation; Store transactions belong to the caller.
 
@@ -187,6 +189,7 @@ def inspect_all_unsettled_effect_sources(
     harness_run_id: str,
     binding: HarnessRunStoreBinding,
     allow_tool_content: bool,
+    provider_record_reader: Callable[[HarnessRunEventRecord], StoredHarnessProviderCall],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Read all source-owned effect heads; never certify external release.
 
@@ -194,8 +197,6 @@ def inspect_all_unsettled_effect_sources(
     every older Intent has settled. UNKNOWN remains unresolved even though
     HarnessToolStepReceipt.terminal is True for recovery purposes.
     """
-    from .continuity_records import HarnessProviderCallRecordV3, HarnessProviderCallRecordV4
-
     providers: dict[str, HarnessProviderCallStatus] = {}
     tools: dict[str, HarnessToolStepReceipt | None] = {}
     provider_events = {
@@ -208,17 +209,10 @@ def inspect_all_unsettled_effect_sources(
     }
     for event in events:
         if event.event_kind in provider_events:
-            digest = required_event_digest(event.data, "providerCallRecordObjectDigest")
-            raw = store.get_object(digest, expected_kind="harness-provider-call-record")
-            if not isinstance(raw, dict):
-                raise ValueError("finalization Provider record is not an object")
-            version = raw.get("schemaVersion")
-            if version == 3:
-                record = HarnessProviderCallRecordV3.from_dict(raw)
-            elif version == 4:
-                record = HarnessProviderCallRecordV4.from_dict(raw)
-            else:
-                raise ValueError("finalization Provider record version is unsupported")
+            # Reuse the original continuity reader; it verifies not only the
+            # Provider record but also source contract, state, request, result,
+            # failure and all exact Event/immutable-object bindings.
+            record = provider_record_reader(event).record
             if record.harness_run_id != harness_run_id:
                 raise ValueError("finalization Provider record belongs to another Run")
             providers[record.provider_call_id] = record.status
