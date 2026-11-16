@@ -10,7 +10,7 @@ from typing import Any
 
 from .contracts import RuntimeReleaseAdmission, RuntimeReleaseProjection
 from .execution_refs import GatewayError
-from .upstream import OwnerToolCaller
+from .owner_protocol import OwnerToolCaller
 
 _OWNER = "runtime.linux"
 _NODE = "linux-pg"

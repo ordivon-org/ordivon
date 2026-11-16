@@ -4,19 +4,19 @@ from typing import Any
 
 from .contracts import (
     ArtifactChunk,
+    CapabilityRoute,
     ExecutionObservation,
     ExecutionResolution,
 )
 from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
 from .owner_protocol import (
+    OwnerToolCaller,
     _owner_optional_disposition,
     _owner_receipt_state,
     _required_bool,
     _required_str,
 )
-from .routing import CapabilityRoute
-from .upstream import OwnerToolCaller
 
 
 class ExecutionObservationMethods:

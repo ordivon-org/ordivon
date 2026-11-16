@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from .contracts import CapabilityRoute
 from .execution_commands import ExecutionCommandMethods
 from .execution_observations import ExecutionObservationMethods
-from .routing import CapabilityRoute
-from .upstream import OwnerToolCaller
+from .owner_protocol import OwnerToolCaller
 
 
 class ExecutionCoordinator(ExecutionCommandMethods, ExecutionObservationMethods):

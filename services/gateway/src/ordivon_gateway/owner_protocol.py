@@ -1,9 +1,18 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from .execution_refs import GatewayError
-from .upstream import OwnerToolCaller
+
+
+class OwnerToolCaller(Protocol):
+    """Minimal natural-Owner MCP port; transport lives in upstream.py."""
+
+    async def call_tool(
+        self, owner_id: str, tool_name: str, arguments: dict[str, Any]
+    ) -> dict[str, Any]: ...
+
+    def is_configured(self, owner_id: str) -> bool: ...
 
 
 def _configured(caller: OwnerToolCaller, owner_id: str) -> bool:

@@ -8,6 +8,7 @@ from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
     CapabilityResolution,
+    CapabilityRoute,
     CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
@@ -19,44 +20,10 @@ from .contracts import (
 from .execution_coordinator import ExecutionCoordinator
 from .execution_refs import GatewayError
 from .execution_refs import parse_execution_ref as parse_execution_ref
-from .routing import CapabilityRoute, default_routes
+from .host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
+from .owner_protocol import OwnerToolCaller
+from .routing import default_routes
 from .runtime_release import RuntimeReleaseProxy
-from .upstream import OwnerToolCaller
-
-_SOCIAL_WORK_HOST_TOOLS = frozenset(
-    {
-        "host.status",
-        "actor.declare",
-        "work.create",
-        "work.get",
-        "work.list",
-        "work.snapshot.commit",
-        "space.create",
-        "space.get",
-        "space.list",
-        "space.participation.set",
-        "space.participation.list",
-        "space.subject.list",
-        "topic.create",
-        "topic.cursor.ack",
-        "topic.cursor.get",
-        "topic.list",
-        "topic.state.set",
-        "topic.resume",
-        "message.get",
-        "message.post",
-        "message.search",
-        "message.relation.add",
-        "message.relation.list",
-        "subscription.follow",
-        "subscription.list",
-        "subscription.unfollow",
-        "attention.get",
-        "attention.delta",
-        "attention.ack",
-        "attention.reentry",
-    }
-)
 
 
 class GatewayService:

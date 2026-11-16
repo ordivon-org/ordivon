@@ -4,12 +4,15 @@ import hashlib
 import json
 from typing import Any
 
-from .contracts import CapabilityInvocationRecipe, CapabilityResolution, CapabilitySkillBinding
+from .contracts import (
+    CapabilityInvocationRecipe,
+    CapabilityResolution,
+    CapabilityRoute,
+    CapabilitySkillBinding,
+)
 from .execution_refs import GatewayError
-from .owner_protocol import _configuration_error, _configured, _required_str
+from .owner_protocol import OwnerToolCaller, _configuration_error, _configured, _required_str
 from .research_routes import research_capabilities
-from .routing import CapabilityRoute
-from .upstream import OwnerToolCaller
 
 
 async def resolve_research_capability(

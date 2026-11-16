@@ -16,7 +16,7 @@ import jwt
 from jwt import PyJWKClient
 from starlette.responses import JSONResponse
 
-from .upstream import OwnerCallError, _read_private_secret_file
+from .upstream_identity import OwnerCallError, _read_private_secret_file
 
 logger = logging.getLogger("ordivon_gateway.access_auth")
 
