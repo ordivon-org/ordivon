@@ -389,16 +389,51 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         'receipt = self._call("execution.submit", gateway_args)'
     ).body[0]
     after_projection = submit.body[projections[0][0] + 1:]
-    if (not after_projection
-            or canonical(after_projection[0]) != canonical(expected_dispatch)):
-        raise ValueError("timeout Gateway effect frame changed before dispatch")
+    if (after_projection
+            and canonical(after_projection[0]) == canonical(expected_dispatch)):
+        frame = "exact_post_projection_return_and_immediate_gateway_dispatch"
+    else:
+        # Observe only this exact currently implemented native-Claim barrier.
+        # This is an AST syntactic witness, NOT a proof that an arbitrary Port
+        # will uphold its authn/issuer/Workspace contract at runtime.
+        guarded = ast.parse("""
+if self._workspace_admission_required and self._workspace_admission is None:
+    raise HarnessWorkspaceAdmissionUnavailable(
+        "Gateway execution requires a certified Runtime Workspace Claim"
+    )
+if self._workspace_admission is not None:
+    try:
+        admitted = self._workspace_admission.require_effect_ready(
+            run_ref=_required_text(self._run_ref, "bound Harness Run"),
+            workspace_id=self.grant.workspace_id,
+            tool_grant_digest=_required_text(self._grant_digest, "bound Tool Grant"),
+            runtime_operation="workspace.exec",
+            client_request_id=request_id,
+        )
+    except HarnessWorkspaceAdmissionUnavailable:
+        raise
+    except Exception as error:
+        raise HarnessWorkspaceAdmissionUnavailable(
+            f"Gateway Workspace qualification unavailable: {type(error).__name__}"
+        ) from error
+    if admitted is not None:
+        raise HarnessWorkspaceAdmissionUnavailable(
+            "Gateway Workspace Port returned an unauthenticated caller token"
+        )
+""").body
+        if (len(after_projection) < 3
+                or canonical(after_projection[0]) != canonical(guarded[0])
+                or canonical(after_projection[1]) != canonical(guarded[1])
+                or canonical(after_projection[2]) != canonical(expected_dispatch)):
+            raise ValueError("timeout Gateway effect frame changed before dispatch")
+        frame = "exact_post_projection_native_claim_guard_then_gateway_dispatch"
 
     return {
         "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
         "producerPath": path,
         "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
         "sourceAstAnchorsObserved": True,
-        "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
+        "effectFrameObserved": frame,
         # Even this stronger exact frame is only a bounded source observation.
         # It does not prove Python control-flow/data-flow semantics, alias
         # behavior before the frame, or source-to-Lean implementation refinement.
