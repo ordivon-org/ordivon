@@ -283,25 +283,15 @@ _PROJECTED = [
         "completion_owner": "study",
         "description": "Run the repository-owned portable Research profile/currentness verification "
         "recipe.",
-        "execution_capability": "execution.linux",
-        "invocation_recipes": [
-            {
-                "command": ["mise", "run", "research-study:verify"],
-                "kind": "mise-task",
-                "note": "Canonical recipe binds its own transient jsonschema dependency "
-                "through uv; do not replace it with ad-hoc system Python "
-                "invocation.",
-                "owner_id": "ordivon-monorepo",
-                "recipe_id": "monorepo-mise-research-study-verify",
-            }
-        ],
+        "execution_capability": None,
+        "invocation_recipes": [],
         "preferred_skills": [],
         "semantic_owner": "research-profile-verifiers",
         "source_refs": [
-            "mise.toml",
+            "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
         ],
         "study_types": ["all"],
-        "tags": ["research", "verify", "currentness", "profile", "mise", "uv"],
+        "tags": ["research", "verify", "currentness", "profile", "study"],
         "truth_boundary": "This Research route is non-authoritative composition metadata. Study/domain "
         "owners retain scientific truth and completion authority; Skills remain "
         "advisory; Runtime owns only physical execution evidence.",
@@ -367,16 +357,8 @@ _PROJECTED = [
         "completion_owner": "study",
         "description": "Project Study-owned scholarly state across independent axes without creating a "
         "universal scientific ontology.",
-        "execution_capability": "execution.linux",
-        "invocation_recipes": [
-            {
-                "command": ["mise", "run", "research-study:verify"],
-                "kind": "mise-task",
-                "note": "Axis-local closure never transfers authority to another scholarly axis.",
-                "owner_id": "ordivon-monorepo",
-                "recipe_id": "monorepo-mise-research-study-verify",
-            }
-        ],
+        "execution_capability": None,
+        "invocation_recipes": [],
         "preferred_skills": [],
         "semantic_owner": "study",
         "source_refs": [
