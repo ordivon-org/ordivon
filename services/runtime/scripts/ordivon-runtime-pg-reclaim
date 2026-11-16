@@ -162,6 +162,56 @@ def _worktrees(repo: Path, root: Path) -> list[tuple[Path, str]]:
             worktrees.append((path, head))
     return worktrees
 
+
+def _other_repo_managed_workspaces(
+    source_repo: Path, root: Path, unregistered_ids: list[str]
+) -> list[str]:
+    """Classify only physically proven *other-repository* Runtime Workspaces.
+
+    A per-sourceRepo Git worktree listing is not the global Runtime inventory.
+    A sibling directory can be a fully valid Workspace of another Git authority.
+    Cross-repo proofs are advisory: neither these nor unknown directories may
+    be deleted by this per-repository lifecycle adapter.
+    """
+    records = root.parent / "workspace-records"
+    by_repo: dict[Path, set[Path] | None] = {}
+    found: list[str] = []
+    for workspace_id in unregistered_ids:
+        if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,95}", workspace_id) is None:
+            continue
+        record_file = records / (workspace_id + ".json")
+        if record_file.is_symlink() or not record_file.is_file():
+            continue
+        try:
+            record = json.loads(record_file.read_text(encoding="utf-8"))
+            if not isinstance(record, dict) or record.get("workspaceId") not in (
+                workspace_id, "",
+            ):
+                continue
+            source = record.get("sourceRepo")
+            claimed_workspace = record.get("workspacePath")
+            if not isinstance(source, str) or not Path(source).is_absolute():
+                continue
+            if claimed_workspace != str(root / workspace_id):
+                continue
+            foreign_repo = Path(source).resolve(strict=True)
+            if foreign_repo == source_repo or not foreign_repo.is_dir():
+                continue
+            if foreign_repo not in by_repo:
+                # A record is not a proof of registration. Git must independently
+                # attest the exact directory as one of this source's worktrees.
+                by_repo[foreign_repo] = {
+                    path for path, _ in _worktrees(foreign_repo, root)
+                }
+            if root / workspace_id in (by_repo[foreign_repo] or set()):
+                found.append(workspace_id)
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+            # Invalid/unknown foreign evidence must not make the main collector
+            # fail or cause this directory to be considered disposable.
+            continue
+    return found
+
+
 def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]:
     """Read a small PG projection; native close rechecks physical authority."""
     import psycopg
@@ -298,10 +348,22 @@ def run(args: argparse.Namespace) -> dict:
         if path.is_dir() and not path.is_symlink()
         and path.name not in registered_ids
     )
+    other_managed = _other_repo_managed_workspaces(repo, root, unregistered)
+    other_ids = set(other_managed)
+    unknown = [workspace_id for workspace_id in unregistered
+               if workspace_id not in other_ids]
+    # Preserve the existing per-sourceRepo inventory contract. Its "outside
+    # this repo" count includes other valid Git authorities, not just unknowns.
     results["unregisteredDirectoryCount"] = len(unregistered)
     results["unregisteredDirectorySample"] = unregistered[:10]
+    results["otherSourceRepoManagedWorkspaceCount"] = len(other_managed)
+    results["otherSourceRepoManagedWorkspaceSample"] = other_managed[:10]
+    results["unclassifiedDirectoryCount"] = len(unknown)
+    results["unclassifiedDirectorySample"] = unknown[:10]
     results["unregisteredDirectoryTruthBoundary"] = (
-        "outside this sourceRepo Git worktree inventory, not proven orphan; never auto-delete"
+        "outside this sourceRepo Git worktree inventory; other managed repos "
+        "classified separately; unclassified is UNKNOWN, not proven orphan; "
+        "never auto-delete"
     )
     candidates = []
     for path, head in worktrees:
