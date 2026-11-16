@@ -276,6 +276,16 @@ source and consumers must be rechecked against a fresh Git revision at execution
   `trading/nautilus_paper_bridge.py` into independently scoped application
   composition would break all inter-domain SCCs **in that static model**.
   This is a candidate two-edge cut, not proof of behavioral refinement.
+  A second two-edge static cut substitutes the
+  Accounting-to-Trading calendar-admission edge in
+  `accounting/postgres_paper_close.py` for the Trading-to-Accounting
+  Nautilus bridge edge. That would relocate the 108-line
+  `trading/paper_fill_calendar.py` into Accounting while preserving the
+  full 406-line Nautilus native event/terminal-state ACL. It has fewer
+  tracked references (five instead of nine) but must independently prove
+  that Trading fill/settlement semantics are not improperly reassigned
+  and that Accounting's pre-commit qualification is preserved. Neither
+  static cut is chosen solely by line count or cycle elimination.
 - Preserve Markets' factual calendar and marks checks at the durable
   `PostgresPaperClose.close_session` effect boundary. Source graph aesthetics
   must not remove revalidation of caller-constructible market snapshots or
