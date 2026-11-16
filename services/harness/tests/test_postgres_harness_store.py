@@ -799,6 +799,33 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 ttl_ms=10_000,
             )
         self.assertEqual(self.store.load_run(run.harness_run_id).revision, revision)
+        # A real settled original Tool permits the same legitimate Snapshot
+        # Provider source; the guard must not turn safe recovery into deadlock.
+        observation = {"schemaVersion": 1, "kind": "pg.after-tool", "status": "observed"}
+        settled = HarnessToolStepReceipt(
+            receipt_id="harness-tool-step-receipt:pg-pending-before-provider-observed",
+            intent_digest=intent.digest,
+            harness_run_id=run.harness_run_id,
+            tool_call_id=intent.tool_call_id,
+            status=HarnessToolStepStatus.OBSERVED,
+            runtime_job_ref="runtime-job:pg-pending-before-provider-observed",
+            observation_digest=canonical_digest(observation),
+            reconciled=False,
+            created_at_ms=clock(),
+        )
+        continuity.record_tool_step_receipt(settled, observation)
+        claimed = continuity.claim_provider_call(
+            source=continuity.snapshot_provider_source(pending_snapshot),
+            turn_id="turn:pg-after-pending-tool",
+            turn_sequence=1,
+            request_digest=canonical_digest({"request": "after-tool"}),
+            provider_request_digest=canonical_digest({"wire": "after-tool"}),
+            adapter_id=run.adapter_id,
+            requested_model_id=run.requested_model_id,
+            holder_id="holder:pg-after-pending-tool",
+            ttl_ms=10_000,
+        )
+        self.assertEqual(claimed.record.status.value, "claimed")
 
     def test_legacy_hidden_pending_tool_still_blocks_next_prepare(self) -> None:
         """Old PG Journal: A prepared, B observed, A remains unresolved.
