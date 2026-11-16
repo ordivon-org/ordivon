@@ -401,7 +401,17 @@ impl PgRuntime {
         if Path::new(&a.bundle_path) != expected {
             return Err(error("Attempt bundle outside PG store"));
         }
-        Ok((a, decode(&r.get::<_, String>(9))?, r.get(10)))
+        // A malformed frozen execution plan is a damaged Job record, not
+        // PostgreSQL server unavailability. This is the first real job.get /
+        // observe readback boundary, before the optional Scheduler annotation.
+        let plan: RuntimeExecutionPlan =
+            serde_json::from_str(&r.get::<_, String>(9)).map_err(|e| {
+                RuntimeError::invalid(
+                    format!("committed executionPlan is invalid: {e}"),
+                    "executionPlan",
+                )
+            })?;
+        Ok((a, plan, r.get(10)))
     }
     pub(super) fn reconcile(&self, db: &mut PgAdmissionStore, job: &str) -> RuntimeResult<()> {
         self.reconcile_inner(db, job, false)

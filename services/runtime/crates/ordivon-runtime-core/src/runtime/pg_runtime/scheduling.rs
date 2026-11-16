@@ -592,7 +592,11 @@ impl PgRuntime {
             .client
             .query_one(SCHEDULING_READBACK_SQL, &[&id])
             .map_err(io)?;
-        let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(0))?;
+        // Corruption of one committed Job plan is an invalid Job record, not
+        // PostgreSQL transport unavailability. Until the public Scheduling
+        // schema can represent an unknown frozen request, fail visibly with
+        // the existing typed error rather than fabricating a default budget.
+        let plan = decode_accepted_candidate(&row.get::<_, String>(0))?;
         let spec = self.scheduling_contract(&plan)?;
         let attempt_state: Option<String> = row.get(1);
         let allocated: bool = row.get(2);

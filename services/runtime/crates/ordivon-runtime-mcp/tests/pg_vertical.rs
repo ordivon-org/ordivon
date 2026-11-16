@@ -4483,5 +4483,24 @@ fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
             .contains("SCHEDULER_RECONCILIATION_BLOCKED"),
         "{provider_read}"
     );
+    // The current closed public Scheduling schema requires a frozen
+    // ResourceScheduling request. A corrupt plan cannot be materialized
+    // without inventing data: tell the Agent that its Job record is invalid,
+    // not that the healthy PostgreSQL server is unavailable. A future
+    // typed UNKNOWN readback should replace this temporary negative gate.
+    let bad_read = call(
+        &endpoint,
+        "job.get",
+        json!({"jobId":corrupt_id,"eventLimit":20}),
+    );
+    assert_eq!(bad_read["isError"], true, "{bad_read}");
+    assert_eq!(
+        bad_read["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+        "{bad_read}"
+    );
+    assert_eq!(
+        bad_read["structuredContent"]["error"]["field"], "executionPlan",
+        "{bad_read}"
+    );
     eprintln!("B_R3_PG18_NATIVE_GREEN good={good_id} bad={corrupt_id} provider={provider_id} issue_count=1 stdout=B_R3_HEALTHY_NATIVE");
 }
