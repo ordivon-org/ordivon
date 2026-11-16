@@ -15,7 +15,11 @@ from .ordivon.runtime_lowering import DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES
 from .ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from .plugin_mcp import HarnessMcpClient
 from .protocol import HarnessRecoveryConsequence
-from .runtime_port import HarnessRuntimeClientError
+from .runtime_port import (
+    HarnessRuntimeClientError,
+    HarnessWorkspaceAdmissionUnavailable,
+    WorkspaceBoundEffectAdmission,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +202,10 @@ class GatewayMcpRuntimeAdapter:
         grant: PluginGatewayExecutionGrant,
         *,
         artifact_read_enabled: bool = False,
+        workspace_admission: WorkspaceBoundEffectAdmission | None = None,
+        require_workspace_admission: bool = False,
+        run_ref: str | None = None,
+        grant_digest: str | None = None,
     ) -> None:
         self.component = component
         self.client = client
@@ -205,6 +213,12 @@ class GatewayMcpRuntimeAdapter:
         # Only the caller's existing privacy consent + source-discovered
         # Gateway artifact.read enable text previews for the next model turn.
         self._artifact_read_enabled = artifact_read_enabled
+        self._workspace_admission = workspace_admission
+        self._workspace_admission_required = require_workspace_admission
+        self._run_ref = run_ref
+        self._grant_digest = grant_digest
+        if workspace_admission is not None and (not run_ref or not grant_digest):
+            raise ValueError("Gateway admission Port requires frozen Run and Tool Grant identities")
         self._operation_refs: dict[str, str] = {}
         self._operation_requests: dict[str, str] = {}
 
@@ -348,6 +362,34 @@ class GatewayMcpRuntimeAdapter:
         if "timeoutMs" in execution:
             gateway_args["timeoutMs"] = execution["timeoutMs"]
 
+        # The final public Gateway boundary consumes the SAME trusted Runtime
+        # Claim Port as the built-in Bridge. This checks lifetime/issuer only;
+        # durable ToolIntent/Fence identity is separately verified upstream.
+        if self._workspace_admission_required and self._workspace_admission is None:
+            raise HarnessWorkspaceAdmissionUnavailable(
+                "Gateway execution requires a certified Runtime Workspace Claim"
+            )
+        if self._workspace_admission is not None:
+            try:
+                admitted = self._workspace_admission.require_effect_ready(
+                    run_ref=_required_text(self._run_ref, "bound Harness Run"),
+                    workspace_id=self.grant.workspace_id,
+                    tool_grant_digest=_required_text(self._grant_digest, "bound Tool Grant"),
+                    runtime_operation="workspace.exec",
+                    client_request_id=request_id,
+                )
+            except HarnessWorkspaceAdmissionUnavailable:
+                raise
+            except Exception as error:
+                # No Gateway send has occurred. Distinguish holder readback
+                # failure from an ambiguous post-submit Runtime response.
+                raise HarnessWorkspaceAdmissionUnavailable(
+                    f"Gateway Workspace qualification unavailable: {type(error).__name__}"
+                ) from error
+            if admitted is not None:
+                raise HarnessWorkspaceAdmissionUnavailable(
+                    "Gateway Workspace Port returned an unauthenticated caller token"
+                )
         receipt = self._call("execution.submit", gateway_args)
         operation_ref = _required_text(
             _gateway_field(receipt, "operation_ref", "operationRef"), "operationRef"
@@ -594,6 +636,14 @@ class GatewayMcpRuntimeAdapter:
             "exitCode": _gateway_field(observed, "exit_code", "exitCode"),
             "artifactsAvailable": bool(artifact_ids),
             "artifacts": [{"artifactId": item} for item in artifact_ids],
+            # The installed Gateway certifies exact IDs, not each Owner
+            # artifact kind/digest. A verified stdout prefix is not a full
+            # ArtifactReference or independent durable-delivery receipt.
+            "artifactMetadataStatus": (
+                "unqualified_ids_only"
+                if artifact_ids
+                else ("qualified_empty" if result_available else "unavailable")
+            ),
         }
         # Reuse existing Gateway artifact.read and the original bounded Tool
         # observation. Never fetch bytes for LOST/UNKNOWN or unqualified Jobs.
@@ -677,6 +727,8 @@ class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
         grant_digest: str,
         remote_tool_digests: dict[str, str],
         provider_source=None,
+        workspace_admission: WorkspaceBoundEffectAdmission | None = None,
+        require_workspace_admission: bool = False,
     ) -> None:
         self.gateway_grant = grant
         self.gateway_client = runtime.client
@@ -690,6 +742,8 @@ class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
             tool_definitions=(definition,),
             tool_surface_digest=catalog_digest,
             tool_grant_digest=grant_digest,
+            workspace_admission=workspace_admission,
+            require_workspace_admission=require_workspace_admission,
         )
 
     @property
@@ -887,10 +941,15 @@ class PluginGatewayExecutionBridgeFactory:
         component: AgentPluginMcpComponent,
         client: HarnessMcpClient,
         grant: PluginGatewayExecutionGrant,
+        *,
+        workspace_admission: WorkspaceBoundEffectAdmission | None = None,
+        require_workspace_admission: bool = False,
     ) -> None:
         self.component = component
         self.client = client
         self.execution_grant = grant
+        self._workspace_admission = workspace_admission
+        self._workspace_admission_required = require_workspace_admission
         remote: dict[str, dict[str, JsonValue]] = {}
         for raw in client.list_tools():
             name = raw.get("name")
@@ -975,6 +1034,10 @@ class PluginGatewayExecutionBridgeFactory:
                 "artifact.read" in self._remote_tool_digests
                 and contract.privacy.allow_tool_content
             ),
+            workspace_admission=self._workspace_admission,
+            require_workspace_admission=self._workspace_admission_required,
+            run_ref=contract.harness_run_id,
+            grant_digest=self.grant_digest,
         )
         return PluginGatewayExecutionBridge(
             contract,
@@ -987,6 +1050,8 @@ class PluginGatewayExecutionBridgeFactory:
             grant_digest=self.grant_digest,
             remote_tool_digests=self._remote_tool_digests,
             provider_source=provider_source,
+            workspace_admission=self._workspace_admission,
+            require_workspace_admission=self._workspace_admission_required,
         )
 
 

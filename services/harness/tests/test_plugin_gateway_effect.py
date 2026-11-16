@@ -27,7 +27,10 @@ from ordivon_harness.plugin_gateway_effect import (
     PluginGatewayExecutionGrant,
 )
 from ordivon_harness.postgres_store import PostgresHarnessStore
-from ordivon_harness.runtime_port import HarnessRuntimeClientError
+from ordivon_harness.runtime_port import (
+    HarnessRuntimeClientError,
+    HarnessWorkspaceAdmissionUnavailable,
+)
 
 
 class FixedClock:
@@ -320,6 +323,7 @@ def test_gateway_observes_real_text_artifacts_for_next_model_turn() -> None:
     observed = adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
     assert observed["resultAvailable"] is True
     assert observed["outputPreviews"]["stdout"]["text"] == client.stdout
+    assert observed["artifactMetadataStatus"] == "unqualified_ids_only"
     assert observed["outputPreviews"]["stdout"]["eof"] is True
     assert observed["outputPreviews"]["stderr"]["text"] == ""
     assert [name for name, _ in client.calls] == [
@@ -369,6 +373,7 @@ def test_gateway_artifact_text_reaches_next_model_turn_and_original_pg(pg_schema
     assert len(model_messages) == 1
     model_content = model_messages[0]["observation"]["content"]
     assert model_content["outputPreviews"]["stdout"]["text"] == client.stdout
+    assert model_content["artifactMetadataStatus"] == "unqualified_ids_only"
     assert model_content["outputPreviews"]["stderr"]["text"] == ""
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         step = EventSourcedRunContinuity.open(
@@ -1742,3 +1747,204 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         projection = store.load_run(second.harness_run_id)
         assert projection.status.terminal is False
+
+
+# R8 B: source-only Workspace-bound admission consumer contract.  These
+# fixtures prove control flow and non-dispatch only; they are NOT a trusted
+# RuntimePG Claim issuer or proof that the installed native Owner is HELD.
+
+
+class _SourceOnlyWorkspaceAdmission:
+    def __init__(self, *, deny_turn: bool = False, deny_effect: bool = False) -> None:
+        self.deny_turn = deny_turn
+        self.deny_effect = deny_effect
+        self.turns: list[dict[str, str]] = []
+        self.effects: list[dict[str, str]] = []
+
+    def require_turn_ready(self, **kwargs) -> None:
+        self.turns.append(kwargs)
+        if self.deny_turn:
+            raise HarnessWorkspaceAdmissionUnavailable("no qualified RuntimePG HELD claim")
+
+    def require_effect_ready(self, **kwargs) -> None:
+        self.effects.append(kwargs)
+        if self.deny_effect:
+            raise HarnessWorkspaceAdmissionUnavailable("original Runtime issuer claim revoked")
+
+
+def _effect_request_for_claim_contract() -> dict:
+    return {
+        "clientRequestId": "request:harness-r8-b-source-only",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "executable": "/usr/bin/rg",
+            "args": [],
+            "foreignReferences": [],
+        },
+    }
+
+
+def test_r8_strict_gateway_submission_refuses_missing_native_claim_port() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        run_ref="harness-run:plugin-h2",
+        grant_digest=factory.grant_digest,
+        require_workspace_admission=True,
+    )
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="certified"):
+        adapter.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert client.calls == []
+
+
+def test_r8_gateway_owner_call_not_dispatched_when_qualified_port_denies() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    admission = _SourceOnlyWorkspaceAdmission(deny_effect=True)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        run_ref="harness-run:plugin-h2",
+        grant_digest=factory.grant_digest,
+        workspace_admission=admission,
+        require_workspace_admission=True,
+    )
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="revoked"):
+        adapter.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert client.calls == []
+    assert admission.effects == [
+        {
+            "run_ref": "harness-run:plugin-h2",
+            "workspace_id": "ws-plugin-h2",
+            "tool_grant_digest": factory.grant_digest,
+            "runtime_operation": "workspace.exec",
+            "client_request_id": "request:harness-r8-b-source-only",
+        }
+    ]
+
+
+def test_r8_workspace_bound_bridge_turn_hook_has_exact_frozen_grant(pg_schema) -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        legacy_bridge = factory.build(contract, continuity)
+        with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="not installed"):
+            legacy_bridge.require_workspace_turn_ready(turn_id="turn:r8-b-first")
+    admission = _SourceOnlyWorkspaceAdmission()
+    strict_factory = PluginGatewayExecutionBridgeFactory(
+        factory.component, client, factory.execution_grant,
+        workspace_admission=admission, require_workspace_admission=True,
+    )
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        strict_bridge = strict_factory.build(contract, continuity)
+        strict_bridge.require_workspace_turn_ready(turn_id="turn:r8-b-first")
+        strict_bridge.require_workspace_turn_ready()  # A Loop PreTurn needs no fabricated TurnId.
+    assert admission.turns == [
+        {
+            "run_ref": contract.harness_run_id,
+            "workspace_id": factory.execution_grant.workspace_id,
+            "tool_grant_digest": contract.tool_grant_digest,
+            "turn_id": turn_id,
+        }
+        for turn_id in ("turn:r8-b-first", None)
+    ]
+    assert client.calls == []
+
+
+def test_r8_pg_tool_intent_is_rejected_without_remote_dispatch_on_claim_loss(pg_schema) -> None:
+    client = GatewayExecutionFixture()
+    original = _factory(client)
+    admission = _SourceOnlyWorkspaceAdmission(deny_effect=True)
+    strict_factory = PluginGatewayExecutionBridgeFactory(
+        original.component, client, original.execution_grant,
+        workspace_admission=admission, require_workspace_admission=True,
+    )
+    contract = _contract(strict_factory)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=strict_factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    run.run(())
+    assert not any(name == "execution.submit" for name, _ in client.calls)
+    assert len(admission.effects) == 1
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        current = EventSourcedRunContinuity.open(
+            store, contract.harness_run_id
+        ).load_current_tool_step()
+        assert current.receipt is not None
+        assert current.receipt.status.value == "rejected"
+        assert current.observation["structuredContent"]["physicalDispatch"] is False
+
+
+def test_r8_port_transport_loss_before_gateway_send_is_not_runtime_response_loss() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    admission = _SourceOnlyWorkspaceAdmission()
+
+    def lost_owner_readback(**_kwargs) -> None:
+        raise HarnessRuntimeClientError("MCP claim.get response unknown")
+
+    admission.require_effect_ready = lost_owner_readback
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        workspace_admission=admission,
+        require_workspace_admission=True,
+        run_ref="harness-run:plugin-h2",
+        grant_digest=factory.grant_digest,
+    )
+    with pytest.raises(
+        HarnessWorkspaceAdmissionUnavailable, match="qualification unavailable"
+    ):
+        adapter.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert client.calls == []
+
+
+def test_r8_pg_owner_readback_error_refuses_effect_without_job_reconciliation(pg_schema) -> None:
+    client = GatewayExecutionFixture()
+    original = _factory(client)
+    admission = _SourceOnlyWorkspaceAdmission()
+
+    def lost_owner_readback(**_kwargs) -> None:
+        raise HarnessRuntimeClientError("native PG claim.get timed out")
+
+    admission.require_effect_ready = lost_owner_readback
+    strict_factory = PluginGatewayExecutionBridgeFactory(
+        original.component,
+        client,
+        original.execution_grant,
+        workspace_admission=admission,
+        require_workspace_admission=True,
+    )
+    contract = _contract(strict_factory)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=strict_factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    run.run(())
+    # The trusted Claim Port did not send physical execution. Looking up a Job
+    # here would conflate a pre-submit auth uncertainty with a post-submit
+    # ambiguous effect and could attach unrelated Owner effects.
+    assert client.calls == []
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        step = EventSourcedRunContinuity.open(
+            store, contract.harness_run_id
+        ).load_current_tool_step()
+        assert step.receipt is not None
+        assert step.receipt.status.value == "rejected"
+        assert step.observation["structuredContent"]["physicalDispatch"] is False
