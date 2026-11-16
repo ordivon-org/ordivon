@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      # Root mise config cascades into the Game toolchain and native tasks.
+      - "mise.toml"
       - "domains/game/**"
       - "profiles/domains/game/**"
       - "pnpm-lock.yaml"
@@ -11,6 +13,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "mise.toml"
       - "domains/game/examples/room-encounter/**"
       - "domains/game/examples/beacon-relay/**"
       - "domains/game/examples/native-composition/**"

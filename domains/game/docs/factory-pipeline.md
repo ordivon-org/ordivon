@@ -40,6 +40,9 @@ iterating, or use a dedicated clean checkout and commit a reviewable Git source
 cut before packaging. This deliberately favors source integrity over allowing
 unrelated, simultaneous uncommitted changes in the **same** release checkout;
 separate Git worktrees still permit concurrent Owner development.
+The Game CI workflow therefore also includes root `mise.toml` in its
+pull-request and main-push path filters, so toolchain/config changes
+cannot silently skip the Game native consumer gate.
 Neither `git rev-parse HEAD` alone nor a successful Godot process exit
 proves that the produced bytes belong to a release.
 
