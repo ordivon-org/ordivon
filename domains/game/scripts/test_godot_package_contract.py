@@ -132,6 +132,8 @@ def assert_success(name: str, archives: tuple[str, str]) -> None:
         assert "SOURCE_WORKTREE=clean" in receipt
         assert "RELEASE_PUBLISHED=false" in receipt
         assert "QUALIFICATION=native_headless_preview" in receipt
+        assert "LINUX_SCOPE=native_headless_smoke" in receipt
+        assert "WINDOWS_SCOPE=export_only" in receipt
         check = subprocess.run(["sha256sum", "-c", "SHA256SUMS"], cwd=bundle,
                                text=True, capture_output=True, check=False)
         assert check.returncode == 0, check.stdout + check.stderr

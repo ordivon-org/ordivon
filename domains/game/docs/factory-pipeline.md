@@ -18,7 +18,7 @@ Either deliver a runnable product slice bound to source+assets+tests, or stop th
 | Deliver | GitHub protected CI and artifact upload on supported branch | versioned downloadable technical preview; no unverified release claim |
 | Feedback | target-player or Agent observations tied to the *actual* build | repair/replace/delete or enter next production batch |
 
-**Supported native line A — Godot technical preview:** mise run factory:validate:godot executes live TypeScript readers, upstream scene/asset substitution, Room Encounter narrative/Agent/native acceptance and appropriate signed-arithmetic model proof. The `test:agent-episode` entry imports the actual native Godot project first, including on a checkout with no local `.godot` cache; the G11 source-bound acceptance obligations and remaining boundaries are in [the task-local contract](agent-execution-contract-spec.md). mise run factory:package:room then exports official Godot Linux and Windows bundles and prints their digests. Room Encounter is only one existing exemplar, not the next game chosen by fiat.
+**Supported native line A — Godot technical preview:** mise run factory:validate:godot executes real Godot scene/asset substitution, Room Encounter narrative/Agent/native acceptance and the bounded signed-arithmetic model proof. Advisory TypeScript/knowledge readers remain validated through the monorepo Game verify and the PR check's separate pnpm check, not redundantly in each native package. The `test:agent-episode` entry imports the actual native Godot project first, including on a checkout with no local `.godot` cache; the G11 source-bound acceptance obligations and remaining boundaries are in [the task-local contract](agent-execution-contract-spec.md). mise run factory:package:room then exports official Godot Linux and Windows bundles and prints their digests. Room Encounter is only one existing exemplar, not the next game chosen by fiat.
 
 **Delivered factory batch 02 — Beacon Relay:** The independent Godot game uses the pinned official Godot demo for Player movement, RigidBody enemy physics, InputMap, HUD, sound and source art. Native Godot content and display glue compose a four-delivery risk/return loop with increasing hazards, real collision loss, win and replay. test:beacon drives all deliveries through native input and physics. factory:package:beacon exports Linux/Windows previews with upstream MIT/OFL/CC-BY attribution. This is a second full game product, not a mechanic catalog.
 
@@ -53,9 +53,11 @@ individual archive; any later publisher of individual archives must retain
 or link that sidecar and its exact digest relationship.
 
 Failures preserve earlier complete bundles without publishing an incomplete
-new one. The package is only `native_headless_preview`; Linux smoke does not
-certify full gameplay, active hazard integration, GPU/audio peripherals,
-Windows foreground input or Human play. A template recorded as UNKNOWN is
+new one. The package is only `native_headless_preview`: receipt fields
+`LINUX_SCOPE=native_headless_smoke` and `WINDOWS_SCOPE=export_only` make
+that distinction machine-readable. Linux smoke does not certify full
+gameplay, active hazard integration, GPU/audio peripherals, Windows
+foreground input or Human play. A template recorded as UNKNOWN is
 an incomplete provenance witness, not a verified release-ready build.
 A full CI upload requires two known template digests, matching checkout
 source commit, bundle manifest/digests, and fails closed otherwise.

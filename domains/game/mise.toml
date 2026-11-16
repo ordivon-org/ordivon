@@ -81,11 +81,9 @@ run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_room
 
 # Thin compositions of existing native tasks, not a second execution engine.
 [tasks."factory:validate:godot"]
-description = "Factory gate: source readers, real Godot scenes, dialogue, Agent and math model"
+description = "Native Godot factory gate: actual scenes, dialogue, Agent and bounded math model"
 run = """
 set -euo pipefail
-pnpm install --frozen-lockfile
-pnpm check
 mise run test:native
 mise run test:native-receipt-selftest
 mise run test:encounter
@@ -136,6 +134,8 @@ mv -- "$stage/room-encounter-windows-x86_64.zip" "$stage/ready/"
     fi
   done
   echo "QUALIFICATION=native_headless_preview"
+  echo "LINUX_SCOPE=native_headless_smoke"
+  echo "WINDOWS_SCOPE=export_only"
   echo "RELEASE_PUBLISHED=false"
 } > "$stage/ready/BUILD_SOURCE.txt"
 (
@@ -218,6 +218,8 @@ test -s "$stage/ready/beacon-relay-windows-x86_64.zip"
     fi
   done
   echo "QUALIFICATION=native_headless_preview"
+  echo "LINUX_SCOPE=native_headless_smoke"
+  echo "WINDOWS_SCOPE=export_only"
   echo "RELEASE_PUBLISHED=false"
 } > "$stage/ready/BUILD_SOURCE.txt"
 (

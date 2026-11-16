@@ -62,6 +62,8 @@ jobs:
         run: |
           set -euo pipefail
           test ! -d examples/room-encounter/.godot
+          pnpm install --frozen-lockfile
+          pnpm check
           mise run factory:validate:godot
           mise run test:beacon
           python3 scripts/test_godot_package_contract.py
