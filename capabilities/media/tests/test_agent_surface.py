@@ -77,6 +77,30 @@ class AgentSurfaceTests(unittest.TestCase):
             [item["name"] for item in surface_projection()["tools"]],
         )
 
+    def test_dependency_proposal_bootstraps_without_jsonschema(self) -> None:
+        """The missing-dependency recovery action must not require that dependency."""
+        root = Path(__file__).resolve().parents[1]
+        source = root / "src"
+        code = (
+            "import sys; "
+            "from pathlib import Path; "
+            f"sys.path.insert(0, {str(source)!r}); "
+            "from ordivon_studio.agent_surface import execute_surface_action; "
+            "assert 'jsonschema' not in sys.modules; "
+            "python = execute_surface_action('studio_dependencies_propose', {'target': 'python'}, root=Path(sys.argv[1])); "
+            "assert python['kind'] == 'ordivon.studio-dependency-acquisition-proposal'; "
+            "assert python['effectRequired'] and python['plan']['args'] == ['scripts/materialize-python.py']; "
+            "js = execute_surface_action('studio_dependencies_propose', {'target': 'js'}, root=Path(sys.argv[1])); "
+            "assert js['effectRequired'] and js['plan']['args'] == ['install', '--frozen-lockfile']; "
+            "assert 'jsonschema' not in sys.modules"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [sys.executable, "-S", "-c", code, directory],
+                capture_output=True, text=True, check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_surface_is_small_domain_owned_and_transport_neutral(self) -> None:
         value = surface_projection()
         self.assertEqual(value["domainId"], "domain:ordivon-studio")
