@@ -538,6 +538,106 @@ class PostgresHarnessStore:
                         raise HarnessTerminalConflict("terminal Event must be last")
                 when = e.recorded_at_ms
                 preceding.add(e.event_id)
+            unknown_quarantine = False
+            if (
+                terminal_id is not None
+                and status is HarnessRunStatus.STOPPED
+                and prepared[-1][0].event_kind == "harness.run-stopped"
+                and prepared[-1][0].data.get("stopCode") in {
+                    "provider_state_unknown",
+                    "runtime_unknown",
+                    "cancel_unknown",
+                }
+            ):
+                # Allow a genuine original Run Recorder UNKNOWN terminal as
+                # immutable QUARANTINED_HELD audit evidence; NOT a safe
+                # physical-effect release. A raw stopCode alone cannot
+                # bypass the qualified normal terminal guard.
+                from .independent_result import IndependentHarnessRunReceipt
+
+                fault = prepared[-1][0]
+                receipt_object_digest = fault.data.get("runReceiptObjectDigest")
+                receipt_digest = fault.data.get("runReceiptDigest")
+                if (
+                    not isinstance(receipt_object_digest, str)
+                    or not isinstance(receipt_digest, str)
+                    or not any(
+                        ref.digest == receipt_object_digest and ref.kind == "independent-harness-run-receipt"
+                        for ref in fault.referenced_objects
+                    )
+                ):
+                    raise HarnessTerminalConflict(
+                        "UNKNOWN fault requires its original typed immutable Run Receipt"
+                    )
+                raw = self.get_object(
+                    receipt_object_digest,
+                    expected_kind="independent-harness-run-receipt",
+                )
+                if not isinstance(raw, dict):
+                    raise HarnessTerminalConflict("UNKNOWN fault Run Receipt is not an object")
+                fault_receipt = IndependentHarnessRunReceipt.from_dict(raw)
+                if (
+                    fault_receipt.digest != receipt_digest
+                    or fault_receipt.harness_run_id != harness_run_id
+                    or fault_receipt.contract_digest != current.contract_digest
+                    or fault_receipt.termination_code != fault.data["stopCode"]
+                    or fault_receipt.stop_reason != "unknown"
+                ):
+                    raise HarnessTerminalConflict(
+                        "UNKNOWN fault Run Receipt differs from original Run identity"
+                    )
+                unknown_quarantine = True
+            if terminal_id is not None and not unknown_quarantine:
+                # All normal and non-UNKNOWN terminal admissions require
+                # zero outstanding effects under this same Run row lock.
+                # The Run row is still SELECT FOR UPDATE and the original
+                # Lease/Revision CAS has already passed. No other Writer can
+                # commit a Provider/Tool transition between this scan and the
+                # terminal update. Inspect the entire *prospective* Journal,
+                # including any earlier effects settled in this very batch.
+                original_events = self.list_run_events(harness_run_id)
+                proposed_events = tuple(
+                    HarnessRunEventRecord(
+                        sequence=-(offset),
+                        event_id=e.event_id,
+                        harness_run_id=harness_run_id,
+                        run_revision=expected_revision + offset,
+                        event_kind=e.event_kind,
+                        payload_digest=payload.digest,
+                        data=e.data,
+                        caused_by_event_id=e.caused_by_event_id,
+                        recorded_at_ms=e.recorded_at_ms,
+                    )
+                    for offset, (e, payload) in enumerate(prepared, 1)
+                )
+                prospective = original_events + proposed_events
+                if any(
+                    event.event_kind.startswith(("harness.provider-call-", "harness.tool-step-"))
+                    for event in prospective
+                ):
+                    # Use the existing verified immutable-CAS continuity
+                    # scanner, rather than a parallel Pending table, ledger,
+                    # registry, or a check in a separate transaction.
+                    from .ordivon.continuity_guards import (
+                        inspect_all_unsettled_effect_sources,
+                    )
+                    from .ordivon.run_continuity import EventSourcedRunContinuity
+
+                    continuity = EventSourcedRunContinuity.open(self, harness_run_id)
+                    provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
+                        prospective,
+                        store=self,
+                        harness_run_id=harness_run_id,
+                        binding=continuity.binding,
+                        allow_tool_content=continuity.contract.privacy.allow_tool_content,
+                        provider_record_reader=continuity._load_provider_from_event,
+                    )
+                    if provider_ids or tool_digests:
+                        raise HarnessTerminalConflict(
+                            "terminal Run cannot close over unresolved original "
+                            "Provider/Tool effects; exact Owner reconciliation "
+                            "is required before finalization"
+                        )
             final_revision = expected_revision + len(prepared)
             changed = self.connection.execute(
                 "UPDATE runs SET status=%s,revision=%s,updated_at_ms=%s,terminal_event_id=%s "

@@ -2426,11 +2426,16 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         pending_intents: tuple[str, ...] = ()
         if pause_reason is HarnessRunPauseReason.EFFECT_DISPATCH_PENDING:
             current = self.load_current_tool_step()
-            if current.receipt is None or current.receipt.status not in {
+            if current.receipt is not None and current.receipt.status not in {
                 HarnessToolStepStatus.UNKNOWN,
                 HarnessToolStepStatus.CANCEL_REQUESTED,
             }:
-                raise ValueError("effect-dispatch-pending requires a source UNKNOWN Tool receipt")
+                raise ValueError(
+                    "effect-dispatch-pending requires a prepared or unresolved original Tool"
+                )
+            # PREPARED without a Receipt is itself a possibly dispatched
+            # physical effect: response loss before first observation must
+            # preserve its original Intent instead of permitting terminal.
             pending_intents = (current.intent.digest,)
         now_ms = self.clock_ms()
         lease = self._acquire_lease("run-pause", pause_reason.value, now_ms=now_ms)
