@@ -10,6 +10,7 @@ from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import tomllib
 
@@ -2302,6 +2303,58 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
             )
 
 
+
+# Validate only current task-entry documents. Owner-native docs and live status
+# retain their own authority; this is a source-locator check, not proof that
+# the described capability is installed or the linked heading is still correct.
+NAVIGATION_LINK_PATTERN = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
+
+
+def validate_entrypoint_links(
+    root: Path, *, entrypoints: tuple[Path, ...] | None = None
+) -> None:
+    if entrypoints is None:
+        entrypoints = (
+            Path("README.md"),
+            Path("AGENTS.md"),
+            Path("docs/architecture/DECISIONS.md"),
+        )
+        # pathlib glob must be rooted at the checkout, not the caller's cwd.
+        entrypoints += tuple(
+            path.relative_to(root)
+            for path in sorted((root / "docs/start").glob("*.md"))
+        )
+        manifest = tomllib.loads((root / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        entrypoints += tuple(
+            Path(owner["root"]) / name
+            for owner in manifest["owners"]
+            for name in ("README.md", "AGENTS.md")
+        )
+    root_path = root.resolve()
+    for relative in dict.fromkeys(entrypoints):
+        path = root / relative
+        if not path.is_file():
+            continue
+        for raw in NAVIGATION_LINK_PATTERN.findall(path.read_text(encoding="utf-8")):
+            target_url = raw.strip().split(maxsplit=1)[0].strip("<>")
+            if not target_url or target_url.startswith(("#", "/")):
+                continue
+            # These are external references, not links to tracked repo files.
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target_url):
+                continue
+            target_name = unquote(target_url.split("#", 1)[0].split("?", 1)[0])
+            if not target_name:
+                continue
+            target = (path.parent / target_name).resolve()
+            if not target.is_relative_to(root_path):
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation escapes repository: {relative} -> {raw}"
+                )
+            if not target.exists():
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation target missing: {relative} -> {raw}"
+                )
+
 def validate_repository(root: Path = ROOT) -> None:
     current = root / CURRENT.relative_to(ROOT)
     deployed = root / DEPLOYED.relative_to(ROOT)
@@ -2353,6 +2406,8 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError("canonical Method Router Skill is missing")
     if "docs/architecture/CURRENT_ARCHITECTURE.md" not in readme.read_text(encoding="utf-8"):
         raise ArchitectureDocsError("root README must point to canonical current architecture")
+
+    validate_entrypoint_links(root)
 
     tempo = (root / TEMPO_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
     vector = (root / VECTOR_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
