@@ -826,6 +826,427 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 "blocked",
             )
 
+    def test_original_pg_terminal_writer_accepts_clean_run_and_exact_replay(self) -> None:
+        """Nonvacuous positive: clean Run may terminal, old exact readback
+        after response loss creates no second Event or revision.
+        """
+        run = contract()
+        self.store.create_run(run)
+        before = self.store.load_run(run.harness_run_id)
+        now = before.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:terminal-clean",
+            ttl_ms=10_000, now_ms=now,
+        )
+        terminal = HarnessEventWrite(
+            event_id="event:pg-clean-original-terminal",
+            event_kind="harness.run-completed",
+            data={"stopReason": "completed"},
+            recorded_at_ms=now + 1,
+        )
+        self.assertEqual(
+            self.store.append_events(
+                harness_run_id=run.harness_run_id, events=(terminal,),
+                expected_revision=lease.run_revision, lease=lease,
+                lease_checked_at_ms=now,
+            ),
+            HarnessEventAdmission.CREATED,
+        )
+        after = self.store.load_run(run.harness_run_id)
+        self.assertTrue(after.status.terminal)
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            self.assertEqual(
+                reopened.append_events(
+                    harness_run_id=run.harness_run_id, events=(terminal,),
+                    expected_revision=lease.run_revision, lease=lease,
+                    lease_checked_at_ms=now + 2,
+                ),
+                HarnessEventAdmission.EXISTING,
+            )
+            self.assertEqual(reopened.load_run(run.harness_run_id).revision, after.revision)
+            reopened.validate_run_history(run.harness_run_id)
+
+    def test_original_pg_terminal_writer_rejects_pending_provider(self) -> None:
+        """A model Provider CLAIMED is a real unresolved external effect."""
+        from ordivon_harness.store_errors import HarnessTerminalConflict
+
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        claimed = continuity.claim_provider_call(
+            source=continuity.assignment_provider_source(),
+            turn_id="turn:pg-terminal-claimed-provider",
+            turn_sequence=1,
+            request_digest=canonical_digest({"request": "pending-provider"}),
+            provider_request_digest=canonical_digest({"wire": "pending-provider"}),
+            adapter_id=run.adapter_id,
+            requested_model_id=run.requested_model_id,
+            holder_id="holder:terminal-pending-provider",
+            ttl_ms=10_000,
+        )
+        before = self.store.load_run(run.harness_run_id)
+        now = before.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:terminal-pending-provider",
+            ttl_ms=10_000, now_ms=now,
+        )
+        with self.assertRaises(HarnessTerminalConflict):
+            self.store.append_events(
+                harness_run_id=run.harness_run_id,
+                events=(HarnessEventWrite(
+                    event_id="event:pg-terminal-while-provider-pending",
+                    event_kind="harness.run-failed",
+                    data={"stopReason": "failed"},
+                    recorded_at_ms=now + 1,
+                ),),
+                expected_revision=lease.run_revision,
+                lease=lease,
+                lease_checked_at_ms=now,
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before.revision)
+        self.assertFalse(self.store.load_run(run.harness_run_id).status.terminal)
+        self.assertEqual(
+            continuity.load_current_provider_call().record.provider_call_id,
+            claimed.record.provider_call_id,
+        )
+        self.assertTrue(self.store.release_run_lease(lease))
+
+    def test_original_pg_terminal_writer_rejects_pending_tool_without_consuming_lease(self) -> None:
+        """Original PG Store, not pre-read Continuity, must refuse completion
+        while the real immutable Tool Intent remains unsettled.
+        """
+        from ordivon_harness.store_errors import HarnessTerminalConflict
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:pg-terminal-prepared",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:pg-terminal-prepared",
+            tool_call_id="tool-call:pg-terminal-prepared",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"tool": "pg-terminal-prepared"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
+            client_request_id="request:pg-terminal-prepared",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        before = self.store.load_run(run.harness_run_id)
+        now = before.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id,
+            owner_id="worker:pg-terminal-pending-tool",
+            ttl_ms=10_000,
+            now_ms=now,
+        )
+        terminal = HarnessEventWrite(
+            event_id="event:pg-terminal-while-tool-pending",
+            event_kind="harness.run-completed",
+            data={"stopReason": "completed"},
+            recorded_at_ms=now + 1,
+        )
+        with self.assertRaises(HarnessTerminalConflict):
+            self.store.append_events(
+                harness_run_id=run.harness_run_id,
+                events=(terminal,),
+                expected_revision=lease.run_revision,
+                lease=lease,
+                lease_checked_at_ms=now,
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before.revision)
+        self.assertFalse(self.store.load_run(run.harness_run_id).status.terminal)
+        self.assertEqual(self.store.doctor()["leases"], 1)
+        self.assertEqual(
+            continuity.inspect_unsettled_tool_sources()["unsettledIntents"][0]["intentDigest"],
+            intent.digest,
+        )
+        self.assertTrue(self.store.release_run_lease(lease))
+
+    def test_original_recorder_cannot_claim_completed_with_pending_tool(self) -> None:
+        """A candidate_completed answer is rejected, never emitted as a
+        terminal receipt while the original Tool may still have an effect.
+        """
+        from ordivon_harness.independent_result import IndependentRunRecorder
+        from ordivon_harness.ordivon.events import HarnessRunEvent, HarnessTrace
+        from ordivon_harness.ordivon.run_contract import AgentLoopResult, RunStopCode
+        from ordivon_harness.ordivon.model import AgentRunConclusion
+        from ordivon_harness.store_errors import HarnessTerminalConflict
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:false-terminal-completed",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:false-terminal-completed",
+            tool_call_id="tool-call:false-terminal-completed",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"toolCall": "false-terminal-completed"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
+            client_request_id="request:false-terminal-completed",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        trace = HarnessTrace(
+            run.harness_run_id,
+            (HarnessRunEvent(
+                sequence=1,
+                kind="run_stopped",
+                occurred_at_ms=run.created_at_ms + 1,
+                payload={"reason": "unverified candidate"},
+            ),),
+        )
+        result = AgentLoopResult(
+            harness_run_id=run.harness_run_id,
+            stop_code=RunStopCode.CANDIDATE_COMPLETED,
+            trace=trace,
+            conclusion=AgentRunConclusion(
+                status="candidate_completed",
+                summary="This is not proof the original Tool completed.",
+            ),
+            messages=(), observations=(),
+            model_calls=0, tool_calls=0, observation_bytes=0, usage={},
+        )
+        recorder = IndependentRunRecorder(
+            self.store, run, continuity.binding, clock_ms=clock
+        )
+        with self.assertRaises(HarnessTerminalConflict):
+            recorder.record_result(
+                result,
+                started_at_ms=run.created_at_ms,
+                finished_at_ms=run.created_at_ms + 3,
+            )
+        self.assertFalse(self.store.load_run(run.harness_run_id).status.terminal)
+        self.assertEqual(
+            continuity.inspect_unsettled_tool_sources()["unsettledIntents"][0]["intentDigest"],
+            intent.digest,
+        )
+
+    def test_original_recorder_nonterminal_hold_preserves_unreceipted_tool(self) -> None:
+        """A failed Run after a pre-dispatch Tool Intent must remain PAUSED,
+        with its same original Intent and recoverable snapshot, not terminal.
+        """
+        from ordivon_harness.independent_result import IndependentRunRecorder
+        from ordivon_harness.ordivon.events import HarnessRunEvent, HarnessTrace
+        from ordivon_harness.ordivon.run_contract import AgentLoopResult, RunStopCode
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:failed-hold",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:failed-hold",
+            tool_call_id="tool-call:failed-hold",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"toolCall": "failed-hold"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
+            client_request_id="request:failed-hold",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        result = AgentLoopResult(
+            harness_run_id=run.harness_run_id,
+            stop_code=RunStopCode.HARNESS_FAILED,
+            trace=HarnessTrace(
+                run.harness_run_id,
+                (HarnessRunEvent(
+                    sequence=1,
+                    kind="run_stopped",
+                    occurred_at_ms=run.created_at_ms + 1,
+                    payload={"reason": "effect handoff not independently observed"},
+                ),),
+            ),
+            conclusion=None,
+            messages=(), observations=(),
+            model_calls=0, tool_calls=0, observation_bytes=0, usage={},
+        )
+        recorder = IndependentRunRecorder(
+            self.store, run, continuity.binding, clock_ms=clock
+        )
+        self.assertIsNone(recorder.record_result(
+            result, started_at_ms=run.created_at_ms,
+            finished_at_ms=run.created_at_ms + 3,
+        ))
+        self.assertEqual(
+            self.store.load_run(run.harness_run_id).status.value, "paused"
+        )
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            resumed = EventSourcedRunContinuity.open(
+                reopened, run.harness_run_id, clock_ms=clock
+            )
+            self.assertEqual(resumed.load_current_tool_step().intent.digest, intent.digest)
+            self.assertEqual(
+                resumed.load_current_snapshot().snapshot.active_tool_step_intent_digests,
+                (intent.digest,),
+            )
+            self.assertEqual(
+                resumed.inspect_unsettled_tool_sources()["unsettledIntents"][0]["intentDigest"],
+                intent.digest,
+            )
+
+    def test_unknown_fault_terminal_is_quarantined_not_source_settled(self) -> None:
+        """Unlike NORMAL completion, an explicit UNKNOWN STOPPED Run may
+        remain immutable audit evidence with old pending Tool; never Release.
+        """
+        from ordivon_harness.independent_result import IndependentRunRecorder
+        from ordivon_harness.ordivon.events import HarnessRunEvent, HarnessTrace
+        from ordivon_harness.ordivon.run_contract import AgentLoopResult, RunStopCode
+        from ordivon_harness.store_errors import HarnessTerminalConflict
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:pg-quarantine-unknown",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:pg-quarantine-unknown",
+            tool_call_id="tool-call:pg-quarantine-unknown",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"tool": "pg-quarantine-unknown"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"path": "README.md"}),
+            client_request_id="request:pg-quarantine-unknown",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        unknown = AgentLoopResult(
+            harness_run_id=run.harness_run_id,
+            stop_code=RunStopCode.PROVIDER_STATE_UNKNOWN,
+            trace=HarnessTrace(
+                run.harness_run_id,
+                (HarnessRunEvent(
+                    sequence=1,
+                    kind="run_stopped",
+                    occurred_at_ms=run.created_at_ms + 2,
+                    payload={"reason": "lost result with unresolved Tool"},
+                ),),
+            ),
+            conclusion=None,
+            messages=(), observations=(),
+            model_calls=0, tool_calls=0, observation_bytes=0, usage={},
+        )
+        recorder = IndependentRunRecorder(self.store, run, continuity.binding, clock_ms=clock)
+        outcome = recorder.record_result(
+            unknown, started_at_ms=run.created_at_ms,
+            finished_at_ms=run.created_at_ms + 3,
+        )
+        self.assertIsNotNone(outcome)
+        self.assertEqual(outcome.receipt.stop_reason, "unknown")
+        self.assertEqual(self.store.load_run(run.harness_run_id).status.value, "stopped")
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            observer = EventSourcedRunContinuity.open(
+                reopened, run.harness_run_id, clock_ms=clock
+            )
+            assessment = observer.inspect_finalization_source()
+            self.assertEqual(assessment["sourceStanding"], "blocked")
+            self.assertIn("unknown_run_stop", assessment["blockers"])
+            self.assertIn("tool_unsettled", assessment["blockers"])
+            self.assertEqual(assessment["unsettledToolIntentDigests"], [intent.digest])
+            self.assertEqual(assessment["runtimeClaimStanding"], "unknown")
+            self.assertEqual(assessment["externalDeliveryStanding"], "unknown")
+            pending_observation = {"schemaVersion": 1, "kind": "pg.late", "status": "observed"}
+            late_receipt = HarnessToolStepReceipt(
+                receipt_id="harness-tool-step-receipt:pg-quarantine-late",
+                intent_digest=intent.digest,
+                harness_run_id=run.harness_run_id,
+                tool_call_id=intent.tool_call_id,
+                status=HarnessToolStepStatus.OBSERVED,
+                runtime_job_ref="runtime-job:pg-quarantine-late",
+                observation_digest=canonical_digest(pending_observation),
+                reconciled=True,
+                created_at_ms=clock(),
+            )
+            with self.assertRaises(HarnessTerminalConflict):
+                observer.record_tool_step_receipt(late_receipt, pending_observation)
+            self.assertEqual(observer.inspect_finalization_source()["sourceStanding"], "blocked")
+
+    def test_unqualified_unknown_fault_cannot_bypass_pg_terminal_guard(self) -> None:
+        """A raw Event with a hand-written stopCode cannot spoof a qualified
+        immutable UNKNOWN fault receipt to bypass normal Finalization.
+        """
+        from ordivon_harness.store_errors import HarnessTerminalConflict
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:spoofed-unknown",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:spoofed-unknown",
+            tool_call_id="tool-call:spoofed-unknown",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"tool": "spoofed-unknown"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"path": "README.md"}),
+            client_request_id="request:spoofed-unknown",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        current = self.store.load_run(run.harness_run_id)
+        now = current.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id,
+            owner_id="worker:forged-unknown",
+            ttl_ms=10_000, now_ms=now,
+        )
+        with self.assertRaises(HarnessTerminalConflict):
+            self.store.append_events(
+                harness_run_id=run.harness_run_id,
+                events=(HarnessEventWrite(
+                    event_id="event:unqualified-unknown-fault",
+                    event_kind="harness.run-stopped",
+                    data={"stopCode": "provider_state_unknown"},
+                    recorded_at_ms=now + 1,
+                ),),
+                expected_revision=lease.run_revision,
+                lease=lease,
+                lease_checked_at_ms=now,
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, current.revision)
+        self.assertTrue(self.store.release_run_lease(lease))
+
     def test_finalization_detects_pending_tool_across_pg_reopen_and_settlement(self) -> None:
         """A persisted Intent is a consumer even with no active Runtime Job."""
         from ordivon_harness.ordivon.continuity_guards import (
@@ -1322,6 +1743,33 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             with self.assertRaisesRegex(HarnessSuperseded, "unresolved Tool"):
                 current.prepare_tool_step(third)
             self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
+            # Old Tool A remains unresolved even after Tool B is OBSERVED.
+            # The terminal guard scans ALL historical effects, not only B.
+            from ordivon_harness.store_errors import HarnessTerminalConflict
+
+            now = reopened.load_run(run.harness_run_id).updated_at_ms + 1
+            lease = reopened.acquire_run_lease(
+                run.harness_run_id,
+                owner_id="worker:legacy-old-A-normal-terminal",
+                ttl_ms=10_000,
+                now_ms=now,
+            )
+            with self.assertRaises(HarnessTerminalConflict):
+                reopened.append_events(
+                    harness_run_id=run.harness_run_id,
+                    events=(HarnessEventWrite(
+                        event_id="event:legacy-old-A-must-block-normal-terminal",
+                        event_kind="harness.run-completed",
+                        data={"stopCode": "candidate_completed"},
+                        recorded_at_ms=now + 1,
+                    ),),
+                    expected_revision=lease.run_revision,
+                    lease=lease,
+                    lease_checked_at_ms=now,
+                )
+            self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
+            self.assertFalse(reopened.load_run(run.harness_run_id).status.terminal)
+            self.assertTrue(reopened.release_run_lease(lease))
 
     def test_invalid_second_event_rolls_back_entire_pg_batch_and_keeps_lease(self) -> None:
         """A partial event commit must be impossible under native PG transaction."""
