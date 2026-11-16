@@ -9,16 +9,16 @@ var view: VBoxContainer
 const TACTICAL_TRIAL: Resource = preload("res://configs/tactical_trial.tres")
 
 func start_tactical_trial() -> bool:
-    if not rules.reset_run(TACTICAL_TRIAL):
-        return false
-    view.get_node("Title").text = "TACTICAL TRIAL | READ THE NEXT STRIKE BEFORE COMMITTING"
-    return true
+    return rules.reset_run(TACTICAL_TRIAL)
 
 func start_classic_run() -> bool:
-    if not rules.reset_run():
-        return false
-    view.get_node("Title").text = "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
-    return true
+    return rules.reset_run()
+
+func _project_mode_title(_state: Dictionary) -> void:
+    # Mode title is a disposable projection of the admitted Rule Resource.
+    # Direct Rule Resource substitution, Restart and restore all use this one
+    # signal path, rather than maintaining a second mode/UI state ledger.
+    view.render_mode_title(rules.active != null and rules.active.tactical_trial)
 
 func restart_run() -> void:
     # Rules owns the admitted tuning Resource. Do not shadow its mode in
@@ -43,6 +43,7 @@ func _ready() -> void:
     view.get_node("Actions/Save").pressed.connect(save_run)
     view.get_node("Actions/Load").pressed.connect(load_run)
     rules.state_changed.connect(view.render_state)
+    rules.state_changed.connect(_project_mode_title)
     # Strictly post-resolution UI feedback; Rule still owns the outcome.
     rules.action_accepted.connect(view.render_combat_result)
     feedback.bind_rules(rules)

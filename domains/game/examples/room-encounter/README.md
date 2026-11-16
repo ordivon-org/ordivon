@@ -7,13 +7,21 @@ From domains/game:
 - Run: godot --path examples/room-encounter
 - Verify: godot --headless --path examples/room-encounter --script res://assert.gd
 
-Keyboard A/Space attacks, G guards/restores stamina, N/Enter opens
-native gate dialogue after room clear, R restarts. Buttons provide the same actions. Native game loop: input
--> encounter state -> state_changed Signal -> replaceable HUD. Built-in Godot
-Scene, Resource, Signal, Label and Button are the reused LEGO providers.
+Keyboard A/Space attacks, G guards/restores stamina, N requests the gate
+dialogue after room clear, R restarts. Enter uses native Godot UI accept on
+the focused Button (including Open Door, Unlock or Leave); an unhandled Enter
+can also request the gate. Opening a door never skips the actual Unlock
+choice. Native game loop: input -> encounter state -> state_changed Signal
+-> replaceable HUD. Built-in Godot Scene, Resource, Signal, Label and Button
+are the reused LEGO providers.
 
 encounter_tuning.gd + configs/*.tres controls rooms and combat numbers;
 encounter_view.tscn may be substituted by encounter_view_variant.tscn.
+The default View derives its Classic/Trial title from the accepted Rules
+Resource through the existing state_changed Signal; no root-local mode copy
+exists. The inherited native variant opts out of the dynamic title with
+`dynamic_mode_title = false` to keep its own presentation label. This is
+View-only configuration, not a second combat authority.
 The native assert.gd consumer loads the actual PackedScene and explores
 bounded transitions, loss/win and replacements. No external asset was copied.
 Real art, music, navigation and human playtest belong to follow-on consumers.
@@ -48,10 +56,14 @@ human playtest remain unverified.
 
 The source-pinned upstream MIT Dialogue Manager 4.2.0 now runs inside
 the real room game. Unlock invokes EncounterRules.advance, Leave preserves
-game state, while Open Door and N/Enter request native branching dialogue.
+game state, while Open Door or N request the native dialogue and the focused Button's ui_accept selects Unlock/Leave.
 The only token predicate is EncounterRules.phase=cleared; no separate ledger.
 The upstream addon/unchanged MIT license are located under addons/,
-and the real Game consumer under narrative/.
+and the real Game consumer under narrative/. Native headless acceptance
+now checks Input.parse_input_event for N, Godot's ui_accept on focused Open
+Door/Unlock Buttons, plus the single passage_advanced effect; this qualifies
+engine-level dispatch and dialogue semantics, not physical Windows
+foreground keyboard usability.
 
 ## Native two-process checkpoint qualification
 
