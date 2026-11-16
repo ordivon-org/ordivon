@@ -26,6 +26,58 @@ Either deliver a runnable product slice bound to source+assets+tests, or stop th
 
 **Whole owner** mise run verify remains the monorepo-required source gate; the optional GitHub Game factory action publishes technical-preview artifacts. It does not weaken or bypass existing required checks.
 
+## Source-qualified native bundle (manufacturing contract)
+
+A manufacturing attempt is bound to one **clean Game source tree** and one
+native exporter/toolchain. A dirty `domains/game` worktree fails the factory
+package entry with `GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE`; run targeted
+native tests while iterating, or commit a reviewable Git source cut before
+packaging. Neither `git rev-parse HEAD` alone nor a successful Godot process
+exit proves that the produced bytes belong to a release.
+
+The current `factory:package:room` and `factory:package:beacon` tasks are
+thin `mise` compositions around the official Godot exporters. Each builds
+Linux/Windows outputs in a disposable same-filesystem staging directory,
+verifies the complete pair, and **atomically renames one complete directory**
+to `dist/<product>/bundle-<source-prefix>-<attempt>/`. The directory
+contains both archives, `BUILD_SOURCE.txt`, `SHA256SUMS`, and `READY`.
+`BUILD_SOURCE.txt` records source commit/tree/clean status, Godot version,
+observed export-template digests (or UNKNOWN), and explicitly
+`RELEASE_PUBLISHED=false`. `SHA256SUMS` binds the archived binaries and
+source receipt. The caller must consume only the exact
+`GAME_FACTORY_BUNDLE_PATH=...` emitted after the successful rename and
+verify `sha256sum -c SHA256SUMS`; an unrelated prior bundle, fixed path,
+or an unverified tar/zip filename is **not** evidence of this attempt.
+The source receipt is a sidecar for the **pair**, not embedded in either
+individual archive; any later publisher of individual archives must retain
+or link that sidecar and its exact digest relationship.
+
+Failures preserve earlier complete bundles without publishing an incomplete
+new one. The package is only `native_headless_preview`; Linux smoke does not
+certify full gameplay, active hazard integration, GPU/audio peripherals,
+Windows foreground input or Human play. A template recorded as UNKNOWN is
+an incomplete provenance witness, not a verified release-ready build.
+A full CI upload requires two known template digests, matching checkout
+source commit, bundle manifest/digests, and fails closed otherwise.
+
+The Game GitHub Actions workflow publishes only a **14-day technical-preview
+Actions Artifact** with the exact completed bundle. It does **not** publish
+GitHub Release assets. Any long-lived Release promotion must independently
+bind downloaded exact bytes to the bundle's two archive SHA256 values,
+identify a GitHub Release asset/tag, and read back the remote asset digest.
+A release record still does not certify active gameplay or Human satisfaction.
+Use the existing GitHub release and Artifact providers, not a second Game
+Artifact DB or release scheduler.
+
+Workspace cleanup remains a separate natural-owner effect: the two
+2026-11-10 historical Game workspaces contain eight ignored archives whose
+sha256 values were shown *not* to match the four Edition001 release archives.
+No bundle produced by the new code proves those historical eight were
+durably delivered or bit-rebuildable. Each exact archive needs an owner
+disposition and, when required, a durable Artifact/Release readback before
+Runtime native digest-CAS close; never force-close on a mere no-active-Job
+finding.
+
 ## Contract and stopping rule
 
 Use existing typed LEGO pre/post/inv/effect/provenance only where a specific assembly seam needs it. A successful component test is not a successful composed product. Change, substitute or discard at the product boundary; source search and test framework construction have no independent production value without a consuming build.

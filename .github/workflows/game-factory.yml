@@ -4,14 +4,9 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "domains/game/mise.toml"
-      - "domains/game/examples/room-encounter/**"
-      - "domains/game/examples/beacon-relay/**"
-      - "domains/game/examples/native-composition/**"
-      - "domains/game/examples/kenney-visual-composition/**"
-      - "domains/game/AGENTS.md"
-      - "domains/game/docs/agent-execution-contract-spec.md"
-      - "domains/game/docs/agent-execution-implementation-plan.md"
+      - "domains/game/**"
+      - "profiles/domains/game/**"
+      - "pnpm-lock.yaml"
       - ".github/workflows/game-factory.yml"
   push:
     branches: [main]
@@ -21,8 +16,14 @@ on:
       - "domains/game/examples/native-composition/**"
       - "domains/game/examples/kenney-visual-composition/**"
       - "domains/game/mise.toml"
+      - "domains/game/scripts/**"
+      - "domains/game/formal/**"
+      - "domains/game/test/**"
+      - "domains/game/src/**"
+      - "domains/game/package.json"
+      - "domains/game/pnpm-lock.yaml"
+      - "pnpm-lock.yaml"
       - ".github/workflows/game-factory.yml"
-
 permissions:
   contents: read
 
@@ -35,7 +36,7 @@ jobs:
     name: Godot clean-checkout native consumer acceptance
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - name: Checkout exact PR source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,15 +57,14 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: mise install
 
-      - name: Verify Godot composition, G11, visuals and Beacon consumers
+      - name: Verify full native Godot factory qualification and Beacon gameplay coverage
         working-directory: domains/game
         run: |
           set -euo pipefail
           test ! -d examples/room-encounter/.godot
-          mise run test:agent-episode
+          mise run factory:validate:godot
           mise run test:beacon
-          mise run test:native
-          mise run test:visual-native
+          python3 scripts/test_godot_package_contract.py
 
   native-preview:
     if: github.event_name != 'pull_request'
@@ -117,18 +117,29 @@ jobs:
           test -s "$target/linux_release.x86_64"
           test -s "$target/windows_release_x86_64.exe"
 
-      - name: Validate and export actual Linux and Windows previews
+      - name: Validate one complete source-bound native Linux/Windows bundle
+        id: package
         working-directory: domains/game
         run: |
           set -euo pipefail
-          mise run ${{ matrix.task }}
+          mise run ${{ matrix.task }} | tee "$RUNNER_TEMP/game-${{ matrix.game }}-package.log"
+          bundle="$(sed -n 's/^GAME_FACTORY_BUNDLE_PATH=//p' "$RUNNER_TEMP/game-${{ matrix.game }}-package.log" | tail -n 1)"
+          test -n "$bundle" && test -s "$bundle/READY" && test -s "$bundle/BUILD_SOURCE.txt"
+          grep -Fxq "SOURCE_COMMIT=${{ github.sha }}" "$bundle/BUILD_SOURCE.txt"
+          grep -Fxq "SOURCE_WORKTREE=clean" "$bundle/BUILD_SOURCE.txt"
+          grep -Fxq "RELEASE_PUBLISHED=false" "$bundle/BUILD_SOURCE.txt"
+          if grep -Fq "SHA256=UNKNOWN" "$bundle/BUILD_SOURCE.txt"; then
+            echo "Missing exact matching export template identity" >&2
+            exit 1
+          fi
+          (cd "$bundle" && sha256sum -c SHA256SUMS)
+          printf 'bundle_path=%s\n' "$bundle" >> "$GITHUB_OUTPUT"
 
-      - name: Publish source-bound technical previews
+      - name: Store validated short-lived technical preview bundle, not a GitHub Release
+        id: upload
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ordivon-game-${{ matrix.game }}-preview-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
-          path: |
-            domains/game/dist/${{ matrix.product }}/*linux*x86_64.tar.gz
-            domains/game/dist/${{ matrix.product }}/*windows*x86_64.zip
+          path: ${{ steps.package.outputs.bundle_path }}/
