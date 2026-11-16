@@ -66,7 +66,30 @@ fi
     executable(
         bin_dir / "git",
         '''if [[ "$1" == rev-parse ]]; then echo "''' + FIXTURE_SHA + '''"; exit 0; fi
-if [[ "$1" == status ]]; then if [[ "$INJECT_FAILURE" == dirty ]]; then echo " M domains/game/mise.toml"; fi; exit 0; fi
+if [[ "$1" == status ]]; then
+  if [[ "$INJECT_FAILURE" == dirty ]]; then
+    echo " M domains/game/mise.toml"
+  elif [[ "$INJECT_FAILURE" == root_dirty ]]; then
+    # The old Game-local "-- ." status check hides the dirty root mise.toml,
+    # even though mise cascades root configuration into native Game tasks.
+    for arg in "$@"; do
+      if [[ "$arg" == "." ]]; then exit 0; fi
+    done
+    echo " M mise.toml"
+  elif [[ "$INJECT_FAILURE" == root_dirty_late ]]; then
+    # First read: clean; second read: the root configuration changes after
+    # native export. A package must not publish READY for a mixed input epoch.
+    if [[ ! -e "$GIT_STATUS_COUNTER_FILE" ]]; then
+      : > "$GIT_STATUS_COUNTER_FILE"
+    else
+      for arg in "$@"; do
+        if [[ "$arg" == "." ]]; then exit 0; fi
+      done
+      echo " M mise.toml"
+    fi
+  fi
+  exit 0
+fi
 exit 72
 ''',
     )
@@ -78,7 +101,8 @@ exit 72
         dest = root / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text("fixture license or credits\n", encoding="utf-8")
-    env = {**os.environ, "PATH": str(bin_dir) + os.pathsep + os.environ["PATH"], "INJECT_FAILURE": fail}
+    env = {**os.environ, "PATH": str(bin_dir) + os.pathsep + os.environ["PATH"],
+           "INJECT_FAILURE": fail, "GIT_STATUS_COUNTER_FILE": str(root / "git-status-counter")}
     if name.endswith("beacon"):
         env["GAME_EXPORT_DIR"] = str(root / "dist" / "beacon-relay")
     return subprocess.run(
@@ -110,8 +134,10 @@ def assert_failure(name: str, failure: str) -> None:
         assert sorted(p.name for p in target.glob("bundle-*")) == ["bundle-previous"]
         assert (old / "READY").read_text() == "last-good"
         assert not list(target.glob(".factory-package.*")), "staging leaked"
-        if failure == "dirty":
+        if failure in ("dirty", "root_dirty"):
             assert "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" in result.stderr
+        elif failure == "root_dirty_late":
+            assert "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" in result.stderr
 
 
 def assert_success(name: str, archives: tuple[str, str]) -> None:
@@ -152,11 +178,15 @@ if __name__ == "__main__":
     for task, fail in (
         ("factory:package:room", "windows"),
         ("factory:package:room", "dirty"),
+        ("factory:package:room", "root_dirty"),
+        ("factory:package:room", "root_dirty_late"),
         ("factory:package:beacon", "test"),
         ("factory:package:beacon", "windows"),
         ("factory:package:beacon", "dirty"),
+        ("factory:package:beacon", "root_dirty"),
+        ("factory:package:beacon", "root_dirty_late"),
     ):
         assert_failure(task, fail)
     assert_success("factory:package:room", ROOM)
     assert_success("factory:package:beacon", BEACON)
-    print("GAME_FACTORY_PACKAGE_CONTRACT_PASS failures=5 successes=2")
+    print("GAME_FACTORY_PACKAGE_CONTRACT_PASS failures=9 successes=2")

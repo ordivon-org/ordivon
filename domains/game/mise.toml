@@ -102,7 +102,7 @@ target="$PWD/dist/room-encounter"
 mkdir -p "$target"
 head_before="$(git rev-parse HEAD)"
 tree_before="$(git rev-parse 'HEAD^{tree}')"
-if [[ -n "$(git status --porcelain --untracked-files=normal -- .)" ]]; then
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
   echo "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" >&2
   exit 42
 fi
@@ -143,7 +143,7 @@ mv -- "$stage/room-encounter-windows-x86_64.zip" "$stage/ready/"
   sha256sum room-encounter-linux-x86_64.tar.gz room-encounter-windows-x86_64.zip BUILD_SOURCE.txt > SHA256SUMS
   sha256sum -c SHA256SUMS
 )
-if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal -- .)" ]]; then
+if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
   echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
   exit 43
 fi
@@ -177,7 +177,7 @@ target="${GAME_EXPORT_DIR:-$PWD/dist/beacon-relay}"
 mkdir -p "$target"
 head_before="$(git rev-parse HEAD)"
 tree_before="$(git rev-parse 'HEAD^{tree}')"
-if [[ -n "$(git status --porcelain --untracked-files=normal -- .)" ]]; then
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
   echo "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" >&2
   exit 42
 fi
@@ -227,7 +227,7 @@ test -s "$stage/ready/beacon-relay-windows-x86_64.zip"
   sha256sum beacon-relay-linux-x86_64.tar.gz beacon-relay-windows-x86_64.zip BUILD_SOURCE.txt > SHA256SUMS
   sha256sum -c SHA256SUMS
 )
-if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal -- .)" ]]; then
+if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
   echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
   exit 43
 fi

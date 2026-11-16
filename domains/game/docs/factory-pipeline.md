@@ -28,12 +28,20 @@ Either deliver a runnable product slice bound to source+assets+tests, or stop th
 
 ## Source-qualified native bundle (manufacturing contract)
 
-A manufacturing attempt is bound to one **clean Game source tree** and one
-native exporter/toolchain. A dirty `domains/game` worktree fails the factory
-package entry with `GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE`; run targeted
-native tests while iterating, or commit a reviewable Git source cut before
-packaging. Neither `git rev-parse HEAD` alone nor a successful Godot process
-exit proves that the produced bytes belong to a release.
+A manufacturing attempt is bound to one **clean repository-wide Git source
+tree** and one native exporter/toolchain. Godot/mise can consume cascading
+root configuration such as `mise.toml` outside `domains/game`; checking only
+`git status -- .` from Game would accept a dirty root config as `SOURCE_WORKTREE=clean`.
+Both package entries now check the **entire Git worktree** before native tests
+and again before atomically publishing READY. Dirty source anywhere in that
+checkout fails closed with `GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE` or
+`GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD`. Run targeted native tests while
+iterating, or use a dedicated clean checkout and commit a reviewable Git source
+cut before packaging. This deliberately favors source integrity over allowing
+unrelated, simultaneous uncommitted changes in the **same** release checkout;
+separate Git worktrees still permit concurrent Owner development.
+Neither `git rev-parse HEAD` alone nor a successful Godot process exit
+proves that the produced bytes belong to a release.
 
 The current `factory:package:room` and `factory:package:beacon` tasks are
 thin `mise` compositions around the official Godot exporters. Each builds
@@ -71,14 +79,17 @@ A release record still does not certify active gameplay or Human satisfaction.
 Use the existing GitHub release and Artifact providers, not a second Game
 Artifact DB or release scheduler.
 
-Workspace cleanup remains a separate natural-owner effect: the two
-2026-11-10 historical Game workspaces contain eight ignored archives whose
-sha256 values were shown *not* to match the four Edition001 release archives.
-No bundle produced by the new code proves those historical eight were
-durably delivered or bit-rebuildable. Each exact archive needs an owner
-disposition and, when required, a durable Artifact/Release readback before
-Runtime native digest-CAS close; never force-close on a mere no-active-Job
-finding.
+Workspace cleanup remains a separate Runtime natural-owner effect.
+On 2026-11-16 the two 2026-11-10 historical Game workspaces and their eight
+ignored technical-preview archives were **closed after explicit business
+discard approval, source-only Git refs verified 4/4, Native Runtime CAS close,
+tombstone and physical-path readback** (Runtime lifecycle Host message #28300).
+Those eight SHA256 values were not the same bytes as the four Edition001
+Release assets; old local previews were deliberately discarded, **not**
+claimed delivered or bit-rebuildable. This specific close outcome must
+not be generalized: the Runtime/Harness ACTIVE-Run-vs-NativeClose
+consumer-lifetime fence remains a separately evidenced system-wide defect.
+Never force-close another Workspace on a mere no-active-Job finding.
 
 ## Contract and stopping rule
 
