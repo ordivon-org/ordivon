@@ -392,6 +392,72 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             self.assertIn("--min-age-hours 4 ", line)
             self.assertNotIn("--force", line)
 
+    def test_other_git_source_repo_workspace_is_not_unknown_directory(self):
+        """One Runtime root can host unrelated Git repos; neither is an orphan."""
+        import json
+        other = self.root / "another-source-repo"
+        other.mkdir()
+        self.git("init", "-q", "-b", "main", cwd=other)
+        self.git("config", "user.name", "Other Operator", cwd=other)
+        self.git("config", "user.email", "other@example.invalid", cwd=other)
+        (other / "main.txt").write_text("distinct Git authority")
+        self.git("add", "main.txt", cwd=other)
+        self.git("commit", "-qm", "other root", cwd=other)
+        other_workspace = self.workspaces / "ws-other-source"
+        self.git("worktree", "add", "--detach", str(other_workspace), "HEAD", cwd=other)
+        records = self.root / "workspace-records"
+        records.mkdir()
+        (records / (other_workspace.name + ".json")).write_text(
+            json.dumps({
+                "schemaVersion": 1,
+                "workspaceId": other_workspace.name,
+                "sourceRepo": str(other.resolve()),
+                "sourceRevision": self.git("rev-parse", "HEAD", cwd=other_workspace),
+                "workspacePath": str(other_workspace.resolve()),
+                "createdUnixMs": 1,
+            })
+        )
+        report, client = self.run_operator_plan(allow=False)
+        self.assertEqual(report["otherSourceRepoManagedWorkspaceCount"], 1)
+        self.assertEqual(report["otherSourceRepoManagedWorkspaceSample"],
+                         [other_workspace.name])
+        self.assertEqual(report["unregisteredDirectoryCount"], 1)
+        self.assertEqual(report["unclassifiedDirectoryCount"], 0)
+        self.assertEqual(report["eligible"], 0)
+        self.assertTrue(other_workspace.exists())
+        self.assertEqual(client.calls, [])
+
+    def test_unproven_cross_repo_record_remains_unknown_without_deletion(self):
+        """An untrusted record is not enough to declare an orphan or a consumer."""
+        import json
+        other_workspace = self.workspaces / "ws-unproven-source"
+        other_workspace.mkdir()
+        records = self.root / "workspace-records"
+        records.mkdir()
+        # The record points at a genuine *other Git repository*, but Git
+        # never registered this directory as its worktree. Metadata alone
+        # must not make the directory appear safely owned or disposable.
+        foreign_repo = self.root / "unrelated-source"
+        foreign_repo.mkdir()
+        self.git("init", "-q", "-b", "main", cwd=foreign_repo)
+        (records / (other_workspace.name + ".json")).write_text(
+            json.dumps({
+                "schemaVersion": 1,
+                "workspaceId": other_workspace.name,
+                "sourceRepo": str(foreign_repo.resolve()),
+                "workspacePath": str(other_workspace.resolve()),
+            })
+        )
+        report, client = self.run_operator_plan(allow=True)
+        self.assertEqual(report["otherSourceRepoManagedWorkspaceCount"], 0)
+        self.assertEqual(report["unregisteredDirectoryCount"], 1)
+        self.assertEqual(report["unclassifiedDirectoryCount"], 1)
+        self.assertEqual(report["unregisteredDirectorySample"],
+                         [other_workspace.name])
+        self.assertEqual(report["eligible"], 1)  # unrelated source repo W is eligible
+        self.assertTrue(other_workspace.exists())
+        self.assertEqual(client.calls, [])
+
     def test_ignored_workspace_output_never_qualifies_for_deletion(self):
         # Git status --porcelain reports clean, but ordinary worktree remove
         # would still remove this cache or data under ignore rules.
