@@ -139,7 +139,7 @@ class RootOperatorBundlePlanTests(unittest.TestCase):
         )
 
     def test_stage_existing_candidate_is_never_overwritten(self) -> None:
-        result = self.stage()
+        self.stage()
         candidate = self.temp / "staged"
         before = sorted((p.name,p.read_bytes()) for p in candidate.iterdir())
         with self.assertRaisesRegex(RuntimeError,"already exists"):
