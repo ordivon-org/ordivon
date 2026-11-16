@@ -30,6 +30,26 @@ def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
 
 
+def test_entrypoint_link_source_contract_detects_broken_navigation(tmp_path: Path) -> None:
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "[Start](guide.md) [Local](#section) [External](https://example.org/docs)\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+    readme.write_text("[Start](missing.md)\n", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="navigation target missing"):
+        module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+
+
+def test_entrypoint_link_cannot_leak_outside_checkout(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("[Outside](../../missing.md)\n", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="navigation escapes repository"):
+        module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+
+
+
 @pytest.mark.parametrize(
     ("source", "reason"),
     [
