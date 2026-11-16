@@ -700,6 +700,27 @@ def linux_exchange_sibling_root_bundle_directories(
             ) from error
 
 
+def root_bundle_candidate_namespace_closed(path: Path) -> bool:
+    """Allow only the five committed scripts and optional stage manifest.
+
+    Extra Python modules, symlinks, backup executables or bytecode caches in
+    the staged candidate are not independently Git-qualified and may affect
+    the future import namespace. This is source-shape evidence only, not an
+    authorization decision. Existing OLD Root contents are separately
+    preserved as an unmodified preimage, not certified as clean.
+    """
+    names = {name for name, _ in ROOT_OPERATOR_BUNDLE}
+    try:
+        entries = {entry.name: entry for entry in path.iterdir()}
+    except OSError:
+        return False
+    allowed = names | {"ordivon-root-bundle-candidate.json"}
+    if set(entries) - allowed or not names.issubset(entries):
+        return False
+    optional = entries.get("ordivon-root-bundle-candidate.json")
+    return optional is None or (not optional.is_symlink() and optional.is_file())
+
+
 def root_bundle_exchange_readback(
     live: Path,
     staged: Path,
@@ -744,9 +765,9 @@ def root_bundle_exchange_readback(
             records[name] = sha256(item)
         actual.append(records)
     if actual == [old_artifacts, candidate_artifacts]:
-        return "PREPARED"
+        return "PREPARED" if root_bundle_candidate_namespace_closed(staged) else "UNKNOWN"
     if actual == [candidate_artifacts, old_artifacts]:
-        return "EXCHANGED"
+        return "EXCHANGED" if root_bundle_candidate_namespace_closed(live) else "UNKNOWN"
     return "UNKNOWN"
 
 

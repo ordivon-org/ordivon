@@ -731,9 +731,12 @@ directories before the exchange and the parent directory afterward, and
 returns RECONCILIATION_REQUIRED if a post-exchange durability/readback
 operation fails. The classifier returns PREPARED, EXCHANGED, or UNKNOWN
 from five old/new real file byte sets; identical old/new byte sets, wrong
-file modes, missing files, or drift are always UNKNOWN, never an
-auto-approved retry. On unsupported Linux filesystems there is **no
-non-atomic fallback**.
+file modes, missing files, unexpected staged importable scripts / bytecode,
+or drift are always UNKNOWN, never an auto-approved retry. Only the five
+committed candidate files and its optional stage manifest may occupy the
+NEW Root directory before activation; the old directory can retain its
+separate historical artifacts as a protected rollback preimage. On
+unsupported Linux filesystems there is **no non-atomic fallback**.
 
 **This primitive is not yet a production upgrader**. The natural Root
 operator must still journal exact candidate/preimage inode and SHA evidence

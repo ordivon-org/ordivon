@@ -307,6 +307,44 @@ class RootOperatorBundlePlanTests(unittest.TestCase):
             old_artifacts=new,candidate_artifacts=new,
         ),"UNKNOWN")
 
+    def test_staged_root_rejects_unknown_python_imports_or_bytecode(self) -> None:
+        candidate,old,new=self.exchanged_directories()
+        unexpected=candidate/"sitecustomize.py"
+        unexpected.write_text("import os")
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+        unexpected.unlink()
+        cache=candidate/"__pycache__"
+        cache.mkdir()
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+        cache.rmdir()
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"PREPARED")
+
+    def test_swapped_live_root_extra_import_cannot_be_certified(self) -> None:
+        candidate,old,new=self.exchanged_directories()
+        deploy.linux_exchange_sibling_root_bundle_directories(
+            self.installed,candidate,
+        )
+        extra=self.installed/"ordivon_runtime_pg_operator.py.pre-shadow.py"
+        extra.write_bytes(b"shadow module")
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"UNKNOWN")
+        extra.unlink()
+        self.assertEqual(deploy.root_bundle_exchange_readback(
+            self.installed,candidate,
+            old_artifacts=old,candidate_artifacts=new,
+        ),"EXCHANGED")
+
     def test_readback_rejects_missing_blob_or_incomplete_journal(self) -> None:
         candidate, old, new = self.exchanged_directories()
         with self.assertRaisesRegex(RuntimeError,"exactly the five"):
