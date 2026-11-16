@@ -232,6 +232,8 @@ mod reconciliation;
 mod release;
 mod scheduling;
 mod workspace;
+mod claim;
+pub use claim::{WorkspaceClaimReserveRequest, WorkspaceClaimKeyRequest, WorkspaceClaimProjection};
 
 impl PgRuntime {
     pub fn new(config: PgRuntimeConfig) -> RuntimeResult<Self> {
@@ -279,6 +281,11 @@ impl PgRuntime {
             false,
         )
         .map_err(pg)?;
+        // Fail startup if the operator has not installed the Runtime-owned
+        // claim fence. A missing table must NEVER silently downgrade Close
+        // to the older Job-only protection.
+        db.client.query("SELECT claim_id FROM workspace_consumer_claims LIMIT 0", &[])
+            .map_err(io)?;
         // Authorization includes the independently controlled app-role
         // privilege check in store(); only now may native paths be created.
         runtime.config.executor.ensure_store().map_err(io)?;
