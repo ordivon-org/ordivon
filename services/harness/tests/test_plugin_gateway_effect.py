@@ -2001,3 +2001,41 @@ def test_r8_bogus_bool_workspace_admission_is_not_native_qualification() -> None
     with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="unauthenticated"):
         adapter.call_tool("workspace.exec", _effect_request_for_claim_contract())
     assert client.calls == []
+
+
+@pytest.mark.parametrize(
+    ("inventory_fault", "expected_error"),
+    (
+        ("missing-total", "artifactCount"),
+        ("repeated-identity", "artifact"),
+    ),
+)
+def test_gateway_committed_inventory_cannot_forge_complete_artifact_id_set(
+    inventory_fault: str, expected_error: str
+) -> None:
+    """An upstream summary Boolean alone cannot certify a complete identity set.
+
+    The current Gateway Owner normally checks duplicate IDs and supplies the
+    count. Harden the Harness consumer against partial/mixed-version Owner
+    projections without inventing any Artifact type or digest.
+    """
+    class IncompleteIdentityProjection(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            is_error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload["artifact_projection_complete"] = True
+                payload["delivery_disposition"] = "committed"
+                if inventory_fault == "missing-total":
+                    payload.pop("artifact_count")
+                else:
+                    payload["artifact_ids"] = ["same-artifact", "same-artifact"]
+                    payload["artifact_count"] = 2
+            return is_error, payload
+
+    client = IncompleteIdentityProjection()
+    adapter = GatewayMcpRuntimeAdapter(
+        _factory(client).component, client, _factory(client).execution_grant
+    )
+    adapter._operation_requests[client.native_id] = "request:exact-inventory-p0"
+    with pytest.raises(HarnessRuntimeClientError, match=expected_error):
+        adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)

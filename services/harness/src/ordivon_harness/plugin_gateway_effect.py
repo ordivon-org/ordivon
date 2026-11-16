@@ -592,6 +592,10 @@ class GatewayMcpRuntimeAdapter:
             not isinstance(item, str) or not item for item in artifact_ids
         ):
             raise HarnessRuntimeClientError("Gateway artifactIds are invalid")
+        if len(artifact_ids) != len(set(artifact_ids)):
+            # One repeated ID cannot account for multiple durable Artifacts,
+            # even if a mixed-version Gateway claims a complete projection.
+            raise HarnessRuntimeClientError("Gateway artifactIds contain duplicate identities")
 
         projection_complete = _gateway_field(
             observed, "artifact_projection_complete", "artifactProjectionComplete"
@@ -600,6 +604,12 @@ class GatewayMcpRuntimeAdapter:
         if artifact_count is not None and (type(artifact_count) is not int or artifact_count < 0):
             raise HarnessRuntimeClientError("Gateway artifactCount is invalid")
         if terminal and delivery == "committed" and not recovery:
+            if artifact_count is None:
+                # A claimed complete inventory without the Owner's total
+                # cannot establish exact identity coverage or ResultAvailable.
+                raise HarnessRuntimeClientError(
+                    "Gateway committed artifactCount is missing"
+                )
             if type(projection_complete) is not bool:
                 raise HarnessRuntimeClientError(
                     "Gateway artifact projection completeness is missing or invalid"
