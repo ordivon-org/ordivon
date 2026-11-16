@@ -107,6 +107,18 @@ The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibil
 
 ## Known limits
 
+- **Open P0 (2026-11-16): native Workspace-backed SameRun resume is not
+  yet certified safe across independent Harness and Runtime PostgreSQL
+  databases.** In a disposable real-native counterexample, an original Run
+  remained PAUSED while a non-force native Workspace close with
+  `consumerReleased=true` removed its frozen Workspace. Existing Harness
+  PG Run/Tool fences do not create a Runtime PG Workspace claim. The
+  proposed HELD-before-first-pausable-turn, effect-epoch verification and
+  certified release require source, isolated PostgreSQL, installed Runtime
+  and independent consumer validation; a draft claim implementation is
+  not proof of deployed protection. Do not promote this Tool-enabled
+  recovery path to production-ready or restart automated cleanup solely
+  because unit tests or a PR pass.
 - Harness is pre-1.0; public schemas and advanced exports may still change under the documented compatibility policy.
 - The primary CLI defaults to no-Tool DeepSeek; a caller may explicitly opt into an authenticated Gateway Tool profile, exact existing Workspace and executable grant. This provides a Tool-bearing CLI without minting Runtime authority. In the source implementation, only a committed original UNKNOWN ToolStep with an `effect-dispatch-pending` pause permits one original-Owner reconciliation on `resume`, never an automatic second submit. Other `runtime_unknown` cases remain stopped. Installed production release, physical issuer-current spawn and independent domain completion remain separately unqualified.
 - Harness begins at one exact `HarnessRunContract`; higher-level multi-Run orchestration/resource allocation and generic Strategy selection/evidence aggregation remain outside Harness.
@@ -118,6 +130,16 @@ The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibil
 - Provider/Tool UNKNOWN may require external reconciliation by the owner that can observe the consequence.
 - Provider-specific opaque continuation is not a current generic Harness surface; integrations that require it must preserve their own Provider-local authority without assuming metadata-only Harness continuity can recover private transcript state.
 - cache hit rate, prompt locality and Provider-specific request efficiency are measured properties rather than correctness thresholds.
+
+- The historical R4 Coding evidence proves one independent hidden
+  `DomainQA_PASS` but did not require persistent output and does not
+  establish that a downstream consumer received the exact edited
+  source. Delivery remains `DELIVERY_TO_CONSUMER_UNVERIFIED` (not proven
+  permanently lost); a candidate's QA result is not a release ACK.
+- Source-level `STOPPED` terminality, or the latest Tool event alone,
+  does not prove all earlier Provider/Tool effects settled. Native
+  Workspace finalization needs the complete original PG event chain
+  and natural Git/Artifact/domain delivery qualification.
 
 ## Verification
 
