@@ -1025,7 +1025,7 @@ internal static class OrdivonWindowsJobLauncher
     private static int DescribeProcessOwner(Options options)
     {
         uint processId = options.DescribeProcessId.Value;
-        IntPtr process = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+        IntPtr process = OpenProcess(ProcessQueryLimitedInformation | Synchronize, false, processId);
         if (process == IntPtr.Zero)
         {
             int error = Marshal.GetLastWin32Error();
@@ -1041,12 +1041,14 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
+            // A terminated process may legitimately have exit code 259 (STILL_ACTIVE).
+            // Only the signaled kernel process object proves that the owner exited.
+            uint liveness = WaitForSingleObject(process, 0);
+            if (liveness != 0 && liveness != WaitTimeout)
             {
-                ThrowWin32("GetExitCodeProcess(process owner)");
+                ThrowWin32("WaitForSingleObject(process owner)");
             }
-            if (exitCode != StillActive)
+            if (liveness == 0)
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"
@@ -1103,12 +1105,14 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
+            // A terminated process may legitimately have exit code 259 (STILL_ACTIVE).
+            // Only the signaled kernel process object proves that the owner exited.
+            uint liveness = WaitForSingleObject(process, 0);
+            if (liveness != 0 && liveness != WaitTimeout)
             {
-                ThrowWin32("GetExitCodeProcess(deadline owner termination)");
+                ThrowWin32("WaitForSingleObject(deadline owner termination)");
             }
-            if (exitCode != StillActive)
+            if (liveness == 0)
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"

@@ -798,6 +798,7 @@ impl CgroupPopulation {
 /// existing cgroup with an unreadable or missing cgroup.events is UNKNOWN.
 /// Reading an empty cgroup.procs is insufficient to prove all descendants
 /// are empty, whereas cgroup.events is recursive.
+#[cfg(target_os = "linux")]
 pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopulation> {
     if !control_group.starts_with('/')
         || control_group
@@ -859,7 +860,18 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
     }
 }
 
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn cgroup_population(_control_group: &str) -> RuntimeResult<CgroupPopulation> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "cgroup v2 population is a Linux-only native witness",
+        Some("controlGroup"),
+        false,
+    ))
+}
+
 /// A vanished path is positive evidence only if cgroup2 is mounted.
+#[cfg(target_os = "linux")]
 pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
     let root = std::ffi::CString::new("/sys/fs/cgroup").expect("static cgroup root");
     let mut info = std::mem::MaybeUninit::<libc::statfs>::uninit();
@@ -957,7 +969,7 @@ fn tool_error(context: &str, error: std::io::Error) -> RuntimeError {
 /// Kernel notifications are wake-up hints only; callers re-read durable state.
 /// Inotify covers Result publication and output growth; cgroup.events covers
 /// process-tree population. A bounded fallback handles watch setup races.
-#[cfg(feature = "postgres-registry-admission")]
+#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
 pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>, wait: Duration) {
     use std::io::Read;
     use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
@@ -1025,6 +1037,20 @@ pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>
             wait.as_millis().min(i32::MAX as u128) as i32,
         )
     };
+}
+
+/// This is a bounded observation wait only, not evidence of process-tree quiescence.
+/// Windows PG has no Linux inotify or cgroup.events provider. Preserve polling
+/// without pretending that a missing Linux wake-up establishes a terminal.
+#[cfg(all(feature = "postgres-registry-admission", not(target_os = "linux")))]
+pub(crate) fn wait_for_attempt_change(
+    _bundle: &Path,
+    _control_group: Option<&str>,
+    wait: Duration,
+) {
+    if !wait.is_zero() {
+        thread::sleep(wait.min(Duration::from_millis(250)));
+    }
 }
 
 #[cfg(test)]
