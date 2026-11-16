@@ -209,6 +209,15 @@ def _unintegrated_head(
     return None
 
 
+# A terminal failure says nothing about semantic completion, just as success
+# does not prove downstream acceptance. Native Runtime Close must still prove
+# no active/held PG owner, the current source digest and dependent Workspaces.
+# LOST/ORPHANED/unknown states are NOT a negative process/consumer proof.
+QUIET_TERMINAL_RESOLUTIONS = frozenset({
+    "succeeded", "failed", "timed_out", "cancelled",
+})
+
+
 def eligible(
     *,
     now_ms: int,
@@ -218,13 +227,23 @@ def eligible(
     unresolved: int,
     min_age_ms: int,
 ) -> bool:
-    """Reclaim only old, quiet, successfully executed Workspaces."""
+    """Age only qualifies a candidate, never a source/value/consumer release.
+
+    A no-Job Workspace has no Job resolution to invent. Physical identity,
+    integration, ignored outputs and actual NativeClose are separate gates.
+    """
+    if (
+        type(now_ms) is not int or type(created_ms) is not int
+        or type(min_age_ms) is not int or type(unresolved) is not int
+        or now_ms < 0 or created_ms < 0 or min_age_ms <= 0 or unresolved != 0
+    ):
+        return False
+    if latest_job_ms is None:
+        return latest_resolution is None and created_ms <= now_ms - min_age_ms
     return (
-        type(created_ms) is int and created_ms >= 0
-        and type(latest_job_ms) is int and latest_job_ms >= created_ms
-        and latest_resolution == "succeeded"
-        and unresolved == 0
-        and max(created_ms, latest_job_ms) <= now_ms - min_age_ms
+        type(latest_job_ms) is int and latest_job_ms >= created_ms
+        and latest_resolution in QUIET_TERMINAL_RESOLUTIONS
+        and latest_job_ms <= now_ms - min_age_ms
     )
 
 def _active_process_cwds(root: Path) -> list[str]:
@@ -313,21 +332,35 @@ def run(args: argparse.Namespace) -> dict:
         )
         if retention_ms is None:
             skip("policy_pinned");continue
-        # Linux ctime is used only as a cheap filter; Runtime record and
-        # last durable PG Job ultimately qualify any physical Workspace close.
+        # Linux ctime is only a cheap age filter. A no-Job Workspace has no
+        # Job outcome to infer; Runtime OPEN record, source, outputs, and
+        # native close decide the actual physical effect after this scan.
         if path.stat().st_ctime * 1000 > now - retention_ms:
             skip("directory_recently_changed");continue
-        info = recent.get(path.name)
-        if info is None:
-            skip("no_terminal_job_evidence");continue
+        # No Job and definite failed/timed-out/cancelled Jobs should not leak
+        # forever purely because "succeeded" was never written. This scan
+        # never grants deletion: the Git, output, process and NativeClose gates
+        # below remain mandatory. Unknown runner outcomes are still retained.
+        info = recent.get(path.name, (None, None, 0))
         last_ms,resolution,nonterminal = info
-        if nonterminal or resolution != "succeeded" or last_ms > now - retention_ms:
-            skip("job_not_old_and_terminal_success");continue
+        if nonterminal or (
+            last_ms is None and resolution is not None
+        ) or (
+            last_ms is not None and (
+                type(last_ms) is not int or last_ms > now - retention_ms
+                or resolution not in QUIET_TERMINAL_RESOLUTIONS
+            )
+        ):
+            skip("job_not_quiet_or_terminal_known");continue
         unintegrated = _unintegrated_head(repo, head, integration_ref)
         if unintegrated is None:
             skip("git_membership_unknown");continue
         if unintegrated and not unintegrated_allowed:
             skip("head_not_in_main");continue
+        if unintegrated and resolution != "succeeded":
+            # Without successful execution, even a policy allowing unmerged
+            # HEAD retirement cannot assume non-successful source was delivered.
+            skip("non_success_head_not_in_main");continue
         status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
         if status.returncode or status.stdout.strip():
             skip("dirty_or_git_error");continue
