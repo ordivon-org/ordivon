@@ -359,11 +359,23 @@ mod claim_physical_pg_tests {
         let id = Uuid::now_v7().simple().to_string();
         let schema = format!("test_claim_{id}");
         let role = format!("test_claim_app_{id}");
-        let password = format!("local_disposable_{id}");
+        // A disposable Unix-only PostgreSQL test socket uses local trust;
+        // the test must never invent or persist a reusable database password.
         let mut admin = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        let disposable_unix_only: bool = admin
+            .query_one(
+                "SELECT inet_server_addr() IS NULL AND current_setting('listen_addresses') = ''",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        assert!(
+            disposable_unix_only,
+            "opt-in Claim test requires an isolated Unix-only PostgreSQL server"
+        );
         admin
             .batch_execute(&format!(
-                "CREATE ROLE {role} LOGIN PASSWORD '{password}';
+                "CREATE ROLE {role} LOGIN;
              CREATE SCHEMA {schema};
              SET search_path TO {schema};"
             ))
@@ -407,7 +419,7 @@ mod claim_physical_pg_tests {
              GRANT pg_monitor TO {role};"
             ))
             .unwrap();
-        let app_dsn = format!("{dsn} user={role} password={password}");
+        let app_dsn = format!("{dsn} user={role}");
         let root = TempDir::new().unwrap();
         let repo = root.path().join("source");
         fs::create_dir(&repo).unwrap();
