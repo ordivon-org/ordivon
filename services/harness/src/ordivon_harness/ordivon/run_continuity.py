@@ -1516,6 +1516,29 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         try:
             self._require_provider_source_current(source)
             self._require_current_working_view_request(request)
+            # The original PG Journal may contain an unresolved Tool or an
+            # older Provider hidden behind the current Provider head. Keep the
+            # entire Run's effects mutually fenced before authorizing a new
+            # Provider claim. Allow this same Provider identity to be read or
+            # reclaimed by its established recovery/expiry rules.
+            unsettled_providers, unsettled_tools = inspect_all_unsettled_effect_sources(
+                self.store.list_run_events(self.harness_run_id),
+                store=self.store,
+                harness_run_id=self.harness_run_id,
+                binding=self.binding,
+                allow_tool_content=self.contract.privacy.allow_tool_content,
+                provider_record_reader=self._load_provider_from_event,
+            )
+            if unsettled_tools:
+                raise HarnessProviderCallRecoveryRequired(
+                    "unresolved Tool Step remains in original PG history; "
+                    "new Provider Call needs exact Owner reconciliation"
+                )
+            if any(identity != provider_call_id for identity in unsettled_providers):
+                raise HarnessProviderCallRecoveryRequired(
+                    "unresolved previous Provider Call remains in original PG history; "
+                    "new Provider Call needs exact Owner reconciliation"
+                )
             active = self._load_current_provider_call_or_none()
             previous = None
             generation = 1
@@ -2070,7 +2093,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         # settled. Reuse the same full-Journal source observer as Finalization.
         # The exact observed_revision below is still fenced by the PG Lease
         # acquisition; a concurrent Writer cannot bypass this admission CAS.
-        _, unsettled_tool_digests = inspect_all_unsettled_effect_sources(
+        unsettled_provider_ids, unsettled_tool_digests = inspect_all_unsettled_effect_sources(
             self.store.list_run_events(self.harness_run_id),
             store=self.store,
             harness_run_id=self.harness_run_id,
@@ -2078,6 +2101,14 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             allow_tool_content=self.contract.privacy.allow_tool_content,
             provider_record_reader=self._load_provider_from_event,
         )
+        if unsettled_provider_ids:
+            # A Provider CLAIMED/DISPATCHING/UNKNOWN still owns a possible
+            # external effect. Do not admit a Tool based on a later Tool head
+            # while this independently verified Provider source is unsettled.
+            raise HarnessSuperseded(
+                "unresolved Provider Call remains in original PG history; "
+                "exact Owner reconciliation required before a new Tool Intent"
+            )
         if unsettled_tool_digests:
             raise HarnessSuperseded(
                 "unresolved Tool Step remains in original PG history; "
