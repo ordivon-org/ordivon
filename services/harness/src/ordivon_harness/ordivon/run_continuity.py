@@ -2462,6 +2462,96 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             self.store.inspect_object(state_object_digest),
         )
 
+    def inspect_unsettled_tool_sources(self) -> dict[str, JsonValue]:
+        """Read exact original Tool identities for Owner-side recovery.
+
+        This is not a dispatch permission, Owner Job observation, or release
+        certificate. Never return Tool arguments, model content, or credentials.
+        A legacy Run may hide an unresolved Intent behind a later observed one.
+        """
+        projection = self.store.load_run(self.harness_run_id)
+        events = self.store.list_run_events(self.harness_run_id)
+        if not events or events[-1].run_revision != projection.revision:
+            raise HarnessRevisionConflict(
+                "Tool recovery source Run changed during Journal readback"
+            )
+        _, pending = inspect_all_unsettled_effect_sources(
+            events,
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
+        )
+        pending_set = set(pending)
+        sources: dict[str, dict[str, JsonValue]] = {}
+        for event in events:
+            digest = event.data.get("toolStepIntentDigest")
+            if digest not in pending_set:
+                continue
+            if event.event_kind == "harness.tool-step-prepared":
+                raw = self.store.get_object(
+                    required_event_digest(event.data, "toolStepIntentObjectDigest"),
+                    expected_kind="harness-tool-step-intent",
+                )
+                if not isinstance(raw, dict):
+                    raise ValueError("Tool recovery source Intent is not an object")
+                intent = HarnessToolStepIntent.from_dict(raw)
+                require_tool_intent_binding(intent, self.harness_run_id, self.binding)
+                if intent.digest != digest or digest in sources:
+                    raise ValueError("Tool recovery source Intent identity differs")
+                sources[digest] = {
+                    "intentDigest": intent.digest,
+                    "intentObjectDigest": required_event_digest(
+                        event.data, "toolStepIntentObjectDigest"
+                    ),
+                    "preparedEventId": event.event_id,
+                    "preparedRunRevision": event.run_revision,
+                    "toolCallId": intent.tool_call_id,
+                    "clientRequestId": intent.client_request_id,
+                    "runtimeOperation": intent.runtime_operation,
+                    "runtimeArgumentsDigest": intent.runtime_arguments_digest,
+                    "dispatchFenceDigest": event.data.get("dispatchFenceDigest"),
+                    "lastRecordedStatus": None,
+                    "sourceOwnerJobRef": None,
+                }
+            elif event.event_kind in _TOOL_EVENT_KINDS:
+                # The full original Event verifier above already validates
+                # predecessor identity, immutable Receipt and observation.
+                source = sources.get(digest)
+                if source is None:
+                    raise ValueError("Tool recovery Receipt precedes its Intent")
+                receipt_raw = self.store.get_object(
+                    required_event_digest(event.data, "receiptObjectDigest"),
+                    expected_kind="harness-tool-step-receipt",
+                )
+                if not isinstance(receipt_raw, dict):
+                    raise ValueError("Tool recovery source Receipt is not an object")
+                receipt = HarnessToolStepReceipt.from_dict(receipt_raw)
+                source["lastRecordedStatus"] = receipt.status.value
+                source["sourceOwnerJobRef"] = receipt.runtime_job_ref
+        if set(sources) != pending_set:
+            raise ValueError("Tool recovery sources do not cover all pending Intent identities")
+        # A third Writer may append a new Event between the first projection
+        # and this projection. No mixed-revision source may be presented.
+        if self.store.load_run(self.harness_run_id).revision != projection.revision:
+            raise HarnessRevisionConflict(
+                "Tool recovery source Run changed during source verification"
+            )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-tool-recovery-sources",
+            "harnessRunId": self.harness_run_id,
+            "contractDigest": self.contract.digest,
+            "toolGrantDigest": self.contract.tool_grant_digest,
+            "runRevision": projection.revision,
+            "sourceStanding": "blocked" if sources else "no-pending-tool-intent",
+            "unsettledIntents": [sources[digest] for digest in sorted(sources)],
+            "runtimeOwnerProofStanding": "unknown",
+            "safeToDispatch": False,
+            "runtimeClaimReleaseStanding": "unknown",
+        }
+
     def inspect_finalization_source(self) -> dict[str, JsonValue]:
         """Project source-owned closure, never an authorized Runtime Claim release.
 

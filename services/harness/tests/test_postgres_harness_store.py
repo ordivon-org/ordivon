@@ -613,6 +613,20 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             reconciled=False, created_at_ms=clock(),
         )
         continuity.record_tool_step_receipt(unknown, observation)
+        unknown_source = continuity.inspect_unsettled_tool_sources()
+        self.assertEqual(unknown_source["sourceStanding"], "blocked")
+        self.assertEqual(len(unknown_source["unsettledIntents"]), 1)
+        self.assertEqual(
+            unknown_source["unsettledIntents"][0]["lastRecordedStatus"],
+            HarnessToolStepStatus.UNKNOWN.value,
+        )
+        # This is only the Job identity claimed in the Harness Journal.
+        # The natural Runtime Owner must independently verify physical Job truth.
+        self.assertEqual(
+            unknown_source["unsettledIntents"][0]["sourceOwnerJobRef"],
+            unknown.runtime_job_ref,
+        )
+        self.assertFalse(unknown_source["safeToDispatch"])
         with self.assertRaisesRegex(HarnessSuperseded, "unresolved Tool"):
             continuity.prepare_tool_step(second)
         observed = {
@@ -629,6 +643,10 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             created_at_ms=clock(),
         )
         continuity.record_tool_step_receipt(successor, observed)
+        settled_source = continuity.inspect_unsettled_tool_sources()
+        self.assertEqual(settled_source["sourceStanding"], "no-pending-tool-intent")
+        self.assertEqual(settled_source["unsettledIntents"], [])
+        self.assertFalse(settled_source["safeToDispatch"])
         continuity.prepare_tool_step(second)
         self.assertEqual(continuity.load_current_tool_step().intent, second)
 
@@ -713,6 +731,25 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 provider_record_reader=current._load_provider_from_event,
             )
             self.assertEqual(unsettled, (first.digest,))
+            recovery = current.inspect_unsettled_tool_sources()
+            self.assertEqual(recovery["sourceStanding"], "blocked")
+            self.assertEqual(recovery["runtimeOwnerProofStanding"], "unknown")
+            self.assertFalse(recovery["safeToDispatch"])
+            self.assertEqual(recovery["runtimeClaimReleaseStanding"], "unknown")
+            self.assertEqual(recovery["contractDigest"], run.digest)
+            self.assertEqual(recovery["toolGrantDigest"], run.tool_grant_digest)
+            self.assertEqual(len(recovery["unsettledIntents"]), 1)
+            source = recovery["unsettledIntents"][0]
+            self.assertEqual(source["intentDigest"], first.digest)
+            self.assertEqual(source["clientRequestId"], first.client_request_id)
+            self.assertEqual(source["toolCallId"], first.tool_call_id)
+            self.assertEqual(source["runtimeOperation"], first.runtime_operation)
+            self.assertEqual(source["runtimeArgumentsDigest"], first.runtime_arguments_digest)
+            self.assertIsNone(source["lastRecordedStatus"])
+            self.assertIsNone(source["sourceOwnerJobRef"])
+            self.assertNotIn("relativePath", str(recovery))
+            self.assertNotIn("originalRequest", str(recovery))
+            self.assertEqual(recovery["runRevision"], reopened.load_run(run.harness_run_id).revision)
             revision = reopened.load_run(run.harness_run_id).revision
             current.bind_state(state())
             with self.assertRaisesRegex(HarnessSuperseded, "unresolved Tool"):
