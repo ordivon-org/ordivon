@@ -2596,6 +2596,37 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
 
         projection = self.store.load_run(self.harness_run_id)
         if not projection.status.terminal:
+            # Nonterminal status always blocks Release, but must not hide the
+            # original unresolved Provider/Tool identities required by an
+            # authenticated Owner's future reconciliation. Reuse the same
+            # verified full-Journal scan as terminal Finalization and reject
+            # a mixed-revision read without creating any secondary state.
+            events = self.store.list_run_events(self.harness_run_id)
+            if (
+                not events
+                or events[-1].run_revision != projection.revision
+                or len(events) != projection.revision
+            ):
+                raise HarnessRevisionConflict(
+                    "nonterminal finalization source Run changed during Journal readback"
+                )
+            provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
+                events,
+                store=self.store,
+                harness_run_id=self.harness_run_id,
+                binding=self.binding,
+                allow_tool_content=self.contract.privacy.allow_tool_content,
+                provider_record_reader=self._load_provider_from_event,
+            )
+            if self.store.load_run(self.harness_run_id).revision != projection.revision:
+                raise HarnessRevisionConflict(
+                    "nonterminal finalization source Run changed during verification"
+                )
+            blockers = ["run_not_terminal"]
+            if provider_ids:
+                blockers.append("provider_unsettled")
+            if tool_digests:
+                blockers.append("tool_unsettled")
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.harness-finalization-source-assessment",
@@ -2606,9 +2637,9 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 "terminalEventId": None,
                 "runReceiptDigest": None,
                 "sourceStanding": "blocked",
-                "blockers": ["run_not_terminal"],
-                "unsettledProviderCallIds": [],
-                "unsettledToolIntentDigests": [],
+                "blockers": blockers,
+                "unsettledProviderCallIds": list(provider_ids),
+                "unsettledToolIntentDigests": list(tool_digests),
                 "externalDeliveryStanding": "unknown",
                 "runtimeClaimStanding": "unknown",
             }

@@ -445,6 +445,135 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(done["runtimeClaimStanding"], "unknown")
         self.assertIsNotNone(done["terminalEventId"])
 
+    def test_nonterminal_finalizer_reports_actual_pending_tool_sources(self) -> None:
+        """PAUSED/nonterminal is blocked, but its original PG pending Tool
+        identity must remain visible for a future authenticated Owner lookup.
+        """
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:pg-nonterminal-inspection",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:pg-nonterminal-inspection",
+            tool_call_id="tool-call:pg-nonterminal-inspection",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"call": "pg-nonterminal-inspection"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
+            client_request_id="request:pg-nonterminal-inspection",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            resumed = EventSourcedRunContinuity.open(
+                reopened, run.harness_run_id, clock_ms=clock
+            )
+            source = resumed.inspect_finalization_source()
+            self.assertEqual(source["sourceStanding"], "blocked")
+            self.assertIn("run_not_terminal", source["blockers"])
+            self.assertIn("tool_unsettled", source["blockers"])
+            self.assertEqual(source["unsettledProviderCallIds"], [])
+            self.assertEqual(source["unsettledToolIntentDigests"], [intent.digest])
+            self.assertEqual(source["runtimeClaimStanding"], "unknown")
+            self.assertEqual(source["externalDeliveryStanding"], "unknown")
+
+    def test_nonterminal_finalizer_reports_actual_pending_provider_sources(self) -> None:
+        """A model provider CLAIMED before completion must be part of the
+        same full-history diagnostic even when Run is not terminal.
+        """
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        claimed = continuity.claim_provider_call(
+            source=continuity.assignment_provider_source(),
+            turn_id="turn:pg-nonterminal-provider",
+            turn_sequence=1,
+            request_digest=canonical_digest({"provider": "pending-before-finalizer"}),
+            provider_request_digest=canonical_digest({"wire": "pending-before-finalizer"}),
+            adapter_id=run.adapter_id,
+            requested_model_id=run.requested_model_id,
+            holder_id="holder:pg-nonterminal-provider",
+            ttl_ms=10000,
+        )
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            resumed = EventSourcedRunContinuity.open(
+                reopened, run.harness_run_id, clock_ms=clock
+            )
+            source = resumed.inspect_finalization_source()
+            self.assertEqual(source["sourceStanding"], "blocked")
+            self.assertIn("run_not_terminal", source["blockers"])
+            self.assertIn("provider_unsettled", source["blockers"])
+            self.assertEqual(
+                source["unsettledProviderCallIds"],
+                [claimed.record.provider_call_id],
+            )
+            self.assertEqual(source["unsettledToolIntentDigests"], [])
+            self.assertEqual(source["runtimeClaimStanding"], "unknown")
+            self.assertEqual(source["externalDeliveryStanding"], "unknown")
+
+    def test_nonterminal_finalizer_rejects_intervening_pg_writer(self) -> None:
+        """An original PG writer that appends after the first Source read
+        must force the diagnostic to reject its mixed-version projection.
+        """
+        from unittest.mock import patch
+
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        original = self.store.list_run_events
+        once = False
+
+        def interleaved_events(run_id: str):
+            nonlocal once
+            events = original(run_id)
+            if not once:
+                once = True
+                with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                    now = events[-1].recorded_at_ms + 2
+                    lease = rival.acquire_run_lease(
+                        run_id,
+                        owner_id="worker:interleaved-finalizer",
+                        ttl_ms=10_000,
+                        now_ms=now,
+                    )
+                    rival.append_events(
+                        harness_run_id=run_id,
+                        events=(
+                            HarnessEventWrite(
+                                event_id="event:pg-interleaved-after-source-read",
+                                event_kind="harness.trace-recorded",
+                                data={"trace": canonical_digest({"interleaved": True})},
+                                recorded_at_ms=now + 1,
+                            ),
+                        ),
+                        expected_revision=lease.run_revision,
+                        lease=lease,
+                        lease_checked_at_ms=now,
+                    )
+            return events
+
+        with patch.object(
+            self.store, "list_run_events", side_effect=interleaved_events
+        ):
+            with self.assertRaises(HarnessRevisionConflict):
+                continuity.inspect_finalization_source()
+        self.assertEqual(
+            self.store.load_run(run.harness_run_id).revision,
+            len(self.store.list_run_events(run.harness_run_id)),
+        )
+
     def test_unknown_stop_is_terminal_but_not_release_safe(self) -> None:
         """A STOPPED projection must not erase an epistemically UNKNOWN outcome."""
         from ordivon_harness.independent_result import IndependentRunRecorder
