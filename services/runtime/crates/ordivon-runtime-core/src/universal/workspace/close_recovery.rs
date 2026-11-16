@@ -1843,6 +1843,66 @@ mod durable_closing_intent_tests {
     }
 
     #[test]
+    fn closing_unrelated_workspace_must_not_block_dependent_scan_globally() {
+        let (_temp, config, record, _digest) = source_workspace("ws-close-independent-a");
+        let peer = create_git_workspace_record(
+            &config,
+            &GitWorkspaceCreateRequest {
+                schema_version: 1,
+                workspace_id: "ws-close-independent-b".to_string(),
+                source_repo: record.source_repo.clone(),
+                source_revision: record.source_revision.clone(),
+            },
+        )
+        .expect("independent second native Git worktree");
+        let peer_digest =
+            workspace_source_state_digest_at(Path::new(&peer.workspace_path)).unwrap();
+        closing_fixture(&config, &peer, &peer_digest);
+        assert!(
+            workspace_cleanup_dependents(&config, &record.workspace_id)
+                .expect("CLOSING of another worktree must not globally block safe close")
+                .is_empty(),
+            "independent worktree closure is not a Git dependent"
+        );
+    }
+
+    #[test]
+    fn closing_peer_still_blocks_removal_of_its_actual_git_source_parent() {
+        let (_temp, config, parent, _digest) =
+            source_workspace("ws-close-dependent-parent");
+        // A real independent source repository lives INSIDE this parent
+        // worktree. Removing parent would destroy the peer Git authority.
+        let nested_source = Path::new(&parent.workspace_path).join("nested-source-repository");
+        fs::create_dir_all(&nested_source).unwrap();
+        git(&nested_source, &["init", "-q"]);
+        git(&nested_source, &["config", "user.name", "Dependent Peer"]);
+        git(&nested_source, &["config", "user.email", "dependent@example.invalid"]);
+        fs::write(nested_source.join("source.txt"), b"peer owns a nested Git repository")
+            .unwrap();
+        git(&nested_source, &["add", "source.txt"]);
+        git(&nested_source, &["commit", "-qm", "peer original source"]);
+        let peer = create_git_workspace_record(
+            &config,
+            &GitWorkspaceCreateRequest {
+                schema_version: 1,
+                workspace_id: "ws-close-dependent-peer".to_string(),
+                source_repo: nested_source.to_string_lossy().into_owned(),
+                source_revision: git(&nested_source, &["rev-parse", "HEAD"]),
+            },
+        )
+        .expect("native peer Git worktree within same Runtime store");
+        let before = workspace_cleanup_dependents(&config, &parent.workspace_id).unwrap();
+        assert!(before.contains(&peer.workspace_id));
+        let peer_digest =
+            workspace_source_state_digest_at(Path::new(&peer.workspace_path)).unwrap();
+        closing_fixture(&config, &peer, &peer_digest);
+        let after = workspace_cleanup_dependents(&config, &parent.workspace_id)
+            .expect("CLOSING peer must still count as a real source dependency");
+        assert_eq!(after, before);
+        assert!(after.contains(&peer.workspace_id));
+    }
+
+    #[test]
     fn normal_close_produces_exact_closed_record_not_intermediate_closing() {
         let (_temp, config, record, digest) = source_workspace("ws-close-uninterrupted");
         let request = WorkspaceCloseRequest {

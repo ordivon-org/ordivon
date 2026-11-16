@@ -534,6 +534,21 @@ pub(crate) fn workspace_cleanup_dependents(
         let record = match load_workspace_record_metadata(config, candidate_id) {
             Ok(record) => record,
             Err(error) if error.code == UniversalExecErrorCode::WorkspaceNotFound => continue,
+            Err(error) if error.code == UniversalExecErrorCode::WorkspaceStateMismatch => {
+                // A peer with a durable CLOSING intent is not an OPEN worktree,
+                // but it can still own a dependency of the directory being
+                // removed. Inspect its ORIGINAL source identity instead of
+                // globally blocking every unrelated Workspace close.
+                let bytes = read_workspace_record_bytes(&path)?;
+                let Some(closing) = decode_closing_workspace_record(&bytes)? else {
+                    return Err(error);
+                };
+                validate_open_identity(&closing.record, candidate_id)?;
+                let mut original =
+                    bind_workspace_record_path(config, candidate_id, closing.record)?;
+                original.workspace_id = candidate_id.to_string();
+                original
+            }
             Err(error) => return Err(error),
         };
         let workspace_path = Path::new(&record.workspace_path);
