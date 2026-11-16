@@ -246,23 +246,29 @@ bounded refresh; unresolved identity coverage stays incomplete even when the
 Owner summary count is 0. Never fabricate a missing Owner Artifact or treat
 an unqualified count as a success witness.
 
-## R08 Linux PG Runtime real business Job and Artifact delivery
+## R08 Linux PG Runtime business delivery — historical incident, closed
 
-**Human:** A real production Gateway-to-Linux Runtime Job executed and emitted
-an Artifact but Gateway could not report success: the installed Runtime
-advertised an older MCP output schema omitting the PostgreSQL scheduling facet.
-The natural Runtime source already has the typed schema repair, but its
-installed binary has not converged and the Runtime structured release authority
-was not configured. Do not bypass the source of truth or manually replay Jobs.
+**Historical cause:** A former installed Runtime published an incomplete MCP
+output schema for the PostgreSQL scheduling facet. An earlier Gateway release
+therefore used a narrow typed SDK request workaround for six Linux business
+tools. That workaround is **retired**, not a live design requirement. Do not
+copy it into a new gateway/owner adapter or a new Agent Skill.
 
-**Agent:** For the installed-schema exception, only the six explicit Linux
-Runtime business tools use the official typed MCP SDK request path. The
-Gateway still verifies exact Job and Artifact identity and never retries an
-uncertain effect under another request ID. Windows effects, Host, and Skills
-retain normal SDK output-schema validation. Test a real principal-owned
-Gateway execution.submit -> execution.resolve -> execution.get -> artifact.read
-flow and validate the Artifact digest; remove the adapter after the Runtime
-binary publishes corrected schemas with such a passing consumer flow.
+**Current contract:** Linux Runtime operations `workspace.exec`, `job.list`,
+`job.observe`, `job.get`, `job.cancel` and `artifact.read` use the official
+high-level MCP SDK `Client.call_tool`. Gateway retains exact Owner Job,
+request and Artifact identity checks, with no second physical effect submission
+after an ambiguous response. Source PR #2320 and production Gateway maintenance
+0.10.12 have independently passed real Linux execute → resolve → observe →
+UTF-8 Artifact/digest checks; Windows Session 1 Gateway readback passed as
+a separate consumer. The installed Runtime also independently fixed the
+previous UTF-8 subcharacter read zero-progress behavior.
+
+**Release boundary:** This historical incident closure does **not** qualify
+the separate mainline Gateway 0.10.13/41-tool Host/Security credential and
+delegation migration. Preserve current `mcp-surface.json` and mandatory
+Host/Security admission and physical consumer gates; a test or source merge
+alone never proves a protected release is deployed.
 
 ## Host exact-message consumer continuity (candidate source)
 
