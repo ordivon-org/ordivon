@@ -524,11 +524,7 @@ pub(crate) fn list_open_workspace_record_inventory(
                         Ok(Some(closed)) => {
                             // Valid CLOSED tombstones are intentional and must
                             // not be returned as unfinished physical work.
-                            if let Err(error) = validate_closed_identity(&closed, workspace_id) {
-                                Some(error)
-                            } else {
-                                None
-                            }
+                            validate_closed_identity(&closed, workspace_id).err()
                         }
                         Ok(None) => match decode_closing_workspace_record(&bytes) {
                             Ok(Some(closing)) => {
