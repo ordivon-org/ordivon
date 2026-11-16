@@ -101,18 +101,20 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 - **Gateway application facade** (src/ordivon_gateway/service.py):
   stable public signatures, execution dispatch, artifact reads and Host delegation.
   Its discovery methods delegate rather than duplicating catalog rules.
-- **Execution Coordinator** (src/ordivon_gateway/execution_coordinator.py):
-  submit, resolve, observe, cancel and artifact forwarding to Runtime or
-  natural Runtime owners only. Owns neither Job state nor terminal truth.
+- **Explicit Execution composition** (src/ordivon_gateway/execution_commands.py,
+  src/ordivon_gateway/execution_observations.py):
+  GatewayService injects the same validated Owner caller/route dependencies
+  into existing command and observation modules for submit, resolve, observe,
+  cancel and Artifact forwarding. No independent Job state or terminal truth.
 - **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
   import of parse_execution_ref remains available.
 
-Dependencies point from service to capability_catalog, execution_coordinator,
-and execution_refs. Both specialized modules use owner_protocol for response
-validation and reuse the existing execution_refs wire grammar; neither imports
-service. Catalog inputs are the owner caller, copied route map and probe timeout. Extraction preserves the public route and JSON
+Dependencies point from service to capability_catalog, execution_commands,
+execution_observations, and execution_refs. Both existing execution modules use
+owner_protocol for response validation and reuse the existing execution_refs
+wire grammar; neither imports service. Catalog inputs are the owner caller, copied route map and probe timeout. Extraction preserves the public route and JSON
 contracts. Behavioral tests establish observed compatibility, not proof
 of implementation-level semantic equivalence.
 
@@ -564,8 +566,12 @@ the natural domain consumer. Gateway owns the public MCP contract,
 caller/Owner reference qualification and faithful projection of the
 native Runtime outcome. Runtime's PG Job/Attempt and retained Artifact
 truth remain authoritative; terminal Job does not prove Research/Finance
-domain completion. Reuse the existing GatewayService, native
-ExecutionObservationMethods and HTTP/Owner MCP SDK, not another Scheduler.
+domain completion. Reuse the existing GatewayService and its explicit composition of native
+ExecutionCommandMethods and ExecutionObservationMethods, with the official
+HTTP/Owner MCP SDK, not another Scheduler. Gateway does not use a multiple-
+inheritance ExecutionCoordinator shell; each existing component receives the
+same validated route mapping and Owner caller explicitly. Its public MCP
+Tool Surface and Job/Artifact ownership remain unchanged.
 
 **Critical result projection**: A Runtime Artifact chunk is a typed
 bounded range, not free-form data. Gateway must reject a non-JSON-boolean
