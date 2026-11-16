@@ -661,15 +661,41 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
             projection = reopened.load_run(run.harness_run_id)
             self.assertTrue(projection.status.terminal)
-            standing = EventSourcedRunContinuity.open(
+            resumed = EventSourcedRunContinuity.open(
                 reopened, run.harness_run_id, clock_ms=clock
-            ).inspect_finalization_source()
+            )
+            standing = resumed.inspect_finalization_source()
             self.assertEqual(standing["sourceStanding"], "blocked")
             self.assertIn("tool_unsettled", standing["blockers"])
             self.assertIn("unknown_run_stop", standing["blockers"])
             self.assertEqual(standing["unsettledToolIntentDigests"], [intent.digest])
             self.assertEqual(standing["runtimeClaimStanding"], "unknown")
             self.assertEqual(standing["externalDeliveryStanding"], "unknown")
+            # This is the exact liveness cost of immutable Terminal PG.
+            # Even a later real Owner observation cannot become a new Run
+            # Receipt Event: OriginalPG is terminal, so Release stays HOLD
+            # unless a separate, explicitly reviewed recovery policy exists.
+            observation = {"schemaVersion": 1, "kind": "pg.late-tool", "status": "observed"}
+            receipt = HarnessToolStepReceipt(
+                receipt_id="harness-tool-step-receipt:late-after-terminal",
+                intent_digest=intent.digest,
+                harness_run_id=run.harness_run_id,
+                tool_call_id=intent.tool_call_id,
+                status=HarnessToolStepStatus.OBSERVED,
+                runtime_job_ref="runtime-job:late-after-terminal",
+                observation_digest=canonical_digest(observation),
+                reconciled=True,
+                created_at_ms=clock(),
+            )
+            with self.assertRaises(HarnessTerminalConflict):
+                resumed.record_tool_step_receipt(receipt, observation)
+            self.assertEqual(reopened.load_run(run.harness_run_id).revision, projection.revision)
+            self.assertEqual(
+                EventSourcedRunContinuity.open(
+                    reopened, run.harness_run_id, clock_ms=clock
+                ).inspect_finalization_source()["sourceStanding"],
+                "blocked",
+            )
 
     def test_finalization_detects_pending_tool_across_pg_reopen_and_settlement(self) -> None:
         """A persisted Intent is a consumer even with no active Runtime Job."""
