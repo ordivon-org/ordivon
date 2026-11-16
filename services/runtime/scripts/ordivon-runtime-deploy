@@ -111,6 +111,19 @@ def parse_args() -> argparse.Namespace:
     root_plan.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
     root_plan.add_argument("--pretty", action="store_true")
 
+    root_stage = subparsers.add_parser(
+        "root-bundle-stage",
+        help="stage exact Git Root controller bytes into a new isolated candidate; never install",
+    )
+    root_stage.add_argument("--source-repo", type=absolute_path, required=True)
+    root_stage.add_argument("--commit", type=exact_commit, required=True)
+    root_stage.add_argument("--require-ref", default="origin/main")
+    root_stage.add_argument("--expected-owner-tree", required=True)
+    root_stage.add_argument("--install-dir", type=absolute_path, required=True)
+    root_stage.add_argument("--candidate-dir", type=absolute_path, required=True)
+    root_stage.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
+    root_stage.add_argument("--pretty", action="store_true")
+
     prepare = subparsers.add_parser(
         "prepare", help="build one exact clean commit and write a digest-bound candidate manifest"
     )
@@ -486,6 +499,112 @@ def root_operator_bundle_plan(args: argparse.Namespace) -> dict[str, object]:
         "eligibleForRootOwnerReview": authorized and all(x["currentness"] != "unsafe" for x in bundle),
         "productionInstallExecuted": False,
     }
+
+
+def stage_root_operator_bundle(args: argparse.Namespace) -> dict[str, object]:
+    """Materialize only a disposable Git-qualified candidate; NEVER install Root.
+
+    The staging directory is controlled by the calling Agent, not the Root
+    operator. It is not an installation authority and not a trusted rollback
+    preimage. The eventual Root owner must requalify each Git blob and actual
+    Root bytes under its own credential before any physical systemd/PG effect.
+    """
+    candidate_dir = args.candidate_dir
+    root = args.install_dir
+    if (
+        not candidate_dir.is_absolute()
+        or ".." in candidate_dir.parts
+        or candidate_dir == root
+        or root in candidate_dir.parents
+        or candidate_dir in root.parents
+    ):
+        raise RuntimeError("Root bundle candidate must be separate from its live installation")
+    if candidate_dir.exists() or candidate_dir.is_symlink():
+        raise RuntimeError("Root bundle candidate directory already exists")
+    parent = candidate_dir.parent
+    if not parent.is_dir() or parent.is_symlink() or parent.resolve(strict=True) != parent:
+        raise RuntimeError("Root bundle candidate parent is missing or aliases a symlink")
+    plan = root_operator_bundle_plan(args)
+    if not plan["eligibleForRootOwnerReview"]:
+        raise RuntimeError("Root bundle candidate source is not Git-qualified for operator review")
+    git_root, _ = release_source_layout(args.git, args.source_repo)
+    staged: list[dict[str, object]] = []
+    candidate_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
+    try:
+        for record in plan["bundle"]:
+            name = str(record["name"])
+            expected_mode = int(record["expectedMode"])
+            payload = subprocess.run(
+                [str(args.git), "-C", str(git_root), "cat-file", "blob", record["sourceBlobOid"]],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ).stdout
+            digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+            if digest != record["sourceSha256"]:
+                raise RuntimeError("Git Root candidate blob drifted after qualification")
+            target = candidate_dir / name
+            with target.open("xb") as handle:
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            target.chmod(expected_mode)
+            if sha256(target) != digest:
+                raise RuntimeError("Root candidate stage bytes changed after write")
+            staged.append({
+                "name": name,
+                "kind": "root_control",
+                "mode": expected_mode,
+                "digest": digest,
+                "sourceBlobOid": record["sourceBlobOid"],
+                "preimageDigestAtPlan": record["installedSha256"],
+                "preimageStatusAtPlan": record["currentness"],
+            })
+        # A move of origin/main that changes the Runtime owner tree invalidates
+        # a stage; no immutable candidate may silently inherit new authority.
+        latest = required_ref_authority(
+            args.git, args.source_repo, args.commit, args.require_ref,
+        )
+        if not latest["authorized"] or latest["requiredRefOwnerTree"] != plan["sourceOwnerTree"]:
+            raise RuntimeError("required Git ref or Runtime owner tree changed during staging")
+        manifest = {
+            "schemaVersion": 1,
+            "kind": "ordivon.runtime-root-bundle-staged-candidate",
+            "commit": args.commit,
+            "sourceOwnerTree": plan["sourceOwnerTree"],
+            "requiredRef": args.require_ref,
+            "installDir": str(root),
+            "artifacts": staged,
+            "productionInstallExecuted": False,
+            "rootOwnerApprovalRequired": True,
+            "trustedRollbackPreimageCaptured": False,
+            "physicalServiceQuiesced": False,
+            "releaseAdmissionFenced": False,
+        }
+        manifest_path = candidate_dir / "ordivon-root-bundle-candidate.json"
+        write_json_atomic(manifest_path, manifest)
+        if any(
+            sha256(candidate_dir / item["name"]) != item["digest"]
+            for item in staged
+        ):
+            raise RuntimeError("Root staged candidate cannot verify all artifact bytes")
+        return {
+            "schemaVersion": 1,
+            "kind": manifest["kind"],
+            "commit": args.commit,
+            "sourceOwnerTree": plan["sourceOwnerTree"],
+            "candidateDir": str(candidate_dir),
+            "candidateManifest": str(manifest_path),
+            "candidateManifestDigest": sha256(manifest_path),
+            "artifactCount": len(staged),
+            "rootOwnerApprovalRequired": True,
+            "productionInstallExecuted": False,
+        }
+    except BaseException:
+        # The caller created this directory exclusively in this invocation;
+        # failed candidates must never remain next to a live Root installation.
+        shutil.rmtree(candidate_dir)
+        raise
 
 
 @contextmanager
@@ -2403,6 +2522,10 @@ def main() -> int:
             value = root_operator_bundle_plan(args)
             print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
             return 0 if value["eligibleForRootOwnerReview"] else 2
+        if args.command == "root-bundle-stage":
+            value = stage_root_operator_bundle(args)
+            print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
+            return 0
         if args.command == "prepare":
             value = prepare_candidate(args)
             print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
