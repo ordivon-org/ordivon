@@ -2148,3 +2148,178 @@ def test_gateway_terminal_owner_state_and_exit_evidence_cannot_launder_tool_succ
     with pytest.raises(HarnessRuntimeClientError, match=reason):
         adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
     assert [name for name, _ in client.calls] == ["execution.get", "execution.resolve"]
+
+
+def test_gateway_bound_request_replay_never_resubmits_before_existing_owner_readback() -> None:
+    """A known ToolIntent/Job binding must not produce a second physical submit.
+
+    Different authenticated Gateway principals intentionally namespace the
+    *same public requestId* into distinct native request keys. The local
+    binding is not an across-process proof, but it must prevent a second
+    submit before discovering that the original Owner identity changed.
+    """
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    execution = {
+        "clientRequestId": "request:bound-principal-original",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle"],
+            "cwdRelative": ".",
+        },
+    }
+    first = adapter.call_tool("workspace.exec", execution)
+    assert first["jobId"] == client.native_id
+    replay = adapter.call_tool("workspace.exec", execution)
+    assert replay["jobId"] == first["jobId"]
+    assert [name for name, _ in client.calls].count("execution.submit") == 1
+    assert [name for name, _ in client.calls].count("execution.resolve") >= 1
+
+
+def test_gateway_bound_request_missing_under_current_principal_is_unknown_without_second_submit() -> None:
+    """A changed auth scope can hide the previous Native Job without deleting it.
+
+    No new Gateway submit is permitted when the old local physical Job is
+    known but the current verified principal resolves the public key absent.
+    """
+
+    class PrincipalChangedGateway(GatewayExecutionFixture):
+        hidden_under_new_principal = False
+
+        def call_tool(self, name, arguments):
+            if name == "execution.resolve" and self.hidden_under_new_principal:
+                self.calls.append((name, dict(arguments)))
+                return False, {
+                    "schema_version": 1,
+                    "kind": "ordivon.gateway-execution-resolution",
+                    "request_id": arguments["requestId"],
+                    "capability": "execution.linux",
+                    "owner_id": "runtime.linux",
+                    "resolution": "absent",
+                }
+            return super().call_tool(name, arguments)
+
+    client = PrincipalChangedGateway()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    execution = {
+        "clientRequestId": "request:bound-before-auth-scope-change",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle"],
+        },
+    }
+    first = adapter.call_tool("workspace.exec", execution)
+    assert first["jobId"] == client.native_id
+    client.hidden_under_new_principal = True
+    with pytest.raises(HarnessRuntimeClientError, match="bound|existing|original|absent"):
+        adapter.call_tool("workspace.exec", execution)
+    assert [name for name, _ in client.calls].count("execution.submit") == 1
+    assert adapter._operation_requests == {client.native_id: execution["clientRequestId"]}
+
+
+@pytest.mark.parametrize("strict_guard", ("missing_port", "revoked_port"))
+def test_bound_replay_cannot_observe_legacy_job_before_required_workspace_admission(
+    strict_guard: str,
+) -> None:
+    """Gateway GET may reconcile or dispatch in some Legacy Runtime owners.
+
+    No locally bound replay may bypass the required Native effect admission
+    just because it avoids a second execution.submit. Unlike the Fresh PG
+    observe path, the historical Runtime observe can dispatch an Accepted
+    Job. This test is a source-side negative, not an installed OS guarantee.
+    """
+
+    class RevokedPort:
+        def require_effect_ready(self, **_kwargs):
+            raise HarnessWorkspaceAdmissionUnavailable("revoked Native claim")
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component,
+        client,
+        factory.execution_grant,
+        workspace_admission=(None if strict_guard == "missing_port" else RevokedPort()),
+        require_workspace_admission=True,
+        run_ref="run:original-claim" if strict_guard == "revoked_port" else None,
+        grant_digest=_digest("original-native-grant") if strict_guard == "revoked_port" else None,
+    )
+    request_id = "request:strict-bound-original-native-job"
+    adapter._operation_requests[client.native_id] = request_id
+    adapter._operation_refs[client.native_id] = client.operation_ref
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable):
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": request_id,
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "foreignReferences": [],
+                    "executable": "/usr/bin/rg",
+                    "args": ["needle"],
+                },
+            },
+        )
+    assert client.calls == []
+
+
+@pytest.mark.parametrize(
+    "replay_mutation",
+    ("args", "executable", "timeout", "foreignReferences"),
+)
+def test_gateway_bound_original_job_rejects_same_request_id_but_changed_physical_bytes(
+    replay_mutation: str,
+) -> None:
+    """A local replay must preserve the Owner's exact operation identity.
+
+    The original Runtime would reject idempotency-key reuse with different
+    physical request bytes. Replacing submit with resolve/get must not
+    silently skip that predicate and return the old Job as if it ran the
+    mutated command. This remains an ephemeral source guard; original PG
+    durable ToolIntent is the cross-process authority.
+    """
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    original = {
+        "clientRequestId": "request:bound-exact-original-physical-command",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+            "args": ["needle"],
+            "cwdRelative": ".",
+            "timeoutMs": 1000,
+        },
+    }
+    first = adapter.call_tool("workspace.exec", original)
+    assert first["jobId"] == client.native_id
+    replay = {
+        "clientRequestId": original["clientRequestId"],
+        "execution": dict(original["execution"]),
+    }
+    changed = replay["execution"]
+    if replay_mutation == "args":
+        changed["args"] = ["different-search"]
+    elif replay_mutation == "executable":
+        changed["executable"] = "/usr/bin/false"
+    elif replay_mutation == "timeout":
+        changed["timeoutMs"] = 900
+    else:
+        changed["foreignReferences"] = [{
+            "namespace": "ordivon.fake",
+            "type": "source",
+            "id": "unrelated",
+            "generation": "1",
+            "digest": _digest("foreign"),
+        }]
+    with pytest.raises(HarnessRuntimeClientError, match="original|bytes|request|digest"):
+        adapter.call_tool("workspace.exec", replay)
+    assert [name for name, _ in client.calls].count("execution.submit") == 1
+    assert [name for name, _ in client.calls].count("execution.get") == 0
