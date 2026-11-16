@@ -798,6 +798,8 @@ impl CgroupPopulation {
 /// existing cgroup with an unreadable or missing cgroup.events is UNKNOWN.
 /// Reading an empty cgroup.procs is insufficient to prove all descendants
 /// are empty, whereas cgroup.events is recursive.
+/// Only Linux may promote this filesystem observation to a kernel cgroup witness.
+#[cfg(target_os = "linux")]
 pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopulation> {
     if !control_group.starts_with('/')
         || control_group
@@ -856,6 +858,32 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
             }
         }
         Err(error) => Err(io_error("read cgroup population", error)),
+    }
+}
+
+/// A Windows or other non-Linux filesystem cannot certify cgroup v2 population.
+/// In particular, ordinary files named cgroup.events never prove full-tree quiescence.
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn cgroup_population(_control_group: &str) -> RuntimeResult<CgroupPopulation> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "Linux cgroup v2 population is not observable on this platform",
+        Some("controlGroup"),
+        false,
+    ))
+}
+
+#[cfg(all(test, not(target_os = "linux")))]
+mod non_linux_cgroup_witness_tests {
+    use super::*;
+
+    #[test]
+    fn ordinary_cgroup_events_can_never_certify_non_linux_tree_quiescence() {
+        assert!(matches!(
+            cgroup_population("/fake-cgroup"),
+            Err(error) if error.code == RuntimeErrorCode::ToolUnavailable
+        ));
+        assert!(cgroup_has_processes("/fake-cgroup").is_err());
     }
 }
 
