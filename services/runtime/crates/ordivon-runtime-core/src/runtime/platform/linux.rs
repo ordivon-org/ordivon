@@ -798,6 +798,8 @@ impl CgroupPopulation {
 /// existing cgroup with an unreadable or missing cgroup.events is UNKNOWN.
 /// Reading an empty cgroup.procs is insufficient to prove all descendants
 /// are empty, whereas cgroup.events is recursive.
+/// Only Linux may promote this filesystem observation to a kernel cgroup witness.
+#[cfg(target_os = "linux")]
 pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopulation> {
     if !control_group.starts_with('/')
         || control_group
@@ -859,7 +861,35 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
     }
 }
 
+/// A Windows or other non-Linux filesystem cannot certify cgroup v2 population.
+/// In particular, ordinary files named cgroup.events never prove full-tree quiescence.
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn cgroup_population(_control_group: &str) -> RuntimeResult<CgroupPopulation> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "Linux cgroup v2 population is not observable on this platform",
+        Some("controlGroup"),
+        false,
+    ))
+}
+
+#[cfg(all(test, not(target_os = "linux")))]
+mod non_linux_cgroup_witness_tests {
+    use super::*;
+
+    #[test]
+    fn ordinary_cgroup_events_can_never_certify_non_linux_tree_quiescence() {
+        assert!(matches!(
+            cgroup_population("/fake-cgroup"),
+            Err(error) if error.code == RuntimeErrorCode::ToolUnavailable
+        ));
+        assert!(cgroup_has_processes("/fake-cgroup").is_err());
+    }
+}
+
 /// A vanished path is positive evidence only if cgroup2 is mounted.
+/// This kernel-specific observation cannot be made on other operating systems.
+#[cfg(target_os = "linux")]
 pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
     let root = std::ffi::CString::new("/sys/fs/cgroup").expect("static cgroup root");
     let mut info = std::mem::MaybeUninit::<libc::statfs>::uninit();
@@ -877,6 +907,16 @@ pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
         Ok(_) => Ok(false),
         Err(error) => Err(io_error("observe cgroup disappearance", error)),
     }
+}
+
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn cgroup_removed(_control_group: &str) -> RuntimeResult<bool> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolFailed,
+        "Linux cgroup v2 owner evidence is unavailable on this platform",
+        Some("controlGroup"),
+        true,
+    ))
 }
 
 /// Existing Runner-terminal validation gets an explicit error when the
@@ -957,7 +997,7 @@ fn tool_error(context: &str, error: std::io::Error) -> RuntimeError {
 /// Kernel notifications are wake-up hints only; callers re-read durable state.
 /// Inotify covers Result publication and output growth; cgroup.events covers
 /// process-tree population. A bounded fallback handles watch setup races.
-#[cfg(feature = "postgres-registry-admission")]
+#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
 pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>, wait: Duration) {
     use std::io::Read;
     use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
@@ -1025,6 +1065,17 @@ pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>
             wait.as_millis().min(i32::MAX as u128) as i32,
         )
     };
+}
+
+/// A timer is only a wake-up hint; it cannot establish Linux process truth on Windows.
+/// The caller always re-reads the durable Attempt after this bounded delay.
+#[cfg(all(feature = "postgres-registry-admission", not(target_os = "linux")))]
+pub(crate) fn wait_for_attempt_change(
+    _bundle: &Path,
+    _control_group: Option<&str>,
+    wait: Duration,
+) {
+    thread::sleep(wait.min(Duration::from_millis(250)));
 }
 
 #[cfg(test)]
