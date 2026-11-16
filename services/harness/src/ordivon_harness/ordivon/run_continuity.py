@@ -55,6 +55,7 @@ from .continuity_guards import (
     require_tool_intent_binding,
     validate_snapshot_state,
     validate_tool_event,
+    inspect_all_unsettled_effect_sources,
 )
 from .continuity_records import (
     HarnessDispatchFenceV2,
@@ -2050,6 +2051,38 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             current_step = None
         if current_step is not None and current_step.intent.digest == intent.digest:
             raise HarnessSuperseded("Harness Tool Step Intent is already prepared")
+        if current_step is not None and (
+            current_step.receipt is None
+            or current_step.receipt.status not in {
+                HarnessToolStepStatus.OBSERVED,
+                HarnessToolStepStatus.REJECTED,
+                HarnessToolStepStatus.CANCELLED,
+            }
+        ):
+            # An older prepared/UNKNOWN Tool is a possible physical effect.
+            # Never replace its consumer-visible head with a new Intent until
+            # the original Owner resolves that exact request identity.
+            raise HarnessSuperseded(
+                "unresolved Tool Step must be owner-reconciled before a new Intent"
+            )
+        # A previous installed Writer could prepare B while A was unresolved,
+        # then observe B. The latest Tool head is B and is not a proof that A
+        # settled. Reuse the same full-Journal source observer as Finalization.
+        # The exact observed_revision below is still fenced by the PG Lease
+        # acquisition; a concurrent Writer cannot bypass this admission CAS.
+        _, unsettled_tool_digests = inspect_all_unsettled_effect_sources(
+            self.store.list_run_events(self.harness_run_id),
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
+        )
+        if unsettled_tool_digests:
+            raise HarnessSuperseded(
+                "unresolved Tool Step remains in original PG history; "
+                "exact Owner reconciliation required before a new Intent"
+            )
         now_ms = self.clock_ms()
         try:
             lease = self._acquire_lease(
@@ -2428,6 +2461,77 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             state,
             self.store.inspect_object(state_object_digest),
         )
+
+    def inspect_finalization_source(self) -> dict[str, JsonValue]:
+        """Project source-owned closure, never an authorized Runtime Claim release.
+
+        External Job/Artifact, Git or Domain delivery is a separate natural
+        owner's proof, not a fact this Harness PostgreSQL Journal can certify.
+        UNKNOWN remains unresolved even on a terminal Run projection.
+        """
+        from ..independent_result import IndependentRunRecorder
+        from .continuity_guards import inspect_all_unsettled_effect_sources
+
+        projection = self.store.load_run(self.harness_run_id)
+        if not projection.status.terminal:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.harness-finalization-source-assessment",
+                "harnessRunId": self.harness_run_id,
+                "contractDigest": self.contract.digest,
+                "toolGrantDigest": self.contract.tool_grant_digest,
+                "runRevision": projection.revision,
+                "terminalEventId": None,
+                "runReceiptDigest": None,
+                "sourceStanding": "blocked",
+                "blockers": ["run_not_terminal"],
+                "unsettledProviderCallIds": [],
+                "unsettledToolIntentDigests": [],
+                "externalDeliveryStanding": "unknown",
+                "runtimeClaimStanding": "unknown",
+            }
+        self.store.validate_run_history(self.harness_run_id)
+        events = self.store.list_run_events(self.harness_run_id)
+        if (
+            not events
+            or events[-1].event_id != projection.terminal_event_id
+            or events[-1].run_revision != projection.revision
+        ):
+            raise ValueError("finalization Run terminal projection differs from Journal")
+        terminal = IndependentRunRecorder(
+            self.store, self.contract, self.binding, clock_ms=self.clock_ms
+        ).load_terminal_result()
+        provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
+            events,
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
+        )
+        blockers: list[str] = []
+        if terminal.receipt.stop_reason == "unknown":
+            blockers.append("unknown_run_stop")
+        if provider_ids:
+            blockers.append("provider_unsettled")
+        if tool_digests:
+            blockers.append("tool_unsettled")
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-finalization-source-assessment",
+            "harnessRunId": self.harness_run_id,
+            "contractDigest": self.contract.digest,
+            "toolGrantDigest": self.contract.tool_grant_digest,
+            "runRevision": projection.revision,
+            "terminalEventId": projection.terminal_event_id,
+            "runReceiptDigest": terminal.receipt.digest,
+            "sourceStanding": "blocked" if blockers else "source-settled",
+            "blockers": blockers,
+            "unsettledProviderCallIds": list(provider_ids),
+            "unsettledToolIntentDigests": list(tool_digests),
+            "externalDeliveryStanding": "unknown",
+            "runtimeClaimStanding": "unknown",
+        }
 
     def doctor(self) -> dict[str, JsonValue]:
         base = self.store.doctor(full=True)
