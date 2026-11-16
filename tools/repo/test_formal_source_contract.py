@@ -452,10 +452,13 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         """A remaining pre-projection rebind keeps source refinement UNKNOWN."""
         baseline = formal.qualified_timeout_adapter_fragment()
         self.assertIs(baseline["sourceAstAnchorsObserved"], True)
-        self.assertEqual(
-            baseline["effectFrameObserved"],
-            "exact_post_projection_return_and_immediate_gateway_dispatch",
+        actual_gateway_source = (ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py").read_text(encoding="utf-8")
+        expected_frame = (
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch"
+            if "require_effect_ready(" in actual_gateway_source
+            else "exact_post_projection_return_and_immediate_gateway_dispatch"
         )
+        self.assertEqual(baseline["effectFrameObserved"], expected_frame)
         self.assertIs(baseline["codeFragmentRefined"], False)
         self.assertEqual(baseline["sourceRefinementStanding"], "UNKNOWN")
 
@@ -525,6 +528,45 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
 
                 with patch.object(Path, "read_text", read_with_mutant):
                     with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
+                        formal.qualified_timeout_adapter_fragment()
+
+    def test_exact_native_claim_guard_source_frame_rejects_mutation(self) -> None:
+        """Only the whole native-Claim barrier, not a caller-authored token, is observed."""
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        if "require_effect_ready(" not in original:
+            self.skipTest("The historical source has no native Workspace Claim frame")
+        baseline = formal.qualified_timeout_adapter_fragment()
+        self.assertEqual(
+            baseline["effectFrameObserved"],
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch",
+        )
+        variants = (
+            ("missing-claim", "self._workspace_admission.require_effect_ready(",
+             "self._workspace_admission.accept_without_proof("),
+            ("optional-claim", "self._workspace_admission_required and self._workspace_admission is None",
+             "False and self._workspace_admission is None"),
+            ("false-evidence", "if admitted is not None:",
+             "if False:"),
+            ("mutation-after-projection",
+             '        if self._workspace_admission_required and self._workspace_admission is None:',
+             '        gateway_args["timeoutMs"] = 900000\n'
+             '        if self._workspace_admission_required and self._workspace_admission is None:'),
+        )
+        actual_read = Path.read_text
+        for label, before, after in variants:
+            with self.subTest(label=label):
+                self.assertIn(before, original)
+                mutant = original.replace(before, after, 1)
+                compile(mutant, str(target), "exec")
+
+                def read_with_mutant(path, *args, **kwargs):
+                    if path == target:
+                        return mutant
+                    return actual_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", read_with_mutant):
+                    with self.assertRaisesRegex(ValueError, "timeout|frame|effect"):
                         formal.qualified_timeout_adapter_fragment()
 
     def test_exact_git_source_readset_is_qualified(self) -> None:
