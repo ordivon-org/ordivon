@@ -560,6 +560,25 @@ class OrdivonAgentLoop:
             project_to_messages: bool = True,
         ) -> AgentLoopResult | None:
             nonlocal observation_bytes, tool_calls, tool_corrections
+
+            def preserve_unknown_tool_cursor() -> None:
+                # The original PG Tool intent/receipt remains authoritative.
+                # An Observation projection budget must not mask an ambiguous
+                # physical effect or bypass its existing resumable cursor.
+                current_intent = getattr(self.tool_bridge, "current_tool_step_intent", None)
+                pause = getattr(self.tool_bridge, "record_pause", None)
+                if callable(current_intent) and callable(pause):
+                    try:
+                        source_intent = current_intent()
+                        if (
+                            source_intent is not None
+                            and source_intent.tool_call_id == call.tool_call_id
+                        ):
+                            pause("effect_dispatch_pending")
+                    except ToolBridgeError, KeyError, ValueError, RuntimeError:
+                        # Never fabricate a PAUSED snapshot without the source.
+                        pass
+
             if count_tool_call:
                 tool_calls += 1
             remaining_observation_bytes = self.budget.max_observation_bytes - observation_bytes
@@ -572,15 +591,70 @@ class OrdivonAgentLoop:
                     )
                 )
             encoded_size = len(canonical_bytes(observation.to_dict()))
+            # The bounded observation must actually fit the frozen per-model
+            # limit. Its irreducible evidence identity may be larger than a
+            # tiny budget; bounded() cannot safely truncate that identity.
+            # Fail before appending a Tool message to the next Provider turn.
+            # UNKNOWN/cancellation are terminal physical standings, not an
+            # invitation to request another Provider Turn. A tiny MODEL
+            # projection budget must not disguise an unresolved physical
+            # effect as an ordinary model budget exhaustion.
+            uncertain_terminal = observation.status in {
+                "unknown",
+                "cancel-requested",
+                "cancelled",
+            }
+            too_large_for_model = (
+                encoded_size > self.budget.max_model_observation_bytes
+            )
             if encoded_size > remaining_observation_bytes:
+                # Do not turn an unresolved Tool effect into a terminal model
+                # budget failure merely because its evidence cannot be stored.
+                if observation.status == "unknown":
+                    preserve_unknown_tool_cursor()
+                    return stop(
+                        RunStopCode.RUNTIME_UNKNOWN,
+                        detail=f"Tool Call {call.tool_call_id} remains unknown despite Observation budget",
+                    )
+                if observation.status == "cancel-requested":
+                    return stop(
+                        RunStopCode.CANCEL_UNKNOWN,
+                        detail=f"Tool Call {call.tool_call_id} cancellation remains unconfirmed",
+                    )
+                if observation.status == "cancelled":
+                    return stop(RunStopCode.CANCELLED)
+            if encoded_size > remaining_observation_bytes or (
+                too_large_for_model and not uncertain_terminal
+            ):
                 return stop(
                     RunStopCode.BUDGET_EXHAUSTED,
                     detail=(
-                        "reconciled Tool Observation exceeds the remaining Run budget"
+                        "reconciled Tool Observation exceeds the model or remaining Run budget"
                         if reconciled
-                        else "Tool Observation exceeds the remaining Run budget"
+                        else "Tool Observation exceeds the model or remaining Run budget"
                     ),
                 )
+            model_message = (
+                observation.to_model_message()
+                if project_to_messages and not (
+                    uncertain_terminal and too_large_for_model
+                )
+                else None
+            )
+            if (
+                model_message is not None
+                and len(canonical_bytes(model_message))
+                > self.budget.max_model_observation_bytes
+            ):
+                if uncertain_terminal:
+                    # No next Provider Turn will observe this message; preserve
+                    # UNKNOWN instead of accidentally retiring a pending effect.
+                    model_message = None
+                else:
+                    return stop(
+                        RunStopCode.BUDGET_EXHAUSTED,
+                        detail="Tool model message exceeds the per-model Observation byte budget",
+                    )
             observations.append(observation)
             turn_observations.append(observation)
             observation_bytes += encoded_size
@@ -636,8 +710,8 @@ class OrdivonAgentLoop:
                         "encodedBytes": encoded_size,
                     },
                 )
-            if project_to_messages:
-                messages.append(observation.to_model_message())
+            if model_message is not None:
+                messages.append(model_message)
             error_value = observation.structured_content.get("error")
             safe_to_correct = (
                 error_value.get("safeToCorrect") is True if isinstance(error_value, dict) else False
@@ -661,28 +735,7 @@ class OrdivonAgentLoop:
                     )
                 tool_corrections += 1
             if observation.status == "unknown":
-                # Preserve only an actually committed ToolStep receipt as an
-                # EFFECT_DISPATCH_PENDING Run. The original Run/Tool journal
-                # is the owner of the cursor; no blind physical replay.
-                current_intent = getattr(self.tool_bridge, "current_tool_step_intent", None)
-                pause = getattr(self.tool_bridge, "record_pause", None)
-                if callable(current_intent) and callable(pause):
-                    try:
-                        source_intent = current_intent()
-                        if (
-                            source_intent is not None
-                            and source_intent.tool_call_id == call.tool_call_id
-                        ):
-                            # Keep the pre-dispatch State cursor already
-                            # bound at Tool admission. UNKNOWN is durable in
-                            # its Tool Receipt, not an additional consumed
-                            # Observation; the recovery code must be able to
-                            # reconcile that exact outstanding ToolCall.
-                            pause("effect_dispatch_pending")
-                    except ToolBridgeError, KeyError, ValueError, RuntimeError:
-                        # Never claim PAUSED without a committed source
-                        # snapshot; the existing unknown terminal code remains.
-                        pass
+                preserve_unknown_tool_cursor()
                 return stop(
                     RunStopCode.RUNTIME_UNKNOWN,
                     detail=(f"Tool Call {call.tool_call_id} has uncertain delivery or outcome"),
