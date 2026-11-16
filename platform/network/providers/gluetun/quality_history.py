@@ -46,6 +46,9 @@ SUCCESS_FLOOR = 0.97
 HISTORICAL_TTL = timedelta(hours=24)
 SOURCE_TRIAL_HINTS = Path(__file__).resolve().parent / "config/recovery-hints.json"
 SOURCE_HINT_MAX_AGE = timedelta(days=7)
+# Milliseconds for the median of the three business probe p90s, including
+# DNS/CONNECT/TLS/HTTP. This is an admission budget, not an RTT estimate.
+RECOVERY_P90_BUDGET_MS = 1500
 
 def source_trial_hints(now: datetime, allowed: set[str],
                        path: Path = SOURCE_TRIAL_HINTS) -> list[dict[str, object]]:
@@ -69,7 +72,7 @@ def source_trial_hints(now: datetime, allowed: set[str],
     # policy preference for last-resort COLD TRIALS of Gluetun's own catalog.
     # It never claims the old measured quality survives hint expiration.
     cold = raw.get("coldTrialCountries", [])
-    if (not isinstance(cold, list) or len(cold) > 2 or
+    if (not isinstance(cold, list) or len(cold) > 3 or
         len(cold) != len(set(str(v) for v in cold)) or
         any(not isinstance(country, str) or country not in allowed
             or country == "Hong Kong" for country in cold)):
@@ -80,8 +83,8 @@ def source_trial_hints(now: datetime, allowed: set[str],
         expires <= observed or expires - observed > SOURCE_HINT_MAX_AGE
     ):
         raise ValueError("Invalid historic trial hint time boundary")
-    if not isinstance(raw["candidates"], list) or not (1 <= len(raw["candidates"]) <= 2):
-        raise ValueError("Only one or two source historic trial hints are admitted")
+    if not isinstance(raw["candidates"], list) or (len(raw["candidates"]) > 2 or not (raw["candidates"] or cold)):
+        raise ValueError("Expected up to two historical hints or a nonempty cold pool")
     seen: set[str] = set()
     results: list[dict[str, object]] = []
     for row in raw["candidates"]:
@@ -474,6 +477,27 @@ def direct_underlay_witness() -> bool | None:
     return direct_underlay_evidence((observations[0], observations[1]))
 
 
+def recovery_evidence(
+    history: list[dict[str, object]], hints: list[dict[str, object]],
+    cold: list[dict[str, object]], selected: set[str],
+) -> list[dict[str, object]]:
+    """Apply the active country pool and latest fresh, comparable latency evidence."""
+    latest: dict[str, dict[str, object]] = {}
+    # observe() appends intervals oldest first; incomplete or stale samples
+    # cannot displace a measured fresh session.
+    for row in history:
+        if row["standing"] == "RECENT_HISTORICAL_CONSUMER_SUCCESS":
+            latest[str(row["catalogCountry"])] = row
+    slow = {country for country, row in latest.items()
+            if int(row["medianOfConsumerP90Ms"]) > RECOVERY_P90_BUDGET_MS}
+    return [
+        row for row in [*latest.values(), *hints, *cold]
+        if row["catalogCountry"] in selected - slow
+        and (row["standing"] == "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"
+             or int(row["medianOfConsumerP90Ms"]) <= RECOVERY_P90_BUDGET_MS)
+    ]
+
+
 def observe(*, hours: int) -> dict[str, object]:
     now = datetime.now(timezone.utc)
     allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
@@ -535,18 +559,19 @@ def observe(*, hours: int) -> dict[str, object]:
     # must not be promoted to evidence that the shared physical Internet is
     # reliably available for a provider-wide VPN selection mutation.
     underlay_ok = direct_underlay_witness() if active_ok is False else None
+    selected = set(native.read_selector_policy()["selectedCountries"])
     # Preference-only evidence is read ONLY at a witnessed outage boundary.
     # It cannot change a healthy VPN, or defeat missing/failed underlay.
-    hints = source_trial_hints(now, allowed) if (
+    hints = source_trial_hints(now, selected) if (
         active_ok is False and underlay_ok is True) else []
     # Preserve liveness after quality hints expire: trial *only* two explicit
     # source-preferred countries which still occur in Gluetun's own catalog.
     # Catalog existence NEVER becomes live success or an automatic hot spare.
-    cold = catalog_cold_trials(catalog, allowed) if (
+    cold = catalog_cold_trials(catalog, selected) if (
         active_ok is False and underlay_ok is True) else []
     plan = decision(
         active_healthy=active_ok, underlay_reachable=underlay_ok,
-        evidence=results + hints + cold, now=now,
+        evidence=recovery_evidence(results, hints, cold, selected), now=now,
         current_country=catalog_identity,
     )
     # A lost kernel WG endpoint is an expected symptom of a genuine outage.

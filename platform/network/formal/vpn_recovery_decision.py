@@ -124,12 +124,16 @@ def validate() -> None:
     # Source hint is only a time-bounded *candidate* and cannot bypass
     # the same active/underlay/allowed-country admission predicate. These
     # scenarios do not claim hot-standby reachability or real API effects.
-    hinted = policy.source_trial_hints(NOW, {"Malaysia", "North Macedonia", "Mexico"})
-    assert len(hinted) == 2
+    selected = set(policy.native.read_selector_policy()["selectedCountries"])
+    assert not policy.source_trial_hints(NOW, selected)
+    hinted = [
+        row | {"standing": "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT"}
+        for row in ({"catalogCountry": "Singapore", "medianOfConsumerP90Ms": 800},
+                    {"catalogCountry": "Japan", "medianOfConsumerP90Ms": 1200})
+    ]
     hint_cases = 0
     for active, underlay, current in product(
-        (True, False, None), (True, False, None),
-        ("Malaysia", "North Macedonia", "Mexico"),
+        (True, False, None), (True, False, None), sorted(selected),
     ):
         action = policy.decision(active_healthy=active,
             underlay_reachable=underlay, evidence=hinted, now=NOW,
@@ -140,34 +144,27 @@ def validate() -> None:
         z.add(BoolVal(expected) != BoolVal(trial))
         assert z.check() == unsat
         if trial:
-            assert "Hong Kong" not in action["trialCountries"]
+            assert set(action["trialCountries"]) <= selected - {current}
             assert len(set(action["trialCountries"])) == len(action["trialCountries"])
             assert len(action["trialCountries"]) <= 2
-            assert current not in action["trialCountries"]
             assert action["certifiedHotStandbyCount"] == 0
         hint_cases += 1
-    # Historical quality expires after 7d. Catalog-only cold preferences
-    # remain permitted under exactly the same real failure/underlay guards;
-    # they are never classified as fresh success or current standby.
-    expired = policy.source_trial_hints(NOW + timedelta(days=8),
-                                         {"Malaysia", "North Macedonia", "Mexico"})
+    # Cold trials use the current source country subset, not the catalog-wide
+    # permission list, and cannot be promoted to historical success.
+    expired = policy.source_trial_hints(NOW + timedelta(days=8), selected)
     assert expired == []
-    assert policy.decision(active_healthy=False, underlay_reachable=True,
-                           evidence=expired, now=NOW+timedelta(days=8),
-                           current_country="Malaysia")["decision"] == "HOLD_NO_RECENT_EVIDENCE"
     cold_catalog = json.dumps({"surfshark":{"servers":[
-       {"vpn":"wireguard","country":"North Macedonia","ips":["192.0.2.18"]},
-       {"vpn":"wireguard","country":"Mexico","ips":["192.0.2.19"]},
-       {"vpn":"wireguard","country":"Hong Kong","ips":["192.0.2.20"]}]}})
-    cold = policy.catalog_cold_trials(
-        cold_catalog, {"Malaysia","North Macedonia","Mexico"})
-    assert len(cold) == 2 and all(
-        row["standing"]=="SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED" and
-        row["qualifiedNowStandby"] is False for row in cold)
+        {"vpn": "wireguard", "country": country, "ips": [f"192.0.2.{i}"]}
+        for i, country in enumerate(sorted(selected | {"Panama", "Hong Kong"}), 11)
+    ]}})
+    cold = policy.catalog_cold_trials(cold_catalog, selected)
+    assert {row["catalogCountry"] for row in cold} == selected
+    assert all(row["standing"] == "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"
+               and row["qualifiedNowStandby"] is False for row in cold)
     cold_cases = 0
     for active, underlay, current in product(
         (True, False, None), (True, False, None),
-        ("Malaysia", "North Macedonia","Mexico"),
+        sorted(selected),
     ):
         outcome=policy.decision(active_healthy=active, underlay_reachable=underlay,
           evidence=expired+cold, now=NOW+timedelta(days=8),

@@ -110,14 +110,14 @@ def test_guarded_native_switch_success_only_after_real_consumer_receipt(monkeypa
     from datetime import datetime,timezone
     calls=[]
     before={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["North Macedonia"],"regions":[],"cities":[],"hostnames":[]}}}
+        "server_selection":{"countries":["Singapore"],"regions":[],"cities":[],"hostnames":[]}}}
     after={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["Mexico"],"regions":[],"cities":[],"hostnames":[]}}}
+        "server_selection":{"countries":["Japan"],"regions":[],"cities":[],"hostnames":[]}}}
     active=[{"standing":"NOT_QUALIFIED"},
-            {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"}]
+            {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Japan"}]
     monkeypatch.setattr(switch.quality,"observe",lambda hours:{
         "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-                       "trialCountry":"Mexico"}})
+                       "trialCountry":"Japan"}})
     monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
     monkeypatch.setattr(switch,"initial_preflight",lambda:{"standing":"NATIVE_API_AUTHORIZED_READONLY"})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
@@ -132,20 +132,20 @@ def test_guarded_native_switch_success_only_after_real_consumer_receipt(monkeypa
     monkeypatch.setattr(switch,"api_call",api)
     result=switch.guarded_recover()
     assert result["standing"]=="NATIVE_SWITCH_CONSUMED"
-    assert result["country"]=="Mexico"
+    assert result["country"]=="Japan"
     assert [c for c in calls if c[0]=="PUT"]==[
-        ("PUT",{"provider":{"server_selection":{"countries":["Mexico"]}}})]
+        ("PUT",{"provider":{"server_selection":{"countries":["Japan"]}}})]
 
 
 def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
     calls=[]
     before={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["North Macedonia"],"regions":[]}}}
+        "server_selection":{"countries":["Singapore"],"regions":[]}}}
     after={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["Mexico"],"regions":[]}}}
+        "server_selection":{"countries":["Japan"],"regions":[]}}}
     monkeypatch.setattr(switch.quality,"observe",lambda hours:{
         "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-                       "trialCountry":"Mexico"}})
+                       "trialCountry":"Japan"}})
     monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
     monkeypatch.setattr(switch,"initial_preflight",lambda:{})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
@@ -163,8 +163,8 @@ def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
     assert result["standing"]=="NATIVE_SWITCH_FAILED"
     assert result["rollback"]=="SELECTION_READBACK_VERIFIED"
     assert [c[1] for c in calls if c[0]=="PUT"]==[
-        {"provider":{"server_selection":{"countries":["Mexico"]}}},
-        {"provider":{"server_selection":{"countries":["North Macedonia"]}}},
+        {"provider":{"server_selection":{"countries":["Japan"]}}},
+        {"provider":{"server_selection":{"countries":["Singapore"]}}},
     ]
 
 
@@ -217,19 +217,19 @@ def test_recovery_next_distinct_historical_country_after_first_fails(monkeypatch
     original={"type":"wireguard","provider":{"name":"surfshark",
       "server_selection":{"countries":["Malaysia"],"regions":[]}}}
     first={"type":"wireguard","provider":{"name":"surfshark",
-      "server_selection":{"countries":["North Macedonia"],"regions":[]}}}
+      "server_selection":{"countries":["Singapore"],"regions":[]}}}
     second={"type":"wireguard","provider":{"name":"surfshark",
-      "server_selection":{"countries":["Mexico"],"regions":[]}}}
+      "server_selection":{"countries":["Japan"],"regions":[]}}}
     selection=[original]
     monkeypatch.setattr(switch.quality,"observe",lambda hours:{
         "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-          "trialCountry":"North Macedonia","trialCountries":["North Macedonia","Mexico"]}})
+          "trialCountry":"Singapore","trialCountries":["Singapore","Japan"]}})
     monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
     monkeypatch.setattr(switch,"initial_preflight",lambda:{})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
     monkeypatch.setattr(switch,"mark_attempt",lambda:None)
     monkeypatch.setattr(switch,"bounded_consumer_observe",
-        lambda seconds=25:{"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"}
+        lambda seconds=25:{"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Japan"}
               if len([c for c in calls if c[0]=="PUT"])>=2
               else {"standing":"NOT_QUALIFIED"})
     # First trial passes readback but fails the consumer timeout. Second
@@ -240,15 +240,15 @@ def test_recovery_next_distinct_historical_country_after_first_fails(monkeypatch
         calls.append((method,payload))
         if method=="GET":return selection[0]
         country=payload["provider"]["server_selection"]["countries"][0]
-        selection[0] = first if country=="North Macedonia" else second
+        selection[0] = first if country=="Singapore" else second
         return {"status":200}
     monkeypatch.setattr(switch,"api_call",api)
     result=switch.guarded_recover()
     assert result["standing"]=="NATIVE_SWITCH_CONSUMED"
-    assert result["country"]=="Mexico"
-    assert result["countriesTried"]==["North Macedonia","Mexico"]
+    assert result["country"]=="Japan"
+    assert result["countriesTried"]==["Singapore","Japan"]
     assert [c[1]["provider"]["server_selection"]["countries"] for c in calls if c[0]=="PUT"]==[
-        ["North Macedonia"],["Mexico"]]
+        ["Singapore"],["Japan"]]
 
 
 def test_bounded_consumer_probe_timeout_is_unknown_and_not_success(monkeypatch):
@@ -272,8 +272,8 @@ def test_expired_quality_plus_native_catalog_cold_candidates_reaches_second_busi
         def __init__(self,text): self.stdout=text
     stored=json.dumps({"surfshark":{"servers":[
         {"country":"Malaysia","vpn":"wireguard","ips":["192.0.2.1"]},
-        {"country":"North Macedonia","vpn":"wireguard","ips":["192.0.2.2"]},
-        {"country":"Mexico","vpn":"wireguard","ips":["192.0.2.3"]},
+        {"country":"Singapore","vpn":"wireguard","ips":["192.0.2.2"]},
+        {"country":"Japan","vpn":"wireguard","ips":["192.0.2.3"]},
         {"country":"Hong Kong","vpn":"wireguard","ips":["192.0.2.4"]},
     ]}})
     def native_run(args,**kw):
@@ -301,18 +301,18 @@ def test_expired_quality_plus_native_catalog_cold_candidates_reaches_second_busi
             "server_selection":{"countries":selection[:],"regions":[]}}}
     monkeypatch.setattr(switch,"api_call",api)
     def consumer(seconds=25):
-        return {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"} if (
+        return {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Japan"} if (
             len(puts)>1) else {"standing":"NOT_QUALIFIED"}
     monkeypatch.setattr(switch,"bounded_consumer_observe",consumer)
     monkeypatch.setattr(switch.time,"monotonic",count(start=0,step=10).__next__)
     monkeypatch.setattr(switch.time,"sleep",lambda s:None)
     outcome=switch.guarded_recover()
-    assert puts==[["North Macedonia"],["Mexico"]]
+    assert puts==[["Singapore"],["Japan"]]
     assert outcome["standing"]=="NATIVE_SWITCH_CONSUMED"
-    assert outcome["country"]=="Mexico"
-    assert outcome["countriesTried"]==["North Macedonia","Mexico"]
+    assert outcome["country"]=="Japan"
+    assert outcome["countriesTried"]==["Singapore","Japan"]
     assert outcome["effectAttempted"] is True
-    assert selection==["Mexico"]
+    assert selection==["Japan"]
 
 
 def test_catalog_cold_preference_never_overrides_shared_underlay_failure(monkeypatch):
@@ -322,7 +322,7 @@ def test_catalog_cold_preference_never_overrides_shared_underlay_failure(monkeyp
         returncode=28
         def __init__(self,text):self.stdout=text
     catalog=json.dumps({"surfshark":{"servers":[
-        {"vpn":"wireguard","country":"North Macedonia","ips":["192.0.2.2"]},
+        {"vpn":"wireguard","country":"Singapore","ips":["192.0.2.2"]},
     ]}})
     def native_run(args,**kw):
         if args[:2]==["/usr/bin/podman","exec"]:return Result(catalog)
@@ -463,8 +463,8 @@ def _failed_native_api_scenario(monkeypatch, *, direct=True, recovered=False,
     monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: True)
     monkeypatch.setattr(switch.quality, "observe", lambda hours: {
         "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-                       "trialCountry":"North Macedonia",
-                       "trialCountries":["North Macedonia"]}})
+                       "trialCountry":"Singapore",
+                       "trialCountries":["Singapore"]}})
     monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: direct)
     monkeypatch.setattr(switch, "initial_preflight", lambda: {"standing":"NATIVE_API_AUTHORIZED_READONLY"})
     monkeypatch.setattr(switch, "last_attempt", lambda: None)

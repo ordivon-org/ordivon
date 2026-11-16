@@ -165,7 +165,7 @@ def test_bulk_history_uses_two_provider_queries_not_two_per_session(monkeypatch)
     assert [q[0] for q in queries]==["probe_success","probe_duration_seconds"]
 
 
-def test_correlated_vpn_only_outage_uses_source_hints_when_journal_loses_old_nodes(monkeypatch):
+def test_correlated_vpn_only_outage_uses_nearby_cold_trials_after_journal_loss(monkeypatch):
     import observe_active
     class Result:
         def __init__(self,stdout):self.stdout=stdout
@@ -174,7 +174,10 @@ def test_correlated_vpn_only_outage_uses_source_hints_when_journal_loses_old_nod
     def run(args,**kw):
         subprocess_calls.append(args[0])
         if args[:2] == ["/usr/bin/podman","exec"]:
-            return Result('{"surfshark":{"servers":[]}}')
+            return Result('{"surfshark":{"servers":['
+                '{"vpn":"wireguard","country":"Singapore","ips":["192.0.2.1"]},'
+                '{"vpn":"wireguard","country":"Japan","ips":["192.0.2.2"]},'
+                '{"vpn":"wireguard","country":"Mexico","ips":["192.0.2.3"]}]}}')
         if args[0]=="/usr/bin/journalctl":return Result("")
         if args[0]=="/usr/bin/curl":return Result("200")
         raise AssertionError("Unexpected source call")
@@ -183,12 +186,10 @@ def test_correlated_vpn_only_outage_uses_source_hints_when_journal_loses_old_nod
     monkeypatch.setattr(history,"current_catalog_country",lambda catalog:"Malaysia")
     monkeypatch.setattr(observe_active,"observe",lambda:(_ for _ in ()).throw(
         AssertionError("Correlated failure should not do 3 more origin timeouts")))
-    now=datetime.now(timezone.utc)
-    hints=history.source_trial_hints(now,{"Malaysia","Mexico","North Macedonia"})
     x=history.observe(hours=48)
     assert x["history"]==[]  # journal old successes are truly absent
-    assert len(x["sourceTrialHints"])==len(hints)==2
-    assert x["recommended"]["trialCountries"]==["North Macedonia","Mexico"]
+    assert x["sourceTrialHints"] == []
+    assert x["recommended"]["trialCountries"]==["Singapore","Japan"]
     assert x["active"]["threeLaneConsecutiveFailure"] is True
     assert "/usr/bin/curl" in subprocess_calls
 
@@ -197,7 +198,7 @@ def test_correlated_outage_can_try_allowed_history_even_without_kernel_endpoint(
     import observe_active
     now=datetime.now(timezone.utc)
     seg=history.Segment(now-timedelta(hours=2),now-timedelta(hours=1),
-                        "Mexico","192.0.2.99","mx-qro.example")
+                        "Japan","192.0.2.99","jp.example")
     class Result:
         def __init__(self,stdout):self.stdout=stdout
         returncode=0
@@ -213,7 +214,7 @@ def test_correlated_outage_can_try_allowed_history_even_without_kernel_endpoint(
     monkeypatch.setattr(history,"segments",lambda *args,**kw:[seg])
     monkeypatch.setattr(history,"http_query",lambda *args:[])
     monkeypatch.setattr(history,"qualify",lambda *args:{
-        "catalogCountry":"Mexico","standing":"RECENT_HISTORICAL_CONSUMER_SUCCESS",
+        "catalogCountry":"Japan","standing":"RECENT_HISTORICAL_CONSUMER_SUCCESS",
         "medianOfConsumerP90Ms":1200,"worstConsumerSuccessRatio":.99,
         "lastObservedHoursAgo":2})
     monkeypatch.setattr(history,"recent_failure_witness",lambda now:True)
@@ -222,7 +223,7 @@ def test_correlated_outage_can_try_allowed_history_even_without_kernel_endpoint(
         lambda: (_ for _ in ()).throw(AssertionError("Do not resample 3 HTTPS failures")))
     x=history.observe(hours=24)
     assert x["active"]["catalogCountry"] is None
-    assert x["recommended"]["trialCountry"]=="Mexico"
+    assert x["recommended"]["trialCountry"]=="Japan"
     assert x["active"]["threeLaneConsecutiveFailure"] is True
     assert "/usr/bin/curl" in calls
 
@@ -494,3 +495,22 @@ def test_vpn_failure_cannot_authorize_country_trial_on_mixed_direct_paths(monkey
     assert plan["recommended"]["decision"]=="HOLD_SHARED_UNDERLAY_OR_UNKNOWN"
     assert plan["sourceTrialHints"]==[] and plan["sourceCatalogColdTrials"]==[]
     assert [a[-1] for a in seen if a[0]=="/usr/bin/curl"]==list(history.DIRECT_UNDERLAY_HTTPS)
+
+
+def test_recent_slow_country_cannot_return_as_cold_or_from_old_fast_session():
+    fresh = "RECENT_HISTORICAL_CONSUMER_SUCCESS"
+    cold = "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"
+    def sample(country, ms, standing=fresh):
+        return {"catalogCountry": country, "standing": standing,
+                "medianOfConsumerP90Ms": ms}
+    rows = history.recovery_evidence(
+        [sample("Japan", 900), sample("Malaysia", 1500),
+         sample("Japan", 1501), sample("Mexico", 300)],
+        [sample("Japan", 1200, "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT")],
+        [{"catalogCountry": country, "standing": cold, "coldTrialRank": rank}
+         for rank, country in enumerate(("Japan", "Singapore", "Malaysia"))],
+        {"Japan", "Singapore", "Malaysia"},
+    )
+    plan = history.decision(active_healthy=False, underlay_reachable=True,
+                            evidence=rows, now=t())
+    assert plan["trialCountries"] == ["Malaysia", "Singapore"]

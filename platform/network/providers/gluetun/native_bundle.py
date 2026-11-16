@@ -67,7 +67,7 @@ def validate_source() -> dict[str, object]:
     import native_profile as profile
     import quality_history as history
     from datetime import datetime, timezone
-    allow = set(profile.parse_allowed_policy(profile.ALLOW_POLICY.read_text())["allowedCountries"])
+    allow = set(profile.read_selector_policy()["selectedCountries"])
     history.source_trial_hints(datetime.now(timezone.utc), allow)
     # Do not create a second custom VPN, cron or scheduler.
     if any(word in content for word in ("podman run ", "wg-quick", "sleep ", "http://0.0.0.0")):
