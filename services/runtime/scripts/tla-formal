@@ -1218,9 +1218,99 @@ falsify_workspace_cross_database_claim() {
   done
 }
 
+
+# Root controller's PG/OS/file exchange model uses the SAME owner-pinned TLC.
+# Design-level proof only: not a privileged Root installer or code refinement.
+check_root_bundle_transition() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY \
+    "$ROOT/formal/RootBundleTransitionR1.tla"
+  (cd "$ROOT/formal";java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config RootBundleTransitionR1.cfg RootBundleTransitionR1.tla)
+}
+
+falsify_root_bundle_transition() {
+  verify_jar
+  python3 - "$JAR" "$ROOT/formal/RootBundleTransitionR1.tla" <<'PY_ROOT_CEGAR'
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+jar = Path(sys.argv[1])
+source = Path(sys.argv[2]).read_text(encoding="utf-8")
+model = "RootBundleTransitionR1.tla"
+with tempfile.TemporaryDirectory(prefix="ordivon-root-bundle-cegar-") as scratch:
+    tmp = Path(scratch)
+    (tmp / model).write_text(source, encoding="utf-8")
+
+    def run(config: str, invariant: str, label: str,
+            required_actions: tuple[str, ...] = ()) -> None:
+        (tmp / (label + ".cfg")).write_text(
+            "SPECIFICATION " + config + "\n"
+            "INVARIANT TypeOK\nINVARIANT " + invariant + "\n"
+            "CHECK_DEADLOCK FALSE\n", encoding="utf-8",
+        )
+        result = subprocess.run(
+            ["java", "-XX:+UseParallelGC", "-cp", str(jar),
+             "tlc2.TLC", "-workers", "1", "-config", label + ".cfg", model],
+            cwd=tmp, capture_output=True, text=True, timeout=70,
+        )
+        named = "Error: Invariant " + invariant + " is violated."
+        if result.returncode != 12 or named not in result.stdout or not re.search(
+            r"^State [1-9][0-9]*:", result.stdout, flags=re.MULTILINE,
+        ):
+            raise RuntimeError(
+                "Root bundle " + label + " negative control FAILED\n"
+                + result.stdout[-5000:] + "\n" + result.stderr[-1500:]
+            )
+        for action in required_actions:
+            if not re.search(
+                r"^State [0-9]+: <" + re.escape(action) + r" ",
+                result.stdout, flags=re.MULTILINE,
+            ):
+                raise RuntimeError(
+                    "Root bundle " + label + " missing physical-action "
+                    + action + " trace\n" + result.stdout[-5000:]
+                )
+        print("Root bundle " + label + " named TLC trace PASS")
+
+    for label, spec, invariant in (
+        ("old-inflight", "UnsafeOldProcessSpec",
+         "NoOldInterpreterDuringNewPackage"),
+        ("new-inflight-rollback", "UnsafeRollbackProcessSpec",
+         "NoNewInterpreterDuringRolledBackPackage"),
+        ("premature-release", "UnsafeEarlyResumeSpec",
+         "NoReleaseAdmissionDuringAmbiguousExchange"),
+        ("partial-file-copy", "UnsafeFileCopySpec", "NoPartialRootBundle"),
+    ):
+        run(spec, invariant, label)
+
+    original = "Spec == Init /\\ [][Next]_vars"
+    if source.count(original) != 1:
+        raise RuntimeError("Root bundle formal source marker drift")
+    (tmp / model).write_text(source.replace(
+        original,
+        "NeverNewRoot == ~QualifiedNewRootIsReachable\n"
+        "NeverRollback == ~QualifiedRollbackIsReachable\n"
+        "NeverPostSwapCrashRecovery == ~RecoveryAfterRootCrashIsReachable\n\n"
+        + original,
+    ), encoding="utf-8")
+    run("Spec", "NeverNewRoot", "legitimate-install")
+    run("Spec", "NeverRollback", "legitimate-rollback",
+        ("AtomicRollback",))
+    run("Spec", "NeverPostSwapCrashRecovery", "postswap-crash-recovery",
+        ("AtomicBundleExchange", "CrashRootController",
+         "ReopenRootController", "RecoverExchangedBytes"))
+PY_ROOT_CEGAR
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
+  check-root-bundle) check_root_bundle_transition ;;
+  falsify-root-bundle) falsify_root_bundle_transition ;;
   check-dispatch) check_runtime_dispatch ;;
   check-runner-bound) check_runner_bound ;;
   check-workspace-crossdb) check_workspace_cross_database_claim ;;
@@ -1234,10 +1324,10 @@ case "${1:-check}" in
   falsify-resource) falsify_runtime_resource_queue ;;
   # Current fresh-PG epoch: no SQLite parity copy or Windows-first ordering.
   # Preserve historical models and their independent negative controls on demand.
-  check) check_runtime_dispatch; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound; check_workspace_cross_database_claim ;;
+  check) check_root_bundle_transition; check_runtime_dispatch; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound; check_workspace_cross_database_claim ;;
   check-historical) check_runtime_pg_cutover; check_windows_first_pg_order ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound; falsify_workspace_cross_database_claim ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound; falsify_workspace_cross_database_claim; falsify_root_bundle_transition ;;
   falsify-historical) check_pg_cutover_counterexample; check_windows_first_pg_falsifiers ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound]" >&2
