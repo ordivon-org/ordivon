@@ -3,6 +3,11 @@
 
 Use the already deployed Runtime workspace.get/workspace.close contract. Never
 delete physical Workspace files directly or infer domain acceptance from Job exit.
+
+No-Job and definitively failed/cancelled/timed-out carriers require an exact
+operator-owned retention-policy rule on workspaceId with
+"operatorConsumerReleased": true. That is an explicit owner disposition,
+not inferred from elapsed time, a clean Git worktree or a finished PG Job.
 """
 from __future__ import annotations
 
@@ -70,11 +75,21 @@ def _retention_policy(path: Path | None) -> dict | None:
     rules = policy.get("rules", [])
     if not isinstance(rules, list):
         raise ValueError("invalid retention policy rules")
+    explicit_releases = set()
     for rule in rules:
         if not isinstance(rule, dict) or rule.get("class") not in classes:
             raise ValueError("invalid retention policy rule class")
         if sum(isinstance(rule.get(k), str) for k in ("workspaceId", "prefix")) != 1:
             raise ValueError("retention rule requires exactly one selector")
+        if "operatorConsumerReleased" in rule:
+            # No blanket/prefix/age-only grant: a real operator is asserting
+            # the exact Workspace owner no longer has a pending consumer.
+            if (not isinstance(rule.get("workspaceId"), str)
+                    or type(rule["operatorConsumerReleased"]) is not bool):
+                raise ValueError("owner release must be a boolean on exact workspaceId")
+            if rule["workspaceId"] in explicit_releases:
+                raise ValueError("ambiguous duplicate exact owner release")
+            explicit_releases.add(rule["workspaceId"])
     return policy
 
 
@@ -97,6 +112,20 @@ def _workspace_retention(
         return None, False  # pinned is not a deletion candidate
     return int(max(cli_min_age_hours, float(hours)) * 3600 * 1000), (
         value.get("forceCloseUnintegratedAfterRetention") is True
+    )
+
+
+def _operator_attests_consumer_release(
+    policy: dict | None, workspace_id: str
+) -> bool:
+    # Native Runtime currently fences PG Jobs, not an arbitrary paused
+    # Harness Run that has never issued a Job. Only a specifically authorized
+    # and revocable operator/owner disposition can extend automatic candidate
+    # discovery to no-Job or terminal non-success legacy Workspaces.
+    return policy is not None and any(
+        rule.get("workspaceId") == workspace_id
+        and rule.get("operatorConsumerReleased") is True
+        for rule in policy.get("rules", [])
     )
 
 
@@ -304,6 +333,10 @@ def run(args: argparse.Namespace) -> dict:
             "operator-installed" if policy is not None else "legacy-merged-only"
         ),
         "semanticCompletionEvaluated": False,
+        # Old no-Job/failed carriers may be source-clean but still owned by a
+        # paused Run. Surface bounded, actionable release questions instead
+        # of silently accumulating them or granting deletion by age.
+        "needsOwnerDisposition": [],
     }
     def skip(why: str) -> None:
         results["skipped"][why] = results["skipped"].get(why, 0) + 1
@@ -372,6 +405,15 @@ def run(args: argparse.Namespace) -> dict:
         )
         if ignored.returncode or ignored.stdout:
             skip("ignored_files_or_git_error");continue
+        if resolution != "succeeded" and not _operator_attests_consumer_release(
+            policy, path.name
+        ):
+            # Even clean, fully integrated source can belong to an Agent paused
+            # before its first Job or after a failed execution. Age is not
+            # evidence of the owner's relinquishment.
+            if len(results["needsOwnerDisposition"]) < args.limit:
+                results["needsOwnerDisposition"].append(path.name)
+            skip("needs_owner_disposition");continue
         candidates.append((path, head, info, retention_ms, unintegrated))
     results["unregisteredDirectoryDeletionEnabled"] = False
     if not args.apply:
@@ -419,6 +461,10 @@ def run(args: argparse.Namespace) -> dict:
             if (current_age is None or current_age > retention_ms
                     or (currently_unintegrated and not current_unintegrated_allowed)):
                 skip("retention_policy_changed");continue
+            if resolution != "succeeded" and not _operator_attests_consumer_release(
+                current_policy, path.name
+            ):
+                skip("owner_disposition_revoked");continue
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
             if current_git_status.returncode or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
