@@ -4253,3 +4253,162 @@ fn resource_queue_owner_fairness_and_idle_borrowing() {
         thread::sleep(Duration::from_millis(100));
     }
 }
+
+#[test]
+#[ignore = "launches an isolated disposable PostgreSQL18 cluster; never production"]
+fn pg_job_list_poisoned_plan_preserves_healthy_cursor_without_fabricating_plan() {
+    use ordivon_runtime_core::{
+        PgRuntime, PgRuntimeConfig, RuntimeJobListCursor, RuntimeJobListRequest,
+        UniversalExecutorConfig,
+    };
+
+    let mut fixture = Fixture::new();
+    let source_revision = "fixture-frozen-revision-001";
+    let workspace_id = "ws-pg-poisoned-page";
+    let principal = "pg-list-consumer";
+    let snapshot = json!({
+        "workspace": {
+            "sourceRevision": source_revision,
+            "sourceRepo": "/fixture/committed/source",
+        }
+    })
+    .to_string();
+    let good_plan = json!({
+        "schemaVersion":1,
+        "workspaceId":workspace_id,
+        "workspacePath":"/fixture/workspace",
+        "sourceRevision":source_revision,
+        "executable":"/usr/bin/printf",
+        "executableDigest":format!("sha256:{}", "f".repeat(64)),
+        "cwd":"/fixture/workspace",
+        "timeoutMs":1000,
+        "stdoutLimitBytes":1024,
+        "stderrLimitBytes":1024,
+        "principal":principal,
+    })
+    .to_string();
+    let poisoned_plan = "{invalid-execution-plan-json";
+    let ids = ["job-pg-fixture-healthy", "job-pg-fixture-corrupt"];
+    for (i, plan) in [good_plan.as_str(), poisoned_plan].iter().enumerate() {
+        let request_id = format!("fixture-cursor-{i}");
+        let creation = 2000_i64 + i as i64;
+        fixture
+            .db
+            .execute(
+                "INSERT INTO jobs(
+                     job_id,principal,client_request_id,request_digest,operation_digest,
+                     workspace_id,workspace_snapshot_json,execution_plan_json,
+                     execution_plan_digest,created_at_ms,desired_state
+                 ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'run')",
+                &[
+                    &ids[i],
+                    &principal,
+                    &request_id,
+                    &format!("sha256:{}", "1".repeat(64)),
+                    &format!("sha256:{}", "2".repeat(64)),
+                    &workspace_id,
+                    &snapshot,
+                    &plan,
+                    &format!("sha256:{}", "3".repeat(64)),
+                    &creation,
+                ],
+            )
+            .unwrap();
+    }
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        harness_issuer_schema: None,
+        workspace_headroom: Vec::new(),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    })
+    .unwrap();
+    let first = runtime
+        .list(
+            principal,
+            &RuntimeJobListRequest {
+                limit: 1,
+                cursor: None,
+                client_request_id: None,
+                workspace_id: None,
+            },
+        )
+        .expect("one corrupt immutable Plan must not destroy the PostgreSQL list page");
+    assert_eq!(first["jobs"][0]["jobId"], ids[1]);
+    assert_eq!(first["jobs"][0]["sourceRevision"], source_revision);
+    for unknown in ["executableName", "cwdRelative", "scheduling"] {
+        assert!(
+            first["jobs"][0][unknown].is_null(),
+            "{unknown} must be explicit unknown, not an invented command or resource"
+        );
+    }
+    let cursor: RuntimeJobListCursor = serde_json::from_value(first["nextCursor"].clone()).unwrap();
+    let second = runtime
+        .list(
+            principal,
+            &RuntimeJobListRequest {
+                limit: 1,
+                cursor: Some(cursor),
+                client_request_id: None,
+                workspace_id: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(second["jobs"][0]["jobId"], ids[0]);
+    assert_eq!(second["jobs"][0]["sourceRevision"], source_revision);
+    assert_eq!(second["jobs"][0]["executableName"], "printf");
+    assert_eq!(second["jobs"][0]["cwdRelative"], ".");
+    assert!(second["jobs"][0]["scheduling"].is_object());
+    assert!(second["nextCursor"].is_null());
+    let unowned = runtime
+        .list(
+            "different-principal",
+            &RuntimeJobListRequest {
+                limit: 100,
+                cursor: None,
+                client_request_id: None,
+                workspace_id: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        unowned["jobs"],
+        json!([]),
+        "PG Principal must remain scoped"
+    );
+
+    fixture
+        .db
+        .execute(
+            "UPDATE jobs SET workspace_snapshot_json='{}' WHERE job_id=$1",
+            &[&ids[1]],
+        )
+        .unwrap();
+    assert!(
+        runtime
+            .list(
+                principal,
+                &RuntimeJobListRequest {
+                    limit: 1,
+                    cursor: None,
+                    client_request_id: None,
+                    workspace_id: None,
+                },
+            )
+            .is_err(),
+        "an unqualified sourceRevision must not be replaced by current HEAD"
+    );
+}
