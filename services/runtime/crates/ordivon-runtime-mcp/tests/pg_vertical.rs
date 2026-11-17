@@ -4527,3 +4527,129 @@ fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
     eprintln!("A_B_R27_NATIVE_PG18_JOBLIST_AND_SCHEDULER_COMPOSITION_PASS corrupt={corrupt_id} healthy={good_id}");
     eprintln!("B_R3_PG18_NATIVE_GREEN good={good_id} bad={corrupt_id} provider={provider_id} issue_count=1 stdout=B_R3_HEALTHY_NATIVE");
 }
+
+/// Regression for the committed-cancel/physical-OS boundary: an accepted
+/// immutable plan's corrupted JSON must not prevent stopping its already
+/// issued native systemd Attempt. Test-owned PostgreSQL, Git, and native Unit.
+#[test]
+#[ignore = "requires disposable PG18, native HTTP MCP, real systemd runner"]
+fn b_r3_native_cancel_corrupt_frozen_plan_stops_issued_os_unit() {
+    let mut f = Fixture::new();
+    f.host_visible_test_runner = true;
+    let repo = f.repo();
+    let endpoint = f.endpoint();
+    let ws = format!("ws-r30-cancel-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":ws,"sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let admitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":format!("r30-cancel-{}",Uuid::now_v7()),
+            "execution":{"workspaceId":ws,"executable":"/usr/bin/sleep",
+            "args":["25"],"cwdRelative":".","timeoutMs":35000},
+            "waitMs":0
+        }),
+    );
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    let job_id = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(18);
+    let unit_name = loop {
+        let row =
+            f.db.query_opt(
+                "SELECT a.state,a.unit_name FROM attempts a JOIN jobs j
+             ON j.current_attempt_id=a.attempt_id AND a.job_id=j.job_id
+             WHERE j.job_id=$1",
+                &[&job_id],
+            )
+            .unwrap();
+        if let Some(row) = row {
+            let state: String = row.get(0);
+            let unit: String = row.get(1);
+            if state == "running" {
+                let output = Command::new("/usr/bin/systemctl")
+                    .args(["show", &unit, "-p", "ActiveState", "-p", "MainPID"])
+                    .output()
+                    .unwrap();
+                let status = String::from_utf8_lossy(&output.stdout);
+                if status.contains("ActiveState=active") && !status.contains("MainPID=0") {
+                    break unit;
+                }
+            }
+        }
+        assert!(
+            Instant::now() < deadline,
+            "native Job never reached an active OS Unit"
+        );
+        thread::sleep(Duration::from_millis(100));
+    };
+    let mutated =
+        f.db.execute(
+            "UPDATE jobs SET execution_plan_json=$2 WHERE job_id=$1 AND resolution IS NULL",
+            &[&job_id, &"{r30-poisoned-frozen-plan"],
+        )
+        .unwrap();
+    assert_eq!(mutated, 1, "must poison only self-owned running Job");
+    let cancel = call(&endpoint, "job.cancel", json!({"jobId":job_id}));
+    let desired: String =
+        f.db.query_one("SELECT desired_state FROM jobs WHERE job_id=$1", &[&job_id])
+            .unwrap()
+            .get(0);
+    assert_eq!(desired, "cancelled", "cancel intent must persist: {cancel}");
+    assert_eq!(
+        cancel["structuredContent"]["error"]["commitState"], "committed",
+        "post-commit bad Plan must retain committed identity: {cancel}"
+    );
+    assert_eq!(
+        cancel["structuredContent"]["error"]["operationId"], job_id,
+        "agent may only reconcile the SAME Job: {cancel}"
+    );
+    let mut drained = false;
+    let stop_deadline = Instant::now() + Duration::from_secs(3);
+    while Instant::now() < stop_deadline {
+        let output = Command::new("/usr/bin/systemctl")
+            .args(["show", &unit_name, "-p", "ActiveState", "-p", "MainPID"])
+            .output()
+            .unwrap();
+        let status = String::from_utf8_lossy(&output.stdout);
+        if (status.contains("ActiveState=inactive") || status.contains("ActiveState=failed"))
+            && status.contains("MainPID=0")
+        {
+            drained = true;
+            break;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+    // Preserve native physical cleanup even on expected RED. This test is
+    // only allowed to stop its own Attempt's exact committed Unit identity.
+    if !drained {
+        let _ = Command::new("/usr/bin/systemctl")
+            .args(["stop", &unit_name])
+            .status();
+    }
+    assert!(
+        drained,
+        "committed cancel did not stop its original active OS Unit after a damaged Plan: {cancel}"
+    );
+    // Corrupt Plan still cannot be called a semantic success; readback must
+    // preserve the Job's identity and explicitly project unknown plan fields.
+    let listed = call(&endpoint, "job.list", json!({"limit":100}));
+    assert_ne!(listed["isError"], true, "{listed}");
+    let rows = listed["structuredContent"]["jobs"].as_array().unwrap();
+    let row = rows
+        .iter()
+        .find(|x| x["jobId"].as_str() == Some(job_id.as_str()))
+        .unwrap();
+    assert_eq!(row["executableName"], Value::Null);
+    assert_eq!(row["cwdRelative"], Value::Null);
+    eprintln!("R30_NATIVE_PG18_CORRUPT_PLAN_CANCEL_OS_DRAIN_PASS job={job_id} original_unit={unit_name} denied_false_success={}",cancel["isError"]);
+}
