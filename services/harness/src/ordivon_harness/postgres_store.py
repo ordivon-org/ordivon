@@ -443,6 +443,51 @@ class PostgresHarnessStore:
             lease_checked_at_ms=lease_checked_at_ms,
         )
 
+    def _require_original_unknown_stop_receipt(
+        self,
+        *,
+        harness_run_id: str,
+        contract_digest: str,
+        data: dict[str, JsonValue],
+        referenced_receipt_digests: set[str],
+    ) -> None:
+        """One original typed UNKNOWN receipt rule for Writer and Doctor.
+
+        The stopped projection cannot prove this by its stopCode alone.
+        Only the original immutable typed receipt with an Event reference and
+        exact Contract/Run binding can justify UNKNOWN audit quarantine. It
+        never authorizes physical resource release.
+        """
+        from .independent_result import IndependentHarnessRunReceipt
+
+        receipt_object_digest = data.get("runReceiptObjectDigest")
+        receipt_digest = data.get("runReceiptDigest")
+        if (
+            not isinstance(receipt_object_digest, str)
+            or not isinstance(receipt_digest, str)
+            or receipt_object_digest not in referenced_receipt_digests
+        ):
+            raise HarnessTerminalConflict(
+                "UNKNOWN fault requires its original typed immutable Run Receipt"
+            )
+        raw = self.get_object(
+            receipt_object_digest,
+            expected_kind="independent-harness-run-receipt",
+        )
+        if not isinstance(raw, dict):
+            raise HarnessTerminalConflict("UNKNOWN fault Run Receipt is not an object")
+        receipt = IndependentHarnessRunReceipt.from_dict(raw)
+        if (
+            receipt.digest != receipt_digest
+            or receipt.harness_run_id != harness_run_id
+            or receipt.contract_digest != contract_digest
+            or receipt.termination_code != data.get("stopCode")
+            or receipt.stop_reason != "unknown"
+        ):
+            raise HarnessTerminalConflict(
+                "UNKNOWN fault Run Receipt differs from original Run identity"
+            )
+
     def append_events(
         self,
         *,
@@ -553,39 +598,17 @@ class PostgresHarnessStore:
                 # immutable QUARANTINED_HELD audit evidence; NOT a safe
                 # physical-effect release. A raw stopCode alone cannot
                 # bypass the qualified normal terminal guard.
-                from .independent_result import IndependentHarnessRunReceipt
-
                 fault = prepared[-1][0]
-                receipt_object_digest = fault.data.get("runReceiptObjectDigest")
-                receipt_digest = fault.data.get("runReceiptDigest")
-                if (
-                    not isinstance(receipt_object_digest, str)
-                    or not isinstance(receipt_digest, str)
-                    or not any(
-                        ref.digest == receipt_object_digest and ref.kind == "independent-harness-run-receipt"
+                self._require_original_unknown_stop_receipt(
+                    harness_run_id=harness_run_id,
+                    contract_digest=current.contract_digest,
+                    data=fault.data,
+                    referenced_receipt_digests={
+                        ref.digest
                         for ref in fault.referenced_objects
-                    )
-                ):
-                    raise HarnessTerminalConflict(
-                        "UNKNOWN fault requires its original typed immutable Run Receipt"
-                    )
-                raw = self.get_object(
-                    receipt_object_digest,
-                    expected_kind="independent-harness-run-receipt",
+                        if ref.kind == "independent-harness-run-receipt"
+                    },
                 )
-                if not isinstance(raw, dict):
-                    raise HarnessTerminalConflict("UNKNOWN fault Run Receipt is not an object")
-                fault_receipt = IndependentHarnessRunReceipt.from_dict(raw)
-                if (
-                    fault_receipt.digest != receipt_digest
-                    or fault_receipt.harness_run_id != harness_run_id
-                    or fault_receipt.contract_digest != current.contract_digest
-                    or fault_receipt.termination_code != fault.data["stopCode"]
-                    or fault_receipt.stop_reason != "unknown"
-                ):
-                    raise HarnessTerminalConflict(
-                        "UNKNOWN fault Run Receipt differs from original Run identity"
-                    )
                 unknown_quarantine = True
             if terminal_id is not None and not unknown_quarantine:
                 # All normal and non-UNKNOWN terminal admissions require
@@ -910,6 +933,39 @@ class PostgresHarnessStore:
             or restored.caller_run_ref != projection.caller_run_ref
         ):
             raise HarnessJournalCorruption("Run contract metadata differs from Journal")
+        if (
+            status is HarnessRunStatus.STOPPED
+            and events[-1].event_kind == "harness.run-stopped"
+            and events[-1].data.get("stopCode") in {
+                "provider_state_unknown",
+                "runtime_unknown",
+                "cancel_unknown",
+            }
+        ):
+            # Legacy/foreign Writers may have bypassed the typed admission
+            # fence. Doctor must not certify a raw stopCode as healthy history.
+            # Reuse Writer's *same* original receipt rule, not a parallel
+            # approximation or another pending-state registry.
+            references = {
+                row["digest"]
+                for row in self.connection.execute(
+                    "SELECT digest FROM run_object_refs "
+                    "WHERE event_id=%s AND role='reference'",
+                    (events[-1].event_id,),
+                )
+            }
+            try:
+                self._require_original_unknown_stop_receipt(
+                    harness_run_id=harness_run_id,
+                    contract_digest=projection.contract_digest,
+                    data=events[-1].data,
+                    referenced_receipt_digests=references,
+                )
+            except (HarnessTerminalConflict, HarnessObjectMissing,
+                    HarnessObjectCorrupt, ValueError, TypeError) as error:
+                raise HarnessJournalCorruption(
+                    "UNKNOWN terminal lacks its qualified original Run Receipt"
+                ) from error
 
     def doctor(self, *, full: bool = True) -> dict[str, JsonValue]:
         objects = self.connection.execute("SELECT digest FROM objects").fetchall()

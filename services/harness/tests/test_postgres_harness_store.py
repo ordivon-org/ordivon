@@ -1194,6 +1194,51 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             with self.assertRaises(HarnessTerminalConflict):
                 observer.record_tool_step_receipt(late_receipt, pending_observation)
             self.assertEqual(observer.inspect_finalization_source()["sourceStanding"], "blocked")
+            self.store.validate_run_history(run.harness_run_id)
+            self.assertTrue(self.store.doctor()["healthy"])
+
+    def test_pg_history_doctor_rejects_structurally_valid_foreign_unknown_without_original_receipt(self) -> None:
+        """A foreign writer can persist a structurally valid STOPPED event but
+        cannot turn an ungrounded UNKNOWN stopCode into trusted history.
+        """
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.assertEqual(self.store.create_run(run), HarnessEventAdmission.CREATED)
+        before = self.store.load_run(run.harness_run_id)
+        event_id = "event:pg-doctor-unqualified-foreign-unknown"
+        at = before.updated_at_ms + 1
+        payload = self.store.put_object({
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-run-event-payload",
+            "eventKind": "harness.run-stopped",
+            "data": {"stopCode": "runtime_unknown"},
+        }, kind="ordivon.harness-run-event-payload")
+        # Operator-only test injection models an external Rust writer
+        # bypassing Python append_events; no business code can call this path.
+        with self.store.connection.transaction():
+            self.store.connection.execute(
+                "INSERT INTO run_events(event_id,harness_run_id,run_revision,"
+                "event_kind,payload_digest,recorded_at_ms) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                (event_id, run.harness_run_id, before.revision + 1,
+                 "harness.run-stopped", payload.digest, at),
+            )
+            self.store.connection.execute(
+                "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+                "VALUES(%s,%s,%s,'payload')",
+                (run.harness_run_id, event_id, payload.digest),
+            )
+            self.store.connection.execute(
+                "UPDATE runs SET status='stopped',revision=%s,updated_at_ms=%s,"
+                "terminal_event_id=%s WHERE harness_run_id=%s",
+                (before.revision + 1, at, event_id, run.harness_run_id),
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id).status.value, "stopped")
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
 
     def test_unqualified_unknown_fault_cannot_bypass_pg_terminal_guard(self) -> None:
         """A raw Event with a hand-written stopCode cannot spoof a qualified
