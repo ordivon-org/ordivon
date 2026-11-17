@@ -294,7 +294,14 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
             ) -> Any:
                 assert url == "https://127.0.0.1:18787/access/v1/evaluation"
                 assert timeout > 0 and allow_redirects is False
-                return pdp.post("/access/v1/evaluation", json=json, headers=headers)
+                response = pdp.post("/access/v1/evaluation", json=json, headers=headers)
+                assert response.status_code == 200, (
+                    f"test-owned Security PDP HTTP {response.status_code}: {response.json()!r}"
+                )
+                assert response.headers.get("X-Request-ID") == headers["X-Request-ID"], (
+                    "test-owned PDP did not echo the exact authenticated request ID"
+                )
+                return response
 
         middleware = GatewayCapabilityAuthorizationMiddleware(
             AuthZenPrincipalAuthorizer(
