@@ -4348,7 +4348,10 @@ fn pg_job_list_poisoned_plan_preserves_healthy_cursor_without_fabricating_plan()
         )
         .expect("one corrupt immutable Plan must not destroy the PostgreSQL list page");
     assert_eq!(first["jobs"][0]["jobId"], ids[1]);
-    assert_eq!(first["jobs"][0]["sourceRevision"], source_revision);
+    assert!(
+        first["jobs"][0]["sourceRevision"].is_null(),
+        "poisoned Plan sourceRevision remains unknown"
+    );
     for unknown in ["executableName", "cwdRelative", "scheduling"] {
         assert!(
             first["jobs"][0][unknown].is_null(),
@@ -4397,9 +4400,9 @@ fn pg_job_list_poisoned_plan_preserves_healthy_cursor_without_fabricating_plan()
     let page_one = call(&endpoint, "job.list", json!({"limit":1}));
     assert_ne!(page_one["isError"], true, "{page_one}");
     assert_eq!(page_one["structuredContent"]["jobs"][0]["jobId"], ids[1]);
-    assert_eq!(
-        page_one["structuredContent"]["jobs"][0]["sourceRevision"],
-        source_revision
+    assert!(
+        page_one["structuredContent"]["jobs"][0]["sourceRevision"].is_null(),
+        "authenticated MCP must keep unverifiable Plan sourceRevision as null"
     );
     for unknown in ["executableName", "cwdRelative", "scheduling"] {
         assert!(
@@ -4429,18 +4432,20 @@ fn pg_job_list_poisoned_plan_preserves_healthy_cursor_without_fabricating_plan()
             &[&ids[1]],
         )
         .unwrap();
+    let still_unknown = runtime
+        .list(
+            principal,
+            &RuntimeJobListRequest {
+                limit: 1,
+                cursor: None,
+                client_request_id: None,
+                workspace_id: None,
+            },
+        )
+        .expect("an unrelated damaged Workspace snapshot must not hide its Job");
+    assert_eq!(still_unknown["jobs"][0]["jobId"], ids[1]);
     assert!(
-        runtime
-            .list(
-                principal,
-                &RuntimeJobListRequest {
-                    limit: 1,
-                    cursor: None,
-                    client_request_id: None,
-                    workspace_id: None,
-                },
-            )
-            .is_err(),
-        "an unqualified sourceRevision must not be replaced by current HEAD"
+        still_unknown["jobs"][0]["sourceRevision"].is_null(),
+        "corrupt Plan and Workspace cannot invent a current HEAD"
     );
 }

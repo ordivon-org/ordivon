@@ -1,20 +1,6 @@
 //! PostgreSQL Runtime node capability and read-only Job listing.
 use super::*;
 
-// A malformed immutable execution Plan must not erase a healthy PG Job-list
-// page. When the plan is unavailable, only the independently admitted,
-// frozen Workspace snapshot may supply source identity. Never use current
-// Git HEAD, another Job, or an invented source revision.
-fn frozen_workspace_source_revision(snapshot_json: &str) -> RuntimeResult<String> {
-    let snapshot: serde_json::Value = decode(snapshot_json)?;
-    snapshot
-        .pointer("/workspace/sourceRevision")
-        .and_then(serde_json::Value::as_str)
-        .filter(|s| !s.trim().is_empty() && s.len() <= 256 && !s.contains('\0'))
-        .map(str::to_owned)
-        .ok_or_else(|| error("frozen Workspace sourceRevision cannot be qualified"))
-}
-
 impl PgRuntime {
     /// Advertise only capabilities implemented by this PostgreSQL-native entrypoint.
     pub fn describe(&self) -> RuntimeResult<serde_json::Value> {
@@ -86,24 +72,18 @@ impl PgRuntime {
         let cursor_id = request.cursor.as_ref().map(|c| c.job_id.clone());
         let limit = i64::from(request.limit) + 1;
         let rows=tx.query(
-            "SELECT j.job_id,j.operation_digest,j.client_request_id,j.workspace_id,j.created_at_ms,              j.desired_state,j.resolution,a.attempt_id,a.state,a.termination_intent,a.exit_code,              a.started_at_ms,a.finished_at_ms,j.execution_plan_json,              (SELECT count(*) FROM artifacts r WHERE r.job_id=j.job_id), EXISTS(SELECT 1 FROM artifacts z WHERE z.job_id=j.job_id AND z.kind='execution_result'), EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active'),j.workspace_snapshot_json              FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,              (SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id              ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id              WHERE j.principal=$1              AND ($2::text IS NULL OR j.client_request_id=$2::text)              AND ($3::text IS NULL OR j.workspace_id=$3::text)              AND ($4::bigint IS NULL OR (j.created_at_ms,j.job_id)<($4::bigint,$5::text))              ORDER BY j.created_at_ms DESC,j.job_id DESC LIMIT $6",
+            "SELECT j.job_id,j.operation_digest,j.client_request_id,j.workspace_id,j.created_at_ms,              j.desired_state,j.resolution,a.attempt_id,a.state,a.termination_intent,a.exit_code,              a.started_at_ms,a.finished_at_ms,j.execution_plan_json,              (SELECT count(*) FROM artifacts r WHERE r.job_id=j.job_id), EXISTS(SELECT 1 FROM artifacts z WHERE z.job_id=j.job_id AND z.kind='execution_result'), EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active')              FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,              (SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id              ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id              WHERE j.principal=$1              AND ($2::text IS NULL OR j.client_request_id=$2::text)              AND ($3::text IS NULL OR j.workspace_id=$3::text)              AND ($4::bigint IS NULL OR (j.created_at_ms,j.job_id)<($4::bigint,$5::text))              ORDER BY j.created_at_ms DESC,j.job_id DESC LIMIT $6",
             &[&principal,&request.client_request_id,&request.workspace_id,&cursor_at,&cursor_id,&limit]
         ).map_err(io)?;
         tx.commit().map_err(io)?;
         let more = rows.len() > request.limit as usize;
         let mut jobs = Vec::new();
         for r in rows.iter().take(request.limit as usize) {
-            // An immutable malformed Plan belongs to this Job, not to every
-            // healthy Job sharing the same page. Retain original PG identity.
-            // Unknown plan-only fields stay null, never invented defaults.
-            let plan: Option<RuntimeExecutionPlan> = decode(&r.get::<_, String>(13)).ok();
-            let source_revision = if let Some(plan) = plan.as_ref() {
-                plan.source_revision.clone()
-            } else {
-                // Exact source identity comes from the independent, frozen PG
-                // Workspace witness, never the possibly corrupted Plan.
-                frozen_workspace_source_revision(&r.get::<_, String>(17))?
-            };
+            // A corrupt frozen Plan is a row-local UNKNOWN during a read-only
+            // listing. Preserve qualified PG identity rather than treating one
+            // malformed Job as a globally unavailable Registry. The scheduler
+            // records its own bounded per-Job issue; never invent plan values.
+            let plan = decode::<RuntimeExecutionPlan>(&r.get::<_, String>(13)).ok();
             let at = r.get::<_, i64>(4).max(0) as u64;
             let started = r.get::<_, Option<i64>>(11).map(|v| v.max(0) as u64);
             let finished = r.get::<_, Option<i64>>(12).map(|v| v.max(0) as u64);
@@ -123,12 +103,19 @@ impl PgRuntime {
                     })
                     .unwrap_or_else(|_| ".".into())
             });
-            let executable_name = plan.as_ref().map(|plan| {
-                Path::new(&plan.executable)
-                    .file_name()
-                    .map(|p| p.to_string_lossy().into_owned())
-                    .unwrap_or_default()
-            });
+            let desired: String = r.get(5);
+            let scheduling = plan
+                .as_ref()
+                .and_then(|plan| self.scheduling_contract(plan).ok())
+                .map(|spec| {
+                    super::scheduling::scheduling_readback(
+                        spec,
+                        attempt_state.as_deref(),
+                        &desired,
+                        resolution.as_deref(),
+                        r.get::<_, bool>(16),
+                    )
+                });
             let delivery = pg_delivery_disposition(
                 resolution.as_deref(),
                 finished.is_some() && r.get::<_, bool>(15),
@@ -139,7 +126,7 @@ impl PgRuntime {
                 "clientRequestId":r.get::<_,String>(2),
                 "workspaceId":r.get::<_,String>(3),
                 "createdAtMs":at,
-                "desiredState":r.get::<_,String>(5),
+                "desiredState":desired,
                 "status":resolution.clone().or_else(||attempt_state.clone()).unwrap_or_else(||"accepted".into()),
                 "attemptId":r.get::<_,Option<String>>(7),
                 "attemptState":attempt_state,
@@ -151,22 +138,15 @@ impl PgRuntime {
                 "deliveryDisposition":delivery,
                 "recoveryRequired":finished.is_none() && r.get::<_,Option<String>>(8).as_deref().is_some_and(|state| matches!(state,"starting"|"stopping"|"recovering")),
                 "semanticCompletionEvaluated":false,
-                "sourceRevision":source_revision,
-                "executableName":executable_name,
+                "sourceRevision":plan.as_ref().map(|plan| &plan.source_revision),
+                "executableName":plan.as_ref().map(|plan| {
+                    Path::new(&plan.executable).file_name()
+                        .map(|p|p.to_string_lossy().into_owned()).unwrap_or_default()
+                }),
                 "cwdRelative":cwd_relative,
                 "durationMs":end.saturating_sub(started.unwrap_or(at)),
                 "resultAvailable":finished.is_some() && r.get::<_,bool>(15),
-                "scheduling": if let Some(plan) = plan.as_ref() {
-                    super::scheduling::scheduling_readback(
-                        self.scheduling_contract(plan)?,
-                        attempt_state.as_deref(),
-                        &r.get::<_, String>(5),
-                        resolution.as_deref(),
-                        r.get::<_, bool>(16),
-                    )
-                } else {
-                    serde_json::Value::Null
-                },
+                "scheduling":scheduling,
                 "artifactsAvailable":count>0,"artifactCount":count,
             }));
         }
@@ -177,48 +157,5 @@ impl PgRuntime {
             None
         };
         Ok(json!({"jobs":jobs,"nextCursor":next_cursor}))
-    }
-}
-
-#[cfg(test)]
-mod pg_list_snapshot_regression_tests {
-    use super::*;
-
-    #[test]
-    fn poisoned_plan_preserves_only_frozen_workspace_source_identity() {
-        let poisoned = r#"{"executable":null,"cwd":"untrusted"}"#;
-        assert!(
-            decode::<RuntimeExecutionPlan>(poisoned).is_err(),
-            "broken Plan must not be decoded or given guessed executable/cwd"
-        );
-        let snapshot = serde_json::json!({
-            "workspace": {
-                "sourceRevision": "6eddd4304099621a3e4c6daa9d9d31f53aa03eea",
-                "sourceRepo": "/immutable/admission/repo"
-            }
-        });
-        assert_eq!(
-            frozen_workspace_source_revision(&snapshot.to_string()).unwrap(),
-            "6eddd4304099621a3e4c6daa9d9d31f53aa03eea"
-        );
-    }
-
-    #[test]
-    fn broken_or_missing_frozen_workspace_revision_never_becomes_a_default() {
-        for invalid in [
-            "{}".to_owned(),
-            "[]".to_owned(),
-            "not-json".to_owned(),
-            r#"{"workspace":{}}"#.to_owned(),
-            r#"{"workspace":{"sourceRevision":null}}"#.to_owned(),
-            r#"{"workspace":{"sourceRevision":"   "}}"#.to_owned(),
-            r#"{"workspace":{"sourceRevision":"abc\u0000def"}}"#.to_owned(),
-            serde_json::json!({"workspace":{"sourceRevision":"x".repeat(257)}}).to_string(),
-        ] {
-            assert!(
-                frozen_workspace_source_revision(&invalid).is_err(),
-                "invalid frozen Workspace witness must not invent sourceRevision: {invalid}"
-            );
-        }
     }
 }
