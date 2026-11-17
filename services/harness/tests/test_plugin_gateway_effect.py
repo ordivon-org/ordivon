@@ -2568,3 +2568,175 @@ def test_r11_factory_original_pg_rejects_rebound_native_port(pg_schema, port_cha
         with pytest.raises(ToolBridgeError, match="admission|policy|Factory|drift"):
             factory.build(contract, continuity)
     assert not any(name == "execution.submit" for name, _ in client.calls)
+
+
+# Source-bound Bridge adapter: RunBirth alone does not freeze mutable descendants.
+def test_original_pg_bridge_adapter_keeps_original_client_and_native_port(pg_schema) -> None:
+    original_client = GatewayExecutionFixture()
+    original = _factory(original_client)
+    admission = _SourceOnlyWorkspaceAdmission()
+    factory = PluginGatewayExecutionBridgeFactory(
+        original.component,
+        original_client,
+        original.execution_grant,
+        workspace_admission=admission,
+        require_workspace_admission=True,
+    )
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        bridge = factory.build(contract, continuity)
+        bridge.require_workspace_turn_ready(turn_id="turn:adapter-original")
+        bridge.runtime.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert any(name == "execution.submit" for name, _ in original_client.calls)
+    assert len(admission.effects) == 1
+
+
+@pytest.mark.parametrize("rebound", ("client", "strict_policy", "native_port"))
+def test_original_pg_bridge_adapter_rejects_postbuild_effect_source_rebinding(
+    pg_schema, rebound: str,
+) -> None:
+    from ordivon_harness.runtime_port import HarnessRuntimeClientError
+
+    original_client = GatewayExecutionFixture()
+    replacement_client = GatewayExecutionFixture()
+    assert original_client.list_tools() == replacement_client.list_tools()
+    original = _factory(original_client)
+    admission = None if rebound == "strict_policy" else _SourceOnlyWorkspaceAdmission()
+    factory = PluginGatewayExecutionBridgeFactory(
+        original.component, original_client, original.execution_grant,
+        workspace_admission=admission, require_workspace_admission=True,
+    )
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    replacement_port = _SourceOnlyWorkspaceAdmission()
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        bridge = factory.build(contract, continuity)
+        if admission is not None:
+            bridge.require_workspace_turn_ready(turn_id="turn:original-source")
+        bridge.validate_runtime_catalog()
+        if rebound == "client":
+            bridge.runtime.client = replacement_client
+        elif rebound == "strict_policy":
+            bridge.runtime._workspace_admission_required = False
+        else:
+            bridge.runtime._workspace_admission = replacement_port
+        with pytest.raises(
+            HarnessRuntimeClientError, match="effect client|Native admission|drifted",
+        ):
+            bridge.runtime.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert not any(name == "execution.submit" for name, _ in original_client.calls)
+    assert not any(name == "execution.submit" for name, _ in replacement_client.calls)
+    assert replacement_port.effects == []
+
+
+# Consumer-rooted RunBirth negative controls retained from the original B audit.
+
+def test_r11_original_pg_frozen_gateway_client_cannot_rebind_to_new_transport(
+    pg_schema,
+) -> None:
+    """A same-catalog MCP client may be a *different* authenticated caller.
+
+    OriginalPG RunBirth W1 + Tool Grant must not retain catalog proof after
+    the Factory's effectful client is replaced. This proves Source routing,
+    not a real authenticated Gateway or Native OS effect.
+    """
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    original_client = GatewayExecutionFixture()
+    replacement_client = GatewayExecutionFixture()
+    factory = _factory(original_client)
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    assert original_client.list_tools() == replacement_client.list_tools()
+    factory.client = replacement_client
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        with pytest.raises(ToolBridgeError, match="source|transport|client|drift|Factory"):
+            bridge = factory.build(contract, continuity)
+            bridge.runtime.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert [name for name, _ in replacement_client.calls if name == "execution.submit"] == []
+
+
+def test_r11_original_pg_factory_strict_native_claim_policy_cannot_be_downgraded(
+    pg_schema,
+) -> None:
+    """R8 Strict Native effect admission cannot be switched off after RunBirth.
+
+    This is a direct Bridge Tool boundary, not a claim that the full Agent
+    model Turn skips its *separate* preTurn source hook.
+    """
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    client = GatewayExecutionFixture()
+    original = _factory(client)
+    factory = PluginGatewayExecutionBridgeFactory(
+        original.component, client, original.execution_grant,
+        workspace_admission=None, require_workspace_admission=True,
+    )
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    factory._workspace_admission_required = False
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        with pytest.raises(
+            (ToolBridgeError, HarnessWorkspaceAdmissionUnavailable),
+            match="source|policy|admission|Factory|Claim|certified|Native",
+        ):
+            bridge = factory.build(contract, continuity)
+            bridge.runtime.call_tool("workspace.exec", _effect_request_for_claim_contract())
+    assert [name for name, _ in client.calls if name == "execution.submit"] == []
+
+
+@pytest.mark.parametrize("port_rebind", ("missing", "foreign"))
+def test_r11_original_pg_qualified_native_port_cannot_be_swapped_after_runbirth(
+    pg_schema, port_rebind: str,
+) -> None:
+    """A valid current Port is not permission to silently replace its issuer.
+
+    The test Port is only a control-flow witness, not a native Rust Claim.
+    """
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    client = GatewayExecutionFixture()
+    original = _factory(client)
+    first_port = _SourceOnlyWorkspaceAdmission()
+    factory = PluginGatewayExecutionBridgeFactory(
+        original.component, client, original.execution_grant,
+        workspace_admission=first_port, require_workspace_admission=True,
+    )
+    contract = _contract(factory)
+    clock = FixedClock()
+    HarnessAgentRun.create(
+        pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
+        tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+    )
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        initial_bridge = factory.build(contract, continuity)
+        initial_bridge.require_workspace_turn_ready(turn_id="turn:source-positive")
+        assert len(first_port.turns) == 1
+        factory._workspace_admission = (
+            None if port_rebind == "missing" else _SourceOnlyWorkspaceAdmission()
+        )
+        with pytest.raises(ToolBridgeError, match="Factory|admission|policy|drift"):
+            factory.build(contract, continuity)
+    assert client.calls == []

@@ -216,12 +216,15 @@ class GatewayMcpRuntimeAdapter:
     ) -> None:
         self.component = component
         self.client = client
+        self._original_effect_client = client
         self.grant = grant
         # Only the caller's existing privacy consent + source-discovered
         # Gateway artifact.read enable text previews for the next model turn.
         self._artifact_read_enabled = artifact_read_enabled
         self._workspace_admission = workspace_admission
         self._workspace_admission_required = require_workspace_admission
+        self._original_workspace_admission = workspace_admission
+        self._original_workspace_admission_required = require_workspace_admission
         self._run_ref = run_ref
         self._grant_digest = grant_digest
         if workspace_admission is not None and (not run_ref or not grant_digest):
@@ -288,7 +291,21 @@ class GatewayMcpRuntimeAdapter:
         self._operation_refs[native_id] = operation_ref
         self._operation_requests[native_id] = request_id
 
+    def _require_original_effect_source(self) -> None:
+        # A frozen Factory is not sufficient if its effectful Adapter is
+        # rebound after Bridge creation. Verify the original caller and Native
+        # admission source before every external effect, including recovery.
+        if (
+            self.client is not self._original_effect_client
+            or self._workspace_admission is not self._original_workspace_admission
+            or self._workspace_admission_required is not self._original_workspace_admission_required
+        ):
+            raise HarnessRuntimeClientError(
+                "Gateway Adapter effect client or Native admission drifted after Run birth"
+            )
+
     def _call(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        self._require_original_effect_source()
         try:
             is_error, payload = self.client.call_tool(name, arguments)
         except Exception as exc:
@@ -301,6 +318,7 @@ class GatewayMcpRuntimeAdapter:
         return payload
 
     def call_tool(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        self._require_original_effect_source()
         if name == "workspace.exec":
             return self._submit(arguments)
         if name == "task.list":
