@@ -1,7 +1,7 @@
 # Host Consumer Architecture R1 — bounded decision and source readset
 
-Status: reviewed source design candidate, **not a second API/schema authority**.
-Baseline: `origin/main` d16820900f1d74bcfef512f0f009d4cfbd99b06a
+Status: historical source/consumer architecture evidence, **not a second API/schema authority or installed-service inventory**.
+Historical design baseline (not current `origin/main`): d16820900f1d74bcfef512f0f009d4cfbd99b06a
 (2026-11-16). Installed service/current Connector must always be observed independently.
 
 ## 1. Problem and real consumers
@@ -331,7 +331,10 @@ upgrade, schema rewrite, or remote MCP catalog recapture is implied by this
 candidate.
 
 
-## 9. R28 M1 narrow implementation evidence — branch candidate, not installed
+## 9. R28 M1 historical source evidence — subsequently merged, not proof of installation
+
+> **2026-11-17 stocktake correction (UTC+08):** M1 was merged as PR #2337 at `bc30e4377fad481846275346e74abf52978cd135`; M2 merged as PR #2347 at `e99aeb7abb3134dc597c65d13bab2d93530479ce`; R30 Space projection merged as PR #2359 at `697f9ec824159ae5effe8a7727ae9b33a8fc5cb5`. These are **source** facts, not installed or consumer-current claims. The live unit `ordivon-host-v2.service` on 2026-11-17 resolved to immutable Git release `10db16a117bf1fd0622a0fca1ecbedea7358c322` (PG schema 14, manifest epoch 7 / 31 tools). That installed release did **not** contain `social_message_records.py`, `work_contracts.py`, `attention_contracts.py`, or `social_space_records.py`. The remote `main` was `5d1721fdd75cea53ee7d3ae023378becaff525c3`, while the separate local root worktree `main` was still `9f98468fc81385fe0361e8fbd624ea289b227932`. Read all three currentness boundaries again before acting; the ChatGPT client-captured archived/includeArchived parameter shapes also require independent verification.
+
 
 The actual R28 source experiment converts only two cross-Mixin private
 execution dependencies, **without moving existing modules or changing DB
@@ -374,18 +377,18 @@ principal handoff remain separate UNKNOWN obligations.
 SocialStore/WorkStore public methods, same PG transaction and lock scope,
 `mcp-surface.json` 31-tool/epoch/digest, Alembic0001–0014, Attention's
 MVCC-only union and both independent cursors. No generic Repository/UoW,
-new inbox/event store, separate identity registry or Rust replacement. The
-R26 M2 wire/domain package split and M3 internal `git mv` remain **not
-implemented**; they require independent review of source-path consumers and
-real Agent cost before promotion. The prior R26 section is historic design
+new inbox/event store, separate identity registry or Rust replacement. At the original R28 candidate cut, the R26 M2 wire/domain package split
+had **not yet been implemented**; M2 subsequently merged in PR #2347.
+The proposed M3 bulk internal `git mv` remains **not approved** without
+source-path consumer review and measured Agent benefit. The prior R26 section is historic design
 baseline, not a claim the current source still has those hidden methods.
 
 
-## 10. R29 M2 domain-owned response wire (2026-11-16, isolated candidate)
+## 10. R29 M2 domain-owned response wire (historical candidate, subsequently merged in PR #2347)
 
 R28 M1 is now **GitHub MERGED** into main at `bc30e4377fad481846275346e74abf52978cd135`
 (PR #2337); this establishes the source baseline, **not** installed production
-currentness. The exact R29 M2 candidate keeps the existing flat Python package,
+currentness. The original R29 M2 source candidate, subsequently merged, keeps the flat Python package,
 same published `mcp_server.py` entry point and all 31 native MCP Tool functions.
 It does not move Work, Social, Attention persistence or modify PostgreSQL/Alembic.
 
