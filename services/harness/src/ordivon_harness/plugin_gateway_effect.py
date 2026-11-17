@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
@@ -1089,27 +1090,57 @@ class PluginGatewayExecutionBridgeFactory:
             name: _tool_digest(raw) for name, raw in sorted(remote.items())
         }
         self._definition = _model_execution_definition(grant)
+        self.catalog_digest = self._current_catalog_digest()
+        self.grant_digest = self._current_grant_digest()
+
+    def _current_catalog_digest(
+        self,
+        *,
+        component: AgentPluginMcpComponent | None = None,
+        definition: AgentToolDefinition | None = None,
+        remote_tool_digests: dict[str, str] | None = None,
+    ) -> str:
+        """Reconstruct the existing ToolSurface from one captured source view."""
+        current_component = self.component if component is None else component
+        current_definition = self._definition if definition is None else definition
+        remote = self._remote_tool_digests if remote_tool_digests is None else remote_tool_digests
         surface: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.plugin-gateway-execution-tool-surface",
-            "component": component.to_dict(),
-            "modelTools": [self._definition.to_dict()],
-            "remoteRecoveryToolDigests": dict(self._remote_tool_digests),
+            "component": current_component.to_dict(),
+            "modelTools": [current_definition.to_dict()],
+            "remoteRecoveryToolDigests": dict(remote),
         }
-        self.catalog_digest = canonical_digest(surface)
+        return canonical_digest(surface)
+
+    def _current_grant_digest(
+        self,
+        *,
+        component: AgentPluginMcpComponent | None = None,
+        grant: PluginGatewayExecutionGrant | None = None,
+        remote_tool_digests: dict[str, str] | None = None,
+    ) -> str:
+        """Reconstruct existing ToolGrant without inventing a second RunRoot."""
+        current_component = self.component if component is None else component
+        current_grant = self.execution_grant if grant is None else grant
+        remote = self._remote_tool_digests if remote_tool_digests is None else remote_tool_digests
+        if not isinstance(current_grant, PluginGatewayExecutionGrant):
+            raise ToolBridgeError(
+                "Gateway factory frozen Tool Grant type drifted",
+                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
+            )
         grant_value: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.plugin-gateway-execution-tool-grant",
-            "component": component.to_dict(),
-            "grant": grant.to_dict(),
+            "component": current_component.to_dict(),
+            "grant": current_grant.to_dict(),
             "modelTools": ["execution.submit"],
             "recoveryTools": ["execution.resolve", "execution.get"],
             "controlTools": ["execution.cancel"],
         }
-        if "artifact.read" in self._remote_tool_digests:
-            # This is an existing Gateway read capability, not a new grant or store.
+        if "artifact.read" in remote:
             grant_value["outputTools"] = ["artifact.read"]
-        self.grant_digest = canonical_digest(grant_value)
+        return canonical_digest(grant_value)
 
     def build(
         self,
@@ -1118,6 +1149,34 @@ class PluginGatewayExecutionBridgeFactory:
         *,
         provider_source=None,
     ) -> PluginGatewayExecutionBridge:
+        # One SOURCE snapshot before admission; all descendants consume
+        # these captured values, never mutable Factory attributes again.
+        # Grant and Component are frozen dataclasses, but the Tool definition
+        # contains a mutable nested schema and remote digests are a dict.
+        component = self.component
+        client = self.client
+        grant = self.execution_grant
+        definition = deepcopy(self._definition)
+        remote_tool_digests = dict(self._remote_tool_digests)
+        workspace_admission = self._workspace_admission
+        require_workspace_admission = self._workspace_admission_required
+        frozen_grant_digest = self.grant_digest
+        frozen_catalog_digest = self.catalog_digest
+        if (
+            self._current_grant_digest(
+                component=component, grant=grant, remote_tool_digests=remote_tool_digests
+            ) != frozen_grant_digest
+            or self._current_catalog_digest(
+                component=component, definition=definition,
+                remote_tool_digests=remote_tool_digests,
+            ) != frozen_catalog_digest
+            or contract.tool_grant_digest != frozen_grant_digest
+            or contract.tool_catalog_digest != frozen_catalog_digest
+        ):
+            raise ToolBridgeError(
+                "Gateway factory frozen Tool Grant or catalog drifted from Original Run",
+                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
+            )
         references: tuple[dict[str, JsonValue], ...] = (
             {
                 "namespace": "ordivon.harness",
@@ -1134,40 +1193,40 @@ class PluginGatewayExecutionBridgeFactory:
                 "namespace": "ordivon.harness",
                 "type": "tool_grant",
                 "id": "plugin-gateway-execution",
-                "digest": self.grant_digest,
+                "digest": frozen_grant_digest,
             },
         )
         binding = HarnessExecutionBinding(
             harness_run_id=contract.harness_run_id,
-            workspace_ref=self.execution_grant.workspace_id,
+            workspace_ref=grant.workspace_id,
             runtime_references=references,
         )
         runtime = GatewayMcpRuntimeAdapter(
-            self.component,
-            self.client,
-            self.execution_grant,
+            component,
+            client,
+            grant,
             artifact_read_enabled=(
-                "artifact.read" in self._remote_tool_digests
+                "artifact.read" in remote_tool_digests
                 and contract.privacy.allow_tool_content
             ),
-            workspace_admission=self._workspace_admission,
-            require_workspace_admission=self._workspace_admission_required,
+            workspace_admission=workspace_admission,
+            require_workspace_admission=require_workspace_admission,
             run_ref=contract.harness_run_id,
-            grant_digest=self.grant_digest,
+            grant_digest=frozen_grant_digest,
         )
         return PluginGatewayExecutionBridge(
             contract,
             continuity,
             binding,
             runtime,
-            grant=self.execution_grant,
-            definition=self._definition,
-            catalog_digest=self.catalog_digest,
-            grant_digest=self.grant_digest,
-            remote_tool_digests=self._remote_tool_digests,
+            grant=grant,
+            definition=definition,
+            catalog_digest=frozen_catalog_digest,
+            grant_digest=frozen_grant_digest,
+            remote_tool_digests=remote_tool_digests,
             provider_source=provider_source,
-            workspace_admission=self._workspace_admission,
-            require_workspace_admission=self._workspace_admission_required,
+            workspace_admission=workspace_admission,
+            require_workspace_admission=require_workspace_admission,
         )
 
 
