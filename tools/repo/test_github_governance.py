@@ -1764,6 +1764,7 @@ exit 0
                     "name": path.name,
                     "size": path.stat().st_size,
                     "digest": "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "state": "uploaded",
                 }
                 for path in names
             ]
@@ -1808,6 +1809,27 @@ exit 0
             write_releases(missing_digest)
             self.assertNotEqual(verify(created_code).returncode, 0)
 
+            # GitHub can return an asset record before upload is complete.
+            # A correct name/size/digest is not a provider upload receipt.
+            pending = [dict(item) for item in correct]
+            pending[0]["state"] = "new"
+            write_releases(pending)
+            self.assertNotEqual(
+                verify(created_code).returncode, 0,
+                "draft provider asset state=new was admitted as uploaded",
+            )
+            absent_state = [dict(item) for item in correct]
+            del absent_state[0]["state"]
+            write_releases(absent_state)
+            self.assertNotEqual(
+                verify(created_code).returncode, 0,
+                "draft asset with missing provider upload state was admitted",
+            )
+            write_releases(correct, pending)
+            self.assertNotEqual(
+                verify(published_code).returncode, 0,
+                "published provider asset state=new was admitted as uploaded",
+            )
             # Publication must reject a second-party edit after draft audit.
             write_releases(correct, forged)
             self.assertNotEqual(verify(published_code).returncode, 0)
@@ -2044,11 +2066,12 @@ exit 0
                 },
                 provider_root + "/environments/runtime-release-publisher": {
                     "name": "runtime-release-publisher",
-                    "prevent_self_review": True,
                     "can_admins_bypass": False,
                     "deployment_branch_policy": {"protected_branches": True},
                     "protection_rules": [{
-                        "type": "required_reviewers", "reviewers": [
+                        "type": "required_reviewers",
+                        "prevent_self_review": True,
+                        "reviewers": [
                             {"type": "User", "reviewer": {"id": 1}}
                         ],
                     }],
@@ -2130,7 +2153,14 @@ exit 0
             mutate(run_key, "head_repository", {"id": 1})
             mutate(run_key, "run_attempt", 2)
             mutate(run_key, "path", ".github/workflows/other.yml")
-            mutate(environment_key, "prevent_self_review", False)
+            no_self_review = copy.deepcopy(baseline)
+            no_self_review[environment_key]["protection_rules"][0]["prevent_self_review"] = False
+            mutants.append(no_self_review)
+            # A malicious or obsolete top-level property must not override
+            # the actual nested provider protection rule.
+            spoofed_top = copy.deepcopy(no_self_review)
+            spoofed_top[environment_key]["prevent_self_review"] = True
+            mutants.append(spoofed_top)
             mutate(environment_key, "can_admins_bypass", True)
             mutate(environment_key, "protection_rules", [])
             mutate(environment_key, "deployment_branch_policy", {"protected_branches": False})

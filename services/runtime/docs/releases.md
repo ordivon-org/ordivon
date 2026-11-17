@@ -206,9 +206,12 @@ protected default `main` branch**, not from the upstream tagged source.
 Publication uses a different GitHub Job with `contents: write` and
 `actions: read`; it is disabled unless the repository variable
 `ORDIVON_RUNTIME_RELEASE_PUBLISH` equals `enabled`, the Security-owner
-`runtime-release-publisher` GitHub Environment has genuine required reviewers,
-prevents self-review and admin bypass, restricts deployments to protected
-branches, and the active `runtime-release-tag-immutability-r1` Ruleset covers
+`runtime-release-publisher` GitHub Environment has genuine required reviewers
+with `prevent_self_review=true` inside its returned `required_reviewers`
+protection-rule object (not the Environment's top-level JSON), explicitly
+disables admin bypass via `can_admins_bypass=false`, restricts deployments
+to protected branches, and the active
+`runtime-release-tag-immutability-r1` Ruleset covers
 `refs/tags/runtime-v*` with zero bypass actors and rejects tag updates and
 deletions. Its initial tag creation remains allowed, but **creation is not
 release authorization**: independent protected-environment review is the
@@ -245,11 +248,14 @@ PG release manifest, not maintained as a numeric guard. The **Root Operator
 control plane is separate**: its original five Git-qualified scripts,
 installation privileges, systemd release conditions and preimage/rollback
 require independent Root Owner acceptance. A PG GitHub Release does not
-qualify or install those Root files. It
-reads back the dynamically computed complete asset set with SHA-256 digests
-and byte lengths from GitHub against local bytes, then publishes and checks
-that asset byte identities are unchanged. An equal-size substitution or
-missing digest fails closed; download-count metadata is not byte drift.
+qualify or install those Root files. The Publisher
+reads back the dynamically computed complete asset set with SHA-256 digests,
+byte lengths, and **GitHub provider `state=uploaded`** from GitHub against
+local bytes, then publishes and checks that asset byte identities and their
+completed-upload statuses are unchanged. An equal-size substitution, missing
+digest, or stale/incomplete provider upload state fails closed; download-count
+metadata is not byte drift. The provider schema was independently checked
+against a real published Game Release without modifying any provider asset.
 An ambiguous provider response or incomplete draft is **not** a retry
 authorization. Reconcile the actual GitHub Release before recovery.
 

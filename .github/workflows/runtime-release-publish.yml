@@ -109,10 +109,10 @@ jobs:
           policy = environment.get("deployment_branch_policy") or {}
           if not (
               environment.get("name") == "runtime-release-publisher"
-              and environment.get("prevent_self_review") is True
               and environment.get("can_admins_bypass") is False
               and policy.get("protected_branches") is True
               and len(reviewers) == 1
+              and reviewers[0].get("prevent_self_review") is True
           ):
               raise SystemExit("RUNTIME_PUBLISH_NO_INDEPENDENT_ENV_REVIEW")
           # Configuration of a reviewer is not proof that this run was
@@ -396,12 +396,20 @@ jobs:
                   raise SystemExit("RUNTIME_RELEASE_INVALID_LOCAL_ASSET")
               with path.open("rb") as source:
                   digest = "sha256:" + hashlib.file_digest(source, "sha256").hexdigest()
-              expected[path.name] = {"size": path.stat().st_size, "digest": digest}
+              expected[path.name] = {
+                  "size": path.stat().st_size,
+                  "digest": digest,
+                  "state": "uploaded",
+              }
           assets = release.get("assets")
           if not isinstance(assets, list):
               raise SystemExit("RUNTIME_RELEASE_MISSING_REMOTE_ASSETS")
           actual = {
-              asset["name"]: {"size": asset.get("size"), "digest": asset.get("digest")}
+              asset["name"]: {
+                  "size": asset.get("size"),
+                  "digest": asset.get("digest"),
+                  "state": asset.get("state"),
+              }
               for asset in assets
           }
           if (release.get("tagName") != os.environ["RUNTIME_TAG"]
@@ -430,11 +438,13 @@ jobs:
               if not isinstance(assets, list):
                   raise SystemExit("RUNTIME_GITHUB_RELEASE_ASSETS_MISSING")
               observed = {
-                  item["name"]: (item.get("size"), item.get("digest"))
+                  item["name"]: (item.get("size"), item.get("digest"), item.get("state"))
                   for item in assets
               }
               if len(observed) != len(assets) or any(
-                  not isinstance(value[1], str) or not value[1].startswith("sha256:")
+                  not isinstance(value[1], str)
+                  or not value[1].startswith("sha256:")
+                  or value[2] != "uploaded"
                   for value in observed.values()
               ):
                   raise SystemExit("RUNTIME_GITHUB_RELEASE_ASSET_DIGEST_MISSING")
