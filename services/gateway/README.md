@@ -265,6 +265,18 @@ proof of remote authenticated identity. Native consumer regression:
 HTTP `main()` wiring check. Inspect the installed Gateway and Owner
 readback before claiming this source refinement is deployed.
 
+**Execution observation is not read-only:** Gateway `execution.get`
+currently calls the native Runtime `job.observe` even at `waitMs=0`.
+Runtime may dispatch an accepted Job while reconciling, so authorized
+Agent/Harness callers must treat this as an effect-qualified operation.
+The existing native `job.get` is the pure Runtime inspection path, but
+substituting it for Gateway `execution.get` would lose the complete
+Artifact identity/replay contract consumed by
+`services/harness/src/ordivon_harness/plugin_gateway_effect.py`.
+Keep the current public Tool semantics until Runtime/Harness owners have
+independently verified a compatible no-dispatch consumer path
+(original Host #28845).
+
 ## Host northbound boundary
 
 The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.
