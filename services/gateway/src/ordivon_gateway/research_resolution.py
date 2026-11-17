@@ -98,6 +98,11 @@ async def resolve_research_capability(
         "Study/domain owners retain claim, inference, review, publication, and completion semantics.",
         "sourceRefs identify source locations, not verified source bytes: unprefixed paths are relative to this monorepo's release SourceCut; repository-prefixed paths require independent source authority and revision verification before use.",
     ]
+    if not recipes and not spec.preferred_skills:
+        non_claims.append(
+            "No source-qualified invocation recipe exists for this Study-owned "
+            "capability; direct execution readiness is UNKNOWN."
+        )
     digest_payload = {
         "capability": spec.capability,
         "semanticOwner": spec.semantic_owner,

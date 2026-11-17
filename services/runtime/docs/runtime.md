@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-09-24
+updated: 2026-11-18
 summary: Canonical Runtime architecture for Workspace-bound admission, Jobs, Attempts, execution evidence, reconciliation, and recovery.
 evidence_status: verified
 readiness: READY
@@ -263,6 +263,8 @@ The service performs a low-frequency bounded reconciliation batch in addition to
 This loop does not redispatch ambiguous work or retry failed commands. It only continues convergence among Registry state, runner evidence, and systemd/cgroup reality, including clearing recovery markers that became stale after a conclusive terminal result.
 
 ## Semantic health and Workspace lifecycle
+
+**Backend/version scope (observed 2026-11-18):** the fixed-count Linux `16`/fallback `8` policy and SQLite reservation details in the historical paragraphs below describe the **legacy transactional Runtime**, not the installed Linux PostgreSQL node. That node reports `globalExecutionLimit=null`, resource-aware persistent scheduling and `workspaceConcurrency=access_leases` in its live `runtime.describe`. The still-installed Windows R6 candidate reports a separate fixed limit of `12`; its PG-native Writer cutover is not proven. Do not infer live capacity, Registry ownership or enablement of lifecycle timers from a repository architecture document. The installed Linux lifecycle timer was disabled/inactive at the observation; reclaim must remain blocked until original Harness/Workspace consumers are qualified.
 
 `ordivon-runtime-doctor inspect` remains read-only and reports invariant violations, recovery cases, state counts, capacity holders, Artifact volume, and whether the Runtime is `healthy` or needs `attention`. Its defensive 50-holder diagnostic projection reports `capacityHoldersTruncated=true` when incomplete rather than silently presenting a prefix as complete. The summary explains current blocking facts; it does not invent a second control plane.
 

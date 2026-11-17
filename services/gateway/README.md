@@ -265,6 +265,18 @@ proof of remote authenticated identity. Native consumer regression:
 HTTP `main()` wiring check. Inspect the installed Gateway and Owner
 readback before claiming this source refinement is deployed.
 
+**Execution observation is not read-only:** Gateway `execution.get`
+currently calls the native Runtime `job.observe` even at `waitMs=0`.
+Runtime may dispatch an accepted Job while reconciling, so authorized
+Agent/Harness callers must treat this as an effect-qualified operation.
+The existing native `job.get` is the pure Runtime inspection path, but
+substituting it for Gateway `execution.get` would lose the complete
+Artifact identity/replay contract consumed by
+`services/harness/src/ordivon_harness/plugin_gateway_effect.py`.
+Keep the current public Tool semantics until Runtime/Harness owners have
+independently verified a compatible no-dispatch consumer path
+(original Host #28845).
+
 ## Host northbound boundary
 
 The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.
@@ -546,12 +558,15 @@ effect authority. Preserve public Gateway Tool names and Owner identity
 bindings unchanged.
 
 **Currentness boundary:** this source test does not imply the Gateway main
-release is deployed. The installed Gateway 0.10.11 may still contain its
-previous typed bridge until a qualified release. Likewise, Linux Runtime
-UTF-8 subcharacter reads are independently faulty until its merged Owner
-patch is physically installed; Gateway's current maintenance release stops
-non-progress cursors rather than fabricating completion. Recheck both
-installed layers separately after any release.
+release is deployed. At the 2026-11-17 audit, the installed Gateway is 0.10.12
+(release d73424dcae267224c907c102b14dfaf773f3fc11), while this source is
+0.10.14 / MCP surface epoch 14; verify the installed package and authenticated
+client tool catalog again before any release. The older 0.10.11 observation is
+historical, not the present installed version. Linux Runtime UTF-8
+subcharacter paging is an independent Owner-managed condition: its current
+installed fix must be established from Runtime's own real readback, not from
+this Gateway source test. Gateway rejects non-progress cursors rather than
+fabricating completion. Recheck both installed layers after any release.
 
 Proof of business delivery requires the original owner Job identity, terminal
 evidence, source-qualified output bytes, and an independently verified Artifact
@@ -781,9 +796,11 @@ remains for ordinary bounded Jobs and is **not** a self-release path.
 
 ### Availability and deployment gate
 
-The R12 source candidate extends MCP surface epoch 11 to 12 (41 tools). Its
-source tests and an Owner route demonstration do not imply the installed
-Gateway or the ChatGPT Gateway connector offers the new pair. Enable only after
+Historically, the R12 source candidate extended MCP surface epoch 11 to 12
+(41 tools). This source now declares epoch 14 / package 0.10.14 with 41 tools;
+only the exact current release manifest and qualified live MCP discovery can
+establish an installed surface. Source tests and a route demonstration do
+not imply the installed Gateway or ChatGPT connector offers the new pair. Enable only after
 (1) normal Gateway release qualification, (2) existing Host/Security AuthZEN
 PEP consumer admission and real release authorization grant, (3) installed
 Gateway MCP discovery and caller action approval, (4) Runtime Owner actual
