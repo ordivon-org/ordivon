@@ -1067,6 +1067,12 @@ class PluginGatewayExecutionBridgeFactory:
         self.execution_grant = grant
         self._workspace_admission = workspace_admission
         self._workspace_admission_required = require_workspace_admission
+        # Grant/Catalog digests describe model authority, not the MCP caller
+        # identity or native effect-qualification Port selected for this Run.
+        # Save constructor provenance: this local identity is no NativeIssuer.
+        self._original_client = client
+        self._original_workspace_admission = workspace_admission
+        self._original_workspace_admission_required = require_workspace_admission
         remote: dict[str, dict[str, JsonValue]] = {}
         for raw in client.list_tools():
             name = raw.get("name")
@@ -1162,6 +1168,15 @@ class PluginGatewayExecutionBridgeFactory:
         require_workspace_admission = self._workspace_admission_required
         frozen_grant_digest = self.grant_digest
         frozen_catalog_digest = self.catalog_digest
+        if (
+            client is not self._original_client
+            or workspace_admission is not self._original_workspace_admission
+            or require_workspace_admission is not self._original_workspace_admission_required
+        ):
+            raise ToolBridgeError(
+                "Gateway Factory effect client or Native admission policy drifted from original source",
+                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
+            )
         if (
             self._current_grant_digest(
                 component=component, grant=grant, remote_tool_digests=remote_tool_digests

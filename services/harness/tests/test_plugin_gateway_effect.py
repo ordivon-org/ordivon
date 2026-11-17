@@ -2497,3 +2497,74 @@ def test_gateway_factory_build_uses_one_original_grant_snapshot_after_binding_ho
         assert bridge.definitions()[0].description != "changed after original guard"
         assert bridge.contract.tool_grant_digest == contract.tool_grant_digest
         assert client.calls == []
+
+
+def test_r11_factory_original_pg_rejects_rebound_gateway_client_before_effect(pg_schema) -> None:
+    """One frozen Run may not route the same ToolIntent to a new MCP caller."""
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    original = GatewayExecutionFixture()
+    alternate = GatewayExecutionFixture()
+    factory = _factory(original)
+    contract = _contract(factory)
+    assert original.list_tools() == alternate.list_tools()
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        store.create_run(contract)
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        factory.client = alternate
+        with pytest.raises(ToolBridgeError, match="client|source|drift|Factory"):
+            factory.build(contract, continuity)
+    assert not any(name == "execution.submit" for name, _ in alternate.calls)
+
+
+def test_r11_factory_original_pg_strict_claim_cannot_be_disabled(pg_schema) -> None:
+    """Changing strict Native Claim to Legacy bypassed the original port gate."""
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    client = GatewayExecutionFixture()
+    original = _factory(client)
+    factory = PluginGatewayExecutionBridgeFactory(
+        original.component,
+        client,
+        original.execution_grant,
+        workspace_admission=None,
+        require_workspace_admission=True,
+    )
+    contract = _contract(factory)
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        store.create_run(contract)
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        factory._workspace_admission_required = False
+        with pytest.raises(ToolBridgeError, match="admission|policy|Factory|drift"):
+            factory.build(contract, continuity)
+    assert not any(name == "execution.submit" for name, _ in client.calls)
+
+
+@pytest.mark.parametrize("port_change", ("missing", "other"))
+def test_r11_factory_original_pg_rejects_rebound_native_port(pg_schema, port_change: str) -> None:
+    """The qualifying Port identity is a frozen factory source, not a new issuer."""
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    client = GatewayExecutionFixture()
+    original = _factory(client)
+    port = _SourceOnlyWorkspaceAdmission()
+    factory = PluginGatewayExecutionBridgeFactory(
+        original.component,
+        client,
+        original.execution_grant,
+        workspace_admission=port,
+        require_workspace_admission=True,
+    )
+    contract = _contract(factory)
+    with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
+        store.create_run(contract)
+        continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
+        bridge = factory.build(contract, continuity)
+        bridge.require_workspace_turn_ready(turn_id="turn:legitimate")
+        assert len(port.turns) == 1
+        factory._workspace_admission = (
+            None if port_change == "missing" else _SourceOnlyWorkspaceAdmission()
+        )
+        with pytest.raises(ToolBridgeError, match="admission|policy|Factory|drift"):
+            factory.build(contract, continuity)
+    assert not any(name == "execution.submit" for name, _ in client.calls)
