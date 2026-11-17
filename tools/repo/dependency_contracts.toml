@@ -319,3 +319,16 @@ source_glob = "platform/security/services/gateway-authzen/tests/test_gateway_hos
 allowed_fragment = "services/gateway/enforcement-surface.json"
 kind = "TEST_ONLY_PUBLIC_TOOL_SURFACE"
 contract_ref = "services/gateway/enforcement-surface.json"
+
+
+# Gateway's existing Host PEP integration test runs Security's actual OPA
+# policy through its test-owned Starlette adapter. This test-only source seam
+# does not install/import Security as a Gateway production dependency, grant
+# cross-Owner policy authority, or move credentials between service units.
+[[seams]]
+from_owner = "gateway"
+to_owner = "security"
+source_glob = "services/gateway/tests/test_host_read_authorization.py"
+allowed_fragment = "platform/security/services/gateway-authzen"
+kind = "TEST_ONLY_SECURITY_OPA_CONSUMER"
+contract_ref = "platform/security/services/gateway-authzen/README.md"
