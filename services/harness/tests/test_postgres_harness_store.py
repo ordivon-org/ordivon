@@ -972,6 +972,40 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             intent.digest,
         )
         self.assertTrue(self.store.release_run_lease(lease))
+        # A separate experimental Writer might bypass the Python admission
+        # and commit a structurally contiguous completed Run. Doctor must use
+        # the same typed full-history scanner and reject the still-prepared Tool.
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        event_id = "event:pg-doctor-foreign-completed-over-tool"
+        at = self.store.load_run(run.harness_run_id).updated_at_ms + 1
+        payload = self.store.put_object({
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-run-event-payload",
+            "eventKind": "harness.run-completed",
+            "data": {"stopReason": "completed"},
+        }, kind="ordivon.harness-run-event-payload")
+        with self.store.connection.transaction():
+            self.store.connection.execute(
+                "INSERT INTO run_events(event_id,harness_run_id,run_revision,"
+                "event_kind,payload_digest,recorded_at_ms) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                (event_id, run.harness_run_id, before.revision + 1,
+                 "harness.run-completed", payload.digest, at),
+            )
+            self.store.connection.execute(
+                "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+                "VALUES(%s,%s,%s,'payload')",
+                (run.harness_run_id, event_id, payload.digest),
+            )
+            self.store.connection.execute(
+                "UPDATE runs SET status='completed',revision=%s,updated_at_ms=%s,"
+                "terminal_event_id=%s WHERE harness_run_id=%s",
+                (before.revision + 1, at, event_id, run.harness_run_id),
+            )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
 
     def test_original_recorder_cannot_claim_completed_with_pending_tool(self) -> None:
         """A candidate_completed answer is rejected, never emitted as a
@@ -1273,6 +1307,64 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(self.store.load_run(run.harness_run_id).status.value, "stopped")
         with self.assertRaises(HarnessJournalCorruption):
             self.store.validate_run_history(run.harness_run_id)
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
+    def test_pg_doctor_rejects_foreign_completed_over_unsettled_original_provider(self) -> None:
+        """A structurally valid foreign terminal cannot hide a real Provider
+        CLAIMED in the immutable original Journal from Doctor consumers.
+        """
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        continuity.claim_provider_call(
+            source=continuity.assignment_provider_source(),
+            turn_id="turn:pg-foreign-completed-pending-provider",
+            turn_sequence=1,
+            request_digest=canonical_digest({"request": "foreign-pending-provider"}),
+            provider_request_digest=canonical_digest({"wire": "foreign-pending-provider"}),
+            adapter_id=run.adapter_id,
+            requested_model_id=run.requested_model_id,
+            holder_id="holder:foreign-pending-provider",
+            ttl_ms=10_000,
+        )
+        before = self.store.load_run(run.harness_run_id)
+        self.assertFalse(before.status.terminal)
+        at = before.updated_at_ms + 1
+        event_id = "event:pg-doctor-foreign-completed-over-provider"
+        payload = self.store.put_object({
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-run-event-payload",
+            "eventKind": "harness.run-completed",
+            "data": {"stopReason": "completed"},
+        }, kind="ordivon.harness-run-event-payload")
+        with self.store.connection.transaction():
+            self.store.connection.execute(
+                "INSERT INTO run_events(event_id,harness_run_id,run_revision,"
+                "event_kind,payload_digest,recorded_at_ms) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                (event_id, run.harness_run_id, before.revision + 1,
+                 "harness.run-completed", payload.digest, at),
+            )
+            self.store.connection.execute(
+                "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+                "VALUES(%s,%s,%s,'payload')",
+                (run.harness_run_id, event_id, payload.digest),
+            )
+            self.store.connection.execute(
+                "UPDATE runs SET status='completed',revision=%s,updated_at_ms=%s,"
+                "terminal_event_id=%s WHERE harness_run_id=%s",
+                (before.revision + 1, at, event_id, run.harness_run_id),
+            )
+        self.assertEqual(
+            self.store.load_run(run.harness_run_id).status.value, "completed"
+        )
+        # This is a Doctor semantic qualification: structural history alone
+        # is not a certified normal terminal with old pending Provider effects.
         with self.assertRaises(HarnessJournalCorruption):
             self.store.doctor()
 

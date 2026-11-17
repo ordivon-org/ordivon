@@ -974,6 +974,54 @@ class PostgresHarnessStore:
         runs = self.list_runs()
         for run in runs:
             self.validate_run_history(run.harness_run_id)
+            if not run.status.terminal:
+                continue
+            history = self.list_run_events(run.harness_run_id)
+            if not any(
+                event.event_kind.startswith(
+                    ("harness.provider-call-", "harness.tool-step-")
+                )
+                for event in history
+            ):
+                continue
+            if (
+                run.status is HarnessRunStatus.STOPPED
+                and history[-1].data.get("stopCode") in {
+                    "provider_state_unknown",
+                    "runtime_unknown",
+                    "cancel_unknown",
+                }
+            ):
+                # The original typed UNKNOWN terminal was verified above.
+                # Pending external effects belong to QUARANTINED_HELD, not a
+                # healthy normal terminal, so do not require them settled.
+                continue
+            from .ordivon.continuity_guards import inspect_all_unsettled_effect_sources
+            from .ordivon.run_continuity import EventSourcedRunContinuity
+
+            # Reuse the Writer's original typed complete-history scanner and
+            # CAS Provider reader. This is a pure read; neither a second
+            # Pending registry nor a Domain/Runtime release certification.
+            try:
+                continuity = EventSourcedRunContinuity.open(
+                    self, run.harness_run_id
+                )
+                pending_provider, pending_tool = inspect_all_unsettled_effect_sources(
+                    history,
+                    store=self,
+                    harness_run_id=run.harness_run_id,
+                    binding=continuity.binding,
+                    allow_tool_content=continuity.contract.privacy.allow_tool_content,
+                    provider_record_reader=continuity._load_provider_from_event,
+                )
+            except (ValueError, TypeError, KeyError) as error:
+                raise HarnessJournalCorruption(
+                    "terminal Run has invalid original Provider/Tool evidence"
+                ) from error
+            if pending_provider or pending_tool:
+                raise HarnessJournalCorruption(
+                    "normal terminal Run retains unsettled original Provider/Tool effects"
+                )
         events = self.connection.execute("SELECT count(*) AS n FROM run_events").fetchone()["n"]
         leases = self.connection.execute("SELECT count(*) AS n FROM run_leases").fetchone()["n"]
         return {
