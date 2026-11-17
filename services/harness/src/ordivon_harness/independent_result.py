@@ -13,6 +13,7 @@ from anc_canonical import (
 
 from .agent_tool_observation import HarnessArtifactReference, HarnessToolObservation
 from .core_contracts import HarnessRunContract
+from .store_errors import HarnessTerminalConflict
 from .ordivon.events import HarnessRunEvent, HarnessTrace
 from .ordivon.loop import AgentLoopResult, RunStopCode
 from .ordivon.model import AgentRunConclusion
@@ -568,6 +569,7 @@ class IndependentRunRecorder:
         )
         now_ms = self._recorded_time(finished)
         lease = self._acquire_lease("terminal", receipt.digest, now_ms=now_ms)
+        terminal_blocker: HarnessTerminalConflict | None = None
         try:
             trace_object = self.store.put_object(trace.to_dict(), kind="harness-trace")
             persistent_observations = (
@@ -599,31 +601,65 @@ class IndependentRunRecorder:
             if proposal_object is not None:
                 references.append(proposal_object)
             events = self.store.list_run_events(self.contract.harness_run_id)
-            self.store.append_event(
-                event_id=self._event_id("terminal", receipt.digest),
-                harness_run_id=self.contract.harness_run_id,
-                event_kind=self._terminal_event_kind(result.stop_code),
-                data=self._terminal_data(
-                    result,
-                    receipt,
-                    receipt_object,
-                    trace,
-                    trace_object,
-                    observations_object,
-                    conclusion_digest,
-                    conclusion_object,
-                    proposal,
-                    proposal_object,
-                ),
-                expected_revision=lease.run_revision,
-                recorded_at_ms=now_ms,
-                lease=lease,
-                lease_checked_at_ms=self.clock_ms(),
-                caused_by_event_id=None if not events else events[-1].event_id,
-                referenced_objects=tuple(references),
-            )
+            try:
+                self.store.append_event(
+                    event_id=self._event_id("terminal", receipt.digest),
+                    harness_run_id=self.contract.harness_run_id,
+                    event_kind=self._terminal_event_kind(result.stop_code),
+                    data=self._terminal_data(
+                        result,
+                        receipt,
+                        receipt_object,
+                        trace,
+                        trace_object,
+                        observations_object,
+                        conclusion_digest,
+                        conclusion_object,
+                        proposal,
+                        proposal_object,
+                    ),
+                    expected_revision=lease.run_revision,
+                    recorded_at_ms=now_ms,
+                    lease=lease,
+                    lease_checked_at_ms=self.clock_ms(),
+                    caused_by_event_id=None if not events else events[-1].event_id,
+                    referenced_objects=tuple(references),
+                )
+            except HarnessTerminalConflict as error:
+                # The original PG transaction rejected terminal admission.
+                # Release its Lease *before* acquiring a second one for a
+                # durable hold. Never bypass the original Journal guard.
+                terminal_blocker = error
         finally:
             self.store.release_run_lease(lease)
+        if terminal_blocker is not None:
+            # A candidate claiming completion is not a recoverable pause
+            # receipt. Surface the authoritative rejection rather than
+            # returning a misleading candidate_completed loop conclusion.
+            if result.stop_code is RunStopCode.CANDIDATE_COMPLETED:
+                raise terminal_blocker
+            from .ordivon.run_continuity import EventSourcedRunContinuity
+            from .protocol import HarnessRunPauseReason, HarnessToolStepStatus
+
+            continuity = EventSourcedRunContinuity.open(
+                self.store, self.contract.harness_run_id, clock_ms=self.clock_ms
+            )
+            try:
+                current_tool = continuity.load_current_tool_step()
+            except KeyError:
+                raise terminal_blocker from None
+            if current_tool.receipt is not None and current_tool.receipt.status not in {
+                HarnessToolStepStatus.UNKNOWN,
+                HarnessToolStepStatus.CANCEL_REQUESTED,
+            }:
+                raise terminal_blocker
+            # The original Prepared/UNKNOWN/CANCEL_REQUESTED Tool keeps its
+            # exact Intent identity and retained State. The new PAUSED
+            # snapshot is not a new physical effect or Runtime certificate.
+            current_snapshot = continuity.load_current_snapshot()
+            continuity.bind_state(current_snapshot.state)
+            continuity.record_pause(HarnessRunPauseReason.EFFECT_DISPATCH_PENDING)
+            return None
         return self.load_terminal_result()
 
     def load_terminal_result(self) -> StoredIndependentRunResult:

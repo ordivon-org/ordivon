@@ -682,11 +682,91 @@ guard replay, unknown commit, restart recovery, rollback and readback.
 No additional Registry, workflow engine or scheduler is introduced.
 
 Production installation is NOT performed by checking in this source.
-Install the exact source operator and dispatcher under
-/usr/local/libexec/ordivon/, install the hash-locked Python venv, and set
-root-owned independent Operator env/config under /etc/ordivon/. The PG
+The separately controlled Root release-operator bundle (dispatcher,
+its Python operator module, the existing ordivon-runtime-deploy helper and
+mcp_probe.py) is installed together under
+/usr/local/libexec/ordivon/pg-release-operator/, distinct from the released
+Server/Runner/Reclaimer payloads under /usr/local/libexec/ordivon/.
+The packaged dispatcher systemd unit must reference that *effective*
+Root-bundle path; check systemctl show ExecStart and the actual installed
+script hashes before deployment. The existing Runtime deployer also has a
+**read-only** Root-bundle currentness consumer (root-bundle-plan): provide
+its full, approved Git commit and independently recorded Runtime owner-tree
+OID using source-repo, commit, expected-owner-tree, require-ref
+and the actual install-dir options. Its five-entry output distinguishes
+current, drifted, missing and unsafe source-to-install byte identities;
+neither a GREEN plan nor five matching bytes grant permission to mutate
+the Root control plane. Treat the plan as an operator review input, not an
+installer, a signed authorization, or a live Service receipt.
+
+An isolated Root candidate may now be **staged but never installed** using
+the same existing deployer command with the root-bundle-stage subcommand and
+the plan's source-repo, commit, require-ref, expected-owner-tree and live
+install-dir inputs, plus a fresh absolute candidate-dir outside the live
+bundle. The command rejects an existing candidate directory, checks Git
+blob identity twice, preserves each original installed preimage digest only
+as a **read-only observation**, and writes a five-file candidate manifest.
+It never calls systemctl, changes release admission, copies over installed
+Root scripts, writes the operator config, or issues a PG ReleaseEffect.
+The resulting candidate directory belongs to the staging caller, **not**
+to Root's authorization or rollback domain; do not copy or trust it merely
+because its manifest reports correct bytes. The independent Root owner must
+revalidate the protected Git SourceCut and all five files, retain a root-owned
+durable preimage, fence new PG release admissions, quiesce the independent
+dispatcher timer/service across reboots, and attest installation and
+rollback under its existing Root credential before enabling a new release.
+The 2026-11-12 historical one-time first-install bootstraps covered only
+Server/Runner payloads, not the Root control plane and not those conditions.
+
+The existing deployer now contains a **private Linux filesystem exchange
+primitive** and conservative two-directory readback, intentionally without a
+Root install CLI or MCP endpoint. For a trusted Root-owned staging directory
+on the *same device and same parent* as the live Root bundle,
+renameat2(RENAME_EXCHANGE) switches the two nonempty directories at one
+namespace linearization point without changing the effective systemd
+ExecStart address. The old directory is retained at the staging path for
+rollback, rather than lost by successive per-file overwrites. The primitive
+uses O_DIRECTORY|O_NOFOLLOW for directory descriptors, synchronizes both
+directories before the exchange and the parent directory afterward, and
+returns RECONCILIATION_REQUIRED if a post-exchange durability/readback
+operation fails. The classifier returns PREPARED, EXCHANGED, or UNKNOWN
+from five old/new real file byte sets; identical old/new byte sets, wrong
+file modes, missing files, unexpected staged importable scripts / bytecode,
+or drift are always UNKNOWN, never an auto-approved retry. Only the five
+committed candidate files and its optional stage manifest may occupy the
+NEW Root directory before activation; the old directory can retain its
+separate historical artifacts as a protected rollback preimage. Python
+normally creates __pycache__ on first import: the packaged one-shot
+dispatcher therefore runs its interpreter with the native -B flag, so
+the future Root bundle stays a closed five-file import namespace. The
+physical Root owner must compare the **effective installed systemd ExecStart**
+to this package definition before applying/accepting a switch; changing
+the package source alone cannot update a running unit. On unsupported
+Linux filesystems there is **no non-atomic fallback**.
+
+**This primitive is not yet a production upgrader**. The natural Root
+operator must still journal exact candidate/preimage inode and SHA evidence
+outside the two mutable directories, bind approval to the protected Git
+commit and independent Root credential, revoke PostgreSQL Release admission
+under the existing shared advisory lock, verify all outstanding Release
+effects are settled, persistently stop the dispatcher timer and confirm its
+one-shot service is inactive. Only then may its own trusted process consume
+the internal directory switch, authenticate five new on-disk files and
+effective systemd imports, attest a Root-owned rollback/terminal receipt and
+restore Release admission/timer. Uncertain physical effects must be
+reconciled against that journal rather than reissued. Existing Agent
+Workspace staging output remains **untrusted** and must never be used as
+a Root-owned preimage or physical approval.
+Install the hash-locked Python venv, and
+set root-owned independent Operator env/config under /etc/ordivon/. The PG
 Operator DSN and allowed service list are never sent by an MCP caller.
 The Runtime app role must not be able to alter the qualification stage.
+A Git source merge or package Unit edit is not a Root-bundle upgrade:
+the trusted Root owner must qualify its own exact preimage, replacement,
+rollback and readback before enabling includePgReclaimer in the operator
+JSON. The ordinary PG ReleaseEffect then installs the three payloads under
+one exact manifest; do not manually copy binaries or enable the automatic
+Workspace GC timer while external PAUSED Run Finalizer remains unqualified.
 
 After the independent release stage is qualified and the systemd timer
 is installed and running, configure the actual PG Runtime service with:

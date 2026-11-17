@@ -15,9 +15,11 @@ import time
 from contextlib import nullcontext
 from pathlib import Path
 
+from anc_canonical import canonical_digest
+
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.run_store_port import HarnessSuperseded
-from ordivon_harness.protocol import HarnessToolStepStatus
+from ordivon_harness.protocol import HarnessToolStepReceipt, HarnessToolStepStatus
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.store import HarnessEventWrite
 
@@ -71,6 +73,55 @@ with PostgresHarnessStore(dsn, schema="harness_r22_source", initialize=False) as
         if os.getenv("ORDIVON_R25_REAL_EPOCH_ISSUER") == "1"
         else (1_000_000_000_100 if after_settlement else 10**12)
     )
+    stopping = os.getenv("ORDIVON_R25_SOURCE_STOP") == "1"
+    if stopping:
+        # R25/R26 cross-owner acceptance: prove the original
+        # prepared clientRequestId has NO committed native PG Job. A source
+        # 'testOnly' STOPPED without settling ToolIntent is invalid under the
+        # new same-row original PG terminal admission contract.
+        # Same original PostgreSQL database, two isolated schemas. Holding
+        # the original Run row FOR UPDATE across the no-native-Job proof and
+        # rejected Receipt append makes a new Runtime issuer admission wait
+        # until the Run revision has advanced and the old Fence is stale.
+        with store.connection.transaction():
+            locked = store.connection.execute(
+                "SELECT harness_run_id FROM harness_r22_source.runs "
+                "WHERE harness_run_id=%s FOR UPDATE",
+                (run_id,),
+            ).fetchone()
+            assert locked is not None and locked["harness_run_id"] == run_id
+            native_jobs = store.connection.execute(
+                "SELECT count(*) AS accepted_jobs FROM fresh.jobs WHERE client_request_id=%s",
+                (request_id,),
+            ).fetchone()["accepted_jobs"]
+            assert native_jobs == 0, (
+                "cannot reject already accepted original Native Job without real Owner receipt"
+            )
+            observation = {
+                "schemaVersion": 1,
+                "kind": "r25-isolated-native-no-accepted-job",
+                "clientRequestId": request_id,
+                "nativeJobCount": native_jobs,
+            }
+            receipt = HarnessToolStepReceipt(
+                receipt_id="harness-tool-step-receipt:r25-rejected-" + secrets.token_hex(9),
+                intent_digest=prepared.intent.digest,
+                harness_run_id=run_id,
+                tool_call_id=prepared.intent.tool_call_id,
+                status=HarnessToolStepStatus.REJECTED,
+                runtime_job_ref=None,
+                observation_digest=canonical_digest(observation),
+                reconciled=True,
+                created_at_ms=now_ms,
+            )
+            source.record_tool_step_receipt(receipt, observation)
+        settled = EventSourcedRunContinuity.open(
+            store, run_id, clock_ms=lambda: now_ms
+        ).load_current_tool_step()
+        assert settled.receipt == receipt
+        preexisting_revision = store.load_run(run_id).revision
+        now_ms = max(now_ms + 1, store.load_run(run_id).updated_at_ms + 1)
+        print("R25_ORIGINAL_NO_COMMITTED_NATIVE_JOB_RECONCILED_AS_REJECTED")
     with store.connection.transaction() if gate_ready else nullcontext():
         lease = store.acquire_run_lease(
             run_id,
@@ -79,7 +130,6 @@ with PostgresHarnessStore(dsn, schema="harness_r22_source", initialize=False) as
             now_ms=now_ms,
             expected_run_revision=preexisting_revision,
         )
-        stopping = os.getenv("ORDIVON_R25_SOURCE_STOP") == "1"
         store.append_events(
             harness_run_id=run_id,
             expected_revision=lease.run_revision,

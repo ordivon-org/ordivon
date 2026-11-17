@@ -515,12 +515,20 @@ jobs:
                   and report.get("toolQualification")
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
-                  and report.get("sourceFragmentRefinement") == {
+                  and isinstance(report.get("sourceFragmentRefinement"), dict)
+                  and report["sourceFragmentRefinement"].get("effectFrameObserved") in {
+                      "exact_post_projection_return_and_immediate_gateway_dispatch",
+                      "exact_post_projection_native_claim_guard_then_gateway_dispatch",
+                  }
+                  and {
+                      key: value
+                      for key, value in report["sourceFragmentRefinement"].items()
+                      if key != "effectFrameObserved"
+                  } == {
                       "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
                       "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
                       "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
                       "sourceAstAnchorsObserved": True,
-                      "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
                       "codeFragmentRefined": False,
                       "sourceRefinementStanding": "UNKNOWN",
                       "runtimeRustRefined": False,

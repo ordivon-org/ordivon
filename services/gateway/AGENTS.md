@@ -269,6 +269,21 @@ bounded refresh; unresolved identity coverage stays incomplete even when the
 Owner summary count is 0. Never fabricate a missing Owner Artifact or treat
 an unqualified count as a success witness.
 
+**Agent effect boundary (2026-11-18, original Host #28845):**
+Gateway `execution.get` is **not a guaranteed pure read**. The current
+`execution_observations.py` calls Runtime `job.observe` even when `waitMs=0`.
+The native Runtime may dispatch an already-admitted Job while reconciling.
+Harness `plugin_gateway_effect.py` explicitly fences bound replay and also
+consumes `execution.get` for `task.observe`. This does not prove every
+observation has an independent effect-admission receipt. Harness needs
+complete Artifact identities before delivering a result; an Agent without
+the original authorization/Workspace Claim must not use `execution.get`
+as an innocent poll; for pure Runtime inspection, use the natural Owner's existing
+`job.get` under its own principal scope. Do not mechanically replace
+Gateway `execution.get` with `job.get` or change its public Tool contract
+without first preserving the real Harness consumer's original receipt,
+Artifact and replay invariants.
+
 ## R08 Linux PG Runtime business delivery — historical incident, closed
 
 **Historical cause:** A former installed Runtime published an incomplete MCP
@@ -288,8 +303,10 @@ a separate consumer. The installed Runtime also independently fixed the
 previous UTF-8 subcharacter read zero-progress behavior.
 
 **Release boundary:** This historical incident closure does **not** qualify
-the separate mainline Gateway 0.10.13/41-tool Host/Security credential and
-delegation migration. Preserve current `mcp-surface.json` and mandatory
+the separate mainline Gateway 0.10.14 / epoch-14 / 41-tool Host/Security
+credential and delegation migration. At the 2026-11-17 audit the installed
+Gateway is still 0.10.12; Source/Installed/Client authority is distinct.
+Preserve current `mcp-surface.json` and mandatory
 Host/Security admission and physical consumer gates; a test or source merge
 alone never proves a protected release is deployed.
 
