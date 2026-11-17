@@ -4390,6 +4390,38 @@ fn pg_job_list_poisoned_plan_preserves_healthy_cursor_without_fabricating_plan()
         "PG Principal must remain scoped"
     );
 
+    // Additional real native PostgreSQL + authenticated loopback HTTP MCP
+    // consumption with the existing PG-only nullable schema (PR #2387).
+    // This is test-owned execution only; it never addresses production.
+    let endpoint = fixture.endpoint_for_principal(principal);
+    let page_one = call(&endpoint, "job.list", json!({"limit":1}));
+    assert_ne!(page_one["isError"], true, "{page_one}");
+    assert_eq!(page_one["structuredContent"]["jobs"][0]["jobId"], ids[1]);
+    assert_eq!(
+        page_one["structuredContent"]["jobs"][0]["sourceRevision"],
+        source_revision
+    );
+    for unknown in ["executableName", "cwdRelative", "scheduling"] {
+        assert!(
+            page_one["structuredContent"]["jobs"][0][unknown].is_null(),
+            "actual MCP SDK output rejected or fabricated unknown {unknown}: {page_one}"
+        );
+    }
+    let page_two = call(
+        &endpoint,
+        "job.list",
+        json!({
+            "limit":1,
+            "cursor":page_one["structuredContent"]["nextCursor"].clone()
+        }),
+    );
+    assert_ne!(page_two["isError"], true, "{page_two}");
+    assert_eq!(page_two["structuredContent"]["jobs"][0]["jobId"], ids[0]);
+    assert_eq!(
+        page_two["structuredContent"]["jobs"][0]["executableName"],
+        "printf"
+    );
+
     fixture
         .db
         .execute(
