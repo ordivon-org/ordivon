@@ -174,44 +174,94 @@ The current inventory and deletion rules are [`compatibility.md`](compatibility.
 
 The live monorepo release authority is the root workflow `.github/workflows/runtime-release.yml`, triggered only by `runtime-v*` tags. The tag name must exactly match the Runtime workspace package version. The tag checkout must also prove that the exact tagged Commit is reachable from the checked-out protected origin/main history before installing tools or building artifacts; missing main refs and off-main commits fail closed. This protects the current workflow release admission, but is not itself a provider-side tag-immutability rule, proof of historical workflow versions, or evidence of installed release. The workflow records both the tagged repository Commit and the owner-scoped Runtime Commit resolved from `services/runtime`; unrelated sibling-owner commits therefore do not become Runtime release identity.
 
-The tagged workflow runs the Runtime owner verification and cargo-deny policy first, then reuses `scripts/ordivon-runtime-deploy prepare` to build the canonical release set declared by the native Deployer at the exact owner Commit. The candidate manifest remains the authority for artifact names, modes, byte lengths, SHA-256 digests, toolchain identity, owner prefix, and Runtime policy, including whether the optional global execution-concurrency field is owned by that release.
+The tagged workflow runs Runtime owner verification and cargo-deny policy
+before invoking the existing native `scripts/ordivon-runtime-deploy prepare`
+with `--binary ordivon-runtime-pg --binary ordivon-runtime-runner
+--include-pg-reclaimer`. The production Runtime PG cohort therefore contains
+two release binaries and the native `ordivon-runtime-pg-reclaim` operator
+(**three subjects at this exact SourceCut**); the legacy five-binary
+`--all-features` default is **not** a current PG server release. Deployer's
+native PG build profile selects the PG Server's `postgres-runtime` feature
+and the Runner's `runtime-contract` feature independently. The signed candidate
+manifest carries the exact binary and artifact set, modes, byte lengths,
+SHA-256 digests, toolchain, source owner and Runtime policy. Both source
+builder and protected-main promoter compare this manifest against the native
+deployer PG profile and its exact committed Git source, never the legacy
+default artifact declarations.
 
 Attestation subjects are derived from that manifest and re-verified before staging. Only the native Deployer's complete canonical subject set enters the clean SBOM scan root; its cardinality is source-derived, not maintained in release workflow code. Syft produces SPDX JSON, and GitHub artifact attestations bind the exact subject checksums to build provenance and to the SPDX SBOM. The workflow also retains the candidate manifest, prepare result, checksums, SBOM, and a release-identity record connecting tag, repository Commit, owner Commit, owner tree, and package version.
 
 These standardized attestations complement rather than replace Runtime deployment receipts. A deployment receipt proves the exact artifact set installed on one Runtime node and supports rollback/reconciliation. A GitHub attestation proves what the tagged workflow produced under its workflow identity. Repository configuration alone is not evidence that a particular tag has been attested: the tag's attestation must exist and verify through GitHub's attestation verification surface before a provenance claim is made. No SLSA level is inferred merely from the presence of this workflow.
 
-### GitHub Release publication is a separate admission
+### Protected-main GitHub Release promotion is a separate admission
 
-The tag-triggered build Job retains its `contents: read` permission and
-produces only verified candidate assets. A separate `publish-runtime-release`
-Job has the narrow `contents: write` permission. Its native GitHub Release
-effect is **disabled unless** the repository variable
-`ORDIVON_RUNTIME_RELEASE_PUBLISH` is exactly `enabled` **and** the
-Security-owner-admitted active `runtime-release-tag-immutability-r1` GitHub
-tag Ruleset covers `refs/tags/runtime-v*` with zero bypass actors, blocking
-updates and deletions while allowing initial tag creation. The publisher
-checks that the tag, checked-out commit, protected-main ancestry, upstream
-build identity, signed canonical artifacts and provenance agree.
+The tag-triggered root `.github/workflows/runtime-release.yml` is a
+**read-only build and attestation producer**. It cannot publish: it has no
+`contents: write` Job. A historical `runtime-v*` tag therefore cannot supply
+a historical privileged publication policy. The separate root
+`.github/workflows/runtime-release-publish.yml` receives GitHub's native
+`workflow_run: completed` event and runs its publisher **from the current
+protected default `main` branch**, not from the upstream tagged source.
 
-The publisher uploads the exact source-declared and already-attested Runtime
-subjects plus five evidence files into one GitHub **draft Release**. It reads
-back the dynamically computed complete asset set with SHA-256 digests and
-byte lengths against the actual local files, then publishes and checks that
-asset byte identities are unchanged. An equal-size substitution or missing
-provider digest fails closed; download-count metadata is not evidence of byte drift.
+Publication uses a different GitHub Job with `contents: write` and
+`actions: read`; it is disabled unless the repository variable
+`ORDIVON_RUNTIME_RELEASE_PUBLISH` equals `enabled`, the Security-owner
+`runtime-release-publisher` GitHub Environment has genuine required reviewers,
+prevents self-review and admin bypass, restricts deployments to protected
+branches, and the active `runtime-release-tag-immutability-r1` Ruleset covers
+`refs/tags/runtime-v*` with zero bypass actors and rejects tag updates and
+deletions. Its initial tag creation remains allowed, but **creation is not
+release authorization**: independent protected-environment review is the
+release-promotion authority. The real GitHub repository has not yet configured
+these provider controls; the candidate publisher must fail closed.
+
+Before downloading the upstream workflow's artifacts, the protected-main
+publisher asks GitHub to re-read the completed run and exact workflow ID,
+enforces `event=push`, `run_attempt=1`, `conclusion=success`, current same
+repository ID, exact `runtime-vX.Y.Z` tag and 40-character source SHA, and
+reconciles that real Tag against protected-main Git ancestry. Because
+tag-source ancestors may carry an older builder or Runtime code, the promoter
+also compares the tagged Git blob of the read-only build Workflow and the
+complete Runtime owner Git tree to current protected `main`. A stale builder
+security policy or mismatched Runtime source tree is rejected; unrelated
+sibling-owner changes alone do not invalidate an otherwise current release. The
+publisher also reads the GitHub approval history of **this** promotion Run;
+a configured Environment reviewer is not enough without an actual approved
+record from a listed user who differs from the upstream Tag-push actor.
+The downstream download uses the verified original Run ID and tag, not
+arbitrary untrusted shell interpolation. The upstream artifact is **data**:
+the privileged job must never execute downloaded scripts. The trusted
+publisher independently reads the tagged Git objects to derive the exact
+Runtime owner Commit, owner Tree, Cargo version and the native Deployer's
+complete artifact-name set. It compares all of those with the manifest and
+identity, verifies local SHA-256 plus GitHub's source/ref/workflow-bound
+provenance and SPDX attestations, and has no hard-coded artifact count.
+
+The publisher uploads the exact source-declared and attested **PG Runtime**
+subjects plus five evidence files into one GitHub **draft Release**. At this
+SourceCut that means three PG subjects plus five metadata assets, **eight**
+GitHub Release assets total; cardinality is validated from the actual
+PG release manifest, not maintained as a numeric guard. The **Root Operator
+control plane is separate**: its original five Git-qualified scripts,
+installation privileges, systemd release conditions and preimage/rollback
+require independent Root Owner acceptance. A PG GitHub Release does not
+qualify or install those Root files. It
+reads back the dynamically computed complete asset set with SHA-256 digests
+and byte lengths from GitHub against local bytes, then publishes and checks
+that asset byte identities are unchanged. An equal-size substitution or
+missing digest fails closed; download-count metadata is not byte drift.
 An ambiguous provider response or incomplete draft is **not** a retry
-authorization. Reconcile GitHub's existing Release and assets before
-recovery. Repository-wide Immutable Releases, if later admitted across
-Game/Media/Runtime owners, would additionally lock published asset bytes
-and generate a Release Attestation; the Runtime tag Ruleset alone locks
-tags, **not** Release assets.
+authorization. Reconcile the actual GitHub Release before recovery.
 
-A successful 30-day Actions Artifact or a passed build Job does not prove
-that a GitHub Release exists. A published GitHub Release does not prove a
-Runtime node installed it. Production acceptance still needs a source
-and artifact-bound node deployment receipt and independent consumer
-readback. No real `runtime-v*` tag has exercised this new publisher,
-so neither a real Runtime Release nor an install is claimed.
+Repository-wide Immutable Releases, if later admitted across Game/Media/
+Runtime owners, would additionally lock published asset bytes and create
+Release Attestation. The Runtime tag Ruleset only locks tags, **not** Release
+assets. A successful 30-day Actions Artifact or build Job does not prove
+that a GitHub Release exists; published GitHub Release does not prove any
+Runtime node installed it. Actual production acceptance still needs an
+artifact-bound node deployment receipt and independent domain consumer
+readback. No real `runtime-v*` tag has exercised this protected-main publisher,
+and no real Runtime Release or installation is claimed.
 
 The owner-local `services/runtime/.github/workflows/release-acceptance.yml` remains portable source for a future extracted Runtime repository; GitHub does not treat nested owner workflow directories as the monorepo's live Actions entry point.
 

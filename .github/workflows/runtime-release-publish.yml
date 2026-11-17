@@ -1,0 +1,447 @@
+name: Runtime Release Promotion
+
+on:
+  workflow_run:
+    workflows: ["Runtime Tagged Release"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-release-promotion-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  publish-runtime-release:
+    name: publish-runtime-release
+    if: ${{ github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && vars.ORDIVON_RUNTIME_RELEASE_PUBLISH == 'enabled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: runtime-release-publisher
+    permissions:
+      contents: write
+      actions: read
+      attestations: read
+    steps:
+      - name: Checkout trusted main policy for publication
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The builder's tag-local YAML is not policy authority. The promotion
+      # workflow is evaluated from protected main via workflow_run.
+      - name: Admit trusted builder and protected publication authority
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          EXPECTED_REPOSITORY_ID: ${{ github.event.repository.id }}
+        run: |
+          set -euo pipefail
+          export GIT_GRAFT_FILE=/dev/null GIT_NO_REPLACE_OBJECTS=1
+          python3 - <<'PY_TRUSTED_RUN'
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          def api(path):
+              return json.loads(subprocess.check_output(
+                  ["gh", "api", path], text=True, timeout=30,
+              ))
+          def git(*args):
+              return subprocess.check_output(
+                  ["git", *args], text=True, timeout=30,
+              ).strip()
+
+          if os.environ.get("GITHUB_EVENT_NAME") != "workflow_run":
+              raise SystemExit("RUNTIME_PUBLISH_WRONG_EVENT")
+          if os.environ.get("GITHUB_REF") != "refs/heads/main":
+              raise SystemExit("RUNTIME_PUBLISH_NOT_DEFAULT_BRANCH")
+          if git("rev-parse", "HEAD") != os.environ["GITHUB_SHA"]:
+              raise SystemExit("RUNTIME_PUBLISH_UNTRUSTED_POLICY_CHECKOUT")
+          remote = subprocess.check_output(
+              ["git", "ls-remote", "origin", "refs/heads/main"],
+              text=True, timeout=30,
+          ).split()
+          if len(remote) != 2 or remote[0] != os.environ["GITHUB_SHA"]:
+              raise SystemExit("RUNTIME_PUBLISH_MAIN_POLICY_CHANGED")
+          repository = api(f"repos/{repo}")
+          if (repository.get("id") != int(os.environ["EXPECTED_REPOSITORY_ID"])
+              or repository.get("full_name") != repo
+              or repository.get("default_branch") != "main"):
+              raise SystemExit("RUNTIME_PUBLISH_REPOSITORY_IDENTITY_CHANGED")
+          upstream = api(f"repos/{repo}/actions/runs/{os.environ['UPSTREAM_RUN_ID']}")
+          workflow = api(f"repos/{repo}/actions/workflows/runtime-release.yml")
+          tag = upstream.get("head_branch")
+          if not isinstance(tag, str) or re.fullmatch(
+              r"runtime-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)",
+              tag,
+          ) is None:
+              raise SystemExit("RUNTIME_PUBLISH_INVALID_UPSTREAM_TAG")
+          source_sha = upstream.get("head_sha")
+          if not isinstance(source_sha, str) or re.fullmatch(r"[a-f0-9]{40}", source_sha) is None:
+              raise SystemExit("RUNTIME_PUBLISH_INVALID_UPSTREAM_SHA")
+          if not (
+              upstream.get("id") == int(os.environ["UPSTREAM_RUN_ID"])
+              and upstream.get("run_attempt") == int(os.environ["UPSTREAM_RUN_ATTEMPT"]) == 1
+              and upstream.get("event") == "push"
+              and upstream.get("status") == "completed"
+              and upstream.get("conclusion") == "success"
+              and upstream.get("workflow_id") == workflow.get("id")
+              and workflow.get("name") == "Runtime Tagged Release"
+              and upstream.get("head_repository", {}).get("id") == repository["id"]
+              and upstream.get("repository", {}).get("id") == repository["id"]
+              and upstream.get("path", "").split("@", 1)[0] == ".github/workflows/runtime-release.yml"
+          ):
+              raise SystemExit("RUNTIME_PUBLISH_UNTRUSTED_UPSTREAM_RUN")
+          environment = api(f"repos/{repo}/environments/runtime-release-publisher")
+          reviewers = [
+              rule for rule in environment.get("protection_rules", [])
+              if rule.get("type") == "required_reviewers" and rule.get("reviewers")
+          ]
+          policy = environment.get("deployment_branch_policy") or {}
+          if not (
+              environment.get("name") == "runtime-release-publisher"
+              and environment.get("prevent_self_review") is True
+              and environment.get("can_admins_bypass") is False
+              and policy.get("protected_branches") is True
+              and len(reviewers) == 1
+          ):
+              raise SystemExit("RUNTIME_PUBLISH_NO_INDEPENDENT_ENV_REVIEW")
+          # Configuration of a reviewer is not proof that this run was
+          # independently approved. Read GitHub's review history for THIS
+          # promoted run and bind the reviewer to the configured user.
+          approved_users = {
+              entry.get("reviewer", {}).get("id")
+              for entry in reviewers[0]["reviewers"]
+              if entry.get("type") == "User"
+              and isinstance(entry.get("reviewer", {}).get("id"), int)
+          }
+          tag_creator = upstream.get("actor", {}).get("id")
+          approvals = api(f"repos/{repo}/actions/runs/{os.environ['GITHUB_RUN_ID']}/approvals")
+          if (not isinstance(tag_creator, int)
+              or not isinstance(approvals, list)
+              or not any(
+                  item.get("state") == "approved"
+                  and item.get("user", {}).get("id") in approved_users
+                  and item.get("user", {}).get("id") != tag_creator
+                  and any(
+                      env.get("name") == "runtime-release-publisher"
+                      for env in item.get("environments", [])
+                  )
+                  for item in approvals
+              )):
+              raise SystemExit("RUNTIME_PUBLISH_NO_INDEPENDENT_RUN_APPROVAL")
+          rulesets = api(f"repos/{repo}/rulesets")
+          matches = [
+              item for item in rulesets
+              if item.get("name") == "runtime-release-tag-immutability-r1"
+              and item.get("target") == "tag"
+              and item.get("enforcement") == "active"
+          ]
+          if len(matches) != 1:
+              raise SystemExit("RUNTIME_PUBLISH_NO_UNIQUE_TAG_RULESET")
+          rule = api(f"repos/{repo}/rulesets/{matches[0]['id']}")
+          kinds = {item.get("type") for item in rule.get("rules", [])}
+          refs = rule.get("conditions", {}).get("ref_name", {})
+          if not (
+              rule.get("name") == "runtime-release-tag-immutability-r1"
+              and rule.get("target") == "tag"
+              and rule.get("enforcement") == "active"
+              and rule.get("bypass_actors") == []
+              and refs.get("include") == ["refs/tags/runtime-v*"]
+              and refs.get("exclude") == []
+              and {"update", "deletion"} <= kinds
+              and "creation" not in kinds
+          ):
+              raise SystemExit("RUNTIME_TAG_IMMUTABILITY_NOT_ADMITTED")
+          subprocess.run(
+              ["git", "fetch", "--no-tags", "origin", f"refs/tags/{tag}"],
+              check=True, timeout=40, capture_output=True, text=True,
+          )
+          fetched = git("rev-parse", "FETCH_HEAD^{commit}")
+          if fetched != source_sha:
+              raise SystemExit("RUNTIME_PUBLISH_TAG_SOURCE_SHA_CHANGED")
+          # A historical tag's build code is not the current protected-main
+          # build policy. This release only accepts tag sources with the same
+          # native builder workflow and Runtime owner tree as approved main.
+          # Changes in unrelated owners do not invalidate this cohort.
+          if git("rev-parse", source_sha + ":.github/workflows/runtime-release.yml") != git(
+              "rev-parse", os.environ["GITHUB_SHA"] + ":.github/workflows/runtime-release.yml"
+          ):
+              raise SystemExit("RUNTIME_PUBLISH_STALE_TAG_BUILDER_POLICY")
+          if git("rev-parse", source_sha + ":services/runtime") != git(
+              "rev-parse", os.environ["GITHUB_SHA"] + ":services/runtime"
+          ):
+              raise SystemExit("RUNTIME_PUBLISH_STALE_TAG_OWNER_TREE")
+          subprocess.run(
+              ["git", "--no-replace-objects", "merge-base",
+               "--is-ancestor", source_sha, os.environ["GITHUB_SHA"]],
+              check=True, timeout=15, capture_output=True, text=True,
+          )
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as f:
+              f.write(f"RUNTIME_TAG={tag}\n")
+              f.write(f"RUNTIME_BUILD_SHA={source_sha}\n")
+              f.write(f"RUNTIME_BUILD_RUN_ID={upstream['id']}\n")
+          PY_TRUSTED_RUN
+
+      - name: Download verified Runtime release candidate
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ordivon-runtime-release-${{ env.RUNTIME_TAG }}
+          path: ${{ runner.temp }}/ordivon-runtime-release-publisher
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.RUNTIME_BUILD_RUN_ID }}
+          digest-mismatch: error
+
+      - name: Verify exact downloaded Runtime attestations
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ordivon-runtime-release-publisher"
+          python3 - "$root" <<'PY_SUBJECTS'
+          import ast
+          import hashlib
+          import json
+          import os
+          import subprocess
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          identity = json.loads((root / "release-identity.json").read_text(encoding="utf-8"))
+          manifest = json.loads((root / "candidate-manifest.json").read_text(encoding="utf-8"))
+
+          def git(*args):
+              return subprocess.check_output(
+                  ["git", *args], text=True, timeout=15
+              ).strip()
+
+          # Derive the Runtime owner from the actual checkout. A downloaded
+          # manifest / identity file is data, never source authority.
+          source_cut = os.environ["RUNTIME_BUILD_SHA"]
+          owner_commit = git(
+              "-C", "services/runtime", "log", "-1", "--format=%H",
+              source_cut, "--", "."
+          )
+          owner_tree = git("rev-parse", owner_commit + ":services/runtime")
+          version = tomllib.loads(
+              git("show", f"{source_cut}:services/runtime/Cargo.toml")
+          )["workspace"]["package"]["version"]
+          exact_identity = {
+              "schemaVersion": 1,
+              "tag": os.environ["RUNTIME_TAG"],
+              "repositoryCommit": source_cut,
+              "owner": "services/runtime",
+              "ownerCommit": owner_commit,
+              "ownerTree": owner_tree,
+              "version": version,
+          }
+          if (identity != exact_identity
+              or manifest.get("commit") != owner_commit
+              or os.environ["RUNTIME_TAG"] != "runtime-v" + version):
+              raise SystemExit("RUNTIME_RELEASE_GIT_IDENTITY_NOT_BOUND")
+          if (manifest.get("sourceOwnerPrefix") != "services/runtime"
+              or manifest.get("sourceMaterialization") != "detached_git_checkout"):
+              raise SystemExit("RUNTIME_RELEASE_MANIFEST_SOURCE_MISMATCH")
+
+          # Reuse the same native Deployer declarations as the builder.
+          # The subject count is not a maintained number in this publisher.
+          native = ast.parse(
+              git("show", f"{source_cut}:services/runtime/scripts/ordivon-runtime-deploy")
+          )
+          canonical = {}
+          for node in native.body:
+              if isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id in (
+                          "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                      ):
+                          canonical[target.id] = ast.literal_eval(node.value)
+          if set(canonical) != {"DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"}:
+              raise SystemExit("RUNTIME_RELEASE_NATIVE_ARTIFACT_DECLARATIONS_MISSING")
+          # Reconcile signed subjects to the *installed* PG Runtime target.
+          # Never accept the legacy default binary set as a PG server release.
+          pg_binaries = {"ordivon-runtime-pg", "ordivon-runtime-runner"}
+          pg_operators = {
+              entry[0] for entry in canonical["DEFAULT_OPERATOR_ARTIFACTS"]
+              if entry[0] == "ordivon-runtime-pg-reclaim"
+          }
+          if pg_operators != {"ordivon-runtime-pg-reclaim"}:
+              raise SystemExit("RUNTIME_RELEASE_PG_RECLAIMER_NOT_DECLARED")
+          declared = pg_binaries | pg_operators
+          binaries = manifest.get("binaries")
+          if (not isinstance(binaries, list)
+              or {item.get("name") for item in binaries if isinstance(item, dict)}
+                 != pg_binaries
+              or len(binaries) != len(pg_binaries)):
+              raise SystemExit("RUNTIME_RELEASE_BINARY_PROFILE_NOT_PG")
+          artifacts = manifest.get("artifacts")
+          if not isinstance(artifacts, list) or len(artifacts) != len(declared):
+              raise SystemExit("RUNTIME_RELEASE_NONCANONICAL_SUBJECTS")
+          expected = {}
+          for item in artifacts:
+              name = item.get("name") if isinstance(item, dict) else None
+              if (not isinstance(name, str) or not name
+                  or Path(name).name != name or name in expected):
+                  raise SystemExit("RUNTIME_RELEASE_INVALID_SUBJECT")
+              expected[name] = item.get("digest")
+          if set(expected) != declared:
+              raise SystemExit("RUNTIME_RELEASE_SUBJECTS_NOT_FROM_NATIVE_DEPLOYER")
+          folder = root / "attest-subjects"
+          if folder.is_symlink() or not folder.is_dir():
+              raise SystemExit("RUNTIME_RELEASE_SUBJECT_DIRECTORY_UNTRUSTED")
+          actual = list(folder.iterdir())
+          if {item.name for item in actual} != declared or len(actual) != len(declared):
+              raise SystemExit("RUNTIME_RELEASE_SUBJECT_SET_CHANGED")
+          for item in actual:
+              if not item.is_file() or item.is_symlink():
+                  raise SystemExit("RUNTIME_RELEASE_SUBJECT_IS_NOT_REGULAR_FILE")
+              with item.open("rb") as stream:
+                  digest = "sha256:" + hashlib.file_digest(stream, "sha256").hexdigest()
+              if expected[item.name] != digest:
+                  raise SystemExit("RUNTIME_RELEASE_SUBJECT_DIGEST_CHANGED")
+          # sha256sum --check accepts file paths from the checksum list;
+          # refuse any untrusted extra path before invoking it.
+          checksums = root / "subjects.sha256"
+          if checksums.is_symlink() or not checksums.is_file():
+              raise SystemExit("RUNTIME_RELEASE_CHECKSUM_FILE_UNTRUSTED")
+          lines = checksums.read_text(encoding="utf-8").splitlines(keepends=True)
+          expected_lines = {
+              digest[7:] + "  " + name + "\n"
+              for name, digest in expected.items()
+          }
+          if len(lines) != len(expected_lines) or set(lines) != expected_lines:
+              raise SystemExit("RUNTIME_RELEASE_CHECKSUM_PATH_SET_CHANGED")
+          PY_SUBJECTS
+          (
+            cd "$root/attest-subjects"
+            sha256sum --check --strict ../subjects.sha256
+          )
+          for subject in "$root"/attest-subjects/*; do
+            for predicate in "https://slsa.dev/provenance/v1" "https://spdx.dev/Document/v2.3"; do
+              gh attestation verify "$subject" \
+                --repo "$GITHUB_REPOSITORY" \
+                --predicate-type "$predicate" \
+                --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/runtime-release.yml" \
+                --source-digest "$RUNTIME_BUILD_SHA" \
+                --source-ref "refs/tags/$RUNTIME_TAG" > /dev/null
+            done
+          done
+
+
+      - name: Publish exact Runtime GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ordivon-runtime-release-publisher"
+          for evidence in candidate-manifest.json prepare.json release-identity.json subjects.sha256 sbom.spdx.json; do
+            test -f "$root/$evidence"
+          done
+          # The independent reviewer may have held this run for hours;
+          # do not publish using a policy SHA that is no longer current.
+          export GIT_GRAFT_FILE=/dev/null GIT_NO_REPLACE_OBJECTS=1
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          git fetch --no-tags origin "refs/tags/$RUNTIME_TAG" > /dev/null
+          test "$(git --no-replace-objects rev-parse 'FETCH_HEAD^{commit}')" = "$RUNTIME_BUILD_SHA"
+          # Never create a new tag, overwrite release assets, or silently
+          # retry an ambiguous provider effect. A partial draft is retained
+          # for explicit provider reconciliation, not blind second creation.
+          gh release create "$RUNTIME_TAG" \
+            "$root"/attest-subjects/* \
+            "$root"/candidate-manifest.json \
+            "$root"/prepare.json \
+            "$root"/release-identity.json \
+            "$root"/subjects.sha256 \
+            "$root"/sbom.spdx.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RUNTIME_BUILD_SHA" \
+            --verify-tag \
+            --draft --prerelease --latest=false \
+            --title "Ordivon Runtime $RUNTIME_TAG" \
+            --notes "Exact Runtime build subjects, release identity, manifest, SPDX SBOM and verified build attestations."
+
+          gh release view "$RUNTIME_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,assets > "$root/created-release.json"
+          python3 - "$root" <<'PY_RELEASE'
+          import hashlib
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          release = json.loads((root / "created-release.json").read_text())
+          local_files = list((root / "attest-subjects").iterdir())
+          local_files.extend(root / name for name in (
+              "candidate-manifest.json", "prepare.json", "release-identity.json",
+              "subjects.sha256", "sbom.spdx.json",
+          ))
+          expected = {}
+          for path in local_files:
+              if not path.is_file() or path.is_symlink() or path.name in expected:
+                  raise SystemExit("RUNTIME_RELEASE_INVALID_LOCAL_ASSET")
+              with path.open("rb") as source:
+                  digest = "sha256:" + hashlib.file_digest(source, "sha256").hexdigest()
+              expected[path.name] = {"size": path.stat().st_size, "digest": digest}
+          assets = release.get("assets")
+          if not isinstance(assets, list):
+              raise SystemExit("RUNTIME_RELEASE_MISSING_REMOTE_ASSETS")
+          actual = {
+              asset["name"]: {"size": asset.get("size"), "digest": asset.get("digest")}
+              for asset in assets
+          }
+          if (release.get("tagName") != os.environ["RUNTIME_TAG"]
+              or release.get("isDraft") is not True
+              or len(expected) != len(local_files)
+              or len(assets) != len(expected)
+              or actual != expected):
+              raise SystemExit("RUNTIME_GITHUB_RELEASE_DRAFT_ASSET_DIGEST_MISMATCH")
+          PY_RELEASE
+
+          gh release edit "$RUNTIME_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          gh release view "$RUNTIME_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,assets > "$root/published-release.json"
+          python3 - "$root" <<'PY_PUBLISHED'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          before = json.loads((root / "created-release.json").read_text())
+          after = json.loads((root / "published-release.json").read_text())
+
+          def asset_identity(release):
+              assets = release.get("assets")
+              if not isinstance(assets, list):
+                  raise SystemExit("RUNTIME_GITHUB_RELEASE_ASSETS_MISSING")
+              observed = {
+                  item["name"]: (item.get("size"), item.get("digest"))
+                  for item in assets
+              }
+              if len(observed) != len(assets) or any(
+                  not isinstance(value[1], str) or not value[1].startswith("sha256:")
+                  for value in observed.values()
+              ):
+                  raise SystemExit("RUNTIME_GITHUB_RELEASE_ASSET_DIGEST_MISSING")
+              return observed
+
+          if (after.get("isDraft") is not False
+              or after.get("tagName") != os.environ["RUNTIME_TAG"]
+              or asset_identity(before) != asset_identity(after)):
+              raise SystemExit("RUNTIME_GITHUB_RELEASE_NOT_PUBLISHED_OR_ASSETS_DRIFT")
+          PY_PUBLISHED
