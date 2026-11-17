@@ -109,6 +109,25 @@ fn qualify_pg_scheduling_output_schema(tool: &mut Tool) {
             .is_none(),
         "scheduler annotation must not shadow a Core field"
     );
+    // Only PG job.list can project a previously accepted corrupt Plan as a
+    // partial JSON readback. Qualified Job identities remain mandatory.
+    // If the frozen Workspace snapshot also cannot be authenticated, its
+    // sourceRevision is UNKNOWN too; never use an unrelated Plan revision.
+    // This is deliberately NOT a Core RuntimeJobSummary or Legacy ABI change.
+    if tool.name.as_ref() == "job.list" {
+        for field in ["sourceRevision", "executableName", "cwdRelative"] {
+            let value = properties
+                .get_mut(field)
+                .expect("Core JobList must declare the expected plan-derived field");
+            assert_eq!(
+                *value,
+                json!({"type": "string"}),
+                "unexpected Core JobList field {field}; review the PG override"
+            );
+            *value = json!({"type": ["string", "null"]});
+        }
+    }
+
     target
         .get_mut("required")
         .and_then(serde_json::Value::as_array_mut)
@@ -221,6 +240,61 @@ mod pg_scheduling_output_contract_tests {
     }
 
     #[test]
+    fn pg_list_corrupt_plan_retains_identity_and_explicit_unknown_plan_details() {
+        // PG JobList is JSON-projected from independently committed Job/Attempt
+        // and Workspace snapshot facts. A corrupt accepted execution plan must
+        // not force false executable/cwd claims or destroy a healthy entire page.
+        let pg = PgRuntimeServer::catalog()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "job.list")
+            .expect("PG job.list must exist");
+        let schema = serde_json::Value::Object(
+            pg.output_schema.expect("PG output schema").as_ref().clone(),
+        );
+        let job = &schema["$defs"]["RuntimeJobSummary"];
+        // A bad frozen Plan AND a damaged immutable Workspace snapshot leave
+        // sourceRevision unverified; never trust an unrelated Plan revision.
+        for field in ["sourceRevision", "executableName", "cwdRelative"] {
+            assert_eq!(
+                job["properties"][field],
+                json!({"type": ["string", "null"]}),
+                "{field}: unverified frozen source/Plan detail must be explicit null"
+            );
+            assert!(
+                job["required"].as_array().unwrap().contains(&json!(field)),
+                "{field}: missing information must not be silently omitted"
+            );
+        }
+        // The verified PostgreSQL Job identity survives both corrupt blobs.
+        for field in ["jobId", "operationDigest", "clientRequestId", "workspaceId"] {
+            assert_eq!(
+                job["properties"][field]["type"],
+                json!("string"),
+                "{field}: qualified PG Job identity must remain a string"
+            );
+            assert!(job["required"].as_array().unwrap().contains(&json!(field)));
+        }
+        assert_eq!(job["additionalProperties"], false);
+
+        // The original portable/Legacy contract still requires real strings.
+        let portable = RuntimeServer::tool_router()
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "job.list")
+            .expect("portable job.list");
+        let old = serde_json::Value::Object(
+            portable.output_schema.expect("portable schema").as_ref().clone(),
+        );
+        for field in ["sourceRevision", "executableName", "cwdRelative"] {
+            assert_eq!(
+                old["$defs"]["RuntimeJobSummary"]["properties"][field]["type"],
+                json!("string"),
+                "PG partial truth must not break legacy JobList"
+            );
+        }
+    }
+
+    #[test]
     fn typed_pg_scheduling_readback_rejects_malformed_provider_data() {
         let request = serde_json::to_value(ResourceScheduling::default()).unwrap();
         for (state, reason) in [
@@ -296,5 +370,62 @@ mod pg_scheduling_output_contract_tests {
             .unwrap();
         assert_eq!(native.output_schema, pg.output_schema);
         assert_eq!(native.input_schema, pg.input_schema);
+    }
+}
+
+// This contract must run in the INSTALLED native PG-only cargo feature set.
+// The legacy-runtime comparisons above are intentionally not compiled there.
+#[cfg(all(test, feature = "postgres-runtime"))]
+mod pg_only_qualified_partial_job_list_schema_tests {
+    use super::*;
+
+    #[test]
+    fn pg_only_job_list_preserves_qualified_identity_and_explicit_unknown_plan_fields() {
+        let tool = PgRuntimeServer::catalog()
+            .into_iter()
+            .find(|item| item.name.as_ref() == "job.list")
+            .expect("original PG-only MCP must publish job.list");
+        let schema = serde_json::Value::Object(
+            tool.output_schema
+                .expect("PG-only job.list must have output schema")
+                .as_ref()
+                .clone(),
+        );
+        assert_eq!(schema["oneOf"].as_array().unwrap().len(), 2);
+        assert!(schema["$defs"]["ToolErrorEnvelope"].is_object());
+        let job = &schema["$defs"]["RuntimeJobSummary"];
+        assert_eq!(job["additionalProperties"], false);
+        let required = job["required"].as_array().unwrap();
+
+        // A corrupt committed Plan must not invent its source/executable/CWD.
+        // Explicit null is accepted, while omitting the field is not.
+        for name in ["sourceRevision", "executableName", "cwdRelative"] {
+            assert_eq!(
+                job["properties"][name],
+                json!({"type":["string","null"]}),
+                "{name}: PG-only source qualification requires explicit UNKNOWN"
+            );
+            assert!(required.contains(&json!(name)), "{name}: required");
+        }
+        // A row that cannot prove its Plan must still preserve exact PG identity.
+        for name in [
+            "jobId", "operationDigest", "clientRequestId", "workspaceId",
+        ] {
+            assert_eq!(job["properties"][name]["type"], "string", "{name}");
+            assert!(required.contains(&json!(name)), "{name}: required");
+        }
+        for name in ["recoveryRequired", "executionTerminal"] {
+            assert_eq!(job["properties"][name]["type"], "boolean", "{name}");
+            assert!(required.contains(&json!(name)), "{name}: required");
+        }
+        assert!(required.contains(&json!("deliveryDisposition")));
+        assert_eq!(
+            job["properties"]["scheduling"]["oneOf"],
+            json!([
+                {"$ref":"#/$defs/PgJobSchedulingReadback"},
+                {"type":"null"}
+            ])
+        );
+        assert!(required.contains(&json!("scheduling")));
     }
 }
