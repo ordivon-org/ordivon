@@ -13,7 +13,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-09-11
+updated: 2026-11-18
 summary: Canonical deployment, health, capacity, Workspace lifecycle, reclaim, rollback, and operational verification contract.
 evidence_status: verified
 readiness: READY
@@ -27,6 +27,12 @@ related:
 <!-- cspell:words aria2c hyperfine libexec nocapture nonselected rclone rsync toplevel -->
 
 # Runtime Operations
+
+## Installed backend selection (safety-critical)
+
+**Observed 2026-11-18:** the connected Linux `ordivon-runtime.service` runs the **PostgreSQL-native** `ordivon-runtime-pg` server; the native Windows R6 candidate remains independently qualified and is **not** an accepted PG-only Runtime Writer. Before applying any command in this document, verify the live `runtime.describe`, installed service `ExecStart`, actual Registry backend, deployed executable digest, and original consumer evidence. Commands below with `--database .../registry.sqlite3`, `transactional-runtime` or the legacy `ordivon-runtime-reclaim`/`ordivon-runtime-lifecycle` operators describe **SQLite-backed source/legacy installations**, not the current Linux PG deployment. Linux PG Workspace cleanup uses the installed `ordivon-runtime-pg-reclaim` contract and must retain its original owner/consumer safeguards.
+
+The source package's periodic timer is **not** proof of live automation. At this observation the Linux `ordivon-runtime-lifecycle.timer` was `disabled/inactive`, deliberately pending full original Harness Run / Workspace-claim release qualification. Never enable it or invoke a destructive sweep merely because this page describes packaged cadence or four-hour retention. Preserve dirty, ignored-output and unaccepted Artifact consumers. See the [operator guide](guides/operator-runtime.md) and [Agent consumer guide](guides/agent-runtime.md); Source, Installed, and Consumer acceptance are separate states.
 
 ## Scope
 
