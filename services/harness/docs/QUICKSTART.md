@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-09
+updated: 2026-11-17
 summary: Minimal path from a clean checkout to deterministic verification, operator inspection and live read-only acceptance.
 evidence_status: verified
 readiness: READY
@@ -116,7 +116,7 @@ ordivon-harness inspect HARNESS_RUN_ID
 ordivon-harness explain HARNESS_RUN_ID
 ```
 
-`capabilities` reports only the execution profiles the CLI actually supports, including their exact source-owned Tool catalog/grant digests. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
+The former `capabilities` CLI command is retired (see `COMPATIBILITY.md`); invoking it is not a supported inspection path. Use `ordivon-harness --help` to inspect the actual installed command surface, and `ordivon-harness gateway-profile --gateway-url <authorized-endpoint>` (plus the necessary caller/transport settings) to read the current Gateway execution Tool catalog and grant digests without creating a Run. Without a configured Gateway endpoint, this inspection command fails closed instead of silently selecting one. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
 
 For the built-in DeepSeek profile, the Contract must bind the canonical no-Tool catalog/grant and the configured DeepSeek Adapter/model. The current adapter reserves a conservative request-token upper bound equal to the serialized Provider request bytes plus its 8,192-token completion ceiling. A small Contract such as `max_total_tokens=4_096` can therefore be rejected safely before the first Provider dispatch; `16_384` is a practical starting bound for a small no-Tool Run, not a universal required value.
 

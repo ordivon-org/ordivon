@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-16
+updated: 2026-11-17
 summary: Current maturity claim for Harness as an independent durable cognitive execution substrate, with supported cognition, Provider and Tool continuity, composition, verification, and known limits.
 evidence_status: verified
 readiness: READY
@@ -32,7 +32,7 @@ related:
 
 Ordivon Harness is an independent caller-neutral **durable cognitive execution substrate for bounded Agent Runs**. The first-party CLI uses the PostgreSQL Journal/CAS only; a separate direct Python SQLite API remains legacy pending final consumer migration. The supported CLI authority is the independent Harness path; the former Host-backed Store/Runner/cutover path was removed.
 
-This page states current maturity. It does not replay the research sequence that produced it. Exact experiments and receipts remain available through the linked canonical research documents and [`../evidence/index.json`](../evidence/index.json).
+This page describes the source's bounded capability and maturity, **not** an automatic production-installation qualification. The 2026-11-17 owner audit found source `5d1721fdd75cea53ee7d3ae023378becaff525c3` while `/opt/ordivon/harness/current` resolved to release `acbb494a3d9f8c811093a0eab1b1c16e33f2bdfc`; core module bytes differed. An operator must independently verify the exact source SHA, installed release, running entry point, PostgreSQL readback, and relevant domain consumer before claiming current deployment readiness. This page does not replay the research sequence that produced its bounded claims. Exact experiments and receipts remain available through the linked canonical research documents and [`../evidence/index.json`](../evidence/index.json).
 
 ## Operational surface
 
