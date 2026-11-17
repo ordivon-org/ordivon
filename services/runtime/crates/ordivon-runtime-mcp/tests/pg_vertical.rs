@@ -1023,7 +1023,17 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(names.len(), 20);
+    // Original D #2333 adds exactly the three native physical Claim tools to
+    // the already qualified PG-only catalog; a stale 20-tool test must not
+    // reject the legitimate exact 23-tool source without inspecting names.
+    assert_eq!(names.len(), 23, "{names:?}");
+    for claim_tool in [
+        "workspace.claim.reserve",
+        "workspace.claim.get",
+        "workspace.claim.release",
+    ] {
+        assert!(names.contains(&claim_tool), "{names:?}");
+    }
     // Operator startup receipt must describe the *same* catalog advertised
     // by the mature MCP SDK; it cannot silently retain an obsolete count.
     let startup = fs::read_to_string(fixture.root.join("endpoint.log")).unwrap();
@@ -1600,6 +1610,146 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     assert_eq!(corrupt["isError"], true);
     assert!(!fixture.root.join("store/registry.sqlite").exists());
     eprintln!("real PostgreSQL + HTTP MCP verified; native initial launch outcome: {exec}");
+}
+
+/// Real native PG18+HTTP MCP+Git consumer for the existing bounded
+/// Workspace.list projection. Pages must remain stable with >4 physical
+/// Workspaces; a broken Git checkout is a local issue, not a lost cursor.
+#[test]
+#[ignore = "uses a disposable PG18 fixture and 12 real Git worktrees"]
+fn pg_workspace_list_many_git_worktrees_preserves_order_and_local_issues() {
+    use std::collections::BTreeSet;
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let ids = (0..12)
+        .map(|i| format!("ws-r28-page-{i:02}"))
+        .collect::<Vec<_>>();
+    for id in &ids {
+        let opened = call(
+            &endpoint,
+            "workspace.open",
+            json!({"workspaceId":id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+        );
+        assert_ne!(opened["isError"], true, "open {id}: {opened}");
+    }
+    let dirty_id = &ids[4];
+    fs::write(
+        fixture
+            .root
+            .join("store/workspaces")
+            .join(dirty_id)
+            .join("untracked.txt"),
+        b"R28_DIRTY_WORKTREE",
+    )
+    .unwrap();
+    let corrupt_id = &ids[8];
+    let corrupt_git = fixture
+        .root
+        .join("store/workspaces")
+        .join(corrupt_id)
+        .join(".git");
+    let original_git = fs::read(&corrupt_git).unwrap();
+    fs::write(&corrupt_git, "gitdir: /nonexistent/r28-corrupt-worktree\n").unwrap();
+
+    let start = Instant::now();
+    let full = call(&endpoint, "workspace.list", json!({"limit":20}));
+    let full_ms = start.elapsed().as_millis();
+    assert_ne!(full["isError"], true, "{full}");
+    let rows = full["structuredContent"]["workspaces"]
+        .as_array()
+        .expect("physical Workspace page");
+    assert_eq!(
+        rows.len(),
+        11,
+        "corrupt Worktree must remain an issue: {full}"
+    );
+    assert!(full["structuredContent"]["nextCursor"].is_null(), "{full}");
+    let issues = full["structuredContent"]["issues"].as_array().unwrap();
+    assert!(
+        issues.iter().any(|item| {
+            item["workspaceId"] == corrupt_id.as_str() && item["stage"] == "projection"
+        }),
+        "physical corrupt Worktree was silently hidden: {full}"
+    );
+    let returned = rows
+        .iter()
+        .map(|r| r["workspaceId"].as_str().unwrap().to_string())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(returned.len(), 11);
+    for id in &ids {
+        assert_eq!(
+            returned.contains(id),
+            id != corrupt_id,
+            "missing or false Workspace {id}"
+        );
+    }
+    assert!(
+        rows.iter()
+            .find(|r| r["workspaceId"] == dirty_id.as_str())
+            .unwrap()["dirty"]
+            == true
+    );
+    for pair in rows.windows(2) {
+        let earlier = pair[0]["createdAtMs"].as_u64().unwrap();
+        let later = pair[1]["createdAtMs"].as_u64().unwrap();
+        assert!(
+            earlier > later
+                || (earlier == later
+                    && pair[0]["workspaceId"].as_str().unwrap()
+                        < pair[1]["workspaceId"].as_str().unwrap())
+        );
+    }
+
+    let mut paged = BTreeSet::new();
+    let mut cursor = Value::Null;
+    let mut pages = 0;
+    let started = Instant::now();
+    loop {
+        pages += 1;
+        assert!(pages <= 7, "physical cursor was stuck on corrupt Workspace");
+        let page = call(
+            &endpoint,
+            "workspace.list",
+            json!({"limit":3,"cursor":cursor}),
+        );
+        assert_ne!(page["isError"], true, "{page}");
+        for row in page["structuredContent"]["workspaces"].as_array().unwrap() {
+            assert!(
+                paged.insert(row["workspaceId"].as_str().unwrap().to_string()),
+                "duplicate across stable physical cursors: {page}"
+            );
+        }
+        cursor = page["structuredContent"]["nextCursor"].clone();
+        if cursor.is_null() {
+            break;
+        }
+    }
+    assert_eq!(paged, returned, "paged and full inventory disagree");
+    let paged_ms = started.elapsed().as_millis();
+    // Diagnostic only, not a flaky threshold: stable repeated warm reads
+    // compare identical real MCP semantics on serial and bounded projections.
+    let mut full_samples_ms = Vec::with_capacity(5);
+    for _ in 0..5 {
+        let t = Instant::now();
+        let repeat = call(&endpoint, "workspace.list", json!({"limit":20}));
+        assert_ne!(repeat["isError"], true, "{repeat}");
+        let seen = repeat["structuredContent"]["workspaces"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["workspaceId"].as_str().unwrap().to_string())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(seen, returned, "repeated native read changed identity set");
+        full_samples_ms.push(t.elapsed().as_millis());
+    }
+    full_samples_ms.sort_unstable();
+    let median_full_ms = full_samples_ms[2];
+    fs::write(&corrupt_git, original_git).unwrap();
+    eprintln!(
+        "R28_PG18_MCP_LIST_12_WORKTREES_P50_MS={median_full_ms} SAMPLES_MS={full_samples_ms:?}"
+    );
+    eprintln!("R28_PG18_MCP_LIST_12_WORKTREES_PASS full_ms={full_ms} paged_ms={paged_ms} pages={pages} returned={} issues={}",rows.len(),issues.len());
 }
 
 /// Cross-owner Harness dispatch fencing carries Runtime-native ForeignReference
