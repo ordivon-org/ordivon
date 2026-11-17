@@ -1197,6 +1197,42 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.store.validate_run_history(run.harness_run_id)
             self.assertTrue(self.store.doctor()["healthy"])
 
+            # Foreign-Writer/DB operator tampering can remove just the
+            # original terminal Event->Receipt edge while the CAS bytes and
+            # Run projection still look perfectly valid. Structural checks
+            # alone previously certified this as healthy.
+            from ordivon_harness.store_errors import HarnessJournalCorruption
+
+            terminal_event_id = self.store.load_run(run.harness_run_id).terminal_event_id
+            typed_refs = self.store.connection.execute(
+                "SELECT ref.digest FROM run_object_refs ref "
+                "JOIN objects obj ON obj.digest=ref.digest "
+                "WHERE ref.event_id=%s AND ref.role='reference' "
+                "AND obj.kind='independent-harness-run-receipt'",
+                (terminal_event_id,),
+            ).fetchall()
+            self.assertEqual(len(typed_refs), 1)
+            typed_digest = typed_refs[0]["digest"]
+            self.assertIsInstance(
+                self.store.get_object(
+                    typed_digest, expected_kind="independent-harness-run-receipt"
+                ), dict
+            )
+            with self.store.connection.transaction():
+                deleted = self.store.connection.execute(
+                    "DELETE FROM run_object_refs WHERE event_id=%s "
+                    "AND digest=%s AND role='reference'",
+                    (terminal_event_id, typed_digest),
+                ).rowcount
+                self.assertEqual(deleted, 1)
+            self.assertEqual(
+                self.store.load_run(run.harness_run_id).status.value, "stopped"
+            )
+            with self.assertRaises(HarnessJournalCorruption):
+                self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaises(HarnessJournalCorruption):
+                self.store.doctor()
+
     def test_pg_history_doctor_rejects_structurally_valid_foreign_unknown_without_original_receipt(self) -> None:
         """A foreign writer can persist a structurally valid STOPPED event but
         cannot turn an ungrounded UNKNOWN stopCode into trusted history.
