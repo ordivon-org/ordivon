@@ -386,12 +386,29 @@ impl PgRuntime {
         self.decode_attempt_record(&row, &snapshot.job_id)
     }
 
-    fn decode_attempt_record(
+    /// A committed cancel is an OS control operation against the qualified
+    /// current Attempt/Unit, not a new execution-plan dispatch. An invalid
+    /// frozen Plan cannot block physical stop of an already running process.
+    pub(super) fn cancel_attempt_identity(
+        &self,
+        db: &mut PgAdmissionStore,
+        job: &str,
+    ) -> RuntimeResult<AttemptRecord> {
+        let row = require_recovery_current_attempt(
+            db.client
+                .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&job])
+                .map_err(pg_read_error)?,
+            job,
+        )?;
+        self.decode_attempt_identity(&row, job)
+    }
+
+    fn decode_attempt_identity(
         &self,
         r: &postgres::Row,
         job: &str,
-    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
-        let a:AttemptRecord=serde_json::from_value(json!({"attemptId":r.get::<_,String>(0),"jobId":job,"attemptNumber":r.get::<_, i64>(11),"state":r.get::<_,String>(1),"terminationIntent":r.get::<_,String>(2),"launchTokenDigest":r.get::<_,String>(3),"bundlePath":r.get::<_,String>(4),"unitName":r.get::<_,String>(5),"createdAtMs":r.get::<_,i64>(6),"rowVersion":r.get::<_,i64>(7),"bundleDigest":r.get::<_,Option<String>>(8)})).map_err(io)?;
+    ) -> RuntimeResult<AttemptRecord> {
+        let a: AttemptRecord = serde_json::from_value(json!({"attemptId":r.get::<_,String>(0),"jobId":job,"attemptNumber":r.get::<_, i64>(11),"state":r.get::<_,String>(1),"terminationIntent":r.get::<_,String>(2),"launchTokenDigest":r.get::<_,String>(3),"bundlePath":r.get::<_,String>(4),"unitName":r.get::<_,String>(5),"createdAtMs":r.get::<_,i64>(6),"rowVersion":r.get::<_,i64>(7),"bundleDigest":r.get::<_,Option<String>>(8)})).map_err(io)?;
         let expected = self
             .config
             .executor
@@ -401,7 +418,26 @@ impl PgRuntime {
         if Path::new(&a.bundle_path) != expected {
             return Err(error("Attempt bundle outside PG store"));
         }
-        Ok((a, decode(&r.get::<_, String>(9))?, r.get(10)))
+        Ok(a)
+    }
+
+    fn decode_attempt_record(
+        &self,
+        r: &postgres::Row,
+        job: &str,
+    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
+        let a = self.decode_attempt_identity(r, job)?;
+        // A malformed frozen execution plan is a damaged Job record, not
+        // PostgreSQL server unavailability. This is the first real job.get /
+        // observe readback boundary, before the optional Scheduler annotation.
+        let plan: RuntimeExecutionPlan =
+            serde_json::from_str(&r.get::<_, String>(9)).map_err(|e| {
+                RuntimeError::invalid(
+                    format!("committed executionPlan is invalid: {e}"),
+                    "executionPlan",
+                )
+            })?;
+        Ok((a, plan, r.get(10)))
     }
     pub(super) fn reconcile(&self, db: &mut PgAdmissionStore, job: &str) -> RuntimeResult<()> {
         self.reconcile_inner(db, job, false)
@@ -471,7 +507,13 @@ impl PgRuntime {
             if provider["executionProvider"]["executableDigest"].as_str()
                 != Some(&universal::sha256_file(runner).map_err(io)?)
             {
-                return Err(error("native runner changed after admission"));
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ProviderStateMismatch,
+                    "native runner changed after admission",
+                    Some("executionProvider"),
+                    false,
+                )
+                .with_operation_id(job));
             }
             // Revalidate the *committed* bytes before dispatch; Runner owns
             // continuous path-drift witnessing after it starts.

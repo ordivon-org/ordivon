@@ -87,7 +87,10 @@ fn qualify_pg_scheduling_output_schema(tool: &mut Tool) {
         "PgJobSchedulingReadback".to_owned(),
         serde_json::Value::Object(readback_root.clone()),
     );
-    assert!(earlier.is_none(), "duplicate PG scheduling schema definition");
+    assert!(
+        earlier.is_none(),
+        "duplicate PG scheduling schema definition"
+    );
 
     let target = definitions
         .get_mut(definition)
@@ -180,17 +183,23 @@ mod pg_scheduling_output_contract_tests {
                 .find(|item| item.name.as_ref() == tool_name)
                 .expect("portable MCP surface");
             let original = serde_json::Value::Object(
-                portable.output_schema.expect("original output").as_ref().clone(),
+                portable
+                    .output_schema
+                    .expect("original output")
+                    .as_ref()
+                    .clone(),
             );
             assert_eq!(
                 schema["$defs"][definition]["additionalProperties"],
                 original["$defs"][definition]["additionalProperties"],
                 "{tool_name}: never weaken original object closure"
             );
-            assert!(schema["$defs"]["ToolErrorEnvelope"].is_object(), "{tool_name}");
+            assert!(
+                schema["$defs"]["ToolErrorEnvelope"].is_object(),
+                "{tool_name}"
+            );
             assert_eq!(
-                schema["$defs"]["PgJobSchedulingReadback"]["additionalProperties"],
-                false,
+                schema["$defs"]["PgJobSchedulingReadback"]["additionalProperties"], false,
                 "{tool_name}"
             );
             assert_eq!(
@@ -218,9 +227,8 @@ mod pg_scheduling_output_contract_tests {
                 .into_iter()
                 .find(|tool| tool.name.as_ref() == tool_name)
                 .expect("PG Tool must exist");
-            let schema = serde_json::Value::Object(
-                tool.output_schema.expect("schema").as_ref().clone(),
-            );
+            let schema =
+                serde_json::Value::Object(tool.output_schema.expect("schema").as_ref().clone());
             assert_eq!(
                 schema["$defs"][definition]["properties"]["scheduling"],
                 json!({"oneOf": [
@@ -248,9 +256,8 @@ mod pg_scheduling_output_contract_tests {
             .into_iter()
             .find(|tool| tool.name.as_ref() == "job.list")
             .expect("PG job.list must exist");
-        let schema = serde_json::Value::Object(
-            pg.output_schema.expect("PG output schema").as_ref().clone(),
-        );
+        let schema =
+            serde_json::Value::Object(pg.output_schema.expect("PG output schema").as_ref().clone());
         let job = &schema["$defs"]["RuntimeJobSummary"];
         // A bad frozen Plan AND a damaged immutable Workspace snapshot leave
         // sourceRevision unverified; never trust an unrelated Plan revision.
@@ -283,7 +290,11 @@ mod pg_scheduling_output_contract_tests {
             .find(|tool| tool.name.as_ref() == "job.list")
             .expect("portable job.list");
         let old = serde_json::Value::Object(
-            portable.output_schema.expect("portable schema").as_ref().clone(),
+            portable
+                .output_schema
+                .expect("portable schema")
+                .as_ref()
+                .clone(),
         );
         for field in ["sourceRevision", "executableName", "cwdRelative"] {
             assert_eq!(
@@ -408,9 +419,7 @@ mod pg_only_qualified_partial_job_list_schema_tests {
             assert!(required.contains(&json!(name)), "{name}: required");
         }
         // A row that cannot prove its Plan must still preserve exact PG identity.
-        for name in [
-            "jobId", "operationDigest", "clientRequestId", "workspaceId",
-        ] {
+        for name in ["jobId", "operationDigest", "clientRequestId", "workspaceId"] {
             assert_eq!(job["properties"][name]["type"], "string", "{name}");
             assert!(required.contains(&json!(name)), "{name}: required");
         }

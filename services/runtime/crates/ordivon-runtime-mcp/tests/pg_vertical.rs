@@ -20,6 +20,9 @@ struct Fixture {
     pg: Child,
     endpoint: Option<Child>,
     db: Client,
+    /// Opt in only for an E2E test that executes a sibling native systemd Unit
+    /// across Cargo's private sandbox mount. Other fixtures are unchanged.
+    host_visible_test_runner: bool,
 }
 impl Fixture {
     fn new() -> Self {
@@ -147,6 +150,7 @@ impl Fixture {
             pg,
             endpoint: None,
             db,
+            host_visible_test_runner: false,
         }
     }
     fn endpoint(&mut self) -> String {
@@ -172,6 +176,17 @@ impl Fixture {
             "run cargo test --workspace to build the native runner: {}",
             runner.display()
         );
+        let runner = if self.host_visible_test_runner {
+            // An actual sibling systemd unit cannot execute through Cargo's
+            // private source mount. Copy only this disposable Fixture binary
+            // into the same private PG test root; never touch installed units.
+            let test_runner = self.root.join("ordivon-runtime-runner");
+            fs::copy(&runner, &test_runner).unwrap();
+            fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755)).unwrap();
+            test_runner
+        } else {
+            runner
+        };
         let output = fs::File::create(self.root.join("endpoint.log")).unwrap();
         let mut endpoint = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"));
         endpoint
@@ -4252,4 +4267,389 @@ fn resource_queue_owner_fairness_and_idle_borrowing() {
         assert!(Instant::now() < deadline, "fair-share jobs did not finish");
         thread::sleep(Duration::from_millis(100));
     }
+}
+
+#[test]
+#[ignore = "disposable PG18 plus actual native MCP, systemd Runner and Artifacts"]
+fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
+    let mut f = Fixture::new();
+    f.host_visible_test_runner = true;
+    let repo = f.repo();
+    let endpoint = f.endpoint();
+    let ws = format!("ws-b-r3-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":ws,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    let seed = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+      "clientRequestId":format!("b-r3-seed-{}",Uuid::now_v7()),
+      "execution":{"workspaceId":ws,"executable":"/usr/bin/printf","args":["B_R3_SEED"],
+                   "cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+    );
+    assert_ne!(seed["isError"], true, "{seed}");
+    let seed_id = seed["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let seed_deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let seen = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":seed_id,"waitMs":2000}),
+        );
+        assert_ne!(seen["isError"], true, "{seen}");
+        if seen["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        assert!(
+            Instant::now() < seed_deadline,
+            "seed did not finish: {seen}"
+        );
+    }
+
+    let seed_row=f.db.query_one("SELECT workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,operation_digest FROM jobs WHERE job_id=$1",&[&seed_id]).unwrap();
+    let workspace: String = seed_row.get(0);
+    let original_snapshot: String = seed_row.get(1);
+    let valid_plan: String = seed_row.get(2);
+    let plan_digest: String = seed_row.get(3);
+    let op_digest: String = seed_row.get(4);
+    let mut provider_json: Value = serde_json::from_str(&original_snapshot).unwrap();
+    assert!(
+        provider_json["executionProvider"]["executableDigest"].is_string(),
+        "{provider_json}"
+    );
+    provider_json["executionProvider"]["executableDigest"] =
+        json!(format!("sha256:{}", "0".repeat(64)));
+    let broken_provider = provider_json.to_string();
+    let bad_plan = "{not-valid-json";
+    let corrupt_id = format!("job-{}", Uuid::now_v7());
+    let provider_id = format!("job-{}", Uuid::now_v7());
+    let corrupt_attempt = format!("attempt-{}", Uuid::now_v7());
+    let provider_attempt = format!("attempt-{}", Uuid::now_v7());
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    // Stage both malformed accepted states atomically before background scheduler sees them.
+    let mut tx = f.db.transaction().unwrap();
+    for (i, (job, attempt, plan, snapshot)) in [
+        (&corrupt_id, &corrupt_attempt, bad_plan, &original_snapshot),
+        (
+            &provider_id,
+            &provider_attempt,
+            valid_plan.as_str(),
+            &broken_provider,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let req = format!("b-r3-injected-{}-{}", i, Uuid::now_v7());
+        let digest = format!("sha256:{}", "a".repeat(64));
+        tx.execute("INSERT INTO jobs(job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id,row_version)
+        VALUES($1,'pg-consumer',$2,$3,$4,$5,$6,$7,$8,$9,'run',NULL,$10,0)",
+        &[job,&req,&digest,&op_digest,&workspace,snapshot,&plan,&plan_digest,&(now_ms+i as i64),attempt]).unwrap();
+        tx.execute("INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version)
+        VALUES($1,$2,1,'accepted','natural',$3,$4,$5,$6,0)",
+        &[attempt,job,&digest,&f.root.join("store/pg-attempts").join(attempt).to_string_lossy().to_string(),
+          &format!("ordivon-pg-{attempt}.service"),&(now_ms+i as i64)]).unwrap();
+        tx.execute("INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms)
+        VALUES($1,$2,0,'active',$3,$3)",&[&format!("reservation-{}",Uuid::now_v7()),attempt,&now_ms]).unwrap();
+    }
+    tx.commit().unwrap();
+    let good = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+      "clientRequestId":format!("b-r3-good-{}",Uuid::now_v7()),
+      "execution":{"workspaceId":ws,"executable":"/usr/bin/printf","args":["B_R3_HEALTHY_NATIVE"],
+                   "cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+    );
+    assert_ne!(good["isError"], true, "{good}");
+    let good_id = good["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let finished = loop {
+        let seen = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":good_id,"waitMs":2000,"stdoutTailBytes":1024}),
+        );
+        assert_ne!(seen["isError"], true, "{seen}");
+        if seen["structuredContent"]["executionTerminal"] == true {
+            break seen;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "healthy Job blocked by poisoned accepted Job: {seen}"
+        );
+    };
+    assert_eq!(
+        finished["structuredContent"]["executionDisposition"], "succeeded",
+        "{finished}"
+    );
+    assert!(
+        finished["structuredContent"]["stdoutTail"]
+            .as_str()
+            .unwrap_or("")
+            .contains("B_R3_HEALTHY_NATIVE"),
+        "{finished}"
+    );
+    let issued: i64 =
+        f.db.query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&good_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(issued, 1, "must issue exactly once");
+    let original_attempt_state: String =
+        f.db.query_one(
+            "SELECT a.state FROM attempts a WHERE a.job_id=$1",
+            &[&good_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(original_attempt_state, "succeeded");
+    let artifact_id: String =
+        f.db.query_one(
+            "SELECT artifact_id FROM artifacts WHERE job_id=$1 AND kind='stdout' LIMIT 1",
+            &[&good_id],
+        )
+        .unwrap()
+        .get(0);
+    let exact = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":good_id,"artifactId":artifact_id,"offset":0,"maxBytes":512}),
+    );
+    assert_ne!(exact["isError"], true, "{exact}");
+    let data = exact["structuredContent"].to_string();
+    assert!(data.contains("B_R3_HEALTHY_NATIVE"), "{exact}");
+    // An already diagnosed attempt must not write an event on each 1s tick.
+    let issue_deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let n: i64 =
+            f.db.query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='SCHEDULER_ISSUE'",
+                &[&provider_id],
+            )
+            .unwrap()
+            .get(0);
+        if n > 0 {
+            break;
+        }
+        assert!(
+            Instant::now() < issue_deadline,
+            "provider mismatch did not yield durable issue"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    thread::sleep(Duration::from_millis(2200));
+    for (job, expected) in [
+        (&corrupt_id, "SCHEDULER_CANDIDATE_INVALID"),
+        (&provider_id, "SCHEDULER_RECONCILIATION_BLOCKED"),
+    ] {
+        let row=f.db.query_one("SELECT count(*),min(reason_code) FROM job_events WHERE job_id=$1 AND event_type='SCHEDULER_ISSUE'",&[job]).unwrap();
+        assert_eq!(
+            row.get::<_, i64>(0),
+            1,
+            "diagnostic must be bounded per Attempt"
+        );
+        assert_eq!(row.get::<_, String>(1), expected);
+    }
+    let provider_read = call(
+        &endpoint,
+        "job.get",
+        json!({"jobId":provider_id,"eventLimit":20}),
+    );
+    assert_ne!(provider_read["isError"], true, "{provider_read}");
+    assert_eq!(
+        provider_read["structuredContent"]["scheduling"]["pendingReason"],
+        Value::Null
+    );
+    assert!(
+        provider_read
+            .to_string()
+            .contains("SCHEDULER_RECONCILIATION_BLOCKED"),
+        "{provider_read}"
+    );
+    // The current closed public Scheduling schema requires a frozen
+    // ResourceScheduling request. A corrupt plan cannot be materialized
+    // without inventing data: tell the Agent that its Job record is invalid,
+    // not that the healthy PostgreSQL server is unavailable. A future
+    // typed UNKNOWN readback should replace this temporary negative gate.
+    let bad_read = call(
+        &endpoint,
+        "job.get",
+        json!({"jobId":corrupt_id,"eventLimit":20}),
+    );
+    assert_eq!(bad_read["isError"], true, "{bad_read}");
+    assert_eq!(
+        bad_read["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+        "{bad_read}"
+    );
+    assert_eq!(
+        bad_read["structuredContent"]["error"]["field"], "executionPlan",
+        "{bad_read}"
+    );
+    // A's typed partial JobList contract and B's per-candidate isolation must
+    // compose at a real PG18 MCP consumer, not merely pass schema tests.
+    let native_list = call(&endpoint, "job.list", json!({"limit":100}));
+    assert_ne!(
+        native_list["isError"], true,
+        "PG list must not fail globally on one corrupt Plan: {native_list}"
+    );
+    let listed_jobs = native_list["structuredContent"]["jobs"]
+        .as_array()
+        .expect("PG job.list must preserve original jobs");
+    let corrupt_listed = listed_jobs
+        .iter()
+        .find(|entry| entry["jobId"].as_str() == Some(corrupt_id.as_str()))
+        .expect("PG job.list must retain corrupt Plan's Job identity");
+    assert_eq!(corrupt_listed["executableName"], Value::Null);
+    assert_eq!(corrupt_listed["cwdRelative"], Value::Null);
+    assert_eq!(corrupt_listed["operationDigest"], op_digest);
+    let healthy_listed = listed_jobs
+        .iter()
+        .find(|entry| entry["jobId"].as_str() == Some(good_id.as_str()))
+        .expect("healthy Job must remain discoverable");
+    assert_eq!(healthy_listed["executionDisposition"], "succeeded");
+    eprintln!("A_B_R27_NATIVE_PG18_JOBLIST_AND_SCHEDULER_COMPOSITION_PASS corrupt={corrupt_id} healthy={good_id}");
+    eprintln!("B_R3_PG18_NATIVE_GREEN good={good_id} bad={corrupt_id} provider={provider_id} issue_count=1 stdout=B_R3_HEALTHY_NATIVE");
+}
+
+/// Regression for the committed-cancel/physical-OS boundary: an accepted
+/// immutable plan's corrupted JSON must not prevent stopping its already
+/// issued native systemd Attempt. Test-owned PostgreSQL, Git, and native Unit.
+#[test]
+#[ignore = "requires disposable PG18, native HTTP MCP, real systemd runner"]
+fn b_r3_native_cancel_corrupt_frozen_plan_stops_issued_os_unit() {
+    let mut f = Fixture::new();
+    f.host_visible_test_runner = true;
+    let repo = f.repo();
+    let endpoint = f.endpoint();
+    let ws = format!("ws-r30-cancel-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":ws,"sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let admitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":format!("r30-cancel-{}",Uuid::now_v7()),
+            "execution":{"workspaceId":ws,"executable":"/usr/bin/sleep",
+            "args":["25"],"cwdRelative":".","timeoutMs":35000},
+            "waitMs":0
+        }),
+    );
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    let job_id = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(18);
+    let unit_name = loop {
+        let row =
+            f.db.query_opt(
+                "SELECT a.state,a.unit_name FROM attempts a JOIN jobs j
+             ON j.current_attempt_id=a.attempt_id AND a.job_id=j.job_id
+             WHERE j.job_id=$1",
+                &[&job_id],
+            )
+            .unwrap();
+        if let Some(row) = row {
+            let state: String = row.get(0);
+            let unit: String = row.get(1);
+            if state == "running" {
+                let output = Command::new("/usr/bin/systemctl")
+                    .args(["show", &unit, "-p", "ActiveState", "-p", "MainPID"])
+                    .output()
+                    .unwrap();
+                let status = String::from_utf8_lossy(&output.stdout);
+                if status.contains("ActiveState=active") && !status.contains("MainPID=0") {
+                    break unit;
+                }
+            }
+        }
+        assert!(
+            Instant::now() < deadline,
+            "native Job never reached an active OS Unit"
+        );
+        thread::sleep(Duration::from_millis(100));
+    };
+    let mutated =
+        f.db.execute(
+            "UPDATE jobs SET execution_plan_json=$2 WHERE job_id=$1 AND resolution IS NULL",
+            &[&job_id, &"{r30-poisoned-frozen-plan"],
+        )
+        .unwrap();
+    assert_eq!(mutated, 1, "must poison only self-owned running Job");
+    let cancel = call(&endpoint, "job.cancel", json!({"jobId":job_id}));
+    let desired: String =
+        f.db.query_one("SELECT desired_state FROM jobs WHERE job_id=$1", &[&job_id])
+            .unwrap()
+            .get(0);
+    assert_eq!(desired, "cancelled", "cancel intent must persist: {cancel}");
+    assert_eq!(
+        cancel["structuredContent"]["error"]["commitState"], "committed",
+        "post-commit bad Plan must retain committed identity: {cancel}"
+    );
+    assert_eq!(
+        cancel["structuredContent"]["error"]["operationId"], job_id,
+        "agent may only reconcile the SAME Job: {cancel}"
+    );
+    let mut drained = false;
+    let stop_deadline = Instant::now() + Duration::from_secs(3);
+    while Instant::now() < stop_deadline {
+        let output = Command::new("/usr/bin/systemctl")
+            .args(["show", &unit_name, "-p", "ActiveState", "-p", "MainPID"])
+            .output()
+            .unwrap();
+        let status = String::from_utf8_lossy(&output.stdout);
+        if (status.contains("ActiveState=inactive") || status.contains("ActiveState=failed"))
+            && status.contains("MainPID=0")
+        {
+            drained = true;
+            break;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+    // Preserve native physical cleanup even on expected RED. This test is
+    // only allowed to stop its own Attempt's exact committed Unit identity.
+    if !drained {
+        let _ = Command::new("/usr/bin/systemctl")
+            .args(["stop", &unit_name])
+            .status();
+    }
+    assert!(
+        drained,
+        "committed cancel did not stop its original active OS Unit after a damaged Plan: {cancel}"
+    );
+    // Corrupt Plan still cannot be called a semantic success; readback must
+    // preserve the Job's identity and explicitly project unknown plan fields.
+    let listed = call(&endpoint, "job.list", json!({"limit":100}));
+    assert_ne!(listed["isError"], true, "{listed}");
+    let rows = listed["structuredContent"]["jobs"].as_array().unwrap();
+    let row = rows
+        .iter()
+        .find(|x| x["jobId"].as_str() == Some(job_id.as_str()))
+        .unwrap();
+    assert_eq!(row["executableName"], Value::Null);
+    assert_eq!(row["cwdRelative"], Value::Null);
+    eprintln!("R30_NATIVE_PG18_CORRUPT_PLAN_CANCEL_OS_DRAIN_PASS job={job_id} original_unit={unit_name} denied_false_success={}",cancel["isError"]);
 }
