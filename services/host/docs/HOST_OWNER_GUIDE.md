@@ -292,6 +292,21 @@ archive verification and live MCP consumer readback. UNKNOWN remains UNKNOWN.
 
 ## R30 — Space create/read projection explicit same-transaction capability (2026-11-16)
 
+> **Source/installed distinction, verified 2026-11-17 UTC+08:** this R30
+> candidate merged in GitHub PR #2359 on 2026-11-16 at
+> `697f9ec824159ae5effe8a7727ae9b33a8fc5cb5`. The installed systemd
+> Host `ordivon-host-v2.service` remained pinned to Git release
+> `10db16a117bf1fd0622a0fca1ecbedea7358c322`, which does **not** contain
+> `social_space_records.py`; source integration is not deployment or client
+> qualification. The root repository worktree `main` was older than its
+> `origin/main` ref. Use `git ls-remote origin refs/heads/main`, native
+> `git ls-tree` for `services/host`, `systemctl show ordivon-host-v2.service`,
+> `/opt/ordivon/host-v2/current`, the pinned manifest and the actual MCP
+> client Tool schema before claiming currentness. Never print secret-bearing
+> environment-file contents. Do not remove older releases without verified
+> rollback-reference closure.
+
+
 **Baseline Git SourceCut:** `1dafd707ecb4090df9b18bb460e9b1ea62f03e70`;
 this is source-level evidence, **not a claim of installed Host currentness**.
 The previous SocialSpaceCommands.create_space called
@@ -300,7 +315,7 @@ only on the SocialSpaceReadQueries mixin. It worked through
 SocialStore's multiple-inheritance lookup, so neither the write command
 nor the read method stated its exact required provider module.
 
-The R30 candidate moves that **same existing 98-line PG read projection**
+The R30 source change (originally a candidate, now merged) moves that **same existing 98-line PG read projection**
 into `social_space_records.py:read_space_in_tx(conn,space_ref,...)`,
 consumed explicitly by the existing `social_space_commands.py`
 and `social_space_queries.py`. No independent checkout, repository,
@@ -320,7 +335,7 @@ Space response must already include both rows; an accidental second
 checkout would fail this test instead of silently being accepted by
 source-string assertions.
 
-Candidate verification actually executed:
+Candidate-stage source verification actually executed (not installed acceptance):
 `mise run verify` **401 PASS / 59 PG SKIP**, CrossHair/Z3/Lean source
 obligations unchanged; `mise run test:postgres:disposable` on independent
 PostgreSQL 18 after Alembic 0001–0014 **460 PASS**. The baseline 459 PG
