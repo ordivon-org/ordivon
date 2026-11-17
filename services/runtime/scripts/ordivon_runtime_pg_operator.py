@@ -1011,6 +1011,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--service",required=True)
     parser.add_argument("--required-tool",action="append",dest="required_tools",default=[])
     parser.add_argument("--binary",action="append",dest="binaries",required=True)
+    parser.add_argument("--include-pg-reclaimer",action="store_true")
     parser.add_argument("--require-ref",default="origin/main")
     parser.add_argument("--drain-seconds",type=float,default=30.0)
     parser.add_argument("--wait-seconds",type=float,default=60.0)

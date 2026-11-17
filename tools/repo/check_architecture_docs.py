@@ -10,6 +10,7 @@ from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import tomllib
 
@@ -2302,6 +2303,112 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
             )
 
 
+
+# Validate only current task-entry documents. Owner-native docs and live status
+# retain their own authority; this is a source-locator check, not proof that
+# the described capability is installed or the linked heading is still correct.
+NAVIGATION_LINK_PATTERN = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
+
+
+def validate_entrypoint_links(
+    root: Path, *, entrypoints: tuple[Path, ...] | None = None
+) -> None:
+    if entrypoints is None:
+        entrypoints = (
+            Path("README.md"),
+            Path("AGENTS.md"),
+            Path("docs/architecture/DECISIONS.md"),
+        )
+        # pathlib glob must be rooted at the checkout, not the caller's cwd.
+        entrypoints += tuple(
+            path.relative_to(root)
+            for path in sorted((root / "docs/start").glob("*.md"))
+        )
+        manifest = tomllib.loads((root / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        entrypoints += tuple(
+            Path(owner["root"]) / name
+            for owner in manifest["owners"]
+            for name in ("README.md", "AGENTS.md")
+        )
+    root_path = root.resolve()
+    for relative in dict.fromkeys(entrypoints):
+        path = root / relative
+        if not path.is_file():
+            continue
+        for raw in NAVIGATION_LINK_PATTERN.findall(path.read_text(encoding="utf-8")):
+            target_url = raw.strip().split(maxsplit=1)[0].strip("<>")
+            if not target_url or target_url.startswith(("#", "/")):
+                continue
+            # These are external references, not links to tracked repo files.
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target_url):
+                continue
+            target_name = unquote(target_url.split("#", 1)[0].split("?", 1)[0])
+            if not target_name:
+                continue
+            target = (path.parent / target_name).resolve()
+            if not target.is_relative_to(root_path):
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation escapes repository: {relative} -> {raw}"
+                )
+            if not target.exists():
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation target missing: {relative} -> {raw}"
+                )
+
+
+def validate_owner_navigation(
+    root: Path, *, readme_text: str | None = None
+) -> None:
+    """Check README's task routing against the existing Repo Owner source.
+
+    This is source navigation coverage, not proof of Owner deployment, effect
+    authorization, or external consumer acceptance. No parallel Owner map.
+    """
+    manifest = tomllib.loads(
+        (root / "tools/repo/owners.toml").read_text(encoding="utf-8")
+    )
+    expected = {
+        Path(owner["root"]).as_posix(): owner["name"]
+        for owner in manifest["owners"]
+    }
+    text = (
+        (root / "README.md").read_text(encoding="utf-8")
+        if readme_text is None else readme_text
+    )
+    marker = "## Where to start\n"
+    if text.count(marker) != 1:
+        raise ArchitectureDocsError("README natural Owner navigation table missing")
+    section = text.split(marker, 1)[1].split("\n### For Humans:", 1)[0]
+    observed: list[str] = []
+    for line in section.splitlines():
+        if not line.startswith("| "):
+            continue
+        cells = line.split("|")
+        if len(cells) < 4:
+            raise ArchitectureDocsError("malformed README natural Owner navigation row")
+        label = cells[1].strip()
+        if label == "Real consumer problem" or set(label) <= {"-", " ", ":"}:
+            continue
+        match = NAVIGATION_LINK_PATTERN.search(cells[2])
+        if match is None:
+            raise ArchitectureDocsError(
+                f"README Owner navigation row lacks a route: {label}"
+            )
+        route = unquote(match.group(1).strip().split("#", 1)[0])
+        route_path = Path(route)
+        if route_path.name == "README.md":
+            route_path = route_path.parent
+        observed.append(route_path.as_posix())
+    missing = sorted(set(expected) - set(observed))
+    unexpected = sorted(set(observed) - set(expected))
+    repeated = sorted({route for route in observed if observed.count(route) != 1})
+    if missing or unexpected or repeated:
+        raise ArchitectureDocsError(
+            "README Owner navigation differs from owners.toml: "
+            f"missing={missing}, unexpected={unexpected}, repeated={repeated}"
+        )
+
+
 def validate_repository(root: Path = ROOT) -> None:
     current = root / CURRENT.relative_to(ROOT)
     deployed = root / DEPLOYED.relative_to(ROOT)
@@ -2311,7 +2418,6 @@ def validate_repository(root: Path = ROOT) -> None:
     gateway_host_tool_sources = [root / path.relative_to(ROOT) for path in GATEWAY_HOST_TOOL_SOURCES]
     host_northbound_acceptance = root / HOST_NORTHBOUND_ACCEPTANCE.relative_to(ROOT)
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
-    readme = root / README.relative_to(ROOT)
 
     validate_architecture_snapshot_document(current.read_text(encoding="utf-8"))
     validate_r21_lego_vocabulary(
@@ -2351,8 +2457,10 @@ def validate_repository(root: Path = ROOT) -> None:
 
     if not method_router.is_file():
         raise ArchitectureDocsError("canonical Method Router Skill is missing")
-    if "docs/architecture/CURRENT_ARCHITECTURE.md" not in readme.read_text(encoding="utf-8"):
-        raise ArchitectureDocsError("root README must point to canonical current architecture")
+    # The dated snapshot remains explicitly historical. Real task routing
+    # must match the mechanical Owner source, not a September deployed graph.
+    validate_owner_navigation(root)
+    validate_entrypoint_links(root)
 
     tempo = (root / TEMPO_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
     vector = (root / VECTOR_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")

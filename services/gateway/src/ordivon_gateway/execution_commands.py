@@ -3,18 +3,18 @@ from __future__ import annotations
 from typing import Any
 
 from .contracts import (
+    CapabilityRoute,
     ExecutionReceipt,
 )
 from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
 from .owner_protocol import (
+    OwnerToolCaller,
     _owner_optional_disposition,
     _owner_receipt_state,
     _required_bool,
     _required_str,
 )
-from .routing import CapabilityRoute
-from .upstream import OwnerToolCaller
 
 
 class ExecutionCommandMethods:
@@ -22,6 +22,10 @@ class ExecutionCommandMethods:
 
     _caller: OwnerToolCaller
     _routes: dict[str, CapabilityRoute]
+
+    def __init__(self, caller: OwnerToolCaller, routes: dict[str, CapabilityRoute]) -> None:
+        self._caller = caller
+        self._routes = routes
 
     async def execution_submit(
         self,

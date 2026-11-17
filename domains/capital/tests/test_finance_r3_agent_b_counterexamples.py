@@ -294,5 +294,143 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
 
+class NativeQlibPredictionFieldContractTests(unittest.TestCase):
+    """Actual R3 reader, pinned Nautilus, synthetic sources; no provider or PG."""
+
+    @classmethod
+    def setUpClass(cls):
+        from importlib.util import find_spec
+
+        if find_spec("nautilus_trader") is None:
+            raise unittest.SkipTest("pinned Nautilus nonlive group is not installed")
+
+    def _run_case(self, *, hold=5, extra_label=False, wrong_contract=None):
+        import json
+        import os
+        import subprocess
+        import sys
+        from datetime import date, timedelta
+        from hashlib import sha256
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        source = Path(__file__).resolve().parents[1]
+        native = source / "adoption/r3_native/tests/probe_native_buy_hold_exit.py"
+        predicted = "predicted_next_open_to_next_open_fractional_return"
+        header = ["datetime", "instrument"]
+        if extra_label:
+            header.append("actual_future_label")
+        header.append(predicted)
+        rows = [
+            ["2025-10-01", "IWM", *(["0.10"] if extra_label else []), "0.80"],
+            ["2025-10-01", "QQQ", *(["0.20"] if extra_label else []), "0.60"],
+            ["2025-10-01", "SPY", *(["0.90"] if extra_label else []), "0.20"],
+        ]
+        pred_bytes = ("\n".join(",".join(row) for row in [header, *rows]) + "\n").encode()
+        horizon = f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{hold + 1}_open"
+        model = {
+            "portfolio_target": None,
+            "qlib_prediction_sha256": sha256(pred_bytes).hexdigest(),
+            "signal_quality": {
+                "standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
+                "holding_sessions": hold,
+                "exit_price_kind": "next_open",
+                "matches_native_fixed_holding_exit_event": True,
+                "horizon": horizon,
+                "label_forward_sessions": hold + 1,
+            },
+            "forecast": {
+                "kind": "uncalibrated_multisession_holding_return",
+                "holding_sessions": hold,
+                "exit_price_kind": "next_open",
+                "target_horizon": f"next_session_open_to_T_plus_{hold + 1}_open",
+                "point_in_time_eligible": False,
+                "native_strategy_exit_event_matches_target": True,
+            },
+        }
+        if wrong_contract:
+            field, key, value = wrong_contract
+            model[field][key] = value
+
+        days = []
+        cursor = date.fromisoformat("2025-10-01")
+        while len(days) < hold + 4:
+            if cursor.weekday() < 5:
+                days.append(cursor.isoformat())
+            cursor += timedelta(days=1)
+        capture_bytes = (
+            "session_date,open,close\n"
+            + "".join(f"{day},100.00,101.00\n" for day in days)
+        ).encode()
+        with TemporaryDirectory(prefix="r3-prediction-field-nonlive-") as path:
+            temp = Path(path)
+            research = temp / "research"
+            research.mkdir()
+            (research / "qlib_test_predictions.csv").write_bytes(pred_bytes)
+            (research / "native_study_result.json").write_text(json.dumps(model))
+            capture = temp / "capture"
+            capture.mkdir()
+            (capture / "openbb_cboe_IWM_normalized.csv").write_bytes(capture_bytes)
+            manifest = temp / "source_manifest.json"
+            manifest.write_text(json.dumps({"provider_receipts": [{
+                "symbol": "IWM", "provider": "cboe",
+                "normalized_sha256": sha256(capture_bytes).hexdigest(),
+            }]}))
+            output = temp / "out"
+            env = dict(os.environ)
+            # Pytest's sys.path additions do not propagate to subprocesses.
+            env["PYTHONPATH"] = str(source / "src")
+            env.update({
+                "ORDIVON_FINANCE_R3_HOLD_SESSIONS": str(hold),
+                "ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR": str(research),
+                "ORDIVON_FINANCE_R3_DECISION_DAY": "2025-10-01",
+                "ORDIVON_FINANCE_R3_CAPTURE_DIR": str(capture),
+                "ORDIVON_FINANCE_R3_SOURCE_MANIFEST": str(manifest),
+                "ORDIVON_FINANCE_R3_RUN_OUT_DIR": str(output),
+            })
+            for key in ("ORDIVON_FINANCE_R3_TEST_FORCE_ASSET",
+                        "ORDIVON_FINANCE_R3_TEST_NO_ENTRY",
+                        "ORDIVON_FINANCE_R3_TEST_NO_EXIT"):
+                env.pop(key, None)
+            result = subprocess.run(
+                [sys.executable, str(native)],
+                cwd=source, env=env, capture_output=True, text=True, timeout=90,
+                check=False,
+            )
+            output_json = output / "native_holding_result.json"
+            receipt = json.loads(output_json.read_text()) if output_json.exists() else None
+            return result, receipt
+
+    def test_native_valid_producer_column_preserves_nonlive_economics(self):
+        for hold in (5, 20):
+            with self.subTest(hold=hold):
+                completed, receipt = self._run_case(hold=hold)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertEqual(receipt["selected_instrument"], "IWM")
+                self.assertEqual(receipt["horizon_complete_sessions"], hold)
+                self.assertIs(receipt["portfolio_automatic_execution_authorized"], False)
+                self.assertEqual(receipt["real_broker_or_PG_effect"], "NONE")
+
+    def test_prepended_realized_label_cannot_be_selected_as_qlib_score(self):
+        completed, receipt = self._run_case(extra_label=True)
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIsNone(receipt)
+        self.assertIn("prediction column schema differs", completed.stderr)
+
+    def test_forecast_horizon_and_label_must_match_physical_next_open_exit(self):
+        for corruption in (
+            ("signal_quality", "label_forward_sessions", 5),
+            ("signal_quality", "horizon", "decision_after_T_close_entry_unsupported"),
+            ("forecast", "target_horizon", "next_session_open_to_T_plus_5_close"),
+            ("forecast", "holding_sessions", 20),
+            ("forecast", "exit_price_kind", "close"),
+        ):
+            with self.subTest(corruption=corruption):
+                completed, receipt = self._run_case(wrong_contract=corruption)
+                self.assertNotEqual(completed.returncode, 0)
+                self.assertIsNone(receipt)
+                self.assertIn("forecast horizon disagrees", completed.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

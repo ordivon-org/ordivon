@@ -8,7 +8,7 @@ from pydantic import Field
 
 from .mcp_domain_errors import _project_domain_errors
 from .postgres_bounds import POSTGRES_BIGINT_MAX
-from .social_contracts import ActorRefResponse, WorkListResponse, WorkResponse
+from .work_contracts import ActorRefResponse, WorkListResponse, WorkResponse
 from .work_inputs import ActorKind, ActorRefInput, WorkCreateInput, WorkSnapshotInput, WorkState
 from .work_store import WorkStore
 

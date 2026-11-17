@@ -75,6 +75,40 @@ class BuildCacheEvictionContractTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 evict.direct_directory(link)
 
+    def test_git_source_readback_ignores_inherited_foreign_git_authority(self):
+        """A foreign GIT_DIR must not make another Git repo the source witness."""
+        import os
+        import subprocess
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "workspace"
+            other = Path(tmp) / "foreign"
+            for repo, message in ((first, "expected-workspace"), (other, "attacker")):
+                repo.mkdir()
+                subprocess.run(["/usr/bin/git", "-C", str(repo), "init", "-q"],
+                               check=True, capture_output=True)
+                subprocess.run(
+                    ["/usr/bin/git", "-C", str(repo),
+                     "-c", "user.name=Temporary Test",
+                     "-c", "user.email=temporary@local.invalid",
+                     "commit", "-q", "--allow-empty", "-m", message],
+                    check=True, capture_output=True,
+                )
+            correct_head = evict.git(first, "rev-parse", "HEAD")
+            foreign_head = evict.git(other, "rev-parse", "HEAD")
+            self.assertNotEqual(correct_head, foreign_head)
+            with patch.dict(os.environ, {
+                "GIT_DIR": str(other / ".git"),
+                "GIT_WORK_TREE": str(other),
+                "GIT_INDEX_FILE": str(other / ".git" / "index"),
+            }):
+                self.assertEqual(evict.git(first, "rev-parse", "HEAD"), correct_head)
+                self.assertEqual(
+                    evict.git(first, "status", "--porcelain", "--untracked-files=normal"),
+                    "",
+                )
+
     def test_receipt_is_immutable_and_never_overwritten(self):
         with tempfile.TemporaryDirectory() as tmp:
             receipt = Path(tmp) / "owned" / "plan.json"

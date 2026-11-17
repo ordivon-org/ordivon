@@ -3117,6 +3117,42 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         "{exec}"
     );
     assert_eq!(exec["structuredContent"]["stdoutTail"], "native-proof");
+    // A terminal PostgreSQL Job intentionally has no current_attempt_id.
+    // Cancelling a completed effect must return its existing Owner observation,
+    // never require a current native Runner or mutate terminal truth.
+    let completed_job = exec["structuredContent"]["jobId"].as_str().unwrap();
+    let post_terminal_cancel = call(&endpoint, "job.cancel", json!({"jobId":completed_job}));
+    assert_ne!(
+        post_terminal_cancel["isError"], true,
+        "terminal Job cancel must return the existing observation: {post_terminal_cancel}"
+    );
+    assert_eq!(
+        post_terminal_cancel["structuredContent"]["executionDisposition"],
+        "succeeded"
+    );
+    assert_eq!(
+        post_terminal_cancel["structuredContent"]["executionTerminal"],
+        true
+    );
+    let (desired, resolution, current_attempt): (String, Option<String>, Option<String>) = {
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT desired_state,resolution,current_attempt_id FROM jobs WHERE job_id=$1",
+                &[&completed_job],
+            )
+            .unwrap();
+        (row.get(0), row.get(1), row.get(2))
+    };
+    assert_eq!(
+        desired, "run",
+        "terminal cancel must not persist a new stop intent"
+    );
+    assert_eq!(resolution.as_deref(), Some("succeeded"));
+    assert!(
+        current_attempt.is_none(),
+        "terminal Job current Attempt is released by design"
+    );
     let artifacts = exec["structuredContent"]["artifacts"].as_array().unwrap();
     let stdout = artifacts.iter().find(|v| v["kind"] == "stdout").unwrap();
     let read = call(

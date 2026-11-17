@@ -374,7 +374,9 @@ pub fn inspect_admitted_windows_pg_bundle(
     store_root: &Path,
 ) -> Result<PgWindowsWitnessObservation, String> {
     use crate::pg_admission::PgAdmissionStore;
+    use crate::pg_readback::PgJobReadback;
     use postgres::IsolationLevel;
+
     if source_sha256.len() != 64
         || !source_sha256.bytes().all(|v| v.is_ascii_hexdigit())
         || principal.is_empty()
@@ -384,37 +386,49 @@ pub fn inspect_admitted_windows_pg_bundle(
     }
     let mut store = PgAdmissionStore::connect(dsn, schema)
         .map_err(|_| "PG schema unavailable or invalid".to_string())?;
+    // The one qualified PG readback owns Writer Epoch, lifecycle, terminal
+    // events and Reservation coherence. Do not reimplement those checks here.
+    let qualified = match store
+        .observe_job_readonly(job_id, source_sha256)
+        .map_err(|_| "PG writer/currentness readback unavailable".to_string())?
+    {
+        PgJobReadback::Observed(snapshot) => snapshot,
+        PgJobReadback::Inconclusive => {
+            return Err("PG lifecycle inconclusive: current Attempt, resolved PG Job retains a pointer, or terminal evidence disagrees".into());
+        }
+    };
+
+    // A second read-only snapshot is only for the Windows provider's immutable
+    // bundle fields, absent from the shared lifecycle projection. Fence both
+    // versions and the exact Attempt: a changing Job is UNKNOWN, never a
+    // fallback to its highest historical attempt.
     let mut tx = store
         .client
         .build_transaction()
         .isolation_level(IsolationLevel::RepeatableRead)
         .read_only(true)
         .start()
-        .map_err(|_| "PG read-only snapshot failed".to_string())?;
-    let source = tx
-        .query_opt(
-            "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='source'",
-            &[],
-        )
-        .map_err(|_| "PG source gate unavailable".to_string())?;
-    let source_ok = source.is_some_and(|row| {
-        row.get::<_, String>(0) == "QUALIFIED_WRITER"
-            && row.get::<_, String>(1) == source_sha256
-            && row.get::<_, bool>(2)
-    });
-    if !source_ok {
-        return Err("PG source is not qualified".into());
-    }
+        .map_err(|_| "PG provider snapshot unavailable".to_string())?;
     let row = tx
         .query_opt(
-            "SELECT j.principal,j.workspace_snapshot_json,a.attempt_id,a.launch_token_digest, \
-            a.bundle_path,a.unit_name,a.bundle_digest,j.resolution,j.current_attempt_id \
-            FROM jobs j JOIN attempts a ON a.job_id=j.job_id \
-            WHERE j.job_id=$1 ORDER BY a.attempt_number DESC LIMIT 1",
-            &[&job_id],
+            "SELECT j.principal,j.workspace_snapshot_json,a.launch_token_digest, \
+             a.bundle_path,a.unit_name,a.bundle_digest \
+             FROM jobs j JOIN attempts a ON a.job_id=j.job_id AND a.attempt_id=$2 \
+             WHERE j.job_id=$1 AND j.row_version=$3 AND a.row_version=$4 \
+               AND j.resolution IS NOT DISTINCT FROM $5::TEXT AND a.state=$6::TEXT \
+               AND (($5::TEXT IS NULL AND j.current_attempt_id=a.attempt_id) \
+                 OR ($5::TEXT IS NOT NULL AND j.current_attempt_id IS NULL))",
+            &[
+                &job_id,
+                &qualified.attempt_id,
+                &qualified.job_row_version,
+                &qualified.attempt_row_version,
+                &qualified.resolution,
+                &qualified.attempt_state,
+            ],
         )
-        .map_err(|_| "PG Job lookup failed".to_string())?
-        .ok_or_else(|| "unknown PG Job".to_string())?;
+        .map_err(|_| "PG provider snapshot lookup failed".to_string())?
+        .ok_or_else(|| "PG provider/Attempt identity changed during readback".to_string())?;
     if row.get::<_, String>(0) != principal {
         return Err("PG principal ownership conflict".into());
     }
@@ -428,30 +442,20 @@ pub fn inspect_admitted_windows_pg_bundle(
         .as_str()
         .filter(|d| d.len() == 71 && d.starts_with("sha256:"))
         .ok_or_else(|| "PG launcher provider digest invalid".to_string())?;
-    let attempt_id: String = row.get(2);
-    // A historical terminal may read back the latest Attempt after the current
-    // pointer has been cleared. An *unresolved* Job must never borrow the
-    // latest available bundle unless PG still designates that exact Attempt.
-    // The read-only preflight cannot infer this from attempt_number alone.
-    let resolution: Option<String> = row.get(7);
-    let current_attempt: Option<String> = row.get(8);
-    if resolution.is_none() && current_attempt.as_deref() != Some(&attempt_id) {
-        return Err("unresolved PG Job has no matching current Attempt".into());
-    }
-    if resolution.is_some() && current_attempt.is_some() {
-        return Err("resolved PG Job retains an unexpected current Attempt".into());
-    }
-    let token: String = row.get(3);
-    let bundle: String = row.get(4);
-    let name: String = row.get(5);
+    let attempt_id = qualified.attempt_id.clone();
+    let token: String = row.get(2);
+    let bundle: String = row.get(3);
+    let name: String = row.get(4);
     let request_digest: String = row
-        .get::<_, Option<String>>(6)
+        .get::<_, Option<String>>(5)
         .ok_or_else(|| "PG dispatch has not committed immutable bundle".to_string())?;
     if name != format!("Ordivon.{attempt_id}") {
         return Err("PG attempt does not bind the Windows native Job Object".into());
     }
+    let launcher_digest = launcher_digest.to_owned();
     tx.commit()
         .map_err(|_| "PG read-only snapshot commit failed".to_string())?;
+
     let expected = store_root.join("pg-attempts").join(&attempt_id);
     let root = fs::canonicalize(&expected).map_err(|_| "PG bundle root unavailable".to_string())?;
     if root != fs::canonicalize(&bundle).map_err(|_| "PG bundle unavailable".to_string())? {
@@ -466,7 +470,7 @@ pub fn inspect_admitted_windows_pg_bundle(
         attempt_id,
         launch_token_digest: token,
         request_digest,
-        launcher_image_digest: launcher_digest.to_owned(),
+        launcher_image_digest: launcher_digest,
     };
     inspect_windows_pg_bundle(&root, &identity)
 }
@@ -747,5 +751,210 @@ mod owner_identity_tests {
             u32::MAX as u64 + 1,
             10
         ));
+    }
+}
+
+#[cfg(test)]
+mod qualified_pg18_preflight_tests {
+    use super::*;
+    use crate::pg_admission::{
+        pg_writer_epoch_digest, PgAdmissionInput, PgAdmissionStore, PgBundleReady,
+    };
+    use postgres::{Client, NoTls};
+    use uuid::Uuid;
+
+    // Test-only isolated schema on an explicitly supplied disposable PG18.
+    // The production database and Windows service are never modified.
+    struct Scratch {
+        admin: Client,
+        schema: String,
+    }
+
+    impl Scratch {
+        fn new(dsn: &str, source: &str) -> Self {
+            let schema = format!("test_win_preflight_{}", Uuid::now_v7().simple());
+            let mut admin = Client::connect(dsn, NoTls).expect("test PG18 connection");
+            admin
+                .batch_execute(&format!("CREATE SCHEMA \"{schema}\""))
+                .expect("create isolated PG schema");
+            admin
+                .query_one(
+                    "SELECT set_config('search_path',$1,false)",
+                    &[&format!("\"{schema}\"")],
+                )
+                .expect("scope isolated PG schema");
+            admin
+                .batch_execute(include_str!("../sql/pg_fresh_epoch.sql"))
+                .expect("native PG constraints");
+            admin
+                .execute(
+                    "INSERT INTO _stage_control VALUES('source','QUALIFIED_WRITER',$1,true)",
+                    &[&source],
+                )
+                .expect("qualify fixture source");
+            let identity = admin
+                .query_one(
+                    "SELECT (SELECT system_identifier::text FROM pg_control_system()), \
+                            (SELECT timeline_id FROM pg_control_checkpoint())",
+                    &[],
+                )
+                .expect("read physical PostgreSQL epoch");
+            let seal = pg_writer_epoch_digest(
+                source,
+                &identity.get::<_, String>(0),
+                identity.get::<_, i32>(1),
+            );
+            admin
+                .execute(
+                    "INSERT INTO _stage_control VALUES('epoch','QUALIFIED_EPOCH',$1,true)",
+                    &[&seal],
+                )
+                .expect("qualify native epoch");
+            Self { admin, schema }
+        }
+    }
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = self.admin.batch_execute(&format!(
+                "SET search_path TO public; DROP SCHEMA IF EXISTS \"{}\" CASCADE",
+                self.schema
+            ));
+        }
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN disposable PostgreSQL18"]
+    fn preflight_uses_pg_writer_epoch_and_rejects_incoherent_attempt_and_terminal() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN").expect("disposable PG18 DSN");
+        let source = "a".repeat(64);
+        let mut scratch = Scratch::new(&dsn, &source);
+        let temp = tempfile::tempdir().expect("isolated bundle directory");
+        let attempt = "attempt-win-pg-readback";
+        let job = "job-win-pg-readback";
+        let bundle = temp.path().join("pg-attempts").join(attempt);
+        fs::create_dir_all(&bundle).unwrap();
+        let request = b"immutable-typed-windows-native-request";
+        fs::write(bundle.join("request.json"), request).unwrap();
+        let request_digest = sha256(request);
+        let input = PgAdmissionInput {
+            job_id: job.into(),
+            attempt_id: attempt.into(),
+            reservation_id: "reservation-win-readback".into(),
+            principal: "c-physical-pg-test".into(),
+            client_request_id: "c-physical-preflight".into(),
+            request_digest: format!("sha256:{}", "b".repeat(64)),
+            operation_digest: format!("sha256:{}", "d".repeat(64)),
+            workspace_id: "ws-c-physical".into(),
+            workspace_snapshot_json: serde_json::json!({
+                "executionProvider": {
+                    "contract": "windows_native_launcher_v1",
+                    "executableDigest": format!("sha256:{}", "c".repeat(64))
+                }
+            })
+            .to_string(),
+            execution_plan_json: "{}".into(),
+            execution_plan_digest: format!("sha256:{}", "e".repeat(64)),
+            launch_token_digest: format!("sha256:{}", "f".repeat(64)),
+            bundle_path: bundle.to_string_lossy().into_owned(),
+            unit_name: format!("Ordivon.{attempt}"),
+            global_limit: 2,
+            created_at_ms: 1234567,
+            expected_source_sha256: source.clone(),
+        };
+        let mut writer = PgAdmissionStore::connect(&dsn, &scratch.schema).unwrap();
+        writer.admit(&input).expect("admit scratch PG Job");
+        scratch.admin.execute(
+            "INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,owner,state,acquired_at_ms) VALUES($1,'{}','{}',$2,'active',$3)",
+            &[&input.attempt_id,&input.principal,&input.created_at_ms],
+        ).unwrap();
+        let row = writer
+            .client
+            .query_one(
+                "SELECT row_version FROM attempts WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap();
+        writer
+            .commit_bundle_ready_pg(&PgBundleReady {
+                attempt_id: input.attempt_id.clone(),
+                expected_row_version: row.get(0),
+                bundle_digest: request_digest,
+                observed_at_ms: input.created_at_ms + 1,
+                expected_source_sha256: source.clone(),
+            })
+            .expect("commit native immutable bundle");
+
+        let inspect = || {
+            inspect_admitted_windows_pg_bundle(
+                &dsn,
+                &scratch.schema,
+                &source,
+                &input.principal,
+                &input.job_id,
+                temp.path(),
+            )
+        };
+        assert_eq!(
+            inspect().unwrap().phase,
+            PgWindowsWitnessPhase::NoLauncherWitness
+        );
+        // Source qualification alone survives a simulated restored/stale epoch.
+        // No actual WAL promotion is performed in this disposable test.
+        scratch
+            .admin
+            .execute(
+                "UPDATE _stage_control SET source_sha256='stale-epoch' WHERE id='epoch'",
+                &[],
+            )
+            .unwrap();
+        assert!(inspect().unwrap_err().contains("writer/currentness"));
+        let physical = scratch
+            .admin
+            .query_one(
+                "SELECT (SELECT system_identifier::text FROM pg_control_system()), \
+                    (SELECT timeline_id FROM pg_control_checkpoint())",
+                &[],
+            )
+            .unwrap();
+        let correct_epoch = pg_writer_epoch_digest(
+            &source,
+            &physical.get::<_, String>(0),
+            physical.get::<_, i32>(1),
+        );
+        scratch
+            .admin
+            .execute(
+                "UPDATE _stage_control SET source_sha256=$1 WHERE id='epoch'",
+                &[&correct_epoch],
+            )
+            .unwrap();
+        assert_eq!(
+            inspect().unwrap().phase,
+            PgWindowsWitnessPhase::NoLauncherWitness
+        );
+
+        // The old local preflight would have accepted this latest Attempt bundle.
+        // The canonical lifecycle readback must not.
+        scratch.admin.execute(
+            "UPDATE attempts SET state='succeeded',row_version=row_version+1 WHERE attempt_id=$1",
+            &[&input.attempt_id],
+        ).unwrap();
+        assert!(inspect().unwrap_err().contains("lifecycle inconclusive"));
+        scratch.admin.execute(
+            "UPDATE attempts SET state='accepted',row_version=row_version+1 WHERE attempt_id=$1",
+            &[&input.attempt_id],
+        ).unwrap();
+        assert_eq!(
+            inspect().unwrap().phase,
+            PgWindowsWitnessPhase::NoLauncherWitness
+        );
+        // A terminal resolution without native terminal events and released
+        // reservation is not a qualified Windows result, even with no current ID.
+        scratch.admin.execute(
+            "UPDATE jobs SET resolution='succeeded',current_attempt_id=NULL,row_version=row_version+1 WHERE job_id=$1",
+            &[&input.job_id],
+        ).unwrap();
+        assert!(inspect().unwrap_err().contains("lifecycle inconclusive"));
     }
 }

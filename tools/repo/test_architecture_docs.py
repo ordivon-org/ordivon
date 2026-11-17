@@ -30,6 +30,63 @@ def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
 
 
+def test_entrypoint_link_source_contract_detects_broken_navigation(tmp_path: Path) -> None:
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "[Start](guide.md) [Local](#section) [External](https://example.org/docs)\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+    readme.write_text("[Start](missing.md)\n", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="navigation target missing"):
+        module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+
+
+def test_entrypoint_link_cannot_leak_outside_checkout(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("[Outside](../../missing.md)\n", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="navigation escapes repository"):
+        module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+
+
+def test_readme_owner_navigation_matches_mechanical_owner_source() -> None:
+    module.validate_owner_navigation(ROOT)
+
+
+def test_readme_owner_navigation_cannot_omit_a_real_owner() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    lines = readme.splitlines(keepends=True)
+    row = next(
+        i for i, value in enumerate(lines)
+        if "| [game](domains/game/README.md)" in value
+    )
+    lines.pop(row)
+    with pytest.raises(module.ArchitectureDocsError, match="missing=.*domains/game"):
+        module.validate_owner_navigation(ROOT, readme_text="".join(lines))
+
+
+def test_readme_owner_navigation_cannot_route_two_owners_to_one() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    bad = readme.replace(
+        "[game](domains/game/README.md)",
+        "[game](domains/capital/README.md)",
+    )
+    assert bad != readme
+    with pytest.raises(module.ArchitectureDocsError, match="repeated=.*domains/capital"):
+        module.validate_owner_navigation(ROOT, readme_text=bad)
+
+
+def test_readme_owner_navigation_rejects_unregistered_owner_route() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    bad = readme.replace(
+        "[game](domains/game/README.md)",
+        "[game](domains/retired-game/README.md)",
+    )
+    assert bad != readme
+    with pytest.raises(module.ArchitectureDocsError, match="unexpected=.*retired-game"):
+        module.validate_owner_navigation(ROOT, readme_text=bad)
+
+
 @pytest.mark.parametrize(
     ("source", "reason"),
     [

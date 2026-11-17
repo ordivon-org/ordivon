@@ -64,6 +64,7 @@ internal static class OrdivonWindowsJobLauncher
     private const uint Synchronize = 0x00100000;
     private const uint StillActive = 259;
     private const int ErrorInvalidParameter = 87;
+    private const int ErrorAlreadyExists = 183;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct JobObjectBasicLimitInformation
@@ -1022,10 +1023,21 @@ internal static class OrdivonWindowsJobLauncher
         return args[index++];
     }
 
+    // Exit code 259 (STILL_ACTIVE) is also a legal process exit status.
+    // Query the signaled process handle instead of guessing liveness from its exit code.
+    private static bool ProcessHandleIsRunning(IntPtr process, string operation)
+    {
+        uint wait = WaitForSingleObject(process, 0);
+        if (wait == 0) return false;
+        if (wait == WaitTimeout) return true;
+        if (wait == 0xffffffff) ThrowWin32(operation);
+        throw new InvalidOperationException(operation + " returned an unexpected wait status");
+    }
+
     private static int DescribeProcessOwner(Options options)
     {
         uint processId = options.DescribeProcessId.Value;
-        IntPtr process = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+        IntPtr process = OpenProcess(ProcessQueryLimitedInformation | Synchronize, false, processId);
         if (process == IntPtr.Zero)
         {
             int error = Marshal.GetLastWin32Error();
@@ -1041,12 +1053,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
-            {
-                ThrowWin32("GetExitCodeProcess(process owner)");
-            }
-            if (exitCode != StillActive)
+            if (!ProcessHandleIsRunning(process, "WaitForSingleObject(process owner)"))
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"
@@ -1103,12 +1110,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
-            {
-                ThrowWin32("GetExitCodeProcess(deadline owner termination)");
-            }
-            if (exitCode != StillActive)
+            if (!ProcessHandleIsRunning(process, "WaitForSingleObject(deadline owner termination)"))
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"
@@ -1824,9 +1826,18 @@ internal static class OrdivonWindowsJobLauncher
         {
             VerifyRuntimeRequestDigest(options);
             job = CreateJobObject(IntPtr.Zero, options.JobName);
+            int jobCreationError = Marshal.GetLastWin32Error();
             if (job == IntPtr.Zero)
             {
                 ThrowWin32("CreateJobObject");
+            }
+            // A committed Attempt must own a freshly created Job Object, not join
+            // a preexisting named object with foreign processes or mutable limits.
+            // Check ERROR_ALREADY_EXISTS *before* changing limits or starting a child.
+            if (jobCreationError == ErrorAlreadyExists)
+            {
+                throw new InvalidOperationException(
+                    "native Runtime Job Object name already exists; refusing non-exclusive Attempt ownership");
             }
             ConfigureExtendedLimits(job, options);
             uint cpuRate = ConfigureCpuRate(job, options.CpuQuotaPercent);
@@ -1973,8 +1984,13 @@ internal static class OrdivonWindowsJobLauncher
                 ThrowWin32("GetExitCodeProcess");
             }
 
-            // Closing the final Job handle kills any descendants that outlived the direct child.
-            // Only after that boundary can captured output be finalized without later mutation.
+            // A diagnostic or foreign reader may still retain a named Job Object handle.
+            // KILL_ON_JOB_CLOSE only fires on the last handle, so explicitly terminate
+            // any remaining descendants before publishing the Attempt result.
+            if (!timedOut && !cancelled)
+            {
+                TerminateWholeJob(job, CancelledExit);
+            }
             CloseHandle(job);
             job = IntPtr.Zero;
             stdoutThread.Join();

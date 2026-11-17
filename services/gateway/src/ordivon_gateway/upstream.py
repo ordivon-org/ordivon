@@ -6,13 +6,14 @@ import logging
 import os
 import time
 from collections.abc import Generator, Mapping
-from typing import Any, Protocol
+from typing import Any
 
 import httpx2
 from mcp import Client, types
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
 from opentelemetry.propagate import inject as inject_trace_context
 
+from .owner_protocol import OwnerToolCaller as OwnerToolCaller
 from .upstream_identity import (
     OwnerCallError as OwnerCallError,
 )
@@ -95,14 +96,6 @@ def _extract_owner_tool_error(
             continue
         return dict(candidate)
     return None
-
-
-class OwnerToolCaller(Protocol):
-    async def call_tool(
-        self, owner_id: str, tool_name: str, arguments: dict[str, Any]
-    ) -> dict[str, Any]: ...
-
-    def is_configured(self, owner_id: str) -> bool: ...
 
 
 class OwnerEndpointAuth(httpx2.Auth):

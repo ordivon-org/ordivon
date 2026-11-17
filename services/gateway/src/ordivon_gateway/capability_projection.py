@@ -13,10 +13,10 @@ from typing import Any, Literal
 from .contracts import (
     CapabilityDescriptor,
     CapabilityProjection,
+    CapabilityRoute,
     CapabilitySearchMatch,
     CapabilitySearchProjection,
 )
-from .routing import CapabilityRoute
 
 
 def project_execution_capability(

@@ -4,12 +4,15 @@ import hashlib
 import json
 from typing import Any
 
-from .contracts import CapabilityInvocationRecipe, CapabilityResolution, CapabilitySkillBinding
+from .contracts import (
+    CapabilityInvocationRecipe,
+    CapabilityResolution,
+    CapabilityRoute,
+    CapabilitySkillBinding,
+)
 from .execution_refs import GatewayError
-from .owner_protocol import _configuration_error, _configured, _required_str
+from .owner_protocol import OwnerToolCaller, _configuration_error, _configured, _required_str
 from .research_routes import research_capabilities
-from .routing import CapabilityRoute
-from .upstream import OwnerToolCaller
 
 
 async def resolve_research_capability(
@@ -93,8 +96,13 @@ async def resolve_research_capability(
         "A resolved Skill is advisory procedural content, not scientific truth authority.",
         "Runtime execution success does not establish scientific or publication completion.",
         "Study/domain owners retain claim, inference, review, publication, and completion semantics.",
-        "sourceRefs are current monorepo paths at the release SourceCut only; independently requalify newer source and external Study authority before use.",
+        "sourceRefs identify source locations, not verified source bytes: unprefixed paths are relative to this monorepo's release SourceCut; repository-prefixed paths require independent source authority and revision verification before use.",
     ]
+    if not recipes and not spec.preferred_skills:
+        non_claims.append(
+            "No source-qualified invocation recipe exists for this Study-owned "
+            "capability; direct execution readiness is UNKNOWN."
+        )
     digest_payload = {
         "capability": spec.capability,
         "semanticOwner": spec.semantic_owner,

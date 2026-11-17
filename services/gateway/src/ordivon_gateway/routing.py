@@ -1,22 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
+from .contracts import CapabilityRoute as CapabilityRoute
 from .research_routes import research_capabilities
-
-
-@dataclass(frozen=True)
-class CapabilityRoute:
-    capability: str
-    owner_id: str
-    category: str
-    owner_tool: str | None
-    context_mode: str
-    truth_boundary: str
-    description: str
-    tags: tuple[str, ...] = ()
-    execution_target: str | None = None
-    default_context: str | None = None
 
 
 def default_routes() -> dict[str, CapabilityRoute]:

@@ -101,18 +101,20 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 - **Gateway application facade** (src/ordivon_gateway/service.py):
   stable public signatures, execution dispatch, artifact reads and Host delegation.
   Its discovery methods delegate rather than duplicating catalog rules.
-- **Execution Coordinator** (src/ordivon_gateway/execution_coordinator.py):
-  submit, resolve, observe, cancel and artifact forwarding to Runtime or
-  natural Runtime owners only. Owns neither Job state nor terminal truth.
+- **Explicit Execution composition** (src/ordivon_gateway/execution_commands.py,
+  src/ordivon_gateway/execution_observations.py):
+  GatewayService injects the same validated Owner caller/route dependencies
+  into existing command and observation modules for submit, resolve, observe,
+  cancel and Artifact forwarding. No independent Job state or terminal truth.
 - **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
   import of parse_execution_ref remains available.
 
-Dependencies point from service to capability_catalog, execution_coordinator,
-and execution_refs. Both specialized modules use owner_protocol for response
-validation and reuse the existing execution_refs wire grammar; neither imports
-service. Catalog inputs are the owner caller, copied route map and probe timeout. Extraction preserves the public route and JSON
+Dependencies point from service to capability_catalog, execution_commands,
+execution_observations, and execution_refs. Both existing execution modules use
+owner_protocol for response validation and reuse the existing execution_refs
+wire grammar; neither imports service. Catalog inputs are the owner caller, copied route map and probe timeout. Extraction preserves the public route and JSON
 contracts. Behavioral tests establish observed compatibility, not proof
 of implementation-level semantic equivalence.
 
@@ -262,6 +264,18 @@ proof of remote authenticated identity. Native consumer regression:
 `tests/test_execution_principal_request_namespace.py`, plus the actual
 HTTP `main()` wiring check. Inspect the installed Gateway and Owner
 readback before claiming this source refinement is deployed.
+
+**Execution observation is not read-only:** Gateway `execution.get`
+currently calls the native Runtime `job.observe` even at `waitMs=0`.
+Runtime may dispatch an accepted Job while reconciling, so authorized
+Agent/Harness callers must treat this as an effect-qualified operation.
+The existing native `job.get` is the pure Runtime inspection path, but
+substituting it for Gateway `execution.get` would lose the complete
+Artifact identity/replay contract consumed by
+`services/harness/src/ordivon_harness/plugin_gateway_effect.py`.
+Keep the current public Tool semantics until Runtime/Harness owners have
+independently verified a compatible no-dispatch consumer path
+(original Host #28845).
 
 ## Host northbound boundary
 
@@ -544,12 +558,15 @@ effect authority. Preserve public Gateway Tool names and Owner identity
 bindings unchanged.
 
 **Currentness boundary:** this source test does not imply the Gateway main
-release is deployed. The installed Gateway 0.10.11 may still contain its
-previous typed bridge until a qualified release. Likewise, Linux Runtime
-UTF-8 subcharacter reads are independently faulty until its merged Owner
-patch is physically installed; Gateway's current maintenance release stops
-non-progress cursors rather than fabricating completion. Recheck both
-installed layers separately after any release.
+release is deployed. At the 2026-11-17 audit, the installed Gateway is 0.10.12
+(release d73424dcae267224c907c102b14dfaf773f3fc11), while this source is
+0.10.14 / MCP surface epoch 14; verify the installed package and authenticated
+client tool catalog again before any release. The older 0.10.11 observation is
+historical, not the present installed version. Linux Runtime UTF-8
+subcharacter paging is an independent Owner-managed condition: its current
+installed fix must be established from Runtime's own real readback, not from
+this Gateway source test. Gateway rejects non-progress cursors rather than
+fabricating completion. Recheck both installed layers after any release.
 
 Proof of business delivery requires the original owner Job identity, terminal
 evidence, source-qualified output bytes, and an independently verified Artifact
@@ -564,8 +581,12 @@ the natural domain consumer. Gateway owns the public MCP contract,
 caller/Owner reference qualification and faithful projection of the
 native Runtime outcome. Runtime's PG Job/Attempt and retained Artifact
 truth remain authoritative; terminal Job does not prove Research/Finance
-domain completion. Reuse the existing GatewayService, native
-ExecutionObservationMethods and HTTP/Owner MCP SDK, not another Scheduler.
+domain completion. Reuse the existing GatewayService and its explicit composition of native
+ExecutionCommandMethods and ExecutionObservationMethods, with the official
+HTTP/Owner MCP SDK, not another Scheduler. Gateway does not use a multiple-
+inheritance ExecutionCoordinator shell; each existing component receives the
+same validated route mapping and Owner caller explicitly. Its public MCP
+Tool Surface and Job/Artifact ownership remain unchanged.
 
 **Critical result projection**: A Runtime Artifact chunk is a typed
 bounded range, not free-form data. Gateway must reject a non-JSON-boolean
@@ -650,12 +671,16 @@ uninterrupted availability, a genuine Actor grant or real service effects.
 The native Gateway installer now calls its read-only
 packaging/check_live_host_admission.py **only** for the real
 /opt/ordivon/gateway production prefix, before changing current.
-It reuses the existing Gateway Host Tool registry and reads the
-currently loaded Security PDP systemd credential from
-/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer,
-not the /etc source file that may not yet have been loaded by the
-running PDP. It also checks that the Security PDP is active and that
-the Gateway unit declares a Host Owner bearer credential.
+It reuses the existing Gateway Host Tool registry and tries to
+qualify the Security PDP's current service-private systemd credential at
+/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer.
+That credential is not a cross-Owner public read interface: when systemd
+isolates it from the Gateway/Runtime operator namespace, its grant count is
+UNKNOWN, not zero, and the protected release must remain NO_GO. Do not copy
+or relax access to another service's private credentials. The natural
+Security AuthZEN evaluation API, using actual scoped positive/negative
+decisions, is the preferred future cross-Owner proof rather than another
+Gateway policy database. The script also checks independent Host conditions.
 
 A result of status=NO_GO (exit code 3) means that at least one
 **necessary** installed continuity prerequisite is absent or cannot
@@ -771,9 +796,11 @@ remains for ordinary bounded Jobs and is **not** a self-release path.
 
 ### Availability and deployment gate
 
-The R12 source candidate extends MCP surface epoch 11 to 12 (41 tools). Its
-source tests and an Owner route demonstration do not imply the installed
-Gateway or the ChatGPT Gateway connector offers the new pair. Enable only after
+Historically, the R12 source candidate extended MCP surface epoch 11 to 12
+(41 tools). This source now declares epoch 14 / package 0.10.14 with 41 tools;
+only the exact current release manifest and qualified live MCP discovery can
+establish an installed surface. Source tests and a route demonstration do
+not imply the installed Gateway or ChatGPT connector offers the new pair. Enable only after
 (1) normal Gateway release qualification, (2) existing Host/Security AuthZEN
 PEP consumer admission and real release authorization grant, (3) installed
 Gateway MCP discovery and caller action approval, (4) Runtime Owner actual

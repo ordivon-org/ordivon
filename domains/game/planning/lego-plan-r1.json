@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "kind": "ordivon.project-lego-plan",
   "truthRole": "planning-projection-not-project-truth",
+  "consumerEvidenceSemantics": {
+    "truthRole": "DECLARED_SOURCE_PATHS_NOT_RUNTIME_ADOPTION",
+    "knowledgeToProductImport": "NOT_OBSERVED_IN_ROOM_OR_BEACON",
+    "dynamicExternalAgentUse": "UNKNOWN",
+    "humanExperience": "UNKNOWN",
+    "releaseConsumption": "NOT_EVALUATED_BY_THIS_PLAN",
+    "scope": "consumerEvidence names locators and tests only. Source queries prove advisory retrieval; native scene receipts prove bounded behavior; neither automatically proves external Agent adoption or player value."
+  },
   "project": {
     "id": "ordivon-game",
     "purpose": "Compose, validate, package, and deliver playable games using mature Godot/Bevy native components; source knowledge remains advisory.",
@@ -13,6 +21,7 @@
   "nodes": [
     {
       "id": "G01",
+      "consumerEvidenceStage": "SOURCE_QUERY",
       "label": "ExternalKnowledge",
       "kind": "knowledge_projection",
       "responsibility": "Retrieve established external source knowledge",
@@ -47,6 +56,7 @@
     },
     {
       "id": "G02",
+      "consumerEvidenceStage": "SOURCE_QUERY",
       "label": "MechanismExperiences",
       "kind": "knowledge_projection",
       "responsibility": "Retrieve mature mechanism interactions",
@@ -81,6 +91,7 @@
     },
     {
       "id": "G03",
+      "consumerEvidenceStage": "SOURCE_QUERY",
       "label": "RelationshipProjection",
       "kind": "knowledge_projection",
       "responsibility": "Retrieve derived mechanism relationships",
@@ -116,6 +127,7 @@
     },
     {
       "id": "G04",
+      "consumerEvidenceStage": "SOURCE_QUERY",
       "label": "CounterexampleMemory",
       "kind": "knowledge_projection",
       "responsibility": "Retrieve source-grounded failed combinations",
@@ -151,6 +163,7 @@
     },
     {
       "id": "G05",
+      "consumerEvidenceStage": "SOURCE_QUERY",
       "label": "KnowledgeQueries",
       "kind": "interface_adapter",
       "responsibility": "Use existing source-bound retrieval interfaces without a Game service",
@@ -189,6 +202,7 @@
     },
     {
       "id": "G06",
+      "consumerEvidenceStage": "NATIVE_COMPOSITION_FIXTURE",
       "label": "NativeAssemblyAcceptance",
       "kind": "verifier",
       "responsibility": "Check a concrete Godot composition of state, actions, event observation and native resource/scene substitution",
@@ -235,6 +249,7 @@
     },
     {
       "id": "G08",
+      "consumerEvidenceStage": "NATIVE_COMPOSITION_FIXTURE",
       "label": "GodotMovementAudioFeedback",
       "kind": "native_effect_adapter",
       "responsibility": "Subscribe to real native Godot gameplay turn transitions and play source-licensed replaceable WAV feedback without owning gameplay state",
@@ -313,6 +328,7 @@
     },
     {
       "id": "G09",
+      "consumerEvidenceStage": "ROOM_NATIVE_CONSUMER",
       "label": "GodotRoomNarrativeGate",
       "kind": "native_narrative_adapter",
       "responsibility": "Source-pinned upstream Dialogue Manager supplies branches inside real room gameplay while EncounterRules alone owns phase and room state",
@@ -396,6 +412,7 @@
     },
     {
       "id": "G10",
+      "consumerEvidenceStage": "ROOM_NATIVE_CONSUMER",
       "label": "GodotNativeRunCheckpoint",
       "kind": "native_state_persistence_adapter",
       "responsibility": "Native ConfigFile save/load of the room run, with independent EncounterRules state validation and explicit action audio",
@@ -482,6 +499,7 @@
     },
     {
       "id": "G11",
+      "consumerEvidenceStage": "ROOM_NATIVE_CONSUMER",
       "label": "GodotRoomAgentEpisode",
       "kind": "native_action_observation_adapter",
       "responsibility": "Run bounded headless action/observation episodes using the same real Room Encounter PackedScene and EncounterRules used by Human players",

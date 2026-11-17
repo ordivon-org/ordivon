@@ -1,8 +1,23 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+@dataclass(frozen=True)
+class CapabilityRoute:
+    capability: str
+    owner_id: str
+    category: str
+    owner_tool: str | None
+    context_mode: str
+    truth_boundary: str
+    description: str
+    tags: tuple[str, ...] = ()
+    execution_target: str | None = None
+    default_context: str | None = None
 
 
 class StrictModel(BaseModel):

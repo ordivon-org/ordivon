@@ -356,6 +356,20 @@ fn decode_open_workspace_record(
         {
             return unfinished_open_error("durable opening is unfinished; retry exact original workspace.open with the same workspaceId");
         }
+        // A crash during native Git removal must not expose the worktree to
+        // a new Job/Run while the durable close intent awaits reconciliation.
+        if serde_json::from_slice::<serde_json::Value>(bytes)
+            .ok()
+            .and_then(|value| value.get("state").and_then(|state| state.as_str()).map(str::to_owned))
+            .as_deref() == Some("closing")
+        {
+            return UniversalExecError::new(
+                UniversalExecErrorCode::WorkspaceStateMismatch,
+                "Workspace close is pending native Git reconciliation",
+                Some("workspaceId"),
+                true,
+            );
+        }
         UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,
             format!("invalid workspace record: {error}"),
@@ -474,6 +488,93 @@ pub(crate) fn list_open_workspace_record_inventory(
         }
         records.push(record);
     }
+    // A crash after native Git removal may leave only the durable CLOSING
+    // record. Scanning workspaces_root alone would make this incomplete close
+    // invisible to workspace.list and to its natural lifecycle consumer.
+    // This is an observation, NOT permission to replay close or release a Run.
+    let records_root = config.workspace_records_root();
+    for entry in
+        fs::read_dir(&records_root).map_err(|error| io_error(&records_root, "list", error))?
+    {
+        let entry =
+            entry.map_err(|error| io_error(&records_root, "read directory entry", error))?;
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("json") {
+            continue;
+        }
+        let Some(workspace_id) = path.file_stem().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if let Err(error) = super::validate_id(workspace_id, "workspaceId") {
+            issues.push(WorkspaceRecordInventoryIssue {
+                workspace_id: workspace_id.to_string(),
+                error,
+            });
+            continue;
+        }
+        // The physical first pass already reported this identity, including
+        // corrupt/closing records. A record-only entry is a separate exception.
+        if config.workspace_path(workspace_id).exists() {
+            continue;
+        }
+        let error = match entry.file_type() {
+            Ok(file_type) if file_type.is_file() && !file_type.is_symlink() => {
+                match read_workspace_record_bytes(&path) {
+                    Ok(bytes) => match decode_closed_workspace_record(&bytes) {
+                        Ok(Some(closed)) => {
+                            // Valid CLOSED tombstones are intentional and must
+                            // not be returned as unfinished physical work.
+                            validate_closed_identity(&closed, workspace_id).err()
+                        }
+                        Ok(None) => match decode_closing_workspace_record(&bytes) {
+                            Ok(Some(closing)) => {
+                                if let Err(error) =
+                                    validate_open_identity(&closing.record, workspace_id)
+                                {
+                                    Some(error)
+                                } else if let Err(error) =
+                                    bind_workspace_record_path(config, workspace_id, closing.record)
+                                {
+                                    // Use the SAME legacy/modern source-path binder
+                                    // as exact native close reconciliation.
+                                    Some(error)
+                                } else {
+                                    Some(UniversalExecError::new(
+                                        UniversalExecErrorCode::WorkspaceStateMismatch,
+                                        "record-only CLOSING needs the original close request and native/PG owner reconciliation; do not auto-release or delete",
+                                        Some("workspaceId"),
+                                        true,
+                                    ))
+                                }
+                            }
+                            // Preserve historical OPEN/OPENING inventory semantics;
+                            // this repair only makes durable CLOSING visible.
+                            // The existing NativeClose protocol remains the sole
+                            // authority for recovering other record states.
+                            Ok(None) => None,
+                            Err(error) => Some(error),
+                        },
+                        Err(error) => Some(error),
+                    },
+                    Err(error) => Some(error),
+                }
+            }
+            Ok(_) => Some(UniversalExecError::new(
+                UniversalExecErrorCode::MetadataCorrupt,
+                "record-only Workspace identity is not a regular non-symlink JSON file",
+                Some("workspaceId"),
+                false,
+            )),
+            Err(error) => Some(io_error(&path, "inspect record-only Workspace", error)),
+        };
+        if let Some(error) = error {
+            issues.push(WorkspaceRecordInventoryIssue {
+                workspace_id: workspace_id.to_string(),
+                error,
+            });
+        }
+    }
+
     records.sort_by(|left, right| {
         right
             .created_unix_ms
@@ -520,6 +621,21 @@ pub(crate) fn workspace_cleanup_dependents(
         let record = match load_workspace_record_metadata(config, candidate_id) {
             Ok(record) => record,
             Err(error) if error.code == UniversalExecErrorCode::WorkspaceNotFound => continue,
+            Err(error) if error.code == UniversalExecErrorCode::WorkspaceStateMismatch => {
+                // A peer with a durable CLOSING intent is not an OPEN worktree,
+                // but it can still own a dependency of the directory being
+                // removed. Inspect its ORIGINAL source identity instead of
+                // globally blocking every unrelated Workspace close.
+                let bytes = read_workspace_record_bytes(&path)?;
+                let Some(closing) = decode_closing_workspace_record(&bytes)? else {
+                    return Err(error);
+                };
+                validate_open_identity(&closing.record, candidate_id)?;
+                let mut original =
+                    bind_workspace_record_path(config, candidate_id, closing.record)?;
+                original.workspace_id = candidate_id.to_string();
+                original
+            }
             Err(error) => return Err(error),
         };
         let workspace_path = Path::new(&record.workspace_path);

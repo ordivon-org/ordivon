@@ -602,3 +602,20 @@ new accepted work; these tests do not qualify a pending queue or resource policy
 ### Resource queue R1
 
 `RuntimeResourceQueueR1.tla/.cfg`: three Jobs, finite resource supply and Workspace read/write conflicts. TLC explored 5,221 states (1,080 distinct, depth 19) without invariant violations. Checked properties: capacity, pending owns no physical allocation, active conflicting writers excluded, one native dispatch, cancellation retains allocations until exit evidence, and restart preserves durable state. This is bounded safety, not a fairness/liveness proof. `resource_fit.rs` Kani harness checks all finite integer inputs against a u128 specification (one harness, three reachability covers). The production claim transaction invokes this function under the PG advisory transaction lock; real PG CAS tests and `pg_vertical` native tests remain required.
+
+## Workspace cross-database consumer claim design R1
+
+The design-only WorkspaceCrossDatabaseClaimR1 model accounts for an installed
+topology where Harness and Runtime PostgreSQL use DIFFERENT databases; equal
+advisory-lock integers cannot coordinate Run birth and native Workspace close.
+The candidate Runtime-owned reservation/activation state shares the existing
+native Workspace authority. Harness semantic Run truth stays in Harness PG.
+Only a committed native ACTIVE claim authorizes a Tool grant; successful Job,
+elapsed time and an unauthenticated caller release do not.
+
+Run scripts/tla-formal check-workspace-crossdb for safety and weak-fair close,
+and scripts/tla-formal falsify-workspace-crossdb for legitimate close
+reachability, cross-DB unsafe close, late claim after close, and unauthorized
+grant. This is not a production Runtime Claim API, a cross-DB ACID commit,
+source-to-installed refinement, legacy Run migration or ignored Artifact
+finalization proof.

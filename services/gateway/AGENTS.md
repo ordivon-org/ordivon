@@ -49,6 +49,17 @@ Keep SPECIFIED, MODEL_VERIFIED, BOUNDED_IMPLEMENTATION_CHECKED,
 SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED as distinct facts;
 unexecuted or unqualified stages are UNKNOWN.
 
+## Fail-closed Host preflight: independent diagnosis is not release proof
+
+When the production preflight cannot read Security's service-private policy
+credential, it remains NO_GO with the original unobservable reason. Its
+additional independentHostReadinessObservations are bounded, read-only Host
+route/anonymous/peer/socket probes and never transmit a bearer in that branch.
+A missing positive Host credential proof is not a claim that the token file
+does not exist; a failed probe is UNKNOWN and a momentarily empty socket view
+does not prove Cloudflare migration. Use this result to coordinate with the
+natural Security, Host and Network owners, never to bypass AuthZEN.
+
 ## HTTP Security PEP and actual CLI wiring
 
 For human and Agent alike, do not infer Gateway capability protection from
@@ -227,6 +238,18 @@ claim successful service admission from an unprivileged staging install.
 On 203/EXEC investigate the interpreter shebang and complete parent path,
 retain the last healthy release, and correct the interpreter location.
 
+## Explicit Gateway Execution composition (2026-11-16)
+
+GatewayService owns explicit ExecutionCommandMethods and
+ExecutionObservationMethods instances with the same OwnerToolCaller and
+CapabilityRoute mapping. Do not restore the former empty multiple-inheritance
+ExecutionCoordinator shell: it had no separate state or business consumer.
+Preserve the existing GatewayService execution.submit/resolve/get/cancel and
+artifact.read boundaries, native Runtime identity and physical receipts;
+composition does not authorize a new Owner Job table, effect retry, or MCP
+Tool Surface change. Existing source regression:
+`tests/test_execution_explicit_composition.py`.
+
 ## Agent receipt type fidelity (2026-11-14)
 
 Agent-facing `execution.submit` and `execution.cancel` only project
@@ -246,23 +269,46 @@ bounded refresh; unresolved identity coverage stays incomplete even when the
 Owner summary count is 0. Never fabricate a missing Owner Artifact or treat
 an unqualified count as a success witness.
 
-## R08 Linux PG Runtime real business Job and Artifact delivery
+**Agent effect boundary (2026-11-18, original Host #28845):**
+Gateway `execution.get` is **not a guaranteed pure read**. The current
+`execution_observations.py` calls Runtime `job.observe` even when `waitMs=0`.
+The native Runtime may dispatch an already-admitted Job while reconciling.
+Harness `plugin_gateway_effect.py` explicitly fences bound replay and also
+consumes `execution.get` for `task.observe`. This does not prove every
+observation has an independent effect-admission receipt. Harness needs
+complete Artifact identities before delivering a result; an Agent without
+the original authorization/Workspace Claim must not use `execution.get`
+as an innocent poll; for pure Runtime inspection, use the natural Owner's existing
+`job.get` under its own principal scope. Do not mechanically replace
+Gateway `execution.get` with `job.get` or change its public Tool contract
+without first preserving the real Harness consumer's original receipt,
+Artifact and replay invariants.
 
-**Human:** A real production Gateway-to-Linux Runtime Job executed and emitted
-an Artifact but Gateway could not report success: the installed Runtime
-advertised an older MCP output schema omitting the PostgreSQL scheduling facet.
-The natural Runtime source already has the typed schema repair, but its
-installed binary has not converged and the Runtime structured release authority
-was not configured. Do not bypass the source of truth or manually replay Jobs.
+## R08 Linux PG Runtime business delivery — historical incident, closed
 
-**Agent:** For the installed-schema exception, only the six explicit Linux
-Runtime business tools use the official typed MCP SDK request path. The
-Gateway still verifies exact Job and Artifact identity and never retries an
-uncertain effect under another request ID. Windows effects, Host, and Skills
-retain normal SDK output-schema validation. Test a real principal-owned
-Gateway execution.submit -> execution.resolve -> execution.get -> artifact.read
-flow and validate the Artifact digest; remove the adapter after the Runtime
-binary publishes corrected schemas with such a passing consumer flow.
+**Historical cause:** A former installed Runtime published an incomplete MCP
+output schema for the PostgreSQL scheduling facet. An earlier Gateway release
+therefore used a narrow typed SDK request workaround for six Linux business
+tools. That workaround is **retired**, not a live design requirement. Do not
+copy it into a new gateway/owner adapter or a new Agent Skill.
+
+**Current contract:** Linux Runtime operations `workspace.exec`, `job.list`,
+`job.observe`, `job.get`, `job.cancel` and `artifact.read` use the official
+high-level MCP SDK `Client.call_tool`. Gateway retains exact Owner Job,
+request and Artifact identity checks, with no second physical effect submission
+after an ambiguous response. Source PR #2320 and production Gateway maintenance
+0.10.12 have independently passed real Linux execute → resolve → observe →
+UTF-8 Artifact/digest checks; Windows Session 1 Gateway readback passed as
+a separate consumer. The installed Runtime also independently fixed the
+previous UTF-8 subcharacter read zero-progress behavior.
+
+**Release boundary:** This historical incident closure does **not** qualify
+the separate mainline Gateway 0.10.14 / epoch-14 / 41-tool Host/Security
+credential and delegation migration. At the 2026-11-17 audit the installed
+Gateway is still 0.10.12; Source/Installed/Client authority is distinct.
+Preserve current `mcp-surface.json` and mandatory
+Host/Security admission and physical consumer gates; a test or source merge
+alone never proves a protected release is deployed.
 
 ## Host exact-message consumer continuity (candidate source)
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -169,19 +171,46 @@ def test_research_resolve_preserves_unknown_skills_owner_as_observation_gap() ->
     assert caller.calls == []
 
 
-def test_recipe_only_resolution_exposes_canonical_invocation_without_running_it() -> None:
+@pytest.mark.parametrize("capability", ("research.study.verify", "research.scholarly.intelligence"))
+def test_unqualified_mise_recipe_is_not_advertised_as_agent_execution(
+    capability: str,
+) -> None:
     caller = ResolverCaller()
-    service = GatewayService(caller)
-
-    resolved = asyncio.run(service.capability_resolve(capability="research.study.verify"))
+    resolved = asyncio.run(GatewayService(caller).capability_resolve(capability=capability))
+    assert resolved.semantic_owner
+    assert resolved.completion_owner == "study"
+    assert resolved.execution_capability is None
+    assert resolved.invocation_recipes == []
     assert resolved.selected_skill is None
-    assert resolved.execution_capability == "execution.linux"
-    assert len(resolved.invocation_recipes) == 1
-    recipe = resolved.invocation_recipes[0]
-    assert recipe.kind == "mise-task"
-    assert recipe.command == ["mise", "run", "research-study:verify"]
-    assert "ad-hoc system Python" in recipe.note
+    assert any("No source-qualified invocation recipe" in text for text in resolved.non_claims)
+    assert all("research-study:verify" not in str(recipe) for recipe in resolved.invocation_recipes)
     assert caller.calls == []
+
+
+def test_all_advertised_mise_recipes_resolve_in_native_mise_task_directory() -> None:
+    """A frozen string is not a runnable consumer: ask the existing native task owner."""
+    mise = shutil.which("mise")
+    if mise is None:
+        pytest.skip("native Mise is not installed in this environment")
+    root = Path(__file__).resolve().parents[3]
+    for name, spec in research_capabilities().items():
+        for recipe in spec.invocation_recipes:
+            if recipe.kind != "mise-task":
+                continue
+            assert recipe.command[:2] == ("mise", "run"), (name, recipe.command)
+            assert len(recipe.command) == 3, (name, recipe.command)
+            probe = subprocess.run(
+                [mise, "tasks", "info", recipe.command[2]],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            assert probe.returncode == 0, (
+                f"Gateway advertised an unregistered native Mise task for {name}: "
+                f"{recipe.command}; {probe.stderr[-500:]}"
+            )
 
 
 def test_capability_resolve_does_not_pretend_generic_execution_has_composition_semantics() -> None:
@@ -250,3 +279,24 @@ def test_three_study_route_dogfood_preserves_axis_and_authority_separation() -> 
         assert resolved.observation_errors == ["skills: owner endpoint is not configured"]
         assert any("not authorization" in item for item in resolved.non_claims)
         assert any("Runtime execution success" in item for item in resolved.non_claims)
+
+
+def test_research_study_birth_source_refs_preserve_external_repository_authority() -> None:
+    """Public resolution must not describe research-v2 references as monorepo-only."""
+    caller = ResolverCaller()
+    resolved = asyncio.run(
+        GatewayService(caller).capability_resolve(capability="research.study.birth")
+    )
+    assert caller.calls == []  # no unobserved owner execution or availability claim
+    assert {ref for ref in resolved.source_refs if ref.startswith("research-v2:")} == {
+        "research-v2:profiles/research_birth_policy.toml",
+        "research-v2:src/ordivon_research/study_birth.py",
+    }
+    source_claims = [claim for claim in resolved.non_claims if "sourceRefs" in claim]
+    assert len(source_claims) == 1
+    assert "unprefixed" in source_claims[0]
+    assert "repository-prefixed" in source_claims[0]
+    assert "source authority" in source_claims[0]
+    assert "revision" in source_claims[0]
+    assert resolved.selected_skill is None
+    assert resolved.observation_errors == []

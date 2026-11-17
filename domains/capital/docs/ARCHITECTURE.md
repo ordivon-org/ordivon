@@ -252,3 +252,128 @@ recomputes the persisted valuation and compares head cash to the ledger; no
 research-side weaker implementation may replace these controls. Review
 `adoption/r3_native/PR_REVIEW_NATIVE_PG_R5.md` for precise native Jobs and
 remaining UNKNOWNs. An isolated test is not a deployment or live-money grant.
+
+## Finance Architecture R1 — source-bound owner and consumer convergence (2026-11-16)
+
+**Decision standing:** PROPOSED — *not an implemented directory migration*. This section
+records the current minimal consumer-backed restructuring boundary, not a financial
+execution grant or a second Finance owner. The reference source is the fetched
+`origin/main` commit `d9d060115a0629a463a0babac437e9d6caebc898`; all changed
+source and consumers must be rechecked against a fresh Git revision at execution.
+
+### Observed facts, not targets
+
+- The existing `config/capital_domain_taxonomy.json` enumerates 62 importable
+  business modules under seven natural domains: Markets (13), Research (12),
+  Portfolio (10), Risk (8), Governance (1), Trading (12), Accounting (6).
+  A stdlib Python AST pass confirmed 62/62 source files and 24 *explicit
+  cross-domain import occurrences*. Neither metric captures runtime imports,
+  source-external clients, or installed execution.
+- At **domain** granularity, Accounting, Portfolio, Risk and Trading comprise
+  one static strongly-connected component. Moving the
+  Accounting-to-Portfolio import in `accounting/paper_simulation_run.py`
+  and the Trading-to-Accounting import in
+  `trading/nautilus_paper_bridge.py` into independently scoped application
+  composition would break all inter-domain SCCs **in that static model**.
+  This is a candidate two-edge cut, not proof of behavioral refinement.
+  A second two-edge static cut substitutes the
+  Accounting-to-Trading calendar-admission edge in
+  `accounting/postgres_paper_close.py` for the Trading-to-Accounting
+  Nautilus bridge edge. That would relocate the 108-line
+  `trading/paper_fill_calendar.py` into Accounting while preserving the
+  full 406-line Nautilus native event/terminal-state ACL. It has fewer
+  tracked references (five instead of nine) but must independently prove
+  that Trading fill/settlement semantics are not improperly reassigned
+  and that Accounting's pre-commit qualification is preserved. Neither
+  static cut is chosen solely by line count or cycle elimination.
+- Preserve Markets' factual calendar and marks checks at the durable
+  `PostgresPaperClose.close_session` effect boundary. Source graph aesthetics
+  must not remove revalidation of caller-constructible market snapshots or
+  native fill calendar facts before a PostgreSQL commit.
+- Explicit consumer names appear in existing Skill, tests, scripts, and
+  documents. For example `postgres_paper_close` appears in 29 tracked
+  Finance-related files and `nautilus_paper_bridge` in 9. Consumer
+  replacement must migrate all *actual* active entry points, not rewrite
+  frozen historical provenance or silently drop tests.
+
+### Highest-priority semantics before any filesystem moves
+
+The R3 Qlib producer's prediction CSV has exactly
+`datetime,instrument,<declared prediction score>`. Its CLOSE/NEXT_OPEN
+score column and holding horizon must agree with `signal_quality` and
+`forecast` metadata, the actual decision and exit event, and original
+source bytes. A matching SHA-256 is not evidence that a consumer selected
+the **correct semantic column**. In this SourceCut,
+`adoption/r3_native/tests/probe_qlib_paper_horizon.py` selects an
+explicit score, whereas `adoption/r3_native/tests/probe_native_buy_hold_exit.py`
+and `accounting/paper_simulation_run.py` still select the first
+non-identifier CSV field. An independently run synthetic input prepending
+an `actual_return` column changes the selected ETF from IWM to SPY;
+the Accounting consumer was additionally falsified through full pre-PG
+admission with an isolated PG-constructor sentinel. No production
+PostgreSQL or broker effect was observed.
+
+A separate bounded policy-interface counterexample shows that
+`governance/policy_decision.py` can return PASS for caller-declared
+counterfactual evidence with structurally complete fields but no
+independently attested market or registered risk-budget facts. This is
+a **structural admission result**, not an execution permit or proof of
+profitability. The registered principal risk budget remains UNSET,
+and NON_LIVE remains the only current execution lane. Neither
+Portfolio nor an external-effect consumer may silently promote this
+caller-relative PASS into an independently qualified financial
+decision; require an actual consuming effect boundary before claiming
+a production security incident.
+
+The historical stacked Draft PR #2274 (head `25c2c183e5e8`) must
+not be blindly merged onto this later main: native
+`git merge-tree --write-tree` returned conflicts, and the aggregate
+stack is not a two-file fix. Extract only accepted P0 score/horizon
+semantics into current source and retain later main's existing Paper
+contribution consumer; a clean PR-relative merge status is not evidence
+of clean integration against today's main.
+
+### Minimal change boundaries (proposals, not implementation)
+
+| Existing owner source | Proposed natural responsibility | Consumer-safe disposition |
+| --- | --- | --- |
+| `research/pit_joint_forecast.py` | PIT vintage, scenarios, scoring, explicit Portfolio input | MOVE only the `solve_pit_payload` cross-domain invocation into existing CLI/application composition after identifying direct callers |
+| `accounting/paper_simulation_run.py` | full-model preflight, NON_LIVE policy, Portfolio allocation, PG iteration | Fix CSV semantic binding first; then MOVE cross-owner workflow from Accounting to a thin composition entry, preserving fail-before-PG and restart/readback |
+| `trading/nautilus_paper_bridge.py` | native Nautilus report/cache/event -> PaperSession | Candidate MOVE of cross-framework bridge to composition, preserving identical native fill/cancel and Paper valuation |
+| `portfolio/paper_contribution_plan.py` | deterministic contribution projection | KEEP finance arithmetic; MOVE PG read/CLI orchestration only when all direct consumers migrate |
+| `portfolio/paper_close_performance.py` | cash-flow-matched accounting receipt projection | KEEP economic calculation; MOVE PG read/CLI; retain Risk/NAV equality checks |
+| `risk/paper_close_risk.py` | independent Paper risk measurement and evidence checks | KEEP Risk validation; MOVE the CLI's Accounting PG reader only if consumer path actually requires it |
+| `accounting/paper_close.py`, `accounting/postgres_ledger.py` | pure Paper accounting and durable PG transaction semantics | KEEP; no new ledger, event store, or financial authority |
+| `markets/etf_eod_snapshot.py`, `markets/equity_session_calendar.py` | source/time admission | KEEP and reuse; do not trade away safety for a zero-edge diagram |
+
+The proposed application boundary, if justified by direct consumers, is
+**only a composition location**, not an eighth domain, new background Agent,
+workflow database, optimizer, broker adapter, or compatibility platform.
+Delete superseded implementation only once every current consumer and
+effect obligation has been adopted or intentionally retired.
+
+### Required evidence and accepted limits
+
+1. P0 source regression: existing Qlib producer/Portfolio/Nautilus/Accounting
+   consumer tests with adversarial label-first CSV, wrong horizon, missing
+   metadata and changed source bytes. A pre-PG reject must be observed;
+   mere hash matching or a unit expression demonstration is insufficient.
+2. Structural refinement: exact before/after source dependency graph plus
+   *actual* direct/CLI/Skill/test consumer migration. The residual cross-domain
+   imports may still include intentional PostgreSQL-boundary validation.
+3. Economic/no-effect refinement: matched cash, protected reserves,
+   pending liabilities, authoritative Paper receipt, terminal cancel/partial
+   fill. Formal abstract proofs are not Python/PG implementation proofs.
+4. Current baseline: the exact d9d main's
+   `mise run //domains/capital:verify` returned EXIT0 with 970 passed,
+   38 skipped, 37 deselected and 234 subtests (native Job
+   `job-01a1e343-6f0d-72ff-951b-33a22418d38f`). Skipped tests
+   are **not** PostgreSQL/provider acceptance, and historical Draft-branch
+   green is **not** current-main green. A qualifying patch must run the
+   affected real consumer, relevant Lean/Z3/PG tests, source/CI and release
+   readback independently.
+5. Human and Agent use the existing Finance Skills and native CLI; there
+   are no default market facts, financial risk budget, historical issuer
+   rights/point-in-time entitlement, live order authority, or inferred alpha.
+   When evidence is missing, retain UNKNOWN rather than passing it off as a
+   valid financial prediction or policy decision.

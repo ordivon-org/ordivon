@@ -1,4 +1,4 @@
-"""PG lifecycle adapter: only completed, quiet, known Workspace evidence is closable."""
+"""PG lifecycle: integrated source + value/consumer fences, not Job success alone."""
 from __future__ import annotations
 
 from importlib.machinery import SourceFileLoader
@@ -26,15 +26,29 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
     def test_reclaims_only_old_terminal_success(self):
         self.assertTrue(mod.eligible(**self.params))
 
-    def test_does_not_conflate_failed_or_lost_job_with_delivery(self):
-        for resolution in ("failed", "lost", "timed_out", "cancelled", None):
+    def test_terminal_failure_is_reclaimable_only_after_independent_guards(self):
+        # Git value, process and NativeClose checks remain separate guards.
+        for resolution in ("failed", "timed_out", "cancelled"):
+            self.assertTrue(mod.eligible(**{**self.params, "latest_resolution": resolution}))
+
+    def test_lost_or_unknown_job_never_becomes_a_reclaim_hint(self):
+        for resolution in ("lost", "orphaned", "running", None):
             self.assertFalse(mod.eligible(**{**self.params, "latest_resolution": resolution}))
 
     def test_active_job_blocks(self):
         self.assertFalse(mod.eligible(**{**self.params, "unresolved": 1}))
 
-    def test_no_job_proof_blocks(self):
-        self.assertFalse(mod.eligible(**{**self.params, "latest_job_ms": None}))
+    def test_no_job_is_not_permanently_pinned_by_missing_success(self):
+        self.assertTrue(mod.eligible(**{
+            **self.params, "latest_job_ms": None, "latest_resolution": None,
+        }))
+        self.assertFalse(mod.eligible(**{
+            **self.params, "latest_job_ms": None, "latest_resolution": "succeeded",
+        }))
+        self.assertFalse(mod.eligible(**{
+            **self.params, "latest_job_ms": None, "latest_resolution": None,
+            "created_ms": 9_000_000,
+        }))
 
     def test_grace_counts_last_job_not_only_creation(self):
         self.assertFalse(mod.eligible(**{**self.params, "latest_job_ms": 8_000_000}))
@@ -89,7 +103,9 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         self.head = git("rev-parse", "HEAD", cwd=self.workspace)
         self.assertNotEqual(self.base, self.head)
 
-    def policy_file(self, allow: bool, *, pinned: bool = False) -> Path:
+    def policy_file(
+        self, allow: bool, *, pinned: bool = False, released: bool = False
+    ) -> Path:
         import json
 
         content = {
@@ -104,8 +120,12 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                     "forceCloseUnintegratedAfterRetention": False,
                 },
             },
-            "rules": ([{"workspaceId": self.workspace.name, "class": "pinned"}]
-                      if pinned else []),
+            "rules": (
+                ([{"workspaceId": self.workspace.name, "class": "pinned"}]
+                 if pinned else [])
+                + ([{"workspaceId": self.workspace.name, "class": "ephemeral",
+                     "operatorConsumerReleased": True}] if released else [])
+            ),
         }
         path = self.root / "policy.json"
         path.write_text(json.dumps(content))
@@ -246,13 +266,18 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           process_enters_during_get: bool = False,
                           ignored_emerges_during_get: bool = False,
                           close_transport_uncertain: bool = False,
+                          job_case: str = "succeeded",
+                          owner_released: bool = False,
+                          active_at_get: bool = False,
                           integration_ref: str = "refs/remotes/origin/main"):
         import argparse
         from unittest.mock import patch
         import time
 
         future_ms = int((time.time() + 6 * 3600) * 1000)
-        policy_path = self.policy_file(allow, pinned=pinned)
+        policy_path = self.policy_file(
+            allow, pinned=pinned, released=owner_released
+        )
         args = argparse.Namespace(
             env_file=self.root / "mock-env",
             source_repo=self.repo,
@@ -292,7 +317,8 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                         )
                     return {
                         "workspaceId": self.enclosing.workspace.name,
-                        "dirty": False, "activeJobIds": [],
+                        "dirty": False,
+                        "activeJobIds": (["job-new"] if active_at_get else []),
                         "sourceRepo": str(self.enclosing.repo.resolve()),
                         "currentHeadRevision": self.enclosing.head,
                         "createdAtMs": future_ms - 7 * 3600 * 1000,
@@ -312,17 +338,22 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
 
         client = RecordingRuntimeClient(self)
         process_cwd_after_get = []
+        assert job_case in {"succeeded", "failed", "timed_out", "cancelled",
+                            "lost", "orphaned", "no_job", "active"}
+        job_rows = {} if job_case == "no_job" else {
+            self.workspace.name: (
+                future_ms - 5 * 3600 * 1000,
+                job_case if job_case != "active" else None,
+                1 if job_case == "active" else 0,
+            )
+        }
         with (
             patch.object(mod, "WORKSPACE_ROOT", self.workspaces.resolve()),
             patch.object(
                 mod, "load_environment_file",
                 return_value={"ORDIVON_PG_BIND": "127.0.0.1:0", "ORDIVON_PG_TOKEN": "test"},
             ),
-            patch.object(mod, "_jobs", return_value={
-                self.workspace.name: (
-                    future_ms - 5 * 3600 * 1000, "succeeded", 0
-                )
-            }),
+            patch.object(mod, "_jobs", return_value=job_rows),
             patch.object(mod, "_active_process_cwds",
                          side_effect=lambda _: process_cwd_after_get.copy()),
             patch.object(mod.time, "time", return_value=future_ms / 1000),
@@ -343,6 +374,114 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         pinned, _ = self.run_operator_plan(allow=True, pinned=True)
         self.assertEqual(pinned["eligible"], 0)
         self.assertEqual(pinned["skipped"].get("policy_pinned"), 1)
+
+    def test_known_terminal_failure_with_merged_clean_source_is_candidate(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        for outcome in ("failed", "timed_out", "cancelled"):
+            with self.subTest(outcome=outcome):
+                report, _ = self.run_operator_plan(
+                    allow=False, job_case=outcome, owner_released=True
+                )
+                self.assertEqual(report["eligible"], 1, report)
+                self.assertEqual(report["candidates"], [self.workspace.name])
+
+    def test_idle_no_job_or_failed_needs_exact_owner_release(self):
+        # Native PG Job/cwd state is insufficient when a separate Harness Run
+        # may be paused before or after its first Job.
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        for outcome in ("no_job", "failed", "timed_out", "cancelled"):
+            with self.subTest(outcome=outcome):
+                report, client = self.run_operator_plan(
+                    allow=False, job_case=outcome, apply=True
+                )
+                self.assertEqual(report["eligible"], 0)
+                self.assertEqual(
+                    report["skipped"].get("needs_owner_disposition"), 1
+                )
+                self.assertEqual(report["needsOwnerDisposition"], [self.workspace.name])
+                self.assertEqual(client.calls, [])
+                self.assertTrue(self.workspace.exists())
+
+    def test_broad_prefix_cannot_assert_consumer_released(self):
+        import json
+        policy = self.policy_file(True)
+        data = json.loads(policy.read_text())
+        data["rules"] = [
+            {"prefix": "ws-", "class": "ephemeral",
+             "operatorConsumerReleased": True}
+        ]
+        policy.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "owner release"):
+            mod._retention_policy(policy)
+
+    def test_duplicate_exact_operator_releases_fail_closed(self):
+        import json
+        policy = self.policy_file(True, released=True)
+        data = json.loads(policy.read_text())
+        data["rules"].append({
+            "workspaceId": self.workspace.name, "class": "ephemeral",
+            "operatorConsumerReleased": False,
+        })
+        policy.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "duplicate exact owner release"):
+            mod._retention_policy(policy)
+
+    def test_explicit_release_revoked_during_get_refuses_close(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, job_case="no_job", owner_released=True,
+            revoke_during_get=True, apply=True,
+        )
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(client.calls, ["workspace.get"])
+        self.assertEqual(report["skipped"].get("owner_disposition_revoked"), 1)
+        self.assertTrue(self.workspace.exists())
+
+    def test_no_job_merged_clean_carrier_is_closed_only_through_runtime(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, apply=True, job_case="no_job",
+            owner_released=True,
+        )
+        self.assertEqual(report["closed"], [self.workspace.name], report)
+        self.assertEqual(client.calls, ["workspace.get", "workspace.close"])
+        self.assertFalse(self.workspace.exists())
+
+    def test_no_job_or_failed_unmerged_head_is_not_assumed_delivered(self):
+        for outcome in ("failed", "no_job", "lost", "orphaned", "active"):
+            with self.subTest(outcome=outcome):
+                report, client = self.run_operator_plan(
+                    allow=True, apply=True, job_case=outcome,
+                    owner_released=True,
+                )
+                self.assertEqual(report["closed"], [], report)
+                self.assertEqual(client.calls, [])
+                self.assertTrue(self.workspace.exists())
+
+    def test_new_job_observed_by_runtime_get_blocks_candidate(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, apply=True, job_case="failed",
+            owner_released=True, active_at_get=True,
+        )
+        self.assertEqual(report["closed"], [], report)
+        self.assertEqual(client.calls, ["workspace.get"])
+        self.assertTrue(self.workspace.exists())
+
+    def test_no_job_does_not_erase_ignored_outputs(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        exclude = self.repo / ".git" / "info" / "exclude"
+        exclude.write_text(exclude.read_text() + "\nignored-cache/\n")
+        (self.workspace / "ignored-cache").mkdir()
+        (self.workspace / "ignored-cache" / "release.zip").write_bytes(b"not archived")
+        report, client = self.run_operator_plan(
+            allow=False, apply=True, job_case="no_job",
+            owner_released=True,
+        )
+        self.assertEqual(report["closed"], [], report)
+        self.assertEqual(client.calls, [])
+        self.assertEqual(report["needsOwnerDisposition"], [])
+        self.assertTrue((self.workspace / "ignored-cache" / "release.zip").exists())
 
     def test_local_only_main_proves_integrated_source_without_origin(self):
         # Research and Paper2 use local Git repositories without origin/main.
@@ -391,6 +530,72 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             self.assertIn("--integration-ref refs/heads/main ", line)
             self.assertIn("--min-age-hours 4 ", line)
             self.assertNotIn("--force", line)
+
+    def test_other_git_source_repo_workspace_is_not_unknown_directory(self):
+        """One Runtime root can host unrelated Git repos; neither is an orphan."""
+        import json
+        other = self.root / "another-source-repo"
+        other.mkdir()
+        self.git("init", "-q", "-b", "main", cwd=other)
+        self.git("config", "user.name", "Other Operator", cwd=other)
+        self.git("config", "user.email", "other@example.invalid", cwd=other)
+        (other / "main.txt").write_text("distinct Git authority")
+        self.git("add", "main.txt", cwd=other)
+        self.git("commit", "-qm", "other root", cwd=other)
+        other_workspace = self.workspaces / "ws-other-source"
+        self.git("worktree", "add", "--detach", str(other_workspace), "HEAD", cwd=other)
+        records = self.root / "workspace-records"
+        records.mkdir()
+        (records / (other_workspace.name + ".json")).write_text(
+            json.dumps({
+                "schemaVersion": 1,
+                "workspaceId": other_workspace.name,
+                "sourceRepo": str(other.resolve()),
+                "sourceRevision": self.git("rev-parse", "HEAD", cwd=other_workspace),
+                "workspacePath": str(other_workspace.resolve()),
+                "createdUnixMs": 1,
+            })
+        )
+        report, client = self.run_operator_plan(allow=False)
+        self.assertEqual(report["otherSourceRepoManagedWorkspaceCount"], 1)
+        self.assertEqual(report["otherSourceRepoManagedWorkspaceSample"],
+                         [other_workspace.name])
+        self.assertEqual(report["unregisteredDirectoryCount"], 1)
+        self.assertEqual(report["unclassifiedDirectoryCount"], 0)
+        self.assertEqual(report["eligible"], 0)
+        self.assertTrue(other_workspace.exists())
+        self.assertEqual(client.calls, [])
+
+    def test_unproven_cross_repo_record_remains_unknown_without_deletion(self):
+        """An untrusted record is not enough to declare an orphan or a consumer."""
+        import json
+        other_workspace = self.workspaces / "ws-unproven-source"
+        other_workspace.mkdir()
+        records = self.root / "workspace-records"
+        records.mkdir()
+        # The record points at a genuine *other Git repository*, but Git
+        # never registered this directory as its worktree. Metadata alone
+        # must not make the directory appear safely owned or disposable.
+        foreign_repo = self.root / "unrelated-source"
+        foreign_repo.mkdir()
+        self.git("init", "-q", "-b", "main", cwd=foreign_repo)
+        (records / (other_workspace.name + ".json")).write_text(
+            json.dumps({
+                "schemaVersion": 1,
+                "workspaceId": other_workspace.name,
+                "sourceRepo": str(foreign_repo.resolve()),
+                "workspacePath": str(other_workspace.resolve()),
+            })
+        )
+        report, client = self.run_operator_plan(allow=True)
+        self.assertEqual(report["otherSourceRepoManagedWorkspaceCount"], 0)
+        self.assertEqual(report["unregisteredDirectoryCount"], 1)
+        self.assertEqual(report["unclassifiedDirectoryCount"], 1)
+        self.assertEqual(report["unregisteredDirectorySample"],
+                         [other_workspace.name])
+        self.assertEqual(report["eligible"], 1)  # unrelated source repo W is eligible
+        self.assertTrue(other_workspace.exists())
+        self.assertEqual(client.calls, [])
 
     def test_ignored_workspace_output_never_qualifies_for_deletion(self):
         # Git status --porcelain reports clean, but ordinary worktree remove
