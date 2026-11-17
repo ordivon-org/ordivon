@@ -128,6 +128,8 @@ def qualify(
         raise DeliveryGateError("candidate changed during independent QA")
     if not all(r["visiblePassed"] and r["hiddenPassed"] for r in qa_results):
         raise DeliveryGateError("independent public/hidden DomainQA did not pass")
+    if not all(r.get("independentConsumerPassed") is True for r in qa_results):
+        raise DeliveryGateError("independent consumer behavioral readback did not pass")
 
     if not isinstance(consumer_commit, str) or not COMMIT_RE.fullmatch(consumer_commit):
         raise DeliveryGateError("delivery requires one immutable full Git commit ID")
@@ -156,6 +158,8 @@ def qualify(
         "taskId": task_id,
         "domainQA": "passed",
         "domainQATrials": trial_count,
+        "independentConsumerQATrials": trial_count,
+        "independentConsumerBehaviorObserved": True,
         "consumerGitByteReadback": "verified",
         "candidateDigest": source_sha,
         "consumerCommit": consumer_commit,
@@ -166,7 +170,8 @@ def qualify(
         "modelAuthorshipEvidence": "UNKNOWN",
         "runtimeToolEffectEvidence": "UNKNOWN",
         "truthBoundary": (
-            "an independent verifier read exact QA-passed bytes from the caller-supplied "
+            "public, hidden, and distinct-process behavioral checks passed; an "
+            "independent verifier read exact QA-passed bytes from the caller-supplied "
             "consumer Git repository; user acceptance and production deployment remain UNKNOWN"
         ),
     }

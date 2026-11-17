@@ -110,8 +110,13 @@ def run_candidate(label: str, source: Path | None) -> dict[str, Any]:
         protected = {name: file_digest(workspace / name) for name in PROTECTED_FILES}
         if source is not None:
             shutil.copyfile(source, workspace / "pipeline.py")
+        # These tiny standard-library fixtures do not need the operator's
+        # credentials, proxy configuration, or local PATH. This is environment
+        # hygiene, not an OS sandbox against untrusted candidate programs.
         env = {
-            **os.environ,
+            "PATH": "/usr/bin:/bin",
+            "HOME": str(workspace),
+            "LANG": "C.UTF-8",
             "PYTHONDONTWRITEBYTECODE": "1",
             "ORDIVON_EVAL_WORKSPACE": str(workspace),
         }
@@ -121,6 +126,25 @@ def run_candidate(label: str, source: Path | None) -> dict[str, Any]:
             env=env,
         )
         hidden = _run(["/usr/bin/python3", str(HIDDEN_VERIFIER)], cwd=workspace, env=env)
+        # A separate consumer process uses a distinct argv/import context;
+        # the hidden verifier's own process must not be the only observer of
+        # the task's externally visible behavior. This is not a proof against
+        # an adaptive hostile program or a substitute for native isolation.
+        consumer_program = (
+            "import importlib.util\n"
+            "import sys\n"
+            "spec = importlib.util.spec_from_file_location('standalone_domain_consumer', sys.argv[1])\n"
+            "module = importlib.util.module_from_spec(spec)\n"
+            "spec.loader.exec_module(module)\n"
+            "if not (module.DEFAULT_TIMEOUT_SECONDS == 30 and module.retry_limit() == 3 and module.execution_mode() == 'safe'):\n"
+            "    raise SystemExit(1)\n"
+        )
+        independent_consumer = _run(
+            ["/usr/bin/python3", "-I", "-B", "-c", consumer_program,
+             str(workspace / "pipeline.py")],
+            cwd=workspace,
+            env={key: value for key, value in env.items() if key != "ORDIVON_EVAL_WORKSPACE"},
+        )
         after = _tree_manifest(workspace)
         changed = sorted(
             path for path in set(before) | set(after) if before.get(path) != after.get(path)
@@ -137,6 +161,7 @@ def run_candidate(label: str, source: Path | None) -> dict[str, Any]:
             "label": label,
             "visiblePassed": visible,
             "hiddenPassed": hidden,
+            "independentConsumerPassed": independent_consumer,
             "changedPaths": changed,
         }
 
@@ -160,7 +185,12 @@ def run_qa() -> dict[str, Any]:
             "collateral": (True, False),
         }
         for label, expectation in expected.items():
+            # Preserve the original two-coordinate public evidence API.
+            # The new third-process predicate is an additional admission
+            # obligation, not a silent redefinition of historical results.
             observed = (cases[label]["visiblePassed"], cases[label]["hiddenPassed"])
+            if cases[label]["independentConsumerPassed"] is not (label == "oracle"):
+                raise AssertionError(f"round {index} {label}: independent consumer standing differs")
             if observed != expectation:
                 raise AssertionError(
                     f"round {index} {label}: expected {expectation}, observed {observed}"
