@@ -269,6 +269,21 @@ bounded refresh; unresolved identity coverage stays incomplete even when the
 Owner summary count is 0. Never fabricate a missing Owner Artifact or treat
 an unqualified count as a success witness.
 
+**Agent effect boundary (2026-11-18, original Host #28845):**
+Gateway `execution.get` is **not a guaranteed pure read**. The current
+`execution_observations.py` calls Runtime `job.observe` even when `waitMs=0`.
+The native Runtime may dispatch an already-admitted Job while reconciling.
+Harness `plugin_gateway_effect.py` explicitly fences bound replay and also
+consumes `execution.get` for `task.observe`. This does not prove every
+observation has an independent effect-admission receipt. Harness needs
+complete Artifact identities before delivering a result; an Agent without
+the original authorization/Workspace Claim must not use `execution.get`
+as an innocent poll; for pure Runtime inspection, use the natural Owner's existing
+`job.get` under its own principal scope. Do not mechanically replace
+Gateway `execution.get` with `job.get` or change its public Tool contract
+without first preserving the real Harness consumer's original receipt,
+Artifact and replay invariants.
+
 ## R08 Linux PG Runtime business delivery — historical incident, closed
 
 **Historical cause:** A former installed Runtime published an incomplete MCP
