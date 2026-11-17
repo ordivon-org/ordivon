@@ -4502,5 +4502,28 @@ fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
         bad_read["structuredContent"]["error"]["field"], "executionPlan",
         "{bad_read}"
     );
+    // A's typed partial JobList contract and B's per-candidate isolation must
+    // compose at a real PG18 MCP consumer, not merely pass schema tests.
+    let native_list = call(&endpoint, "job.list", json!({"limit":100}));
+    assert_ne!(
+        native_list["isError"], true,
+        "PG list must not fail globally on one corrupt Plan: {native_list}"
+    );
+    let listed_jobs = native_list["structuredContent"]["jobs"]
+        .as_array()
+        .expect("PG job.list must preserve original jobs");
+    let corrupt_listed = listed_jobs
+        .iter()
+        .find(|entry| entry["jobId"].as_str() == Some(corrupt_id.as_str()))
+        .expect("PG job.list must retain corrupt Plan's Job identity");
+    assert_eq!(corrupt_listed["executableName"], Value::Null);
+    assert_eq!(corrupt_listed["cwdRelative"], Value::Null);
+    assert_eq!(corrupt_listed["operationDigest"], op_digest);
+    let healthy_listed = listed_jobs
+        .iter()
+        .find(|entry| entry["jobId"].as_str() == Some(good_id.as_str()))
+        .expect("healthy Job must remain discoverable");
+    assert_eq!(healthy_listed["executionDisposition"], "succeeded");
+    eprintln!("A_B_R27_NATIVE_PG18_JOBLIST_AND_SCHEDULER_COMPOSITION_PASS corrupt={corrupt_id} healthy={good_id}");
     eprintln!("B_R3_PG18_NATIVE_GREEN good={good_id} bad={corrupt_id} provider={provider_id} issue_count=1 stdout=B_R3_HEALTHY_NATIVE");
 }
