@@ -13,7 +13,7 @@ audience:
   - user
   - builder
   - operator
-updated: 2026-08-04
+updated: 2026-11-18
 summary: Minimal path from a clean checkout to portable checks, real system acceptance, and receipted installation.
 evidence_status: verified
 readiness: READY
@@ -27,6 +27,10 @@ related:
 ---
 <!-- cspell:words rustc clippy toplevel -->
 # Runtime Quick Start
+
+## Select the installed Runtime backend before operating it
+
+**Observed 2026-11-18 (Linux node `linux-pg`):** the connected systemd service runs the PG-native `ordivon-runtime-pg` binary with a resource-aware queue (`runtime.describe.globalExecutionLimit=null`). The native Windows `windows-main-r6-candidate` is a **separate** node whose PostgreSQL Writer cutover has not been accepted. This page's `transactional-runtime`, `registry.sqlite3`, legacy `ordivon-runtime-mcp` and fixed-count deployment examples are **source/legacy installation examples**, **not instructions to replace or reconfigure the installed Linux PG service**. Inspect the exact node's `runtime.describe`, systemd/SCM `ExecStart`, active Registry backend, deployed executable digest and release receipt first; use the existing [operator guide](guides/operator-runtime.md) for backend-qualified actions. A documented or packaged lifecycle timer does not prove the installed timer is enabled; the observed Linux timer was disabled/inactive. Do not enable reclaim without original Harness/Workspace consumer release evidence.
 
 ## Goal
 
