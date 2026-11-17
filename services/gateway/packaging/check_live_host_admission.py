@@ -652,6 +652,16 @@ def main() -> int:
             "independentHostReadinessObservations": _independent_host_readiness_observations(),
             "truthBoundary": "release precondition only; Security PDP and Host remain authoritative",
         }
+    # This CLI's exit 0 is the production installer's *promote* permission,
+    # not merely the result of a necessary-condition inventory. Retain the
+    # prior diagnostic and fail closed until natural Owners provide actual
+    # pre-promotion Principal/Host/Cloudflare/Agent consumer evidence.
+    # Post-promotion revalidation is necessarily a separate later check.
+    if standing["status"] == "NECESSARY_PRECONDITIONS_PRESENT" and any(
+        item != "production post-promotion behavior" for item in standing["unverified"]
+    ):
+        standing["status"] = "NO_GO"
+        standing["reasons"].append("INDEPENDENT_CONSUMER_CUTOVER_NOT_VERIFIED")
     print(json.dumps(standing, sort_keys=True))
     return 0 if standing["status"] == "NECESSARY_PRECONDITIONS_PRESENT" else 3
 

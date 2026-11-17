@@ -725,3 +725,44 @@ def test_primary_gateway_admission_fails_closed_on_unobserved_envfile_override(
     report = json.loads(capsys.readouterr().out)
     assert report["status"] == "NO_GO"
     assert report["reasons"] == ["HOST_SECURITY_PRECONDITIONS_UNOBSERVABLE"]
+
+
+def test_installer_called_preflight_cannot_promote_on_only_necessary_conditions(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Actual main() exit code is the installer's gate; candidate booleans are not consumer evidence."""
+    import sys
+
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    )
+    monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
+    monkeypatch.setattr(preflight, "_policy_data", lambda _p: _operator_data([_grant()]))
+    monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda _unit: env)
+    monkeypatch.setattr(preflight, "_rejects_unauthenticated_host_initialize", lambda: True)
+    monkeypatch.setattr(
+        preflight, "_authenticated_host_initialize_accepted", lambda *_args, **_kw: True
+    )
+    monkeypatch.setattr(preflight, "_observed_non_gateway_host_tcp_clients", lambda: [])
+    monkeypatch.setattr(
+        preflight,
+        "_unqualified_active_peer_host_consumers",
+        lambda *, anonymous_denied: (),
+    )
+    monkeypatch.setattr(preflight, "_installed_security_host_read_surface_qualified", lambda: True)
+    monkeypatch.setattr(preflight.time, "time", lambda: 1_500)
+    monkeypatch.setattr(
+        preflight.subprocess,
+        "run",
+        lambda *_args, **_kw: subprocess.CompletedProcess(
+            args=["systemctl"], returncode=0, stdout="active\n"
+        ),
+    )
+
+    assert preflight.main() == 3
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "NO_GO"
+    assert report["reasons"] == ["INDEPENDENT_CONSUMER_CUTOVER_NOT_VERIFIED"]
+    assert "direct Host MCP connector migration" in report["unverified"]
+    assert "actual Principal-to-Actor and resource authorization" in report["unverified"]
