@@ -325,7 +325,15 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
             )
             result = await middleware(ctx, owner)
             if permitted:
-                assert result["structuredContent"]["source"] == "isolated-test-only"
+                assert not getattr(result, "is_error", False), (
+                    f"test-owned PDP unexpectedly rejected ALLOW: {getattr(result, 'structured_content', None)!r}"
+                )
+                content = (
+                    result["structuredContent"]
+                    if isinstance(result, dict)
+                    else result.structured_content
+                )
+                assert content["source"] == "isolated-test-only"
                 assert owner_calls == ["actual-owner"]
             else:
                 assert result.is_error is True
