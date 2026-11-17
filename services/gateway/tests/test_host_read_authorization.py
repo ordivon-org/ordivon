@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
+import json
+import secrets
+import shutil
+import time
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from starlette.testclient import TestClient
 
 from ordivon_gateway.authorization_targets import (
     _HOST_READ_ONLY_TOOLS,
     CapabilityAuthorizationTargetError,
     resolve_authorization_target,
 )
+from ordivon_gateway.authzen_authorizer import AuthZenPrincipalAuthorizer
 from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
 
 # These are the existing Gateway Host read routes, not an extra API surface.
@@ -202,3 +210,138 @@ def test_exact_message_digest_is_part_of_host_read_pdp_target() -> None:
 def test_exact_message_read_rejects_invalid_selector_before_pdp(invalid) -> None:
     with pytest.raises(CapabilityAuthorizationTargetError):
         resolve_authorization_target("message.get", invalid)
+
+
+def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
+    tmp_path: Path,
+) -> None:
+    """Refine the current Host PEP contract against the existing Security OPA implementation.
+
+    This is an isolated test-owned policy and token, not a production Principal
+    or an authenticated Cloudflare ingress test. The guarded Owner callback
+    proves that a PDP DENY never dispatches an Owner operation.
+    """
+    opa = shutil.which("opa")
+    if opa is None:
+        pytest.skip("requires existing native OPA tool")
+
+    root = Path(__file__).resolve().parents[3]
+    policy_root = root / "platform/security/services/gateway-authzen"
+    server_file = policy_root / "src/ordivon_security_gateway_authzen/server.py"
+    policy = policy_root / "policies/gateway_artifact.rego"
+    assert server_file.is_file() and policy.is_file()
+    spec = importlib.util.spec_from_file_location(
+        "ordivon_security_gateway_authzen_test_adapter", server_file
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    token = secrets.token_hex(32)
+    token_path = tmp_path / "pdp-token"
+    token_path.write_text(token, encoding="utf-8")
+    token_path.chmod(0o600)
+    policy_data = tmp_path / "trusted-policy-data.json"
+
+    now = int(time.time())
+    grant = {
+        "active": True,
+        "principalId": VERIFIED["ordivon_access_principal"],
+        "issuer": VERIFIED["ordivon_access_issuer"],
+        "actorRef": "actor:project:delegate",
+        "notBeforeEpochSeconds": now - 60,
+        "expiresAtEpochSeconds": now + 1800,
+        "allowedTools": ["work.get"],
+        "allowedActions": [],
+        "exactRefs": ["work:project:one"],
+        "namespacePrefixes": [],
+    }
+
+    def save_policy() -> None:
+        policy_data.write_text(
+            json.dumps(
+                {
+                    "ordivon": {
+                        "security": {
+                            "gateway_artifact_config": {"cf_issuer": "https://test-issuer.invalid"},
+                            "gateway_host_actor_grants": [grant],
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        policy_data.chmod(0o600)
+
+    save_policy()
+    app = module.make_app(
+        token_path=str(token_path),
+        policy=str(policy),
+        policy_data=str(policy_data),
+        opa=opa,
+    )
+    with TestClient(app) as pdp:
+
+        class TestOwnedPdpSession:
+            def post(
+                self,
+                url: str,
+                *,
+                json: dict[str, Any],
+                headers: dict[str, str],
+                timeout: float,
+                allow_redirects: bool,
+            ) -> Any:
+                assert url == "https://127.0.0.1:18787/access/v1/evaluation"
+                assert timeout > 0 and allow_redirects is False
+                return pdp.post("/access/v1/evaluation", json=json, headers=headers)
+
+        middleware = GatewayCapabilityAuthorizationMiddleware(
+            AuthZenPrincipalAuthorizer(
+                "https://127.0.0.1:18787/access/v1/evaluation",
+                bearer_token_provider=lambda: token,
+                session=TestOwnedPdpSession(),  # type: ignore[arg-type]
+            )
+        )
+
+        async def call(work_ref: str, principal: str, issuer: str, *, permitted: bool) -> None:
+            owner_calls: list[str] = []
+
+            async def owner(_ctx: Any) -> dict[str, Any]:
+                owner_calls.append("actual-owner")
+                return {"structuredContent": {"source": "isolated-test-only"}}
+
+            ctx = SimpleNamespace(
+                method="tools/call",
+                params={"name": "work.get", "arguments": {"workRef": work_ref}},
+                request=SimpleNamespace(
+                    scope={
+                        "state": {
+                            "ordivon_access_principal": principal,
+                            "ordivon_access_issuer": issuer,
+                        }
+                    }
+                ),
+            )
+            result = await middleware(ctx, owner)
+            if permitted:
+                assert result["structuredContent"]["source"] == "isolated-test-only"
+                assert owner_calls == ["actual-owner"]
+            else:
+                assert result.is_error is True
+                assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_DENIED"
+                assert owner_calls == []
+
+        async def scenarios() -> None:
+            principal = VERIFIED["ordivon_access_principal"]
+            issuer = VERIFIED["ordivon_access_issuer"]
+            await call("work:project:one", principal, issuer, permitted=True)
+            await call("work:other:outside", principal, issuer, permitted=False)
+            await call("work:project:one", "principal:other", issuer, permitted=False)
+            await call("work:project:one", principal, "wrong-issuer", permitted=False)
+
+            grant["active"] = False
+            save_policy()
+            await call("work:project:one", principal, issuer, permitted=False)
+
+        asyncio.run(scenarios())
