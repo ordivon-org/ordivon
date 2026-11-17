@@ -5,6 +5,7 @@ import importlib.util
 import json
 import secrets
 import shutil
+import subprocess
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -237,6 +238,23 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
+    # This is a functional PEP/OPA contract, not a 2s production latency test.
+    # On shared CI runners, cold OPA process startup can exceed Security's
+    # deliberately short fail-closed production budget. Keep its actual logic
+    # and real OPA binary, but grant this disposable subprocess up to 10s.
+    # Override only this dynamically loaded test module, not subprocess.run
+    # globally or any installed Security service.
+    native_run = subprocess.run
+
+    def test_opa_run(*args: Any, **kwargs: Any) -> Any:
+        assert kwargs.get("timeout") == 2.0
+        kwargs["timeout"] = 10.0
+        return native_run(*args, **kwargs)
+
+    module.subprocess = SimpleNamespace(
+        run=test_opa_run, SubprocessError=subprocess.SubprocessError
+    )
+
     token = secrets.token_hex(32)
     token_path = tmp_path / "pdp-token"
     token_path.write_text(token, encoding="utf-8")
@@ -281,6 +299,8 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
         opa=opa,
     )
     with TestClient(app) as pdp:
+        # Only HTTP status/error codes; never log ephemeral bearer tokens.
+        pdp_outcomes: list[tuple[int, str | None]] = []
 
         class TestOwnedPdpSession:
             def post(
@@ -295,6 +315,8 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
                 assert url == "https://127.0.0.1:18787/access/v1/evaluation"
                 assert timeout > 0 and allow_redirects is False
                 response = pdp.post("/access/v1/evaluation", json=json, headers=headers)
+                error_code = response.json().get("error") if response.status_code != 200 else None
+                pdp_outcomes.append((response.status_code, error_code))
                 assert response.status_code == 200, (
                     f"test-owned Security PDP HTTP {response.status_code}: {response.json()!r}"
                 )
@@ -333,7 +355,9 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
             result = await middleware(ctx, owner)
             if permitted:
                 assert not getattr(result, "is_error", False), (
-                    f"test-owned PDP unexpectedly rejected ALLOW: {getattr(result, 'structured_content', None)!r}"
+                    "test-owned PDP unexpectedly rejected ALLOW: "
+                    f"{getattr(result, 'structured_content', None)!r}; "
+                    f"PDP_HTTP_status_and_error_codes={pdp_outcomes!r}"
                 )
                 content = (
                     result["structuredContent"]
