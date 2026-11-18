@@ -109,6 +109,37 @@ suggestedAction=discover-before-create`。这只能证明**当前 Host Work 权�
 运行状态或当前发布版本的证明。本例的只读审计与跨 Owner 异常回执留在原 Host
 Topic #29924 / #29945 / #29953；没有迁移、清理或生成任何旧 Work 行。
 
+**R48 历史 Work 世代反证（2026-11-19）**：原 Host 消息
+`message:ddrive-capacity-rescue:host-open248-classification-manifest-r8:20261016`
+（#17201）保留了 2026-10-16 一份有 248 个不同 **OPEN** Work 的
+`workRef/rev/kind/snapshotDigest` 目录。原归档 Space 的 18 个 WorkRef
+中有 **8 个**精确出现在此目录；其中旧
+`work:runtime:ephemeral-scratch-lifecycle-r1-20261001`
+为 `rev24`，但现行 `work.list` 的 19 个 Work 均创建于
+2026-11-09 至 11-17，与这 248 个历史 OPEN Work 的交集为零。
+**其余 10 个未出现在 OPEN 清单，不等于当时不存在**：
+它们可能已经 `completed/abandoned`；历史消息还记载了
+`work:runtime:storage-pressure-control-r2-20260929` 在 10 月 8 日
+`COMPLETED rev8`（#9181）。上述历史目录是当时的 Host 消息证据，
+**不是可读取的旧 PostgreSQL 行、完整 Snapshot 字节或数据库备份**。
+
+不要把「合法终态 CAS」与「物理删除」混为一谈：历史 #17145/#17176
+报告 10 月 15 日 `works=2534`，7 个 Work 完成/放弃 CAS
+**不减少总量**；#25660 在 11 月 6 日报告按消费者审查物理删除
+8 个 Work/32 个 Snapshot（`392→384`）；#25671 另删
+2 个 Work/28 个 Snapshot（总量 `378`）。11 月 10 日独立
+#26001 报告 `works=5/snapshots=15`，且三个旧终态 Work 缺少
+`revision=1`，当时的 History Doctor **不健康**。目前 PG14
+Doctor 健康仅证明**现行留存行**的内部检查，不能证明全部历史已恢复。
+跨时点总量差额无法归责于这两次小范围删除；大宗退役、数据库世代
+更替、备份/迁移链与授权回执必须由原自然 Host 生命周期/数据 Owner
+按 PG 原始记录独立复核，未知保留 UNKNOWN。源码 Alembic `0009`
+退役的是旧 Task/Board，而非 Social Work Fabric `works`；
+不能把这项迁移当作缺失 Work 的原因。最小再发现入口是带完整 `messageRef` 的原生 `message.get`：
+从序号 #17201/#17176/#25660/#25671/#26001 找到消息的稳定引用，
+再按该引用精确读取，随后对照现行 `work.get/list`；
+不创建 18 个同名 Work、不复制历史注册表、不回填伪 Snapshot。
+
 Agent 的最小无新增接口恢复分支：
 
 1. 对**当前确实存在**的 Work 调用 `work.get`，核对真实 revision 后，
