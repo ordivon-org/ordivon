@@ -1,23 +1,18 @@
 [Unit]
-Description=Ordivon Host v2 protected MCP parallel ingress (pre-cutover)
+Description=Ordivon Host v2 protected candidate (loopback M2M; read-only PG)
 After=network-online.target postgresql.service
 Wants=network-online.target postgresql.service
-StartLimitIntervalSec=90
-StartLimitBurst=4
 
 [Service]
 Type=simple
 User=ordivon-host-v2-protected
 Group=ordivon-host-v2-protected
-DynamicUser=true
+DynamicUser=yes
 WorkingDirectory=/opt/ordivon/host-v2/current
 EnvironmentFile=/etc/ordivon/host-v2.env
-# The installed Host environment file describes the live Legacy listener.
-# Override its endpoint values at ExecStart, AFTER EnvironmentFile loading.
-# This service never changes or restarts the existing Host 8898 listener.
-ExecStartPre=/opt/ordivon/host-v2/current/.venv/bin/python -c 'from ordivon_host_v2 import HostV2; import os; HostV2(os.environ["ORDIVON_HOST_V2_DSN"]).initialize()'
-LoadCredentialEncrypted=host-mcp-bearer:/etc/credstore.encrypted/ordivon-host-v2-protected-mcp.cred
-ExecStart=/usr/bin/env ORDIVON_HOST_V2_TRANSPORT=streamable-http ORDIVON_HOST_V2_HOST=127.0.0.1 ORDIVON_HOST_V2_PORT=19008 ORDIVON_HOST_V2_PATH=/mcp ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE=/run/credentials/ordivon-host-v2-protected.service/host-mcp-bearer ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP= /opt/ordivon/host-v2/current/.venv/bin/ordivon-host-v2-mcp
+Environment="PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=10000"
+LoadCredentialEncrypted=host-owner-token:/etc/ordivon/host-v2-protected-owner.cred
+ExecStart=/usr/bin/env -u ORDIVON_HOST_V2_PUBLIC_ORIGIN ORDIVON_HOST_V2_TRANSPORT=streamable-http ORDIVON_HOST_V2_HOST=127.0.0.1 ORDIVON_HOST_V2_PORT=19008 ORDIVON_HOST_V2_PATH=/mcp ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE=/run/credentials/ordivon-host-v2-protected.service/host-owner-token ORDIVON_HOST_V2_PG_POOL_MAX_SIZE=2 /opt/ordivon/host-v2/current/.venv/bin/ordivon-host-v2-mcp
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=20

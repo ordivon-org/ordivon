@@ -15,18 +15,21 @@ def test_host_is_persistent_and_db_stop_does_not_propagate() -> None:
     assert "Restart=always" in text
     assert "RestartSec=3" in text
 
-def test_protected_parallel_host_has_independent_identity_native_credential_and_rollback() -> None:
+
+def test_protected_parallel_host_matches_installed_read_only_identity_boundary() -> None:
     protected = ROOT / "packaging" / "systemd" / "ordivon-host-v2-protected.service"
     text = protected.read_text(encoding="utf-8")
     legacy = UNIT.read_text(encoding="utf-8")
     assert "User=ordivon-host-v2-protected" in text
-    assert "DynamicUser=true" in text
-    assert "LoadCredentialEncrypted=host-mcp-bearer:" in text
-    assert "ordivon-host-v2-protected-mcp.cred" in text
+    assert "DynamicUser=yes" in text
+    assert "LoadCredentialEncrypted=host-owner-token:/etc/ordivon/host-v2-protected-owner.cred" in text
+    assert "ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE=/run/credentials/ordivon-host-v2-protected.service/host-owner-token" in text
+    assert "EnvironmentFile=/etc/ordivon/host-v2.env" in text
+    assert "PGOPTIONS=-c default_transaction_read_only=on -c statement_timeout=10000" in text
+    assert "ORDIVON_HOST_V2_PG_POOL_MAX_SIZE=2" in text
     assert "ORDIVON_HOST_V2_PORT=19008" in text
     assert "ORDIVON_HOST_V2_HOST=127.0.0.1" in text
-    assert "ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE=/run/credentials/" in text
-    assert "ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP=" in text
+    assert "/usr/bin/env -u ORDIVON_HOST_V2_PUBLIC_ORIGIN" in text
     assert "Restart=on-failure" in text
     assert "WantedBy=multi-user.target" in text
     assert "PartOf=ordivon-host-v2.service" not in text
