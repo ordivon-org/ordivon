@@ -568,6 +568,140 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertEqual(replayed.load_current_tool_step().receipt, receipt)
             self.assertTrue(replayed.doctor()["healthy"])
 
+    def test_same_pg_issuer_cut_is_admission_only_after_unknown_tool(self) -> None:
+        """A real read-only Runtime SQL role gets a current original Run cut.
+
+        Once its transaction ends, OriginalPG can record UNKNOWN while a
+        previously issued OS request remains potentially pending. The later
+        SQL denial is not NoFutureSpawn or a Domain delivery ACK.
+        """
+        from psycopg import errors
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:pg-native-cut-r24",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:pg-native-cut-r24",
+            tool_call_id="tool-call:pg-native-cut-r24",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"toolCall": "pg-native-cut-r24"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
+            client_request_id="request:pg-native-cut-r24",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        fence = continuity.load_current_tool_step().fence
+        self.assertIsNotNone(fence)
+        assert fence is not None
+
+        # Independently emulate the Native Runtime's least-privileged SQL
+        # role against the exact source function, not an Agent-supplied hint.
+        role = "rt_cut_" + uuid.uuid4().hex[:12]
+        grant = sql.SQL("GRANT EXECUTE ON FUNCTION {}.harness_current_dispatch_cut(text,bigint,text) TO {}").format(
+            sql.Identifier(self.schema), sql.Identifier(role)
+        )
+        query = sql.SQL("SELECT * FROM {}.harness_current_dispatch_cut(%s,%s,%s)").format(
+            sql.Identifier(self.schema)
+        )
+        with psycopg.connect(self.dsn, autocommit=True) as operator:
+            operator.execute(sql.SQL("CREATE ROLE {} NOLOGIN").format(sql.Identifier(role)))
+            try:
+                operator.execute(
+                    sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(
+                        sql.Identifier(self.schema), sql.Identifier(role)
+                    )
+                )
+                operator.execute(grant)
+                with psycopg.connect(self.dsn, autocommit=True) as runtime:
+                    runtime.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(role)))
+                    # Runtime must not read Harness private rows as its own role.
+                    with self.assertRaises(errors.InsufficientPrivilege):
+                        runtime.execute(
+                            sql.SQL("SELECT * FROM {}.runs").format(sql.Identifier(self.schema))
+                        )
+                    with runtime.transaction():
+                        qualified = runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision, fence.digest),
+                        ).fetchall()
+                        self.assertEqual(len(qualified), 1)
+                        self.assertEqual(qualified[0][0], "harness.tool-step-prepared")
+                        self.assertEqual(qualified[0][1], self.store.list_run_events(run.harness_run_id)[-1].payload_digest)
+                        self.assertEqual(qualified[0][8], continuity.load_current_tool_step().intent_object.digest)
+                    self.assertEqual(
+                        runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision + 1, fence.digest),
+                        ).fetchall(),
+                        [],
+                    )
+                    self.assertEqual(
+                        runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision, "sha256:" + "0" * 64),
+                        ).fetchall(),
+                        [],
+                    )
+
+                    # The admission transaction has committed here. An
+                    # issued, delayed native launch is NOT fenced by this
+                    # past result. Preserve explicit UNKNOWN on source.
+                    clock.advance()
+                    unknown_observation = {
+                        "schemaVersion": 1,
+                        "kind": "pg.native-receiver-unknown",
+                        "status": "unknown",
+                    }
+                    unknown = HarnessToolStepReceipt(
+                        receipt_id="harness-tool-step-receipt:pg-native-cut-unknown",
+                        intent_digest=intent.digest,
+                        harness_run_id=run.harness_run_id,
+                        tool_call_id=intent.tool_call_id,
+                        status=HarnessToolStepStatus.UNKNOWN,
+                        runtime_job_ref="runtime-job:pg-native-cut-issued",
+                        observation_digest=canonical_digest(unknown_observation),
+                        reconciled=False,
+                        created_at_ms=clock(),
+                    )
+                    continuity.record_tool_step_receipt(unknown, unknown_observation)
+                    self.assertEqual(
+                        runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision, fence.digest),
+                        ).fetchall(),
+                        [],
+                    )
+                    source = EventSourcedRunContinuity.open(
+                        self.store, run.harness_run_id, clock_ms=clock
+                    ).inspect_finalization_source()
+                    self.assertEqual(source["sourceStanding"], "blocked")
+                    self.assertIn("tool_unsettled", source["blockers"])
+                    self.assertEqual(source["unsettledToolIntentDigests"], [intent.digest])
+                    self.assertEqual(source["runtimeClaimStanding"], "unknown")
+                    self.assertEqual(source["externalDeliveryStanding"], "unknown")
+            finally:
+                operator.execute(
+                    sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(self.schema), sql.Identifier(role)
+                    )
+                )
+                operator.execute(
+                    sql.SQL("DROP OWNED BY {}").format(sql.Identifier(role))
+                )
+                operator.execute(
+                    sql.SQL("DROP ROLE {}").format(sql.Identifier(role))
+                )
+
     def test_finalization_projection_does_not_claim_external_delivery(self) -> None:
         """An original PAUSED Run holds the source; a terminal Run is not a NativeClose receipt."""
         clock = supported_run_fixture.FixedClock()
@@ -1132,6 +1266,40 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             intent.digest,
         )
         self.assertTrue(self.store.release_run_lease(lease))
+        # A separate experimental Writer might bypass the Python admission
+        # and commit a structurally contiguous completed Run. Doctor must use
+        # the same typed full-history scanner and reject the still-prepared Tool.
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        event_id = "event:pg-doctor-foreign-completed-over-tool"
+        at = self.store.load_run(run.harness_run_id).updated_at_ms + 1
+        payload = self.store.put_object({
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-run-event-payload",
+            "eventKind": "harness.run-completed",
+            "data": {"stopReason": "completed"},
+        }, kind="ordivon.harness-run-event-payload")
+        with self.store.connection.transaction():
+            self.store.connection.execute(
+                "INSERT INTO run_events(event_id,harness_run_id,run_revision,"
+                "event_kind,payload_digest,recorded_at_ms) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                (event_id, run.harness_run_id, before.revision + 1,
+                 "harness.run-completed", payload.digest, at),
+            )
+            self.store.connection.execute(
+                "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+                "VALUES(%s,%s,%s,'payload')",
+                (run.harness_run_id, event_id, payload.digest),
+            )
+            self.store.connection.execute(
+                "UPDATE runs SET status='completed',revision=%s,updated_at_ms=%s,"
+                "terminal_event_id=%s WHERE harness_run_id=%s",
+                (before.revision + 1, at, event_id, run.harness_run_id),
+            )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
 
     def test_original_recorder_cannot_claim_completed_with_pending_tool(self) -> None:
         """A candidate_completed answer is rejected, never emitted as a
@@ -1354,6 +1522,145 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             with self.assertRaises(HarnessTerminalConflict):
                 observer.record_tool_step_receipt(late_receipt, pending_observation)
             self.assertEqual(observer.inspect_finalization_source()["sourceStanding"], "blocked")
+            self.store.validate_run_history(run.harness_run_id)
+            self.assertTrue(self.store.doctor()["healthy"])
+
+            # Foreign-Writer/DB operator tampering can remove just the
+            # original terminal Event->Receipt edge while the CAS bytes and
+            # Run projection still look perfectly valid. Structural checks
+            # alone previously certified this as healthy.
+            from ordivon_harness.store_errors import HarnessJournalCorruption
+
+            terminal_event_id = self.store.load_run(run.harness_run_id).terminal_event_id
+            typed_refs = self.store.connection.execute(
+                "SELECT ref.digest FROM run_object_refs ref "
+                "JOIN objects obj ON obj.digest=ref.digest "
+                "WHERE ref.event_id=%s AND ref.role='reference' "
+                "AND obj.kind='independent-harness-run-receipt'",
+                (terminal_event_id,),
+            ).fetchall()
+            self.assertEqual(len(typed_refs), 1)
+            typed_digest = typed_refs[0]["digest"]
+            self.assertIsInstance(
+                self.store.get_object(
+                    typed_digest, expected_kind="independent-harness-run-receipt"
+                ), dict
+            )
+            with self.store.connection.transaction():
+                deleted = self.store.connection.execute(
+                    "DELETE FROM run_object_refs WHERE event_id=%s "
+                    "AND digest=%s AND role='reference'",
+                    (terminal_event_id, typed_digest),
+                ).rowcount
+                self.assertEqual(deleted, 1)
+            self.assertEqual(
+                self.store.load_run(run.harness_run_id).status.value, "stopped"
+            )
+            with self.assertRaises(HarnessJournalCorruption):
+                self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaises(HarnessJournalCorruption):
+                self.store.doctor()
+
+    def test_pg_history_doctor_rejects_structurally_valid_foreign_unknown_without_original_receipt(self) -> None:
+        """A foreign writer can persist a structurally valid STOPPED event but
+        cannot turn an ungrounded UNKNOWN stopCode into trusted history.
+        """
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.assertEqual(self.store.create_run(run), HarnessEventAdmission.CREATED)
+        before = self.store.load_run(run.harness_run_id)
+        event_id = "event:pg-doctor-unqualified-foreign-unknown"
+        at = before.updated_at_ms + 1
+        payload = self.store.put_object({
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-run-event-payload",
+            "eventKind": "harness.run-stopped",
+            "data": {"stopCode": "runtime_unknown"},
+        }, kind="ordivon.harness-run-event-payload")
+        # Operator-only test injection models an external Rust writer
+        # bypassing Python append_events; no business code can call this path.
+        with self.store.connection.transaction():
+            self.store.connection.execute(
+                "INSERT INTO run_events(event_id,harness_run_id,run_revision,"
+                "event_kind,payload_digest,recorded_at_ms) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                (event_id, run.harness_run_id, before.revision + 1,
+                 "harness.run-stopped", payload.digest, at),
+            )
+            self.store.connection.execute(
+                "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+                "VALUES(%s,%s,%s,'payload')",
+                (run.harness_run_id, event_id, payload.digest),
+            )
+            self.store.connection.execute(
+                "UPDATE runs SET status='stopped',revision=%s,updated_at_ms=%s,"
+                "terminal_event_id=%s WHERE harness_run_id=%s",
+                (before.revision + 1, at, event_id, run.harness_run_id),
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id).status.value, "stopped")
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
+    def test_pg_doctor_rejects_foreign_completed_over_unsettled_original_provider(self) -> None:
+        """A structurally valid foreign terminal cannot hide a real Provider
+        CLAIMED in the immutable original Journal from Doctor consumers.
+        """
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        continuity.claim_provider_call(
+            source=continuity.assignment_provider_source(),
+            turn_id="turn:pg-foreign-completed-pending-provider",
+            turn_sequence=1,
+            request_digest=canonical_digest({"request": "foreign-pending-provider"}),
+            provider_request_digest=canonical_digest({"wire": "foreign-pending-provider"}),
+            adapter_id=run.adapter_id,
+            requested_model_id=run.requested_model_id,
+            holder_id="holder:foreign-pending-provider",
+            ttl_ms=10_000,
+        )
+        before = self.store.load_run(run.harness_run_id)
+        self.assertFalse(before.status.terminal)
+        at = before.updated_at_ms + 1
+        event_id = "event:pg-doctor-foreign-completed-over-provider"
+        payload = self.store.put_object({
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-run-event-payload",
+            "eventKind": "harness.run-completed",
+            "data": {"stopReason": "completed"},
+        }, kind="ordivon.harness-run-event-payload")
+        with self.store.connection.transaction():
+            self.store.connection.execute(
+                "INSERT INTO run_events(event_id,harness_run_id,run_revision,"
+                "event_kind,payload_digest,recorded_at_ms) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                (event_id, run.harness_run_id, before.revision + 1,
+                 "harness.run-completed", payload.digest, at),
+            )
+            self.store.connection.execute(
+                "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+                "VALUES(%s,%s,%s,'payload')",
+                (run.harness_run_id, event_id, payload.digest),
+            )
+            self.store.connection.execute(
+                "UPDATE runs SET status='completed',revision=%s,updated_at_ms=%s,"
+                "terminal_event_id=%s WHERE harness_run_id=%s",
+                (before.revision + 1, at, event_id, run.harness_run_id),
+            )
+        self.assertEqual(
+            self.store.load_run(run.harness_run_id).status.value, "completed"
+        )
+        # This is a Doctor semantic qualification: structural history alone
+        # is not a certified normal terminal with old pending Provider effects.
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
 
     def test_unqualified_unknown_fault_cannot_bypass_pg_terminal_guard(self) -> None:
         """A raw Event with a hand-written stopCode cannot spoof a qualified
@@ -2094,3 +2401,153 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             outcomes = list(pool.map(claim,("worker:pg-a","worker:pg-b")))
         self.assertCountEqual(outcomes,["admitted","held"])
         self.assertEqual(self.store.doctor()["leases"],1)
+
+
+    def test_history_doctor_rejects_missing_ordinary_event_payload_edge(self) -> None:
+        """A normal Event must retain its persisted payload edge, not just CAS bytes."""
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:ref-edge", ttl_ms=10000,
+            now_ms=run.created_at_ms,
+        )
+        self.store.append_event(
+            event_id="event:history-ordinary-payload-edge",
+            harness_run_id=run.harness_run_id,
+            event_kind="harness.trace-recorded",
+            data={"trace": "ordinary"},
+            expected_revision=lease.run_revision,
+            recorded_at_ms=run.created_at_ms+1,
+            lease=lease,
+            lease_checked_at_ms=run.created_at_ms,
+        )
+        original = self.store.list_run_events(run.harness_run_id)[-1]
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND role='payload'",
+            (original.event_id,),
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+
+    def test_history_doctor_rejects_missing_original_contract_reference(self) -> None:
+        """Created Event explicitly requires original contract CAS reference."""
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE harness_run_id=%s AND role='reference'",
+            (run.harness_run_id,),
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+
+    def test_history_doctor_rejects_cross_run_reference_ownership(self) -> None:
+        """FK validity alone must not make another Run own this Event's edge."""
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+        from dataclasses import replace
+
+        first = contract()
+        second = replace(first, harness_run_id="harness-run:ref-owner-foreign",
+                         caller_run_ref="caller-run:ref-owner-foreign")
+        self.store.create_run(first)
+        self.store.create_run(second)
+        original_event = self.store.list_run_events(first.harness_run_id)[0]
+        self.store.connection.execute(
+            "UPDATE run_object_refs SET harness_run_id=%s "
+            "WHERE event_id=%s AND role='payload'",
+            (second.harness_run_id, original_event.event_id),
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(first.harness_run_id)
+
+    def test_history_doctor_single_pg_snapshot_avoids_concurrent_writer_false_corruption(self) -> None:
+        """One valid concurrent Writer must not splice two committed revisions."""
+        from unittest.mock import patch
+
+        run = contract()
+        self.store.create_run(run)
+        load_before = self.store.load_run
+        committed = False
+
+        def race_after_initial_read(harness_run_id: str):
+            nonlocal committed
+            projection = load_before(harness_run_id)
+            if not committed:
+                committed = True
+                with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                    lease = rival.acquire_run_lease(
+                        run.harness_run_id, owner_id="worker:concurrent-history",
+                        ttl_ms=10000, now_ms=run.created_at_ms,
+                    )
+                    rival.append_event(
+                        event_id="event:concurrent-valid-new-revision",
+                        harness_run_id=run.harness_run_id,
+                        event_kind="harness.trace-recorded",
+                        data={"trace": "valid-concurrent-writer"},
+                        expected_revision=lease.run_revision,
+                        recorded_at_ms=run.created_at_ms+1,
+                        lease=lease,
+                        lease_checked_at_ms=run.created_at_ms,
+                    )
+            return projection
+
+        with patch.object(self.store, "load_run", side_effect=race_after_initial_read):
+            self.store.validate_run_history(run.harness_run_id)
+        self.assertTrue(committed)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, 2)
+        self.store.validate_run_history(run.harness_run_id)
+
+
+    def test_full_doctor_counts_are_one_snapshot_during_valid_concurrent_append(self) -> None:
+        """Even the global Doctor count must not mix a later Run revision."""
+        from unittest.mock import patch
+
+        run = contract()
+        self.store.create_run(run)
+        original_load = self.store.load_run
+        committed = False
+
+        def competing_read(harness_run_id: str):
+            nonlocal committed
+            before = original_load(harness_run_id)
+            if not committed:
+                committed = True
+                with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                    lease = rival.acquire_run_lease(
+                        run.harness_run_id, owner_id="worker:doctor-global-race",
+                        ttl_ms=10000, now_ms=run.created_at_ms,
+                    )
+                    rival.append_event(
+                        event_id="event:doctor-valid-concurrent-append",
+                        harness_run_id=run.harness_run_id,
+                        event_kind="harness.trace-recorded",
+                        data={"trace": "doctor-global"},
+                        expected_revision=lease.run_revision,
+                        recorded_at_ms=run.created_at_ms+1,
+                        lease=lease,
+                        lease_checked_at_ms=run.created_at_ms,
+                    )
+            return before
+
+        with patch.object(self.store, "load_run", side_effect=competing_read):
+            doctor = self.store.doctor()
+        self.assertTrue(doctor["healthy"])
+        self.assertTrue(committed)
+        self.assertEqual(doctor["runs"], 1)
+        self.assertEqual(doctor["events"], 1)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, 2)
+        self.assertEqual(self.store.doctor()["events"], 2)
+
+    def test_nested_writable_caller_transaction_doctor_remains_consistent(self) -> None:
+        """Existing caller-owned PG transactions still work without SET TRANSACTION."""
+        run = contract()
+        self.store.create_run(run)
+        with self.store.connection.transaction():
+            self.store.validate_run_history(run.harness_run_id)
+            doctor = self.store.doctor()
+            self.assertTrue(doctor["healthy"])
+            self.assertEqual(doctor["runs"], 1)
+            self.assertEqual(doctor["events"], 1)
