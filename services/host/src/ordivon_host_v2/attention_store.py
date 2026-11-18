@@ -10,10 +10,11 @@ from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ActorRefNotFound, ConflictError, WorkNotFound
 from .postgres_connections import HostPostgresConnections
+from .references.actor_refs import ActorReferenceLookup
 from .social_errors import SpaceNotFound, TopicNotFound
 
 
-class AttentionStore(AttentionReadProjections, HostPostgresConnections):
+class AttentionStore(AttentionReadProjections, ActorReferenceLookup, HostPostgresConnections):
     """Actor-scoped navigation compiled directly from owner rows, not a second event bus."""
 
     def follow(
@@ -146,14 +147,6 @@ class AttentionStore(AttentionReadProjections, HostPostgresConnections):
             conn.execute(
                 "SELECT 1 FROM actor_refs WHERE actor_ref=%s FOR UPDATE", (actor_ref,)
             ).fetchone()
-            is None
-        ):
-            raise ActorRefNotFound(actor_ref)
-
-    @staticmethod
-    def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:
-        if (
-            conn.execute("SELECT 1 FROM actor_refs WHERE actor_ref=%s", (actor_ref,)).fetchone()
             is None
         ):
             raise ActorRefNotFound(actor_ref)
