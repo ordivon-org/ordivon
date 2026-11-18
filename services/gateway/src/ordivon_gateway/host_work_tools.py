@@ -6,9 +6,19 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 from mcp.server import MCPServer
-from pydantic import AfterValidator, ConfigDict, Field, with_config
+from mcp_types import CallToolResult
+from pydantic import (
+    AfterValidator,
+    ConfigDict,
+    Field,
+    StrictInt,
+    TypeAdapter,
+    ValidationError,
+    with_config,
+)
 
 from .host_tool_contracts import HostCollectionBytes
+from .upstream_identity import OwnerCallError, _owner_error_result
 
 
 # Match the natural Host's published WorkSnapshotInput wire shape without
@@ -51,6 +61,27 @@ PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1, le=2**63 - 1)]
 AdvancableWorkRevision = Annotated[int, Field(strict=True, ge=1, le=2**63 - 2)]
 PositiveWorkListLimit = Annotated[int, Field(strict=True, ge=1, le=200)]
 
+# The public MCP Tool schema is an Agent-facing, long-lived ABI. 0.10.12
+# exposed open snapshot objects and unconstrained integer fields. Preserve
+# that wire shape while checking the *original* strict Host-compatible types
+# before any upstream effect. One TypeAdapter per natural validation type,
+# rather than a second handwritten schema/validation policy.
+_SNAPSHOT = TypeAdapter(WorkSnapshotInput)
+_REVISION = TypeAdapter(PositiveWorkRevision)
+_ADVANCABLE_REVISION = TypeAdapter(AdvancableWorkRevision)
+_LIST_LIMIT = TypeAdapter(PositiveWorkListLimit)
+
+
+def _legacy_work_validation_error(tool: str) -> CallToolResult:
+    """Same public error as an original Host rejection, without an Owner RPC."""
+    return _owner_error_result(
+        OwnerCallError(
+            f"owner tool returned error: host/{tool}",
+            owner_id="host",
+            tool_name=tool,
+        )
+    )
+
 
 def register_host_work_tools(
     server: MCPServer,
@@ -71,37 +102,49 @@ def register_host_work_tools(
 
     @server.tool(name="work.create")
     async def work_create(
-        workRef: str, workKind: str, actorRef: str, initialSnapshot: WorkSnapshotInput
+        workRef: str, workKind: str, actorRef: str, initialSnapshot: dict[str, Any]
     ) -> dict[str, Any]:
+        try:
+            verified_snapshot = _SNAPSHOT.validate_python(initialSnapshot)
+        except ValidationError:
+            return _legacy_work_validation_error("work.create")
         return await _host(
             "work.create",
             {
                 "workRef": workRef,
                 "workKind": workKind,
                 "actorRef": actorRef,
-                "initialSnapshot": initialSnapshot,
+                "initialSnapshot": verified_snapshot,
             },
         )
 
     @server.tool(name="work.get")
-    async def work_get(
-        workRef: str, revision: PositiveWorkRevision | None = None
-    ) -> dict[str, Any]:
-        return await _host("work.get", {"workRef": workRef, "revision": revision})
+    async def work_get(workRef: str, revision: StrictInt | None = None) -> dict[str, Any]:
+        try:
+            verified_revision = (
+                _REVISION.validate_python(revision) if revision is not None else None
+            )
+        except ValidationError:
+            return _legacy_work_validation_error("work.get")
+        return await _host("work.get", {"workRef": workRef, "revision": verified_revision})
 
     @server.tool(name="work.list")
     async def work_list(
         state: Literal["open", "completed", "abandoned"] | None = None,
-        limit: PositiveWorkListLimit = 50,
+        limit: StrictInt = 50,
         beforeUpdatedAt: str | None = None,
         beforeWorkRef: str | None = None,
         maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
+        try:
+            verified_limit = _LIST_LIMIT.validate_python(limit)
+        except ValidationError:
+            return _legacy_work_validation_error("work.list")
         return await _host(
             "work.list",
             {
                 "state": state,
-                "limit": limit,
+                "limit": verified_limit,
                 "beforeUpdatedAt": beforeUpdatedAt,
                 "beforeWorkRef": beforeWorkRef,
                 "maxBytes": maxBytes,
@@ -111,17 +154,22 @@ def register_host_work_tools(
     @server.tool(name="work.snapshot.commit")
     async def work_snapshot_commit(
         workRef: str,
-        expectedRevision: AdvancableWorkRevision,
-        snapshot: WorkSnapshotInput,
+        expectedRevision: StrictInt,
+        snapshot: dict[str, Any],
         actorRef: str,
         continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
     ) -> dict[str, Any]:
+        try:
+            verified_revision = _ADVANCABLE_REVISION.validate_python(expectedRevision)
+            verified_snapshot = _SNAPSHOT.validate_python(snapshot)
+        except ValidationError:
+            return _legacy_work_validation_error("work.snapshot.commit")
         return await _host(
             "work.snapshot.commit",
             {
                 "workRef": workRef,
-                "expectedRevision": expectedRevision,
-                "snapshot": snapshot,
+                "expectedRevision": verified_revision,
+                "snapshot": verified_snapshot,
                 "actorRef": actorRef,
                 "continuityDisposition": continuityDisposition,
             },

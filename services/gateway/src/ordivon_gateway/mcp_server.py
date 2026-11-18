@@ -13,7 +13,6 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp_types import CallToolResult, TextContent
 from starlette.responses import JSONResponse
 
 from .access_auth import (
@@ -41,28 +40,7 @@ from .http_ingress_guard import GatewayHTTPIngressGuard
 from .ingress_identity import identity_from_state, tool_context_state
 from .service import GatewayError, GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
-
-
-def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
-    error = (
-        dict(exc.error)
-        if exc.error is not None
-        else {
-            "code": "OWNER_CALL_FAILED",
-            "message": str(exc),
-            "origin": "gateway_adapter",
-        }
-    )
-    structured: dict[str, Any] = {"error": error}
-    if exc.owner_id is not None:
-        structured["gatewayOwnerId"] = exc.owner_id
-    if exc.tool_name is not None:
-        structured["gatewayOwnerTool"] = exc.tool_name
-    return CallToolResult(
-        content=[TextContent(type="text", text=str(exc))],
-        structuredContent=structured,
-        isError=True,
-    )
+from .upstream_identity import _owner_error_result
 
 
 async def _owner_boundary(call) -> Any:
