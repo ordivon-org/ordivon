@@ -245,7 +245,7 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
     # Override only this dynamically loaded test module, not subprocess.run
     # globally or any installed Security service.
     native_run = subprocess.run
-    opa_run_outcomes: list[tuple[str, int | None, int]] = []
+    opa_run_outcomes: list[tuple[str, int | None, int, str]] = []
 
     def test_opa_run(*args: Any, **kwargs: Any) -> Any:
         assert kwargs.get("timeout") == 2.0
@@ -254,16 +254,25 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
         try:
             result = native_run(*args, **kwargs)
         except (OSError, subprocess.SubprocessError) as exc:
+            # This is a test-created OPA policy and nonsecret synthetic input.
+            # Record only bounded native CLI diagnostics, never stdin or tokens.
+            raw_error = getattr(exc, "stderr", "")
+            error_tail = (
+                raw_error[-300:].decode("utf-8", errors="replace")
+                if isinstance(raw_error, bytes)
+                else str(raw_error or "")[-300:]
+            )
             opa_run_outcomes.append(
                 (
                     type(exc).__name__,
                     getattr(exc, "returncode", None),
                     round((time.monotonic() - started) * 1000),
+                    error_tail,
                 )
             )
             raise
         opa_run_outcomes.append(
-            ("OPA_EXIT", result.returncode, round((time.monotonic() - started) * 1000))
+            ("OPA_EXIT", result.returncode, round((time.monotonic() - started) * 1000), "")
         )
         return result
 
