@@ -760,14 +760,15 @@ class PostgresHarnessStore:
             "LEFT JOIN objects o ON o.digest=e.payload_digest "
             "WHERE e.harness_run_id=%s AND e.event_kind='harness.working-set-recorded' "
             "AND e.sequence<%s AND "
-            "(o.digest IS NULL OR "
-            # Never let SQL's committed predicate hide a CAS-corrupt older
-            # Working Set. Faulty rows must reach the original verifying
-            # decoder, even when their tampered committed bit reads false.
-            "o.kind != 'ordivon.harness-run-event-payload' OR "
-            "o.byte_length != octet_length(o.content) OR "
-            "o.digest != ('sha256:' || encode(sha256(o.content),'hex')) OR "
-            "convert_from(o.content,'UTF8')::jsonb #> '{data,committed}' = 'true'::jsonb) "
+            # PostgreSQL can reorder OR operands. A CASE forces the CAS
+            # integrity guards before UTF8/JSON parsing, allowing a corrupt
+            # candidate to reach the original HarnessObjectCorrupt decoder.
+            "CASE WHEN o.digest IS NULL THEN true "
+            "WHEN o.kind != 'ordivon.harness-run-event-payload' THEN true "
+            "WHEN o.byte_length != octet_length(o.content) THEN true "
+            "WHEN o.digest != ('sha256:' || encode(sha256(o.content),'hex')) THEN true "
+            "ELSE convert_from(o.content,'UTF8')::jsonb "
+            "#> '{data,committed}' = 'true'::jsonb END "
             "ORDER BY e.sequence DESC LIMIT %s",
             (harness_run_id, before_sequence, limit + 1),
         ).fetchall()
@@ -783,7 +784,15 @@ class PostgresHarnessStore:
             "o.content AS object_content FROM run_events e "
             "LEFT JOIN objects o ON o.digest=e.payload_digest "
             "WHERE e.harness_run_id=%s AND e.event_kind='harness.working-set-recorded' "
-            "AND convert_from(o.content,'UTF8')::jsonb #>> '{data,workingSetDigest}'=%s "
+            # The current head identity lookup must share the same CASE
+            # guard; otherwise one older corrupt Working Set throws raw PG
+            # JSON/encoding errors before the source CAS decoder runs.
+            "AND CASE WHEN o.digest IS NULL THEN true "
+            "WHEN o.kind != 'ordivon.harness-run-event-payload' THEN true "
+            "WHEN o.byte_length != octet_length(o.content) THEN true "
+            "WHEN o.digest != ('sha256:' || encode(sha256(o.content),'hex')) THEN true "
+            "ELSE convert_from(o.content,'UTF8')::jsonb "
+            "#>> '{data,workingSetDigest}'=%s END "
             "ORDER BY e.sequence DESC LIMIT 2",
             (harness_run_id, working_set_digest),
         ).fetchall()

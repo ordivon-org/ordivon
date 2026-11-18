@@ -288,6 +288,58 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         with self.assertRaises(HarnessObjectCorrupt):
             continuity.inspect_working_set_history(limit=10)
 
+    def test_pg_working_set_history_malformed_older_payload_fails_with_original_cas_error(self) -> None:
+        """Invalid UTF-8/JSON must not escape into SQL parser or get silently filtered.
+
+        The current head is intact. Historical CAS payload damage is a Store
+        integrity failure, not an agent-visible missing Working Set or a raw
+        PostgreSQL JSON/encoding exception.
+        """
+        from tests.test_pc15_epistemic_control import private_contract
+        from tests.test_pc18_historical_cognition_recall import HistoricalCognitionRecallTests
+
+        run = private_contract("pg-history-bad-bytes", max_model_calls=1, max_tool_calls=0)
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        HistoricalCognitionRecallTests.seed_history(self.store, continuity)
+        current = continuity.inspect_working_set_history(limit=10)
+        victim = next(
+            event
+            for event in self.store.list_run_events(run.harness_run_id)
+            if event.event_kind == "harness.working-set-recorded"
+            and event.data.get("committed") is True
+            and event.sequence != current["currentWorkingSetEventSequence"]
+        )
+        row = self.store.connection.execute(
+            "SELECT content FROM objects WHERE digest=%s", (victim.payload_digest,)
+        ).fetchone()
+        original = bytes(row["content"])
+        for suffix, malformed in (
+            ("not-utf8", b"\xff\xfe"),
+            ("not-json", b"{this is not valid JSON"),
+        ):
+            with self.subTest(suffix=suffix):
+                try:
+                    self.store.connection.execute(
+                        "UPDATE objects SET content=%s,byte_length=%s WHERE digest=%s",
+                        (malformed, len(malformed), victim.payload_digest),
+                    )
+                    with self.assertRaises(HarnessObjectCorrupt):
+                        continuity.inspect_working_set_history(limit=10)
+                    with self.assertRaises(HarnessObjectCorrupt):
+                        self.store.find_working_set_event_sequence(
+                            run.harness_run_id,
+                            working_set_digest=current["currentWorkingSetDigest"],
+                        )
+                finally:
+                    self.store.connection.execute(
+                        "UPDATE objects SET content=%s,byte_length=%s WHERE digest=%s",
+                        (original, len(original), victim.payload_digest),
+                    )
+                self.assertEqual(
+                    continuity.inspect_working_set_history(limit=10), current
+                )
+
     def test_pg_working_set_history_bounded_page_matches_legacy_and_concurrent_append(self) -> None:
         """The original PG consumer must not fetch all events for each history page."""
         from unittest.mock import patch
