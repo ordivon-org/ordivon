@@ -408,6 +408,140 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertEqual(replayed.load_current_tool_step().receipt, receipt)
             self.assertTrue(replayed.doctor()["healthy"])
 
+    def test_same_pg_issuer_cut_is_admission_only_after_unknown_tool(self) -> None:
+        """A real read-only Runtime SQL role gets a current original Run cut.
+
+        Once its transaction ends, OriginalPG can record UNKNOWN while a
+        previously issued OS request remains potentially pending. The later
+        SQL denial is not NoFutureSpawn or a Domain delivery ACK.
+        """
+        from psycopg import errors
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:pg-native-cut-r24",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:pg-native-cut-r24",
+            tool_call_id="tool-call:pg-native-cut-r24",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"toolCall": "pg-native-cut-r24"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"relativePath": "README.md"}),
+            client_request_id="request:pg-native-cut-r24",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        fence = continuity.load_current_tool_step().fence
+        self.assertIsNotNone(fence)
+        assert fence is not None
+
+        # Independently emulate the Native Runtime's least-privileged SQL
+        # role against the exact source function, not an Agent-supplied hint.
+        role = "rt_cut_" + uuid.uuid4().hex[:12]
+        grant = sql.SQL("GRANT EXECUTE ON FUNCTION {}.harness_current_dispatch_cut(text,bigint,text) TO {}").format(
+            sql.Identifier(self.schema), sql.Identifier(role)
+        )
+        query = sql.SQL("SELECT * FROM {}.harness_current_dispatch_cut(%s,%s,%s)").format(
+            sql.Identifier(self.schema)
+        )
+        with psycopg.connect(self.dsn, autocommit=True) as operator:
+            operator.execute(sql.SQL("CREATE ROLE {} NOLOGIN").format(sql.Identifier(role)))
+            try:
+                operator.execute(
+                    sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(
+                        sql.Identifier(self.schema), sql.Identifier(role)
+                    )
+                )
+                operator.execute(grant)
+                with psycopg.connect(self.dsn, autocommit=True) as runtime:
+                    runtime.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(role)))
+                    # Runtime must not read Harness private rows as its own role.
+                    with self.assertRaises(errors.InsufficientPrivilege):
+                        runtime.execute(
+                            sql.SQL("SELECT * FROM {}.runs").format(sql.Identifier(self.schema))
+                        )
+                    with runtime.transaction():
+                        qualified = runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision, fence.digest),
+                        ).fetchall()
+                        self.assertEqual(len(qualified), 1)
+                        self.assertEqual(qualified[0][0], "harness.tool-step-prepared")
+                        self.assertEqual(qualified[0][1], self.store.list_run_events(run.harness_run_id)[-1].payload_digest)
+                        self.assertEqual(qualified[0][8], continuity.load_current_tool_step().intent_object.digest)
+                    self.assertEqual(
+                        runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision + 1, fence.digest),
+                        ).fetchall(),
+                        [],
+                    )
+                    self.assertEqual(
+                        runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision, "sha256:" + "0" * 64),
+                        ).fetchall(),
+                        [],
+                    )
+
+                    # The admission transaction has committed here. An
+                    # issued, delayed native launch is NOT fenced by this
+                    # past result. Preserve explicit UNKNOWN on source.
+                    clock.advance()
+                    unknown_observation = {
+                        "schemaVersion": 1,
+                        "kind": "pg.native-receiver-unknown",
+                        "status": "unknown",
+                    }
+                    unknown = HarnessToolStepReceipt(
+                        receipt_id="harness-tool-step-receipt:pg-native-cut-unknown",
+                        intent_digest=intent.digest,
+                        harness_run_id=run.harness_run_id,
+                        tool_call_id=intent.tool_call_id,
+                        status=HarnessToolStepStatus.UNKNOWN,
+                        runtime_job_ref="runtime-job:pg-native-cut-issued",
+                        observation_digest=canonical_digest(unknown_observation),
+                        reconciled=False,
+                        created_at_ms=clock(),
+                    )
+                    continuity.record_tool_step_receipt(unknown, unknown_observation)
+                    self.assertEqual(
+                        runtime.execute(
+                            query,
+                            (run.harness_run_id, fence.run_revision, fence.digest),
+                        ).fetchall(),
+                        [],
+                    )
+                    source = EventSourcedRunContinuity.open(
+                        self.store, run.harness_run_id, clock_ms=clock
+                    ).inspect_finalization_source()
+                    self.assertEqual(source["sourceStanding"], "blocked")
+                    self.assertIn("tool_unsettled", source["blockers"])
+                    self.assertEqual(source["unsettledToolIntentDigests"], [intent.digest])
+                    self.assertEqual(source["runtimeClaimStanding"], "unknown")
+                    self.assertEqual(source["externalDeliveryStanding"], "unknown")
+            finally:
+                operator.execute(
+                    sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(self.schema), sql.Identifier(role)
+                    )
+                )
+                operator.execute(
+                    sql.SQL("DROP OWNED BY {}").format(sql.Identifier(role))
+                )
+                operator.execute(
+                    sql.SQL("DROP ROLE {}").format(sql.Identifier(role))
+                )
+
     def test_finalization_projection_does_not_claim_external_delivery(self) -> None:
         """An original PAUSED Run holds the source; a terminal Run is not a NativeClose receipt."""
         clock = supported_run_fixture.FixedClock()
