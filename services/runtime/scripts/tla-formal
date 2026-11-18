@@ -1370,11 +1370,79 @@ PY_UNSAFE_RECOVERY
   echo "Issuer revoke post-ACK recovery redispatch counterexample PASS"
 )
 
+
+# R35: The physical NoFutureSpawn ACK is epoch-wide, not a one-Unit receipt.
+# The two Attempt identities and OS-quiet observations are design assumptions
+# until the OriginalRun/Harness and native Runtime consumers are qualified.
+check_issuer_revoke_epoch_formal() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/IssuerRevokeEpochR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config IssuerRevokeEpochR1.safe.cfg IssuerRevokeEpochR1.tla)
+}
+
+falsify_issuer_revoke_epoch_formal() (
+  set -e
+  verify_jar
+  local result output dir
+  set +e
+  output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeEpochR1.ack-positive-reach.cfg IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant AckUnreachable is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output"; then
+    echo "Issuer all-Attempt ACK reachability FAILED" >&2
+    printf '%s\n' "$output" | tail -40 >&2
+    exit 1
+  fi
+  echo "Issuer all-Attempt ACK reachability PASS"
+
+  dir=$(mktemp -d -t ordivon-revoke-epoch-cegar-XXXXXX)
+  trap 'rm -rf -- "$dir"' EXIT
+  cp "$ROOT/formal/IssuerRevokeEpochR1.tla" "$dir/"
+  cp "$ROOT/formal/IssuerRevokeEpochR1.safe.cfg" "$dir/IssuerRevokeEpochR1.cfg"
+  # Bad algorithm: acknowledge when ANY one native Unit is quiet, although a
+  # second original issued Unit may still have a pending start manager job.
+  python3 - "$dir/IssuerRevokeEpochR1.tla" <<'PY_PARTIAL_ACK'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+src = p.read_text(encoding="utf-8")
+start, end = src.index("PublishAck ==\n"), src.index("Next ==\n")
+block = src[start:end]
+guard = "    /\\ \\A a \\in AttemptIds:\n"
+assert block.count(guard) == 1, "original Run epoch ACK all-Units guard drift"
+p.write_text(src[:start] + block.replace(
+    guard, "    /\\ \\E a \\in AttemptIds:\n", 1) + src[end:], encoding="utf-8")
+PY_PARTIAL_ACK
+  # Let the stronger post-ACK effect invariant identify the later spawn,
+  # instead of stopping immediately on the weaker all-quiet predicate.
+  sed -i '/^[[:space:]]*AckRequiresAllIssuedQuiescent$/d' "$dir/IssuerRevokeEpochR1.cfg"
+  set +e
+  output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config IssuerRevokeEpochR1.cfg IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant NoSpawnAfterAck is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output" ||
+     ! grep -Eq '^State [1-9][0-9]*:' <<< "$output"; then
+    echo "Issuer one-of-two native Units premature ACK negative control FAILED" >&2
+    printf '%s\n' "$output" | tail -40 >&2
+    exit 1
+  fi
+  echo "Issuer one-of-two native Units premature ACK counterexample PASS"
+)
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-issuer-revoke-ack) check_issuer_revoke_ack_formal ;;
   falsify-issuer-revoke-ack) falsify_issuer_revoke_ack_formal ;;
+  check-issuer-revoke-epoch) check_issuer_revoke_epoch_formal ;;
+  falsify-issuer-revoke-epoch) falsify_issuer_revoke_epoch_formal ;;
   check-dispatch) check_runtime_dispatch ;;
   check-runner-bound) check_runner_bound ;;
   check-workspace-crossdb) check_workspace_cross_database_claim ;;
@@ -1388,13 +1456,13 @@ case "${1:-check}" in
   falsify-resource) falsify_runtime_resource_queue ;;
   # Current fresh-PG epoch: no SQLite parity copy or Windows-first ordering.
   # Preserve historical models and their independent negative controls on demand.
-  check) check_runtime_dispatch; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound; check_workspace_cross_database_claim; check_issuer_spawn_formal; check_issuer_revoke_ack_formal ;;
+  check) check_runtime_dispatch; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound; check_workspace_cross_database_claim; check_issuer_spawn_formal; check_issuer_revoke_ack_formal; check_issuer_revoke_epoch_formal ;;
   check-historical) check_runtime_pg_cutover; check_windows_first_pg_order ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound; falsify_workspace_cross_database_claim; falsify_issuer_spawn_formal; falsify_issuer_revoke_ack_formal ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound; falsify_workspace_cross_database_claim; falsify_issuer_spawn_formal; falsify_issuer_revoke_ack_formal; falsify_issuer_revoke_epoch_formal ;;
   falsify-historical) check_pg_cutover_counterexample; check_windows_first_pg_falsifiers ;;
   *)
-    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound|check-issuer-revoke-ack|falsify-issuer-revoke-ack]" >&2
+    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound|check-issuer-revoke-ack|falsify-issuer-revoke-ack|check-issuer-revoke-epoch|falsify-issuer-revoke-epoch]" >&2
     exit 2
     ;;
 esac
