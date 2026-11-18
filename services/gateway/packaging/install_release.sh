@@ -111,6 +111,37 @@ if [ -n "$SERVICE_USER" ]; then
   printf 'service_user_preflight=pass user=%s\n' "$SERVICE_USER"
 fi
 
+# Preserve actual public MCP contracts across in-place upgrades, not only
+# tool names and their manifest digest. Observe original SDK schemas through
+# each release's own Python environment; never maintain a second tool registry.
+# This is a separate Agent-consumer gate, not a Security or Host cutover grant.
+if [ -f "$PREFIX/current/mcp-surface.json" ]; then
+  if [ ! -x "$PREFIX/current/.venv/bin/python" ]; then
+    echo "native public ABI baseline is unavailable in current release" >&2
+    exit 1
+  fi
+  ABI_OLD=$(mktemp)
+  ABI_NEW=$(mktemp)
+  trap 'rm -f -- "$ABI_OLD" "$ABI_NEW"' EXIT
+  "$PREFIX/current/.venv/bin/python" "$RELEASE/packaging/verify_tool_surface.py" --emit-native > "$ABI_OLD"
+  "$RELEASE/.venv/bin/python" "$RELEASE/packaging/verify_tool_surface.py" --emit-native > "$ABI_NEW"
+  if /usr/bin/python3 "$RELEASE/packaging/verify_tool_surface.py" --compare-native "$ABI_OLD" "$ABI_NEW"; then
+    printf 'native_public_abi=COMPATIBLE\n'
+  else
+    abi_status=$?
+    if [ "$abi_status" -ne 2 ]; then
+      exit "$abi_status"
+    fi
+    if [ "$PREPARE_ONLY" != true ]; then
+      echo "native_public_abi=INCOMPATIBLE: preserve old Agent ABI or qualify versioned migration" >&2
+      exit 2
+    fi
+    printf 'native_public_abi=INCOMPATIBLE_PREPARED_ONLY_NOT_PROMOTABLE\n'
+  fi
+  rm -f -- "$ABI_OLD" "$ABI_NEW"
+  trap - EXIT
+fi
+
 # Pre-staging prepares and verifies the exact immutable candidate using the
 # same installed native MCP SDK and optional service-user checks, but MUST NOT
 # promote it or change any running service. This decouples dependency builds

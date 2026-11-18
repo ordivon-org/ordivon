@@ -180,6 +180,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         # A read-only projection of the immutable Journal; never a second
         # persistence authority. A Store revision change invalidates it.
         self._heads_cache: tuple[int, _Heads] | None = None
+        self._heads_cache_last_sequence = 0
         self._snapshot_sequence = self._current_snapshot_sequence()
 
     @property
@@ -2077,7 +2078,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             raise HarnessSuperseded("Harness Tool Step Intent is already prepared")
         if current_step is not None and (
             current_step.receipt is None
-            or current_step.receipt.status not in {
+            or current_step.receipt.status
+            not in {
                 HarnessToolStepStatus.OBSERVED,
                 HarnessToolStepStatus.REJECTED,
                 HarnessToolStepStatus.CANCELLED,
@@ -2499,8 +2501,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             self.store.inspect_object(state_object_digest),
         )
 
-    def inspect_unsettled_tool_sources(self) -> dict[str, JsonValue]:
-        """Read exact original Tool identities for Owner-side recovery.
+    def _inspect_original_tool_sources(self, *, include_settled: bool) -> dict[str, JsonValue]:
+        """Read verified original Tool Intent identities without duplicating a Registry.
 
         This is not a dispatch permission, Owner Job observation, or release
         certificate. Never return Tool arguments, model content, or credentials.
@@ -2520,11 +2522,24 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             allow_tool_content=self.contract.privacy.allow_tool_content,
             provider_record_reader=self._load_provider_from_event,
         )
-        pending_set = set(pending)
+        # The recovery view deliberately excludes previously settled Intent
+        # heads. A Run-epoch revoke/drain consumer must instead enumerate
+        # EVERY original Prepared Intent, including OBSERVED/REJECTED/CANCELLED,
+        # before asking Runtime to prove physical quiescence. These are only
+        # source identities, never Runtime Job/OS/Domain acknowledgement.
+        selected_set = (
+            {
+                required_event_digest(event.data, "toolStepIntentDigest")
+                for event in events
+                if event.event_kind == "harness.tool-step-prepared"
+            }
+            if include_settled
+            else set(pending)
+        )
         sources: dict[str, dict[str, JsonValue]] = {}
         for event in events:
             digest = event.data.get("toolStepIntentDigest")
-            if digest not in pending_set:
+            if digest not in selected_set:
                 continue
             if event.event_kind == "harness.tool-step-prepared":
                 raw = self.store.get_object(
@@ -2567,27 +2582,68 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 receipt = HarnessToolStepReceipt.from_dict(receipt_raw)
                 source["lastRecordedStatus"] = receipt.status.value
                 source["sourceOwnerJobRef"] = receipt.runtime_job_ref
-        if set(sources) != pending_set:
-            raise ValueError("Tool recovery sources do not cover all pending Intent identities")
+        if set(sources) != selected_set:
+            raise ValueError("Original Run Tool sources do not cover the selected Intent identities")
         # A third Writer may append a new Event between the first projection
         # and this projection. No mixed-revision source may be presented.
         if self.store.load_run(self.harness_run_id).revision != projection.revision:
             raise HarnessRevisionConflict(
                 "Tool recovery source Run changed during source verification"
             )
-        return {
+        # The original Run's clientRequestIds form the exact existing Runtime
+        # idempotency keys (within its dedicated principal). A recycled key
+        # cannot represent two distinct ToolIntents in a reliable drain set.
+        if include_settled:
+            keys = [source["clientRequestId"] for source in sources.values()]
+            if len(keys) != len(set(keys)):
+                raise ValueError("Original Run issued Tool Intents reuse a clientRequestId")
+        kind = (
+            "ordivon.harness-issued-tool-sources"
+            if include_settled
+            else "ordivon.harness-tool-recovery-sources"
+        )
+        standing = (
+            "source-identities-only"
+            if include_settled
+            else ("blocked" if sources else "no-pending-tool-intent")
+        )
+        key = "issuedIntents" if include_settled else "unsettledIntents"
+        result: dict[str, JsonValue] = {
             "schemaVersion": 1,
-            "kind": "ordivon.harness-tool-recovery-sources",
+            "kind": kind,
             "harnessRunId": self.harness_run_id,
             "contractDigest": self.contract.digest,
             "toolGrantDigest": self.contract.tool_grant_digest,
             "runRevision": projection.revision,
-            "sourceStanding": "blocked" if sources else "no-pending-tool-intent",
-            "unsettledIntents": [sources[digest] for digest in sorted(sources)],
+            "sourceStanding": standing,
+            key: [sources[digest] for digest in sorted(sources)],
             "runtimeOwnerProofStanding": "unknown",
             "safeToDispatch": False,
             "runtimeClaimReleaseStanding": "unknown",
         }
+        if include_settled:
+            # Source Journal completeness is not a no-future-OS-spawn proof;
+            # the caller still must close issuer admissions AND reconcile all
+            # original Runtime clientRequestIds/Attempts and native Unit jobs.
+            result["originalRunIssuedCount"] = len(sources)
+            result["noFutureSpawnAckStanding"] = "unknown"
+            result["safeToAcknowledgeNoFutureSpawn"] = False
+        return result
+
+
+    def inspect_unsettled_tool_sources(self) -> dict[str, JsonValue]:
+        """Retain the existing recovery-only subset contract unchanged."""
+        return self._inspect_original_tool_sources(include_settled=False)
+
+    def inspect_issued_tool_sources(self) -> dict[str, JsonValue]:
+        """Enumerate ALL source-issued Tool Intents in one revision-fenced Run.
+
+        This read-only original Journal projection preserves exact
+        clientRequestId/Intent/Run bindings, but cannot prove Runtime OS
+        termination, all future dispatch fenced, or Domain byte acceptance.
+        Do not use it by itself as a RevokeACK or GC release certificate.
+        """
+        return self._inspect_original_tool_sources(include_settled=True)
 
     def inspect_finalization_source(self) -> dict[str, JsonValue]:
         """Project source-owned closure, never an authorized Runtime Claim release.
@@ -2923,11 +2979,15 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         cached = self._heads_cache
         if cached is not None and cached[0] == revision:
             return cached[1]
-        provider = None
-        tool = None
-        snapshot = None
-        working_set = None
-        events = self.store.list_run_events(self.harness_run_id)
+        # Hot append folds only the immutable tail; cold recovery replays all.
+        provider = cached[1].provider if cached is not None else None
+        tool = cached[1].tool if cached is not None else None
+        snapshot = cached[1].snapshot if cached is not None else None
+        working_set = cached[1].working_set if cached is not None else None
+        events = self.store.list_run_events(
+            self.harness_run_id,
+            after_sequence=self._heads_cache_last_sequence if cached is not None else 0,
+        )
         for event in events:
             if event.event_kind in _PROVIDER_CLEAR_EVENT_KINDS:
                 provider = None
@@ -2950,6 +3010,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         # authoritative for a complete, ordered Journal read.
         if events and events[-1].run_revision == revision:
             self._heads_cache = (revision, heads)
+            self._heads_cache_last_sequence = events[-1].sequence
         return heads
 
     def _load_current_provider_call_or_none(
