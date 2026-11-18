@@ -1255,9 +1255,126 @@ falsify_issuer_spawn_formal() {
   done
 }
 
+
+# R35: refine R24's abstract atomicReceiver with native OS crash/ACK
+# counterexamples. This remains SOURCE-ONLY; qualification of the OS receiver
+# and OriginalRun epoch/Domain ACK is independent of TLC's abstract actions.
+check_issuer_revoke_ack_formal() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/IssuerRevokeAckR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config IssuerRevokeAckR1.safe.cfg IssuerRevokeAckR1.tla)
+}
+
+falsify_issuer_revoke_ack_formal() (
+  set -e
+  verify_jar
+  local label invariant result output
+  for label in backend-loss-counterexample ack-positive-reach spawn-positive-reach; do
+    case "$label" in
+      backend-loss-counterexample) invariant=NoSpawnAfterRevokeCommit ;;
+      ack-positive-reach) invariant=AckUnreachable ;;
+      spawn-positive-reach) invariant=TargetSpawnUnreachable ;;
+    esac
+    set +e
+    output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+      -workers 1 -config "IssuerRevokeAckR1.$label.cfg" IssuerRevokeAckR1.tla 2>&1)
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq "Error: Invariant $invariant is violated." <<< "$output" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' <<< "$output" ||
+       ! grep -Eq '^State [1-9][0-9]*:' <<< "$output"; then
+      echo "Issuer revoke $label named TLC counterexample FAILED" >&2
+      printf '%s\n' "$output" | tail -40 >&2
+      exit 1
+    fi
+    if [[ "$label" == backend-loss-counterexample ]] &&
+       ! grep -Fq 'pgGuard = "lost"' <<< "$output"; then
+      echo "Issuer revoke PG backend-loss gate is vacuous" >&2
+      exit 1
+    fi
+    echo "Issuer revoke $label named TLC counterexample PASS"
+  done
+
+  local dir result
+  dir=$(mktemp -d -t ordivon-issuer-ack-cegar-XXXXXX)
+  trap 'rm -rf -- "$dir"' EXIT
+  cp "$ROOT/formal/IssuerRevokeAckR1.tla" "$dir/"
+  cp "$ROOT/formal/IssuerRevokeAckR1.safe.cfg" "$dir/IssuerRevokeAckR1.cfg"
+
+  # Deliberately let the revoke ACK commit while the OS Unit is still
+  # pending. TLC MUST demonstrate an actual post-ACK native target spawn.
+  python3 - "$dir/IssuerRevokeAckR1.tla" <<'PY_UNSAFE_ACK'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+src = path.read_text(encoding="utf-8")
+start, end = src.index("PublishRevokeAck ==\n"), src.index("Next ==\n")
+segment = src[start:end]
+guard = '    /\\ nativeUnit = "quiescent"\n'
+assert segment.count(guard) == 1, "Issuer ACK native quiescence guard drifted"
+path.write_text(src[:start] + segment.replace(guard, "", 1) + src[end:], encoding="utf-8")
+PY_UNSAFE_ACK
+  # Remove the more immediate ACK-quiescence invariant from THIS negative
+  # cfg so that the stronger NoFutureSpawn property is observed after spawn.
+  sed -i '/^[[:space:]]*AckRequiresPhysicalQuiescence$/d' "$dir/IssuerRevokeAckR1.cfg"
+  set +e
+  output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeAckR1.cfg IssuerRevokeAckR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant NoSpawnAfterRevokeAck is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output"; then
+    echo "Issuer revoke premature ACK native target counterexample FAILED" >&2
+    printf '%s\n' "$output" | tail -38 >&2
+    exit 1
+  fi
+  echo "Issuer revoke premature ACK native target counterexample PASS"
+
+  # Independently prove why durable stop/recovery fencing matters:
+  # resurrecting a physically quiescent Unit after ACK can still spawn.
+  cp "$ROOT/formal/IssuerRevokeAckR1.tla" "$dir/IssuerRevokeAckR1.tla"
+  python3 - "$dir/IssuerRevokeAckR1.tla" <<'PY_UNSAFE_RECOVERY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+src = path.read_text(encoding="utf-8")
+marker = "Next ==\n"
+unsafe = r'''UnsafeUnitRecoveryAfterAck ==
+    /\ revokeAck
+    /\ nativeUnit = "quiescent"
+    /\ nativeUnit' = "pending"
+    /\ UNCHANGED <<issuer, attempt, pgGuard, dispatchCount,
+                   stopIntent, dispatchFenced, revokeAck,
+                   spawnedAfterCommit, spawnedAfterAck>>
+
+'''
+assert src.count(marker) == 1, "Issuer ACK Next transition source drifted"
+path.write_text(src.replace(marker, unsafe + marker +
+                  r"    \/ UnsafeUnitRecoveryAfterAck" + "\n", 1), encoding="utf-8")
+PY_UNSAFE_RECOVERY
+  set +e
+  output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeAckR1.cfg IssuerRevokeAckR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant NoSpawnAfterRevokeAck is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output"; then
+    echo "Issuer revoke post-ACK recovery redispatch counterexample FAILED" >&2
+    printf '%s\n' "$output" | tail -38 >&2
+    exit 1
+  fi
+  echo "Issuer revoke post-ACK recovery redispatch counterexample PASS"
+)
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
+  check-issuer-revoke-ack) check_issuer_revoke_ack_formal ;;
+  falsify-issuer-revoke-ack) falsify_issuer_revoke_ack_formal ;;
   check-dispatch) check_runtime_dispatch ;;
   check-runner-bound) check_runner_bound ;;
   check-workspace-crossdb) check_workspace_cross_database_claim ;;
@@ -1271,13 +1388,13 @@ case "${1:-check}" in
   falsify-resource) falsify_runtime_resource_queue ;;
   # Current fresh-PG epoch: no SQLite parity copy or Windows-first ordering.
   # Preserve historical models and their independent negative controls on demand.
-  check) check_runtime_dispatch; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound; check_workspace_cross_database_claim; check_issuer_spawn_formal ;;
+  check) check_runtime_dispatch; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue; check_pg_build_cache_eviction; check_runner_bound; check_workspace_cross_database_claim; check_issuer_spawn_formal; check_issuer_revoke_ack_formal ;;
   check-historical) check_runtime_pg_cutover; check_windows_first_pg_order ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound; falsify_workspace_cross_database_claim; falsify_issuer_spawn_formal ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound; falsify_workspace_cross_database_claim; falsify_issuer_spawn_formal; falsify_issuer_revoke_ack_formal ;;
   falsify-historical) check_pg_cutover_counterexample; check_windows_first_pg_falsifiers ;;
   *)
-    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound]" >&2
+    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound|check-issuer-revoke-ack|falsify-issuer-revoke-ack]" >&2
     exit 2
     ;;
 esac
