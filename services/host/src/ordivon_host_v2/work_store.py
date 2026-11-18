@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-import psycopg
+# Existing tests/tool consumers monkeypatch the shared psycopg module here.
+import psycopg as psycopg
 from psycopg.types.json import Jsonb
 
 from .canonical_json import canonical_digest
@@ -11,6 +12,7 @@ from .errors import ConflictError, WorkNotFound
 from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .postgres_connections import HostPostgresConnections
 from .references.actor_refs import ActorReferenceRegistry
+from .references.record_refs import RecordReferenceLookup
 from .work_inputs import (
     WorkCreateInput,
     WorkSnapshotInput,
@@ -32,7 +34,11 @@ def _next_work_revision(expected_revision: int) -> int:
 
 
 class WorkStore(
-    ActorReferenceRegistry, WorkRelationCommands, WorkReadQueries, HostPostgresConnections
+    ActorReferenceRegistry,
+    WorkRelationCommands,
+    WorkReadQueries,
+    RecordReferenceLookup,
+    HostPostgresConnections,
 ):
     """Greenfield Social Work Fabric Work Graph authority.
 
@@ -188,8 +194,3 @@ class WorkStore(
                 conn, client_request_id, "work.snapshot.commit", request_digest, result
             )
             return result
-
-    @staticmethod
-    def _require_work(conn: psycopg.Connection[dict[str, Any]], work_ref: str) -> None:
-        if conn.execute("SELECT 1 FROM works WHERE work_ref=%s", (work_ref,)).fetchone() is None:
-            raise WorkNotFound(work_ref)

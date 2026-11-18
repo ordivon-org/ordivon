@@ -63,6 +63,7 @@ services/host/src/ordivon_host_v2/
   references/
     __init__.py
     actor_refs.py                    # R58 抽出共享 ActorRef 声明/存在校验
+    record_refs.py                   # R59 抽出 Work/Space/Topic 存在检查与 Topic 行锁
   health/
     __init__.py
     diagnostics.py                   # R58 抽出跨能力只读 Doctor/Status
@@ -78,7 +79,7 @@ services/host/src/ordivon_host_v2/
 
 R58 选择只拆**真实重复/跨域职责**：原 `WorkStore.declare_actor` 与三个 Store 各自的 `_require_actor` 迁入共享引用能力；原 `HostV2.status` 迁入 health 只读查询能力。原 `WorkStore.declare_actor`、`HostV2.status` 对外 API 保持不变；没有创建第二份数据库或新的权限系统。需要运行原生 MCP Tool schema、Work CAS、Message retry、Attention、PG Doctor 回归验证。
 
-**暂不为了目录美观移动** `social_message_commands.py` 等约四十个已被测试/正式结构检查消费的源码路径：它们已经按领域分工，整树移动会同时破坏现有 Lean/CrossHair 路径、静态消费者和发布 SHA，而不改善语义。仅在发现实际业务耦合反例后才继续渐进迁移。
+R59 增量：在 R58 的既有 references/ 包内增加 record_refs.py，只承载三个 Facet 原本重复的 Work/Space/Topic 引用检查；ActorRef 声明/查询继续由 R58 actor_refs.py 独占，不新设第二个 Registry。Topic 写前 FOR NO KEY UPDATE、Work/Space/Topic NOT_FOUND、Attention 静态表名/参数化目标值与 WorkStore/HostV2 公共门面保持不变。原 Social、Attention 和 Work 的 _require_* 方法通过组合复用该 capability，不新增连接、事务、权限检查或迁移。\n\n**暂不为了目录美观移动** `social_message_commands.py` 等约四十个已被测试/正式结构检查消费的源码路径：它们已经按领域分工，整树移动会同时破坏现有 Lean/CrossHair 路径、静态消费者和发布 SHA，而不改善语义。仅在发现实际业务耦合反例后才继续渐进迁移。
 
 ## 5. 逻辑模块不是审批流程
 
