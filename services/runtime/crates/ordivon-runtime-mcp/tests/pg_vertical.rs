@@ -4524,6 +4524,106 @@ fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
         .find(|entry| entry["jobId"].as_str() == Some(good_id.as_str()))
         .expect("healthy Job must remain discoverable");
     assert_eq!(healthy_listed["executionDisposition"], "succeeded");
+    // R31 falsifier: this already-created PG18 accepted Job has no issued
+    // Runner/OS Unit. Its immutable Plan is malformed (verified above), but
+    // the PostgreSQL STOP_REQUESTED CAS and trusted current Attempt identity
+    // must still finish local cancellation and release native reservations.
+    // Unlike the issued-running R30 case, no OS stop is permitted here.
+    let cancel_bad = call(&endpoint, "job.cancel", json!({"jobId":corrupt_id}));
+    let bad_after =
+        f.db.query_one(
+            "SELECT j.desired_state,j.resolution,j.current_attempt_id,a.state,a.termination_intent
+         FROM jobs j JOIN attempts a ON a.job_id=j.job_id WHERE j.job_id=$1",
+            &[&corrupt_id],
+        )
+        .unwrap();
+    assert_eq!(bad_after.get::<_, String>(0), "cancelled", "{cancel_bad}");
+    assert_eq!(bad_after.get::<_,Option<String>>(1), Some("cancelled".into()),
+        "the already-committed pre-dispatch cancel must not stay held behind broken Plan: {cancel_bad}");
+    assert_eq!(
+        bad_after.get::<_, Option<String>>(2),
+        None,
+        "resolved current Attempt pointer must be atomically cleared: {cancel_bad}"
+    );
+    assert_eq!(bad_after.get::<_, String>(3), "cancelled", "{cancel_bad}");
+    assert_eq!(
+        bad_after.get::<_, String>(4),
+        "stop_requested",
+        "{cancel_bad}"
+    );
+    let os_dispatches: i64 =
+        f.db.query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&corrupt_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        os_dispatches, 0,
+        "cannot invent a native launch for a never-issued Attempt"
+    );
+    let remaining: i64 =
+        f.db.query_one(
+            "SELECT count(*) FROM concurrency_reservations r JOIN attempts a
+         ON a.attempt_id=r.attempt_id
+         WHERE a.job_id=$1 AND r.state='active'",
+            &[&corrupt_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        remaining, 0,
+        "cancelled pre-dispatch Job must release PG capacity"
+    );
+    let proof: i64 =
+        f.db.query_one(
+            "SELECT count(*) FROM artifacts WHERE job_id=$1 AND kind='admission_cancel_evidence'",
+            &[&corrupt_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        proof, 1,
+        "must retain original PG cancellation proof without dispatch"
+    );
+    // Agent-facing original PG Tool consumers must observe the completed
+    // cancellation without reconstructing untrustworthy Plan properties.
+    let after_list = call(&endpoint, "job.list", json!({"limit":100}));
+    assert_ne!(after_list["isError"], true, "{after_list}");
+    let cancelled = after_list["structuredContent"]["jobs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|x| x["jobId"].as_str() == Some(corrupt_id.as_str()))
+        .unwrap();
+    assert_eq!(
+        cancelled["executionDisposition"], "cancelled",
+        "{after_list}"
+    );
+    assert_eq!(cancelled["executionTerminal"], true, "{after_list}");
+    assert_eq!(cancelled["executableName"], Value::Null);
+    assert_eq!(cancelled["cwdRelative"], Value::Null);
+    // A real MCP Artifact consumer validates the deterministically committed
+    // original cancellation bytes, not only the PG row existence.
+    let proof_id:String=f.db.query_one(
+        "SELECT artifact_id FROM artifacts WHERE job_id=$1 AND kind='admission_cancel_evidence'",
+        &[&corrupt_id]).unwrap().get(0);
+    let proof_read = call(
+        &endpoint,
+        "artifact.read",
+        json!({
+            "jobId":corrupt_id,"artifactId":proof_id,"offset":0,"maxBytes":4096
+        }),
+    );
+    assert_ne!(proof_read["isError"], true, "{proof_read}");
+    assert_eq!(proof_read["structuredContent"]["eof"], true);
+    let exact: Value =
+        serde_json::from_str(proof_read["structuredContent"]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(exact["jobId"], corrupt_id);
+    assert_eq!(exact["attemptId"], corrupt_attempt);
+    assert_eq!(exact["dispatchIssued"], false);
+    assert_eq!(exact["terminalState"], "cancelled");
+    eprintln!("R31_NATIVE_PG18_CORRUPT_ACCEPTED_CANCEL_RELEASED original_job={corrupt_id} no_dispatch=true capacity_released=true proof=1 original_agent_joblist=true exact_artifact=true");
     eprintln!("A_B_R27_NATIVE_PG18_JOBLIST_AND_SCHEDULER_COMPOSITION_PASS corrupt={corrupt_id} healthy={good_id}");
     eprintln!("B_R3_PG18_NATIVE_GREEN good={good_id} bad={corrupt_id} provider={provider_id} issue_count=1 stdout=B_R3_HEALTHY_NATIVE");
 }
