@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import psycopg
+from jsonschema import Draft202012Validator
 
 assert len(sys.argv) == 2, "Rust binary argument required"
 dsn = os.environ["HOST_RUST_TEST_DSN"]
@@ -69,6 +70,9 @@ def call(name, args, *, failure=None):
         return result["structuredContent"]
     assert not result.get("isError"), (name, result)
     assert isinstance(result.get("structuredContent"), dict), result
+    # Match the actual strict MCP consumer: every successful reply must
+    # satisfy the immutable outputSchema that the server advertised.
+    Draft202012Validator(tools[name]["outputSchema"]).validate(result["structuredContent"])
     return result["structuredContent"]
 
 
@@ -82,6 +86,8 @@ try:
     request("notifications/initialized")
     registry = request("tools/list", {}, 2)["tools"]
     tools = {tool["name"]: tool for tool in registry}
+    for tool in registry:
+        Draft202012Validator.check_schema(tool["outputSchema"])
     for required in ["host.status", "topic.list", "topic.state.set", "topic.resume", "message.post", "message.get"]:
         assert required in tools, required
     topic_input = tools["topic.list"]["inputSchema"]
