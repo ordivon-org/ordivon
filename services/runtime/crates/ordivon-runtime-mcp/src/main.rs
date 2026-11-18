@@ -29,27 +29,27 @@ use rmcp::transport::streamable_http_server::{
     session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
 };
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use tokio_util::sync::CancellationToken;
 use tower_http::limit::RequestBodyLimitLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod access_auth;
+mod request_auth;
 #[cfg(windows)]
 mod windows_service;
 
 use access_auth::{CloudflareAccessConfig, CloudflareAccessVerifier};
+#[cfg(test)]
+use request_auth::cloudflare_access_principal;
+use request_auth::{
+    authenticate_request, constant_time_eq, AuthSource, HttpAuthConfig, PrincipalMode,
+};
 
 #[derive(Clone)]
 struct HttpState {
-    bearer: Arc<str>,
-    remote_bearer: Option<Arc<str>>,
-    principal_mode: PrincipalMode,
-    local_principal: Arc<str>,
-    remote_principal: Option<Arc<str>>,
+    auth: HttpAuthConfig,
     trace_path: Option<Arc<PathBuf>>,
     body_limit_bytes: u64,
-    cf_access: Option<Arc<CloudflareAccessVerifier>>,
 }
 
 static HTTP_TRACE_SEQUENCE: AtomicU64 = AtomicU64::new(1);
@@ -344,21 +344,23 @@ pub(crate) async fn run_runtime_server(
         .map_err(std::io::Error::other)?
         .map(Arc::new);
     let http_state = HttpState {
-        bearer: Arc::from(format!("Bearer {}", app.token)),
-        remote_bearer: app
-            .remote_token
-            .as_ref()
-            .map(|token| Arc::from(format!("Bearer {token}"))),
-        principal_mode: app.principal_mode,
-        local_principal: Arc::from(app.server.execution.principal.clone()),
-        remote_principal: app.remote_principal.as_deref().map(Arc::from),
+        auth: HttpAuthConfig {
+            bearer: Arc::from(format!("Bearer {}", app.token)),
+            remote_bearer: app
+                .remote_token
+                .as_ref()
+                .map(|token| Arc::from(format!("Bearer {token}"))),
+            principal_mode: app.principal_mode,
+            local_principal: Arc::from(app.server.execution.principal.clone()),
+            remote_principal: app.remote_principal.as_deref().map(Arc::from),
+            cf_access,
+        },
         trace_path: app
             .server
             .trace_path
             .as_ref()
             .map(|path| Arc::new(PathBuf::from(format!("{}.http.jsonl", path.display())))),
         body_limit_bytes: app.body_limit_bytes.try_into()?,
-        cf_access,
     };
     let router = Router::new()
         .nest_service("/mcp", service)
@@ -455,7 +457,7 @@ async fn authenticate_and_trace(
     let method = request.method().to_string();
     let path = request.uri().path().to_string();
     let request_bytes = content_length(request.headers());
-    let authentication = authenticate_request(request.headers(), &state).await;
+    let authentication = authenticate_request(request.headers(), &state.auth).await;
     let auth_source = authentication
         .as_ref()
         .map(|value| value.source)
@@ -493,109 +495,12 @@ async fn authenticate_and_trace(
     );
     response
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PrincipalMode {
-    Static,
-    Factorized,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct AuthenticatedRequest {
-    source: AuthSource,
-    principal: String,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum AuthSource {
-    None,
-    LocalBearer,
-    RemoteBearer,
-    CloudflareAccess,
-}
-
-impl AuthSource {
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::LocalBearer => "local_bearer",
-            Self::RemoteBearer => "remote_bearer",
-            Self::CloudflareAccess => "cloudflare_access",
-        }
-    }
-}
-
 #[cfg(test)]
 async fn request_auth_source(headers: &HeaderMap, state: &HttpState) -> AuthSource {
-    authenticate_request(headers, state)
+    authenticate_request(headers, &state.auth)
         .await
         .map(|value| value.source)
         .unwrap_or(AuthSource::None)
-}
-
-async fn authenticate_request(
-    headers: &HeaderMap,
-    state: &HttpState,
-) -> Option<AuthenticatedRequest> {
-    let supplied = headers
-        .get(header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default();
-    if constant_time_eq(supplied.as_bytes(), state.bearer.as_bytes()) {
-        return Some(AuthenticatedRequest {
-            source: AuthSource::LocalBearer,
-            principal: state.local_principal.to_string(),
-        });
-    }
-    if state
-        .remote_bearer
-        .as_deref()
-        .is_some_and(|remote| constant_time_eq(supplied.as_bytes(), remote.as_bytes()))
-    {
-        let principal = match state.principal_mode {
-            PrincipalMode::Static => state.local_principal.to_string(),
-            PrincipalMode::Factorized => state.remote_principal.as_deref()?.to_string(),
-        };
-        return Some(AuthenticatedRequest {
-            source: AuthSource::RemoteBearer,
-            principal,
-        });
-    }
-    let verifier = state.cf_access.as_deref()?;
-    let assertion = headers
-        .get("cf-access-jwt-assertion")
-        .and_then(|value| value.to_str().ok())?;
-    let identity = verifier.verify_identity(assertion).await?;
-    let principal = match state.principal_mode {
-        PrincipalMode::Static => state.local_principal.to_string(),
-        PrincipalMode::Factorized => {
-            let subject = identity.subject.as_deref()?;
-            cloudflare_access_principal(&identity.issuer, subject)
-        }
-    };
-    Some(AuthenticatedRequest {
-        source: AuthSource::CloudflareAccess,
-        principal,
-    })
-}
-
-fn cloudflare_access_principal(issuer: &str, subject: &str) -> String {
-    let mut digest = Sha256::new();
-    digest.update(b"ordivon-runtime-cf-access-principal-v1\0");
-    digest.update(issuer.as_bytes());
-    digest.update(b"\0");
-    digest.update(subject.as_bytes());
-    format!("principal:cf-access:{}", hex::encode(digest.finalize()))
-}
-
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
-    }
-    let mut difference = 0_u8;
-    for (left, right) in left.iter().zip(right.iter()) {
-        difference |= left ^ right;
-    }
-    difference == 0
 }
 
 fn transport_config(cancellation: CancellationToken) -> StreamableHttpServerConfig {
@@ -1276,8 +1181,8 @@ mod tests {
     use super::read_private_token_file;
     use super::{
         authenticate_request, cloudflare_access_principal, parse_process_args,
-        parse_runtime_env_text, request_auth_source, validate_loopback_bind, AuthSource, HttpState,
-        PrincipalMode,
+        parse_runtime_env_text, request_auth_source, validate_loopback_bind, AuthSource,
+        HttpAuthConfig, HttpState, PrincipalMode,
     };
     use super::{parse_windows_elevated_principals, parse_windows_elevated_profiles};
     use axum::http::{header, HeaderMap, HeaderValue};
@@ -1289,16 +1194,18 @@ mod tests {
 
     fn auth_state() -> HttpState {
         HttpState {
-            bearer: Arc::from("Bearer local-secret-token-value-1234567890"),
-            remote_bearer: Some(Arc::from(
-                "Bearer remote-agent-secret-token-value-1234567890",
-            )),
-            principal_mode: PrincipalMode::Static,
-            local_principal: Arc::from("principal:local-owner"),
-            remote_principal: None,
+            auth: HttpAuthConfig {
+                bearer: Arc::from("Bearer local-secret-token-value-1234567890"),
+                remote_bearer: Some(Arc::from(
+                    "Bearer remote-agent-secret-token-value-1234567890",
+                )),
+                principal_mode: PrincipalMode::Static,
+                local_principal: Arc::from("principal:local-owner"),
+                remote_principal: None,
+                cf_access: None,
+            },
             trace_path: None,
             body_limit_bytes: 1024,
-            cf_access: None,
         }
     }
 
@@ -1429,15 +1336,15 @@ mod tests {
     #[tokio::test]
     async fn factorized_remote_auth_maps_to_explicit_principal() {
         let mut state = auth_state();
-        state.principal_mode = PrincipalMode::Factorized;
-        state.remote_principal = Some(Arc::from("principal:remote-agent"));
-        let remote = state.remote_bearer.as_deref().unwrap().to_string();
+        state.auth.principal_mode = PrincipalMode::Factorized;
+        state.auth.remote_principal = Some(Arc::from("principal:remote-agent"));
+        let remote = state.auth.remote_bearer.as_deref().unwrap().to_string();
         let mut headers = HeaderMap::new();
         headers.insert(
             header::AUTHORIZATION,
             HeaderValue::from_str(&remote).unwrap(),
         );
-        let authenticated = authenticate_request(&headers, &state).await.unwrap();
+        let authenticated = authenticate_request(&headers, &state.auth).await.unwrap();
         assert_eq!(authenticated.source, AuthSource::RemoteBearer);
         assert_eq!(authenticated.principal, "principal:remote-agent");
     }
@@ -1445,13 +1352,13 @@ mod tests {
     #[tokio::test]
     async fn static_mode_intentionally_collapses_remote_auth_to_local_principal() {
         let state = auth_state();
-        let remote = state.remote_bearer.as_deref().unwrap().to_string();
+        let remote = state.auth.remote_bearer.as_deref().unwrap().to_string();
         let mut headers = HeaderMap::new();
         headers.insert(
             header::AUTHORIZATION,
             HeaderValue::from_str(&remote).unwrap(),
         );
-        let authenticated = authenticate_request(&headers, &state).await.unwrap();
+        let authenticated = authenticate_request(&headers, &state.auth).await.unwrap();
         assert_eq!(authenticated.principal, "principal:local-owner");
     }
 
