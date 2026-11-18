@@ -741,11 +741,59 @@ class PostgresHarnessStore:
             "WHERE e.harness_run_id=%s AND e.sequence>%s ORDER BY e.sequence",
             (harness_run_id, after_sequence),
         ).fetchall()
+        return self._decode_event_rows(rows)
+
+    def list_committed_working_set_events(
+        self, harness_run_id: str, *, before_sequence: int, limit: int
+    ) -> tuple[HarnessRunEventRecord, ...]:
+        """Latest committed Working Sets in descending order; at most limit+1 rows.
+
+        This is a read-only PG specialization of the existing journal port.
+        Content is still decoded and CAS checked by the same event decoder.
+        """
+        if before_sequence < 0 or limit < 1:
+            raise ValueError("invalid Working Set page bounds")
+        self.load_run(harness_run_id)
+        rows = self.connection.execute(
+            "SELECT e.*, o.kind AS object_kind, o.byte_length AS object_byte_length, "
+            "o.content AS object_content FROM run_events e "
+            "LEFT JOIN objects o ON o.digest=e.payload_digest "
+            "WHERE e.harness_run_id=%s AND e.event_kind='harness.working-set-recorded' "
+            "AND e.sequence<%s AND "
+            "(o.digest IS NULL OR "
+            "convert_from(o.content,'UTF8')::jsonb #> '{data,committed}' = 'true'::jsonb) "
+            "ORDER BY e.sequence DESC LIMIT %s",
+            (harness_run_id, before_sequence, limit + 1),
+        ).fetchall()
+        return self._decode_event_rows(rows)
+
+    def find_working_set_event_sequence(
+        self, harness_run_id: str, *, working_set_digest: str
+    ) -> int:
+        """Resolve the unique Journal identity without a full Run scan."""
+        self.load_run(harness_run_id)
+        rows = self.connection.execute(
+            "SELECT e.*, o.kind AS object_kind, o.byte_length AS object_byte_length, "
+            "o.content AS object_content FROM run_events e "
+            "LEFT JOIN objects o ON o.digest=e.payload_digest "
+            "WHERE e.harness_run_id=%s AND e.event_kind='harness.working-set-recorded' "
+            "AND convert_from(o.content,'UTF8')::jsonb #>> '{data,workingSetDigest}'=%s "
+            "ORDER BY e.sequence DESC LIMIT 2",
+            (harness_run_id, working_set_digest),
+        ).fetchall()
+        matches = self._decode_event_rows(rows)
+        if len(matches) != 1:
+            raise ValueError("Harness Working Set must have exactly one durable Journal event")
+        return matches[0].sequence
+
+    def _decode_event_rows(self, rows: list[dict]) -> tuple[HarnessRunEventRecord, ...]:
         result = []
         for row in rows:
             payload = self._decode_object_row(
                 row["payload_digest"],
-                None if row["object_kind"] is None else {
+                None
+                if row["object_kind"] is None
+                else {
                     "kind": row["object_kind"],
                     "byte_length": row["object_byte_length"],
                     "content": row["object_content"],

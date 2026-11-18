@@ -245,6 +245,71 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertIs(new_heads, continuity._heads())
             self.assertEqual(reads.call_count, initial_reads + 1)
 
+    def test_pg_working_set_history_bounded_page_matches_legacy_and_concurrent_append(self) -> None:
+        """The original PG consumer must not fetch all events for each history page."""
+        from unittest.mock import patch
+        from tests.test_pc15_epistemic_control import private_contract
+        from tests.test_pc18_historical_cognition_recall import HistoricalCognitionRecallTests
+
+        run = private_contract("pg-history-bounded", max_model_calls=1, max_tool_calls=0)
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        HistoricalCognitionRecallTests.seed_history(self.store, continuity)
+
+        with (
+            patch.object(self.store, "list_committed_working_set_events", None),
+            patch.object(self.store, "find_working_set_event_sequence", None),
+        ):
+            baseline_one = continuity.inspect_working_set_history(limit=1)
+            baseline_two = continuity.inspect_working_set_history(
+                limit=1, before_sequence=baseline_one["nextBeforeSequence"]
+            )
+            baseline_empty = continuity.inspect_working_set_history(limit=10, before_sequence=1)
+        with patch.object(
+            self.store,
+            "list_run_events",
+            side_effect=AssertionError("full Journal scan forbidden on warm history page"),
+        ):
+            one = continuity.inspect_working_set_history(limit=1)
+            two = continuity.inspect_working_set_history(
+                limit=1, before_sequence=one["nextBeforeSequence"]
+            )
+            empty = continuity.inspect_working_set_history(limit=10, before_sequence=1)
+        self.assertEqual((one, two, empty), (baseline_one, baseline_two, baseline_empty))
+        self.assertEqual(len(one["selections"]), 1)
+        self.assertEqual(len(two["selections"]), 1)
+        self.assertIsNone(two["nextBeforeSequence"])
+        self.assertEqual(empty["selections"], [])
+
+        # Another PG process commits a non-Working Set tail. Hot continuity
+        # must read only that delta and preserve history/control semantics.
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+            append_at = rival.load_run(run.harness_run_id).updated_at_ms + 1
+            lease = rival.acquire_run_lease(
+                run.harness_run_id,
+                owner_id="worker:history-append",
+                ttl_ms=5000,
+                now_ms=10,
+            )
+            rival.append_events(
+                harness_run_id=run.harness_run_id,
+                events=(
+                    HarnessEventWrite(
+                        event_id="event:history-concurrent-trace",
+                        event_kind="harness.trace-recorded",
+                        data={"trace": "committed by another process"},
+                        recorded_at_ms=append_at,
+                    ),
+                ),
+                expected_revision=lease.run_revision,
+                lease=lease,
+                lease_checked_at_ms=11,
+            )
+        self.assertEqual(continuity.inspect_working_set_history(limit=1), one)
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as cold_store:
+            cold = EventSourcedRunContinuity.open(cold_store, run.harness_run_id)
+            self.assertEqual(cold.inspect_working_set_history(limit=1), one)
+
     def test_two_connections_lease_revision_cas_and_exact_response_loss_replay(self) -> None:
         run = contract()
         self.store.create_run(run)
