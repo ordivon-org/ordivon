@@ -6,6 +6,7 @@
 (declare-const spent Int)
 (declare-const pending Int)
 (declare-const amount Int)
+(declare-const posted Int)
 (declare-const status Int)
 (define-fun inv ((b Int) (s Int) (p Int)) Bool
   (and (>= b 0) (>= s 0) (>= p 0) (<= (+ s p) b)))
@@ -29,11 +30,12 @@
 (check-sat)
 (pop 1)
 
-; 3: posting a previously reserved amount preserves the available-funds fence.
+; 3: one-time partial POST releases full original reservation, posts only
+;    the proven amount, and preserves the available-funds fence.
 (push 1)
 (assert (inv budget spent pending)) (assert (> amount 0))
-(assert (<= amount pending))
-(assert (not (inv budget (+ spent amount) (- pending amount))))
+(assert (<= amount pending)) (assert (> posted 0)) (assert (<= posted amount))
+(assert (not (inv budget (+ spent posted) (- pending amount))))
 (check-sat)
 (pop 1)
 
@@ -45,11 +47,13 @@
 (check-sat)
 (pop 1)
 
-; 5: POST moves pending to spent without creating/destroying counted funds.
+; 5: partial terminal POST releases (amount - posted), so
+;    (before spent+pending) - (after spent+pending) equals that release.
 (push 1)
 (assert (inv budget spent pending)) (assert (> amount 0))
-(assert (<= amount pending))
-(assert (not (= (+ (+ spent amount) (- pending amount)) (+ spent pending))))
+(assert (<= amount pending)) (assert (> posted 0)) (assert (<= posted amount))
+(assert (not (= (- (+ spent pending) (+ (+ spent posted) (- pending amount)))
+                (- amount posted))))
 (check-sat)
 (pop 1)
 
@@ -80,5 +84,38 @@
 (assert (= budget 1000)) (assert (= spent 0)) (assert (= pending 300))
 (assert (= amount 800))
 (assert (not (inv budget (+ spent amount) (- pending amount))))
+(check-sat)
+(pop 1)
+
+
+; 10: terminal partial release is nonnegative.
+(push 1)
+(assert (inv budget spent pending)) (assert (> amount 0))
+(assert (<= amount pending)) (assert (> posted 0)) (assert (<= posted amount))
+(assert (not (>= (- amount posted) 0)))
+(check-sat)
+(pop 1)
+
+; 11: terminal posted funds cannot exceed the prior committed budget.
+(push 1)
+(assert (inv budget spent pending)) (assert (> amount 0))
+(assert (<= amount pending)) (assert (> posted 0)) (assert (<= posted amount))
+(assert (not (<= (+ spent posted) (+ spent pending))))
+(check-sat)
+(pop 1)
+
+; 12: counterexample: falsely posting full reserved amount on partial fill.
+(push 1)
+(assert (= budget 1000)) (assert (= spent 0)) (assert (= pending 700))
+(assert (= amount 700)) (assert (= posted 240))
+(assert (not (= (+ spent amount) (+ spent posted))))
+(check-sat)
+(pop 1)
+
+; 13: counterexample: releasing only posted rather than all reserved pending.
+(push 1)
+(assert (= budget 1000)) (assert (= spent 0)) (assert (= pending 700))
+(assert (= amount 700)) (assert (= posted 240))
+(assert (not (= (- pending posted) (- pending amount))))
 (check-sat)
 (pop 1)
