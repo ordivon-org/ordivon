@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from ordivon_gateway.service import GatewayService
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerEndpoint
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerEndpoint
 
 
 async def _real_http_owner_scenario(
@@ -156,7 +156,7 @@ def test_typed_status_cancellation_reports_sdk_boundary_without_owner_failure_cl
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    caplog.set_level("WARNING", logger="ordivon_gateway.upstream")
+    caplog.set_level("WARNING", logger="ordivon_gateway.transport.upstream")
     projection, wire, _completed = asyncio.run(
         _real_http_owner_scenario(_token(tmp_path), slow=True)
     )

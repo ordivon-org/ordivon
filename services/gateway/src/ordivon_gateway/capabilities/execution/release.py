@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from .contracts import RuntimeReleaseAdmission, RuntimeReleaseProjection
-from .execution_refs import GatewayError
-from .owner_protocol import OwnerToolCaller
+from ...contracts import RuntimeReleaseAdmission, RuntimeReleaseProjection
+from ...logic.execution_refs import GatewayError
+from ...logic.owner_protocol import OwnerToolCaller
 
 _OWNER = "runtime.linux"
 _NODE = "linux-pg"

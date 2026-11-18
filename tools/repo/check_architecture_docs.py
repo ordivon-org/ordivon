@@ -18,10 +18,10 @@ ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
 DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
-ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routing.py"
+ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "logic" / "routing.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
 GATEWAY_HOST_TOOL_SOURCES = tuple(
-    ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / f"host_{owner}_tools.py"
+    ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "capabilities" / "host" / f"{owner}.py"
     for owner in ("work", "social", "attention")
 )
 GATEWAY_SURFACE_MANIFEST = ROOT / "services" / "gateway" / "mcp-surface.json"

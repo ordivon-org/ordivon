@@ -9,7 +9,7 @@ from mcp.types import Tool
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayError, GatewayService
-from ordivon_gateway.upstream import OwnerCallError
+from ordivon_gateway.transport.upstream import OwnerCallError
 
 
 class FakeOwnerCaller:
@@ -839,7 +839,7 @@ def test_explicit_empty_routes_do_not_expand_gateway_capabilities() -> None:
 
 def test_gateway_rejects_mismatched_route_and_capability_identity() -> None:
     """A route's advertised capability must match its dictionary key."""
-    from ordivon_gateway.routing import default_routes
+    from ordivon_gateway.logic.routing import default_routes
 
     route = default_routes()["execution.linux"]
     with pytest.raises(GatewayError, match="route identity"):

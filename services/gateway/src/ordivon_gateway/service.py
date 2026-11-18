@@ -3,7 +3,11 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from .capability_catalog import CapabilityCatalog
+from .capabilities.discovery import CapabilityCatalog
+from .capabilities.execution.commands import ExecutionCommandMethods
+from .capabilities.execution.observations import ExecutionObservationMethods
+from .capabilities.execution.release import RuntimeReleaseProxy
+from .capabilities.host.dispatch import HostContinuityAdapter
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
@@ -17,14 +21,10 @@ from .contracts import (
     RuntimeReleaseProjection,
     SystemDescription,
 )
-from .execution_commands import ExecutionCommandMethods
-from .execution_observations import ExecutionObservationMethods
-from .execution_refs import GatewayError
-from .execution_refs import parse_execution_ref as parse_execution_ref
-from .host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
-from .owner_protocol import OwnerToolCaller
-from .routing import default_routes
-from .runtime_release import RuntimeReleaseProxy
+from .logic.execution_refs import GatewayError
+from .logic.execution_refs import parse_execution_ref as parse_execution_ref
+from .logic.owner_protocol import OwnerToolCaller
+from .logic.routing import default_routes
 
 
 class GatewayService:
@@ -52,6 +52,7 @@ class GatewayService:
         self._execution_commands = ExecutionCommandMethods(caller, self._routes)
         self._execution_observations = ExecutionObservationMethods(caller, self._routes)
         self._runtime_release = RuntimeReleaseProxy(caller)
+        self._host_continuity = HostContinuityAdapter(caller)
 
     async def aclose(self) -> None:
         """Close only process-owned upstream transports, never Owner Jobs."""
@@ -174,10 +175,5 @@ class GatewayService:
         )
 
     async def social_work_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        """Route one promoted Social Work Fabric operation to Host without re-owning semantics."""
-        if tool_name not in _SOCIAL_WORK_HOST_TOOLS:
-            raise GatewayError(f"unsupported Host Social Work tool: {tool_name}")
-        result = await self._caller.call_tool("host", tool_name, arguments)
-        if not isinstance(result, dict):
-            raise GatewayError("Host Social Work owner returned non-object response")
-        return result
+        """Expose the Host adapter through the existing stable Gateway façade."""
+        return await self._host_continuity.call(tool_name, arguments)

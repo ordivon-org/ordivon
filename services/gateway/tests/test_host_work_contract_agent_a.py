@@ -11,7 +11,7 @@ import asyncio
 from mcp import Client
 from mcp.server import MCPServer
 
-from ordivon_gateway.host_work_tools import register_host_work_tools
+from ordivon_gateway.capabilities.host.work import register_host_work_tools
 
 
 def test_native_sdk_rejects_invalid_host_work_arguments_before_forward() -> None:

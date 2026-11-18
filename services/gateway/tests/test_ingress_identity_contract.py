@@ -120,7 +120,9 @@ def test_host_read_and_write_security_partition_matches_actual_mcp_manifest() ->
     import json
     from pathlib import Path
 
-    from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
+    from ordivon_gateway.logic.host_tool_contracts import (
+        SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
+    )
 
     surface = Path(__file__).resolve().parents[1] / "enforcement-surface.json"
     manifest = json.loads(surface.read_text(encoding="utf-8"))["tools"]

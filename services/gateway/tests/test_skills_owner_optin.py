@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
 
 
 def test_skills_unset_remains_unconfigured(monkeypatch: pytest.MonkeyPatch) -> None:

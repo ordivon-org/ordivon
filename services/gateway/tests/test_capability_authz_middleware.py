@@ -240,7 +240,7 @@ def test_verified_ingress_to_authorization_real_request_state_contract(tmp_path)
     nodes = {item["id"]: item for item in plan["nodes"]}
     assert "G07" in nodes["G06"]["dependencies"]
     assert any(
-        item["path"] == "src/ordivon_gateway/capability_authz.py"
+        item["path"] == "src/ordivon_gateway/security/capability_authz.py"
         and "SOURCE_REQUEST_STATE_CONSUMER" in item["standing"]
         for item in nodes["G07"]["consumerBindings"]
     )
@@ -644,11 +644,13 @@ def test_non_json_legacy_host_mutation_auth_target_is_rejected_before_pdp(wrong)
 
 
 def test_legacy_host_readonly_stays_read_and_all_owner_writes_default_to_pep() -> None:
+    from ordivon_gateway.logic.host_tool_contracts import (
+        SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
+    )
     from ordivon_gateway.security.authorization_targets import (
         _HOST_READ_ONLY_TOOLS,
         _legacy_host_mutation_target,
     )
-    from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
 
     assert _HOST_READ_ONLY_TOOLS <= _SOCIAL_WORK_HOST_TOOLS
     assert "work.snapshot.commit" not in _HOST_READ_ONLY_TOOLS

@@ -8,9 +8,9 @@ from typing import Any
 
 import pytest
 
-from ordivon_gateway.research_resolution import resolve_research_capability
-from ordivon_gateway.research_routes import research_capabilities
-from ordivon_gateway.routing import default_routes
+from ordivon_gateway.capabilities.research import resolve_research_capability
+from ordivon_gateway.logic.research_routes import research_capabilities
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayError, GatewayService
 
 

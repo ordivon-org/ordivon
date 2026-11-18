@@ -7,13 +7,7 @@ from dataclasses import asdict
 from importlib.metadata import version as package_version
 from typing import Any
 
-from .capability_projection import (
-    candidate_routes_for_search,
-    project_capability_search,
-    project_execution_capability,
-    project_native_release_capability,
-)
-from .contracts import (
+from ..contracts import (
     CapabilityDescriptor,
     CapabilityProjection,
     CapabilityResolution,
@@ -22,9 +16,15 @@ from .contracts import (
     OwnerDescriptor,
     SystemDescription,
 )
-from .execution_refs import GatewayError
-from .owner_protocol import OwnerToolCaller, _configuration_error, _configured
-from .research_resolution import resolve_research_capability
+from ..logic.capability_projection import (
+    candidate_routes_for_search,
+    project_capability_search,
+    project_execution_capability,
+    project_native_release_capability,
+)
+from ..logic.execution_refs import GatewayError
+from ..logic.owner_protocol import OwnerToolCaller, _configuration_error, _configured
+from .research import resolve_research_capability
 
 _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",

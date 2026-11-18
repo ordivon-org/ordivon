@@ -19,8 +19,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+from ordivon_gateway.logic.host_tool_contracts import (
+    SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
+)
 from ordivon_gateway.security.owner_identity import OwnerCallError, _read_private_token_file
-from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
 
 MAX_POLICY_BYTES = 2_097_152
 MAX_SOCKET_EVIDENCE_BYTES = 131_072

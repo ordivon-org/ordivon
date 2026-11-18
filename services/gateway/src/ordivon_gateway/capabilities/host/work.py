@@ -17,9 +17,9 @@ from pydantic import (
     with_config,
 )
 
-from .host_tool_contracts import HostCollectionBytes
-from .security import OwnerCallError
-from .security import owner_error_result as _owner_error_result
+from ...logic.host_tool_contracts import HostCollectionBytes
+from ...security import OwnerCallError
+from ...security import owner_error_result as _owner_error_result
 
 
 # Match the natural Host's published WorkSnapshotInput wire shape without
