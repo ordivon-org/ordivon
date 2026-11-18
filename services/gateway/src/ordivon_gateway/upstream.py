@@ -68,6 +68,51 @@ def _extract_owner_tool_error(
         if isinstance(candidate, dict):
             return dict(candidate)
 
+    # Native Runtime MCP serializes typed RuntimeError as an exact JSON
+    # ToolError text envelope on some SDK paths. Preserve only the bounded
+    # Runtime-owned contract; arbitrary prose never gains structured authority.
+    if owner_id.startswith("runtime."):
+        prefix = f"Error executing tool {tool_name}: "
+        for item in result.content:
+            raw = getattr(item, "text", None)
+            if not isinstance(raw, str):
+                continue
+            if raw.startswith(prefix):
+                raw = raw[len(prefix) :]
+            if len(raw) > 4096:
+                continue
+            try:
+                envelope = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(envelope, dict) or set(envelope) != {"error"}:
+                continue
+            error = envelope["error"]
+            if not isinstance(error, dict) or error.get("origin") != "runtime_core":
+                continue
+            if not all(
+                isinstance(error.get(field), str) and error[field]
+                for field in ("code", "commitState", "message", "retryClass")
+            ):
+                continue
+            if type(error.get("retryable")) is not bool:
+                continue
+            if error["commitState"] not in {"committed", "not_committed", "unknown"}:
+                continue
+            if "field" in error and not isinstance(error["field"], str):
+                continue
+            fields = (
+                "code",
+                "commitState",
+                "message",
+                "origin",
+                "retryClass",
+                "retryable",
+                "field",
+            )
+            return {field: error[field] for field in fields if field in error}
+        return None
+
     # Host domain errors are raised by MCP tools and MCP v2 currently serializes that
     # exception as text rather than structuredContent. Recover only the exact canonical
     # Host envelope; arbitrary owner prose must remain an opaque OWNER_CALL_FAILED.

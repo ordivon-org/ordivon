@@ -338,6 +338,74 @@ def test_arbitrary_owner_error_text_is_not_promoted_to_structured_authority() ->
     assert _extract_owner_tool_error(result, owner_id="runtime.linux", tool_name="work.get") is None
 
 
+def test_native_runtime_mcp_text_error_preserves_typed_recovery_contract() -> None:
+    # Native PG Runtime ToolError responses carry a JSON envelope as MCP text.
+    # The error is an owner claim, not permission to infer an effect or replay.
+    original = {
+        "code": "IDEMPOTENCY_CONFLICT",
+        "commitState": "not_committed",
+        "message": "PostgreSQL Runtime: IdempotencyConflict",
+        "origin": "runtime_core",
+        "retryClass": "never",
+        "retryable": False,
+    }
+    result = SimpleNamespace(
+        structured_content=None,
+        content=[SimpleNamespace(text=__import__("json").dumps({"error": original}))],
+    )
+    assert (
+        _extract_owner_tool_error(result, owner_id="runtime.linux", tool_name="workspace.exec")
+        == original
+    )
+
+    # MCP SDK versions may prepend the originating Tool name to the same
+    # canonical JSON payload; the exact Owner call still remains trusted.
+    prefixed = SimpleNamespace(
+        structured_content=None,
+        content=[
+            SimpleNamespace(
+                text="Error executing tool workspace.exec: "
+                + __import__("json").dumps({"error": original})
+            )
+        ],
+    )
+    assert (
+        _extract_owner_tool_error(prefixed, owner_id="runtime.linux", tool_name="workspace.exec")
+        == original
+    )
+
+    # A foreign service, malformed retry flag or arbitrary prose cannot
+    # acquire typed runtime-core error authority through this fallback.
+    for invalid in (
+        {**original, "origin": "unknown_service"},
+        {**original, "retryable": "false"},
+        {"code": "IDEMPOTENCY_CONFLICT"},
+    ):
+        response = SimpleNamespace(
+            structured_content=None,
+            content=[SimpleNamespace(text=__import__("json").dumps({"error": invalid}))],
+        )
+        assert (
+            _extract_owner_tool_error(
+                response, owner_id="runtime.linux", tool_name="workspace.exec"
+            )
+            is None
+        )
+
+    with_extra = SimpleNamespace(
+        structured_content=None,
+        content=[
+            SimpleNamespace(
+                text=__import__("json").dumps({"error": {**original, "private": "secret"}})
+            )
+        ],
+    )
+    sanitized = _extract_owner_tool_error(
+        with_extra, owner_id="runtime.linux", tool_name="workspace.exec"
+    )
+    assert sanitized == original
+
+
 def test_structured_owner_error_precedes_text_fallback() -> None:
     structured = {
         "code": "REGISTRY_COMMIT_UNKNOWN",
