@@ -114,7 +114,11 @@ def test_message_sequence_follows_same_topic_commit_visibility() -> None:
     text = MSG_STORE.read_text()
     post = text.split("    def post_message", 1)[1].split("    def add_message_relation", 1)[0]
     assert "self._require_topic(conn, value.topic_ref, for_no_key_update=True)" in post
-    helper = STORE.read_text().split("    def _require_topic(", 1)[1]
+    helper = (
+        (STORE.parent / "capabilities" / "postgres_references.py")
+        .read_text()
+        .split("    def _require_topic(", 1)[1]
+    )
     assert "FOR NO KEY UPDATE" in helper
     # This lock mode does not conflict with FK KEY SHARE on topics.
     assert "FOR UPDATE" not in helper
@@ -156,6 +160,7 @@ def test_two_writer_committed_prefix_interleaving_exhaustive() -> None:
     assert old_schedules > 0
     assert old_skipped > 0  # Clock serialization alone does not prove safety.
     assert locked_schedules > 0
+
 
 def test_work_cas_rejects_unincrementable_pg_revision_before_database_access() -> None:
     """Formal proof assumes valid inputs; real WorkStore enforces that boundary."""
