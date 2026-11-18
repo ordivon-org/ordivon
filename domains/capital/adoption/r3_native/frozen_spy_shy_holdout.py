@@ -12,10 +12,11 @@ import io
 import json
 import os
 from collections.abc import Callable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
 from ordivon_capital.portfolio.passive_benchmark import replay_passive_benchmark
 from ordivon_capital.research.experiment_protocol import freeze_experiment_plan
 
@@ -103,6 +104,26 @@ def observe(
     sessions = sorted(set(observed["SPY"]) & set(observed["SHY"]))
     if sessions != sorted(observed["SPY"]) or sessions != sorted(observed["SHY"]):
         raise ValueError("incomplete paired ETF sessions")
+    # A matching pair of vendor CSVs can BOTH contain a fake holiday or
+    # omit the last exchange session. The natural Markets owner establishes
+    # the exact session grid; neither this study nor Portfolio owns a calendar.
+    # The existing source contract rejects same-UTC-day prices, so qualify
+    # only sessions fully elapsed before BOTH provider receipts (not the
+    # uncompleted part of the caller's future holdout).
+    completed_cut = min(
+        end,
+        *((
+            datetime.fromisoformat(receipts[s]["receivedAt"]).date()
+            - timedelta(days=1)
+        ).isoformat() for s in SYMBOLS),
+    )
+    session_qualification = {
+        s: require_xnys_session_grid(
+            sorted(observed[s]), symbol=s,
+            requested_start=start, requested_end=completed_cut,
+        )
+        for s in SYMBOLS
+    }
     weights = {s: Decimal(v) / Decimal(10000) for s, v in policy["weightsBps"].items()}
     strategy_fee = Decimal(policy["strategyAnnualExpenseFraction"]) / Decimal(252)
     benchmark_fee = Decimal(policy["benchmarkAnnualExpenseFraction"]) / Decimal(252)
@@ -125,6 +146,7 @@ def observe(
         "standing": "PARTIAL_FORWARD_DESCRIPTIVE_SOURCE_UNVERIFIED",
         "frozenPlanDigest": frozen["planDigest"], "observedSessions": sessions,
         "returnPeriods": len(periods), "sourceReceipts": receipts,
+        "sessionQualification": session_qualification,
         "economicComparison": comparison,
         "historicalPITVerified": False, "independentSourceAuthenticityVerified": False,
         "dataRightsIndependentlyVerified": False, "corporateActionsQualified": False,
