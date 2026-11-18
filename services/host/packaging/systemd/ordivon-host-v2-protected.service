@@ -1,0 +1,42 @@
+[Unit]
+Description=Ordivon Host v2 protected parallel MCP ingress (migration candidate)
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=ordivon-host-v2-protected
+Group=ordivon-host-v2-protected
+DynamicUser=yes
+WorkingDirectory=/opt/ordivon/host-v2/current
+EnvironmentFile=/etc/ordivon/host-v2.env
+# Exact systemd-owned secret is delivered to the service only, never in Git or Environment.
+LoadCredential=owner-bearer:/etc/ordivon/host-v2-protected/owner-bearer
+# Keep one PG14 authority but never permit this migration endpoint to write.
+# ExecStart overrides an inherited legacy-direct flag even when its source is EnvironmentFile.
+ExecStartPre=/usr/bin/env "PGOPTIONS=-c default_transaction_read_only=on" /opt/ordivon/host-v2/current/.venv/bin/python -c 'from ordivon_host_v2 import HostV2; import os; HostV2(os.environ["ORDIVON_HOST_V2_DSN"]).initialize()'
+ExecStart=/usr/bin/env -u ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP "PGOPTIONS=-c default_transaction_read_only=on" ORDIVON_HOST_V2_TRANSPORT=streamable-http ORDIVON_HOST_V2_HOST=127.0.0.1 ORDIVON_HOST_V2_PORT=19008 ORDIVON_HOST_V2_PATH=/mcp ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE=%d/owner-bearer /opt/ordivon/host-v2/current/.venv/bin/ordivon-host-v2-mcp
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
