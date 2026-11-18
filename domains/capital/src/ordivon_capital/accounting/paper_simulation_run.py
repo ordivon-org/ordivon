@@ -174,26 +174,45 @@ def run_simulated_paper(
             or not 2 <= len(days_raw) <= 32):
         raise ValueError("invalid native horizon or Paper session set")
 
+    # Accounting is an independent Qlib consumer, not an alternative
+    # forecast interpreter. The score, target and exit event must match the
+    # upstream native Strategy's exact H5/H20 economic contract.
+    quality = model["signal_quality"]
+    forecast = model["forecast"]
+    if (
+        quality.get("standing") != "RETROSPECTIVE_BACKFILL_TEST_ONLY"
+        or quality.get("label_forward_sessions") != hold + 1
+        or quality.get("horizon")
+        != f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{hold + 1}_open"
+        or forecast.get("kind") != "uncalibrated_multisession_holding_return"
+        or forecast.get("holding_sessions") != hold
+        or forecast.get("exit_price_kind") != "next_open"
+        or forecast.get("target_horizon")
+        != f"next_session_open_to_T_plus_{hold + 1}_open"
+    ):
+        raise ValueError("Qlib forecast horizon disagrees with native holding exit")
+
     decision = outcome.get("research_model_sample_decision")
+    score_column = "predicted_next_open_to_next_open_fractional_return"
+    expected_columns = ["datetime", "instrument", score_column]
     try:
         decision_date = date.fromisoformat(decision)
-        rows = [
-            row for row in csv.DictReader(StringIO(pred_bytes.decode("utf-8")))
-            if row.get("datetime") == decision_date.isoformat()
-        ]
-        if len(rows) != 3 or {r["instrument"] for r in rows} != {"SPY", "QQQ", "IWM"}:
+        reader = csv.DictReader(StringIO(pred_bytes.decode("utf-8")))
+        if reader.fieldnames != expected_columns:
+            raise ValueError("Qlib prediction score schema differs from native producer")
+        rows = [row for row in reader if row.get("datetime") == decision_date.isoformat()]
+        if (
+            len(rows) != 3
+            or {row.get("instrument") for row in rows} != {"SPY", "QQQ", "IWM"}
+            or any(set(row) != set(expected_columns) for row in rows)
+        ):
             raise ValueError("native decision not present in original exact Qlib OOS snapshot")
         from math import isfinite
 
-        scores = {
-            row["instrument"]: float(next(
-                value for key, value in row.items() if key not in ("datetime", "instrument")
-            ))
-            for row in rows
-        }
+        scores = {row["instrument"]: float(row[score_column]) for row in rows}
         if not all(isfinite(v) for v in scores.values()):
             raise ValueError("nonfinite model decision score")
-    except (TypeError, UnicodeError, StopIteration, OverflowError) as exc:
+    except (TypeError, UnicodeError, OverflowError) as exc:
         raise ValueError("invalid Qlib OOS decision content") from exc
     expected_symbol = min(scores, key=lambda sym: (-scores[sym], sym))
     if expected_symbol != symbol:
