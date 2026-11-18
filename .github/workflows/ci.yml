@@ -979,6 +979,23 @@ jobs:
                       raise SystemExit("selected nested tools/formal source missing")
                   if "tools/formal" not in roots:
                       roots.append("tools/formal")
+          # The Gateway test suite has an existing, governed test-only seam
+          # to Security's OPA policy and exact version in platform/security/mise.toml.
+          # A Gateway-only merge group otherwise omits that Owner toolchain:
+          # "mise where opa@<Security pin>" fails though the test is valid.
+          # Preinstall the existing provider when that consumer is selected;
+          # never hard-code an alternate OPA pin or weaken the test.
+          if "gateway:verify" in tasks:
+              security_manifest = Path("platform/security/mise.toml")
+              if not security_manifest.is_file():
+                  raise SystemExit("Gateway OPA test needs Security Owner toolchain")
+              tools = tomllib.loads(
+                  security_manifest.read_text(encoding="utf-8")
+              ).get("tools", {})
+              if not isinstance(tools.get("opa"), str):
+                  raise SystemExit("Gateway OPA test needs Security-pinned OPA")
+              if "platform/security" not in roots:
+                  roots.append("platform/security")
           Path(sys.argv[1]).write_text(
               "".join(root + "\n" for root in roots), encoding="utf-8"
           )
