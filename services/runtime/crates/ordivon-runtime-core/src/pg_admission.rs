@@ -2630,13 +2630,17 @@ mod live_pg_tests {
             })
             .unwrap();
         store
-            .mark_dispatch_issued_pg(&PgDispatchIssued {
-                attempt_id: input.attempt_id.clone(),
-                expected_row_version: 1,
-                expected_bundle_digest: bundle.clone(),
-                observed_at_ms: input.created_at_ms + 2,
-                expected_source_sha256: input.expected_source_sha256.clone(),
-            })
+            .mark_dispatch_issued_pg(
+                &PgDispatchIssued {
+                    attempt_id: input.attempt_id.clone(),
+                    expected_row_version: 1,
+                    expected_bundle_digest: bundle.clone(),
+                    observed_at_ms: input.created_at_ms + 2,
+                    expected_source_sha256: input.expected_source_sha256.clone(),
+                },
+                None,
+                None,
+            )
             .unwrap();
         let witness = PgRunnerBound {
             attempt_id: input.attempt_id.clone(),
@@ -2747,13 +2751,17 @@ mod live_pg_tests {
             })
             .unwrap();
         store
-            .mark_dispatch_issued_pg(&PgDispatchIssued {
-                attempt_id: cancelled.attempt_id.clone(),
-                expected_row_version: 1,
-                expected_bundle_digest: cancelled_bundle.clone(),
-                observed_at_ms: cancelled.created_at_ms + 2,
-                expected_source_sha256: cancelled.expected_source_sha256.clone(),
-            })
+            .mark_dispatch_issued_pg(
+                &PgDispatchIssued {
+                    attempt_id: cancelled.attempt_id.clone(),
+                    expected_row_version: 1,
+                    expected_bundle_digest: cancelled_bundle.clone(),
+                    observed_at_ms: cancelled.created_at_ms + 2,
+                    expected_source_sha256: cancelled.expected_source_sha256.clone(),
+                },
+                None,
+                None,
+            )
             .unwrap();
         store
             .request_cancel_intent(&PgCancelIntent {
@@ -2811,7 +2819,7 @@ mod live_pg_tests {
             expected_source_sha256: a.expected_source_sha256.clone(),
         };
         assert!(matches!(
-            store.mark_dispatch_issued_pg(&issued),
+            store.mark_dispatch_issued_pg(&issued, None, None),
             Err(PgAdmissionError::Blocked)
         ));
         assert_eq!(scratch.count("job_events"), 3);
@@ -2833,7 +2841,7 @@ mod live_pg_tests {
         let mut wrong_source = issued.clone();
         wrong_source.expected_source_sha256 = "f".repeat(64);
         assert!(matches!(
-            store.mark_dispatch_issued_pg(&wrong_source),
+            store.mark_dispatch_issued_pg(&wrong_source, None, None),
             Err(PgAdmissionError::Unqualified)
         ));
         let original_detail = serde_json::json!({"bundleDigest": digest}).to_string();
@@ -2846,7 +2854,7 @@ mod live_pg_tests {
             &[&a.job_id],
         ).unwrap();
         assert!(matches!(
-            store.mark_dispatch_issued_pg(&issued),
+            store.mark_dispatch_issued_pg(&issued, None, None),
             Err(PgAdmissionError::Blocked)
         ));
         assert_eq!(scratch.count("job_events"), 4);
@@ -2854,10 +2862,13 @@ mod live_pg_tests {
             "UPDATE job_events SET detail_digest=$1              WHERE job_id=$2 AND event_type='BUNDLE_READY'",
             &[&original_digest, &a.job_id],
         ).unwrap();
-        assert_eq!(store.mark_dispatch_issued_pg(&issued).unwrap(), 2);
+        assert_eq!(
+            store.mark_dispatch_issued_pg(&issued, None, None).unwrap(),
+            2
+        );
         assert_eq!(scratch.count("job_events"), 5);
         assert!(matches!(
-            store.mark_dispatch_issued_pg(&issued),
+            store.mark_dispatch_issued_pg(&issued, None, None),
             Err(PgAdmissionError::Blocked)
         ));
         assert_eq!(scratch.count("job_events"), 5);
@@ -2931,7 +2942,7 @@ mod live_pg_tests {
             expected_source_sha256: a.expected_source_sha256.clone(),
         };
         assert!(matches!(
-            store.mark_dispatch_issued_pg(&issued),
+            store.mark_dispatch_issued_pg(&issued, None, None),
             Err(PgAdmissionError::Blocked)
         ));
         let row = scratch.admin.query_one(
@@ -3319,9 +3330,14 @@ mod live_pg_tests {
             observed_at_ms: 1234569,
             expected_source_sha256: request.expected_source_sha256.clone(),
         };
-        assert_eq!(store.mark_dispatch_issued_pg(&dispatch).unwrap(), 2);
+        assert_eq!(
+            store
+                .mark_dispatch_issued_pg(&dispatch, None, None)
+                .unwrap(),
+            2
+        );
         assert!(matches!(
-            store.mark_dispatch_issued_pg(&dispatch),
+            store.mark_dispatch_issued_pg(&dispatch, None, None),
             Err(PgAdmissionError::Blocked),
         ));
         let artifact = PgArtifactRegistration {
@@ -3415,5 +3431,420 @@ mod live_pg_tests {
         assert_eq!(scratch.count("idempotency_keys"), 1);
         assert_eq!(scratch.count("attempts"), 1);
         assert_eq!(scratch.count("concurrency_reservations"), 1);
+    }
+
+    /// The same original PG issue cut must remain current at the later
+    /// DISPATCH_ISSUED commit. Uses two actual PG connections and an isolated
+    /// issuer SQL fixture, not a simulated in-memory flag or a native ACK.
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_harness_issuer_current_at_dispatch_after_admission() {
+        fn encoded(value: &serde_json::Value) -> (String, Vec<u8>) {
+            let bytes = serde_json::to_vec(value).unwrap();
+            (
+                format!("sha256:{}", hex::encode(Sha256::digest(&bytes))),
+                bytes,
+            )
+        }
+        let dsn = physical_pg_test_dsn();
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        scratch
+            .admin
+            .batch_execute(
+                "CREATE TABLE issuer_cut_fixture (
+                run_id text NOT NULL, generation bigint NOT NULL,
+                fence_digest text NOT NULL, live boolean NOT NULL,
+                payload_digest text NOT NULL, payload_raw bytea NOT NULL,
+                fence_raw bytea NOT NULL, intent_digest text NOT NULL,
+                intent_raw bytea NOT NULL
+            );
+            CREATE FUNCTION harness_current_dispatch_cut(text,bigint,text)
+            RETURNS TABLE(
+                event_kind text,payload_digest text,payload_kind text,
+                payload_size bigint,payload_raw bytea,
+                fence_kind text,fence_size bigint,fence_raw bytea,
+                intent_object_digest text,intent_kind text,intent_len bigint,
+                intent_raw bytea
+            ) LANGUAGE SQL AS $issuer$
+                SELECT 'harness.tool-step-prepared'::text,
+                       f.payload_digest, 'ordivon.harness-run-event-payload'::text,
+                       octet_length(f.payload_raw)::bigint, f.payload_raw,
+                       'harness-dispatch-fence'::text,
+                       octet_length(f.fence_raw)::bigint, f.fence_raw,
+                       f.intent_digest, 'harness-tool-step-intent'::text,
+                       octet_length(f.intent_raw)::bigint, f.intent_raw
+                  FROM issuer_cut_fixture f
+                 WHERE f.run_id=$1 AND f.generation=$2
+                   AND f.fence_digest=$3 AND f.live
+            $issuer$;",
+            )
+            .unwrap();
+
+        let mut harness = payload("original-tool", "original-harness-job", "ws-harness", 2);
+        harness.principal = "original-harness-principal".into();
+        let run_id = "harness-run:dispatch-current-pg18";
+        let fence_id = "harness-dispatch-fence:dispatch-current-pg18";
+        let other_ref = serde_json::json!({
+            "namespace":"ordivon.harness","type":"harness_run","id":run_id
+        });
+        let (intent_digest, intent_raw) = encoded(&serde_json::json!({
+            "schemaVersion":1,"kind":"ordivon.harness-tool-step-intent",
+            "harnessRunId":run_id,"runtimeOperation":"workspace.exec",
+            "runtimeArgumentsDigest":format!("sha256:{}", "a".repeat(64)),
+            "clientRequestId":harness.client_request_id
+        }));
+        let (fence_digest, fence_raw) = encoded(&serde_json::json!({
+            "schemaVersion":2,"kind":"ordivon.harness-dispatch-fence",
+            "fenceId":fence_id,"harnessRunId":run_id,"runRevision":1,
+            "clientRequestId":harness.client_request_id,
+            "runtimeOperation":"workspace.exec","intentDigest":intent_digest,
+            "issuedAtMs":0_i64,"expiresAtMs":32_503_680_000_000_i64
+        }));
+        let fence_ref = serde_json::json!({
+            "namespace":"ordivon.harness","type":"dispatch_fence",
+            "id":fence_id,"digest":fence_digest,"generation":"1"
+        });
+        let (physical_digest, _) = encoded(&serde_json::json!({
+            "workspaceId":harness.workspace_id,
+            "executable":"/usr/bin/echo","args":["harmless"],
+            "cwdRelative":".","env":{},
+            "timeoutMs":1000,"stdoutLimitBytes":1024,"stderrLimitBytes":1024,
+            "foreignReferences":[other_ref.clone()]
+        }));
+        let (payload_digest, payload_raw) = encoded(&serde_json::json!({
+            "schemaVersion":1,"kind":"ordivon.harness-run-event-payload",
+            "eventKind":"harness.tool-step-prepared",
+            "data":{
+                "dispatchFenceDigest":fence_digest,
+                "dispatchFenceObjectDigest":fence_digest,
+                "toolStepIntentDigest":intent_digest,
+                "toolStepIntentObjectDigest":intent_digest,
+                "physicalExecutionDigest":physical_digest
+            }
+        }));
+        harness.execution_plan_json = serde_json::json!({
+            "workspaceId":harness.workspace_id,"workspacePath":"/tmp/pg-issuer-fixture",
+            "cwd":"/tmp/pg-issuer-fixture",
+            "executable":"/usr/bin/echo","args":["harmless"],"env":{},
+            "timeoutMs":1000,"stdoutLimitBytes":1024,"stderrLimitBytes":1024,
+            "executionProfile":"trusted_local","executionTarget":"local_linux",
+            "foreignReferences":[other_ref,fence_ref]
+        })
+        .to_string();
+
+        scratch
+            .admin
+            .execute(
+                "INSERT INTO issuer_cut_fixture VALUES($1,$2,$3,true,$4,$5,$6,$7,$8)",
+                &[
+                    &run_id,
+                    &1_i64,
+                    &fence_digest,
+                    &payload_digest,
+                    &payload_raw,
+                    &fence_raw,
+                    &intent_digest,
+                    &intent_raw,
+                ],
+            )
+            .unwrap();
+        let mut db = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert_eq!(
+            db.admit_with_workspace_guard(&harness, &|| Ok(()), Some(&scratch.name),)
+                .unwrap(),
+            PgAdmissionOutcome::Created(harness.job_id.clone())
+        );
+        allocate_fixture(&mut scratch, &harness);
+        let digest = format!("sha256:{}", "b".repeat(64));
+        db.commit_bundle_ready_pg(&PgBundleReady {
+            attempt_id: harness.attempt_id.clone(),
+            expected_row_version: 0,
+            bundle_digest: digest.clone(),
+            observed_at_ms: harness.created_at_ms + 1,
+            expected_source_sha256: harness.expected_source_sha256.clone(),
+        })
+        .unwrap();
+        let issued = PgDispatchIssued {
+            attempt_id: harness.attempt_id.clone(),
+            expected_row_version: 1,
+            expected_bundle_digest: digest,
+            observed_at_ms: harness.created_at_ms + 2,
+            expected_source_sha256: harness.expected_source_sha256.clone(),
+        };
+
+        // An independent source writer revokes the original Run after admission,
+        // before the durable dispatch transaction commits.
+        let mut source = Client::connect(&dsn, NoTls).unwrap();
+        source
+            .execute(
+                &format!(
+                    "UPDATE \"{}\".issuer_cut_fixture SET live=false WHERE run_id=$1",
+                    scratch.name
+                ),
+                &[&run_id],
+            )
+            .unwrap();
+        assert!(matches!(
+            db.mark_dispatch_issued_pg(
+                &issued,
+                Some(&scratch.name),
+                Some("original-harness-principal"),
+            ),
+            Err(PgAdmissionError::IssuerNotCurrent)
+        ));
+        let state: String = scratch
+            .admin
+            .query_one(
+                "SELECT state FROM attempts WHERE attempt_id=$1",
+                &[&harness.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(
+            state, "accepted",
+            "failed currentness must roll back PG dispatch"
+        );
+        assert_eq!(scratch.count("job_events"), 4, "no durable dispatch event");
+
+        // The same original source resumes authority, and dispatch is admitted
+        // once. This positive is PG-only; no OS Unit or Domain effect is claimed.
+        source
+            .execute(
+                &format!(
+                    "UPDATE \"{}\".issuer_cut_fixture SET live=true WHERE run_id=$1",
+                    scratch.name
+                ),
+                &[&run_id],
+            )
+            .unwrap();
+        assert_eq!(
+            db.mark_dispatch_issued_pg(
+                &issued,
+                Some(&scratch.name),
+                Some("original-harness-principal"),
+            )
+            .unwrap(),
+            2
+        );
+        assert_eq!(scratch.count("job_events"), 5);
+
+        // The one ordinary scheduler must still dispatch unrelated Jobs.
+        let ordinary = payload("ordinary-request", "ordinary-job", "ws-ordinary", 2);
+        db.admit(&ordinary).unwrap();
+        allocate_fixture(&mut scratch, &ordinary);
+        let ordinary_digest = format!("sha256:{}", "c".repeat(64));
+        db.commit_bundle_ready_pg(&PgBundleReady {
+            attempt_id: ordinary.attempt_id.clone(),
+            expected_row_version: 0,
+            bundle_digest: ordinary_digest.clone(),
+            observed_at_ms: ordinary.created_at_ms + 1,
+            expected_source_sha256: ordinary.expected_source_sha256.clone(),
+        })
+        .unwrap();
+        assert_eq!(
+            db.mark_dispatch_issued_pg(
+                &PgDispatchIssued {
+                    attempt_id: ordinary.attempt_id,
+                    expected_row_version: 1,
+                    expected_bundle_digest: ordinary_digest,
+                    observed_at_ms: ordinary.created_at_ms + 2,
+                    expected_source_sha256: ordinary.expected_source_sha256,
+                },
+                Some(&scratch.name),
+                Some("original-harness-principal")
+            )
+            .unwrap(),
+            2
+        );
+    }
+
+    /// Real PG two-connection admission->revoke->dispatch experiment.
+    /// SQL fixture only models the original Harness source cut, never OS ACK.
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_original_harness_dispatch_current_two_connections() {
+        fn enc(v: serde_json::Value) -> (String, Vec<u8>) {
+            let raw = serde_json::to_vec(&v).unwrap();
+            (format!("sha256:{}", hex::encode(Sha256::digest(&raw))), raw)
+        }
+        let dsn = physical_pg_test_dsn();
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        scratch
+            .admin
+            .batch_execute(
+                "CREATE TABLE issuer_cut_fixture(
+                run_id text, generation bigint, digest text, live boolean,
+                payload_hash text, payload bytea, fence bytea,
+                intent_hash text, intent bytea
+            );
+            CREATE FUNCTION harness_current_dispatch_cut(text,bigint,text)
+            RETURNS TABLE(event_kind text,payload_digest text,payload_kind text,
+                payload_size bigint,payload_raw bytea,fence_kind text,
+                fence_size bigint,fence_raw bytea,intent_object_digest text,
+                intent_kind text,intent_len bigint,intent_raw bytea)
+            LANGUAGE SQL AS $cut$
+                SELECT 'harness.tool-step-prepared'::text,
+                    f.payload_hash,'ordivon.harness-run-event-payload'::text,
+                    octet_length(f.payload)::bigint,f.payload,
+                    'harness-dispatch-fence'::text,
+                    octet_length(f.fence)::bigint,f.fence,
+                    f.intent_hash,'harness-tool-step-intent'::text,
+                    octet_length(f.intent)::bigint,f.intent
+                FROM issuer_cut_fixture f
+                WHERE f.run_id=$1 AND f.generation=$2 AND f.digest=$3 AND f.live
+            $cut$;",
+            )
+            .unwrap();
+        let mut h = payload("original-tool", "harness-dispatch", "harness-ws", 2);
+        h.principal = "harness-issuer".into();
+        let run = "harness-run:pg18-current";
+        let fence_id = "harness-dispatch-fence:pg18-current";
+        let other = serde_json::json!({
+            "namespace":"ordivon.harness","type":"harness_run","id":run
+        });
+        let (intent_hash, intent_raw) = enc(serde_json::json!({
+            "schemaVersion":1,"kind":"ordivon.harness-tool-step-intent",
+            "harnessRunId":run,"runtimeOperation":"workspace.exec",
+            "runtimeArgumentsDigest":format!("sha256:{}", "a".repeat(64)),
+            "clientRequestId":h.client_request_id
+        }));
+        let (fence_hash, fence_raw) = enc(serde_json::json!({
+            "schemaVersion":2,"kind":"ordivon.harness-dispatch-fence",
+            "fenceId":fence_id,"harnessRunId":run,"runRevision":1,
+            "clientRequestId":h.client_request_id,"runtimeOperation":"workspace.exec",
+            "intentDigest":intent_hash,"issuedAtMs":0_i64,
+            "expiresAtMs":32_503_680_000_000_i64
+        }));
+        let (physical_hash, _) = enc(serde_json::json!({
+            "workspaceId":h.workspace_id,"executable":"/usr/bin/echo",
+            "args":["harmless"],"cwdRelative":".","env":{},
+            "timeoutMs":1000,"stdoutLimitBytes":1024,"stderrLimitBytes":1024,
+            "foreignReferences":[other.clone()]
+        }));
+        let (payload_hash, payload_raw) = enc(serde_json::json!({
+            "schemaVersion":1,"kind":"ordivon.harness-run-event-payload",
+            "eventKind":"harness.tool-step-prepared","data":{
+                "dispatchFenceDigest":fence_hash,
+                "dispatchFenceObjectDigest":fence_hash,
+                "toolStepIntentDigest":intent_hash,
+                "toolStepIntentObjectDigest":intent_hash,
+                "physicalExecutionDigest":physical_hash
+            }
+        }));
+        h.execution_plan_json = serde_json::json!({
+            "workspaceId":h.workspace_id,"workspacePath":"/tmp/pg18-current",
+            "cwd":"/tmp/pg18-current","executable":"/usr/bin/echo",
+            "args":["harmless"],"env":{},"timeoutMs":1000,
+            "stdoutLimitBytes":1024,"stderrLimitBytes":1024,
+            "executionProfile":"trusted_local","executionTarget":"local_linux",
+            "foreignReferences":[other,{
+                "namespace":"ordivon.harness","type":"dispatch_fence",
+                "id":fence_id,"digest":fence_hash,"generation":"1"
+            }]
+        })
+        .to_string();
+        scratch
+            .admin
+            .execute(
+                "INSERT INTO issuer_cut_fixture VALUES($1,1,$2,true,$3,$4,$5,$6,$7)",
+                &[
+                    &run,
+                    &fence_hash,
+                    &payload_hash,
+                    &payload_raw,
+                    &fence_raw,
+                    &intent_hash,
+                    &intent_raw,
+                ],
+            )
+            .unwrap();
+        let mut runtime = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert_eq!(
+            runtime
+                .admit_with_workspace_guard(&h, &|| Ok(()), Some(&scratch.name))
+                .unwrap(),
+            PgAdmissionOutcome::Created(h.job_id.clone())
+        );
+        allocate_fixture(&mut scratch, &h);
+        let digest = format!("sha256:{}", "b".repeat(64));
+        runtime
+            .commit_bundle_ready_pg(&PgBundleReady {
+                attempt_id: h.attempt_id.clone(),
+                expected_row_version: 0,
+                bundle_digest: digest.clone(),
+                observed_at_ms: h.created_at_ms + 1,
+                expected_source_sha256: h.expected_source_sha256.clone(),
+            })
+            .unwrap();
+        let issued = PgDispatchIssued {
+            attempt_id: h.attempt_id.clone(),
+            expected_row_version: 1,
+            expected_bundle_digest: digest,
+            observed_at_ms: h.created_at_ms + 2,
+            expected_source_sha256: h.expected_source_sha256.clone(),
+        };
+        let mut source = Client::connect(&dsn, NoTls).unwrap();
+        let update = format!(
+            "UPDATE \"{}\".issuer_cut_fixture SET live=$1 WHERE run_id=$2",
+            scratch.name
+        );
+        source.execute(&update, &[&false, &run]).unwrap();
+        assert!(matches!(
+            runtime.mark_dispatch_issued_pg(&issued, Some(&scratch.name), Some("harness-issuer")),
+            Err(PgAdmissionError::IssuerNotCurrent)
+        ));
+        assert_eq!(
+            scratch
+                .admin
+                .query_one(
+                    "SELECT state FROM attempts WHERE attempt_id=$1",
+                    &[&h.attempt_id],
+                )
+                .unwrap()
+                .get::<_, String>(0),
+            "accepted"
+        );
+        assert_eq!(scratch.count("job_events"), 4);
+
+        source.execute(&update, &[&true, &run]).unwrap();
+        assert_eq!(
+            runtime
+                .mark_dispatch_issued_pg(&issued, Some(&scratch.name), Some("harness-issuer"))
+                .unwrap(),
+            2
+        );
+        assert_eq!(scratch.count("job_events"), 5);
+        // Normal Jobs are never subject to a foreign Run cut.
+        let ordinary = payload("ordinary", "ordinary-dispatch", "ordinary-ws", 2);
+        runtime.admit(&ordinary).unwrap();
+        allocate_fixture(&mut scratch, &ordinary);
+        let normal_digest = format!("sha256:{}", "c".repeat(64));
+        runtime
+            .commit_bundle_ready_pg(&PgBundleReady {
+                attempt_id: ordinary.attempt_id.clone(),
+                expected_row_version: 0,
+                bundle_digest: normal_digest.clone(),
+                observed_at_ms: ordinary.created_at_ms + 1,
+                expected_source_sha256: ordinary.expected_source_sha256.clone(),
+            })
+            .unwrap();
+        assert_eq!(
+            runtime
+                .mark_dispatch_issued_pg(
+                    &PgDispatchIssued {
+                        attempt_id: ordinary.attempt_id,
+                        expected_row_version: 1,
+                        expected_bundle_digest: normal_digest,
+                        observed_at_ms: 1234569,
+                        expected_source_sha256: ordinary.expected_source_sha256,
+                    },
+                    Some(&scratch.name),
+                    Some("harness-issuer")
+                )
+                .unwrap(),
+            2
+        );
     }
 }

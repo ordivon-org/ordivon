@@ -2014,6 +2014,7 @@ fn pg_workspace_open_fails_on_either_carrier_before_git_effect() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -2097,6 +2098,7 @@ fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -2230,6 +2232,7 @@ fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -2414,6 +2417,7 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -3721,6 +3725,7 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("self-qualified-attempt"),
@@ -3777,6 +3782,7 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("session-authority-candidate"),

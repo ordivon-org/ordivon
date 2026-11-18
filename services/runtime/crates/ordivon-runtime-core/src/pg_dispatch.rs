@@ -359,6 +359,8 @@ impl PgAdmissionStore {
     pub fn mark_dispatch_issued_pg(
         &mut self,
         i: &PgDispatchIssued,
+        issuer_schema: Option<&str>,
+        issuer_principal: Option<&str>,
     ) -> Result<i64, PgAdmissionError> {
         validate(
             &i.attempt_id,
@@ -395,6 +397,28 @@ impl PgAdmissionStore {
             .get(0);
         if !event_valid {
             return Err(PgAdmissionError::Blocked);
+        }
+        // Admission-current is not dispatch-current. Recheck the original
+        // immutable Harness Run cut before committing any new launch intent.
+        if issuer_principal.is_some() && issuer_schema.is_none() {
+            return Err(PgAdmissionError::Unqualified);
+        }
+        if let Some(schema) = issuer_schema {
+            let job = tx.query_one(
+                "SELECT principal,client_request_id,execution_plan_json FROM jobs WHERE job_id=$1",
+                &[&job_id],
+            )?;
+            let principal: String = job.get(0);
+            if issuer_principal.is_none_or(|expected| principal == expected) {
+                let request_id: String = job.get(1);
+                let immutable_plan: String = job.get(2);
+                super::issuer::require_current_harness_issuer_for_plan(
+                    &mut tx,
+                    &immutable_plan,
+                    &request_id,
+                    schema,
+                )?;
+            }
         }
         let affected = tx.execute(
             "UPDATE attempts SET state='starting',row_version=row_version+1 \
