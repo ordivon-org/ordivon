@@ -300,3 +300,20 @@ def test_research_study_birth_source_refs_preserve_external_repository_authority
     assert "revision" in source_claims[0]
     assert resolved.selected_skill is None
     assert resolved.observation_errors == []
+
+
+@pytest.mark.parametrize(
+    ("capability", "expected_scope"),
+    (
+        ("research.study.verify", "No full profile/currentness verifier is exposed"),
+        ("research.scholarly.intelligence", "no cross-axis executable scholarly qualifier"),
+    ),
+)
+def test_unqualified_research_descriptions_do_not_promise_execution(
+    capability: str,
+    expected_scope: str,
+) -> None:
+    """A research agent sees its actual executable scope before choosing a recipe."""
+    result = asyncio.run(GatewayService(ResolverCaller()).capability_describe(capability))
+    assert len(result.capabilities) == 1
+    assert expected_scope in result.capabilities[0].description

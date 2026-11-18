@@ -998,6 +998,36 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
+    def test_original_harness_pg_issuer_test_seams_do_not_merge_product_components(self) -> None:
+        """Original Run test fixture is a path-scoped consumer, not runtime authority."""
+        ordinary = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+        self.assertEqual(ordinary["verificationOwners"], ["composition", "runtime"])
+        fixture = MODULE.build_plan(
+            changed_files=["services/harness/tests/original_pg_issuer_native_fixture.py"]
+        )
+        self.assertIn("runtime", fixture["verificationOwners"])
+        self.assertNotIn("composition", fixture["verificationOwners"])
+
+    def test_original_harness_pg_issuer_test_seam_cannot_be_widened(self) -> None:
+        """An arbitrary Runtime file cannot opt out of real dependency closure."""
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / "dependency_contracts.toml"
+            original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+            exact = 'source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs"'
+            self.assertIn(exact, original)
+            policy.write_text(
+                original.replace(
+                    exact,
+                    'source_glob = "services/runtime/crates/ordivon-runtime-core/src/*.rs"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "unapproved original Harness test-only"):
+                MODULE.load_dependency_graph(path=policy)
+
     def test_authority_catalog_queue_projection_uses_native_verification(self) -> None:
         plan = MODULE.build_plan(changed_files=["catalogs/authorities/README.md"])
         self.assertIn("authority-catalog:verify", plan["verifyTasks"])

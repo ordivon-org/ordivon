@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -32,7 +33,7 @@ def test_actual_portfolio_consumer_rejects_label_column_even_with_matching_score
         "2026-10-01,IWM,0.01,0.05\n"
     )
     with pytest.raises(ValueError, match="Qlib prediction column schema"):
-        module._native_prediction_scores("close")
+        module._native_prediction_scores("close", sha256(path.read_bytes()).hexdigest())
 
 
 def test_actual_portfolio_consumer_selects_declared_score_not_label(tmp_path, monkeypatch):
@@ -44,7 +45,7 @@ def test_actual_portfolio_consumer_selects_declared_score_not_label(tmp_path, mo
         "2026-10-01,SPY,0.01\n"
         "2026-10-01,IWM,0.05\n"
     )
-    scores = module._native_prediction_scores("next_open")
+    scores = module._native_prediction_scores("next_open", sha256(path.read_bytes()).hexdigest())
     assert scores.loc[("2026-10-01", "IWM")] > scores.loc[("2026-10-01", "SPY")]
     with pytest.raises(ValueError, match="Qlib prediction column schema"):
-        module._native_prediction_scores("close")
+        module._native_prediction_scores("close", sha256(path.read_bytes()).hexdigest())

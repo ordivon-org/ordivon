@@ -140,6 +140,14 @@ The caller must store independent pre-holdout source and forecast evidence
 through the canonical Research/Artifact owners. `READ_ONLY_NO_TRADE_NO_ACCOUNTING`
 remains mandatory.
 
+**Price-basis refinement:** `prequential_energy_evaluation` evaluates each
+realized return using both prices available at the same evaluation cutoff,
+but that alone does not make unlike adjustment conventions comparable.
+The two realized endpoints for each asset must have the same declared
+`price_basis`; a frozen-to-evaluation reference ratio is not reported if
+their bases differ. Such a retrospective result remains source-unattested,
+even when the calendar, byte digests and code checks pass.
+
 ## Native precommitment to source-replay consumer
 
 Prepare a **pre-holdout candidate policy** with the v2 replayable candidate's

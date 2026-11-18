@@ -443,6 +443,7 @@ mod claim_physical_pg_tests {
             schema: schema.clone(),
             source_sha256: source_sha.clone(),
             harness_issuer_schema: None,
+            harness_dispatch_issuer: None,
             executor: config.clone(),
             workspace_headroom: vec![],
         })
@@ -693,6 +694,7 @@ mod claim_physical_pg_tests {
             schema: schema.clone(),
             source_sha256: source_sha,
             harness_issuer_schema: None,
+            harness_dispatch_issuer: None,
             executor: other.clone(),
             workspace_headroom: vec![],
         })

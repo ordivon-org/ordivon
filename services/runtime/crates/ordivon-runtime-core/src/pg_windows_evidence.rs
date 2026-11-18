@@ -29,6 +29,20 @@ pub enum PgWindowsWitnessPhase {
     ResultWitnessPendingOsReconciliation,
 }
 
+/// A syntax-bound receipt, NOT a trusted OS observation: the carrier can be
+/// written by the native target. This must never authorize terminal PG CAS.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PgWindowsDrainCandidate {
+    pub receipt_digest: String,
+    pub launcher_process_id: u64,
+    pub launcher_creation_file_time: u64,
+    pub target_process_id: u64,
+    pub target_creation_file_time: u64,
+    pub total_processes: u64,
+    pub observed_unix_ms: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PgWindowsWitnessObservation {
@@ -211,6 +225,52 @@ pub fn inspect_windows_pg_bundle(
     output.result_digest = Some(sha256(&bytes));
     Ok(output)
 }
+/// Missing receipt is UNKNOWN. A matching carrier receipt is NOT a trusted
+/// native drain and never substitutes for independent owner/provenance checks.
+pub fn inspect_windows_pg_drain_candidate(
+    dir: &Path,
+    expected: &PgWindowsWitnessIdentity,
+    observed: &PgWindowsWitnessObservation,
+) -> Result<Option<PgWindowsDrainCandidate>, String> {
+    let Some((drain, bytes)) = read_value(&dir.join("windows-job-drain.json"))? else {
+        return Ok(None);
+    };
+    if observed.phase != PgWindowsWitnessPhase::ResultWitnessPendingOsReconciliation
+        || observed.result_digest.is_none()
+        || observed.admitted_job_object_name != format!("Ordivon.{}", expected.attempt_id)
+    {
+        return Err("native drain without exact admitted Result/Attempt witness".into());
+    }
+    identity(&drain, expected)?;
+    exact_text(&drain, "requestDigest", &expected.request_digest)?;
+    exact_text(&drain, "jobName", &observed.admitted_job_object_name)?;
+    let launcher_process_id = positive_u64(&drain, "launcherProcessId")?;
+    let launcher_creation_file_time = positive_u64(&drain, "launcherProcessCreationTimeFileTime")?;
+    let target_process_id = positive_u64(&drain, "targetProcessId")?;
+    let target_creation_file_time = positive_u64(&drain, "targetProcessCreationTimeFileTime")?;
+    if observed.launcher_process_id != Some(launcher_process_id)
+        || observed.launcher_creation_file_time != Some(launcher_creation_file_time)
+        || observed.target_process_id != Some(target_process_id)
+        || observed.target_creation_file_time != Some(target_creation_file_time)
+    {
+        return Err("native drain process birth does not match admitted owner/target".into());
+    }
+    let total_processes = positive_u64(&drain, "totalProcesses")?;
+    if drain.get("activeProcesses").and_then(Value::as_u64) != Some(0) {
+        return Err("native drain does not positively report zero active processes".into());
+    }
+    let observed_unix_ms = positive_u64(&drain, "observedUnixMs")?;
+    Ok(Some(PgWindowsDrainCandidate {
+        receipt_digest: sha256(&bytes),
+        launcher_process_id,
+        launcher_creation_file_time,
+        target_process_id,
+        target_creation_file_time,
+        total_processes,
+        observed_unix_ms,
+    }))
+}
+
 fn read_raw_bounded(path: &Path) -> Result<Vec<u8>, String> {
     let meta = fs::symlink_metadata(path).map_err(|e| format!("output metadata: {e}"))?;
     if !meta.file_type().is_file() || meta.len() > MAX_OUTPUT_BYTES {
@@ -263,6 +323,111 @@ mod tests {
             "stdout":{"fileName":"stdout.log","retainedBytes":0,"digest":empty},
             "stderr":{"fileName":"stderr.log","retainedBytes":0,"digest":empty}})
     }
+    fn with_result(dir: &Path, id: &PgWindowsWitnessIdentity) -> PgWindowsWitnessObservation {
+        write(dir, "windows-launcher-start.json", launcher(id));
+        write(dir, "windows-start.json", target(id));
+        fs::write(dir.join("stdout.log"), []).unwrap();
+        fs::write(dir.join("stderr.log"), []).unwrap();
+        write(dir, "result.json", result(id));
+        inspect_windows_pg_bundle(dir, id).unwrap()
+    }
+
+    fn native_drain(id: &PgWindowsWitnessIdentity) -> Value {
+        json!({"schemaVersion":1,"jobId":id.job_id,"attemptId":id.attempt_id,
+            "launchTokenDigest":id.launch_token_digest,"requestDigest":id.request_digest,
+            "jobName":format!("Ordivon.{}",id.attempt_id),
+            "launcherProcessId":120,"launcherProcessCreationTimeFileTime":130,
+            "targetProcessId":140,"targetProcessCreationTimeFileTime":150,
+            "totalProcesses":2,"activeProcesses":0,"observedUnixMs":4})
+    }
+
+    #[test]
+    fn no_native_drain_receipt_remains_unknown() {
+        let (d, i) = fixtures();
+        let observed = with_result(d.path(), &i);
+        assert_eq!(
+            inspect_windows_pg_drain_candidate(d.path(), &i, &observed).unwrap(),
+            None
+        );
+        assert!(!observed.terminal_proven);
+    }
+
+    #[test]
+    fn exact_drain_receipt_still_cannot_prove_os_terminal() {
+        let (d, i) = fixtures();
+        let observed = with_result(d.path(), &i);
+        write(d.path(), "windows-job-drain.json", native_drain(&i));
+        let candidate = inspect_windows_pg_drain_candidate(d.path(), &i, &observed)
+            .unwrap()
+            .expect("syntax only");
+        assert_eq!(candidate.total_processes, 2);
+        assert_eq!(candidate.launcher_process_id, 120);
+        assert!(candidate.receipt_digest.starts_with("sha256:"));
+        assert!(!observed.terminal_proven);
+    }
+
+    #[test]
+    fn drain_rejects_cross_attempt_and_stale_request() {
+        let (d, i) = fixtures();
+        let observed = with_result(d.path(), &i);
+        let mut wrong = native_drain(&i);
+        wrong["attemptId"] = json!("older-attempt");
+        write(d.path(), "windows-job-drain.json", wrong);
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+        let mut wrong = native_drain(&i);
+        wrong["requestDigest"] = json!("sha256:stale");
+        write(d.path(), "windows-job-drain.json", wrong);
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+    }
+
+    #[test]
+    fn drain_rejects_launcher_and_target_pid_reuse() {
+        let (d, i) = fixtures();
+        let observed = with_result(d.path(), &i);
+        let mut wrong = native_drain(&i);
+        wrong["launcherProcessCreationTimeFileTime"] = json!(131);
+        write(d.path(), "windows-job-drain.json", wrong);
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+        let mut wrong = native_drain(&i);
+        wrong["targetProcessCreationTimeFileTime"] = json!(151);
+        write(d.path(), "windows-job-drain.json", wrong);
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+    }
+
+    #[test]
+    fn drain_rejects_populated_and_never_assigned_job() {
+        let (d, i) = fixtures();
+        let observed = with_result(d.path(), &i);
+        let mut wrong = native_drain(&i);
+        wrong["activeProcesses"] = json!(1);
+        write(d.path(), "windows-job-drain.json", wrong);
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+        let mut wrong = native_drain(&i);
+        wrong["totalProcesses"] = json!(0);
+        write(d.path(), "windows-job-drain.json", wrong);
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+    }
+
+    #[test]
+    fn drain_alone_cannot_invent_result() {
+        let (d, i) = fixtures();
+        write(d.path(), "windows-launcher-start.json", launcher(&i));
+        write(d.path(), "windows-start.json", target(&i));
+        let observed = inspect_windows_pg_bundle(d.path(), &i).unwrap();
+        write(d.path(), "windows-job-drain.json", native_drain(&i));
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+        assert!(!observed.terminal_proven);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn drain_symlink_is_rejected() {
+        let (d, i) = fixtures();
+        let observed = with_result(d.path(), &i);
+        std::os::unix::fs::symlink("result.json", d.path().join("windows-job-drain.json")).unwrap();
+        assert!(inspect_windows_pg_drain_candidate(d.path(), &i, &observed).is_err());
+    }
+
     #[test]
     fn missing_is_unknown_not_a_negative() {
         let (d, i) = fixtures();
