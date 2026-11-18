@@ -260,6 +260,13 @@ fn qualified_schema_constraints(client: &mut Client, schema: &str) -> Result<(),
         })
         .collect();
     let required: &[(&str, &str, &[&str], &str)] = &[
+        ("workspace_consumer_claims", "p", &["claim_id"], ""),
+        (
+            "workspace_consumer_claims",
+            "u",
+            &["principal", "client_request_id"],
+            "",
+        ),
         ("job_allocations", "p", &["attempt_id"], ""),
         ("job_allocations", "f", &["attempt_id"], "attempts"),
         ("jobs", "p", &["job_id"], ""),

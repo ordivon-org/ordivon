@@ -63,7 +63,9 @@ impl PgRuntimeServer {
         Self::catalog_enabled(false)
     }
     fn catalog_enabled(release_ready: bool) -> Vec<Tool> {
-        pg_portable_tool_catalog().into_iter().filter_map(|mut t| {
+        pg_portable_tool_catalog().into_iter()
+            .chain(pg_workspace_claim_catalog())
+            .filter_map(|mut t| {
             let description = match t.name.as_ref() {
                 "runtime.describe" => "Describe only the executable PostgreSQL Runtime capabilities and native Linux runner provider.",
                 "job.list" => "Principal-scoped, newest-first PostgreSQL Job listing with exact cursor and no historical SQLite IDs.",
@@ -74,7 +76,10 @@ impl PgRuntimeServer {
                 "workspace.file" => "Project a digest-verified bounded Workspace binary file into a native MCP resource.",
                 "workspace.content" => "Project an exact digest-bound PNG or JPEG Workspace image using the mature native Workspace reader.",
                 "artifact.content" => "Read an exact digest-verified PostgreSQL Artifact as a native MCP embedded binary resource.",
-                "workspace.close" => "Close a fresh-epoch Git Workspace only after the PostgreSQL Job admission fence finds no active or held consumer.",
+                "workspace.close" => "Close a fresh-epoch Git Workspace only after the PostgreSQL Job and Runtime-owned logical Run Claim fences find no held consumer.",
+                "workspace.claim.reserve" => "Atomically pin a verified OPEN physical Workspace in the Runtime PostgreSQL database. This is not a Harness Run READY or Tool grant; exact clientRequestId supports lost-response readback.",
+                "workspace.claim.get" => "Read only this principal's exact Runtime-owned Workspace claim by the original clientRequestId.",
+                "workspace.claim.release" => "Explicitly release this principal's Runtime-owned Workspace pin; this is not artifact delivery or source finalization.",
                 "workspace.mutate" => "Apply the mature atomic Workspace mutation contract, serialized against active PostgreSQL Job admission.",
                 "workspace.read" => "Read bounded UTF-8 files from an isolated fresh-epoch Workspace using the native Workspace path authority.",
                 "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. A caller-owned stable workspaceId is REQUIRED; on response loss use workspace.get with that exact ID before any replay. Agent notice: PG Workspaces are ephemeral, and the lifecycle timer may be disabled; if enabled its cadence is operator-defined. Four hours after the latest Job activity is only a minimum quiet period, not a guaranteed reclamation deadline. Commit/publish deliverables to Git or Artifact; never use Workspace files as durable evidence. The successful open response includes retentionNotice.",
@@ -285,6 +290,18 @@ impl PgRuntimeServer {
                     serde_json::to_value(result).map_err(|e|ToolError::internal(e.to_string()))
                 },
                 "workspace.close" => value(runtime.close_workspace(&parse::<WorkspaceCloseRequest>(arguments)?)),
+                "workspace.claim.reserve" => value(runtime.reserve_workspace_claim(
+                    &execution.principal,
+                    &parse::<ordivon_runtime_core::WorkspaceClaimReserveRequest>(arguments)?
+                )),
+                "workspace.claim.get" => value(runtime.get_workspace_claim(
+                    &execution.principal,
+                    &parse::<ordivon_runtime_core::WorkspaceClaimKeyRequest>(arguments)?
+                )),
+                "workspace.claim.release" => value(runtime.release_workspace_claim(
+                    &execution.principal,
+                    &parse::<ordivon_runtime_core::WorkspaceClaimKeyRequest>(arguments)?
+                )),
                 "workspace.mutate" => value(runtime.mutate_workspace(&parse::<WorkspaceMutateRequest>(arguments)?)),
                 "workspace.read" => {
                     let request:WorkspaceReadRequest=parse(arguments)?;

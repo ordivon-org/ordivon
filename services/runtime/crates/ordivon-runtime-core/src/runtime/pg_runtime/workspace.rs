@@ -20,6 +20,10 @@ const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
 // consumerReleased=true remains the caller's separate release assertion.
 const WORKSPACE_JOB_CONTINUATION_HOLD_MS: i64 = 4 * 60 * 60 * 1000;
 
+// Reuse the existing legacy Runtime bounded-Git-probe pattern (452e0c):
+// the PG-only page already batches SQL and still needs current Git truth.
+const WORKSPACE_LIST_LIVE_GIT_PARALLELISM: usize = 4;
+
 // Read committed AFTER the shared admission lock, so a recently completed
 // Job no longer listed in activeJobIds still retains the Workspace long
 // enough for consumers to inspect artifacts and source.
@@ -78,7 +82,7 @@ impl PgRuntime {
     /// Common qualified, lock-ordered transaction for every Workspace write.
     /// Do not take a SERIALIZABLE/REPEATABLE READ snapshot while *waiting* on
     /// the global advisory lock: it can predate a completed Job admission.
-    fn begin_workspace_effect_tx<'a>(
+    pub(super) fn begin_workspace_effect_tx<'a>(
         &self,
         db: &'a mut PgAdmissionStore,
     ) -> RuntimeResult<postgres::Transaction<'a>> {
@@ -112,6 +116,34 @@ impl PgRuntime {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ConcurrencyLimit,
                 "Workspace has PG-owned active or held Jobs",
+                Some("workspaceId"),
+                false,
+            ));
+        }
+        // A Harness Run may be paused between Jobs for an arbitrary duration.
+        // Its physical claim lives here, in this Runtime DB and lock domain.
+        // This guard is NEVER bypassed by a caller's consumerReleased=true.
+        let claimed: i64 = tx
+            .query_one(
+                "SELECT count(*) FROM workspace_consumer_claims
+             WHERE store_root=$1 AND workspace_id=$2 AND state='held'",
+                &[
+                    &self
+                        .config
+                        .executor
+                        .canonical_store_root()
+                        .map_err(io)?
+                        .to_string_lossy()
+                        .into_owned(),
+                    &request.workspace_id,
+                ],
+            )
+            .map_err(io)?
+            .get(0);
+        if claimed != 0 {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ConcurrencyLimit,
+                "Workspace has Runtime-owned long-lived consumer Claims",
                 Some("workspaceId"),
                 false,
             ));
@@ -197,6 +229,10 @@ impl PgRuntime {
         request: &RuntimeWorkspaceGetRequest,
         include_source_state_digest: bool,
         known_active_jobs: Option<Vec<String>>,
+        known_git: Option<
+            Result<(String, universal::WorkspaceHeadMode, bool), universal::UniversalExecError>,
+        >,
+        inventory_record: Option<&universal::WorkspaceRecord>,
     ) -> RuntimeResult<serde_json::Value> {
         if request.schema_version != 1 {
             return Err(RuntimeError::invalid(
@@ -206,9 +242,24 @@ impl PgRuntime {
         }
         let record = universal::load_workspace_record(&self.config.executor, &request.workspace_id)
             .map_err(super::super::error::map_universal_error)?;
-        let (head, head_mode, dirty) =
-            universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
-                .map_err(super::super::error::map_universal_error)?;
+        if let Some(observed) = inventory_record {
+            // The page's Git probe may run concurrently with a close/reopen.
+            // Never attach HEAD/dirty from that earlier physical identity to
+            // a new durable Workspace record with the same public ID.
+            if &record != observed {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::WorkspaceStateMismatch,
+                    "Workspace identity changed between physical list inventory and Git projection",
+                    Some("workspaceId"),
+                    true,
+                ));
+            }
+        }
+        let (head, head_mode, dirty) = known_git
+            .unwrap_or_else(|| {
+                universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
+            })
+            .map_err(super::super::error::map_universal_error)?;
         let jobs = if let Some(known) = known_active_jobs {
             known
         } else {
@@ -253,7 +304,7 @@ impl PgRuntime {
         &self,
         request: &RuntimeWorkspaceGetRequest,
     ) -> RuntimeResult<serde_json::Value> {
-        self.get_workspace_projected(request, true, None)
+        self.get_workspace_projected(request, true, None, None, None)
     }
     /// Fresh PG workspaces only; historical SQLite Workspace registries are deliberately absent.
     pub fn list_workspaces(
@@ -349,9 +400,56 @@ impl PgRuntime {
                     .push(row.get::<_, String>(1));
             }
         }
+        // Git status is the real source of HEAD/dirty truth. Bound read-only
+        // fan-out within the selected physical page; never cache these results
+        // or treat a successful Git probe as original Run consumer release.
+        // Exact digest mode intentionally stays serial to bound disk pressure.
+        let live_git = if records.len() <= 1 || request.include_source_state_digest {
+            records
+                .iter()
+                .map(|record| {
+                    universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
+                })
+                .collect::<Vec<_>>()
+        } else {
+            let workers = records.len().min(WORKSPACE_LIST_LIVE_GIT_PARALLELISM);
+            let chunk_size = records.len().div_ceil(workers);
+            std::thread::scope(|scope| -> RuntimeResult<Vec<_>> {
+                let mut threads = Vec::with_capacity(workers);
+                for (chunk_index, chunk) in records.chunks(chunk_size).enumerate() {
+                    threads.push(scope.spawn(move || {
+                        chunk
+                            .iter()
+                            .enumerate()
+                            .map(|(offset, record)| {
+                                (
+                                    chunk_index * chunk_size + offset,
+                                    universal::workspace_head_and_dirty_at(Path::new(
+                                        &record.workspace_path,
+                                    )),
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    }));
+                }
+                let mut indexed = Vec::with_capacity(records.len());
+                for worker in threads {
+                    indexed.extend(worker.join().map_err(|_| {
+                        RuntimeError::new(
+                            RuntimeErrorCode::ToolFailed,
+                            "Workspace live Git projection worker panicked",
+                            Some("workspaceId"),
+                            false,
+                        )
+                    })?);
+                }
+                indexed.sort_by_key(|(index, _)| *index);
+                Ok(indexed.into_iter().map(|(_, git)| git).collect())
+            })?
+        };
         let mut workspaces = Vec::with_capacity(records.len());
-        for record in records {
-            let workspace_id = record.workspace_id;
+        for (record, git) in records.into_iter().zip(live_git) {
+            let workspace_id = record.workspace_id.clone();
             let jobs = active_jobs.remove(&workspace_id).unwrap_or_default();
             match self.get_workspace_projected(
                 &RuntimeWorkspaceGetRequest {
@@ -360,6 +458,8 @@ impl PgRuntime {
                 },
                 request.include_source_state_digest,
                 Some(jobs),
+                Some(git),
+                Some(&record),
             ) {
                 Ok(value) => {
                     workspaces.push(value);
