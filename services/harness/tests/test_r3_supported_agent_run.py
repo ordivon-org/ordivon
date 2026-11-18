@@ -579,5 +579,131 @@ class R3SupportedAgentRunTests(PostgresAgentRunCase, unittest.TestCase):
             self.assertFalse(root.exists())
 
 
+class OriginalPgNoToolBudgetRegressionR7(PostgresAgentRunCase, unittest.TestCase):
+    """Use actual public PG AgentRun, not only the historical SQLite loop fixture."""
+
+    def setUp(self) -> None:
+        self.set_up_pg()
+
+    def test_original_pg_invalid_conclusion_correction_does_not_consume_tool_budget(self):
+        from tests.test_current_no_tool_conclusion_control_regression import (
+            invalid_conclusion_turn,
+            valid_conclusion_turn,
+        )
+
+        adapter = ScriptedTurnAdapter((invalid_conclusion_turn(), valid_conclusion_turn()))
+        value = contract("r7-originalpg-conclusion-budget")
+        with tempfile.TemporaryDirectory() as directory:
+            run = self.create_pg(
+                Path(directory), value, lambda _: adapter,
+                clock_ms=FixedClock(), monotonic_ms=FixedClock(),
+            )
+            result = run.run(({"role": "user", "content": "Give a valid conclusion"},))
+            self.assertEqual(result.loop_result.stop_code.value, "candidate_completed")
+            self.assertEqual(result.loop_result.model_calls, 2)
+            self.assertEqual(result.loop_result.tool_calls, 0)
+            self.assertEqual(result.loop_result.usage["toolCorrections"], 0)
+            self.assertEqual(result.loop_result.usage["conclusionCorrections"], 1)
+            self.assertTrue(run.doctor()["healthy"])
+
+    def test_original_pg_unavailable_tool_is_bounded_correction_without_runtime_effect(self):
+        from tests.test_current_no_tool_conclusion_control_regression import (
+            valid_conclusion_turn,
+        )
+        from hashlib import sha256
+
+        raw = '{"path":"src/ordivon_harness/ordivon/loop.py"}'
+        unavailable = AgentTurnResult(
+            model_call_id="model-call:r7-originalpg-unavailable",
+            model_id=ScriptedTurnAdapter.model_id,
+            content="requested unavailable read",
+            tool_calls=(
+                AgentToolCall(
+                    "tool-call:r7-originalpg-unavailable", "read_file",
+                    {"path": "src/ordivon_harness/ordivon/loop.py"},
+                    argument_error="unavailable_tool",
+                    raw_arguments_digest="sha256:" + sha256(raw.encode()).hexdigest(),
+                    raw_arguments_preview=raw,
+                ),
+            ),
+            conclusion=None,
+            usage={"inputTokens": 20, "outputTokens": 5, "totalTokens": 25},
+            finish_reason="tool_calls",
+            raw_response_digest=digest("r7-originalpg-unavailable"),
+        )
+        adapter = ScriptedTurnAdapter((unavailable, valid_conclusion_turn()))
+        value = contract("r7-originalpg-tool-correction")
+        with tempfile.TemporaryDirectory() as directory:
+            run = self.create_pg(
+                Path(directory), value, lambda _: adapter,
+                clock_ms=FixedClock(), monotonic_ms=FixedClock(),
+            )
+            result = run.run(({"role": "user", "content": "No Runtime tools allowed"},))
+            self.assertEqual(result.loop_result.stop_code.value, "candidate_completed")
+            self.assertEqual(result.loop_result.model_calls, 2)
+            self.assertEqual(result.loop_result.tool_calls, 0)
+            self.assertEqual(result.loop_result.usage["toolCorrections"], 1)
+            self.assertEqual(result.loop_result.usage["conclusionCorrections"], 0)
+            self.assertEqual(tuple(adapter.requests[0].tools), ())
+            self.assertEqual(tuple(adapter.requests[1].tools), ())
+            self.assertTrue(run.doctor()["healthy"])
+
+
+class OriginalPgNoToolResumeBudgetR7(PostgresAgentRunCase, unittest.TestCase):
+    """No-Tool grants must remain absent across actual PG PAUSED/reopen boundaries."""
+
+    def setUp(self) -> None:
+        self.set_up_pg()
+
+    def test_original_pg_pause_resume_keeps_no_tool_budget_and_correction(self):
+        from hashlib import sha256
+        from tests.test_current_no_tool_conclusion_control_regression import (
+            valid_conclusion_turn,
+        )
+
+        value = contract("r7-originalpg-no-tool-resume")
+        raw = '{"path":"src/ordivon_harness/ordivon/loop.py"}'
+        unavailable = AgentTurnResult(
+            model_call_id="model-call:r7-no-tool-resume-unavailable",
+            model_id=ScriptedTurnAdapter.model_id,
+            content="attempted unavailable observation after resume",
+            tool_calls=(
+                AgentToolCall(
+                    "tool-call:r7-no-tool-resume-unavailable",
+                    "read_file",
+                    {"path": "src/ordivon_harness/ordivon/loop.py"},
+                    argument_error="unavailable_tool",
+                    raw_arguments_digest="sha256:" + sha256(raw.encode()).hexdigest(),
+                    raw_arguments_preview=raw,
+                ),
+            ),
+            conclusion=None,
+            usage={"inputTokens": 20, "outputTokens": 5, "totalTokens": 25},
+            finish_reason="tool_calls",
+            raw_response_digest=digest("r7-no-tool-resume-unavailable"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paused = self.create_pg(
+                root, value,
+                lambda _: ScriptedTurnAdapter((needs_input("model-call:r7-pause"),)),
+                clock_ms=FixedClock(), monotonic_ms=FixedClock(),
+            ).run(({"role": "user", "content": "start no-tool run"},))
+            self.assertTrue(paused.paused)
+            adapter = ScriptedTurnAdapter((unavailable, valid_conclusion_turn()))
+            run = self.open_pg(
+                root, value.harness_run_id, lambda _: adapter,
+                clock_ms=FixedClock(), monotonic_ms=FixedClock(),
+            )
+            done = run.resume(
+                additional_messages=({"role": "user", "content": "resume without tools"},),
+            )
+            self.assertEqual(done.loop_result.stop_code.value, "candidate_completed")
+            self.assertEqual(done.loop_result.tool_calls, 0)
+            self.assertEqual(done.loop_result.usage["toolCorrections"], 1)
+            self.assertEqual(tuple(adapter.requests[0].tools), ())
+            self.assertEqual(tuple(adapter.requests[1].tools), ())
+            self.assertTrue(run.doctor()["healthy"])
+
 if __name__ == "__main__":
     unittest.main()
