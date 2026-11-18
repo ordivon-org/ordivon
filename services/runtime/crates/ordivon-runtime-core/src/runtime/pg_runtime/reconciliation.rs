@@ -337,17 +337,28 @@ impl PgRuntime {
         }
         Ok(json!({"inspected":pending.len(),"terminal":terminal,"errors":errors}))
     }
+    // One existing PG read, shared by regular reconciliation and cancellation.
+    // An accepted STOP_REQUESTED Attempt needs qualified native identity but
+    // no executable Plan: no OS dispatch may ever consume those Plan bytes.
+    fn current_attempt_row(
+        &self,
+        db: &mut PgAdmissionStore,
+        job: &str,
+    ) -> RuntimeResult<postgres::Row> {
+        require_recovery_current_attempt(
+            db.client
+                .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&job])
+                .map_err(pg_read_error)?,
+            job,
+        )
+    }
+
     pub(super) fn attempt(
         &self,
         db: &mut PgAdmissionStore,
         job: &str,
     ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
-        let r = require_recovery_current_attempt(
-            db.client
-                .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&job])
-                .map_err(pg_read_error)?,
-            job,
-        )?;
+        let r = self.current_attempt_row(db, job)?;
         self.decode_attempt_record(&r, job)
     }
 
@@ -439,6 +450,67 @@ impl PgRuntime {
             })?;
         Ok((a, plan, r.get(10)))
     }
+    /// A PG-fenced accepted cancellation is already past the only boundary
+    /// where this Attempt could be dispatched. Materialize the existing
+    /// deterministic cancellation Artifact without decoding an executable
+    /// Plan that must never run. The terminal PG CAS still arbitrates races.
+    fn reconcile_accepted_cancel(
+        &self,
+        db: &mut PgAdmissionStore,
+        job: &str,
+        a: &AttemptRecord,
+    ) -> RuntimeResult<()> {
+        let path = PathBuf::from(&a.bundle_path);
+        // STOP_REQUESTED fences eligible_attempt in the same PG authority.
+        // Accepted means dispatch intent has not crossed its atomic boundary;
+        // a concurrent dispatcher must fail its expected-row-version CAS.
+        let cancelled_at: i64 = db.client.query_one(
+            "SELECT min(observed_at_ms) FROM job_events WHERE attempt_id=$1 AND event_type='STOP_REQUESTED'",
+            &[&a.attempt_id],
+        ).map_err(pg_read_error)?.get::<_,Option<i64>>(0)
+            .ok_or_else(|| error("cancelled admission omitted stop event"))?;
+        let bytes = serde_json::to_vec(&json!({"schemaVersion":1,
+            "jobId":job,"attemptId":a.attempt_id,"dispatchIssued":false,
+            "terminalState":"cancelled","finishedAtMs":cancelled_at}))
+        .map_err(io)?;
+        fs::create_dir_all(&path).map_err(io)?;
+        let evidence_path = path.join("admission-cancel-evidence.json");
+        // All bytes are deterministic from committed PG identity and its
+        // first stop event, including across concurrent exact replays.
+        if evidence_path.exists() {
+            if fs::read(&evidence_path).map_err(io)? != bytes {
+                return Err(error("admission cancel evidence mismatch"));
+            }
+        } else {
+            universal::write_bytes_atomic(&evidence_path, &bytes).map_err(io)?;
+        }
+        let digest = universal::sha256_bytes(&bytes);
+        db.commit_terminal_with_artifacts(
+            &PgTerminalNoArtifacts {
+                attempt_id: a.attempt_id.clone(),
+                expected_row_version: a.row_version as i64,
+                terminal_state: "cancelled".into(),
+                result_digest: digest.clone(),
+                reason_code: "CANCELLED_BEFORE_DISPATCH".into(),
+                exit_code: None,
+                finished_at_ms: cancelled_at,
+                expected_source_sha256: self.config.source_sha256.clone(),
+            },
+            &[PgArtifactRegistration {
+                artifact_id: format!("artifact-{}-admission-cancel", a.attempt_id),
+                kind: "admission_cancel_evidence".into(),
+                relative_path: "admission-cancel-evidence.json".into(),
+                digest,
+                media_type: "application/json".into(),
+                byte_length: bytes.len() as i64,
+                truncated: false,
+                created_at_ms: cancelled_at,
+            }],
+        )
+        .map_err(pg)?;
+        Ok(())
+    }
+
     pub(super) fn reconcile(&self, db: &mut PgAdmissionStore, job: &str) -> RuntimeResult<()> {
         self.reconcile_inner(db, job, false)
     }
@@ -481,7 +553,16 @@ impl PgRuntime {
                 .with_operation_id(job)),
             };
         }
-        let (mut a, plan, operation) = self.attempt(db, job)?;
+        // Decode the *same* committed current-Attempt row just once.
+        // A pre-dispatch STOP_REQUESTED is locally finalizable without
+        // consulting the frozen execution Plan or mutable Provider snapshot.
+        // All other states preserve the existing strict full-Plan readback.
+        let row = self.current_attempt_row(db, job)?;
+        if row.get::<_, String>(1) == "accepted" && row.get::<_, String>(2) == "stop_requested" {
+            let a = self.decode_attempt_identity(&row, job)?;
+            return self.reconcile_accepted_cancel(db, job, &a);
+        }
+        let (mut a, plan, operation) = self.decode_attempt_record(&row, job)?;
         let provider: serde_json::Value = decode(
             &db.client
                 .query_one(
@@ -736,58 +817,6 @@ impl PgRuntime {
                 Ok(_) => return Err(error("Runner start evidence is not a regular file")),
                 Err(err) => return Err(io(err)),
             }
-        }
-        if a.state == AttemptState::Accepted
-            && a.termination_intent == AttemptTerminationIntent::StopRequested
-        {
-            // STOP_REQUESTED fences eligible_attempt in the same PG authority.
-            // Accepted means dispatch intent has not crossed its atomic boundary;
-            // a concurrent dispatcher must fail its expected-row-version CAS.
-            let cancelled_at: i64 = db.client.query_one(
-                "SELECT min(observed_at_ms) FROM job_events WHERE attempt_id=$1 AND event_type='STOP_REQUESTED'",
-                &[&a.attempt_id],
-            ).map_err(pg_read_error)?.get::<_,Option<i64>>(0)
-                .ok_or_else(|| error("cancelled admission omitted stop event"))?;
-            let bytes = serde_json::to_vec(&json!({"schemaVersion":1,
-                "jobId":job,"attemptId":a.attempt_id,"dispatchIssued":false,
-                "terminalState":"cancelled","finishedAtMs":cancelled_at}))
-            .map_err(io)?;
-            fs::create_dir_all(&path).map_err(io)?;
-            let evidence_path = path.join("admission-cancel-evidence.json");
-            // All bytes are deterministic from committed PG identity and its
-            // first stop event, including across concurrent exact replays.
-            if evidence_path.exists() {
-                if fs::read(&evidence_path).map_err(io)? != bytes {
-                    return Err(error("admission cancel evidence mismatch"));
-                }
-            } else {
-                universal::write_bytes_atomic(&evidence_path, &bytes).map_err(io)?;
-            }
-            let digest = universal::sha256_bytes(&bytes);
-            db.commit_terminal_with_artifacts(
-                &PgTerminalNoArtifacts {
-                    attempt_id: a.attempt_id.clone(),
-                    expected_row_version: a.row_version as i64,
-                    terminal_state: "cancelled".into(),
-                    result_digest: digest.clone(),
-                    reason_code: "CANCELLED_BEFORE_DISPATCH".into(),
-                    exit_code: None,
-                    finished_at_ms: cancelled_at,
-                    expected_source_sha256: self.config.source_sha256.clone(),
-                },
-                &[PgArtifactRegistration {
-                    artifact_id: format!("artifact-{}-admission-cancel", a.attempt_id),
-                    kind: "admission_cancel_evidence".into(),
-                    relative_path: "admission-cancel-evidence.json".into(),
-                    digest,
-                    media_type: "application/json".into(),
-                    byte_length: bytes.len() as i64,
-                    truncated: false,
-                    created_at_ms: cancelled_at,
-                }],
-            )
-            .map_err(pg)?;
-            return Ok(());
         }
         if !a.state.is_terminal() && path.join("result.json").exists() {
             // Reuse native identity, stdout/stderr digest and result validators.
