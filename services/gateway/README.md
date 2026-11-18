@@ -618,6 +618,31 @@ is not traversable by the Gateway service account, so service-user
 preflight must use a separate, traversable isolated prefix. Preserve
 the existing ORDIVON_GATEWAY_RELEASE_SERVICE_USER check.
 
+**Public ABI is a separate release obligation.** A higher
+surfaceEpoch/packageVersion proves that the MCP tool catalog changed, not that
+an existing ChatGPT Agent request still works. The same existing
+packaging/verify_tool_surface.py now emits exact MCP SDK wire contracts
+(--emit-native) and compares the current release with the candidate
+(--compare-native) without storing a second schema registry or invoking a
+natural Owner. Added optional inputs/new Tools are allowed; lost Tools,
+required inputs, changed old field constraints, and lost output fields fail
+conservatively. The official installer reports incompatibilities during
+--prepare-only while preserving the prepared candidate, but denies normal
+promotion *before* changing the current symlink. This does not replace
+#2349's independent Security/Host/Cloudflare/Principal/Agent canaries.
+
+The 2026-11-18 original installed 0.10.12 versus prepared 0.10.14
+native SDK comparison reported five **potential public ABI breaks**:
+work.create.initialSnapshot, work.get.revision, work.list.limit,
+work.snapshot.commit.expectedRevision, and
+work.snapshot.commit.snapshot. Some tighter declared bounds may already
+have been enforced by the natural Host; do not silently waive them or
+undo useful schema validation. Obtain real old-consumer acceptance and
+an explicit versioned migration or preserve the old public contract
+before treating promotion as compatible. Native schema comparison is
+only SOURCE/INSTALLED-CANDIDATE contract evidence; it cannot itself
+qualify deployed authentication or domain behavior.
+
 When the candidate activates Gateway's Host read/write AuthZEN PEP,
 Security must already have **operator-provisioned current Principal
 to Actor and tool/resource-scoped grants** and real read/write
