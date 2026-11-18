@@ -25,6 +25,7 @@ struct Fixture {
     host_visible_test_runner: bool,
     /// Opt in only for disposable Harness-issuer dispatch tests.
     harness_dispatch_test: bool,
+    harness_schema_override: Option<String>,
 }
 impl Fixture {
     fn new() -> Self {
@@ -154,6 +155,7 @@ impl Fixture {
             db,
             host_visible_test_runner: false,
             harness_dispatch_test: false,
+            harness_schema_override: None,
         }
     }
     fn endpoint(&mut self) -> String {
@@ -215,7 +217,12 @@ impl Fixture {
             fs::write(&token_file, "h".repeat(48)).unwrap();
             fs::set_permissions(&token_file, fs::Permissions::from_mode(0o600)).unwrap();
             endpoint
-                .env("ORDIVON_PG_HARNESS_ISSUER_SCHEMA", "r16_issuer")
+                .env(
+                    "ORDIVON_PG_HARNESS_ISSUER_SCHEMA",
+                    self.harness_schema_override
+                        .as_deref()
+                        .unwrap_or("r16_issuer"),
+                )
                 .env("ORDIVON_PG_HARNESS_TOKEN_FILE", token_file)
                 .env("ORDIVON_PG_HARNESS_PRINCIPAL", "harness-dispatch-r16");
         }
@@ -5207,4 +5214,304 @@ fn pg_mcp_scheduler_revoked_harness_job_reuses_existing_cancel() {
         );
     }
     eprintln!("R16_NATIVE_MCP_SCHEDULER_ISSUER_DENIED_CANCEL_RELEASED_PASS");
+}
+
+/// Opt-in true Publisher→restricted PG source→authenticated MCP admission→
+/// source revocation→single native Scheduler→dedicated client readback.
+/// Capacity is held by a **real**, harmless test-owned native Job to produce a
+/// deterministic queued interval; no global Scheduler flag or second Registry.
+#[test]
+#[ignore = "requires disposable PG18, original Harness Python deps and native systemd runner"]
+fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    fixture.harness_dispatch_test = true;
+    let repo = fixture.repo();
+    let id = Uuid::now_v7().simple().to_string();
+    let issuer_schema = format!("r17_hpg_{}", &id[..19]);
+    fixture.harness_schema_override = Some(issuer_schema.clone());
+    let run_id = format!("harness-run:r17-native-{}", &id[..19]);
+    let workspace_id = format!("r17-own-{}", &id[..19]);
+    let fixture_dsn = format!(
+        "host={} user=postgres dbname=postgres",
+        fixture.root.display()
+    );
+    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
+    let script = repo_root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
+    let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".into());
+    let pythonpath = format!(
+        "{}:{}",
+        repo_root.join("services/harness/src").display(),
+        repo_root.join("services/harness").display()
+    );
+    let original = |action: &str| -> Value {
+        let out = Command::new(&python)
+            .arg(&script)
+            .arg(action)
+            .arg("--dsn")
+            .arg(&fixture_dsn)
+            .arg("--schema")
+            .arg(&issuer_schema)
+            .arg("--run")
+            .arg(&run_id)
+            .arg("--workspace")
+            .arg(&workspace_id)
+            .env("PYTHONPATH", &pythonpath)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "real Harness {action} failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let source = original("issue");
+    assert_eq!(source["runId"], run_id);
+    assert_eq!(source["fenceGeneration"], 2);
+    fixture.db.batch_execute(&format!(
+        "GRANT USAGE ON SCHEMA \"{issuer_schema}\" TO runtime_app;
+         GRANT EXECUTE ON FUNCTION \"{issuer_schema}\".harness_current_dispatch_cut(text,bigint,text)
+            TO runtime_app;"
+    )).unwrap();
+    let original_private_allowed: bool = fixture
+        .db
+        .query_one(
+            "SELECT has_table_privilege('runtime_app',$1,'SELECT')",
+            &[&format!("{issuer_schema}.runs")],
+        )
+        .unwrap()
+        .get(0);
+    assert!(
+        !original_private_allowed,
+        "operator Source Run table must never be readable by Runtime app"
+    );
+
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(
+        opened["isError"], true,
+        "real disposable native Git workspace: {opened}"
+    );
+    let described = call(&endpoint, "runtime.describe", json!({}));
+    let cpu = described["structuredContent"]["scheduling"]["node"]["cpuMillis"]
+        .as_u64()
+        .unwrap();
+    assert!(cpu > 100, "test machine must have finite CPU headroom");
+
+    // Mature real PG fair-share test pattern: one full-CPU physical Job
+    // holds capacity, forcing the genuinely admitted Harness Job to remain
+    // accepted until the original PG source has been independently revoked.
+    let release = fixture.root.join("r17-release-cpu");
+    // An assertion failure must not leave the test-owned native blocker
+    // running after its fixture database disappears.
+    struct ReleaseOwnBlockerOnDrop(PathBuf);
+    impl Drop for ReleaseOwnBlockerOnDrop {
+        fn drop(&mut self) {
+            let _ = fs::write(&self.0, b"allow own blocker exit");
+            thread::sleep(Duration::from_millis(300));
+        }
+    }
+    let _release_on_drop = ReleaseOwnBlockerOnDrop(release.clone());
+    let blocker_script = format!("while [ ! -f '{}' ]; do sleep 0.1; done", release.display());
+    let blocker = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":format!("r17-blocker-{id}"),
+            "execution":{
+                "workspaceId":workspace_id,
+                "executable":"/usr/bin/sh","args":["-c",blocker_script],
+                "cwdRelative":".","timeoutMs":60000,
+                "budget":{"scheduling":{
+                    "owner":"r17-original-issuer-test",
+                    "resources":{"cpuMillis":cpu,"memoryBytes":16777216,"pids":8},
+                    "workspaceAccess":{"readOnly":true}
+                }}
+            },
+            "waitMs":0
+        }),
+    );
+    assert_ne!(
+        blocker["isError"], true,
+        "original benign blocker rejected: {blocker}"
+    );
+    let blocker_id = blocker["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let allocated: i64 = fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_allocations x
+             JOIN attempts a ON a.attempt_id=x.attempt_id
+             WHERE a.job_id=$1 AND x.state='active'",
+                &[&blocker_id],
+            )
+            .unwrap()
+            .get(0);
+        if allocated == 1 {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "benign full-CPU native Job not allocated: {blocker}"
+        );
+        thread::sleep(Duration::from_millis(40));
+    }
+
+    // Native operator-managed dedicated Bearer, not caller-added foreignRefs
+    // or an unqualified open service port.
+    let dedicated = endpoint.replacen("/mcp", "/harness/mcp", 1);
+    let original_request = source["loweredRequest"].clone();
+    let (bad_status, _) = r16_dedicated_call(
+        &dedicated,
+        &"p".repeat(32),
+        "workspace.exec",
+        original_request.clone(),
+    );
+    assert_eq!(
+        bad_status, 401,
+        "ordinary Runtime bearer cannot impersonate Harness"
+    );
+    let (status, admitted) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.exec",
+        original_request,
+    );
+    assert_eq!(
+        status, 200,
+        "qualified dedicated MCP must accept the request: {admitted}"
+    );
+    assert_ne!(
+        admitted["isError"], true,
+        "real original Harness frozen PhysicalRequest rejected: {admitted}"
+    );
+    let job = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .expect("real dedicated Harness PG admitted same Job")
+        .to_owned();
+    let before = fixture
+        .db
+        .query_one(
+            "SELECT a.state,j.principal FROM attempts a JOIN jobs j ON j.job_id=a.job_id
+         WHERE j.job_id=$1",
+            &[&job],
+        )
+        .unwrap();
+    assert_eq!(
+        before.get::<_, String>(0),
+        "accepted",
+        "full CPU fixture must prove source revoked BEFORE PG dispatch"
+    );
+    assert_eq!(before.get::<_, String>(1), "harness-dispatch-r16");
+    let dispatch_before: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        dispatch_before, 0,
+        "source must be revoked before any dispatch"
+    );
+
+    let revoked = original("revoke");
+    assert_eq!(revoked["sourceStanding"], "unknown");
+    assert_eq!(revoked["finalization"]["sourceStanding"], "blocked");
+    assert_eq!(revoked["revision"], 3);
+    fs::write(&release, b"allow harmless own blocker exit").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    loop {
+        let state = fixture
+            .db
+            .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, Option<String>>(0);
+        if state.as_deref() == Some("cancelled") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "real source-revoked accepted Harness Job was not cancelled: {state:?}"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    let issued: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events
+         WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(issued, 0);
+    let reason: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events
+         WHERE job_id=$1 AND event_type='SCHEDULER_ISSUE'
+         AND reason_code='HARNESS_ISSUER_NOT_CURRENT_AT_DISPATCH'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reason, 1);
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT r.state FROM concurrency_reservations r
+         JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$1",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reservation, "released");
+    let (read_status, readback) =
+        r16_dedicated_call(&dedicated, &"h".repeat(48), "job.get", json!({"jobId":job}));
+    assert_eq!(read_status, 200);
+    assert_eq!(
+        readback["structuredContent"]["job"]["resolution"],
+        "cancelled"
+    );
+    assert_eq!(
+        readback["structuredContent"]["job"]["semanticCompletionEvaluated"],
+        false
+    );
+    assert_eq!(readback["structuredContent"]["episodes"]["dispatches"], 0);
+
+    // Keep the only physical native blocker fully terminal before Fixture
+    // Drop; never leave an orphaned test-owned systemd Unit or cgroup.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT resolution FROM jobs WHERE job_id=$1",
+                &[&blocker_id],
+            )
+            .unwrap();
+        let resolution: Option<String> = row.get(0);
+        if resolution.as_deref() == Some("succeeded") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "test-only native blocker not terminal: {resolution:?}"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    eprintln!("R17_GENUINE_ORIGINAL_HARNESS_DEDICATED_MCP_PG_NATIVE_REVOKE_PASS");
 }

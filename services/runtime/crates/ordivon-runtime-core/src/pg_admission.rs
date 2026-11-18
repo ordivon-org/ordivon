@@ -3847,4 +3847,185 @@ mod live_pg_tests {
             2
         );
     }
+
+    /// Real original Harness PG Store/Continuity → same-PG restricted Runtime
+    /// admission → original source UNKNOWN → later PG dispatch must fail closed.
+    /// Unlike the synthetic issuer SQL test, all Tool/Fence/payload bytes here
+    /// come from the production Harness Python publisher, not Rust test JSON.
+    /// This is a PG/Journal boundary test, not an OS spawn or Domain ACK.
+    #[test]
+    #[ignore = "requires a disposable ORDIVON_PG_TEST_DSN and HARNESS_PG_PYTHON with psycopg"]
+    fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
+        use std::{path::PathBuf, process::Command};
+        let dsn = physical_pg_test_dsn();
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let stamp = Uuid::now_v7().simple().to_string();
+        let issuer_schema = format!("r17_hpg_{}", &stamp[..19]);
+        let role = format!("r17_role_{}", &stamp[..19]);
+        let run_id = format!("harness-run:r17-original-{}", &stamp[..19]);
+        let workspace_id = format!("r17-test-{}", &stamp[..19]);
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
+        let fixture = root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
+        assert!(
+            fixture.is_file(),
+            "real Harness Python source fixture missing"
+        );
+        let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".into());
+        let pythonpath = format!(
+            "{}:{}",
+            root.join("services/harness/src").display(),
+            root.join("services/harness").display()
+        );
+        let invoke = |verb: &str| -> serde_json::Value {
+            let run = Command::new(&python)
+                .arg(&fixture)
+                .arg(verb)
+                .arg("--dsn")
+                .arg(&dsn)
+                .arg("--schema")
+                .arg(&issuer_schema)
+                .arg("--run")
+                .arg(&run_id)
+                .arg("--workspace")
+                .arg(&workspace_id)
+                .env("PYTHONPATH", &pythonpath)
+                .output()
+                .expect("source Harness Python interpreter");
+            assert!(
+                run.status.success(),
+                "original Harness {verb}: {}",
+                String::from_utf8_lossy(&run.stderr)
+            );
+            serde_json::from_slice(&run.stdout).expect("actual source publisher reports exact JSON")
+        };
+        let original = invoke("issue");
+        assert_eq!(original["runId"], run_id);
+        assert_eq!(original["fenceGeneration"], 2);
+        assert_eq!(
+            original["loweredRequest"]["execution"]["foreignReferences"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        scratch.admin.batch_execute(
+            &format!(
+                "CREATE ROLE \"{role}\" LOGIN;
+                 GRANT USAGE ON SCHEMA \"{runtime}\",\"{issuer_schema}\" TO \"{role}\";
+                 GRANT ALL ON ALL TABLES IN SCHEMA \"{runtime}\" TO \"{role}\";
+                 GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA \"{runtime}\" TO \"{role}\";
+                 REVOKE ALL ON \"{runtime}\"._stage_control FROM \"{role}\";
+                 GRANT SELECT,UPDATE(id) ON \"{runtime}\"._stage_control TO \"{role}\";
+                 GRANT EXECUTE ON FUNCTION \"{issuer_schema}\".harness_current_dispatch_cut(text,bigint,text)
+                     TO \"{role}\";",
+                runtime=scratch.name
+            )
+        ).unwrap();
+        // PostgreSQL's truly limited Runtime SQL role must not read or write
+        // the source-owned private Harness tables, only execute its issuer cut.
+        let limited_dsn = format!("{dsn} user={role}");
+        let mut limited_pg =
+            Client::connect(&limited_dsn, NoTls).expect("real restricted Runtime SQL role");
+        let current_user: String = limited_pg
+            .query_one("SELECT current_user", &[])
+            .unwrap()
+            .get(0);
+        assert_eq!(current_user, role);
+        let denied = limited_pg.query(&format!("SELECT * FROM \"{issuer_schema}\".runs"), &[]);
+        assert!(
+            denied.is_err(),
+            "limited Runtime principal can read private Harness PG"
+        );
+        // A failed permission statement outside an explicit transaction
+        // leaves this session usable by the existing runtime PG writer.
+        let e = &original["loweredRequest"]["execution"];
+        let workspace_root = "/tmp/r17-pg-source-verifier".to_string();
+        let plan = serde_json::json!({
+            "workspaceId":e["workspaceId"],
+            "workspacePath":workspace_root,
+            "cwd":workspace_root,
+            "executable":e["executable"],
+            "args":e["args"],
+            "env":e["env"],
+            "timeoutMs":e["timeoutMs"],
+            "stdoutLimitBytes":e["stdoutLimitBytes"],
+            "stderrLimitBytes":e["stderrLimitBytes"],
+            "foreignReferences":e["foreignReferences"],
+            "executionProfile":"trusted_local",
+            "executionTarget":"local_linux"
+        });
+        let mut original_job = payload("r17-original-client", "job-r17-original", "r17-test-ws", 2);
+        original_job.principal = "r17-dedicated-issuer-principal".into();
+        original_job.workspace_id = workspace_id.clone();
+        original_job.client_request_id = original["clientRequestId"].as_str().unwrap().into();
+        original_job.execution_plan_json = serde_json::to_string(&plan).unwrap();
+        // The actual PG source gate requires the same immutable ClientRequestId,
+        // original Physical Execution and Fence on admission AND later dispatch.
+        let mut runtime = PgAdmissionStore::connect(&limited_dsn, &scratch.name).unwrap();
+        assert_eq!(
+            runtime
+                .admit_with_workspace_guard(&original_job, &|| Ok(()), Some(&issuer_schema))
+                .unwrap(),
+            PgAdmissionOutcome::Created(original_job.job_id.clone())
+        );
+        allocate_fixture(&mut scratch, &original_job);
+        let bundle = format!("sha256:{}", "b".repeat(64));
+        runtime
+            .commit_bundle_ready_pg(&PgBundleReady {
+                attempt_id: original_job.attempt_id.clone(),
+                expected_row_version: 0,
+                bundle_digest: bundle.clone(),
+                observed_at_ms: original_job.created_at_ms + 1,
+                expected_source_sha256: original_job.expected_source_sha256.clone(),
+            })
+            .unwrap();
+        // The *real* original Harness Store emits the UNKNOWN receipt after
+        // a valid new-Job admission. This invalidates its source Run revision.
+        let revoked = invoke("revoke");
+        assert_eq!(revoked["sourceStanding"], "unknown");
+        assert_eq!(revoked["finalization"]["sourceStanding"], "blocked");
+        assert_eq!(revoked["revision"], 3);
+        let issued = PgDispatchIssued {
+            attempt_id: original_job.attempt_id.clone(),
+            expected_row_version: 1,
+            expected_bundle_digest: bundle,
+            observed_at_ms: original_job.created_at_ms + 2,
+            expected_source_sha256: original_job.expected_source_sha256.clone(),
+        };
+        assert!(
+            matches!(
+                runtime.mark_dispatch_issued_pg(
+                    &issued,
+                    Some(&issuer_schema),
+                    Some("r17-dedicated-issuer-principal")
+                ),
+                Err(PgAdmissionError::IssuerNotCurrent)
+            ),
+            "a genuine original Harness Run revoked after admission cannot issue PG dispatch"
+        );
+        let state: String = scratch
+            .admin
+            .query_one(
+                "SELECT state FROM attempts WHERE attempt_id=$1",
+                &[&original_job.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(state, "accepted");
+        let dispatches: i64 = scratch
+            .admin
+            .query_one(
+                "SELECT count(*) FROM job_events
+             WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[&original_job.job_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(dispatches, 0);
+        scratch
+            .admin
+            .batch_execute(&format!("DROP SCHEMA \"{issuer_schema}\" CASCADE;"))
+            .unwrap();
+    }
 }
