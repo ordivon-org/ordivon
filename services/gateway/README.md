@@ -560,7 +560,7 @@ bindings unchanged.
 **Currentness boundary:** this source test does not imply the Gateway main
 release is deployed. At the 2026-11-17 audit, the installed Gateway is 0.10.12
 (release d73424dcae267224c907c102b14dfaf773f3fc11), while this source is
-0.10.14 / MCP surface epoch 14; verify the installed package and authenticated
+0.10.15 / MCP surface epoch 15; verify the installed package and authenticated
 client tool catalog again before any release. The older 0.10.11 observation is
 historical, not the present installed version. Linux Runtime UTF-8
 subcharacter paging is an independent Owner-managed condition: its current
@@ -632,16 +632,22 @@ promotion *before* changing the current symlink. This does not replace
 #2349's independent Security/Host/Cloudflare/Principal/Agent canaries.
 
 The 2026-11-18 original installed 0.10.12 versus prepared 0.10.14
-native SDK comparison reported five **potential public ABI breaks**:
+native SDK comparison reported five **potential public ABI breaks** (historical R15):
 work.create.initialSnapshot, work.get.revision, work.list.limit,
 work.snapshot.commit.expectedRevision, and
 work.snapshot.commit.snapshot. Some tighter declared bounds may already
 have been enforced by the natural Host; do not silently waive them or
 undo useful schema validation. Obtain real old-consumer acceptance and
 an explicit versioned migration or preserve the old public contract
-before treating promotion as compatible. Native schema comparison is
-only SOURCE/INSTALLED-CANDIDATE contract evidence; it cannot itself
-qualify deployed authentication or domain behavior.
+before treating promotion as compatible. **R18 resolves the five input
+schema differences in source without removing Host-compatible validation:**
+original public 0.10.12 Work Tool schemas are retained for snapshot and
+integer arguments, while existing Pydantic TypeAdapter validators apply the
+same strict Host wire rules before forwarding. Native MCP SDK tests from the
+installed old 38 tools to R18 41 tools show no incompatible contracts; all
+original malformed input negative cases still fail before Owner dispatch.
+The separate Security/Host/Cloudflare release #2349 remains NO_GO; schema
+compatibility is not an authentication or user-workflow grant.
 
 When the candidate activates Gateway's Host read/write AuthZEN PEP,
 Security must already have **operator-provisioned current Principal
@@ -822,7 +828,7 @@ remains for ordinary bounded Jobs and is **not** a self-release path.
 ### Availability and deployment gate
 
 Historically, the R12 source candidate extended MCP surface epoch 11 to 12
-(41 tools). This source now declares epoch 14 / package 0.10.14 with 41 tools;
+(41 tools). This source now declares epoch 15 / package 0.10.15 with 41 tools;
 only the exact current release manifest and qualified live MCP discovery can
 establish an installed surface. Source tests and a route demonstration do
 not imply the installed Gateway or ChatGPT connector offers the new pair. Enable only after

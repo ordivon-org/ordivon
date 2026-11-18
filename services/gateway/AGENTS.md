@@ -303,7 +303,7 @@ a separate consumer. The installed Runtime also independently fixed the
 previous UTF-8 subcharacter read zero-progress behavior.
 
 **Release boundary:** This historical incident closure does **not** qualify
-the separate mainline Gateway 0.10.14 / epoch-14 / 41-tool Host/Security
+the separate mainline Gateway 0.10.15 / epoch-15 / 41-tool Host/Security
 credential and delegation migration. At the 2026-11-17 audit the installed
 Gateway is still 0.10.12; Source/Installed/Client authority is distinct.
 Preserve current `mcp-surface.json` and mandatory

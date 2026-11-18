@@ -109,22 +109,22 @@ def test_native_sdk_rejects_invalid_host_work_arguments_before_forward() -> None
             assert len(tools) == 6
             work_create = tools["work.create"].input_schema
             work_commit = tools["work.snapshot.commit"].input_schema
-            assert work_create["properties"]["initialSnapshot"]["$ref"] == (
-                "#/$defs/WorkSnapshotInput"
-            )
-            assert work_commit["properties"]["snapshot"]["$ref"] == ("#/$defs/WorkSnapshotInput")
-            assert work_create["$defs"]["WorkSnapshotInput"]["additionalProperties"] is False
-            assert work_create["$defs"]["WorkSnapshotInput"]["required"] == [
-                "objective",
-                "frontier",
-            ]
+            # Preserve the original ChatGPT/public 0.10.12 MCP schema, while
+            # validating the same strict Host wire contracts internally.
+            initial = work_create["properties"]["initialSnapshot"]
+            committed = work_commit["properties"]["snapshot"]
+            assert initial["type"] == "object" and initial["additionalProperties"] is True
+            assert committed["type"] == "object" and committed["additionalProperties"] is True
+            assert "$ref" not in initial and "$ref" not in committed
             assert tools["work.get"].input_schema["properties"]["revision"]["anyOf"][0] == {
                 "type": "integer",
-                "minimum": 1,
-                "maximum": 2**63 - 1,
             }
-            assert tools["work.list"].input_schema["properties"]["limit"]["minimum"] == 1
-            assert tools["work.list"].input_schema["properties"]["limit"]["maximum"] == 200
+            assert tools["work.list"].input_schema["properties"]["limit"] == {
+                "default": 50,
+                "title": "Limit",
+                "type": "integer",
+            }
+            assert work_commit["properties"]["expectedRevision"]["type"] == "integer"
             for name, args in invalid:
                 result = await client.call_tool(name, args)
                 assert result.is_error is True, (name, args, result)
