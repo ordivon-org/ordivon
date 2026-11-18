@@ -6,11 +6,11 @@ from typing import Any
 
 import pytest
 
-from ordivon_gateway.authzen_authorizer import (
+from ordivon_gateway.security.authzen_authorizer import (
     AuthZenAuthorizerError,
     AuthZenPrincipalAuthorizer,
 )
-from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
+from ordivon_gateway.security.capability_authz import GatewayCapabilityAuthorizationMiddleware
 
 
 class FakeResponse:

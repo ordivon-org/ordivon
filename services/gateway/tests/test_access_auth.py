@@ -9,7 +9,7 @@ from typing import Any
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from ordivon_gateway.access_auth import (
+from ordivon_gateway.security.access_auth import (
     AccessAuthError,
     CloudflareAccessConfig,
     CloudflareAccessMiddleware,
