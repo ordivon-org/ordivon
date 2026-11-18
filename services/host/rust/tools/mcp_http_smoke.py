@@ -118,7 +118,9 @@ try:
             time.sleep(0.1)
     assert initialized is not None, "Rust HTTP Host didn't accept initialization"
     status, body, headers = initialized
-    assert status == 200 and body["result"]["serverInfo"]["name"], body
+    assert status == 200, body
+    assert body["result"]["serverInfo"]["name"] == "ordivon-host-v2", body
+    assert body["result"]["serverInfo"]["version"], body
     session = headers.get("Mcp-Session-Id")
     assert session, "missing stateful MCP session"
     # Origin/Host allowlist is a real network boundary; localhost binding alone
