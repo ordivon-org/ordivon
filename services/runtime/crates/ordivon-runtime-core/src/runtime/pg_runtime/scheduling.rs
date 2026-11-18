@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 // boundary instead of trusting a potentially stale/corrupted pointer.
 const PENDING_JOBS_SQL: &str = "SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id";
 
-const SCHEDULING_READBACK_SQL: &str = "SELECT j.execution_plan_json,a.state,EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active'),j.desired_state,j.resolution FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,(SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id WHERE j.job_id=$1";
+const SCHEDULING_READBACK_SQL: &str = "SELECT j.execution_plan_json,a.state,EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active'),j.desired_state,j.resolution,a.attempt_id FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,(SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id WHERE j.job_id=$1";
 
 /// Immutable PG candidate snapshot. Dominant shares are rescored after every
 /// successful allocation; execution plans need not be queried or decoded again.
@@ -175,11 +175,115 @@ fn native_resource_error(message: impl std::fmt::Display) -> RuntimeError {
     )
 }
 
-/// An OS supply visibility error applies node-wide; unlike an isolated
-/// Job reconciliation failure, it must reach the scheduler's error channel.
-fn is_native_resource_observation(error: &RuntimeError) -> bool {
-    error.code == RuntimeErrorCode::ToolFailed
-        && error.field.as_deref() == Some("scheduling.resources")
+/// A corrupt committed candidate is a Job-local *invalid request*, not a
+/// failed PostgreSQL Registry. Preserve that distinction in Job events so an
+/// Agent does not mistake one poisoned row for a node-wide database outage.
+fn decode_accepted_candidate(raw: &str) -> RuntimeResult<RuntimeExecutionPlan> {
+    serde_json::from_str(raw).map_err(|parse| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("committed accepted Job has invalid execution plan: {parse}"),
+            Some("executionPlan"),
+            false,
+        )
+    })
+}
+
+/// Only a local, explicitly attributable failure may be isolated. A broken
+/// PostgreSQL writer/transaction or unknown node observation applies to the
+/// entire scheduler and must remain UNKNOWN rather than skipping all jobs.
+fn is_job_scoped_reconciliation_error(error: &RuntimeError) -> bool {
+    matches!(
+        error.code,
+        RuntimeErrorCode::ProviderStateMismatch
+            | RuntimeErrorCode::LaunchIdentityMismatch
+            | RuntimeErrorCode::WorkspaceStateMismatch
+            | RuntimeErrorCode::WorkspaceNotFound
+            | RuntimeErrorCode::ResultIdentityConflict
+            | RuntimeErrorCode::ArtifactIdentityConflict
+            | RuntimeErrorCode::ReconciliationRequired
+            | RuntimeErrorCode::DispatchOutcomeUnknown
+    )
+}
+
+/// One durable diagnostic per Attempt and issue class, using the existing PG
+/// Job event ledger. No new table, worker, admission outcome or terminal state.
+/// A qualified writer and the same allocation/close fence serialize with
+/// admission, terminal commits and other event_sequence appenders.
+fn record_scheduler_issue(
+    runtime: &PgRuntime,
+    db: &mut PgAdmissionStore,
+    job: &str,
+    attempt_id: &str,
+    reason: &str,
+    error: &RuntimeError,
+) -> RuntimeResult<()> {
+    let mut tx = db
+        .client
+        .build_transaction()
+        .isolation_level(postgres::IsolationLevel::ReadCommitted)
+        .start()
+        .map_err(io)?;
+    tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+        .map_err(io)?;
+    runtime.require_qualified_writer_tx(&mut tx)?;
+    // A stale pending snapshot cannot append an issue to a newer/terminal
+    // Attempt or claim that a separately cancelled Job still needs dispatch.
+    let current = tx
+        .query_opt(
+            "SELECT a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id              WHERE j.job_id=$1 AND a.attempt_id=$2 AND a.state='accepted' AND j.desired_state='run' AND j.resolution IS NULL              FOR UPDATE OF j,a",
+            &[&job, &attempt_id],
+        )
+        .map_err(io)?;
+    if current.is_none() {
+        return Ok(());
+    }
+    let recorded = tx
+        .query_opt(
+            "SELECT 1 FROM job_events WHERE job_id=$1 AND attempt_id=$2              AND event_type='SCHEDULER_ISSUE' AND reason_code=$3 LIMIT 1",
+            &[&job, &attempt_id, &reason],
+        )
+        .map_err(io)?;
+    if recorded.is_some() {
+        return Ok(());
+    }
+    let detail = encode(&json!({
+        "schemaVersion": 1,
+        "errorCode": error.code.as_str(),
+        "field": error.field,
+    }))?;
+    let digest = universal::sha256_bytes(detail.as_bytes());
+    let seq: i64 = tx
+        .query_one(
+            "SELECT COALESCE(MAX(event_sequence),0)+1 FROM job_events WHERE job_id=$1",
+            &[&job],
+        )
+        .map_err(io)?
+        .get(0);
+    tx.execute(
+        "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,previous_state,new_state,reason_code,detail_json,detail_digest,observed_at_ms)          VALUES($1,$2,$3,$4,'SCHEDULER_ISSUE','SYSTEM_DERIVED','accepted','accepted',$5,$6,$7,$8)",
+        &[
+            &format!("event-{}", uuid::Uuid::now_v7()),
+            &job,
+            &attempt_id,
+            &seq,
+            &reason,
+            &detail,
+            &digest,
+            &now()?,
+        ],
+    )
+    .map_err(io)?;
+    tx.commit().map_err(|_| {
+        RuntimeError::new(
+            RuntimeErrorCode::DispatchOutcomeUnknown,
+            "scheduler diagnostic COMMIT outcome unknown; read back the Job event before retrying",
+            Some("jobId"),
+            false,
+        )
+        .with_operation_id(job)
+    })?;
+    Ok(())
 }
 
 /// A *missing unit directory* is an unstarted (or removed) cgroup and thus
@@ -362,17 +466,36 @@ impl PgRuntime {
             v.1 = v.1.saturating_add(r.memory_bytes);
             v.2 = v.2.saturating_add(u64::from(r.pids));
         }
-        // Execution plans are immutable once accepted. Decode each candidate once.
+        // A single corrupted accepted plan must not poison unrelated healthy
+        // Jobs. Admission normally validates plans; corruption here is
+        // injected/stale state and must stay visible, never silently repaired.
         let mut ranked = Vec::with_capacity(candidates.len());
         for (order, row) in candidates.iter().enumerate() {
-            let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(2))?;
-            let spec = self.scheduling_contract(&plan)?;
+            let job: String = row.get(0);
+            let attempt_id: String = row.get(3);
+            let decoded: RuntimeResult<(RuntimeExecutionPlan, ResourceScheduling)> =
+                decode_accepted_candidate(&row.get::<_, String>(2))
+                    .and_then(|plan| self.scheduling_contract(&plan).map(|spec| (plan, spec)));
+            let (plan, spec) = match decoded {
+                Ok(decoded) => decoded,
+                Err(error) => {
+                    record_scheduler_issue(
+                        self,
+                        &mut db,
+                        &job,
+                        &attempt_id,
+                        "SCHEDULER_CANDIDATE_INVALID",
+                        &error,
+                    )?;
+                    continue;
+                }
+            };
             ranked.push(PendingCandidate {
                 priority: spec.priority,
                 order,
-                job: row.get(0),
+                job,
                 principal: row.get(1),
-                attempt_id: row.get(3),
+                attempt_id,
                 workspace_id: plan.workspace_id,
                 spec,
             });
@@ -404,8 +527,20 @@ impl PgRuntime {
             self.authorize(&mut db, &job, &principal)?;
             let reconciled = match self.reconcile_inner(&mut db, &job, true) {
                 Ok(()) => true,
-                Err(error) if is_native_resource_observation(&error) => return Err(error),
-                Err(_) => false,
+                Err(error) if is_job_scoped_reconciliation_error(&error) => {
+                    record_scheduler_issue(
+                        self,
+                        &mut db,
+                        &job,
+                        &attempt_id,
+                        "SCHEDULER_RECONCILIATION_BLOCKED",
+                        &error,
+                    )?;
+                    false
+                }
+                // PostgreSQL/qualified-writer and node visibility errors are
+                // global UNKNOWN, never normal per-Job resource deferrals.
+                Err(error) => return Err(error),
             };
             if reconciled {
                 let active: bool = db
@@ -457,19 +592,39 @@ impl PgRuntime {
             .client
             .query_one(SCHEDULING_READBACK_SQL, &[&id])
             .map_err(io)?;
-        let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(0))?;
+        // Corruption of one committed Job plan is an invalid Job record, not
+        // PostgreSQL transport unavailability. Until the public Scheduling
+        // schema can represent an unknown frozen request, fail visibly with
+        // the existing typed error rather than fabricating a default budget.
+        let plan = decode_accepted_candidate(&row.get::<_, String>(0))?;
         let spec = self.scheduling_contract(&plan)?;
         let attempt_state: Option<String> = row.get(1);
         let allocated: bool = row.get(2);
         let desired: String = row.get(3);
         let resolution: Option<String> = row.get(4);
-        value["scheduling"] = scheduling_readback(
+        let current_attempt_id: Option<String> = row.get(5);
+        let mut projection = scheduling_readback(
             spec,
             attempt_state.as_deref(),
             &desired,
             resolution.as_deref(),
             allocated,
         );
+        // The existing public schema only offers cause_unobserved. When a
+        // persisted Job event has a concrete failure, do not mislabel it as
+        // an unobserved resource wait; clients can inspect exact job.get events.
+        if projection["state"] == "pending" {
+            if let Some(attempt_id) = current_attempt_id {
+                let has_issue: bool = db.client.query_one(
+                    "SELECT EXISTS(SELECT 1 FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type='SCHEDULER_ISSUE')",
+                    &[&id, &attempt_id],
+                ).map_err(io)?.get(0);
+                if has_issue {
+                    projection["pendingReason"] = serde_json::Value::Null;
+                }
+            }
+        }
+        value["scheduling"] = projection;
         Ok(value)
     }
     /// One dedicated PG notification connection; a bounded timeout re-observes
@@ -555,25 +710,43 @@ mod scheduler_candidate_tests {
     }
 
     #[test]
+    fn invalid_accepted_plan_is_job_scoped_not_registry_unavailable() {
+        let error = decode_accepted_candidate("{not-valid-json").unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("executionPlan"));
+        assert!(!error.retryable);
+    }
+
+    #[test]
+    fn global_failures_are_never_categorized_as_local_candidate_errors() {
+        for code in [
+            RuntimeErrorCode::RegistryUnavailable,
+            RuntimeErrorCode::RegistryBusy,
+            RuntimeErrorCode::RegistryCorrupt,
+            RuntimeErrorCode::ToolFailed,
+        ] {
+            let error = RuntimeError::new(code, "global unknown", None, true);
+            assert!(!is_job_scoped_reconciliation_error(&error));
+        }
+        let provider = RuntimeError::new(
+            RuntimeErrorCode::ProviderStateMismatch,
+            "native runner changed after admission",
+            Some("executionProvider"),
+            false,
+        );
+        assert!(is_job_scoped_reconciliation_error(&provider));
+        assert!(!is_job_scoped_reconciliation_error(&native_resource_error(
+            "missing cgroup controls"
+        )));
+    }
+
+    #[test]
     fn missing_node_observation_is_not_resource_infeasible() {
         let error = native_resource_error("missing /proc/pressure/memory");
         assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
         assert!(error.retryable);
-        assert!(is_native_resource_observation(&error));
-        // Per-Job Tool failures and known constraints do not abort this
-        // scheduler batch; only the native node visibility gap does.
-        assert!(!is_native_resource_observation(&RuntimeError::new(
-            RuntimeErrorCode::ToolFailed,
-            "runner error",
-            Some("execution"),
-            true,
-        )));
-        assert!(!is_native_resource_observation(&RuntimeError::new(
-            RuntimeErrorCode::ConcurrencyLimit,
-            "capacity exhausted",
-            Some("scheduling.resources"),
-            true,
-        )));
+        assert_eq!(error.field.as_deref(), Some("scheduling.resources"));
+        assert!(!is_job_scoped_reconciliation_error(&error));
         assert!(!error
             .message
             .contains("resource pressure or workspace lease"));

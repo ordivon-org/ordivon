@@ -714,6 +714,21 @@ impl PgRuntime {
                 expected_source_sha256: self.config.source_sha256.clone(),
             })
             .map_err(pg)?;
+        // Post-commit control cannot become NOT_COMMITTED just because the
+        // original Plan is damaged or readback/OS observation is unresolved.
+        preserve_committed_job_identity(
+            &request.job_id,
+            self.cancel_committed(principal, request, &mut db, cancel_outcome),
+        )
+    }
+
+    fn cancel_committed(
+        &self,
+        principal: &str,
+        request: &JobCancelRequest,
+        db: &mut PgAdmissionStore,
+        cancel_outcome: PgCancelOutcome,
+    ) -> RuntimeResult<JobObservation> {
         if matches!(cancel_outcome, PgCancelOutcome::Existing(_)) {
             // A terminal Job deliberately clears current_attempt_id; the
             // existing PG cancel transaction performs no write in this case.
@@ -730,7 +745,7 @@ impl PgRuntime {
                     .is_some_and(|state| state != "orphaned")
                 {
                     return self.project(
-                        &mut db,
+                        db,
                         &JobObserveRequest {
                             schema_version: 1,
                             job_id: request.job_id.clone(),
@@ -745,7 +760,7 @@ impl PgRuntime {
                 }
             }
         }
-        let (a, _, _) = self.attempt(&mut db, &request.job_id)?;
+        let a = self.cancel_attempt_identity(db, &request.job_id)?;
         if !a.state.is_terminal() {
             fs::create_dir_all(&a.bundle_path).map_err(io)?;
             universal::write_json_atomic(
@@ -754,9 +769,9 @@ impl PgRuntime {
             )
             .map_err(io)?;
             if a.state == AttemptState::Accepted {
-                self.reconcile(&mut db, &request.job_id)?;
+                self.reconcile(db, &request.job_id)?;
                 return self.project(
-                    &mut db,
+                    db,
                     &JobObserveRequest {
                         schema_version: 1,
                         job_id: request.job_id.clone(),
