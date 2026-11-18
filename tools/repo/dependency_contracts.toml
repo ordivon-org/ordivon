@@ -332,3 +332,13 @@ source_glob = "services/gateway/tests/test_host_read_authorization.py"
 allowed_fragment = "platform/security/services/gateway-authzen"
 kind = "TEST_ONLY_SECURITY_OPA_CONSUMER"
 contract_ref = "platform/security/services/gateway-authzen/README.md"
+
+# The Gateway's test-owned OPA consumer resolves the Security Owner's
+# existing pinned native toolchain, not a mutable default mise shim.
+[[seams]]
+from_owner = "gateway"
+to_owner = "security"
+source_glob = "services/gateway/tests/test_host_read_authorization.py"
+allowed_fragment = "platform/security/mise.toml"
+kind = "TEST_ONLY_PINNED_SECURITY_TOOLCHAIN"
+contract_ref = "platform/security/mise.toml"

@@ -4,9 +4,9 @@ import asyncio
 import importlib.util
 import json
 import secrets
-import shutil
 import subprocess
 import time
+import tomllib
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -222,11 +222,24 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
     or an authenticated Cloudflare ingress test. The guarded Owner callback
     proves that a PDP DENY never dispatches an Owner operation.
     """
-    opa = shutil.which("opa")
-    if opa is None:
-        pytest.skip("requires existing native OPA tool")
-
     root = Path(__file__).resolve().parents[3]
+    # Use Security's existing *Owner-pinned* native OPA, not the mise shim:
+    # The Gateway CI task has no default shim version for this Owner tool.
+    security_tools = tomllib.loads(
+        (root / "platform/security/mise.toml").read_text(encoding="utf-8")
+    )
+    opa_version = security_tools["tools"]["opa"]
+    installed = subprocess.run(
+        ["mise", "where", f"opa@{opa_version}"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=8,
+    )
+    opa_path = Path(installed.stdout.strip()) / "opa"
+    assert opa_path.is_file() and opa_path.stat().st_mode & 0o111
+    opa = str(opa_path)
+
     policy_root = root / "platform/security/services/gateway-authzen"
     server_file = policy_root / "src/ordivon_security_gateway_authzen/server.py"
     policy = policy_root / "policies/gateway_artifact.rego"
@@ -237,48 +250,6 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-
-    # This is a functional PEP/OPA contract, not a 2s production latency test.
-    # On shared CI runners, cold OPA process startup can exceed Security's
-    # deliberately short fail-closed production budget. Keep its actual logic
-    # and real OPA binary, but grant this disposable subprocess up to 10s.
-    # Override only this dynamically loaded test module, not subprocess.run
-    # globally or any installed Security service.
-    native_run = subprocess.run
-    opa_run_outcomes: list[tuple[str, int | None, int, str]] = []
-
-    def test_opa_run(*args: Any, **kwargs: Any) -> Any:
-        assert kwargs.get("timeout") == 2.0
-        kwargs["timeout"] = 10.0
-        started = time.monotonic()
-        try:
-            result = native_run(*args, **kwargs)
-        except (OSError, subprocess.SubprocessError) as exc:
-            # This is a test-created OPA policy and nonsecret synthetic input.
-            # Record only bounded native CLI diagnostics, never stdin or tokens.
-            raw_error = getattr(exc, "stderr", "")
-            error_tail = (
-                raw_error[-300:].decode("utf-8", errors="replace")
-                if isinstance(raw_error, bytes)
-                else str(raw_error or "")[-300:]
-            )
-            opa_run_outcomes.append(
-                (
-                    type(exc).__name__,
-                    getattr(exc, "returncode", None),
-                    round((time.monotonic() - started) * 1000),
-                    error_tail,
-                )
-            )
-            raise
-        opa_run_outcomes.append(
-            ("OPA_EXIT", result.returncode, round((time.monotonic() - started) * 1000), "")
-        )
-        return result
-
-    module.subprocess = SimpleNamespace(
-        run=test_opa_run, SubprocessError=subprocess.SubprocessError
-    )
 
     token = secrets.token_hex(32)
     token_path = tmp_path / "pdp-token"
@@ -382,8 +353,7 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
                 assert not getattr(result, "is_error", False), (
                     "test-owned PDP unexpectedly rejected ALLOW: "
                     f"{getattr(result, 'structured_content', None)!r}; "
-                    f"PDP_HTTP_status_and_error_codes={pdp_outcomes!r}; "
-                    f"opa_exit_or_error_and_elapsed_ms={opa_run_outcomes!r}"
+                    f"PDP_HTTP_status_and_error_codes={pdp_outcomes!r}"
                 )
                 content = (
                     result["structuredContent"]
