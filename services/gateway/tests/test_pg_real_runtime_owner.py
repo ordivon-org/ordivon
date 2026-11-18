@@ -9,6 +9,12 @@ issuer-isolated disposable PG18 fixture. Until the owner release gate is
 repaired, this deliberately exposes a failing safety counterexample:
 a terminal Job is not proof that the ACTIVE Harness Run relinquished
 its exact mutable Workspace. Never target an installed Runtime.
+
+R20 complementary opt-in: ORDIVON_R20_EXPLICIT_NATIVE_CLAIM_POSITIVE=1
+manually acquires the already-existing Runtime PG physical Claim for a genuine
+active Harness Run and proves NativeClose rejection. The default original RED
+is preserved. Manual TEST claim reservation is not a production RunBirth port,
+not Tool/Domain authorization and not evidence of installed qualified release.
 """
 
 from __future__ import annotations
@@ -527,6 +533,39 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             {"workspaceId": "ws-gateway-native"},
                         )
                         assert native_workspace["activeJobIds"] == [], native_workspace
+                        # R20 independent POSITIVE control requires explicit opt-in:
+                        # this binds the real ACTIVE Harness Run to existing
+                        # Runtime PG physical Claim manually. Production RunBirth
+                        # does NOT yet perform this reserve, so RED without flag
+                        # must remain a reproducible safety counterexample.
+                        r20_explicit_claim = (
+                            os.getenv("ORDIVON_R20_EXPLICIT_NATIVE_CLAIM_POSITIVE") == "1"
+                        )
+                        r20_claim_key = "harness-r20-original-active-run-held-native"
+                        if r20_explicit_claim:
+                            request = {
+                                "workspaceId": "ws-gateway-native",
+                                "clientRequestId": r20_claim_key,
+                                "runRef": valid_source["runId"],
+                                "expectedSourceStateDigest": native_workspace[
+                                    "sourceStateDigest"
+                                ],
+                            }
+                            claim = await caller.call_tool(
+                                "runtime.linux", "workspace.claim.reserve", request
+                            )
+                            assert claim["state"] == "held", claim
+                            assert claim["runRef"] == valid_source["runId"]
+                            replayed = await caller.call_tool(
+                                "runtime.linux", "workspace.claim.get",
+                                {"clientRequestId": r20_claim_key},
+                            )
+                            assert replayed["claimId"] == claim["claimId"]
+                            assert replayed["state"] == "held"
+                            print(
+                                "R20_TRUE_HARNESS_ACTIVE_RUN_MANUAL_RUNTIME_CLAIM_HELD",
+                                flush=True,
+                            )
                         try:
                             closing = await caller.call_tool(
                                 "runtime.linux",
@@ -546,6 +585,19 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                                 "CONCURRENCY_LIMIT",
                                 "WORKSPACE_STATE_MISMATCH",
                             }, denied.error
+                            if r20_explicit_claim:
+                                # A generic Git race must NOT count as a
+                                # successful HELD-Claim close barrier.
+                                assert denied.error.get("code") == "CONCURRENCY_LIMIT"
+                                retained = await caller.call_tool(
+                                    "runtime.linux", "workspace.claim.get",
+                                    {"clientRequestId": r20_claim_key},
+                                )
+                                assert retained["state"] == "held"
+                                print(
+                                    "R20_TRUE_HARNESS_RUN_HELD_CLAIM_CLOSE_BLOCKED",
+                                    flush=True,
+                                )
                             print(
                                 "R13_NATIVE_CLOSE_ACTIVE_HARNESS_RUN_BLOCKED_BY_SOURCE_OWNER",
                                 flush=True,
