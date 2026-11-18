@@ -646,6 +646,13 @@ integer arguments, while existing Pydantic TypeAdapter validators apply the
 same strict Host wire rules before forwarding. Native MCP SDK tests from the
 installed old 38 tools to R18 41 tools show no incompatible contracts; all
 original malformed input negative cases still fail before Owner dispatch.
+For Host-invalid values admitted by the original public JSON Schema, the
+same original Gateway Owner error projector returns the previous structured
+OWNER_CALL_FAILED envelope without sending an Owner RPC. Malformed JSON
+booleans are not schema-admissible integers and may be rejected earlier by
+the SDK's own Tool argument parser. Real old/candidate SDK calls against the
+same installed Host confirm identical Work get/list/create/commit error
+payloads for the four representative schema-admissible invalid cases.
 The separate Security/Host/Cloudflare release #2349 remains NO_GO; schema
 compatibility is not an authentication or user-workflow grant.
 

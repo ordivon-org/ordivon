@@ -128,6 +128,24 @@ def test_native_sdk_rejects_invalid_host_work_arguments_before_forward() -> None
             for name, args in invalid:
                 result = await client.call_tool(name, args)
                 assert result.is_error is True, (name, args, result)
+                # A rejected legacy input has the old public Gateway error
+                # envelope, not a traceback-only MCP SDK validation failure.
+                structured = result.structured_content
+                # A JSON boolean violates the ORIGINAL integer inputSchema.
+                # The native SDK can reject it before our Tool body runs,
+                # so no Server-side owner envelope can be promised there.
+                sdk_rejects_boolean = (name == "work.get" and args.get("revision") is False) or (
+                    name == "work.list" and args.get("limit") is True
+                )
+                if sdk_rejects_boolean:
+                    assert structured is None
+                    continue
+                assert isinstance(structured, dict), (name, args, result)
+                assert structured["error"]["code"] == "OWNER_CALL_FAILED"
+                assert structured["error"]["origin"] == "gateway_adapter"
+                assert structured["gatewayOwnerId"] == "host"
+                assert structured["gatewayOwnerTool"] == name
+                assert result.content[0].text == f"owner tool returned error: host/{name}"
             assert forwarded == []
 
             valid_snapshot = {
