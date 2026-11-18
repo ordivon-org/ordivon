@@ -180,6 +180,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         # A read-only projection of the immutable Journal; never a second
         # persistence authority. A Store revision change invalidates it.
         self._heads_cache: tuple[int, _Heads] | None = None
+        self._heads_cache_last_sequence = 0
         self._snapshot_sequence = self._current_snapshot_sequence()
 
     @property
@@ -2077,7 +2078,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             raise HarnessSuperseded("Harness Tool Step Intent is already prepared")
         if current_step is not None and (
             current_step.receipt is None
-            or current_step.receipt.status not in {
+            or current_step.receipt.status
+            not in {
                 HarnessToolStepStatus.OBSERVED,
                 HarnessToolStepStatus.REJECTED,
                 HarnessToolStepStatus.CANCELLED,
@@ -2923,11 +2925,15 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         cached = self._heads_cache
         if cached is not None and cached[0] == revision:
             return cached[1]
-        provider = None
-        tool = None
-        snapshot = None
-        working_set = None
-        events = self.store.list_run_events(self.harness_run_id)
+        # Hot append folds only the immutable tail; cold recovery replays all.
+        provider = cached[1].provider if cached is not None else None
+        tool = cached[1].tool if cached is not None else None
+        snapshot = cached[1].snapshot if cached is not None else None
+        working_set = cached[1].working_set if cached is not None else None
+        events = self.store.list_run_events(
+            self.harness_run_id,
+            after_sequence=self._heads_cache_last_sequence if cached is not None else 0,
+        )
         for event in events:
             if event.event_kind in _PROVIDER_CLEAR_EVENT_KINDS:
                 provider = None
@@ -2950,6 +2956,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         # authoritative for a complete, ordered Journal read.
         if events and events[-1].run_revision == revision:
             self._heads_cache = (revision, heads)
+            self._heads_cache_last_sequence = events[-1].sequence
         return heads
 
     def _load_current_provider_call_or_none(

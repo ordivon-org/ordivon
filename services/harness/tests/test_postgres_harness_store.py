@@ -245,6 +245,166 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertIs(new_heads, continuity._heads())
             self.assertEqual(reads.call_count, initial_reads + 1)
 
+    def test_pg_working_set_history_corrupt_older_committed_payload_does_not_disappear(self) -> None:
+        """A corrupt CAS payload must not hide a committed earlier selection.
+
+        SQL pushdown may filter a valid immutable uncommitted record, but a
+        digest/byte-length/kind-invalid payload must reach the exact CAS decoder
+        rather than silently disappearing from the Agent's history catalog.
+        """
+        import json
+        from tests.test_pc15_epistemic_control import private_contract
+        from tests.test_pc18_historical_cognition_recall import HistoricalCognitionRecallTests
+
+        run = private_contract(
+            "pg-history-corrupt-candidate", max_model_calls=1, max_tool_calls=0
+        )
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        HistoricalCognitionRecallTests.seed_history(self.store, continuity)
+        before = continuity.inspect_working_set_history(limit=10)
+        self.assertGreaterEqual(len(before["selections"]), 2)
+        victim = next(
+            event
+            for event in self.store.list_run_events(run.harness_run_id)
+            if event.event_kind == "harness.working-set-recorded"
+            and event.data.get("committed") is True
+            and event.sequence != before["currentWorkingSetEventSequence"]
+        )
+        row = self.store.connection.execute(
+            "SELECT content FROM objects WHERE digest=%s",
+            (victim.payload_digest,),
+        ).fetchone()
+        document = json.loads(bytes(row["content"]))
+        self.assertIs(document["data"]["committed"], True)
+        # Physical corruption of the immutable source object, restricted to
+        # this test-only PostgreSQL schema. Stored claimed digest unchanged.
+        document["data"]["committed"] = False
+        modified = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+        self.store.connection.execute(
+            "UPDATE objects SET content=%s,byte_length=%s WHERE digest=%s",
+            (modified, len(modified), victim.payload_digest),
+        )
+        with self.assertRaises(HarnessObjectCorrupt):
+            continuity.inspect_working_set_history(limit=10)
+
+    def test_pg_working_set_history_malformed_older_payload_fails_with_original_cas_error(self) -> None:
+        """Invalid UTF-8/JSON must not escape into SQL parser or get silently filtered.
+
+        The current head is intact. Historical CAS payload damage is a Store
+        integrity failure, not an agent-visible missing Working Set or a raw
+        PostgreSQL JSON/encoding exception.
+        """
+        from tests.test_pc15_epistemic_control import private_contract
+        from tests.test_pc18_historical_cognition_recall import HistoricalCognitionRecallTests
+
+        run = private_contract("pg-history-bad-bytes", max_model_calls=1, max_tool_calls=0)
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        HistoricalCognitionRecallTests.seed_history(self.store, continuity)
+        current = continuity.inspect_working_set_history(limit=10)
+        victim = next(
+            event
+            for event in self.store.list_run_events(run.harness_run_id)
+            if event.event_kind == "harness.working-set-recorded"
+            and event.data.get("committed") is True
+            and event.sequence != current["currentWorkingSetEventSequence"]
+        )
+        row = self.store.connection.execute(
+            "SELECT content FROM objects WHERE digest=%s", (victim.payload_digest,)
+        ).fetchone()
+        original = bytes(row["content"])
+        for suffix, malformed in (
+            ("not-utf8", b"\xff\xfe"),
+            ("not-json", b"{this is not valid JSON"),
+        ):
+            with self.subTest(suffix=suffix):
+                try:
+                    self.store.connection.execute(
+                        "UPDATE objects SET content=%s,byte_length=%s WHERE digest=%s",
+                        (malformed, len(malformed), victim.payload_digest),
+                    )
+                    with self.assertRaises(HarnessObjectCorrupt):
+                        continuity.inspect_working_set_history(limit=10)
+                    with self.assertRaises(HarnessObjectCorrupt):
+                        self.store.find_working_set_event_sequence(
+                            run.harness_run_id,
+                            working_set_digest=current["currentWorkingSetDigest"],
+                        )
+                finally:
+                    self.store.connection.execute(
+                        "UPDATE objects SET content=%s,byte_length=%s WHERE digest=%s",
+                        (original, len(original), victim.payload_digest),
+                    )
+                self.assertEqual(
+                    continuity.inspect_working_set_history(limit=10), current
+                )
+
+    def test_pg_working_set_history_bounded_page_matches_legacy_and_concurrent_append(self) -> None:
+        """The original PG consumer must not fetch all events for each history page."""
+        from unittest.mock import patch
+        from tests.test_pc15_epistemic_control import private_contract
+        from tests.test_pc18_historical_cognition_recall import HistoricalCognitionRecallTests
+
+        run = private_contract("pg-history-bounded", max_model_calls=1, max_tool_calls=0)
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        HistoricalCognitionRecallTests.seed_history(self.store, continuity)
+
+        with (
+            patch.object(self.store, "list_committed_working_set_events", None),
+            patch.object(self.store, "find_working_set_event_sequence", None),
+        ):
+            baseline_one = continuity.inspect_working_set_history(limit=1)
+            baseline_two = continuity.inspect_working_set_history(
+                limit=1, before_sequence=baseline_one["nextBeforeSequence"]
+            )
+            baseline_empty = continuity.inspect_working_set_history(limit=10, before_sequence=1)
+        with patch.object(
+            self.store,
+            "list_run_events",
+            side_effect=AssertionError("full Journal scan forbidden on warm history page"),
+        ):
+            one = continuity.inspect_working_set_history(limit=1)
+            two = continuity.inspect_working_set_history(
+                limit=1, before_sequence=one["nextBeforeSequence"]
+            )
+            empty = continuity.inspect_working_set_history(limit=10, before_sequence=1)
+        self.assertEqual((one, two, empty), (baseline_one, baseline_two, baseline_empty))
+        self.assertEqual(len(one["selections"]), 1)
+        self.assertEqual(len(two["selections"]), 1)
+        self.assertIsNone(two["nextBeforeSequence"])
+        self.assertEqual(empty["selections"], [])
+
+        # Another PG process commits a non-Working Set tail. Hot continuity
+        # must read only that delta and preserve history/control semantics.
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+            append_at = rival.load_run(run.harness_run_id).updated_at_ms + 1
+            lease = rival.acquire_run_lease(
+                run.harness_run_id,
+                owner_id="worker:history-append",
+                ttl_ms=5000,
+                now_ms=10,
+            )
+            rival.append_events(
+                harness_run_id=run.harness_run_id,
+                events=(
+                    HarnessEventWrite(
+                        event_id="event:history-concurrent-trace",
+                        event_kind="harness.trace-recorded",
+                        data={"trace": "committed by another process"},
+                        recorded_at_ms=append_at,
+                    ),
+                ),
+                expected_revision=lease.run_revision,
+                lease=lease,
+                lease_checked_at_ms=11,
+            )
+        self.assertEqual(continuity.inspect_working_set_history(limit=1), one)
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as cold_store:
+            cold = EventSourcedRunContinuity.open(cold_store, run.harness_run_id)
+            self.assertEqual(cold.inspect_working_set_history(limit=1), one)
+
     def test_two_connections_lease_revision_cas_and_exact_response_loss_replay(self) -> None:
         run = contract()
         self.store.create_run(run)
