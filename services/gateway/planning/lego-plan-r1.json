@@ -237,7 +237,7 @@
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
-        "src/ordivon_gateway/capability_authz.py"
+        "src/ordivon_gateway/security/capability_authz.py"
       ],
       "dependencies": [
         "G03"
@@ -308,8 +308,8 @@
         "Native Security PEP tests cover server-derived resource identity, malformed/foreign references, principal mismatch, denial and unavailable authorizer."
       ],
       "evidence": [
-        "src/ordivon_gateway/capability_authz.py",
-        "src/ordivon_gateway/authzen_authorizer.py",
+        "src/ordivon_gateway/security/capability_authz.py",
+        "src/ordivon_gateway/security/authzen_authorizer.py",
         "tests/test_capability_authz_middleware.py",
         "tests/test_authzen_authorizer.py",
         "src/ordivon_gateway/execution_refs.py"
@@ -357,7 +357,7 @@
         "Native ingress tests reject bad claims, enforce loopback-only service bearer and preserve separate remote Cloudflare verification."
       ],
       "evidence": [
-        "src/ordivon_gateway/access_auth.py",
+        "src/ordivon_gateway/security/access_auth.py",
         "src/ordivon_gateway/upstream.py",
         "src/ordivon_gateway/security/owner_identity.py",
         "tests/test_access_auth.py",
@@ -365,7 +365,7 @@
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
-        "src/ordivon_gateway/capability_authz.py"
+        "src/ordivon_gateway/security/capability_authz.py"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -376,7 +376,7 @@
       ],
       "consumerBindings": [
         {
-          "path": "src/ordivon_gateway/capability_authz.py",
+          "path": "src/ordivon_gateway/security/capability_authz.py",
           "operation": "GatewayCapabilityAuthorizationMiddleware consumes ingress-verified request state principal and issuer; malformed/absent identity fails before Security/owner forwarding",
           "standing": "SOURCE_REQUEST_STATE_CONSUMER_NATIVE_TESTED_NOT_INSTALLED; DYNAMIC_AUTHORITY_AND_FORMAL_REFINEMENT_UNKNOWN"
         }
