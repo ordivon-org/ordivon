@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
@@ -9,6 +8,13 @@ from .agent_plugin import AgentPluginMcpComponent
 from .agent_tool_observation import HarnessToolObservation
 from .core_contracts import HarnessRunContract
 from .execution_binding import HarnessExecutionBinding
+from .run_authority import (
+    PluginGatewayExecutionGrant,
+    _forward_granted_timeout,
+    authorize_gateway_tool_call,
+    is_original_effect_authority,
+    require_gateway_workspace_effect,
+)
 from .ordivon.model import AgentToolCall, AgentToolDefinition
 from .ordivon.run_store_port import HarnessRunContinuityStore
 from .ordivon.runtime_bridge import HarnessRuntimeBridge
@@ -18,63 +24,8 @@ from .plugin_mcp import HarnessMcpClient
 from .protocol import HarnessRecoveryConsequence
 from .runtime_port import (
     HarnessRuntimeClientError,
-    HarnessWorkspaceAdmissionUnavailable,
     WorkspaceBoundEffectAdmission,
 )
-
-
-@dataclass(frozen=True, slots=True)
-class PluginGatewayExecutionGrant:
-    capability: str
-    workspace_id: str
-    executable_allowlist: tuple[str, ...]
-    context: str | None = None
-    env_allowlist: tuple[str, ...] = ()
-    max_timeout_ms: int = 300_000
-
-    def __post_init__(self) -> None:
-        if (
-            not self.capability.startswith("execution.")
-            or self.capability != self.capability.strip()
-        ):
-            raise ValueError("Gateway execution capability must be one trimmed execution.* name")
-        if not self.workspace_id or self.workspace_id != self.workspace_id.strip():
-            raise ValueError("Gateway execution workspace must be non-empty and trimmed")
-        if (
-            not self.executable_allowlist
-            or len(self.executable_allowlist) != len(set(self.executable_allowlist))
-            or tuple(sorted(self.executable_allowlist)) != self.executable_allowlist
-            or any(not item or item != item.strip() for item in self.executable_allowlist)
-        ):
-            raise ValueError(
-                "Gateway executable allowlist must be non-empty, unique, sorted, and trimmed"
-            )
-        if (
-            len(self.env_allowlist) != len(set(self.env_allowlist))
-            or tuple(sorted(self.env_allowlist)) != self.env_allowlist
-            or any(not item or item != item.strip() for item in self.env_allowlist)
-        ):
-            raise ValueError("Gateway environment allowlist must be unique, sorted, and trimmed")
-        if self.context is not None and (not self.context or self.context != self.context.strip()):
-            raise ValueError("Gateway execution context must be trimmed")
-        if type(self.max_timeout_ms) is not int or not 1 <= self.max_timeout_ms <= 900_000:
-            raise ValueError("Gateway execution timeout bound must be between 1 and 900000 ms")
-
-    def to_dict(self) -> dict[str, JsonValue]:
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.plugin-gateway-execution-grant",
-            "capability": self.capability,
-            "workspaceId": self.workspace_id,
-            "executableAllowlist": list(self.executable_allowlist),
-            "context": self.context,
-            "envAllowlist": list(self.env_allowlist),
-            "maxTimeoutMs": self.max_timeout_ms,
-            "authorityBoundary": (
-                "caller-selected fixed target and allow-by-exception process authority; "
-                "the model cannot choose capability, workspace, context, credentials, or request identity"
-            ),
-        }
 
 
 def _model_execution_definition(grant: PluginGatewayExecutionGrant) -> AgentToolDefinition:
@@ -127,20 +78,6 @@ def _tool_digest(raw: dict[str, JsonValue]) -> str:
     }
     validate_json_value(value)
     return canonical_digest(value)
-
-
-def _forward_granted_timeout(grant: int, requested: int | None) -> int:
-    """Native R2.1 StrictLego21 timeout projection, admitted under caller grant.
-
-    pre: 1 <= grant <= 900000
-    pre: requested is None or (1 <= requested <= grant)
-    post: __return__ == (grant if requested is None else requested)
-    post: 1 <= __return__ <= grant
-
-    Source symbolic checking covers this pure projection. Authority admission,
-    Gateway forwarding, Runtime effects and installed currentness are separate.
-    """
-    return grant if requested is None else requested
 
 
 def _required_text(value: object, label: str) -> str:
@@ -295,10 +232,13 @@ class GatewayMcpRuntimeAdapter:
         # A frozen Factory is not sufficient if its effectful Adapter is
         # rebound after Bridge creation. Verify the original caller and Native
         # admission source before every external effect, including recovery.
-        if (
-            self.client is not self._original_effect_client
-            or self._workspace_admission is not self._original_workspace_admission
-            or self._workspace_admission_required is not self._original_workspace_admission_required
+        if not is_original_effect_authority(
+            effect_client=self.client,
+            original_effect_client=self._original_effect_client,
+            admission_port=self._workspace_admission,
+            original_admission_port=self._original_workspace_admission,
+            admission_required=self._workspace_admission_required,
+            original_admission_required=self._original_workspace_admission_required,
         ):
             raise HarnessRuntimeClientError(
                 "Gateway Adapter effect client or Native admission drifted after Run birth"
@@ -403,30 +343,15 @@ class GatewayMcpRuntimeAdapter:
             # Legacy Runtime may dispatch an already Accepted native Job.
             # Preserve the same strict native effect gate on this path too.
             # The original exact Formal final-dispatch frame stays untouched.
-            replay_port = self._workspace_admission
-            if self._workspace_admission_required and replay_port is None:
-                raise HarnessWorkspaceAdmissionUnavailable(
-                    "Gateway bound replay requires a certified Runtime Workspace Claim"
-                )
-            if replay_port is not None:
-                try:
-                    replay_evidence = replay_port.require_effect_ready(
-                        run_ref=_required_text(self._run_ref, "bound Harness Run"),
-                        workspace_id=self.grant.workspace_id,
-                        tool_grant_digest=_required_text(self._grant_digest, "bound Tool Grant"),
-                        runtime_operation="workspace.exec",
-                        client_request_id=request_id,
-                    )
-                except HarnessWorkspaceAdmissionUnavailable:
-                    raise
-                except Exception as error:
-                    raise HarnessWorkspaceAdmissionUnavailable(
-                        f"Gateway replay Workspace qualification unavailable: {type(error).__name__}"
-                    ) from error
-                if replay_evidence is not None:
-                    raise HarnessWorkspaceAdmissionUnavailable(
-                        "Gateway replay Port returned an unauthenticated caller token"
-                    )
+            require_gateway_workspace_effect(
+                workspace_admission=self._workspace_admission,
+                admission_required=self._workspace_admission_required,
+                run_ref=self._run_ref,
+                workspace_id=self.grant.workspace_id,
+                grant_digest=self._grant_digest,
+                request_id=request_id,
+                replay=True,
+            )
             if len(bound_jobs) != 1:
                 raise HarnessRuntimeClientError(
                     "Gateway existing request has ambiguous local physical Job bindings"
@@ -463,31 +388,15 @@ class GatewayMcpRuntimeAdapter:
         # The final public Gateway boundary consumes the SAME trusted Runtime
         # Claim Port as the built-in Bridge. This checks lifetime/issuer only;
         # durable ToolIntent/Fence identity is separately verified upstream.
-        if self._workspace_admission_required and self._workspace_admission is None:
-            raise HarnessWorkspaceAdmissionUnavailable(
-                "Gateway execution requires a certified Runtime Workspace Claim"
-            )
-        if self._workspace_admission is not None:
-            try:
-                admitted = self._workspace_admission.require_effect_ready(
-                    run_ref=_required_text(self._run_ref, "bound Harness Run"),
-                    workspace_id=self.grant.workspace_id,
-                    tool_grant_digest=_required_text(self._grant_digest, "bound Tool Grant"),
-                    runtime_operation="workspace.exec",
-                    client_request_id=request_id,
-                )
-            except HarnessWorkspaceAdmissionUnavailable:
-                raise
-            except Exception as error:
-                # No Gateway send has occurred. Distinguish holder readback
-                # failure from an ambiguous post-submit Runtime response.
-                raise HarnessWorkspaceAdmissionUnavailable(
-                    f"Gateway Workspace qualification unavailable: {type(error).__name__}"
-                ) from error
-            if admitted is not None:
-                raise HarnessWorkspaceAdmissionUnavailable(
-                    "Gateway Workspace Port returned an unauthenticated caller token"
-                )
+        require_gateway_workspace_effect(
+            workspace_admission=self._workspace_admission,
+            admission_required=self._workspace_admission_required,
+            run_ref=self._run_ref,
+            workspace_id=self.grant.workspace_id,
+            grant_digest=self._grant_digest,
+            request_id=request_id,
+            replay=False,
+        )
         receipt = self._call("execution.submit", gateway_args)
         operation_ref = _required_text(
             _gateway_field(receipt, "operation_ref", "operationRef"), "operationRef"
@@ -948,62 +857,9 @@ class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
     def _lower_runtime_tool_call(
         self, call: AgentToolCall, *, step_id: str
     ) -> tuple[str, dict[str, JsonValue], str | None]:
-        if call.name != "execution_submit":
-            raise ToolBridgeError(
-                f"Gateway execution bridge does not expose {call.name}",
-                kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
-            )
-        if call.argument_error is not None:
-            raise ToolBridgeError(
-                f"Gateway execution arguments are invalid: {call.argument_error}",
-                kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
-            )
-        allowed = {"executable", "args", "cwdRelative", "env", "timeoutMs"}
-        unknown = set(call.arguments) - allowed
-        if unknown:
-            raise ToolBridgeError(
-                f"Gateway execution arguments contain unsupported fields: {sorted(unknown)}",
-                kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
-            )
-        executable = call.arguments.get("executable")
-        args = call.arguments.get("args")
-        cwd = call.arguments.get("cwdRelative", ".")
-        env = call.arguments.get("env")
-        timeout = call.arguments.get("timeoutMs")
-        if executable not in self.gateway_grant.executable_allowlist:
-            raise ToolBridgeError(
-                "Gateway executable is outside the caller grant",
-                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
-            )
-        if not isinstance(args, list) or any(not isinstance(item, str) for item in args):
-            raise ToolBridgeError(
-                "Gateway args must be strings", kind=ToolBridgeErrorKind.MODEL_CORRECTABLE
-            )
-        if not isinstance(cwd, str) or not cwd or cwd.startswith("/") or ".." in cwd.split("/"):
-            raise ToolBridgeError(
-                "Gateway cwdRelative must stay inside the bound workspace",
-                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
-            )
-        if env is not None:
-            if not isinstance(env, dict) or any(
-                not isinstance(key, str) or not isinstance(value, str) for key, value in env.items()
-            ):
-                raise ToolBridgeError(
-                    "Gateway env must be a string map",
-                    kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
-                )
-            if set(env) - set(self.gateway_grant.env_allowlist):
-                raise ToolBridgeError(
-                    "Gateway environment variable is outside the caller grant",
-                    kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
-                )
-        if "timeoutMs" in call.arguments and (
-            type(timeout) is not int or timeout < 1 or timeout > self.gateway_grant.max_timeout_ms
-        ):
-            raise ToolBridgeError(
-                "Gateway timeout exceeds the caller grant",
-                kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
-            )
+        executable, args, cwd, env, timeout = authorize_gateway_tool_call(
+            self.gateway_grant, call
+        )
 
         # The Run-level MCP catalog preflight only validates a snapshot.
         # Reject a changed Gateway execution/recovery ToolSpec here, before
@@ -1186,10 +1042,13 @@ class PluginGatewayExecutionBridgeFactory:
         require_workspace_admission = self._workspace_admission_required
         frozen_grant_digest = self.grant_digest
         frozen_catalog_digest = self.catalog_digest
-        if (
-            client is not self._original_client
-            or workspace_admission is not self._original_workspace_admission
-            or require_workspace_admission is not self._original_workspace_admission_required
+        if not is_original_effect_authority(
+            effect_client=client,
+            original_effect_client=self._original_client,
+            admission_port=workspace_admission,
+            original_admission_port=self._original_workspace_admission,
+            admission_required=require_workspace_admission,
+            original_admission_required=self._original_workspace_admission_required,
         ):
             raise ToolBridgeError(
                 "Gateway Factory effect client or Native admission policy drifted from original source",

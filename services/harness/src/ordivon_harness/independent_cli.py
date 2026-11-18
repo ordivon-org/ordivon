@@ -47,6 +47,7 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
     # Verify the selected Gateway Tool surface before touching PG. Incomplete
     # configurations cannot create a stray Run or make an ambient send.
     gateway = _gateway_factory(args) if command in {"run", "resume"} else None
+    native_claim = _native_claim_client(args, gateway) if command in {"run", "resume"} else None
     dsn, schema = configured_postgres()
 
     def store_factory() -> PostgresHarnessStore:
@@ -115,6 +116,7 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
             contract,
             lambda exact_contract: _adapter(exact_contract, args),
             tool_bridge_factory=gateway,
+            workspace_claim_client=native_claim,
             clock_ms=clock_ms,
             monotonic_ms=clock_ms,
         )
@@ -138,6 +140,7 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
             args.harness_run_id,
             lambda exact_contract: _adapter(exact_contract, args),
             tool_bridge_factory=gateway,
+            workspace_claim_client=native_claim,
             clock_ms=clock_ms,
             monotonic_ms=clock_ms,
         )
@@ -145,6 +148,33 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
         with store_factory() as store:
             return _execution_value(execution, schema=schema, store=store)
     raise ValueError(f"unsupported independent Harness command: {command}")
+
+
+def _native_claim_client(args, gateway: PluginGatewayExecutionBridgeFactory | None):
+    """Use an independently authenticated Runtime physical owner, not Gateway routing.
+
+    No bearer or native authority is copied into the Harness PG, Gateway
+    execution projection, or the model-facing Tool grant.
+    """
+    url = getattr(args, "runtime_claim_url", None)
+    bearer = getattr(args, "runtime_claim_bearer_token_file", None)
+    if gateway is None:
+        if url is not None or bearer is not None:
+            raise ValueError("native Workspace Claim requires a Workspace-bearing Gateway Run")
+        return None
+    if not url or bearer is None:
+        raise ValueError(
+            "Gateway Workspace Run requires --runtime-claim-url and "
+            "--runtime-claim-bearer-token-file; no unprotected fallback"
+        )
+    component = (
+        LoopbackMcpEndpoint(url, name="ordivon-runtime-native-claim")
+        if url.startswith("http://")
+        else AgentPluginMcpComponent(
+            name="ordivon-runtime-native-claim", transport="streamable-http", url=url,
+        )
+    )
+    return OfficialMcpClient(component, bearer_token_file=bearer)
 
 
 def _gateway_factory(args, *, required: bool = False) -> PluginGatewayExecutionBridgeFactory | None:
