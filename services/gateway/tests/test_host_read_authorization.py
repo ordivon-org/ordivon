@@ -245,11 +245,27 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
     # Override only this dynamically loaded test module, not subprocess.run
     # globally or any installed Security service.
     native_run = subprocess.run
+    opa_run_outcomes: list[tuple[str, int | None, int]] = []
 
     def test_opa_run(*args: Any, **kwargs: Any) -> Any:
         assert kwargs.get("timeout") == 2.0
         kwargs["timeout"] = 10.0
-        return native_run(*args, **kwargs)
+        started = time.monotonic()
+        try:
+            result = native_run(*args, **kwargs)
+        except (OSError, subprocess.SubprocessError) as exc:
+            opa_run_outcomes.append(
+                (
+                    type(exc).__name__,
+                    getattr(exc, "returncode", None),
+                    round((time.monotonic() - started) * 1000),
+                )
+            )
+            raise
+        opa_run_outcomes.append(
+            ("OPA_EXIT", result.returncode, round((time.monotonic() - started) * 1000))
+        )
+        return result
 
     module.subprocess = SimpleNamespace(
         run=test_opa_run, SubprocessError=subprocess.SubprocessError
@@ -357,7 +373,8 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
                 assert not getattr(result, "is_error", False), (
                     "test-owned PDP unexpectedly rejected ALLOW: "
                     f"{getattr(result, 'structured_content', None)!r}; "
-                    f"PDP_HTTP_status_and_error_codes={pdp_outcomes!r}"
+                    f"PDP_HTTP_status_and_error_codes={pdp_outcomes!r}; "
+                    f"opa_exit_or_error_and_elapsed_ms={opa_run_outcomes!r}"
                 )
                 content = (
                     result["structuredContent"]
