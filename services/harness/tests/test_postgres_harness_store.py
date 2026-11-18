@@ -1817,3 +1817,153 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             outcomes = list(pool.map(claim,("worker:pg-a","worker:pg-b")))
         self.assertCountEqual(outcomes,["admitted","held"])
         self.assertEqual(self.store.doctor()["leases"],1)
+
+
+    def test_history_doctor_rejects_missing_ordinary_event_payload_edge(self) -> None:
+        """A normal Event must retain its persisted payload edge, not just CAS bytes."""
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:ref-edge", ttl_ms=10000,
+            now_ms=run.created_at_ms,
+        )
+        self.store.append_event(
+            event_id="event:history-ordinary-payload-edge",
+            harness_run_id=run.harness_run_id,
+            event_kind="harness.trace-recorded",
+            data={"trace": "ordinary"},
+            expected_revision=lease.run_revision,
+            recorded_at_ms=run.created_at_ms+1,
+            lease=lease,
+            lease_checked_at_ms=run.created_at_ms,
+        )
+        original = self.store.list_run_events(run.harness_run_id)[-1]
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND role='payload'",
+            (original.event_id,),
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+
+    def test_history_doctor_rejects_missing_original_contract_reference(self) -> None:
+        """Created Event explicitly requires original contract CAS reference."""
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE harness_run_id=%s AND role='reference'",
+            (run.harness_run_id,),
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+
+    def test_history_doctor_rejects_cross_run_reference_ownership(self) -> None:
+        """FK validity alone must not make another Run own this Event's edge."""
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+        from dataclasses import replace
+
+        first = contract()
+        second = replace(first, harness_run_id="harness-run:ref-owner-foreign",
+                         caller_run_ref="caller-run:ref-owner-foreign")
+        self.store.create_run(first)
+        self.store.create_run(second)
+        original_event = self.store.list_run_events(first.harness_run_id)[0]
+        self.store.connection.execute(
+            "UPDATE run_object_refs SET harness_run_id=%s "
+            "WHERE event_id=%s AND role='payload'",
+            (second.harness_run_id, original_event.event_id),
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(first.harness_run_id)
+
+    def test_history_doctor_single_pg_snapshot_avoids_concurrent_writer_false_corruption(self) -> None:
+        """One valid concurrent Writer must not splice two committed revisions."""
+        from unittest.mock import patch
+
+        run = contract()
+        self.store.create_run(run)
+        load_before = self.store.load_run
+        committed = False
+
+        def race_after_initial_read(harness_run_id: str):
+            nonlocal committed
+            projection = load_before(harness_run_id)
+            if not committed:
+                committed = True
+                with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                    lease = rival.acquire_run_lease(
+                        run.harness_run_id, owner_id="worker:concurrent-history",
+                        ttl_ms=10000, now_ms=run.created_at_ms,
+                    )
+                    rival.append_event(
+                        event_id="event:concurrent-valid-new-revision",
+                        harness_run_id=run.harness_run_id,
+                        event_kind="harness.trace-recorded",
+                        data={"trace": "valid-concurrent-writer"},
+                        expected_revision=lease.run_revision,
+                        recorded_at_ms=run.created_at_ms+1,
+                        lease=lease,
+                        lease_checked_at_ms=run.created_at_ms,
+                    )
+            return projection
+
+        with patch.object(self.store, "load_run", side_effect=race_after_initial_read):
+            self.store.validate_run_history(run.harness_run_id)
+        self.assertTrue(committed)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, 2)
+        self.store.validate_run_history(run.harness_run_id)
+
+
+    def test_full_doctor_counts_are_one_snapshot_during_valid_concurrent_append(self) -> None:
+        """Even the global Doctor count must not mix a later Run revision."""
+        from unittest.mock import patch
+
+        run = contract()
+        self.store.create_run(run)
+        original_load = self.store.load_run
+        committed = False
+
+        def competing_read(harness_run_id: str):
+            nonlocal committed
+            before = original_load(harness_run_id)
+            if not committed:
+                committed = True
+                with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                    lease = rival.acquire_run_lease(
+                        run.harness_run_id, owner_id="worker:doctor-global-race",
+                        ttl_ms=10000, now_ms=run.created_at_ms,
+                    )
+                    rival.append_event(
+                        event_id="event:doctor-valid-concurrent-append",
+                        harness_run_id=run.harness_run_id,
+                        event_kind="harness.trace-recorded",
+                        data={"trace": "doctor-global"},
+                        expected_revision=lease.run_revision,
+                        recorded_at_ms=run.created_at_ms+1,
+                        lease=lease,
+                        lease_checked_at_ms=run.created_at_ms,
+                    )
+            return before
+
+        with patch.object(self.store, "load_run", side_effect=competing_read):
+            doctor = self.store.doctor()
+        self.assertTrue(doctor["healthy"])
+        self.assertTrue(committed)
+        self.assertEqual(doctor["runs"], 1)
+        self.assertEqual(doctor["events"], 1)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, 2)
+        self.assertEqual(self.store.doctor()["events"], 2)
+
+    def test_nested_writable_caller_transaction_doctor_remains_consistent(self) -> None:
+        """Existing caller-owned PG transactions still work without SET TRANSACTION."""
+        run = contract()
+        self.store.create_run(run)
+        with self.store.connection.transaction():
+            self.store.validate_run_history(run.harness_run_id)
+            doctor = self.store.doctor()
+            self.assertTrue(doctor["healthy"])
+            self.assertEqual(doctor["runs"], 1)
+            self.assertEqual(doctor["events"], 1)

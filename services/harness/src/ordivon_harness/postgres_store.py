@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import re
 import os
+from collections.abc import Iterator
+from contextlib import contextmanager
 from types import TracebackType
 
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+from psycopg.pq import TransactionStatus
 
 from .core_contracts import HarnessRunContract
 from .store_errors import (
@@ -235,6 +238,47 @@ class PostgresHarnessStore:
 
     def close(self) -> None:
         self.connection.close()
+
+
+    @contextmanager
+    def _history_snapshot(self, *, harness_run_id: str | None = None) -> Iterator[None]:
+        """Read one self-consistent original PostgreSQL history without a second Store.
+
+        The normal autocommit Store uses a fresh read-only REPEATABLE READ
+        snapshot. If invoked inside an existing caller-owned transaction, it
+        cannot silently change the caller's isolation: either the caller already
+        has a stable snapshot, or a writable READ COMMITTED transaction fences
+        original writers using their existing Run-row FOR UPDATE discipline.
+        """
+        standalone = self.connection.info.transaction_status is TransactionStatus.IDLE
+        with self.connection.transaction():
+            if standalone:
+                self.connection.execute(
+                    "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"
+                )
+            else:
+                level = self.connection.execute(
+                    "SHOW transaction_isolation"
+                ).fetchone()["transaction_isolation"]
+                if level == "read committed":
+                    read_only = self.connection.execute(
+                        "SHOW transaction_read_only"
+                    ).fetchone()["transaction_read_only"]
+                    if read_only == "on":
+                        raise HarnessJournalCorruption(
+                            "read-only caller transaction has no stable history snapshot"
+                        )
+                    if harness_run_id is None:
+                        self.connection.execute(
+                            "SELECT harness_run_id FROM runs ORDER BY harness_run_id FOR SHARE"
+                        ).fetchall()
+                    else:
+                        self.connection.execute(
+                            "SELECT harness_run_id FROM runs "
+                            "WHERE harness_run_id=%s FOR SHARE",
+                            (harness_run_id,),
+                        ).fetchall()
+            yield
 
     def _object(self, value: JsonValue, kind: str, *, now_ms: int = 0) -> StoredHarnessObject:
         if not isinstance(kind, str) or not kind or kind != kind.strip():
@@ -866,7 +910,65 @@ class PostgresHarnessStore:
         if changed != 1:
             raise HarnessLeaseConflict("Harness Run lease changed during batch")
 
+
+    def _validate_event_edges(
+        self,
+        harness_run_id: str,
+        events: tuple[HarnessRunEventRecord, ...],
+        *,
+        contract_object_digest: str,
+    ) -> None:
+        """Verify mandatory original Event edges without inventing optional refs.
+
+        The durable Event row is authoritative for its payload digest, and the
+        Run projection is authoritative for the creation Contract digest. Other
+        optional reference edges may not be reconstructed from an opaque event
+        payload; this check does NOT certify their completeness.
+        """
+        rows = self.connection.execute(
+            "SELECT e.event_id, e.payload_digest, e.event_kind, "
+            "r.digest AS reference_digest, r.role AS reference_role, "
+            "r.harness_run_id AS reference_run_id "
+            "FROM run_events e "
+            "LEFT JOIN run_object_refs r ON r.event_id=e.event_id "
+            "WHERE e.harness_run_id=%s ORDER BY e.run_revision",
+            (harness_run_id,),
+        ).fetchall()
+        refs: dict[str, set[tuple[str, str]]] = {}
+        for row in rows:
+            event_id = row["event_id"]
+            ref_digest = row["reference_digest"]
+            if ref_digest is None or row["reference_run_id"] != harness_run_id:
+                raise HarnessJournalCorruption(
+                    "Original Run Event has missing or foreign-owned object references"
+                )
+            refs.setdefault(event_id, set()).add(
+                (row["reference_role"], ref_digest)
+            )
+        if set(refs) != {event.event_id for event in events}:
+            raise HarnessJournalCorruption("Original Run Event reference graph differs")
+        for event in events:
+            edges = refs[event.event_id]
+            payload_edges = {digest for role, digest in edges if role == "payload"}
+            if payload_edges != {event.payload_digest}:
+                raise HarnessJournalCorruption(
+                    "Original Run Event payload reference differs from Journal"
+                )
+            if event.event_kind == "harness.run-created":
+                expected = {
+                    ("payload", event.payload_digest),
+                    ("reference", contract_object_digest),
+                }
+                if edges != expected:
+                    raise HarnessJournalCorruption(
+                        "Original Run creation Contract reference differs"
+                    )
+
     def validate_run_history(self, harness_run_id: str) -> None:
+        with self._history_snapshot(harness_run_id=harness_run_id):
+            self._validate_run_history_snapshot(harness_run_id)
+
+    def _validate_run_history_snapshot(self, harness_run_id: str) -> None:
         projection = self.load_run(harness_run_id)
         events = self.list_run_events(harness_run_id)
         if not events or events[0].event_kind != "harness.run-created":
@@ -899,6 +1001,10 @@ class PostgresHarnessStore:
         )
         if not isinstance(contract, dict):
             raise HarnessObjectCorrupt("Harness Run contract object must be dict")
+        self._validate_event_edges(
+            harness_run_id, events,
+            contract_object_digest=projection.contract_object_digest,
+        )
         try:
             restored = HarnessRunContract.from_dict(contract)
         except ValueError as error:
@@ -912,12 +1018,16 @@ class PostgresHarnessStore:
             raise HarnessJournalCorruption("Run contract metadata differs from Journal")
 
     def doctor(self, *, full: bool = True) -> dict[str, JsonValue]:
+        with self._history_snapshot():
+            return self._doctor_consistent(full=full)
+
+    def _doctor_consistent(self, *, full: bool = True) -> dict[str, JsonValue]:
         objects = self.connection.execute("SELECT digest FROM objects").fetchall()
         for row in objects:
             self.inspect_object(row["digest"])
         runs = self.list_runs()
         for run in runs:
-            self.validate_run_history(run.harness_run_id)
+            self._validate_run_history_snapshot(run.harness_run_id)
         events = self.connection.execute("SELECT count(*) AS n FROM run_events").fetchone()["n"]
         leases = self.connection.execute("SELECT count(*) AS n FROM run_leases").fetchone()["n"]
         return {
@@ -934,6 +1044,8 @@ class PostgresHarnessStore:
                 "canonical-object-sha256",
                 "contiguous-run-journal",
                 "contract-binding",
+                "mandatory-event-reference-graph",
+                "single-pg-snapshot",
             ],
             "quickCheck": ["not-applicable-postgresql"],
         }
