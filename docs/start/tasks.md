@@ -5,7 +5,7 @@ technology label or directory name. The
 [owner task-to-authority table](../../README.md#where-to-start) is the
 human navigation entry; [owners.toml](../../tools/repo/owners.toml) is
 the repository's mechanical ownership and verification-task mapping.
-Neither grants authority or proves that an Owner is installed and ready.
+Neither grants authority, exclusive execution rights or sign-off power, and neither proves that an Owner is installed and ready. A retired Owner Agent is not a task lock: an otherwise authorized Agent can continue at the existing Work, Topic and repository without awaiting its reply.
 
 ## Human: goal to a usable result
 
@@ -35,6 +35,11 @@ Neither grants authority or proves that an Owner is installed and ready.
    callers, active Jobs, unreleased commits, installed readbacks and
    replay/retention obligations. Use native Owner/Git lifecycle operations;
    do not treat an absent static import as proof of no consumer.
+4. Use release and review checks matched to the actual change: routine source or
+   reversible preparation must not wait for unrelated production cutovers;
+   opening an authorized write or retiring a live consumer requires that
+   specific identity/effect or migration evidence. A permanent NO_GO with no
+   reachable positive case is not a valid qualification process.
 
 A directory, package, Skill, external provider, or historical plan is not
 a substitute for the actual authority. If an outcome has no table entry,
