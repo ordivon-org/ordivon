@@ -103,14 +103,37 @@ def main() -> None:
                 flush=True,
             )
         finally:
-            subprocess.run(
-                ["systemctl", "stop", target, hold],
-                text=True, capture_output=True, check=False, timeout=12,
-            )
-            subprocess.run(
-                ["systemctl", "reset-failed", target, hold],
-                text=True, capture_output=True, check=False, timeout=12,
-            )
+            # A missing transient target can make a combined stop return early,
+            # leaving the RemainAfterExit=yes dependency ACTIVE. Stop each
+            # exact owned Unit independently and verify OS state before exit.
+            for unit in (target, hold):
+                subprocess.run(
+                    ["systemctl", "stop", unit],
+                    text=True, capture_output=True, check=False, timeout=12,
+                )
+                subprocess.run(
+                    ["systemctl", "reset-failed", unit],
+                    text=True, capture_output=True, check=False, timeout=12,
+                )
+                state = command(
+                    "systemctl", "show", unit, "-p", "ActiveState",
+                    "-p", "Job", "-p", "MainPID", "-p", "ControlGroup",
+                    "--no-pager", check=False,
+                ).stdout
+                facts = dict(
+                    line.split("=", 1)
+                    for line in state.splitlines()
+                    if "=" in line
+                )
+                if (
+                    facts.get("ActiveState") not in {"inactive", "failed"}
+                    or facts.get("Job") not in {"", None}
+                    or facts.get("MainPID") not in {"0", None}
+                    or facts.get("ControlGroup") not in {"", None}
+                ):
+                    raise RuntimeError(
+                        f"native probe Unit failed physical cleanup: {unit}: {facts}"
+                    )
 
 
 if __name__ == "__main__":
