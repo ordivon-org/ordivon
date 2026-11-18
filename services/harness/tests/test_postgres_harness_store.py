@@ -245,6 +245,49 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertIs(new_heads, continuity._heads())
             self.assertEqual(reads.call_count, initial_reads + 1)
 
+    def test_pg_working_set_history_corrupt_older_committed_payload_does_not_disappear(self) -> None:
+        """A corrupt CAS payload must not hide a committed earlier selection.
+
+        SQL pushdown may filter a valid immutable uncommitted record, but a
+        digest/byte-length/kind-invalid payload must reach the exact CAS decoder
+        rather than silently disappearing from the Agent's history catalog.
+        """
+        import json
+        from tests.test_pc15_epistemic_control import private_contract
+        from tests.test_pc18_historical_cognition_recall import HistoricalCognitionRecallTests
+
+        run = private_contract(
+            "pg-history-corrupt-candidate", max_model_calls=1, max_tool_calls=0
+        )
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        HistoricalCognitionRecallTests.seed_history(self.store, continuity)
+        before = continuity.inspect_working_set_history(limit=10)
+        self.assertGreaterEqual(len(before["selections"]), 2)
+        victim = next(
+            event
+            for event in self.store.list_run_events(run.harness_run_id)
+            if event.event_kind == "harness.working-set-recorded"
+            and event.data.get("committed") is True
+            and event.sequence != before["currentWorkingSetEventSequence"]
+        )
+        row = self.store.connection.execute(
+            "SELECT content FROM objects WHERE digest=%s",
+            (victim.payload_digest,),
+        ).fetchone()
+        document = json.loads(bytes(row["content"]))
+        self.assertIs(document["data"]["committed"], True)
+        # Physical corruption of the immutable source object, restricted to
+        # this test-only PostgreSQL schema. Stored claimed digest unchanged.
+        document["data"]["committed"] = False
+        modified = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+        self.store.connection.execute(
+            "UPDATE objects SET content=%s,byte_length=%s WHERE digest=%s",
+            (modified, len(modified), victim.payload_digest),
+        )
+        with self.assertRaises(HarnessObjectCorrupt):
+            continuity.inspect_working_set_history(limit=10)
+
     def test_pg_working_set_history_bounded_page_matches_legacy_and_concurrent_append(self) -> None:
         """The original PG consumer must not fetch all events for each history page."""
         from unittest.mock import patch

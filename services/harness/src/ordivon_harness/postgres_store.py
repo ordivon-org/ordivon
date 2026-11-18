@@ -761,6 +761,12 @@ class PostgresHarnessStore:
             "WHERE e.harness_run_id=%s AND e.event_kind='harness.working-set-recorded' "
             "AND e.sequence<%s AND "
             "(o.digest IS NULL OR "
+            # Never let SQL's committed predicate hide a CAS-corrupt older
+            # Working Set. Faulty rows must reach the original verifying
+            # decoder, even when their tampered committed bit reads false.
+            "o.kind != 'ordivon.harness-run-event-payload' OR "
+            "o.byte_length != octet_length(o.content) OR "
+            "o.digest != ('sha256:' || encode(sha256(o.content),'hex')) OR "
             "convert_from(o.content,'UTF8')::jsonb #> '{data,committed}' = 'true'::jsonb) "
             "ORDER BY e.sequence DESC LIMIT %s",
             (harness_run_id, before_sequence, limit + 1),
