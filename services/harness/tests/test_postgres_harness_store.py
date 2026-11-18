@@ -1597,6 +1597,31 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         )
         self.assertEqual(continuity.load_current_tool_step().intent, second)
 
+        # Verify the real supported HarnessAgentRun API from a second PG
+        # connection, not only an internal EventSourcedRunContinuity object.
+        from types import SimpleNamespace
+        from ordivon_harness.agent_run import structured_completion_contract_digest
+
+        public_run = HarnessAgentRun.open(
+            self.dsn,
+            self.schema,
+            run.harness_run_id,
+            adapter_factory=lambda c: SimpleNamespace(
+                adapter_id=c.adapter_id,
+                model_id=c.requested_model_id,
+                structured_completion_contract_digest=structured_completion_contract_digest(
+                    c.completion_contract
+                ),
+            ),
+            tool_bridge=SimpleNamespace(
+                catalog_digest=run.tool_catalog_digest,
+                grant_digest=run.tool_grant_digest,
+            ),
+        )
+        public_source = public_run.inspect_issued_tool_sources()
+        self.assertEqual(public_source["issuedIntents"], issued["issuedIntents"])
+        self.assertFalse(public_source["safeToAcknowledgeNoFutureSpawn"])
+
     def test_issued_epoch_rejects_reused_runtime_client_request_id(self) -> None:
         """A second prepared Intent cannot reuse the first Runtime Job key."""
         run = tool_fixture.private_tool_contract()
