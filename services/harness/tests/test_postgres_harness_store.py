@@ -1563,7 +1563,99 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(settled_source["unsettledIntents"], [])
         self.assertFalse(settled_source["safeToDispatch"])
         continuity.prepare_tool_step(second)
+
+        # A physical no-future-spawn ACK cannot enumerate ONLY unsettled Tool
+        # heads. The already-observed first Intent is still an issuer-issued
+        # identity, and the second prepared Intent has no receipt yet.
+        unsettled = continuity.inspect_unsettled_tool_sources()
+        self.assertEqual(
+            [row["clientRequestId"] for row in unsettled["unsettledIntents"]],
+            [second.client_request_id],
+        )
+        issued = continuity.inspect_issued_tool_sources()
+        self.assertEqual(issued["originalRunIssuedCount"], 2)
+        self.assertEqual(issued["kind"], "ordivon.harness-issued-tool-sources")
+        self.assertEqual(issued["noFutureSpawnAckStanding"], "unknown")
+        self.assertFalse(issued["safeToAcknowledgeNoFutureSpawn"])
+        self.assertFalse(issued["safeToDispatch"])
+        self.assertEqual(
+            {row["clientRequestId"] for row in issued["issuedIntents"]},
+            {first.client_request_id, second.client_request_id},
+        )
+        first_source = next(
+            row for row in issued["issuedIntents"]
+            if row["clientRequestId"] == first.client_request_id
+        )
+        self.assertEqual(first_source["lastRecordedStatus"], "observed")
+        self.assertEqual(first_source["sourceOwnerJobRef"], unknown.runtime_job_ref)
+        self.assertEqual(
+            next(
+                row for row in issued["issuedIntents"]
+                if row["clientRequestId"] == second.client_request_id
+            )["lastRecordedStatus"],
+            None,
+        )
         self.assertEqual(continuity.load_current_tool_step().intent, second)
+
+    def test_issued_epoch_rejects_reused_runtime_client_request_id(self) -> None:
+        """A second prepared Intent cannot reuse the first Runtime Job key."""
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        first = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:duplicate-epoch-a",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:duplicate-epoch-a",
+            tool_call_id="tool-call:duplicate-epoch-a",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"call": "a"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"path": "first"}),
+            client_request_id="request:duplicate-runtime-epoch",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(first)
+        observed = {
+            "schemaVersion": 1,
+            "kind": "pg.test-observation",
+            "status": "observed",
+        }
+        clock.advance()
+        receipt = HarnessToolStepReceipt(
+            receipt_id="harness-tool-step-receipt:duplicate-epoch-observed",
+            intent_digest=first.digest,
+            harness_run_id=run.harness_run_id,
+            tool_call_id=first.tool_call_id,
+            status=HarnessToolStepStatus.OBSERVED,
+            runtime_job_ref="runtime-job:duplicate-epoch",
+            observation_digest=canonical_digest(observed),
+            reconciled=False,
+            created_at_ms=clock(),
+        )
+        continuity.record_tool_step_receipt(receipt, observed)
+        second = replace(
+            first,
+            intent_id="harness-tool-step-intent:duplicate-epoch-b",
+            turn_id="turn:duplicate-epoch-b",
+            tool_call_id="tool-call:duplicate-epoch-b",
+            tool_call_digest=canonical_digest({"call": "b"}),
+            runtime_arguments_digest=canonical_digest({"path": "second"}),
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(second)
+        self.assertEqual(
+            continuity.inspect_unsettled_tool_sources()["unsettledIntents"][0]["clientRequestId"],
+            second.client_request_id,
+        )
+        with self.assertRaisesRegex(ValueError, "reuse a clientRequestId"):
+            continuity.inspect_issued_tool_sources()
 
     def test_pending_provider_cannot_admit_new_tool_physical_intent(self) -> None:
         """A Provider CLAIMED/UNKNOWN is an unresolved source effect, even
