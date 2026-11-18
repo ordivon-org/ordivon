@@ -607,18 +607,21 @@ fn attention_request_id(prefix: &str, payload: &Value) -> Result<String, work::W
 pub enum TopicStateWire {
     Open,
     Closed,
+    Archived,
 }
 impl TopicStateWire {
     fn domain(self) -> social::TopicState {
         match self {
             Self::Open => social::TopicState::Open,
             Self::Closed => social::TopicState::Closed,
+            Self::Archived => social::TopicState::Archived,
         }
     }
     fn as_str(self) -> &'static str {
         match self {
             Self::Open => "open",
             Self::Closed => "closed",
+            Self::Archived => "archived",
         }
     }
 }
@@ -787,6 +790,8 @@ pub struct TopicListRequest {
     pub limit: i64,
     #[serde(default = "topic_list_max_bytes")]
     pub max_bytes: usize,
+    #[serde(default)]
+    pub include_archived: bool,
 }
 const fn topic_list_limit() -> i64 {
     100
@@ -1469,6 +1474,7 @@ impl HostMcp {
                 request.after_topic_ref.as_deref(),
                 request.limit,
                 request.max_bytes,
+                request.include_archived,
             )
             .await
         {

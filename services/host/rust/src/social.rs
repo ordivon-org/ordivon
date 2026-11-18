@@ -1,4 +1,4 @@
-//! Rust Social commands against the existing Host PostgreSQL schema 13.
+//! Rust Social commands against the existing Host PostgreSQL schema 14.
 //!
 //! Message identity and receipts share a single transaction. Topic state CAS
 //! locks the exact same Topic row as message.post before its IDENTITY sequence
@@ -19,12 +19,14 @@ type Result<T> = std::result::Result<T, SocialError>;
 pub enum TopicState {
     Open,
     Closed,
+    Archived,
 }
 impl TopicState {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Open => "open",
             Self::Closed => "closed",
+            Self::Archived => "archived",
         }
     }
 }
@@ -340,6 +342,18 @@ pub async fn set_topic_state(
     if high != expected_high_sequence {
         return Err(SocialError::Conflict(
             "topic messages changed since expected high sequence".into(),
+        ));
+    }
+    // Schema14's logical archive is a two-step lifecycle, not a synonym for closed.
+    // Match the installed Python Host guard before allocating any change sequence.
+    if state == TopicState::Archived && expected_state == TopicState::Open {
+        return Err(SocialError::Conflict(
+            "topic must be closed before archiving".into(),
+        ));
+    }
+    if state == TopicState::Open && expected_state == TopicState::Archived {
+        return Err(SocialError::Conflict(
+            "restore archived topic to closed before reopening".into(),
         ));
     }
     let admission = if state == expected_state {
@@ -1362,7 +1376,7 @@ mod relation_queries;
 pub use relation_queries::{list_message_relations, ListMessageRelations, RelationDirection};
 
 mod topic_queries;
-pub use topic_queries::list_topics;
+pub use topic_queries::{list_topics, list_topics_with_archive};
 
 mod space_inventory_queries;
 pub use space_inventory_queries::{
