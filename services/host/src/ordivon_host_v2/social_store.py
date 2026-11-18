@@ -5,8 +5,9 @@ from typing import Any
 import psycopg
 
 from .coordination_intent_commands import CoordinationIntentCommands
-from .errors import ActorRefNotFound, WorkNotFound
+from .errors import WorkNotFound
 from .postgres_connections import HostPostgresConnections
+from .references.actor_refs import ActorReferenceLookup
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
@@ -27,17 +28,10 @@ class SocialStore(
     SocialMessageCommands,
     CoordinationIntentCommands,
     SocialReadQueries,
+    ActorReferenceLookup,
     HostPostgresConnections,
 ):
     """Durable Social Graph records without IAM, scheduling, ranking, or effect authority."""
-
-    @staticmethod
-    def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:
-        if (
-            conn.execute("SELECT 1 FROM actor_refs WHERE actor_ref=%s", (actor_ref,)).fetchone()
-            is None
-        ):
-            raise ActorRefNotFound(actor_ref)
 
     @staticmethod
     def _require_work(conn: psycopg.Connection[dict[str, Any]], work_ref: str) -> None:

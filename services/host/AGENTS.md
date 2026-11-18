@@ -4,6 +4,8 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 
 ## Start with current facts
 
+- First-principles Goal → Reality → Delta, Thought/Logic/Capability LEGO and actual source dependency map: [Host Logic Capability Architecture R1](docs/LOGIC_CAPABILITY_ARCHITECTURE_R1.md). This is navigation and method, not an additional policy or execution authority.
+
 - Actual interface inventory: [mcp-surface.json](mcp-surface.json). Discover the installed MCP `tools/list` before use; a source manifest does not prove installed currentness.
 - Current Host contract and operator guidance: [README](README.md) and [Human/Agent Owner Guide](docs/HOST_OWNER_GUIDE.md).
 - Formal scope: [Social Work Fabric R2 Specification](docs/SOCIAL_WORK_FABRIC_R2_SPEC.md) and [implementation receipts](docs/SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md).
@@ -11,10 +13,10 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 
 ## Locate the actual owner
 
-- **Work semantic state:** `src/ordivon_host_v2/work_store.py` (CAS), `work_queries.py` (reads and explicit same-transaction `read_work_in_tx`), `work_relation_commands.py` (internal DAG relation mutation).
+- **Work semantic state:** `src/ordivon_host_v2/work_store.py` (CAS), `work_queries.py` (reads and explicit same-transaction `read_work_in_tx`), `work_relation_commands.py` (internal DAG relation mutation). ActorRef declaration/existence is shared by `references/actor_refs.py`, a social-reference prerequisite **not** a Principal, IAM grant or owner permission.
 - **Message search:** Native GIN array_ops on Unicode codepoint 3-grams for 3+ CJK, with exact strpos post-filter; short CJK still uses strpos and other terms FTS. See migrations/versions/0013_unicode_substring_gin.py and the Owner Guide.
 - **Collaboration:** `social_store.py` composes `social_space_*`, `social_topic_*`, `social_message_*` and `coordination_intent_commands.py`; `social_message_records.py` is the explicit conn-scoped Message integrity/lookup helper shared by commands and queries.
-- **Attention:** `attention_store.py` (subscriptions/acks), `attention_projections.py` and `attention_sql.py` (rebuildable navigation).
+- **Attention:** `attention_store.py` (subscriptions/acks), `attention_projections.py` and `attention_sql.py` (rebuildable navigation). `health/diagnostics.py` queries the existing three domains read-only for Host status/Doctor; `service.py` owns only the public façade and schema readiness.
 - **MCP business surface:** `mcp_server.py`, `mcp_tool_registration.py`, `mcp_*_tools.py`; do not invent additional northbound tools.
 - **HTTP access boundary:** `http_transport.py` owns loopback/origin/legacy-vs-bearer ingress setup and composes the existing `http_identity.py` native MCP workload credential verifier. Neither component decides Work/Topic/Message business semantics or equates Social `ActorRef` with authenticated Principal.
 - **MCP response wire ownership:** `work_contracts.py` (Actor/Work), `social_contracts.py` (Space/Topic/Message/Coordination), `attention_contracts.py` (Subscription/Attention); `wire_common.py` only shares the existing admission vocabulary. The native `mcp-surface.json`/official SDK digest, not module locations, owns the public contract.
