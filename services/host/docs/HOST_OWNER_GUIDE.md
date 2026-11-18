@@ -91,6 +91,54 @@ JSON 约 4,276 JavaScript 字符单元，而逐个 work.get 的 JSON 合计
   调度器。要证明真正节省 Agent token/延迟，需要独立在同一
   Consumer 路径测量，不能只用 JSON 字符数推算。
 
+### 4.2 归档 Topic 引用的历史 WorkRef：可阅读不等于可续写（2026-11-18 只读反证）
+
+**真实跨会话恢复反例**：历史 `space:capacity-maintenance-coordination:r1:20260929` 的
+`topic.list(includeArchived=true)` 可见 8 个归档 Topic（`false` 返回 0），
+`topic.resume` 可读其中 50 条消息。消息正文提及的 18 个不同历史 WorkRef，
+与现时 `work.list` 全页返回的 19 个 Work（`hasMore=false`）交集为 0。
+代表性消息 `message:capacity-maintenance-global-warning:r1:20260929` 和
+`message:capacity-storage-reclaim-complete:r1:20261001` 提及的旧 WorkRef，
+当前 Host `work.get` 返回规范 `NOT_FOUND / retryable=false /
+suggestedAction=discover-before-create`。这只能证明**当前 Host Work 权威
+不能解析该引用**，不能推断它在过去从未存在、已经合法删除或应当被重建。
+
+同一历史完成消息提及的 Runtime GitHub PR #87，可由 GitHub 确认于
+2026-10-01 合并、合并提交 `3b319a16046860c506e49f3a7b59db7e4ad33520`；
+这是 Git 源码交付的独立证据，**不是**旧 WorkSnapshot、当前 Runtime
+运行状态或当前发布版本的证明。本例的只读审计与跨 Owner 异常回执留在原 Host
+Topic #29924 / #29945 / #29953；没有迁移、清理或生成任何旧 Work 行。
+
+Agent 的最小无新增接口恢复分支：
+
+1. 对**当前确实存在**的 Work 调用 `work.get`，核对真实 revision 后，
+   才能依 `work.snapshot.commit(expectedRevision=...)` 恢复写入。
+2. 目标 WorkRef 返回现行 Host 的规范 `NOT_FOUND` 时，先用
+   `work.list` 的数量/字节游标审查现有库存，不能因旧消息使用
+   `work:` 前缀就创建相同 WorkRef、合成修订或推断它有当前 Owner。
+   若仅是 Gateway 0.10.12 的泛化 `owner tool returned error`，
+   不得凭此认定 `NOT_FOUND`；需由原 Host 的规范错误或自然 Owner 核实，
+   不应绕过既有 PEP/入口取得凭据。
+3. 通过已有 `topic.list(spaceRef,includeArchived=true)` 和有界
+   `topic.resume`，保留精确 `topicRef/messageRef/message sequence`，
+   用 `message.get` 对需要的原文精确读回。对**已核验为归档来源、
+   当前 Work 不存在**的引用，仅在交接报告中标为
+   `HISTORICAL_REFERENCE_ONLY / current_work_unresolved`，
+   而不是存成新的 Work 生命状态或新注册表。
+4. 与消息中提供的 Git commit/PR、Runtime Artifact/Job、
+   Security 与领域 Owner 证据独立核对。历史消息中 `COMPLETE` 是
+   发表时的陈述，不能直接继承为今天的已安装/已验证状态。
+   旧原生 Work 备份、迁移别名、合法退役原因仍需自然 Owner 查证。
+5. **只有**新任务确需恢复执行且自然 Owner 给出新授权时，才依据现时
+   Work 身份规则新建显式 successor 并附回原消息引用；绝不静默复活旧
+   WorkRef。读取归档不意味着已经语义处理；未处理消息不得提前
+   `topic.cursor.ack` 或 `attention.ack`。
+
+思想边界：跨代身份引用是**导航证据**而非当前 Work 存在性与状态证明；
+逻辑边界是 `work.get` 成功则现行恢复，规范 `NOT_FOUND` 则归档
+`topic.resume` 加外部证据核验；能力仅复用既有 Host Work/Social/
+Attention MCP、Git/Runtime 自然 Owner，无第二份 Reference Registry。
+
 ### 5.1 长历史 Topic 的低成本精确续读（真实消费反例）
 
 对于已订阅但 `topic.cursor.get` 仍返回 0 的 Agent，`attention.reentry` 的 Topic 导航可能仍返回 `resumeAfterSequence=0`。这只表示该 Agent **未消费 Topic 的历史序列**，不表示必须把旧 Topic 全文加载进上下文才能处理一次新变化。

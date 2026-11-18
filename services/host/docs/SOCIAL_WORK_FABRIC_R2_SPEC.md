@@ -10,6 +10,17 @@ The canonical recovery circuit is:
 
 `Work.get -> attention.reentry -> topic.resume -> owner-native reference readback -> reconcile uncertain effects -> WorkSnapshot commit -> cursor acknowledgement`.
 
+The recovery circuit assumes an **existing current Work**. Historical Topic prose
+may contain `work:` references that are not in the current Host Work inventory.
+If `work.get` returns canonical `NOT_FOUND`, **do not** create the quoted Work
+as a surrogate for its historical revisions or advance a cursor on unread
+messages. Use existing bounded `topic.list(includeArchived=true)` and
+`topic.resume` to recover source Message identity and then revalidate any
+Git/Runtime/domain references with their natural owner. Classify this as
+**historical-reference-only navigation with unresolved current Work**, not
+a recovered WorkSnapshot. A Gateway transport error without canonical
+Host `NOT_FOUND` is insufficient evidence. See `HOST_OWNER_GUIDE.md §4.2`.
+
 Natural owner truth remains authoritative. Host stores semantic continuity, social organization, collaboration messages/relations, attention preferences and consumption cursors only.
 
 ## 1. LEGO property law
