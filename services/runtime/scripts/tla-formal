@@ -1399,6 +1399,22 @@ falsify_issuer_revoke_epoch_formal() (
   fi
   echo "Issuer all-Attempt ACK reachability PASS"
 
+  # A positive native unit MUST be reachable, or NoFutureSpawn is vacuous.
+  set +e
+  output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeEpochR1.start-positive-reach.cfg IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant TargetSpawnUnreachable is violated.' <<< "$output" ||
+     ! grep -Fq '"running"' <<< "$output" ||
+     ! grep -Eq '^State [1-9][0-9]*:' <<< "$output"; then
+    echo "Issuer native target spawn positive-path reachability FAILED" >&2
+    printf '%s\n' "$output" | tail -40 >&2
+    exit 1
+  fi
+  echo "Issuer native target spawn positive-path reachability PASS"
+
   dir=$(mktemp -d -t ordivon-revoke-epoch-cegar-XXXXXX)
   trap 'rm -rf -- "$dir"' EXIT
   cp "$ROOT/formal/IssuerRevokeEpochR1.tla" "$dir/"
@@ -1412,14 +1428,15 @@ p = Path(sys.argv[1])
 src = p.read_text(encoding="utf-8")
 start, end = src.index("PublishAck ==\n"), src.index("Next ==\n")
 block = src[start:end]
-guard = "    /\\ \\A a \\in AttemptIds:\n"
+guard = "    /\\ \\A a \\in AttemptIds: LaunchFinalized(a)\n"
 assert block.count(guard) == 1, "original Run epoch ACK all-Units guard drift"
 p.write_text(src[:start] + block.replace(
-    guard, "    /\\ \\E a \\in AttemptIds:\n", 1) + src[end:], encoding="utf-8")
+    guard, "    /\\ \\E a \\in AttemptIds: LaunchFinalized(a)\n", 1) + src[end:], encoding="utf-8")
 PY_PARTIAL_ACK
   # Let the stronger post-ACK effect invariant identify the later spawn,
   # instead of stopping immediately on the weaker all-quiet predicate.
   sed -i '/^[[:space:]]*AckRequiresAllIssuedQuiescent$/d' "$dir/IssuerRevokeEpochR1.cfg"
+  sed -i '/^[[:space:]]*NoUnitBirthAfterAck$/d' "$dir/IssuerRevokeEpochR1.cfg"
   set +e
   output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
     -config IssuerRevokeEpochR1.cfg IssuerRevokeEpochR1.tla 2>&1)
@@ -1434,6 +1451,44 @@ PY_PARTIAL_ACK
     exit 1
   fi
   echo "Issuer one-of-two native Units premature ACK counterexample PASS"
+
+  # R37: pre-Unit gap. Issued PG Attempt + native launcher inflight exists,
+  # but systemctl currently sees no Unit. Weak ACK based only on Unit absence
+  # must permit an actual post-ACK native Unit birth and physical spawn.
+  cp "$ROOT/formal/IssuerRevokeEpochR1.tla" "$dir/IssuerRevokeEpochR1.tla"
+  cp "$ROOT/formal/IssuerRevokeEpochR1.safe.cfg" "$dir/IssuerRevokeEpochR1.cfg"
+  python3 - "$dir/IssuerRevokeEpochR1.tla" <<'PY_PREUNIT_ACK'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+src = p.read_text(encoding="utf-8")
+start, end = src.index("PublishAck ==\n"), src.index("Next ==\n")
+block = src[start:end]
+guard = r'    /\ \A a \in AttemptIds: LaunchFinalized(a)' + "\n"
+weaken = r'    /\ \A a \in AttemptIds: nativeUnit[a] \in {"absent", "quiescent"}' + "\n"
+assert block.count(guard) == 1, "issuer pre-Unit ACK guard drift"
+p.write_text(src[:start] + block.replace(guard, weaken, 1) + src[end:], encoding="utf-8")
+PY_PREUNIT_ACK
+  # Observe NoSpawnAfterAck AFTER the late Unit birth, not the earlier
+  # acknowledgement-completeness and Unit-birth safety invariants.
+  sed -i -e '/^[[:space:]]*AckRequiresAllIssuedQuiescent$/d' \
+         -e '/^[[:space:]]*NoUnitBirthAfterAck$/d' "$dir/IssuerRevokeEpochR1.cfg"
+  set +e
+  output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config IssuerRevokeEpochR1.cfg IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant NoSpawnAfterAck is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output" ||
+     ! grep -Fq '"inflight"' <<< "$output" ||
+     ! grep -Fq 'unitBornAfterAck = TRUE' <<< "$output" ||
+     ! grep -Eq '^State [1-9][0-9]*:' <<< "$output"; then
+    echo "Issuer PG-issued-but-Unit-absent premature ACK negative control FAILED" >&2
+    printf '%s\n' "$output" | tail -55 >&2
+    exit 1
+  fi
+  echo "Issuer pre-Unit stale-launcher physical-late-start counterexample PASS"
 )
 
 case "${1:-check}" in
