@@ -1,5 +1,5 @@
 //! Topic inventory projection is read-only, bounded, and distinct from Work
-//! lifecycle or Message content. PostgreSQL Schema13 is the only authority.
+//! lifecycle or Message content. PostgreSQL Schema14 is the only authority.
 use super::{exact_time, MissingKind, Result, SocialError};
 use crate::attention::canonical;
 use serde_json::{json, Value};
@@ -37,6 +37,19 @@ pub async fn list_topics(
     limit: i64,
     max_bytes: usize,
 ) -> Result<Value> {
+    list_topics_with_archive(client, space_ref, after_topic_ref, limit, max_bytes, false).await
+}
+
+/// Keep archived Topics addressable by explicit ref while hiding them from
+/// ordinary inventory; this is a read projection, not data deletion.
+pub async fn list_topics_with_archive(
+    client: &mut Client,
+    space_ref: &str,
+    after_topic_ref: Option<&str>,
+    limit: i64,
+    max_bytes: usize,
+    include_archived: bool,
+) -> Result<Value> {
     if !(1..=500).contains(&limit) {
         return Err(SocialError::Invalid("limit must be in [1,500]".into()));
     }
@@ -63,9 +76,15 @@ pub async fn list_topics(
             "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at,\
                 EXTRACT(TIMEZONE FROM created_at)::integer AS created_tz,\
                 EXTRACT(TIMEZONE FROM updated_at)::integer AS updated_tz \
-             FROM topics WHERE space_ref=$1 AND ($2::text IS NULL OR topic_ref>$2) \
-             ORDER BY topic_ref LIMIT $3",
-            &[&space_ref, &after_topic_ref, &(limit + 1)],
+             FROM topics WHERE space_ref=$1 AND ($3::bool OR state <> 'archived') \
+             AND ($2::text IS NULL OR topic_ref>$2) \
+             ORDER BY topic_ref LIMIT $4",
+            &[
+                &space_ref,
+                &after_topic_ref,
+                &include_archived,
+                &(limit + 1),
+            ],
         )
         .await?;
     let sql_more = rows.len() > limit as usize;

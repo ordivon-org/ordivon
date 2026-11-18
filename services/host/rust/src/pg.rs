@@ -14,13 +14,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 use tokio_postgres::NoTls;
 
-pub const REQUIRED_SCHEMA: i32 = 13;
+pub const REQUIRED_SCHEMA: i32 = 14;
 
 #[derive(Debug, Error)]
 pub enum HostDbError {
     #[error("PostgreSQL: {0}")]
     Postgres(#[from] tokio_postgres::Error),
-    #[error("Host schema is not at required version 13 (observed={0})")]
+    #[error("Host schema is not at required version 14 (observed={0})")]
     Schema(i32),
     #[error("Host schema row is missing")]
     MissingSchema,
@@ -325,9 +325,18 @@ impl HostPg {
         after_topic_ref: Option<&str>,
         limit: i64,
         max_bytes: usize,
+        include_archived: bool,
     ) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
-        Ok(social::list_topics(&mut client, space_ref, after_topic_ref, limit, max_bytes).await?)
+        Ok(social::list_topics_with_archive(
+            &mut client,
+            space_ref,
+            after_topic_ref,
+            limit,
+            max_bytes,
+            include_archived,
+        )
+        .await?)
     }
 
     pub async fn social_message_search(
