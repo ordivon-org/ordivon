@@ -33,6 +33,8 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT.parents[1] / "src"))
+from ordivon_capital.markets.equity_ohlcv_shape import require_ohlcv_shape_for_hilo
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
 from ordivon_capital.portfolio.passive_benchmark import replay_passive_benchmark
 from ordivon_capital.portfolio.strategic_contribution import plan_strategic_contribution
 
@@ -77,9 +79,34 @@ def _native_pinned_bars(symbol: str, report: dict) -> pd.DataFrame:
     if len(matched) != 1 or matched[0].get("provider") != "cboe":
         raise ValueError("Qlib source snapshot identity differs from producer")
     raw = (OUT / f"openbb_cboe_{symbol}_normalized.csv").read_bytes()
-    if hashlib.sha256(raw).hexdigest() != matched[0].get("normalized_sha256"):
+    receipt = matched[0]
+    if hashlib.sha256(raw).hexdigest() != receipt.get("normalized_sha256"):
         raise ValueError("Qlib source snapshot digest differs from producer")
-    return pd.read_csv(io.BytesIO(raw)).set_index("session_date").sort_index()
+
+    # The study's hash binds bytes, not valid exchange dates or realistic
+    # OHLCV. Re-run the existing Markets gates on those exact admitted bytes.
+    # A missing original qualification must never become a new claim of PIT.
+    data = pd.read_csv(io.BytesIO(raw))
+    dates = receipt.get("session_grid_qualification")
+    if not isinstance(dates, dict):
+        raise ValueError(f"{symbol}: missing source session qualification")
+    if "session_date" not in data.columns:
+        raise ValueError(f"{symbol}: source session_date missing")
+    actual_dates = require_xnys_session_grid(
+        data["session_date"], symbol=symbol,
+        requested_start=dates.get("requestedStart"),
+        requested_end=dates.get("requestedEnd"),
+    )
+    if actual_dates != dates:
+        raise ValueError(f"{symbol}: source session qualification differs from producer")
+    shape = receipt.get("hilo_source_shape_qualification")
+    if not isinstance(shape, dict):
+        raise ValueError(f"{symbol}: missing source OHLCV qualification")
+    indexed = data.set_index("session_date")
+    actual_shape = require_ohlcv_shape_for_hilo(indexed, symbol=symbol)
+    if actual_shape != shape:
+        raise ValueError(f"{symbol}: source OHLCV qualification differs from producer")
+    return indexed.sort_index()
 
 
 

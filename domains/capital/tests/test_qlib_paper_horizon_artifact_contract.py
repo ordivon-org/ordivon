@@ -13,6 +13,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from ordivon_capital.markets.equity_ohlcv_shape import require_ohlcv_shape_for_hilo
+from ordivon_capital.markets.equity_session_calendar import require_xnys_session_grid
+
 SCRIPT = (
     Path(__file__).resolve().parents[1]
     / "adoption/r3_native/tests/probe_qlib_paper_horizon.py"
@@ -47,15 +50,24 @@ def _source_bundle(tmp_path, monkeypatch, *, hold=5, exit_kind="next_open"):
                                   ("SPY", 3, "0.01")):
         opening = [100 + offset * j for j in range(len(sessions))]
         closes = [p + offset for p in opening]
-        with (tmp_path / f"openbb_cboe_{symbol}_normalized.csv").open("w") as fp:
-            fp.write("session_date,open,close\n")
+        source = tmp_path / f"openbb_cboe_{symbol}_normalized.csv"
+        with source.open("w") as fp:
+            fp.write("session_date,open,high,low,close,volume\n")
             for day, op, close in zip(sessions, opening, closes, strict=True):
-                fp.write(f"{day},{op},{close}\n")
-        normalized = (tmp_path / f"openbb_cboe_{symbol}_normalized.csv").read_bytes()
+                fp.write(f"{day},{op},{close + 1},{op - 1},{close},1000\n")
+        normalized = source.read_bytes()
+        original = pd.read_csv(source)
         receipts.append({
             "symbol": symbol,
             "provider": "cboe",
             "normalized_sha256": hashlib.sha256(normalized).hexdigest(),
+            "session_grid_qualification": require_xnys_session_grid(
+                original["session_date"], symbol=symbol,
+                requested_start=sessions[0], requested_end=sessions[-1],
+            ),
+            "hilo_source_shape_qualification": require_ohlcv_shape_for_hilo(
+                original.set_index("session_date"), symbol=symbol,
+            ),
         })
         label = (
             (opening[exit_ix] if exit_kind == "next_open" else closes[exit_ix])
@@ -235,3 +247,37 @@ def test_h1_hypothetical_preflight_matches_producer_without_replaying_future(
         # this deliberately does not claim the full 816-row experiment ran.
         with pytest.raises(ReachedSourceReader):
             module.run()
+
+
+@pytest.mark.parametrize(
+    ("poison", "message"),
+    (
+        ("impossible_high", "OHLC_BOUNDS_INVALID_FOR_HILO"),
+        ("invented_weekend", "XNYS_SESSION_GRID_MISMATCH"),
+        ("missing_shape_receipt", "source OHLCV qualification"),
+        ("missing_calendar_receipt", "source session qualification"),
+    ),
+)
+def test_native_portfolio_refuses_digest_bound_unqualified_market_bars(
+    tmp_path, monkeypatch, poison, message,
+):
+    """The actual Portfolio consumer must independently recheck Markets qualifiers."""
+    module, report = _source_bundle(tmp_path, monkeypatch)
+    receipt = next(r for r in report["provider_receipts"] if r["symbol"] == "SPY")
+    path = tmp_path / "openbb_cboe_SPY_normalized.csv"
+    if poison == "missing_shape_receipt":
+        receipt.pop("hilo_source_shape_qualification")
+    elif poison == "missing_calendar_receipt":
+        receipt.pop("session_grid_qualification")
+    else:
+        frame = pd.read_csv(path)
+        if poison == "impossible_high":
+            frame.loc[0, "high"] = frame.loc[0, "close"] - 1
+        else:
+            # Preserve monotonic order so the test specifically challenges XNYS.
+            frame.loc[2, "session_date"] = "2025-10-04"
+        frame.to_csv(path, index=False)
+        receipt["normalized_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match=message):
+        module._native_pinned_bars("SPY", report)
+    assert not (tmp_path / "qlib_disjoint_holding_economic_result.json").exists()
