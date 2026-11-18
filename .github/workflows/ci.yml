@@ -979,6 +979,43 @@ jobs:
                       raise SystemExit("selected nested tools/formal source missing")
                   if "tools/formal" not in roots:
                       roots.append("tools/formal")
+          # A selected Owner's *test* may consume another Owner's pinned
+          # native verifier (e.g. Gateway's real OPA-backed Security PEP
+          # regression). The Owner shard installs only selected top-level
+          # tools by default; a cross-Owner test seam without its provider
+          # toolchain yields false CI RED even though the policy is correct.
+          # Resolve these explicit test-only dependencies from the original
+          # boundary contract, never from PATH, a duplicate version pin or
+          # an untrusted caller-provided list of install targets.
+          contracts = tomllib.loads(
+              Path("tools/repo/dependency_contracts.toml").read_text(encoding="utf-8")
+          )
+          if contracts.get("schema_version") != 1 or not isinstance(contracts.get("seams"), list):
+              raise SystemExit("unqualified Owner dependency contracts")
+          by_owner = {owner.name: owner.root.rstrip("/") for owner in OWNERS}
+          selected_owners = {owner.name for owner in OWNERS if owner.queue_task in tasks}
+          for seam in contracts["seams"]:
+              if not isinstance(seam, dict):
+                  raise SystemExit("invalid Owner test toolchain dependency")
+              kind = seam.get("kind")
+              if not isinstance(kind, str) or not (
+                  kind.startswith("TEST_ONLY_PINNED_") and kind.endswith("_TOOLCHAIN")
+              ):
+                  continue
+              if seam.get("from_owner") not in selected_owners:
+                  continue
+              target = by_owner.get(seam.get("to_owner"))
+              if target is None:
+                  raise SystemExit("unregistered test toolchain Owner")
+              native_manifest = Path(target) / "mise.toml"
+              if (
+                  not native_manifest.is_file()
+                  or seam.get("allowed_fragment") != native_manifest.as_posix()
+                  or seam.get("contract_ref") != native_manifest.as_posix()
+              ):
+                  raise SystemExit("test-only toolchain seam must bind its native Owner manifest")
+              if target not in roots:
+                  roots.append(target)
           Path(sys.argv[1]).write_text(
               "".join(root + "\n" for root in roots), encoding="utf-8"
           )

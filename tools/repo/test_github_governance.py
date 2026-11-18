@@ -382,6 +382,20 @@ exit 0
                 record.read_text().splitlines(), ["2,45,token,platform/network"],
             )
             record.write_text("")
+            env["OWNER_TASKS_JSON"] = json.dumps(["gateway:verify"])
+            cross_owner = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(cross_owner.returncode, 0, cross_owner.stderr)
+            # Gateway's test-owned real OPA PEP consumer inherits the original
+            # Security Owner-pinned Mise toolchain, even on a Gateway-only shard.
+            # No duplicate OPA pin or independent test bypass is permitted.
+            self.assertEqual(
+                record.read_text().splitlines(),
+                ["2,45,token,platform/security"],
+            )
+            record.write_text("")
             env["OWNER_TASKS_JSON"] = "[]"
             empty = subprocess.run(
                 ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
