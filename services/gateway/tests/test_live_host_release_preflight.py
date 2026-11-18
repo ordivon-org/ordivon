@@ -785,3 +785,207 @@ def test_installer_called_preflight_cannot_promote_on_only_necessary_conditions(
         assert "actual Principal-to-Actor and resource authorization" in report["unverified"]
     else:
         assert report["unverified"] == unverified_override
+
+
+# R25 reverse-liveness: expand a verified Host ingress before legacy migration.
+# The second local port is not a generalized localhost Owner proxy.
+
+
+@pytest.mark.parametrize("native_owner_verified", [True, False])
+def test_secure_parallel_host_route_requires_live_systemd_owner(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, native_owner_verified: bool
+) -> None:
+    monkeypatch.setattr(
+        preflight,
+        "_protected_host_service_owns_listener",
+        lambda: native_owner_verified,
+        raising=False,
+    )
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:19008/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    )
+    standing = preflight.assess(
+        _operator_data([_grant()]),
+        env,
+        now=1_500,
+        anonymous_host_initialize_denied=True,
+    )
+    assert standing["hostOwnerRouteQualified"] is native_owner_verified
+    assert standing["status"] == (
+        "NECESSARY_PRECONDITIONS_PRESENT" if native_owner_verified else "NO_GO"
+    )
+
+
+def test_secure_host_never_reads_bearer_for_401_lookalike_unowned_listener(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:19008/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    )
+    monkeypatch.setattr(
+        preflight, "_protected_host_service_owns_listener", lambda: False, raising=False
+    )
+
+    def reject_secret_read(_path: str) -> str:
+        raise AssertionError("Never read or transmit a bearer to an unowned service")
+
+    monkeypatch.setattr(preflight, "_read_private_token_file", reject_secret_read)
+    assert not preflight._authenticated_host_initialize_accepted(env, anonymous_denied=True)
+
+
+@pytest.mark.parametrize(
+    ("native_socket_pid", "native_listen_address", "service_active", "expected"),
+    [
+        (783, "127.0.0.1:19008", "active", True),
+        (784, "127.0.0.1:19008", "active", False),
+        (783, "0.0.0.0:19008", "active", False),
+        (783, "127.0.0.1:19008", "inactive", False),
+    ],
+)
+def test_protected_host_socket_must_belong_to_expected_active_systemd_unit(
+    preflight: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    native_socket_pid: int,
+    native_listen_address: str,
+    service_active: str,
+    expected: bool,
+) -> None:
+    def native(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if command[0] == "/usr/bin/systemctl":
+            assert command[0:3] == [
+                "/usr/bin/systemctl",
+                "show",
+                "ordivon-host-v2-protected.service",
+            ]
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=(
+                    "MainPID=783\n"
+                    f"ActiveState={service_active}\n"
+                    "User=ordivon-host-v2-protected\n"
+                    "DynamicUser=yes\n"
+                ),
+            )
+        assert command[0] == "/usr/bin/ss"
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=(
+                f"LISTEN 0 2048 {native_listen_address} 0.0.0.0:* "
+                f'users:(("uvicorn",pid={native_socket_pid},fd=6))\n'
+            ),
+        )
+
+    monkeypatch.setattr(preflight.subprocess, "run", native)
+    assert preflight._protected_host_service_owns_listener() is expected
+
+
+def test_candidate_route_anonymous_negative_probes_only_fixed_secure_port(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[int] = []
+
+    class Conn:
+        def __init__(self, host: str, port: int, timeout: int) -> None:
+            assert host == "127.0.0.1" and timeout == 4
+            seen.append(port)
+
+        def request(self, *_args: Any, **_kw: Any) -> None:
+            pass
+
+        def getresponse(self) -> Any:
+            return type("Response", (), {"status": 401})()
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(preflight.http.client, "HTTPConnection", Conn)
+    assert preflight._rejects_unauthenticated_host_initialize(host_port=19008)
+    assert seen == [19008]
+
+
+def test_active_legacy_peer_still_blocks_when_new_primary_uses_secure_host(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    peer = "ordivon-gateway-local-r21.service"
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    )
+
+    def native(command: list[str], **_kw: Any) -> subprocess.CompletedProcess[str]:
+        if "list-units" in command:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=f"{peer} loaded active running legacy\n",
+            )
+        assert command[2] == peer
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="" if "EnvironmentFiles" in command else env,
+        )
+
+    monkeypatch.setattr(preflight.subprocess, "run", native)
+    monkeypatch.setattr(
+        preflight,
+        "_authenticated_host_initialize_accepted",
+        lambda *_args, **_kw: (_ for _ in ()).throw(
+            AssertionError("Legacy peer must not receive a protected-route token")
+        ),
+    )
+    assert preflight._unqualified_active_peer_host_consumers(
+        anonymous_denied=True,
+        primary_host_port=19008,
+    ) == (peer,)
+
+
+def test_real_release_main_still_refuses_promotion_for_fully_qualified_parallel_host(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Native protected route and valid bearer are never an Agent cutover receipt."""
+    import sys
+
+    env = (
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:19008/mcp "
+        "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    )
+    monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
+    monkeypatch.setattr(preflight, "_policy_data", lambda _p: _operator_data([_grant()]))
+    monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda _unit: env)
+    monkeypatch.setattr(preflight, "_protected_host_service_owns_listener", lambda: True)
+    monkeypatch.setattr(
+        preflight,
+        "_rejects_unauthenticated_host_initialize",
+        lambda *, host_port: host_port == 19008,
+    )
+    monkeypatch.setattr(
+        preflight,
+        "_authenticated_host_initialize_accepted",
+        lambda *_args, **_kw: True,
+    )
+    monkeypatch.setattr(preflight, "_observed_non_gateway_host_tcp_clients", lambda: [])
+    monkeypatch.setattr(
+        preflight,
+        "_unqualified_active_peer_host_consumers",
+        lambda *, anonymous_denied, primary_host_port: (),
+    )
+    monkeypatch.setattr(preflight, "_installed_security_host_read_surface_qualified", lambda: True)
+    monkeypatch.setattr(preflight.time, "time", lambda: 1_500)
+    monkeypatch.setattr(
+        preflight.subprocess,
+        "run",
+        lambda *_args, **_kw: subprocess.CompletedProcess(
+            args=["systemctl"], returncode=0, stdout="active\n"
+        ),
+    )
+    assert preflight.main() == 3
+    report = json.loads(capsys.readouterr().out)
+    assert report["hostOwnerRouteQualified"] is True
+    assert report["hostOwnerAuthenticatedInitializeAccepted"] is True
+    assert report["status"] == "NO_GO"
+    assert report["reasons"] == ["INDEPENDENT_CONSUMER_CUTOVER_NOT_VERIFIED"]
