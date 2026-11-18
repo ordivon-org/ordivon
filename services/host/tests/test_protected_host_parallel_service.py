@@ -53,3 +53,16 @@ def test_legacy_service_stays_independent_and_unchanged() -> None:
     assert "PartOf=ordivon-host-v2.service" not in parallel
     assert "BindsTo=ordivon-host-v2.service" not in parallel
     assert "-u ORDIVON_HOST_V2_PUBLIC_ORIGIN" in parallel
+
+
+def test_protected_service_uses_independent_select_only_pg_role() -> None:
+    dropin = UNIT.parent / "ordivon-host-v2-protected.service.d" / "30-postgres-reader-identity.conf"
+    source = dropin.read_text(encoding="utf-8")
+    base = UNIT.read_text(encoding="utf-8")
+    assert "EnvironmentFile=/etc/ordivon/host-v2.env" in base
+    assert "EnvironmentFile=/etc/ordivon/host-v2-protected-reader.env" in source
+    assert "LoadCredentialEncrypted=host-owner-token:" in base
+    assert "User=ordivon-host-v2-protected" in base
+    assert "default_transaction_read_only=on" in base
+    assert "ORDIVON_HOST_V2_PORT=19008" in base
+    assert "host-v2-protected-reader.env" not in LEGACY_UNIT.read_text(encoding="utf-8")

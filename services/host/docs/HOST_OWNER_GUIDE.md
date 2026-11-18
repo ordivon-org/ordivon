@@ -445,3 +445,33 @@ business value justify the extra churn. Other `_require_actor/_require_topic`
 inherited lookup helpers may remain intentionally in the SocialStore facade,
 but if changing them, use a separate consumer-specific case and native PG
 oracle rather than a global Repository/UoW/DI rewrite.
+
+
+## R27 protected Host PostgreSQL reader identity (not full HBA trust closure)
+
+The installed parallel Host on 127.0.0.1:19008 initially inherited the
+Legacy Host's writable PostgreSQL login. PostgreSQL's
+default_transaction_read_only=on is not a database ACL: R27 native PG18
+testing proved that BEGIN READ WRITE overrides the default, and the old
+login had business-table INSERT, UPDATE and DELETE rights.
+
+The native mitigation is a separate PostgreSQL login,
+ordivon_host_v2_protected_reader, granted CONNECT on the Host database,
+USAGE on its public and ele schemas, and SELECT on the existing business
+tables and sequences (no INSERT, UPDATE, DELETE or schema CREATE).
+The protected systemd unit loads a root-owned mode 0600
+/etc/ordivon/host-v2-protected-reader.env AFTER the shared legacy Host
+EnvFile, solely overriding the new unit's database login. Do not alter
+Legacy Host, Gateway, Peer, or their credentials to switch the reader.
+After Host schema migrations, review SELECT on new relations rather than
+granting pg_read_all_data cluster-wide.
+
+IMPORTANT: The current localhost PG HBA still uses trust for ordinary
+application roles. Although the reader's own SQL lacks write privileges,
+a local caller could still authenticate as a different writable database
+role until that separate HBA migration is completed. This is NOT a
+machine-enforced reader-only sandbox. R27 closed only unauthenticated
+loopback TCP to the postgres superuser while retaining OS-postgres Unix
+socket administration; the remaining roles require staged real-client
+credential migration. No workload machine bearer establishes signed
+Agent Principal authorization.
