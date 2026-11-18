@@ -3,6 +3,18 @@
 The provider is a disposable native PostgreSQL cluster and real PG Runtime MCP
 binary. This test does not touch any installed Gateway, SQL role, HBA, or secrets.
 Invoke with ORDIVON_GATEWAY_PG_E2E_BINARY=/path/to/verified/ordivon-runtime-pg.
+
+Set ORDIVON_R13_FALSIFY_ACTIVE_ISSUER_CLOSE=1 *only* with the real
+issuer-isolated disposable PG18 fixture. Until the owner release gate is
+repaired, this deliberately exposes a failing safety counterexample:
+a terminal Job is not proof that the ACTIVE Harness Run relinquished
+its exact mutable Workspace. Never target an installed Runtime.
+
+R20 complementary opt-in: ORDIVON_R20_EXPLICIT_NATIVE_CLAIM_POSITIVE=1
+manually acquires the already-existing Runtime PG physical Claim for a genuine
+active Harness Run and proves NativeClose rejection. The default original RED
+is preserved. Manual TEST claim reservation is not a production RunBirth port,
+not Tool/Domain authorization and not evidence of installed qualified release.
 """
 
 from __future__ import annotations
@@ -504,6 +516,108 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         == "1"
                     )
                     print("R25_SAME_PG_ISSUER_CURRENT_NEW_NATIVE_JOB_ADMITTED")
+
+                    if os.getenv("ORDIVON_R13_FALSIFY_ACTIVE_ISSUER_CLOSE") == "1":
+                        # P0 opt-in negative control: source Run is ACTIVE while
+                        # no Runtime Job is live. Same PG issuer CURRENT only
+                        # checks new Job admission, not Workspace close liveness.
+                        assert valid_source["execution"]["workspaceId"] == "ws-gateway-native"
+                        active_source = psql(
+                            "SELECT count(*) FROM harness_r22_source.runs "
+                            f"WHERE harness_run_id='{valid_source['runId']}' AND status='active'"
+                        ).strip()
+                        assert active_source == "1", "this test requires a real ACTIVE Harness Run"
+                        native_workspace = await caller.call_tool(
+                            "runtime.linux",
+                            "workspace.get",
+                            {"workspaceId": "ws-gateway-native"},
+                        )
+                        assert native_workspace["activeJobIds"] == [], native_workspace
+                        # R20 independent POSITIVE control requires explicit opt-in:
+                        # this binds the real ACTIVE Harness Run to existing
+                        # Runtime PG physical Claim manually. Production RunBirth
+                        # does NOT yet perform this reserve, so RED without flag
+                        # must remain a reproducible safety counterexample.
+                        r20_explicit_claim = (
+                            os.getenv("ORDIVON_R20_EXPLICIT_NATIVE_CLAIM_POSITIVE") == "1"
+                        )
+                        r20_claim_key = "harness-r20-original-active-run-held-native"
+                        if r20_explicit_claim:
+                            request = {
+                                "workspaceId": "ws-gateway-native",
+                                "clientRequestId": r20_claim_key,
+                                "runRef": valid_source["runId"],
+                                "expectedSourceStateDigest": native_workspace[
+                                    "sourceStateDigest"
+                                ],
+                            }
+                            claim = await caller.call_tool(
+                                "runtime.linux", "workspace.claim.reserve", request
+                            )
+                            assert claim["state"] == "held", claim
+                            assert claim["runRef"] == valid_source["runId"]
+                            replayed = await caller.call_tool(
+                                "runtime.linux", "workspace.claim.get",
+                                {"clientRequestId": r20_claim_key},
+                            )
+                            assert replayed["claimId"] == claim["claimId"]
+                            assert replayed["state"] == "held"
+                            print(
+                                "R20_TRUE_HARNESS_ACTIVE_RUN_MANUAL_RUNTIME_CLAIM_HELD",
+                                flush=True,
+                            )
+                        try:
+                            closing = await caller.call_tool(
+                                "runtime.linux",
+                                "workspace.close",
+                                {
+                                    "workspaceId": "ws-gateway-native",
+                                    "force": False,
+                                    "consumerReleased": True,
+                                    "expectedSourceStateDigest": native_workspace[
+                                        "sourceStateDigest"
+                                    ],
+                                },
+                            )
+                        except OwnerCallError as denied:
+                            assert denied.error is not None
+                            assert denied.error.get("code") in {
+                                "CONCURRENCY_LIMIT",
+                                "WORKSPACE_STATE_MISMATCH",
+                            }, denied.error
+                            if r20_explicit_claim:
+                                # A generic Git race must NOT count as a
+                                # successful HELD-Claim close barrier.
+                                assert denied.error.get("code") == "CONCURRENCY_LIMIT"
+                                retained = await caller.call_tool(
+                                    "runtime.linux", "workspace.claim.get",
+                                    {"clientRequestId": r20_claim_key},
+                                )
+                                assert retained["state"] == "held"
+                                print(
+                                    "R20_TRUE_HARNESS_RUN_HELD_CLAIM_CLOSE_BLOCKED",
+                                    flush=True,
+                                )
+                            print(
+                                "R13_NATIVE_CLOSE_ACTIVE_HARNESS_RUN_BLOCKED_BY_SOURCE_OWNER",
+                                flush=True,
+                            )
+                            return
+                        if closing.get("removed") is True:
+                            print(
+                                "R13_RED_ACTIVE_HARNESS_RUN_STILL_LIVE_NATIVE_CLOSE_REMOVED",
+                                flush=True,
+                            )
+                            pytest.fail(
+                                "same-PG issuer admission did not protect the active Harness "
+                                "Run across Runtime Workspace.close; physical Worktree removed"
+                            )
+                        print(
+                            "R13_NATIVE_CLOSE_ACTIVE_HARNESS_RUN_BLOCKED",
+                            closing,
+                            flush=True,
+                        )
+                        return
 
                     if issuer_isolated:
                         bound_ref = valid.structured_content["operation_ref"]
