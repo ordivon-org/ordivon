@@ -527,6 +527,32 @@ impl PgRuntime {
             self.authorize(&mut db, &job, &principal)?;
             let reconciled = match self.reconcile_inner(&mut db, &job, true) {
                 Ok(()) => true,
+                Err(error) if error.code == RuntimeErrorCode::AuthorizationDenied => {
+                    // An original Harness source cut was definitively revoked
+                    // after admission but BEFORE any DISPATCH_ISSUED event.
+                    // Reuse the existing PG-fenced accepted cancellation and
+                    // resource-release path; never poison unrelated Jobs or
+                    // strand a permanent active Allocation on every retry.
+                    // A PG/OS UNKNOWN is NOT an AuthorizationDenied result.
+                    // Keep the reason separate from a user's cancel intent:
+                    // existing Job consumers can trace why it was settled.
+                    record_scheduler_issue(
+                        self,
+                        &mut db,
+                        &job,
+                        &attempt_id,
+                        "HARNESS_ISSUER_NOT_CURRENT_AT_DISPATCH",
+                        &error,
+                    )?;
+                    self.cancel(
+                        &principal,
+                        &JobCancelRequest {
+                            schema_version: 1,
+                            job_id: job.clone(),
+                        },
+                    )?;
+                    false
+                }
                 Err(error) if is_job_scoped_reconciliation_error(&error) => {
                     record_scheduler_issue(
                         self,

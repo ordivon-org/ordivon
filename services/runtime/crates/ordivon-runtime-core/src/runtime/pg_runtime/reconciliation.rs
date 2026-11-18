@@ -711,13 +711,23 @@ impl PgRuntime {
                 return Err(error("bundle digest mismatch"));
             }
             // This commit is intent only. Never reissue a physical launch after this boundary.
-            db.mark_dispatch_issued_pg(&PgDispatchIssued {
-                attempt_id: a.attempt_id.clone(),
-                expected_row_version: a.row_version as i64,
-                expected_bundle_digest: digest,
-                observed_at_ms: now()?,
-                expected_source_sha256: self.config.source_sha256.clone(),
-            })
+            let (issuer_schema, issuer_principal) =
+                if let Some((principal, schema)) = &self.config.harness_dispatch_issuer {
+                    (Some(schema.as_str()), Some(principal.as_str()))
+                } else {
+                    (self.config.harness_issuer_schema.as_deref(), None)
+                };
+            db.mark_dispatch_issued_pg(
+                &PgDispatchIssued {
+                    attempt_id: a.attempt_id.clone(),
+                    expected_row_version: a.row_version as i64,
+                    expected_bundle_digest: digest,
+                    observed_at_ms: now()?,
+                    expected_source_sha256: self.config.source_sha256.clone(),
+                },
+                issuer_schema,
+                issuer_principal,
+            )
             .map_err(pg)?;
             let output = super::platform::systemd_run(&super::platform::SystemdRunSpec {
                 unit_name: &a.unit_name,

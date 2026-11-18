@@ -198,6 +198,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             None
         },
+        harness_dispatch_issuer: isolated_harness
+            .as_ref()
+            .map(|(_, principal, schema)| (principal.clone(), schema.clone())),
         workspace_headroom,
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
@@ -216,6 +219,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .as_ref()
         .map(|(_, _, schema)| PgRuntimeConfig {
             harness_issuer_schema: Some(schema.clone()),
+            harness_dispatch_issuer: None,
             ..config.clone()
         });
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;

@@ -25,6 +25,9 @@ pub struct PgRuntimeConfig {
     pub source_sha256: String,
     /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
     pub harness_issuer_schema: Option<String>,
+    /// Dedicated Harness principal and same-PG issuer cut for the one
+    /// ordinary scheduler's later dispatch, not ordinary admissions.
+    pub harness_dispatch_issuer: Option<(String, String)>,
     pub executor: UniversalExecutorConfig,
     /// Existing physical carrier guards shared with Runtime::workspace.open.
     pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
