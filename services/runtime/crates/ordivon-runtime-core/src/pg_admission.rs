@@ -3854,7 +3854,7 @@ mod live_pg_tests {
     /// come from the production Harness Python publisher, not Rust test JSON.
     /// This is a PG/Journal boundary test, not an OS spawn or Domain ACK.
     #[test]
-    #[ignore = "requires a disposable ORDIVON_PG_TEST_DSN and HARNESS_PG_PYTHON with psycopg"]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
         use std::{path::PathBuf, process::Command};
         let dsn = physical_pg_test_dsn();
