@@ -22,7 +22,7 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 
@@ -161,7 +161,7 @@ def setup_bridge(root: Path, suffix: str, runtime: FakeRuntime):
     store = SQLiteHarnessStore.initialize(root)
     store.create_run(run_contract)
     clock = FixedClock()
-    continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+    continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
     bridge = AdaptiveEditRuntimeBridge(
         run_contract,
         continuity,

@@ -1,0 +1,446 @@
+"""Observable paper cash, fill and valuation invariants across a restart."""
+
+import json
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from datetime import date, datetime
+from os import environ
+from uuid import uuid4
+
+import pytest
+
+from ordivon_capital.accounting import paper_close
+
+
+def inputs():
+    first = date(2026, 1, 8)
+    second = date(2026, 1, 9)
+    third = date(2026, 1, 12)
+    fill = paper_close.PaperBuy(
+        "order-1", "ETF", 10, 10_000, 100,
+        datetime.fromisoformat("2026-01-08T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-09T09:30:00-05:00"),
+    )
+    return (
+        paper_close.PaperSession(first, None, 1_000_000, 300_000, {}, ()),
+        paper_close.PaperSession(second, first, 0, 0, {"ETF": 10_200}, (fill,)),
+        paper_close.PaperSession(third, second, 0, 0, {"ETF": 10_200}, ()),
+    )
+
+
+def test_paper_cash_settlement_does_not_create_or_destroy_nav():
+    day0, day1, day2 = inputs()
+    opening = paper_close.value_session(None, day0)
+    trade = paper_close.value_session(opening, day1)
+    settled = paper_close.value_session(trade, day2)
+    assert opening.nav_minor == 1_000_000
+    assert trade.cash_minor == 1_000_000
+    assert trade.payable_minor == 100_100
+    assert trade.nav_minor == settled.nav_minor == 1_001_900
+    assert settled.cash_minor == 899_900
+    assert settled.payable_minor == 0
+    assert settled.protected_minor == 300_000
+
+
+def test_paper_valuation_must_fit_the_risk_receipt_integer_domain():
+    day0, day1, _ = inputs()
+    max_minor = 2**63 - 1
+    opening = paper_close.value_session(
+        None, replace(day0, contribution_minor=max_minor)
+    )
+    assert opening.nav_minor == max_minor
+
+    # A payable can offset excessive cash and keep NAV exactly at the ceiling.
+    buy = replace(day1.buys[0], shares=1, price_minor=2, fee_minor=0)
+    with pytest.raises(ValueError, match="receipt.*int64"):
+        paper_close.value_session(
+            opening, replace(day1, contribution_minor=1, buys=(buy,), marks={"ETF": 1})
+        )
+
+    # A mark can overflow NAV while cash still fits.
+    with pytest.raises(ValueError, match="receipt.*int64"):
+        paper_close.value_session(
+            opening, replace(day1, marks={"ETF": 2**62})
+        )
+
+
+def test_same_day_settled_sale_receipts_cannot_fund_new_paper_buys():
+    # A sale receivable was already in yesterday's NAV; crediting cash today
+    # must not also provide a second, intraday buy funding allowance.
+    day0, day1, day2 = inputs()
+    opening = paper_close.value_session(None, day0)
+    purchased = paper_close.value_session(opening, day1)
+    sale = paper_close.PaperSell(
+        "sale-1", "ETF", 10, 10_000, 100,
+        datetime.fromisoformat("2026-01-09T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-12T09:30:00-05:00"),
+        settlement_date=date(2026, 1, 13),
+    )
+    sold = paper_close.value_session(
+        purchased, replace(day2, marks={}, sells=(sale,))
+    )
+    assert sold.receivable_minor == 99_900
+
+    buy = paper_close.PaperBuy(
+        "new-buy", "ETF", 65, 10_000, 0,
+        datetime.fromisoformat("2026-01-12T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-13T09:30:00-05:00"),
+    )
+    settlement_day = paper_close.PaperSession(
+        date(2026, 1, 13), day2.session, 0, 0, {"ETF": 10_000}, (buy,)
+    )
+    with pytest.raises(ValueError, match="protected cash"):
+        paper_close.value_session(sold, settlement_day)
+
+    # Once settlement is complete, the proceeds become available on the
+    # following session; this is policy behavior, not real broker settlement.
+    settled = paper_close.value_session(
+        sold, replace(settlement_day, marks={}, buys=())
+    )
+    assert settled.receivable_minor == 0
+    assert settled.cash_minor == 999_800
+    next_buy = replace(
+        buy,
+        decided_at=datetime.fromisoformat("2026-01-13T16:15:00-05:00"),
+        filled_at=datetime.fromisoformat("2026-01-14T09:30:00-05:00"),
+    )
+    next_day = paper_close.PaperSession(
+        date(2026, 1, 14), settlement_day.session, 0, 0, {"ETF": 10_000}, (next_buy,)
+    )
+    accepted = paper_close.value_session(settled, next_day)
+    assert accepted.payable_minor == 650_000
+    assert accepted.protected_minor == 300_000
+
+
+def test_paper_invalid_evidence_has_no_valuation():
+    day0, day1, _ = inputs()
+    opening = paper_close.value_session(None, day0)
+    fill = day1.buys[0]
+    for session, message in (
+        (replace(day1, marks={}), "missing closing mark"),
+        (replace(day1, buys=(replace(fill, price_minor=70_000),)), "protected cash"),
+        (replace(day1, buys=(replace(fill, decided_at=fill.filled_at),)), "time boundary"),
+    ):
+        with pytest.raises(ValueError, match=message):
+            paper_close.value_session(opening, session)
+
+
+def test_postgres_paper_close_is_atomic_replayable_and_conflict_checked():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+
+    day0, day1, day2 = inputs()
+    account = "paper-test-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    store.close_session(account, day0)
+
+    with pytest.raises(ValueError, match="missing closing mark"):
+        store.close_session(account, replace(day1, marks={}))
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        receipts = list(pool.map(
+            lambda _: PostgresPaperClose(dsn).close_session(account, day1),
+            range(4),
+        ))
+    assert receipts[1:] == receipts[:1] * 3
+    assert receipts[0]["valuation"]["nav_minor"] == 1_001_900
+    with pytest.raises(ValueError, match="conflicting"):
+        store.close_session(account, replace(day1, marks={"ETF": 11_000}))
+    with pytest.raises(ValueError, match="previous"):
+        store.close_session(account, replace(day2, previous_session=day0.session))
+
+    # A repeated fill ID on a later day fails after the earlier payable was
+    # provisionally settled. The subsequent valid close must still settle it.
+    old = day1.buys[0]
+    repeated = replace(old, decided_at=old.filled_at, filled_at=old.filled_at.replace(day=12))
+    with pytest.raises(ValueError, match="paper cash posting rejected"):
+        store.close_session(account, replace(day2, buys=(repeated,)))
+
+    settled = PostgresPaperClose(dsn).close_session(account, day2)
+    assert settled["previous_request_sha256"] == receipts[0]["request_sha256"]
+    assert settled["valuation"]["cash_minor"] == 899_900
+    assert settled["valuation"]["nav_minor"] == receipts[0]["valuation"]["nav_minor"]
+    assert store.close_session(account, day1) == receipts[0]
+
+
+def test_postgres_paper_rejects_a_non_durable_receipt_table():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from psycopg import connect
+
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+
+    store = PostgresPaperClose(dsn)
+    with connect(dsn, autocommit=True) as db:
+        db.execute("ALTER TABLE ordivon_paper.daily_close SET UNLOGGED")
+        try:
+            with pytest.raises(RuntimeError, match="paper receipt table"):
+                PostgresPaperClose(dsn)
+            with pytest.raises(RuntimeError, match="paper receipt table"):
+                store.close_session("non-durable-" + uuid4().hex, inputs()[0])
+        finally:
+            db.execute("ALTER TABLE ordivon_paper.daily_close SET LOGGED")
+
+
+def test_postgres_paper_receipt_binds_admitted_market_bytes():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from hashlib import sha256
+    from json import dumps
+
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+    from ordivon_capital.markets.etf_eod_snapshot import admit_etf_eod_snapshot
+
+    close_at = "2026-01-09T21:00:00Z"
+    observed_at = "2026-01-09T21:10:00Z"
+    raw = dumps({
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.markets.etf-eod-snapshot",
+        "sourceId": "synthetic-fixture",
+        "currency": "USD",
+        "priceBasis": "RAW_UNADJUSTED_CLOSE",
+        "rights": {"status": "AUTHORIZED_PRIVATE_PAPER_USE", "evidenceRef": "fixture"},
+        "corporateActions": {"coverage": "COMPLETE", "evidenceRef": "fixture", "events": []},
+        "capturedAt": observed_at,
+        "supersedesSha256": None,
+        "marks": [{
+            "sessionDate": "2026-01-09", "instrumentId": "ETF", "priceMinor": 10_200,
+            "availableAt": observed_at, "availabilityBasis": "FIRST_OBSERVED",
+        }],
+    }).encode()
+    digest = "sha256:" + sha256(raw).hexdigest()
+    def admit(bound_close):
+        return admit_etf_eod_snapshot(
+            raw, expected_sha256=digest, expected_source_id="synthetic-fixture",
+            expected_rights_ref="fixture", expected_corporate_actions_ref="fixture",
+            expected_instruments=["ETF"], expected_session_closes={"2026-01-09": bound_close},
+            decision_at=observed_at,
+        )
+
+    snapshot = admit(close_at)
+    day0, day1, _ = inputs()
+    account = "paper-test-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    store.close_session(account, day0)
+    receipt = store.close_session(account, replace(day1, marks={}), mark_snapshot=snapshot)
+    assert receipt["market_evidence"]["sha256"] == digest
+    assert receipt["valuation"]["nav_minor"] == 1_001_900
+    with pytest.raises(ValueError, match="inline marks"):
+        store.close_session(account, day1, mark_snapshot=snapshot)
+    # A caller cannot change the real XNYS close time to manufacture a
+    # new admissible source. Retain the original PG conflict test by
+    # changing an independently hash-bound synthetic PRICE instead.
+    with pytest.raises(ValueError, match="XNYS"):
+        admit("2026-01-09T18:00:00Z")
+    revised = json.loads(raw)
+    revised["marks"][0]["priceMinor"] += 1
+    revised["supersedesSha256"] = digest
+    revised_raw = dumps(revised).encode()
+    changed_binding = admit_etf_eod_snapshot(
+        revised_raw,
+        expected_sha256="sha256:" + sha256(revised_raw).hexdigest(),
+        expected_source_id="synthetic-fixture",
+        expected_rights_ref="fixture",
+        expected_corporate_actions_ref="fixture",
+        expected_instruments=["ETF"],
+        expected_session_closes={"2026-01-09": close_at},
+        decision_at=observed_at,
+    )
+    with pytest.raises(ValueError, match="conflicting"):
+        store.close_session(account, replace(day1, marks={}), mark_snapshot=changed_binding)
+
+
+def test_postgres_carries_buy_payable_over_a_market_only_session():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+
+    # Markets can open on a day when the securities settlement service is closed.
+    before = date(2026, 11, 9)
+    trade = date(2026, 11, 10)
+    market_only = date(2026, 11, 11)
+    settlement = date(2026, 11, 12)
+    fill = paper_close.PaperBuy(
+        "after-holiday", "ETF", 10, 10_000, 100,
+        datetime.fromisoformat("2026-11-09T16:15:00-05:00"),
+        datetime.fromisoformat("2026-11-10T09:30:00-05:00"),
+        settlement_date=settlement,
+    )
+    account = "paper-test-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    store.close_session(account, paper_close.PaperSession(before, None, 1_000_000, 0, {}, ()))
+    marks = {"ETF": 10_200}
+    store.close_session(account, paper_close.PaperSession(trade, before, 0, 0, marks, (fill,)))
+    open_payable = store.close_session(
+        account, paper_close.PaperSession(market_only, trade, 0, 0, marks, ()),
+    )["valuation"]
+    assert open_payable["cash_minor"] == 1_000_000
+    assert open_payable["payable_minor"] == 100_100
+    after = PostgresPaperClose(dsn).close_session(
+        account, paper_close.PaperSession(settlement, market_only, 0, 0, marks, ()),
+    )["valuation"]
+    assert after["cash_minor"] == 899_900
+    assert after["payable_minor"] == 0
+    assert open_payable["nav_minor"] == after["nav_minor"] == 1_001_900
+
+
+def test_postgres_paper_sell_reduces_positions_and_carries_receivable():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+
+    day0, day1, day2 = inputs()
+    trade = date(2026, 1, 13)
+    pending_day = date(2026, 1, 14)
+    clearing_day = date(2026, 1, 15)
+    sale = paper_close.PaperSell(
+        "sale-1", "ETF", 10, 10_300, 100,
+        datetime.fromisoformat("2026-01-12T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-13T09:30:00-05:00"),
+        settlement_date=clearing_day,
+    )
+    account = "paper-test-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    for day in (day0, day1, day2):
+        store.close_session(account, day)
+    sell_day = paper_close.PaperSession(trade, day2.session, 0, 0, {}, (), sells=(sale,))
+    with pytest.raises(ValueError, match="held shares"):
+        store.close_session(account, replace(sell_day, sells=(replace(sale, shares=11),)))
+    with pytest.raises(ValueError, match="already used for the opposite side"):
+        store.close_session(
+            account, replace(sell_day, sells=(replace(sale, fill_id=day1.buys[0].fill_id),)),
+        )
+
+    from ordivon_capital.markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, EtfCloseMark
+
+    close_at = datetime.fromisoformat("2026-01-13T21:00:00+00:00")
+    captured = datetime.fromisoformat("2026-01-13T21:10:00+00:00")
+    other_symbol = AdmittedEtfEodSnapshot(
+        "sha256:" + "1" * 64, "fixture", "fixture", "fixture", captured, captured, None,
+        (EtfCloseMark(trade.isoformat(), "OTHER", 10_000, close_at, captured, "FIRST_OBSERVED"),),
+    )
+    with pytest.raises(ValueError, match="does not cover every held or traded"):
+        store.close_session(account, sell_day, mark_snapshot=other_symbol)
+    receipt = store.close_session(account, sell_day)
+    assert receipt["valuation"]["positions"] == {}
+    assert receipt["valuation"]["cash_minor"] == 899_900
+    assert receipt["valuation"]["receivable_minor"] == 102_900
+    assert receipt["valuation"]["nav_minor"] == 1_002_800
+    pending = paper_close.PaperSession(pending_day, trade, 0, 0, {}, ())
+    assert store.close_session(account, pending)["valuation"]["receivable_minor"] == 102_900
+
+    clearing = paper_close.PaperSession(clearing_day, pending_day, 0, 0, {}, ())
+    buy = replace(
+        day1.buys[0], fill_id="large-buy", shares=65,
+        decided_at=datetime.fromisoformat("2026-01-14T16:15:00-05:00"),
+        filled_at=datetime.fromisoformat("2026-01-15T09:30:00-05:00"),
+    )
+    with pytest.raises(ValueError, match="protected cash"):
+        store.close_session(account, replace(clearing, marks={"ETF": 10_000}, buys=(buy,)))
+
+    final = PostgresPaperClose(dsn).close_session(account, clearing)["valuation"]
+    assert final["receivable_minor"] == 0
+    assert final["cash_minor"] == final["nav_minor"] == 1_002_800
+    assert store.close_session(account, sell_day) == receipt
+
+    following = paper_close.PaperSession(
+        date(2026, 1, 16), clearing_day, 0, 0, {"ETF": 10_000},
+        (replace(
+            buy,
+            decided_at=datetime.fromisoformat("2026-01-15T16:15:00-05:00"),
+            filled_at=datetime.fromisoformat("2026-01-16T09:30:00-05:00"),
+        ),),
+    )
+    assert store.close_session(account, following)["valuation"]["positions"] == {"ETF": 65}
+
+
+def test_paper_pure_valuation_and_postgres_share_fill_side_identity_contract():
+    """Same fill cannot represent both buy and sell, even before PG admission."""
+    day0, day1, day2 = inputs()
+    opening = paper_close.value_session(None, day0)
+    purchased = paper_close.value_session(opening, day1)
+    t0 = datetime.fromisoformat("2026-01-09T16:15:00-05:00")
+    t1 = datetime.fromisoformat("2026-01-12T09:30:00-05:00")
+    buy = paper_close.PaperBuy("shared-fill", "ETF", 1, 10_000, 0, t0, t1)
+    sell = paper_close.PaperSell(
+        "shared-fill", "ETF", 1, 10_000, 0, t0, t1,
+        settlement_date=date(2026, 1, 14),
+    )
+    # Both fills are independently plausible, and aggregate cash/shares
+    # would balance. The identity is invalid *before* ledger posting.
+    contradictory = replace(
+        day2, buys=(buy,), sells=(sell,),
+    )
+    with pytest.raises(ValueError, match="opposite side"):
+        paper_close.value_session(purchased, contradictory)
+
+
+def test_paper_open_payable_cannot_be_reidentified_as_sale_receivable():
+    """Cross-side identity is disjoint across sessions until settlement."""
+    day0, day1, day2 = inputs()
+    opening = paper_close.value_session(None, day0)
+    deferred = replace(
+        day1.buys[0], settlement_date=date(2026, 1, 15),
+    )
+    purchased = paper_close.value_session(opening, replace(day1, buys=(deferred,)))
+    assert "order-1" in purchased.pending
+    sale = paper_close.PaperSell(
+        "order-1", "ETF", 10, 10_300, 100,
+        datetime.fromisoformat("2026-01-09T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-12T09:30:00-05:00"),
+        settlement_date=date(2026, 1, 14),
+    )
+    with pytest.raises(ValueError, match="opposite side"):
+        paper_close.value_session(
+            purchased, replace(day2, sells=(sale,), marks={}),
+        )
+
+
+
+def test_disposable_pg_rejects_a_forged_etf_session_before_ledger_write():
+    """A typed dataclass without Markets admission cannot invent exchange days."""
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from datetime import UTC
+
+    from ordivon_capital.accounting.postgres_paper_close import (
+        PostgresPaperClose,
+        read_latest_committed_paper_close,
+    )
+    from ordivon_capital.markets.etf_eod_snapshot import (
+        AdmittedEtfEodSnapshot,
+        EtfCloseMark,
+    )
+
+    account = "fake-xnys-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    captured = datetime.fromisoformat("2026-11-14T08:00:00+00:00")
+    assert captured.utcoffset() == UTC.utcoffset(captured)
+
+    for day, operator_close in (
+        ("2025-05-26", "2025-05-26T20:00:00+00:00"),  # US market closed
+        ("2025-11-28", "2025-11-28T21:00:00+00:00"),  # early close 18:00Z
+    ):
+        mark = EtfCloseMark(
+            day, "SPY", 10_000, datetime.fromisoformat(operator_close),
+            captured, "FIRST_OBSERVED",
+        )
+        # A caller can instantiate a dataclass directly. The Paper consumer
+        # must NEVER assume type membership authenticates the market calendar.
+        forged = AdmittedEtfEodSnapshot(
+            "sha256:" + "1" * 64, "forged-only", "test", "test",
+            captured, captured, None, (mark,),
+        )
+        paper_day = paper_close.PaperSession(
+            date.fromisoformat(day), None, 1_000_000, 900_000, {}, (),
+        )
+        with pytest.raises(ValueError, match="XNYS"):
+            store.close_session(account, paper_day, mark_snapshot=forged)
+        assert read_latest_committed_paper_close(dsn, account) is None

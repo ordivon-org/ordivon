@@ -1,38 +1,52 @@
 schema_version: 1
 id: ordivon-game
-name: Ordivon Game LEGO
+name: Ordivon Game Factory
 repository: https://github.com/ordivon-org/ordivon
-kind: research-engineering
+kind: product-engineering
 default_profiles: [research, engineering]
 documentation_roots: [README.md, AGENTS.md, docs]
 managed_paths:
   - README.md
   - AGENTS.md
   - docs/authority.md
-  - docs/GAME_E2E_OWNERSHIP_BOUNDARY.md
-  - docs/GAME_EXTERNAL_KNOWLEDGE_BASE_R1.md
-  - docs/GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md
-  - docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md
-  - docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md
-  - docs/GAME_COUNTEREXAMPLE_SYNTHESIS_R1.md
-  - docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md
-  - standards/game_external_knowledge_base_r1.json
-  - standards/game_external_skill_watchlist_r1.json
-  - standards/game_teardown_queue_r1.json
-  - standards/game_mechanism_experience_library_r1.json
-  - standards/game_mechanism_relationship_spec_r1.json
-  - standards/game_mechanism_relationship_graph_r1.json
-  - standards/game_design_counterexample_memory_r1.json
-  - standards/game_counterexample_synthesis_r1.json
+  - docs/factory-pipeline.md
+  - formal/README.md
+  - formal/verify_orbit_rules.py
+  - knowledge/game_external_knowledge_base_r1.json
+  - knowledge/game_external_skill_watchlist_r1.json
+  - knowledge/game_teardown_queue_r1.json
+  - knowledge/game_mechanism_experience_library_r1.json
+  - knowledge/game_mechanism_relationship_spec_r1.json
+  - src/mechanism-relationship-graph.ts
+  - knowledge/game_design_counterexample_memory_r1.json
+  - knowledge/game_counterexample_synthesis_r1.json
+  - src/query-input.ts
+  - src/knowledge-file.ts
+  - src/counterexample-projection.ts
+  - scripts/cli-argument.ts
   - scripts/external-knowledge-query.ts
   - scripts/mechanism-experience-query.ts
   - scripts/mechanism-relationship-query.ts
   - scripts/design-counterexample-query.ts
   - scripts/counterexample-synthesis-query.ts
-  - scripts/build-mechanism-relationship-graph.ts
   - planning/lego-plan-r1.json
-  - test/fixtures/native-godot-assembly/README.md
-  - test/fixtures/native-godot-assembly/assert.gd
+  - examples/native-composition/README.md
+  - examples/native-composition/assert.gd
+  - examples/beacon-relay/README.md
+  - examples/beacon-relay/main.gd
+  - examples/beacon-relay/main.tscn
+  - examples/beacon-relay/relay_plan.tres
+  - examples/beacon-relay/relay_sites.gd
+  - examples/beacon-relay/acceptance.gd
+  - examples/beacon-relay/CREDITS.txt
+  - examples/room-encounter/README.md
+  - examples/room-encounter/export_presets.cfg
+  - examples/room-encounter/assert.gd
+  - examples/room-encounter/assert_process_restart.gd
+  - examples/room-encounter/agent_episode.gd
+  - examples/room-encounter/agent_episode_acceptance.py
+  - mise.toml
+  - examples/native-composition/assets/kenney-ui-art/button_rectangle_depth_border.png
 enforcement: strict
 maintainers: [zycxfyh]
 public_projection: ord

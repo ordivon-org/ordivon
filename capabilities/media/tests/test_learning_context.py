@@ -50,6 +50,17 @@ class LearningContextTests(unittest.TestCase):
         self.assertIn("rendered-artifact inspection", value["retainedLearning"][0]["learning"] )
         self.assertIn("One observer is one observation", value["humanBoundary"] )
 
+    def test_cognition_source_cannot_escape_selected_production(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            production = root / "productions/p1"
+            manifest = production / "production.json"
+            value = json.loads(manifest.read_text(encoding="utf-8"))
+            value["sources"]["cognition"] = "../outside-production.md"
+            manifest.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "escapes Production root"):
+                build_learning_context(root)
+
     def test_unknown_current_production_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)

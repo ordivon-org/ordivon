@@ -8,18 +8,19 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ordivon_studio.rich_perception import (
+from ordivon_studio.perception_profiles import _correlation, canonical_digest, profile_signature
+from ordivon_studio.research.guardian_article import (
     ARTICLE_RICH_FEATURES,
-    _correlation,
     article_structure_features,
+    paired_discrimination,
+)
+from ordivon_studio.rich_perception import (
+    _observe_video_structure,
     audio_structure_features,
-    canonical_digest,
     crossmodal_circular_shift_null,
     crossmodal_profile_coupling,
     cue_boundary_silence_score,
     media_intervention_report,
-    paired_discrimination,
-    profile_signature,
     structural_distance,
     video_structure_features,
 )
@@ -118,6 +119,69 @@ class RichPerceptionTest(unittest.TestCase):
         self.assertGreater(coupling["videoChangeAudioFluxCorrelation"], 0.9)
         self.assertEqual(null["tests"]["videoChangeVsAudioFlux"]["rankHigh"], 1)
         self.assertGreaterEqual(null["tests"]["videoChangeVsAudioFlux"]["percentile"], 0.75)
+
+
+    def test_video_rate_report_uses_selected_native_fallback_not_zero_zero(self) -> None:
+        probe = {
+            "streams": [{
+                "codec_type": "video", "avg_frame_rate": "0/0",
+                "r_frame_rate": "30000/1001", "nb_frames": "90",
+                "duration": "3", "width": 320, "height": 180,
+            }],
+            "format": {"duration": "3"},
+        }
+        change = [{"frame": 5, "timeSeconds": 0.5, "meanAbsoluteLumaDifference": 1.0}]
+        signal = [{"timeSeconds": 0.5, "lavfi.signalstats.YAVG": 48.0,
+                   "lavfi.signalstats.SATAVG": 8.0}]
+        with patch("ordivon_studio.rich_perception.probe_media", return_value=probe):
+            with patch("ordivon_studio.rich_perception._observe_video_structure",
+                       return_value=(change, signal)):
+                result = video_structure_features(Path("selected.mp4"), bins=4)
+        self.assertEqual(result["technical"]["frameRate"], "30000/1001")
+
+    def test_video_structure_observes_two_signals_in_one_provider_pass(self) -> None:
+        def native_emulator(args, **kwargs):
+            root = Path(kwargs["cwd"])
+            (root / "change-metadata.txt").write_text(
+                "frame:0 pts:100 pts_time:0.2\\n"
+                "lavfi.signalstats.YAVG=3.5\\n".replace("\\n", "\n"),
+                encoding="utf-8",
+            )
+            (root / "signal-metadata.txt").write_text(
+                "frame:0 pts:100 pts_time:0.2\\n"
+                "lavfi.signalstats.YAVG=74.0\\n"
+                "lavfi.signalstats.SATAVG=12.5\\n".replace("\\n", "\n"),
+                encoding="utf-8",
+            )
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        with patch(
+            "ordivon_studio.rich_perception.subprocess.run",
+            side_effect=native_emulator,
+        ) as called:
+            change, signal = _observe_video_structure(
+                Path("source.mp4"),
+                total_frames=300,
+                sample_step_frames=6,
+                ffmpeg="ffmpeg",
+            )
+        called.assert_called_once()
+        self.assertTrue(any("split=2" in part for part in called.call_args.args[0]))
+        self.assertEqual(change[0]["frame"], 6)
+        self.assertEqual(change[0]["meanAbsoluteLumaDifference"], 3.5)
+        self.assertEqual(signal[0]["lavfi.signalstats.YAVG"], 74.0)
+        self.assertEqual(signal[0]["lavfi.signalstats.SATAVG"], 12.5)
+
+    def test_video_structure_rejects_missing_native_metadata(self) -> None:
+        with patch(
+            "ordivon_studio.rich_perception.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, "", ""),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "both video structure observations"):
+                _observe_video_structure(
+                    Path("source.mp4"), total_frames=300,
+                    sample_step_frames=6, ffmpeg="ffmpeg",
+                )
 
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg/ffprobe required")
     def test_real_ffmpeg_audio_and_video_equipment(self) -> None:

@@ -1,0 +1,7 @@
+[Unit]
+Description=Network v2 Model Provider bounded transport authority
+Requires=network-v2-model-provider-egress.service
+After=network-v2-model-provider-egress.service
+
+[Install]
+WantedBy=multi-user.target

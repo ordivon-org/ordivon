@@ -1,0 +1,21 @@
+# Native Prometheus scrape definitions for the model-provider consumer.
+scrape_configs:
+  - job_name: blackbox-vpn-model-provider
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - http_model_provider_reachable
+    static_configs:
+      - targets:
+          - https://api.deepseek.com/v1/models
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115

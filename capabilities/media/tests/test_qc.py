@@ -135,6 +135,19 @@ class VideoQcTests(unittest.TestCase):
 
 
 class LoudnessQcTests(unittest.TestCase):
+    def test_nonfinite_delivery_profile_cannot_be_accepted(self) -> None:
+        measurement = {"integratedLoudnessLufs": -20.0, "truePeakDbtp": -2.0}
+        for name, limits in {
+            "target_nan": {"target_lufs": float("nan")},
+            "tolerance_nan": {"target_lufs": -23.0, "tolerance_lu": float("nan")},
+            "tolerance_inf": {"target_lufs": -23.0, "tolerance_lu": float("inf")},
+            "peak_nan": {"max_true_peak_dbtp": float("nan")},
+            "peak_inf": {"max_true_peak_dbtp": float("inf")},
+        }.items():
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, "finite"):
+                    validate_loudness(measurement, **limits)
+
     def test_profile_target_is_explicit_not_global(self) -> None:
         measurement = {
             "integratedLoudnessLufs": -20.5,

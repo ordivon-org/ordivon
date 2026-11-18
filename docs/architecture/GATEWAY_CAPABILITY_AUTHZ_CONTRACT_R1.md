@@ -1,7 +1,9 @@
 # Gateway Capability AuthZ Contract R1
 
 Date: 2026-09-23
-Status: **A01 CONTRACT IMPLEMENTED / A02 ARTIFACT.RUNTIME POLICY QUALIFIED / A03 GATEWAY ENFORCEMENT OPEN**
+Status: **HISTORICAL / SUPERSEDED (2026-11-07)**
+
+This document records the retired Security v1 reference seam. The v1 evaluator and self-tests were removed after a consumer search found no tracked direct non-Security code adopter and a schema mismatch with current Gateway. Current enforcement code is `services/gateway/src/ordivon_gateway/capability_authz.py` (resource-bound v2/v3 decisions), with `authzen_authorizer.py` implementing an OpenID AuthZEN PDP client. Their presence does not prove installed production policy configuration; consult current Gateway deployment evidence.
 
 ## Boundaries
 

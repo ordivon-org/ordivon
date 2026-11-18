@@ -10,10 +10,8 @@ import psycopg
 import pytest
 from psycopg.types.json import Jsonb
 
-from ordivon_host_v2.errors import ConflictError
-from ordivon_host_v2.social_attention import AttentionStore
-from ordivon_host_v2.social_graph import (
-    CoordinationIntentInput,
+from ordivon_host_v2.attention_store import AttentionStore
+from ordivon_host_v2.collaboration_inputs import (
     MessageInput,
     MessageKind,
     MessageRelationInput,
@@ -22,8 +20,11 @@ from ordivon_host_v2.social_graph import (
     SpaceInput,
     TopicInput,
 )
+from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
+from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
 from ordivon_host_v2.social_store import SocialStore
-from ordivon_host_v2.social_work import (
+from ordivon_host_v2.work_inputs import (
     ActorKind,
     ActorRefInput,
     WorkCreateInput,
@@ -1072,7 +1073,7 @@ def test_r2_topic_cursor_relation_readback_reasons_and_reentry() -> None:
 
 def test_r2_message_page_respects_canonical_byte_budget() -> None:
     assert DSN is not None
-    from ordivon_host_v2.canonical import canonical_bytes
+    from ordivon_host_v2.canonical_json import canonical_bytes
 
     work = WorkStore(DSN)
     social = SocialStore(DSN)
@@ -1135,7 +1136,7 @@ def test_r2_schema_indexes_and_cursor_table_exist() -> None:
         ).fetchone()[0]
         assert (
             conn.execute("SELECT schema_version FROM host_v2_schema WHERE singleton").fetchone()[0]
-            == 10
+            == REQUIRED_SCHEMA_VERSION
         )
 
 def test_work_read_rejects_postgres_modified_snapshot_payload() -> None:
@@ -1262,3 +1263,257 @@ def test_reply_relation_must_point_to_earlier_committed_message() -> None:
     actual = social.list_message_relations(earlier, direction="outgoing")
     assert not any(row["relation"] == "reply_to" for row in actual["relations"])
     assert any(row["relation"] == "references" for row in actual["relations"])
+
+
+def test_two_real_host_works_share_one_harness_pg_effect_without_losing_work_evidence(
+    tmp_path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cross-owner integration: actual Host Work transactions + real Harness PG fence.
+
+    This proves only that an EXPLICIT stable effect ID survives two separate
+    WorkRef carriers. Work equality/prose/references do not manufacture an
+    effect-equivalence proof, and no external provider is contacted here.
+    """
+    assert DSN is not None
+    from pathlib import Path
+
+    # Deliberately test-only composition. Host has no production dependency
+    # on the Harness implementation or any new cross-owner registry.
+    harness_scripts = Path(__file__).resolve().parents[2] / "harness" / "scripts"
+    with monkeypatch.context() as patch:
+        patch.syspath_prepend(str(harness_scripts))
+        from postgres_turn_effects import PostgresTurnEffects, TurnEffectConflict
+
+        host = WorkStore(DSN)
+        effect_store = PostgresTurnEffects(DSN)
+        effect_store.activate_empty_fresh(tmp_path / "legacy-absent.sqlite")
+
+        effect_id = "turn:hk02:shared:" + uuid4().hex
+        prompt_digest = "sha256:" + ("7" * 64)
+        target = "https://chatgpt.com/c/cross-owner-fixture"
+        carriers = []
+        for i in range(2):
+            actor, work_ref = refs(f"hk02-physical-{i}")
+            declare_actor(host, actor)
+            initial = WorkSnapshotInput(
+                objective="same wording is NOT evidence of same effect",
+                frontier="before provider effect",
+                reference_refs=[effect_id],
+            )
+            created = host.create_work(
+                WorkCreateInput(
+                    work_ref=work_ref, kind="task", actor_ref=actor,
+                    initial_snapshot=initial,
+                ),
+                client_request_id=f"create:{work_ref}",
+            )
+            assert created["admission"] == "committed"
+            carriers.append((actor, work_ref))
+
+        barrier = Barrier(2)
+
+        def attempt(carrier):
+            barrier.wait(timeout=10)
+            admitted = effect_store.claim_before_send(
+                effect_id, prompt_digest, target
+            )
+            return carrier, admitted
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            attempted = list(pool.map(attempt, carriers))
+        assert sum(row["admittedToSend"] for _, row in attempted) == 1
+        assert all(row["state"] == "UNKNOWN" for _, row in attempted)
+
+        # Separate Host CAS commits preserve each unique Work projection.
+        for actor, work_ref in carriers:
+            updated = host.commit_snapshot(
+                work_ref,
+                expected_revision=1,
+                snapshot=WorkSnapshotInput(
+                    objective="same wording is NOT evidence of same effect",
+                    frontier="after provider fence",
+                    established=[f"unique-work-evidence:{work_ref}"],
+                    reference_refs=[effect_id],
+                ),
+                actor_ref=actor,
+                client_request_id=f"checkpoint:{work_ref}",
+            )
+            assert updated["revision"] == 2
+
+        finished = effect_store.record_after_send(
+            effect_id, prompt_digest, target, "COMPLETED",
+            {"providerReceipt": "one observed fixture receipt"},
+        )
+        assert finished["safeToResend"] is False
+        replay = effect_store.claim_before_send(effect_id, prompt_digest, target)
+        assert replay["admittedToSend"] is False
+        assert replay["state"] == "COMPLETED"
+        assert "one observed fixture receipt" in replay["receipt_json"]
+
+        for _, work_ref in carriers:
+            actual = host.get_work(work_ref)
+            assert actual["revision"] == 2
+            assert actual["snapshot"]["referenceRefs"] == [effect_id]
+            assert actual["snapshot"]["established"] == [
+                f"unique-work-evidence:{work_ref}"
+            ]
+
+        with pytest.raises(TurnEffectConflict, match="identity conflict"):
+            effect_store.claim_before_send(
+                effect_id, "sha256:" + ("8" * 64), target
+            )
+
+        # Negative: same objective but a DIFFERENT owner key is a distinct
+        # legal effect. This demonstrates the unresolved upstream seam:
+        # Host Work has not certified domain-equivalence of two intents.
+        distinct = effect_store.claim_before_send(
+            "turn:hk02:independent:" + uuid4().hex, prompt_digest, target,
+        )
+        assert distinct["admittedToSend"] is True
+
+
+def test_concurrent_agents_rebase_unique_work_evidence_after_real_host_cas_race() -> None:
+    """Loss-free recovery uses owner readback + explicit evidence reconciliation.
+
+    A Host revision CAS loser must not infer that its unique evidence committed.
+    Nor may its stale payload replace the winner's evidence after a reread.
+    """
+    assert DSN is not None
+    store = WorkStore(DSN)
+    actor_a, work_ref = refs("hk02-two-agent-reconcile")
+    actor_b, _ = refs("hk02-competing-writer")
+    declare_actor(store, actor_a)
+    declare_actor(store, actor_b)
+    shared_effect = "turn:hk02:evidence:" + uuid4().hex
+    store.create_work(
+        WorkCreateInput(
+            work_ref=work_ref, kind="task", actor_ref=actor_a,
+            initial_snapshot=WorkSnapshotInput(
+                objective="preserve both independent facts",
+                frontier="before competing evidence",
+                reference_refs=[shared_effect],
+            ),
+        ),
+        client_request_id=f"create:{work_ref}",
+    )
+    barrier = Barrier(2)
+
+    def competing_commit(actor: str, unique_evidence: str):
+        barrier.wait(timeout=10)
+        try:
+            row = store.commit_snapshot(
+                work_ref, expected_revision=1,
+                snapshot=WorkSnapshotInput(
+                    objective="preserve both independent facts",
+                    frontier="one Agent has new evidence",
+                    established=[unique_evidence],
+                    reference_refs=[shared_effect],
+                ),
+                actor_ref=actor,
+                client_request_id=f"compete:{work_ref}:{actor}",
+            )
+            return unique_evidence, row["admission"]
+        except ConflictError:
+            return unique_evidence, "conflict"
+
+    facts = ("evidence:agent:A", "evidence:agent:B")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(
+            pool.map(
+                lambda a: competing_commit(*a),
+                ((actor_a, facts[0]), (actor_b, facts[1])),
+            )
+        )
+    assert sorted(standing for _, standing in outcomes) == ["committed", "conflict"]
+    winner = next(fact for fact, status in outcomes if status == "committed")
+    loser = next(fact for fact, status in outcomes if status == "conflict")
+    assert winner != loser
+    observed = store.get_work(work_ref)
+    assert observed["revision"] == 2
+    assert observed["snapshot"]["established"] == [winner]
+
+    # A new revision can still replace the entire snapshot. Thus only an
+    # independently checked read/union/submit loop preserves both facts.
+    # The loser carries unique provenance but reuses the exact owner snapshot.
+    reconciled = WorkSnapshotInput.model_validate({
+        **observed["snapshot"],
+        "frontier": "conflicting evidence explicitly reconciled",
+        "established": [*observed["snapshot"]["established"], loser],
+    })
+    recovered = store.commit_snapshot(
+        work_ref, expected_revision=observed["revision"],
+        snapshot=reconciled, actor_ref=actor_b,
+        client_request_id=f"reconcile:{work_ref}:{loser}",
+    )
+    assert recovered["revision"] == 3
+    final = store.get_work(work_ref)
+    assert final["snapshot"]["established"] == [winner, loser]
+    assert final["snapshot"]["referenceRefs"] == [shared_effect]
+    assert store.get_work(work_ref, revision=2)["snapshot"]["established"] == [winner]
+
+
+def test_subscription_desired_state_serializes_opposing_commands_for_one_actor() -> None:
+    """Actor-row arbitration prevents a stale fallback SELECT during follow/unfollow races.
+
+    PostgreSQL FOR NO KEY UPDATE does not block the FK's KEY SHARE alone, so
+    this deliberately checks the subscription operation's explicit arbiter.
+    """
+    from concurrent.futures import TimeoutError as FutureTimeoutError
+    from threading import Event
+
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    attention = AttentionStore(DSN)
+    actor_ref, _ = refs("subscription-order")
+    declare_actor(work, actor_ref)
+    space_ref = f"space:subscription-order:{uuid4().hex}"
+    topic_ref = f"topic:subscription-order:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="subscription serialization", actor_ref=actor_ref),
+        client_request_id=f"create:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="race", actor_ref=actor_ref),
+        client_request_id=f"create:{topic_ref}",
+    )
+
+    def exercise(method: str) -> dict[str, object]:
+        entered = Event()
+
+        def command() -> dict[str, object]:
+            entered.set()
+            return getattr(attention, method)(
+                actor_ref=actor_ref,
+                target_kind="topic",
+                target_ref=topic_ref,
+                client_request_id=f"{method}:{topic_ref}",
+            )
+
+        with psycopg.connect(DSN) as blocker:
+            blocker.execute(
+                "SELECT 1 FROM actor_refs WHERE actor_ref=%s FOR NO KEY UPDATE",
+                (actor_ref,),
+            )
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(command)
+                assert entered.wait(timeout=5)
+                with pytest.raises(FutureTimeoutError):
+                    future.result(timeout=0.25)
+                blocker.commit()
+                return future.result(timeout=10)
+
+    first = exercise("follow")
+    assert first["admission"] == "committed"
+    removed = exercise("unfollow")
+    assert removed["admission"] == "committed"
+    # Desired-state semantics: invoking follow again is a new command even
+    # when its content-derived legacy request identity is unchanged.
+    second = attention.follow(
+        actor_ref=actor_ref,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=f"follow:{topic_ref}",
+    )
+    assert second["admission"] == "committed"
+    assert int(second["changeSequence"]) > int(first["changeSequence"])

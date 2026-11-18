@@ -1,43 +1,45 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 import os
-import stat
-from collections.abc import Mapping
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Protocol
+import time
+from collections.abc import Generator, Mapping
+from typing import Any
 
-from mcp import Client
+import httpx2
+from mcp import Client, types
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
-from mcp.shared._otel import inject_trace_context
+from opentelemetry.propagate import inject as inject_trace_context
 
+from .owner_protocol import OwnerToolCaller as OwnerToolCaller
+from .upstream_identity import (
+    OwnerCallError as OwnerCallError,
+)
+from .upstream_identity import (
+    OwnerEndpoint as OwnerEndpoint,
+)
+from .upstream_identity import (
+    _headers_for_endpoint as _headers_for_endpoint,
+)
+from .upstream_identity import (
+    _read_private_secret_file as _read_private_secret_file,
+)
+from .upstream_identity import (
+    _read_private_token_file as _read_private_token_file,
+)
+from .upstream_identity import (
+    _runtime_identity_configured as _runtime_identity_configured,
+)
+from .upstream_identity import (
+    _validate_windows_private_secret_file as _validate_windows_private_secret_file,
+)
 
-class OwnerCallError(RuntimeError):
-    def __init__(
-        self,
-        message: str,
-        *,
-        owner_id: str | None = None,
-        tool_name: str | None = None,
-        error: dict[str, Any] | None = None,
-    ) -> None:
-        super().__init__(message)
-        self.owner_id = owner_id
-        self.tool_name = tool_name
-        self.error = dict(error) if error is not None else None
+_LOG = logging.getLogger("ordivon_gateway.upstream")
 
-
-@dataclass(frozen=True)
-class OwnerEndpoint:
-    url: str
-    bearer_token_file: str | None = None
-    access_client_id_file: str | None = None
-    access_client_secret_file: str | None = None
-
-
-def _runtime_identity_configured(endpoint: OwnerEndpoint) -> bool:
-    return endpoint.bearer_token_file is not None or endpoint.access_client_id_file is not None
+# SDK-supported choices; this is not a new Gateway protocol or a cache.
+_SUPPORTED_OWNER_MCP_MODES = frozenset({"auto", "legacy", "2026-07-28"})
 
 
 def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
@@ -65,6 +67,51 @@ def _extract_owner_tool_error(
         candidate = result.structured_content.get("error")
         if isinstance(candidate, dict):
             return dict(candidate)
+
+    # Native Runtime MCP serializes typed RuntimeError as an exact JSON
+    # ToolError text envelope on some SDK paths. Preserve only the bounded
+    # Runtime-owned contract; arbitrary prose never gains structured authority.
+    if owner_id.startswith("runtime."):
+        prefix = f"Error executing tool {tool_name}: "
+        for item in result.content:
+            raw = getattr(item, "text", None)
+            if not isinstance(raw, str):
+                continue
+            if raw.startswith(prefix):
+                raw = raw[len(prefix) :]
+            if len(raw) > 4096:
+                continue
+            try:
+                envelope = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(envelope, dict) or set(envelope) != {"error"}:
+                continue
+            error = envelope["error"]
+            if not isinstance(error, dict) or error.get("origin") != "runtime_core":
+                continue
+            if not all(
+                isinstance(error.get(field), str) and error[field]
+                for field in ("code", "commitState", "message", "retryClass")
+            ):
+                continue
+            if type(error.get("retryable")) is not bool:
+                continue
+            if error["commitState"] not in {"committed", "not_committed", "unknown"}:
+                continue
+            if "field" in error and not isinstance(error["field"], str):
+                continue
+            fields = (
+                "code",
+                "commitState",
+                "message",
+                "origin",
+                "retryClass",
+                "retryable",
+                "field",
+            )
+            return {field: error[field] for field in fields if field in error}
+        return None
 
     # Host domain errors are raised by MCP tools and MCP v2 currently serializes that
     # exception as text rather than structuredContent. Recover only the exact canonical
@@ -96,153 +143,21 @@ def _extract_owner_tool_error(
     return None
 
 
-class OwnerToolCaller(Protocol):
-    async def call_tool(
-        self, owner_id: str, tool_name: str, arguments: dict[str, Any]
-    ) -> dict[str, Any]: ...
+class OwnerEndpointAuth(httpx2.Auth):
+    """Resolve Owner credentials for each HTTP request, not at pool creation.
 
-    def is_configured(self, owner_id: str) -> bool: ...
+    A long-lived HTTP pool must not freeze rotated bearer or Access credentials.
+    Existing endpoint file permissions and secrets policy remain authoritative.
+    """
 
+    def __init__(self, endpoint: OwnerEndpoint) -> None:
+        self._endpoint = endpoint
 
-def _validate_windows_private_secret_file(path: Path, label: str) -> None:
-    try:
-        import ntsecuritycon
-        import win32security
-    except ImportError as exc:  # pragma: no cover - exercised on Windows acceptance lane
-        raise OwnerCallError(f"{label} Windows ACL verifier is unavailable") from exc
-
-    service_name = os.environ.get("ORDIVON_GATEWAY_WINDOWS_SERVICE_NAME", "").strip()
-    if not service_name:
-        raise OwnerCallError(
-            f"{label} Windows credential validation requires ORDIVON_GATEWAY_WINDOWS_SERVICE_NAME"
-        )
-
-    try:
-        service_sid = win32security.LookupAccountName(None, rf"NT SERVICE\{service_name}")[0]
-    except Exception as exc:
-        raise OwnerCallError(f"{label} cannot resolve Gateway Windows service identity") from exc
-
-    service_sid_text = win32security.ConvertSidToStringSid(service_sid)
-    system_sid_text = "S-1-5-18"
-    administrators_sid_text = "S-1-5-32-544"
-    allowed_sids = {
-        system_sid_text,
-        administrators_sid_text,
-        service_sid_text,
-    }
-
-    try:
-        descriptor = win32security.GetFileSecurity(
-            str(path), win32security.DACL_SECURITY_INFORMATION
-        )
-        control, _revision = descriptor.GetSecurityDescriptorControl()
-        dacl = descriptor.GetSecurityDescriptorDacl()
-    except Exception as exc:
-        raise OwnerCallError(f"{label} Windows security descriptor read failed") from exc
-
-    if control & win32security.SE_DACL_PROTECTED == 0:
-        raise OwnerCallError(f"{label} Windows credential DACL must be protected")
-    if dacl is None:
-        raise OwnerCallError(f"{label} Windows credential has no DACL")
-
-    seen_sids: set[str] = set()
-    service_read = False
-    service_forbidden_mask = (
-        0x00000002
-        | 0x00000004
-        | 0x00000010
-        | 0x00000100
-        | 0x00010000
-        | 0x00040000
-        | 0x00080000
-        | 0x10000000
-        | 0x40000000
-    )
-
-    for index in range(dacl.GetAceCount()):
-        header, access_mask, sid = dacl.GetAce(index)
-        ace_type, ace_flags = header
-        sid_text = win32security.ConvertSidToStringSid(sid)
-        if ace_type != win32security.ACCESS_ALLOWED_ACE_TYPE:
-            raise OwnerCallError(f"{label} Windows credential has non-allow ACE")
-        if ace_flags & 0x10:
-            raise OwnerCallError(f"{label} Windows credential has inherited ACE")
-        if sid_text not in allowed_sids:
-            raise OwnerCallError(f"{label} Windows credential grants an unexpected principal")
-        seen_sids.add(sid_text)
-        if sid_text == service_sid_text:
-            if (access_mask & ntsecuritycon.FILE_GENERIC_READ) != ntsecuritycon.FILE_GENERIC_READ:
-                raise OwnerCallError(f"{label} Gateway service SID lacks generic read access")
-            if access_mask & service_forbidden_mask:
-                raise OwnerCallError(f"{label} Gateway service SID has write/control access")
-            service_read = True
-
-    if seen_sids != allowed_sids:
-        raise OwnerCallError(
-            f"{label} Windows credential ACL must name only and all required principals"
-        )
-    if not service_read:
-        raise OwnerCallError(f"{label} Gateway service SID lacks readable ACE")
-
-
-def _read_private_secret_file(path_text: str, label: str) -> str:
-    path = Path(path_text)
-    if not path.is_absolute():
-        raise OwnerCallError(f"{label} file must be absolute")
-    metadata = path.lstat()
-    if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
-        raise OwnerCallError(f"{label} path must be a regular file")
-    if os.name == "nt":
-        reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-        if reparse_flag and getattr(metadata, "st_file_attributes", 0) & reparse_flag:
-            raise OwnerCallError(f"{label} Windows credential must not be a reparse point")
-        _validate_windows_private_secret_file(path, label)
-    else:
-        mode = stat.S_IMODE(metadata.st_mode)
-        credential_directory = os.environ.get("CREDENTIALS_DIRECTORY", "").strip()
-        is_systemd_credential = bool(
-            credential_directory
-            and Path(credential_directory).is_absolute()
-            and path.parent == Path(credential_directory)
-            and not Path(credential_directory).is_symlink()
-        )
-        if is_systemd_credential:
-            if mode & 0o037:
-                raise OwnerCallError(
-                    f"{label} systemd credential must not be world accessible "
-                    "or group writable/executable"
-                )
-        elif mode & 0o077:
-            raise OwnerCallError(f"{label} file must not be group/world accessible")
-    if metadata.st_size > 16_384:
-        raise OwnerCallError(f"{label} file exceeds size bound")
-    value = path.read_text(encoding="utf-8").strip()
-    if not value or any(character.isspace() for character in value):
-        raise OwnerCallError(f"{label} file must contain one non-whitespace value")
-    return value
-
-
-def _read_private_token_file(path_text: str) -> str:
-    return _read_private_secret_file(path_text, "owner bearer token")
-
-
-def _headers_for_endpoint(endpoint: OwnerEndpoint) -> dict[str, str] | None:
-    if endpoint.bearer_token_file is not None:
-        token = _read_private_token_file(endpoint.bearer_token_file)
-        return {"Authorization": f"Bearer {token}"}
-    if endpoint.access_client_id_file is not None:
-        client_id = _read_private_secret_file(
-            endpoint.access_client_id_file, "Cloudflare Access client ID"
-        )
-        client_secret = _read_private_secret_file(
-            endpoint.access_client_secret_file or "",
-            "Cloudflare Access client secret",
-        )
-        return {
-            "CF-Access-Client-Id": client_id,
-            "CF-Access-Client-Secret": client_secret,
-        }
-    return None
+    def auth_flow(self, request: httpx2.Request) -> Generator[httpx2.Request, httpx2.Response]:
+        headers = _headers_for_endpoint(self._endpoint)
+        if headers:
+            request.headers.update(headers)
+        yield request
 
 
 class McpOwnerCaller:
@@ -263,13 +178,40 @@ class McpOwnerCaller:
                 raise OwnerCallError(
                     "owner bearer and Cloudflare Access service identity are mutually exclusive"
                 )
+            if endpoint.mcp_mode not in _SUPPORTED_OWNER_MCP_MODES:
+                raise OwnerCallError(
+                    "unsupported MCP SDK protocol mode for configured Owner",
+                    owner_id=owner_id,
+                )
             normalized[owner_id] = OwnerEndpoint(
                 url=url,
                 bearer_token_file=endpoint.bearer_token_file,
                 access_client_id_file=endpoint.access_client_id_file,
                 access_client_secret_file=endpoint.access_client_secret_file,
+                mcp_mode=endpoint.mcp_mode,
             )
         self._owners = normalized
+        # One HTTP connection pool per natural Owner. MCP Client protocol
+        # sessions remain request-local to avoid cross-call state ownership.
+        self._http_clients: dict[str, httpx2.AsyncClient] = {}
+        self._closed = False
+
+    def _http_client(self, owner_id: str, endpoint: OwnerEndpoint) -> httpx2.AsyncClient:
+        if self._closed:
+            raise OwnerCallError("Owner transport is closed", owner_id=owner_id)
+        client = self._http_clients.get(owner_id)
+        if client is None:
+            client = create_mcp_http_client(auth=OwnerEndpointAuth(endpoint))
+            self._http_clients[owner_id] = client
+        return client
+
+    async def aclose(self) -> None:
+        """Drain process-owned HTTP pools when the MCP server stops."""
+        self._closed = True
+        clients = tuple(self._http_clients.values())
+        self._http_clients.clear()
+        for client in clients:
+            await client.aclose()
 
     @classmethod
     def from_env(cls) -> McpOwnerCaller:
@@ -279,11 +221,16 @@ class McpOwnerCaller:
                 "url": "ORDIVON_GATEWAY_LINUX_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE",
             },
+            "runtime.harness": {
+                "url": "ORDIVON_GATEWAY_HARNESS_RUNTIME_URL",
+                "bearer": "ORDIVON_GATEWAY_HARNESS_RUNTIME_BEARER_TOKEN_FILE",
+            },
             "runtime.windows": {
                 "url": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE",
                 "access_id": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_ID_FILE",
                 "access_secret": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_SECRET_FILE",
+                "mcp_mode": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE",
             },
             "host": {
                 "url": "ORDIVON_GATEWAY_HOST_URL",
@@ -303,11 +250,14 @@ class McpOwnerCaller:
             access_secret_key = keys.get("access_secret")
             access_id = os.environ.get(str(access_id_key)) if access_id_key else None
             access_secret = os.environ.get(str(access_secret_key)) if access_secret_key else None
+            mode_key = keys.get("mcp_mode")
+            mcp_mode = os.environ.get(str(mode_key), "auto").strip() if mode_key else "auto"
             owners[owner_id] = OwnerEndpoint(
                 url=url,
                 bearer_token_file=token_file.strip() if token_file else None,
                 access_client_id_file=access_id.strip() if access_id else None,
                 access_client_secret_file=access_secret.strip() if access_secret else None,
+                mcp_mode=mcp_mode,
             )
         return cls(owners)
 
@@ -316,7 +266,7 @@ class McpOwnerCaller:
         if endpoint is None:
             return "owner endpoint is not configured"
         if (
-            owner_id.startswith("runtime.") or owner_id == "skills"
+            owner_id.startswith("runtime.") or owner_id in {"skills", "host"}
         ) and not _runtime_identity_configured(endpoint):
             return "owner authentication is not configured"
         return None
@@ -343,20 +293,86 @@ class McpOwnerCaller:
             )
         assert endpoint is not None
 
+        started = time.perf_counter()
+        phase = "transport_open"
+        tool_elapsed_ms: int | None = None
         try:
-            headers = _headers_for_endpoint(endpoint)
-            async with create_mcp_http_client(headers=headers) as http_client:
-                transport = streamable_http_client(endpoint.url, http_client=http_client)
-                # MCP v2 Client owns modern discovery, output-schema validation, and
-                # legacy fallback. Gateway does not hand-code protocol negotiation.
-                async with Client(transport, mode="auto", raise_exceptions=False) as client:
-                    meta: dict[str, Any] = {}
-                    inject_trace_context(meta)
-                    result = await client.call_tool(
-                        tool_name,
-                        arguments,
-                        meta=meta or None,
+            transport = streamable_http_client(
+                endpoint.url, http_client=self._http_client(owner_id, endpoint)
+            )
+            # The SDK owns negotiation; the only shared object is the HTTP pool.
+            phase = "session_open"
+            async with Client(transport, mode=endpoint.mcp_mode, raise_exceptions=False) as client:
+                # The pinned modern Windows Runtime status read is a bounded,
+                # read-only, non-interactive contract. The SDK's high-level
+                # Client.call_tool() follows its tools/call with tools/list to
+                # validate output schemas on *each* fresh ClientSession, even
+                # after the Owner has completed the status read. Use the SDK's
+                # public typed send_request only for this one operation;
+                # Gateway then validates Runtime status with strict B03 rules.
+                # Linux Runtime business operations now also use the full
+                # upstream Client.call_tool driver; no six-tool schema bypass.
+                # This is backed by an installed Owner MCP SDK read/execute/
+                # observe/cancel/Artifact consumer, not by source alone.
+                typed_runtime_read = (
+                    owner_id == "runtime.windows"
+                    and endpoint.mcp_mode == "2026-07-28"
+                    and tool_name == "runtime.describe"
+                    and len(arguments) == 1
+                    and type(arguments.get("schemaVersion")) is int
+                    and arguments["schemaVersion"] == 1
+                )
+                phase = "typed_readonly_call" if typed_runtime_read else "sdk_client_call"
+                meta: dict[str, Any] = {}
+                inject_trace_context(meta)
+                try:
+                    if typed_runtime_read:
+                        result = await client.session.send_request(
+                            types.CallToolRequest(
+                                params=types.CallToolRequestParams(
+                                    name=tool_name,
+                                    arguments=arguments,
+                                    _meta=meta or None,
+                                )
+                            ),
+                            types.CallToolResult,
+                        )
+                    else:
+                        result = await client.call_tool(
+                            tool_name,
+                            arguments,
+                            meta=meta or None,
+                        )
+                except asyncio.CancelledError:
+                    # An SDK Client.call_tool can issue tools/list AFTER an
+                    # already-completed wire tools/call. Cancellation here
+                    # does not prove Owner failure, only the SDK boundary.
+                    # The direct typed read has no SDK post-call list phase.
+                    tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
+                    phase = (
+                        "typed_readonly_call_cancelled"
+                        if typed_runtime_read
+                        else "sdk_client_call_cancelled"
                     )
+                    raise
+                else:
+                    # Only a completed call reaches session teardown normally.
+                    tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
+                    phase = "session_close"
+        except asyncio.CancelledError:
+            # Observation deadlines cancel the SDK task; its session cleanup
+            # can then add latency. Log the exact phase without payloads,
+            # credentials, response bodies, or a new Gateway state store.
+            _LOG.warning(
+                "gateway_owner_rpc_cancelled owner=%s tool=%s phase=%s "
+                "total_ms=%d phase_before_cleanup_ms=%s",
+                owner_id,
+                tool_name,
+                phase,
+                int((time.perf_counter() - started) * 1000),
+                tool_elapsed_ms,
+            )
+            raise
         except OwnerCallError:
             raise
         except Exception as exc:
@@ -379,18 +395,51 @@ class McpOwnerCaller:
                 tool_name=tool_name,
                 error=_extract_owner_tool_error(result, owner_id=owner_id, tool_name=tool_name),
             )
-        if isinstance(result.structured_content, dict):
-            return dict(result.structured_content)
+        payload: dict[str, Any] | None = (
+            dict(result.structured_content) if isinstance(result.structured_content, dict) else None
+        )
+        if payload is None:
+            for item in result.content:
+                text = getattr(item, "text", None)
+                if not isinstance(text, str):
+                    continue
+                try:
+                    value = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(value, dict):
+                    payload = value
+                    break
 
-        for item in result.content:
-            text = getattr(item, "text", None)
-            if not isinstance(text, str):
-                continue
-            try:
-                value = json.loads(text)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(value, dict):
-                return value
+        if payload is None:
+            raise OwnerCallError(
+                f"owner tool returned no structured object: {owner_id}/{tool_name}"
+            )
 
-        raise OwnerCallError(f"owner tool returned no structured object: {owner_id}/{tool_name}")
+        if typed_runtime_read:
+            # The narrow typed SDK path does not perform the high-level
+            # tool-output-schema lookup. Guard the versioned envelope here,
+            # then defer readiness truth (including malformed booleans) to
+            # the existing B03 strict owner projection.
+            node = payload.get("node")
+            targets = payload.get("targets")
+            if (
+                type(payload.get("schemaVersion")) is not int
+                or payload["schemaVersion"] != 1
+                or not isinstance(node, dict)
+                or not isinstance(node.get("nodeId"), str)
+                or not node["nodeId"]
+                or not isinstance(targets, list)
+                or not all(isinstance(target, dict) for target in targets)
+            ):
+                raise OwnerCallError(
+                    "Owner returned invalid runtime.describe status envelope",
+                    owner_id=owner_id,
+                    tool_name=tool_name,
+                    error={
+                        "code": "OWNER_INVALID_STATUS_ENVELOPE",
+                        "message": "runtime.describe status envelope is malformed",
+                        "origin": "gateway_adapter",
+                    },
+                )
+        return payload

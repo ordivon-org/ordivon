@@ -1006,6 +1006,26 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             )
         }
     };
+    let guest_headroom = match (
+        optional_env("ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH")?,
+        optional_env("ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES")?,
+    ) {
+        (None, None) => None,
+        (Some(path), Some(minimum_free_bytes)) => Some(WorkspaceHeadroomConfig {
+            path: PathBuf::from(path),
+            minimum_free_bytes: minimum_free_bytes.parse()?,
+        }),
+        _ => {
+            return Err(
+                "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH and ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES must be configured together"
+                    .into(),
+            )
+        }
+    };
+    let workspace_headroom: Vec<WorkspaceHeadroomConfig> = workspace_headroom
+        .into_iter()
+        .chain(guest_headroom)
+        .collect();
     let node_id = std::env::var("ORDIVON_NODE_ID").unwrap_or_else(|_| {
         if cfg!(windows) {
             "windows-local".to_string()
@@ -1252,14 +1272,18 @@ fn unix_ms() -> u128 {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    use super::read_private_token_file;
     use super::{
         authenticate_request, cloudflare_access_principal, parse_process_args,
-        parse_runtime_env_text, read_private_token_file, request_auth_source,
-        validate_loopback_bind, AuthSource, HttpState, PrincipalMode,
+        parse_runtime_env_text, request_auth_source, validate_loopback_bind, AuthSource, HttpState,
+        PrincipalMode,
     };
     use super::{parse_windows_elevated_principals, parse_windows_elevated_profiles};
     use axum::http::{header, HeaderMap, HeaderValue};
+    #[cfg(unix)]
     use std::fs;
+    #[cfg(unix)]
     use std::os::unix::fs::{symlink, PermissionsExt};
     use std::sync::Arc;
 
@@ -1287,17 +1311,16 @@ mod tests {
 
     #[test]
     fn process_bootstrap_accepts_only_service_and_absolute_env_file_arguments() {
+        // Use this host's absolute path syntax; /tmp is root-relative on Windows.
+        let env_path = std::env::current_dir().unwrap().join("ordivon-runtime.env");
         let parsed = parse_process_args([
             std::ffi::OsString::from("--windows-service"),
             std::ffi::OsString::from("--env-file"),
-            std::ffi::OsString::from("/tmp/ordivon-runtime.env"),
+            env_path.clone().into_os_string(),
         ])
         .unwrap();
         assert!(parsed.windows_service);
-        assert_eq!(
-            parsed.env_file.as_deref(),
-            Some(std::path::Path::new("/tmp/ordivon-runtime.env"))
-        );
+        assert_eq!(parsed.env_file.as_deref(), Some(env_path.as_path()));
 
         assert!(parse_process_args([std::ffi::OsString::from("--unknown")]).is_err());
         assert!(parse_process_args([
@@ -1307,9 +1330,11 @@ mod tests {
         .is_err());
         assert!(parse_process_args([
             std::ffi::OsString::from("--env-file"),
-            std::ffi::OsString::from("/tmp/a.env"),
+            env_path.clone().into_os_string(),
             std::ffi::OsString::from("--env-file"),
-            std::ffi::OsString::from("/tmp/b.env"),
+            env_path
+                .with_file_name("other-runtime.env")
+                .into_os_string(),
         ])
         .is_err());
     }
@@ -1338,6 +1363,7 @@ mod tests {
         .is_err());
     }
 
+    #[cfg(unix)]
     #[test]
     fn private_token_file_contract_is_strict() {
         let root =

@@ -3,6 +3,12 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from ordivon_gateway.capability_projection import (
+    project_capability_search,
+    project_execution_capability,
+)
+from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
+from ordivon_gateway.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 
@@ -247,8 +253,11 @@ def test_capability_search_is_deterministic_bounded_discovery_not_authorization(
     filtered = asyncio.run(
         service.capability_search(query="runtime", owner_id="runtime.linux", limit=1)
     )
-    assert filtered.total_matches == 1
-    assert [match.capability.capability for match in filtered.matches] == ["execution.linux"]
+    # The new native ReleaseEffect route ranks ahead of the generic Linux
+    # execution adapter: lexical discovery is not an execution permission.
+    assert filtered.total_matches == 2
+    assert [match.capability.capability for match in filtered.matches] == ["runtime.release.linux"]
+    assert filtered.matches[0].capability.available is False
     assert filtered.projection_digest.startswith("sha256:")
 
     owner_tools = [tool for _, tool, _ in caller.calls]
@@ -274,11 +283,16 @@ def test_capability_search_does_not_misclassify_observation_error_as_proven_unav
             include_unavailable=False,
         )
     )
-    assert result.total_matches == 1
-    item = result.matches[0].capability
-    assert item.available is False
-    assert item.observation_error is not None
-    assert "synthetic transport observation failure" in item.observation_error
+    assert result.total_matches == 2
+    assert {match.capability.capability for match in result.matches} == {
+        "execution.linux",
+        "runtime.release.linux",
+    }
+    for match in result.matches:
+        item = match.capability
+        assert item.available is False
+        assert item.observation_error is not None
+        assert "synthetic transport observation failure" in item.observation_error
 
 
 def test_capability_search_rejects_invalid_bounds_without_owner_calls() -> None:
@@ -291,3 +305,245 @@ def test_capability_search_rejects_invalid_bounds_without_owner_calls() -> None:
     with pytest.raises(Exception, match="between 1 and 50"):
         asyncio.run(service.capability_search(query="linux", limit=0))
     assert caller.calls == []
+
+
+def test_execution_descriptor_is_pure_and_preserves_owner_observation() -> None:
+    route = default_routes()["execution.windows"]
+    owner_response = {
+        "node": {"nodeId": "Windows-A"},
+        "targets": [
+            {
+                "target": "windows_native",
+                "configured": True,
+                "available": True,
+                "windowsContexts": [{"identity": "active_user", "privilege": "limited"}, "invalid"],
+                "windowsAuthorities": ["limited"],
+            }
+        ],
+    }
+    original = {
+        "node": dict(owner_response["node"]),
+        "targets": [
+            {
+                key: (list(value) if isinstance(value, list) else value)
+                for key, value in owner_response["targets"][0].items()
+            }
+        ],
+    }
+    descriptor = project_execution_capability(
+        route,
+        configured_at_gateway=True,
+        owner_response=owner_response,
+    )
+    assert descriptor.available is True
+    assert descriptor.context_mode == "provider-defined-json"
+    assert descriptor.contexts == [{"identity": "active_user", "privilege": "limited"}]
+    assert descriptor.owner_node_id == "Windows-A"
+    assert owner_response == original
+
+
+def test_projection_preserves_unconfigured_and_missing_target_distinction() -> None:
+    route = default_routes()["execution.linux"]
+    unconfigured = project_execution_capability(
+        route,
+        configured_at_gateway=False,
+        owner_response={"targets": [{"target": "local_linux", "available": True}]},
+        configuration_error="not installed",
+    )
+    assert not unconfigured.configured
+    assert not unconfigured.available
+    assert unconfigured.observation_error == "not installed"
+    unavailable = project_execution_capability(
+        route,
+        configured_at_gateway=True,
+        owner_response=None,
+        observation_error="read timeout",
+    )
+    assert unavailable.configured
+    assert not unavailable.available
+    assert unavailable.observation_error == "read timeout"
+    mismatched = project_execution_capability(
+        route,
+        configured_at_gateway=True,
+        owner_response={"targets": [{"target": "windows_native"}]},
+    )
+    assert not mismatched.configured
+    assert mismatched.observation_error == "owner did not advertise the routed execution target"
+
+
+def test_pure_search_projection_preserves_ranked_contract_and_unknown_truth() -> None:
+    def descriptor(
+        name: str,
+        *,
+        description: str = "",
+        available: bool = True,
+        observation_error: str | None = None,
+    ) -> CapabilityDescriptor:
+        return CapabilityDescriptor(
+            capability=name,
+            owner_id="runtime.linux",
+            category="execution",
+            configured=True,
+            available=available,
+            context_mode="none",
+            truth_boundary="non-authoritative-test-observation",
+            description=description,
+            observation_error=observation_error,
+        )
+
+    projection = CapabilityProjection(
+        projection_digest="sha256:" + "a" * 64,
+        capabilities=[
+            descriptor("service.record", description="linuxish"),
+            descriptor("linux-unknown", available=False, observation_error="observer timed out"),
+            descriptor("plugin.audit", description="needs linux agent"),
+            descriptor("linux"),
+            descriptor("linux-prefix"),
+            descriptor("linux-rejected", available=False),
+        ],
+    )
+    original_bytes = projection.model_dump_json()
+    result = project_capability_search(
+        projection,
+        query="linux",
+        category="execution",
+        owner_id="runtime.linux",
+        limit=4,
+        include_unavailable=False,
+    )
+
+    assert result.total_matches == 5
+    assert [(m.match_kind, m.capability.capability) for m in result.matches] == [
+        ("exact", "linux"),
+        ("prefix", "linux-prefix"),
+        ("prefix", "linux-unknown"),
+        ("token", "plugin.audit"),
+    ]
+    assert result.matches[2].capability.available is False
+    assert result.matches[2].capability.observation_error == "observer timed out"
+    assert result.projection_digest == projection.projection_digest
+    assert projection.model_dump_json() == original_bytes
+    assert (
+        project_capability_search(
+            projection,
+            query="linux",
+            category="execution",
+            owner_id=None,
+            limit=10,
+            include_unavailable=True,
+        ).total_matches
+        == 6
+    )
+
+
+def test_pure_search_projection_does_not_confer_execution_authority() -> None:
+    projection = CapabilityProjection(
+        projection_digest="sha256:" + "b" * 64,
+        capabilities=[
+            CapabilityDescriptor(
+                capability="execution.linux",
+                owner_id="runtime.linux",
+                category="execution",
+                configured=False,
+                available=False,
+                context_mode="none",
+                truth_boundary="projection only",
+                observation_error="owner unavailable",
+            )
+        ],
+    )
+    result = project_capability_search(
+        projection,
+        query="execution.linux",
+        category=None,
+        owner_id=None,
+        limit=10,
+        include_unavailable=False,
+    )
+    assert result.total_matches == 1
+    assert result.truth_role == "rebuildable-non-authoritative-discovery-projection"
+    assert result.matches[0].capability.observation_error == "owner unavailable"
+
+
+def test_execution_projection_cannot_promote_ambiguous_or_malformed_runtime_targets() -> None:
+    """An untrusted Owner inventory is not an ordered preference list."""
+    for capability in ("execution.linux", "execution.windows"):
+        route = default_routes()[capability]
+        target_name = route.execution_target
+        ready_target = {"target": target_name, "configured": True, "available": True}
+        for targets in (
+            None,
+            {"target": target_name},
+            "not-a-target-list",
+            [ready_target, ready_target],
+            [ready_target, {"target": target_name, "configured": False, "available": False}],
+        ):
+            item = project_execution_capability(
+                route,
+                configured_at_gateway=True,
+                owner_response={"targets": targets},
+            )
+            assert item.available is False
+            assert item.readiness_state == "unknown"
+            assert item.observation_error
+
+
+def test_bad_runtime_inventory_does_not_hide_an_independent_healthy_runtime() -> None:
+    """Broken Linux capability metadata must not destroy Windows discovery."""
+    caller = ProjectionCaller(
+        {
+            ("runtime.linux", "runtime.describe"): {
+                "schemaVersion": 1,
+                "node": {"nodeId": "linux-pg", "platform": "linux", "native": True},
+                "targets": None,
+            },
+            ("runtime.windows", "runtime.describe"): {
+                "schemaVersion": 1,
+                "node": {
+                    "nodeId": "windows-main-r6-candidate",
+                    "platform": "windows",
+                    "native": True,
+                },
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": True,
+                        "windowsContexts": [{"identity": "service", "privilege": "limited"}],
+                    }
+                ],
+            },
+        },
+        {"runtime.linux", "runtime.windows"},
+    )
+    items = asyncio.run(GatewayService(caller).capability_describe()).capabilities
+    by_name = {item.capability: item for item in items}
+    assert by_name["execution.linux"].readiness_state == "unknown"
+    assert by_name["execution.windows"].available is True
+    assert by_name["execution.windows"].readiness_state == "ready"
+
+
+def test_execution_projection_malformed_contexts_are_unknown_not_global_discovery_errors() -> None:
+    """Malformed context lists from an Owner cannot crash all capability discovery."""
+    for capability, bad_field in (
+        ("execution.linux", "executionProfiles"),
+        ("execution.windows", "windowsAuthorities"),
+    ):
+        route = default_routes()[capability]
+        descriptor = project_execution_capability(
+            route,
+            configured_at_gateway=True,
+            owner_response={
+                "targets": [
+                    {
+                        "target": route.execution_target,
+                        "configured": True,
+                        "available": True,
+                        bad_field: None,
+                    }
+                ]
+            },
+        )
+        assert descriptor.available is False
+        assert descriptor.readiness_state == "unknown"
+        assert descriptor.observation_error

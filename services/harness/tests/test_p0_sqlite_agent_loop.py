@@ -22,12 +22,12 @@ from ordivon_harness.ordivon.model import (
     static_provider_request_digest,
 )
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRecoveryRequired
-from ordivon_harness.ordivon.sqlite_agent_bridge import (
+from ordivon_harness.ordivon.agent_bridge import (
     NO_TOOL_AGENT_SURFACE_DIGEST,
-    SQLiteHarnessAgentBridge,
+    HarnessAgentBridge,
 )
-from ordivon_harness.ordivon.sqlite_run_store import (
-    SQLiteHarnessRunContinuityStore,
+from ordivon_harness.ordivon.run_continuity import (
+    EventSourcedRunContinuity,
 )
 from ordivon_harness.protocol import HarnessProviderCallStatus
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
@@ -57,7 +57,7 @@ class FailIfInvokedAdapter:
         raise AssertionError("durable Provider result should have replayed")
 
 
-class LoseCompletionResponseBridge(SQLiteHarnessAgentBridge):
+class LoseCompletionResponseBridge(HarnessAgentBridge):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.injected = False
@@ -158,7 +158,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
     def initialize(self, root: Path, run_contract: HarnessRunContract, clock: FixedClock):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
@@ -168,11 +168,11 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
     @staticmethod
     def run_loop(
         run_contract: HarnessRunContract,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
         adapter,
         clock: FixedClock,
         *,
-        bridge_type=SQLiteHarnessAgentBridge,
+        bridge_type=HarnessAgentBridge,
     ):
         bridge = bridge_type(run_contract, continuity)
         loop = OrdivonAgentLoop(
@@ -227,7 +227,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -297,7 +297,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -345,7 +345,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -397,7 +397,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -405,7 +405,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                 retained = reopened.load_current_snapshot()
                 source = reopened.snapshot_provider_source(retained)
                 adapter = ScriptedTurnAdapter((completed_result("resume"),))
-                bridge = SQLiteHarnessAgentBridge(
+                bridge = HarnessAgentBridge(
                     run_contract,
                     reopened,
                     provider_source=source,
@@ -443,13 +443,13 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             wrong = HarnessRunContract.from_dict(value)
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(wrong)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store,
                     wrong,
                     clock_ms=clock,
                 )
                 with self.assertRaisesRegex(ValueError, "no-Tool"):
-                    SQLiteHarnessAgentBridge(wrong, continuity)
+                    HarnessAgentBridge(wrong, continuity)
 
     def test_bridge_rejects_noncanonical_no_tool_grant(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -461,13 +461,13 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             wrong = HarnessRunContract.from_dict(value)
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(wrong)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store,
                     wrong,
                     clock_ms=clock,
                 )
                 with self.assertRaisesRegex(ValueError, "Tool Grant"):
-                    SQLiteHarnessAgentBridge(wrong, continuity)
+                    HarnessAgentBridge(wrong, continuity)
 
     def test_independent_agent_bridge_has_no_host_or_runtime_imports(self) -> None:
         source = (
@@ -475,7 +475,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             / "src"
             / "ordivon_harness"
             / "ordivon"
-            / "sqlite_agent_bridge.py"
+            / "agent_bridge.py"
         ).read_text(encoding="utf-8")
         for forbidden in (
             "ordivon_host",

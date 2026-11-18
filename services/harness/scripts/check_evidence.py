@@ -447,28 +447,186 @@ def _original_source_git_environment() -> dict[str, str]:
     }
 
 
+def _local_pinned_original_source_graph(directory: Path) -> bool:
+    """Build an isolated, complete original Git DAG from pinned local objects.
+
+    This does NOT turn a monorepo ancestry check into a source proof. Git
+    transfers exactly the hardcoded original *commit object* (including its
+    immutable parents and trees) into a new bare object database. Neither
+    current HEAD, a tree-prefix rewrite, alternate objects, nor local Git
+    grafts/replace refs are admitted as the original-source identity.
+    """
+    environment = _original_source_git_environment()
+    environment["GIT_NO_LAZY_FETCH"] = "1"
+    try:
+        source = subprocess.check_output(
+            ["git", "--no-replace-objects", "rev-parse", "--show-toplevel"],
+            cwd=ROOT,
+            env=environment,
+            text=True,
+            timeout=12,
+        ).strip()
+        subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "cat-file",
+                "-e",
+                f"{_HARNESS_ORIGINAL_SOURCE_CUT}^{{tree}}",
+            ],
+            cwd=source,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        # An unrelated monorepo commit has a valid Git hash too; it cannot
+        # masquerade as the old standalone Harness source root.
+        subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "cat-file",
+                "-e",
+                f"{_HARNESS_ORIGINAL_SOURCE_CUT}:src/ordivon_harness",
+            ],
+            cwd=source,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        imported = subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "cat-file",
+                "-e",
+                f"{_HARNESS_ORIGINAL_SOURCE_CUT}:services/harness/src/ordivon_harness",
+            ],
+            cwd=source,
+            env=environment,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        if imported.returncode == 0:
+            raise ValueError("pinned original source is a monorepo-root object")
+        subprocess.run(
+            ["git", "init", "--bare", "-q", str(directory)],
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "protocol.file.allow=always",
+                "fetch",
+                "--no-tags",
+                "--quiet",
+                source,
+                _HARNESS_ORIGINAL_SOURCE_CUT,
+            ],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=70,
+        )
+        subprocess.run(
+            ["git", "update-ref", "refs/heads/pinned-original", _HARNESS_ORIGINAL_SOURCE_CUT],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            timeout=12,
+        )
+        subprocess.run(
+            ["git", "symbolic-ref", "HEAD", "refs/heads/pinned-original"],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            timeout=12,
+        )
+        # A bare transfer never borrows objects from mutable monorepo packs
+        # after this point, and forbids lazy reads from any remote.
+        if (directory / "objects/info/alternates").exists():
+            raise ValueError("original-source graph inherited mutable alternate objects")
+        # The fast path is acceptable ONLY for a fully materialized,
+        # independently self-contained Git graph, not a promisor/shallow
+        # cache whose missing objects would be fetched after qualification.
+        subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "fsck",
+                "--full",
+                "--no-reflogs",
+                "--no-dangling",
+                "--strict",
+            ],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=65,
+        )
+        # Native git fsck accepts declared shallow graph boundaries; those
+        # are not a full history/ancestor qualification. Require no shallow
+        # marker on the isolated original object DB after native fsck.
+        shallow = subprocess.check_output(
+            ["git", "--no-replace-objects", "rev-parse", "--is-shallow-repository"],
+            cwd=directory,
+            env=environment,
+            text=True,
+            timeout=12,
+        ).strip()
+        if shallow != "false":
+            raise ValueError("pinned original Git DAG has an unqualified shallow boundary")
+        return True
+    except OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError:
+        # A missing/incomplete local *original* graph is not permission to
+        # substitute a monorepo commit. Retain remote pinned-source fallback.
+        return False
+
+
 @lru_cache(maxsize=1)
 def _historical_source_checkout() -> Path:
     """Read-only native Git snapshot. Missing original source is NOT a PASS."""
     directory = Path(tempfile.mkdtemp(prefix="ordivon-harness-historical-git-"))
     try:
-        subprocess.run(
-            [
-                "git",
-                "-c",
-                "protocol.version=2",
-                "clone",
-                "--filter=blob:none",
-                "--single-branch",
-                "--no-checkout",
-                _HARNESS_ORIGINAL_SOURCE_REPO,
-                str(directory),
-            ],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            timeout=110,
-        )
+        if not _local_pinned_original_source_graph(directory):
+            # An unavailable immutable local original-DAG object graph must
+            # not produce false acceptance. Fall back to the existing remote
+            # original-source origin and *same* exact commit identity.
+            shutil.rmtree(directory)
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "protocol.version=2",
+                    "clone",
+                    "--filter=blob:none",
+                    "--single-branch",
+                    "--no-checkout",
+                    _HARNESS_ORIGINAL_SOURCE_REPO,
+                    str(directory),
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                timeout=110,
+            )
         observed = subprocess.check_output(
             ["git", "--no-replace-objects", "rev-parse", "HEAD"],
             cwd=directory,
@@ -846,5 +1004,107 @@ def main() -> int:
     return 0
 
 
+def query_claim_currentness(claim_id: str) -> dict[str, object]:
+    """Read-only typed query over the EXISTING Harness evidence index.
+
+    Historical entries are never auto-promoted. Verified entries require the
+    complete native checker, which already owns digest, lineage, and scoped
+    implementation/runtime dependency currentness verification.
+    """
+    if not claim_id or any(c.isspace() for c in claim_id):
+        raise ValueError("query claimId must be a nonempty single token")
+    repository = _git_repository_root()
+    index_path = EVIDENCE / "index.json"
+    relative = index_path.relative_to(repository).as_posix()
+    committed = subprocess.check_output(
+        ["git", "--no-replace-objects", "show", "HEAD:" + relative],
+        cwd=repository,
+    )
+    if index_path.is_symlink() or index_path.read_bytes() != committed:
+        raise ValueError("active Harness evidence index is not exact Git HEAD")
+    index = json.loads(committed)
+    entries = index.get("entries")
+    if not isinstance(entries, list):
+        raise ValueError("invalid native Harness evidence index")
+    matches = [entry for entry in entries if isinstance(entry, dict) and entry.get("claimId") == claim_id]
+    if len(matches) != 1:
+        if not matches:
+            return {
+                "claimId": claim_id,
+                "standing": "UNREGISTERED_UNKNOWN",
+                "evidenceCurrent": False,
+                "sourceCut": subprocess.check_output(
+                    ["git", "--no-replace-objects", "rev-parse", "HEAD"],
+                    cwd=repository, text=True,
+                ).strip(),
+            }
+        raise ValueError("ambiguous Harness claim identity")
+    entry = matches[0]
+    receipt = entry.get("file")
+    if not isinstance(receipt, str) or not receipt.endswith(".json") or Path(receipt).name != receipt:
+        raise ValueError("invalid receipt filename")
+    relative_receipt = (EVIDENCE / receipt).relative_to(repository).as_posix()
+    committed_receipt = subprocess.check_output(
+        ["git", "--no-replace-objects", "show", "HEAD:" + relative_receipt],
+        cwd=repository,
+    )
+    disk_receipt = EVIDENCE / receipt
+    if disk_receipt.is_symlink() or disk_receipt.read_bytes() != committed_receipt:
+        raise ValueError("native Harness evidence file differs from exact Git HEAD")
+    status = entry.get("status")
+    if status == "historical":
+        standing = "HISTORICAL_NOT_CURRENT"
+        current = False
+    elif status == "verified":
+        # No second currentness implementation. The original verifier is
+        # authoritative; suppress its prose, return a typed verdict.
+        from contextlib import redirect_stdout, redirect_stderr
+        import io
+
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            native_pass = main() == 0
+        standing = "VERIFIED_CURRENT_NATIVE_CHECKER" if native_pass else "UNKNOWN_FAILED_NATIVE_CHECKER"
+        current = native_pass
+    else:
+        raise ValueError("unsupported evidence status")
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.harness-evidence-currentness-read",
+        "claimId": claim_id,
+        "implementationRevision": entry.get("implementationRevision"),
+        "standing": standing,
+        "evidenceCurrent": current,
+        "receiptFile": receipt,
+        "sourceCut": subprocess.check_output(
+            ["git", "--no-replace-objects", "rev-parse", "HEAD"],
+            cwd=repository, text=True,
+        ).strip(),
+        "truthBoundary": (
+            "Current native Harness evidence index and original source/revision "
+            "checker only; no installed Runtime or live Agent effect proof."
+        ),
+    }
+
+
+def _cli(argv: list[str]) -> int:
+    if not argv:
+        return main()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--query-claim", required=True)
+    args = parser.parse_args(argv)
+    try:
+        result = query_claim_currentness(args.query_claim)
+    except (OSError, subprocess.SubprocessError, ValueError, json.JSONDecodeError) as exc:
+        print(json.dumps({
+            "schemaVersion": 1, "kind": "ordivon.harness-evidence-currentness-read",
+            "claimId": args.query_claim, "standing": "UNKNOWN_EVIDENCE_UNAVAILABLE",
+            "evidenceCurrent": False, "error": str(exc),
+        }, sort_keys=True))
+        return 2
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(_cli(sys.argv[1:]))

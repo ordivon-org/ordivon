@@ -94,11 +94,9 @@ def test_current_v2_json_documents_use_schema_version_two():
     assert offenders == []
 
 
-def test_frozen_evidence_and_fixtures_remain_byte_identical_to_migration_baseline():
-    assert _manifest("evidence") == (
-        54,
-        "sha256:c6a4f1293de042a5df2797afc8e49b90b736d704135ea4aad20914d7cb2e82be",
-    )
+def test_consumed_migration_fixtures_remain_byte_identical_to_baseline():
+    # Historical evidence reports are retired by consumer reachability, not
+    # a frozen directory-wide count; active replay fixtures remain byte-fenced.
     assert _manifest("fixtures") == (
         4,
         "sha256:69ca14c2747c05f4adbe08f178ebc4351d381283da0ef71ea5507af4819d5159",

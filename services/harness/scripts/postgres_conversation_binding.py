@@ -21,18 +21,14 @@ import psycopg
 from psycopg.rows import dict_row
 
 try:
-    from sqlite_conversation_binding import (
-        ConversationBindingConflict,
-        SQLiteConversationBindingStore,
-        _canonical_digest,
-        _text,
+    from conversation_binding_contract import (
+        ConversationBindingConflict, _canonical_digest, _text,
+        binding_receipt, validate_binding_payload,
     )
 except ModuleNotFoundError:
-    from scripts.sqlite_conversation_binding import (
-        ConversationBindingConflict,
-        SQLiteConversationBindingStore,
-        _canonical_digest,
-        _text,
+    from scripts.conversation_binding_contract import (
+        ConversationBindingConflict, _canonical_digest, _text,
+        binding_receipt, validate_binding_payload,
     )
 
 _COLUMNS = (
@@ -144,7 +140,7 @@ class PostgresConversationBindingStore:
     def _canonical_rows(rows: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
         canonical: list[tuple[Any, ...]] = []
         for row in rows:
-            payload = SQLiteConversationBindingStore._validated_payload(
+            payload = validate_binding_payload(
                 campaign_ref=row["campaign_ref"],
                 agent_id=row["agent_id"],
                 provider_resource=row["provider_resource"],
@@ -162,12 +158,17 @@ class PostgresConversationBindingStore:
 
     @staticmethod
     def _receipt(row: dict[str, Any]) -> dict[str, Any]:
-        return SQLiteConversationBindingStore._receipt(row)
+        return binding_receipt(row)
 
     @staticmethod
     def _legacy(path: Path, *, write: bool = False):
         if not path.is_file():
             raise ConversationBindingConflict("legacy binding source missing")
+        # Load the historical SQLite source reader only during a cutover.
+        try:
+            from sqlite_conversation_binding import SQLiteConversationBindingStore
+        except ModuleNotFoundError:
+            from scripts.sqlite_conversation_binding import SQLiteConversationBindingStore
         legacy = object.__new__(SQLiteConversationBindingStore)
         legacy.path = path
         db = legacy._connect(read_only=not write)
@@ -339,7 +340,7 @@ class PostgresConversationBindingStore:
         now_ms: int | None = None,
     ) -> dict[str, Any]:
         self.assert_legacy_sealed(self.legacy_source, fresh_bootstrap=self.fresh_bootstrap)
-        payload = SQLiteConversationBindingStore._validated_payload(
+        payload = validate_binding_payload(
             campaign_ref=campaign_ref,
             agent_id=agent_id,
             provider_resource=provider_resource,

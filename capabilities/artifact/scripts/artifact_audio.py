@@ -55,6 +55,46 @@ def artifact_fact(path: Path) -> dict[str, Any]:
     return {"path": str(path.resolve()), "name": path.name, "size": path.stat().st_size, "sha256": sha256_file(path)}
 
 
+def _claim_result(
+    status: str,
+    pointer: str,
+    *,
+    evidence_refs: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "observationIds": [pointer.rsplit("/", 1)[-1]],
+        "evidenceRefs": list(evidence_refs or []),
+        "nativePointers": [pointer],
+        "nonClaims": [],
+    }
+
+
+def _claim_results(
+    *,
+    contract_schema: str = "NOT_EVALUATED",
+    reference: str = "NOT_EVALUATED",
+    metadata: str = "NOT_EVALUATED",
+    stream_info: str = "NOT_EVALUATED",
+    technical: str = "NOT_EVALUATED",
+    decoder: str = "NOT_EVALUATED",
+    pcm: str = "NOT_EVALUATED",
+    contract_fact: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "contractSchema": _claim_result(
+            contract_schema, "/contractSchema",
+            evidence_refs=[contract_fact] if contract_fact else [],
+        ),
+        "referenceIntegrity": _claim_result(reference, "/referenceIntegrity"),
+        "metadataBlockPolicy": _claim_result(metadata, "/metadataBlockPolicy"),
+        "streamInfo": _claim_result(stream_info, "/streamInfo"),
+        "independentTechnicalView": _claim_result(technical, "/independentTechnicalView"),
+        "decoderMatrix": _claim_result(decoder, "/decoderMatrix"),
+        "pcmIdentity": _claim_result(pcm, "/pcmIdentity"),
+    }
+
+
 def text(p: subprocess.CompletedProcess[bytes]) -> tuple[str, str]:
     return p.stdout.decode("utf-8", "replace"), p.stderr.decode("utf-8", "replace")
 
@@ -72,21 +112,25 @@ def validate_contract(contract: dict[str, Any]) -> list[str]:
 
 def verify_flac(path: Path, contract_path: Path, evidence_dir: Path | None = None) -> dict[str, Any]:
     if not path.is_file():
-        return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "failures": ["input is not a regular file"]}
+        return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "claimResults": _claim_results(), "failures": ["input is not a regular file"]}
     try:
         contract = load_json(contract_path)
     except Exception as error:
-        return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "artifact": artifact_fact(path), "failures": [f"contract unreadable: {error}"]}
+        return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "artifact": artifact_fact(path), "contractSchema": {"status": "FAIL", "failures": [f"contract unreadable: {error}"]}, "claimResults": _claim_results(contract_schema="FAIL"), "failures": [f"contract unreadable: {error}"]}
     failures = validate_contract(contract)
     evidence_dir = evidence_dir or Path(tempfile.mkdtemp(prefix="artifact-audio-evidence-"))
     evidence_dir.mkdir(parents=True, exist_ok=True)
+    contract_fact = {"path": str(contract_path.resolve()), "sha256": sha256_file(contract_path), "canonicalDigest": canonical_digest(contract)}
+    contract_schema = {"status": "PASS" if not failures else "FAIL", "failures": list(failures)}
     result: dict[str, Any] = {
         "schemaVersion": 1,
         "kind": "artifact-audio-verification",
         "profileId": "audio-flac-pcm16-r1",
         "status": "FAIL",
         "artifact": artifact_fact(path),
-        "contract": {"path": str(contract_path.resolve()), "sha256": sha256_file(contract_path), "canonicalDigest": canonical_digest(contract)},
+        "contract": contract_fact,
+        "contractSchema": contract_schema,
+        "claimResults": _claim_results(contract_schema=contract_schema["status"], contract_fact=contract_fact),
         "tools": {},
         "failures": failures,
     }
@@ -197,9 +241,13 @@ def verify_flac(path: Path, contract_path: Path, evidence_dir: Path | None = Non
 
     pcm_md5 = md5_bytes(ref.stdout) if ref.returncode == 0 else ""
     pcm_failures: list[str] = []
-    if md5 and pcm_md5 != md5: pcm_failures.append("STREAMINFO MD5 differs from canonical decoded PCM MD5")
+    pcm_observed = ref.returncode == 0 and bool(re.fullmatch(r"[0-9a-f]{32}", md5)) and md5 != "0" * 32
+    if pcm_observed and pcm_md5 != md5:
+        pcm_failures.append("STREAMINFO MD5 differs from canonical decoded PCM MD5")
     expected_sha = want.get("expectedPcmSha256")
-    if expected_sha and ref_sha != expected_sha: pcm_failures.append("canonical decoded PCM SHA-256 differs from object contract")
+    if pcm_observed and expected_sha and ref_sha != expected_sha:
+        pcm_failures.append("canonical decoded PCM SHA-256 differs from object contract")
+    pcm_status = "NOT_EVALUATED" if not pcm_observed else ("FAIL" if pcm_failures else "PASS")
     failures.extend(pcm_failures)
 
     result.update({
@@ -208,7 +256,17 @@ def verify_flac(path: Path, contract_path: Path, evidence_dir: Path | None = Non
         "streamInfo": {"status": "PASS" if not stream_failures else "FAIL", **streaminfo, "failures": stream_failures},
         "independentTechnicalView": {"status": "PASS" if not probe_failures else "FAIL", "codecName": stream.get("codec_name"), "sampleRateHz": as_int(stream.get("sample_rate")), "channels": as_int(stream.get("channels")), "bitsPerRawSample": as_int(stream.get("bits_per_raw_sample")), "totalSamples": as_int(stream.get("duration_ts")), "failures": probe_failures, "evidenceSha256": sha256_file(evidence_dir / "ffprobe.json")},
         "decoderMatrix": {"status": "PASS" if not decoder_failures else "FAIL", "canonicalFormat": "s16le", "referencePcmSha256": ref_sha, "ffmpegPcmSha256": ff_sha, "exactByteMatch": exact, "pcmBytes": len(ref.stdout), "expectedPcmBytes": expected_bytes, "failures": decoder_failures},
-        "pcmIdentity": {"status": "PASS" if not pcm_failures else "FAIL", "streamInfoMd5": md5, "decodedPcmMd5": pcm_md5, "decodedPcmSha256": ref_sha, "contractExpectedPcmSha256": expected_sha, "failures": pcm_failures},
+        "pcmIdentity": {"status": pcm_status, "streamInfoMd5": md5, "decodedPcmMd5": pcm_md5, "decodedPcmSha256": ref_sha, "contractExpectedPcmSha256": expected_sha, "failures": pcm_failures},
+        "claimResults": _claim_results(
+            contract_schema="PASS",
+            reference="PASS" if reference_ok else "FAIL",
+            metadata="PASS" if not block_failures else "FAIL",
+            stream_info="PASS" if not stream_failures else "FAIL",
+            technical="PASS" if not probe_failures else "FAIL",
+            decoder="PASS" if not decoder_failures else "FAIL",
+            pcm=pcm_status,
+            contract_fact=contract_fact,
+        ),
         "status": "PASS" if not failures else "FAIL",
         "failures": failures,
         "boundary": "PASS is bounded to native RFC 9639 FLAC carrying 16-bit signed PCM with one or two channels under one exact audio object contract. It establishes reference-stream integrity, bounded metadata-block policy, STREAMINFO/FFprobe technical agreement, exact independent-decoder PCM agreement, decoded-audio MD5 identity and optional contract PCM SHA-256. It does not establish artistic/factual correctness, subjective audio quality, loudness/mastering compliance, tag truth, excluded metadata semantics or general preservation-policy compliance."

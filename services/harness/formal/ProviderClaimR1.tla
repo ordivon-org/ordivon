@@ -3,12 +3,12 @@ EXTENDS Naturals
 
 (***************************************************************************)
 (* Harness Owner abstraction for one durable Provider Call identity.       *)
-(* Owner implementation: ordivon/sqlite_run_store.py,                     *)
+(* Owner implementation: ordivon/run_continuity.py,                      *)
 (* claim_provider_call / mark_provider_call_dispatching /                 *)
-(* complete_provider_call, and sqlite_agent_bridge.py.                    *)
+(* complete_provider_call, and agent_bridge.py.                           *)
 (*                                                               *)
 (* It does not model arbitrary Runner executions, provider effects,       *)
-(* SQLite isolation, tool authority, or the caller's semantic outcome.     *)
+(* Store isolation, tool authority, or the caller's semantic outcome.      *)
 (***************************************************************************)
 
 CONSTANTS Holders, Nobody

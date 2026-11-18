@@ -27,7 +27,7 @@ Do not create a routing task for a simple known operation. If one method suffice
 | Declarative-first | Depends on implicit installation/order/env/PATH | Owner-native lockfile, environment declaration and reproducible task | Same declared input/environment yields equivalent result; environmental unknowns listed |
 | Abstraction-first | LEGO compositions explode or an abstract property has infeasible traces | existing Owner model checker; Counterexample-Guided Abstraction Refinement (CEGAR) if justified | Concretize counterexample: real violation repairs Owner, spurious trace refines the model, UNKNOWN stays unproved |
 | Causal-first | Repeated fixes target correlations rather than root cause | causal-intervention; independent telemetry and controlled A/B or fault injection | A contrasting intervention separates competing failure hypotheses |
-| Compression-first | Notes/models replicate stale global advice ignoring context | Existing `meta/next/knowledge` lessons with source, context, consumer and applicability window | Retrieved claim is reproducible and invalid outside declared context |
+| Compression-first | Notes/models replicate stale global advice ignoring context | Existing `catalogs/knowledge` lessons with source, context, consumer and applicability window | Retrieved claim is reproducible and invalid outside declared context |
 
 These lenses are neither a priority score nor mandatory data fields for every LEGO. Pick a native tool/Skill because its **problem semantics** match, not because it has the same keyword.
 
@@ -88,4 +88,4 @@ or sufficiency proof, or create a new solver, registry or workflow.
 
 No record needed when an existing deterministic tool directly resolves the issue. Prefer deleting an obsolete mechanism over preserving it as a compatibility layer, **after** proving the consumer-visible requirement is met. Stop once the decision is evidence-backed; delete this reference if it does not improve real reform decisions.
 
-Read `meta/next/docs/META_THINKING_REPRESENTATION_R1.md` for authority boundaries and targeted pilots. For mature method disambiguation use `method-map.md`.
+Read `docs/architecture/COUNTEREXAMPLE_GUIDED_REPRESENTATION_R1.md` for authority boundaries and targeted pilots. For mature method disambiguation use `method-map.md`.

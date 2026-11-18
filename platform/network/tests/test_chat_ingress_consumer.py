@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONSUMER = ROOT / 'consumers' / 'chat-ingress'
 
 
-def test_chat_ingress_consumer_is_scoped_to_existing_browserless_network_authority():
+def test_chat_ingress_consumer_is_scoped_to_existing_shared_egress_network_authority():
     cfg = json.loads((CONSUMER / 'config' / 'egress.json').read_text())
     assert cfg['schemaVersion'] == 1
     assert cfg['kind'] == 'ordivon.network-v2.chat-ingress-egress'
@@ -20,7 +20,7 @@ def test_chat_ingress_consumer_is_scoped_to_existing_browserless_network_authori
         'kind': 'network-v2',
         'name': 'browserless-prod',
         'namespace': 'nv2-browserless-prod',
-        'serviceUnit': 'network-v2-browserless.target',
+        'serviceUnit': 'network-v2-shared-egress.target',
     }
     assert cfg['directFallback'] is False
     assert cfg['allowedOrigins'] == ['https://chatgpt.com']
@@ -35,20 +35,23 @@ def test_chat_ingress_units_relay_only_to_namespace_local_proxy_and_do_not_chang
     assert '127.0.0.1:19080' in proxy
     assert '127.0.0.1:19081' in relay
     assert 'systemd-socket-proxyd 127.0.0.1:19080' in relay
-    assert 'BindsTo=network-v2-browserless.target' in proxy
-    assert 'BindsTo=network-v2-browserless.target' in relay
+    assert 'BindsTo=network-v2-shared-egress.target' in proxy
+    assert 'BindsTo=network-v2-shared-egress.target' in relay
+    assert 'After=network-v2-shared-egress.target' in proxy
+    assert 'network-v2-browserless-dns.service' not in proxy
     combined = '\n'.join((proxy, relay, target)).lower()
     for forbidden in ('ip route replace', 'route add', 'netsh', 'proxyenable', 'wg-quick up'):
         assert forbidden not in combined
 
 
 def test_chat_ingress_has_standard_network_v2_lifecycle_tasks_and_readiness():
-    taskfile = (ROOT / 'Taskfile.yml').read_text()
+    taskfile = (CONSUMER / 'Taskfile.yml').read_text()
     for task in (
         'consumer:chat-ingress:validate:',
         'consumer:chat-ingress:materialize:',
         'consumer:chat-ingress:start:',
         'consumer:chat-ingress:ready:',
+        'consumer:chat-ingress:verify:',
         'consumer:chat-ingress:stop:',
     ):
         assert task in taskfile

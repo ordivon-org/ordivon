@@ -1,0 +1,48 @@
+{
+  "kind": "ordivon.gateway.formal-evidence",
+  "schemaVersion": 1,
+  "evidenceDate": "2026-11-08",
+  "sourceBase": "c330aca5fd4fc59b4ac44f92c0ed5a22a0eb9c8f",
+  "boundary": "gateway read-only owner status and process-scoped HTTP connection transport",
+  "formalModel": {
+    "path": "services/gateway/formal/GatewayOwnerObservationR1.tla",
+    "tool": "TLC 1.7.4",
+    "toolSha256": "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88",
+    "positiveInvariantResult": "no errors; 76 generated, 51 distinct, 0 queued",
+    "negativeControlResults": [
+      "NeverAvailable violated as intended",
+      "NoFalsePositive violated under UnsafeNext as intended"
+    ],
+    "scope": "finite model only; no universal Python implementation proof"
+  },
+  "boundedConformance": {
+    "path": "services/gateway/formal/check_owner_status_contract.py",
+    "pairs": 100,
+    "invalidOrContradictory": 97,
+    "positivelyAvailable": 1,
+    "runtime": "Gateway 0.9.0; Python 3.15.1; Linux owner"
+  },
+  "sourceConsumerVerification": {
+    "gatewayPytest": "exit 0; 4 platform/opt-in skips, native Windows PG/ACL not established",
+    "ruff": "lint and format pass",
+    "rootTask": "gateway:verify; Gateway Routing/Owner Observation/AuthZen models checked separately",
+    "toolSurface": "unchanged public MCP names"
+  },
+  "nativeMcpLoopback": {
+    "protocol": "real MCP SDK 2.3.0 + Uvicorn + TCP loopback",
+    "calls": 36,
+    "newClientSeriesCalls": 18,
+    "pooledClientSeriesCalls": 18,
+    "newClientMedianMs": 7.1,
+    "pooledClientMedianMs": 4.84,
+    "newClientApproxP95Ms": 8.01,
+    "pooledClientApproxP95Ms": 5.52,
+    "caveat": "single sequential local benchmark, not a remote or deployed Gateway SLA"
+  },
+  "unknown": [
+    "installed Windows service updated",
+    "installed Windows identity/ACL integration",
+    "real owner credential rotation in production",
+    "remote Gateway RPC latency improvement"
+  ]
+}

@@ -440,12 +440,13 @@ export class PrincipalStore {
       | { effect_id: string }
       | undefined;
     if (row === undefined) {
-      return { verified: false, principalId: null, effectId: null, method: null };
+      return { verified: false, principalId: null, effectId: null, effectDigest: null, method: null };
     }
     return {
       verified: true,
       principalId,
       effectId: effect.effectId,
+      effectDigest: effect.effectDigest,
       method: "webauthn",
     };
   }

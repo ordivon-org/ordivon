@@ -47,7 +47,7 @@ def _digest(path: Path) -> str:
 def load_dependency_graph(
     owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
     path: Path = DEPENDENCY_PATH,
-    *, test_only_consumers: list[tuple[str, str]] | None = None,
+    *, test_only_consumers: list[tuple[str, str, str, str]] | None = None,
 ) -> dict[str, set[str]]:
     names = {owner.name for owner in owners}
     graph = {name: set() for name in names}
@@ -92,25 +92,91 @@ def load_dependency_graph(
             if declared not in approved_tool_consumers:
                 raise ValueError("unapproved upstream toolchain-only seam")
             continue
+        if seam.get("kind") == "RESEARCH_SOURCE_PROJECTION":
+            # A pinned source-corpus citation is not an executable or runtime
+            # consumer edge. This is a narrow semantic projection, not a way
+            # to downgrade a live Owner dependency to read-only. Existing
+            # READ_ONLY_OWNER_PROJECTION runtime consumers retain their graph
+            # edge and mandatory verification closure.
+            reference_root = next(
+                owner.root for owner in owners if owner.name == right
+            )
+            if (
+                left != "capability-catalog"
+                or seam.get("source_glob") != "catalogs/capabilities/ele/studies.py"
+                or seam.get("contract_ref") != "catalogs/capabilities/ele/README.md"
+                or not isinstance(seam.get("allowed_fragment"), str)
+                or not seam["allowed_fragment"].startswith(reference_root)
+            ):
+                raise ValueError("unapproved source-only research projection seam")
+            continue
         if seam.get("kind") == "TEST_ONLY_SOURCE_CONTRACT":
-            # A Composition test reads live Runtime SourceCut bytes to construct
-            # an immutable *temporary* fixture. The fixture's later immutability
-            # does not erase the native test's current Runtime input dependency.
-            # Keep its directed test obligation, not an undirected business edge.
-            precise = (
-                "composition", "runtime",
-                "packages/composition/tests/test_verification_obligation_r1.py",
-                "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
-                "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
+            # One native test can consume a different Owner's actual source
+            # contract without establishing a bidirectional business edge.
+            # Derive the finite consumer/provider roots from the existing
+            # mechanical Owner manifest, not one hard-coded test filename.
+            consumer_root = next(
+                owner.root for owner in owners if owner.name == left
             )
-            declared = (
-                left, right, seam.get("source_glob"),
-                seam.get("allowed_fragment"), seam.get("contract_ref"),
+            provider_root = next(
+                owner.root for owner in owners if owner.name == right
             )
-            if declared != precise:
+            source = seam.get("source_glob")
+            fragment = seam.get("allowed_fragment")
+            contract = seam.get("contract_ref")
+            repo = Path(__file__).resolve().parents[2]
+
+            def exact_regular_file(path: object, repo: Path = repo) -> bool:
+                if not isinstance(path, str) or not path:
+                    return False
+                if (
+                    path.startswith("/")
+                    or ".." in path.split("/")
+                    or "\\" in path
+                    or any(char in path for char in "*?[]")
+                ):
+                    return False
+                resolved = repo / path
+                return resolved.is_file() and not resolved.is_symlink()
+
+            def scoped_provider_fragment(
+                path: object, provider_root: str = provider_root, repo: Path = repo
+            ) -> bool:
+                if not isinstance(path, str) or not path:
+                    return False
+                if (
+                    path.startswith("/")
+                    or ".." in path.split("/")
+                    or "\\" in path
+                    or any(char in path for char in "*?[]")
+                    or not (
+                        path == provider_root.rstrip("/")
+                        or path.startswith(provider_root)
+                    )
+                ):
+                    return False
+                target = repo / path
+                return target.exists() and not target.is_symlink()
+
+            if not (
+                exact_regular_file(source)
+                and source.startswith(consumer_root)
+                and "tests" in source[len(consumer_root):].split("/")
+                and scoped_provider_fragment(fragment)
+                and exact_regular_file(contract)
+                and (
+                    contract.startswith((consumer_root, provider_root))
+                )
+                and fragment in (repo / source).read_text(encoding="utf-8")
+            ):
                 raise ValueError("unapproved test-only source contract")
+            # Preserve existing broad Owner test consumers. A new, narrowly
+            # scoped consumer may explicitly request exact-path impact.
+            selection_scope = seam.get("selection_scope", "OWNER")
+            if selection_scope not in {"OWNER", "PATH"}:
+                raise ValueError("unknown test-only consumer selection scope")
             if test_only_consumers is not None:
-                test_only_consumers.append((left, right))
+                test_only_consumers.append((left, right, fragment, selection_scope))
             continue
         graph[left].add(right)
         graph[right].add(left)
@@ -273,13 +339,30 @@ def build_plan(
     direct = affected_owners.owners_for_paths(paths, owners=owners)
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
-    test_only_consumers: list[tuple[str, str]] = []
+    test_only_consumers: list[tuple[str, str, str, str]] = []
     graph = load_dependency_graph(
         owners=owners, path=dependency_path, test_only_consumers=test_only_consumers,
     )
-    supplemental = tuple(sorted({
-        consumer for consumer, provider in test_only_consumers if provider in direct_names
-    }))
+    # A test-only edge is not a whole-owner product dependency. Select the
+    # consumer only when its exact declared producer file (or declared
+    # directory prefix) is changed, never for unrelated provider files.
+    supplemental = tuple(
+        sorted(
+            {
+                consumer
+                for consumer, provider, fragment, selection_scope in test_only_consumers
+                if provider in direct_names
+                and (
+                    selection_scope == "OWNER"
+                    or any(
+                        path == fragment
+                        or (fragment.endswith("/") and path.startswith(fragment))
+                        for path in paths
+                    )
+                )
+            }
+        )
+    )
 
     if cross_cutting:
         verification_names = tuple(sorted(owner.name for owner in owners))

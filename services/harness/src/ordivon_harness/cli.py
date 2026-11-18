@@ -8,19 +8,13 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .ordivon.deepseek import DEFAULT_DEEPSEEK_SECRET_PATH
-from .sqlite_store import SQLiteHarnessStore
-from .store_ops import backup_harness_store, restore_harness_backup, verify_harness_backup
+from .postgres_store import PostgresHarnessStore, configured_postgres
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ordivon-harness",
         description="Caller-neutral Harness Run execution and durable recovery.",
-    )
-    parser.add_argument(
-        "--state-root",
-        type=Path,
-        help="Harness Journal/CAS root",
     )
     parser.add_argument(
         "--deepseek-secret",
@@ -42,18 +36,18 @@ def build_parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run")
     run.add_argument("contract", type=Path)
     _add_input_options(run)
+    _add_gateway_options(run)
     resume = commands.add_parser("resume")
     resume.add_argument("harness_run_id")
     _add_input_options(resume)
+    _add_gateway_options(resume)
+    gateway_profile = commands.add_parser(
+        "gateway-profile",
+        help="read current Gateway execution Tool surface and grant digests, without a Run",
+    )
+    _add_gateway_options(gateway_profile)
     commands.add_parser("store-init")
     commands.add_parser("store-doctor")
-    store_backup = commands.add_parser("store-backup")
-    store_backup.add_argument("destination", type=Path)
-    store_verify = commands.add_parser("store-verify-backup")
-    store_verify.add_argument("backup", type=Path)
-    store_restore = commands.add_parser("store-restore")
-    store_restore.add_argument("backup", type=Path)
-    store_restore.add_argument("destination", type=Path)
     store_inspect = commands.add_parser("store-inspect")
     store_inspect.add_argument("harness_run_id")
     store_events = commands.add_parser("store-events")
@@ -67,6 +61,18 @@ def _add_input_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--messages-json", type=Path)
 
 
+def _add_gateway_options(parser: argparse.ArgumentParser) -> None:
+    # Compose the existing MCP/Gateway Bridge instead of a second
+    # transport, router, credential database, or Harness Journal.
+    parser.add_argument("--gateway-url")
+    parser.add_argument("--gateway-workspace-id")
+    parser.add_argument("--gateway-executable", action="append", default=[])
+    parser.add_argument("--gateway-env-variable", action="append", default=[])
+    parser.add_argument("--gateway-max-timeout-ms", type=int, default=300_000)
+    parser.add_argument("--gateway-context")
+    parser.add_argument("--gateway-bearer-token-file", type=Path)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
@@ -74,6 +80,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = _dispatch_store(args)
         else:
             from .independent_cli import dispatch
+
             result = dispatch(args, clock_ms=_wall_clock_ms)
     except (
         FileNotFoundError,
@@ -95,50 +102,37 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _dispatch_store(args: argparse.Namespace) -> dict[str, object]:
-    if args.command == "store-verify-backup":
-        return {"ok": True, "backup": verify_harness_backup(args.backup.expanduser())}
-    if args.command == "store-restore":
-        return {
-            "ok": True,
-            "restore": restore_harness_backup(
-                args.backup.expanduser(), args.destination.expanduser()
-            ),
-        }
-    root = _state_root(args)
-    if args.command == "store-init":
-        with SQLiteHarnessStore.initialize(root) as store:
-            report = store.doctor(full=True)
-        return {"ok": True, "stateRoot": str(root), "store": report}
-    if args.command == "store-backup":
-        return {
-            "ok": True,
-            "backup": backup_harness_store(root, args.destination.expanduser()),
-        }
-    with SQLiteHarnessStore(root) as store:
-        if args.command == "store-doctor":
-            return {"ok": True, "stateRoot": str(root), "store": store.doctor(full=True)}
+    dsn, schema = configured_postgres()
+    with PostgresHarnessStore(dsn, schema=schema, initialize=args.command == "store-init") as store:
+        if args.command in {"store-init", "store-doctor"}:
+            return {
+                "ok": True,
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
+                "store": store.doctor(full=True),
+            }
         if args.command == "store-inspect":
             return {
                 "ok": True,
-                "stateRoot": str(root),
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
                 "run": store.load_run(args.harness_run_id).to_dict(),
             }
         if args.command == "store-events":
-            events = store.list_run_events(
-                args.harness_run_id, after_sequence=args.after_sequence
-            )
+            events = store.list_run_events(args.harness_run_id, after_sequence=args.after_sequence)
             return {
                 "ok": True,
-                "stateRoot": str(root),
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
                 "events": [event.to_dict() for event in events],
             }
-    raise ValueError("unsupported Harness store command")
-
-
-def _state_root(args: argparse.Namespace) -> Path:
-    if args.state_root is None:
-        raise ValueError("Harness command requires --state-root")
-    return args.state_root.expanduser().resolve()
+    raise ValueError("unsupported Harness PG store command")
 
 
 def _wall_clock_ms() -> int:

@@ -1,7 +1,11 @@
-use rusqlite::{Error as SqlError, ErrorCode as SqlErrorCode};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+
+#[cfg(feature = "transactional-runtime")]
+mod sqlite;
+mod universal;
+pub(crate) use universal::map_universal_error;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -199,22 +203,6 @@ impl RuntimeError {
                 | RuntimeErrorCode::SchemaVersionUnsupported
                 | RuntimeErrorCode::MigrationChecksumMismatch
         ) || (self.code == RuntimeErrorCode::RegistryCorrupt && self.field.is_none())
-    }
-
-    pub(crate) fn from_sql(error: SqlError, context: &str) -> Self {
-        let (code, retryable) = match &error {
-            SqlError::SqliteFailure(failure, _) => match failure.code {
-                SqlErrorCode::DatabaseBusy | SqlErrorCode::DatabaseLocked => {
-                    (RuntimeErrorCode::RegistryBusy, true)
-                }
-                SqlErrorCode::DatabaseCorrupt | SqlErrorCode::NotADatabase => {
-                    (RuntimeErrorCode::RegistryCorrupt, false)
-                }
-                _ => (RuntimeErrorCode::RegistryUnavailable, false),
-            },
-            _ => (RuntimeErrorCode::RegistryUnavailable, false),
-        };
-        Self::new(code, format!("{context}: {error}"), None, retryable)
     }
 }
 

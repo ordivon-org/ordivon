@@ -1,25 +1,29 @@
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 STORE = ROOT / "src" / "ordivon_host_v2" / "social_store.py"
+MSG_STORE = STORE.with_name("social_message_commands.py")
+INTENT_STORE = STORE.with_name("coordination_intent_commands.py")
 
 
 def test_social_store_does_not_use_participation_as_authorization() -> None:
-    text = STORE.read_text()
+    text = MSG_STORE.read_text()
     post = text.split("    def post_message", 1)[1].split("    def add_message_relation", 1)[0]
     assert "participations" not in post
     assert "authorization" in post
 
 
 def test_reply_relation_is_same_topic_only() -> None:
-    text = STORE.read_text()
+    text = MSG_STORE.read_text()
     validation = text.split("    def _validate_relation_target", 1)[1]
     assert "reply_to cannot cross topics" in validation
     assert "cannot cross spaces" in validation
 
 
 def test_mentions_require_actor_but_references_can_be_opaque() -> None:
-    text = STORE.read_text()
+    text = MSG_STORE.read_text()
     validation = text.split("    def _validate_relation_target", 1)[1]
     assert "MessageRelationKind.MENTIONS" in validation
     assert "self._require_actor(conn, value.target_ref)" in validation
@@ -27,7 +31,7 @@ def test_mentions_require_actor_but_references_can_be_opaque() -> None:
 
 
 def test_coordination_intent_never_becomes_lock_or_assignment() -> None:
-    text = STORE.read_text().lower()
+    text = INTENT_STORE.read_text().lower()
     result_boundary = "coordination intent only; not assignment, reservation, lock, lease, scheduler decision, or effectauthority"
     assert result_boundary in text
     sql_lines = [
@@ -41,36 +45,17 @@ def test_coordination_intent_never_becomes_lock_or_assignment() -> None:
 
 
 def test_released_intent_cannot_be_resurrected() -> None:
-    text = STORE.read_text()
+    text = INTENT_STORE.read_text()
     assert "released coordination intent cannot be resurrected" in text
 
 
 def test_topic_resume_is_bounded_and_cursor_based() -> None:
-    text = STORE.read_text()
-    resume = text.split("    def resume_topic", 1)[1].split("    def _get_space_in_tx", 1)[0]
+    text = (STORE.parent / "social_topic_queries.py").read_text()
+    resume = text.split("    def resume_topic", 1)[1]
     assert "after_sequence" in resume
     assert "limit + 1" in resume
     assert '"hasMore"' in resume
     assert '"nextAfterSequence"' in resume
-
-
-
-def test_causal_reply_pure_decision_covers_signed_bigint_edges() -> None:
-    """The native Host consumer uses the same signed-order pure decision."""
-    from ordivon_host_v2.social_store import _reply_target_precedes_source
-
-    lower, upper = -(2**63), 2**63 - 1
-    for src, dst, expected in (
-        (2, 1, True),
-        (1, 2, False),
-        (1, 1, False),
-        (upper, lower, True),
-        (lower, upper, False),
-        (lower, lower, False),
-        (upper, upper, False),
-    ):
-        assert _reply_target_precedes_source(src, dst) is expected
-
 
 
 def test_reply_symbolic_contract_is_bound_to_actual_host_consumer() -> None:
@@ -91,8 +76,12 @@ def test_reply_symbolic_contract_is_bound_to_actual_host_consumer() -> None:
     }
     assert declared == normative_post
 
-    source = ast.parse(STORE.read_text())
-    owner = next(node for node in source.body if isinstance(node, ast.ClassDef) and node.name == "SocialStore")
+    source = ast.parse(MSG_STORE.read_text())
+    owner = next(
+        node
+        for node in source.body
+        if isinstance(node, ast.ClassDef) and node.name == "SocialMessageCommands"
+    )
     validator = next(
         node
         for node in owner.body
@@ -122,13 +111,13 @@ def test_message_sequence_follows_same_topic_commit_visibility() -> None:
     The topic row must be locked before allocating the message sequence.
     This is a source-level guard, not a live multi-transaction proof.
     """
-    text = STORE.read_text()
-    post = text.split('    def post_message', 1)[1].split('    def add_message_relation', 1)[0]
-    assert 'self._require_topic(conn, value.topic_ref, for_no_key_update=True)' in post
-    helper = text.split('    def _require_topic(', 1)[1].split('    def _require_message(', 1)[0]
-    assert 'FOR NO KEY UPDATE' in helper
+    text = MSG_STORE.read_text()
+    post = text.split("    def post_message", 1)[1].split("    def add_message_relation", 1)[0]
+    assert "self._require_topic(conn, value.topic_ref, for_no_key_update=True)" in post
+    helper = STORE.read_text().split("    def _require_topic(", 1)[1]
+    assert "FOR NO KEY UPDATE" in helper
     # This lock mode does not conflict with FK KEY SHARE on topics.
-    assert 'FOR UPDATE' not in helper
+    assert "FOR UPDATE" not in helper
 
 
 def test_two_writer_committed_prefix_interleaving_exhaustive() -> None:
@@ -167,3 +156,16 @@ def test_two_writer_committed_prefix_interleaving_exhaustive() -> None:
     assert old_schedules > 0
     assert old_skipped > 0  # Clock serialization alone does not prove safety.
     assert locked_schedules > 0
+
+def test_work_cas_rejects_unincrementable_pg_revision_before_database_access() -> None:
+    """Formal proof assumes valid inputs; real WorkStore enforces that boundary."""
+    from ordivon_host_v2.work_store import WorkStore
+
+    with pytest.raises(ValueError, match="PostgreSQL BIGINT predecessor"):
+        WorkStore("postgresql://not-opened").commit_snapshot(
+            "work:boundary",
+            expected_revision=(1 << 63) - 1,
+            snapshot=None,
+            actor_ref="actor:boundary",
+            client_request_id="boundary-only",
+        )

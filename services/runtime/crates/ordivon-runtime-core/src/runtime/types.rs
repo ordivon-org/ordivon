@@ -710,6 +710,8 @@ pub(crate) struct EffectiveInputBinding {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExecutionBudget {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduling: Option<crate::resource_scheduling::ResourceScheduling>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
     pub memory_max_bytes: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -722,7 +724,8 @@ pub struct ExecutionBudget {
 
 impl ExecutionBudget {
     pub fn is_empty(&self) -> bool {
-        self.memory_max_bytes.is_none()
+        self.scheduling.is_none()
+            && self.memory_max_bytes.is_none()
             && self.tasks_max.is_none()
             && self.cpu_quota_percent.is_none()
     }
@@ -821,6 +824,8 @@ pub(crate) struct RuntimeExecutionPlan {
     pub windows_execution_context: Option<WindowsExecutionContext>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub foreign_references: Vec<ForeignReference>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub host_dependencies: Vec<HostDependencyBinding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input_set_id: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -1611,6 +1616,7 @@ pub struct RuntimeWorkspaceSummary {
 pub enum RuntimeWorkspaceIssueStage {
     Inventory,
     Reconcile,
+    Projection,
     ActiveJobs,
     DirtyProbe,
     SourceStateDigest,
@@ -2089,4 +2095,36 @@ pub(crate) fn default_task_tail_bytes() -> u64 {
 
 fn is_false(value: &bool) -> bool {
     !*value
+}
+
+#[cfg(test)]
+mod workspace_issue_schema_contract_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn pg_workspace_projection_issue_is_an_admitted_public_wire_stage() {
+        // PgRuntime::list_workspaces emits this stage for a page-local get
+        // failure. Do not turn a recoverable individual issue into a
+        // schema-invalid whole-list success response.
+        let wire = json!({
+            "workspaceId": "ws-projection-error",
+            "stage": "projection",
+            "code": "WORKSPACE_STATE_MISMATCH",
+            "message": "Workspace projection could not be proven",
+            "retryable": true
+        });
+        let typed: RuntimeWorkspaceIssue =
+            serde_json::from_value(wire.clone()).expect("PG stage must round-trip");
+        assert_eq!(serde_json::to_value(typed).unwrap(), wire);
+        let published = serde_json::to_value(schemars::schema_for!(RuntimeWorkspaceIssueStage))
+            .expect("public stage schema");
+        assert!(
+            published["enum"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("projection")),
+            "MCP tools/list must permit the actual PG list issue stage"
+        );
+    }
 }

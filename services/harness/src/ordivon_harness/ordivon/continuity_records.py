@@ -404,3 +404,80 @@ class HarnessDispatchFenceV2:
             issued_at_ms=value["issuedAtMs"],
             expires_at_ms=value["expiresAtMs"],
         )
+
+
+def build_provider_call_record_v4(
+    *,
+    provider_call_id: str,
+    harness_run_id: str,
+    binding_digest: str,
+    source_kind: HarnessProviderCallSource,
+    source_digest: str,
+    source_object_digest: str,
+    state_object_digest: str,
+    turn_id: str,
+    turn_sequence: int,
+    request_digest: str,
+    request_object_digest: str | None,
+    provider_request_digest: str,
+    adapter_id: str,
+    requested_model_id: str,
+    holder_id: str,
+    generation: int,
+    status: HarnessProviderCallStatus,
+    result_digest: str | None,
+    result_object_digest: str | None,
+    failure_digest: str | None,
+    failure_object_digest: str | None,
+    previous_record_digest: str | None,
+    issued_at_ms: int,
+    expires_at_ms: int,
+    recorded_at_ms: int,
+) -> HarnessProviderCallRecordV4:
+    """Pure V4 record identity and encoding; no persistence or grant authority.
+
+    The V3 reader stays historical-only. The event Store owns database effects
+    and validates the snapshot/record consumption after this construction.
+    """
+    record_token = canonical_digest(
+        {
+            "providerCallId": provider_call_id,
+            "holderId": holder_id,
+            "claimGeneration": generation,
+            "status": status.value,
+            "providerRequestDigest": provider_request_digest,
+            "requestObjectDigest": request_object_digest,
+            "resultDigest": result_digest,
+            "failureDigest": failure_digest,
+            "previousRecordDigest": previous_record_digest,
+            "recordedAtMs": recorded_at_ms,
+        }
+    )[7:31]
+    return HarnessProviderCallRecordV4(
+        record_id=f"harness-provider-call-record:{record_token}",
+        provider_call_id=provider_call_id,
+        harness_run_id=harness_run_id,
+        binding_digest=binding_digest,
+        source_kind=source_kind,
+        source_digest=source_digest,
+        source_object_digest=source_object_digest,
+        state_object_digest=state_object_digest,
+        turn_id=turn_id,
+        turn_sequence=turn_sequence,
+        request_digest=request_digest,
+        provider_request_digest=provider_request_digest,
+        adapter_id=adapter_id,
+        requested_model_id=requested_model_id,
+        holder_id=holder_id,
+        claim_generation=generation,
+        status=status,
+        result_digest=result_digest,
+        result_object_digest=result_object_digest,
+        failure_digest=failure_digest,
+        failure_object_digest=failure_object_digest,
+        previous_record_digest=previous_record_digest,
+        issued_at_ms=issued_at_ms,
+        expires_at_ms=expires_at_ms,
+        recorded_at_ms=recorded_at_ms,
+        request_object_digest=request_object_digest,
+    )

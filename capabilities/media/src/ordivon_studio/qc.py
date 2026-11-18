@@ -200,8 +200,14 @@ def validate_loudness(
     podcast, archive and platform delivery profiles can set different acceptance
     targets while sharing the same measurement semantics.
     """
-    if tolerance_lu < 0:
-        raise ValueError("loudness tolerance must be non-negative")
+    # NaN defeats comparison-based rejection; infinity makes finite
+    # measurements vacuously satisfy the selected delivery profile.
+    if not math.isfinite(tolerance_lu) or tolerance_lu < 0:
+        raise ValueError("loudness tolerance must be finite and non-negative")
+    if target_lufs is not None and not math.isfinite(target_lufs):
+        raise ValueError("loudness target must be finite")
+    if max_true_peak_dbtp is not None and not math.isfinite(max_true_peak_dbtp):
+        raise ValueError("true peak limit must be finite")
     errors: list[str] = []
     integrated = measurement.get("integratedLoudnessLufs")
     true_peak = measurement.get("truePeakDbtp")
@@ -222,3 +228,30 @@ def validate_loudness(
                 f"true peak: expected <= {max_true_peak_dbtp:.1f} dBTP, found {true_peak:.1f} dBTP"
             )
     return errors
+
+def probe_media(path: Path, ffprobe: str = "/usr/bin/ffprobe") -> dict[str, Any]:
+    """Observe actual media container and stream facts using native FFprobe.
+
+    Source bytes remain Asset/Production-owned; this QC reader does not
+    approve any output profile or alter input media.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    result = subprocess.run(
+        [
+            ffprobe,
+            "-v",
+            "error",
+            "-show_format",
+            "-show_streams",
+            "-of",
+            "json",
+            str(path),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or f"ffprobe exited {result.returncode}")
+    return json.loads(result.stdout)

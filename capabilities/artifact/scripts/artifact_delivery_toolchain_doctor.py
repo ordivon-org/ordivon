@@ -9,6 +9,7 @@ visual quality, PDF/UA conformance of arbitrary files, or delivery completion.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -352,7 +353,8 @@ def main() -> int:
         observed_digest = hashlib.sha256(Path(cosign).read_bytes()).hexdigest()
         expected_cosign = LOCK["cosign"]
         standard_floor = tuple(int(item) for item in expected_cosign["standardizedBundleMinimumVersion"].split("."))
-        source_text = (ROOT / "artifact_trust/vsa.py").read_text()
+        bundle_source = inspect.getsource(artifact_trust_vsa.verify_sigstore_vsa_bundle_shape)
+        verifier_source = inspect.getsource(artifact_trust_vsa.verify_signed_verification_summary)
         standard_bundle_policy_ok = (
             proc.returncode == 0
             and bool(version_tuple)
@@ -360,9 +362,9 @@ def main() -> int:
             and observed_version == expected_cosign["observedVersion"]
             and observed_digest == expected_cosign["binarySha256"]
             and expected_cosign.get("legacyBundlePolicy") == "REJECT"
-            and "media_type != SIGSTORE_BUNDLE_V03" in source_text
-            and '"--check-claims=true"' in source_text
-            and "COSIGN_STANDARD_BUNDLE_MIN_VERSION = (3, 0, 6)" in source_text
+            and "media_type != SIGSTORE_BUNDLE_V03" in bundle_source
+            and '"--check-claims=true"' in verifier_source
+            and artifact_trust_vsa.COSIGN_STANDARD_BUNDLE_MIN_VERSION == standard_floor
         )
         record(
             checks,
@@ -389,9 +391,9 @@ def main() -> int:
         keyless_policy_ok = (
             standard_bundle_policy_ok
             and expected_cosign.get("keylessStandardBundleStanding") == "NOT_EXERCISED_IDENTITY_ISSUER_TLOG_REQUIRED"
-            and "certificateIdentity" in source_text
-            and "certificateOidcIssuer" in source_text
-            and "requireTransparencyLog" in source_text
+            and "certificateIdentity" in verifier_source
+            and "certificateOidcIssuer" in verifier_source
+            and "requireTransparencyLog" in verifier_source
         )
         record(
             checks,

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -41,10 +42,12 @@ class UserBrowserAttemptResult:
         }
         if self.standing not in allowed:
             raise ValueError('unsupported user-browser materialization standing')
-        if not self.evidence_digest.startswith('sha256:') or len(self.evidence_digest) != 71:
+        if not isinstance(self.evidence_digest, str) or re.fullmatch(r'sha256:[0-9a-f]{64}', self.evidence_digest) is None:
             raise ValueError('user-browser evidence digest must be canonical SHA-256')
         if not self.detail or self.detail != self.detail.strip():
             raise ValueError('user-browser detail must be non-empty and trimmed')
+        if type(self.provider_effect_attempted) is not bool:
+            raise ValueError('user-browser provider effect attempted must be a boolean')
         if self.standing == MaterializationStanding.BOUND.value:
             if not self.provider_effect_attempted or self.provider_resource is None:
                 raise ValueError('BOUND requires an attempted effect and provider resource')

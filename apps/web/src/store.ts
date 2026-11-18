@@ -1,7 +1,11 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
+import { hashToken, stableDigest } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
+import { AgentGrantStore, scopeContains } from "./store-agent-grants.ts";
+import { SessionStore } from "./store-sessions.ts";
+import { initializeWebStoreSchema } from "./store-schema.ts";
 import type {
   AgentEffectReceipt,
   AgentEffectRequest,
@@ -16,359 +20,30 @@ import type {
   StoredCredential,
 } from "./model.ts";
 
-interface PrincipalRow {
-  principal_id: string;
-  user_name: string;
-  display_name: string;
-}
-
-interface CredentialRow {
-  credential_id: string;
-  principal_id: string;
-  public_key: Uint8Array;
-  counter: number;
-  transports_json: string;
-  device_type: string;
-  backed_up: number;
-  created_at: number;
-  last_used_at: number;
-  revoked_at: number | null;
-}
-
-interface ChallengeRow {
-  challenge_id: string;
-  purpose: ChallengePurpose;
-  principal_id: string;
-  challenge: string;
-  payload_digest: string;
-  payload_json: string;
-  expires_at: number;
-  consumed_at: number | null;
-}
-
-interface AgentGrantRow {
-  grant_id: string;
-  grant_digest: string;
-  principal_id: string;
-  agent_id: string;
-  audience: string;
-  allowed_actions_json: string;
-  resource_prefixes_json: string;
-  expires_at: number;
-  max_risk_class: AgentGrantSnapshot["maxRiskClass"];
-  step_up_at_or_above: AgentGrantSnapshot["stepUpAtOrAbove"];
-  remaining_effects: number;
-  active: number;
-  revision: number;
-}
-
-interface AgentEffectRow {
-  effect_id: string;
-  effect_digest: string;
-  principal_id: string;
-  agent_id: string;
-  grant_id: string;
-  action: string;
-  resource: string;
-  result_json: string;
-  committed_at: number;
-}
-
-interface SessionRow {
-  session_id: string;
-  token_hash: string;
-  principal_id: string;
-  created_at: number;
-  authenticated_at: number;
-  last_seen_at: number;
-  idle_expires_at: number;
-  absolute_expires_at: number;
-  revoked_at: number | null;
-  authn_method: "webauthn";
-  user_agent: string | null;
-}
-
-interface NoteRow {
-  note_id: string;
-  principal_id: string;
-  content: string;
-  state: "DRAFT" | "PUBLISHED";
-  created_at: number;
-  published_at: number | null;
-}
-
-function stableDigest(value: unknown): string {
-  return "sha256:" + createHash("sha256").update(JSON.stringify(value)).digest("hex");
-}
-
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-function normalizeStrings(values: readonly string[]): string[] {
-  return [...new Set(values)].sort();
-}
-
-function grantDigest(input: AgentGrantCreate): string {
-  return stableDigest({
-    grantId: input.grantId,
-    principalId: input.principalId,
-    agentId: input.agentId,
-    audience: input.audience,
-    allowedActions: normalizeStrings(input.allowedActions),
-    resourcePrefixes: normalizeStrings(input.resourcePrefixes),
-    expiresAtEpochSeconds: input.expiresAtEpochSeconds,
-    maxRiskClass: input.maxRiskClass,
-    stepUpAtOrAbove: input.stepUpAtOrAbove,
-  });
-}
-
-function randomToken(): string {
-  return randomBytes(32).toString("base64url");
-}
-
-function parseStringArray(value: string): string[] {
-  const parsed: unknown = JSON.parse(value);
-  if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
-    throw new WebProblem(
-      500,
-      "credential-corrupt",
-      "Credential state invalid",
-      "Stored credential transports are invalid.",
-    );
-  }
-  return parsed;
-}
-
-function principalFromRow(row: PrincipalRow): Principal {
-  return {
-    principalId: row.principal_id,
-    userName: row.user_name,
-    displayName: row.display_name,
-  };
-}
-
-function sessionFromRow(row: SessionRow): SessionView {
-  return {
-    sessionId: row.session_id,
-    principalId: row.principal_id,
-    createdAt: row.created_at,
-    authenticatedAt: row.authenticated_at,
-    lastSeenAt: row.last_seen_at,
-    idleExpiresAt: row.idle_expires_at,
-    absoluteExpiresAt: row.absolute_expires_at,
-    revokedAt: row.revoked_at,
-    authnMethod: row.authn_method,
-    userAgent: row.user_agent,
-  };
-}
-
-function credentialFromRow(row: CredentialRow): StoredCredential {
-  return {
-    credentialId: row.credential_id,
-    principalId: row.principal_id,
-    publicKey: Uint8Array.from(row.public_key),
-    counter: row.counter,
-    transports: parseStringArray(row.transports_json),
-    deviceType: row.device_type,
-    backedUp: row.backed_up === 1,
-    createdAt: row.created_at,
-    lastUsedAt: row.last_used_at,
-    revokedAt: row.revoked_at,
-  };
-}
-
-function noteFromRow(row: NoteRow): CanaryNote {
-  return {
-    noteId: row.note_id,
-    principalId: row.principal_id,
-    content: row.content,
-    state: row.state,
-    createdAt: row.created_at,
-    publishedAt: row.published_at,
-  };
-}
-
-function grantFromRow(row: AgentGrantRow): AgentGrantSnapshot {
-  return {
-    grantId: row.grant_id,
-    grantDigest: row.grant_digest,
-    principalId: row.principal_id,
-    agentId: row.agent_id,
-    audience: row.audience,
-    allowedActions: parseStringArray(row.allowed_actions_json),
-    resourcePrefixes: parseStringArray(row.resource_prefixes_json),
-    expiresAtEpochSeconds: row.expires_at,
-    maxRiskClass: row.max_risk_class,
-    stepUpAtOrAbove: row.step_up_at_or_above,
-    remainingEffects: row.remaining_effects,
-    active: row.active === 1,
-    revision: row.revision,
-  };
-}
-
-function effectReceiptFromRow(row: AgentEffectRow): AgentEffectReceipt {
-  return {
-    effectId: row.effect_id,
-    effectDigest: row.effect_digest,
-    principalId: row.principal_id,
-    agentId: row.agent_id,
-    grantId: row.grant_id,
-    action: row.action,
-    resource: row.resource,
-    result: JSON.parse(row.result_json) as unknown,
-    committedAt: row.committed_at,
-  };
-}
+import {
+  principalFromRow,
+  credentialFromRow,
+  noteFromRow,
+  effectReceiptFromRow,
+} from "./store-row-projections.ts";
+import type {
+  PrincipalRow,
+  CredentialRow,
+  ChallengeRow,
+  AgentEffectRow,
+  NoteRow,
+} from "./store-row-projections.ts";
 
 export class WebStore {
   readonly db: DatabaseSync;
+  private readonly grants: AgentGrantStore;
+  private readonly sessions: SessionStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
-    this.db.exec("PRAGMA foreign_keys = ON");
-    this.db.exec("PRAGMA journal_mode = WAL");
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS principals (
-        principal_id TEXT PRIMARY KEY,
-        user_name TEXT NOT NULL UNIQUE,
-        display_name TEXT NOT NULL,
-        created_at INTEGER NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS webauthn_credentials (
-        credential_id TEXT PRIMARY KEY,
-        principal_id TEXT NOT NULL,
-        public_key BLOB NOT NULL,
-        counter INTEGER NOT NULL,
-        transports_json TEXT NOT NULL,
-        device_type TEXT NOT NULL,
-        backed_up INTEGER NOT NULL CHECK (backed_up IN (0, 1)),
-        created_at INTEGER NOT NULL,
-        last_used_at INTEGER NOT NULL,
-        revoked_at INTEGER,
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id)
-      );
-
-      CREATE INDEX IF NOT EXISTS webauthn_credentials_principal
-        ON webauthn_credentials(principal_id, revoked_at);
-
-      CREATE TABLE IF NOT EXISTS webauthn_challenges (
-        challenge_id TEXT PRIMARY KEY,
-        purpose TEXT NOT NULL,
-        principal_id TEXT NOT NULL,
-        challenge TEXT NOT NULL,
-        payload_digest TEXT NOT NULL,
-        payload_json TEXT NOT NULL,
-        expires_at INTEGER NOT NULL,
-        consumed_at INTEGER,
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS sessions (
-        session_id TEXT PRIMARY KEY,
-        token_hash TEXT NOT NULL UNIQUE,
-        principal_id TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        authenticated_at INTEGER NOT NULL,
-        last_seen_at INTEGER NOT NULL,
-        idle_expires_at INTEGER NOT NULL,
-        absolute_expires_at INTEGER NOT NULL,
-        revoked_at INTEGER,
-        authn_method TEXT NOT NULL,
-        user_agent TEXT,
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id)
-      );
-
-      CREATE INDEX IF NOT EXISTS sessions_principal
-        ON sessions(principal_id, revoked_at, absolute_expires_at);
-
-      CREATE TABLE IF NOT EXISTS canary_notes (
-        note_id TEXT PRIMARY KEY,
-        principal_id TEXT NOT NULL,
-        content TEXT NOT NULL,
-        state TEXT NOT NULL CHECK (state IN ('DRAFT', 'PUBLISHED')),
-        created_at INTEGER NOT NULL,
-        published_at INTEGER,
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS agent_grants (
-        grant_id TEXT PRIMARY KEY,
-        grant_digest TEXT NOT NULL,
-        principal_id TEXT NOT NULL,
-        agent_id TEXT NOT NULL,
-        audience TEXT NOT NULL,
-        allowed_actions_json TEXT NOT NULL,
-        resource_prefixes_json TEXT NOT NULL,
-        expires_at INTEGER NOT NULL,
-        max_risk_class TEXT NOT NULL,
-        step_up_at_or_above TEXT NOT NULL,
-        remaining_effects INTEGER NOT NULL CHECK (remaining_effects >= 0),
-        active INTEGER NOT NULL CHECK (active IN (0, 1)),
-        revision INTEGER NOT NULL CHECK (revision >= 1),
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id)
-      );
-
-      CREATE INDEX IF NOT EXISTS agent_grants_resolution
-        ON agent_grants(agent_id, audience, active, expires_at);
-
-      CREATE TABLE IF NOT EXISTS agent_effects (
-        effect_id TEXT PRIMARY KEY,
-        effect_digest TEXT NOT NULL,
-        principal_id TEXT NOT NULL,
-        agent_id TEXT NOT NULL,
-        grant_id TEXT NOT NULL,
-        action TEXT NOT NULL,
-        resource TEXT NOT NULL,
-        result_json TEXT NOT NULL,
-        committed_at INTEGER NOT NULL,
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id),
-        FOREIGN KEY(grant_id) REFERENCES agent_grants(grant_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS pending_effect_approvals (
-        effect_id TEXT PRIMARY KEY,
-        effect_digest TEXT NOT NULL,
-        principal_id TEXT NOT NULL,
-        expires_at INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS effect_approvals (
-        effect_id TEXT PRIMARY KEY,
-        effect_digest TEXT NOT NULL,
-        principal_id TEXT NOT NULL,
-        credential_id TEXT NOT NULL,
-        verified_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL,
-        consumed_at INTEGER,
-        FOREIGN KEY(principal_id) REFERENCES principals(principal_id),
-        FOREIGN KEY(credential_id) REFERENCES webauthn_credentials(credential_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS dpop_proofs (
-        proof_hash TEXT PRIMARY KEY,
-        expires_at INTEGER NOT NULL
-      );
-
-      CREATE INDEX IF NOT EXISTS dpop_proofs_expiry
-        ON dpop_proofs(expires_at);
-
-      CREATE TABLE IF NOT EXISTS audit_events (
-        event_id TEXT PRIMARY KEY,
-        principal_id TEXT,
-        event_type TEXT NOT NULL,
-        object_type TEXT,
-        object_id TEXT,
-        detail_json TEXT NOT NULL,
-        created_at INTEGER NOT NULL
-      );
-
-      CREATE INDEX IF NOT EXISTS audit_events_principal_created
-        ON audit_events(principal_id, created_at);
-    `);
+    initializeWebStoreSchema(this.db);
+    this.grants = new AgentGrantStore(this.db, (...args) => this.audit(...args));
+    this.sessions = new SessionStore(this.db, (...args) => this.audit(...args), (id) => this.getPrincipal(id));
   }
 
   close(): void {
@@ -645,46 +320,7 @@ export class WebStore {
     absoluteSeconds: number,
     userAgent: string | null,
   ): { token: string; session: SessionView } {
-    const token = randomToken();
-    const tokenHash = hashToken(token);
-    const sessionId = randomUUID();
-    const row: SessionRow = {
-      session_id: sessionId,
-      token_hash: tokenHash,
-      principal_id: principalId,
-      created_at: now,
-      authenticated_at: now,
-      last_seen_at: now,
-      idle_expires_at: now + idleSeconds,
-      absolute_expires_at: now + absoluteSeconds,
-      revoked_at: null,
-      authn_method: "webauthn",
-      user_agent: userAgent,
-    };
-    this.db
-      .prepare(`
-        INSERT INTO sessions (
-          session_id, token_hash, principal_id, created_at, authenticated_at,
-          last_seen_at, idle_expires_at, absolute_expires_at, revoked_at,
-          authn_method, user_agent
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
-      `)
-      .run(
-        row.session_id,
-        row.token_hash,
-        row.principal_id,
-        row.created_at,
-        row.authenticated_at,
-        row.last_seen_at,
-        row.idle_expires_at,
-        row.absolute_expires_at,
-        row.authn_method,
-        row.user_agent,
-      );
-    this.audit("session.created", now, principalId, "session", sessionId, {
-      authnMethod: row.authn_method,
-    });
-    return { token, session: sessionFromRow(row) };
+    return this.sessions.createSession(principalId, now, idleSeconds, absoluteSeconds, userAgent);
   }
 
   authenticateSession(
@@ -692,48 +328,11 @@ export class WebStore {
     now: number,
     idleSeconds: number,
   ): AuthenticatedSession {
-    const tokenHash = hashToken(token);
-    const row = this.db
-      .prepare("SELECT * FROM sessions WHERE token_hash = ?")
-      .get(tokenHash) as SessionRow | undefined;
-    if (
-      row === undefined ||
-      row.revoked_at !== null ||
-      row.idle_expires_at <= now ||
-      row.absolute_expires_at <= now
-    ) {
-      throw new WebProblem(
-        401,
-        "session-invalid",
-        "Authentication required",
-        "The browser session is missing, expired, or revoked.",
-      );
-    }
-    const newIdleExpiry = Math.min(now + idleSeconds, row.absolute_expires_at);
-    this.db
-      .prepare(
-        "UPDATE sessions SET last_seen_at = ?, idle_expires_at = ? WHERE session_id = ?",
-      )
-      .run(now, newIdleExpiry, row.session_id);
-    const principal = this.getPrincipal(row.principal_id);
-    return {
-      tokenHash,
-      principal,
-      session: sessionFromRow({
-        ...row,
-        last_seen_at: now,
-        idle_expires_at: newIdleExpiry,
-      }),
-    };
+    return this.sessions.authenticateSession(token, now, idleSeconds);
   }
 
   listSessions(principalId: string): SessionView[] {
-    const rows = this.db
-      .prepare(
-        "SELECT * FROM sessions WHERE principal_id = ? ORDER BY created_at DESC",
-      )
-      .all(principalId) as unknown as SessionRow[];
-    return rows.map(sessionFromRow);
+    return this.sessions.listSessions(principalId);
   }
 
   revokeSession(
@@ -741,33 +340,11 @@ export class WebStore {
     sessionId: string,
     now: number,
   ): boolean {
-    const result = this.db
-      .prepare(
-        "UPDATE sessions SET revoked_at = ? WHERE session_id = ? AND principal_id = ? AND revoked_at IS NULL",
-      )
-      .run(now, sessionId, principalId);
-    if (result.changes === 1) {
-      this.audit("session.revoked", now, principalId, "session", sessionId, {});
-      return true;
-    }
-    return false;
+    return this.sessions.revokeSession(principalId, sessionId, now);
   }
 
   revokeAllSessions(principalId: string, now: number): number {
-    const result = this.db
-      .prepare(
-        "UPDATE sessions SET revoked_at = ? WHERE principal_id = ? AND revoked_at IS NULL",
-      )
-      .run(now, principalId);
-    this.audit(
-      "session.revoked-all",
-      now,
-      principalId,
-      "principal",
-      principalId,
-      { count: result.changes },
-    );
-    return Number(result.changes);
+    return this.sessions.revokeAllSessions(principalId, now);
   }
 
   createCanaryNote(
@@ -829,7 +406,7 @@ export class WebStore {
         "The DPoP proof identity is invalid.",
       );
     }
-    const proofHash = createHash("sha256").update(proofId).digest("hex");
+    const proofHash = hashToken(proofId);
     this.db.exec("BEGIN IMMEDIATE");
     try {
       this.db
@@ -857,55 +434,15 @@ export class WebStore {
   }
 
   createAgentGrant(input: AgentGrantCreate, now: number): AgentGrantSnapshot {
-    const digest = grantDigest(input);
-    this.db
-      .prepare(`
-        INSERT INTO agent_grants (
-          grant_id, grant_digest, principal_id, agent_id, audience,
-          allowed_actions_json, resource_prefixes_json, expires_at,
-          max_risk_class, step_up_at_or_above, remaining_effects, active, revision
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
-      `)
-      .run(
-        input.grantId,
-        digest,
-        input.principalId,
-        input.agentId,
-        input.audience,
-        JSON.stringify(normalizeStrings(input.allowedActions)),
-        JSON.stringify(normalizeStrings(input.resourcePrefixes)),
-        input.expiresAtEpochSeconds,
-        input.maxRiskClass,
-        input.stepUpAtOrAbove,
-        input.remainingEffects,
-      );
-    this.audit("agent.grant.issued", now, input.principalId, "agent-grant", input.grantId, {
-      agentId: input.agentId,
-      grantDigest: digest,
-    });
-    return this.getAgentGrant(input.grantId);
+    return this.grants.createAgentGrant(input, now);
   }
 
   getAgentGrant(grantId: string): AgentGrantSnapshot {
-    const row = this.db
-      .prepare("SELECT * FROM agent_grants WHERE grant_id = ?")
-      .get(grantId) as AgentGrantRow | undefined;
-    if (row === undefined) {
-      throw new WebProblem(
-        404,
-        "agent-grant-not-found",
-        "Agent Grant not found",
-        "The requested Agent Grant does not exist.",
-      );
-    }
-    return grantFromRow(row);
+    return this.grants.getAgentGrant(grantId);
   }
 
   listAgentGrants(principalId: string): AgentGrantSnapshot[] {
-    const rows = this.db
-      .prepare("SELECT * FROM agent_grants WHERE principal_id = ? ORDER BY grant_id")
-      .all(principalId) as unknown as AgentGrantRow[];
-    return rows.map(grantFromRow);
+    return this.grants.listAgentGrants(principalId);
   }
 
   revokeAgentGrant(
@@ -914,32 +451,7 @@ export class WebStore {
     expectedDigest: string,
     now: number,
   ): AgentGrantSnapshot {
-    const current = this.getAgentGrant(grantId);
-    if (current.principalId !== principalId) {
-      throw new WebProblem(
-        403,
-        "agent-grant-principal-mismatch",
-        "Agent Grant mismatch",
-        "The Agent Grant does not belong to this Principal.",
-      );
-    }
-    if (current.grantDigest !== expectedDigest) {
-      throw new WebProblem(
-        409,
-        "agent-grant-changed",
-        "Agent Grant changed",
-        "The Agent Grant changed before revocation.",
-      );
-    }
-    this.db
-      .prepare(
-        "UPDATE agent_grants SET active = 0, revision = revision + 1 WHERE grant_id = ?",
-      )
-      .run(grantId);
-    this.audit("agent.grant.revoked", now, principalId, "agent-grant", grantId, {
-      agentId: current.agentId,
-    });
-    return this.getAgentGrant(grantId);
+    return this.grants.revokeAgentGrant(principalId, grantId, expectedDigest, now);
   }
 
   resolveAgentGrant(
@@ -949,36 +461,7 @@ export class WebStore {
     resource: string,
     now: number,
   ): AgentGrantSnapshot {
-    const rows = this.db
-      .prepare(`
-        SELECT * FROM agent_grants
-        WHERE agent_id = ? AND audience = ? AND active = 1 AND expires_at > ?
-      `)
-      .all(agentId, audience, now) as unknown as AgentGrantRow[];
-    const matches = rows
-      .map(grantFromRow)
-      .filter(
-        (grant) =>
-          grant.allowedActions.includes(action) &&
-          grant.resourcePrefixes.some((prefix) => resource.startsWith(prefix)),
-      );
-    if (matches.length === 0) {
-      throw new WebProblem(
-        403,
-        "agent-grant-unavailable",
-        "Agent authority unavailable",
-        "No active Agent Grant authorizes this action and resource.",
-      );
-    }
-    if (matches.length !== 1) {
-      throw new WebProblem(
-        409,
-        "agent-grant-ambiguous",
-        "Agent authority ambiguous",
-        "More than one Agent Grant matches this action and resource.",
-      );
-    }
-    return matches[0]!;
+    return this.grants.resolveAgentGrant(agentId, audience, action, resource, now);
   }
 
   getAgentEffect(effectId: string): AgentEffectReceipt | null {
@@ -1002,7 +485,11 @@ export class WebStore {
         "The committed effect belongs to a different Agent.",
       );
     }
-    if (existing.effectDigest !== effect.effectDigest) {
+    if (
+      existing.effectDigest !== effect.effectDigest ||
+      existing.action !== effect.action ||
+      existing.resource !== effect.resource
+    ) {
       throw new WebProblem(
         409,
         "effect-conflict",
@@ -1116,7 +603,7 @@ export class WebStore {
     principalId: string,
     effect: AgentEffectRequest,
     now: number,
-  ): { verified: boolean; principalId: string | null; effectId: string | null; method: "webauthn" | null } {
+  ): { verified: boolean; principalId: string | null; effectId: string | null; effectDigest: string | null; method: "webauthn" | null } {
     const row = this.db
       .prepare(`
         SELECT effect_id
@@ -1131,13 +618,43 @@ export class WebStore {
       | { effect_id: string }
       | undefined;
     return row === undefined
-      ? { verified: false, principalId: null, effectId: null, method: null }
+      ? { verified: false, principalId: null, effectId: null, effectDigest: null, method: null }
       : {
           verified: true,
           principalId,
           effectId: effect.effectId,
+          effectDigest: effect.effectDigest,
           method: "webauthn",
         };
+  }
+
+  // OPA ALLOW is not the effect. Recheck concrete authority inside the
+  // existing transaction before its write becomes visible.
+  private assertCommitEffectBinding(
+    current: AgentGrantSnapshot,
+    selected: AgentGrantSnapshot,
+    agentId: string,
+    effect: AgentEffectRequest,
+    expectedAction: string,
+    expectedResource: string,
+    expectedType: string,
+  ): void {
+    if (
+      current.principalId !== selected.principalId ||
+      current.agentId !== selected.agentId ||
+      current.agentId !== agentId ||
+      current.audience !== effect.audience ||
+      !current.allowedActions.includes(effect.action) ||
+      !current.resourcePrefixes.some((prefix) => scopeContains(prefix, effect.resource)) ||
+      effect.action !== expectedAction ||
+      effect.resource !== expectedResource ||
+      effect.effectType !== expectedType
+    ) {
+      throw new WebProblem(
+        403, "agent-effect-not-authorized", "Effect not authorized",
+        "The current Agent Grant does not bind the concrete Effect and target.",
+      );
+    }
   }
 
   commitAgentCanaryCreate(
@@ -1147,24 +664,9 @@ export class WebStore {
     content: string,
     now: number,
   ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    const existing = this.getAgentEffect(effect.effectId);
+    // Reuse the same exact actor/digest replay contract as the admission surface.
+    const existing = this.resolveAgentEffectReplay(agentId, effect);
     if (existing !== null) {
-      if (existing.agentId !== agentId) {
-        throw new WebProblem(
-          403,
-          "effect-actor-mismatch",
-          "Effect actor mismatch",
-          "The committed effect belongs to a different Agent.",
-        );
-      }
-      if (existing.effectDigest !== effect.effectDigest) {
-        throw new WebProblem(
-          409,
-          "effect-conflict",
-          "Effect conflict",
-          "The effect identifier is already bound to different content.",
-        );
-      }
       return { receipt: existing, replayed: true };
     }
 
@@ -1185,6 +687,10 @@ export class WebStore {
           "Mutable Agent authority changed before the Effect commit fence.",
         );
       }
+      this.assertCommitEffectBinding(
+        current, grant, agentId, effect,
+        "canary.note.create", "/canary/notes", "website.canary.note.create",
+      );
       const noteId = randomUUID();
       const note: CanaryNote = {
         noteId,
@@ -1245,24 +751,9 @@ export class WebStore {
     noteId: string,
     now: number,
   ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    const existing = this.getAgentEffect(effect.effectId);
+    // Reuse the same exact actor/digest replay contract as the admission surface.
+    const existing = this.resolveAgentEffectReplay(agentId, effect);
     if (existing !== null) {
-      if (existing.agentId !== agentId) {
-        throw new WebProblem(
-          403,
-          "effect-actor-mismatch",
-          "Effect actor mismatch",
-          "The committed effect belongs to a different Agent.",
-        );
-      }
-      if (existing.effectDigest !== effect.effectDigest) {
-        throw new WebProblem(
-          409,
-          "effect-conflict",
-          "Effect conflict",
-          "The effect identifier is already bound to different content.",
-        );
-      }
       return { receipt: existing, replayed: true };
     }
 
@@ -1296,6 +787,10 @@ export class WebStore {
           "Mutable authority or the effect-bound approval changed before commit.",
         );
       }
+      this.assertCommitEffectBinding(
+        current, grant, agentId, effect,
+        "canary.note.publish", "/canary/notes/" + noteId, "website.canary.note.publish",
+      );
       const noteRow = this.db
         .prepare("SELECT * FROM canary_notes WHERE note_id = ? AND principal_id = ?")
         .get(noteId, current.principalId) as NoteRow | undefined;

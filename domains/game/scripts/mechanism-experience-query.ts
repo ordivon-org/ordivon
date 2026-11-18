@@ -1,9 +1,10 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { readGameKnowledge } from "../src/knowledge-file.ts";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
+import { cliQueryArguments } from "./cli-argument.ts";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const LIBRARY_PATH = "standards/game_mechanism_experience_library_r1.json";
+const LIBRARY_PATH = "knowledge/game_mechanism_experience_library_r1.json";
 
 export type MechanismExperienceQuery = {
   q?: string;
@@ -27,21 +28,16 @@ export type MechanismExperienceQueryResult = {
 };
 
 function library(): any {
-  return JSON.parse(readFileSync(resolve(ROOT, LIBRARY_PATH), "utf8"));
-}
-
-function normalize(value?: string): string | undefined {
-  const result = value?.trim().toLowerCase();
-  return result || undefined;
+  return readGameKnowledge(LIBRARY_PATH);
 }
 
 export function queryMechanismExperiences(query: MechanismExperienceQuery): MechanismExperienceQueryResult {
-  const q = normalize(query.q);
-  const mechanism = normalize(query.mechanism);
-  const reference = normalize(query.reference);
-  const kind = normalize(query.kind);
-  const tag = normalize(query.tag);
-  const limit = Number.isInteger(query.limit) && (query.limit ?? 0) > 0 ? Math.min(query.limit!, 200) : 50;
+  const q = normalizeQueryFilter(query.q);
+  const mechanism = normalizeQueryFilter(query.mechanism);
+  const reference = normalizeQueryFilter(query.reference);
+  const kind = normalizeQueryFilter(query.kind);
+  const tag = normalizeQueryFilter(query.tag);
+  const limit = boundedQueryLimit(query.limit, 200);
 
   const matched = library().experiences.filter((experience: any) => {
     if (q && !JSON.stringify(experience).toLowerCase().includes(q)) return false;
@@ -69,24 +65,7 @@ export function queryMechanismExperiences(query: MechanismExperienceQuery): Mech
   };
 }
 
-function arg(name: string): string | undefined {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : undefined;
-}
-
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const query: MechanismExperienceQuery = {};
-  const q = arg("--q");
-  const mechanism = arg("--mechanism");
-  const reference = arg("--reference");
-  const kind = arg("--kind");
-  const tag = arg("--tag");
-  const rawLimit = arg("--limit");
-  if (q !== undefined) query.q = q;
-  if (mechanism !== undefined) query.mechanism = mechanism;
-  if (reference !== undefined) query.reference = reference;
-  if (kind !== undefined) query.kind = kind;
-  if (tag !== undefined) query.tag = tag;
-  if (rawLimit !== undefined) query.limit = Number(rawLimit);
+  const query: MechanismExperienceQuery = cliQueryArguments(["q", "mechanism", "reference", "kind", "tag"]);
   process.stdout.write(`${JSON.stringify(queryMechanismExperiences(query), null, 2)}\n`);
 }

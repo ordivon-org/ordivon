@@ -1,0 +1,220 @@
+{
+  "kind": "ordivon.github-radar-candidates-r1",
+  "snapshotDay": "2026-11-06",
+  "observedAt": "2026-11-06T05:34:46.633052+00:00",
+  "origin": "github-official-trending-pages",
+  "candidates": [
+    {
+      "repo": "NVIDIA/auto-ontology",
+      "url": "https://github.com/NVIDIA/auto-ontology",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 2679,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-06T05:34:53.886160+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 7738,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-05T14:45:30Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "Nutlope/hallmark",
+      "url": "https://github.com/Nutlope/hallmark",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 6994,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-06T05:34:57.247701+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 48931,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-05T13:16:31Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "boykopovar/AnyPS5",
+      "url": "https://github.com/boykopovar/AnyPS5",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 47184,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-06T05:35:05.969012+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 51537,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "GPL-2.0",
+      "metadataCurrentness": "2026-11-06T05:10:51Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "cloudflare/security-audit-skill",
+      "url": "https://github.com/cloudflare/security-audit-skill",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 35956,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-06T05:35:05.969012+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 61987,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-09-14T19:29:02Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "garrytan/gstack",
+      "url": "https://github.com/garrytan/gstack",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 612,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-06T05:34:53.886160+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 140091,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-06T05:35:10Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "mattpocock/skills",
+      "url": "https://github.com/mattpocock/skills",
+      "officialTrending": [
+        {
+          "window": "daily",
+          "stars": 2071,
+          "label": "today",
+          "sourceUrl": "https://github.com/trending?since=daily",
+          "retrievedAt": "2026-11-06T05:34:53.886160+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 315589,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-05T10:40:01Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "morluto/rea",
+      "url": "https://github.com/morluto/rea",
+      "officialTrending": [
+        {
+          "window": "monthly",
+          "stars": 430792,
+          "label": "this month",
+          "sourceUrl": "https://github.com/trending?since=monthly",
+          "retrievedAt": "2026-11-06T05:35:05.969012+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 435144,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-06T05:34:28Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "pingdotgg/t3code",
+      "url": "https://github.com/pingdotgg/t3code",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 16235,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-06T05:34:57.247701+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 48578,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "MIT",
+      "metadataCurrentness": "2026-11-06T05:34:10Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    },
+    {
+      "repo": "thedotmack/claude-mem",
+      "url": "https://github.com/thedotmack/claude-mem",
+      "officialTrending": [
+        {
+          "window": "weekly",
+          "stars": 9318,
+          "label": "this week",
+          "sourceUrl": "https://github.com/trending?since=weekly",
+          "retrievedAt": "2026-11-06T05:34:57.247701+00:00"
+        }
+      ],
+      "origin": "github-official-trending-pages",
+      "totalStars": 113650,
+      "totalStarsSource": "GitHub REST repository metadata",
+      "licenseMetadata": "Apache-2.0",
+      "metadataCurrentness": "2026-11-06T05:27:34Z",
+      "apiStatus": "OK",
+      "licenseVerification": "METADATA_ONLY_NOT_LICENSE_FILE",
+      "repeatedWithin7Days": false,
+      "recommendationDisposition": "NEW_CANDIDATE",
+      "adoptionStanding": "DISCOVERY_ONLY"
+    }
+  ],
+  "nonClaims": [
+    "Official Trending display windows are not UTC rolling windows",
+    "No arbitrary GitHub API historical star delta inferred",
+    "Discovery candidates do not confer software installation or adoption"
+  ]
+}

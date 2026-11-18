@@ -29,8 +29,42 @@ SOURCE_FILES = (
     "mise.toml",
     "tools/formal/mise.toml",
     "tools/formal/verify.py",
+    "tools/repo/affected_owners.py",
+    "tools/repo/test_affected_owners.py",
+    "tools/repo/test_formal_source_contract.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
+    "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+    "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+    "capabilities/media/formal/TimedTextDeliveryPrecision.lean",
+    "capabilities/media/src/ordivon_studio/timed_text.py",
+    "capabilities/media/tests/test_timed_text.py",
+    "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+    "capabilities/media/formal/ProductionDependencyImpact.lean",
+    "capabilities/media/formal/ArchiveVisualSourcePreservation.lean",
+    "capabilities/media/productions/archive-archipelago-001/archive_source.py",
+    "capabilities/media/productions/archive-archipelago-001/generate.py",
+    "capabilities/media/productions/archive-archipelago-001/generate_owner_summary_vegalite.py",
+    "capabilities/media/tests/test_archive_graphics_source_truth.py",
+    "capabilities/media/tests/test_archive_vegalite_spec.py",
+    "capabilities/media/schemas/operation-lineage.schema.json",
+    "capabilities/media/src/ordivon_studio/operation_impact.py",
+    "capabilities/media/tests/test_operation_impact.py",
+    "capabilities/media/productions/convergence-sonic-ident/operation-lineage.json",
+    "capabilities/media/productions/convergence-sonic-ident/production.json",
+    "capabilities/media/src/ordivon_studio/production_context.py",
+    "capabilities/media/tests/test_production_context.py",
+    "capabilities/media/src/ordivon_studio/production_validation.py",
+    "capabilities/media/schemas/production.schema.json",
+    "capabilities/media/tests/test_models.py",
+    "capabilities/media/src/ordivon_studio/agent_surface.py",
+    "capabilities/media/src/ordivon_studio/agent_surface_contracts.py",
+    "capabilities/media/tests/test_agent_surface.py",
+    "capabilities/media/src/ordivon_studio/creative_index_library.py",
+    "capabilities/media/tests/test_creative_index.py",
+    "capabilities/media/formal/LoudnessProfileSafety.smt2",
+    "capabilities/media/src/ordivon_studio/agent_processing.py",
+    "capabilities/media/src/ordivon_studio/qc.py",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -112,6 +146,123 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
             checksum = hashlib.file_digest(handle, "sha256").hexdigest()
         result[name] = {"path": str(path), "version": version, "sha256": checksum}
     return result
+
+
+def qualified_alloy_runtime_resources(alloy_executable: str) -> dict[str, dict[str, str]]:
+    """Bind two observed Alloy/JVM code inputs outside the executable ELF.
+
+    These are actual consumed files, not a complete Java/native loader readset.
+    """
+    root = Path(alloy_executable).parent.parent
+    relative_paths = {
+        "alloyAppJar": "lib/app/org.alloytools.alloy.dist.jar",
+        "alloyJvm": "lib/runtime/lib/server/libjvm.so",
+    }
+    resources: dict[str, dict[str, str]] = {}
+    for name, relative in relative_paths.items():
+        path = root / relative
+        if (path.is_symlink() or not path.is_file()
+                or not stat.S_ISREG(path.stat().st_mode)):
+            raise ValueError(f"unqualified Alloy runtime dependency: {name}")
+        with path.open("rb") as handle:
+            digest = hashlib.file_digest(handle, "sha256").hexdigest()
+        resources[name] = {"path": str(path), "sha256": digest}
+    return resources
+
+def observed_z3_elf_dependencies(executable: Path) -> dict[str, object]:
+    """Observe glibc's resolved ELF DT_NEEDED closure for ONE native Z3 consumer.
+
+    This is a platform-bounded pre/post input witness, not a complete
+    dependency closure: dlopen, child processes, prior loader effects and
+    time-of-check/time-of-use remain UNKNOWN. No ldd or executing the target.
+    """
+    require_unmodified_elf_loader_environment()
+    target = executable.resolve(strict=True)
+    if not target.is_file():
+        raise ValueError("Z3 ELF entrypoint is not a regular file")
+
+    # PT_INTERP is an ELF64 little-endian header reference. Reject other
+    # architectures rather than guessing the consumer's dynamic linker.
+    import struct
+    with target.open("rb") as handle:
+        header = handle.read(64)
+        if len(header) != 64 or header[:6] != b"\x7fELF\x02\x01":
+            raise ValueError("unsupported Z3 ELF format (expected ELF64 little-endian)")
+        phoff = struct.unpack_from("<Q", header, 32)[0]
+        phentsize, phnum = struct.unpack_from("<HH", header, 54)
+        if not (56 <= phentsize <= 256 and 0 < phnum <= 128):
+            raise ValueError("unqualified Z3 ELF program headers")
+        interpreter = None
+        for index in range(phnum):
+            handle.seek(phoff + index * phentsize)
+            record = handle.read(phentsize)
+            if len(record) != phentsize:
+                raise ValueError("truncated Z3 ELF program header")
+            if struct.unpack_from("<I", record)[0] == 3:  # PT_INTERP
+                if interpreter is not None:
+                    raise ValueError("multiple ELF interpreters")
+                offset = struct.unpack_from("<Q", record, 8)[0]
+                size = struct.unpack_from("<Q", record, 32)[0]
+                if not (1 <= size <= 512):
+                    raise ValueError("unqualified ELF interpreter length")
+                handle.seek(offset)
+                raw = handle.read(size)
+                if len(raw) != size or raw[-1:] != b"\x00":
+                    raise ValueError("malformed Z3 ELF interpreter")
+                interpreter = raw[:-1].decode("utf-8", errors="strict")
+    if interpreter != "/lib64/ld-linux-x86-64.so.2":
+        raise ValueError("unsupported Z3 ELF interpreter: " + str(interpreter))
+
+    loader = Path(interpreter).resolve(strict=True)
+    if not loader.is_file() or not stat.S_ISREG(loader.stat().st_mode):
+        raise ValueError("unqualified ELF loader")
+    report = subprocess.run(
+        [str(loader), "--list", str(target)], cwd=ROOT,
+        text=True, capture_output=True, check=False, timeout=15,
+    )
+    if report.returncode:
+        raise ValueError("ELF loader dependency listing failed: " + report.stderr[-500:])
+
+    # Parse only realized absolute paths, excluding the virtual VDSO.
+    libraries: dict[str, str] = {}
+    for line in report.stdout.splitlines():
+        line = line.strip()
+        if not line or line.startswith("linux-vdso.so.1 "):
+            continue
+        # Some glibc runners emit standalone address annotations. They
+        # identify no library and must never be treated as dependencies.
+        # Only this exact metadata shape may be ignored; "not found" and
+        # any unqualified SONAME continue to fail closed below.
+        if re.fullmatch(r"\(0x[0-9a-fA-F]+\)", line):
+            continue
+        # ld.so --list address annotations differ between glibc builds.
+        # The actual dependency identity is its resolved absolute pathname,
+        # not a formatter-specific "(0x...)" trailing field.
+        name = (line.rsplit(" => ", 1)[-1] if " => " in line else line)
+        name = name.split(None, 1)[0]
+        if not name.startswith("/"):
+            # Keep the exact falsifier visible to independent CI reviewers,
+            # without printing arbitrary-length loader output or environment.
+            printable = re.sub(r"[^\x20-\x7e]", "?", line)[:160]
+            raise ValueError(
+                "unresolved or nonabsolute Z3 ELF loader dependency: " + repr(printable)
+            )
+        library = Path(name).resolve(strict=True)
+        if not library.is_file() or not stat.S_ISREG(library.stat().st_mode):
+            raise ValueError("nonregular Z3 ELF loader dependency")
+        with library.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        libraries[str(library)] = digest
+    if not libraries or str(loader) not in libraries:
+        raise ValueError("incomplete ELF loader-observed dependency listing")
+    with target.open("rb") as stream:
+        entry_digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    return {
+        "scope": "linux-elf64-x86_64-glibc-ld.so-list-prepost-not-dlopen-or-TOCTOU",
+        "entrypointSha256": entry_digest,
+        "interpreterPath": str(loader),
+        "resolvedLibraries": dict(sorted(libraries.items())),
+    }
 
 
 def qualified_timeout_adapter_fragment() -> dict[str, object]:
@@ -238,16 +389,51 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         'receipt = self._call("execution.submit", gateway_args)'
     ).body[0]
     after_projection = submit.body[projections[0][0] + 1:]
-    if (not after_projection
-            or canonical(after_projection[0]) != canonical(expected_dispatch)):
-        raise ValueError("timeout Gateway effect frame changed before dispatch")
+    if (after_projection
+            and canonical(after_projection[0]) == canonical(expected_dispatch)):
+        frame = "exact_post_projection_return_and_immediate_gateway_dispatch"
+    else:
+        # Observe only this exact currently implemented native-Claim barrier.
+        # This is an AST syntactic witness, NOT a proof that an arbitrary Port
+        # will uphold its authn/issuer/Workspace contract at runtime.
+        guarded = ast.parse("""
+if self._workspace_admission_required and self._workspace_admission is None:
+    raise HarnessWorkspaceAdmissionUnavailable(
+        "Gateway execution requires a certified Runtime Workspace Claim"
+    )
+if self._workspace_admission is not None:
+    try:
+        admitted = self._workspace_admission.require_effect_ready(
+            run_ref=_required_text(self._run_ref, "bound Harness Run"),
+            workspace_id=self.grant.workspace_id,
+            tool_grant_digest=_required_text(self._grant_digest, "bound Tool Grant"),
+            runtime_operation="workspace.exec",
+            client_request_id=request_id,
+        )
+    except HarnessWorkspaceAdmissionUnavailable:
+        raise
+    except Exception as error:
+        raise HarnessWorkspaceAdmissionUnavailable(
+            f"Gateway Workspace qualification unavailable: {type(error).__name__}"
+        ) from error
+    if admitted is not None:
+        raise HarnessWorkspaceAdmissionUnavailable(
+            "Gateway Workspace Port returned an unauthenticated caller token"
+        )
+""").body
+        if (len(after_projection) < 3
+                or canonical(after_projection[0]) != canonical(guarded[0])
+                or canonical(after_projection[1]) != canonical(guarded[1])
+                or canonical(after_projection[2]) != canonical(expected_dispatch)):
+            raise ValueError("timeout Gateway effect frame changed before dispatch")
+        frame = "exact_post_projection_native_claim_guard_then_gateway_dispatch"
 
     return {
         "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
         "producerPath": path,
         "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
         "sourceAstAnchorsObserved": True,
-        "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
+        "effectFrameObserved": frame,
         # Even this stronger exact frame is only a bounded source observation.
         # It does not prove Python control-flow/data-flow semantics, alias
         # behavior before the frame, or source-to-Lean implementation refinement.
@@ -292,11 +478,38 @@ def run(label: str, args: list[str], *, input_text: str | None = None,
     return {"probe": label, "result": "PASS", "rc": p.returncode}
 
 
+def qualify_alloy_sat_witness(output: str) -> int:
+    """Only a real finite Alloy instance can satisfy the positive SAT probe.
+
+    An empty result or a printable JSON field name is not a model witness.
+    This checks the native Alloy CLI output shape, not model-to-code refinement.
+    """
+    try:
+        payload = json.loads(output)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Alloy SAT witness must be structured JSON") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Alloy SAT witness must be a JSON object")
+    instances = payload.get("instances")
+    if not isinstance(instances, list) or not instances:
+        raise ValueError("Alloy positive SAT probe has no model instance")
+    for instance in instances:
+        if (not isinstance(instance, dict)
+                or type(instance.get("state")) is not int
+                or not isinstance(instance.get("values"), dict)):
+            raise ValueError("Alloy SAT witness contains an invalid instance")
+    return len(instances)
+
+
 def main() -> None:
     require_unmodified_elf_loader_environment()
     source_before = qualified_source_cut()
     fragment = qualified_timeout_adapter_fragment()
     tools_before = qualified_tool_binaries()
+    alloy_resources_before = qualified_alloy_runtime_resources(tools_before["alloy"]["path"])
+    z3_elf_before = observed_z3_elf_dependencies(Path(tools_before["z3"]["path"]))
+    if z3_elf_before["entrypointSha256"] != tools_before["z3"]["sha256"]:
+        raise ValueError("Z3 ELF entrypoint differs from selected mise executable")
 
     def executable(name: str) -> str:
         return tools_before[name]["path"]
@@ -304,7 +517,15 @@ def main() -> None:
     probes: list[dict[str, object]] = []
     source = ROOT / "RecursiveLegoRefinement.lean"
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
-    for proof_file in (source, variation):
+    media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
+    media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
+    media_timed_text_proof = REPO / "capabilities/media/formal/TimedTextDeliveryPrecision.lean"
+    media_output_proof = REPO / "capabilities/media/formal/ProductionOutputByteIdentity.lean"
+    media_dependency_proof = REPO / "capabilities/media/formal/ProductionDependencyImpact.lean"
+    media_archive_visual_proof = REPO / "capabilities/media/formal/ArchiveVisualSourcePreservation.lean"
+    for proof_file in (source, variation, media_proof, media_library_proof,
+                       media_output_proof, media_dependency_proof, media_archive_visual_proof,
+                       media_timed_text_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -317,6 +538,33 @@ def main() -> None:
             [executable("lean"), str(variation)],
             env_overlay={"LEAN_PATH": str(tmp)},
         ))
+        probes.append(run("Lean kernel Media processing admission model",
+                          [executable("lean"), str(media_proof)]))
+        probes.append(run("Lean kernel Media Creative Library Catalog acceptance",
+                          [executable("lean"), str(media_library_proof)]))
+        probes.append(run("Lean kernel Media TimedText delivery precision",
+                          [executable("lean"), str(media_timed_text_proof)]))
+        probes.append(run("Lean kernel Media Output byte identity",
+                          [executable("lean"), str(media_output_proof)]))
+        probes.append(run("Lean kernel Media dependency impact model",
+                          [executable("lean"), str(media_dependency_proof)]))
+        probes.append(run("Lean kernel Media archive visual relation conservation",
+                          [executable("lean"), str(media_archive_visual_proof)]))
+        # Check all three FP queries, including the historical NaN
+        # counterexample. Z3 process success by itself is not a proof.
+        media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"
+        fp_check = subprocess.run(
+            [executable("z3"), "-smt2", str(media_fp)], check=False,
+            capture_output=True, text=True, timeout=30,
+        )
+        if fp_check.returncode or fp_check.stdout.strip().splitlines() != [
+                "sat", "unsat", "sat"]:
+            raise AssertionError(
+                "Media loudness FP model SAT/UNSAT/nonvacuity mismatch: "
+                + (fp_check.stdout + fp_check.stderr)[-1800:]
+            )
+        probes.append({"probe": "Z3 IEEE-754 Media loudness profile model",
+                       "result": "PASS", "rc": 0})
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
         probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],
@@ -387,9 +635,12 @@ def main() -> None:
         alloy = subprocess.run([executable("alloy"), "exec", "-o", "-", "-t", "json",
                                 str(ROOT / "Proof.als")], check=False,
                                capture_output=True, text=True, timeout=95)
-        if alloy.returncode or '"instances"' not in alloy.stdout:
-            raise AssertionError("Alloy failed actual SAT witness: " +
+        if alloy.returncode:
+            raise AssertionError("Alloy positive SAT execution failed: " +
                                  (alloy.stdout + alloy.stderr)[-1200:])
+        # Keep the existing three-field proof receipt consumed by protected CI.
+        # SAT instance non-vacuity is an admission condition, not a new schema.
+        qualify_alloy_sat_witness(alloy.stdout)
         probes.append({"probe": "Alloy finite SAT model", "result": "PASS",
                        "rc": alloy.returncode})
     source_after = qualified_source_cut()
@@ -398,6 +649,11 @@ def main() -> None:
     tools_after = qualified_tool_binaries()
     if tools_after != tools_before:
         raise ValueError("mise verifier executable identity changed during checks")
+    if qualified_alloy_runtime_resources(tools_after["alloy"]["path"]) != alloy_resources_before:
+        raise ValueError("Alloy/JVM runtime code inputs changed during checks")
+    z3_elf_after = observed_z3_elf_dependencies(Path(tools_after["z3"]["path"]))
+    if z3_elf_after != z3_elf_before:
+        raise ValueError("Z3 ELF resolved dependency changed during proof checks")
     print(json.dumps({
         "kind": "source-scoped-native-formal-toolchain-check",
         "status": "PASS", "probes": probes, "count": len(probes),
@@ -407,6 +663,8 @@ def main() -> None:
         "sourceBlobs": source_before["sourceBlobs"],
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "toolBinaries": tools_before,
+        "toolResources": alloy_resources_before,
+        "z3ObservedElfDependencies": z3_elf_before,
         "proofReuseAdmissible": False,
         "sourceFragmentRefinement": fragment,
         "implementationRefinement": "UNKNOWN",
@@ -418,6 +676,8 @@ def main() -> None:
             "SMT answers are cross-solver results for the stated QF_LIA formula only",
             "Git pre/post snapshots cannot exclude transient mutate-and-restore",
             "mise executable SHA-256 binds entrypoints, not their dynamic libraries or plugins",
+            "Z3 ELF loader --list records a scoped pre/post resolved library snapshot only; "
+            "dlopen, child tools and loader TOCTOU are not observed or qualified",
             "LD_* environment override rejection is a live-process admission condition, "
             "not pre-exec loader attestation, full dependency closure or time continuity",
         ],

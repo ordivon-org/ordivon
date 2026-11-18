@@ -1,8 +1,10 @@
+// Runtime inspection consumers intentionally use this shared projection.
+pub(super) use super::error::map_universal_error;
 use super::lifecycle_locks::WorkspaceLeaseTable;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -12,6 +14,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
+use super::build_target_contract::{
+    requires_private_cargo_build_target, TRUSTED_BUILD_TARGET_PRESENTATION,
+};
 use super::evidence::{
     prepare_runner_terminal_from_bundle, validate_workspace_source_observation_artifact,
 };
@@ -24,16 +29,18 @@ use super::supervisor::{
     SupervisorObservation, SupervisorRecoveryDisposition, SupervisorUnitState, TerminationIntent,
 };
 use super::windows::*;
+use super::workspace_headroom::{
+    ensure_workspace_headroom, validate_workspace_headroom, WorkspaceHeadroomConfig,
+};
 use super::workspace_state::{
     ensure_workspace_close_allowed, ensure_workspace_mutation_allowed, project_workspace_summary,
     WorkspaceProjectionFacts,
 };
 use super::{
-    runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
-    validate_logical_id, AdmissionOutcome, ArtifactContentMetadata, ArtifactContentReadResult,
-    ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest, ArtifactReadResult,
-    ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent,
-    CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
+    runtime_release_effect_id, runtime_release_request_identity_digest, AdmissionOutcome,
+    ArtifactContentMetadata, ArtifactContentReadResult, ArtifactContentRequest, ArtifactDescriptor,
+    ArtifactReadRequest, ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
+    AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
     ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode,
     InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
     JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunRequest, Registry, RegistryConfig,
@@ -44,7 +51,7 @@ use super::{
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
     RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TerminalCommit,
-    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
     canonical_directory, create_git_workspace, list_open_workspace_record_inventory,
@@ -82,25 +89,7 @@ const DEFAULT_EXECUTION_HOME: &str = "/root";
 const STALE_PREPARED_INPUT_AGE_MS: u64 = 60_000;
 const WINDOWS_NATIVE_OUTER_DEADLINE_GRACE_MS: u64 = 5_000;
 const HOST_DEPENDENCY_CONTINUITY_SCOPE: &str = "runtime_host_namespace_path_witness";
-const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const WINDOWS_INPUT_PRESENTATION_COMPONENTS: [&str; 1] = ["OrdivonImmutableInputs"];
-const CONTAINED_RUNTIME_ENVIRONMENT: [&str; 15] = [
-    "HOME",
-    "TMPDIR",
-    "XDG_CACHE_HOME",
-    "CARGO_TARGET_DIR",
-    "UV_CACHE_DIR",
-    "PIP_CACHE_DIR",
-    "npm_config_cache",
-    "PNPM_HOME",
-    "COREPACK_HOME",
-    "BUN_INSTALL_CACHE_DIR",
-    "GOMODCACHE",
-    "GOCACHE",
-    "GIT_OPTIONAL_LOCKS",
-    "ORDIVON_PAYLOAD_UID",
-    "ORDIVON_PAYLOAD_GID",
-];
 
 fn set_environment_value_case_insensitive(
     environment: &mut BTreeMap<String, String>,
@@ -210,12 +199,6 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
     *poll_index = poll_index.saturating_add(1);
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorkspaceHeadroomConfig {
-    pub path: PathBuf,
-    pub minimum_free_bytes: u64,
-}
-
 #[derive(Clone, Debug)]
 pub struct RuntimeConfig {
     pub node_id: String,
@@ -269,7 +252,7 @@ pub struct Runtime {
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
-    workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    workspace_headroom: Vec<WorkspaceHeadroomConfig>,
     topology_lock: Arc<Mutex<()>>,
     workspace_leases: WorkspaceLeaseTable,
     control_terminal_lock: Arc<Mutex<()>>,
@@ -449,211 +432,29 @@ include!("engine/admission.rs");
 include!("engine/release.rs");
 include!("engine/workspace.rs");
 include!("engine/execution.rs");
+include!("engine/provider_commitments.rs");
+include!("engine/execution_preparation.rs");
+include!("engine/launch_identity.rs");
 include!("engine/reconciliation.rs");
-include!("engine/control_query.rs");
-#[derive(Debug)]
-struct OutputView {
-    content: String,
-    offset: Option<u64>,
-    next_offset: Option<u64>,
-    available_bytes: Option<u64>,
-    eof: Option<bool>,
-}
-
-impl OutputView {
-    fn empty(offset: Option<u64>, terminal: bool) -> Self {
-        Self {
-            content: String::new(),
-            offset,
-            next_offset: offset,
-            available_bytes: offset.map(|_| 0),
-            eof: offset.map(|value| terminal && value == 0),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct TextRange {
-    content: String,
-    next_offset: u64,
-}
-
-#[derive(Clone, Copy)]
-struct RangeFields<'a> {
-    offset: &'a str,
-    max_bytes: &'a str,
-}
-
-fn read_utf8_range(
-    path: &Path,
-    offset: u64,
-    max_bytes: u64,
-    available: u64,
-    terminal: bool,
-    fields: RangeFields<'_>,
-    context: &str,
-) -> RuntimeResult<TextRange> {
-    let mut file =
-        File::open(path).map_err(|error| io_error(&format!("open {context} range"), error))?;
-    read_utf8_range_from_reader(
-        &mut file, offset, max_bytes, available, terminal, fields, context,
-    )
-}
-
-// Use this same UTF-8 boundary contract for regular output files and for a
-// digest-verified Artifact byte snapshot. A fresh pathname open after hashing
-// is not a valid Artifact identity bridge.
-fn read_utf8_range_from_reader<R: Read + Seek>(
-    reader: &mut R,
-    offset: u64,
-    max_bytes: u64,
-    available: u64,
-    terminal: bool,
-    fields: RangeFields<'_>,
-    context: &str,
-) -> RuntimeResult<TextRange> {
-    if offset > available {
-        return Err(RuntimeError::invalid(
-            format!("{} exceeds retained byte length {available}", fields.offset),
-            fields.offset,
-        ));
-    }
-    if max_bytes == 0 || offset == available {
-        return Ok(TextRange {
-            content: String::new(),
-            next_offset: offset,
-        });
-    }
-    let read_limit = max_bytes.min(available.saturating_sub(offset));
-    reader
-        .seek(SeekFrom::Start(offset))
-        .map_err(|error| io_error(&format!("seek {context} range"), error))?;
-    let mut bytes = vec![0_u8; usize::try_from(read_limit).unwrap_or(usize::MAX)];
-    let read = reader
-        .read(&mut bytes)
-        .map_err(|error| io_error(&format!("read {context} range"), error))?;
-    bytes.truncate(read);
-    decode_utf8_range_bytes(bytes, offset, available, terminal, fields)
-}
-
-fn decode_utf8_range_bytes(
-    mut bytes: Vec<u8>,
-    offset: u64,
-    available: u64,
-    terminal: bool,
-    fields: RangeFields<'_>,
-) -> RuntimeResult<TextRange> {
-    if offset > 0 && bytes.first().is_some_and(|byte| byte & 0xc0 == 0x80) {
-        return Err(RuntimeError::invalid(
-            format!("{} must point to a UTF-8 character boundary", fields.offset),
-            fields.offset,
-        ));
-    }
-    let safe_len = match std::str::from_utf8(&bytes) {
-        Ok(_) => bytes.len(),
-        Err(error) if error.error_len().is_none() => error.valid_up_to(),
-        Err(_) => bytes.len(),
-    };
-    if safe_len == 0 && !bytes.is_empty() {
-        if !terminal && offset.saturating_add(bytes.len() as u64) >= available {
-            return Ok(TextRange {
-                content: String::new(),
-                next_offset: offset,
-            });
-        }
-        return Err(RuntimeError::invalid(
-            format!(
-                "{} is too small for the next UTF-8 character; use at least 4 bytes",
-                fields.max_bytes
-            ),
-            fields.max_bytes,
-        ));
-    }
-    bytes.truncate(safe_len);
-    Ok(TextRange {
-        content: String::from_utf8_lossy(&bytes).into_owned(),
-        next_offset: offset.saturating_add(safe_len as u64),
-    })
-}
-
-fn read_output_text(
-    path: &Path,
-    offset: Option<u64>,
-    max_bytes: u64,
-    terminal: bool,
-    offset_field: &str,
-    max_bytes_field: &str,
-) -> RuntimeResult<OutputView> {
-    let Some(offset) = offset else {
-        return Ok(OutputView {
-            content: read_tail_text(path, max_bytes)?,
-            offset: None,
-            next_offset: None,
-            available_bytes: None,
-            eof: None,
-        });
-    };
-    let available = if path.exists() {
-        fs::metadata(path)
-            .map_err(|error| io_error("inspect output range", error))?
-            .len()
-    } else {
-        0
-    };
-    if offset > available {
-        return Err(RuntimeError::invalid(
-            format!("{offset_field} exceeds retained output length {available}"),
-            offset_field,
-        ));
-    }
-    if max_bytes == 0 || !path.exists() {
-        return Ok(OutputView {
-            content: String::new(),
-            offset: Some(offset),
-            next_offset: Some(offset),
-            available_bytes: Some(available),
-            eof: Some(terminal && offset >= available),
-        });
-    }
-    let range = read_utf8_range(
-        path,
-        offset,
-        max_bytes,
-        available,
-        terminal,
-        RangeFields {
-            offset: offset_field,
-            max_bytes: max_bytes_field,
-        },
-        "output",
-    )?;
-    Ok(OutputView {
-        content: range.content,
-        offset: Some(offset),
-        next_offset: Some(range.next_offset),
-        available_bytes: Some(available),
-        eof: Some(terminal && range.next_offset >= available),
-    })
-}
-
-fn read_tail_text(path: &Path, max_bytes: u64) -> RuntimeResult<String> {
-    if max_bytes == 0 || !path.exists() {
-        return Ok(String::new());
-    }
-    let mut file = File::open(path).map_err(|error| io_error("open output tail", error))?;
-    let length = file
-        .metadata()
-        .map_err(|error| io_error("inspect output tail", error))?
-        .len();
-    let offset = length.saturating_sub(max_bytes);
-    file.seek(SeekFrom::Start(offset))
-        .map_err(|error| io_error("seek output tail", error))?;
-    let mut bytes = Vec::with_capacity(usize::try_from(max_bytes.min(length)).unwrap_or(0));
-    file.take(max_bytes)
-        .read_to_end(&mut bytes)
-        .map_err(|error| io_error("read output tail", error))?;
-    Ok(String::from_utf8_lossy(&bytes).into_owned())
-}
+include!("engine/observation_projection.rs");
+include!("engine/prepared_binding_recovery.rs");
+include!("engine/orphan_recovery.rs");
+include!("engine/terminal_commit.rs");
+include!("engine/job_control.rs");
+include!("engine/execution_environment.rs");
+include!("engine/terminal_evidence.rs");
+include!("engine/workspace_evidence.rs");
+include!("engine/job_activity_evidence.rs");
+include!("engine/input_bindings.rs");
+use super::admission_validation::{
+    effective_limits_from_plan_json, validate_new_admission_policy, validate_observe_request,
+    validate_run_proposal_structure, validate_run_request_structure,
+};
+include!("engine/artifact_projection.rs");
+mod output;
+use self::output::{decode_utf8_range_bytes, read_output_text, OutputView, RangeFields};
+#[cfg(test)]
+use self::output::{read_tail_text, read_utf8_range};
 
 fn native_windows_outer_deadline_due(
     execution_started_at_ms: u64,
@@ -882,20 +683,6 @@ fn now_ms() -> RuntimeResult<u64> {
         })
 }
 
-fn validate_text_id(value: &str, field: &str) -> RuntimeResult<()> {
-    if value.trim().is_empty()
-        || value.len() > 256
-        || value.as_bytes().contains(&0)
-        || value.chars().any(char::is_control)
-    {
-        return Err(RuntimeError::invalid(
-            format!("{field} must be non-empty, bounded, and control-free"),
-            field,
-        ));
-    }
-    Ok(())
-}
-
 fn serialization_error(error: serde_json::Error) -> RuntimeError {
     RuntimeError::new(
         RuntimeErrorCode::RegistryUnavailable,
@@ -917,35 +704,6 @@ fn workspace_issue(
         message: error.message,
         retryable: error.retryable,
     }
-}
-
-pub(crate) fn map_universal_error(error: crate::UniversalExecError) -> RuntimeError {
-    use crate::UniversalExecErrorCode as UniversalCode;
-
-    let code = match error.code {
-        UniversalCode::InvalidRequest => RuntimeErrorCode::InvalidRequest,
-        UniversalCode::WorkspaceExists => RuntimeErrorCode::WorkspaceExists,
-        UniversalCode::WorkspaceNotFound => RuntimeErrorCode::WorkspaceNotFound,
-        UniversalCode::WorkspacePathNotFound => RuntimeErrorCode::WorkspacePathNotFound,
-        UniversalCode::WorkspaceDirty => RuntimeErrorCode::WorkspaceDirty,
-        UniversalCode::WorkspacePathDenied => RuntimeErrorCode::WorkspacePathDenied,
-        UniversalCode::RevisionNotFound => RuntimeErrorCode::RevisionNotFound,
-        UniversalCode::RevisionMismatch => RuntimeErrorCode::RevisionMismatch,
-        UniversalCode::WorkspaceStateMismatch
-        | UniversalCode::InputStateMismatch
-        | UniversalCode::HostDependencyRuntimeDrift
-        | UniversalCode::ExecutableRuntimeDrift => RuntimeErrorCode::WorkspaceStateMismatch,
-        UniversalCode::WorkspaceMutationIncomplete => RuntimeErrorCode::ReconciliationRequired,
-        UniversalCode::ArtifactNotFound => RuntimeErrorCode::ArtifactNotFound,
-        UniversalCode::ArtifactNotUtf8 => RuntimeErrorCode::ArtifactNotUtf8,
-        UniversalCode::OutputLimitExceeded => RuntimeErrorCode::OutputLimitExceeded,
-        UniversalCode::ToolUnavailable => RuntimeErrorCode::ToolUnavailable,
-        UniversalCode::ToolFailed => RuntimeErrorCode::ToolFailed,
-        UniversalCode::IoError => RuntimeErrorCode::IoError,
-        UniversalCode::WorkspaceCapacityExceeded => RuntimeErrorCode::WorkspaceCapacityExceeded,
-        UniversalCode::MetadataCorrupt => RuntimeErrorCode::MetadataCorrupt,
-    };
-    RuntimeError::new(code, error.message, error.field.as_deref(), error.retryable)
 }
 
 fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
@@ -1216,6 +974,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: Some(&inputs),
             credential_source_root: None,
             credential_names: &[],
@@ -1241,6 +1000,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: Some(&inputs),
             credential_source_root: None,
             credential_names: &[],
@@ -1883,6 +1643,7 @@ mod trusted_systemd_command_tests {
             bundle_path: Path::new("/var/lib/ordivon/attempts/attempt-test"),
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1931,6 +1692,7 @@ mod trusted_systemd_command_tests {
             memory_max_bytes: Some(512 * 1024 * 1024),
             tasks_max: Some(64),
             cpu_quota_percent: Some(250),
+            scheduling: None,
         };
         let environment = BTreeMap::new();
         let command = build_systemd_run_command(&SystemdRunSpec {
@@ -1939,6 +1701,7 @@ mod trusted_systemd_command_tests {
             bundle_path: Path::new("/var/lib/ordivon/attempts/attempt-budget"),
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1987,6 +1750,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],

@@ -1,16 +1,69 @@
 /// Independently launched fresh-PG MCP adapter. The SQLite Engine is never constructed.
+/// Operator-owned release configuration; never supplied in MCP request JSON.
+#[derive(Clone, Debug)]
+pub struct PgReleaseOperatorConfig {
+    pub source_repo: PathBuf,
+    pub operator_executable: PathBuf,
+    pub receipt_root: PathBuf,
+    /// The independent systemd timer is a durable consumer of accepted effects.
+    pub dispatcher_timer: String,
+}
+
 #[derive(Clone)]
 pub struct PgRuntimeServer {
     runtime: ordivon_runtime_core::PgRuntime,
     execution: ExecutionContext,
+    release: Option<PgReleaseOperatorConfig>,
 }
 
 impl PgRuntimeServer {
     pub fn new(runtime: ordivon_runtime_core::PgRuntime, execution: ExecutionContext) -> Self {
-        Self { runtime, execution }
+        Self { runtime, execution, release: None }
+    }
+    pub fn with_release(
+        runtime: ordivon_runtime_core::PgRuntime,
+        execution: ExecutionContext,
+        release: Option<PgReleaseOperatorConfig>,
+    ) -> Self {
+        Self { runtime, execution, release }
+    }
+    fn release_ready(&self) -> bool {
+        let Some(config)=&self.release else { return false; };
+        if !config.source_repo.is_dir()
+            || !config.operator_executable.is_file()
+            || !config.receipt_root.is_absolute()
+            || !config.dispatcher_timer.starts_with("ordivon-")
+            || !config.dispatcher_timer.ends_with(".timer")
+            || !config.dispatcher_timer.bytes().all(|b|b.is_ascii_alphanumeric()||matches!(b,b'-'|b'.'))
+        { return false; }
+        // Synchronous postgres starts its own Tokio runtime when establishing
+        // a connection. Tool catalogs are read both from async MCP handlers
+        // and from the Tokio-driven PG binary startup path. Do not connect on
+        // a Tokio worker: one shared boundary covers all those consumers.
+        let qualified = if tokio::runtime::Handle::try_current().is_ok() {
+            let runtime = self.runtime.clone();
+            std::thread::spawn(move || runtime.release_qualified().unwrap_or(false))
+                .join()
+                .unwrap_or(false)
+        } else {
+            self.runtime.release_qualified().unwrap_or(false)
+        };
+        if !qualified { return false; }
+        std::process::Command::new("/usr/bin/systemctl")
+            .args(["is-active","--quiet",&config.dispatcher_timer])
+            .status().is_ok_and(|status| status.success())
+    }
+    fn catalog_for(&self) -> Vec<Tool> {
+        Self::catalog_enabled(self.release_ready())
+    }
+    pub fn configured_tool_count(&self) -> usize {
+        self.catalog_for().len()
     }
     pub fn catalog() -> Vec<Tool> {
-        RuntimeServer::tool_router().list_all().into_iter().filter_map(|mut t| {
+        Self::catalog_enabled(false)
+    }
+    fn catalog_enabled(release_ready: bool) -> Vec<Tool> {
+        pg_portable_tool_catalog().into_iter().filter_map(|mut t| {
             let description = match t.name.as_ref() {
                 "runtime.describe" => "Describe only the executable PostgreSQL Runtime capabilities and native Linux runner provider.",
                 "job.list" => "Principal-scoped, newest-first PostgreSQL Job listing with exact cursor and no historical SQLite IDs.",
@@ -24,22 +77,29 @@ impl PgRuntimeServer {
                 "workspace.close" => "Close a fresh-epoch Git Workspace only after the PostgreSQL Job admission fence finds no active or held consumer.",
                 "workspace.mutate" => "Apply the mature atomic Workspace mutation contract, serialized against active PostgreSQL Job admission.",
                 "workspace.read" => "Read bounded UTF-8 files from an isolated fresh-epoch Workspace using the native Workspace path authority.",
-                "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. No SQLite history is imported.",
+                "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. A caller-owned stable workspaceId is REQUIRED; on response loss use workspace.get with that exact ID before any replay. Agent notice: PG Workspaces are ephemeral, and the lifecycle timer may be disabled; if enabled its cadence is operator-defined. Four hours after the latest Job activity is only a minimum quiet period, not a guaranteed reclamation deadline. Commit/publish deliverables to Git or Artifact; never use Workspace files as durable evidence. The successful open response includes retentionNotice.",
                 "workspace.execPlan" => "Run an ordered plan with the mature native Runner; PG commits the exact immutable step plan before physical launch. No input or credential bindings.",
-                "workspace.exec" => "Fresh PostgreSQL execution vertical: one trusted_local local_linux command. Steps, hostDependencies, foreignReferences and Windows context are rejected. PostgreSQL commits admission and dispatch intent before the existing systemd runner launches. A starting Attempt is dispatch intent, not proof of a running process. Ambiguous launches are never automatically reissued. Use job.observe to reconcile native runner evidence.",
+                "workspace.exec" => "Fresh PostgreSQL execution vertical: one trusted_local local_linux command. Host Dependencies are admitted as exact file commitments and rechecked before native launch; foreignReferences and Windows context are rejected. PostgreSQL commits admission and dispatch intent before the existing systemd runner launches. A starting Attempt is dispatch intent, not proof of a running process. Ambiguous launches are never automatically reissued. Use job.observe to reconcile native runner evidence.",
+                "release.apply" if release_ready => "Admit an exact qualified PG Runtime ReleaseEffect atomically. An independent running native systemd dispatcher consumes it and verifies actual installed Runtime bytes and MCP readback; connection loss requires release.get reconciliation, not another deployment.",
+                "release.get" => "Read an authenticated principal-owned, durably bound PostgreSQL ReleaseEffect and validate its immutable operator receipt. Never dispatches, retries, or claims a release merely because the Runtime Job terminated.",
                 "job.get" => "Read a PostgreSQL Job projection without dispatch or reconciliation. migrationVersion=0 identifies the fresh PG schema rather than SQLite migrations.",
                 "job.observe" => "Observe and reconcile a principal-owned PostgreSQL Job using native runner evidence; may dispatch an accepted Job once. Supports terminal and change_or_terminal waiting with bounded output offsets. Does not claim domain semantic completion.",
-                "job.cancel" => "Persist PostgreSQL cancellation intent before requesting the native systemd cgroup stop. A stop submission never proves terminal execution. Unissued cancelled work remains reserved pending recovery.",
+                "job.cancel" => "Persist PostgreSQL cancellation intent before requesting the native systemd cgroup stop. A stop submission never proves terminal execution. Pending work cancels before dispatch; issued work requires native terminal evidence.",
                 "artifact.read" => "Read a bounded verified UTF-8 range of a PostgreSQL-registered Artifact. Revalidates retained bytes against their digest and length.",
                 _ => return None,
             };
+            if t.name.as_ref()=="runtime.describe"{
+                t.output_schema=Some(std::sync::Arc::new(json!({"type":"object","properties":{"globalExecutionLimit":{"type":["integer","null"],"description":"Null: native allocations are resource governed, not Job-count governed."},"scheduling":{"type":"object"},"node":{"type":"object"}},"additionalProperties":true}).as_object().unwrap().clone()));
+            }
+            qualify_pg_scheduling_output_schema(&mut t);
             t.description=Some(description.into());
             Some(t)
         }).collect()
     }
     /// Shared by the MCP handler and protocol consumer tests; performs real Core calls.
     pub async fn call(&self, name: String, arguments: serde_json::Value) -> Result<CallToolResult, McpError> {
-        if !Self::catalog().iter().any(|t|t.name.as_ref()==name) {
+        let release_ready=self.release_ready();
+        if !Self::catalog_enabled(release_ready).iter().any(|t|t.name.as_ref()==name) {
             return Err(McpError::invalid_params("Tool is not implemented by the PG vertical", None));
         }
         // Native MCP media surfaces intentionally return ContentBlock resources,
@@ -89,6 +149,11 @@ impl PgRuntimeServer {
         }
         let runtime=self.runtime.clone();
         let execution=self.execution.clone();
+        let release=self.release.clone();
+        let annotation_runtime=runtime.clone();
+        // A Job ID alone must not cause a schema-invalid response. Reuse the
+        // exact qualified MCP output-schema tool set from pg_output_contract.
+        let annotate_job_scheduling = pg_scheduling_success_definition(&name).is_some();
         let result=tokio::task::spawn_blocking(move || -> Result<serde_json::Value, ToolError> {
             fn parse<T: serde::de::DeserializeOwned>(v: serde_json::Value) -> Result<T,ToolError> {
                 serde_json::from_value(v).map_err(|e|ToolError::invalid(e.to_string(),"arguments"))
@@ -104,7 +169,100 @@ impl PgRuntimeServer {
                     if request.schema_version != RUNTIME_SCHEMA_VERSION {
                         return Err(ToolError::invalid("schemaVersion must be 1", "schemaVersion"));
                     }
-                    value(runtime.describe())
+                    let mut description=runtime.describe().map_err(ToolError::from)?;
+                    description["structuredReleaseConfigured"]=json!(release_ready);
+                    Ok(description)
+                },
+                "release.apply" => {
+                    let request:RuntimeReleaseApplyToolRequest=parse(arguments)?;
+                    let configured=release.as_ref().ok_or_else(||
+                        ToolError::invalid("independent PG Release operator is unavailable","release")
+                    )?;
+                    let req=RuntimeReleaseRequest {
+                        schema_version:request.schema_version,
+                        client_request_id:request.client_request_id,
+                        principal:execution.principal.clone(),
+                        workspace_id:request.workspace_id,
+                        commit:request.commit,
+                        candidate_manifest_digest:request.candidate_manifest_digest,
+                        expected_tool_count:request.expected_tool_count,
+                    };
+                    // Historical exact replay MUST precede changed candidate,
+                    // current authorization, worktree or timer state.
+                    if let Some(replay)=runtime.find_runtime_release_for_apply(&req)
+                        .map_err(ToolError::from)?
+                    {
+                        return serde_json::to_value(replay)
+                            .map_err(|e|ToolError::internal(e.to_string()));
+                    }
+                    if !release_ready {
+                        return Err(ToolError::invalid(
+                            "qualified independent PG Release dispatcher is not running",
+                            "release",
+                        ));
+                    }
+                    let workspace=runtime.get_workspace(&RuntimeWorkspaceGetRequest {
+                        schema_version:1,workspace_id:req.workspace_id.clone(),
+                    }).map_err(ToolError::from)?;
+                    let configured_source=runtime_release_source_identity(&configured.source_repo)
+                        .map_err(|e|ToolError::invalid(e,"release.sourceRepo"))?;
+                    let actual_source=std::fs::canonicalize(
+                        workspace["sourceRepo"].as_str().ok_or_else(||
+                            ToolError::invalid("Workspace sourceRepo missing","workspaceId")
+                        )?
+                    ).map_err(|e|ToolError::invalid(e.to_string(),"workspaceId"))?;
+                    if actual_source!=configured_source.git_root
+                        || workspace["dirty"]!=false
+                    {
+                        return Err(ToolError::invalid(
+                            "Release Workspace must be clean and match the operator Git root",
+                            "workspaceId",
+                        ));
+                    }
+                    let head=workspace["currentHeadRevision"].as_str().ok_or_else(||
+                        ToolError::invalid("Release Workspace Git HEAD missing","workspaceId")
+                    )?;
+                    let owner=runtime_release_owner_commit(&configured_source.owner_root,head)
+                        .map_err(|e|ToolError::invalid(e,"commit"))?;
+                    if owner!=req.commit {
+                        return Err(ToolError::invalid(
+                            "Release commit differs from the actual Workspace owner revision",
+                            "commit",
+                        ));
+                    }
+                    let candidate=configured.source_repo.join("target")
+                        .join("ordivon-release-candidates")
+                        .join(&req.commit).join("release")
+                        .join("ordivon-deployment-manifest.json");
+                    let manifest=std::fs::symlink_metadata(&candidate)
+                        .map_err(|e|ToolError::invalid(e.to_string(),"candidateManifestDigest"))?;
+                    if !manifest.is_file() || manifest.file_type().is_symlink()
+                        || manifest.len()>4*1024*1024
+                    {
+                        return Err(ToolError::invalid(
+                            "exact regular candidate manifest missing","candidateManifestDigest",
+                        ));
+                    }
+                    let bytes=std::fs::read(&candidate)
+                        .map_err(|e|ToolError::invalid(e.to_string(),"candidateManifestDigest"))?;
+                    let digest=format!("sha256:{}",hex::encode(Sha256::digest(&bytes)));
+                    if digest!=req.candidate_manifest_digest {
+                        return Err(ToolError::invalid(
+                            "candidate Manifest digest differs from committed proposal",
+                            "candidateManifestDigest",
+                        ));
+                    }
+                    value(runtime.admit_runtime_release_effect(
+                        &req,&configured.operator_executable,&configured.receipt_root,
+                    ))
+                },
+                "release.get" => {
+                    let request: RuntimeReleaseGetToolRequest = parse(arguments)?;
+                    value(runtime.get_runtime_release_effect(&RuntimeReleaseGetRequest {
+                        schema_version: request.schema_version,
+                        client_request_id: request.client_request_id,
+                        principal: execution.principal.clone(),
+                    }))
                 },
                 "job.list" => value(runtime.list(&execution.principal,&parse::<RuntimeJobListRequest>(arguments)?)),
                 "workspace.get" => value(runtime.get_workspace(&parse::<RuntimeWorkspaceGetRequest>(arguments)?)),
@@ -164,7 +322,17 @@ impl PgRuntimeServer {
             }
         }).await.map_err(|e|McpError::internal_error(e.to_string(),None))?;
         match result {
-            Ok(value) => Ok(CallToolResult::structured(value)),
+            Ok(value) => {
+                let value=if annotate_job_scheduling {
+                    let runtime=annotation_runtime;
+                    tokio::task::spawn_blocking(move||runtime.annotate_scheduling(value)).await
+                        .map_err(|e|McpError::internal_error(e.to_string(),None))?
+                        .map_err(|e|McpError::internal_error(e.to_string(),None))?
+                } else {
+                    value
+                };
+                Ok(CallToolResult::structured(value))
+            },
             Err(e) => Ok(CallToolResult::structured_error(json!({"error":e}))),
         }
     }
@@ -180,15 +348,15 @@ impl ServerHandler for PgRuntimeServer {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28,ProtocolVersion::V_2025_11_25,ProtocolVersion::V_2025_06_18])
     }
     async fn list_tools(&self, _: Option<PaginatedRequestParams>, _: RequestContext<RoleServer>) -> Result<ListToolsResult,McpError> {
-        Ok(ListToolsResult::with_all_items(Self::catalog()).with_ttl_ms(0).with_cache_scope(CacheScope::Private))
+        Ok(ListToolsResult::with_all_items(self.catalog_for()).with_ttl_ms(0).with_cache_scope(CacheScope::Private))
     }
-    fn get_tool(&self,name:&str) -> Option<Tool> {Self::catalog().into_iter().find(|t|t.name.as_ref()==name)}
+    fn get_tool(&self,name:&str) -> Option<Tool> {self.catalog_for().into_iter().find(|t|t.name.as_ref()==name)}
     async fn call_tool(&self, request:CallToolRequestParams, _:RequestContext<RoleServer>) -> Result<CallToolResponse,McpError> {
         self.call(request.name.to_string(),serde_json::Value::Object(request.arguments.unwrap_or_default())).await.map(CallToolResponse::Complete)
     }
     async fn discover(&self,_:RequestContext<RoleServer>) -> Result<DiscoverResult,McpError> {
         let mut result=DiscoverResult::from_server_info(self.supported_protocol_versions().into_owned(),self.get_info());
-        let mut catalog=Self::catalog(); catalog.sort_by(|a,b|a.name.cmp(&b.name));
+        let mut catalog=self.catalog_for(); catalog.sort_by(|a,b|a.name.cmp(&b.name));
         let digest=format!("sha256:{}",hex::encode(Sha256::digest(serde_json::to_vec(&catalog).expect("serializable Tool catalog"))));
         result.meta.get_or_insert_default().0.insert("com.ordivon/runtime/toolCatalogDigest".into(),json!(digest));
         Ok(result)

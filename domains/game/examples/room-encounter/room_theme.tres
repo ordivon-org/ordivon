@@ -1,0 +1,75 @@
+[gd_resource type="Theme" load_steps=6 format=3]
+
+[sub_resource type="StyleBoxFlat" id="normal"]
+content_margin_left = 17.0
+content_margin_top = 10.0
+content_margin_right = 17.0
+content_margin_bottom = 10.0
+bg_color = Color(0.12, 0.2, 0.3, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.28, 0.4, 0.51, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="hover"]
+content_margin_left = 17.0
+content_margin_top = 10.0
+content_margin_right = 17.0
+content_margin_bottom = 10.0
+bg_color = Color(0.2, 0.32, 0.43, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="pressed"]
+content_margin_left = 17.0
+content_margin_top = 10.0
+content_margin_right = 17.0
+content_margin_bottom = 10.0
+bg_color = Color(0.18, 0.42, 0.47, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="disabled"]
+content_margin_left = 17.0
+content_margin_top = 10.0
+content_margin_right = 17.0
+content_margin_bottom = 10.0
+bg_color = Color(0.075, 0.105, 0.15, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.97, 0.76, 0.37, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[resource]
+default_font_size = 18
+Button/colors/font_color = Color(0.96, 0.97, 1, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_pressed_color = Color(1, 1, 1, 1)
+Button/colors/font_disabled_color = Color(0.48, 0.55, 0.61, 1)
+Button/styles/normal = SubResource("normal")
+Button/styles/hover = SubResource("hover")
+Button/styles/pressed = SubResource("pressed")
+Button/styles/disabled = SubResource("disabled")
+Button/styles/focus = SubResource("focus")
+Label/colors/font_color = Color(0.92, 0.95, 0.99, 1)

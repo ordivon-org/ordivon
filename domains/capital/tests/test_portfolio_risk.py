@@ -16,6 +16,7 @@ from ordivon_capital.risk.portfolio_risk import (
     load_registered_risk_budget,
     validate_dependence_model,
 )
+from ordivon_capital.risk.tail_report import build_tail_risk_report
 
 
 class PortfolioRiskTests(unittest.TestCase):
@@ -45,6 +46,55 @@ class PortfolioRiskTests(unittest.TestCase):
         factors = {x["factor"]: x["signedExposureUsd"] for x in ledger["factorExposure"]}
         self.assertEqual(factors["tech"], "125.000000")
         self.assertEqual(factors["semiconductor"], "120.000000")
+
+    def test_exposure_ledger_preserves_micro_notional_after_large_cancellation(self):
+        # Real-source counterexample to the default 28-digit Decimal context:
+        # 1e20 + 1e-10 - 1e20 used to return zero, discarding exposure.
+        ledger = build_exposure_ledger(
+            equity_usd="1e20",
+            available_equity_usd="0",
+            positions=[
+                {"instrumentId": "A", "signedNotionalUsd": "1e20",
+                 "factorLoadings": {"EXACT": "1"}},
+                {"instrumentId": "B", "signedNotionalUsd": "1e-10",
+                 "factorLoadings": {"EXACT": "1"}},
+                {"instrumentId": "C", "signedNotionalUsd": "-1e20",
+                 "factorLoadings": {"EXACT": "1"}},
+            ],
+        )
+        self.assertEqual(ledger["netNotionalUsd"], "0.0000000001")
+        self.assertEqual(ledger["grossNotionalUsd"], "200000000000000000000.0000000001")
+        self.assertEqual(ledger["factorExposure"][0]["signedExposureUsd"], "0.0000000001")
+
+    def test_exposure_ledger_factor_product_is_exact_above_default_decimal_precision(self):
+        # A 38-digit source product was silently rounded to 28 significant
+        # digits by Decimal's ambient context.
+        ledger = build_exposure_ledger(
+            equity_usd="100",
+            available_equity_usd="0",
+            positions=[{
+                "instrumentId": "A",
+                "signedNotionalUsd": "1.234567890123456789",
+                "factorLoadings": {"LONG_FACTOR": "9.876543210987654321"},
+            }],
+        )
+        self.assertEqual(
+            ledger["factorExposure"][0]["signedExposureUsd"],
+            "12.193263113702179522374638011112635269",
+        )
+
+    def test_exposure_ledger_formats_large_finite_notionals_without_context_error(self):
+        # Decimal.quantize previously raised InvalidOperation for this valid
+        # 23-digit notional solely because display requested six places.
+        ledger = build_exposure_ledger(
+            equity_usd="1e22",
+            available_equity_usd="0",
+            positions=[{"instrumentId": "A", "signedNotionalUsd": "1e22"},
+                       {"instrumentId": "B", "signedNotionalUsd": "-1e22"}],
+        )
+        self.assertEqual(ledger["netNotionalUsd"], "0.000000")
+        self.assertEqual(ledger["grossNotionalUsd"], "20000000000000000000000.000000")
+        self.assertEqual(ledger["grossToEquity"], "2.000000")
 
     def test_completed_log_returns_rejects_unsorted_prices(self):
         with self.assertRaises(PortfolioRiskError):
@@ -117,16 +167,40 @@ class PortfolioRiskTests(unittest.TestCase):
                 proxy_returns={i: i / 2000 for i in range(20)},
             )
 
-    def test_empirical_expected_shortfall_is_tail_mean_without_regulatory_scaling(self):
+    def test_empirical_expected_shortfall_uses_empirical_quantile_without_regulatory_scaling(self):
         returns = [0.01] * 19 + [-0.20]
         out = historical_expected_shortfall(returns, confidence=0.95)
         self.assertEqual(out["componentId"], "historical-expected-shortfall")
+        self.assertEqual(out["valueAtRiskLossFraction"], "-0.01000000")
+        self.assertEqual(out["expectedShortfallLossFraction"], "0.20000000")
         self.assertGreaterEqual(
             float(out["expectedShortfallLossFraction"]),
             float(out["valueAtRiskLossFraction"]),
         )
         self.assertFalse(out["liquidityHorizonScalingApplied"])
         self.assertFalse(out["regulatoryCapitalCalculation"])
+
+    def test_historical_es_integrates_fractional_boundary_probability(self):
+        # Empirical losses: 18 x 0, then 1, 2, 10. At c=.9 there are
+        # exactly 2.1 observations of tail mass (not all three full losses).
+        returns = [0.0] * 18 + [-1.0, -2.0, -10.0]
+        report = historical_expected_shortfall(returns, confidence=0.9)
+        self.assertEqual(report["method"], "EMPIRICAL_QUANTILE_INTEGRATED_TAIL")
+        self.assertEqual(report["valueAtRiskLossFraction"], "1.00000000")
+        self.assertEqual(report["expectedShortfallLossFraction"], "5.76190476")
+        self.assertEqual(report["tailObservationCount"], 3)
+        self.assertEqual(report["effectiveTailObservationWeight"], "2.1")
+        self.assertEqual(
+            report, historical_expected_shortfall(list(reversed(returns)), confidence=0.9)
+        )
+
+    def test_historical_es_integrates_ties_without_inflating_tail_mass(self):
+        # Tied worst losses are included fractionally, not as 20 observations.
+        report = historical_expected_shortfall([-0.1] * 20, confidence=0.975)
+        self.assertEqual(report["tailObservationCount"], 1)
+        self.assertEqual(report["effectiveTailObservationWeight"], "0.5")
+        self.assertEqual(report["valueAtRiskLossFraction"], "0.10000000")
+        self.assertEqual(report["expectedShortfallLossFraction"], "0.10000000")
 
     def test_factor_observatory_allows_multiple_proxies_per_factor_but_rejects_duplicate_pair(self):
         base = {i: 0.001 * math.sin(i / 5) for i in range(1, 70)}
@@ -245,3 +319,23 @@ class PortfolioRiskTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+def test_risk_owned_tail_report_preserves_sample_and_horizon_metadata():
+    returns = [0.01] * 39 + [-0.20]
+    out = build_tail_risk_report(
+        [{
+            "seriesId": "A",
+            "returns": returns,
+            "returnHorizon": "1D_LOG_RETURN",
+            "sampleLabel": "TEST_SAMPLE",
+            "liquidityHorizonDays": 10,
+        }],
+        confidence=0.975,
+    )
+    row = out["series"][0]
+    assert row["returnHorizon"] == "1D_LOG_RETURN"
+    assert row["liquidityHorizonDays"] == 10
+    assert out["liquidityHorizonScalingApplied"] is False
+    assert float(row["calculation"]["expectedShortfallLossFraction"]) >= float(
+        row["calculation"]["valueAtRiskLossFraction"]
+    )

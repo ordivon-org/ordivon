@@ -2,6 +2,10 @@ schema_version = 1
 kind = "ordivon.repo-owner-dependency-contracts"
 truth_role = "repository-boundary-policy-not-domain-authority"
 scan_mode = "active-source-literal-seams"
+# The existing Owner boundary checker also parses active Python AST imports
+# against Owner-owned src/<package>/__init__.py roots. Public Python import
+# exceptions require this same exact source_glob + full module + contract_ref;
+# a comment or longer module prefix cannot qualify a private import.
 
 # Source globs match complete, slash-delimited path segments; '*' cannot cross directories.
 # These declarations authorize only the named literal seam in the named source files.
@@ -80,14 +84,6 @@ kind = "TEST_ONLY_OWNER_PROJECTION"
 contract_ref = "capabilities/media/docs/creative-capability-core.md"
 
 [[seams]]
-from_owner = "skills"
-to_owner = "next"
-source_glob = "platform/skills/tests/test_skill_catalog_r2.py"
-allowed_fragment = "meta/next"
-kind = "TEST_ONLY_SOURCE_BINDING"
-contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
-
-[[seams]]
 from_owner = "workstation"
 to_owner = "distribution"
 source_glob = "platform/workstation/scripts/accept-n8n-distribution-adapter-smoke.sh"
@@ -120,22 +116,6 @@ kind = "TEST_ONLY_ENVIRONMENT_BINDING"
 contract_ref = "platform/workstation/README.md"
 
 [[seams]]
-from_owner = "next"
-to_owner = "harness"
-source_glob = "meta/next/mise.toml"
-allowed_fragment = "services/harness"
-kind = "TEST_ONLY_SOURCE_BINDING"
-contract_ref = "services/harness/docs/AGENT_AUTOMATION_OWNER_MIGRATION_R7.md"
-
-[[seams]]
-from_owner = "next"
-to_owner = "composition"
-source_glob = "meta/next/pyproject.toml"
-allowed_fragment = "../../packages/composition"
-kind = "PUBLIC_PACKAGE_DEPENDENCY"
-contract_ref = "packages/composition/README.md"
-
-[[seams]]
 from_owner = "web"
 to_owner = "security"
 source_glob = "apps/web/package.json"
@@ -150,6 +130,34 @@ source_glob = "apps/web/test/verification-entry.test.ts"
 allowed_fragment = "platform/security/contracts/agent-request-verifier-v1"
 kind = "TEST_ONLY_ENVIRONMENT_BINDING"
 contract_ref = "platform/security/contracts/agent-request-verifier-v1/README.md"
+
+# An actual end-to-end Gateway acceptance test exercises the public
+# Harness adapter through the real Gateway SDK and native Runtime PG.
+# This is test-only: no production dependency, alternative Store, or
+# delegation of physical authority to the Gateway or Harness.
+[[seams]]
+from_owner = "gateway"
+to_owner = "harness"
+source_glob = "services/gateway/tests/test_pg_real_runtime_owner.py"
+allowed_fragment = "ordivon_harness.agent_plugin"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/rust-migration/consumer-acceptance/real_native_pg_temporal_boundary.md"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "harness"
+source_glob = "services/gateway/tests/test_pg_real_runtime_owner.py"
+allowed_fragment = "ordivon_harness.plugin_gateway_effect"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/rust-migration/consumer-acceptance/real_native_pg_temporal_boundary.md"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "harness"
+source_glob = "services/gateway/tests/test_pg_real_runtime_owner.py"
+allowed_fragment = "ordivon_harness.runtime_port"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/rust-migration/consumer-acceptance/real_native_pg_temporal_boundary.md"
 
 # Harness consumes only Runtime's SHA-verified public upstream checker.
 [[seams]]
@@ -179,3 +187,158 @@ source_glob = "packages/composition/tests/test_verification_obligation_r1.py"
 allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+
+
+[[seams]]
+from_owner = "artifact"
+to_owner = "authority-catalog"
+source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"
+allowed_fragment = "catalogs/authorities/venues/"
+kind = "TEST_ONLY_OWNER_LOCATOR"
+contract_ref = "docs/architecture/RESEARCH_PUBLICATION_CLOSURE_R1.md"
+
+# ELE imports dated studies through named read-only source projections only.
+# Authority, execution, admission and Domain acceptance stay in the originating Owners.
+
+[[seams]]
+from_owner = "capability-catalog"
+to_owner = "artifact"
+source_glob = "catalogs/capabilities/ele/studies.py"
+allowed_fragment = "capabilities/artifact/docs/"
+kind = "RESEARCH_SOURCE_PROJECTION"
+contract_ref = "catalogs/capabilities/ele/README.md"
+
+[[seams]]
+from_owner = "capability-catalog"
+to_owner = "preservation"
+source_glob = "catalogs/capabilities/ele/studies.py"
+allowed_fragment = "capabilities/preservation/docs/"
+kind = "RESEARCH_SOURCE_PROJECTION"
+contract_ref = "catalogs/capabilities/ele/README.md"
+
+[[seams]]
+from_owner = "capability-catalog"
+to_owner = "capital"
+source_glob = "catalogs/capabilities/ele/studies.py"
+allowed_fragment = "domains/capital/docs/"
+kind = "RESEARCH_SOURCE_PROJECTION"
+contract_ref = "catalogs/capabilities/ele/README.md"
+
+[[seams]]
+from_owner = "capability-catalog"
+to_owner = "network"
+source_glob = "catalogs/capabilities/ele/studies.py"
+allowed_fragment = "platform/network/docs/"
+kind = "RESEARCH_SOURCE_PROJECTION"
+contract_ref = "catalogs/capabilities/ele/README.md"
+
+[[seams]]
+from_owner = "capability-catalog"
+to_owner = "harness"
+source_glob = "catalogs/capabilities/ele/studies.py"
+allowed_fragment = "services/harness/docs/"
+kind = "RESEARCH_SOURCE_PROJECTION"
+contract_ref = "catalogs/capabilities/ele/README.md"
+
+[[seams]]
+from_owner = "capability-catalog"
+to_owner = "media"
+source_glob = "catalogs/capabilities/ele/studies.py"
+allowed_fragment = "capabilities/media/research/"
+kind = "RESEARCH_SOURCE_PROJECTION"
+contract_ref = "catalogs/capabilities/ele/README.md"
+
+# Data's native compatibility test consumes Capital's actual ODPS product
+# SourceCut; Capital product changes require this Data verification consumer.
+# Test-only directed dependency, never Capital source/write authority transfer.
+[[seams]]
+from_owner = "data"
+to_owner = "capital"
+source_glob = "packages/data/tests/test_odps_projection.py"
+allowed_fragment = "domains/capital/"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+contract_ref = "packages/data/docs/FORMAL_VERIFICATION.md"
+
+# The first concrete Finance outcome contract consumes an actual Capital CLI
+# source in a Composition test only; no generic finance gate authority transfer.
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/scripts/strategic_contribution_brief.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/src/ordivon_capital/portfolio/strategic_contribution.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/examples/strategic_contribution_r1.json"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+# Finance's freeze/assess research protocol is consumed in one bounded
+# Composition test, without a reverse business dependency or broker authority.
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_research_frozen_consumer.py"
+allowed_fragment = "domains/capital/scripts/finance_lego.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_research_frozen_consumer.py"
+allowed_fragment = "domains/capital/src/ordivon_capital/research/experiment_protocol.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+
+# Security's own native OPA/HTTP consumer checks the Gateway PUBLIC read
+# surface as a test-only source contract. This grants no runtime API, policy
+# authority or private Python dependency to Security.
+[[seams]]
+from_owner = "security"
+to_owner = "gateway"
+source_glob = "platform/security/services/gateway-authzen/tests/test_gateway_host_delegation.py"
+allowed_fragment = "services/gateway/enforcement-surface.json"
+kind = "TEST_ONLY_PUBLIC_TOOL_SURFACE"
+contract_ref = "services/gateway/enforcement-surface.json"
+
+
+# Gateway's existing Host PEP integration test runs Security's actual OPA
+# policy through its test-owned Starlette adapter. This test-only source seam
+# does not install/import Security as a Gateway production dependency, grant
+# cross-Owner policy authority, or move credentials between service units.
+[[seams]]
+from_owner = "gateway"
+to_owner = "security"
+source_glob = "services/gateway/tests/test_host_read_authorization.py"
+allowed_fragment = "platform/security/services/gateway-authzen"
+kind = "TEST_ONLY_SECURITY_OPA_CONSUMER"
+contract_ref = "platform/security/services/gateway-authzen/README.md"
+
+# The Gateway's test-owned OPA consumer resolves the Security Owner's
+# existing pinned native toolchain, not a mutable default mise shim.
+[[seams]]
+from_owner = "gateway"
+to_owner = "security"
+source_glob = "services/gateway/tests/test_host_read_authorization.py"
+allowed_fragment = "platform/security/mise.toml"
+kind = "TEST_ONLY_PINNED_SECURITY_TOOLCHAIN"
+contract_ref = "platform/security/mise.toml"

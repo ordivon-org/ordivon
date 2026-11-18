@@ -4,7 +4,6 @@ import pytest
 
 from ordivon_capital.research.model_monitoring import (
     assess_paired_return_data_quality,
-    build_tail_risk_report,
     measure_dependence_drift,
     monitor_dependence_outcomes,
 )
@@ -78,24 +77,3 @@ def test_drift_measurement_reports_continuous_statistics_without_classifier():
     assert "standing" not in out
     assert "severity" not in out
     assert "threshold" not in out
-
-
-def test_tail_risk_report_preserves_sample_and_horizon_metadata():
-    returns = [0.01] * 39 + [-0.20]
-    out = build_tail_risk_report(
-        [{
-            "seriesId": "A",
-            "returns": returns,
-            "returnHorizon": "1D_LOG_RETURN",
-            "sampleLabel": "TEST_SAMPLE",
-            "liquidityHorizonDays": 10,
-        }],
-        confidence=0.975,
-    )
-    row = out["series"][0]
-    assert row["returnHorizon"] == "1D_LOG_RETURN"
-    assert row["liquidityHorizonDays"] == 10
-    assert out["liquidityHorizonScalingApplied"] is False
-    assert float(row["calculation"]["expectedShortfallLossFraction"]) >= float(
-        row["calculation"]["valueAtRiskLossFraction"]
-    )

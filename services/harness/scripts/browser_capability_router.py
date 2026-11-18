@@ -34,10 +34,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def load_policy(path: Path = DEFAULT_ROUTE_CONFIG) -> dict[str, Any]:
     value = _read_json(path)
-    if (
-        value.get("schemaVersion") != 1
-        or value.get("kind") != "ordivon.browser-domain-route-policy"
-    ):
+    if value.get("schemaVersion") != 1 or value.get("kind") != "ordivon.browser-domain-route-policy":
         raise ValueError("browser route policy identity mismatch")
     raw_routes = value.get("routes")
     if not isinstance(raw_routes, list) or not raw_routes:
@@ -90,11 +87,7 @@ def validate_request(value: Mapping[str, Any], policy: Mapping[str, Any]) -> dic
     provider_flow = value.get("providerFlow")
     if not isinstance(request_id, str) or not request_id or request_id != request_id.strip():
         raise ValueError("requestId must be non-empty trimmed text")
-    if (
-        not isinstance(provider_flow, str)
-        or not provider_flow
-        or provider_flow != provider_flow.strip()
-    ):
+    if not isinstance(provider_flow, str) or not provider_flow or provider_flow != provider_flow.strip():
         raise ValueError("providerFlow must be non-empty trimmed text")
     known_flows = {route["providerFlow"] for route in policy["routes"]}
     if provider_flow not in known_flows:
@@ -133,19 +126,22 @@ def validate_request(value: Mapping[str, Any], policy: Mapping[str, Any]) -> dic
     }
 
 
-def _subprocess_json(
-    args: list[str], *, timeout: int = 15
-) -> tuple[int, dict[str, Any] | None, str]:
-    proc = subprocess.run(
-        args,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=timeout,
-        check=False,
-    )
+def _subprocess_json(args: list[str], *, timeout: int = 15) -> tuple[int, dict[str, Any] | None, str]:
+    try:
+        proc = subprocess.run(
+            args,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return 124, None, f"PROBE_TIMEOUT:{timeout}s"
+    except OSError as error:
+        return 127, None, f"PROBE_EXEC_ERROR:{type(error).__name__}"
     try:
         value = json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -163,7 +159,7 @@ def _probe_jev(route: Mapping[str, Any], required: set[str]) -> dict[str, Any]:
             "missingEnvironment": [],
         }
     rc, status, stderr = _subprocess_json([command, "status"], timeout=20)
-    physical = bool(status and status.get("healthy") is True)
+    physical = bool(rc == 0 and status and status.get("healthy") is True)
     consumer_credentials = (status or {}).get("consumerCredentials", {})
     available_credentials = {
         "TYPESAFE_API_KEY": bool(
@@ -226,10 +222,7 @@ def _probe_browser_use(route: Mapping[str, Any]) -> dict[str, Any]:
     try:
         from browserless_substrate import BrowserlessPool
     except ModuleNotFoundError:
-        try:
-            from scripts.browserless_substrate import BrowserlessPool
-        except ModuleNotFoundError:
-            return {"ready": False, "standing": "ADAPTER_UNAVAILABLE"}
+        from scripts.browserless_substrate import BrowserlessPool
 
     path = Path(str(route["readiness"].get("configPath") or ""))
     if not path.is_file():
@@ -356,7 +349,9 @@ def _probe_cft_human_session(route: Mapping[str, Any]) -> dict[str, Any]:
     except ValueError:
         return {"ready": False, "standing": "ADAPTER_PATH_INVALID"}
 
-    rc, doctor, stderr = _subprocess_json(["/usr/bin/python3", str(script), "doctor"], timeout=20)
+    rc, doctor, stderr = _subprocess_json(
+        ["/usr/bin/python3", str(script), "doctor"], timeout=20
+    )
     if rc != 0 or not isinstance(doctor, dict):
         return {
             "ready": False,
@@ -403,26 +398,18 @@ def _probe_cft_human_session(route: Mapping[str, Any]) -> dict[str, Any]:
 
 def _probe_agent_automation(route: Mapping[str, Any]) -> dict[str, Any]:
     try:
-        from agent_automation_browserless import (
+        from agent_automation_browserless import BrowserlessAutomationConfig, BrowserlessAutomationService
+    except ModuleNotFoundError:
+        from scripts.agent_automation_browserless import (
             BrowserlessAutomationConfig,
             BrowserlessAutomationService,
         )
-    except ModuleNotFoundError:
-        try:
-            from scripts.agent_automation_browserless import (
-                BrowserlessAutomationConfig,
-                BrowserlessAutomationService,
-            )
-        except ModuleNotFoundError:
-            return {"ready": False, "standing": "ADAPTER_UNAVAILABLE"}
 
     path = Path(str(route["readiness"].get("configPath") or ""))
     if not path.is_file():
         return {"ready": False, "standing": "CONFIG_UNAVAILABLE"}
     try:
-        service = BrowserlessAutomationService(
-            BrowserlessAutomationConfig.from_dict(_read_json(path))
-        )
+        service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(_read_json(path)))
         doctor = service.doctor()
     except Exception as error:
         return {
@@ -431,9 +418,7 @@ def _probe_agent_automation(route: Mapping[str, Any]) -> dict[str, Any]:
             "detail": f"{type(error).__name__}: {str(error)[:500]}",
         }
     ready = doctor.get("healthy") is True
-    health = (
-        doctor.get("browserSubstrate") if isinstance(doctor.get("browserSubstrate"), dict) else {}
-    )
+    health = doctor.get("browserSubstrate") if isinstance(doctor.get("browserSubstrate"), dict) else {}
     return {
         "ready": ready,
         "standing": "READY" if ready else "AGENT_AUTOMATION_UNHEALTHY",
@@ -484,10 +469,14 @@ def plan_route(
 
     if explicit is not None:
         exact = route_by_id[explicit]
-        candidate_routes = [exact] if exact["providerFlow"] == request["providerFlow"] else []
+        candidate_routes = (
+            [exact] if exact["providerFlow"] == request["providerFlow"] else []
+        )
     else:
         candidate_routes = [
-            route for route in policy["routes"] if route["providerFlow"] == request["providerFlow"]
+            route
+            for route in policy["routes"]
+            if route["providerFlow"] == request["providerFlow"]
         ]
 
     for route in candidate_routes:
@@ -523,11 +512,9 @@ def plan_route(
         )
 
     if explicit is not None:
-        row = (
-            next(row for row in rows if row["routeId"] == explicit)
-            if any(row["routeId"] == explicit for row in rows)
-            else None
-        )
+        row = next(row for row in rows if row["routeId"] == explicit) if any(
+            row["routeId"] == explicit for row in rows
+        ) else None
         if row is None:
             standing = "HOLD_EXPLICIT_ROUTE_FLOW_MISMATCH"
             selected = None
@@ -563,7 +550,8 @@ def plan_route(
     selected_route = None
     if selected is not None:
         selected_route = {
-            key: selected[key] for key in ("routeId", "executor", "substrate", "providerFlow")
+            key: selected[key]
+            for key in ("routeId", "executor", "substrate", "providerFlow")
         }
     result = {
         "schemaVersion": 1,

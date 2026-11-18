@@ -30,6 +30,63 @@ def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
 
 
+def test_entrypoint_link_source_contract_detects_broken_navigation(tmp_path: Path) -> None:
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "[Start](guide.md) [Local](#section) [External](https://example.org/docs)\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+    readme.write_text("[Start](missing.md)\n", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="navigation target missing"):
+        module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+
+
+def test_entrypoint_link_cannot_leak_outside_checkout(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("[Outside](../../missing.md)\n", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="navigation escapes repository"):
+        module.validate_entrypoint_links(tmp_path, entrypoints=(Path("README.md"),))
+
+
+def test_readme_owner_navigation_matches_mechanical_owner_source() -> None:
+    module.validate_owner_navigation(ROOT)
+
+
+def test_readme_owner_navigation_cannot_omit_a_real_owner() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    lines = readme.splitlines(keepends=True)
+    row = next(
+        i for i, value in enumerate(lines)
+        if "| [game](domains/game/README.md)" in value
+    )
+    lines.pop(row)
+    with pytest.raises(module.ArchitectureDocsError, match="missing=.*domains/game"):
+        module.validate_owner_navigation(ROOT, readme_text="".join(lines))
+
+
+def test_readme_owner_navigation_cannot_route_two_owners_to_one() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    bad = readme.replace(
+        "[game](domains/game/README.md)",
+        "[game](domains/capital/README.md)",
+    )
+    assert bad != readme
+    with pytest.raises(module.ArchitectureDocsError, match="repeated=.*domains/capital"):
+        module.validate_owner_navigation(ROOT, readme_text=bad)
+
+
+def test_readme_owner_navigation_rejects_unregistered_owner_route() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    bad = readme.replace(
+        "[game](domains/game/README.md)",
+        "[game](domains/retired-game/README.md)",
+    )
+    assert bad != readme
+    with pytest.raises(module.ArchitectureDocsError, match="unexpected=.*retired-game"):
+        module.validate_owner_navigation(ROOT, readme_text=bad)
+
+
 @pytest.mark.parametrize(
     ("source", "reason"),
     [
@@ -83,6 +140,25 @@ def test_deployed_capability_set_is_exact() -> None:
     value["routers"]["capabilityRouter"]["capabilities"].append("harness.run")
     with pytest.raises(module.ArchitectureDocsError, match="capability set"):
         module.validate_deployed_graph(value)
+
+
+def test_current_harness_route_does_not_rewrite_historical_deployment() -> None:
+    deployed = graph()
+    source_routes = module.route_capabilities(
+        (ROOT / "services/gateway/src/ordivon_gateway/routing.py").read_text(encoding="utf-8")
+    )
+    module.validate_deployed_graph(deployed)
+    assert deployed["status"] == "HISTORICAL_DEPLOYED_SNAPSHOT_20260928"
+    assert set(deployed["routers"]["capabilityRouter"]["capabilities"]) == module.EXPECTED_CAPABILITIES
+    assert source_routes == module.EXPECTED_SOURCE_CAPABILITIES
+    # The historical September deployment snapshot is immutable; the live
+    # source has both the issuer-fenced Harness profile and a read-only
+    # discoverable native Linux release capability. Neither is installed
+    # merely because it appears in the source router.
+    assert source_routes - module.EXPECTED_CAPABILITIES == {
+        "execution.harness",
+        "runtime.release.linux",
+    }
 
 
 def test_default_plugin_rejects_direct_owner_servers() -> None:
@@ -701,6 +777,22 @@ def test_formal_issue_census_rejects_gap_disguised_as_link() -> None:
 def test_formal_issue_census_rejects_undeclared_natural_owner(owner: str) -> None:
     census, plans = formal_issue_inputs()
     census["issues"][0]["naturalOwner"] = owner
+    with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_historical_migrated_owner_remains_valid_without_rewriting_evidence() -> None:
+    census = json.loads(
+        (ROOT / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8")
+    )
+    plans = {
+        row["ownerPlan"]: json.loads((ROOT / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
+    historical = next(row for row in census["issues"] if row["id"] == "SKILL-DISCOVERY-SCIENCE-20261026")
+    assert historical["naturalOwner"] == "platform/skills"
+    module.validate_formal_issue_census(census, plans)
+    historical["naturalOwner"] = "platform/phantom"
     with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
         module.validate_formal_issue_census(census, plans)
 
@@ -1344,7 +1436,25 @@ def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source
             assert row["historicalNativeTestResult"] == "12_PASSED"
         assert row["behaviorScope"].strip()
         assert row["missingCurrentConsumerEvidence"].strip()
-        assert all(not (ROOT / path).exists() for path in row["historicOnlyFiles"])
+        # GIT-02 remains a historical, unadmitted *commit*; a later independently
+        # proven live consumer may legitimately reuse one historical path.
+        # Network's consumer.rules.yml was read back from the active 2026-11-06
+        # Prometheus/Blackbox deployment and admitted under the exact Network
+        # monitoring SourceCut, not cherry-picked from the historical branch.
+        live_rule = "platform/network/config/prometheus/consumer.rules.yml"
+        if row["owner"] == "platform/network":
+            assert live_rule in row["historicOnlyFiles"]
+            assert (ROOT / live_rule).is_file()
+            source = (ROOT / "platform/network/Taskfile.yml").read_text()
+            preflight = (ROOT / "platform/network/scripts/monitoring-sourcecut-preflight.py").read_text()
+            assert "promtool check rules config/prometheus/consumer.rules.yml" in source
+            assert "config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml" in source
+            assert '"prometheus/consumer.rules.yml"' in preflight
+        assert all(
+            not (ROOT / path).exists()
+            for path in row["historicOnlyFiles"]
+            if row["owner"] != "platform/network" or path != live_rule
+        )
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1663,8 +1773,8 @@ def test_git01_retired_standalone_catalog_checker_has_next_owner_consumer() -> N
     assert row["sourceQualification"]["protectedMain"] == "78895b2291830be75fa472f3621fc24ebd2e67f3"
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
     assert not (ROOT / "tools/catalog/check_authority_catalog.py").exists()
-    assert (ROOT / "meta/next/scripts/check_authority_catalog_r1.py").is_file()
-    assert (ROOT / "meta/next/tests/test_authority_catalog.py").is_file()
+    assert (ROOT / "catalogs/authorities/scripts/check_authority_catalog_r1.py").is_file()
+    assert (ROOT / "catalogs/authorities/tests/test_authority_catalog.py").is_file()
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1859,7 +1969,7 @@ def test_git01_gateway_windows_release_historical_verifier_consumer() -> None:
 
 
 def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> None:
-    """Old Gateway DNS tunnel switch may not override the corrected owner carrier."""
+    """Keep the 2026-10-24 historical verdict, qualify today's actual Owner route."""
     census, plans = formal_issue_inputs()
     ledger = next(x for x in census["issues"] if x["id"] == "GIT-01")
     matches = [x for x in ledger["consumerSelections"]
@@ -1874,7 +1984,12 @@ def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> 
     p = ROOT / "platform/workstation/tofu/agent-birth-handoff/main.tf"
     source = p.read_text()
     gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
-    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    # The historical Git-01 native SourceCut was correct at the time, but the
+    # current remote Cloudflare DNS points to ordivon-wsl, while Windows
+    # native :19000 has no listener. Do not turn historical evidence into a
+    # permanent requirement to publish an unqualified native origin.
+    assert 'content = "${local.production_tunnel_id}.cfargotunnel.com"' in gateway
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' not in gateway
     module.validate_formal_issue_census(census, plans)
 
 @pytest.mark.parametrize(

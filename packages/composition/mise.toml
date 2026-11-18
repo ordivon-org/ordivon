@@ -1,6 +1,7 @@
 [tools]
 python = "3.15.1"
 uv = "0.13.5"
+opa = "1.21.4"
 
 [tasks.verify]
 run = """
@@ -10,9 +11,10 @@ set -euo pipefail
 export UV_PYTHON="$(mise which python)"
 uv lock --check
 uv sync --locked
-uv run ruff check src tests
-uv run ruff format --check src tests
+uv run ruff check src tests scripts
+uv run ruff format --check src tests scripts
 uv run python -m pytest -q
+uv run python scripts/check_standard_native_enterprise_r2.py
 mise run formal:verify
 mise run formal:effect:verify
 """

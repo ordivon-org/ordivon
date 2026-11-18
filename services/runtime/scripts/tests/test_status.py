@@ -934,6 +934,61 @@ class RuntimeStatusTests(unittest.TestCase):
             self.assertIn("capacity=0+0/8", result.stdout)
 
 
+    def test_dashboard_unit_fragment_drift_and_manager_reload_are_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = fixture(root)
+            repo = root / "source"
+            unit_src = repo / "services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service"
+            unit_src.parent.mkdir(parents=True)
+            unit_src.write_text("[Service]\nType=oneshot\nSuccessExitStatus=2\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            installed_unit = root / "installed-lifecycle.service"
+            installed_unit.write_bytes(unit_src.read_bytes())
+
+            def run_dashboard(*, needs_reload: str = "no", dropins: str = "") -> dict:
+                executable(
+                    paths["systemctl"],
+                    "#!/usr/bin/env python3\n"
+                    "print('ActiveState=active')\n"
+                    "print('SubState=running')\n"
+                    "print('MainPID=123')\n"
+                    "print('ExecMainStartTimestamp=now')\n"
+                    "print('NRestarts=0')\n"
+                    f"print('FragmentPath={installed_unit}')\n"
+                    f"print('NeedDaemonReload={needs_reload}')\n"
+                    f"print('DropInPaths={dropins}')\n",
+                )
+                result = subprocess.run(
+                    raw_command(paths, "--dashboard", "--json", "--source-repo", str(repo)),
+                    cwd=REPO,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                return json.loads(result.stdout)["dashboard"]["unitConfiguration"]
+
+            baseline = run_dashboard()
+            self.assertTrue(baseline["available"])
+            self.assertTrue(baseline["fileMatchesSource"])
+            self.assertTrue(baseline["qualified"])
+            self.assertFalse(baseline["loadedEquivalenceProven"])
+
+            installed_unit.write_text("[Service]\nType=oneshot\n", encoding="utf-8")
+            drift = run_dashboard()
+            self.assertFalse(drift["qualified"])
+            self.assertFalse(drift["fileMatchesSource"])
+            self.assertIn("UNIT_FRAGMENT_DIGEST_MISMATCH", drift["reasons"])
+
+            installed_unit.write_bytes(unit_src.read_bytes())
+            needs_reload = run_dashboard(needs_reload="yes")
+            self.assertFalse(needs_reload["qualified"])
+            self.assertIn("UNIT_MANAGER_RELOAD_REQUIRED", needs_reload["reasons"])
+            overridden = run_dashboard(dropins="/etc/systemd/system/override.conf")
+            self.assertFalse(overridden["qualified"])
+            self.assertIn("UNIT_MANAGER_DROPINS_UNQUALIFIED", overridden["reasons"])
+
     def test_dashboard_source_currentness_ignores_sibling_monorepo_commits(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

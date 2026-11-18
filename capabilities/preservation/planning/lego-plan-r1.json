@@ -196,12 +196,13 @@
         "systemd/ordivon-preservation-fixity-r7.service",
         "systemd/ordivon-preservation-fixity-r7.timer",
         "scripts/verify_source.py",
+        "scripts/fixity_consumer_contract.py",
         "artifacts/creative-preservation/operations-r7/acceptance-r7.json"
       ],
       "consumerEvidence": [
         "meta/next/evidence/data-lifecycle/preservation-r1/acceptance.json (historical consumer evidence)",
         "systemd/ordivon-preservation-fixity-r7.timer",
-        "scripts/verify_source.py::verify_fixity_consumer_binding (SOURCE_ONLY)",
+        "scripts/fixity_consumer_contract.py::verify_fixity_consumer_binding (SOURCE_ONLY)",
         "scripts/test_verify_source.py::FixityConsumerSourceContractTests (NEGATIVE_OWNER_CONSUMER)"
       ],
       "dependencies": [

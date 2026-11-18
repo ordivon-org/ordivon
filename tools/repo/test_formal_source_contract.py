@@ -115,6 +115,58 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     formal.run("model positive probe", command, expected_rc=0)
             self.assertFalse(receipt.exists())
 
+    def test_alloy_runtime_resources_bind_jvm_and_app_bytes(self) -> None:
+        """Alloy's 48 KB ELF is not the JVM or the model-checking application."""
+        import hashlib
+        with tempfile.TemporaryDirectory(prefix="ordivon-alloy-code-readset-") as tmp:
+            root = Path(tmp)
+            exe = root / "bin/alloy"
+            exe.parent.mkdir(parents=True)
+            exe.write_bytes(b"alloy launch fixture")
+            jar = root / "lib/app/org.alloytools.alloy.dist.jar"
+            jvm = root / "lib/runtime/lib/server/libjvm.so"
+            for path, value in ((jar, b"alloy app"), (jvm, b"jvm runtime")):
+                path.parent.mkdir(parents=True)
+                path.write_bytes(value)
+            initial = formal.qualified_alloy_runtime_resources(str(exe))
+            self.assertEqual(set(initial), {"alloyAppJar", "alloyJvm"})
+            self.assertEqual(initial["alloyAppJar"]["sha256"],
+                             hashlib.sha256(b"alloy app").hexdigest())
+            jar.write_bytes(b"changed alloy app")
+            changed = formal.qualified_alloy_runtime_resources(str(exe))
+            self.assertNotEqual(initial["alloyAppJar"], changed["alloyAppJar"])
+            self.assertEqual(initial["alloyJvm"], changed["alloyJvm"])
+            jvm.unlink()
+            with self.assertRaisesRegex(ValueError, "alloyJvm"):
+                formal.qualified_alloy_runtime_resources(str(exe))
+
+    def test_alloy_sat_requires_a_real_instance_not_a_field_name(self) -> None:
+        """A zero-instance UNSAT report must never be called a SAT witness.
+
+        The old root Formal gate accepted any rc=0 text containing
+        '"instances"', including an empty array or a quoted string.
+        """
+        import json
+
+        positive = json.dumps({
+            "instances": [{"state": 0, "values": {"Node$1": {}}}],
+            "duration": 30,
+        })
+        self.assertEqual(formal.qualify_alloy_sat_witness(positive), 1)
+        for output in (
+            "",  # Native Alloy UNSAT output is empty with exit status 0.
+            '{"instances":[]}',
+            '{"instances":null}',
+            '{"instances":{}}',
+            '{"instances":[null]}',
+            '{"instances":[{"state":0}]}',
+            '{"instances":[{"state":"0","values":{}}]}',
+            '{"message":"\\\"instances\\\""}',
+            "not-json \"instances\"",
+        ):
+            with self.subTest(output=output), self.assertRaisesRegex(ValueError, "Alloy"):
+                formal.qualify_alloy_sat_witness(output)
+
     def test_independently_callable_qualifiers_reject_preloaded_parent(self) -> None:
         """A source or tool receipt cannot trust a Python process already preloaded.
 
@@ -328,6 +380,30 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertLess(step.index(admission), step.index("mise run formal:verify"))
         self.assertIn("KANI_HOME:", step)
 
+    def test_formal_kani_proxy_prepared_before_time_bounded_proofs(self) -> None:
+        """Kani 0.68.0 cold-start setup cannot consume a proof's 90s budget."""
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        step = workflow.split(
+            "      - name: Verify changed core Formal source\n", 1
+        )[1].split("      - name: Runtime supply-chain policy\n", 1)[0]
+        pinned_prewarm = "mise -C tools/formal exec -- kani --version"
+        self.assertEqual(step.count(pinned_prewarm), 1)
+        self.assertLess(step.index("mise install"), step.index(pinned_prewarm))
+        runtime = tomllib.loads(
+            (ROOT / "services/runtime/mise.toml").read_text(encoding="utf-8")
+        )
+        pinned_rust = runtime["tools"]["rust"]["version"]
+        self.assertLess(
+            step.index(f"rustup toolchain install {pinned_rust} --profile minimal"),
+            step.index(pinned_prewarm),
+        )
+        self.assertLess(step.index(pinned_prewarm), step.index("mise run formal:verify"))
+        self.assertIn("KANI_HOME:", step)
+        # The pinned Kani mathematical proof and negative falsifier MUST remain.
+        formal_source = (ROOT / "tools/formal/verify.py").read_text(encoding="utf-8")
+        self.assertIn('must_contain="VERIFICATION:- SUCCESSFUL", timeout=90', formal_source)
+        self.assertIn('str(bad_kani)', formal_source)
+
     def test_timeout_source_anchor_reader_rejects_changed_explicit_syntax(self) -> None:
         """Anchor observation rejects changed syntax without proving code semantics."""
         qualified = formal.qualified_timeout_adapter_fragment()
@@ -376,10 +452,13 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         """A remaining pre-projection rebind keeps source refinement UNKNOWN."""
         baseline = formal.qualified_timeout_adapter_fragment()
         self.assertIs(baseline["sourceAstAnchorsObserved"], True)
-        self.assertEqual(
-            baseline["effectFrameObserved"],
-            "exact_post_projection_return_and_immediate_gateway_dispatch",
+        actual_gateway_source = (ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py").read_text(encoding="utf-8")
+        expected_frame = (
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch"
+            if "require_effect_ready(" in actual_gateway_source
+            else "exact_post_projection_return_and_immediate_gateway_dispatch"
         )
+        self.assertEqual(baseline["effectFrameObserved"], expected_frame)
         self.assertIs(baseline["codeFragmentRefined"], False)
         self.assertEqual(baseline["sourceRefinementStanding"], "UNKNOWN")
 
@@ -451,6 +530,45 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
                         formal.qualified_timeout_adapter_fragment()
 
+    def test_exact_native_claim_guard_source_frame_rejects_mutation(self) -> None:
+        """Only the whole native-Claim barrier, not a caller-authored token, is observed."""
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        if "require_effect_ready(" not in original:
+            self.skipTest("The historical source has no native Workspace Claim frame")
+        baseline = formal.qualified_timeout_adapter_fragment()
+        self.assertEqual(
+            baseline["effectFrameObserved"],
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch",
+        )
+        variants = (
+            ("missing-claim", "self._workspace_admission.require_effect_ready(",
+             "self._workspace_admission.accept_without_proof("),
+            ("optional-claim", "self._workspace_admission_required and self._workspace_admission is None",
+             "False and self._workspace_admission is None"),
+            ("false-evidence", "if admitted is not None:",
+             "if False:"),
+            ("mutation-after-projection",
+             '        if self._workspace_admission_required and self._workspace_admission is None:',
+             '        gateway_args["timeoutMs"] = 900000\n'
+             '        if self._workspace_admission_required and self._workspace_admission is None:'),
+        )
+        actual_read = Path.read_text
+        for label, before, after in variants:
+            with self.subTest(label=label):
+                self.assertIn(before, original)
+                mutant = original.replace(before, after, 1)
+                compile(mutant, str(target), "exec")
+
+                def read_with_mutant(path, *args, **kwargs):
+                    if path == target:
+                        return mutant
+                    return actual_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", read_with_mutant):
+                    with self.assertRaisesRegex(ValueError, "timeout|frame|effect"):
+                        formal.qualified_timeout_adapter_fragment()
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(
@@ -462,8 +580,8 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         )
         self.assertEqual(set(current["sourceBlobs"]), set(formal.SOURCE_FILES))
         # The source-scoped Formal proof now binds the actual Harness
-        # execution adapter as well as ten existing proof/toolchain inputs.
-        self.assertEqual(len(current["sourceBlobs"]), 11)
+        # execution adapter and the selected Media producer/model, in the
+        # same exact Git source-bound proof readset.
         for relative, oid in current["sourceBlobs"].items():
             self.assertEqual(
                 oid,
@@ -580,6 +698,116 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                 }):
                     actual = formal.qualified_source_cut()
                 self.assertEqual(actual, expected, "foreign Git CLI reselected by PATH")
+
+    def test_loader_address_only_annotation_is_not_an_elf_dependency(self) -> None:
+        """Address annotations have no library identity; unknown SONAMEs still fail."""
+        import sys
+
+        true_run = subprocess.run
+
+        def run_with_address_annotation(*args, **kwargs):
+            observed = true_run(*args, **kwargs)
+            return subprocess.CompletedProcess(
+                observed.args, observed.returncode,
+                stdout=observed.stdout + "\n(0x00007008fa400000)\n",
+                stderr=observed.stderr,
+            )
+
+        with patch.object(
+            formal.subprocess, "run", side_effect=run_with_address_annotation,
+        ):
+            resolved = formal.observed_z3_elf_dependencies(Path(sys.executable))
+        self.assertTrue(resolved["resolvedLibraries"])
+        self.assertNotIn(
+            "(0x00007008fa400000)", resolved["resolvedLibraries"],
+        )
+
+    def test_unqualified_elf_loader_line_has_bounded_failure_witness(self) -> None:
+        """Unknown ld.so entries remain rejected and identify their exact input."""
+        import sys
+        from types import SimpleNamespace
+
+        unqualified = "libmissing-real-cause.so => not found"
+        with patch.object(
+            formal.subprocess, "run",
+            return_value=SimpleNamespace(
+                returncode=0,
+                stdout="\n".join(["linux-vdso.so.1 (0x0)", unqualified]),
+                stderr="",
+            ),
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "libmissing-real-cause\\.so",
+            ):
+                formal.observed_z3_elf_dependencies(Path(sys.executable))
+
+    def test_native_elf_dependency_hash_changes_with_same_executable(self) -> None:
+        """Real Rust ELF consumer: same entrypoint, changed resolved shared library."""
+        import hashlib
+        import shutil
+
+        if not shutil.which("rustc"):
+            self.skipTest("Rust compiler unavailable for real native ELF fixture")
+        with tempfile.TemporaryDirectory(prefix="ordivon-elf-readset-") as td:
+            root = Path(td)
+            library = root / "libdecision.so"
+            lib_source = root / "decision.rs"
+            app_source = root / "caller.rs"
+            executable = root / "caller"
+            app_source.write_text(
+                'unsafe extern "C" { fn decision() -> i32; }\n'
+                'fn main() { println!("{}", unsafe { decision() }); }\n',
+                encoding="utf-8",
+            )
+
+            def build_library(value: int) -> None:
+                lib_source.write_text(
+                    '#[no_mangle]\npub extern "C" fn decision() -> i32 { '
+                    + str(value) + ' }\n',
+                    encoding="utf-8",
+                )
+                subprocess.run(
+                    ["rustc", "--edition=2021", "--crate-type=cdylib",
+                     "--crate-name=decision", str(lib_source), "-o", str(library)],
+                    cwd=root, check=True, capture_output=True, text=True, timeout=60,
+                )
+
+            build_library(7)
+            subprocess.run(
+                ["rustc", "--edition=2021", str(app_source),
+                 "-L", "native=" + str(root), "-l", "dylib=decision",
+                 "-C", "link-arg=-Wl,-rpath,$ORIGIN", "-o", str(executable)],
+                cwd=root, check=True, capture_output=True, text=True, timeout=60,
+            )
+            def run_native() -> str:
+                return subprocess.check_output([str(executable)], text=True).strip()
+            self.assertEqual(run_native(), "7")
+            entry_hash = hashlib.sha256(executable.read_bytes()).hexdigest()
+            before = formal.observed_z3_elf_dependencies(executable)
+            self.assertIn(str(library.resolve()), before["resolvedLibraries"])
+            build_library(19)
+            self.assertEqual(run_native(), "19")
+            self.assertEqual(hashlib.sha256(executable.read_bytes()).hexdigest(),
+                             entry_hash, "ELF entrypoint bytes unexpectedly changed")
+            # A changed resolved library MUST either change the qualified
+            # observation or make requalification fail closed. Different
+            # glibc/CI loader builds need not produce the same --list format.
+            changed_digest = hashlib.sha256(library.read_bytes()).hexdigest()
+            self.assertNotEqual(
+                before["resolvedLibraries"][str(library.resolve())],
+                changed_digest,
+                "the intended native loader input did not actually change",
+            )
+            try:
+                after = formal.observed_z3_elf_dependencies(executable)
+            except ValueError as error:
+                self.assertRegex(
+                    str(error),
+                    "unresolved|nonabsolute|dependency listing failed|nonregular",
+                )
+            else:
+                self.assertNotEqual(before, after, "changed ELF library falsely reused")
+                self.assertEqual(before["entrypointSha256"], after["entrypointSha256"])
 
     def test_source_cut_rejects_modified_untracked_and_symlink_inputs(self) -> None:
         def git(cwd: Path, *args: str) -> str:

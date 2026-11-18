@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 SCRIPT = Path(__file__).with_name("verify_source.py")
+FIXITY_CONTRACT = SCRIPT.with_name("fixity_consumer_contract.py")
 BOUNDARY = SCRIPT.parents[1] / "SOURCE_BOUNDARY.json"
 
 # Run the real verifier entry point, with only its JSON input substituted.
@@ -20,6 +21,7 @@ RUN_VERIFIER = """
 import importlib.util
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).resolve().parent))
 spec = importlib.util.spec_from_file_location("preservation_source", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -99,6 +101,7 @@ class SourceBoundaryContractTests(unittest.TestCase):
     def test_patterns_do_not_match_across_directory_boundaries(self) -> None:
         import importlib.util
 
+        sys.path.insert(0, str(SCRIPT.parent))
         spec = importlib.util.spec_from_file_location("preservation_source", SCRIPT)
         assert spec is not None and spec.loader is not None
         module = importlib.util.module_from_spec(spec)
@@ -241,7 +244,7 @@ FIXITY_SOURCE_CONSUMER = """
 import importlib.util
 import sys
 from pathlib import Path
-spec = importlib.util.spec_from_file_location("preservation_source", sys.argv[1])
+spec = importlib.util.spec_from_file_location("preservation_fixity_consumer", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 root = Path(sys.argv[1]).resolve().parents[1]
@@ -279,7 +282,7 @@ class FixityConsumerSourceContractTests(unittest.TestCase):
                 *(["-O"] if optimized else []),
                 "-c",
                 FIXITY_SOURCE_CONSUMER,
-                str(SCRIPT),
+                str(FIXITY_CONTRACT),
                 mode,
             ],
             text=True,

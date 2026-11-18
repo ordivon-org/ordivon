@@ -28,9 +28,12 @@ second validator or Python-specific regex escape to the portable JSON schemas.
 
 The schema-consuming path is the existing Composition validator in
 `cognitive_circuit_r1.py`, reused by interface, verification-obligation and
-successor contracts. Existing source consumers include the Research artifact
-gate and timeout-obligation scripts in `meta/next`; their imports establish
-source consumption, not installed or domain acceptance.
+successor contracts. At the frozen source baseline, historical Research artifact
+and timeout-obligation consumers were under `meta/next`; that location was
+retired. Current source consumers include the native
+`packages/composition/scripts/pacti_timeout_obligation_r1.py` entrypoint and
+`verification_obligation_r1.py` module. The historical receipt witnesses only
+that source baseline, not installed or domain acceptance for the current main.
 
 ## Native witnesses and scope
 

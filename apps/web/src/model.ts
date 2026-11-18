@@ -103,6 +103,7 @@ export interface VerifiedApproval {
   readonly verified: boolean;
   readonly principalId: string | null;
   readonly effectId: string | null;
+  readonly effectDigest: string | null;
   readonly method: "webauthn" | null;
 }
 

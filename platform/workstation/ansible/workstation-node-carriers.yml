@@ -5,6 +5,7 @@
   gather_facts: false
   tasks:
     - name: Ensure stable tool directory exists
+      tags: [input-authority-ingress]
       ansible.builtin.file:
         path: /root/tools/bin
         state: directory
@@ -12,7 +13,19 @@
         group: root
         mode: "0755"
 
+    # Contract must arrive before the executable that imports it. This is still
+    # a Workstation-owned carrier, not a second service or authority store.
+    - name: Install input-authority ingress contract
+      tags: [input-authority-ingress]
+      ansible.builtin.copy:
+        src: ../workstation/input_authority_contract.py
+        dest: /root/tools/bin/input_authority_contract.py
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Install input-authority ingress carrier
+      tags: [input-authority-ingress]
       ansible.builtin.copy:
         src: ../workstation/input_authority_ingress.py
         dest: /root/tools/bin/input-authority-ingress

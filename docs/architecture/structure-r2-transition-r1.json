@@ -13,7 +13,8 @@
     "S1A",
     "S1B",
     "S2A",
-    "S2B"
+    "S2B",
+    "S2C"
   ],
   "forbiddenSemanticRoots": [
     "services/",
@@ -177,6 +178,7 @@
       "sourcePaths": [
         "platform/skills/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "extensions/chatgpt-skills-mcp/"
       ],
@@ -285,7 +287,7 @@
       "disposition": "Generic Cognitive Circuit and Interface R2 implementation, five public schemas, owner docs, and owner-native tests are extracted. Remaining Next consumers import the public ordivon_composition package directly; historical Python facades are retired. Seam-specific R3/Admission/dogfood semantics remain with Next.",
       "id": "composition-mechanics",
       "mode": "split",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/schemas/",
@@ -298,29 +300,30 @@
       ],
       "verifyTasks": [
         "composition:verify",
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S1A"
     },
     {
+      "disposition": "Canonical Agent Skill bytes relocated to repository-root .agents/skills; semantics and advisory authority unchanged.",
       "id": "canonical-skills",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/.agents/skills/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         ".agents/skills/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
-      "wave": "S2B",
-      "standing": "DEPLOYED",
-      "disposition": "Canonical Agent Skill bytes relocated to repository-root .agents/skills; semantics and advisory authority unchanged."
+      "wave": "S2B"
     },
     {
+      "disposition": "Portable Agent Plugins 1.0 package bytes are repository-level extension source; Next remains the release/materialization consumer and owns no Plugin semantics.",
       "id": "control-plugin",
       "mode": "move",
       "owner": "control-plugin",
@@ -328,70 +331,94 @@
       "sourcePaths": [
         "meta/next/plugins/ordivon-control-plane/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "extensions/ordivon-control-plane/"
       ],
       "verifyTasks": [
         "control-plugin:verify",
-        "next:verify"
+        "repo:ci"
       ],
-      "wave": "S2A",
-      "standing": "DEPLOYED",
-      "disposition": "Portable Agent Plugins 1.0 package bytes are repository-level extension source; Next remains the release/materialization consumer and owns no Plugin semantics."
+      "wave": "S2A"
     },
     {
+      "disposition": "S5 source-only discovery metadata relocated to catalogs/authorities with exact JSON contents preserved and authority native source loader and JSON Schemas relocated. Does not imply external standards applicability, currentness validation, runtime installation, or domain acceptance.",
       "id": "authority-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/authorities/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/authorities/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
     {
+      "disposition": "SOURCE-only S5 capability discovery/catalog placement. Maintained non-authoritative Markdown records are under catalogs/capabilities; historical authority registrationBasis remains source-cut provenance. Other S5 mappings remain open; provider availability and installed state not implied.",
       "id": "capability-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/capabilities/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/capabilities/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
     {
+      "disposition": "SOURCE-only non-authoritative ODPS/ODCS/ODRL Episode catalog placement. Historical data-lifecycle receipts retain original exact-cut path; no installed data-product authority or consumer deployment implied.",
+      "id": "episode-data-product-catalog",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/data-products/"
+      ],
+      "standing": "DEPLOYED",
+      "targetPaths": [
+        "catalogs/data-products/"
+      ],
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "disposition": "SOURCE-only retained knowledge and evidence catalog placement. Historical Git SourceCut naming/provenance remains unchanged. No authority, installed deployment state or new skill registry is conferred by this physical move; remaining S5 mappings stay open.",
       "id": "knowledge-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/knowledge/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/knowledge/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
     {
       "id": "domain-profiles",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
+      "standing": "DEPLOYED",
       "sourcePaths": [
         "meta/next/domains/"
       ],
@@ -399,50 +426,70 @@
         "profiles/domains/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
     {
-      "disposition": "Move maintained task-local composition policy artifacts only; historical policy evidence stays with its provenance owner.",
       "id": "composition-policies",
-      "mode": "split",
-      "owner": "next",
+      "mode": "move",
+      "owner": "repository",
+      "standing": "DEPLOYED",
+      "disposition": "Executable Research-to-adopted-policy OPA example lives in packages/composition/policies; repository external-ownership and policy-consumption constraints live in docs/architecture/policies. Existing Next native test consumers resolve their new physical paths. External OPA and provider/IAM retain authorization authority.",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/policies/"
       ],
       "targetPaths": [
-        "packages/composition/policies/"
+        "packages/composition/policies/",
+        "docs/architecture/policies/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
     {
-      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers.",
+      "disposition": "Meta/Next source ownership retired. Remaining implementation and verification moved to natural capability/catalog/domain consumers; unconsumed historical wrappers deleted. Historical source paths are immutable provenance only.",
       "id": "next-residual",
       "mode": "split",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/"
       ],
       "targetPaths": [
+        "apps/",
         "packages/composition/",
         "catalogs/",
         "profiles/",
         "extensions/",
         "docs/",
-        "tests/"
+        "tests/",
+        "studies/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "currentPlacementPaths": [
+        "catalogs/",
+        "packages/composition/",
+        "profiles/",
+        "studies/",
+        "apps/",
+        "extensions/",
+        "docs/",
+        "tests/"
+      ]
     },
     {
+      "currentPlacementPaths": [
+        "profiles/research/",
+        "catalogs/authorities/venues/",
+        "tests/fixtures/research/"
+      ],
       "disposition": "Publication profiles go to profiles; venue authority metadata to catalogs; study evidence to its Study; dogfood-only evidence may become a bounded test fixture.",
       "id": "research-meta",
       "mode": "split",
@@ -451,6 +498,7 @@
       "sourcePaths": [
         "meta/research/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "profiles/research/",
         "catalogs/authorities/",
@@ -461,10 +509,259 @@
         "repo:ci"
       ],
       "wave": "S5"
+    },
+    {
+      "disposition": "Source-only move of the ten Next-owned migration and retirement state records into the existing migration/retirement documentation region. Frozen SourceCut evidence remains historical and unchanged; outstanding external cleanup remains OPEN until actual external verification.",
+      "id": "next-migration-disposition-records",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/migrations/records/"
+      ],
+      "standing": "DEPLOYED",
+      "targetPaths": [
+        "docs/migration/retirement/"
+      ],
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "currentPlacementPaths": [
+        "studies/data-lifecycle/"
+      ],
+      "disposition": "Six historical data-lifecycle census records remain in the native studies source; the unconsumed Next planning folder was retired rather than copied or preserved as an owner.",
+      "id": "data-lifecycle-census-studies",
+      "mode": "split",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/planning/"
+      ],
+      "standing": "DEPLOYED",
+      "targetPaths": [
+        "studies/"
+      ],
+      "verifyTasks": [
+        "repo:ci",
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "authority-catalog-implementation",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/authority_catalog.py",
+        "meta/next/scripts/authority_catalog_sources.py",
+        "meta/next/scripts/authority_catalog_search.py",
+        "meta/next/scripts/check_authority_catalog_r1.py",
+        "meta/next/tests/test_authority_catalog.py"
+      ],
+      "targetPaths": [
+        "catalogs/authorities/scripts/",
+        "catalogs/authorities/tests/",
+        "catalogs/authorities/planning/"
+      ],
+      "verifyTasks": [
+        "repo:ci",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "External authority source, observation, search, native CLI/validator/test, and NX01 owner LEGO are co-located in the existing catalogs/authorities natural source responsibility, without a new registry service."
+    },
+    {
+      "id": "experimental-episode-corpus-native-evidence",
+      "mode": "split",
+      "wave": "S5",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/"
+      ],
+      "targetPaths": [
+        "studies/experimental-episodes/evidence/"
+      ],
+      "currentPlacementPaths": [
+        "studies/experimental-episodes/evidence/"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci",
+        "repo:ci"
+      ],
+      "disposition": "Episode study evidence consumers are rebound to native Studies paths. Remaining Meta/Next evidence has been relocated or retired; historical coordinates remain Git provenance, not current source."
+    },
+    {
+      "disposition": "Twelve tracked package files relocated byte-identically except README source owner pointer; native Python distribution/CLI, Alembic migration, PostgreSQL projection and actual Study consumer tests retained. No alias or shadow package.",
+      "id": "experimental-episode-study-store",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/episode-store-r1/"
+      ],
+      "standing": "DEPLOYED",
+      "targetPaths": [
+        "studies/experimental-episodes/episode-store/"
+      ],
+      "verifyTasks": [
+        "repo:ci",
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "data-lifecycle-study-evidence",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/data-lifecycle/"
+      ],
+      "targetPaths": [
+        "studies/data-lifecycle/evidence/"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci",
+        "repo:ci"
+      ],
+      "disposition": "Thirty-eight original study evidence files retained byte-identically at the Study source owner, together with six method/consumer checks moved to studies/data-lifecycle/tests and enrolled in existing repository pytest CI. Historical evidence source/path references remain dated observations, not current active pointers."
+    },
+    {
+      "id": "r5c-episode-study-native-projection",
+      "mode": "move",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/experimental_episode_r1.py",
+        "meta/next/scripts/experimental_episode_projection_r1.py",
+        "meta/next/scripts/experimental_episode_r5c_source_r1.sql",
+        "meta/next/tests/test_experimental_episode_r1.py"
+      ],
+      "targetPaths": [
+        "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_backfill.py",
+        "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_projection.py",
+        "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql",
+        "studies/experimental-episodes/episode-store/tests/test_r5c_projection.py"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Move R5C historical query, deterministic Episode projection, backfill CLI and real consumers into existing native Experimental Episode Study package. Repository SQL dialect source readset and native dependencies rebound; frozen historical material untouched.",
+      "verifyTasks": [
+        "repo:ci",
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "experimental-episode-analysis-study-evidence",
+      "mode": "move",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/data-products/experimental-episode-analysis-r1/"
+      ],
+      "targetPaths": [
+        "studies/experimental-episodes/evidence/data-products/experimental-episode-analysis-r1/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Four original data product evidence bytes moved into existing Experimental Episode Study; live test locator updated, dated data-lifecycle source-cut evidence remains immutable. No second authority or archive.",
+      "verifyTasks": [
+        "repo:ci",
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "cross-domain-composition-source-and-lego",
+      "mode": "move",
+      "owner": "composition",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/cross_domain_binding_r3.py",
+        "meta/next/scripts/research_artifact_gate_r3.py",
+        "meta/next/scripts/web_security_gate_r3.py",
+        "meta/next/tests/test_cross_domain_verification_r3.py",
+        "meta/next/planning/lego-plan-r1.json",
+        "meta/next/evidence/acceptance/cross-domain-verification-r3-bindings.json"
+      ],
+      "targetPaths": [
+        "packages/composition/src/ordivon_composition/",
+        "packages/composition/tests/",
+        "packages/composition/planning/lego-plan-r1.json",
+        "packages/composition/tests/fixtures/cross-domain-verification-r3-bindings.json"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Relocate bounded R3 gates, consumers and C07-C09 LEGO nodes to native Composition owner. Historical SourceCut coordinates retained; no duplicate authority or aliases.",
+      "verifyTasks": [
+        "composition:verify",
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "chaoxing-app-native-owner",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "chaoxing-autosign",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/chaoxing-autosign-mvp/"
+      ],
+      "targetPaths": [
+        "apps/chaoxing-autosign/"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "disposition": "Application implementation and README moved to native apps owner; import surface, disabled submission behavior and SQLite debt consumer remain source-qualified. No installed/runtime effect inferred."
+    },
+    {
+      "id": "chaoxing-app-native-tests",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "chaoxing-autosign",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/tests/test_chaoxing_autosign_mvp.py"
+      ],
+      "targetPaths": [
+        "apps/chaoxing-autosign/tests/test_chaoxing_autosign_mvp.py"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "disposition": "Retained existing app behavioral test under native app owner; root repo:ci now invokes its 11 cases and SQL dialect source consumers use new path."
+    },
+    {
+      "id": "agent-architecture-catalog-acceptance-knowledge-placement",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/acceptance/agent-architecture-lego-catalog-r1.json"
+      ],
+      "targetPaths": [
+        "catalogs/knowledge/evidence/acceptance/agent-architecture-lego-catalog-r1.json"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Move dated architecture LEGO catalog acceptance bytes unchanged beside their current knowledge graph and lesson; retirement policy points to the new natural source locator. Historical receipt coordinates inside the record remain frozen; no alias or second authority.",
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "wave": "S5"
     }
   ],
   "openSlices": [
-    "S2C",
     "S3",
     "S4",
     "S5",

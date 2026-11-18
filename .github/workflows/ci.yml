@@ -20,10 +20,16 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'merge_group' }}
 
 jobs:
-  root-verification:
-    name: root-verification
+  root-preflight:
+    name: repo-preflight
+    outputs:
+      shards: ${{ steps.affected.outputs.shards }}
+      formal: ${{ steps.affected.outputs.formal }}
+      has_owner_tasks: ${{ steps.affected.outputs.has_owner_tasks }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    # GitHub-native isolated PostgreSQL consumer; no local test harness or
+    # access to an installed/production Accounting authority.
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,20 +37,74 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Historical provenance belongs to its registration SourceCut. A path
+      # migration must not rewrite it simply to make paths resolve at HEAD.
+      - name: Preserve Authority registration history across Git changes
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
+            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
+            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
+          esac
+          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
+          fi
+
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
       - name: Install monorepo toolchain
         uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
           # Avoid eager --monorepo tool installation: Owner queue tasks already
           # install their own toolchain only when the consumer selects them.
           install: false
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          mise install
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash
@@ -59,24 +119,6 @@ jobs:
           set -euo pipefail
           tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
           echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
-
-      - name: Repository mechanics
-        run: |
-          # Pin the *actual executable task source* to this checkout's Git tree,
-          # not only the already-selected task names. This is a pre-run witness,
-          # not a claim of immutable task bytes during child execution.
-          if [[ -n "${GITHUB_SHA:-}" ]] &&
-             [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
-            echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
-            exit 43
-          fi
-          if [[ ! -f mise.toml || -L mise.toml ]] ||
-             ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
-             ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
-            echo "ERROR: root task source differs from exact Git HEAD" >&2
-            exit 43
-          fi
-          "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
 
       - name: Select affected owners
         id: affected
@@ -100,7 +142,7 @@ jobs:
                [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
               return 1
             fi
-            for rel in .github/workflows/ci.yml tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/owners.toml tools/repo/dependency_contracts.toml mise.toml; do
+            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/owners.toml tools/repo/dependency_contracts.toml mise.toml; do
               [[ -f "$rel" && ! -L "$rel" ]] || return 1
               entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
               [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
@@ -175,6 +217,18 @@ jobs:
           except ValueError as exc:
               raise SystemExit(str(exc)) from exc
           PY
+          # The native convergence plan already admitted the exact selected
+          # task list. This is only a lossless, bounded partition across
+          # isolated GitHub runners; it cannot change verification scope.
+          python3 tools/repo/ci_owner_shards.py "$tasks_file" > "$RUNNER_TEMP/ordivon-owner-shards.json"
+          printf 'shards=%s\n' "$(cat "$RUNNER_TEMP/ordivon-owner-shards.json")" >> "$GITHUB_OUTPUT"
+          has_owner_tasks=false
+          for task in "${tasks[@]-}"; do
+            if [[ "$task" != "formal:verify" && -n "$task" ]]; then
+              has_owner_tasks=true
+            fi
+          done
+          printf 'has_owner_tasks=%s\n' "$has_owner_tasks" >> "$GITHUB_OUTPUT"
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
           runtime=false
           for selected in "${owners[@]-}"; do
@@ -227,10 +281,771 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Verify affected owners
+      - name: Verify changed core Formal source
+        if: steps.affected.outputs.formal == 'true'
+        shell: bash
+        env:
+          # mise-action limits its GitHub auth to that action. The later
+          # Formal mise install must use GitHub's read-only job token for
+          # release metadata instead of exhausting anonymous API quota.
+          GITHUB_TOKEN: ${{ github.token }}
+          # Isolate Kani's release bundle to this job; a truncated shared
+          # ~/.kani cache must not masquerade as a mathematical proof result.
+          KANI_HOME: ${{ runner.temp }}/ordivon-core-formal-kani
+        run: |
+          set -euo pipefail
+          # The actual Formal executable prefix is ROOT Mise → nested Mise →
+          # verify.py. A successful root task name alone proves none of it.
+          qualify_formal_prefix() {
+            local rel entry
+            if [[ -n "${GITHUB_SHA:-}" ]] &&
+               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+              return 1
+            fi
+            for rel in mise.toml tools/formal/mise.toml tools/formal/verify.py; do
+              [[ -f "$rel" && ! -L "$rel" ]] || return 1
+              entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
+              [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
+              [[ "${entry##*$'\t'}" == "$rel" ]] || return 1
+              git --no-replace-objects show "HEAD:$rel" | cmp -s - "$rel" || return 1
+            done
+            # Native Mise may load a higher-priority untracked local override.
+            # Qualify the EFFECTIVE in-repo readset as well as the three known
+            # executable files; external global config remains an assumption.
+            python3 - <<'PYMISE'
+          import json
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          repo = Path.cwd().resolve()
+          try:
+              observed = subprocess.run(
+                  ["mise", "--cd", str(repo / "tools/formal"),
+                   "config", "ls", "--json"],
+                  check=True, capture_output=True, text=True, timeout=20,
+              )
+              configs = json.loads(observed.stdout)
+              if not isinstance(configs, list) or not configs:
+                  raise ValueError("no native Formal Mise configs")
+              in_repo = set()
+              for item in configs:
+                  if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                      raise ValueError("invalid native Formal Mise config entry")
+                  path = Path(item["path"])
+                  if not path.is_absolute():
+                      raise ValueError("nonabsolute native Formal Mise config path")
+                  try:
+                      rel = path.relative_to(repo).as_posix()
+                  except ValueError:
+                      # Global/home configuration is not qualified by this source cut.
+                      continue
+                  if (path.is_symlink() or not path.resolve().is_relative_to(repo)
+                          or not path.is_file()):
+                      raise ValueError("nonregular native Formal Mise config: " + rel)
+                  entry = subprocess.check_output(
+                      ["git", "--no-replace-objects", "ls-tree", "HEAD", "--", rel],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+                  if re.fullmatch(
+                      r"(100644|100755) blob ([0-9a-f]{40}|[0-9a-f]{64})\t"
+                      + re.escape(rel), entry,
+                  ) is None:
+                      raise ValueError("untracked native Formal Mise config: " + rel)
+                  committed = subprocess.check_output(
+                      ["git", "--no-replace-objects", "show", "HEAD:" + rel],
+                      stderr=subprocess.PIPE,
+                  )
+                  if path.read_bytes() != committed:
+                      raise ValueError("dirty native Formal Mise config: " + rel)
+                  in_repo.add(rel)
+              if not {"mise.toml", "tools/formal/mise.toml"} <= in_repo:
+                  raise ValueError("required Formal Mise configs not actually loaded")
+          except (OSError, ValueError, subprocess.SubprocessError) as exc:
+              print("ERROR: effective Formal Mise config differs from Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PYMISE
+          }
+          qualify_formal_prefix || {
+            echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
+            exit 43
+          }
+          cd tools/formal
+          mise install
+          cd ../..
+          qualify_formal_prefix || {
+            echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
+            exit 43
+          }
+          # Verus invokes rustup's pinned compiler, not just the mise-resolved
+          # verifier executable. Fresh GitHub runners lack this exact toolchain
+          # even when the Formal mise install has succeeded. Preserve the
+          # native proof gate and install its prerequisite instead of skipping.
+          rustup toolchain install 1.99.1 --profile minimal
+          # Kani 0.68.0's pinned proxy auto-installs its release bundle and
+          # rustup toolchain on first invocation. Do this BEFORE the 90-second
+          # mathematical proof timeouts; never count network/bootstrap as
+          # a proof, suppress initialization failures or accept a stale receipt.
+          # The same KANI_HOME in this step is used by the later verifier.
+          mise -C tools/formal exec -- kani --version
+          receipt="$RUNNER_TEMP/ordivon-core-formal-report.json"
+          mise run formal:verify > "$receipt"
+          qualify_formal_prefix || {
+            echo "ERROR: Formal executable source changed after invocation" >&2
+            exit 43
+          }
+          python3 - "$receipt" <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          import stat
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          # Consumer-owned finite proof obligations. Exit 0 and a subset are not enough.
+          EXPECTED_PROBES = {
+              "Lean kernel R2.1 relational composition": 0,
+              "Lean kernel qualified variation frame and countermodels": 0,
+              "Lean kernel Media processing admission model": 0,
+              "Lean kernel Media Creative Library Catalog acceptance": 0,
+              "Lean kernel Media TimedText delivery precision": 0,
+              "Lean kernel Media Output byte identity": 0,
+              "Lean kernel Media dependency impact model": 0,
+              "Lean kernel Media archive visual relation conservation": 0,
+              "Z3 IEEE-754 Media loudness profile model": 0,
+              "Lean rejects false theorem": 1,
+              "Z3: sat": 0,
+              "Z3: unsat": 0,
+              "cvc5: sat": 0,
+              "cvc5: unsat": 0,
+              "Verus Rust proof": 0,
+              "Verus rejects false postcondition": 1,
+              "Dafny method proof": 0,
+              "Dafny rejects false postcondition": 4,
+              "Kani native Rust bounded proof": 0,
+              "Kani rejects reachable assertion failure": "NONZERO",
+              "Quint typed state machine": 0,
+              "Quint rejects type error": "NONZERO",
+              "Alloy finite SAT model": 0,
+          }
+          REQUIRED_SOURCE_FILES = {
+              "mise.toml",
+              "tools/formal/mise.toml",
+              "tools/formal/verify.py",
+              "tools/repo/affected_owners.py",
+              "tools/repo/test_affected_owners.py",
+              "tools/repo/test_formal_source_contract.py",
+              "tools/formal/RecursiveLegoRefinement.lean",
+              "tools/formal/RecursiveLegoVariationFrame.lean",
+              "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+              "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+              "capabilities/media/formal/TimedTextDeliveryPrecision.lean",
+              "capabilities/media/src/ordivon_studio/timed_text.py",
+              "capabilities/media/tests/test_timed_text.py",
+              "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+              "capabilities/media/formal/ProductionDependencyImpact.lean",
+              "capabilities/media/formal/ArchiveVisualSourcePreservation.lean",
+              "capabilities/media/productions/archive-archipelago-001/archive_source.py",
+              "capabilities/media/productions/archive-archipelago-001/generate.py",
+              "capabilities/media/productions/archive-archipelago-001/generate_owner_summary_vegalite.py",
+              "capabilities/media/tests/test_archive_graphics_source_truth.py",
+              "capabilities/media/tests/test_archive_vegalite_spec.py",
+              "capabilities/media/schemas/operation-lineage.schema.json",
+              "capabilities/media/src/ordivon_studio/operation_impact.py",
+              "capabilities/media/tests/test_operation_impact.py",
+              "capabilities/media/productions/convergence-sonic-ident/operation-lineage.json",
+              "capabilities/media/productions/convergence-sonic-ident/production.json",
+              "capabilities/media/src/ordivon_studio/production_context.py",
+              "capabilities/media/tests/test_production_context.py",
+              "capabilities/media/src/ordivon_studio/production_validation.py",
+              "capabilities/media/schemas/production.schema.json",
+              "capabilities/media/tests/test_models.py",
+              "capabilities/media/src/ordivon_studio/agent_surface.py",
+              "capabilities/media/src/ordivon_studio/agent_surface_contracts.py",
+              "capabilities/media/tests/test_agent_surface.py",
+              "capabilities/media/formal/LoudnessProfileSafety.smt2",
+              "capabilities/media/src/ordivon_studio/agent_processing.py",
+              "capabilities/media/src/ordivon_studio/creative_index_library.py",
+              "capabilities/media/tests/test_creative_index.py",
+              "capabilities/media/src/ordivon_studio/qc.py",
+              "tools/formal/Proof.rs",
+              "tools/formal/Proof.dfy",
+              "tools/formal/ProofKani.rs",
+              "tools/formal/Proof.qnt",
+              "tools/formal/Proof.als",
+              "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+          }
+          REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
+
+          def reject_duplicate_keys(pairs):
+              value = {}
+              for name, item in pairs:
+                  if name in value:
+                      raise ValueError("duplicate Formal receipt JSON field")
+                  value[name] = item
+              return value
+
+          def qualified_report():
+              report = json.loads(
+                  Path(sys.argv[1]).read_text(encoding="utf-8"),
+                  object_pairs_hook=reject_duplicate_keys,
+              )
+              if not isinstance(report, dict):
+                  return False
+              expected = subprocess.check_output(
+                  ["git", "--no-replace-objects", "rev-parse", "HEAD"], text=True
+              ).strip()
+              probes = report.get("probes")
+              sources = report.get("sourceBlobs")
+              tools = report.get("toolBinaries")
+              resources = report.get("toolResources")
+              oid_len = {"sha1": 40, "sha256": 64}.get(report.get("gitObjectFormat"))
+              if not (
+                  report.get("kind") == "source-scoped-native-formal-toolchain-check"
+                  and report.get("status") == "PASS"
+                  and report.get("sourceCut") == expected
+                  and (not os.environ.get("GITHUB_SHA")
+                       or expected == os.environ["GITHUB_SHA"])
+                  and report.get("sourceQualification")
+                      == "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST"
+                  and report.get("toolQualification")
+                      == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
+                  and report.get("proofReuseAdmissible") is False
+                  and isinstance(report.get("sourceFragmentRefinement"), dict)
+                  and report["sourceFragmentRefinement"].get("effectFrameObserved") in {
+                      "exact_post_projection_return_and_immediate_gateway_dispatch",
+                      "exact_post_projection_native_claim_guard_then_gateway_dispatch",
+                  }
+                  and {
+                      key: value
+                      for key, value in report["sourceFragmentRefinement"].items()
+                      if key != "effectFrameObserved"
+                  } == {
+                      "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+                      "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+                      "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
+                      "sourceAstAnchorsObserved": True,
+                      "codeFragmentRefined": False,
+                      "sourceRefinementStanding": "UNKNOWN",
+                      "runtimeRustRefined": False,
+                      "installedCurrentness": "UNKNOWN",
+                  }
+                  # Mathematical model proofs cannot silently promote their
+                  # implementation or installed-effect standing to PASS.
+                  # A stronger grade requires its own independently admitted
+                  # proof/consumer contract before this gate can accept it.
+                  and report.get("implementationRefinement") == "UNKNOWN"
+                  and report.get("installedCurrentness") == "UNKNOWN"
+                  and type(report.get("count")) is int
+                  and report["count"] == len(EXPECTED_PROBES)
+                  and isinstance(probes, list) and len(probes) == len(EXPECTED_PROBES)
+                  and isinstance(sources, dict) and set(sources) == REQUIRED_SOURCE_FILES
+                  and isinstance(tools, dict) and set(tools) == REQUIRED_TOOLS
+                  and isinstance(resources, dict)
+                  and set(resources) == {"alloyAppJar", "alloyJvm"}
+                  and oid_len == len(expected)
+              ):
+                  return False
+              witnessed = {}
+              for item in probes:
+                  if not isinstance(item, dict) or set(item) != {"probe", "result", "rc"}:
+                      return False
+                  name = item["probe"]
+                  if not isinstance(name, str) or name not in EXPECTED_PROBES or name in witnessed:
+                      return False
+                  if item["result"] != "PASS" or type(item["rc"]) is not int:
+                      return False
+                  required_rc = EXPECTED_PROBES[name]
+                  if (item["rc"] == 0 if required_rc == "NONZERO"
+                          else item["rc"] != required_rc):
+                      return False
+                  witnessed[name] = item["rc"]
+              if set(witnessed) != set(EXPECTED_PROBES):
+                  return False
+              for rel, blob in sources.items():
+                  if (not isinstance(blob, str)
+                          or re.fullmatch("[0-9a-f]{" + str(oid_len) + "}", blob) is None):
+                      return False
+                  actual = subprocess.check_output(
+                      ["git", "--no-replace-objects", "rev-parse", "HEAD:" + rel],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+                  if blob != actual:
+                      return False
+              # Rehashing the self-declared path does not establish which
+              # verifier Mise selected. Bind the receipt to the native tool
+              # resolver used by the actual Formal producer (in its cwd).
+              for name, record in tools.items():
+                  if not isinstance(record, dict) or set(record) != {"path", "version", "sha256"}:
+                      return False
+                  if not all(isinstance(record[x], str) and record[x]
+                             for x in ("path", "version", "sha256")):
+                      return False
+                  if re.fullmatch("[0-9a-f]{64}", record["sha256"]) is None:
+                      return False
+                  # A well-formed digest string does not identify an installed binary.
+                  # Rehash the *actual recorded executable*, not just its claimed SHA.
+                  executable = Path(record["path"])
+                  selected_path = subprocess.check_output(
+                      ["mise", "which", name],
+                      cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
+                      timeout=20,
+                  ).strip()
+                  selected_version = subprocess.check_output(
+                      ["mise", "which", "--version", name],
+                      cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
+                      timeout=20,
+                  ).strip()
+                  if (not selected_path or not selected_version
+                          or str(Path(selected_path).resolve(strict=True)) != str(executable)
+                          or record["version"] != selected_version):
+                      return False
+                  if (not executable.is_absolute() or executable.is_symlink()
+                          or not executable.is_file()
+                          or not stat.S_ISREG(executable.stat().st_mode)
+                          or not os.access(executable, os.X_OK)):
+                      return False
+                  with executable.open("rb") as stream:
+                      if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
+                          return False
+              # The Alloy ELF uses a bundled JVM and application JAR. Neither
+              # is covered by the entrypoint digest; require both real files.
+              alloy_root = Path(tools["alloy"]["path"]).parent.parent
+              for name, relative in {
+                  "alloyAppJar": "lib/app/org.alloytools.alloy.dist.jar",
+                  "alloyJvm": "lib/runtime/lib/server/libjvm.so",
+              }.items():
+                  record = resources[name]
+                  if (not isinstance(record, dict)
+                          or set(record) != {"path", "sha256"}
+                          or not all(isinstance(record[x], str) and record[x]
+                                     for x in ("path", "sha256"))
+                          or re.fullmatch("[0-9a-f]{64}", record["sha256"]) is None):
+                      return False
+                  path = Path(record["path"])
+                  if (path != alloy_root / relative
+                          or not path.is_absolute() or path.is_symlink()
+                          or not path.is_file()
+                          or not stat.S_ISREG(path.stat().st_mode)):
+                      return False
+                  with path.open("rb") as stream:
+                      if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
+                          return False
+              return True
+
+          try:
+              valid = qualified_report()
+          except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError):
+              valid = False
+          if not valid:
+              raise SystemExit("ERROR: Formal execution lacks a valid scoped PASS receipt")
+          print("Native Formal scoped verifier PASS; proof reuse remains unadmitted")
+          PY
+
+
+      # Cache untrusted archive bytes, never install authority. The helper
+      # rehashes every hit before extraction; non-Runtime jobs skip download.
+      - name: Cache pinned cargo-deny archive
+        if: steps.affected.outputs.runtime == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ordivon/ci-cargo-deny/0.20.2/cargo-deny.tar.gz
+          key: ci-cargo-deny-0.20.2-${{ runner.os }}-${{ runner.arch }}-sha256-9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f
+
+      # Upstream Docker cargo-deny-action uses unchecked curl | tar; direct
+      # Releases 504s appeared as invalid gzip. Official REST Asset API
+      # transfers exact pinned bytes with fail-closed metadata and SHA-256.
+      - name: Install verified cargo-deny
+        if: steps.affected.outputs.runtime == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/repo/install_verified_cargo_deny.py \
+            --cache-dir "$HOME/.cache/ordivon/ci-cargo-deny/0.20.2" \
+            --bin-dir "$RUNNER_TEMP/ordivon-cargo-deny/bin"
+          echo "$RUNNER_TEMP/ordivon-cargo-deny/bin" >> "$GITHUB_PATH"
+
+      - name: Runtime supply-chain policy
+        if: steps.affected.outputs.runtime == 'true'
         shell: bash
         run: |
           set -euo pipefail
+          # Existing Runtime Owner controls its exact Rust 1.99.1 toolchain.
+          # Preserve the existing policy and manifest; no pass-through skip.
+          # Explicitly select Rust: a bare mise exec also cold-installs the
+          # unrelated PowerShell/nextest tools from Runtime mise.toml.
+          # Those GitHub API fetches must not gate Rust supply-chain verification.
+          # cargo-deny common flags precede the "check" subcommand.
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
+            --manifest-path Cargo.toml \
+            --config deny.toml check
+
+      - name: Repository-wide secret scan
+        run: mise run repo:secrets:verify
+
+      - name: Current committed-source secret scan
+        shell: bash
+        run: tools/repo/check_tracked_secrets.sh
+
+  # The repository mechanics test suite has no data dependency on the
+  # source-qualified Owner selector. Execute it in an independent checkout
+  # from the same exact SHA, concurrently with admission and Owner execution.
+  # Final root-verification requires both results (not either one).
+  repo-mechanics:
+    name: repo-mechanics
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Historical provenance belongs to its registration SourceCut. A path
+      # migration must not rewrite it simply to make paths resolve at HEAD.
+      - name: Preserve Authority registration history across Git changes
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
+            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
+            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
+          esac
+          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
+          fi
+
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
+      - name: Install monorepo toolchain
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
+          # Avoid eager --monorepo tool installation: Owner queue tasks already
+          # install their own toolchain only when the consumer selects them.
+          install: false
+          cache: true
+
+      - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
+
+      - name: Install verified GNU Bash 5.3.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned SQL validation CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
+      - name: Repository mechanics
+        run: |
+          # Pin the *actual executable task source* to this checkout's Git tree,
+          # not only the already-selected task names. This is a pre-run witness,
+          # not a claim of immutable task bytes during child execution.
+          if [[ -n "${GITHUB_SHA:-}" ]] &&
+             [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+            echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
+            exit 43
+          fi
+          if [[ ! -f mise.toml || -L mise.toml ]] ||
+             ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
+             ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
+            echo "ERROR: root task source differs from exact Git HEAD" >&2
+            exit 43
+          fi
+          "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
+
+
+  owner-verification:
+    name: owner-shard-${{ matrix.shard }}
+    needs: root-preflight
+    if: needs.root-preflight.outputs.has_owner_tasks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.root-preflight.outputs.shards) }}
+    services:
+      paper_postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: ordivon_paper
+          POSTGRES_PASSWORD: ${{ github.run_id }}
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ordivon_paper"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Historical provenance belongs to its registration SourceCut. A path
+      # migration must not rewrite it simply to make paths resolve at HEAD.
+      - name: Preserve Authority registration history across Git changes
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
+            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
+            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
+          esac
+          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
+          fi
+
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
+      - name: Install monorepo toolchain
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
+          install: false
+          cache: true
+
+      - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
+
+      - name: Install verified GNU Bash 5.3.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned SQL validation CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
+      - name: Preinstall selected Owner tools with native mise
+        shell: bash
+        env:
+          # This read-only job token is scoped to package acquisition only;
+          # the later verification task does not inherit it.
+          GITHUB_TOKEN: ${{ github.token }}
+          OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+        run: |
+          set -euo pipefail
+          # Owner selection was admitted by the source-qualified preflight.
+          # Only resolve native tool manifests for the exact selected tasks.
+          selected_roots="$RUNNER_TEMP/ordivon-selected-owner-toolroots.txt"
+          python3 - "$selected_roots" <<'PYOWNERS'
+          import json
+          import os
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import OWNERS
+
+          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
+          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
+              raise SystemExit("invalid selected Owner task list")
+          if len(tasks) != len(set(tasks)):
+              raise SystemExit("duplicate selected Owner task")
+          by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
+          if any(task not in by_task for task in tasks):
+              raise SystemExit("unregistered selected Owner task")
+          roots = []
+          for task in tasks:
+              root = by_task[task]
+              # Some Owners use a root-managed task rather than an adjacent
+              # native mise.toml. Those do not gain an invented manifest.
+              manifest = Path(root) / "mise.toml"
+              if not manifest.is_file():
+                  continue
+              if root not in roots:
+                  roots.append(root)
+              # Read existing native task commands, not an invented Owner
+              # graph: a selected task may invoke a second scoped Mise
+              # manifest. Capital invokes mise exec in tools/formal; that
+              # auto-installer caps release metadata timeouts to 3 seconds.
+              # An explicit native mise install here uses normal HTTP retry,
+              # exact pinned versions and this scoped read-only GH token.
+              native_tasks = tomllib.loads(manifest.read_text(encoding="utf-8")).get("tasks", {})
+              if any(
+                  isinstance(row, dict)
+                  and isinstance(row.get("run"), str)
+                  and "tools/formal" in row["run"]
+                  for row in native_tasks.values()
+              ):
+                  if not (Path("tools/formal") / "mise.toml").is_file():
+                      raise SystemExit("selected nested tools/formal source missing")
+                  if "tools/formal" not in roots:
+                      roots.append("tools/formal")
+          # The Gateway test suite has an existing, governed test-only seam
+          # to Security's OPA policy and exact version in platform/security/mise.toml.
+          # A Gateway-only merge group otherwise omits that Owner toolchain:
+          # "mise where opa@<Security pin>" fails though the test is valid.
+          # Preinstall the existing provider when that consumer is selected;
+          # never hard-code an alternate OPA pin or weaken the test.
+          if "gateway:verify" in tasks:
+              security_manifest = Path("platform/security/mise.toml")
+              if not security_manifest.is_file():
+                  raise SystemExit("Gateway OPA test needs Security Owner toolchain")
+              tools = tomllib.loads(
+                  security_manifest.read_text(encoding="utf-8")
+              ).get("tools", {})
+              if not isinstance(tools.get("opa"), str):
+                  raise SystemExit("Gateway OPA test needs Security-pinned OPA")
+              if "platform/security" not in roots:
+                  roots.append("platform/security")
+          Path(sys.argv[1]).write_text(
+              "".join(root + "\n" for root in roots), encoding="utf-8"
+          )
+          PYOWNERS
+          while IFS= read -r root || [[ -n "$root" ]]; do
+            [[ -z "$root" ]] && continue
+            # mise install is idempotent: a retry visits only missing pinned
+            # tools. Limit concurrent GitHub downloads and retries without
+            # changing pins, skipping checks, or installing other Owners.
+            for attempt in 1 2 3; do
+              if MISE_JOBS=2 MISE_HTTP_TIMEOUT=45 mise --cd "$root" install; then
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "SELECTED_OWNER_TOOLCHAIN_UNAVAILABLE: $root after 3 native attempts" >&2
+                exit 1
+              fi
+              sleep "$attempt"
+            done
+          done < "$selected_roots"
+
+      - name: Verify affected owners
+        shell: bash
+        env:
+          OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+        run: |
+          set -euo pipefail
+          # GitHub's matrix data is a JSON array from the verified preflight.
+          # No word splitting, eval, shell sourcing, or loss of owner identity.
+          python3 - "$RUNNER_TEMP/ordivon-affected-tasks.txt" <<'PYTASKS'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "tools/repo")
+          import affected_owners
+
+          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
+          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
+              raise SystemExit("invalid Owner shard task identities")
+          if len(tasks) != len(set(tasks)):
+              raise SystemExit("duplicate Owner shard task")
+          allowed = {owner.queue_task for owner in affected_owners.OWNERS}
+          if not all(isinstance(task, str) and task in allowed for task in tasks):
+              raise SystemExit("unregistered or non-Owner task in shard")
+          Path(sys.argv[1]).write_text(
+              "".join(task + "\n" for task in tasks), encoding="utf-8"
+          )
+          PYTASKS
           while IFS= read -r task || [[ -n "$task" ]]; do
             [[ -z "$task" ]] && continue
             if [[ "$task" == "formal:verify" ]]; then
@@ -238,7 +1053,7 @@ jobs:
               # its fail-closed admission; the dedicated isolated KANI_HOME
               # Formal step is the ONE actual executor of that selected task.
               # Do not run the same proof first with an unprepared environment.
-              if [[ "${{ steps.affected.outputs.formal }}" != "true" ]]; then
+              if [[ "${{ needs.root-preflight.outputs.formal }}" != "true" ]]; then
                 echo "ERROR: selected Formal task lacks its isolated execution gate" >&2
                 exit 42
               fi
@@ -350,307 +1165,72 @@ jobs:
               raise SystemExit(43) from exc
           PY
             # The selected task must not consume the following queue entries.
-            mise run "$task" </dev/null
+            if [[ "$task" == "capital:verify" ]]; then
+              # A positive Paper DSN causes all database consumers to run;
+              # failed connection is a failing test, never a hidden skip.
+              # Container and credentials exist only in this GitHub job.
+              # Separate Accounting schemas share this one ephemeral test DB.
+              # Real Paper and general Ledger consumers were both verified.
+              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              mise run "$task" </dev/null
+              # Reuse this already-running native PG18 service for the pinned
+              # Nautilus/Databento source-to-Paper subset. Ordinary provider
+              # tests depend on external credentials; this bounded subset does
+              # not. Fail if its physical PG consumer would be silently skipped.
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG=1 \
+              mise --cd domains/capital run verify:nonlive:nautilus </dev/null
+            elif [[ "$task" == "harness:queue" ]]; then
+              # Reuse disposable CI PostgreSQL, admitting only isolated Harness
+              # test schemas; no production state or SQLite migration.
+              # The DSN makes the PG consumers actual tests, not skipped tests.
+              HARNESS_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              mise run "$task" </dev/null
+            else
+              mise run "$task" </dev/null
+            fi
             echo "::endgroup::"
           done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
 
-      - name: Verify changed core Formal source
-        if: steps.affected.outputs.formal == 'true'
+
+  # Preserve the repository's existing required check identity. A passing
+  # preflight alone or a subset of green Owner matrix lanes cannot publish.
+  root-verification:
+    name: root-verification
+    if: always()
+    needs: [root-preflight, repo-mechanics, owner-verification]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enforce native preflight and every selected Owner shard
         shell: bash
         env:
-          # mise-action limits its GitHub auth to that action. The later
-          # Formal mise install must use GitHub's read-only job token for
-          # release metadata instead of exhausting anonymous API quota.
-          GITHUB_TOKEN: ${{ github.token }}
-          # Isolate Kani's release bundle to this job; a truncated shared
-          # ~/.kani cache must not masquerade as a mathematical proof result.
-          KANI_HOME: ${{ runner.temp }}/ordivon-core-formal-kani
+          PREFLIGHT_RESULT: ${{ needs.root-preflight.result }}
+          REPO_MECHANICS_RESULT: ${{ needs.repo-mechanics.result }}
+          OWNER_RESULT: ${{ needs.owner-verification.result }}
+          HAS_OWNER_TASKS: ${{ needs.root-preflight.outputs.has_owner_tasks }}
         run: |
           set -euo pipefail
-          # The actual Formal executable prefix is ROOT Mise → nested Mise →
-          # verify.py. A successful root task name alone proves none of it.
-          qualify_formal_prefix() {
-            local rel entry
-            if [[ -n "${GITHUB_SHA:-}" ]] &&
-               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
-              return 1
+          if [[ "$PREFLIGHT_RESULT" != "success" ]]; then
+            echo "ERROR: source-qualified repository preflight failed or was skipped" >&2
+            exit 1
+          fi
+          if [[ "$REPO_MECHANICS_RESULT" != "success" ]]; then
+            echo "ERROR: independent source-qualified repository mechanics failed or was skipped" >&2
+            exit 1
+          fi
+          if [[ "$HAS_OWNER_TASKS" == "true" ]]; then
+            if [[ "$OWNER_RESULT" != "success" ]]; then
+              echo "ERROR: at least one required Owner shard failed, skipped, or was cancelled" >&2
+              exit 1
             fi
-            for rel in mise.toml tools/formal/mise.toml tools/formal/verify.py; do
-              [[ -f "$rel" && ! -L "$rel" ]] || return 1
-              entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
-              [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
-              [[ "${entry##*$'\t'}" == "$rel" ]] || return 1
-              git --no-replace-objects show "HEAD:$rel" | cmp -s - "$rel" || return 1
-            done
-            # Native Mise may load a higher-priority untracked local override.
-            # Qualify the EFFECTIVE in-repo readset as well as the three known
-            # executable files; external global config remains an assumption.
-            python3 - <<'PYMISE'
-          import json
-          import re
-          import subprocess
-          import sys
-          from pathlib import Path
-
-          repo = Path.cwd().resolve()
-          try:
-              observed = subprocess.run(
-                  ["mise", "--cd", str(repo / "tools/formal"),
-                   "config", "ls", "--json"],
-                  check=True, capture_output=True, text=True, timeout=20,
-              )
-              configs = json.loads(observed.stdout)
-              if not isinstance(configs, list) or not configs:
-                  raise ValueError("no native Formal Mise configs")
-              in_repo = set()
-              for item in configs:
-                  if not isinstance(item, dict) or not isinstance(item.get("path"), str):
-                      raise ValueError("invalid native Formal Mise config entry")
-                  path = Path(item["path"])
-                  if not path.is_absolute():
-                      raise ValueError("nonabsolute native Formal Mise config path")
-                  try:
-                      rel = path.relative_to(repo).as_posix()
-                  except ValueError:
-                      # Global/home configuration is not qualified by this source cut.
-                      continue
-                  if (path.is_symlink() or not path.resolve().is_relative_to(repo)
-                          or not path.is_file()):
-                      raise ValueError("nonregular native Formal Mise config: " + rel)
-                  entry = subprocess.check_output(
-                      ["git", "--no-replace-objects", "ls-tree", "HEAD", "--", rel],
-                      text=True, stderr=subprocess.PIPE,
-                  ).strip()
-                  if re.fullmatch(
-                      r"(100644|100755) blob ([0-9a-f]{40}|[0-9a-f]{64})\t"
-                      + re.escape(rel), entry,
-                  ) is None:
-                      raise ValueError("untracked native Formal Mise config: " + rel)
-                  committed = subprocess.check_output(
-                      ["git", "--no-replace-objects", "show", "HEAD:" + rel],
-                      stderr=subprocess.PIPE,
-                  )
-                  if path.read_bytes() != committed:
-                      raise ValueError("dirty native Formal Mise config: " + rel)
-                  in_repo.add(rel)
-              if not {"mise.toml", "tools/formal/mise.toml"} <= in_repo:
-                  raise ValueError("required Formal Mise configs not actually loaded")
-          except (OSError, ValueError, subprocess.SubprocessError) as exc:
-              print("ERROR: effective Formal Mise config differs from Git HEAD: "
-                    + str(exc), file=sys.stderr)
-              raise SystemExit(43) from exc
-          PYMISE
-          }
-          qualify_formal_prefix || {
-            echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
-            exit 43
-          }
-          cd tools/formal
-          mise install
-          cd ../..
-          qualify_formal_prefix || {
-            echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
-            exit 43
-          }
-          # Verus invokes rustup's pinned compiler, not just the mise-resolved
-          # verifier executable. Fresh GitHub runners lack this exact toolchain
-          # even when the Formal mise install has succeeded. Preserve the
-          # native proof gate and install its prerequisite instead of skipping.
-          rustup toolchain install 1.99.1 --profile minimal
-          receipt="$RUNNER_TEMP/ordivon-core-formal-report.json"
-          mise run formal:verify > "$receipt"
-          qualify_formal_prefix || {
-            echo "ERROR: Formal executable source changed after invocation" >&2
-            exit 43
-          }
-          python3 - "$receipt" <<'PY'
-          import hashlib
-          import json
-          import os
-          import re
-          import stat
-          import subprocess
-          import sys
-          from pathlib import Path
-
-          # Consumer-owned finite proof obligations. Exit 0 and a subset are not enough.
-          EXPECTED_PROBES = {
-              "Lean kernel R2.1 relational composition": 0,
-              "Lean kernel qualified variation frame and countermodels": 0,
-              "Lean rejects false theorem": 1,
-              "Z3: sat": 0,
-              "Z3: unsat": 0,
-              "cvc5: sat": 0,
-              "cvc5: unsat": 0,
-              "Verus Rust proof": 0,
-              "Verus rejects false postcondition": 1,
-              "Dafny method proof": 0,
-              "Dafny rejects false postcondition": 4,
-              "Kani native Rust bounded proof": 0,
-              "Kani rejects reachable assertion failure": "NONZERO",
-              "Quint typed state machine": 0,
-              "Quint rejects type error": "NONZERO",
-              "Alloy finite SAT model": 0,
-          }
-          REQUIRED_SOURCE_FILES = {
-              "mise.toml",
-              "tools/formal/mise.toml",
-              "tools/formal/verify.py",
-              "tools/formal/RecursiveLegoRefinement.lean",
-              "tools/formal/RecursiveLegoVariationFrame.lean",
-              "tools/formal/Proof.rs",
-              "tools/formal/Proof.dfy",
-              "tools/formal/ProofKani.rs",
-              "tools/formal/Proof.qnt",
-              "tools/formal/Proof.als",
-              "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
-          }
-          REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
-
-          def reject_duplicate_keys(pairs):
-              value = {}
-              for name, item in pairs:
-                  if name in value:
-                      raise ValueError("duplicate Formal receipt JSON field")
-                  value[name] = item
-              return value
-
-          def qualified_report():
-              report = json.loads(
-                  Path(sys.argv[1]).read_text(encoding="utf-8"),
-                  object_pairs_hook=reject_duplicate_keys,
-              )
-              if not isinstance(report, dict):
-                  return False
-              expected = subprocess.check_output(
-                  ["git", "--no-replace-objects", "rev-parse", "HEAD"], text=True
-              ).strip()
-              probes = report.get("probes")
-              sources = report.get("sourceBlobs")
-              tools = report.get("toolBinaries")
-              oid_len = {"sha1": 40, "sha256": 64}.get(report.get("gitObjectFormat"))
-              if not (
-                  report.get("kind") == "source-scoped-native-formal-toolchain-check"
-                  and report.get("status") == "PASS"
-                  and report.get("sourceCut") == expected
-                  and (not os.environ.get("GITHUB_SHA")
-                       or expected == os.environ["GITHUB_SHA"])
-                  and report.get("sourceQualification")
-                      == "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST"
-                  and report.get("toolQualification")
-                      == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
-                  and report.get("proofReuseAdmissible") is False
-                  and report.get("sourceFragmentRefinement") == {
-                      "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
-                      "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
-                      "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
-                      "sourceAstAnchorsObserved": True,
-                      "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
-                      "codeFragmentRefined": False,
-                      "sourceRefinementStanding": "UNKNOWN",
-                      "runtimeRustRefined": False,
-                      "installedCurrentness": "UNKNOWN",
-                  }
-                  # Mathematical model proofs cannot silently promote their
-                  # implementation or installed-effect standing to PASS.
-                  # A stronger grade requires its own independently admitted
-                  # proof/consumer contract before this gate can accept it.
-                  and report.get("implementationRefinement") == "UNKNOWN"
-                  and report.get("installedCurrentness") == "UNKNOWN"
-                  and type(report.get("count")) is int
-                  and report["count"] == len(EXPECTED_PROBES)
-                  and isinstance(probes, list) and len(probes) == len(EXPECTED_PROBES)
-                  and isinstance(sources, dict) and set(sources) == REQUIRED_SOURCE_FILES
-                  and isinstance(tools, dict) and set(tools) == REQUIRED_TOOLS
-                  and oid_len == len(expected)
-              ):
-                  return False
-              witnessed = {}
-              for item in probes:
-                  if not isinstance(item, dict) or set(item) != {"probe", "result", "rc"}:
-                      return False
-                  name = item["probe"]
-                  if not isinstance(name, str) or name not in EXPECTED_PROBES or name in witnessed:
-                      return False
-                  if item["result"] != "PASS" or type(item["rc"]) is not int:
-                      return False
-                  required_rc = EXPECTED_PROBES[name]
-                  if (item["rc"] == 0 if required_rc == "NONZERO"
-                          else item["rc"] != required_rc):
-                      return False
-                  witnessed[name] = item["rc"]
-              if set(witnessed) != set(EXPECTED_PROBES):
-                  return False
-              for rel, blob in sources.items():
-                  if (not isinstance(blob, str)
-                          or re.fullmatch("[0-9a-f]{" + str(oid_len) + "}", blob) is None):
-                      return False
-                  actual = subprocess.check_output(
-                      ["git", "--no-replace-objects", "rev-parse", "HEAD:" + rel],
-                      text=True, stderr=subprocess.PIPE,
-                  ).strip()
-                  if blob != actual:
-                      return False
-              # Rehashing the self-declared path does not establish which
-              # verifier Mise selected. Bind the receipt to the native tool
-              # resolver used by the actual Formal producer (in its cwd).
-              for name, record in tools.items():
-                  if not isinstance(record, dict) or set(record) != {"path", "version", "sha256"}:
-                      return False
-                  if not all(isinstance(record[x], str) and record[x]
-                             for x in ("path", "version", "sha256")):
-                      return False
-                  if re.fullmatch("[0-9a-f]{64}", record["sha256"]) is None:
-                      return False
-                  # A well-formed digest string does not identify an installed binary.
-                  # Rehash the *actual recorded executable*, not just its claimed SHA.
-                  executable = Path(record["path"])
-                  selected_path = subprocess.check_output(
-                      ["mise", "which", name],
-                      cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
-                      timeout=20,
-                  ).strip()
-                  selected_version = subprocess.check_output(
-                      ["mise", "which", "--version", name],
-                      cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
-                      timeout=20,
-                  ).strip()
-                  if (not selected_path or not selected_version
-                          or str(Path(selected_path).resolve(strict=True)) != str(executable)
-                          or record["version"] != selected_version):
-                      return False
-                  if (not executable.is_absolute() or executable.is_symlink()
-                          or not executable.is_file()
-                          or not stat.S_ISREG(executable.stat().st_mode)
-                          or not os.access(executable, os.X_OK)):
-                      return False
-                  with executable.open("rb") as stream:
-                      if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
-                          return False
-              return True
-
-          try:
-              valid = qualified_report()
-          except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError):
-              valid = False
-          if not valid:
-              raise SystemExit("ERROR: Formal execution lacks a valid scoped PASS receipt")
-          print("Native Formal scoped verifier PASS; proof reuse remains unadmitted")
-          PY
-
-
-      - name: Runtime supply-chain policy
-        if: steps.affected.outputs.runtime == 'true'
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          rust-version: "1.99.1"
-          manifest-path: services/runtime/Cargo.toml
-          command: check
-          arguments: --config services/runtime/deny.toml
-
-      - name: Repository-wide secret scan
-        run: mise run repo:secrets:verify
-
-      - name: Current committed-source secret scan
-        shell: bash
-        run: tools/repo/check_tracked_secrets.sh
+          elif [[ "$HAS_OWNER_TASKS" == "false" ]]; then
+            if [[ "$OWNER_RESULT" != "skipped" ]]; then
+              echo "ERROR: empty Owner selection spawned an unexpected result" >&2
+              exit 1
+            fi
+          else
+            echo "ERROR: preflight omitted the Owner selection witness" >&2
+            exit 1
+          fi

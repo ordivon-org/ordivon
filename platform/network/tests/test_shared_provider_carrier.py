@@ -7,8 +7,40 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BROWSERLESS = ROOT / "consumers" / "browserless"
+SHARED_EGRESS = ROOT / "substrates" / "shared-egress"
 FINANCE = ROOT / "consumers" / "finance"
 SUPPLY = ROOT / "consumers" / "supply-chain"
+
+
+
+def test_shared_substrate_source_has_one_native_owner_and_legacy_is_delegated() -> None:
+    """Shared netns and carrier are not duplicated under Browserless recovery."""
+    expected = (
+        "systemd/network-v2-browserless-netns.service",
+        "systemd/network-v2-browserless-forward.service",
+        "systemd/network-v2-browserless.target",
+        "carrier-ready.sh",
+    )
+    shared_tasks = (SHARED_EGRESS / "Taskfile.yml").read_text()
+    legacy_tasks = (BROWSERLESS / "Taskfile.yml").read_text()
+    root_tasks = (ROOT / "Taskfile.yml").read_text()
+    assert "taskfile: ./substrates/shared-egress/Taskfile.yml" in root_tasks
+    assert "substrate:shared-egress:materialize" in legacy_tasks
+    assert "substrate:shared-egress:validate" in shared_tasks
+    assert "substrate:shared-egress:verify" in shared_tasks
+    for rel in expected:
+        path = SHARED_EGRESS / rel
+        assert path.is_file(), f"missing shared source: {path}"
+        if rel.startswith("systemd/"):
+            assert not (BROWSERLESS / rel).exists(), f"duplicated shared unit: {rel}"
+            assert f"install -m 0644 substrates/shared-egress/{rel}" in shared_tasks
+        else:
+            assert not (BROWSERLESS / "provider-carrier-ready.sh").exists()
+            assert "install -m 0755 substrates/shared-egress/carrier-ready.sh" in shared_tasks
+    assert "install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target" not in legacy_tasks
+    assert "install -m 0755 substrates/shared-egress/carrier-ready.sh" not in legacy_tasks
+    assert "network-v2-browserless-wireguard.service" not in shared_tasks
+    assert (BROWSERLESS / "systemd/network-v2-browserless-legacy-provider.target").is_file()
 
 
 def test_browserless_owns_one_internal_provider_carrier():
@@ -26,9 +58,79 @@ def test_browserless_owns_one_internal_provider_carrier():
     assert "NetworkNamespacePath=/run/netns/nv2-browserless-prod" in unit
     assert "Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service" in unit
     assert "provider-endpoints.json" not in unit
-    target = (BROWSERLESS / "systemd" / "network-v2-browserless.target").read_text()
-    assert "Wants=network-v2-browserless-dns.service network-v2-browserless-forward.service network-v2-browserless-provider-carrier.service" in target
-    assert "Requires=network-v2-browserless-dns.service" not in target
+    target = (SHARED_EGRESS / "systemd" / "network-v2-browserless.target").read_text()
+    assert "Wants=network-v2-browserless-netns.service network-v2-browserless-forward.service" in target
+    assert "network-v2-browserless-provider-carrier.service" not in target
+    assert "network-v2-browserless-wireguard.service" not in target
+    assert "network-v2-browserless-dns.service" not in target
+    legacy = (BROWSERLESS / "systemd/network-v2-browserless-legacy-provider.target").read_text()
+    assert "Requires=network-v2-shared-egress.target" in legacy
+    assert "Wants=network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service" in legacy
+    assert "ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected" in legacy
+
+
+def test_shared_egress_and_legacy_provider_have_independent_stop_closures():
+    """Source-bound systemd stop-propagation model; not a live-stop experiment."""
+    sources = {
+        "network-v2-browserless.target": SHARED_EGRESS / "systemd/network-v2-browserless.target",
+        "network-v2-browserless-netns.service": SHARED_EGRESS / "systemd/network-v2-browserless-netns.service",
+        "network-v2-browserless-forward.service": SHARED_EGRESS / "systemd/network-v2-browserless-forward.service",
+        "network-v2-browserless-legacy-provider.target": BROWSERLESS / "systemd/network-v2-browserless-legacy-provider.target",
+        "network-v2-browserless-wireguard.service": BROWSERLESS / "systemd/network-v2-browserless-wireguard.service",
+        "network-v2-browserless-dns.service": BROWSERLESS / "systemd/network-v2-browserless-dns.service",
+        "network-v2-browserless-provider-carrier.service": BROWSERLESS / "systemd/network-v2-browserless-provider-carrier.service",
+        "network-v2-codex.target": ROOT / "consumers/codex/systemd/network-v2-codex.target",
+    }
+    legacy = "network-v2-browserless-legacy-provider.target"
+    shared = "network-v2-browserless.target"
+    neutral = "network-v2-shared-egress.target"
+    # Alias canonicalization: systemd resolves both names to one loaded unit.
+    def canonical(unit: str) -> str:
+        return shared if unit == neutral else unit
+
+    def stop_closure(contents: dict[str, str], start: str) -> set[str]:
+        # systemd.unit(5): stopping a dependency propagates to dependents via
+        # Requires/BindsTo; PartOf propagates stop/restart from target to member.
+        reverse: dict[str, set[str]] = {}
+        for name, content in contents.items():
+            section = ""
+            for raw in content.splitlines():
+                line = raw.strip()
+                if line.startswith("[") and line.endswith("]"):
+                    section = line[1:-1]
+                elif section == "Unit" and "=" in line and not line.startswith("#"):
+                    key, value = line.split("=", 1)
+                    if key in {"PartOf", "Requires", "BindsTo"}:
+                        for dependency in value.split():
+                            reverse.setdefault(canonical(dependency), set()).add(name)
+        closure = {start}
+        pending = [start]
+        while pending:
+            for child in reverse.get(pending.pop(), ()):
+                if child not in closure:
+                    closure.add(child)
+                    pending.append(child)
+        return closure
+
+    unit_text = {name: path.read_text() for name, path in sources.items()}
+    stopped = stop_closure(unit_text, legacy)
+    assert stopped == {
+        legacy,
+        "network-v2-browserless-wireguard.service",
+        "network-v2-browserless-dns.service",
+        "network-v2-browserless-provider-carrier.service",
+    }
+    assert shared not in stopped
+    assert "network-v2-browserless-forward.service" not in stopped
+    assert "network-v2-browserless-netns.service" not in stopped
+    assert "network-v2-codex.target" not in stopped
+
+    # Counterexample: accidentally making forwarding PartOf legacy must fail.
+    bad = dict(unit_text)
+    bad["network-v2-browserless-forward.service"] += (
+        "\n[Unit]\nPartOf=network-v2-browserless-legacy-provider.target\n"
+    )
+    assert "network-v2-browserless-forward.service" in stop_closure(bad, legacy)
 
 
 def test_production_provider_defaults_to_cross_consumer_qualified_site():
@@ -36,51 +138,83 @@ def test_production_provider_defaults_to_cross_consumer_qualified_site():
     assert "PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}" in cutover
     assert "consumers/browserless/config/provider-carrier.json" in cutover
     assert "network-v2-browserless-provider-carrier.service" in cutover
+    assert "systemctl start network-v2-browserless-legacy-provider.target" in cutover
+    assert "if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then" in cutover
+    assert cutover.index("if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then") < cutover.index("SCRIPT=$(readlink")
 
 
-def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():
-    egress = json.loads((FINANCE / "config" / "egress.json").read_text())
-    assert egress["outbounds"] == [
-        {"type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680},
-        {"type": "direct", "tag": "public-direct"},
-    ]
-    assert "dns" not in egress
-    assert "services" not in egress
-    routes = {tuple(r.get("inbound", [])): r for r in egress["route"]["rules"] if r.get("inbound")}
-    for tag in (
-        "finance-okx", "finance-binance-spot-public", "finance-binance-spot-public-ws",
-        "finance-binance-usdm", "finance-okx-ws", "finance-binance-usdm-ws", "finance-binance-wallet",
-    ):
-        assert routes[(tag,)]["outbound"] == "provider-carrier"
-    assert routes[("finance-us-treasury-public",)]["outbound"] == "public-direct"
-    assert routes[("finance-fred-public-csv",)]["outbound"] == "public-direct"
-    unit = (FINANCE / "systemd" / "network-v2-finance-egress.service").read_text()
-    assert "provider-endpoints.json" not in unit
-    assert "Wants=network-v2-browserless-provider-carrier.service" in unit
-    assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
+def test_cold_legacy_materialization_installs_complete_owner_stack_without_starting():
+    tasks = (BROWSERLESS / "Taskfile.yml").read_text()
+    materialize = tasks.split("  consumer:browserless:provider-carrier:materialize:", 1)[1]
+    materialize = materialize.split("\n  consumer:browserless:provider-carrier:ready:", 1)[0]
+    selected, legacy = materialize.split(
+        "if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then", 1
+    )[1].split("\n        else", 1)
+    for unit in ("wireguard", "dns", "provider-carrier"):
+        line = (f"install -m 0644 consumers/browserless/systemd/network-v2-browserless-{unit}.service "
+                f"/etc/systemd/system/network-v2-browserless-{unit}.service")
+        assert line in legacy
+        assert line in selected
+        # Before editing inactive cold-provider Units, fail if any may be live.
+        inactive = f"! systemctl is-active --quiet network-v2-browserless-{unit}.service"
+        assert inactive in selected
+        assert selected.index(inactive) < selected.index(line)
+    assert "! systemctl is-active --quiet network-v2-browserless-legacy-provider.target" in selected
+    assert "systemctl restart" not in materialize
+    verify_selected = tasks.split("  consumer:browserless:provider-carrier:verify:", 1)[1].split(
+        "  consumer:browserless:validate:", 1
+    )[0]
+    assert 'cmp -s "consumers/browserless/systemd/$unit" "/etc/systemd/system/$unit"' in verify_selected
+    assert '--property=PartOf --value' in verify_selected
+    assert 'network-v2-browserless-legacy-provider.target' in verify_selected
+    assert '--property=NeedDaemonReload --value' in verify_selected
+    verify = tasks.split("  consumer:browserless:provider-carrier:verify:", 1)[1]
+    for unit in ("wireguard", "dns"):
+        assert (f"cmp -s consumers/browserless/systemd/network-v2-browserless-{unit}.service "
+                f"/etc/systemd/system/network-v2-browserless-{unit}.service") in verify
+
+
+def test_legacy_rollback_only_tears_down_browserless_provider():
+    """A failed cold cutover must never disable the multi-consumer substrate."""
+    script = (BROWSERLESS / "production-cutover.sh").read_text()
+    rollback = script.split("rollback_after_lease() {", 1)[1].split("\n}\n", 1)[0]
+    assert "systemctl disable --now network-v2-browserless-legacy-provider.target" in rollback
+    assert "systemctl stop network-v2-browserless-provider-carrier.service" in rollback
+    assert "network-v2-browserless-dns.service network-v2-browserless-wireguard.service" in rollback
+    assert "systemctl disable --now network-v2-browserless.target" not in rollback
+    assert "systemctl stop network-v2-browserless.target" not in rollback
+    assert "systemctl stop network-v2-shared-egress.target" not in rollback
 
 
 def test_semantic_consumers_survive_physical_carrier_loss():
-    for directory, name in ((FINANCE, "finance"), (SUPPLY, "supply-chain")):
+    for directory, name, carrier in (
+        (FINANCE, "finance", "network-v2-gluetun-owned-adapter.service"),
+        (SUPPLY, "supply-chain", "network-v2-gluetun-owned-adapter.service"),
+    ):
         unit = (directory / "systemd" / f"network-v2-{name}-egress.service").read_text()
-        assert "Wants=network-v2-browserless-provider-carrier.service" in unit
-        assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
-        assert "After=network-v2-browserless-provider-carrier.service" in unit
+        assert f"Wants={carrier}" in unit
+        assert f"Requires={carrier}" not in unit
+        assert f"After={carrier}" in unit
+    # Migrated Supply Chain must never implicitly start the legacy physical
+    # provider. Finance is a separate Owner migration obligation.
+    supply = (SUPPLY / "systemd/network-v2-supply-chain-egress.service").read_text()
+    assert "network-v2-browserless-provider-carrier.service" not in supply
 
 
 def test_no_current_consumer_materializes_duplicate_provider_identity():
-    taskfile = (ROOT / "Taskfile.yml").read_text()
-    assert "rm -f /etc/network-v2/finance/provider-endpoints.json" in taskfile
-    assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in taskfile
-    assert "provider-endpoints.json -c /etc/network-v2/finance" not in taskfile
-    assert "provider-endpoints.json -c /etc/network-v2/supply-chain" not in taskfile
+    finance = (FINANCE / "Taskfile.yml").read_text()
+    supply = (SUPPLY / "Taskfile.yml").read_text()
+    assert "rm -f /etc/network-v2/finance/provider-endpoints.json" in finance
+    assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in supply
+    assert "provider-endpoints.json -c /etc/network-v2/finance" not in finance
+    assert "provider-endpoints.json -c /etc/network-v2/supply-chain" not in supply
     for directory in (FINANCE / "config", SUPPLY / "config"):
         for path in directory.glob("*.json"):
             assert "provider-auto" not in path.read_text()
 
 def test_provider_switch_uses_wg_quick_compatible_temp_profile_and_restores_target():
     switch = (BROWSERLESS / "provider-switch.sh").read_text()
-    assert 'TARGET=network-v2-browserless.target' in switch
+    assert 'TARGET=network-v2-browserless-legacy-provider.target' in switch
     assert 'mktemp --suffix=.conf "$STATE_DIR/nv2blwg.XXXXXX"' in switch
     assert switch.count('systemctl start "$TARGET"') >= 2
     assert 'wg-quick strip "$tmp_profile"' in switch
@@ -134,15 +268,29 @@ def test_legacy_provider_switch_rejects_m4_before_any_mutation(tmp_path: Path) -
     assert not state.exists(), "legacy switch created state before checking M4"
 
 
-def test_legacy_carrier_materialization_rejects_m4_before_file_writes() -> None:
-    """The root Taskfile must reject old Carrier materialization in M4 mode."""
-    taskfile = (ROOT / "Taskfile.yml").read_text()
-    materialize = taskfile.split(
-        "  consumer:browserless:provider-carrier:materialize:", 1
-    )[1].split("\n  consumer:", 1)[0]
-    guard = "test ! -e /etc/network-v2/gluetun/m4-owned-mode.selected"
-    assert materialize.index(guard) < materialize.index("install -d")
 
+def test_selected_gluetun_materialization_only_installs_compat_targets_and_readiness():
+    """The selected physical Provider must not be replaced by inactive legacy units."""
+    taskfile = (BROWSERLESS / "Taskfile.yml").read_text()
+    block = taskfile.split(
+        "  consumer:browserless:provider-carrier:materialize:", 1
+    )[1].split("\n  consumer:browserless:provider-carrier:ready:", 1)[0]
+    selected = block.split(
+        "if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then", 1
+    )[1].split("\n        else", 1)[0]
+    assert "network-v2-gluetun-owned.service" in selected
+    assert "network-v2-gluetun-owned-adapter.service" in selected
+    assert "substrate:shared-egress:materialize" in block
+    assert "systemctl daemon-reload" in selected
+    assert "install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target" in (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
+    assert "install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target" in selected
+    for unit in ("wireguard", "dns", "provider-carrier"):
+        name = f"network-v2-browserless-{unit}.service"
+        assert f"! systemctl is-active --quiet {name}" in selected
+        assert f"install -m 0644 consumers/browserless/systemd/{name}" in selected
+        assert f"systemctl start {name}" not in selected
+    assert "systemctl restart" not in selected
+    assert "provider-switch.sh" not in selected
 
 def test_production_path_uses_application_consequence_not_30s_handshake_age():
     script = (BROWSERLESS / "acceptance" / "production-path.sh").read_text()
@@ -182,24 +330,20 @@ def test_browserless_shared_provider_requires_real_tunnel_and_origin_evidence(
     import os
     import subprocess
 
-    script = (BROWSERLESS / "provider-carrier-ready.sh").read_text()
-    provider = tmp_path / "provider.env"
-    provider.write_text("PROVIDER_SITE=th-bkk\nENDPOINT=198.51.100.1\n")
-    manifest = tmp_path / "MANIFEST.tsv"
-    manifest.write_text("th-bkk\t198.51.100.1\n")
-    script = script.replace(
-        "/etc/network-v2/browserless/provider.env", str(provider)
-    ).replace(
-        "/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv", str(manifest)
-    )
-    assert str(provider) in script and str(manifest) in script
+    script = (SHARED_EGRESS / "carrier-ready.sh").read_text()
+    # Keep the physical provider session external; substitute only the
+    # presence of its namespace and the systemd/ip/curl witnesses.
+    namespace = tmp_path / "network-namespace"
+    namespace.touch()
+    script = script.replace("/run/netns/$NS", str(namespace))
+    assert str(namespace) in script
     selected = tmp_path / "ready.sh"
     selected.write_text(script)
     tools = tmp_path / "bin"
     tools.mkdir()
     for name, body in {
         "systemctl": "#!/bin/sh\nexit 0\n",
-        "ip": "#!/bin/sh\necho 'LISTEN 10.252.246.2:19680'\n",
+        "ip": "#!/bin/sh\ncase \"$*\" in\n  *\"ss -ltn\"*) echo 'LISTEN 10.252.246.2:19680';;\n  *) :;;\nesac\n",
         "sleep": "#!/bin/sh\nexit 0\n",
         "curl": (
             "#!/usr/bin/env python3\n"
@@ -238,7 +382,11 @@ def test_browserless_shared_provider_requires_real_tunnel_and_origin_evidence(
         receipt, process.stdout, process.stderr
     )
     if expected_ready:
-        assert json.loads(process.stdout)["standing"] == "READY"
+        result = json.loads(process.stdout)
+        assert result["standing"] == "READY"
+        assert result["mechanism"] == "gluetun"
+        assert result["ipv4DefaultRoute"] == "ABSENT"
+        assert result["ipv6DefaultRoute"] == "ABSENT"
     else:
         assert '"standing":"READY"' not in process.stdout
     calls = curl_log.read_text()

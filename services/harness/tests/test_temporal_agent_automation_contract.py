@@ -66,34 +66,103 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         self.assertIn("except WorkflowAlreadyStartedError as error:", text)
         self.assertIn('"disposition": "existing"', text)
 
-    def test_failed_continue_retry_preserves_logical_turn_and_uses_fresh_execution_identity(self):
+    def test_failed_continue_retry_uses_temporal_native_workflow_id_arbitration(self):
+        """Execute the real launcher functions, not a source-text assertion."""
+        import asyncio
+        from enum import Enum
+        from types import SimpleNamespace
+
         path = ROOT / "scripts/temporal_agent_automation_launch.py"
-        text = path.read_text()
-        tree = ast.parse(text)
-        retry_fn = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.AsyncFunctionDef)
-            and node.name == "_admit_failed_continue_retry"
+        tree = ast.parse(path.read_text())
+        functions = [
+            n for n in tree.body
+            if isinstance(n, ast.AsyncFunctionDef)
+            and n.name in {"_admit_workflow", "_admit_failed_continue_retry"}
+        ]
+        self.assertEqual(len(functions), 2)
+
+        class AlreadyStarted(Exception):
+            run_id = "prior-existing"
+
+        values = SimpleNamespace(
+            REJECT_DUPLICATE="reject_duplicate",
+            ALLOW_DUPLICATE_FAILED_ONLY="allow_duplicate_failed_only",
         )
-        uuid7_call = next(
-            node
-            for node in ast.walk(retry_fn)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "uuid"
-            and node.func.attr == "uuid7"
-        )
-        self.assertIsNotNone(uuid7_call)
-        retry_segment = ast.get_source_segment(text, retry_fn) or ""
-        self.assertIn("WorkflowExecutionStatus.FAILED", retry_segment)
-        self.assertIn('"retryStanding": "admitted-after-failed"', retry_segment)
-        self.assertIn('"logicalWorkflowId": logical_workflow_id', retry_segment)
-        self.assertIn("logical_workflow_id=turn_request_id", text.replace(" ", ""))
-        self.assertIn("turn_request_id=turn_request_id", text.replace(" ", ""))
-        self.assertIn('a.operation == "continue-retry"', text)
-        self.assertIn('"continue-retry"', text)
+        statuses = Enum("TemporalStatus", ["FAILED", "COMPLETED"])
+        ns = {
+            "Client": object, "AgentContinueInput": object,
+            "WorkflowIDReusePolicy": values,
+            "WorkflowIDConflictPolicy": SimpleNamespace(USE_EXISTING="use_existing"),
+            "WorkflowExecutionStatus": statuses,
+            "WorkflowAlreadyStartedError": AlreadyStarted,
+            "AGENT_CONTINUE_WORKFLOW": "continue",
+        }
+        exec(compile(ast.Module(body=functions, type_ignores=[]), str(path), "exec"), ns)
+
+        class Client:
+            def __init__(self):
+                self.status = statuses.FAILED
+                self.starts = []
+
+            def get_workflow_handle(self, workflow_id):
+                assert workflow_id == "logical-turn"
+                async def describe():
+                    return SimpleNamespace(status=self.status, run_id="failed-run-1")
+                return SimpleNamespace(describe=describe)
+
+            async def start_workflow(self, workflow, value, **kwargs):
+                self.starts.append(kwargs)
+                return SimpleNamespace(id=kwargs["id"])
+
+        async def scenarios():
+            client = Client()
+            normal = await ns["_admit_workflow"](
+                client, "continue", object(),
+                workflow_id="logical-turn", task_queue="queue",
+            )
+            self.assertEqual(normal["disposition"], "admitted")
+            self.assertEqual(
+                client.starts[-1]["id_reuse_policy"], values.REJECT_DUPLICATE,
+            )
+
+            # Concurrent callers converge on the same native server-owned key;
+            # this test asserts our request contract, not the server's internals.
+            responses = await asyncio.gather(*(
+                ns["_admit_failed_continue_retry"](
+                    client, object(),
+                    logical_workflow_id="logical-turn", task_queue="queue",
+                )
+                for _ in range(2)
+            ))
+            self.assertEqual(
+                [item["workflowId"] for item in responses],
+                ["logical-turn", "logical-turn"],
+            )
+            self.assertTrue(all("retryId" not in item for item in responses))
+            self.assertTrue(all(
+                item["logicalWorkflowId"] == "logical-turn"
+                for item in responses
+            ))
+            self.assertEqual(len(client.starts), 3)
+            for request in client.starts[1:]:
+                self.assertEqual(request["id"], "logical-turn")
+                self.assertEqual(
+                    request["id_reuse_policy"], values.ALLOW_DUPLICATE_FAILED_ONLY,
+                )
+                self.assertEqual(
+                    request["id_conflict_policy"], "use_existing",
+                )
+
+            client.status = statuses.COMPLETED
+            refused = await ns["_admit_failed_continue_retry"](
+                client, object(),
+                logical_workflow_id="logical-turn", task_queue="queue",
+            )
+            self.assertEqual(refused["disposition"], "existing")
+            self.assertIn("not-admitted-prior", refused["retryStanding"])
+            self.assertEqual(len(client.starts), 3)
+
+        asyncio.run(scenarios())
 
     def test_effect_workflows_are_deterministic_shells_around_activities(self):
         path = ROOT / "scripts/temporal_agent_automation.py"

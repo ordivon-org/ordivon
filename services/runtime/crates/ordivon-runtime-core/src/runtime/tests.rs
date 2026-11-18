@@ -400,6 +400,7 @@ fn request(sandbox: &Sandbox, client_request_id: &str, global_limit: u32) -> Sub
             windows_context: None,
             windows_execution_context: None,
             foreign_references: Vec::new(),
+            host_dependencies: Vec::new(),
             input_set_id: None,
             effective_inputs: Vec::new(),
             credential_set_id: None,
@@ -949,6 +950,76 @@ fn run_git_command(directory: &Path, args: &[&str]) {
         args,
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+#[test]
+fn workspace_headroom_checks_both_independent_carriers() {
+    let sandbox = Sandbox::new("workspace-dual-headroom-guard", 5_000);
+    let host_path = sandbox.root.join("host-carrier");
+    let guest_path = sandbox.root.join("guest-carrier");
+    fs::create_dir_all(&host_path).unwrap();
+    fs::create_dir_all(&guest_path).unwrap();
+
+    let guarded = Runtime::new_with_authorities_default_runtime_and_workspace_headrooms(
+        runtime_config(&sandbox),
+        Vec::new(),
+        Vec::new(),
+        60_000,
+        vec![
+            WorkspaceHeadroomConfig {
+                path: host_path.clone(),
+                minimum_free_bytes: 1,
+            },
+            WorkspaceHeadroomConfig {
+                path: guest_path.clone(),
+                minimum_free_bytes: u64::MAX,
+            },
+        ],
+    )
+    .unwrap();
+
+    let error = guarded
+        .open_workspace(&crate::GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: "workspace-dual-carrier-rejected".to_string(),
+            source_repo: sandbox.root.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        })
+        .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::WorkspaceCapacityExceeded);
+    assert_eq!(error.field.as_deref(), Some("workspaceHeadroom"));
+    assert!(error
+        .message
+        .contains(&guest_path.to_string_lossy().to_string()));
+    assert!(!error
+        .message
+        .contains(&host_path.to_string_lossy().to_string()));
+}
+
+#[test]
+fn workspace_headroom_rejects_invalid_secondary_path_on_construction() {
+    let sandbox = Sandbox::new("workspace-dual-headroom-invalid", 5_000);
+    let result = Runtime::new_with_authorities_default_runtime_and_workspace_headrooms(
+        runtime_config(&sandbox),
+        Vec::new(),
+        Vec::new(),
+        60_000,
+        vec![
+            WorkspaceHeadroomConfig {
+                path: sandbox.root.clone(),
+                minimum_free_bytes: 1,
+            },
+            WorkspaceHeadroomConfig {
+                path: PathBuf::from("relative-guest-carrier"),
+                minimum_free_bytes: 1,
+            },
+        ],
+    );
+    let error = match result {
+        Ok(_) => panic!("relative additional headroom path must be rejected"),
+        Err(error) => error,
+    };
+    assert_eq!(error.field.as_deref(), Some("workspaceHeadroom.path"));
 }
 
 #[test]
@@ -4493,7 +4564,7 @@ fn workspace_list_surfaces_invalid_current_physical_candidate() {
 }
 
 #[test]
-fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
+fn workspace_list_surfaces_corrupt_record_only_history_without_inventing_open_workspace() {
     let (_sandbox, runtime, executor) =
         workspace_fixture("workspace-list-history-poison", "workspace-list-current");
     fs::write(
@@ -4515,7 +4586,16 @@ fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
 
     assert_eq!(result.workspaces.len(), 1);
     assert_eq!(result.workspaces[0].workspace_id, "workspace-list-current");
-    assert!(result.issues.is_empty());
+    // The bytes cannot tell us whether this was irrelevant history or an
+    // interrupted CLOSING intent. UNKNOWN is diagnostic, never absent or
+    // eligible for automatic close; it must not invent an OPEN Workspace.
+    assert_eq!(result.issues.len(), 1);
+    assert_eq!(result.issues[0].workspace_id, "historical-poison");
+    assert_eq!(
+        result.issues[0].stage,
+        RuntimeWorkspaceIssueStage::Inventory
+    );
+    assert_eq!(result.issues[0].code, "METADATA_CORRUPT");
 }
 
 #[test]

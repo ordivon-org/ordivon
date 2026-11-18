@@ -1,0 +1,147 @@
+# Tutorial: an Agent's first evidence-backed Ordivon task
+
+**Audience:** a coding or operations Agent working in an Ordivon source
+workspace with its assigned tools. The path below is intentionally read-only.
+It does not need production credentials or permission to change an owner.
+
+## 1. Discover before acting
+
+Read the root [AGENTS.md](../../AGENTS.md) once, then choose the natural owner
+by the fact or external effect you must inspect. For this exercise, use
+[Capital](../../domains/capital/README.md). Check any nearer scoped
+`AGENTS.md` and the owner's native verification task.
+
+The model's familiarity with a package or old documentation is not evidence
+that its deployment, data source, release or consumer is current.
+
+## Tool discovery under the real execution identity
+
+For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
+and choose the **actual node and Runtime identity** before probing. The
+read-only `probe_executables.py` reports PATH resolution only; missing from
+PATH never proves the application is not installed. A Windows service context
+and the interactive desktop user can have different tools and PATH entries.
+
+For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
+and the natural Owner's native entrypoint. Skills search/resolve/read supplies
+**advisory procedures**; it does not install a CLI, establish connected MCP
+availability, confer provider authority, or satisfy domain acceptance.
+Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
+arguments, then verify the final consumer's result.
+
+## 2. Discover a project Skill without confusing Workspace identities
+
+When the Ordivon Skills MCP is connected, project Skills are deliberately
+**not** visible through an unscoped global inventory. Supply the **registered
+Skills project-workspace name**, not the ephemeral Runtime execution
+`ws-...` handle. An observed example in the installed 2026-11-06
+deployment is `ordivon-next` (other deployments may differ):
+
+```text
+skills.search(query="finance", workspaceId="ordivon-next")
+skills.resolve(ref="finance-paper-investment", workspaceId="ordivon-next")
+skills.read(skillId="project-ordivon-next/finance-paper-investment",
+            workspaceId="ordivon-next")
+```
+
+The `skillId` above is an example of an actual qualified Skills Owner
+resolution; always use the exact returned ID, revisions and source currentness
+when available. **Search is an implicit-invocation discovery view, not a
+complete inventory of explicitly addressable Skills.** For example, on
+2026-11-15, scoped `skills.search(query="finance", workspaceId="ordivon-next")`
+did not include the project binding for `finance-experiment-review`, while
+`skills.resolve(ref="finance-experiment-review", workspaceId="ordivon-next",
+invocationMode="explicit")` resolved that exact project Skill with
+`implicitInvocation=false`, `scanState=WARN` and
+`riskTags=["CROSS_SKILL_ROUTING"]`. This is a dated observation, not a
+permanent Skill count or permission to auto-invoke the explicitly selected
+Skill. Inspect its actual current advisory metadata, selection and warnings;
+the final business action still belongs to the natural Owner. Unscoped search
+results also do not prove that project packages are absent.
+
+The named project registrations belong to the existing
+[Skills owner](../architecture/SKILLS.md). Check its active configuration
+rather than installing duplicate Skills, creating a second registry or
+passing a Runtime Job workspace ID as if it were a Skills project key.
+Skill activation supplies instructions only; real tools/effects are still
+owned by their natural providers.
+
+## 3. Complete one concrete, bounded task
+
+Using an already allocated isolated Workspace (or a separate Git worktree
+when the Runtime owner is not available), from the repository root:
+
+```sh
+cd domains/capital
+scripts/run-strategic-contribution-brief < examples/strategic_contribution_r1.json
+mise tasks ls
+```
+
+Inspect the JSON output. Require `standing=READ_ONLY_PROJECTION`,
+`executionAuthorized=false`, and `cashAfterMinor=40000` for the supplied
+sample. If this is a code change, follow with the focused consumer test and
+`mise run verify` from `domains/capital` before claiming Owner acceptance.
+
+## 4. Distinguish kinds of evidence
+
+| Observation | What it supports | What it does not prove |
+| --- | --- | --- |
+| CLI returns JSON | The exercised consumer completed this input | The whole domain or public service works |
+| Owner tests pass | Covered native contracts survived the tests | All cases, deployments or provider truth |
+| Runtime Job succeeds | A committed execution reached its terminal outcome | The requested financial/research objective succeeded |
+| Frozen candidate produces a digest | Exact bytes/declared identity can be rechecked | The data was truly available at historical freeze time |
+
+When a task requires an external effect, obtain that owner's currently
+accepted effect contract and identity; never infer approval from an Agent Skill
+or a read-only analysis. Domain success needs a relevant consumer readback or
+independent acceptance evidence.
+
+## 5. Report and hand off
+
+Record the natural owner, exact source revision, input/evidence identity,
+executed command or Job, actual output, checked tests, and the single most
+material remaining UNKNOWN. Link to the real PR/artifact when one exists.
+Do not fabricate production currentness, a completed customer outcome, or a
+generic `SUCCESS` status.
+
+## Next paths
+
+- [Find an owner by task](tasks.md).
+- For new research methods, use only the relevant
+  [method-router Skill](../../.agents/skills/method-router/SKILL.md).
+- For Finance experiments, use
+  [finance-experiment-review](../../.agents/skills/finance-experiment-review/SKILL.md).
+- For core concepts, consult
+  [Agent/LEGO vocabulary](../architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md).
+- For an actual code contribution, follow
+  [CONTRIBUTING](../../CONTRIBUTING.md) and the owner's tests.
+
+This page is a starting tutorial, **not** a second mandatory global workflow
+or a new Agent authority.
+
+## Optional: find the original Gateway execution after response loss
+
+For a **previously admitted Gateway** `execution.submit`, preserve the exact
+original `requestId`, `capability`, and caller identity. Do not infer the Job
+from a similar name, a Runtime Workspace ID, or an Artifact digest. If the
+Gateway response is missing or unclear, query the existing discovery and
+observation tools before deciding whether any further action is needed:
+
+```text
+execution.resolve(capability="execution.linux", requestId="<original-request-id>")
+# If resolution is found, take the exact operation_ref from that response:
+execution.get(operationRef="<returned-operation-ref>",
+              requestId="<original-request-id>", capability="execution.linux")
+```
+
+Use the capability originally selected; `execution.linux` is only an example.
+`found` binds one native operation to this caller; `absent` or `ambiguous` is
+**not** permission to repeat a possibly effectful submission. The verified
+Gateway may reject `execution.get` without the original request identity or
+when the operation belongs to another caller. For a Job submitted *directly*
+through Runtime rather than Gateway, use Runtime's native `job.observe`
+instead of inventing a Gateway correlation. A terminal, committed Runtime
+process result still does **not** prove an external Provider or domain effect.
+See [Agent execution causal chain](../AGENT_EXECUTION_CAUSAL_CHAIN_R2.md) for
+uncertain outcomes and natural-Owner reconciliation. Do not add a new recovery
+registry, retry wrapper, or proof layer for this read path.

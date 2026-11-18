@@ -8,8 +8,8 @@ import unittest
 from ordivon_harness.completion import structured_completion_contract_digest
 from ordivon_harness.ordivon.loop import RunBudget, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import (
     HarnessCognitionProfile,
@@ -60,8 +60,8 @@ class StructuredNoProgressCompletionTests(unittest.TestCase):
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             clock = FixedClock()
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
-            bridge = SQLiteHarnessRuntimeBridge(
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
+            bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),

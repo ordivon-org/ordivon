@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from itertools import combinations
 import os
 import subprocess
@@ -220,6 +221,20 @@ class CandidateSourceRedundancyTests(unittest.TestCase):
         repo = MODULE_PATH.parents[2]
         main = MODULE._git("rev-parse", "HEAD")
         parent = MODULE._git("rev-parse", "HEAD^")
+        # A real first-parent change can legitimately exceed the CLI's 256-path
+        # independent-review budget (for example an entire S5 catalog move).
+        # Select the nearest actual bounded historical pair instead of treating
+        # that correct fail-closed budget rejection as a retirement outcome.
+        for _ in range(32):
+            candidate_base = MODULE._git("rev-parse", f"{parent}^")
+            source_paths = MODULE._git(
+                "diff", "--no-renames", "--name-only", candidate_base, parent
+            )
+            if len(source_paths.splitlines()) <= 256:
+                break
+            main, parent = parent, candidate_base
+        else:
+            self.fail("no bounded historical Git SourceCut pair available")
         output = subprocess.check_output(
             [sys.executable, str(MODULE_PATH),
              "--retirement-candidate", parent, "--retirement-main", main],
@@ -551,7 +566,7 @@ class ConvergencePlanTests(unittest.TestCase):
         )
 
     def test_real_project_skill_change_retains_skills_verification_consumer(self) -> None:
-        # platform/skills/tests/test_recursive_lego_math_discovery.py reads this source.
+        # extensions/chatgpt-skills-mcp/tests/test_recursive_lego_math_discovery.py reads this source.
         path = ".agents/skills/recursive-lego-calculus/SKILL.md"
         plan = MODULE.build_plan(changed_files=[path])
         self.assertIn("skills", plan["verificationOwners"])
@@ -862,8 +877,9 @@ class ConvergencePlanTests(unittest.TestCase):
         evidence = MODULE.explain_source_impacts(
             plan, source_cut=MODULE._git("rev-parse", "HEAD")
         )
-        self.assertEqual(len(evidence["verificationOwners"]), 18)
-        self.assertEqual(len(evidence["queueVerifyTasks"]), 19)
+        owner_count = len(MODULE.affected_owners.OWNERS)
+        self.assertEqual(len(evidence["verificationOwners"]), owner_count)
+        self.assertEqual(len(evidence["queueVerifyTasks"]), owner_count + 1)
         self.assertEqual(evidence["queueVerifyTasks"].count("formal:verify"), 1)
         self.assertEqual(evidence["queueVerifyTasks"], plan["queueVerifyTasks"])
         self.assertEqual(
@@ -982,10 +998,34 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
-    def test_next_queue_projection_uses_full_portable_verification(self) -> None:
-        plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
-        self.assertIn("next:verify", plan["verifyTasks"])
-        self.assertIn("next:verify", plan["queueVerifyTasks"])
+    def test_authority_catalog_queue_projection_uses_native_verification(self) -> None:
+        plan = MODULE.build_plan(changed_files=["catalogs/authorities/README.md"])
+        self.assertIn("authority-catalog:verify", plan["verifyTasks"])
+        self.assertIn("authority-catalog:verify", plan["queueVerifyTasks"])
+
+    def test_ele_source_research_projection_is_not_execution_coupling(self) -> None:
+        plan = MODULE.build_plan(
+            changed_files=["catalogs/capabilities/ele/studies.py"]
+        )
+        self.assertEqual(plan["directOwners"], ["capability-catalog"])
+        self.assertEqual(plan["verificationOwners"], ["capability-catalog"])
+        self.assertEqual(plan["queueVerifyTasks"], ["capability-catalog:verify"])
+
+    def test_unapproved_source_only_kind_cannot_suppress_live_owner_edge(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            shadow = Path(directory) / "dependency_contracts.toml"
+            source = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+            assert 'source_glob = "catalogs/capabilities/ele/studies.py"' in source
+            shadow.write_text(
+                source.replace(
+                    'source_glob = "catalogs/capabilities/ele/studies.py"',
+                    'source_glob = "services/harness/scripts/rogue.py"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "unapproved source-only"):
+                MODULE.load_dependency_graph(path=shadow)
 
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
@@ -994,17 +1034,20 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "authority-catalog", "distribution", "game", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
 
-    def test_security_change_expands_to_harness_and_web_component(self) -> None:
+    def test_security_change_expands_to_actual_gateway_harness_web_consumers(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
+        # The native Gateway PG acceptance now imports real Harness API in
+        # exactly one declared test-only dependency seam. This is a genuine
+        # downstream test consumer, not an invented authority/production edge.
         self.assertEqual(
             plan["verificationOwners"],
-            ["composition", "harness", "next", "security", "skills", "web"],
+            ["gateway", "harness", "security", "web"],
         )
         self.assertIn("harness:verify", plan["verifyTasks"])
         self.assertIn("harness:queue", plan["queueVerifyTasks"])
@@ -1133,7 +1176,7 @@ class ConvergencePlanTests(unittest.TestCase):
         MODULE.validate_queue_task_selection(all_owners, all_tasks)
 
     def test_every_real_single_and_pair_owner_source_change_rejects_queue_omissions(self) -> None:
-        """R2.1 finite source-consumer closure: all 18 owner roots, every pair.
+        """R2.1 finite source-consumer closure: all registered owner roots, every pair.
 
         This is a test of the actual native policy and tracked Git inputs,
         not a proof that unknown dynamic/installed consumers are complete.
@@ -1155,11 +1198,13 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or real_paths)[0]
-        self.assertEqual(len(samples), 18)
+        owner_count = len(MODULE.affected_owners.OWNERS)
+        self.assertEqual(len(samples), owner_count)
         self.assertEqual(len(samples), len(set(samples.values())))
         groups = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(groups), 18 + 153)
+        self.assertEqual(len(groups), owner_count + owner_count * (owner_count - 1) // 2)
         checks = 0
+        multi_task_groups = 0
         for group in groups:
             changed = [samples[name] for name in group]
             plan = MODULE.build_plan(changed_files=changed)
@@ -1177,6 +1222,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 "omit-first-owner": (owners[1:], tasks),
             }
             if len(tasks) > 1:
+                multi_task_groups += 1
                 invalid["reorder"] = (owners, list(reversed(tasks)))
             for case, (selected, requested) in invalid.items():
                 with self.subTest(owner_group=group, case=case):
@@ -1185,9 +1231,10 @@ class ConvergencePlanTests(unittest.TestCase):
                             selected, requested, changed
                         )
                 checks += 1
-        # 171 real source cohorts, 1191 exact positive/negative obligations
-        # at the present 18-Owner source cut; no global coverage inference.
-        self.assertEqual(checks, 1191)
+        # One exact positive and five mandatory negative controls per actual
+        # single/pair Owner cohort; multi-task queues additionally reject
+        # task reordering. No global installed-consumer coverage inferred.
+        self.assertEqual(checks, 6 * len(groups) + multi_task_groups)
 
     def test_root_and_formal_selection_reject_each_individual_missing_task(self) -> None:
         root_path = ["mise.toml"]
@@ -1463,7 +1510,7 @@ class ConvergencePlanTests(unittest.TestCase):
              ["tools/formal/Proof.qnt"], False),
         )
         # Validate the *actual* GitHub inline consumer as well as the Python
-        # producer for every tracked 18-Owner one-/two-owner source cohort.
+        # producer for every registered Owner one-/two-owner source cohort.
         # This is still only a bounded source task contract, not runtime proof.
         git_paths = subprocess.check_output(
             ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
@@ -1479,9 +1526,10 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or paths)[0]
-        self.assertEqual(len(samples), 18)
+        owner_count = len(MODULE.affected_owners.OWNERS)
+        self.assertEqual(len(samples), owner_count)
         cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(cohorts), 171)
+        self.assertEqual(len(cohorts), owner_count * (owner_count + 1) // 2)
         original_cases = len(examples)
         for group in cohorts:
             changed = [samples[name] for name in group]
@@ -1490,7 +1538,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 (selected["verificationOwners"], selected["queueVerifyTasks"], changed, True),
                 ([], [], changed, False),
             )
-        self.assertEqual(len(examples) - original_cases, 342)
+        self.assertEqual(len(examples) - original_cases, 2 * len(cohorts))
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             owners_path = folder / "owners.txt"
@@ -1551,8 +1599,9 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertNotIn("composition", graph["runtime"])
         self.assertNotIn("runtime", graph["harness"])
         self.assertNotIn("harness", graph["runtime"])
-        # Existing public code/data dependencies must still propagate.
-        self.assertIn("composition", graph["next"])
+        # The retired Next catalog-to-composition shim is gone. No
+        # synthetic cross-owner edge should be inherited from that shim.
+        self.assertNotIn("authority-catalog", graph["composition"])
         runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])
         # The direct test witness is selected without merging the operational
         # composition/harness/security/web owner component into Runtime.
@@ -1623,21 +1672,24 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
         # This consumer runs only the Owner step. Including the following
         # Formal YAML step changes textwrap's indentation and makes nested
         # Bash heredocs appear malformed even though Actions parses them.
-        section = section.split("      - name: Verify changed core Formal source\n", 1)[0]
+        section = section.split("  # Preserve the repository", 1)[0]
         return textwrap.dedent(section.split("        run: |\n", 1)[1]).rstrip()
 
     @staticmethod
     def verify_tasks(tasks: str) -> tuple[subprocess.CompletedProcess[str], list[str]]:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "ordivon-affected-tasks.txt").write_text(tasks, encoding="utf-8")
+            # The matrix shard receives canonical Owner task IDs as JSON.
+            tasks_array = tasks.splitlines()
+            if tasks_array != ["artifact:queue", "data:verify"]:
+                raise ValueError("unexpected Owner verification fixture")
             fake = root / "mise"
             fake.write_text(
                 '#!/bin/sh\n'
                 'if [ "$1" = "--cd" ] && [ "$3" = "config" ]; then echo "[]"; exit 0; fi\n'
                 'printf "%s\\n" "$2" >> "$RUNNER_TEMP/called"\n'
                 'cat >/dev/null\n'
-                'if [ "$2" = "fail:verify" ]; then exit 29; fi\n',
+                'if [ "$2" = "data:verify" ]; then exit 29; fi\n',
                 encoding="utf-8",
             )
             fake.chmod(0o755)
@@ -1648,6 +1700,7 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
                     **os.environ,
                     "PATH": f"{root}:{os.environ['PATH']}",
                     "RUNNER_TEMP": str(root),
+                    "OWNER_TASKS_JSON": json.dumps(tasks_array),
                 },
                 capture_output=True,
                 text=True,
@@ -1661,14 +1714,14 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
             return proc, called
 
     def test_earlier_owner_consuming_stdin_cannot_skip_failing_next_owner(self) -> None:
-        proc, called = self.verify_tasks("first:verify\nfail:verify\n")
+        proc, called = self.verify_tasks("artifact:queue\ndata:verify\n")
         self.assertEqual(proc.returncode, 29, proc.stdout + proc.stderr)
-        self.assertEqual(called, ["first:verify", "fail:verify"])
+        self.assertEqual(called, ["artifact:queue", "data:verify"])
 
     def test_final_task_without_newline_must_not_be_skipped(self) -> None:
-        proc, called = self.verify_tasks("first:verify\nfail:verify")
+        proc, called = self.verify_tasks("artifact:queue\ndata:verify")
         self.assertEqual(proc.returncode, 29, proc.stdout + proc.stderr)
-        self.assertEqual(called, ["first:verify", "fail:verify"])
+        self.assertEqual(called, ["artifact:queue", "data:verify"])
 
 class OwnerSelectorFailClosedRegression(unittest.TestCase):
     """Run the actual protected GitHub Actions shell, not a Python stand-in."""
@@ -1679,7 +1732,7 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
         path = Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
         workflow = path.read_text(encoding="utf-8")
         start = workflow.index("      - name: Select affected owners\n")
-        end = workflow.index("      - name: Verify affected owners\n", start)
+        end = workflow.index("      - name: Verify changed core Formal source\n", start)
         section = workflow[start:end]
         assert section.count("        run: |\n") == 1
         return textwrap.dedent(section.split("        run: |\n", 1)[1])
@@ -1734,6 +1787,65 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
         )
         result = self.run_selection("pull_request", stub)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+
+class DataProducerToConsumerImpactTests(unittest.TestCase):
+    """Protect the actual GitHub owner queue from missed Data consumers."""
+
+    def test_capital_odps_change_requires_data_consumer_without_reverse_edge(self) -> None:
+        upstream = MODULE.build_plan(
+            changed_files=["domains/capital/data-products/crypto-public-shadow-r2/odps.json"]
+        )
+        self.assertEqual(upstream["directOwners"], ["capital"])
+        self.assertEqual(upstream["verificationOwners"], ["capital", "data"])
+        self.assertEqual(upstream["taskLocalTestConsumers"], ["data"])
+        self.assertIn("data:verify", upstream["queueVerifyTasks"])
+
+        downstream = MODULE.build_plan(
+            changed_files=["packages/data/src/ordivon_data/odps_projection.py"]
+        )
+        self.assertEqual(downstream["verificationOwners"], ["data"])
+        self.assertNotIn("capital", downstream["taskLocalTestConsumers"])
+
+    def test_finance_composition_consumer_is_selected_only_for_its_actual_inputs(self) -> None:
+        for source in (
+            "domains/capital/scripts/strategic_contribution_brief.py",
+            "domains/capital/src/ordivon_capital/portfolio/strategic_contribution.py",
+            "domains/capital/examples/strategic_contribution_r1.json",
+            "domains/capital/scripts/finance_lego.py",
+            "domains/capital/src/ordivon_capital/research/experiment_protocol.py",
+        ):
+            plan = MODULE.build_plan(changed_files=[source])
+            self.assertIn("composition", plan["taskLocalTestConsumers"])
+            self.assertIn("composition:verify", plan["queueVerifyTasks"])
+
+        unrelated = MODULE.build_plan(
+            changed_files=["domains/capital/data-products/crypto-public-shadow-r2/odps.json"]
+        )
+        self.assertEqual(unrelated["taskLocalTestConsumers"], ["data"])
+        self.assertNotIn("composition", unrelated["verificationOwners"])
+
+    def test_test_only_consumer_source_must_be_actual_exact_registered_file(self) -> None:
+        policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        source = 'source_glob = "packages/data/tests/test_odps_projection.py"'
+        self.assertEqual(policy.count(source), 1)
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp) / "contract.toml"
+            for fake in (
+                "packages/data/tests/*.py",
+                "packages/data/tests/nonexistent.py",
+                "packages/data/README.md",
+            ):
+                with self.subTest(fake=fake):
+                    target.write_text(
+                        policy.replace(source, f'source_glob = "{fake}"'),
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(
+                        ValueError, "unapproved test-only source contract"
+                    ):
+                        MODULE.load_dependency_graph(path=target)
 
 
 if __name__ == "__main__":

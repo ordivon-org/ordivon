@@ -13,7 +13,7 @@ from typing import Any
 EXPECTED_STANDINGS = {
     "admission-only": "ADMITTED_NOT_EXECUTED",
     "execution-only": "EXECUTED_UNVERIFIED",
-    "verified": "VERIFIED_CONSEQUENCE",
+    "verified": "CONTENT_MATCHED_UNVERIFIED",
     "self-verified-receipt": "EXECUTION_RECEIPT_INVALID",
     "sensor-observation": "OBSERVATION_NOT_AUTHORITATIVE",
     "digest-mismatch": "CONSEQUENCE_MISMATCH",
@@ -134,13 +134,19 @@ def main() -> int:
         passed = passed and ok
 
     verified = opa_decision(args.policy, cases["verified"])
-    passed = passed and verified.get("verifiedConsequence") == observation.get("payload")
+    passed = (passed and verified.get("verifiedConsequence") is None
+              and verified.get("consequenceMatches") is True
+              and verified.get("observationAuthoritative") is False)
 
     print(json.dumps({
         "oldRevision": subprocess.run(["git", "-C", str(args.old_repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip(),
         "oldInvariants": old_invariants,
         "cases": results,
-        "verifiedConsequenceEqualOldObservationPayload": verified.get("verifiedConsequence") == observation.get("payload"),
+        "historicalObservationContentMatchedButNotAuthenticated": (
+            verified.get("consequenceMatches") is True
+            and verified.get("observationAuthoritative") is False
+            and verified.get("verifiedConsequence") is None
+        ),
         "passed": passed,
     }, indent=2, sort_keys=True))
     return 0 if passed else 1

@@ -1,0 +1,35 @@
+name: Bug report
+description: Something behaves differently from what its owner documents
+labels: [bug]
+body:
+  - type: input
+    id: owner
+    attributes:
+      label: Owner directory
+      description: The natural owner, for example services/runtime.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Commands, inputs and the commit you ran against.
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, tool versions, relevant configuration.

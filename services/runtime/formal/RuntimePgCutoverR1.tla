@@ -1,6 +1,10 @@
 ------------------------- MODULE RuntimePgCutoverR1 -------------------------
 EXTENDS Naturals
 
+\* HISTORICAL / SUPERSEDED AS LIVE CUTOVER AUTHORITY (2026-11-07).
+\* This model assumes retained SQLite snapshot import/parity. The accepted
+\* fresh-PG policy discards legacy Runtime history and does not require migration.
+\* Do not use this model to block PG-only production deployment.
 \* A finite abstraction, NOT the physical SQLite/PG migration or cryptographic
 \* verification. Content identities are two opaque distinct values; a copied
 \* source revision need not imply a matching source payload. The importer may

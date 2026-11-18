@@ -1,0 +1,20 @@
+version: '3'
+
+tasks:
+  consumer:discord:validate:
+    desc: Validate exact Discord HTTPS/Gateway policy from deployed consumer source
+    cmds:
+      - sing-box check -c consumers/discord/config/egress.json
+      - bash -n consumers/discord/ready.sh
+      - systemd-analyze verify consumers/discord/systemd/network-v2-discord-egress.service consumers/discord/systemd/network-v2-discord.target
+
+  consumer:discord:verify:
+    desc: Verify installed Discord consumer source and real Gateway HTTPS consequence
+    deps: [consumer:discord:validate]
+    cmds:
+      - cmp -s consumers/discord/config/egress.json /etc/network-v2/discord/egress.json
+      - cmp -s consumers/discord/config/authority.json /etc/network-v2/discord/authority.json
+      - cmp -s consumers/discord/systemd/network-v2-discord-egress.service /etc/systemd/system/network-v2-discord-egress.service
+      - cmp -s consumers/discord/systemd/network-v2-discord.target /etc/systemd/system/network-v2-discord.target
+      - cmp -s consumers/discord/ready.sh /usr/local/libexec/network-v2/discord-ready
+      - /usr/local/libexec/network-v2/discord-ready

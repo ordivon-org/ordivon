@@ -44,6 +44,39 @@ Runtime does not compress every compatibility question into one SemVer number.
 
 A release version helps users discuss change. It does not replace the stronger identities required for replay, recovery, migration, or rollback.
 
+## PostgreSQL-native release readback boundary (2026-11-08)
+
+The PG Core also has an *internal, operator-qualified* atomic admission
+primitive for Job + ReleaseEffect. The independent operator must qualify the
+protected release row in the existing _stage_control table; the app role cannot
+create that qualification. Job/Attempt/idempotency key/effect binding share one
+SERIALIZABLE transaction and exact replay resolves before later revocation.
+Ordinary ResourceScheduling, native Runner reconciliation and Job cancellation
+cannot dispatch/interpret an Accepted ReleaseEffect; only a qualified native
+installer may own that effect. This primitive is **not** a deployed release,
+and it is deliberately not exposed as public MCP release.apply.
+
+A qualified PostgreSQL Runtime may expose a read-only release.get Tool
+without enabling a release writer. It resolves clientRequestId under the
+authenticated principal, checks the committed PostgreSQL release-effect
+row against immutable Job/request/snapshot digest bindings, and then uses
+the existing bounded ReleaseStateContract receipt inspection. Missing or
+mismatched receipts never imply deployment merely because a Job terminated.
+A different principal receives JOB_NOT_FOUND without leaking receipt paths.
+
+release.get availability is NOT structuredReleaseConfigured=true.
+The latter requires an operator-qualified PG release.apply, atomic exact
+effect admission, executable installation and durable receipt reconciliation.
+The older SQLite-registry release deployer cannot simply be pointed at PG:
+its database locks, migration history and rollback contracts concern another
+backend. Never invoke that deployer's apply through workspace.exec to claim
+a structured PG release.
+
+This PG readback adds a Tool to the catalog, so external client catalog
+refresh/review remains an independent consumer acceptance requirement.
+Disposable PG tests use synthetic operator receipts only as falsifiers:
+they are not installed production releases.
+
 ## Current version stage
 
 The repository is pre-1.0. Version `0.1.0` represents the first operational baseline, not a promise that every public field is permanently stable.
@@ -139,7 +172,7 @@ The current inventory and deletion rules are [`compatibility.md`](compatibility.
 
 ## Tagged release supply-chain attestations
 
-The live monorepo release authority is the root workflow `.github/workflows/runtime-release.yml`, triggered only by `runtime-v*` tags. The tag name must exactly match the Runtime workspace package version. The workflow records both the tagged repository Commit and the owner-scoped Runtime Commit resolved from `services/runtime`; unrelated sibling-owner commits therefore do not become Runtime release identity.
+The live monorepo release authority is the root workflow `.github/workflows/runtime-release.yml`, triggered only by `runtime-v*` tags. The tag name must exactly match the Runtime workspace package version. The tag checkout must also prove that the exact tagged Commit is reachable from the checked-out protected origin/main history before installing tools or building artifacts; missing main refs and off-main commits fail closed. This protects the current workflow release admission, but is not itself a provider-side tag-immutability rule, proof of historical workflow versions, or evidence of installed release. The workflow records both the tagged repository Commit and the owner-scoped Runtime Commit resolved from `services/runtime`; unrelated sibling-owner commits therefore do not become Runtime release identity.
 
 The tagged workflow runs the Runtime owner verification and cargo-deny policy first, then reuses `scripts/ordivon-runtime-deploy prepare` to build the canonical 13-artifact release set from the exact owner Commit. The candidate manifest remains the authority for artifact names, modes, byte lengths, SHA-256 digests, toolchain identity, owner prefix, and Runtime policy, including whether the optional global execution-concurrency field is owned by that release.
 
@@ -152,3 +185,50 @@ The owner-local `services/runtime/.github/workflows/release-acceptance.yml` rema
 ## Publication
 
 The Rust crates are currently repository-internal and set `publish = false`. Public distribution is through source, tagged releases, and receipted installed binaries until a separate crates.io publication contract is deliberately adopted.
+
+### PostgreSQL Workspace retention: memory and disk are distinct
+
+Native PG Runtime Workspace reclaim now consumes the existing operator-owned
+retention file /etc/ordivon/workspace-retention.json via the systemd unit's
+--policy-file argument. The packaged example is not an automatic production
+default. Missing or invalid explicitly selected policy fails closed. Without a
+policy file, legacy merged-HEAD-only behavior remains. Pinned classes cannot
+be automatically closed. This PG-native adapter consumes only class/rule,
+retention-age and clean-unintegrated opt-in semantics; it does not interpret
+the separate SQLite-era dirty/maximum-lifetime deletion options. Policy
+retention hours cannot shorten CLI minimum
+age; dirty trees and unresolved/non-successful Jobs are never candidates.
+
+For a clean, idle, successfully executed but unintegrated Workspace commit,
+retirement requires operator policy
+forceCloseUnintegratedAfterRetention=true on its selected class. The existing
+Git namespace refs/ordivon/retention preserves the exact source commit before
+the native Workspace close. Native Runtime remains the sole close authority
+and rechecks PG active Jobs, dependents, source digest, installed consumers,
+and worktree state. The adapter passes consumerReleased=false instead of
+inventing evidence of a semantic consumer release: native Runtime owns the
+age-based continuation boundary and retains any rejected close. The PG
+native close now also checks the **latest PG Job activity under the existing
+admission advisory lock**: a resolved, recently completed Job with zero
+active leases is not an idle Workspace merely because the collector started
+its scan before that Job. Native systemd file and manager checks use the
+**actual configured Workspace path**, including the PG carrier, rather than
+the old SQLite-era path. No direct directory delete or deletion on UNKNOWN.
+A native close timeout is reported as UNKNOWN/recoveryRequired, with the
+retained Git ref and native Workspace/tombstone reconciliation step. The
+close receipt is physical carrier evidence, not semantic task completion.
+Each sweep separately reports skipped classifications, eligible unintegrated
+Workspace count, preserved refs and directories outside this source repository's
+Git worktree inventory. Those directories may belong to other source repositories
+and are **not proven orphaned**; this adapter never deletes them.
+
+Diagnose RAM with free, /proc/pressure/memory, /proc/swaps and cgroup/process
+RSS and swap over time. Swap currently in use and Git worktrees using disk
+space cannot independently establish a memory leak. Audit actual hourly
+lifecycle receipts and installed service and operator policy. Run an inspect
+pass without --apply before deployment. The current --limit 25 bounds native
+closes per hour. Only the real operator may enable unintegrated retention;
+a Git ref preserves source but not unverified business completion. Recover
+by asking native Runtime to open a new Workspace at the saved commit after
+reviewing original intent. Linux guest reclaim and Windows VHDX host free
+space are separately observed results.

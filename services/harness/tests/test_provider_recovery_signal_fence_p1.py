@@ -12,8 +12,8 @@ from ordivon_harness.ordivon.model import (
     static_provider_request_digest,
 )
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRecoveryRequired
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from tests.test_p0_sqlite_agent_loop import FixedClock, budget, contract
 
@@ -53,7 +53,7 @@ class DeadlineAdapter:
         raise AssertionError(f"controlled Adapter unexpectedly used invoke(): {request.turn_id}")
 
 
-class RecoveryAfterDurableFailureBridge(SQLiteHarnessAgentBridge):
+class RecoveryAfterDurableFailureBridge(HarnessAgentBridge):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.fail_calls = 0
@@ -76,7 +76,7 @@ class ProviderRecoverySignalFenceP1Tests(unittest.TestCase):
             run_contract = contract("p1-provider-recovery-signal")
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,

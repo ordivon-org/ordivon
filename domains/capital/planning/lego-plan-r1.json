@@ -98,28 +98,42 @@
       "id": "CA03",
       "label": "PortfolioExposureLedger",
       "kind": "risk_state_projection",
-      "responsibility": "Build caller-supplied factor-loading and position exposure ledger without converting overlapping exposures into additive risk contributions",
+      "responsibility": "Compose native Account durable paper buy/sell closes, source-bound Markets marks and existing Risk/Governance without another engine",
       "authority": "Capital domain's bounded source contract, not provider execution truth",
       "state": "IMPLEMENTED",
       "inputs": [
-        "positions, explicit asset loadings and risk-budget assumptions"
+        "caller position/factor observations with owner risk-budget registration",
+        "operator-bound ETF close snapshot and offline Account receipt OR direct paper PostgreSQL account/session readback"
       ],
       "outputs": [
-        "source-bound portfolio/factor exposure ledger and incomplete budget standing"
+        "native exposure and Governance risk limit evaluation",
+        "reconciled net equity, cash, payables, sale receivables, position value and persistence readback standing"
       ],
-      "behavioralContract": "No inferred loadings, no duplicate overlapping exposure as independent risk and no silent UNSET-to-PASS promotion.",
+      "behavioralContract": "NAV exactly equals settled cash minus purchase payables plus sale receivables plus marked holdings; sale receivable is not free cash; SQL read path checks stored request digest and receipt identity; UNSET budget remains INCOMPLETE.",
       "acceptance": [
-        "Owner tests construct exposure ledger from explicit loadings and reject incomplete risk inputs."
+        "Owner tests construct exposure ledger from explicit loadings and reject incomplete risk inputs.",
+        "Native tests compose real PostgreSQL paper close with Markets source admission, Risk exposure and Governance incomplete budget; negative cases alter NAV, payable, shares, source identity and settlement maturity",
+        "Disposable PostgreSQL writes buy and sell, read-only readback confirms request SHA, rejects tampered DB row and excludes unsettled sale receivables from free cash."
       ],
       "evidence": [
         "src/ordivon_capital/risk/portfolio_risk.py",
-        "tests/test_portfolio_risk.py"
+        "tests/test_portfolio_risk.py",
+        "src/ordivon_capital/risk/paper_close_risk.py",
+        "tests/test_paper_close_risk.py",
+        "src/ordivon_capital/accounting/postgres_paper_close.py",
+        "docs/FINANCE_HUMAN_GUIDE_R1.md"
       ],
       "dependencies": [],
-      "sharedRefs": [],
+      "sharedRefs": [
+        "docs/FINANCE_PAPER_INVESTMENT_R1.md"
+      ],
       "consumerEvidence": [
         {
           "path": "tests/test_portfolio_risk.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        },
+        {
+          "path": "tests/test_paper_close_risk.py",
           "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
         }
       ],
@@ -131,7 +145,20 @@
       ],
       "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
       "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
-      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY",
+      "r21Contract": {
+        "I": "Account receipt or PostgreSQL read-only account/session SELECT, admitted Markets ETF snapshot, existing owner risk budget",
+        "O": "native exposure, Governance limit evaluation, cash/payable/sale receivable/NAV, persistence-readback status",
+        "S": "No new state; Accounting retains PostgreSQL and Risk is pure given verified receipt",
+        "pre": "matched operator source and instrument/price session, stored request digest and data types valid, sale receivables have explicit maturity",
+        "post": "NAV=cash-payables+sale_receivables+marked holdings; unencumbered cash excludes receivables; native Risk/Governance only",
+        "inv": "no fill inference from adjusted historical NAV; unavailable real provider/source evidence never promotes authority",
+        "eff": "Offline mode reads local files; Account SQL read uses read-only PostgreSQL transaction; no financial writes",
+        "c": "O(k) portfolio positions/pending liabilities plus indexed O(log N) receipt lookup in Accounting; excludes network/SQL latency",
+        "epsilon": "integer-cent conservation exact; provider data and risk tolerance UNKNOWN",
+        "prov": "Accounting DB committed request SHA, Markets operator-bound snapshot SHA, no external market truth attestation",
+        "unfold": "Accounting.read_committed_paper_close/receipt -> Markets.admit_etf_eod_snapshot -> Risk.review_paper_close_risk -> native Governance report; consumed Human/Agent guide"
+      }
     },
     {
       "id": "CA04",
@@ -332,6 +359,139 @@
       "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
       "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
       "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA09",
+      "label": "StrategicContributionOnlyAllocation",
+      "kind": "read_only_portfolio_composition",
+      "responsibility": "Project exact contribution-only allocation from explicit user targets and protected cash reserves",
+      "authority": "Finance Portfolio source and caller-supplied policy; Risk, Governance and Trading retain independent authority",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "USD integer cents cash, reserve, contribution, holdings and target weights in integer basis points"
+      ],
+      "outputs": [
+        "deterministic read-only allocation proposal, projected holdings and explicit unverified/risk-unknown standings"
+      ],
+      "behavioralContract": "Conservation, no-selling, protected reserve and exact normalized target weights; no trade order, advice, inferred return or execution rights",
+      "acceptance": [
+        "Existing Finance native suite, exact integer conservation/property matrix, and real stdin CLI consumer with negative invalid-document cases"
+      ],
+      "evidence": [
+        "src/ordivon_capital/portfolio/strategic_contribution.py",
+        "tests/test_strategic_contribution.py",
+        "examples/strategic_contribution_r1.json",
+        "scripts/run-strategic-contribution-brief"
+      ],
+      "dependencies": [],
+      "sharedRefs": [
+        "docs/FINANCE_INVESTMENT_FIRST_R1.md"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "scripts/run-strategic-contribution-brief",
+          "standing": "NATIVE_REAL_READ_ONLY_CLI_CONSUMER"
+        },
+        {
+          "path": "tests/test_strategic_contribution.py",
+          "standing": "NATIVE_TEST_AND_INVARIANT_MATRIX"
+        }
+      ],
+      "mustNotOwn": [
+        "market prices or valuation",
+        "security selection",
+        "cost/tax forecasting",
+        "risk approval",
+        "broker orders",
+        "external financial effects"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_CONSUMER_VERIFIED",
+      "formalQualification": "INTEGER_CONSERVATION_INVARIANTS_TESTED_NO_UNIVERSAL_PROOF",
+      "effectBoundary": "NO_EXTERNAL_EFFECT",
+      "r21Contract": {
+        "I": "strict caller USD minor-unit holdings/reserve/contribution and exact target bps",
+        "O": "exact integer projected holdings and unverified research-only receipt",
+        "S": "read-only projection; no mutable state",
+        "pre": "valid asset identities, reserve funded, contribution <= unprotected cash, weights sum to 10000",
+        "post": "allocated contribution exact, no holdings decrease, cash after >= protected reserve",
+        "inv": "int64 money bounds; integer apportionment; no risk/financial-write authorization",
+        "eff": "NONE",
+        "c": "O(n log n), bounded n <= 128",
+        "epsilon": "not applicable to arithmetic; market returns UNKNOWN",
+        "prov": "source path, exact example, owner tests and real CLI; external account valuations UNATTESTED",
+        "unfold": "parse and validate -> integer deficits -> largest remainder apportion -> project and mark unknown"
+      }
+    },
+    {
+      "id": "CA10",
+      "label": "FrozenExperimentProtocolReview",
+      "kind": "research_evidence_contract",
+      "responsibility": "Freeze a research policy before holdout, bind later candidate source-replay to that frozen policy identity, and classify prospective evidence without financial execution",
+      "authority": "Finance Research source-only evidence declaration; external providers and independent verifiers remain authoritative",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "pre-holdout point-in-time research plan with candidate policy fingerprint, data snapshot identities, prospective partitions and trial count",
+        "source-replay candidate manifest plus post-freeze source and holdout bytes, reported evaluation time"
+      ],
+      "outputs": [
+        "canonical frozen plan receipt",
+        "candidate policy content identity",
+        "composed source-replayed economic summary with explicit UNKNOWN, REJECTED or review-required provenance state"
+      ],
+      "behavioralContract": "Candidate weights, benchmark expense, hypothesis, trial family and freeze time must match the frozen policy digest. Later input/return bytes are recomputed by existing Finance Research candidate evaluator. Missing external source and independent reproduction attestations remain UNKNOWN, no allocation/order authority.",
+      "acceptance": [
+        "Native source tests vary data release time, holdout overlap, independent reproduction and experiment-family multiplicity.",
+        "Native combined CLI consumer verifies precommit fingerprint against replayed candidate, rejects weight/trial mutation and recommitted false returns, and retains UNKNOWN for incomplete holdout or unattested independent reproduction."
+      ],
+      "evidence": [
+        "src/ordivon_capital/research/experiment_protocol.py",
+        "tests/test_experiment_protocol.py",
+        "scripts/finance_lego.py",
+        "scripts/run-finance-lego",
+        "tests/test_finance_research_composition.py"
+      ],
+      "dependencies": [
+        "CA08"
+      ],
+      "sharedRefs": [
+        "docs/FINANCE_R2_RESEARCH_BOUNDARY.md"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "scripts/run-finance-lego",
+          "standing": "NATIVE_READ_ONLY_CLI_CONSUMER"
+        },
+        {
+          "path": "tests/test_experiment_protocol.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        },
+        {
+          "path": "tests/test_finance_research_composition.py",
+          "standing": "NATIVE_CROSS_LEGO_SOURCE_REPLAY_CONSUMER"
+        }
+      ],
+      "mustNotOwn": [
+        "provider data authenticity",
+        "profitable edge",
+        "trading permissions",
+        "actual third-party independent attestations"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_CONSUMER_VERIFIED",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY",
+      "r21Contract": {
+        "I": "precommitted research plan, canonical pre-holdout candidate policy (weight, benchmark expense, hypothesis, freeze instant, trial count, currency, cost coverage), later frozen receipt and externally supplied candidate source/holdout byte streams",
+        "O": "sha256-bound policy fingerprint, frozen plan receipt, native source-replayed candidate result and compositional review with UNKNOWN/REJECTED; no trading or capital rights",
+        "S": "Unit, pure Python source; external durable artifact identity belongs to Runtime",
+        "pre": "declared source vintage available at freeze; disjoint UTC train/validation/holdout; configDigest exactly equals canonical candidate policy fingerprint; holdout source/manifest references are postfreeze evidence, not frozen training data",
+        "post": "source model recomputes candidate returns from committed bytes and fixed policy; altered weights/trials/false recomputed returns rejected; incomplete holdout or independent reproduction UNKNOWN; no source evaluator can promote a financial order",
+        "inv": "no duplicate return arithmetic, no own storage, broker, credential, model authority or additional Agent; declarations never elevate source/provider authenticity, effect rights or independent replication standing",
+        "eff": "NONE",
+        "c": "fingerprint O(k) candidate policy serialization; composed evaluation O(n) postfreeze source rows and native candidate arithmetic; finite resource admission UNKNOWN",
+        "epsilon": "exact source identity SHA-256 and Decimal context only; future returns, market authenticity, external time attestation and independent significance UNKNOWN",
+        "prov": "current Capital source/native tests, candidate SHA256 raw-hex source/holdout bytes, protocol sha256: hex digest, UNKNOWN independent provider and preregistration witness",
+        "unfold": "experiment_protocol.candidate_policy_digest -> freeze_experiment_plan -> experiment_protocol.review_replayed_candidate -> investment_candidate.evaluate_investment_candidate -> assess_holdout_evidence; scripts/run-finance-lego and native consumer tests"
+      }
     }
   ],
   "edges": [
@@ -375,6 +535,17 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "Policy/reconciliation/accounting implementations have separate native tests, but provider account acceptance and Windows/Linux installed state are not claimed."
+      ]
+    },
+    {
+      "id": "CAS3",
+      "label": "InvestmentFirstStrategicAllocation",
+      "nodeIds": [
+        "CA09"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Read-only investment allocation CLI and conservation tests are source-realized; live effect authority stays NONE."
       ]
     }
   ],

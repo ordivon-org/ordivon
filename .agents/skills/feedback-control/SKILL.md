@@ -53,4 +53,4 @@ A conceptual feedback diagram does not establish mathematical stability.
 Stop when the dynamic variables and feedback paths that affect the current design decision are explicit and testable.
 
 Canonical local reference:
-- knowledge/lessons/lego-theory-foundations-r1.md
+- catalogs/knowledge/lessons/lego-theory-foundations-r1.md

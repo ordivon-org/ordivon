@@ -27,6 +27,17 @@ class McpProbeError(RuntimeError):
     pass
 
 
+class McpToolError(McpProbeError):
+    """Preserve native Runtime structured tool rejection as typed evidence."""
+
+    def __init__(self, name: str, result: dict[str, Any]) -> None:
+        super().__init__(f"tool {name} returned an error: {result}")
+        self.tool_name = name
+        structured = result.get("structuredContent")
+        rejection = structured.get("error") if isinstance(structured, dict) else None
+        self.error = rejection if isinstance(rejection, dict) else None
+
+
 def _read_bounded_regular_file_text(
     path: Path,
     *,
@@ -277,7 +288,7 @@ class McpClient:
     def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         result = self.request("tools/call", {"name": name, "arguments": arguments})
         if result.get("isError") is True:
-            raise McpProbeError(f"tool {name} returned an error: {result}")
+            raise McpToolError(name, result)
         structured = result.get("structuredContent")
         if not isinstance(structured, dict):
             raise McpProbeError(f"tool {name} omitted structuredContent")

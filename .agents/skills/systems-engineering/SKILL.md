@@ -46,4 +46,4 @@ A clean boundary diagram does not prove correctness, completeness, feasibility, 
 Stop when the system boundary, external authorities, major interfaces and whole-system outcome are clear enough that further framing will not change the next architecture decision.
 
 Canonical local reference:
-- knowledge/lessons/lego-theory-foundations-r1.md
+- catalogs/knowledge/lessons/lego-theory-foundations-r1.md

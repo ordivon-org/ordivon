@@ -50,6 +50,7 @@ authority["authorityDigest"] = "sha256:" + hashlib.sha256(
     json.dumps(authority, sort_keys=True, separators=(",", ":")).encode()
 ).hexdigest()
 request = {
+    "authorityDigest": authority["authorityDigest"],
     "requestId": "security-effect-request:zap-local-r1",
     "actorId": "actor:security-operator",
     "authorityId": authority["authorityId"],
@@ -62,7 +63,7 @@ request["requestDigest"] = "sha256:" + hashlib.sha256(
     json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
 ).hexdigest()
 with (root / "admission-input.json").open("w") as handle:
-    json.dump({"actorIds": [request["actorId"]], "authorities": [authority], "request": request}, handle, indent=2)
+    json.dump({"schemaVersion": 2, "actorIds": [request["actorId"]], "authorities": [authority], "request": request}, handle, indent=2)
     handle.write("\n")
 PY
 
@@ -79,8 +80,14 @@ import sys
 root = pathlib.Path(sys.argv[1])
 eval_doc = json.loads((root / "admission-eval.json").read_text())
 decision = eval_doc["result"][0]["expressions"][0]["value"]
-if not decision.get("admitted"):
-    raise SystemExit(f"active scan not admitted: {decision}")
+input_doc = json.loads((root / "admission-input.json").read_text())
+if (
+    decision.get("admitted") is not True
+    or decision.get("inputContractVersion") != 2
+    or decision.get("authorityDigestBound") is not True
+    or decision.get("authorityDigest") != input_doc["request"]["authorityDigest"]
+):
+    raise SystemExit(f"active scan did not bind its authority digest: {decision}")
 if decision.get("zoneRef") != "http://127.0.0.1:18080" or decision.get("capability") != "security.active_scan":
     raise SystemExit(f"unexpected admission binding: {decision}")
 (root / "admission-decision.json").write_text(json.dumps(decision, indent=2) + "\n")

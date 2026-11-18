@@ -3,6 +3,13 @@
   "kind": "ordivon.harness-evidence-index",
   "entries": [
     {
+      "claimId": "harness.coding.real-owner-domain-r4",
+      "file": "r4-real-coding-deepseek-gateway-postgres-hidden-qa-20261116.json",
+      "status": "historical",
+      "implementationRevision": "659e526e60bd6bf02ed068fa92be49819a12e4c4",
+      "scope": "One real DeepSeek Flash autonomous edit of HARNESS-EDIT-ADDRESSING-002 via installed Gateway/Runtime and original scratch PostgreSQL18 Run with independent hidden QA PASS; not an overall success-rate estimate"
+    },
+    {
       "claimId": "harness.runtime-correlation.h2",
       "file": "harness-h2-runtime-r2-live-d50f609-20260731.json",
       "status": "historical",

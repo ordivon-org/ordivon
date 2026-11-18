@@ -32,14 +32,18 @@
     {
       "id": "authority-and-planning-snapshots",
       "globs": [
-        "meta/next/authorities/records/**",
+        "catalogs/authorities/records/**",
         "meta/next/planning/**",
-        "meta/next/migrations/records/**"
+        "docs/migration/retirement/*.md"
       ],
       "reason": "Authority observations, planning snapshots, and migration records are historical records, not forward executors."
     }
   ],
   "allowedExactPaths": [
+    {
+      "path": "studies/data-lifecycle/data-lifecycle-census-r1.json",
+      "reason": "Dated Study census preserves the Workstation Lab path observed at collection time."
+    },
     {
       "path": "capabilities/media/creative-library/SOURCE_BOUNDARY.json",
       "reason": "The extraction boundary names its historical source."

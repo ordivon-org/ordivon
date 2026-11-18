@@ -9,7 +9,7 @@
   "components": [
     {
       "id": "portfolio-dependence-analysis",
-      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::analyze_dependence",
+      "implementation": "src/ordivon_capital/risk/dependence_analysis.py::analyze_dependence",
       "classification": "QUANTITATIVE_MODEL",
       "sr26ModelStanding": "MODEL",
       "status": "VALIDATION_REQUIRED",
@@ -253,7 +253,7 @@
     },
     {
       "id": "tail-risk-report",
-      "implementation": "src/ordivon_capital/research/model_monitoring.py::build_tail_risk_report",
+      "implementation": "src/ordivon_capital/risk/tail_report.py::build_tail_risk_report",
       "classification": "ADAPTER",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -262,13 +262,12 @@
       "assumptions": [],
       "limitations": [
         "Liquidity-horizon metadata is descriptive only; no scaling is performed.",
-        "The report is not a regulatory capital calculation."
+        "The report is not a regulatory capital calculation.",
+        "The September 2026 acceptance snapshot uses the retired threshold-tail estimator and does not validate the current integrated-quantile implementation."
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": [
-          "evidence/acceptance/dependence-model-monitoring-r1.json"
-        ]
+        "evidenceRefs": []
       },
       "monitoring": {
         "standing": "NOT_APPLICABLE",
@@ -285,11 +284,11 @@
     },
     {
       "id": "historical-expected-shortfall",
-      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::historical_expected_shortfall",
+      "implementation": "src/ordivon_capital/risk/tail_risk.py::historical_expected_shortfall",
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
-      "purpose": "Compute an empirical one-period historical tail-loss mean beyond an empirical VaR quantile for descriptive risk monitoring.",
+      "purpose": "Compute empirical one-period expected shortfall as the integral of the empirical loss quantile, with fractional boundary observation weights, for descriptive risk monitoring.",
       "materiality": "LOW",
       "assumptions": [
         "The supplied completed returns define the historical sample being summarized."
@@ -297,13 +296,12 @@
       "limitations": [
         "This is a historical descriptive statistic, not a forecast of future losses.",
         "No distribution is fitted and no liquidity-horizon scaling is applied.",
-        "The output is not a Basel regulatory capital calculation."
+        "The output is not a Basel regulatory capital calculation.",
+        "Previous source-acceptance evidence predates this estimator's quantile-integration semantics; current regression qualification is Owner-native."
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": [
-          "evidence/acceptance/dependence-model-oot-validation-r1.json"
-        ]
+        "evidenceRefs": []
       },
       "monitoring": {
         "standing": "NOT_APPLICABLE",
@@ -449,12 +447,13 @@
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
-      "purpose": "Enforce temporal separation between a frozen decision and aligned post-decision holdout observations without claiming causal identification.",
+      "purpose": "Calendar-only alignment of caller-declared dates after a frozen decision; never an observation or prospective-holdout availability certificate.",
       "materiality": "NOT_APPLICABLE",
       "assumptions": [],
       "limitations": [
-        "Post-decision timing prevents look-ahead leakage but does not establish causality.",
-        "All required series must share an eligible session date before the holdout is considered available."
+        "Candidate date-set intersection is not authenticated market-source data.",
+        "Date-only inputs cannot establish capture time, provider publication, market rights or an as-of evaluation boundary.",
+        "Prospective market outcome and out-of-sample economic inference remain UNKNOWN until separate Markets and Research consumers attest evidence."
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
@@ -467,9 +466,10 @@
         "requirements": []
       },
       "permittedUses": [
-        "Prospective holdout eligibility control."
+        "Identify calendar candidates requiring independent post-decision market-source and holdout evidence."
       ],
       "prohibitedUses": [
+        "Claiming post-decision holdout data is actually available based on dates alone.",
         "Causal-effect inference.",
         "Automatic strategy-performance conclusion."
       ]

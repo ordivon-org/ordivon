@@ -14,8 +14,7 @@
     "kind": "network-v2",
     "name": "browserless-prod",
     "namespace": "nv2-browserless-prod",
-    "carrierService": "network-v2-browserless-provider-carrier.service",
-    "providerSite": "th-bkk"
+    "carrierService": "network-v2-gluetun-owned-adapter.service"
   },
   "authenticationAuthority": {
     "separate": true,

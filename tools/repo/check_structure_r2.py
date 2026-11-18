@@ -32,6 +32,14 @@ REQUIRED_ANTI_GROWTH = {
 REQUIRED_LEGACY_ROOTS = {"services/", "platform/", "capabilities/", "domains/", "meta/"}
 ALLOWED_MODES = {"retain", "move", "split"}
 
+def assert_retired_source_roots_absent(repo_root: Path) -> None:
+    """Prevent a deployed Meta/Next retirement from regaining source ownership."""
+    for root_name in ("meta", "next"):
+        if (repo_root / root_name).exists():
+            raise StructureR2Error(
+                f"retired Meta/Next source root reintroduced: {root_name}/"
+            )
+
 def _text(value: Any, *, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise StructureR2Error(f"{field} must be a non-empty string")
@@ -161,8 +169,8 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
             if source_root in REQUIRED_LEGACY_ROOTS:
                 covered_legacy_roots.add(source_root)
             if repo_root is not None and not (repo_root / source.rstrip("/")).exists():
-                deployed_move = mode == "move" and mapping.get("standing") == "DEPLOYED"
-                if not deployed_move:
+                deployed_relocation = mode in {"move", "split"} and mapping.get("standing") == "DEPLOYED"
+                if not deployed_relocation:
                     raise StructureR2Error(
                         f"{mapping_id}: current source path does not exist: {source}"
                     )
@@ -179,10 +187,35 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
                     f"{mapping_id}: target root is not admitted by Structure R2: {target_root}"
                 )
 
+        if mode == "split" and mapping.get("standing") in {"DEPLOYED", "PARTIALLY_DEPLOYED"} and "currentPlacementPaths" in mapping:
+            placements = mapping.get("currentPlacementPaths")
+            if not isinstance(placements, list) or not placements:
+                raise StructureR2Error(
+                    f"{mapping_id}: deployed split needs explicit currentPlacementPaths"
+                )
+            for placement in placements:
+                placement = _repo_relative_path(
+                    placement, field=f"{mapping_id}.currentPlacementPath"
+                )
+                if not any(placement.startswith(target) for target in target_paths):
+                    raise StructureR2Error(
+                        f"{mapping_id}: placed prefix is outside declared targets: {placement}"
+                    )
+                if repo_root is not None and not (repo_root / placement).is_dir():
+                    raise StructureR2Error(
+                        f"{mapping_id}: deployed split placement missing: {placement}"
+                    )
+
         for task in verify_tasks:
             _text(task, field=f"{mapping_id}.verifyTask")
 
     if repo_root is not None:
+        if any(
+            mapping.get("id") == "next-residual"
+            and mapping.get("standing") == "DEPLOYED"
+            for mapping in mappings
+        ):
+            assert_retired_source_roots_absent(repo_root)
         for mapping in mappings:
             if mapping.get("standing") != "DEPLOYED" or mapping.get("mode") != "move":
                 continue

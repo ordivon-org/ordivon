@@ -59,9 +59,7 @@ def test_legacy_task_board_runtime_modules_are_physically_retired() -> None:
 
 def test_unclaimed_work_standing_ontology_is_retired_from_active_source() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
-    text = "\n".join(
-        source.read_text() for source in root.glob("*.py") if source.name != "legacy_cutover.py"
-    )
+    text = "\n".join(source.read_text() for source in root.glob("*.py"))
     for retired in (
         "workStanding",
         "WorkingCheckpointStanding",
@@ -121,7 +119,13 @@ def test_psycopg_owns_jsonb_adaptation_in_active_stores() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
     text = "\n".join(
         (root / name).read_text()
-        for name in ("work_store.py", "social_store.py", "social_attention.py")
+        for name in (
+            "work_store.py",
+            "social_store.py",
+            "social_message_commands.py",
+            "coordination_intent_commands.py",
+            "attention_store.py",
+        )
     )
     assert "Jsonb(" in text
     assert "%s::jsonb" not in text
@@ -129,7 +133,7 @@ def test_psycopg_owns_jsonb_adaptation_in_active_stores() -> None:
 
 def test_one_shot_legacy_reader_is_not_registered_as_active_mcp_surface() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
-    mcp = (root / "mcp_server.py").read_text() + (root / "social_work_mcp.py").read_text()
+    mcp = (root / "mcp_server.py").read_text() + (root / "mcp_tool_registration.py").read_text()
     assert "legacy_cutover" not in mcp
     assert 'name="task.' not in mcp
     assert 'name="board.' not in mcp

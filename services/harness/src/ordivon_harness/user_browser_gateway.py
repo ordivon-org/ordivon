@@ -2,9 +2,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 
 from .gateway_execution_port import GatewayExecutionPort, GatewayExecutionRequest
+
+
+def _unique_json_pairs(pairs: list[tuple[str, object]]) -> dict:
+    """Reject ambiguous provider receipts; never silently select the last field."""
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise RuntimeError(f'Windows user-browser duplicate JSON field: {key}')
+        result[key] = value
+    return result
 
 
 def _digest_text(value: str) -> str:
@@ -68,7 +79,7 @@ class UserBrowserGatewayController:
         if not lines:
             raise RuntimeError('Windows user-browser execution returned no JSON receipt')
         try:
-            payload = json.loads(lines[-1])
+            payload = json.loads(lines[-1], object_pairs_hook=_unique_json_pairs)
         except json.JSONDecodeError as error:
             raise RuntimeError('Windows user-browser execution returned invalid JSON') from error
         if not isinstance(payload, dict):
@@ -77,7 +88,7 @@ class UserBrowserGatewayController:
             raise RuntimeError('Windows user-browser receipt kind is invalid')
         if payload.get('effectId') != effect_id:
             raise RuntimeError('Windows user-browser effect identity mismatch')
-        if payload.get('schemaVersion') != 1:
+        if type(payload.get('schemaVersion')) is not int or payload['schemaVersion'] != 1:
             raise RuntimeError('Windows user-browser receipt schema is invalid')
         standing = payload.get('standing')
         if standing not in {
@@ -88,7 +99,7 @@ class UserBrowserGatewayController:
         if not isinstance(attempted, bool):
             raise RuntimeError('Windows user-browser receipt omitted providerEffectAttempted')
         evidence = payload.get('evidenceDigest')
-        if not isinstance(evidence, str) or not evidence.startswith('sha256:') or len(evidence) != 71:
+        if not isinstance(evidence, str) or re.fullmatch(r'sha256:[0-9a-f]{64}', evidence) is None:
             raise RuntimeError('Windows user-browser evidence digest is invalid')
         detail = payload.get('detail')
         if not isinstance(detail, str) or not detail or detail != detail.strip():
@@ -155,13 +166,13 @@ class UserBrowserGatewayController:
         if not lines:
             raise RuntimeError('Windows user-browser classification returned no JSON receipt')
         try:
-            payload = json.loads(lines[-1])
+            payload = json.loads(lines[-1], object_pairs_hook=_unique_json_pairs)
         except json.JSONDecodeError as error:
             raise RuntimeError('Windows user-browser classification returned invalid JSON') from error
         if not isinstance(payload, dict):
             raise RuntimeError('Windows user-browser classification must be an object')
-        if payload.get('schemaVersion') != 1 or payload.get('kind') != 'ordivon.windows-user-browser-classification':
-            raise RuntimeError('Windows user-browser classification identity is invalid')
+        if type(payload.get('schemaVersion')) is not int or payload['schemaVersion'] != 1 or payload.get('kind') != 'ordivon.windows-user-browser-classification':
+            raise RuntimeError('Windows user-browser classification schema or identity is invalid')
         if payload.get('standing') not in {'READY','AUTH_REQUIRED','CHALLENGE_GATED','BUSY','UNKNOWN'}:
             raise RuntimeError('Windows user-browser classification standing is invalid')
         if payload.get('providerEffectAttempted') is not False:

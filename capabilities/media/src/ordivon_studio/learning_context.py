@@ -1,31 +1,16 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 from typing import Any
+
+# Reuse the Production source boundary already consumed by the production
+# context action. Learning must not define a weaker path/JSON contract.
+from .production_context import _load_object, _relative_child
 
 
 def _digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _load_object(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise TypeError(f"{path} must contain one JSON object")
-    return value
-
-
-def _relative_child(root: Path, relative: str) -> Path:
-    candidate = Path(relative)
-    if candidate.is_absolute():
-        raise ValueError(f"Production source path must be relative: {relative}")
-    resolved_root = root.resolve()
-    resolved = (root / candidate).resolve()
-    if resolved != resolved_root and resolved_root not in resolved.parents:
-        raise ValueError(f"Production source path escapes Production root: {relative}")
-    return resolved
 
 
 def _extract_learning(text: str) -> str | None:

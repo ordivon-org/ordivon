@@ -1,0 +1,20 @@
+[Unit]
+Description=Network v2 Discord exact API and Gateway egress authority
+PartOf=network-v2-discord.target
+
+[Service]
+Type=simple
+User=sing-box
+Group=sing-box
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/discord/egress.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/discord/egress.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

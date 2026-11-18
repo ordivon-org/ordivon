@@ -9,6 +9,9 @@ uv lock --check
 uv sync --locked
 uv run ruff check .
 mise run formal:reply-source
+mise run formal:work-graph
+mise run formal:dag-theorem
+mise run formal:unicode-search
 uv run python -m pytest
 """
 
@@ -16,7 +19,18 @@ uv run python -m pytest
 description = "Focused pytest/Hypothesis test on the Host public boundary (HOST_PYTEST_NODE)"
 run = """
 set -euo pipefail
-uv run python -m pytest -q "${HOST_PYTEST_NODE:-tests/test_canonical_property.py}"
+uv run python -m pytest -q "${HOST_PYTEST_NODE:-tests/test_canonical_json_property.py}"
+"""
+
+[tasks."test:postgres:disposable"]
+description = "Host real PostgreSQL 18 + Alembic + queue consumers in isolated loopback Docker; no production DSN"
+run = """
+set -euo pipefail
+if printenv ORDIVON_HOST_V2_TEST_DSN >/dev/null; then
+  echo "HOST_DISPOSABLE_REJECTS_INHERITED_DSN: use an isolated fresh test database" >&2
+  exit 2
+fi
+ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE=1 bash tools/host_queue_verify.sh
 """
 
 [tasks.queue]
@@ -27,19 +41,44 @@ bash tools/host_queue_verify.sh
 
 
 [tasks."formal:reply-source"]
-description = "Exact Host reply decision: pinned mature CrossHair symbolic source verification"
+description = "Source-bound CrossHair proof: Host reply ordering and bounded Work CAS revisions"
 run = """
 set -euo pipefail
 uv lock --check
-if report="$(uv run --locked --group formal python -m crosshair check --analysis_kind PEP316 --per_condition_timeout 25 --report_all ordivon_host_v2.social_store._reply_target_precedes_source 2>&1)"; then
+if report="$(uv run --locked --group formal python -m crosshair check --analysis_kind PEP316 --per_condition_timeout 25 --report_all ordivon_host_v2.social_message_commands._reply_target_precedes_source ordivon_host_v2.work_store._next_work_revision 2>&1)"; then
   printf '%s\\n' "$report"
 else
   printf '%s\\n' "$report" >&2
   exit 1
 fi
 confirmed="$(printf '%s\\n' "$report" | grep -c 'info: Confirmed over all paths' || true)"
-if [ "$confirmed" -ne 2 ]; then
-  printf 'Causal reply source refinement not confirmed: %s/2 obligations\\n' "$confirmed" >&2
+if [ "$confirmed" -ne 5 ]; then
+  printf 'Host causal reply and bounded Work revision not confirmed: %s/5 obligations\\n' "$confirmed" >&2
   exit 1
 fi
+"""
+
+[tasks."formal:work-graph"]
+description = "Bounded Z3 proof for DAG admission/rejection, with falsifying negative control"
+run = """
+set -euo pipefail
+uv lock --check
+uv run --locked --group formal python formal/work_graph_dag.py
+"""
+
+[tasks."formal:dag-theorem"]
+description = "General axiom-free Lean DAG insertion theorem with upstream pinned Lean 4 toolchain"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+(cd "$repo_root/tools/formal" && /usr/bin/mise install github:leanprover/lean4 && /usr/bin/mise exec -- lean ../../services/host/formal/HostWorkDAG.lean)
+"""
+
+
+[tasks."formal:unicode-search"]
+description = "Axiom-free Lean 4 necessary-filter and exact-refinement theorem for Host CJK Unicode n-grams"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+(cd "$repo_root/tools/formal" && /usr/bin/mise install github:leanprover/lean4 && /usr/bin/mise exec -- lean ../../services/host/formal/HostUnicodeGram.lean)
 """

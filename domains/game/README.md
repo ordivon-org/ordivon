@@ -1,61 +1,63 @@
 ---
 schema_version: 1
 id: game.start
-title: Ordivon Game LEGO
-profile: research
+title: Ordivon Game Factory
+profile: engineering
 lifecycle: active
 source_role: canonical
 visibility: public
 owners: [ordivon-game]
-summary: Source-bound Game LEGO discovery without retained first-party games.
+summary: Assemble playable games through a native source-to-artifact production line.
 ---
-# Ordivon Game — reusable LEGO, no legacy games
+# Ordivon Game Factory
 
-Current first-party games: NONE. Station Zero, Causal Lag, Veilwild, Casefile,
-old playable experiments and generic prototypes are retired from active source.
-They remain recoverable from Git history only, not product dependencies.
+**Mission:** repeatedly assemble, validate and deliver playable game compositions from existing mature LEGO. A factory output is an executable product or bounded product fixture, not another catalog, a local LEGO optimization or a historical thesis debate.
 
-## Directly reusable LEGO
+Read the [factory production contract](docs/factory-pipeline.md), [Agent instructions](AGENTS.md) and [consumer authority](docs/authority.md).
 
-The natural-owner planning/lego-plan-r1.json records the existing source-bound
-responsibilities; it is not a second runtime registry:
-- external game/engine/scientific reference retrieval;
-- mechanism interaction experience retrieval;
-- derived mechanism relationship retrieval;
-- failure and counterexample retrieval;
-- read-only query tools and optional non-exhaustive theme views.
+| Station | Input → output | Native supplier |
+| --- | --- | --- |
+| Intake | player outcome, platform, action loop → one product brief | Game owner |
+| Supply | requirements → engine, verified providers/assets and licenses | existing Game source knowledge, upstream native engines |
+| Compose | parts → real scene/ECS application | Godot Scene/Resource/Signal or Bevy App/Plugin |
+| Verify | runnable candidate → actual consumer test receipt | existing Godot/Bevy tests, targeted formal when needed |
+| Package | tested source → native platform artifact and checksum | built-in Godot exporters / Cargo |
+| Deliver | revision and artifact → GitHub CI/artifact | protected repository checks + Game factory workflow |
+| Learn | real player/Agent consumption → fix, replace, delete or next batch | game-specific evidence, not generic proxy scores |
 
-Use from this directory:
+## Run an existing factory line
 
-    pnpm install --frozen-lockfile
-    pnpm knowledge:external -- --type sources --q curiosity
-    pnpm knowledge:mechanisms -- --mechanism knowledge-progression
-    pnpm knowledge:relationships -- --q exploration
-    pnpm knowledge:counterexamples -- --q failure
-    pnpm knowledge:counterexample-themes -- --q local
-    pnpm check
+From domains/game:
 
-## Native composition acceptance
+    mise run factory:validate:godot
+    mise run factory:package:room
+    mise run factory:package:beacon
+    mise run verify
 
-G06 in planning/lego-plan-r1.json registers a bounded native-Godot
-assembly verifier, not a new game or engine. Run mise run test:native for
-actual scene/resource configuration, action transitions, native Signal-to-UI
-feedback and resource/scene replacement. The fixture lives at
-test/fixtures/native-godot-assembly. No products or experiments were added.
+Beacon Relay is production batch 02: an independent Godot game composed from a pinned MIT-licensed official demo and game-specific pickup, delivery, escalation and replay. Native input tests and Linux/Windows exports run through factory:package:beacon. Room Encounter (Godot) remains the earlier technical preview, not a mandatory next product. The Bevy Orbit Collector prototype has completed its engineering-validation purpose and is archived, not an active build line.
 
-## Assembly
+Available source-read interfaces (inputs only): pnpm knowledge:external, pnpm knowledge:mechanisms, pnpm knowledge:relationships, pnpm knowledge:counterexamples, and pnpm knowledge:counterexample-themes.
 
-Choose a real consumer and target behavior. Reuse mature game engines,
-scenes, resources, tools, research, mechanic combinations and native mod
-interfaces; write only missing game-specific rules. Check compositional
-contracts with existing types, invariants, tests or a suitable mature
-formal checker. Do not turn hypothesis retrieval into a recommendation or
-whole-game formal proof.
+G01–G06 and G08–G11 in planning/lego-plan-r1.json are available current capabilities/evidence, not mandatory manufacturing stations. Retired G07 is preserved in the Orbit archive without reusing its identity. The knowledge/*.json corpus and existing read-only queries are inputs, not a separate game product authority.
 
-Players may replace and combine rules, scenes, data and mods through the
-chosen game engine and trust environment; a new user-defined ruleset does
-not need to preserve a retired official game's semantics. No Ordivon-wide
-Mod Runtime, content engine, or platform is currently justified.
+Pre-November PC01/PC02/PC03 dossiers, mechanism-census documents, historical experiments and the unconsumed prototype-composition query have been retired from the live tree. Exact historic revisions remain in Git; old EXECUTE_NEXT fields must not schedule current production work. Frozen R7 protocol/schema remain solely for their existing isolated research selftest.
 
-Remove any knowledge carrier or query that loses its real consumer. Past
-existence is not a reason for preserving live code.
+
+## Consume and improve actual games
+
+**Beacon Relay and Room Encounter — native Linux/Windows preview:**
+[download Game Factory Edition 001](https://github.com/ordivon-org/ordivon/releases/tag/game-factory-edition-001-20261109-a2598a2c).
+[Report a first-play issue for those games](https://github.com/ordivon-org/ordivon/issues/new?template=game-player-feedback.yml).
+
+## Archived technical products
+
+**Orbit Collector (Bevy; archived 2026-11-15):** The independent
+five-beacon/three-life prototype completed its source-to-Windows/Linux-preview
+engineering validation, not a quality or Human-play acceptance. Its original
+source, tests, formal model, packaging scripts, build-workflow definitions,
+and G07 contract are preserved at
+[Orbit archival record](archive/orbit-collector/ARCHIVE.md).
+The [original Windows/Linux pre-release](https://github.com/ordivon-org/ordivon/releases/tag/game-orbit-collector-linux-preview-20261115-1db37d1f)
+remains downloadable. The game is no longer built by routine Game checks
+or dependency updates. Future Bevy games should choose upstream provider
+capabilities based on actual player needs, not inherit this prototype.

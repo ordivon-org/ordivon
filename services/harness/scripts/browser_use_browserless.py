@@ -153,6 +153,10 @@ def _validate_text(value: str, label: str) -> str:
 def _affordance_prelude() -> str:
     roles = json.dumps(list(ACTION_ROLES))
     lines = [
+        "def _ordivon_require(condition, detail):",
+        "    if not condition:",
+        "        raise AssertionError(detail)",
+        "",
         "def _ordivon_affordances():",
         f"    roles=set({roles})",
         "    rows=[]",
@@ -210,61 +214,53 @@ def program_observe(*, include_text: bool, max_chars: int) -> str:
 
 
 def _target_program(
-    index: int,
-    expect_role: str,
-    expect_name: str,
-    expect_backend_node_id: int,
-    action_code: str,
-    standing: str,
+    index: int, expect_role: str, expect_name: str, action_code: str, standing: str,
+    *, expect_backend_dom_node_id: int | None = None,
 ) -> str:
-    """Refuse a stale indexed target even when a replacement has the same role/name.
-
-    Browser-owned backendDOMNodeId is an ephemeral DOM identity, not an
-    authorization, navigation/semantic-context witness or actionability proof.
-    """
-    if type(index) is not int or index < 0 or index >= MAX_OBSERVE_ELEMENTS:
-        raise ValueError(f"index must be an integer between 0 and {MAX_OBSERVE_ELEMENTS - 1}")
+    if index < 0 or index >= MAX_OBSERVE_ELEMENTS:
+        raise ValueError(f"index must be between 0 and {MAX_OBSERVE_ELEMENTS - 1}")
     if expect_role not in ACTION_ROLES:
         raise ValueError("expect-role is not an actionable role")
     expect_name = _validate_text(expect_name, "expect-name")
-    if type(expect_backend_node_id) is not int or expect_backend_node_id < 1:
-        raise ValueError("expect-backend-node-id must be a positive integer")
+    if type(expect_backend_dom_node_id) is not int or expect_backend_dom_node_id <= 0:
+        raise ValueError("expect-backend-dom-node-id must be a positive integer from observation")
+    identity = (
+        f"_ordivon_require(row['backendDOMNodeId']=={expect_backend_dom_node_id}, "
+        "{'error':'affordance-node-changed'})\n"
+    )
     return (
         "import json\n" + _affordance_prelude() + f"rows=_ordivon_affordances()\nidx={index}\n"
-        'assert idx < len(rows), {"error":"affordance-index-out-of-range","count":len(rows)}\n'
+        '_ordivon_require(idx < len(rows), {"error":"affordance-index-out-of-range","count":len(rows)})\n'
         "row=rows[idx]\n"
-        f"assert row['role']=={json.dumps(expect_role)} and row['name']=={json.dumps(expect_name)}, "
-        "{'error':'affordance-changed','observed':{'role':row['role'],'name':row['name']}}\n"
-        f"assert row['backendDOMNodeId']=={expect_backend_node_id}, "
-        "{'error':'affordance-identity-changed','observed':row['backendDOMNodeId']}\n"
-        "assert row['x'] is not None and row['y'] is not None, {'error':'affordance-has-no-box'}\n"
-        # Native Chromium event hit-testing, not another browser control layer.
-        # Descendants (e.g. <span> inside a button) remain actionable.
-        'node_object=cdp("DOM.resolveNode",backendNodeId=row["backendDOMNodeId"])["object"]["objectId"]\n'
-        'try:\n'
-        '    hit=cdp("Runtime.callFunctionOn",objectId=node_object,functionDeclaration="function(x,y){ const h=document.elementFromPoint(x,y); return !!h && this.isConnected && (h===this || this.contains(h)); }",arguments=[{"value":row["x"]},{"value":row["y"]}],returnByValue=True)\n'
-        'finally:\n    cdp("Runtime.releaseObject",objectId=node_object)\n'
-        'assert hit.get("result",{}).get("value") is True, {"error":"affordance-not-hit-target"}\n'
+        f"_ordivon_require(row['role']=={json.dumps(expect_role)} and row['name']=={json.dumps(expect_name)}, "
+        "{'error':'affordance-changed','observed':{'role':row['role'],'name':row['name']}})\n"
+        "_ordivon_require(row['x'] is not None and row['y'] is not None, {'error':'affordance-has-no-box'})\n"
+        + identity
+        # Reuse Chromium's current pointer hit-test before coordinate effects.
+        # Stable DOM identity alone cannot prove a target receives pointer events.
+        + 'node_object=cdp("DOM.resolveNode",backendNodeId=row["backendDOMNodeId"])["object"]["objectId"]\n'
+        + 'try:\n'
+        + '    hit=cdp("Runtime.callFunctionOn",objectId=node_object,functionDeclaration="function(x,y){const h=document.elementFromPoint(x,y);return !!h&&this.isConnected&&(h===this||this.contains(h));}",arguments=[{"value":row["x"]},{"value":row["y"]}],returnByValue=True)\n'
+        + 'finally:\n    cdp("Runtime.releaseObject",objectId=node_object)\n'
+        + '_ordivon_require(hit.get("result",{}).get("value") is True, {"error":"affordance-not-hit-target"})\n'
         + action_code
-        + f'print(json.dumps({{"standing":{json.dumps(standing)},"target":{{"index":idx,"role":row["role"],"name":row["name"],"backendDOMNodeId":row["backendDOMNodeId"]}},"pageAfter":_ordivon_page_info()}},sort_keys=True,ensure_ascii=False))\n'
+        + f'print(json.dumps({{"standing":{json.dumps(standing)},"target":{{"index":idx,"role":row["role"],"name":row["name"]}},"pageAfter":_ordivon_page_info()}},sort_keys=True,ensure_ascii=False))\n'
     )
 
 
 def program_click(
-    index: int, expect_role: str, expect_name: str, expect_backend_node_id: int
+    index: int, expect_role: str, expect_name: str,
+    *, expect_backend_dom_node_id: int | None = None,
 ) -> str:
     return _target_program(
-        index,
-        expect_role,
-        expect_name,
-        expect_backend_node_id,
-        'click_at_xy(row["x"],row["y"])\nwait(0.25)\n',
-        "CLICKED",
+        index, expect_role, expect_name, 'click_at_xy(row["x"],row["y"])\nwait(0.25)\n',
+        "CLICKED", expect_backend_dom_node_id=expect_backend_dom_node_id,
     )
 
 
 def program_input(
-    index: int, expect_role: str, expect_name: str, text: str, expect_backend_node_id: int
+    index: int, expect_role: str, expect_name: str, text: str,
+    *, expect_backend_dom_node_id: int | None = None,
 ) -> str:
     text = _validate_text(text, "text")
     code = (
@@ -272,7 +268,10 @@ def program_input(
         'press_key("a",modifiers=2)\npress_key("Backspace")\n'
         f"type_text({json.dumps(text)})\nwait(0.25)\n"
     )
-    return _target_program(index, expect_role, expect_name, expect_backend_node_id, code, "INPUT")
+    return _target_program(
+        index, expect_role, expect_name, code, "INPUT",
+        expect_backend_dom_node_id=expect_backend_dom_node_id,
+    )
 
 
 def program_scroll(dy: int) -> str:
@@ -289,7 +288,7 @@ def program_back() -> str:
     return (
         "import json\n"
         'hist=cdp("Page.getNavigationHistory")\nidx=hist.get("currentIndex",0)\nentries=hist.get("entries",[])\n'
-        'assert idx>0, {"error":"no-back-history"}\n'
+        'if idx<=0: raise AssertionError({"error":"no-back-history"})\n'
         'cdp("Page.navigateToHistoryEntry",entryId=entries[idx-1]["id"])\nwait_for_load()\n'
         'print(json.dumps({"standing":"BACK","pageAfter":page_info()},sort_keys=True))\n'
     )
@@ -357,12 +356,12 @@ def parser() -> argparse.ArgumentParser:
     click.add_argument("--index", type=int, required=True)
     click.add_argument("--expect-role", required=True)
     click.add_argument("--expect-name", required=True)
-    click.add_argument("--expect-backend-node-id", type=int, required=True)
+    click.add_argument("--expect-backend-dom-node-id", type=int, required=True)
     inp = sub.add_parser("input")
     inp.add_argument("--index", type=int, required=True)
     inp.add_argument("--expect-role", required=True)
     inp.add_argument("--expect-name", required=True)
-    inp.add_argument("--expect-backend-node-id", type=int, required=True)
+    inp.add_argument("--expect-backend-dom-node-id", type=int, required=True)
     inp.add_argument("--text", required=True)
     scr = sub.add_parser("scroll")
     scr.add_argument("--dy", type=int, required=True)
@@ -390,10 +389,12 @@ def main() -> int:
         "open": lambda: program_open(a.url),
         "observe": lambda: program_observe(include_text=a.include_text, max_chars=a.max_chars),
         "click": lambda: program_click(
-            a.index, a.expect_role, a.expect_name, a.expect_backend_node_id
+            a.index, a.expect_role, a.expect_name,
+            expect_backend_dom_node_id=a.expect_backend_dom_node_id,
         ),
         "input": lambda: program_input(
-            a.index, a.expect_role, a.expect_name, a.text, a.expect_backend_node_id
+            a.index, a.expect_role, a.expect_name, a.text,
+            expect_backend_dom_node_id=a.expect_backend_dom_node_id,
         ),
         "scroll": lambda: program_scroll(a.dy),
         "back": program_back,

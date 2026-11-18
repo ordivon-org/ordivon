@@ -10,6 +10,7 @@ from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import tomllib
 
@@ -17,8 +18,12 @@ ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
 DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
-ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
+ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routing.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
+GATEWAY_HOST_TOOL_SOURCES = tuple(
+    ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / f"host_{owner}_tools.py"
+    for owner in ("work", "social", "attention")
+)
 GATEWAY_SURFACE_MANIFEST = ROOT / "services" / "gateway" / "mcp-surface.json"
 HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-swf-northbound-acceptance-20260924.json"
 METHOD_ROUTER = ROOT / ".agents" / "skills" / "method-router" / "SKILL.md"
@@ -40,12 +45,17 @@ HISTORICAL = {
         "Historical standing: SUPERSEDED BY C02/D01 FOR CURRENT ENDPOINT TOPOLOGY",
 }
 
+# An immutable September 2026 historical deployment snapshot must not be
+# silently rewritten when current source introduces an uninstalled capability.
 EXPECTED_CAPABILITIES = {
     "artifact.runtime",
     "continuity.external",
     "execution.linux",
     "execution.windows",
 }
+# Current source routing exposes an opt-in issuer-fenced Runtime profile. It is
+# still not production availability: the owner endpoint and bearer must qualify.
+EXPECTED_SOURCE_CAPABILITIES = EXPECTED_CAPABILITIES | {"execution.harness", "runtime.release.linux"}
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
     'actor.declare',
@@ -221,14 +231,14 @@ LEGO_RELATION_KINDS = frozenset({
 
 OWNER_LEGO_PLANS = (
     "apps/web/planning/lego-plan-r1.json",
-    "meta/next/planning/lego-plan-r1.json",
+    "catalogs/authorities/planning/lego-plan-r1.json",
     "domains/capital/planning/lego-plan-r1.json",
     "packages/composition/planning/lego-plan-r1.json",
     "services/runtime/planning/lego-plan-r1.json",
     "services/host/planning/lego-plan-r1.json",
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
-    "platform/skills/planning/lego-plan-r1.json",
+    "extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json",
     "platform/security/planning/lego-plan-r1.json",
     "domains/game/planning/lego-plan-r1.json",
     "capabilities/media/planning/lego-plan-r1.json",
@@ -1522,8 +1532,8 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
     _require_exact_schema_one(value, "deployed architecture")
     if value.get("kind") != "ordivon.deployed-architecture":
         raise ArchitectureDocsError("unexpected deployed architecture kind")
-    if value.get("status") != "CURRENT_DEPLOYED_BASELINE":
-        raise ArchitectureDocsError("deployed architecture must be CURRENT_DEPLOYED_BASELINE")
+    if value.get("status") != "HISTORICAL_DEPLOYED_SNAPSHOT_20260928":
+        raise ArchitectureDocsError("2026-09-28 deployed snapshot must be historical, not current")
 
     northbound = value.get("defaultNorthbound")
     if not isinstance(northbound, dict):
@@ -1670,9 +1680,9 @@ def validate_deployed_source_tool_relation(
         raise ArchitectureDocsError("deployed Gateway declaredToolCount exceeds current source surface")
 
 
-def validate_current_document(text: str) -> None:
+def validate_architecture_snapshot_document(text: str) -> None:
     required = [
-        "Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**",
+        "Status: **HISTORICAL DEPLOYED SNAPSHOT — NON-AUTHORITATIVE**",
         "Method Router ≠ Capability Router",
         "Harness is not currently a routed Gateway owner",
         "historical Ordivon Agent Service is **RETIRED**",
@@ -1838,6 +1848,15 @@ def validate_formal_issue_census(
         )
     )
     known_owners = {row["root"].removesuffix("/") for row in owner_manifest["owners"]}
+    # A dated issue census names the source Owner at its original SourceCut.
+    # Reuse the already validated Structure R2 relocation map rather than
+    # rewriting historical evidence or inventing a second owner alias registry.
+    transition_path = root / "docs/architecture/structure-r2-transition-r1.json"
+    if transition_path.is_file():
+        transition = _load_json(transition_path)
+        for relocation in transition.get("mappings", []):
+            if relocation.get("mode") == "move" and relocation.get("standing") == "DEPLOYED":
+                known_owners.update(path.removesuffix("/") for path in relocation["sourcePaths"])
     known_owners.add("tools/repo")  # Repository mechanics, not a domain owner.
     issue_ids: set[str] = set()
     for issue in issues:
@@ -1926,6 +1945,7 @@ def validate_formal_issue_census(
             owner = entry.get("owner")
             if not isinstance(owner, str) or (
                 owner not in known_owners
+                and owner != "meta/next"  # immutable historical Git SourceCut, not an active Owner
                 and not (
                     owner == "ROOT_UNOWNED"
                     and entry.get("disposition") == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
@@ -2283,17 +2303,123 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
             )
 
 
+
+# Validate only current task-entry documents. Owner-native docs and live status
+# retain their own authority; this is a source-locator check, not proof that
+# the described capability is installed or the linked heading is still correct.
+NAVIGATION_LINK_PATTERN = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
+
+
+def validate_entrypoint_links(
+    root: Path, *, entrypoints: tuple[Path, ...] | None = None
+) -> None:
+    if entrypoints is None:
+        entrypoints = (
+            Path("README.md"),
+            Path("AGENTS.md"),
+            Path("docs/architecture/DECISIONS.md"),
+        )
+        # pathlib glob must be rooted at the checkout, not the caller's cwd.
+        entrypoints += tuple(
+            path.relative_to(root)
+            for path in sorted((root / "docs/start").glob("*.md"))
+        )
+        manifest = tomllib.loads((root / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        entrypoints += tuple(
+            Path(owner["root"]) / name
+            for owner in manifest["owners"]
+            for name in ("README.md", "AGENTS.md")
+        )
+    root_path = root.resolve()
+    for relative in dict.fromkeys(entrypoints):
+        path = root / relative
+        if not path.is_file():
+            continue
+        for raw in NAVIGATION_LINK_PATTERN.findall(path.read_text(encoding="utf-8")):
+            target_url = raw.strip().split(maxsplit=1)[0].strip("<>")
+            if not target_url or target_url.startswith(("#", "/")):
+                continue
+            # These are external references, not links to tracked repo files.
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target_url):
+                continue
+            target_name = unquote(target_url.split("#", 1)[0].split("?", 1)[0])
+            if not target_name:
+                continue
+            target = (path.parent / target_name).resolve()
+            if not target.is_relative_to(root_path):
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation escapes repository: {relative} -> {raw}"
+                )
+            if not target.exists():
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation target missing: {relative} -> {raw}"
+                )
+
+
+def validate_owner_navigation(
+    root: Path, *, readme_text: str | None = None
+) -> None:
+    """Check README's task routing against the existing Repo Owner source.
+
+    This is source navigation coverage, not proof of Owner deployment, effect
+    authorization, or external consumer acceptance. No parallel Owner map.
+    """
+    manifest = tomllib.loads(
+        (root / "tools/repo/owners.toml").read_text(encoding="utf-8")
+    )
+    expected = {
+        Path(owner["root"]).as_posix(): owner["name"]
+        for owner in manifest["owners"]
+    }
+    text = (
+        (root / "README.md").read_text(encoding="utf-8")
+        if readme_text is None else readme_text
+    )
+    marker = "## Where to start\n"
+    if text.count(marker) != 1:
+        raise ArchitectureDocsError("README natural Owner navigation table missing")
+    section = text.split(marker, 1)[1].split("\n### For Humans:", 1)[0]
+    observed: list[str] = []
+    for line in section.splitlines():
+        if not line.startswith("| "):
+            continue
+        cells = line.split("|")
+        if len(cells) < 4:
+            raise ArchitectureDocsError("malformed README natural Owner navigation row")
+        label = cells[1].strip()
+        if label == "Real consumer problem" or set(label) <= {"-", " ", ":"}:
+            continue
+        match = NAVIGATION_LINK_PATTERN.search(cells[2])
+        if match is None:
+            raise ArchitectureDocsError(
+                f"README Owner navigation row lacks a route: {label}"
+            )
+        route = unquote(match.group(1).strip().split("#", 1)[0])
+        route_path = Path(route)
+        if route_path.name == "README.md":
+            route_path = route_path.parent
+        observed.append(route_path.as_posix())
+    missing = sorted(set(expected) - set(observed))
+    unexpected = sorted(set(observed) - set(expected))
+    repeated = sorted({route for route in observed if observed.count(route) != 1})
+    if missing or unexpected or repeated:
+        raise ArchitectureDocsError(
+            "README Owner navigation differs from owners.toml: "
+            f"missing={missing}, unexpected={unexpected}, repeated={repeated}"
+        )
+
+
 def validate_repository(root: Path = ROOT) -> None:
     current = root / CURRENT.relative_to(ROOT)
     deployed = root / DEPLOYED.relative_to(ROOT)
     plugin = root / PLUGIN.relative_to(ROOT)
     routes = root / ROUTES.relative_to(ROOT)
     gateway_mcp = root / GATEWAY_MCP.relative_to(ROOT)
+    gateway_host_tool_sources = [root / path.relative_to(ROOT) for path in GATEWAY_HOST_TOOL_SOURCES]
     host_northbound_acceptance = root / HOST_NORTHBOUND_ACCEPTANCE.relative_to(ROOT)
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
-    readme = root / README.relative_to(ROOT)
 
-    validate_current_document(current.read_text(encoding="utf-8"))
+    validate_architecture_snapshot_document(current.read_text(encoding="utf-8"))
     validate_r21_lego_vocabulary(
         (root / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md").read_text(
             encoding="utf-8"
@@ -2305,12 +2431,17 @@ def validate_repository(root: Path = ROOT) -> None:
     validate_plugin(_load_json(plugin))
 
     observed = route_capabilities(routes.read_text(encoding="utf-8"))
-    if observed != EXPECTED_CAPABILITIES:
+    if observed != EXPECTED_SOURCE_CAPABILITIES:
         raise ArchitectureDocsError(
-            f"Gateway route source differs from deployed graph: {sorted(observed)}"
+            f"Gateway route source differs from current source contract: {sorted(observed)}"
         )
 
-    observed_tools = gateway_tools(gateway_mcp.read_text(encoding="utf-8"))
+    gateway_source = gateway_mcp.read_text(encoding="utf-8")
+    if "register_host_tools(server, gateway, _owner_boundary)" not in gateway_source:
+        raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
+    observed_tools = gateway_tools(
+        gateway_source + "\n" + "\n".join(path.read_text(encoding="utf-8") for path in gateway_host_tool_sources)
+    )
     source_tools = validate_source_tool_surface(
         observed_tools,
         _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT)),
@@ -2326,8 +2457,10 @@ def validate_repository(root: Path = ROOT) -> None:
 
     if not method_router.is_file():
         raise ArchitectureDocsError("canonical Method Router Skill is missing")
-    if "docs/architecture/CURRENT_ARCHITECTURE.md" not in readme.read_text(encoding="utf-8"):
-        raise ArchitectureDocsError("root README must point to canonical current architecture")
+    # The dated snapshot remains explicitly historical. Real task routing
+    # must match the mechanical Owner source, not a September deployed graph.
+    validate_owner_navigation(root)
+    validate_entrypoint_links(root)
 
     tempo = (root / TEMPO_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
     vector = (root / VECTOR_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")

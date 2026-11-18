@@ -83,17 +83,17 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
     """The Gateway's generic R1 has distinct owner routing, observations and effects.
 
     The Windows GW* R2 carrier is a deployment profile, not another source
-    identity for G00-G09. These source anchors do not assert live effects.
+    identity for G00-G08. These source anchors do not assert live effects.
     """
     relative = "services/gateway/planning/lego-plan-r1.json"
     plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
     module.validate_owner_lego_graph(plan)
     module.validate_owner_lego_dependencies(plan, "services/gateway")
     identities = {item["id"] for item in plan["nodes"]}
-    assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08", "G09"}
+    assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08"}
     assert plan["truthRole"] == "planning-projection-not-project-truth"
     checks = {
-        "G01": ("routes.py", "test_gateway_service.py"),
+        "G01": ("routing.py", "test_gateway_service.py"),
         "G02": ("service.py", "test_capability_projection.py"),
         "G03": ("service.py", "test_gateway_service.py"),
         "G04": ("service.py", "test_gateway_service.py"),
@@ -101,7 +101,6 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
         "G06": ("capability_authz.py", "test_capability_authz_middleware.py"),
         "G07": ("access_auth.py", "test_access_auth.py"),
         "G08": ("research_routes.py", "test_research_capability_resolution.py"),
-        "G09": ("external_worker.py", "test_external_pull_worker.py"),
     }
     for node in plan["nodes"]:
         assert all(node.get(field) for field in (
@@ -688,7 +687,7 @@ def test_owner_project_source_evidence_rejects_traversal_and_duplicate_carriers(
     (
         "services/host/README.md",
         "./README.md",
-        "docs//HOST_V2_R6_CLEANUP.md",
+        "docs//SOCIAL_WORK_FABRIC_R2_SPEC.md",
     ),
 )
 def test_owner_evidence_alias_cannot_mint_duplicate_provenance(alias: str) -> None:
@@ -1328,11 +1327,42 @@ def test_git_qualified_harness_h01_syntax_importers_are_real_source_edges(
     )
     trace = imports["services/harness/src/ordivon_harness/ordivon/loop.py"]
     assert {entry["name"] for entry in trace["importSyntax"]} == {
-        "HarnessRunEvent", "HarnessTrace", "TraceRecorder",
+        "HarnessRunEvent", "TraceRecorder",
     }
     assert all(
         entry["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
         for entry in trace["importSyntax"]
+    )
+    # The H01 run representation moved out of Loop: actual Git-qualified
+    # syntax edges must follow the new natural Owner, not preserve a ghost
+    # HarnessTrace import only to make the old assertion pass.
+    contract_path = "services/harness/src/ordivon_harness/ordivon/run_contract.py"
+    contract = imports[contract_path]
+    assert {entry["name"] for entry in contract["importSyntax"]} == {
+        "HarnessTrace",
+    }
+    assert all(
+        entry["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
+        for entry in contract["importSyntax"]
+    )
+    contract_projection = module.project_node_python_import_syntax(
+        source_revision=rev,
+        node_ref=result["declaredNodeRef"],
+        target_source=contract_path,
+    )
+    assert contract_projection["targetGitBlobIdentity"] == current_tree(ROOT, rev)[contract_path]
+    contract_consumers = {
+        row["sourcePath"]: row for row in contract_projection["candidateImporters"]
+    }
+    loop_contract = contract_consumers[
+        "services/harness/src/ordivon_harness/ordivon/loop.py"
+    ]
+    assert {entry["name"] for entry in loop_contract["importSyntax"]} == {
+        "AgentLoopResult", "RunBudget", "RunStopCode",
+    }
+    assert all(
+        entry["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
+        for entry in loop_contract["importSyntax"]
     )
     assert "externalConsumersCovered" in result["scanBoundary"]
     assert result["scanBoundary"]["externalConsumersCovered"] is False
@@ -1744,7 +1774,7 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
     import copy
 
     plan = json.loads(
-        (ROOT / "platform/skills/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+        (ROOT / "extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
 
     def qualify_source_symbols(candidate: dict) -> None:
@@ -1757,7 +1787,7 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
             for consumer in node["actualConsumers"]:
                 relative = Path(consumer["path"])
                 assert not relative.is_absolute() and ".." not in relative.parts
-                path = ROOT / "platform/skills" / relative
+                path = ROOT / "extensions/chatgpt-skills-mcp" / relative
                 assert path.is_file()
                 names = {
                     ast_node.name for ast_node in ast.walk(
@@ -1783,7 +1813,7 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
         qualify_source_symbols(falsified)
 
 
-def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers() -> None:
+def test_gateway_native_recipes_exist_and_retired_worker_is_not_an_owner() -> None:
     import ast
 
     plan = json.loads(
@@ -1794,12 +1824,6 @@ def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers(
             ("src/ordivon_gateway/service.py", "GatewayService", "capability_resolve"),
             ("tests/test_research_capability_resolution.py", None,
              "test_research_resolve_binds_exact_current_skill_without_executing_it"),
-        ],
-        "G09": [
-            ("src/ordivon_gateway/external_worker.py", "ExternalPullWorkerTransport", "claim"),
-            ("src/ordivon_gateway/external_worker.py", "ExternalPullWorkerTransport", "complete"),
-            ("tests/test_external_pull_worker.py", None,
-             "test_duplicate_completion_is_idempotent_but_changed_completion_conflicts"),
         ],
     }
     for identity, sources in native.items():
@@ -1824,20 +1848,18 @@ def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers(
                 isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
                 and item.name == method for item in member
             ), (identity, path, method)
-    assert any(
-        edge["from"] == "G09" and edge["to"] == "G03"
-        and edge["type"] == "ADAPTATION"
-        and "Optional" in edge["label"]
-        for edge in plan["edges"]
-    )
+    # A retired source can no longer count as an installed or source-qualified LEGO.
+    assert all(node["id"] != "G09" for node in plan["nodes"])
+    assert all("G09" not in (edge["from"], edge["to"]) for edge in plan["edges"])
+    assert not (ROOT / "services/gateway/src/ordivon_gateway/external_worker.py").exists()
     assert not any(
         edge["from"] == "G08" and edge["to"] == "G03" and edge["type"] == "AUTHORITY"
         for edge in plan["edges"]
     )
 
 
-def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
-    """Qualify declared Next cross-domain consumers against source syntax.
+def test_composition_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
+    """Qualify Composition-owned cross-domain consumers against source syntax.
 
     Names in strings, missing aliases, or fabricated functions must not
     receive even SOURCE_STATIC qualification. This is not execution proof.
@@ -1846,12 +1868,16 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
     import copy
 
     plan = json.loads(
-        (ROOT / "meta/next/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+        (ROOT / "packages/composition/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
 
-    def qualify(candidate: dict) -> None:
+    authority_plan = json.loads(
+        (ROOT / "catalogs/authorities/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+
+    def qualify(candidate: dict, owner_path: str, expected_ids: set[str]) -> None:
         assert candidate["kind"] == "ordivon.project-lego-plan"
-        assert {row["id"] for row in candidate["nodes"]} == {"NX01", "NX02", "NX03", "NX04"}
+        assert {row["id"] for row in candidate["nodes"]} == expected_ids
         for node in candidate["nodes"]:
             for key in ("responsibility", "inputs", "outputs", "behavioralContract", "acceptance", "formalObligations"):
                 assert node[key], (node["id"], key)
@@ -1859,7 +1885,7 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
             for row in node["consumerBindings"]:
                 relative = Path(row["path"])
                 assert not relative.is_absolute() and ".." not in relative.parts
-                source = ROOT / "meta/next" / relative
+                source = ROOT / owner_path / relative
                 tree = ast.parse(source.read_text(encoding="utf-8"))
                 defined = {
                     n.name for n in ast.walk(tree)
@@ -1884,11 +1910,13 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
                     assert name in called, (row["path"], f"not syntactically called: {name}")
                 assert "SOURCE" in row["standing"]
 
-    qualify(plan)
-    forged = copy.deepcopy(plan)
+    scoped = {"kind": plan["kind"], "nodes": [v for v in plan["nodes"] if v["id"] in {"C07", "C08", "C09"}]}
+    qualify(scoped, "packages/composition", {"C07", "C08", "C09"})
+    qualify(authority_plan, "catalogs/authorities", {"NX01"})
+    forged = copy.deepcopy(scoped)
     forged["nodes"][1]["consumerBindings"][0]["symbols"] = ["made_up_lego_consumer"]
     with pytest.raises(AssertionError):
-        qualify(forged)
+        qualify(forged, "packages/composition", {"C07", "C08", "C09"})
 
 
 
@@ -2063,7 +2091,7 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     revision = subprocess.check_output(
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
-    path = "services/gateway/src/ordivon_gateway/routes.py"
+    path = "services/gateway/src/ordivon_gateway/routing.py"
     result = module.inspect_owner_source_path(
         source_revision=revision, source_path=path, root=ROOT,
     )
@@ -2116,7 +2144,7 @@ def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> 
 
     real = module.inspect_owner_source_path(
         source_revision=revision,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert real["ownerPartitions"][0]["registrationStanding"] == (
@@ -2231,7 +2259,7 @@ def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
     ).strip()
     plain = module.inspect_owner_source_path(
         source_revision=cut,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert plain["nativeContractCarrier"] is None
@@ -2282,7 +2310,7 @@ def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() ->
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
     cases = [
-        ("platform/skills/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
+        ("extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
         ("packages/composition/planning/lego-plan-r1.json#C01", "consumerBindings", None),
         ("services/gateway/planning/lego-plan-r1.json#G01", "consumerEvidence", None),
     ]
@@ -2336,16 +2364,116 @@ def _mcp_decorated_route_functions(
     return found
 
 
+def _gateway_host_route_source() -> str:
+    """Concatenate actual registered route definitions for source graph checks."""
+    base = ROOT / "services/gateway/src/ordivon_gateway"
+    return "\n".join(
+        (base / f"host_{owner}_tools.py").read_text(encoding="utf-8").replace(
+            "from __future__ import annotations\n", ""
+        )
+        for owner in ("work", "social", "attention")
+    )
+
+
 def _host_core_parent_consumer_contract(plan: dict, host_text: str,
                                         gateway_text: str) -> None:
     import ast
     nodes = {n["id"]: n for n in plan["nodes"]}
     parents = {"O01", "O02", "O03", "O04"}
-    actual_host = _mcp_decorated_route_functions(
-        ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py", "mcp")
+    host_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_tool_registration.py"
+    attention_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_attention_tools.py"
+    work_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_work_tools.py"
+    social_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_social_tools.py"
+    host_registrar = ast.parse(host_mcp_path.read_text(encoding="utf-8"))
+    # The source graph must prove the new registrar is actually invoked by the
+    # public Host composition root; a detached decorated function is insufficient.
+    assert any(
+        isinstance(n, ast.ImportFrom) and n.level == 1
+        and n.module == "mcp_attention_tools"
+        and any(a.name == "register_attention_tools" for a in n.names)
+        for n in host_registrar.body
+    )
+    register = next(
+        n for n in host_registrar.body
+        if isinstance(n, ast.FunctionDef) and n.name == "register_social_work_tools"
+    )
+    assert any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        and n.func.id == "register_attention_tools"
+        and [a.id if isinstance(a, ast.Name) else None for a in n.args]
+        == ["mcp", "attention", "_request_id"]
+        for n in ast.walk(register)
+    ), "Attention tools are detached from the Host northbound registrar"
+    # WorkStore remains the single authoritative Work transaction owner. Prove
+    # its extracted registrar is imported AND invoked by the public composition.
+    assert any(
+        isinstance(n, ast.ImportFrom) and n.level == 1
+        and n.module == "mcp_work_tools"
+        and any(a.name == "register_work_tools" for a in n.names)
+        for n in host_registrar.body
+    )
+    assert any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        and n.func.id == "register_work_tools"
+        and [a.id if isinstance(a, ast.Name) else None for a in n.args]
+        == ["mcp", "work", "_request_id"]
+        for n in ast.walk(register)
+    ), "Work tools are detached from the Host northbound registrar"
+    # The SocialStore remains the sole Space/Topic/Message authority. An
+    # unconsumed detached registrar is not a current semantic consumer.
+    assert any(
+        isinstance(n, ast.ImportFrom) and n.level == 1
+        and n.module == "mcp_social_tools"
+        and any(a.name == "register_social_tools" for a in n.names)
+        for n in host_registrar.body
+    )
+    assert any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        and n.func.id == "register_social_tools"
+        and [a.id if isinstance(a, ast.Name) else None for a in n.args]
+        == ["mcp", "social", "_request_id"]
+        for n in ast.walk(register)
+    ), "Social tools are detached from the Host northbound registrar"
+    direct_routes = _mcp_decorated_route_functions(host_mcp_path, "mcp")
+    work_routes = _mcp_decorated_route_functions(work_mcp_path, "mcp")
+    social_routes = _mcp_decorated_route_functions(social_mcp_path, "mcp")
+    attention_routes = _mcp_decorated_route_functions(attention_mcp_path, "mcp")
+    assert not direct_routes, "The top-level Host registrar must only compose native owners"
+    assert not (work_routes.keys() & (social_routes.keys() | attention_routes.keys()))
+    assert not (social_routes.keys() & attention_routes.keys())
+    actual_host = {**work_routes, **social_routes, **attention_routes}
+    gateway_registrar = ast.parse(
+        (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text(
+            encoding="utf-8"
+        )
+    )
+    gateway_register = next(
+        node for node in gateway_registrar.body
+        if isinstance(node, ast.FunctionDef) and node.name == "register_host_tools"
+    )
+    for owner in ("work", "social", "attention"):
+        registration = f"register_host_{owner}_tools"
+        assert any(
+            isinstance(node, ast.ImportFrom) and node.level == 1
+            and node.module == f"host_{owner}_tools"
+            and any(alias.name == registration for alias in node.names)
+            for node in gateway_registrar.body
+        ), f"Gateway {owner} adapter not imported"
+        assert any(
+            isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id == registration
+            and [arg.id if isinstance(arg, ast.Name) else None for arg in node.args]
+            == ["server", "_host"]
+            for node in ast.walk(gateway_register)
+        ), f"Gateway {owner} adapter not registered"
     actual_gateway = _mcp_decorated_route_functions(
-        ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py", "server",
+        ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
         source_override=gateway_text)
+    # Bind real registrar composition to the northbound entry point, not
+    # detached source declarations that happen to mention tool names.
+    assert "register_host_tools(server, gateway, _owner_boundary)" in (
+        ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py"
+    ).read_text()
     dispatches = {
         "work.create": ("work", "create_work"),
         "work.get": ("work", "get_work"),
@@ -2379,9 +2507,16 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
                                if isinstance(entry, (ast.FunctionDef, ast.AsyncFunctionDef))}
                 assert symbol in definitions, f"missing current test {identity} {witness}"
     for identity, routes in expected.items():
+        source = {"O01": work_routes, "O02": social_routes, "O03": attention_routes}[identity]
+        source_name = {
+            "O01": "mcp_work_tools:",
+            "O02": "mcp_social_tools:",
+            "O03": "mcp_attention_tools:",
+        }[identity]
         declared = {x.split(":", 1)[1] for x in nodes[identity]["consumers"]
-                    if x.startswith("social_work_mcp:")}
+                    if x.startswith(source_name)}
         assert declared == routes
+        assert routes <= source.keys(), (identity, routes - source.keys())
         for route in routes:
             assert route in actual_host
             node = actual_host[route]
@@ -2405,14 +2540,21 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     assert {"HostService schema gate", "WorkStore PostgreSQL transaction consumer",
             "SocialStore PostgreSQL transaction consumer",
             "AttentionStore PostgreSQL transaction consumer"} <= set(nodes["O04"]["consumers"])
-    assert "REQUIRED_SCHEMA_VERSION = 10" in host_text
+    # Bind the live Host service schema gate to the actual Alembic source
+    # HEAD, not a duplicate hard-coded version in this consumer test.
+    migrations = ROOT / "services/host/migrations/versions"
+    latest = max(
+        int(path.name.split("_", 1)[0])
+        for path in migrations.glob("????_*.py")
+    )
+    assert f"REQUIRED_SCHEMA_VERSION = {latest}" in host_text
     assert "schema_version" in host_text
 
 
 def test_host_core_parent_lego_consumer_refinement_is_bound_to_real_calls() -> None:
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
-    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    gateway_text = _gateway_host_route_source()
     _host_core_parent_consumer_contract(plan, host_text, gateway_text)
     # These are formerly unqualified *declarations*, not a formal proof or
     # evidence that current installed Windows/Linux binaries match Git.
@@ -2431,10 +2573,10 @@ def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
 ) -> None:
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
-    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    gateway_text = _gateway_host_route_source()
     if mutation == "consumer":
         next(n for n in plan["nodes"] if n["id"] == "O01")["consumers"] = [
-            "social_work_mcp:work.does_not_exist"]
+            "mcp_work_tools:work.does_not_exist"]
     elif mutation == "formal":
         next(n for n in plan["nodes"] if n["id"] == "O02")["formalObligations"] = []
     elif mutation == "proof":

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import ast
 import fnmatch
 import subprocess
 import tomllib
@@ -20,9 +21,9 @@ IGNORED_COMPONENTS = {
     "docs", "evidence", "planning", "research", "experiments", "fixtures", "artifacts",
 }
 IGNORED_PREFIXES = (
-    "meta/next/authorities/",
-    "meta/next/knowledge/",
-    "meta/next/domains/",
+    "catalogs/authorities/",
+    "catalogs/knowledge/",
+    "profiles/domains/",
 )
 
 
@@ -43,6 +44,7 @@ class Finding:
     from_owner: str
     to_owner: str
     text: str
+    import_module: str | None = None
 
 
 def load_policy(path: Path = POLICY) -> tuple[Seam, ...]:
@@ -125,7 +127,11 @@ def _matching_seams(
         if seam.from_owner == finding.from_owner
         and seam.to_owner == finding.to_owner
         and _matches_source_glob(finding.source_path, seam.source_glob)
-        and seam.allowed_fragment in finding.text
+        and (
+            seam.allowed_fragment == finding.import_module
+            if finding.import_module is not None
+            else seam.allowed_fragment in finding.text
+        )
     )
 
 
@@ -163,6 +169,23 @@ def validate_consumed_seams(
     return {seam: tuple(uses) for seam, uses in observations.items()}
 
 
+def _mentions_owner_path(line: str, root: str) -> bool:
+    """Match a path component, not a similar-looking sibling name.
+
+    services/gateway-authzen is outside services/gateway.
+    services/gateway/src is a genuine gateway owner reference.
+    """
+    start = 0
+    while (index := line.find(root, start)) >= 0:
+        end = index + len(root)
+        left_ok = index == 0 or not (line[index - 1].isalnum() or line[index - 1] in "_.-")
+        right_ok = end == len(line) or not (line[end].isalnum() or line[end] in "_.-")
+        if left_ok and right_ok:
+            return True
+        start = index + 1
+    return False
+
+
 def findings_for_text(
     source_path: str,
     text: str,
@@ -177,7 +200,7 @@ def findings_for_text(
             if target.name == source.name:
                 continue
             target_literal = target.root.rstrip("/")
-            if target_literal in line:
+            if _mentions_owner_path(line, target_literal):
                 findings.append(
                     Finding(
                         source_path=source_path,
@@ -187,6 +210,65 @@ def findings_for_text(
                         text=line.strip(),
                     )
                 )
+    return tuple(findings)
+
+
+def python_package_owners(
+    tracked_paths: tuple[str, ...], owners: tuple[Owner, ...]
+) -> dict[str, str]:
+    """Derive the Python package-to-Owner map from existing checked-in source."""
+    packages: dict[str, str] = {}
+    for path in tracked_paths:
+        owner = owner_for_path(path, owners)
+        if owner is None or not path.startswith(owner.root + "src/"):
+            continue
+        parts = path[len(owner.root + "src/"):].split("/")
+        if len(parts) != 2 or parts[1] != "__init__.py" or not parts[0].isidentifier():
+            continue
+        package = parts[0]
+        previous = packages.get(package)
+        if previous is not None and previous != owner.name:
+            raise AssertionError(f"ambiguous Python package owner: {package}")
+        packages[package] = owner.name
+    return packages
+
+
+def python_import_findings_for_text(
+    source_path: str,
+    source_text: str,
+    owners: tuple[Owner, ...],
+    packages: dict[str, str],
+) -> tuple[Finding, ...]:
+    """Find cross-Owner static Python imports absent from literal-path scanning.
+
+    Explicit public dependency exceptions use the existing exact source-bound
+    dependency_contracts.toml seam; this does not infer live consumer authority
+    or cover dynamic imports.
+    """
+    source = owner_for_path(source_path, owners)
+    if source is None or not source_path.endswith(".py"):
+        return ()
+    tree = ast.parse(source_text, filename=source_path)
+    lines = source_text.splitlines()
+    findings: list[Finding] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0:
+            names = [node.module] if node.module else []
+        else:
+            continue
+        for name in names:
+            target = packages.get(name.split(".", 1)[0])
+            if target is not None and target != source.name:
+                findings.append(Finding(
+                    source_path=source_path,
+                    line=node.lineno,
+                    from_owner=source.name,
+                    to_owner=target,
+                    text=lines[node.lineno - 1].strip(),
+                    import_module=name,
+                ))
     return tuple(findings)
 
 
@@ -206,12 +288,18 @@ def main() -> int:
 
     all_findings: list[Finding] = []
     violations: list[Finding] = []
-    for source_path in tracked_active_files():
+    active_paths = tracked_active_files()
+    packages = python_package_owners(active_paths, owners)
+    for source_path in active_paths:
         source = owner_for_path(source_path, owners)
         if source is None:
             continue
         text = (ROOT / source_path).read_text(encoding="utf-8", errors="ignore")
-        for finding in findings_for_text(source_path, text, owners):
+        findings = (
+            *findings_for_text(source_path, text, owners),
+            *python_import_findings_for_text(source_path, text, owners, packages),
+        )
+        for finding in findings:
             all_findings.append(finding)
             if not _allowed(finding, seams):
                 violations.append(finding)
@@ -223,7 +311,7 @@ def main() -> int:
             for item in violations
         )
         raise AssertionError(
-            "undeclared active cross-owner source-path seams detected:\n" + rendered
+            "undeclared active cross-owner source references detected:\n" + rendered
         )
 
     # A declared source/consumer permission is admitted only by the same
@@ -235,8 +323,8 @@ def main() -> int:
         kinds[seam.kind] = kinds.get(seam.kind, 0) + len(uses)
 
     print(
-        "owner boundary literals: valid "
-        f"(active_files={len(tracked_active_files())}, seams={len(seams)}, "
+        "owner boundary source references: valid "
+        f"(active_files={len(active_paths)}, packages={len(packages)}, seams={len(seams)}, "
         f"references={len(all_findings)}, kinds={dict(sorted(kinds.items()))})"
     )
     return 0

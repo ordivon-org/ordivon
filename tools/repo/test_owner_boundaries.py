@@ -96,14 +96,42 @@ class OwnerBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
             MODULE.validate_consumed_seams((real, alias), (observed,))
 
-    def test_current_declared_source_consumers_are_literal_matched(self) -> None:
-        """This is a bounded source-text witness, not live consumer semantics."""
+    def test_sibling_prefix_does_not_create_cross_owner_dependency(self) -> None:
+        source = "platform/security/mise.toml"
+        for path in (
+            "services/gateway-authzen",
+            "services/gateway_extra",
+            "services/gateway2",
+            "prefixservices/gateway-src",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    MODULE.findings_for_text(source, f'run = "{path}"', OWNERS),
+                    (),
+                )
+
+    def test_real_gateway_path_still_requires_cross_owner_contract(self) -> None:
+        observed = MODULE.findings_for_text(
+            "platform/security/mise.toml",
+            'command = "services/gateway/src/ordivon_gateway/mcp_server.py"',
+            OWNERS,
+        )
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0].to_owner, "gateway")
+
+    def test_current_declared_source_consumers_are_exact_source_matched(self) -> None:
+        """Reuse the production scanner's literal AND Python import consumer graph."""
         findings = []
-        for path in MODULE.tracked_active_files():
+        active = MODULE.tracked_active_files()
+        packages = MODULE.python_package_owners(active, OWNERS)
+        for path in active:
             if MODULE.owner_for_path(path, OWNERS) is None:
                 continue
             source = (MODULE.ROOT / path).read_text(encoding="utf-8", errors="ignore")
             findings.extend(MODULE.findings_for_text(path, source, OWNERS))
+            findings.extend(
+                MODULE.python_import_findings_for_text(path, source, OWNERS, packages)
+            )
         witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
         self.assertEqual(set(witnessed), set(SEAMS))
         self.assertTrue(all(witnessed.values()))
@@ -167,14 +195,77 @@ class OwnerBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(MODULE._allowed(finding, SEAMS))
 
-    def test_meta_next_authority_records_are_navigation_not_runtime_edges(self) -> None:
+    def test_external_authority_records_are_navigation_not_runtime_edges(self) -> None:
         self.assertFalse(MODULE.is_active_path(
-            "meta/next/authorities/records/iso/iso-28500-2017.json"
+            "catalogs/authorities/records/iso/iso-28500-2017.json"
         ))
 
     def test_meta_next_domain_knowledge_is_navigation_not_runtime_edges(self) -> None:
         self.assertFalse(MODULE.is_active_path(
-            "meta/next/domains/game/game-autonomous-interest-protocol-r7.json"
+            "profiles/domains/game/game-autonomous-interest-protocol-r7.json"
+        ))
+
+    def test_python_owner_packages_derive_from_source_roots(self) -> None:
+        paths = (
+            "services/host/src/ordivon_host_v2/__init__.py",
+            "services/harness/src/ordivon_harness/__init__.py",
+            "services/harness/src/ordivon_harness/internal/__init__.py",
+        )
+        self.assertEqual(
+            MODULE.python_package_owners(paths, OWNERS),
+            {"ordivon_host_v2": "host", "ordivon_harness": "harness"},
+        )
+
+    def test_ast_catches_cross_owner_import_without_path_literal(self) -> None:
+        path = "services/harness/src/ordivon_harness/foreign_effect.py"
+        text = "from ordivon_host_v2.work_store import WorkStore"
+        namespaces = {"ordivon_host_v2": "host"}
+        self.assertEqual(MODULE.findings_for_text(path, text, OWNERS), ())
+        findings = MODULE.python_import_findings_for_text(
+            path, text, OWNERS, namespaces
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual((findings[0].from_owner, findings[0].to_owner), ("harness", "host"))
+        self.assertFalse(MODULE._allowed(findings[0], SEAMS))
+
+    def test_import_alias_and_own_package_do_not_depend_on_model_wording(self) -> None:
+        path = "services/harness/src/ordivon_harness/foreign_effect.py"
+        namespaces = {"ordivon_host_v2": "host", "ordivon_harness": "harness"}
+        foreign = MODULE.python_import_findings_for_text(
+            path, "import ordivon_host_v2.work_store as storage", OWNERS, namespaces
+        )
+        self.assertEqual(len(foreign), 1)
+        self.assertEqual(foreign[0].import_module, "ordivon_host_v2.work_store")
+        self.assertEqual(MODULE.python_import_findings_for_text(
+            path, "import ordivon_harness.run_continuity", OWNERS, namespaces
+        ), ())
+
+    def test_public_python_import_needs_source_and_contract_bound_seam(self) -> None:
+        path = "services/harness/src/ordivon_harness/public_bridge.py"
+        namespaces = {"ordivon_host_v2": "host"}
+        seam = MODULE.Seam(
+            "harness", "host", path, "ordivon_host_v2.public_api",
+            "PUBLIC_PACKAGE_DEPENDENCY", "services/host/README.md",
+        )
+        def inspect(source_path: str, text: str):
+            return MODULE.python_import_findings_for_text(
+                source_path, text, OWNERS, namespaces
+            )[0]
+        self.assertTrue(MODULE._allowed(
+            inspect(path, "from ordivon_host_v2.public_api import PublicReceipt"), (seam,)
+        ))
+        self.assertFalse(MODULE._allowed(
+            inspect("services/harness/src/ordivon_harness/other.py",
+                    "from ordivon_host_v2.public_api import PublicReceipt"), (seam,)
+        ))
+        self.assertFalse(MODULE._allowed(
+            inspect(path, "from ordivon_host_v2.work_store import WorkStore"), (seam,)
+        ))
+        self.assertFalse(MODULE._allowed(
+            inspect(path, "from ordivon_host_v2.public_api_private import Leaked"), (seam,)
+        ))
+        self.assertFalse(MODULE._allowed(
+            inspect(path, "from ordivon_host_v2.work_store import WorkStore # ordivon_host_v2.public_api"), (seam,)
         ))
 
     def test_real_web_source_is_scanned(self) -> None:

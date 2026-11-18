@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 import numpy as np
@@ -251,43 +251,4 @@ def measure_dependence_drift(
             "proxyReturnKsStatistic": format(float(proxy_ks.statistic), ".6f"),
             "proxyReturnKsPValue": format(float(proxy_ks.pvalue), ".6f"),
         },
-    }
-
-
-def build_tail_risk_report(
-    series: Sequence[Mapping[str, Any]],
-    *,
-    confidence: float = 0.975,
-) -> dict[str, Any]:
-    """Compose empirical tail-risk calculations with explicit sample/horizon metadata."""
-
-    from ordivon_capital.risk.portfolio_risk import historical_expected_shortfall
-
-    rows: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for i, spec in enumerate(series):
-        series_id = str(spec.get("seriesId") or "").strip()
-        returns = spec.get("returns")
-        if not series_id or series_id in seen:
-            raise PortfolioRiskError(f"series[{i}].seriesId must be unique and non-empty")
-        if not isinstance(returns, Sequence) or isinstance(returns, (str, bytes)):
-            raise PortfolioRiskError(f"series[{i}].returns must be a sequence")
-        seen.add(series_id)
-        calculation = historical_expected_shortfall(returns, confidence=confidence)
-        rows.append({
-            "seriesId": series_id,
-            "returnHorizon": spec.get("returnHorizon"),
-            "sampleLabel": spec.get("sampleLabel"),
-            "liquidityHorizonDays": spec.get("liquidityHorizonDays"),
-            "calculation": calculation,
-        })
-
-    return {
-        "schemaVersion": 2,
-        "kind": "ordivon.capital.risk.tail-risk-report",
-        "componentId": "tail-risk-report",
-        "confidence": format(confidence, ".6f"),
-        "seriesCount": len(rows),
-        "series": rows,
-        "liquidityHorizonScalingApplied": False,
     }

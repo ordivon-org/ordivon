@@ -78,7 +78,7 @@ No codec writes files directly.
 
 ## Durable effect integration
 
-The existing `SQLiteHarnessRuntimeBridge` had dormant `patch_workspace -> workspace.patch` lowering but previously admitted only `workspace.exec` and `workspace.read`. R2 completes the generic physical backend without changing the default Tool surface:
+The existing `HarnessRuntimeBridge` had dormant `patch_workspace -> workspace.patch` lowering but previously admitted only `workspace.exec` and `workspace.read`. R2 completes the generic physical backend without changing the default Tool surface:
 
 - `workspace.patch` is admitted only when the concrete bridge declares `WORKSPACE_CHANGE_POSSIBLE`;
 - the normal Harness Tool intent/fence/receipt chain remains authoritative for the Agent Run;

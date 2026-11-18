@@ -1,0 +1,18 @@
+[tools]
+python = "3.15.1"
+uv = "0.13.5"
+
+[tasks.verify]
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+export UV_PYTHON="$(mise which python)"
+export PYTHONPATH="$repo_root"
+uv lock --check
+uv sync --locked --all-groups --reinstall-package ordivon-composition
+uv run --locked --all-groups python -m pytest -q tests
+uv run --locked --all-groups ruff check scripts tests
+uv run --locked --all-groups ruff format --check scripts tests
+uv run --locked --all-groups python scripts/check_authority_catalog_r1.py
+uv run --locked --all-groups bandit -r scripts -q -s B404,B603
+"""

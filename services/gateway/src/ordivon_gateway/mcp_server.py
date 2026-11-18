@@ -3,8 +3,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from contextlib import asynccontextmanager
 from importlib.metadata import version as package_version
-from typing import Annotated, Any, Literal
+from typing import Any
 from urllib.parse import urlsplit
 
 import uvicorn
@@ -12,8 +13,6 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp_types import CallToolResult, TextContent
-from pydantic import Field
 from starlette.responses import JSONResponse
 
 from .access_auth import (
@@ -22,6 +21,7 @@ from .access_auth import (
     CloudflareAccessVerifier,
 )
 from .audit import GatewayAuditMiddleware
+from .authzen_authorizer import AuthZenPrincipalAuthorizer
 from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
 from .contracts import (
     ArtifactChunk,
@@ -31,39 +31,16 @@ from .contracts import (
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
+    RuntimeReleaseAdmission,
+    RuntimeReleaseProjection,
     SystemDescription,
 )
-from .external_worker import ExternalPullWorkerTransport, require_qualified_legacy_sqlite
+from .host_tools import register_host_tools
+from .http_ingress_guard import GatewayHTTPIngressGuard
+from .ingress_identity import identity_from_state, tool_context_state
 from .service import GatewayError, GatewayService
-from .upstream import McpOwnerCaller, OwnerCallError
-from .worker_http import attach_worker_routes
-
-# Host owns these byte envelopes. Exposing them in MCP tools/list prevents
-# consumer calls that Host can only reject; no second admission authority.
-HostCollectionBytes = Annotated[int, Field(ge=16_384, le=4_194_304)]
-HostMessageBytes = Annotated[int, Field(ge=131_072, le=4_194_304)]
-
-
-def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
-    error = (
-        dict(exc.error)
-        if exc.error is not None
-        else {
-            "code": "OWNER_CALL_FAILED",
-            "message": str(exc),
-            "origin": "gateway_adapter",
-        }
-    )
-    structured: dict[str, Any] = {"error": error}
-    if exc.owner_id is not None:
-        structured["gatewayOwnerId"] = exc.owner_id
-    if exc.tool_name is not None:
-        structured["gatewayOwnerTool"] = exc.tool_name
-    return CallToolResult(
-        content=[TextContent(type="text", text=str(exc))],
-        structuredContent=structured,
-        isError=True,
-    )
+from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
+from .upstream_identity import _owner_error_result
 
 
 async def _owner_boundary(call) -> Any:
@@ -74,20 +51,19 @@ async def _owner_boundary(call) -> Any:
 
 
 def _verified_execution_scope(context: Context | None) -> tuple[str, str] | None:
-    """Request-local authority from the existing verified HTTP ingress, if present."""
-    try:
-        request = context.request_context.request
-    except ValueError, AttributeError:
-        return None
-    scope = getattr(request, "scope", None)
-    state = scope.get("state") if isinstance(scope, dict) else None
-    if not isinstance(state, dict):
-        return None
-    principal = state.get("ordivon_access_principal")
-    issuer = state.get("ordivon_access_issuer")
-    if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
-        return None
-    return issuer, principal
+    """Extract ingress identity from the SDK Tool Context, not Tool arguments."""
+    identity = identity_from_state(tool_context_state(context))
+    return (identity.issuer, identity.principal) if identity is not None else None
+
+
+def _require_http_execution_identity(context: Context | None) -> None:
+    """HTTP execution tools must not downgrade to unqualified STDIO semantics.
+
+    In normal HTTP requests Cloudflare/loopback ingress populates verified
+    request state; an absent/malformed context must reject before an owner RPC.
+    """
+    if _verified_execution_scope(context) is None:
+        raise ToolError("HTTP execution requires verified ingress Principal identity")
 
 
 def _verified_execution_request_id(
@@ -151,11 +127,35 @@ def build_server(
     service: GatewayService | None = None,
     *,
     capability_authorizer: CapabilityAuthorizer | None = None,
+    protect_artifact_reads: bool = False,
+    require_http_execution_identity: bool = False,
 ) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
-    server = MCPServer("ordivon-gateway", version=package_version("ordivon-gateway"))
+
+    @asynccontextmanager
+    async def gateway_lifespan(_server):
+        try:
+            yield {}
+        finally:
+            close = getattr(gateway, "aclose", None)
+            if callable(close):
+                await close()
+
+    server = MCPServer(
+        "ordivon-gateway",
+        version=package_version("ordivon-gateway"),
+        lifespan=gateway_lifespan,
+    )
     server.middleware.append(GatewayAuditMiddleware())
-    if capability_authorizer is not None:
+    if require_http_execution_identity:
+        server.middleware.append(GatewayHTTPIngressGuard())
+    # Verified HTTP Host reads and writes must reach the existing Security PEP
+    # even when the PDP is not configured (fail closed, not bearer=actor).
+    if (
+        capability_authorizer is not None
+        or protect_artifact_reads
+        or require_http_execution_identity
+    ):
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
     @server.tool(name="system.describe")
@@ -194,6 +194,40 @@ def build_server(
             agent_id=agentId,
         )
 
+    @server.tool(name="runtime.release.apply")
+    async def runtime_release_apply(
+        requestId: str,
+        workspaceId: str,
+        commit: str,
+        candidateManifestDigest: str,
+        expectedToolCount: int,
+        ctx: Context = None,
+    ) -> RuntimeReleaseAdmission:
+        # A verified principal + Security AuthZEN capability approval are
+        # required BEFORE any Runtime release owner call. Operator authority
+        # stays in Runtime's own ReleaseEffect/receipt; never use shell exec.
+        _require_http_execution_identity(ctx)
+        if not require_http_execution_identity or capability_authorizer is None:
+            raise ToolError("Runtime release requires a configured HTTP Security PEP")
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(
+            gateway.runtime_release_apply(
+                request_id=scoped,
+                workspace_id=workspaceId,
+                commit=commit,
+                candidate_manifest_digest=candidateManifestDigest,
+                expected_tool_count=expectedToolCount,
+            )
+        )
+
+    @server.tool(name="runtime.release.get")
+    async def runtime_release_get(requestId: str, ctx: Context = None) -> RuntimeReleaseProjection:
+        # The same original principal-scoped key must be used after response
+        # loss; no new release request, retry or operational preflight here.
+        _require_http_execution_identity(ctx)
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(gateway.runtime_release_get(request_id=scoped))
+
     @server.tool(name="execution.submit")
     async def execution_submit(
         capability: str,
@@ -205,9 +239,13 @@ def build_server(
         context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
+        stdoutLimitBytes: int | None = None,
+        stderrLimitBytes: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
         return await _owner_boundary(
             gateway.execution_submit(
@@ -220,6 +258,8 @@ def build_server(
                 context=context,
                 env=env,
                 timeout_ms=timeoutMs,
+                stdout_limit_bytes=stdoutLimitBytes,
+                stderr_limit_bytes=stderrLimitBytes,
                 authority_references=authorityReferences,
             )
         )
@@ -228,6 +268,8 @@ def build_server(
     async def execution_resolve(
         capability: str, requestId: str, ctx: Context = None
     ) -> ExecutionResolution:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
         result = await _owner_boundary(
             gateway.execution_resolve(capability=capability, request_id=owner_request_id)
@@ -247,6 +289,8 @@ def build_server(
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionObservation:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
@@ -259,6 +303,8 @@ def build_server(
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(gateway.execution_cancel(operationRef))
 
@@ -274,418 +320,14 @@ def build_server(
     ) -> ArtifactChunk:
         # Artifact bytes have the same original execution owner as observe/cancel.
         # Reuse the trusted HTTP ingress identity fence before any owner read.
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    async def _host(tool_name: str, arguments: dict[str, Any]) -> Any:
-        return await _owner_boundary(gateway.social_work_call(tool_name, arguments))
-
-    @server.tool(name="host.status")
-    async def host_status(
-        detail: Literal["summary", "integrity", "history"] = "summary",
-    ) -> dict[str, Any]:
-        return await _host("host.status", {"detail": detail})
-
-    @server.tool(name="actor.declare")
-    async def actor_declare(
-        actorRef: str,
-        actorKind: Literal["unknown", "human", "agent", "service", "organization"],
-    ) -> dict[str, Any]:
-        return await _host("actor.declare", {"actorRef": actorRef, "actorKind": actorKind})
-
-    @server.tool(name="work.create")
-    async def work_create(
-        workRef: str, workKind: str, actorRef: str, initialSnapshot: dict[str, Any]
-    ) -> dict[str, Any]:
-        return await _host(
-            "work.create",
-            {
-                "workRef": workRef,
-                "workKind": workKind,
-                "actorRef": actorRef,
-                "initialSnapshot": initialSnapshot,
-            },
-        )
-
-    @server.tool(name="work.get")
-    async def work_get(workRef: str, revision: int | None = None) -> dict[str, Any]:
-        return await _host("work.get", {"workRef": workRef, "revision": revision})
-
-    @server.tool(name="work.list")
-    async def work_list(
-        state: Literal["open", "completed", "abandoned"] | None = None,
-        limit: int = 50,
-        beforeUpdatedAt: str | None = None,
-        beforeWorkRef: str | None = None,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "work.list",
-            {
-                "state": state,
-                "limit": limit,
-                "beforeUpdatedAt": beforeUpdatedAt,
-                "beforeWorkRef": beforeWorkRef,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="work.snapshot.commit")
-    async def work_snapshot_commit(
-        workRef: str,
-        expectedRevision: int,
-        snapshot: dict[str, Any],
-        actorRef: str,
-        continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
-    ) -> dict[str, Any]:
-        return await _host(
-            "work.snapshot.commit",
-            {
-                "workRef": workRef,
-                "expectedRevision": expectedRevision,
-                "snapshot": snapshot,
-                "actorRef": actorRef,
-                "continuityDisposition": continuityDisposition,
-            },
-        )
-
-    @server.tool(name="space.create")
-    async def space_create(
-        spaceRef: str, purpose: str, actorRef: str, subjectRefs: list[str] | None = None
-    ) -> dict[str, Any]:
-        return await _host(
-            "space.create",
-            {
-                "spaceRef": spaceRef,
-                "purpose": purpose,
-                "actorRef": actorRef,
-                "subjectRefs": subjectRefs,
-            },
-        )
-
-    @server.tool(name="space.get")
-    async def space_get(
-        spaceRef: str,
-        participantLimit: int = 200,
-        topicLimit: int = 200,
-        maxBytes: Annotated[int, Field(ge=1_048_576, le=4_194_304)] = 2_097_152,
-    ) -> dict[str, Any]:
-        return await _host(
-            "space.get",
-            {
-                "spaceRef": spaceRef,
-                "participantLimit": participantLimit,
-                "topicLimit": topicLimit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="space.list")
-    async def space_list(
-        actorRef: str | None = None,
-        subjectRef: str | None = None,
-        limit: int = 50,
-        beforeCreatedAt: str | None = None,
-        beforeSpaceRef: str | None = None,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "space.list",
-            {
-                "actorRef": actorRef,
-                "subjectRef": subjectRef,
-                "limit": limit,
-                "beforeCreatedAt": beforeCreatedAt,
-                "beforeSpaceRef": beforeSpaceRef,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="space.subject.list")
-    async def space_subject_list(
-        spaceRef: str,
-        afterSubjectRef: str | None = None,
-        limit: int = 100,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "space.subject.list",
-            {
-                "spaceRef": spaceRef,
-                "afterSubjectRef": afterSubjectRef,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="space.participation.list")
-    async def space_participation_list(
-        spaceRef: str,
-        afterActorRef: str | None = None,
-        limit: int = 100,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "space.participation.list",
-            {
-                "spaceRef": spaceRef,
-                "afterActorRef": afterActorRef,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="space.participation.set")
-    async def space_participation_set(
-        spaceRef: str, actorRef: str, standing: Literal["joined", "left", "observer"]
-    ) -> dict[str, Any]:
-        return await _host(
-            "space.participation.set",
-            {
-                "spaceRef": spaceRef,
-                "actorRef": actorRef,
-                "standing": standing,
-            },
-        )
-
-    @server.tool(name="topic.create")
-    async def topic_create(
-        topicRef: str, spaceRef: str, title: str, actorRef: str
-    ) -> dict[str, Any]:
-        return await _host(
-            "topic.create",
-            {
-                "topicRef": topicRef,
-                "spaceRef": spaceRef,
-                "title": title,
-                "actorRef": actorRef,
-            },
-        )
-
-    @server.tool(name="topic.list")
-    async def topic_list(
-        spaceRef: str,
-        afterTopicRef: str | None = None,
-        limit: int = 100,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "topic.list",
-            {
-                "spaceRef": spaceRef,
-                "afterTopicRef": afterTopicRef,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="topic.cursor.get")
-    async def topic_cursor_get(actorRef: str, topicRef: str) -> dict[str, Any]:
-        return await _host("topic.cursor.get", {"actorRef": actorRef, "topicRef": topicRef})
-
-    @server.tool(name="topic.cursor.ack")
-    async def topic_cursor_ack(actorRef: str, topicRef: str, cursor: int) -> dict[str, Any]:
-        return await _host(
-            "topic.cursor.ack", {"actorRef": actorRef, "topicRef": topicRef, "cursor": cursor}
-        )
-
-    @server.tool(name="topic.resume")
-    async def topic_resume(
-        topicRef: str,
-        afterSequence: int = 0,
-        limit: int = 50,
-        maxBytes: Annotated[int, Field(ge=131_072, le=4_194_304)] = 524_288,
-    ) -> dict[str, Any]:
-        return await _host(
-            "topic.resume",
-            {
-                "topicRef": topicRef,
-                "afterSequence": afterSequence,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="message.post")
-    async def message_post(
-        messageRef: str,
-        spaceRef: str,
-        topicRef: str,
-        authorActorRef: str,
-        body: str,
-        recordedAtMs: int,
-        messageKind: Literal[
-            "note", "question", "proposal", "warning", "finding", "handoff"
-        ] = "note",
-    ) -> dict[str, Any]:
-        return await _host(
-            "message.post",
-            {
-                "messageRef": messageRef,
-                "spaceRef": spaceRef,
-                "topicRef": topicRef,
-                "authorActorRef": authorActorRef,
-                "body": body,
-                "recordedAtMs": recordedAtMs,
-                "messageKind": messageKind,
-            },
-        )
-
-    @server.tool(name="message.search")
-    async def message_search(
-        query: str,
-        spaceRef: str | None = None,
-        topicRef: str | None = None,
-        beforeSequence: int | None = None,
-        limit: int = 50,
-        maxBytes: HostMessageBytes = 524_288,
-    ) -> dict[str, Any]:
-        return await _host(
-            "message.search",
-            {
-                "query": query,
-                "spaceRef": spaceRef,
-                "topicRef": topicRef,
-                "beforeSequence": beforeSequence,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="message.relation.add")
-    async def message_relation_add(
-        sourceMessageRef: str,
-        relation: Literal[
-            "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
-        ],
-        targetRef: str,
-        actorRef: str,
-    ) -> dict[str, Any]:
-        return await _host(
-            "message.relation.add",
-            {
-                "sourceMessageRef": sourceMessageRef,
-                "relation": relation,
-                "targetRef": targetRef,
-                "actorRef": actorRef,
-            },
-        )
-
-    @server.tool(name="message.relation.list")
-    async def message_relation_list(
-        messageRef: str,
-        direction: Literal["outgoing", "incoming", "both"] = "both",
-        relation: Literal[
-            "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
-        ]
-        | None = None,
-        afterChangeSequence: int = 0,
-        limit: int = 100,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "message.relation.list",
-            {
-                "messageRef": messageRef,
-                "direction": direction,
-                "relation": relation,
-                "afterChangeSequence": afterChangeSequence,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="subscription.follow")
-    async def subscription_follow(
-        actorRef: str, targetKind: Literal["work", "space", "topic"], targetRef: str
-    ) -> dict[str, Any]:
-        return await _host(
-            "subscription.follow",
-            {
-                "actorRef": actorRef,
-                "targetKind": targetKind,
-                "targetRef": targetRef,
-            },
-        )
-
-    @server.tool(name="subscription.list")
-    async def subscription_list(
-        actorRef: str,
-        targetKind: Literal["work", "space", "topic"] | None = None,
-        afterTargetKind: str | None = None,
-        afterTargetRef: str | None = None,
-        limit: int = 200,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "subscription.list",
-            {
-                "actorRef": actorRef,
-                "targetKind": targetKind,
-                "afterTargetKind": afterTargetKind,
-                "afterTargetRef": afterTargetRef,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="subscription.unfollow")
-    async def subscription_unfollow(
-        actorRef: str, targetKind: Literal["work", "space", "topic"], targetRef: str
-    ) -> dict[str, Any]:
-        return await _host(
-            "subscription.unfollow",
-            {
-                "actorRef": actorRef,
-                "targetKind": targetKind,
-                "targetRef": targetRef,
-            },
-        )
-
-    @server.tool(name="attention.get")
-    async def attention_get(
-        actorRef: str, limit: int = 100, maxBytes: HostCollectionBytes = 262_144
-    ) -> dict[str, Any]:
-        return await _host(
-            "attention.get", {"actorRef": actorRef, "limit": limit, "maxBytes": maxBytes}
-        )
-
-    @server.tool(name="attention.delta")
-    async def attention_delta(
-        actorRef: str, afterSequence: int, limit: int = 100, maxBytes: HostCollectionBytes = 262_144
-    ) -> dict[str, Any]:
-        return await _host(
-            "attention.delta",
-            {
-                "actorRef": actorRef,
-                "afterSequence": afterSequence,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="attention.reentry")
-    async def attention_reentry(
-        actorRef: str,
-        afterSequence: int | None = None,
-        limit: int = 100,
-        maxBytes: HostCollectionBytes = 262_144,
-    ) -> dict[str, Any]:
-        return await _host(
-            "attention.reentry",
-            {
-                "actorRef": actorRef,
-                "afterSequence": afterSequence,
-                "limit": limit,
-                "maxBytes": maxBytes,
-            },
-        )
-
-    @server.tool(name="attention.ack")
-    async def attention_ack(actorRef: str, cursor: int) -> dict[str, Any]:
-        return await _host("attention.ack", {"actorRef": actorRef, "cursor": cursor})
+    register_host_tools(server, gateway, _owner_boundary)
 
     return server
 
@@ -730,8 +372,6 @@ def build_http_app(
     public_origin: str | None,
     access_verifier: CloudflareAccessVerifier | None,
     local_bearer_token_file: str | None = None,
-    external_workers: ExternalPullWorkerTransport | None = None,
-    worker_enrollment_token_file: str | None = None,
 ):
     allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
     allowed_origins = [
@@ -778,12 +418,6 @@ def build_http_app(
         )
 
     app.add_route("/health", health, methods=["GET"])
-    if external_workers is not None:
-        attach_worker_routes(
-            app,
-            external_workers,
-            enrollment_token_file=worker_enrollment_token_file,
-        )
     if access_verifier is not None or local_bearer_token_file is not None:
         return CloudflareAccessMiddleware(
             app,
@@ -794,25 +428,47 @@ def build_http_app(
     return app
 
 
-def _external_workers_from_env() -> ExternalPullWorkerTransport | None:
-    """Gate the optional legacy SQLite transport at its actual consumer boundary."""
-    external_worker_db = os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "").strip()
-    if not external_worker_db:
-        return None
-    if "://" in external_worker_db:
+def _reject_retired_worker_database_config() -> None:
+    """Reject the deleted SQLite worker config; Gateway delegates effects to owners."""
+    if os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "").strip():
         raise RuntimeError(
-            "ORDIVON_GATEWAY_EXTERNAL_WORKER_DB is not a PostgreSQL backend; "
-            "do not treat a database DSN as a SQLite filesystem path"
+            "Gateway SQLite External Worker was retired; use PostgreSQL Owner Runtime."
         )
-    require_qualified_legacy_sqlite()
-    return ExternalPullWorkerTransport(external_worker_db)
+
+
+def _capability_authorizer_from_env() -> CapabilityAuthorizer | None:
+    """Bind the existing AuthZEN PDP to Gateway's protected HTTP Tool path.
+
+    Read token bytes through the mature private-file helper per decision,
+    rather than freezing credentials at process start or exposing them to Tool
+    arguments. The policy service, not Gateway, owns authorization truth.
+    """
+    endpoint = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT", "").strip()
+    token_file = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", "").strip()
+    if bool(endpoint) != bool(token_file):
+        raise RuntimeError(
+            "Gateway AuthZEN requires both evaluation endpoint and private token file"
+        )
+    if not endpoint:
+        return None
+    return AuthZenPrincipalAuthorizer(
+        endpoint,
+        bearer_token_provider=lambda: _read_private_secret_file(
+            token_file, "Gateway AuthZEN bearer token"
+        ),
+    )
 
 
 def main() -> None:
-    external_workers = _external_workers_from_env()
-    gateway = GatewayService(McpOwnerCaller.from_env(), external_workers=external_workers)
-    server = build_server(gateway)
+    _reject_retired_worker_database_config()
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
+    gateway = GatewayService(McpOwnerCaller.from_env())
+    server = build_server(
+        gateway,
+        capability_authorizer=_capability_authorizer_from_env(),
+        protect_artifact_reads=(transport == "streamable-http"),
+        require_http_execution_identity=(transport == "streamable-http"),
+    )
     if transport == "stdio":
         server.run()
         return
@@ -839,10 +495,6 @@ def main() -> None:
         public_origin=public_origin,
         access_verifier=access_verifier,
         local_bearer_token_file=local_bearer_token_file,
-        external_workers=external_workers,
-        worker_enrollment_token_file=(
-            os.environ.get("ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE") or None
-        ),
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 

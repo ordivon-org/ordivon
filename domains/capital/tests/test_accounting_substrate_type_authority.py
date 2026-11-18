@@ -10,12 +10,14 @@ from ordivon_capital.accounting import substrate
 
 
 def test_result_types_have_one_database_independent_source() -> None:
-    from ordivon_capital.accounting import postgres_ledger, sqlite_ledger
+    from importlib.util import find_spec
 
+    from ordivon_capital.accounting import postgres_ledger
+
+    assert find_spec("ordivon_capital.accounting.sqlite_ledger") is None
     for name in ("LedgerApplyStatus", "AccountState", "TransferState"):
         contract = getattr(substrate, name)
         assert getattr(postgres_ledger, name) is contract
-        assert getattr(sqlite_ledger, name) is contract
         assert contract.__module__ == substrate.__name__
 
 

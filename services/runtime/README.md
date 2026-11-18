@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-04
+updated: 2026-11-16
 summary: Public entry to Runtime execution, evidence, reconciliation, recovery, and authority boundaries.
 evidence_status: not_applicable
 readiness: READY
@@ -49,6 +49,9 @@ participant or Host admits work
 ```
 
 ## Start here
+
+- For human operations and safe cleanup use [`docs/guides/operator-runtime.md`](docs/guides/operator-runtime.md); for Agent execution and evidence use [`docs/guides/agent-runtime.md`](docs/guides/agent-runtime.md). The [Runtime LEGO Guide](docs/guides/runtime-legos.md) maps existing capability/thought LEGOs to their real consumers, rather than introducing a second execution framework.
+- For the 2026-11-07 directory and backend consumer audit use [`docs/audits/2026-11-07-runtime-owner-audit.md`](docs/audits/2026-11-07-runtime-owner-audit.md). Its findings are time-scoped, not production deployment proof.
 
 - Use [`docs/quickstart.md`](docs/quickstart.md) to build, verify, install, and exercise Runtime.
 - Use [`docs/status.md`](docs/status.md) for the current maturity and support boundary.
@@ -100,7 +103,7 @@ The complete Runtime path requires:
 
 - Linux with systemd as PID 1 and cgroup v2;
 - Git;
-- Rust 1.95.0, fixed by [`rust-toolchain.toml`](rust-toolchain.toml);
+- Rust 1.99.1, fixed by [`rust-toolchain.toml`](rust-toolchain.toml);
 - Python 3.11 or newer for operational scripts;
 - root or an equivalently privileged dedicated service account for the current trusted-local deployment model.
 
@@ -124,7 +127,7 @@ Run the complete real-system journey on a disposable or owner-trusted machine:
 sudo scripts/local-acceptance run
 ```
 
-That command builds the Runtime and Runner, executes the ignored systemd/cgroup tests, starts a temporary loopback MCP server, and exercises Workspace creation, mutation, durable Patch replay, execution, observation, Artifact reading, cancellation, restart recovery, and safe closure.
+That command builds the Runtime and Runner, executes the ignored systemd/cgroup tests, starts a temporary loopback MCP server, and exercises Workspace creation, mutation, durable execution-request replay, execution, observation, Artifact reading, cancellation, restart recovery, and safe closure.
 
 Successful Linux Attempts may additionally register an immutable `resource_receipt` Artifact containing a terminal pre-result snapshot of the Attempt cgroup's CPU, memory, swap, memory-event, and I/O counters. Receipt absence remains compatible and does not change execution state; present receipts are identity-validated before registration. `scripts/resource_workload_profile.py` is a read-only derived-analysis helper for caller-supplied receipt files/directories and never becomes Runtime execution or pricing authority.
 
@@ -133,7 +136,7 @@ For installation and receipted deployment, follow [`docs/quickstart.md`](docs/qu
 ## Focused native Rust testing
 
 `mise install` now obtains official
-[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.148** using the
+[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.149** using the
 upstream [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
 and a GitHub Release mirror. This Runtime-local Linux x64 install pins the
 official GitHub release-asset SHA-256, so the mirror is only a transport.
@@ -159,7 +162,9 @@ workspace.open
 → workspace.close
 ```
 
-After response loss, reuse the exact `clientRequestId` or reconnect through `workspace.list`, `workspace.get`, `job.list`, and `job.observe`. Do not create a new operation merely because delivery is uncertain.
+`workspace.open` requires a **caller-selected, stable `workspaceId`** before the request is sent. The MCP boundary does not generate new IDs, because repeated opens with the same source after a lost reply otherwise produce distinct physical Worktrees. Persist this ID at the real Agent/Run caller; after an uncertain response, query `workspace.get` using precisely that ID. If Git created the Workspace but the opening response is lost, the existing source-bound Native opening-intent reconciliation accepts only an exact replay with the **same** ID, repository, and requested revision. A `WORKSPACE_EXISTS` response means reconcile the existing Workspace; it is not permission to allocate another ID. Unknown state stays UNKNOWN until native readback.
+
+For other operations, reuse the exact `clientRequestId` or reconnect through `job.list` and `job.observe`. Do not create a new physical effect merely because delivery is uncertain.
 
 `workspace.content` is the binary observation companion to `workspace.read`: it projects one exact digest-bound Workspace PNG/JPEG as native MCP image content. The caller supplies the expected SHA-256 digest, so a mutable Workspace cannot silently substitute different pixels after the observation identity has been chosen. It creates no Artifact or review ledger.
 

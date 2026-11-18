@@ -1050,6 +1050,92 @@ def dashboard_jobs(database: Path, generated_at_ms: int, limit: int) -> dict[str
     }
 
 
+def unit_configuration_status(source_repo: Path | None, systemctl: Path) -> dict[str, Any]:
+    """Point-in-time source file, installed fragment, and manager metadata witness.
+
+    A matching fragment is NOT a proof that systemd executed equivalent commands:
+    overrides, manager caching, and concurrent changes are separate effect planes.
+    This dashboard evidence never changes Runtime health or authorizes a release.
+    """
+    if source_repo is None:
+        return {"available": False, "reason": "UNIT_SOURCE_NOT_REQUESTED"}
+    layout = _source_layout(source_repo)
+    if layout is None:
+        return {"available": False, "reason": "UNIT_SOURCE_UNAVAILABLE"}
+    _, owner_prefix = layout
+    if owner_prefix == Path():
+        owner_root = source_repo / "services/runtime"
+    elif owner_prefix == Path("services/runtime"):
+        owner_root = source_repo
+    else:
+        return {"available": False, "reason": "UNIT_SOURCE_NOT_RUNTIME_OWNER"}
+    name = "ordivon-runtime-lifecycle.service"
+    source_file = owner_root / "packaging/systemd" / name
+    if source_file.is_symlink() or not source_file.is_file():
+        return {"available": False, "reason": "UNIT_SOURCE_UNAVAILABLE"}
+
+    try:
+        response = subprocess.run(
+            [
+                str(systemctl),
+                "show",
+                name,
+                "--no-pager",
+                "--property=FragmentPath",
+                "--property=DropInPaths",
+                "--property=NeedDaemonReload",
+            ],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=5,
+        )
+    except OSError, subprocess.TimeoutExpired:
+        return {"available": False, "reason": "UNIT_QUERY_UNAVAILABLE"}
+    if response.returncode != 0:
+        return {"available": False, "reason": "UNIT_QUERY_UNAVAILABLE"}
+    values = dict(line.split("=", 1) for line in response.stdout.splitlines() if "=" in line)
+    fragment_text = values.get("FragmentPath")
+    if not fragment_text or not Path(fragment_text).is_absolute():
+        return {"available": False, "reason": "UNIT_FRAGMENT_UNBOUND"}
+    fragment = Path(fragment_text)
+    if fragment.is_symlink() or not fragment.is_file():
+        return {"available": False, "reason": "UNIT_FRAGMENT_UNSAFE"}
+    try:
+        # systemd unit files are small. Refuse oversized files instead of unbounded
+        # hashing in the operator's fast dashboard.
+        if source_file.stat().st_size > 1024 * 1024 or fragment.stat().st_size > 1024 * 1024:
+            return {"available": False, "reason": "UNIT_FRAGMENT_OVERSIZED"}
+        source_digest = sha256(source_file)
+        installed_digest = sha256(fragment)
+    except OSError:
+        return {"available": False, "reason": "UNIT_FRAGMENT_UNREADABLE"}
+
+    matches = source_digest == installed_digest
+    reload_state = values.get("NeedDaemonReload")
+    dropins = values.get("DropInPaths")
+    reasons: list[str] = []
+    if not matches:
+        reasons.append("UNIT_FRAGMENT_DIGEST_MISMATCH")
+    if reload_state != "no":
+        reasons.append("UNIT_MANAGER_RELOAD_REQUIRED" if reload_state == "yes" else "UNIT_MANAGER_RELOAD_UNKNOWN")
+    if dropins is None or dropins:
+        reasons.append("UNIT_MANAGER_DROPINS_UNQUALIFIED")
+    return {
+        "available": True,
+        "unit": name,
+        "fileMatchesSource": matches,
+        "sourceDigest": source_digest,
+        "installedDigest": installed_digest,
+        "managerReloadRequired": reload_state == "yes" if reload_state in {"yes", "no"} else None,
+        "managerDropinsAbsent": dropins == "",
+        "qualified": not reasons,
+        "reasons": reasons,
+        "loadedEquivalenceProven": False,
+        "scope": "SOURCE_FILE_INSTALLED_FRAGMENT_AND_MANAGER_METADATA_POINT_IN_TIME",
+    }
+
+
 def dashboard_status(
     database: Path,
     store_root: Path,
@@ -1058,9 +1144,11 @@ def dashboard_status(
     limit: int,
     source_repo: Path | None,
     deployment_commit: str | None,
+    systemctl: Path,
 ) -> dict[str, Any]:
     return {
         "source": source_status(source_repo, deployment_commit),
+        "unitConfiguration": unit_configuration_status(source_repo, systemctl),
         "workspaces": fast_workspace_status(store_root, held),
         "jobs": dashboard_jobs(database, generated_at_ms, limit),
     }
@@ -1134,10 +1222,14 @@ def dashboard_human(report: dict[str, Any], width: int) -> str:
         ),
     ]
     if source.get("available"):
-        source_state = "dirty" if source.get("dirty") else ("clean" if source.get("dirty") is False else "state=unknown")
+        source_state = (
+            "dirty" if source.get("dirty") else ("clean" if source.get("dirty") is False else "state=unknown")
+        )
         remote_match = source.get("headMatchesRemoteMain")
         remote_state = (
-            "remote=aligned" if remote_match is True else ("remote=drift" if remote_match is False else "remote=unknown")
+            "remote=aligned"
+            if remote_match is True
+            else ("remote=drift" if remote_match is False else "remote=unknown")
         )
         cached_match = source.get("headMatchesOriginMain")
         cached_state = (
@@ -1147,6 +1239,17 @@ def dashboard_human(report: dict[str, Any], width: int) -> str:
             _clip(
                 f"SOURCE    {_short(source.get('head'))}  {source_state}  {remote_state}  {cached_state}  "
                 f"release={source.get('relationToDeployment', 'unknown')}",
+                width,
+            )
+        )
+    unit = dashboard.get("unitConfiguration", {})
+    if unit.get("available"):
+        unit_state = "matching" if unit.get("qualified") is True else "drift-or-unknown"
+        lines.append(
+            _clip(
+                f"UNIT      {unit_state}  file={_short(unit.get('installedDigest'))}  "
+                f"reload={unit.get('managerReloadRequired')}  "
+                f"dropins-absent={unit.get('managerDropinsAbsent')}",
                 width,
             )
         )
@@ -1481,6 +1584,7 @@ def build_status(args: argparse.Namespace) -> dict[str, Any]:
             args.dashboard_jobs,
             args.source_repo,
             deployment.get("commit") if isinstance(deployment.get("commit"), str) else None,
+            args.systemctl,
         )
     if args.mode == "diagnose":
         trace_path = args.trace_path or configured_trace_path(args.env_file, args.database)

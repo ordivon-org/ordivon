@@ -80,6 +80,9 @@ for _ in $(seq 1 50); do
 done
 ip netns exec "$namespace" ss -ltn | grep -q ":$PORT "
 
+# Direct and provider observations must remain distinct even when a developer
+# login shell exports HTTPS_PROXY, https_proxy or bypass aliases. curl -q
+# ignores ~/.curlrc; --noproxy * is direct, empty --noproxy forces carrier.
 direct_ip=''
 provider_ip=''
 probe_url=''
@@ -88,8 +91,8 @@ for candidate_url in \
   https://api.ipify.org \
   https://icanhazip.com \
   https://checkip.amazonaws.com; do
-  direct=$(curl -4 -fsS --connect-timeout 3 --max-time 8 "$candidate_url" 2>/dev/null | tr -d '[:space:]' || true)
-  provider=$(curl -4 -fsS --proxy "http://$ingress_ip:$PORT" --connect-timeout 3 --max-time 8 "$candidate_url" 2>/dev/null | tr -d '[:space:]' || true)
+  direct=$(curl -q -4 --noproxy '*' -fsS --connect-timeout 3 --max-time 8 "$candidate_url" 2>/dev/null | tr -d '[:space:]' || true)
+  provider=$(curl -q -4 -fsS --noproxy '' --proxy "http://$ingress_ip:$PORT" --connect-timeout 3 --max-time 8 "$candidate_url" 2>/dev/null | tr -d '[:space:]' || true)
   if [ -n "$direct" ] && [ -n "$provider" ] && [ "$direct" != "$provider" ]; then
     direct_ip=$direct
     provider_ip=$provider
@@ -99,7 +102,7 @@ for candidate_url in \
 done
 
 [ -n "$probe_url" ] || { echo 'no bounded public identity probe proved distinct direct/provider egress' >&2; exit 3; }
-curl -fsS --proxy "http://$ingress_ip:$PORT" --connect-timeout 5 --max-time 15 -o /dev/null https://example.com/
+curl -q -fsS --noproxy '' --proxy "http://$ingress_ip:$PORT" --connect-timeout 5 --max-time 15 -o /dev/null https://example.com/
 
 printf 'namespace=%s\ndefault_dev=%s\nprobe_url=%s\ndirect_egress=%s\nprovider_egress=%s\n' \
   "$namespace" "$default_dev" "$probe_url" "$direct_ip" "$provider_ip"

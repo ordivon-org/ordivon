@@ -29,6 +29,108 @@ Keep three evidence claims separate: **specification/model property**, **impleme
 
 Stop once the scoped acceptance predicate has owner-native execution evidence and the remaining uncertainty is explicit. Do not add a generic testing service, verifier registry, redundant Skill or mandatory global preflight to implement this guidance.
 
+## Formal-first proof-to-consumer retirement decision (native Owner method)
+
+This section **reuses** the natural Owner's formal toolchain, contract, code review,
+existing GitHub CI, and observed consumer. It creates no second registry, proof
+engine, orchestration service, or mandatory global gate. The claim is
+**property-scoped**, never file-count-scoped:
+
+1. **Specification** — identify a precise contract, environment assumptions,
+   allowed effects, state projection, source revision, and counterexample.
+   For a declared Recursive LEGO R2.1 responsibility use all eleven existing
+   typed coordinates: I/O/S/pre/post/inv/eff/c/epsilon/prov/unfold.
+2. **Model** — choose the smallest faithful state machine, relation, refinement
+   type or assume-guarantee contract. State finite bounds, fairness and
+   abstraction explicitly; UNKNOWN is not FALSE.
+3. **Proof or model checking** — run the existing Owner's Lean/SMT/TLC/Quint/
+   Alloy/Kani/Verus/CrossHair procedure; record actual executable/toolchain
+   versions, assumptions, source readset and negative controls. A bounded
+   check is never an unbounded theorem.
+4. **Implementation refinement** — prove, or independently falsify, the map
+   from the actual Rust/Python/TypeScript operation and observed effects to
+   the model. A valid Lean theorem alone does not discharge this obligation.
+5. **Real consumer** — retain the smallest indispensable native integration
+   check for database transactions, recovery, filesystem identity, process
+   lifecycle, network, credential authority, OS, hardware or deployed user
+   behavior not represented by the refinement.
+6. **Subtraction** — for each old test, identify the exact property it checks,
+   its consumer, whether the same failure is already excluded by the *current*
+   proof+refinement, and whether it has a distinct failure oracle. Delete or
+   merge only the strictly dominated test; keep an independent consumer
+   observation where the abstract-to-physical seam is not proved.
+
+A test is **retirement-qualified** only if its property and fault model are
+subsumed by a valid, current formal claim **and** its real implementation
+refinement (or the test is demonstrably unused with no distinct consuming
+requirement). Cross-check actual imports, native jobs, installed versions,
+Host Work/Message references and source branches for lifecycle deletion.
+The original test's own success is not evidence that the test is redundant.
+A contract that is merely *written*, a model that is merely *simulated*,
+and a job whose exit code is zero each leave a different evidence gap.
+Keep test statuses PASS / FAIL / SKIP / NOT_RUN / ENV_BLOCKED distinct.
+
+### Owner-specific formal targets and retained physical consumers
+
+| Natural Owner | First high-value obligation | Native proof / implementation candidate | Irreducible real consumer |
+| --- | --- | --- | --- |
+| Runtime | Job/Attempt/Workspace transitions, exactly one committed lease, recovery monotonicity | TLC/Quint transition model + Verus/Kani on Rust state effects | Actual Registry PG readback, process crash/restart and replay |
+| Host | Atomic Work revisions, Topic/Message reference integrity, idempotency | SQL constraints + transaction serializability model + Python contracts | Real PostgreSQL concurrent writers, MCP pagination and readback |
+| Harness | Agent/tool state trace, cancellation, observation ordering | LTS and assume-guarantee contracts, CrossHair on pure Python paths | Actual tool adapter, Agent trajectories, timeout/cancel effects |
+| Gateway | Routing determinism, authorization delegation, response provenance | Contracts + SMT/Quint route/deny semantics | Real northbound traffic, headers and rejection at provider seam |
+| Network | DNS/VPN/egress policy under failure and reconnect | TLA+/fault state model + route constraints | Actual OS route, DNS, tunnel and physical egress observation |
+| Security | Principal/policy separation, no unauthorized effect | Information-flow/noninterference, SMT and policy model | Native credential provider, OS principal and deny outcomes |
+| Skills | Deterministic current binding, stale reference rejection | Typed binding contract, finite state model, pure resolver properties | Installed Skill source, consumer read, revision fences |
+| Workstation | Installation/rollback preservation, restart currentness | State/refinement of deployment transitions | Real Windows/WSL/systemd/Chrome restart and installed SHA |
+| Artifact | Content digest/identity, transformation provenance | Functional contract and byte-level Kani/CrossHair | Actual parse, conversion and durable Artifact readback |
+| Distribution | Release receipt/order/idempotency | Refinement types, state model and effect contract | Actual destination acknowledgement and delivery outcome |
+| Media | Asset/source identity, provider and export output contract | Typed provenance, compositional contracts, pure metadata properties | Real codec/render/export bytes and native consumer |
+| Preservation | Retention obligations, recoverability before deletion | Temporal state model and integrity contracts | Restore from retained original bits with fresh consumer |
+| Game | ECS state invariants, replay determinism | State-machine property checking, Rust model/refinement | Bevy or Godot native input, frame, save and real play |
+| Capital | No future-data leakage, allocation/cash invariants | Refinement types + Kani/CrossHair/SMT | Historical market point-in-time replay and paper ledger settlement |
+| Web | API schema/route and client state invariants | TypeScript types, pure state-property checks | Actual browser, accessibility and deployed API |
+| Control Plugin | Manifest/tool binding and no authority amplification | Interface contract and effect/refinement check | Actual plugin install, tool invocation and consent projection |
+| Composition | LEGO assume-guarantee compatibility and substitutability | Existing compositional-contracts Skill, Pacti/SMT/Lean | At least one real consumer of the composed capability |
+| Authority Catalog | Source currentness and stable identity | Provenance rules / constrained type checks | Exact real authority resolution and latest source readback |
+| Capability Catalog | Provider discovery and binding validity | Set/graph invariants and type checks | Actual chosen provider callable and observed result |
+| Chaoxing | Session/action idempotency and outcome integrity | State machine and effect pre/post contracts | Real Chrome and remote session acknowledgement |
+
+The table is a **selection map**, not a claim that all listed tools are already
+installed, used or proved for every Owner. In particular, LTS/Lean/R2.1
+theorems do not establish the Rust production migration, PostgreSQL
+writer fencing, an external issuer's authority or real network behavior.
+
+### Human guidance — acceptance and deletion choices
+
+Start from one concrete user-facing outcome. Ask which Owner owns the
+domain fact or effect, which property is valuable, and what observation
+would distinguish correctness from an implementation that only passes
+its own tests. Prefer a proven native capability over a custom wrapper.
+Approve test deletion after the specific property has been discharged,
+but keep recovery and real-device checks whenever the remaining effect
+crosses a model boundary. Read merged source, installed binary and
+executed consumer as separate statuses. For data cleanup, verify every
+final consumer and preserve the last independent recoverable bytes before
+using native lifecycle deletion.
+
+### Agent guidance — minimal executable sequence
+
+Resolve the actual consumer and natural Owner through the existing
+tools/repo/owners.toml and current Host Work; inspect current SourceCut
+and exact installed/readset dependencies. Reuse method-router,
+recursive-lego-calculus and compositional-contracts only if relevant;
+read the current Skill, do not create a per-property Skill. Select one
+formal technique suited to the property, run a real positive and
+falsifying negative, and trace its assumptions to the implementation.
+Execute only the Owner's focused native verification and the smallest
+real physical consumer that remains outside the model. For every
+removed test/file/Workspace, record a witnessed consumer substitution,
+source/artifact digest, provenance, native deletion receipt, and
+post-delete readback in the existing Host Work/Topic. Report
+SPECIFIED / MODEL_VERIFIED / IMPLEMENTATION_REFINED / CONSUMER_OBSERVED
+separately; mark anything not established UNKNOWN. Do not create a
+fourth verifier or a second Host/Runtime cleanup authority.
+
 ## Executable Agent Tool binding — upstream Skills + native Owner commands
 
 This is task **Spec → established third-party testing SOP/Skill → task Plan →

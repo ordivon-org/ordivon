@@ -84,26 +84,15 @@ for _attempt in 1 2 3; do
 done
 test "$ok" = 1
 
-# Unknown destinations require an explicit policy denial at the HTTPS CONNECT
-# stage. A failed curl process is NOT proof: DNS/proxy/TLS errors (000), a 407
-# proxy-auth challenge and an origin HTTP 403 reached through CONNECT=200 must
-# never produce a READY verdict. Reuse the mature Supply-Chain policy witness.
-remaining=$((readiness_deadline - SECONDS))
-((remaining > 0)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
-max_time=$((remaining < 8 ? remaining : 8))
-deny_receipt=$(ip netns exec nv2-claude-client curl -q -4 -x "$client_proxy" \
-  --noproxy '' -I -sS --connect-timeout 3 --max-time "$max_time" \
-  -o /dev/null -w '%{http_code}|%{http_connect}' https://example.com/ \
-  2>/dev/null) || deny_receipt="${deny_receipt:-}"
-# The whole curl receipt must match the two-field protocol: a successful
-# first-line parse must not discard a trailing field or a second line.
-if [[ ! "$deny_receipt" =~ ^(000|403)\|403$ ]]; then
-  echo "ERROR: unknown Claude destination lacks exact two-field CONNECT denial receipt" >&2
+# Unknown public origin must now complete TLS through the isolated Claude
+# client's existing scoped proxy. Direct Internet is still separately blocked.
+open_code=$(proxy_head_code https://example.com/) || {
+  echo 'ERROR: Claude open HTTPS Carrier origin is unavailable' >&2
   exit 41
-fi
+}
 
 # The underlying Surfshark namespace itself also has no IPv6 default route.
 test -z "$(ip netns exec nv2-browserless-prod ip -6 route show default)"
 
 ((SECONDS < readiness_deadline)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.claude-readiness","standing":"READY","apiHttpStatus":%s,"clientProxy":"%s","directInternet":"BLOCKED","unknownDestination":"REJECTED","ipv6DefaultRoute":false,"directFallback":false}\n' "$api_code" "$client_proxy"
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.claude-readiness","standing":"TRANSPORT_READY","apiHttpStatus":%s,"clientProxy":"%s","directInternet":"BLOCKED","unknownDestination":"ORIGIN_PROVED","openHttp":%s,"ipv6DefaultRoute":false,"directFallback":false}\n' "$api_code" "$client_proxy" "$open_code"

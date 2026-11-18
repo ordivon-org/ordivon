@@ -32,8 +32,39 @@ class ModelTests(unittest.TestCase):
                 self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
                 self.assertEqual(
                     len([out for out in production["outputs"] if "sourceCarrier" in out]),
-                    1,
+                    9 if name == "ordivon-book-v0" else 1,
                 )
+
+    def test_book_chapters_are_exact_source_carriers(self) -> None:
+        root = ROOT / "productions/ordivon-book-v0"
+        path = root / "production.json"
+        production = json.loads(path.read_text(encoding="utf-8"))
+        claims = json.loads((root / "claims.json").read_text(encoding="utf-8"))
+        chapters = [
+            output for output in production["outputs"]
+            if output["id"].startswith("ordivon-book-v0-chapter-")
+        ]
+        self.assertEqual(len(chapters), 7)
+        self.assertEqual(
+            {o["sourceCarrier"] for o in chapters},
+            {"story.mdx", *{f"chapter-{n:02d}.mdx" for n in range(2, 8)}},
+        )
+        self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
+        corrupted = copy.deepcopy(production)
+        next(o for o in corrupted["outputs"] if o["id"] == "ordivon-book-v0-chapter-7-zh")["blobDigest"] = "sha256:" + "0" * 64
+        self.assertTrue(any("digest mismatch" in error for error in _validate_production_semantics(path, corrupted, claims, None)))
+
+    def test_future_horizon_output_is_bound_to_real_repository_bytes(self) -> None:
+        root = ROOT / "productions/ordivon-book-v0"
+        path = root / "production.json"
+        production = json.loads(path.read_text(encoding="utf-8"))
+        claims = json.loads((root / "claims.json").read_text(encoding="utf-8"))
+        output = next(row for row in production["outputs"] if row["id"] == "ordivon-book-v0-future-horizon-laboratory-zh")
+        self.assertEqual(output["sourceCarrier"], "future-horizon-laboratory.mdx")
+        self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
+        incorrect = copy.deepcopy(production)
+        next(row for row in incorrect["outputs"] if row["id"] == output["id"])["blobDigest"] = "sha256:" + "0" * 64
+        self.assertTrue(any("digest mismatch" in reason for reason in _validate_production_semantics(path, incorrect, claims, None)))
 
     def test_exact_source_carrier_refines_schema_only_check(self) -> None:
         root = ROOT / "productions/fishing-fable-lego-study-r1"
@@ -65,6 +96,46 @@ class ModelTests(unittest.TestCase):
         unbound_claim["claims"][0]["source"]["binding"] = "undeclared-owner"
         self.assertTrue(any("unknown binding" in e
                             for e in _validate_production_semantics(path, production, unbound_claim, None)))
+
+    def test_output_carrier_schema_and_consumer_byte_falsification(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        base = ROOT / "productions/studio-expression-card"
+        original = json.loads((base / "production.json").read_text(encoding="utf-8"))
+        claims = json.loads((base / "claims.json").read_text(encoding="utf-8"))
+        self.assertEqual(list(_validator("production.schema.json").iter_errors(original)), [])
+        self.assertEqual(_validate_production_semantics(base / "production.json", original, claims, None), [])
+        with tempfile.TemporaryDirectory() as directory:
+            # A real consumer under the selected Production root, independent
+            # of JSON schema's purely structural checks.
+            from unittest import mock
+
+            test_root = Path(directory)
+            (test_root / "out").mkdir()
+            (test_root / "out/card.png").write_bytes(b"forged output")
+            counterfeit = copy.deepcopy(original)
+            counterfeit["outputs"][0]["outputCarrier"] = "out/card.png"
+            fake_production_path = test_root / "production.json"
+            with mock.patch("ordivon_studio.production_validation.ROOT", test_root):
+                self.assertEqual(
+                    list(_validator("production.schema.json").iter_errors(counterfeit)), []
+                )
+                errors = _validate_production_semantics(
+                    fake_production_path, counterfeit, claims, None
+                )
+                self.assertTrue(any("outputCarrier digest mismatch" in e for e in errors), errors)
+
+                escaped = copy.deepcopy(counterfeit)
+                escaped["outputs"][0]["outputCarrier"] = "../outside.png"
+                errors = _validate_production_semantics(
+                    fake_production_path, escaped, claims, None
+                )
+                self.assertTrue(any("invalid outputCarrier path" in e for e in errors))
+
+            double_carrier = copy.deepcopy(original)
+            double_carrier["outputs"][0]["sourceCarrier"] = "story.mdx"
+            self.assertTrue(list(_validator("production.schema.json").iter_errors(double_carrier)))
 
     def test_local_claims_require_exact_historical_git_witness(self) -> None:
         production_root = ROOT / "productions/fishing-fable-lego-study-r1"

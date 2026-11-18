@@ -1,16 +1,35 @@
-# Browserless consumer profile
+# Browserless Network consumer
 
-Browserless is a consumer-specific Network v2 migration gate, not part of generic Network graduation.
+Browserless is a bounded Network consumer, not the physical VPN owner or the generic Network graduation authority. Browser readiness belongs to its own application acceptance.
 
-The current production carrier and Network v2 use the same Surfshark WireGuard client identity. Running both identities concurrently is not a valid differential experiment because the provider may move the same client address between sessions. Therefore the authoritative migration gate is serial: fail closed if Agent Automation has a running workflow, acquire the existing Surfpath graduation lease to drain/fence legacy physical mutation, stop one exact legacy ExteriorAnchor generation through its owner protocol, prove the v2 namespace, release the lease, and then recover/rebind the legacy carrier.
+## Selected production path
 
-Inside the v2 namespace, Linux NSS is explicitly reduced to `hosts: files dns` so `systemd-resolved` in the host namespace cannot bypass namespace DNS policy. AdGuard `dnsproxy` is the DNS authority already selected by Network v2: Cloudflare and Google DoH are parallel primary upstreams, while provider-native Surfshark DNS is fallback only. Acceptance then requires WireGuard handshake, clean OpenAI/ChatGPT DNS, HTTPS consequences, the exact production Browserless image, and real `/content` navigation to `chatgpt.com`.
+- The single Surfshark WireGuard physical identity belongs to the Gluetun Quadlet under `providers/gluetun/`.
+- The shared HTTP carrier `10.252.246.2:19680` is projected by `network-v2-gluetun-owned-adapter.service` into `nv2-browserless-prod`, which has no IPv4/IPv6 default routes.
+- Finance, Supply Chain, Claude, Codex, Discord and Model Provider retain separate destination policies; none owns an additional physical WireGuard session.
 
-Endpoint discovery/currentness is a separate provider concern. This migration gate intentionally reuses the endpoint proven healthy immediately before the exact legacy generation is quiesced; it does not make that endpoint a durable catalog authority.
-## Shared provider carrier
+The generic namespace, forwarding, target and carrier SourceCut now belong to `substrates/shared-egress/` with `task substrate:shared-egress:{validate,materialize,verify}`. The selector marker is `/etc/network-v2/gluetun/m4-owned-mode.selected`. The legacy `task consumer:browserless:provider-carrier:materialize` delegates shared installation to that native interface and only manages legacy-specific targets, without starting an additional physical VPN. `network-v2-browserless.target` owns only namespace and forwarding, while the explicit `network-v2-browserless-legacy-provider.target` is cold rollback gated by `ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected` and remains disabled in normal operation. `converge` observes the current adapter. `verify` checks exact installed readiness bytes and selected provider identity.
 
-The Browserless production namespace is also the single physical provider-carrier owner for provider-bound Network v2 consumers. `network-v2-browserless-provider-carrier.service` exposes only the internal veth address `10.252.246.2:19680`; it is not a northbound user authority. Finance, Supply-Chain, Claude and ChatIngress retain their own destination/policy boundaries.
+The provider witness checks service selection, no namespace default route, real HTTPS proxy CONNECT and allowed origin status for OpenAI, OCI Registry and Anthropic. OKX additionally requires CONNECT 200, origin HTTP 200 and valid time JSON. Process liveness alone is not sufficient.
 
-A single Surfshark client identity must have a single concurrent WireGuard session. Current recovery evidence showed that concurrent Browserless, Finance and Supply-Chain sessions with the same client address caused provider endpoint roaming and intermittent destination failures. Cross-consumer qualification selected `th-bkk` as the current production site because one serialized session carried OpenAI/ChatGPT network consequences, Anthropic, OCI registries, OKX and Binance in the same acceptance window. Browser process readiness is a separate Browserless lifecycle claim.
+While Gluetun is selected, the native Browserless materialization first
+requires the legacy target and WireGuard/DNS/carrier Units to be inactive.
+It then refreshes **only their inert systemd Unit files** and performs
+`daemon-reload`; it never starts or enables the legacy provider, changes its
+WireGuard profile, or restarts the selected Gluetun Provider. This keeps
+cold-rollback ownership readback in sync without creating two VPN identities.
 
-Steady-state provider selection uses `provider-switch.sh`; it preserves the existing namespace and restarts only WireGuard, DNS, and the internal carrier. `production-cutover.sh` remains the legacy-to-Network-v2 migration gate and is not the normal provider-switch path.
+## Inactive legacy migration path
+
+If the Gluetun marker is absent, the older Browserless WireGuard materialization and serial `production-cutover.sh` path are available for deliberate recovery. This cutover rejects before any effects while Gluetun is selected, and explicitly starts the legacy provider target; starting the compatibility target alone never starts a second VPN. On failure, rollback stops only the Browserless legacy provider target and its dedicated services; it does not disable or stop `network-v2-shared-egress.target` (the alias of `network-v2-browserless.target`) because other consumers share that substrate. `provider-switch.sh` refuses to operate while Gluetun owns the identity. Old `th-bkk` qualification is not an automatic best-server decision.
+
+The legacy-only provider switch now starts
+`network-v2-browserless-legacy-provider.target`, which is responsible
+for its own dedicated WireGuard/DNS/carrier service stop propagation;
+it no longer uses the shared Target as its provider-control handle.
+The shared target retains canonical physical identity through its
+`network-v2-shared-egress.target` alias.
+
+## Natural Owner entrypoints
+
+`task consumer:browserless:provider-carrier:validate`, `:materialize`, `:verify` and `:converge` reuse Taskfile and systemd. No separate controller or registry is introduced.

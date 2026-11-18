@@ -52,17 +52,17 @@ HarnessRunContract
    ├── caller bindings
    ├── reserved provider_calls and tool_steps projection tables
    └── immutable content-addressed objects
-→ SQLiteHarnessRunContinuityStore
+→ EventSourcedRunContinuity
    ├── Provider claim, dispatch, terminal outcome and safe retry
    ├── Tool Intent, Harness-owned Dispatch Fence and Receipt chain
    ├── Run Snapshot, pause and replay source reconstruction
    └── event-sourced continuity Doctor
-→ SQLiteHarnessAgentBridge
+→ HarnessAgentBridge
    ├── canonical empty Tool surface
    ├── real OrdivonAgentLoop Provider lifecycle
    ├── needs-input Snapshot and resume
    └── durable Provider result replay after response loss
-→ SQLiteHarnessRuntimeBridge
+→ HarnessRuntimeBridge
    ├── observation-only search_workspace surface
    ├── caller-neutral HarnessExecutionBinding
    ├── Harness-owned version-2 Runtime Dispatch Fence
@@ -110,13 +110,13 @@ Normal opening does not create a missing database. Only `store-init` initializes
 
 The Provider Call and Tool Step projection tables remain reserved and non-authoritative. The independent continuity implementation reconstructs its current heads from the append-only Run Event chain and immutable CAS objects. This avoids a two-stage failure window between Event admission and projection update. A later projection migration must prove exact reconstruction before those tables may become operational accelerators.
 
-`RuntimeToolBridge` consumes `HarnessRunContinuityStore` rather than the concrete `HostHarnessRunStore`. Common retained Provider Call, Tool Step, Snapshot, object-view and lifecycle-error values live outside the Host implementation. Both the legacy Host Store and `SQLiteHarnessRunContinuityStore` implement the same behavioral boundary.
+`RuntimeToolBridge` consumes `HarnessRunContinuityStore` rather than the concrete `HostHarnessRunStore`. Common retained Provider Call, Tool Step, Snapshot, object-view and lifecycle-error values live outside the Host implementation. Both the legacy Host Store and `EventSourcedRunContinuity` implement the same behavioral boundary.
 
-`SQLiteHarnessAgentBridge` executes and resumes a no-Tool Agent Run using only the independent state root. It now binds both the canonical empty Tool surface and canonical empty Tool Grant, persists the complete Provider lifecycle, records `needs_input` Snapshot state, and replays a completed Provider result after a lost Bridge response without another physical invocation. It deliberately rejects every Tool Call. The primary CLI uses this path; the historical `HarnessRunner` continues to select only the legacy Host-backed path when invoked through `host ...`.
+`HarnessAgentBridge` executes and resumes a no-Tool Agent Run using only the independent state root. It now binds both the canonical empty Tool surface and canonical empty Tool Grant, persists the complete Provider lifecycle, records `needs_input` Snapshot state, and replays a completed Provider result after a lost Bridge response without another physical invocation. It deliberately rejects every Tool Call. The first-party CLI binds this backend-neutral continuity through `PostgresHarnessStore`, not a SQLite state root. The historical `HarnessRunner` remains a separate compatibility consumer, not proof of PostgreSQL cutover for every Python entrypoint.
 
 `HarnessExecutionBinding` now owns the caller-neutral immutable inputs required to lower a Tool Call into a Runtime request: Harness Run identity, Workspace reference, binding identity and digest, Tool catalog and optional Tool Grant digests, deadline, Runtime binding digest, and uniquely sorted foreign references. Generic Runtime request construction and `lower_runtime_tool` no longer import Host types. The legacy `RuntimeToolBridge` adapts its current `CommittedHarnessAssignment` into the same Binding and preserves the exact existing client request identity and foreign-reference bytes.
 
-`SQLiteHarnessRuntimeBridge` proves a Tool-bearing `OrdivonAgentLoop` can execute from only the independent Harness state plus a caller-supplied Runtime client. P0 deliberately exposes only observation-only `search_workspace`, lowers it to `workspace.exec`, appends a version-2 Harness Dispatch Fence, records the Tool Intent before physical admission, and reconciles transport response loss through the original `clientRequestId` without redispatch. Zero or multiple matching Runtime Jobs become durable UNKNOWN observations; pre-admission Runtime rejection remains model-correctable and does not claim physical dispatch.
+`HarnessRuntimeBridge` proves a Tool-bearing `OrdivonAgentLoop` can execute from only the independent Harness state plus a caller-supplied Runtime client. P0 deliberately exposes only observation-only `search_workspace`, lowers it to `workspace.exec`, appends a version-2 Harness Dispatch Fence, records the Tool Intent before physical admission, and reconciles transport response loss through the original `clientRequestId` without redispatch. Zero or multiple matching Runtime Jobs become durable UNKNOWN observations; pre-admission Runtime rejection remains model-correctable and does not claim physical dispatch.
 
 `StandaloneHarnessRunner` is the Host-free execution surface underneath the primary CLI and Python API. `IndependentRunRecorder` retains every returned Trace segment without changing a paused Run back to active, combines those segments on terminal admission, and binds the resulting Trace to an `IndependentHarnessRunReceipt`. Candidate completion additionally creates an immutable caller-neutral `IndependentCompletionProposal`; this completes the Harness Run but does not accept a Host Task or domain outcome. Recovery Assessments use the same independent binding and remain status-preserving Journal events. H1 `recover` records a safe assessment only when the CLI can prove a no-Tool Run has no active ambiguous Provider state; Tool-bearing or ambiguous work remains UNKNOWN and requires external reconciliation.
 

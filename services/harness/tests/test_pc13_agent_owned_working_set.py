@@ -19,8 +19,8 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.store import HarnessEventWrite
 from ordivon_harness.working_view import (
@@ -92,7 +92,7 @@ class SequenceTransport:
         return self.responses.pop(0)
 
 
-class ReplayBoundaryBridge(SQLiteHarnessAgentBridge):
+class ReplayBoundaryBridge(HarnessAgentBridge):
     """Simulate losing the in-process return after durable Provider completion."""
 
     def __init__(self, *args, **kwargs) -> None:
@@ -221,7 +221,7 @@ def transition_result(proposal: AgentWorkingSetTransitionProposal) -> AgentTurnR
 class AgentOwnedWorkingSetTests(unittest.TestCase):
     @staticmethod
     def prepare(
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
     ) -> tuple[
         HarnessWorkingSetSpec,
         HarnessWorkingSetPin,
@@ -340,7 +340,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             )
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 _, pin_b, _, source_a, source_b, _ = self.prepare(continuity)
@@ -365,7 +365,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 )
                 loop = OrdivonAgentLoop(
                     adapter,
-                    SQLiteHarnessAgentBridge(run_contract, continuity),
+                    HarnessAgentBridge(run_contract, continuity),
                     budget=cognition_budget(),
                     clock_ms=clock,
                     monotonic_ms=clock,
@@ -410,7 +410,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             run_contract = cognition_contract("pc13-agent-transition")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, pin_b, _, source_a, source_b, _ = self.prepare(
@@ -426,7 +426,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 )
                 loop = OrdivonAgentLoop(
                     adapter,
-                    SQLiteHarnessAgentBridge(run_contract, continuity),
+                    HarnessAgentBridge(run_contract, continuity),
                     budget=cognition_budget(),
                     clock_ms=clock,
                     monotonic_ms=clock,
@@ -497,7 +497,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             run_contract = cognition_contract("pc13-provider-replay")
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
             )
             _, pin_b, _, _, source_b, _ = self.prepare(continuity)
@@ -540,7 +540,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -550,7 +550,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 )
                 second_loop = OrdivonAgentLoop(
                     second_adapter,
-                    SQLiteHarnessAgentBridge(run_contract, reopened),
+                    HarnessAgentBridge(run_contract, reopened),
                     budget=cognition_budget(),
                     clock_ms=clock,
                     monotonic_ms=clock,
@@ -586,7 +586,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             run_contract = private_contract("pc13-idempotent")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, pin_b, _, _, _, _ = self.prepare(continuity)
@@ -606,7 +606,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             # A fresh Store/Continuity instance must recognize the exact durable
             # transition as replay rather than inventing another cognition branch.
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -631,7 +631,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             run_contract = private_contract("pc13-doctor")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, pin_b, _, _, _, _ = self.prepare(continuity)
@@ -715,7 +715,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             run_contract = private_contract("pc13-concurrent")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, pin_b, pin_c, _, _, _ = self.prepare(continuity)
@@ -737,7 +737,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
 
             def writer(proposal: AgentWorkingSetTransitionProposal):
                 with SQLiteHarnessStore(root) as thread_store:
-                    thread_continuity = SQLiteHarnessRunContinuityStore.open(
+                    thread_continuity = EventSourcedRunContinuity.open(
                         thread_store,
                         run_contract.harness_run_id,
                         clock_ms=clock,
@@ -761,7 +761,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             self.assertEqual(len(committed), 1, outcomes)
             self.assertEqual(len(rejected), 1, outcomes)
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,

@@ -16,6 +16,25 @@ vision-capable Agent
 semantic / expressive audit
 ```
 
+## Implementation boundary (source-owned LEGO)
+
+The video review path now composes three existing capabilities instead of
+putting algorithms, process I/O and packaging in one file:
+
+- `perception_selection.py` owns the pure bounded coverage/change-peak
+  selection. It chooses *where* to observe, not the semantic importance of a
+  scene.
+- `perception_video_io.py` delegates real pixel extraction, luma-difference
+  sampling and contact-sheet composition to FFmpeg. PNG identity is obtained
+  through the existing Media Blob hashing capability.
+- `perception.py` combines those inputs into the existing source-bound,
+  rebuildable Perception Bundle. `rich_perception.py` consumes the native
+  temporal sampler directly rather than depending on the bundle coordinator.
+
+No new scene model, rendering engine, review authority or persistent frame
+index is introduced. The exact frame PNGs and contact sheet stay disposable
+outputs derived from the source video, not competing masters.
+
 ## Three layers
 
 ### L1 — mechanical observation
@@ -128,6 +147,41 @@ contact sheet
 ```
 
 Future media may use analogous shapes: waveform/segment overview → exact audio windows → playback; page overview → exact crop → interactive browser state.
+
+## Native VFR timing and source-frame identity
+
+For a selected video, the source frame count and source timestamp are
+different facts. The original code inferred a sampled source frame as
+`round(native_pts_time * avg_frame_rate)`; this silently misbound
+change peaks for variable-frame-rate (VFR) media. The current native
+FFmpeg temporal-change filter selects decoded frames
+`n % sample_step_frames == 0` and then runs `tblend`, which drops the
+first selected input. The exact original sampled frame indices therefore
+follow `(filtered_index + 1) * sample_step_frames` under that
+source-bound filter graph, **not** inferred FPS. The `pts_time` comes
+directly from the same native FFmpeg output.
+
+`perception_timing.py` is one shared pure interpretation of native
+FFprobe frame-rate/time data, using a rational `Fraction`. If the
+container omits `nb_frames`, the real consumer calls the established
+`ffprobe -count_frames` rather than accepting
+`round(duration * avg_fps)` as physical frame count. A native sample's
+`timeSecondsBasis` is `native-ffmpeg-filter-pts`. Unsampled selected
+coverage/requested frames continue to expose
+`average-rate-estimate-not-source-pts` because native timing for those
+frames has **not** been independently observed. Do not claim accurate
+time alignment, edit boundaries or VFR synchronization from that estimate.
+
+The reproducible physical counterexample used 20 real decoded frames at
+10 fps with a two-second PTS discontinuity between decoded frames 9 and
+10. Its 4-second duration would cause the original code to estimate
+40 frames. Native FFprobe counted 20, and the changed filter produced
+source samples at frame 5 / 10 / 15 with true PTS 0.5 / 3.0 / 3.5 seconds.
+A real `build_video_perception_bundle` produced selected image evidence
+with frame 10 bound to native PTS 3.0. A real
+`video_structure_features` also consumed the same native count.
+These observations are runtime/provider evidence, **not** a general proof
+of FFmpeg's decoder or every VFR/container edge case.
 
 ## What C6 does not establish
 

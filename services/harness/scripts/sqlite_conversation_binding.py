@@ -7,9 +7,6 @@ binding identity only: no browser/provider effect, scheduling, or conversation l
 
 from __future__ import annotations
 
-import hashlib
-import json
-import re
 import sqlite3
 import time
 from contextlib import closing
@@ -17,41 +14,24 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from chatgpt_provider_resource import normalize_provider_resource
-    from standard_identifiers import require_uuid7
+    from conversation_binding_contract import (
+        ConversationBindingConflict, _canonical_digest, _text,
+        binding_receipt, validate_binding_payload,
+    )
 except ModuleNotFoundError:
-    from scripts.chatgpt_provider_resource import normalize_provider_resource
-    from scripts.standard_identifiers import require_uuid7
-
-_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-
-
-class ConversationBindingConflict(RuntimeError):
-    pass
+    from scripts.conversation_binding_contract import (
+        ConversationBindingConflict, _canonical_digest, _text,
+        binding_receipt, validate_binding_payload,
+    )
 
 
-def _text(value: str, label: str, *, max_bytes: int = 4096) -> str:
-    if (
-        not isinstance(value, str)
-        or not value
-        or value != value.strip()
-        or len(value.encode("utf-8")) > max_bytes
-    ):
-        raise ValueError(f"{label} must be non-empty, trimmed, and <= {max_bytes} UTF-8 bytes")
-    return value
 
 
-def _digest(value: str, label: str) -> str:
-    if not isinstance(value, str) or _DIGEST_RE.fullmatch(value) is None:
-        raise ValueError(f"{label} must be canonical sha256:<lowercase-hex>")
-    return value
 
 
-def _canonical_digest(value: object) -> str:
-    raw = json.dumps(
-        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+
 
 
 def read_conversation_binding(
@@ -119,19 +99,7 @@ class SQLiteConversationBindingStore:
 
     @staticmethod
     def _receipt(row: sqlite3.Row) -> dict[str, Any]:
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.conversation-binding",
-            "bindingStanding": "ADOPTED",
-            "campaignRef": row["campaign_ref"],
-            "agentId": row["agent_id"],
-            "providerResource": row["provider_resource"],
-            "sessionId": row["session_id"],
-            "evidenceDigest": row["evidence_digest"],
-            "requestId": row["request_id"],
-            "bindingDigest": row["binding_digest"],
-            "createdAtMs": int(row["created_at_ms"]),
-        }
+        return binding_receipt(row)
 
     @staticmethod
     def _validated_payload(
@@ -143,22 +111,14 @@ class SQLiteConversationBindingStore:
         evidence_digest: str,
         request_id: str,
     ) -> dict[str, str]:
-        campaign_ref = _text(campaign_ref, "campaignRef")
-        agent_id = _text(agent_id, "agentId", max_bytes=128)
-        request_id = _text(request_id, "adoption requestId")
-        session_id = require_uuid7(session_id, "sessionId")
-        evidence_digest = _digest(evidence_digest, "evidenceDigest")
-        provider_resource = normalize_provider_resource(
-            _text(provider_resource, "providerResource", max_bytes=8192)
+        return validate_binding_payload(
+            campaign_ref=campaign_ref,
+            agent_id=agent_id,
+            provider_resource=provider_resource,
+            session_id=session_id,
+            evidence_digest=evidence_digest,
+            request_id=request_id,
         )
-        return {
-            "campaignRef": campaign_ref,
-            "agentId": agent_id,
-            "providerResource": provider_resource,
-            "sessionId": session_id,
-            "evidenceDigest": evidence_digest,
-            "requestId": request_id,
-        }
 
     def adopt_binding(
         self,

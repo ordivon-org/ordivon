@@ -29,12 +29,12 @@ class AffectedOwnersTests(unittest.TestCase):
 
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
-            self.names("platform/skills/src/ordivon_skills/catalog.py"),
+            self.names("extensions/chatgpt-skills-mcp/src/ordivon_skills/catalog.py"),
             ["skills"],
         )
 
     def test_project_agent_skill_changes_select_existing_skills_consumer(self) -> None:
-        # Real Skills test reads this canonical project Skill, not just platform/skills source.
+        # Real Skills test reads this canonical project Skill, not just extensions/chatgpt-skills-mcp source.
         source = ".agents/skills/recursive-lego-calculus/SKILL.md"
         self.assertEqual(self.names(source), ["skills"])
         self.assertEqual(self.queue_tasks(source), ["skills:verify"])
@@ -43,6 +43,17 @@ class AffectedOwnersTests(unittest.TestCase):
             ["skills"],
         )
         self.assertEqual(self.names("docs/agent-skills-example.md"), [])
+
+    def test_relocated_knowledge_selects_existing_next_consumer(self) -> None:
+        self.assertEqual(
+            self.names("catalogs/knowledge/lessons/temporal-durable-execution-kernel.md"),
+            ["composition"],
+        )
+        self.assertEqual(
+            self.queue_tasks("catalogs/knowledge/graphs/ordivon-agent-birth-r1.json"),
+            ["composition:verify"],
+        )
+        self.assertEqual(self.names("catalogs/unknown.md"), [])
 
     def test_runtime_release_workflow_selects_actual_runtime_verifier(self) -> None:
         # Tagged release workflow builds Runtime binary, SBOM and attestations.
@@ -75,6 +86,11 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertTrue(verify(("apps/web/README.md", "tools/formal/verify.py")))
         self.assertFalse(verify(("tools/formalized/Proof.rs",)))
         self.assertFalse(verify(("tools/repo/check_architecture_docs.py",)))
+        self.assertTrue(verify(("capabilities/media/formal/MediaNativeProcessingAdmission.lean",)))
+        self.assertTrue(verify(("capabilities/media/src/ordivon_studio/agent_processing.py",)))
+        self.assertTrue(verify(("capabilities/media/src/ordivon_studio/creative_index_library.py",)))
+        self.assertTrue(verify(("capabilities/media/tests/test_creative_index.py",)))
+        self.assertFalse(verify(("capabilities/media/docs/human-guide.md",)))
         with self.assertRaisesRegex(ValueError, "noncanonical"):
             verify(("tools/formal/../other.py",))
         self.assertEqual(
@@ -91,9 +107,9 @@ class AffectedOwnersTests(unittest.TestCase):
             "services/harness/README.md",
         )))
 
-    def test_next_queue_verification_defaults_to_full_verify(self) -> None:
-        self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
-        self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
+    def test_authority_catalog_queue_verification_defaults_to_full_verify(self) -> None:
+        self.assertEqual(self.tasks("catalogs/authorities/README.md"), ["authority-catalog:verify"])
+        self.assertEqual(self.queue_tasks("catalogs/authorities/README.md"), ["authority-catalog:verify"])
 
     def test_host_has_explicit_postgres_queue_verification(self) -> None:
         self.assertEqual(self.tasks("services/host/README.md"), ["host:verify"])
@@ -133,6 +149,17 @@ class AffectedOwnersTests(unittest.TestCase):
 
     def test_web_is_a_first_class_owner(self) -> None:
         self.assertEqual(self.tasks("apps/web/src/app.ts"), ["web:verify"])
+
+    def test_chaoxing_is_an_independent_registered_app_owner(self) -> None:
+        self.assertEqual(
+            self.tasks("apps/chaoxing-autosign/chaoxing_mvp/ledger.py"),
+            ["chaoxing:verify"],
+        )
+        MODULE.require_registered_execution_paths(
+            ["apps/chaoxing-autosign/chaoxing_mvp/ledger.py"]
+        )
+        with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+            MODULE.require_registered_execution_paths(["apps/unregistered/unclaimed.py"])
 
     def test_preservation_is_a_first_class_owner(self) -> None:
         self.assertEqual(
@@ -246,6 +273,25 @@ class AffectedOwnersTests(unittest.TestCase):
         MODULE.require_registered_execution_paths(
             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
         )
+
+    def test_deployed_s2c_source_removal_keeps_skills_owner_selected(self) -> None:
+        # The PR diff legitimately contains both sides of the 100%-identical
+        # relocation, but the present tree owns only the extension target.
+        previous = "platform/skills/src/ordivon_skills/catalog.py"
+        current = "extensions/chatgpt-skills-mcp/src/ordivon_skills/catalog.py"
+        assert not (MODULE.MANIFEST_PATH.resolve().parents[2] / previous).exists()
+        MODULE.require_registered_execution_paths([previous, current])
+        self.assertEqual(self.names(previous), ["skills"])
+        self.assertEqual(self.names(previous, current), ["skills"])
+
+        for unknown in (
+            "platform/skills-other/injected.py",
+            "platform/unregistered/injected.py",
+        ):
+            with self.subTest(unknown=unknown):
+                with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+                    MODULE.require_registered_execution_paths([unknown])
+
 
     def test_noncanonical_paths_cannot_bypass_owner_verification(self) -> None:
         malformed = (
@@ -382,7 +428,7 @@ verify_task = "y:verify"
 
     def test_manifest_rejects_parent_traversal_root(self) -> None:
         content = MODULE.MANIFEST_PATH.read_text(encoding="utf-8").replace(
-            'root = "meta/next/"', 'root = "meta/../next/"', 1
+            'root = "catalogs/authorities/"', 'root = "catalogs/../authorities/"', 1
         )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "owners.toml"
@@ -408,6 +454,118 @@ verify_task = "y:verify"
             path.write_text(content, encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "must not overlap"):
                 MODULE.load_owners(path)
+
+    def test_git_range_json_binds_exact_immutable_sourcecut(self) -> None:
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-admission-sourcecut-") as folder:
+            root = Path(folder)
+            subprocess.run(["git", "init", "-q", "-b", "main", folder], check=True)
+            subprocess.run(["git", "-C", folder, "config", "user.name", "Sourcecut test"], check=True)
+            subprocess.run(["git", "-C", folder, "config", "user.email", "sourcecut@example.invalid"], check=True)
+            target = root / "services/runtime/src/example.py"
+            target.parent.mkdir(parents=True)
+            target.write_text("VALUE = 0\n")
+            subprocess.run(["git", "-C", folder, "add", "."], check=True)
+            subprocess.run(["git", "-C", folder, "commit", "-qm", "before"], check=True)
+            base = subprocess.check_output(["git", "-C", folder, "rev-parse", "HEAD"], text=True).strip()
+            target.write_text("VALUE = 1\n")
+            subprocess.run(["git", "-C", folder, "commit", "-qam", "after"], check=True)
+            head = subprocess.check_output(["git", "-C", folder, "rev-parse", "HEAD"], text=True).strip()
+            previous = Path.cwd()
+            try:
+                os.chdir(folder)
+                with patch.dict(os.environ, {"GIT_DIR": str(root / "wrong-repo.git")}):
+                    with patch.object(sys, "argv", ["affected_owners.py", "--base", "HEAD~1", "--head", "HEAD"]):
+                        buf = io.StringIO()
+                        with contextlib.redirect_stdout(buf):
+                            self.assertEqual(MODULE.main(), 0)
+                value = json.loads(buf.getvalue())
+            finally:
+                os.chdir(previous)
+            self.assertEqual(value["selectionBasis"], "GIT_COMMIT_RANGE")
+            self.assertEqual(value["sourceCut"], {"base": base, "head": head, "diffBase": base})
+            self.assertIn("services/runtime/src/example.py", value["changedPaths"])
+            self.assertIn("runtime", [owner["name"] for owner in value["owners"]])
+
+    def test_invalid_git_ref_cannot_emit_a_sourcecut_witness(self) -> None:
+        import contextlib
+        import io
+        from unittest.mock import patch
+
+        output = io.StringIO()
+        with patch.object(sys, "argv", [
+            "affected_owners.py", "--base", "invalid-sourcecut-ref-20261109", "--head", "HEAD",
+        ]):
+            with contextlib.redirect_stdout(output):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    MODULE.main()
+        self.assertEqual(output.getvalue(), "")
+
+    def test_divergent_history_qualifies_actual_merge_base_not_requested_base(self) -> None:
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-diverged-sourcecut-") as folder:
+            root = Path(folder)
+            def git(*args: str) -> str:
+                return subprocess.check_output(["git", "-C", folder, *args], text=True).strip()
+            git("init", "-q", "-b", "main")
+            git("config", "user.name", "Sourcecut test")
+            git("config", "user.email", "sourcecut@example.invalid")
+            (root / "README.md").write_text("base\n")
+            git("add", ".")
+            git("commit", "-qm", "common")
+            common = git("rev-parse", "HEAD")
+            (root / "README.md").write_text("baseline changed\n")
+            git("commit", "-qam", "base divergence")
+            base = git("rev-parse", "HEAD")
+            git("switch", "-q", "-c", "feature", common)
+            path = root / "services/runtime/src/consumer.py"
+            path.parent.mkdir(parents=True)
+            path.write_text("ENABLED = True\n")
+            git("add", ".")
+            git("commit", "-qm", "candidate")
+            head = git("rev-parse", "HEAD")
+            previous = Path.cwd()
+            try:
+                os.chdir(folder)
+                with patch.object(sys, "argv", [
+                    "affected_owners.py", "--base", base, "--head", head,
+                ]):
+                    buf = io.StringIO()
+                    with contextlib.redirect_stdout(buf):
+                        self.assertEqual(MODULE.main(), 0)
+                value = json.loads(buf.getvalue())
+            finally:
+                os.chdir(previous)
+            self.assertEqual(value["sourceCut"], {
+                "base": base, "head": head, "diffBase": common,
+            })
+            self.assertEqual(value["changedPaths"], ["services/runtime/src/consumer.py"])
+
+    def test_non_git_selections_do_not_fabricate_sourcecut(self) -> None:
+        import contextlib
+        import io
+        from unittest.mock import patch
+
+        for args, basis in (
+            (["--changed-file", "services/runtime/src/example.py"], "CALLER_DECLARED_PATHS"),
+            (["--all"], "ALL_OWNERS"),
+        ):
+            with self.subTest(basis=basis):
+                with patch.object(sys, "argv", ["affected_owners.py", *args]):
+                    output = io.StringIO()
+                    with contextlib.redirect_stdout(output):
+                        self.assertEqual(MODULE.main(), 0)
+                value = json.loads(output.getvalue())
+                self.assertEqual(value["selectionBasis"], basis)
+                self.assertIsNone(value["sourceCut"])
 
 
 if __name__ == "__main__":

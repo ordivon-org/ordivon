@@ -9,18 +9,20 @@ from unittest import mock
 
 from ordivon_studio.equipment import (
     EquipmentPlan,
-    capability_coverage,
     compile_operation,
     discover_equipment,
     discover_equipment_for_capability,
     load_equipment_world,
+    propose_operation,
+)
+from ordivon_studio.equipment_capabilities import (
+    capability_coverage,
     local_provider_surface,
     operation_support,
-    propose_operation,
     select_for_capability,
-    summarize_trial,
     verification_contract,
 )
+from ordivon_studio.equipment_evaluation import summarize_trial
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -249,6 +251,68 @@ class EquipmentWorldTests(unittest.TestCase):
             )
         self.assertEqual(plan.args[-1], "C:\\Users\\test\\project.rpp")
 
+    def test_native_resolve_render_plan_uses_selected_sources(self) -> None:
+        plan = compile_operation(
+            "davinci-resolve",
+            "deliver.render",
+            {
+                "python": r"C:\Python311\python.exe",
+                "script": r"C:\repo\media\resolve-native-produce.py",
+                "visuals": [r"C:\source\a.mp4", r"C:\source\b.mp4"],
+                "audio": r"C:\source\voice.wav",
+                "output_dir": r"C:\output",
+                "name": "test-cut",
+                "grade_saturation": 1.1,
+            },
+        )
+        self.assertEqual(plan.transport, "windows-native-active-user-process")
+        self.assertEqual(plan.executable, r"C:\Python311\python.exe")
+        self.assertEqual(plan.args.count("--visual"), 2)
+        self.assertIn("--grade-saturation", plan.args)
+        self.assertTrue(any("active_user" in note for note in plan.notes))
+
+    def test_native_resolve_otio_plan_uses_official_import_and_relink(self) -> None:
+        plan = compile_operation(
+            "davinci-resolve",
+            "deliver.render",
+            {
+                "python": r"C:\\Python311\\python.exe",
+                "script": r"C:\\repo\\media\\resolve-native-produce.py",
+                "otio": r"C:\\edit\\assembly.otio",
+                "source_clips_dir": r"C:\\assets",
+                "output_dir": r"C:\\output",
+                "name": "timeline-cut",
+                "min_timeline_frames": 72,
+                "grade_saturation": 1.05,
+            },
+        )
+        self.assertEqual(plan.transport, "windows-native-active-user-process")
+        self.assertEqual(plan.args.count("--otio"), 1)
+        self.assertNotIn("--visual", plan.args)
+        self.assertEqual(plan.args[plan.args.index("--otio") + 1], r"C:\\edit\\assembly.otio")
+        self.assertEqual(plan.args[plan.args.index("--source-clips-dir") + 1], r"C:\\assets")
+        self.assertEqual(plan.args[plan.args.index("--min-timeline-frames") + 1], "72")
+
+    def test_native_resolve_plan_rejects_mixed_editorial_sources(self) -> None:
+        fields = {
+            "python": r"C:\\Python311\\python.exe",
+            "script": r"C:\\repo\\media\\resolve-native-produce.py",
+            "output_dir": r"C:\\output",
+            "name": "cut",
+        }
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            compile_operation(
+                "davinci-resolve", "deliver.render",
+                {**fields, "visuals": ["a.mp4"], "otio": "cut.otio"},
+            )
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            compile_operation("davinci-resolve", "deliver.render", fields)
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            compile_operation(
+                "davinci-resolve", "deliver.render",
+                {**fields, "otio": "cut.otio", "min_timeline_frames": 0},
+            )
+
     def test_external_equipment_plans_preserve_authority_boundaries(self) -> None:
         obs = compile_operation("obs-studio", "live.scene.switch", {})
         self.assertEqual(obs.transport, "provider-descriptor-only")
@@ -307,7 +371,7 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertEqual(by_id["obs-studio"]["defaultLifecycle"], "websocket-server-disabled-by-default")
         self.assertIn("re-observe", by_id["obs-studio"]["convergence"])
         self.assertIn("native-rpp", by_id["reaper"]["stateAuthority"])
-        self.assertEqual(by_id["davinci-resolve"]["transport"], "studio.resolve-adapter")
+        self.assertEqual(by_id["davinci-resolve"]["transport"], "resolve-official-python-api")
         self.assertNotIn("password", json.dumps(surface).lower())
 
     def test_workstation_binding_is_physical_discovery_not_semantic_authority(self) -> None:

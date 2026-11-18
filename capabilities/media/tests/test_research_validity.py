@@ -1,25 +1,24 @@
 from __future__ import annotations
 
-import json
 import os
-import runpy
-import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
 
 import psycopg
 
-from ordivon_studio.research_validity import (
-    TrialLedger,
-    build_null_registration,
+from ordivon_studio.research.null_attack_scoring import score_null_attack
+from ordivon_studio.research.search_calibration import (
     calibration_experiment,
     evaluate_sealed_holdout,
     run_registered_search,
     search_replay_correction,
+)
+from ordivon_studio.research.trial_ledger import TrialLedger
+from ordivon_studio.research.trial_registration import (
+    build_null_registration,
     seed_commitment,
     validate_registration,
 )
@@ -51,80 +50,7 @@ class ResearchValidityTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "PostgreSQL DSN"):
                 TrialLedger(Path(temporary) / "legacy.sqlite", search_id="experiment:refuse")
 
-    def test_legacy_migration_rejects_unconsumed_or_live_source_before_any_read(self) -> None:
-        """Without a current consumer and writer-stop attestation do not copy history."""
-        from unittest.mock import patch
 
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        with tempfile.TemporaryDirectory() as temporary:
-            db = Path(temporary) / "unused.sqlite"
-            db.write_bytes(b"synthetic source must never be read")
-            with patch("sqlite3.connect", side_effect=AssertionError("old DB read")):
-                with self.assertRaisesRegex(ValueError, "writers"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        expected_search_id="search:active",
-                        retention_consumer="registered_search_replay",
-                    )
-                with self.assertRaisesRegex(ValueError, "retention consumer"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        expected_search_id="search:active",
-                        source_writers_stopped=True,
-                    )
-                with self.assertRaisesRegex(ValueError, "expected search ID"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        source_writers_stopped=True,
-                        retention_consumer="registered_search_replay",
-                    )
-
-                with self.assertRaisesRegex(ValueError, "retention consumer"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        expected_search_id="search:active",
-                        source_writers_stopped=True,
-                        retention_consumer="maybe_useful_someday",
-                    )
-
-    def test_failed_sqlite_migration_closes_source_handle(self) -> None:
-        """An incomplete PG cutover may not leak a read-only SQLite handle."""
-        from unittest.mock import patch
-
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        with tempfile.TemporaryDirectory() as temporary:
-            db = Path(temporary) / "empty.sqlite"
-            with closing(sqlite3.connect(db)) as source, source:
-                source.execute(
-                    "CREATE TABLE trial_events("
-                    "seq INTEGER PRIMARY KEY, event_id TEXT, search_id TEXT,"
-                    "attempt_id TEXT, candidate_id TEXT, event_type TEXT,"
-                    "payload_json TEXT, prev_hash TEXT, event_hash TEXT)"
-                )
-            real_connect = sqlite3.connect
-            closed: list[bool] = []
-
-            class Tracked(sqlite3.Connection):
-                def close(self) -> None:
-                    closed.append(True)
-                    super().close()
-
-            def track_connect(*args, **kwargs):
-                return real_connect(*args, factory=Tracked, **kwargs)
-
-            with patch("sqlite3.connect", side_effect=track_connect):
-                with self.assertRaisesRegex(ValueError, "legacy SQLite ledger is empty"):
-                    migrate(
-                        db, "postgresql://unneeded.test/no-write",
-                        expected_search_id="search:empty-fixture",
-                        retention_consumer="registered_search_replay",
-                        source_writers_stopped=True,
-                    )
-            self.assertEqual(closed, [True])
 
     @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
     def test_trial_ledger_is_hash_chained_and_append_only(self) -> None:
@@ -209,117 +135,7 @@ class ResearchValidityTest(unittest.TestCase):
         finally:
             ledger.close()
 
-    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
-    def test_legacy_sqlite_event_chain_migrates_once_to_pg_without_mutating_source(self) -> None:
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        with tempfile.TemporaryDirectory() as directory:
-            db = Path(directory) / "legacy.sqlite"
-            source = sqlite3.connect(db)
-            source.execute(
-                "CREATE TABLE trial_events("
-                "seq INTEGER PRIMARY KEY, event_id TEXT, search_id TEXT, attempt_id TEXT,"
-                "candidate_id TEXT, event_type TEXT, payload_json TEXT, prev_hash TEXT,"
-                "event_hash TEXT)"
-            )
-            from ordivon_studio.grounded_meaning import canonical_digest
 
-            search_id = f"experiment:legacy:{uuid4().hex}"
-            prior = None
-            for i in range(3):
-                payload = {"trial": i}
-                semantic = {
-                    "searchId": search_id, "attemptId": f"attempt:{i}",
-                    "candidateId": f"candidate:{i}", "eventType": "trial.proposed",
-                    "payload": payload, "prevHash": prior,
-                }
-                event_hash = canonical_digest(semantic)
-                source.execute(
-                    "INSERT INTO trial_events VALUES (?,?,?,?,?,?,?,?,?)",
-                    (
-                        i + 1, "trial-event://" + event_hash.removeprefix("sha256:"),
-                        search_id, f"attempt:{i}", f"candidate:{i}", "trial.proposed",
-                        json.dumps(payload), prior, event_hash,
-                    ),
-                )
-                prior = event_hash
-            source.commit()
-            source.close()
-            before = db.read_bytes()
-            with self.assertRaisesRegex(ValueError, "different search ID"):
-                migrate(
-                    db, PG_DSN, expected_search_id=search_id + ":orphan",
-                    retention_consumer="registered_search_replay",
-                    source_writers_stopped=True,
-                )
-            result = migrate(
-                db, PG_DSN, expected_search_id=search_id,
-                retention_consumer="registered_search_replay",
-                source_writers_stopped=True,
-            )
-            self.assertEqual(result["events"], 3)
-            self.assertTrue(result["destinationChainValid"])
-            self.assertEqual(db.read_bytes(), before)
-            with self.assertRaisesRegex(ValueError, "already contains events"):
-                migrate(
-                    db, PG_DSN, expected_search_id=search_id,
-                    retention_consumer="registered_search_replay",
-                    source_writers_stopped=True,
-                )
-
-    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
-    def test_migration_readback_rejection_rolls_back_all_events(self) -> None:
-        """Readback acceptance must precede the PostgreSQL commit boundary."""
-        from unittest.mock import patch
-
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        from ordivon_studio.grounded_meaning import canonical_digest
-
-        search_id = f"experiment:rollback:{uuid4().hex}"
-        with tempfile.TemporaryDirectory() as temporary:
-            source_file = Path(temporary) / "legacy.sqlite"
-            with closing(sqlite3.connect(source_file)) as source:
-                source.execute(
-                    "CREATE TABLE trial_events("
-                    "seq INTEGER PRIMARY KEY,event_id TEXT,search_id TEXT,"
-                    "attempt_id TEXT,candidate_id TEXT,event_type TEXT,"
-                    "payload_json TEXT,prev_hash TEXT,event_hash TEXT)"
-                )
-                payload = {"trial": 1}
-                event_hash = canonical_digest(
-                    {
-                        "searchId": search_id, "attemptId": "attempt:1",
-                        "candidateId": "candidate:1", "eventType": "trial.proposed",
-                        "payload": payload, "prevHash": None,
-                    }
-                )
-                source.execute(
-                    "INSERT INTO trial_events VALUES (?,?,?,?,?,?,?,?,?)",
-                    (
-                        1, "trial-event://" + event_hash.removeprefix("sha256:"),
-                        search_id, "attempt:1", "candidate:1", "trial.proposed",
-                        json.dumps(payload), None, event_hash,
-                    ),
-                )
-                # closing() releases the handle; SQLite still needs an
-                # explicit transaction commit for the source fixture.
-                source.commit()
-            with patch.object(TrialLedger, "verify", return_value=False):
-                with self.assertRaisesRegex(ValueError, "hash-chain mismatch"):
-                    migrate(
-                        source_file, PG_DSN, expected_search_id=search_id,
-                        retention_consumer="registered_search_replay",
-                        source_writers_stopped=True,
-                    )
-
-        destination = TrialLedger(PG_DSN, search_id=search_id)
-        try:
-            self.assertEqual(sum(destination.summary()["eventCounts"].values()), 0)
-        finally:
-            destination.close()
 
     def test_visible_search_never_contains_holdout_seed_and_freezes_winner(self) -> None:
         registration = self.registration(budget=300)
@@ -328,6 +144,65 @@ class ResearchValidityTest(unittest.TestCase):
         self.assertNotIn("sealed-fixture", str(winner))
         self.assertEqual(winner["attemptBudget"], 300)
         self.assertLessEqual(winner["naiveOneSidedP"], 1.0)
+
+    def test_frozen_winner_mutation_is_rejected_by_both_consumers(self) -> None:
+        """Counterexample: a reselected candidate cannot inherit the old digest."""
+        registration = self.registration(budget=12)
+        winner = run_registered_search(registration)
+        forged = dict(winner)
+        forged["candidateId"] = "creative-candidate://forged-without-winner-rehash"
+        with self.assertRaisesRegex(ValueError, "frozen winner digest mismatch"):
+            evaluate_sealed_holdout(registration, forged, holdout_seed="sealed-fixture")
+        with self.assertRaisesRegex(ValueError, "frozen winner digest mismatch"):
+            search_replay_correction(
+                registration, forged, replay_seed="replay-fixture", replay_count=100
+            )
+
+    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
+    def test_sealed_holdout_reuses_same_frozen_pg_selection_atomically(self) -> None:
+        """No orphan reveal, missing-ledger fallback or second holdout replay."""
+        from ordivon_studio.research.grounded_contracts import canonical_digest
+
+        registration = build_null_registration(
+            mode="static",
+            attempt_budget=12,
+            visible_seed="pg-frozen-visible",
+            holdout_seed_commitment=seed_commitment("sealed-fixture"),
+            experiment_id=f"experiment:pg-frozen:{uuid4().hex}",
+        )
+        ledger = TrialLedger(PG_DSN, search_id=registration["experimentId"])
+        try:
+            winner = run_registered_search(registration, ledger)
+            before = ledger.summary()
+            with self.assertRaisesRegex(ValueError, "requires its original PostgreSQL ledger"):
+                evaluate_sealed_holdout(registration, winner, holdout_seed="sealed-fixture")
+            self.assertEqual(ledger.summary(), before)
+
+            # Even rehashing a forged winner cannot pass the native PostgreSQL
+            # selected-event/source identity, which is checked under the lock.
+            forged = dict(winner)
+            forged["candidateId"] = "creative-candidate://forged-and-rehashed"
+            forged["winnerDigest"] = canonical_digest(
+                {key: value for key, value in forged.items() if key != "winnerDigest"}
+            )
+            with self.assertRaisesRegex(ValueError, "selected candidate differs"):
+                evaluate_sealed_holdout(
+                    registration, forged, holdout_seed="sealed-fixture", ledger=ledger
+                )
+            self.assertEqual(ledger.summary(), before)
+
+            result = evaluate_sealed_holdout(
+                registration, winner, holdout_seed="sealed-fixture", ledger=ledger
+            )
+            self.assertTrue(result["trialLedger"]["eventChainValid"])
+            self.assertEqual(result["trialLedger"]["eventCounts"]["trial.holdout_revealed"], 1)
+            with self.assertRaisesRegex(ValueError, "no longer matches frozen winner"):
+                evaluate_sealed_holdout(
+                    registration, winner, holdout_seed="sealed-fixture", ledger=ledger
+                )
+            self.assertEqual(ledger.summary()["eventCounts"]["trial.holdout_revealed"], 1)
+        finally:
+            ledger.close()
 
     def test_holdout_requires_exact_committed_seed(self) -> None:
         registration = self.registration()
@@ -346,6 +221,41 @@ class ResearchValidityTest(unittest.TestCase):
         self.assertEqual(correction["attemptBudget"], 200)
         self.assertGreater(correction["searchCorrectedP"], 0.0)
         self.assertLessEqual(correction["searchCorrectedP"], 1.0)
+
+    def test_score_rejects_changed_calibration_or_holdout_source(self) -> None:
+        """Score must consume the actual frozen proof artifacts, not edited JSON."""
+        registration = self.registration(budget=12)
+        winner = run_registered_search(registration)
+        correction = search_replay_correction(
+            registration, winner, replay_seed="source-score-replay", replay_count=100
+        )
+        holdout = evaluate_sealed_holdout(
+            registration, winner, holdout_seed="sealed-fixture"
+        )
+        calibration = calibration_experiment(
+            mode="static", budgets=[12], worlds=100, reference_replays=400,
+            seed="source-score-calibration",
+        )
+        input_args = {
+            "registration": registration, "winner": winner, "correction": correction,
+            "holdout": holdout, "calibration": calibration,
+        }
+        score = score_null_attack(**input_args)
+        self.assertEqual(score["registrationDigest"], registration["registrationDigest"])
+
+        forged_holdout = {**holdout, "holdoutOneSidedP": 0.00001}
+        with self.assertRaisesRegex(ValueError, "sealed holdout source digest mismatch"):
+            score_null_attack(**{**input_args, "holdout": forged_holdout})
+
+        forged_calibration = {
+            **calibration,
+            "rows": {
+                **calibration["rows"],
+                "12": {**calibration["rows"]["12"], "naiveFalsePositiveRate": 1.0},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "calibration source digest mismatch"):
+            score_null_attack(**{**input_args, "calibration": forged_calibration})
 
     def test_null_calibration_exposes_best_of_n_and_corrects_it(self) -> None:
         result = calibration_experiment(

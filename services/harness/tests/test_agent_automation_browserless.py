@@ -506,10 +506,9 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             }
             initial = {"workflowId": "turn-logical", "disposition": "existing"}
             retry = {
-                "workflowId": "retry-workflow",
+                "workflowId": "017f22e2-79b0-7cc3-98c4-dc0c0c07398f",
                 "disposition": "admitted",
                 "retryStanding": "admitted-after-failed",
-                "retryId": "0199-retry",
                 "logicalWorkflowId": "017f22e2-79b0-7cc3-98c4-dc0c0c07398f",
             }
             ready = {
@@ -557,7 +556,10 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 ),
             )
             self.assertTrue(result["retryAdmitted"])
-            self.assertEqual(result["temporal"]["retryId"], "0199-retry")
+            self.assertEqual(
+                result["temporal"]["workflowId"], "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
+            )
+            self.assertNotIn("retryId", result["temporal"])
 
     def test_claimed_continuation_never_enters_retry_or_provider_preflight(self):
         with tempfile.TemporaryDirectory() as d:

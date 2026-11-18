@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Deliberate legacy-only cold cutover; never seize the selected Gluetun identity.
+if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then
+  echo 'M4 Gluetun selected; legacy Browserless cutover forbidden' >&2
+  exit 78
+fi
 
 SCRIPT=$(readlink -f "$0")
 ROOT=$(cd "$(dirname "$SCRIPT")/../.." && pwd)
@@ -54,7 +59,10 @@ rollback_after_lease() {
   set +e
   systemctl stop ordivon-browserless-operator-proxy@11.service ordivon-browserless-operator-proxy@12.service ordivon-browserless-operator-proxy@13.service >/dev/null 2>&1
   systemctl stop ordivon-browserless@11.service ordivon-browserless@12.service ordivon-browserless@13.service >/dev/null 2>&1
-  systemctl disable --now network-v2-browserless.target >/dev/null 2>&1
+  # This rollback owns only the legacy Browserless provider. The shared
+  # namespace/forward target belongs to all consumers and must stay active.
+  systemctl disable --now network-v2-browserless-legacy-provider.target >/dev/null 2>&1
+  systemctl stop network-v2-browserless-provider-carrier.service network-v2-browserless-dns.service network-v2-browserless-wireguard.service >/dev/null 2>&1
   [ -f "$backup/browserless.container" ] && install -m 0644 "$backup/browserless.container" "$QUADLET"
   [ -f "$backup/operator.service" ] && install -m 0644 "$backup/operator.service" "$OPERATOR"
   [ -f "$backup/agent-config.json" ] && install -m 0600 "$backup/agent-config.json" "$CONFIG"
@@ -180,15 +188,16 @@ awk 'BEGIN{done=0} /^hosts:/{print "hosts: files dns";done=1;next} {print} END{i
   /etc/nsswitch.conf >"/etc/netns/$NS/nsswitch.conf"
 
 install -m 0644 "$ROOT/consumers/browserless/config/provider-carrier.json" /etc/network-v2/browserless/provider-carrier.json
-for f in "$ROOT"/consumers/browserless/systemd/network-v2-browserless-netns.service \
-         "$ROOT"/consumers/browserless/systemd/network-v2-browserless-forward.service \
+for f in "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-netns.service \
+         "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-forward.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-wireguard.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-dns.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-provider-carrier.service \
-         "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target; do
+         "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless.target \
+         "$ROOT"/consumers/browserless/systemd/network-v2-browserless-legacy-provider.target; do
   install -m 0644 "$f" "/etc/systemd/system/$(basename "$f")"
 done
-systemd-analyze verify "$ROOT"/consumers/browserless/systemd/network-v2-browserless-*.service "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target
+systemd-analyze verify "$ROOT"/consumers/browserless/systemd/network-v2-browserless-*.service "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-*.service "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless.target "$ROOT"/consumers/browserless/systemd/network-v2-browserless-legacy-provider.target
 systemctl daemon-reload
 
 # Fence the legacy auto-recovery before releasing its exact generation.
@@ -215,9 +224,12 @@ echo legacy_browserless_generation_released=PASS
 
 # Start the mature Network v2 production data plane over the host's normal underlay.
 systemctl start network-v2-browserless.target
+# The compatibility Target never starts WireGuard implicitly. Explicit legacy
+# selection is guarded by ConditionPathExists=!M4, and is rollback-only.
+systemctl start network-v2-browserless-legacy-provider.target
 "$ROOT/consumers/browserless/acceptance/production-path.sh"
 
-GEN="sha256:$(cat "$PROFILE" "$ROOT"/consumers/browserless/systemd/network-v2-browserless-* | sha256sum | awk '{print $1}')"
+GEN="sha256:$(cat "$PROFILE" "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-* "$ROOT"/consumers/browserless/systemd/network-v2-browserless-* | sha256sum | awk '{print $1}')"
 python3 - "$QUADLET" "$OPERATOR" "$CONFIG" "$GEN" <<'PY'
 import json,re,sys
 quadlet,operator,config,generation=sys.argv[1:]

@@ -11,7 +11,8 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ -z "${ORDIVON_HOST_V2_TEST_DSN:-}" ]]; then
-  if [[ "${GITHUB_ACTIONS:-}" != "true" || "${RUNNER_ENVIRONMENT:-}" != "github-hosted" ]]; then
+  if [[ "${ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE:-0}" != "1" &&
+      ( "${GITHUB_ACTIONS:-}" != "true" || "${RUNNER_ENVIRONMENT:-}" != "github-hosted" ) ]]; then
     echo "HOST_QUEUE_REQUIRES_TEST_DSN: implicit DB is github-hosted only" >&2
     exit 2
   fi
@@ -47,6 +48,10 @@ if [[ -z "${ORDIVON_HOST_V2_TEST_DSN:-}" ]]; then
   fi
   export ORDIVON_HOST_V2_TEST_DSN="postgresql://ordivon_ci:$password@127.0.0.1:$port/ordivon_ci"
 fi
+
+# The explicit local disposable-launch opt-in is consumed by this top-level
+# launcher only; never pass it to nested queue-governance tests or descendants.
+unset ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE
 
 if ! command -v psql >/dev/null; then
   echo "HOST_QUEUE_REQUIRES_PSQL" >&2

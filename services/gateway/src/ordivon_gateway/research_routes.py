@@ -78,7 +78,7 @@ _PROJECTED = [
         "semantic_owner": "study.bibliographic-policy-and-source-authorities",
         "source_refs": [
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "meta/research/publication-closure-profile-r2.json",
+            "profiles/research/publication/publication-closure-r2.json",
         ],
         "study_types": ["all"],
         "tags": ["research", "citation", "doi", "crossref", "bibtex", "csl"],
@@ -187,7 +187,7 @@ _PROJECTED = [
         "semantic_owner": "study.figure-and-claim-authority",
         "source_refs": [
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "meta/research/publication/perceptual-conformance-profile-r1.json",
+            "profiles/research/publication/perceptual-conformance-r1.json",
         ],
         "study_types": ["all"],
         "tags": ["research", "figure", "visualization", "publication", "matplotlib"],
@@ -281,27 +281,18 @@ _PROJECTED = [
     {
         "capability": "research.study.verify",
         "completion_owner": "study",
-        "description": "Run the repository-owned portable Research profile/currentness verification "
-        "recipe.",
-        "execution_capability": "execution.linux",
-        "invocation_recipes": [
-            {
-                "command": ["mise", "run", "research-study:verify"],
-                "kind": "mise-task",
-                "note": "Canonical recipe binds its own transient jsonschema dependency "
-                "through uv; do not replace it with ad-hoc system Python "
-                "invocation.",
-                "owner_id": "ordivon-monorepo",
-                "recipe_id": "monorepo-mise-research-study-verify",
-            }
-        ],
+        "description": "Study-owned profile/currentness verification discovery only. No full "
+        "profile/currentness verifier is exposed; Research-v2 check-all only "
+        "validates Study birth policy.",
+        "execution_capability": None,
+        "invocation_recipes": [],
         "preferred_skills": [],
         "semantic_owner": "research-profile-verifiers",
         "source_refs": [
-            "mise.toml",
+            "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
         ],
         "study_types": ["all"],
-        "tags": ["research", "verify", "currentness", "profile", "mise", "uv"],
+        "tags": ["research", "verify", "currentness", "profile", "study"],
         "truth_boundary": "This Research route is non-authoritative composition metadata. Study/domain "
         "owners retain scientific truth and completion authority; Skills remain "
         "advisory; Runtime owns only physical execution evidence.",
@@ -325,7 +316,7 @@ _PROJECTED = [
         "preferred_skills": ["research-publication-closure"],
         "semantic_owner": "study.publication-authority",
         "source_refs": [
-            "meta/research/publication-closure-profile-r2.json",
+            "profiles/research/publication/publication-closure-r2.json",
             ".agents/skills/research-publication-closure/SKILL.md",
         ],
         "study_types": ["all"],
@@ -353,7 +344,7 @@ _PROJECTED = [
         "preferred_skills": ["research-publication-perceptual-conformance"],
         "semantic_owner": "publication-perceptual-observer-protocol",
         "source_refs": [
-            "meta/research/publication/perceptual-conformance-profile-r1.json",
+            "profiles/research/publication/perceptual-conformance-r1.json",
             ".agents/skills/research-publication-perceptual-conformance/SKILL.md",
         ],
         "study_types": ["all"],
@@ -365,18 +356,10 @@ _PROJECTED = [
     {
         "capability": "research.scholarly.intelligence",
         "completion_owner": "study",
-        "description": "Project Study-owned scholarly state across independent axes without creating a "
-        "universal scientific ontology.",
-        "execution_capability": "execution.linux",
-        "invocation_recipes": [
-            {
-                "command": ["mise", "run", "research-study:verify"],
-                "kind": "mise-task",
-                "note": "Axis-local closure never transfers authority to another scholarly axis.",
-                "owner_id": "ordivon-monorepo",
-                "recipe_id": "monorepo-mise-research-study-verify",
-            }
-        ],
+        "description": "Describe Study-owned claim, evidence, review and publication axes; "
+        "no cross-axis executable scholarly qualifier is currently exposed.",
+        "execution_capability": None,
+        "invocation_recipes": [],
         "preferred_skills": [],
         "semantic_owner": "study",
         "source_refs": [

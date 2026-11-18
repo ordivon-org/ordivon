@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import math
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import fcntl
 import hashlib
 import http.client
@@ -228,6 +229,7 @@ def inspect_workspaces(
             if (records_root / f"{workspace_id}.json").exists()
             or (records_root / f"{workspace_id}.json").is_symlink()
         ]
+    classify_inputs: list[tuple[Path, Path, str, list[str]]] = []
     for record_path in record_paths:
         workspace_id = record_path.stem
         record_ids.add(workspace_id)
@@ -249,15 +251,28 @@ def inspect_workspaces(
                 terminal_record = None
             if isinstance(terminal_record, dict) and terminal_record.get("state") == "closed":
                 continue
-        record_candidate = classify_record(
+        classify_inputs.append((
+            record_path, workspace_path, workspace_id,
+            active_by_workspace.get(workspace_id, []),
+        ))
+
+    def classify_one(entry: tuple[Path, Path, str, list[str]]) -> dict[str, object] | None:
+        record_path, workspace_path, workspace_id, active_job_ids = entry
+        return classify_record(
             record_path,
             workspace_path,
             workspace_id,
-            active_job_ids=active_by_workspace.get(workspace_id, []),
+            active_job_ids=active_job_ids,
             measure_bytes=args.measure_bytes,
         )
-        if record_candidate is not None:
-            candidates.append(record_candidate)
+
+    # Independent read-only Git/record checks are I/O-bound. Bounded workers
+    # preserve complete, ordered evidence and fail closed on any exception;
+    # apply still performs its original per-Workspace currentness checks.
+    with ThreadPoolExecutor(max_workers=4) as workers:
+        for record_candidate in workers.map(classify_one, classify_inputs):
+            if record_candidate is not None:
+                candidates.append(record_candidate)
 
     if workspace_root.exists():
         if selected_workspace_ids is None:
@@ -531,35 +546,58 @@ def git_verbatim_patch_ids(
 
 
 def git_canonical_head(source_repo: Path) -> tuple[str, str]:
-    # Git local-main is authoritative when the repository owner has checked it
-    # out as the integration branch. Workspaces merged there need not wait for
-    # publication to a possibly stale origin/main tracking ref.
+    # Prefer the published integration ref when local main is stale or has
+    # diverged. A local-main fast-forward *ahead* of the publication may still
+    # prove a native integration before the next remote-tracking refresh.
     branch = subprocess.run(
         ["git", "-C", str(source_repo), "symbolic-ref", "--quiet", "HEAD"],
         check=False,
         capture_output=True,
         text=True,
     )
-    if branch.returncode == 0 and branch.stdout.strip() == "refs/heads/main":
-        return git_text(source_repo, ["rev-parse", "refs/heads/main^{commit}"]), "main"
     if branch.returncode not in {0, 1}:
         raise RuntimeError(
             f"git symbolic-ref HEAD failed: {branch.stderr.strip() or branch.returncode}"
         )
 
-    # Detached/non-main source checkouts are not implicit local publication.
-    # Keep the existing remote release authority rather than accepting drift.
     published_ref = "refs/remotes/origin/main"
     published = subprocess.run(
         ["git", "-C", str(source_repo), "show-ref", "--verify", "--quiet", published_ref],
         check=False,
     )
-    if published.returncode == 0:
-        return git_text(source_repo, ["rev-parse", f"{published_ref}^{{commit}}"]), "origin/main"
-    if published.returncode != 1:
+    if published.returncode not in {0, 1}:
         raise RuntimeError(
             f"git show-ref failed while resolving canonical publication ref: {published.returncode}"
         )
+
+    published_head = (
+        git_text(source_repo, ["rev-parse", f"{published_ref}^{{commit}}"])
+        if published.returncode == 0 else None
+    )
+    if branch.returncode == 0 and branch.stdout.strip() == "refs/heads/main":
+        local_head = git_text(source_repo, ["rev-parse", "refs/heads/main^{commit}"])
+        if published_head is not None:
+            ancestry = subprocess.run(
+                ["git", "-C", str(source_repo), "merge-base", "--is-ancestor",
+                 published_head, local_head],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if ancestry.returncode == 1:
+                # Remote ahead or histories diverged: never infer publication
+                # from local commits that are not integrated in origin/main.
+                return published_head, "origin/main"
+            if ancestry.returncode != 0:
+                raise RuntimeError(
+                    "git merge-base failed resolving local/remote publication ancestry: "
+                    + (ancestry.stderr.strip() or str(ancestry.returncode))
+                )
+        return local_head, "main"
+
+    # Detached/non-main source checkouts do not confer local publication.
+    if published_head is not None:
+        return published_head, "origin/main"
     return git_text(source_repo, ["rev-parse", "HEAD"]), "HEAD"
 
 

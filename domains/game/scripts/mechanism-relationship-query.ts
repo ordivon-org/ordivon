@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
+import { buildMechanismRelationshipGraphFromSources, LIBRARY_PATH, SPEC_PATH } from "../src/mechanism-relationship-graph.ts";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
+import { cliArgument, cliQueryArguments } from "./cli-argument.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const GRAPH_PATH = "standards/game_mechanism_relationship_graph_r1.json";
 
 export type MechanismRelationshipQueryType = "mechanisms" | "edges" | "facets" | "conditionalities";
 
@@ -30,21 +32,21 @@ export type MechanismRelationshipQueryResult = {
 };
 
 function graph(): any {
-  return JSON.parse(readFileSync(resolve(ROOT, GRAPH_PATH), "utf8"));
-}
-
-function normalize(value?: string): string | undefined {
-  const result = value?.trim().toLowerCase();
-  return result || undefined;
+  // Filesystem ownership remains in this CLI; derivation remains pure.
+  function source(path: string): { raw: string; value: any } {
+    const raw = readFileSync(resolve(ROOT, path), "utf8");
+    return { raw, value: JSON.parse(raw) };
+  }
+  return buildMechanismRelationshipGraphFromSources(source(LIBRARY_PATH), source(SPEC_PATH));
 }
 
 export function queryMechanismRelationships(query: MechanismRelationshipQuery): MechanismRelationshipQueryResult {
   const g = graph();
-  const q = normalize(query.q);
-  const mechanism = normalize(query.mechanism);
-  const game = normalize(query.game);
-  const facet = normalize(query.facet);
-  const limit = Number.isInteger(query.limit) && (query.limit ?? 0) > 0 ? Math.min(query.limit!, 200) : 50;
+  const q = normalizeQueryFilter(query.q);
+  const mechanism = normalizeQueryFilter(query.mechanism);
+  const game = normalizeQueryFilter(query.game);
+  const facet = normalizeQueryFilter(query.facet);
+  const limit = boundedQueryLimit(query.limit, 200);
 
   let items: any[];
   if (query.type === "mechanisms") items = g.mechanismNodes;
@@ -99,24 +101,10 @@ export function queryMechanismRelationships(query: MechanismRelationshipQuery): 
   };
 }
 
-function arg(name: string): string | undefined {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : undefined;
-}
-
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const query: MechanismRelationshipQuery = {
-    type: (arg("--type") ?? "conditionalities") as MechanismRelationshipQueryType,
+    type: (cliArgument("--type") ?? "conditionalities") as MechanismRelationshipQueryType,
+    ...cliQueryArguments(["q", "mechanism", "game", "facet"]),
   };
-  const q = arg("--q");
-  const mechanism = arg("--mechanism");
-  const game = arg("--game");
-  const facet = arg("--facet");
-  const rawLimit = arg("--limit");
-  if (q !== undefined) query.q = q;
-  if (mechanism !== undefined) query.mechanism = mechanism;
-  if (game !== undefined) query.game = game;
-  if (facet !== undefined) query.facet = facet;
-  if (rawLimit !== undefined) query.limit = Number(rawLimit);
   process.stdout.write(`${JSON.stringify(queryMechanismRelationships(query), null, 2)}\n`);
 }

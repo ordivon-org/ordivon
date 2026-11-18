@@ -5,6 +5,7 @@ Reads exact immutable Git objects. No working-tree search, eval, imports,
 executions, filesystem moves, owner admission, or semantic/proof claims.
 """
 from __future__ import annotations
+
 import argparse
 import ast
 import collections
@@ -23,7 +24,7 @@ TOPIC_HINTS = frozenset({"kind","schemaVersion","id","name","type","status","sub
 
 
 def git(*args: str, repo: Path) -> bytes:
-    p = subprocess.run(["git","--no-replace-objects","-C",str(repo),*args],capture_output=True)
+    p = subprocess.run(["git","--no-replace-objects","-C",str(repo),*args],capture_output=True,check=False)
     if p.returncode:
         raise ValueError(f"Git failed at {args[:2]}: {p.stderr[:280]!r}")
     return p.stdout
@@ -155,6 +156,34 @@ def candidate_zone(path: str,zones: list[dict]) -> str:
     raise ValueError("Unclassified physical source path: "+path)
 
 
+def add_current_owner_source_zones(zones: list[dict], owner_manifest: dict,
+                                   current_paths: set[str]) -> None:
+    """Classify new *physical* owner roots without rewriting frozen 2026 seeds.
+
+    The same exact Git SourceCut supplies the existing mechanical owner map.
+    Source labels are not semantic ownership, deployment or LEGO admission.
+    Unregistered/uncovered source paths must still fail closed.
+    """
+    if owner_manifest.get("truth_role") != "repository-mechanics-only-not-domain-authority":
+        raise ValueError("source partition requires the mechanical owner manifest")
+    for owner in owner_manifest.get("owners", []):
+        root, name = owner["root"], owner["name"]
+        if (not isinstance(root, str) or not root.endswith("/")
+            or root.startswith("/") or ".." in root.split("/")
+            or "\\" in root or "//" in root
+            or not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9-]*", name)):
+            raise ValueError("noncanonical source owner root/name")
+        # Only add a source-only label if existing historical/migration
+        # regions leave an actual tracked file under this owner unclassified.
+        uncovered = any(path.startswith(root) and not any(
+            zone.get("sourcePrefix") and path.startswith(zone["sourcePrefix"])
+            for zone in zones
+        ) for path in current_paths)
+        if uncovered:
+            zones.append({"legacyName": None, "sourcePrefix": root,
+                          "sourceRef": "zone/registered-source-owner-" + name})
+
+
 def compile_projection(repo: Path, cut: str) -> dict:
     rows=exact_tree(repo,cut)
     # The bounded source naming seeds are part of the same exact Git cut.
@@ -162,11 +191,101 @@ def compile_projection(repo: Path, cut: str) -> dict:
     seed=json.loads(git("show",cut+":"+SEED_PATH,repo=repo))
     if seed.get("truthRole")!="NON_AUTHORITATIVE_SOURCE_LABEL_EVIDENCE_NOT_IMPLEMENTATION":
         raise ValueError("source naming seed cannot grant functional authority")
-    zones=seed["sourceRegions"]
+    # Source naming seeds are historical, content-addressed observations.
+    # Reuse the Structure R2 relocation contract at this exact Git cut to
+    # project a retired physical prefix onto its current location. The source
+    # region identity remains unchanged: a move is not a semantic renaming.
+    zones=[dict(zone) for zone in seed["sourceRegions"]]
+    relocation=json.loads(git("show",cut+":docs/architecture/structure-r2-transition-r1.json",repo=repo))
+    current_paths={row["path"] for row in rows}
+    moves={}
+    for mapping in relocation["mappings"]:
+        if mapping.get("mode")!="move" or mapping.get("standing")!="DEPLOYED":
+            continue
+        if len(mapping["sourcePaths"])!=1 or len(mapping["targetPaths"])!=1:
+            continue
+        old,new=mapping["sourcePaths"][0],mapping["targetPaths"][0]
+        if any(path.startswith(old) for path in current_paths) or not any(
+            path.startswith(new) for path in current_paths
+        ):
+            raise ValueError("Deployed source relocation contradicts Git SourceCut: "+old)
+        moves[old]=new
+        exact=[z for z in zones if z.get("sourcePrefix")==old]
+        if exact:
+            for zone in exact:zone["sourcePrefix"]=new
+        elif not any(z.get("sourcePrefix")==new for z in zones):
+            # One nested S5 catalog moved out of a still-populated historical
+            # region. Reuse the narrowest existing lexical label, not a new
+            # semantic zone, Owner, or routing registry. A current target that
+            # already has a lexical zone must not be duplicated.
+            parents=[z for z in zones if z.get("sourcePrefix")
+                     and old.startswith(z["sourcePrefix"])]
+            if parents:
+                parent=max(parents,key=lambda z:len(z["sourcePrefix"]))
+                zones.append({**parent,"sourcePrefix":new})
+
     dense=seed["denseCellAliases"]
     specific=seed["specificPathDisplayAliases"]
-    if len(dense)!=60 or len(zones)!=30 or len(specific)!=26:
+    if len(dense)!=60 or len(seed["sourceRegions"])!=30 or len(specific)!=26:
         raise ValueError("SourceCut must provide 30 zones, 60 dense and 26 specific alias candidates")
+
+    def current_prefix(historical: str) -> str:
+        for old,new in sorted(moves.items(),key=lambda pair:len(pair[0]),reverse=True):
+            if historical.startswith(old):
+                return new+historical[len(old):]
+        return historical
+
+    # Split relocation aliases only map physical paths onto an EXISTING source
+    # region. They cannot invent semantic Owner identities or modify the frozen
+    # name seeds. Both mapping and current files come from the exact Git cut.
+    for mapping in relocation["mappings"]:
+        if mapping.get("mode")!="split" or mapping.get("standing") not in {
+            "DEPLOYED","PARTIALLY_DEPLOYED"
+        }:
+            continue
+        if len(mapping.get("sourcePaths",[]))!=1:
+            continue
+        old=mapping["sourcePaths"][0]
+        seeds=[z for z in zones if z.get("sourcePrefix")==old]
+        if not seeds:
+            # A split can outlive its original source directory after retirement.
+            # Reuse the nearest seeded parent for both partial and fully deployed
+            # placements: lexical classification is not Owner admission.
+            parents=[z for z in zones if z.get("sourcePrefix")
+                     and old.startswith(z["sourcePrefix"])]
+            if parents:
+                specificity=max(len(z["sourcePrefix"]) for z in parents)
+                seeds=[z for z in parents if len(z["sourcePrefix"])==specificity]
+        if len(seeds)!=1:
+            continue
+        old_still_present=any(path.startswith(old) for path in current_paths)
+        if mapping.get("standing")=="DEPLOYED" and old_still_present:
+            raise ValueError("deployed source split retains old tracked SourceCut: "+old)
+        if mapping.get("standing")=="PARTIALLY_DEPLOYED" and not old_still_present:
+            raise ValueError("partial source split has no current source: "+old)
+        placements=mapping.get("currentPlacementPaths")
+        if not isinstance(placements,list) or not placements:
+            raise ValueError("deployed source split missing placed prefixes: "+old)
+        for placed in placements:
+            if (not isinstance(placed,str) or not placed.endswith("/")
+                or placed.startswith("/") or ".." in placed.split("/")
+                or not any(placed.startswith(t) for t in mapping["targetPaths"])
+                or not any(path.startswith(placed) for path in current_paths)):
+                raise ValueError("deployed source split placement not grounded: "+str(placed))
+            if any(z["sourcePrefix"]==placed for z in zones):
+                # Reuse an exact existing source region. For Research,
+                # profiles/research already has a historically seeded label;
+                # adding a duplicate would make the classification ambiguous.
+                continue
+            alias=dict(seeds[0])
+            alias["sourcePrefix"]=placed
+            zones.append(alias)
+    # Post-seed owner additions use the existing mechanical manifest at this
+    # exact SourceCut. Do not edit historical naming evidence to add a path.
+    current_owner_manifest = tomllib.loads(git(
+        "show", cut+":tools/repo/owners.toml", repo=repo
+    ).decode("utf8"))
+    add_current_owner_source_zones(zones, current_owner_manifest, current_paths)
     if len({v["candidateName"] for v in specific})!=26:
         raise ValueError("duplicate scoped source display aliases")
     for v in specific:
@@ -182,7 +301,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
     eligible=[oid for oid in oids if sizes[oid]<=MAX_READ_BYTES]
     content=batch_contents(repo,eligible,sizes)
     content_counts=collections.Counter(); zones_count=collections.Counter()
-    inspected=collections.Counter();labels=collections.Counter(); ambiguity=collections.Counter()
+    inspected=collections.Counter(); ambiguity=collections.Counter()
     path_rows=[];dense_hits=collections.defaultdict(list); maxsize=0
     for entry in rows:
         path=entry["path"]; zone=candidate_zone(path,zones)
@@ -192,7 +311,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
         inspected[content_info["readStanding"]]+=1
         match=[]
         for label in dense:
-            prefix=label["sourcePrefix"]
+            prefix=current_prefix(label["sourcePrefix"])
             direct=label["directOnly"]
             if path.startswith(prefix) and (not direct or "/" not in path[len(prefix):]):
                 match.append(label["proposedName"])
@@ -210,7 +329,8 @@ def compile_projection(repo: Path, cut: str) -> dict:
     scoped_summary=[]
     for alias in specific:
         prefix=alias["sourcePrefix"]
-        members=[row for row in path_rows if row["path"].startswith(prefix)]
+        active_prefix=current_prefix(prefix)
+        members=[row for row in path_rows if row["path"].startswith(active_prefix)]
         contents=collections.Counter(row["contentProbe"]["contentForm"] for row in members)
         # A kind field is a syntactic self-description, not verification
         # of a live authority, producer, consumer or executable behavior.
@@ -220,6 +340,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
         )
         scoped_summary.append({
             "oldSourcePrefix":prefix,
+            "currentSourcePrefix":active_prefix,
             "proposedAgentDisplayName":alias["candidateName"],
             "priorSourceCutCount":alias["priorTrackedCount"],
             "observedCurrentCount":len(members),
@@ -275,13 +396,17 @@ def compile_projection(repo: Path, cut: str) -> dict:
     dense_summary=[]
     for label in dense:
         name=label["proposedName"];paths=sorted(dense_hits[name])
-        if not paths: raise ValueError("prior dense label became empty: "+name)
+        # Historical naming seeds are not an active-path authority. Source
+        # relocation or retirement can legitimately leave a lexical seed
+        # with no current physical members; report zero instead of requiring
+        # an obsolete directory or inventing a second relocation registry.
         byform=collections.Counter(r["contentProbe"]["contentForm"] for r in path_rows if r["path"] in set(paths))
         dense_summary.append({"cellRef":label["sourceCell"],"label":name,
                               "oldCount":label["baselineCount"],"newCount":len(paths),
                               "sourceCutDrift":len(paths)-label["baselineCount"],
                               "observedForms":dict(sorted(byform.items())),
-                              "scopeStanding":"DENSE_LABEL_CONTENT_SYNTAX_REFINEMENT_ONLY"})
+                              "scopeStanding":"DENSE_LABEL_CONTENT_SYNTAX_REFINEMENT_ONLY" if paths
+                              else "HISTORICAL_LABEL_NO_CURRENT_PHYSICAL_MATCH"})
     payload={
       "kind":"ordivon.phase1.source-content-facets-r4",
       "sourceCut":cut,"sourceTree":git("rev-parse",cut+"^{tree}",repo=repo).decode().strip(),

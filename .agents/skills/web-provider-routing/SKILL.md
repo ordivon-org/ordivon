@@ -18,28 +18,28 @@ Do not classify by keywords alone. Infer the task's actual interaction needs, th
 5. If current page state must determine the next action, use Browser Use.
 6. Use Computer Use only when required interaction crosses outside browser semantics.
 
-Run the current local census before relying on a local provider:
+Run from the current monorepo root so the route script resolves on the actual checkout, then inspect this node's provider census before relying on a local provider:
 
 ```bash
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py --census
+python catalogs/capabilities/routing/web_interaction_route.py --census
 ```
 
 For a route decision, translate the task into explicit facts rather than passing natural language to a classifier. Examples:
 
 ```bash
 # Public read-only page
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py
+python catalogs/capabilities/routing/web_interaction_route.py
 
 # Unknown/stateful browser UI
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py \
+python catalogs/capabilities/routing/web_interaction_route.py \
   --requires-interaction --adaptive-browser-reasoning
 
 # Known deterministic browser flow; current-node Playwright availability is discovered from Workstation v2
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py \
+python catalogs/capabilities/routing/web_interaction_route.py \
   --requires-interaction --deterministic-browser-flow
 
 # Desktop interaction only when the current carrier actually provides Computer Use
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py \
+python catalogs/capabilities/routing/web_interaction_route.py \
   --requires-interaction --requires-desktop-gui --caller-available computer_use
 ```
 
@@ -65,7 +65,7 @@ When the decision selects `browser_use` on this node, use the structured isolate
 /opt/ordivon/agent-automation/current/scripts/browser_use_browserless.py
 ```
 
-Keep one stable `--session-id` for the bounded task. Use `open -> observe -> click/input/scroll/back/tabs -> observe -> close`. Bind click/input to the observed index plus role and accessible name. Re-observe after meaningful state changes. `browser-agent-*` is the generic pool; never consume `chatgpt-carrier-11/12/13` for ordinary web tasks.
+Keep one stable `--session-id` for the bounded task. Use `open -> observe -> click/input/scroll/back/tabs -> observe -> close`. Bind click/input to the observed index, role, accessible name, and `backendDOMNodeId` using `--expect-backend-dom-node-id`. Without a bound node ID, identical role/name targets are rejected rather than guessed. Re-observe after meaningful state changes and any ambiguous or stale-target error; do not retry a potentially effected action without checking domain state. `browser-agent-*` is the generic pool; never consume `chatgpt-carrier-11/12/13` for ordinary web tasks.
 
 ## Completion boundary
 
