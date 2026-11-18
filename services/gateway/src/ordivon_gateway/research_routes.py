@@ -281,8 +281,9 @@ _PROJECTED = [
     {
         "capability": "research.study.verify",
         "completion_owner": "study",
-        "description": "Run the repository-owned portable Research profile/currentness verification "
-        "recipe.",
+        "description": "Study-owned profile/currentness verification discovery only. No full "
+        "profile/currentness verifier is exposed; Research-v2 check-all only "
+        "validates Study birth policy.",
         "execution_capability": None,
         "invocation_recipes": [],
         "preferred_skills": [],
@@ -355,8 +356,8 @@ _PROJECTED = [
     {
         "capability": "research.scholarly.intelligence",
         "completion_owner": "study",
-        "description": "Project Study-owned scholarly state across independent axes without creating a "
-        "universal scientific ontology.",
+        "description": "Describe Study-owned claim, evidence, review and publication axes; "
+        "no cross-axis executable scholarly qualifier is currently exposed.",
         "execution_capability": None,
         "invocation_recipes": [],
         "preferred_skills": [],
