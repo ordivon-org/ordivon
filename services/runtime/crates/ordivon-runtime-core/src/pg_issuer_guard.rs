@@ -1,9 +1,12 @@
-//! One existing PostgreSQL cluster, one source Run serialization cut, and
-//! one Runtime Job admission transaction. No new Store/authority table.
+//! One existing PostgreSQL cluster and the original Harness Run SQL
+//! serialization cut, reused in BOTH new-Job admission and later PG Dispatch.
+//! The sole Scheduler carries the operator-bound dedicated principal/schema;
+//! ordinary Jobs do not acquire a foreign Harness admission requirement.
 //!
-//! This is an OPTIONAL admission-current policy. It neither authenticates
-//! arbitrary foreignReferences without an issuer PG read nor claims that
-//! source authority remains current at a later systemd-run spawn.
+//! This checks source currentness only at each committed PG transaction cut.
+//! It is NOT an authorization lease across PG-commit -> native Launcher
+//! in-flight -> systemd Unit birth, nor a strict NoFutureSpawn or Domain ACK.
+//! No new Registry, authority table, or scheduler is introduced.
 use super::{PgAdmissionError, PgAdmissionInput};
 use postgres::Transaction;
 use serde_json::Value;
