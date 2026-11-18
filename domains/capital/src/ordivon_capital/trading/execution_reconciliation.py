@@ -116,6 +116,26 @@ def reconcile_fix_intent(
         order = orders[-1]
         exec_type, ord_status = _status_to_fix(venue, order.get('status'))
         lifecycle = _lifecycle(order, exec_type, ord_status)
+        # Trade IDs and quantities alone cannot authorize a transfer for a
+        # different instrument. Check every matching venue snapshot row,
+        # not only the final order-status projection.
+        instrument = intent.get('symbol')
+        # The existing non-live Nautilus projection uses venue-qualified
+        # instrument IDs (BTCUSDT.BINANCE); venue-native private snapshots
+        # use BTCUSDT. Match only these two exact, venue-specific spellings.
+        allowed_instruments = (
+            {instrument, f"{instrument}.{venue}"}
+            if type(instrument) is str and instrument else set()
+        )
+        if (
+            not allowed_instruments
+            or any(row.get('instrumentId') not in allowed_instruments for row in orders)
+            or any(row.get('instrumentId') not in allowed_instruments for row in fills)
+        ):
+            return _result(
+                intent, venue, 'CONTRADICTORY', lifecycle, fills,
+                'venue order/fill instrument differs from committed FIX intent',
+            )
         requested = _dec(intent.get('orderQty'))
         original = _dec(order.get('originalQty'))
         executed = _dec(order.get('executedQty'))

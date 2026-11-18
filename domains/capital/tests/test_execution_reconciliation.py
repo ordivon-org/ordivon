@@ -145,3 +145,27 @@ def test_duplicate_venue_trade_ids_are_not_twice_counted_as_full_fill():
     )
     assert x["standing"] == "CONTRADICTORY"
     assert x["reservationResolution"] == "NO_MUTATION"
+
+
+@pytest.mark.parametrize(
+    ("order_symbol", "fill_symbol"),
+    (
+        ("ETHUSDT", "BTCUSDT"),
+        ("BTCUSDT", "ETHUSDT"),
+        ("BTCUSDT.OKX", "BTCUSDT.BINANCE"),
+        ("BTCUSDT.BINANCE", "BTCUSDT.OKX"),
+        ("BTCUSDT.BINANCE", "ETHUSDT.BINANCE"),
+    ),
+)
+def test_wrong_instrument_cannot_settle_reservation_even_when_trade_ids_and_qty_match(
+    order_symbol, fill_symbol,
+):
+    """Venue order/trade identity is not sufficient without instrument identity."""
+    observed_order = dict(order("FILLED", "0.1"), instrumentId=order_symbol)
+    observed_fill = dict(fill(), instrumentId=fill_symbol)
+    result = reconcile_fix_intent(
+        intent=INTENT,
+        reality=reality(history=[observed_order], fills=[observed_fill]),
+    )
+    assert result["standing"] == "CONTRADICTORY"
+    assert result["reservationResolution"] == "NO_MUTATION"
