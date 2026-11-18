@@ -652,6 +652,17 @@ def main() -> int:
             "independentHostReadinessObservations": _independent_host_readiness_observations(),
             "truthBoundary": "release precondition only; Security PDP and Host remain authoritative",
         }
+    # The installer treats exit 0 as permission to promote, whereas this
+    # checker currently proves *necessary* conditions only. Explanatory
+    # "unverified" strings are not trustworthy release-authorization inputs:
+    # even an empty or renamed list cannot qualify a real Agent consumer.
+    # Deliberately fail closed until natural Owners supply independently
+    # verifiable pre-promotion Principal/Host/Cloudflare/Agent receipts and
+    # the existing checker is refined to consume them. Post-promotion
+    # revalidation is a separate obligation, not a pre-promotion condition.
+    if standing["status"] == "NECESSARY_PRECONDITIONS_PRESENT":
+        standing["status"] = "NO_GO"
+        standing["reasons"].append("INDEPENDENT_CONSUMER_CUTOVER_NOT_VERIFIED")
     print(json.dumps(standing, sort_keys=True))
     return 0 if standing["status"] == "NECESSARY_PRECONDITIONS_PRESENT" else 3
 
