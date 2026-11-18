@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import re
 import os
+from collections.abc import Iterator
+from contextlib import contextmanager
 from types import TracebackType
 
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+from psycopg.pq import TransactionStatus
 
 from .core_contracts import HarnessRunContract
 from .store_errors import (
@@ -236,6 +239,47 @@ class PostgresHarnessStore:
     def close(self) -> None:
         self.connection.close()
 
+
+    @contextmanager
+    def _history_snapshot(self, *, harness_run_id: str | None = None) -> Iterator[None]:
+        """Read one self-consistent original PostgreSQL history without a second Store.
+
+        The normal autocommit Store uses a fresh read-only REPEATABLE READ
+        snapshot. If invoked inside an existing caller-owned transaction, it
+        cannot silently change the caller's isolation: either the caller already
+        has a stable snapshot, or a writable READ COMMITTED transaction fences
+        original writers using their existing Run-row FOR UPDATE discipline.
+        """
+        standalone = self.connection.info.transaction_status is TransactionStatus.IDLE
+        with self.connection.transaction():
+            if standalone:
+                self.connection.execute(
+                    "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"
+                )
+            else:
+                level = self.connection.execute(
+                    "SHOW transaction_isolation"
+                ).fetchone()["transaction_isolation"]
+                if level == "read committed":
+                    read_only = self.connection.execute(
+                        "SHOW transaction_read_only"
+                    ).fetchone()["transaction_read_only"]
+                    if read_only == "on":
+                        raise HarnessJournalCorruption(
+                            "read-only caller transaction has no stable history snapshot"
+                        )
+                    if harness_run_id is None:
+                        self.connection.execute(
+                            "SELECT harness_run_id FROM runs ORDER BY harness_run_id FOR SHARE"
+                        ).fetchall()
+                    else:
+                        self.connection.execute(
+                            "SELECT harness_run_id FROM runs "
+                            "WHERE harness_run_id=%s FOR SHARE",
+                            (harness_run_id,),
+                        ).fetchall()
+            yield
+
     def _object(self, value: JsonValue, kind: str, *, now_ms: int = 0) -> StoredHarnessObject:
         if not isinstance(kind, str) or not kind or kind != kind.strip():
             raise ValueError("Harness object kind must be non-empty and trimmed")
@@ -443,6 +487,51 @@ class PostgresHarnessStore:
             lease_checked_at_ms=lease_checked_at_ms,
         )
 
+    def _require_original_unknown_stop_receipt(
+        self,
+        *,
+        harness_run_id: str,
+        contract_digest: str,
+        data: dict[str, JsonValue],
+        referenced_receipt_digests: set[str],
+    ) -> None:
+        """One original typed UNKNOWN receipt rule for Writer and Doctor.
+
+        The stopped projection cannot prove this by its stopCode alone.
+        Only the original immutable typed receipt with an Event reference and
+        exact Contract/Run binding can justify UNKNOWN audit quarantine. It
+        never authorizes physical resource release.
+        """
+        from .independent_result import IndependentHarnessRunReceipt
+
+        receipt_object_digest = data.get("runReceiptObjectDigest")
+        receipt_digest = data.get("runReceiptDigest")
+        if (
+            not isinstance(receipt_object_digest, str)
+            or not isinstance(receipt_digest, str)
+            or receipt_object_digest not in referenced_receipt_digests
+        ):
+            raise HarnessTerminalConflict(
+                "UNKNOWN fault requires its original typed immutable Run Receipt"
+            )
+        raw = self.get_object(
+            receipt_object_digest,
+            expected_kind="independent-harness-run-receipt",
+        )
+        if not isinstance(raw, dict):
+            raise HarnessTerminalConflict("UNKNOWN fault Run Receipt is not an object")
+        receipt = IndependentHarnessRunReceipt.from_dict(raw)
+        if (
+            receipt.digest != receipt_digest
+            or receipt.harness_run_id != harness_run_id
+            or receipt.contract_digest != contract_digest
+            or receipt.termination_code != data.get("stopCode")
+            or receipt.stop_reason != "unknown"
+        ):
+            raise HarnessTerminalConflict(
+                "UNKNOWN fault Run Receipt differs from original Run identity"
+            )
+
     def append_events(
         self,
         *,
@@ -553,39 +642,17 @@ class PostgresHarnessStore:
                 # immutable QUARANTINED_HELD audit evidence; NOT a safe
                 # physical-effect release. A raw stopCode alone cannot
                 # bypass the qualified normal terminal guard.
-                from .independent_result import IndependentHarnessRunReceipt
-
                 fault = prepared[-1][0]
-                receipt_object_digest = fault.data.get("runReceiptObjectDigest")
-                receipt_digest = fault.data.get("runReceiptDigest")
-                if (
-                    not isinstance(receipt_object_digest, str)
-                    or not isinstance(receipt_digest, str)
-                    or not any(
-                        ref.digest == receipt_object_digest and ref.kind == "independent-harness-run-receipt"
+                self._require_original_unknown_stop_receipt(
+                    harness_run_id=harness_run_id,
+                    contract_digest=current.contract_digest,
+                    data=fault.data,
+                    referenced_receipt_digests={
+                        ref.digest
                         for ref in fault.referenced_objects
-                    )
-                ):
-                    raise HarnessTerminalConflict(
-                        "UNKNOWN fault requires its original typed immutable Run Receipt"
-                    )
-                raw = self.get_object(
-                    receipt_object_digest,
-                    expected_kind="independent-harness-run-receipt",
+                        if ref.kind == "independent-harness-run-receipt"
+                    },
                 )
-                if not isinstance(raw, dict):
-                    raise HarnessTerminalConflict("UNKNOWN fault Run Receipt is not an object")
-                fault_receipt = IndependentHarnessRunReceipt.from_dict(raw)
-                if (
-                    fault_receipt.digest != receipt_digest
-                    or fault_receipt.harness_run_id != harness_run_id
-                    or fault_receipt.contract_digest != current.contract_digest
-                    or fault_receipt.termination_code != fault.data["stopCode"]
-                    or fault_receipt.stop_reason != "unknown"
-                ):
-                    raise HarnessTerminalConflict(
-                        "UNKNOWN fault Run Receipt differs from original Run identity"
-                    )
                 unknown_quarantine = True
             if terminal_id is not None and not unknown_quarantine:
                 # All normal and non-UNKNOWN terminal admissions require
@@ -866,7 +933,65 @@ class PostgresHarnessStore:
         if changed != 1:
             raise HarnessLeaseConflict("Harness Run lease changed during batch")
 
+
+    def _validate_event_edges(
+        self,
+        harness_run_id: str,
+        events: tuple[HarnessRunEventRecord, ...],
+        *,
+        contract_object_digest: str,
+    ) -> None:
+        """Verify mandatory original Event edges without inventing optional refs.
+
+        The durable Event row is authoritative for its payload digest, and the
+        Run projection is authoritative for the creation Contract digest. Other
+        optional reference edges may not be reconstructed from an opaque event
+        payload; this check does NOT certify their completeness.
+        """
+        rows = self.connection.execute(
+            "SELECT e.event_id, e.payload_digest, e.event_kind, "
+            "r.digest AS reference_digest, r.role AS reference_role, "
+            "r.harness_run_id AS reference_run_id "
+            "FROM run_events e "
+            "LEFT JOIN run_object_refs r ON r.event_id=e.event_id "
+            "WHERE e.harness_run_id=%s ORDER BY e.run_revision",
+            (harness_run_id,),
+        ).fetchall()
+        refs: dict[str, set[tuple[str, str]]] = {}
+        for row in rows:
+            event_id = row["event_id"]
+            ref_digest = row["reference_digest"]
+            if ref_digest is None or row["reference_run_id"] != harness_run_id:
+                raise HarnessJournalCorruption(
+                    "Original Run Event has missing or foreign-owned object references"
+                )
+            refs.setdefault(event_id, set()).add(
+                (row["reference_role"], ref_digest)
+            )
+        if set(refs) != {event.event_id for event in events}:
+            raise HarnessJournalCorruption("Original Run Event reference graph differs")
+        for event in events:
+            edges = refs[event.event_id]
+            payload_edges = {digest for role, digest in edges if role == "payload"}
+            if payload_edges != {event.payload_digest}:
+                raise HarnessJournalCorruption(
+                    "Original Run Event payload reference differs from Journal"
+                )
+            if event.event_kind == "harness.run-created":
+                expected = {
+                    ("payload", event.payload_digest),
+                    ("reference", contract_object_digest),
+                }
+                if edges != expected:
+                    raise HarnessJournalCorruption(
+                        "Original Run creation Contract reference differs"
+                    )
+
     def validate_run_history(self, harness_run_id: str) -> None:
+        with self._history_snapshot(harness_run_id=harness_run_id):
+            self._validate_run_history_snapshot(harness_run_id)
+
+    def _validate_run_history_snapshot(self, harness_run_id: str) -> None:
         projection = self.load_run(harness_run_id)
         events = self.list_run_events(harness_run_id)
         if not events or events[0].event_kind != "harness.run-created":
@@ -899,6 +1024,10 @@ class PostgresHarnessStore:
         )
         if not isinstance(contract, dict):
             raise HarnessObjectCorrupt("Harness Run contract object must be dict")
+        self._validate_event_edges(
+            harness_run_id, events,
+            contract_object_digest=projection.contract_object_digest,
+        )
         try:
             restored = HarnessRunContract.from_dict(contract)
         except ValueError as error:
@@ -910,14 +1039,99 @@ class PostgresHarnessStore:
             or restored.caller_run_ref != projection.caller_run_ref
         ):
             raise HarnessJournalCorruption("Run contract metadata differs from Journal")
+        if (
+            status is HarnessRunStatus.STOPPED
+            and events[-1].event_kind == "harness.run-stopped"
+            and events[-1].data.get("stopCode") in {
+                "provider_state_unknown",
+                "runtime_unknown",
+                "cancel_unknown",
+            }
+        ):
+            # Legacy/foreign Writers may have bypassed the typed admission
+            # fence. Doctor must not certify a raw stopCode as healthy history.
+            # Reuse Writer's *same* original receipt rule, not a parallel
+            # approximation or another pending-state registry.
+            references = {
+                row["digest"]
+                for row in self.connection.execute(
+                    "SELECT digest FROM run_object_refs "
+                    "WHERE event_id=%s AND role='reference'",
+                    (events[-1].event_id,),
+                )
+            }
+            try:
+                self._require_original_unknown_stop_receipt(
+                    harness_run_id=harness_run_id,
+                    contract_digest=projection.contract_digest,
+                    data=events[-1].data,
+                    referenced_receipt_digests=references,
+                )
+            except (HarnessTerminalConflict, HarnessObjectMissing,
+                    HarnessObjectCorrupt, ValueError, TypeError) as error:
+                raise HarnessJournalCorruption(
+                    "UNKNOWN terminal lacks its qualified original Run Receipt"
+                ) from error
 
     def doctor(self, *, full: bool = True) -> dict[str, JsonValue]:
+        with self._history_snapshot():
+            return self._doctor_consistent(full=full)
+
+    def _doctor_consistent(self, *, full: bool = True) -> dict[str, JsonValue]:
         objects = self.connection.execute("SELECT digest FROM objects").fetchall()
         for row in objects:
             self.inspect_object(row["digest"])
         runs = self.list_runs()
         for run in runs:
-            self.validate_run_history(run.harness_run_id)
+            self._validate_run_history_snapshot(run.harness_run_id)
+            if not run.status.terminal:
+                continue
+            history = self.list_run_events(run.harness_run_id)
+            if not any(
+                event.event_kind.startswith(
+                    ("harness.provider-call-", "harness.tool-step-")
+                )
+                for event in history
+            ):
+                continue
+            if (
+                run.status is HarnessRunStatus.STOPPED
+                and history[-1].data.get("stopCode") in {
+                    "provider_state_unknown",
+                    "runtime_unknown",
+                    "cancel_unknown",
+                }
+            ):
+                # The original typed UNKNOWN terminal was verified above.
+                # Pending external effects belong to QUARANTINED_HELD, not a
+                # healthy normal terminal, so do not require them settled.
+                continue
+            from .ordivon.continuity_guards import inspect_all_unsettled_effect_sources
+            from .ordivon.run_continuity import EventSourcedRunContinuity
+
+            # Reuse the Writer's original typed complete-history scanner and
+            # CAS Provider reader. This is a pure read; neither a second
+            # Pending registry nor a Domain/Runtime release certification.
+            try:
+                continuity = EventSourcedRunContinuity.open(
+                    self, run.harness_run_id
+                )
+                pending_provider, pending_tool = inspect_all_unsettled_effect_sources(
+                    history,
+                    store=self,
+                    harness_run_id=run.harness_run_id,
+                    binding=continuity.binding,
+                    allow_tool_content=continuity.contract.privacy.allow_tool_content,
+                    provider_record_reader=continuity._load_provider_from_event,
+                )
+            except (ValueError, TypeError, KeyError) as error:
+                raise HarnessJournalCorruption(
+                    "terminal Run has invalid original Provider/Tool evidence"
+                ) from error
+            if pending_provider or pending_tool:
+                raise HarnessJournalCorruption(
+                    "normal terminal Run retains unsettled original Provider/Tool effects"
+                )
         events = self.connection.execute("SELECT count(*) AS n FROM run_events").fetchone()["n"]
         leases = self.connection.execute("SELECT count(*) AS n FROM run_leases").fetchone()["n"]
         return {
@@ -934,6 +1148,8 @@ class PostgresHarnessStore:
                 "canonical-object-sha256",
                 "contiguous-run-journal",
                 "contract-binding",
+                "mandatory-event-reference-graph",
+                "single-pg-snapshot",
             ],
             "quickCheck": ["not-applicable-postgresql"],
         }
