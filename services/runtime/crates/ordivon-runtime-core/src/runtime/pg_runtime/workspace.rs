@@ -393,7 +393,7 @@ impl PgRuntime {
             .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.open")?;
         result.retention_notice = Some(
-            "PG Runtime Workspace is temporary. The installed systemd lifecycle timer has an operator-defined cadence; do not assume an hourly sweep. Four hours after the latest Job activity is a minimum quiet period, not an ownership lease or promised cleanup time. An eligible clean Workspace may be reclaimed after native Job, source, and policy checks. Other Agent or external consumers are not proven absent by Job completion or a caller's consumerReleased assertion. Publish valuable source and ignored outputs to their real Git/Artifact/destination consumers and read them back before relinquishing the Workspace. Continue unfinished work in a new or retained Workspace."
+            "PG Runtime Workspace is temporary. The systemd lifecycle timer may be disabled; when enabled, its cadence is operator-defined and no cleanup is guaranteed. Four hours after the latest Job activity is a minimum quiet period, not an ownership lease or promised cleanup time. An eligible clean Workspace may be reclaimed after native Job, source, and policy checks. Other Agent or external consumers are not proven absent by Job completion or a caller's consumerReleased assertion. Publish valuable source and ignored outputs to their real Git/Artifact/destination consumers and read them back before relinquishing the Workspace. Continue unfinished work in a new or retained Workspace."
                 .to_string(),
         );
         Ok(result)
