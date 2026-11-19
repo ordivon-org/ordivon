@@ -112,6 +112,25 @@ func run_acceptance() -> void:
     root.add_child(alternate)
     var replacement_view = alternate.get_node("View")
     expect(replacement_view.modulate.g > 0.9, "alternative Godot scene has independent rendering")
+    expect(replacement_view.get_node("Title").text == "ALTERNATE PLAYER PRESENTATION",
+        "alternate scene preserves presentation title override")
+    expect(alternate.get_node("Rules").reset_run(load("res://configs/tactical_trial.tres")),
+        "alternate native View accepts valid Trial Rules Resource")
+    expect(replacement_view.get_node("Title").text == "ALTERNATE PLAYER PRESENTATION",
+        "inherited alternate View explicitly retains its custom title under Trial")
+    expect(alternate.get_node("Rules").reset_run(),
+        "restore Classic on alternate View for normal consumer assertions")
+    for button_spec in [["Attack", "Strike"], ["Guard", "Defend"],
+                        ["Next", "Door"], ["Restart", "Reset"]]:
+        expect(replacement_view.get_node("Actions/" + button_spec[0]).text == button_spec[1],
+            "native inherited HUD preserves alternate action label " + button_spec[0])
+    expect(replacement_view.get_node("Hint") is Label
+        and replacement_view.get_node("Outcome") is Label
+        and replacement_view.get_node("Actions/Trial") is Button
+        and replacement_view.get_node("Actions/Classic") is Button,
+        "alternate presentation inherits current combat forecast/outcome and Trial controls")
+    expect(replacement_view.get_node("Actions/Attack").get_parent() is HFlowContainer,
+        "alternate presentation retains current responsive native action layout")
     replacement_view.get_node("Actions/Attack").pressed.emit()
     expect(alternate.get_node("Rules").snapshot()["phase"] == "cleared", "alternate button invokes unchanged rule action")
     expect(alternate.get_node("EncounterAudio").observed_play_count == 1, "alternate HUD retains sound consumer")
@@ -320,6 +339,23 @@ func run_acceptance() -> void:
                     expect(state_before["player_health"] - state_after["player_health"] ==
                         prediction[key], "every accepted native action obeys its pre-action forecast")
                 invariant(state_after)
+
+    # A direct, valid Rule Resource replacement must not be silently
+    # overridden by a second root-local mode flag on Restart.
+    expect(game.start_classic_run(), "prepare Classic root before direct Rule trial replacement")
+    expect(rules.reset_run(trace_trial), "direct typed Trial Resource accepted by one native Rules owner")
+    expect(view.get_node("Title").text.begins_with("TACTICAL TRIAL"),
+        "native Title reflects direct Rules Trial selection, not stale root UI mode")
+    game.restart_run()
+    expect(rules.snapshot().has("forecast") and rules.snapshot()["foes"] == 2,
+        "Restart preserves the active Rule-selected Trial Resource")
+    expect(rules.reset_run(variant), "direct typed variant Resource accepted by Rules")
+    expect(view.get_node("Title").text.begins_with("ORIGINAL GRAYBOX"),
+        "native Title reflects direct Rules Classic/variant selection")
+    game.restart_run()
+    expect(rules.snapshot()["total_rooms"] == 2,
+        "Restart preserves a valid active Rule variant, not root-local Classic fallback")
+    expect(game.start_classic_run(), "restore normal Classic before remaining checkpoint controls")
 
     var damaged := ConfigFile.new()
     damaged.set_value("run", "schema_version", 1)

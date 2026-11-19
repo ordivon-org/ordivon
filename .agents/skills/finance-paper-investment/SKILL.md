@@ -472,3 +472,33 @@ absent, record \`NATIVE_CONSUMER_UNKNOWN\`, never promote a skip to PASS.
 Account-state snapshots and original pending transfer status can be
 updated by the current PG implementation; do not falsely assume
 TigerBeetle's immutable-original-transfer storage model.
+
+
+## Monthly Paper account → native contribution plan (read-only, 2026-11-13)
+
+When a user asks "Given my **current committed Paper account**, where
+could this month's already-deposited virtual cash go without selling anything?",
+use the existing `portfolio.paper_contribution_plan` consumer. This is
+not a new allocator: it delegates to Accounting
+`read_latest_committed_paper_close`, Markets
+`admit_etf_eod_snapshot`, Risk `review_paper_close_risk`, and Portfolio
+`plan_strategic_contribution`.
+
+For exact CLI usage see `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md`.
+Provide account, matching private EOD snapshot and binding,
+caller-chosen target-weight bps map, and `--invest-minor` amount
+already posted to Paper; choose `--format markdown` for users.
+Do **not** interpret the amount as a fresh bank deposit.
+The original Portfolio operator keeps protected cash untouched;
+Risk excludes uncommitted purchase payables and unsettled sale receivables.
+Plans for assets lacking quotes explicitly report unpriced targets.
+No share count, broker order, or investment advice is inferred.
+
+The published module's direct projection is offline and reports
+accountingPersistenceReverified=false; only its actual Paper PG CLI
+sets it true after reading the native account head.
+Market-license/PIT/corporate action evidence is still operator-bound,
+not independently attested. UNSET risk is not approval. This is
+`SIMULATION_ONLY` and `executionAuthorized=false`.
+Run `tests/test_paper_contribution_plan.py` with the disposable
+`ordivon_paper` database for real consumer acceptance.

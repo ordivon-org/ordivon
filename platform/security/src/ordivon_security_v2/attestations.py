@@ -10,7 +10,11 @@ VSA_PREDICATE = "https://slsa.dev/verification_summary/v1"
 
 
 def sha256_file(path: Path) -> str:
-    return sha256(path.read_bytes()).hexdigest()
+    digest = sha256()
+    with path.open("rb") as source:
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def subject_descriptor(*, name: str, git_commit: str) -> dict[str, Any]:

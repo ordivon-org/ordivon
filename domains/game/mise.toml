@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:beacon && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:human-playtest-protocol && mise run test:beacon && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -32,18 +32,13 @@ run = "python3 examples/room-encounter/native_scene_acceptance.py --suite dialog
 description = "Native R7 study evaluator/selftest from Game owner"
 run = "uv run --with check-jsonschema==0.38.0 python research/autonomous-interest-r7/protocol_selftest.py"
 
+[tasks."test:human-playtest-protocol"]
+description = "Falsify offline Human-study CSV consent, release digest and UNKNOWN semantics with synthetic temporary fixtures"
+run = "python3 -m unittest discover -s research -p 'test_room_encounter_playtest.py' -v"
+
 [tasks."test:agent-episode"]
 description = "Import then exercise the native Godot room scene and bounded Agent action/observation JSON, including clean checkouts"
 run = "godot --headless --path examples/room-encounter --editor --import && python3 examples/room-encounter/agent_episode_acceptance.py"
-
-
-[tasks."test:bevy"]
-description = "Exercise the exact native Rust/Bevy rules and ECS consumer with Cargo.lock"
-run = "cargo test --locked --manifest-path examples/orbit-collector/Cargo.toml && cargo check --locked --all-targets --manifest-path examples/orbit-collector/Cargo.toml"
-
-[tasks."build:bevy"]
-description = "Build the native Bevy game example; not a distributed package"
-run = "cargo build --locked --manifest-path examples/orbit-collector/Cargo.toml"
 
 
 [tasks."export:room-linux"]
@@ -80,26 +75,15 @@ sha256sum "$export_dir/room-encounter.exe" "$export_dir/../room-encounter-window
 """
 
 
-[tasks."verify:orbit-smt"]
-description = "Full-width Orbit Collector invariant proof with upstream Z3"
-run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_orbit_rules.py"
-
-[tasks."verify:orbit-kani"]
-description = "Rust rule implementation proof with upstream Kani 0.68.0"
-run = "kani examples/orbit-collector/src/rules.rs"
-
-
 [tasks."verify:room-smt"]
 description = "Prove signed i64 Godot Room arithmetic model with upstream Z3; native source acceptance is separate"
 run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_room_arithmetic.py"
 
 # Thin compositions of existing native tasks, not a second execution engine.
 [tasks."factory:validate:godot"]
-description = "Factory gate: source readers, real Godot scenes, dialogue, Agent and math model"
+description = "Native Godot factory gate: actual scenes, dialogue, Agent and bounded math model"
 run = """
 set -euo pipefail
-pnpm install --frozen-lockfile
-pnpm check
 mise run test:native
 mise run test:native-receipt-selftest
 mise run test:encounter
@@ -111,40 +95,64 @@ echo GAME_FACTORY_GODOT_VALIDATED
 """
 
 [tasks."factory:package:room"]
-description = "Factory preview: actual Godot acceptance, Linux/Windows export and source/package digests"
+description = "Source-qualified pair of Linux/Windows Room previews, atomically published as one verified bundle"
 run = """
 set -euo pipefail
+target="$PWD/dist/room-encounter"
+mkdir -p "$target"
+head_before="$(git rev-parse HEAD)"
+tree_before="$(git rev-parse 'HEAD^{tree}')"
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" >&2
+  exit 42
+fi
+stage="$(mktemp -d "$target/.factory-package.XXXXXXXX")"
+trap 'rm -rf -- "$stage"' EXIT
 mise run factory:validate:godot
-mise run export:room-linux
-mise run export:room-windows
-test -s dist/room-encounter/room-encounter-linux-x86_64.tar.gz
-test -s dist/room-encounter/room-encounter-windows-x86_64.zip
-printf 'GAME_FACTORY_SOURCE_SHA='
-git rev-parse HEAD
-sha256sum dist/room-encounter/room-encounter-linux-x86_64.tar.gz dist/room-encounter/room-encounter-windows-x86_64.zip
-echo GAME_FACTORY_ROOM_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE
-"""
-
-[tasks."factory:validate:bevy"]
-description = "Factory gate: locked Rust ECS consumer and upstream Z3 model"
-run = """
-set -euo pipefail
-mise run verify:orbit-smt
-mise run test:bevy
-echo GAME_FACTORY_BEVY_VALIDATED
-"""
-
-[tasks."factory:build:bevy"]
-description = "Factory build: native Bevy executable, no installer claim"
-run = """
-set -euo pipefail
-mise run factory:validate:bevy
-mise run build:bevy
-test -s examples/orbit-collector/target/debug/ordivon-orbit-collector
-printf 'GAME_FACTORY_SOURCE_SHA='
-git rev-parse HEAD
-sha256sum examples/orbit-collector/target/debug/ordivon-orbit-collector
-echo GAME_FACTORY_BEVY_NATIVE_BUILD_READY_NOT_PACKAGED
+GAME_EXPORT_DIR="$stage/linux-x86_64" mise run export:room-linux
+GAME_EXPORT_DIR="$stage/windows-x86_64" mise run export:room-windows
+test -s "$stage/room-encounter-linux-x86_64.tar.gz"
+test -s "$stage/room-encounter-windows-x86_64.zip"
+mkdir -p "$stage/ready"
+mv -- "$stage/room-encounter-linux-x86_64.tar.gz" "$stage/ready/"
+mv -- "$stage/room-encounter-windows-x86_64.zip" "$stage/ready/"
+{
+  echo "BUILD_SCHEMA=1"
+  echo "PRODUCT=room-encounter"
+  echo "SOURCE_COMMIT=$head_before"
+  echo "SOURCE_TREE=$tree_before"
+  echo "SOURCE_WORKTREE=clean"
+  echo "ENGINE=$(godot --version)"
+  template_root="${GAME_GODOT_TEMPLATE_DIR:-$HOME/.local/share/godot/export_templates/4.7.2.stable}"
+  for platform in linux windows; do
+    template="$template_root/linux_release.x86_64"
+    if [[ "$platform" == windows ]]; then template="$template_root/windows_release_x86_64.exe"; fi
+    if test -s "$template"; then
+      echo "TEMPLATE_${platform^^}_SHA256=$(sha256sum "$template" | cut -d' ' -f1)"
+    else
+      echo "TEMPLATE_${platform^^}_SHA256=UNKNOWN"
+    fi
+  done
+  echo "QUALIFICATION=native_headless_preview"
+  echo "LINUX_SCOPE=native_headless_smoke"
+  echo "WINDOWS_SCOPE=export_only"
+  echo "RELEASE_PUBLISHED=false"
+} > "$stage/ready/BUILD_SOURCE.txt"
+(
+  cd "$stage/ready"
+  sha256sum room-encounter-linux-x86_64.tar.gz room-encounter-windows-x86_64.zip BUILD_SOURCE.txt > SHA256SUMS
+  sha256sum -c SHA256SUMS
+)
+if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
+  exit 43
+fi
+printf 'COMPLETE_SOURCE_COMMIT=%s\\n' "$head_before" > "$stage/ready/READY"
+bundle="$target/bundle-${head_before:0:12}-${stage##*.}"
+test ! -e "$bundle"
+mv -T -- "$stage/ready" "$bundle"
+echo "GAME_FACTORY_BUNDLE_PATH=$bundle"
+echo "GAME_FACTORY_ROOM_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE"
 """
 
 [tasks."test:beacon"]
@@ -155,48 +163,78 @@ godot --headless --path examples/beacon-relay --editor --import > /tmp/ordivon-g
 output="$(godot --headless --path examples/beacon-relay --script res://acceptance.gd 2>&1)"
 printf '%s\\n' "$output"
 grep -q '^GAME_BEACON_RELAY_PASS assertions=' <<< "$output"
-if grep -Eq 'SCRIPT ERROR|Parser Error|GAME_BEACON_RELAY_FAIL' <<< "$output"; then
-  echo "GAME_BEACON_NATIVE_REJECTED_SCRIPT_ERROR" >&2
+if grep -Eq 'SCRIPT ERROR|Parser Error|GAME_BEACON_RELAY_FAIL|ObjectDB instances were leaked|resources still in use at exit|(^|[[:space:]])ERROR:' <<< "$output"; then
+  echo "GAME_BEACON_NATIVE_REJECTED_ENGINE_DIAGNOSTIC" >&2
   exit 1
 fi
 """
 
 [tasks."factory:package:beacon"]
-description = "Game Factory second product: test Beacon Relay, export Linux/Windows, smoke and retain upstream licenses"
+description = "Source-qualified pair of native Beacon previews, atomically published with licenses and digests"
 run = """
 set -euo pipefail
-mise run test:beacon
 target="${GAME_EXPORT_DIR:-$PWD/dist/beacon-relay}"
-mkdir -p "$target/linux-x86_64" "$target/windows-x86_64"
-godot --headless --path examples/beacon-relay --export-release "Linux x86_64" "$target/linux-x86_64/beacon-relay.x86_64"
-godot --headless --path examples/beacon-relay --export-release "Windows x86_64" "$target/windows-x86_64/beacon-relay.exe"
-test -s "$target/linux-x86_64/beacon-relay.x86_64"
-test -s "$target/windows-x86_64/beacon-relay.exe"
-chmod +x "$target/linux-x86_64/beacon-relay.x86_64"
-cp examples/beacon-relay/LICENSE "$target/linux-x86_64/UPSTREAM_MIT_LICENSE.txt"
-cp examples/beacon-relay/fonts/LICENSE.txt "$target/linux-x86_64/FONT_OFL_LICENSE.txt"
-cp examples/beacon-relay/CREDITS.txt "$target/linux-x86_64/CREDITS.txt"
-cp "$target/linux-x86_64/"*.txt "$target/windows-x86_64/"
-"$target/linux-x86_64/beacon-relay.x86_64" --headless --quit-after 4
-tar -czf "$target/beacon-relay-linux-x86_64.tar.gz" -C "$target/linux-x86_64" beacon-relay.x86_64 UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt
-(cd "$target/windows-x86_64" && python3 -m zipfile -c ../beacon-relay-windows-x86_64.zip beacon-relay.exe UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt)
-test -s "$target/beacon-relay-linux-x86_64.tar.gz"
-test -s "$target/beacon-relay-windows-x86_64.zip"
-printf 'GAME_FACTORY_SOURCE_SHA='
-git rev-parse HEAD
-sha256sum "$target/beacon-relay-linux-x86_64.tar.gz" "$target/beacon-relay-windows-x86_64.zip"
-echo GAME_FACTORY_BEACON_PACKAGES_READY
-"""
-
-# The native Bevy product is packaged without inventing another game build engine.
-[tasks."test:orbit-package-contract"]
-description = "Linux-native Orbit package negative contract: missing graphics tools cannot yield READY"
-run = "python3 scripts/test_orbit_package_contract.py"
-
-[tasks."factory:package:orbit-linux"]
-description = "Test, build and distribute the actual locked Bevy Orbit Collector Linux product"
-run = """
-set -euo pipefail
-mise run factory:build:bevy
-bash scripts/package_orbit_linux.sh
+mkdir -p "$target"
+head_before="$(git rev-parse HEAD)"
+tree_before="$(git rev-parse 'HEAD^{tree}')"
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" >&2
+  exit 42
+fi
+stage="$(mktemp -d "$target/.factory-package.XXXXXXXX")"
+trap 'rm -rf -- "$stage"' EXIT
+mise run test:beacon
+mkdir -p "$stage/linux-x86_64" "$stage/windows-x86_64"
+godot --headless --path examples/beacon-relay --export-release "Linux x86_64" "$stage/linux-x86_64/beacon-relay.x86_64"
+godot --headless --path examples/beacon-relay --export-release "Windows x86_64" "$stage/windows-x86_64/beacon-relay.exe"
+test -s "$stage/linux-x86_64/beacon-relay.x86_64"
+test -s "$stage/windows-x86_64/beacon-relay.exe"
+chmod +x "$stage/linux-x86_64/beacon-relay.x86_64"
+cp examples/beacon-relay/LICENSE "$stage/linux-x86_64/UPSTREAM_MIT_LICENSE.txt"
+cp examples/beacon-relay/fonts/LICENSE.txt "$stage/linux-x86_64/FONT_OFL_LICENSE.txt"
+cp examples/beacon-relay/CREDITS.txt "$stage/linux-x86_64/CREDITS.txt"
+cp "$stage/linux-x86_64/"*.txt "$stage/windows-x86_64/"
+"$stage/linux-x86_64/beacon-relay.x86_64" --headless --quit-after 4
+mkdir -p "$stage/ready"
+tar -czf "$stage/ready/beacon-relay-linux-x86_64.tar.gz" -C "$stage/linux-x86_64" beacon-relay.x86_64 UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt
+(cd "$stage/windows-x86_64" && python3 -m zipfile -c "$stage/ready/beacon-relay-windows-x86_64.zip" beacon-relay.exe UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt)
+test -s "$stage/ready/beacon-relay-linux-x86_64.tar.gz"
+test -s "$stage/ready/beacon-relay-windows-x86_64.zip"
+{
+  echo "BUILD_SCHEMA=1"
+  echo "PRODUCT=beacon-relay"
+  echo "SOURCE_COMMIT=$head_before"
+  echo "SOURCE_TREE=$tree_before"
+  echo "SOURCE_WORKTREE=clean"
+  echo "ENGINE=$(godot --version)"
+  template_root="${GAME_GODOT_TEMPLATE_DIR:-$HOME/.local/share/godot/export_templates/4.7.2.stable}"
+  for platform in linux windows; do
+    template="$template_root/linux_release.x86_64"
+    if [[ "$platform" == windows ]]; then template="$template_root/windows_release_x86_64.exe"; fi
+    if test -s "$template"; then
+      echo "TEMPLATE_${platform^^}_SHA256=$(sha256sum "$template" | cut -d' ' -f1)"
+    else
+      echo "TEMPLATE_${platform^^}_SHA256=UNKNOWN"
+    fi
+  done
+  echo "QUALIFICATION=native_headless_preview"
+  echo "LINUX_SCOPE=native_headless_smoke"
+  echo "WINDOWS_SCOPE=export_only"
+  echo "RELEASE_PUBLISHED=false"
+} > "$stage/ready/BUILD_SOURCE.txt"
+(
+  cd "$stage/ready"
+  sha256sum beacon-relay-linux-x86_64.tar.gz beacon-relay-windows-x86_64.zip BUILD_SOURCE.txt > SHA256SUMS
+  sha256sum -c SHA256SUMS
+)
+if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
+  exit 43
+fi
+printf 'COMPLETE_SOURCE_COMMIT=%s\\n' "$head_before" > "$stage/ready/READY"
+bundle="$target/bundle-${head_before:0:12}-${stage##*.}"
+test ! -e "$bundle"
+mv -T -- "$stage/ready" "$bundle"
+echo "GAME_FACTORY_BUNDLE_PATH=$bundle"
+echo "GAME_FACTORY_BEACON_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE"
 """

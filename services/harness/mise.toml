@@ -1,4 +1,5 @@
 [tools]
+rust = { version = "1.99.1", components = "clippy,rustfmt" }
 powershell = "7.6.8"
 python = "3.15.1"
 uv = "0.13.5"
@@ -23,6 +24,17 @@ test "$(grep -Fc 'info: Confirmed over all paths.' "$receipt")" -eq 2
 test "$(wc -l < "$receipt")" -eq 2
 """
 
+
+# Native Rust source checks replace the Python semantic kernel incrementally.
+# PG18 physical qualification stays opt-in and uses a private scratch cluster.
+[tasks."rust:verify"]
+run = """
+set -euo pipefail
+cargo fmt --manifest-path Cargo.toml --all -- --check
+cargo clippy --manifest-path Cargo.toml --locked --workspace --all-targets -- -D warnings
+cargo test --manifest-path Cargo.toml --locked --workspace --all-targets
+"""
+
 [tasks.verify]
 run = """
 set -euo pipefail
@@ -33,6 +45,7 @@ uv sync --locked
 uv run python scripts/check_runtime_search_profile.py
 uv lock --check
 mise run formal:source-refinement
+mise run rust:verify
 uv run python -m compileall -q src tests scripts evals
 uv run --locked ruff check src tests scripts
 mise run formal:verify
@@ -68,6 +81,7 @@ set -euo pipefail
 uv sync --locked
 uv lock --check
 mise run formal:source-refinement
+mise run rust:verify
 uv run python -m compileall -q src tests scripts evals
 uv run --locked ruff check src tests scripts
 mise run formal:verify
@@ -186,4 +200,27 @@ fi
     echo "H04 $label counterexample: PASS"
   done
 )
+# R45 Tool UNKNOWN recovery uses the same Runtime-owned, SHA-pinned TLC.
+# One bounded safety abstraction, not a second Journal or production proof.
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY ToolUnknownRecoveryR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ToolUnknownRecoveryR1.cfg ToolUnknownRecoveryR1.tla
+  recovery_probe="$(mktemp)"
+  trap 'rm -f "$recovery_probe"' EXIT
+  for spec in "retry:AtMostOneOriginalOwnerSubmit" "resume:RecoveredOriginalOwnerIsUnreachable" "pre-admission:LostBeforeAdmissionIsUnreachable" "physical:PhysicalCallIsUnreachable";do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ToolUnknownRecoveryR1.$label-probe.cfg" ToolUnknownRecoveryR1.tla >"$recovery_probe" 2>&1;then
+      echo "R45 $label counterexample unexpectedly absent" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$recovery_probe";then
+      cat "$recovery_probe" >&2
+      echo "R45 $label probe lacked exact expected invariant violation" >&2
+      exit 1
+    fi
+    echo "R45 $label counterexample: PASS"
+  done
+)
+
 """

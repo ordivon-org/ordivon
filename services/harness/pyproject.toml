@@ -13,7 +13,6 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
   "httpx==0.28.1",
@@ -44,9 +43,9 @@ default-groups = ["dev", "test"]
 ordivon-harness = "ordivon_harness.cli:entrypoint"
 
 [project.urls]
-Repository = "https://github.com/zycxfyh/ordivon-harness"
-Issues = "https://github.com/zycxfyh/ordivon-harness/issues"
-Documentation = "https://github.com/zycxfyh/ordivon-harness#readme"
+Repository = "https://github.com/ordivon-org/ordivon/tree/main/services/harness"
+Issues = "https://github.com/ordivon-org/ordivon/issues"
+Documentation = "https://github.com/ordivon-org/ordivon/blob/main/services/harness/README.md"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

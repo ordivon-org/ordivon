@@ -57,8 +57,8 @@ def _free_port() -> int:
 
 
 @contextmanager
-def _consumer_proxy(consumer: str, *, disable_terminal_reject: bool = False):
-    filename = "sing-box.json" if consumer in ("codex", "claude", "chat-ingress") else "egress.json"
+def _consumer_proxy(consumer: str, *, insert_reject_rule: bool = False):
+    filename = "sing-box.json" if consumer in ("codex", "claude", "chat-ingress", "windows-real-chrome") else "egress.json"
     source = CONSUMERS / consumer / "config" / filename
     mode = os.environ.get("ORDIVON_NETWORK_POLICY_SOURCE", "source")
     assert mode in ("source", "installed"), "Unknown native policy probe mode"
@@ -74,12 +74,13 @@ def _consumer_proxy(consumer: str, *, disable_terminal_reject: bool = False):
     assert len(config["inbounds"]) == 1
     assert len(config["outbounds"]) == 1
     assert config["outbounds"][0]["type"] == "http", "No direct Internet egress in the probe"
-    assert config["route"]["rules"][-1] == {"action": "reject"}
-    if disable_terminal_reject:
-        # Negative control: mutate only a temporary copy. The real source is unchanged.
-        config["route"]["rules"][-1] = {
-            "action": "route", "outbound": config["outbounds"][0]["tag"]
-        }
+    assert config["route"] == {"rules": [], "final": "provider-carrier"}
+    if insert_reject_rule:
+        # Negative control: inject a blocked public origin into a temporary copy.
+        # The real open-mode config must forward this origin to the upstream spy.
+        config["route"]["rules"] = [
+            {"domain": ["example.com"], "action": "reject"},
+        ]
     with _Spy(("127.0.0.1", 0), _Handler) as spy:
         spy.observed = queue.Queue()
         thread = threading.Thread(target=spy.serve_forever, daemon=True)
@@ -150,7 +151,7 @@ def _connect(port: int, target: str) -> None:
         ("model-provider", ("api.deepseek.com:443", "generativelanguage.googleapis.com:443")),
     ],
 )
-def test_declared_destinations_reach_spy_but_unknown_or_wrong_port_do_not(
+def test_declared_and_new_origins_reach_the_same_shared_carrier(
     consumer: str, allowed: tuple[str, ...]
 ) -> None:
     with _consumer_proxy(consumer) as (port, observed):
@@ -161,23 +162,23 @@ def test_declared_destinations_reach_spy_but_unknown_or_wrong_port_do_not(
             )
         for target in ("example.com:443", allowed[0].split(":")[0] + ":80"):
             _connect(port, target)
-            with pytest.raises(queue.Empty):
-                observed.get(timeout=0.4)
+            assert observed.get(timeout=3) == f"CONNECT {target} HTTP/1.1".encode()
 
 
 @pytest.mark.parametrize(
     "consumer",
     ("x-reality", "supply-chain", "codex", "discord", "model-provider", "claude", "chat-ingress"),
 )
-def test_terminal_reject_negative_control_is_observable(consumer: str) -> None:
+def test_injected_reject_is_observed_as_missing_upstream_effect(consumer: str) -> None:
     """Deliberately break a temporary policy and detect forbidden delivery.
 
     This is a falsification control, not evidence that a production namespace
     currently runs the same bytes or that all indirect egress is impossible.
     """
-    with _consumer_proxy(consumer, disable_terminal_reject=True) as (port, observed):
+    with _consumer_proxy(consumer, insert_reject_rule=True) as (port, observed):
         _connect(port, "example.com:443")
-        assert observed.get(timeout=3) == b"CONNECT example.com:443 HTTP/1.1"
+        with pytest.raises(queue.Empty):
+            observed.get(timeout=0.25)
 
 
 def test_native_reject_has_no_upstream_effect_even_with_connect_200() -> None:
@@ -190,7 +191,7 @@ def test_native_reject_has_no_upstream_effect_even_with_connect_200() -> None:
     """
     curl = shutil.which("curl")
     assert curl, "Native policy qualification requires curl"
-    with _consumer_proxy("supply-chain") as (port, observed):
+    with _consumer_proxy("supply-chain", insert_reject_rule=True) as (port, observed):
         process = subprocess.run(
             [
                 curl, "-q", "-4", "-sS", "-I", "--noproxy", "",

@@ -998,6 +998,36 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
+    def test_original_harness_pg_issuer_test_seams_do_not_merge_product_components(self) -> None:
+        """Original Run test fixture is a path-scoped consumer, not runtime authority."""
+        ordinary = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+        self.assertEqual(ordinary["verificationOwners"], ["composition", "runtime"])
+        fixture = MODULE.build_plan(
+            changed_files=["services/harness/tests/original_pg_issuer_native_fixture.py"]
+        )
+        self.assertIn("runtime", fixture["verificationOwners"])
+        self.assertNotIn("composition", fixture["verificationOwners"])
+
+    def test_original_harness_pg_issuer_test_seam_cannot_be_widened(self) -> None:
+        """An arbitrary Runtime file cannot opt out of real dependency closure."""
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / "dependency_contracts.toml"
+            original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+            exact = 'source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs"'
+            self.assertIn(exact, original)
+            policy.write_text(
+                original.replace(
+                    exact,
+                    'source_glob = "services/runtime/crates/ordivon-runtime-core/src/*.rs"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "unapproved original Harness test-only"):
+                MODULE.load_dependency_graph(path=policy)
+
     def test_authority_catalog_queue_projection_uses_native_verification(self) -> None:
         plan = MODULE.build_plan(changed_files=["catalogs/authorities/README.md"])
         self.assertIn("authority-catalog:verify", plan["verifyTasks"])
@@ -1040,11 +1070,14 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
 
-    def test_security_change_expands_to_harness_and_web_component(self) -> None:
+    def test_security_change_expands_to_actual_gateway_harness_web_consumers(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
+        # The native Gateway PG acceptance now imports real Harness API in
+        # exactly one declared test-only dependency seam. This is a genuine
+        # downstream test consumer, not an invented authority/production edge.
         self.assertEqual(
             plan["verificationOwners"],
-            ["harness", "security", "web"],
+            ["gateway", "harness", "security", "web"],
         )
         self.assertIn("harness:verify", plan["verifyTasks"])
         self.assertIn("harness:queue", plan["queueVerifyTasks"])

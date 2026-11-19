@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { hashToken, stableDigest } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
-import { AgentGrantStore } from "./store-agent-grants.ts";
+import { AgentGrantStore, scopeContains } from "./store-agent-grants.ts";
 import { SessionStore } from "./store-sessions.ts";
 import { initializeWebStoreSchema } from "./store-schema.ts";
 import type {
@@ -485,7 +485,11 @@ export class WebStore {
         "The committed effect belongs to a different Agent.",
       );
     }
-    if (existing.effectDigest !== effect.effectDigest) {
+    if (
+      existing.effectDigest !== effect.effectDigest ||
+      existing.action !== effect.action ||
+      existing.resource !== effect.resource
+    ) {
       throw new WebProblem(
         409,
         "effect-conflict",
@@ -624,6 +628,35 @@ export class WebStore {
         };
   }
 
+  // OPA ALLOW is not the effect. Recheck concrete authority inside the
+  // existing transaction before its write becomes visible.
+  private assertCommitEffectBinding(
+    current: AgentGrantSnapshot,
+    selected: AgentGrantSnapshot,
+    agentId: string,
+    effect: AgentEffectRequest,
+    expectedAction: string,
+    expectedResource: string,
+    expectedType: string,
+  ): void {
+    if (
+      current.principalId !== selected.principalId ||
+      current.agentId !== selected.agentId ||
+      current.agentId !== agentId ||
+      current.audience !== effect.audience ||
+      !current.allowedActions.includes(effect.action) ||
+      !current.resourcePrefixes.some((prefix) => scopeContains(prefix, effect.resource)) ||
+      effect.action !== expectedAction ||
+      effect.resource !== expectedResource ||
+      effect.effectType !== expectedType
+    ) {
+      throw new WebProblem(
+        403, "agent-effect-not-authorized", "Effect not authorized",
+        "The current Agent Grant does not bind the concrete Effect and target.",
+      );
+    }
+  }
+
   commitAgentCanaryCreate(
     grant: AgentGrantSnapshot,
     agentId: string,
@@ -654,6 +687,10 @@ export class WebStore {
           "Mutable Agent authority changed before the Effect commit fence.",
         );
       }
+      this.assertCommitEffectBinding(
+        current, grant, agentId, effect,
+        "canary.note.create", "/canary/notes", "website.canary.note.create",
+      );
       const noteId = randomUUID();
       const note: CanaryNote = {
         noteId,
@@ -750,6 +787,10 @@ export class WebStore {
           "Mutable authority or the effect-bound approval changed before commit.",
         );
       }
+      this.assertCommitEffectBinding(
+        current, grant, agentId, effect,
+        "canary.note.publish", "/canary/notes/" + noteId, "website.canary.note.publish",
+      );
       const noteRow = this.db
         .prepare("SELECT * FROM canary_notes WHERE note_id = ? AND principal_id = ?")
         .get(noteId, current.principalId) as NoteRow | undefined;

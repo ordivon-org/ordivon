@@ -432,14 +432,7 @@ impl Runtime {
             workspace_id: plan.workspace_id.clone(),
             workspace_path: plan.workspace_path.clone(),
             workspace_source_digest: plan.workspace_source_digest.clone(),
-            build_target_backing: if plan.execution_target == super::ExecutionTarget::LocalLinux
-                && plan.execution_profile == super::ExecutionProfile::TrustedLocal
-                && (plan.env.get("CARGO_TARGET_DIR").map(String::as_str)
-                    == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
-                    || plan.steps.iter().any(|step| {
-                        step.env.get("CARGO_TARGET_DIR").map(String::as_str)
-                            == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
-                    })) {
+            build_target_backing: if requires_private_cargo_build_target(&plan) {
                 Some(
                     self.executor
                         .workspace_build_cache_path(&plan.workspace_id)

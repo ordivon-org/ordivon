@@ -11,7 +11,7 @@
       "services/gateway/src/ordivon_gateway/mcp_server.py",
       "services/gateway/src/ordivon_gateway/routes.py",
       "services/gateway/src/ordivon_gateway/service.py",
-      "services/gateway/src/ordivon_gateway/upstream.py",
+      "services/gateway/src/ordivon_gateway/transport/upstream.py",
       "services/gateway/systemd/ordivon-gateway.service",
       "services/gateway/tests/test_gateway_service.py"
     ]

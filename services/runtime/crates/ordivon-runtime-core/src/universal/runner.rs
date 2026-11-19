@@ -47,7 +47,8 @@ struct WorkspaceSourceObservationEvidence<'a> {
     observation_error_code: Option<&'a str>,
     observed_unix_ms: u128,
 }
-const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
+const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/run/ordivon/cargo-target";
+const LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const TRUSTED_BUILD_TARGET_PRESENTATION_FD: libc::c_int = 198;
 
 pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
@@ -759,8 +760,16 @@ fn execute_step(
     command.envs(&step.env);
     let credentials_directory = std::env::var_os(SYSTEMD_CREDENTIALS_DIRECTORY_ENV);
     apply_systemd_credential_environment(&mut command, credentials_directory.as_deref());
-    let _build_target_backing = if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+    if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
         == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+        && !Path::new(TRUSTED_BUILD_TARGET_PRESENTATION).is_dir()
+    {
+        return Err(runner_error(
+            "trusted Cargo target requires the native per-Unit Workspace bind mount",
+        ));
+    }
+    let _build_target_backing = if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+        == Some(LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION)
     {
         let backing = request.build_target_backing.as_deref().ok_or_else(|| {
             runner_error("stable Cargo target presentation has no private backing")
@@ -1475,11 +1484,18 @@ fn validate_request_identity(request: &RunnerRequest) -> Result<(), UniversalExe
             ));
         }
     }
-    let uses_stable_build_target = request.env.get("CARGO_TARGET_DIR").map(String::as_str)
-        == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+    let is_native_build_target = |value: &str| {
+        value == TRUSTED_BUILD_TARGET_PRESENTATION
+            || value == LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION
+    };
+    let uses_stable_build_target = request
+        .env
+        .get("CARGO_TARGET_DIR")
+        .is_some_and(|value| is_native_build_target(value))
         || request.steps.iter().any(|step| {
-            step.env.get("CARGO_TARGET_DIR").map(String::as_str)
-                == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+            step.env
+                .get("CARGO_TARGET_DIR")
+                .is_some_and(|value| is_native_build_target(value))
         });
     match request.build_target_backing.as_deref() {
         None if !uses_stable_build_target => {}

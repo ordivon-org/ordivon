@@ -48,7 +48,7 @@ pub(crate) fn resolve_existing_workspace_path(
     Ok(canonical)
 }
 
-#[cfg(feature = "transactional-runtime")]
+#[cfg(feature = "runtime-contract")]
 pub(crate) fn resolve_workspace_cwd(
     record: &WorkspaceRecord,
     relative: &str,
@@ -172,7 +172,7 @@ fn resolve_workspace_write_path(
 
 fn resolve_git_commit(repo: &Path, source_revision: &str) -> Result<String, UniversalExecError> {
     let revision_spec = format!("{source_revision}^{{commit}}");
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(repo)
@@ -181,7 +181,7 @@ fn resolve_git_commit(repo: &Path, source_revision: &str) -> Result<String, Univ
         .output()
         .map_err(|error| tool_unavailable("git", error))?;
     if !output.status.success() {
-        let repository_probe = Command::new("git")
+        let repository_probe = workspace_git_command()
             .arg("--no-optional-locks")
             .arg("-C")
             .arg(repo)
@@ -222,7 +222,7 @@ fn git_output<'a>(
     repo: &Path,
     args: impl IntoIterator<Item = &'a str>,
 ) -> Result<String, UniversalExecError> {
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(repo)
@@ -249,10 +249,28 @@ fn workspace_dirty_paths(workspace: &Path) -> Result<Vec<String>, UniversalExecE
         workspace,
         ["ls-files", "--others", "--exclude-standard", "-z"],
     )?;
+    // Git's non-forced worktree remove MAY DELETE ignored files. They are
+    // absent from the tracked/untracked view above and cannot be recovered
+    // from a Git rescue ref. Use Git's own ignore rules rather than assuming
+    // build output or research data are disposable. --directory keeps large
+    // ignored trees (e.g. target/, node_modules/) bounded to one observation
+    // per ignored directory instead of enumerating every child.
+    let ignored = git_output_bytes(
+        workspace,
+        [
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "--directory",
+            "-z",
+        ],
+    )?;
     let mut paths = Vec::new();
     for raw in tracked
         .split(|byte| *byte == 0)
         .chain(untracked.split(|byte| *byte == 0))
+        .chain(ignored.split(|byte| *byte == 0))
     {
         if raw.is_empty() {
             continue;
@@ -273,7 +291,7 @@ fn git_output_bytes<'a>(
     repo: &Path,
     args: impl IntoIterator<Item = &'a str>,
 ) -> Result<Vec<u8>, UniversalExecError> {
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(repo)
@@ -292,7 +310,7 @@ fn remove_git_worktree(
     workspace: &Path,
     force: bool,
 ) -> Result<(), UniversalExecError> {
-    let mut command = Command::new("git");
+    let mut command = workspace_git_command();
     command
         .arg("-C")
         .arg(source_repo)

@@ -7,11 +7,22 @@ from ordivon_host_v2.work_queries import WorkReadQueries
 from ordivon_host_v2.work_store import WorkStore
 
 
-def test_work_reads_inherited_without_duplicate_write_paths() -> None:
-    queries = {"get_work", "list_works", "_get_work_in_tx", "_state_at_revision"}
-    assert issubclass(WorkStore, WorkReadQueries)
-    assert all(name in WorkReadQueries.__dict__ for name in queries)
-    assert all(name not in WorkStore.__dict__ for name in queries)
+def test_work_reads_and_mutations_share_one_explicit_same_transaction_readback() -> None:
+    """WorkStore keeps its public read API, but command readback is no longer an MRO hook."""
+    import inspect
+
+    from ordivon_host_v2.work_queries import read_work_in_tx
+
+    assert callable(WorkStore.get_work)
+    assert callable(WorkStore.list_works)
+    assert callable(read_work_in_tx)
+    assert "read_work_in_tx(conn, work_ref, revision)" in inspect.getsource(
+        WorkReadQueries.get_work
+    )
+    assert "read_work_in_tx(conn, work_ref, next_revision)" in inspect.getsource(
+        WorkStore.commit_snapshot
+    )
+    assert not hasattr(WorkStore, "_get_work_in_tx")
 
 
 def test_work_queries_have_no_mutation_commands_or_receipts() -> None:

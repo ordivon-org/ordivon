@@ -1,5 +1,13 @@
-//! PostgreSQL Runtime Job admission, observation, cancellation, and projection.
+//! PostgreSQL Runtime Job admission, observation, and projection.
+//! Physical cancellation is an independent use-case in job/cancellation.rs.
 use super::*;
+mod cancellation;
+
+// Direct PostgreSQL Client reads must not erase SQLSTATE through io(Display).
+// Keep the one shared PgAdmissionError taxonomy used by Recovery and admission.
+fn pg_read_error(error: postgres::Error) -> RuntimeError {
+    pg(PgAdmissionError::Database(error))
+}
 
 // Once PG has durably admitted this Job (including an exact idempotent replay),
 // a later observation failure cannot retract the committed operation identity.
@@ -12,9 +20,192 @@ fn preserve_committed_job_identity<T>(
     observed.map_err(|error| error.with_operation_id(job_id))
 }
 
+/// The first observation follows a committed PG Job admission. SQLSTATE
+/// serialization aborts may invalidate its read/runner reconciliation, not
+/// the already-committed Job identity. Re-observe that SAME Job only; no
+/// second admission or new external operation is allowed. Reuse the PG
+/// admission module's proven bounded aborted-transaction backoff.
+fn observe_committed_job_with_bounded_busy_recovery<T>(
+    job_id: &str,
+    observe: impl FnMut() -> RuntimeResult<T>,
+) -> RuntimeResult<T> {
+    let result = crate::pg_admission::retry_aborted_transaction(
+        observe,
+        |error| error.code == RuntimeErrorCode::RegistryBusy && error.retryable,
+        std::thread::sleep,
+    );
+    preserve_committed_job_identity(job_id, result)
+}
+
+// A foreign reference is caller-authored metadata, never execution authority.
+// Without a configured same-PG issuer verifier it cannot affect the environment.
+// With a verifier, preserve exact source intent for the PG transactional guard.
+fn preserve_qualified_issuer_environment(
+    issuer_schema: Option<&str>,
+    references: &[ForeignReference],
+) -> bool {
+    issuer_schema.is_some()
+        && references.iter().any(|reference| {
+            reference.namespace == "ordivon.harness" && reference.reference_type == "dispatch_fence"
+        })
+}
+
+// Reuse the existing Workspace-owned disposable cache, outside the Git tree,
+// for ordinary PostgreSQL Jobs. A trusted Cargo build target already uses
+// its native private mount; Python bytecode and Ruff reuse the same cache owner.
+// A project virtualenv is deliberately NOT redirected: one Workspace may
+// contain multiple independent pyproject roots with incompatible dependencies.
+fn pg_workspace_tool_environment(
+    mut environment: std::collections::BTreeMap<String, String>,
+    preserve_harness_fenced_request: bool,
+    workspace_cache: &std::path::Path,
+) -> std::collections::BTreeMap<String, String> {
+    // Qualified same-PG Harness dispatch fences bind the caller's exact source
+    // environment. Never silently alter their immutable effect identity.
+    if !preserve_harness_fenced_request {
+        environment
+            .entry("CARGO_TARGET_DIR".to_string())
+            .or_insert_with(|| {
+                crate::runtime::build_target_contract::TRUSTED_BUILD_TARGET_PRESENTATION.to_string()
+            });
+        for (name, path) in [
+            ("XDG_CACHE_HOME", workspace_cache.to_path_buf()),
+            (
+                "PYTHONPYCACHEPREFIX",
+                workspace_cache.join("python-bytecode"),
+            ),
+            ("RUFF_CACHE_DIR", workspace_cache.join("ruff")),
+        ] {
+            environment
+                .entry(name.to_string())
+                .or_insert_with(|| path.to_string_lossy().into_owned());
+        }
+    }
+    environment
+}
+
+#[cfg(test)]
+mod cargo_issuer_environment_tests {
+    use super::{pg_workspace_tool_environment, preserve_qualified_issuer_environment};
+    use crate::runtime::ForeignReference;
+    use std::path::Path;
+
+    fn candidate_fence() -> ForeignReference {
+        ForeignReference {
+            namespace: "ordivon.harness".into(),
+            reference_type: "dispatch_fence".into(),
+            id: "harness-dispatch-fence:test".into(),
+            generation: None,
+            digest: None,
+        }
+    }
+
+    #[test]
+    fn spoofed_harness_hint_without_issuer_cannot_bypass_private_cargo_default() {
+        let fence = candidate_fence();
+        let enabled = preserve_qualified_issuer_environment(None, std::slice::from_ref(&fence));
+        assert!(!enabled);
+        let actual = pg_workspace_tool_environment(
+            Default::default(),
+            enabled,
+            Path::new("/tmp/test-cache"),
+        );
+        assert_eq!(
+            actual.get("CARGO_TARGET_DIR").map(String::as_str),
+            Some("/run/ordivon/cargo-target")
+        );
+        assert!(preserve_qualified_issuer_environment(
+            Some("harness"),
+            &[fence]
+        ));
+        assert!(!preserve_qualified_issuer_environment(Some("harness"), &[]));
+    }
+
+    #[test]
+    fn unrelated_reference_does_not_change_cargo_environment() {
+        let mut other = candidate_fence();
+        other.namespace = "unrelated.owner".into();
+        assert!(!preserve_qualified_issuer_environment(
+            Some("harness"),
+            &[other]
+        ));
+    }
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn issuer_bound_private_cargo_environment_keeps_exact_source_env() {
+        let original = BTreeMap::from([("LANG".to_owned(), "C".to_owned())]);
+        assert_eq!(
+            pg_workspace_tool_environment(original.clone(), true, Path::new("/tmp/test-cache")),
+            original
+        );
+        let explicit = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/proc/self/fd/198".to_owned(),
+        )]);
+        assert_eq!(
+            pg_workspace_tool_environment(explicit.clone(), true, Path::new("/tmp/test-cache")),
+            explicit
+        );
+    }
+
+    #[test]
+    fn ordinary_job_places_python_and_ruff_caches_outside_workspace_without_clobbering_intent() {
+        let cache = Path::new("/runtime/cache/workspaces/ws-A");
+        let actual = pg_workspace_tool_environment(Default::default(), false, cache);
+        assert_eq!(actual["XDG_CACHE_HOME"], "/runtime/cache/workspaces/ws-A");
+        assert_eq!(
+            actual["PYTHONPYCACHEPREFIX"],
+            "/runtime/cache/workspaces/ws-A/python-bytecode"
+        );
+        assert_eq!(
+            actual["RUFF_CACHE_DIR"],
+            "/runtime/cache/workspaces/ws-A/ruff"
+        );
+        assert!(!actual.contains_key("UV_PROJECT_ENVIRONMENT"));
+        let custom = std::collections::BTreeMap::from([
+            ("XDG_CACHE_HOME".to_string(), "/custom/xdg".to_string()),
+            ("PYTHONPYCACHEPREFIX".to_string(), "/custom/pyc".to_string()),
+            ("RUFF_CACHE_DIR".to_string(), "/custom/ruff".to_string()),
+        ]);
+        let preserved = pg_workspace_tool_environment(custom.clone(), false, cache);
+        assert_eq!(preserved["XDG_CACHE_HOME"], custom["XDG_CACHE_HOME"]);
+        assert_eq!(
+            preserved["PYTHONPYCACHEPREFIX"],
+            custom["PYTHONPYCACHEPREFIX"]
+        );
+        assert_eq!(preserved["RUFF_CACHE_DIR"], custom["RUFF_CACHE_DIR"]);
+        let unrelated = pg_workspace_tool_environment(
+            Default::default(),
+            false,
+            Path::new("/runtime/cache/workspaces/ws-B"),
+        );
+        assert_ne!(
+            actual["PYTHONPYCACHEPREFIX"],
+            unrelated["PYTHONPYCACHEPREFIX"]
+        );
+    }
+
+    #[test]
+    fn ordinary_pg_job_reuses_native_private_cargo_default_without_overriding_explicit() {
+        let empty = BTreeMap::new();
+        assert_eq!(
+            pg_workspace_tool_environment(empty, false, Path::new("/tmp/test-cache"))
+                ["CARGO_TARGET_DIR"],
+            "/run/ordivon/cargo-target"
+        );
+        let explicit = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/custom/agent/target".to_owned(),
+        )]);
+        let actual =
+            pg_workspace_tool_environment(explicit.clone(), false, Path::new("/tmp/test-cache"));
+        assert_eq!(actual["CARGO_TARGET_DIR"], explicit["CARGO_TARGET_DIR"]);
+    }
+}
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
-        super::engine::validate_resource_run_proposal_structure(proposal)?;
+        super::admission_validation::validate_resource_run_proposal_structure(proposal)?;
         proposal
             .execution
             .budget
@@ -26,23 +217,42 @@ impl PgRuntime {
         let identity = super::types::proposal_request_identity_digest(proposal)?;
         let mut db = self.store()?;
         // Replay before consulting mutable Workspace/executable state or policy.
-        if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(io)? {
+        if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(pg_read_error)? {
             if row.get::<_,String>(1)!=identity { return Err(pg(PgAdmissionError::IdempotencyConflict)); }
             let committed_job: String = row.get(0);
-            return preserve_committed_job_identity(
+            let mut first_wait_ms = proposal.wait_ms;
+            return observe_committed_job_with_bounded_busy_recovery(
                 &committed_job,
-                self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:committed_job.clone(),wait_ms:proposal.wait_ms,wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None }),
+                || self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:committed_job.clone(),wait_ms:std::mem::replace(&mut first_wait_ms, 0),wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None }),
             );
         }
         let e = &proposal.execution;
+        // ForeignReferences are not authorization. A real Harness dispatch
+        // fence is only a source-owned exact-physical-intent indicator: do not
+        // modify its environment before the actual issuer authority check.
+        // Only an operator-configured issuer path may preserve the source environment;
+        // the hint never authenticates the caller and PG still checks currentness.
+        let preserve_harness_fenced_request = preserve_qualified_issuer_environment(
+            self.config.harness_issuer_schema.as_deref(),
+            &e.foreign_references,
+        );
+
         if e.execution_target != ExecutionTarget::LocalLinux
             || e.execution_profile != ExecutionProfile::TrustedLocal
             || e.windows_context.is_some()
             || e.windows_authority != WindowsAuthority::Limited
-            || !e.foreign_references.is_empty()
         {
             return Err(RuntimeError::invalid(
-                "PG vertical supports a trusted_local local_linux execution (only Host Dependency bindings supported)",
+                "PG vertical supports trusted_local local_linux execution only",
+                "execution",
+            ));
+        }
+        // A current Issuer must not authorize unrelated physical steps/budgets.
+        if self.config.harness_issuer_schema.is_some()
+            && (!e.steps.is_empty() || !e.host_dependencies.is_empty() || !e.budget.is_empty())
+        {
+            return Err(RuntimeError::invalid(
+                "issuer-fenced execution does not authorize custom budget/steps/host prerequisites",
                 "execution",
             ));
         }
@@ -83,6 +293,10 @@ impl PgRuntime {
         super::platform::validate_runner(runner)?;
         let record = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
             .map_err(super::super::error::map_universal_error)?;
+        let workspace_generated_cache = self
+            .config
+            .executor
+            .workspace_cache_path(&record.workspace_id);
         let cwd =
             universal::resolve_workspace_cwd(&record, &e.cwd_relative, "execution.cwdRelative")
                 .map_err(io)?;
@@ -130,7 +344,11 @@ impl PgRuntime {
                 executable_digest: universal::sha256_file(&path).map_err(io)?,
                 args: step.args.clone(),
                 cwd: cwd.to_string_lossy().into_owned(),
-                env: step.env.clone(),
+                env: pg_workspace_tool_environment(
+                    step.env.clone(),
+                    preserve_harness_fenced_request,
+                    &workspace_generated_cache,
+                ),
                 timeout_ms: ceiling,
                 continue_on_error: step.continue_on_error,
             });
@@ -159,7 +377,11 @@ impl PgRuntime {
             executable_digest: universal::sha256_file(&executable).map_err(io)?,
             args: e.args.clone(),
             cwd: cwd.to_string_lossy().into_owned(),
-            env: e.env.clone(),
+            env: pg_workspace_tool_environment(
+                e.env.clone(),
+                preserve_harness_fenced_request,
+                &workspace_generated_cache,
+            ),
             timeout_ms: timeout,
             stdout_limit_bytes: stdout,
             stderr_limit_bytes: stderr,
@@ -170,7 +392,12 @@ impl PgRuntime {
             windows_authority: e.windows_authority,
             windows_context: None,
             windows_execution_context: None,
-            foreign_references: vec![],
+            // ForeignReference is an externally supplied identity/correlation
+            // commitment, NEVER a credential or an authorization to dispatch.
+            // Structural uniqueness is checked by the shared Runtime validator,
+            // request identity hashes it, and the PG plan freezes it verbatim
+            // for the native Runner and later terminal evidence.
+            foreign_references: e.foreign_references.clone(),
             host_dependencies,
             input_set_id: None,
             effective_inputs: vec![],
@@ -299,26 +526,50 @@ impl PgRuntime {
             created_at_ms: now()?,
             expected_source_sha256: self.config.source_sha256.clone(),
         };
-        let job = match db.admit(&input).map_err(pg)? {
+        // Planning is intentionally outside the coarse PG admission lock:
+        // Git/source hashing is potentially expensive. The exact Workspace
+        // lifetime identity MUST nonetheless be rebound after acquiring the
+        // same global lock as workspace.close/open/mutate, before INSERT jobs.
+        // The native Runner separately verifies frozen source/readset bytes
+        // before physical execution; this cheap fence prevents an orphaned
+        // durable Job when the Workspace was closed or replaced meanwhile.
+        let workspace_guard = || {
+            universal::ensure_workspace_mutation_quiescent(&self.config.executor, &e.workspace_id)
+                .map_err(|_| PgAdmissionError::WorkspaceStale)?;
+            let current = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
+                .map_err(|_| PgAdmissionError::WorkspaceStale)?;
+            if current != record {
+                return Err(PgAdmissionError::WorkspaceStale);
+            }
+            Ok(())
+        };
+        let job = match db
+            .admit_with_workspace_guard(
+                &input,
+                &workspace_guard,
+                self.config.harness_issuer_schema.as_deref(),
+            )
+            .map_err(pg)?
+        {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,
         };
         let _ = self.schedule_pending_jobs();
-        preserve_committed_job_identity(
-            &job,
+        let mut first_wait_ms = proposal.wait_ms;
+        observe_committed_job_with_bounded_busy_recovery(&job, || {
             self.observe(
                 &proposal.principal,
                 &JobObserveRequest {
                     schema_version: 1,
                     job_id: job.clone(),
-                    wait_ms: proposal.wait_ms,
+                    wait_ms: std::mem::replace(&mut first_wait_ms, 0),
                     wait_until: JobObserveWaitUntil::Terminal,
                     stdout_tail_bytes: proposal.stdout_tail_bytes,
                     stderr_tail_bytes: proposal.stderr_tail_bytes,
                     stdout_offset: None,
                     stderr_offset: None,
                 },
-            ),
-        )
+            )
+        })
     }
     pub fn observe(
         &self,
@@ -389,7 +640,7 @@ impl PgRuntime {
                 use postgres::fallible_iterator::FallibleIterator;
                 db.client
                     .batch_execute("LISTEN ordivon_runtime_schedule")
-                    .map_err(io)
+                    .map_err(pg_read_error)
                     .map_err(|e| e.with_operation_id(&request.job_id))?;
                 let wait = deadline
                     .saturating_duration_since(Instant::now())
@@ -399,7 +650,7 @@ impl PgRuntime {
                     .notifications()
                     .timeout_iter(wait)
                     .next()
-                    .map_err(io)
+                    .map_err(pg_read_error)
                     .map_err(|e| e.with_operation_id(&request.job_id))?;
             } else if let Some(attempt_id) = value.attempt_id.as_deref() {
                 let bundle = self
@@ -426,105 +677,6 @@ impl PgRuntime {
             }
         }
     }
-    pub fn cancel(
-        &self,
-        principal: &str,
-        request: &JobCancelRequest,
-    ) -> RuntimeResult<JobObservation> {
-        if request.schema_version != 1 {
-            return Err(RuntimeError::invalid(
-                "schemaVersion must be 1",
-                "schemaVersion",
-            ));
-        }
-        let mut db = self.store()?;
-        self.authorize(&mut db, &request.job_id, principal)?;
-        // A generic Job cancellation is not an operator Release rollback.
-        let is_release: bool = db
-            .client
-            .query_one(
-                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)",
-                &[&request.job_id],
-            )
-            .map_err(io)
-            .map_err(|e| e.with_operation_id(&request.job_id))?
-            .get(0);
-        if is_release {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::DeploymentInProgress,
-                "Runtime ReleaseEffect requires operator receipt reconciliation",
-                Some("runtimeReleaseEffect"),
-                false,
-            )
-            .with_operation_id(&request.job_id));
-        }
-        db.request_cancel_intent(&PgCancelIntent {
-            job_id: request.job_id.clone(),
-            observed_at_ms: now()?,
-            expected_source_sha256: self.config.source_sha256.clone(),
-        })
-        .map_err(pg)?;
-        let (a, _, _) = self.attempt(&mut db, &request.job_id)?;
-        if !a.state.is_terminal() {
-            fs::create_dir_all(&a.bundle_path).map_err(io)?;
-            universal::write_json_atomic(
-                &Path::new(&a.bundle_path).join("cancel-requested.json"),
-                &json!({"requestedAtMs":now()?}),
-            )
-            .map_err(io)?;
-            if a.state == AttemptState::Accepted {
-                self.reconcile(&mut db, &request.job_id)?;
-                return self.project(
-                    &mut db,
-                    &JobObserveRequest {
-                        schema_version: 1,
-                        job_id: request.job_id.clone(),
-                        wait_ms: 0,
-                        wait_until: JobObserveWaitUntil::Terminal,
-                        stdout_tail_bytes: 4096,
-                        stderr_tail_bytes: 4096,
-                        stdout_offset: None,
-                        stderr_offset: None,
-                    },
-                );
-            }
-            // systemd-run already sets KillMode=control-group,
-            // TimeoutStopSec=2s and SendSIGKILL=yes. Reuse that native
-            // stop policy: no extra PID walker, custom signal escalation or
-            // immediate hard-kill wrapper is needed.
-            if a.unit_name != format!("ordivon-pg-{}.service", a.attempt_id) {
-                return Err(error("Attempt native unit identity mismatch"));
-            }
-            let stop = super::platform::stop_unit_no_block(&a.unit_name)?;
-            if !stop.status.success() {
-                // A transient Unit may already have been collected. This
-                // failed submission is not proof of an active process; native
-                // reconciliation owns the terminal/no-result decision.
-                let unit = super::platform::systemctl_show(&a.unit_name)?;
-                if super::platform::unit_is_active(&unit)
-                    || super::platform::unit_has_pending_job(&unit)
-                {
-                    return Err(error(format!(
-                        "cancel intent persisted; native stop not confirmed for {}",
-                        request.job_id
-                    )));
-                }
-            }
-        }
-        self.observe(
-            principal,
-            &JobObserveRequest {
-                schema_version: 1,
-                job_id: request.job_id.clone(),
-                wait_ms: 0,
-                wait_until: JobObserveWaitUntil::Terminal,
-                stdout_tail_bytes: 4096,
-                stderr_tail_bytes: 4096,
-                stdout_offset: None,
-                stderr_offset: None,
-            },
-        )
-    }
     /// Projection only: never calls reconciliation or the OS execution provider.
     pub fn get(
         &self,
@@ -544,15 +696,15 @@ impl PgRuntime {
             PgJobReadback::Observed(s) => s,
             _ => return Err(error("inconclusive PG lifecycle")),
         };
-        let (a, p, operation) = self.attempt(&mut db, job)?;
+        let (a, p, operation) = self.readback_attempt(&mut db, &snapshot)?;
         let j = db
             .client
             .query_one(
                 "SELECT client_request_id,created_at_ms FROM jobs WHERE job_id=$1",
                 &[&job],
             )
-            .map_err(io)?;
-        let counts=db.client.query_one("SELECT count(*),COALESCE(sum(byte_length),0)::bigint,count(*) FILTER(WHERE truncated) FROM artifacts WHERE job_id=$1",&[&job]).map_err(io)?;
+            .map_err(pg_read_error)?;
+        let counts=db.client.query_one("SELECT count(*),COALESCE(sum(byte_length),0)::bigint,count(*) FILTER(WHERE truncated) FROM artifacts WHERE job_id=$1",&[&job]).map_err(pg_read_error)?;
         let mut by_kind = std::collections::BTreeMap::new();
         for row in db
             .client
@@ -560,11 +712,11 @@ impl PgRuntime {
                 "SELECT kind,count(*) FROM artifacts WHERE job_id=$1 GROUP BY kind",
                 &[&job],
             )
-            .map_err(io)?
+            .map_err(pg_read_error)?
         {
             by_kind.insert(row.get(0), row.get::<_, i64>(1) as u64);
         }
-        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(io)?;
+        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(pg_read_error)?;
         let created = j.get::<_, i64>(1) as u64;
         let mut previous = created;
         let timeline = events
@@ -596,7 +748,7 @@ impl PgRuntime {
                 "SELECT exit_code FROM attempts WHERE attempt_id=$1",
                 &[&a.attempt_id],
             )
-            .map_err(io)?
+            .map_err(pg_read_error)?
             .get(0);
         Ok(RuntimeJobInspection {
             schema_version: 2,
@@ -625,7 +777,7 @@ impl PgRuntime {
             },
             attempts: vec![RuntimeInspectionAttempt {
                 attempt_id: a.attempt_id,
-                attempt_number: 1,
+                attempt_number: a.attempt_number,
                 state: a.state,
                 termination_intent: a.termination_intent,
                 created_at_ms: a.created_at_ms,
@@ -660,6 +812,83 @@ mod committed_observation_tests {
     use super::*;
 
     #[test]
+    fn postcommit_busy_observation_recovers_same_job_without_new_admission() {
+        let mut observations = 0_u32;
+        let result = observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+            observations += 1;
+            if observations < 3 {
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryBusy,
+                    "aborted serializable post-admission PG observation",
+                    None,
+                    true,
+                ))
+            } else {
+                Ok("observed-existing-job")
+            }
+        })
+        .unwrap();
+        assert_eq!(result, "observed-existing-job");
+        assert_eq!(observations, 3);
+
+        let mut unknown_attempts = 0_u32;
+        let failed: RuntimeResult<()> =
+            observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+                unknown_attempts += 1;
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::DispatchOutcomeUnknown,
+                    "external effect outcome is unknown",
+                    None,
+                    false,
+                ))
+            });
+        assert_eq!(
+            unknown_attempts, 1,
+            "never retry an ambiguous physical effect"
+        );
+        assert_eq!(
+            failed.unwrap_err().operation_id.as_deref(),
+            Some("job-stable")
+        );
+
+        let mut nonretryable_busy_reads = 0_u32;
+        let refused: RuntimeResult<()> =
+            observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+                nonretryable_busy_reads += 1;
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryBusy,
+                    "not a proven aborted observation",
+                    None,
+                    false,
+                ))
+            });
+        assert_eq!(nonretryable_busy_reads, 1);
+        assert_eq!(
+            refused.unwrap_err().operation_id.as_deref(),
+            Some("job-stable")
+        );
+
+        let mut bounded_reads = 0_u32;
+        let exhausted: RuntimeResult<()> =
+            observe_committed_job_with_bounded_busy_recovery("job-stable", || {
+                bounded_reads += 1;
+                Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryBusy,
+                    "serializable observation always aborted",
+                    None,
+                    true,
+                ))
+            });
+        assert_eq!(
+            bounded_reads, 8,
+            "reuse the existing bounded PG retry budget"
+        );
+        let final_error = exhausted.unwrap_err();
+        assert_eq!(final_error.code, RuntimeErrorCode::RegistryBusy);
+        assert_eq!(final_error.operation_id.as_deref(), Some("job-stable"));
+    }
+
+    #[test]
     fn post_admission_observation_error_keeps_committed_job_identity() {
         let failed: RuntimeResult<()> = Err(RuntimeError::new(
             RuntimeErrorCode::RegistryUnavailable,
@@ -674,5 +903,51 @@ mod committed_observation_tests {
             preserve_committed_job_identity("job-exact", Ok::<_, RuntimeError>(7)).unwrap(),
             7
         );
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_direct_job_queries_preserve_sqlstate_and_exact_operation_id() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit disposable PostgreSQL server required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (state, expected) in [
+            ("40001", RuntimeErrorCode::RegistryBusy),
+            ("40P01", RuntimeErrorCode::RegistryBusy),
+            ("23505", RuntimeErrorCode::RegistryUnavailable),
+        ] {
+            let postgres_error = db
+                .batch_execute(&format!(
+                    "DO $$ BEGIN RAISE EXCEPTION SQLSTATE '{state}'; END $$;"
+                ))
+                .unwrap_err();
+            let failed: RuntimeResult<()> = Err(pg_read_error(postgres_error));
+            let observed =
+                preserve_committed_job_identity("job-real-direct-PG", failed).unwrap_err();
+            assert_eq!(observed.code, expected, "SQLSTATE {state}");
+            assert_eq!(observed.operation_id.as_deref(), Some("job-real-direct-PG"));
+            if expected == RuntimeErrorCode::RegistryBusy {
+                assert!(observed.retryable);
+                assert_eq!(observed.retry_after_ms, Some(250));
+            } else {
+                assert!(!observed.retryable);
+            }
+        }
+        let mut observed = 0_u32;
+        let qualified =
+            observe_committed_job_with_bounded_busy_recovery("job-real-direct-PG", || {
+                observed += 1;
+                if observed == 1 {
+                    let abort = db
+                        .batch_execute("DO $$ BEGIN RAISE EXCEPTION SQLSTATE '40001'; END $$;")
+                        .unwrap_err();
+                    Err(pg_read_error(abort))
+                } else {
+                    Ok("the original committed Job")
+                }
+            })
+            .unwrap();
+        assert_eq!(observed, 2);
+        assert_eq!(qualified, "the original committed Job");
     }
 }

@@ -10,6 +10,7 @@ from tools.repo.check_sql_dialects import (
     OSQUERY_DEFAULT_TIMEOUT_SECONDS,
     OSQUERY_TIMEOUT_SECONDS,
     POSTGRESQL_RUNTIME_EPOCH,
+    POSTGRESQL_RUNTIME_CLAIMS,
     POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER,
     ROOT,
     SQLITE_LEGACY_SOURCE_CALLS,
@@ -278,6 +279,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("platform/workstation/inventory/queries/uptime.sql"), "osquery")
         self.assertEqual(classify("studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
+        self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_workspace_claim_r1.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/sql/pg_resource_scheduler_v1.sql"), "postgresql")
         self.assertEqual(classify("catalogs/capabilities/ele/schema.sql"), "postgresql")
 
@@ -304,6 +306,8 @@ class SQLDialectBoundaryTests(unittest.TestCase):
               ("jobs", "attempts", "idempotency_keys",
                "concurrency_reservations", "job_allocations")],
             row("IndexStmt", "job_allocations", "idx_job_allocations_active"),
+            row("CreateStmt", "workspace_consumer_claims"),
+            row("IndexStmt", "workspace_consumer_claims", "idx_workspace_consumer_claims_held"),
             row("CreateStmt", "job_events"),
             row("CreateStmt", "job_runtime_release_effects"),
             row("IndexStmt", "job_runtime_release_effects",
@@ -332,6 +336,41 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             with self.subTest(mutant=mutant):
                 self.assertTrue(pg_runtime_ddl_structure_issues(
                     POSTGRESQL_RUNTIME_EPOCH, statements))
+
+    def test_pg_runtime_claim_additive_migration_ast_rejects_mutations(self):
+        row = self._pg_ast_statement
+        migration = [
+            row("TransactionStmt", transaction_kind=0),
+            row("DoStmt"),
+            row("CreateStmt", "workspace_consumer_claims"),
+            row("IndexStmt", "workspace_consumer_claims",
+                "idx_workspace_consumer_claims_held"),
+            row("TransactionStmt", transaction_kind=2),
+        ]
+        self.assertEqual(
+            pg_runtime_ddl_structure_issues(POSTGRESQL_RUNTIME_CLAIMS, migration), []
+        )
+        from copy import deepcopy
+        for mutant in ("rename_table", "wrong_index", "drop", "extra",
+                       "missing_guard", "wrong_commit", "empty"):
+            statements = deepcopy(migration)
+            if mutant == "rename_table":
+                statements[2].stmt.relation.relname = "unowned_claims"
+            elif mutant == "wrong_index":
+                statements[3].stmt.idxname = "unapproved_index"
+            elif mutant == "drop":
+                statements[2] = row("DropStmt")
+            elif mutant == "extra":
+                statements.insert(-1, row("GrantStmt"))
+            elif mutant == "missing_guard":
+                statements.pop(1)
+            elif mutant == "wrong_commit":
+                statements[-1].stmt.kind = 1
+            elif mutant == "empty":
+                statements.clear()
+            with self.subTest(mutant=mutant):
+                self.assertTrue(pg_runtime_ddl_structure_issues(
+                    POSTGRESQL_RUNTIME_CLAIMS, statements))
 
     def test_pg_resource_scheduler_full_ast_rejects_mutations(self):
         row = self._pg_ast_statement
