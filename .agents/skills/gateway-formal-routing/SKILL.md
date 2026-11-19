@@ -64,8 +64,10 @@ status pairs through execution and Artifact projections. Compare with live
 runtime.describe and Gateway capability.describe; synthetic enumeration is
 not a physical RPC success.
 
-Humans: inspect capability_projection.py and capability_catalog.py for the
-implementation; read observation errors before classifying Runtime unavailable.
+Humans: inspect the actual `services/gateway/src/ordivon_gateway/logic/capability_projection.py`
+and `services/gateway/src/ordivon_gateway/capabilities/discovery.py` for
+projection and Owner-backed observation; read observation errors before
+classifying Runtime unavailable.
 Retain real MCP consumer readback and native Windows identity and PG integration
 checks where appropriate.
 
