@@ -31,9 +31,6 @@ from .owner_identity import (
     _runtime_identity_configured,
     _validate_windows_private_secret_file,
 )
-from .owner_identity import (
-    _owner_error_result as owner_error_result,
-)
 from .trusted_operator import TrustedCloudflareOperator
 
 __all__ = [
@@ -41,7 +38,6 @@ __all__ = [
     "GatewayAuditMiddleware",
     "OwnerCallError",
     "OwnerEndpoint",
-    "owner_error_result",
     "_headers_for_endpoint",
     "_read_private_secret_file",
     "_read_private_token_file",

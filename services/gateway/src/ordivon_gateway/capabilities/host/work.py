@@ -18,8 +18,7 @@ from pydantic import (
 )
 
 from ...logic.host_tool_contracts import HostCollectionBytes
-from ...security import OwnerCallError
-from ...security import owner_error_result as _owner_error_result
+from ...logic.owner_protocol import OwnerCallError
 
 
 # Match the natural Host's published WorkSnapshotInput wire shape without
@@ -73,9 +72,11 @@ _ADVANCABLE_REVISION = TypeAdapter(AdvancableWorkRevision)
 _LIST_LIMIT = TypeAdapter(PositiveWorkListLimit)
 
 
-def _legacy_work_validation_error(tool: str) -> CallToolResult:
+def _legacy_work_validation_error(
+    tool: str, project_error: Callable[[OwnerCallError], CallToolResult]
+) -> CallToolResult:
     """Same public error as an original Host rejection, without an Owner RPC."""
-    return _owner_error_result(
+    return project_error(
         OwnerCallError(
             f"owner tool returned error: host/{tool}",
             owner_id="host",
@@ -87,6 +88,7 @@ def _legacy_work_validation_error(tool: str) -> CallToolResult:
 def register_host_work_tools(
     server: MCPServer,
     _host: Callable[[str, dict[str, Any]], Awaitable[Any]],
+    project_error: Callable[[OwnerCallError], CallToolResult],
 ) -> None:
     @server.tool(name="host.status")
     async def host_status(
@@ -108,7 +110,7 @@ def register_host_work_tools(
         try:
             verified_snapshot = _SNAPSHOT.validate_python(initialSnapshot)
         except ValidationError:
-            return _legacy_work_validation_error("work.create")
+            return _legacy_work_validation_error("work.create", project_error)
         return await _host(
             "work.create",
             {
@@ -126,7 +128,7 @@ def register_host_work_tools(
                 _REVISION.validate_python(revision) if revision is not None else None
             )
         except ValidationError:
-            return _legacy_work_validation_error("work.get")
+            return _legacy_work_validation_error("work.get", project_error)
         return await _host("work.get", {"workRef": workRef, "revision": verified_revision})
 
     @server.tool(name="work.list")
@@ -140,7 +142,7 @@ def register_host_work_tools(
         try:
             verified_limit = _LIST_LIMIT.validate_python(limit)
         except ValidationError:
-            return _legacy_work_validation_error("work.list")
+            return _legacy_work_validation_error("work.list", project_error)
         return await _host(
             "work.list",
             {
@@ -164,7 +166,7 @@ def register_host_work_tools(
             verified_revision = _ADVANCABLE_REVISION.validate_python(expectedRevision)
             verified_snapshot = _SNAPSHOT.validate_python(snapshot)
         except ValidationError:
-            return _legacy_work_validation_error("work.snapshot.commit")
+            return _legacy_work_validation_error("work.snapshot.commit", project_error)
         return await _host(
             "work.snapshot.commit",
             {

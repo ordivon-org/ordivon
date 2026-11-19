@@ -2437,7 +2437,13 @@ def validate_repository(root: Path = ROOT) -> None:
         )
 
     gateway_source = gateway_mcp.read_text(encoding="utf-8")
-    if "register_host_tools(server, gateway, _owner_boundary)" not in gateway_source:
+    host_registry_calls = (
+        "register_host_tools(server, gateway, _owner_boundary)",
+        "register_host_tools(server, gateway, _owner_boundary, _owner_error_result)",
+    )
+    # MCP error rendering is injected into Host abilities rather than imported
+    # from a concrete transport (or smuggled through the Security namespace).
+    if not any(signature in gateway_source for signature in host_registry_calls):
         raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
     observed_tools = gateway_tools(
         gateway_source + "\n" + "\n".join(path.read_text(encoding="utf-8") for path in gateway_host_tool_sources)

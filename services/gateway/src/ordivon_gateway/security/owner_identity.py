@@ -10,47 +10,8 @@ import os
 import stat
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
-from mcp_types import CallToolResult, TextContent
-
-
-class OwnerCallError(RuntimeError):
-    def __init__(
-        self,
-        message: str,
-        *,
-        owner_id: str | None = None,
-        tool_name: str | None = None,
-        error: dict[str, Any] | None = None,
-    ) -> None:
-        super().__init__(message)
-        self.owner_id = owner_id
-        self.tool_name = tool_name
-        self.error = dict(error) if error is not None else None
-
-
-def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
-    """Project all owner-boundary errors through one stable public envelope."""
-    error = (
-        dict(exc.error)
-        if exc.error is not None
-        else {
-            "code": "OWNER_CALL_FAILED",
-            "message": str(exc),
-            "origin": "gateway_adapter",
-        }
-    )
-    structured: dict[str, Any] = {"error": error}
-    if exc.owner_id is not None:
-        structured["gatewayOwnerId"] = exc.owner_id
-    if exc.tool_name is not None:
-        structured["gatewayOwnerTool"] = exc.tool_name
-    return CallToolResult(
-        content=[TextContent(type="text", text=str(exc))],
-        structuredContent=structured,
-        isError=True,
-    )
+from ..logic.owner_protocol import OwnerCallError
 
 
 @dataclass(frozen=True)

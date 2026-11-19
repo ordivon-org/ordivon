@@ -77,7 +77,7 @@ async def check() -> dict[str, int]:
             "available": offered,
             "windowsAuthorities": ["limited"],
         }
-        observed = {"node": {"nodeId": "windows-native"}, "targets": [target]}
+        observed = {"schemaVersion": 1, "node": {"nodeId": "windows-native"}, "targets": [target]}
         projected = project_execution_capability(
             route, configured_at_gateway=True, owner_response=observed
         )
@@ -128,14 +128,15 @@ async def check() -> dict[str, int]:
     ]
     malformed_inventories = 0
     for response, should_be_available in inventory_cases:
+        versioned_response = {"schemaVersion": 1, **response}
         projected = project_execution_capability(
-            route, configured_at_gateway=True, owner_response=response
+            route, configured_at_gateway=True, owner_response=versioned_response
         )
         assert projected.available is should_be_available
         assert projected.readiness_state == ("ready" if should_be_available else "unknown")
         assert (projected.observation_error is None) is should_be_available
         malformed_inventories += int(not should_be_available)
-        service = GatewayService(SyntheticRuntime(response))
+        service = GatewayService(SyntheticRuntime(versioned_response))
         described = await service.capability_describe("execution.windows")
         actual = described.capabilities[0]
         assert actual.available is should_be_available
