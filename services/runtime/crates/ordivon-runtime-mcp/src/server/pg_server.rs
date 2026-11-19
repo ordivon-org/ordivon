@@ -78,6 +78,25 @@ fn project_ingress_execution_profiles(
     }
 }
 
+/// Restrict advertised new effects for an authenticated contained-only Agent.
+/// A manually authored raw tools/call is independently checked by Core after
+/// committed replay; tools/list filtering is never the authorization gate.
+fn restrict_new_effect_catalog(
+    tools: &mut Vec<Tool>,
+    required: Option<ExecutionProfile>,
+) {
+    if required == Some(ExecutionProfile::ContainedLocal) {
+        tools.retain(|tool| tool.name.as_ref() != "release.apply");
+        for tool in tools {
+            if matches!(tool.name.as_ref(), "workspace.exec" | "workspace.execPlan") {
+                tool.description = Some(
+                    "Authenticated contained_local-only Job admission. Caller-selected trusted_local is DENIED for new effects; exact previously committed Job recovery remains allowed.".into()
+                );
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct PgRuntimeServer {
     runtime: ordivon_runtime_core::PgRuntime,
@@ -177,15 +196,7 @@ impl PgRuntimeServer {
         if self.claim_release_ingress.claim_only() {
             tools.retain(|tool| CLAIM_ONLY_TOOL_NAMES.contains(&tool.name.as_ref()));
         }
-        if self.required_new_execution_profile == Some(ExecutionProfile::ContainedLocal) {
-            for tool in &mut tools {
-                if matches!(tool.name.as_ref(), "workspace.exec" | "workspace.execPlan") {
-                    tool.description = Some(
-                        "Authenticated contained_local-only Job admission. Caller-selected trusted_local is DENIED for new effects; exact previously committed Job recovery remains allowed.".into()
-                    );
-                }
-            }
-        }
+        restrict_new_effect_catalog(&mut tools, self.required_new_execution_profile);
         tools
     }
     // Protect the Agent-visible catalog as well as raw tools/call: an ordinary
@@ -324,7 +335,9 @@ impl PgRuntimeServer {
                     }
                     let mut description=runtime.describe().map_err(ToolError::from)?;
                     project_ingress_execution_profiles(&mut description, required_new_execution_profile);
-                    description["structuredReleaseConfigured"]=json!(release_ready);
+                    description["structuredReleaseConfigured"]=json!(
+                        release_ready && required_new_execution_profile.is_none()
+                    );
                     Ok(description)
                 },
                 "release.apply" => {
@@ -348,6 +361,13 @@ impl PgRuntimeServer {
                     {
                         return serde_json::to_value(replay)
                             .map_err(|e|ToolError::internal(e.to_string()));
+                    }
+                    if required_new_execution_profile == Some(ExecutionProfile::ContainedLocal) {
+                        return Err(ToolError::from(RuntimeError::new(
+                            ordivon_runtime_core::RuntimeErrorCode::AuthorizationDenied,
+                            "ordinary contained ingress cannot admit new operator ReleaseEffects",
+                            Some("release"), false
+                        )));
                     }
                     if !release_ready {
                         return Err(ToolError::invalid(
@@ -644,5 +664,16 @@ mod authenticated_execution_profile_projection_tests {
         let unchanged=description.clone();
         project_ingress_execution_profiles(&mut description,None);
         assert_eq!(description,unchanged);
+    }
+
+    #[test]
+    fn contained_ordinary_catalog_hides_new_operator_release_but_keeps_readback() {
+        let mut catalog=PgRuntimeServer::catalog_for_route(true,false);
+        assert!(catalog.iter().any(|tool|tool.name.as_ref()=="release.apply"));
+        restrict_new_effect_catalog(&mut catalog,Some(ExecutionProfile::ContainedLocal));
+        assert!(!catalog.iter().any(|tool|tool.name.as_ref()=="release.apply"));
+        assert!(catalog.iter().any(|tool|tool.name.as_ref()=="release.get"));
+        let exec=catalog.iter().find(|tool|tool.name.as_ref()=="workspace.exec").unwrap();
+        assert!(exec.description.as_ref().unwrap().contains("contained_local-only"));
     }
 }
