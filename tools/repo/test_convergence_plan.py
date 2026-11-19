@@ -1057,18 +1057,33 @@ class ConvergencePlanTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unapproved source-only"):
                 MODULE.load_dependency_graph(path=shadow)
 
-    def test_media_change_expands_to_declared_interaction_component(self) -> None:
+    def test_media_change_expands_only_to_real_product_and_test_consumers(self) -> None:
         plan = MODULE.build_plan(
             changed_files=["capabilities/media/src/ordivon_studio/agent_surface.py"]
         )
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "authority-catalog", "distribution", "game", "media", "workstation"],
+            ["artifact", "authority-catalog", "media", "workstation"],
         )
+        self.assertEqual(plan["taskLocalTestConsumers"], ["workstation"])
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
+
+    def test_workstation_environment_fixtures_are_directed_test_consumers(self) -> None:
+        """Test-only Game/Media path readings do not create product SCCs."""
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("game", graph["workstation"])
+        self.assertNotIn("media", graph["workstation"])
+        game = MODULE.build_plan(changed_files=["domains/game/package.json"])
+        self.assertEqual(game["verificationOwners"], ["game", "workstation"])
+        self.assertEqual(game["taskLocalTestConsumers"], ["workstation"])
+        workstation = MODULE.build_plan(
+            changed_files=["platform/workstation/tests/test_workstation_consequences.py"]
+        )
+        self.assertEqual(workstation["verificationOwners"], ["distribution", "workstation"])
+        self.assertEqual(workstation["taskLocalTestConsumers"], [])
 
     def test_security_change_expands_to_actual_gateway_harness_web_consumers(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
