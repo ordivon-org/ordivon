@@ -84,6 +84,145 @@ fn pg_workspace_tool_environment(
     environment
 }
 
+/// Create the existing Runtime-owned cache directories through directory
+/// handles, refusing symbolic-link traversal at *every* component. A
+/// contained process owns its writable caches; it may leave a HOME/cache
+/// symlink behind before its next Run. Blind create_dir_all would let the
+/// next root-owned PG admission follow that link into an unrelated host path.
+#[cfg(target_os = "linux")]
+fn pg_bounded_contained_cache_directory(
+    executor: &UniversalExecutorConfig,
+    path: &Path,
+) -> RuntimeResult<()> {
+    use std::ffi::CString;
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::unix::ffi::OsStrExt;
+    use std::path::Component;
+
+    let components = path.strip_prefix(&executor.store_root).map_err(|_| {
+        RuntimeError::invalid(
+            "contained cache escaped Runtime store root",
+            "execution.env",
+        )
+    })?;
+    let mut current = universal::open_directory_nofollow(&executor.store_root).map_err(io)?;
+    for component in components.components() {
+        let Component::Normal(name) = component else {
+            return Err(RuntimeError::invalid(
+                "contained cache path contains an untrusted component",
+                "execution.env",
+            ));
+        };
+        let segment = CString::new(name.as_bytes()).map_err(|_| {
+            RuntimeError::invalid("contained cache path contains NUL", "execution.env")
+        })?;
+        let open_dir = || unsafe {
+            libc::openat(
+                current.as_raw_fd(),
+                segment.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        let mut next = open_dir();
+        if next < 0 {
+            let first = std::io::Error::last_os_error();
+            if first.kind() != std::io::ErrorKind::NotFound {
+                return Err(RuntimeError::invalid(
+                    format!("contained cache path is not a real directory: {first}"),
+                    "execution.env",
+                ));
+            }
+            let made = unsafe { libc::mkdirat(current.as_raw_fd(), segment.as_ptr(), 0o700) };
+            if made < 0
+                && std::io::Error::last_os_error().kind() != std::io::ErrorKind::AlreadyExists
+            {
+                return Err(io(std::io::Error::last_os_error()));
+            }
+            next = open_dir();
+        }
+        if next < 0 {
+            return Err(RuntimeError::invalid(
+                format!(
+                    "contained cache is not a no-follow directory: {}",
+                    std::io::Error::last_os_error()
+                ),
+                "execution.env",
+            ));
+        }
+        current = unsafe { std::fs::File::from_raw_fd(next) };
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn pg_bounded_contained_cache_directory(
+    _executor: &UniversalExecutorConfig,
+    _path: &Path,
+) -> RuntimeResult<()> {
+    Err(RuntimeError::invalid(
+        "contained_local requires Linux native directory authority",
+        "execution.executionProfile",
+    ))
+}
+
+/// Reuse Runtime's single workspace-owned cache roots for the already
+/// supported systemd contained_local profile. Each path bound writable into
+/// the native mount namespace must be derived from the admitted Workspace,
+/// never from an agent-supplied environment variable. Prepare them before
+/// the irreversible PG dispatch-issued/OS launch boundary.
+fn pg_contained_workspace_environment(
+    mut environment: std::collections::BTreeMap<String, String>,
+    executor: &UniversalExecutorConfig,
+    workspace_id: &str,
+) -> RuntimeResult<std::collections::BTreeMap<String, String>> {
+    let workspace_cache = executor.workspace_cache_path(workspace_id);
+    let workspace_tmp = executor.workspace_tmp_path(workspace_id);
+    let build_cache = executor.workspace_build_cache_path(workspace_id);
+    let tooling = workspace_cache.join("tooling");
+    let paths = [
+        ("HOME", workspace_cache.join("home")),
+        ("TMPDIR", workspace_tmp),
+        ("XDG_CACHE_HOME", workspace_cache.clone()),
+        ("CARGO_TARGET_DIR", build_cache.join("cargo")),
+        ("UV_CACHE_DIR", tooling.join("uv")),
+        ("PIP_CACHE_DIR", tooling.join("pip")),
+        ("npm_config_cache", tooling.join("npm")),
+        ("PNPM_HOME", tooling.join("pnpm")),
+        ("COREPACK_HOME", tooling.join("corepack")),
+        ("BUN_INSTALL_CACHE_DIR", tooling.join("bun/install-cache")),
+        ("GOMODCACHE", tooling.join("go/mod")),
+        ("GOCACHE", tooling.join("go/build")),
+        (
+            "PYTHONPYCACHEPREFIX",
+            workspace_cache.join("python-bytecode"),
+        ),
+        ("RUFF_CACHE_DIR", workspace_cache.join("ruff")),
+    ];
+    // The native systemd property builder bind-mounts these environment
+    // paths. Allowing an Agent to choose HOME=/etc/... or TMPDIR=/etc/...
+    // would turn execution environment data into filesystem mount authority.
+    for (name, path) in &paths {
+        let qualified = path.to_string_lossy().into_owned();
+        if environment
+            .get(*name)
+            .is_some_and(|actual| actual != &qualified)
+        {
+            return Err(RuntimeError::invalid(
+                format!("contained_local {name} must use Workspace-owned cache"),
+                "execution.env",
+            ));
+        }
+    }
+    for (name, path) in paths {
+        pg_bounded_contained_cache_directory(executor, &path)?;
+        environment.insert(name.to_owned(), path.to_string_lossy().into_owned());
+    }
+    environment
+        .entry("PATH".to_string())
+        .or_insert_with(|| "/usr/bin:/bin".to_string());
+    Ok(environment)
+}
+
 #[cfg(test)]
 mod cargo_issuer_environment_tests {
     use super::{pg_workspace_tool_environment, preserve_qualified_issuer_environment};
@@ -236,14 +375,25 @@ impl PgRuntime {
             self.config.harness_issuer_schema.as_deref(),
             &e.foreign_references,
         );
+        if preserve_harness_fenced_request
+            && e.execution_profile == ExecutionProfile::ContainedLocal
+        {
+            return Err(RuntimeError::invalid(
+                "issuer-bound Tool environment cannot be rewritten for contained_local",
+                "execution.executionProfile",
+            ));
+        }
 
         if e.execution_target != ExecutionTarget::LocalLinux
-            || e.execution_profile != ExecutionProfile::TrustedLocal
+            || !matches!(
+                e.execution_profile,
+                ExecutionProfile::TrustedLocal | ExecutionProfile::ContainedLocal
+            )
             || e.windows_context.is_some()
             || e.windows_authority != WindowsAuthority::Limited
         {
             return Err(RuntimeError::invalid(
-                "PG vertical supports trusted_local local_linux execution only",
+                "PG vertical supports local_linux trusted_local or contained_local execution only",
                 "execution",
             ));
         }
@@ -344,11 +494,19 @@ impl PgRuntime {
                 executable_digest: universal::sha256_file(&path).map_err(io)?,
                 args: step.args.clone(),
                 cwd: cwd.to_string_lossy().into_owned(),
-                env: pg_workspace_tool_environment(
-                    step.env.clone(),
-                    preserve_harness_fenced_request,
-                    &workspace_generated_cache,
-                ),
+                env: if e.execution_profile == ExecutionProfile::ContainedLocal {
+                    pg_contained_workspace_environment(
+                        step.env.clone(),
+                        &self.config.executor,
+                        &record.workspace_id,
+                    )?
+                } else {
+                    pg_workspace_tool_environment(
+                        step.env.clone(),
+                        preserve_harness_fenced_request,
+                        &workspace_generated_cache,
+                    )
+                },
                 timeout_ms: ceiling,
                 continue_on_error: step.continue_on_error,
             });
@@ -372,16 +530,36 @@ impl PgRuntime {
             workspace_path: record.workspace_path.clone(),
             source_revision: record.source_revision.clone(),
             workspace_source_digest: Some(source),
-            workspace_git_common_dir: None,
+            // Contained tasks can read their original Git worktree metadata
+            // through the native read-only common-dir bind. Never grant a
+            // writable mount of the shared source repository to an Agent.
+            workspace_git_common_dir: if e.execution_profile == ExecutionProfile::ContainedLocal {
+                Some(
+                    universal::workspace_git_common_dir_at(Path::new(&record.workspace_path))
+                        .map_err(io)?
+                        .to_string_lossy()
+                        .into_owned(),
+                )
+            } else {
+                None
+            },
             executable: executable.to_string_lossy().into_owned(),
             executable_digest: universal::sha256_file(&executable).map_err(io)?,
             args: e.args.clone(),
             cwd: cwd.to_string_lossy().into_owned(),
-            env: pg_workspace_tool_environment(
-                e.env.clone(),
-                preserve_harness_fenced_request,
-                &workspace_generated_cache,
-            ),
+            env: if e.execution_profile == ExecutionProfile::ContainedLocal {
+                pg_contained_workspace_environment(
+                    e.env.clone(),
+                    &self.config.executor,
+                    &record.workspace_id,
+                )?
+            } else {
+                pg_workspace_tool_environment(
+                    e.env.clone(),
+                    preserve_harness_fenced_request,
+                    &workspace_generated_cache,
+                )
+            },
             timeout_ms: timeout,
             stdout_limit_bytes: stdout,
             stderr_limit_bytes: stderr,

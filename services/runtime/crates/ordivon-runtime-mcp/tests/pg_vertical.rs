@@ -6105,3 +6105,238 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
         "R28_NATIVE_PG18_MCP_RAW_RELEASE_ROUTE_DENIED_OLD_CLAIM_PRESERVED_NEW_DEDICATED_HELD_PASS"
     );
 }
+
+/// Real PG18, authenticated MCP and actual systemd Runner. This opt-in
+/// original consumer test proves offline Git + output receipt work under
+/// contained_local while control-plane paths stay inaccessible.
+#[test]
+#[ignore = "requires disposable PostgreSQL18 and real systemd transient units"]
+fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-contained-git","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "native Workspace OPEN: {opened}");
+    // A caller's HOME/TMPDIR/CARGO_TARGET_DIR is untrusted DATA. The
+    // ContainedLocal systemd launcher bind-mounts those paths: fail before
+    // native Job admission rather than granting arbitrary host mount access.
+    for (attempt, execution) in [
+        (
+            "path",
+            json!({"workspaceId":"ws-contained-git",
+            "executable":"/usr/bin/true","cwdRelative":".",
+            "executionProfile":"contained_local",
+            "env":{"HOME":"/etc/ordivon"}}),
+        ),
+        (
+            "step",
+            json!({"workspaceId":"ws-contained-git",
+            "executable":"/usr/bin/true","cwdRelative":".",
+            "executionProfile":"contained_local",
+            "steps":[{"id":"unsafe-home","executable":"/usr/bin/true",
+                       "cwdRelative":".","env":{"HOME":"/etc/ordivon"}}]}),
+        ),
+    ] {
+        let denied = call(
+            &endpoint,
+            "workspace.exec",
+            json!({"clientRequestId":format!("pg-contained-env-negative-{attempt}"),
+                   "execution":execution,"waitMs":200}),
+        );
+        assert_eq!(
+            denied["isError"], true,
+            "Agent supplied host mount escaped: {denied}"
+        );
+        assert_eq!(
+            denied["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+            "{denied}"
+        );
+        let count: i64 = fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get(0);
+        assert_eq!(count, 0, "invalid mount must not admit PG Job");
+    }
+    // A previous contained task may have replaced its writable HOME cache
+    // with a symlink to an unrelated host directory. Syntactic prefix
+    // comparison is not mount authority; the resolved original must stay
+    // within the Runtime-owned cache root.
+    let cache = fixture.root.join("store/cache/workspaces/ws-contained-git");
+    fs::create_dir_all(&cache).unwrap();
+    let foreign = fixture.root.join("synthetic-host-root-owned");
+    fs::create_dir_all(&foreign).unwrap();
+    std::os::unix::fs::symlink(&foreign, cache.join("home")).unwrap();
+    let poisoned = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-contained-symlink-mount-negative",
+            "execution":{"workspaceId":"ws-contained-git","executable":"/usr/bin/true",
+                 "cwdRelative":".","executionProfile":"contained_local","timeoutMs":10000},
+            "waitMs":0}),
+    );
+    assert_eq!(
+        poisoned["isError"], true,
+        "foreign symlink accepted as native bind: {poisoned}"
+    );
+    assert_eq!(
+        poisoned["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+        "{poisoned}"
+    );
+    let count: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM jobs", &[])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        count, 0,
+        "symlink escape must be rejected before PG job birth"
+    );
+    fs::remove_file(cache.join("home")).unwrap();
+
+    let command = r#"set -eu
+if test -e /etc/ordivon && test -r /etc/ordivon; then echo 'CONTAINED_CONTROL_DIRECTORY_VISIBLE'; exit 53; fi
+if test -r /etc/ordivon/runtime-mcp.token; then echo 'CONTAINED_SECRET_VISIBLE'; exit 54; fi
+printf 'native-contained-workspace' > contained-native.txt
+git rev-parse --is-inside-work-tree >/dev/null
+if git add contained-native.txt >/dev/null 2>&1; then echo 'CONTAINED_WRITABLE_SHARED_GIT_AUTHORITY'; exit 55; fi
+printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
+"#;
+    let mut result = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"pg-native-contained-git-physical-0001",
+            "execution":{
+                "workspaceId":"ws-contained-git",
+                "executable":"/usr/bin/bash",
+                "args":["-lc",command],
+                "cwdRelative":".",
+                "executionProfile":"contained_local",
+                "timeoutMs":15000
+            },
+            "waitMs":10000,
+            "stdoutTailBytes":1024
+        }),
+    );
+    assert_ne!(
+        result["isError"], true,
+        "PG must admit contained_local: {result}"
+    );
+    let job = result["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if result["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        result = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":2000,"stdoutTailBytes":1024}),
+        );
+        assert_ne!(
+            result["isError"], true,
+            "same native contained Job: {result}"
+        );
+    }
+    if result["structuredContent"]["executionDisposition"] != "succeeded" {
+        let artifacts = result["structuredContent"]["artifacts"].as_array().unwrap();
+        if let Some(receipt) = artifacts.iter().find(|v| v["kind"] == "execution_result") {
+            let detail = call(
+                &endpoint,
+                "artifact.read",
+                json!({"jobId":job,"artifactId":receipt["artifactId"],
+                       "offset":0,"maxBytes":8192}),
+            );
+            eprintln!(
+                "R55_REAL_NATIVE_FAILURE_RECEIPT: {}",
+                detail["structuredContent"]["content"]
+            );
+        }
+    }
+    assert_eq!(
+        result["structuredContent"]["executionDisposition"], "succeeded",
+        "physical systemd contained task failed: {result}"
+    );
+    assert_eq!(
+        result["structuredContent"]["stdoutTail"],
+        "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
+    );
+    let workspace = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":"ws-contained-git"}),
+    );
+    assert_ne!(workspace["isError"], true, "{workspace}");
+    assert_eq!(workspace["structuredContent"]["activeJobIds"], json!([]));
+    let file = call(
+        &endpoint,
+        "workspace.read",
+        json!({"workspaceId":"ws-contained-git","relativePath":"contained-native.txt",
+               "mode":"FULL","maxBytes":200}),
+    );
+    assert_ne!(file["isError"], true, "{file}");
+    assert_eq!(
+        file["structuredContent"]["content"],
+        "native-contained-workspace"
+    );
+    let artifacts = result["structuredContent"]["artifacts"].as_array().unwrap();
+    let original_stdout = artifacts.iter().find(|v| v["kind"] == "stdout").unwrap();
+    let read = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":job,"artifactId":original_stdout["artifactId"],
+               "offset":0,"maxBytes":1024}),
+    );
+    assert_ne!(read["isError"], true, "{read}");
+    assert_eq!(
+        read["structuredContent"]["content"],
+        "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
+    );
+    // The read-only Git common-dir bind deliberately rejects direct shared
+    // repository writes by a contained Agent. A separate authenticated native
+    // source-control consumer may commit the already-produced original bytes.
+    let mut committed = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-contained-independent-source-commit",
+            "execution":{"workspaceId":"ws-contained-git","executable":"/usr/bin/bash",
+                "args":["-lc","git add contained-native.txt && git -c user.name=SourceOwner -c user.email=owner@example.invalid commit -qm 'commit contained result'"],
+                "cwdRelative":".","executionProfile":"trusted_local","timeoutMs":15000},
+            "waitMs":10000}),
+    );
+    assert_ne!(committed["isError"], true, "{committed}");
+    let committed_job = committed["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..20 {
+        if committed["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        committed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":committed_job,"waitMs":2000}),
+        );
+        assert_ne!(committed["isError"], true, "{committed}");
+    }
+    assert_eq!(
+        committed["structuredContent"]["executionDisposition"], "succeeded",
+        "{committed}"
+    );
+    let state = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":"ws-contained-git"}),
+    );
+    assert_ne!(state["isError"], true, "{state}");
+    assert_eq!(state["structuredContent"]["dirty"], false, "{state}");
+}
