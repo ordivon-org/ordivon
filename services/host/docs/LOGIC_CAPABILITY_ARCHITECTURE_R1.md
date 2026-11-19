@@ -88,3 +88,7 @@ R59 增量：在 R58 的既有 references/ 包内增加 record_refs.py，只承�
 ## 6. 将 UNKNOWN 解压为可区分的观察命题
 
 参见 [UNKNOWN_EVIDENCE_REFINEMENT_R1.md](UNKNOWN_EVIDENCE_REFINEMENT_R1.md)。从本次 PostgreSQL 读取是否成功、Work/修订是否存在、历史保存/当前指针是否可用、Runtime 外部效果是否被自然 Owner 验证四个独立方向，联合正向见证与逆向反例。不能把历史 Snapshot 不存在擅自解释为「已裁剪」，也不能把 Gateway 超时当成 Host 未提交。新版 Work 修订缺失保留原 CONFLICT 代码，只增加已知的修订坐标、原因及分流恢复动作。
+
+## 7. Attention / Topic 消费者双游标
+
+[DUAL_CURSOR_EVIDENCE_R1.md](DUAL_CURSOR_EVIDENCE_R1.md) 把变更发现、消息返回、导航 ACK、语义消费分为不同命题；`social_topic_queries.py` 的同一 MVCC 消息高水位负控拒绝跨域/未来游标的虚假空页，而不会添加新的 MCP Tool 或权限。

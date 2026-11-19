@@ -50,3 +50,11 @@
 ### 逆向新增负控：比当前修订更高的孤立快照
 
 Schema14 的 `work_snapshots` 表没有把 `revision <= works.current_revision` 做成跨表物理约束。旧 `read_work_in_tx` 先读取请求 revision 对应行，可能把一个意外存在的未来行作为已提交版本返回。现在先用 Work 当前修订边界拒绝任何请求 `revision > current_revision`，再检查 Snapshot 有无与 digest。独立 PG18 回归会在测试私有 Work 内插入“未来但未提交”的有效 digest 行，必须被拒绝。这是**真实反例驱动的代码修复**，不是为 UNKNOWN 增加一种叫法。
+
+## 五、双游标恢复的进一步实证
+
+[DUAL_CURSOR_EVIDENCE_R1.md](DUAL_CURSOR_EVIDENCE_R1.md) 以同一 PG18 Snapshot 为证据边界，将 Attention 变更发现、Topic 消息读取、两个独立游标 ACK 和语义接受拆开。现有 `topic.resume` 超界游标不再返回误导性空页，而是兼容 `CONFLICT` 的具体来源诊断。超过 Topic 当前高水位可直接证伪；同一数字位于合法范围内但属于另一 Topic，则必须保留来源不确定性并在消费者侧核对。
+
+## 六、游标整型归一化的逆向反例
+
+原 MCP 的普通 `int` 会把 `True`、`1.0`、`"1"` 正规化为 `1`；这与当前 Topic 高水位判断是两个独立维度。R61 共用 `ExactCursorWire` 在原生 MCP 参数边界拒绝这些别名，保持正常整数 JSON Schema 不变；见 [双游标的正逆验证](DUAL_CURSOR_EVIDENCE_R1.md)。正确数值类型不等于拥有正确游标来源或真实阅读回执。
