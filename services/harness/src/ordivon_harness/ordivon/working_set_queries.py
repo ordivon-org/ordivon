@@ -67,31 +67,32 @@ class _WorkingSetReadQueries:
     ) -> dict[str, JsonValue]:
         """Project a mechanical history catalog relative to one exact cognition head."""
         if not current.committed:
-            raise ValueError(
-                "Working Set history inspection requires a committed cognition head"
-            )
+            raise ValueError("Working Set history inspection requires a committed cognition head")
         current_sequence = self._working_set_event_sequence(current)
         cutoff = (
-            current_sequence
-            if before_sequence is None
-            else min(current_sequence, before_sequence)
+            current_sequence if before_sequence is None else min(current_sequence, before_sequence)
         )
-        candidates = [
-            event
-            for event in self.store.list_run_events(self.harness_run_id)
-            if event.event_kind == "harness.working-set-recorded"
-            and event.sequence < cutoff
-            and event.data.get("committed") is True
-        ]
-        candidates.reverse()
+        page_reader = getattr(self.store, "list_committed_working_set_events", None)
+        if callable(page_reader):
+            # PostgreSQL applies the Run, event kind, immutable committed flag,
+            # cursor and LIMIT+1 before transmitting or decoding event payloads.
+            candidates = list(page_reader(self.harness_run_id, before_sequence=cutoff, limit=limit))
+        else:
+            # Preserve the existing behavioral port for legacy/fixture Stores.
+            candidates = [
+                event
+                for event in self.store.list_run_events(self.harness_run_id)
+                if event.event_kind == "harness.working-set-recorded"
+                and event.sequence < cutoff
+                and event.data.get("committed") is True
+            ]
+            candidates.reverse()
         selected_events = candidates[:limit]
         selections: list[JsonValue] = []
         for event in selected_events:
             spec = self._working_set_from_event(event)
             if not spec.committed:
-                raise ValueError(
-                    "Working Set history committed event decoded as mutable state"
-                )
+                raise ValueError("Working Set history committed event decoded as mutable state")
             selections.append(
                 {
                     "eventSequence": event.sequence,
@@ -139,6 +140,9 @@ class _WorkingSetReadQueries:
         return None if event is None else self._working_set_from_event(event)
 
     def _working_set_event_sequence(self, spec: HarnessWorkingSetSpec) -> int:
+        indexed_lookup = getattr(self.store, "find_working_set_event_sequence", None)
+        if callable(indexed_lookup):
+            return indexed_lookup(self.harness_run_id, working_set_digest=spec.digest)
         matches = [
             event.sequence
             for event in self.store.list_run_events(self.harness_run_id)
@@ -146,9 +150,7 @@ class _WorkingSetReadQueries:
             and event.data.get("workingSetDigest") == spec.digest
         ]
         if len(matches) != 1:
-            raise ValueError(
-                "Harness Working Set must have exactly one durable Journal event"
-            )
+            raise ValueError("Harness Working Set must have exactly one durable Journal event")
         return matches[0]
 
     def _current_attempt_tool_exchange_segments(

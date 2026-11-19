@@ -63,8 +63,10 @@ _FORMAL_PROBE_ORACLES = (
     ("Lean kernel qualified variation frame and countermodels", 0),
     ("Lean kernel Media processing admission model", 0),
     ("Lean kernel Media Creative Library Catalog acceptance", 0),
+    ("Lean kernel Media TimedText delivery precision", 0),
     ("Lean kernel Media Output byte identity", 0),
     ("Lean kernel Media dependency impact model", 0),
+    ("Lean kernel Media archive visual relation conservation", 0),
     ("Z3 IEEE-754 Media loudness profile model", 0),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
@@ -250,6 +252,29 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
 
+    def test_repo_mechanics_runs_the_existing_retirement_guard(self) -> None:
+        """Archived-source protection is part of the actual protected root CI."""
+        import tomllib
+        import yaml
+
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+        script = tasks["repo:ci"]["run"]
+        commands = [line.strip() for line in script.splitlines()]
+        self.assertEqual(commands.count("mise run repo:retirement:verify"), 1)
+        retirement = tasks["repo:retirement:verify"]["run"]
+        self.assertIn("tools/repo/check_archived_source_boundary.py", retirement)
+        self.assertIn("tools/repo/test-check-archived-source-boundary.sh", retirement)
+        native_smoke = (ROOT / "tools/repo/test-check-archived-source-boundary.sh").read_text(encoding="utf-8")
+        self.assertIn('TMP="$(mktemp -d)"', native_smoke)
+        self.assertNotIn("/root/ordivon-migration-tmp", native_smoke)
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        mechanics = next(
+            step["run"]
+            for step in workflow["jobs"]["repo-mechanics"]["steps"]
+            if step.get("name") == "Repository mechanics"
+        )
+        self.assertIn("mise run repo:ci", mechanics)
+
     def test_root_mise_retry_runs_only_native_install_and_preserves_failures(self) -> None:
         """A finite upstream outage retries missing tools and never masks exhaustion."""
         import os
@@ -400,7 +425,7 @@ exit 0
         self.assertIn("sha256sum", function)
         self.assertIn("--max-time 55", function)
         cases = (
-            ("apt.postgresql.org", "download.postgresql.org"),
+            ("apt.postgresql.org", "apt-archive.postgresql.org"),
             ("github.com/osquery", "pkg.osquery.io"),
         )
         for primary, alternate in cases:
@@ -667,6 +692,11 @@ exit 0
             forged_effect_frame = copy.deepcopy(full_report)
             forged_effect_frame["sourceFragmentRefinement"]["effectFrameObserved"] = "implementation_proven"
             invalid_receipts["forged-effect-frame-evidence"] = json.dumps(forged_effect_frame)
+            unqualified_guard = copy.deepcopy(full_report)
+            unqualified_guard["sourceFragmentRefinement"]["effectFrameObserved"] = (
+                "exact_post_projection_native_claim_guard_then_unqualified_dispatch"
+            )
+            invalid_receipts["unqualified-native-guard-frame"] = json.dumps(unqualified_guard)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
@@ -1531,7 +1561,14 @@ exit 0
             policy = policies[0]
             self.assertLess(steps.index(installer), steps.index(policy))
             self.assertIn("set -euo pipefail", policy["run"])
-            self.assertIn("mise -C services/runtime exec -- cargo deny", policy["run"])
+            self.assertIn(
+                f"mise -C services/runtime exec rust@{toolchain} -- cargo deny",
+                policy["run"],
+            )
+            self.assertNotIn(
+                "mise -C services/runtime exec -- cargo deny",
+                policy["run"],
+            )
             self.assertIn("--config deny.toml check", policy["run"])
             self.assertIn("--manifest-path Cargo.toml", policy["run"])
             self.assertIn("--config deny.toml", policy["run"])
@@ -1574,6 +1611,81 @@ exit 0
         ]
         self.assertEqual(len(release_mise), 1)
         self.assertIs(release_mise[0]["with"]["cache"], False)
+
+    def test_runtime_tag_requires_reachable_protected_main_source(self) -> None:
+        """Execute the real tagged-release source gate against distinct Git DAGs.
+
+        A matching version/tag and a signed artifact do not establish that the
+        released commit passed protected-main integration.
+        """
+        import os
+        import yaml
+
+        release = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        steps = release["jobs"]["runtime-release"]["steps"]
+        name = "Require Runtime tag source to be reachable from protected main"
+        matches = [step for step in steps if step.get("name") == name]
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["shell"], "bash")
+        script = matches[0]["run"]
+        self.assertIn("set -euo pipefail", script)
+        self.assertIn("--no-replace-objects", script)
+
+        with tempfile.TemporaryDirectory() as directory:
+            cwd = Path(directory)
+            env = {k: v for k, v in os.environ.items()
+                   if not k.startswith("GIT_")}
+            env["GIT_GRAFT_FILE"] = os.devnull
+
+            def git(*args: str) -> str:
+                completed = subprocess.run(
+                    ["git", *args], cwd=cwd, env=env, text=True,
+                    capture_output=True, timeout=15, check=True,
+                )
+                return completed.stdout.strip()
+
+            git("init", "-q")
+            git("config", "user.name", "CI Source Fixture")
+            git("config", "user.email", "ci-source@example.invalid")
+            (cwd / "sample").write_text("base\n")
+            git("add", "sample")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+            git("branch", "-M", "main")
+            (cwd / "sample").write_text("main accepted\n")
+            git("commit", "-qam", "accepted main")
+            accepted = git("rev-parse", "HEAD")
+            git("update-ref", "refs/remotes/origin/main", accepted)
+
+            git("switch", "-q", "--detach", base)
+            (cwd / "sample").write_text("unreviewed side branch\n")
+            git("commit", "-qam", "off main")
+            off_main = git("rev-parse", "HEAD")
+
+            def verify(source_cut: str) -> subprocess.CompletedProcess[str]:
+                git("switch", "-q", "--detach", source_cut)
+                return subprocess.run(
+                    ["bash", "-c", script], cwd=cwd, env={**env, "GITHUB_SHA": source_cut},
+                    text=True, capture_output=True, timeout=15, check=False,
+                )
+
+            admitted = verify(accepted)
+            self.assertEqual(admitted.returncode, 0, admitted.stdout + admitted.stderr)
+            self.assertEqual(verify(base).returncode, 0)
+            rejected = verify(off_main)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn("RUNTIME_TAG_SOURCE_NOT_ON_PROTECTED_MAIN", rejected.stderr)
+            mismatch = subprocess.run(
+                ["bash", "-c", script], cwd=cwd,
+                env={**env, "GITHUB_SHA": accepted},
+                text=True, capture_output=True, timeout=15, check=False,
+            )
+            self.assertNotEqual(mismatch.returncode, 0)
+            self.assertIn("RUNTIME_TAG_SOURCE_NOT_CHECKED_OUT", mismatch.stderr)
+            git("update-ref", "-d", "refs/remotes/origin/main")
+            self.assertNotEqual(verify(accepted).returncode, 0)
 
     def test_runtime_release_subject_count_matches_native_deployer(self) -> None:
         """Tagged release must attest exactly the canonical native set.

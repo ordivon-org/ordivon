@@ -238,7 +238,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     assert!(first.stdout_tail.contains("RUNTIME_OK"));
     assert!(first
         .stdout_tail
-        .contains("P5_CARGO_TARGET=/proc/self/fd/198"));
+        .contains("P5_CARGO_TARGET=/run/ordivon/cargo-target"));
     let private_target = executor
         .build_caches_root()
         .join(&workspace_id)
@@ -388,7 +388,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         "PRIVATE_TARGET"
     );
     println!(
-        "P5_STABLE_BUILD_PRESENTATION jobId={} stable=/proc/self/fd/198 privateBacking={} customOverrideJob={}",
+        "P5_STABLE_BUILD_PRESENTATION jobId={} stable=/run/ordivon/cargo-target privateBacking={} customOverrideJob={}",
         first.job_id,
         private_target.display(),
         custom.job_id

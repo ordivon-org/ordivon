@@ -22,6 +22,7 @@ from ordivon_host_v2.collaboration_inputs import (
 )
 from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import (
@@ -60,7 +61,7 @@ def snapshot(frontier: str) -> WorkSnapshotInput:
 
 
 def declare_actor(store: WorkStore, actor_ref: str) -> None:
-    store.declare_actor(
+    ActorReferenceStore(store.dsn).declare_actor(
         ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{actor_ref}",
     )
@@ -1450,3 +1451,70 @@ def test_concurrent_agents_rebase_unique_work_evidence_after_real_host_cas_race(
     assert final["snapshot"]["established"] == [winner, loser]
     assert final["snapshot"]["referenceRefs"] == [shared_effect]
     assert store.get_work(work_ref, revision=2)["snapshot"]["established"] == [winner]
+
+
+def test_subscription_desired_state_serializes_opposing_commands_for_one_actor() -> None:
+    """Actor-row arbitration prevents a stale fallback SELECT during follow/unfollow races.
+
+    PostgreSQL FOR NO KEY UPDATE does not block the FK's KEY SHARE alone, so
+    this deliberately checks the subscription operation's explicit arbiter.
+    """
+    from concurrent.futures import TimeoutError as FutureTimeoutError
+    from threading import Event
+
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    attention = AttentionStore(DSN)
+    actor_ref, _ = refs("subscription-order")
+    declare_actor(work, actor_ref)
+    space_ref = f"space:subscription-order:{uuid4().hex}"
+    topic_ref = f"topic:subscription-order:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="subscription serialization", actor_ref=actor_ref),
+        client_request_id=f"create:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="race", actor_ref=actor_ref),
+        client_request_id=f"create:{topic_ref}",
+    )
+
+    def exercise(method: str) -> dict[str, object]:
+        entered = Event()
+
+        def command() -> dict[str, object]:
+            entered.set()
+            return getattr(attention, method)(
+                actor_ref=actor_ref,
+                target_kind="topic",
+                target_ref=topic_ref,
+                client_request_id=f"{method}:{topic_ref}",
+            )
+
+        with psycopg.connect(DSN) as blocker:
+            blocker.execute(
+                "SELECT 1 FROM actor_refs WHERE actor_ref=%s FOR NO KEY UPDATE",
+                (actor_ref,),
+            )
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(command)
+                assert entered.wait(timeout=5)
+                with pytest.raises(FutureTimeoutError):
+                    future.result(timeout=0.25)
+                blocker.commit()
+                return future.result(timeout=10)
+
+    first = exercise("follow")
+    assert first["admission"] == "committed"
+    removed = exercise("unfollow")
+    assert removed["admission"] == "committed"
+    # Desired-state semantics: invoking follow again is a new command even
+    # when its content-derived legacy request identity is unchanged.
+    second = attention.follow(
+        actor_ref=actor_ref,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=f"follow:{topic_ref}",
+    )
+    assert second["admission"] == "committed"
+    assert int(second["changeSequence"]) > int(first["changeSequence"])

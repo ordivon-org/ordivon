@@ -4,10 +4,7 @@
 //! runner dispatch, process-tree ownership, bounded results and Artifacts,
 //! reconciliation, Runtime inspection, and administrative repair semantics.
 
-#[cfg(all(
-    feature = "postgres-registry-admission",
-    feature = "transactional-runtime"
-))]
+#[cfg(feature = "postgres-registry-admission")]
 mod resource_fit;
 pub mod resource_scheduling;
 
@@ -16,8 +13,10 @@ pub mod pg_admission;
 #[cfg(feature = "postgres-registry-admission")]
 mod pg_readback;
 #[cfg(feature = "postgres-registry-admission")]
+pub mod pg_windows_evidence;
+#[cfg(feature = "postgres-registry-admission")]
 pub use pg_readback::{PgJobReadback, PgJobSnapshot};
-#[cfg(feature = "transactional-runtime")]
+#[cfg(feature = "runtime-contract")]
 mod runtime;
 #[cfg(feature = "universal-executor")]
 mod universal;
@@ -50,34 +49,40 @@ pub use universal::{
 #[cfg(all(feature = "universal-executor", unix))]
 pub use universal::run_job_runner;
 
+#[cfg(feature = "runtime-contract")]
+pub use runtime::{
+    runtime_release_effect_id, runtime_release_request_identity_digest, ArtifactContentMetadata,
+    ArtifactContentReadResult, ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest,
+    ArtifactReadResult, AttemptState, AttemptTerminationIntent, CredentialAuthority,
+    CredentialBindingRequest, EffectiveExecutionLimits, EffectiveStepTimeout, ExecutionBudget,
+    ExecutionProfile, ExecutionProposal, ExecutionProviderContract, ExecutionProviderSnapshot,
+    ExecutionStepProposal, ExecutionTarget, ForeignReference, HostDependencyBinding,
+    InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
+    JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunProposal, ReservationState,
+    RuntimeCapabilities, RuntimeCapacity, RuntimeDeliveryDisposition, RuntimeError,
+    RuntimeErrorCode, RuntimeExecutionTargetCapability, RuntimeInspectionArtifactSummary,
+    RuntimeInspectionAttempt, RuntimeInspectionCondition, RuntimeInspectionEpisodes,
+    RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection, RuntimeJobListCursor,
+    RuntimeJobListRequest, RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity,
+    RuntimeNodePlatform, RuntimeReleaseAdmission, RuntimeReleaseContract,
+    RuntimeReleaseDisposition, RuntimeReleaseGetRequest, RuntimeReleaseProjection,
+    RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue,
+    RuntimeWorkspaceIssueStage, RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest,
+    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, WindowsAuthority,
+    WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
+    WorkspaceHeadroomConfig, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
+    CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT, LOGICAL_ID_MAX_LENGTH,
+    LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_INSPECTION_EVENT_LIMIT, MAX_TASK_TAIL_BYTES,
+    MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+};
+
 #[cfg(feature = "transactional-runtime")]
 pub use runtime::{
-    inspect_job, materialize_windows_credential_binding, runtime_release_effect_id,
-    runtime_release_request_identity_digest, ArtifactContentMetadata, ArtifactContentReadResult,
-    ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest, ArtifactReadResult,
-    AttemptState, AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest,
-    EffectiveExecutionLimits, EffectiveStepTimeout, ExecutionBudget, ExecutionProfile,
-    ExecutionProposal, ExecutionProviderContract, ExecutionProviderSnapshot, ExecutionStepProposal,
-    ExecutionTarget, ForeignReference, HostDependencyBinding, InputAuthority, InputBindingRequest,
-    JobCancelRequest, JobDesiredState, JobObservation, JobObserveRequest, JobObserveWaitUntil,
-    JobResolution, JobRunProposal, ReconciliationFailure, ReconciliationReport, RegistryConfig,
-    ReservationState, Runtime, RuntimeCapabilities, RuntimeCapacity, RuntimeConfig,
-    RuntimeDeliveryDisposition, RuntimeError, RuntimeErrorCode, RuntimeExecutionTargetCapability,
-    RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt, RuntimeInspectionCondition,
-    RuntimeInspectionConfig, RuntimeInspectionEpisodes, RuntimeInspectionEvent,
-    RuntimeInspectionJob, RuntimeJobInspection, RuntimeJobListCursor, RuntimeJobListRequest,
-    RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity, RuntimeNodePlatform,
-    RuntimeReleaseAdmission, RuntimeReleaseContract, RuntimeReleaseDisposition,
-    RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult,
-    RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
-    RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
-    RuntimeWorkspaceSummary, WindowsAuthority, WindowsCredentialMaterializationObservation,
-    WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile, WindowsExecutionConfig,
-    WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
-    WindowsPrivilegedBrokerConfig, WorkspaceHeadroomConfig, CLIENT_REQUEST_ID_MAX_LENGTH,
-    CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT,
-    LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_INSPECTION_EVENT_LIMIT,
-    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_MAX_MIGRATION_VERSION, RUNTIME_SCHEMA_VERSION,
+    inspect_job, materialize_windows_credential_binding, ReconciliationFailure,
+    ReconciliationReport, RegistryConfig, Runtime, RuntimeConfig, RuntimeInspectionConfig,
+    WindowsCredentialMaterializationObservation, WindowsElevatedCommandProfile,
+    WindowsElevatedExecutionProfile, WindowsExecutionConfig, WindowsPrivilegedBrokerConfig,
+    RUNTIME_MAX_MIGRATION_VERSION,
 };
 
 #[cfg(feature = "operator-tools")]
@@ -112,9 +117,8 @@ pub use runtime::{
     RUNTIME_REPAIR_SCHEMA_VERSION,
 };
 
-#[cfg(all(
-    feature = "transactional-runtime",
-    feature = "postgres-registry-admission",
-    target_os = "linux"
-))]
-pub use runtime::pg_runtime::{PgRuntime, PgRuntimeConfig};
+#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
+pub use runtime::pg_runtime::{
+    PgRuntime, PgRuntimeConfig, WorkspaceClaimKeyRequest, WorkspaceClaimProjection,
+    WorkspaceClaimReserveRequest,
+};

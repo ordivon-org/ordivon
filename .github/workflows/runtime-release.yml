@@ -29,6 +29,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Tag identity is not release admission. Only a commit already in the
+      # protected main history can be used as a Runtime release source.
+      # fetch-depth: 0 on checkout supplies the protected main ref without
+      # granting write access or depending on a fresh API request.
+      - name: Require Runtime tag source to be reachable from protected main
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_GRAFT_FILE=/dev/null GIT_NO_REPLACE_OBJECTS=1
+          commit="$(git --no-replace-objects rev-parse --verify "${GITHUB_SHA}^{commit}")"
+          checkout="$(git --no-replace-objects rev-parse --verify 'HEAD^{commit}')"
+          if [[ "$commit" != "$checkout" ]]; then
+            echo "RUNTIME_TAG_SOURCE_NOT_CHECKED_OUT" >&2
+            exit 42
+          fi
+          if ! main="$(git --no-replace-objects rev-parse --verify 'refs/remotes/origin/main^{commit}')"; then
+            echo "RUNTIME_PROTECTED_MAIN_REF_MISSING" >&2
+            exit 42
+          fi
+          if ! git --no-replace-objects merge-base --is-ancestor "$commit" "$main"; then
+            echo "RUNTIME_TAG_SOURCE_NOT_ON_PROTECTED_MAIN" >&2
+            exit 42
+          fi
+
       - name: Network - acquire verified Python via official GitHub API
         shell: bash
         env:
@@ -95,8 +119,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Select only the pinned Rust toolchain. A bare mise exec also
+          # installs unrelated PowerShell/nextest tools from Runtime mise.toml,
+          # introducing GitHub API rate-limit failure before cargo-deny runs.
           # cargo-deny common flags precede the "check" subcommand.
-          mise -C services/runtime exec -- cargo deny \
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
             --manifest-path Cargo.toml \
             --config deny.toml check
 

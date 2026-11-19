@@ -1,6 +1,45 @@
 //! PostgreSQL Runtime digest-bound Artifact reads.
 use super::*;
 
+fn artifact_utf8_window(text: &str, offset: u64, max_bytes: u64) -> RuntimeResult<(usize, usize)> {
+    let begin = usize::try_from(offset).map_err(io)?;
+    if begin > text.len() || !text.is_char_boundary(begin) {
+        return Err(RuntimeError::invalid("invalid UTF-8 offset", "offset"));
+    }
+    let mut end = begin.saturating_add(max_bytes as usize).min(text.len());
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    if end == begin && begin < text.len() {
+        return Err(RuntimeError::invalid(
+            "maxBytes is too small for the next UTF-8 character; use at least 4 bytes",
+            "maxBytes",
+        ));
+    }
+    Ok((begin, end))
+}
+
+// PostgreSQL is available when its committed Artifact disagrees with disk.
+// Report an integrity contradiction, not a transient Registry outage: a
+// consumer must not misclassify stale/mutable bytes as a retryable DB problem.
+fn require_pg_artifact_identity(
+    bytes: &[u8],
+    committed_byte_length: i64,
+    committed_digest: &str,
+) -> RuntimeResult<()> {
+    if i64::try_from(bytes.len()).ok() != Some(committed_byte_length)
+        || universal::sha256_bytes(bytes) != committed_digest
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ArtifactIdentityConflict,
+            "Artifact bytes disagree with PostgreSQL registration",
+            Some("artifactId"),
+            false,
+        ));
+    }
+    Ok(())
+}
+
 impl PgRuntime {
     /// Full byte projection for MCP embedded Artifact resources. PostgreSQL
     /// owns the identity/metadata; no SQLite artifact registry is consulted.
@@ -44,9 +83,7 @@ impl PgRuntime {
         }
         let digest: String = row.get(2);
         let len: i64 = row.get(3);
-        if bytes.len() as i64 != len || universal::sha256_bytes(&bytes) != digest {
-            return Err(error("Artifact bytes do not match PostgreSQL registration"));
-        }
+        require_pg_artifact_identity(&bytes, len, &digest)?;
         Ok(ArtifactContentReadResult {
             metadata: ArtifactContentMetadata {
                 job_id: request.job_id.clone(),
@@ -92,20 +129,9 @@ impl PgRuntime {
             .read_to_end(&mut bytes)
             .map_err(io)?;
         let digest: String = r.get(2);
-        if bytes.len() as i64 != r.get::<_, i64>(3) || universal::sha256_bytes(&bytes) != digest {
-            return Err(error("Artifact bytes do not match PG registration"));
-        }
+        require_pg_artifact_identity(&bytes, r.get::<_, i64>(3), &digest)?;
         let text = std::str::from_utf8(&bytes).map_err(io)?;
-        let begin = usize::try_from(request.offset).map_err(io)?;
-        if begin > bytes.len() || !text.is_char_boundary(begin) {
-            return Err(RuntimeError::invalid("invalid UTF-8 offset", "offset"));
-        }
-        let mut end = begin
-            .saturating_add(request.max_bytes as usize)
-            .min(bytes.len());
-        while !text.is_char_boundary(end) {
-            end -= 1;
-        }
+        let (begin, end) = artifact_utf8_window(text, request.offset, request.max_bytes)?;
         Ok(ArtifactReadResult {
             job_id: request.job_id.clone(),
             artifact_id: request.artifact_id.clone(),
@@ -115,5 +141,55 @@ impl PgRuntime {
             eof: end == bytes.len(),
             digest,
         })
+    }
+}
+
+#[cfg(test)]
+mod utf8_artifact_progress_tests {
+    use super::*;
+
+    #[test]
+    fn pg_artifact_integrity_mismatch_is_not_a_registry_failure() {
+        let committed = b"initial sealed receipt";
+        let digest = universal::sha256_bytes(committed);
+        require_pg_artifact_identity(committed, committed.len() as i64, &digest).unwrap();
+        for (bytes, expected_length) in [
+            (
+                b"initial sealed receipt".as_slice(),
+                committed.len() as i64 + 1,
+            ),
+            (b"initial sealed receipT".as_slice(), committed.len() as i64),
+        ] {
+            let err = require_pg_artifact_identity(bytes, expected_length, &digest).unwrap_err();
+            assert_eq!(err.code, RuntimeErrorCode::ArtifactIdentityConflict);
+            assert_eq!(err.field.as_deref(), Some("artifactId"));
+            assert!(!err.retryable);
+        }
+    }
+
+    #[test]
+    fn pg_artifact_page_rejects_zero_progress_in_the_middle_of_utf8() {
+        let source = "A中文B🙂C\n";
+        for (offset, max_bytes) in [(1, 1), (1, 2), (8, 1), (8, 2), (8, 3)] {
+            let failure = artifact_utf8_window(source, offset, max_bytes).unwrap_err();
+            assert_eq!(failure.field.as_deref(), Some("maxBytes"));
+        }
+    }
+
+    #[test]
+    fn pg_artifact_page_preserves_valid_byte_cursor_boundaries() {
+        let source = "A中文B🙂C\n";
+        for (offset, max_bytes, expected) in [
+            (0, 5, (0, 4)),
+            (4, 4, (4, 8)),
+            (8, 4, (8, 12)),
+            (12, 2, (12, 14)),
+            (14, 1, (14, 14)),
+        ] {
+            let (begin, end) = artifact_utf8_window(source, offset, max_bytes).unwrap();
+            assert_eq!((begin, end), expected);
+        }
+        let failure = artifact_utf8_window(source, 2, 4).unwrap_err();
+        assert_eq!(failure.field.as_deref(), Some("offset"));
     }
 }

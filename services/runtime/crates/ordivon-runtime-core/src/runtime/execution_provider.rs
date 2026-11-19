@@ -190,12 +190,19 @@ impl<'a> LocalLinuxProvider<'a> {
             )
         })?;
         let runner = validate_runner(runner_path)?;
+        let cargo_mount = super::build_target_contract::requires_native_cargo_target_mount(plan)
+            .then(|| {
+                self.executor
+                    .workspace_build_cache_path(&plan.workspace_id)
+                    .join("cargo")
+            });
         systemd_run(&SystemdRunSpec {
             unit_name: &attempt.unit_name,
             runner: &runner,
             bundle_path: inputs.bundle_path,
             workspace_path: Path::new(&plan.workspace_path),
             workspace_git_common_dir: plan.workspace_git_common_dir.as_deref().map(Path::new),
+            cargo_target_mount: cargo_mount.as_deref(),
             input_set_path: inputs.input_set_path,
             credential_source_root: inputs.credential_source_root,
             credential_names: inputs.credential_names,

@@ -12,6 +12,7 @@ from .errors import ConflictError
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
+from .social_space_records import read_space_in_tx
 
 
 class SocialSpaceCommands:
@@ -64,7 +65,7 @@ class SocialSpaceCommands:
                 ):
                     raise ConflictError("space_ref already exists with different initial semantics")
                 admission = "existing"
-            result = self._get_space_in_tx(conn, value.space_ref)
+            result = read_space_in_tx(conn, value.space_ref)
             result["admission"] = admission
             record_command_receipt(conn, client_request_id, "space.create", request_digest, result)
             return result

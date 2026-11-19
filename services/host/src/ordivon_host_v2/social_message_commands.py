@@ -15,6 +15,11 @@ from .errors import ConflictError
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
+from .social_message_records import require_message, verify_message_content_digest
+
+# Internal receipt only: the immutable Message row owns the large response body.
+# This marker is never returned over MCP.
+_MESSAGE_POST_RECEIPT_REF = "ordivon.host-message-post-receipt-ref"
 
 
 def _reply_target_precedes_source(source_sequence: int, target_sequence: int) -> bool:
@@ -50,6 +55,24 @@ class SocialMessageCommands:
                 conn, value.client_request_id, "message.post", request_digest
             )
             if replay is not None:
+                if replay.get("kind") == _MESSAGE_POST_RECEIPT_REF:
+                    if (
+                        replay.get("messageRef") != value.message_ref
+                        or replay.get("messageDigest") != message_digest
+                    ):
+                        raise RuntimeError(
+                            "message receipt reference differs from committed request"
+                        )
+                    row = conn.execute(
+                        "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
+                        "message_kind,body,message_digest,recorded_at_ms,created_at "
+                        "FROM messages WHERE message_ref=%s",
+                        (value.message_ref,),
+                    ).fetchone()
+                    if row is None or row["message_digest"] != message_digest:
+                        raise RuntimeError("committed message receipt target is missing or changed")
+                    verify_message_content_digest(row)
+                    return self._post_message_response(row, admission="existing")
                 return replay
             self._require_actor(conn, value.author_actor_ref)
             self._require_space(conn, value.space_ref)
@@ -60,7 +83,7 @@ class SocialMessageCommands:
             if topic["space_ref"] != value.space_ref:
                 raise ConflictError("topic does not belong to the supplied space")
             if topic["state"] != "open":
-                raise ConflictError("closed topic does not accept new messages")
+                raise ConflictError(f"{topic['state']} topic does not accept new messages")
             row = conn.execute(
                 "INSERT INTO messages(message_ref,client_request_id,space_ref,topic_ref,author_actor_ref,"
                 "message_kind,body,message_digest,recorded_at_ms) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
@@ -91,27 +114,43 @@ class SocialMessageCommands:
                 if row["message_digest"] != message_digest:
                     raise ConflictError("message_ref already exists with different content")
                 admission = "existing"
-            self._verify_message_content_digest(row)
-            result = {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-message",
-                "admission": admission,
-                "sequence": int(row["sequence"]),
-                "messageRef": row["message_ref"],
-                "spaceRef": row["space_ref"],
-                "topicRef": row["topic_ref"],
-                "authorActorRef": row["author_actor_ref"],
-                "messageKind": row["message_kind"],
-                "body": row["body"],
-                "messageDigest": row["message_digest"],
-                "recordedAtMs": int(row["recorded_at_ms"]),
-                "createdAt": row["created_at"].isoformat(),
-                "truthBoundary": "durable collaboration message only; participation is not authorization and message content is not Work/domain truth",
-            }
+            verify_message_content_digest(row)
+            result = self._post_message_response(row, admission=admission)
+            # Do not store a second copy of the (potentially large) Message
+            # body in command_receipts. The immutable Message row plus its
+            # digest is the canonical replay materialization authority.
             record_command_receipt(
-                conn, value.client_request_id, "message.post", request_digest, result
+                conn,
+                value.client_request_id,
+                "message.post",
+                request_digest,
+                {
+                    "schemaVersion": 1,
+                    "kind": _MESSAGE_POST_RECEIPT_REF,
+                    "messageRef": value.message_ref,
+                    "messageDigest": message_digest,
+                },
             )
             return result
+
+    @staticmethod
+    def _post_message_response(row: dict[str, Any], *, admission: str) -> dict[str, Any]:
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-message",
+            "admission": admission,
+            "sequence": int(row["sequence"]),
+            "messageRef": row["message_ref"],
+            "spaceRef": row["space_ref"],
+            "topicRef": row["topic_ref"],
+            "authorActorRef": row["author_actor_ref"],
+            "messageKind": row["message_kind"],
+            "body": row["body"],
+            "messageDigest": row["message_digest"],
+            "recordedAtMs": int(row["recorded_at_ms"]),
+            "createdAt": row["created_at"].isoformat(),
+            "truthBoundary": "durable collaboration message only; participation is not authorization and message content is not Work/domain truth",
+        }
 
     def add_message_relation(
         self, value: MessageRelationInput, *, client_request_id: str
@@ -125,7 +164,7 @@ class SocialMessageCommands:
             if replay is not None:
                 return replay
             self._require_actor(conn, value.actor_ref)
-            source = self._require_message(conn, value.source_message_ref)
+            source = require_message(conn, value.source_message_ref)
             self._validate_relation_target(conn, source, value)
             row = conn.execute(
                 "INSERT INTO message_relations(source_message_ref,relation,target_ref,created_by_actor_ref) "
@@ -172,7 +211,7 @@ class SocialMessageCommands:
             MessageRelationKind.ACKNOWLEDGES,
             MessageRelationKind.SUPERSEDES,
         }:
-            target = self._require_message(conn, value.target_ref)
+            target = require_message(conn, value.target_ref)
             if target["space_ref"] != source["space_ref"]:
                 raise ConflictError(f"{value.relation.value} cannot cross spaces")
             if (

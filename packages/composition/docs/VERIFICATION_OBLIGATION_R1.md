@@ -148,6 +148,27 @@ future theorem proof    -> Lean/Coq/Isabelle provider when justified
 
 No provider becomes universal.
 
+### C06: native Gateway `reconciliation_required` source semantics (2026-11-14)
+
+Actual Gateway `ExecutionObservation` and Harness `runtime_bridge.py` recognize
+`deliveryDisposition=reconciliation_required` as a reason to inspect or
+reconcile the **original** operation. Composition `C06` now consumes this
+fourth Runtime delivery state rather than reporting a protocol error. The
+result is still read-only and has `automaticRetryAdmissible=false`,
+`providerEffectEstablished=false` and `proofReuseAdmissible=false`. Gateway's
+native route owners are `runtime.linux`, `runtime.windows`, and
+`runtime.harness`; C06's older `external.pull` fixture is **caller-shaped
+synthetic** and is not a native Gateway route claim.
+
+The existing finite TLA+ `EffectReplayFence.tla` has four delivery variants.
+The pinned TLC gate includes one new deliberately false fourth-state
+reachability probe and the existing unsafe retry mutation. The native Python
+correspondence checks 288 bounded combinations; Gateway's real Pydantic
+projection independently tests three owner routes. These are finite
+source/model tests, **not** an installed PG/physical/provider effect proof.
+The cross-module Golden Road is
+`../../../docs/AGENT_EXECUTION_CAUSAL_CHAIN_R2.md`.
+
 ## Anti-growth laws
 
 This package must not grow:
@@ -177,3 +198,44 @@ The next useful integration is not another formal engine. It is one real end-to-
 that lowers a Circuit Gate to this obligation carrier, binds an existing verifier, executes
 through the natural owner, and feeds the existing `composition-gate-result` back into R1
 closure without widening authority.
+
+### Source namespace membership is a distinct readset edge (R1 extension)
+
+For the existing task-local `impact-readsets` path, an Owner-supplied readset
+item can optionally declare `dependsOnScopeMembership: true` alongside its
+`sourcePaths` and `dependenciesComplete`. This explicitly subscribes to the
+**exact Git prefix member-set identity** already returned by the native
+`source_membership_delta` (`membershipRef`). A new/removal member is therefore
+reported as `RECHECK_REQUIRED` for that enumerating consumer, while an
+unrelated file-specific consumer remains a `REUSE_CANDIDATE` only when its
+caller-supplied readset is separately claimed complete. The bridge rejects
+non-boolean values or an absent/mismatched membership reference. Omitting the
+field preserves existing direct-file queries; it is not proof that a real
+consumer ignores missing or newly discovered files.
+
+The model remains a read-only *selection* with `proofReuseAdmissible: false`.
+This is not a graph database, new Source owner or proof/installed acceptance.
+The actual Agent Golden Road is
+`../../../docs/AGENT_NATIVE_SOURCE_CAUSAL_GRAPH_R1.md`.
+
+### C06 R4: native-stop-only LOST is a real counterexample
+
+On a real PG Runtime cancellation, `job.observe` showed
+`executionDisposition=lost`, `executionTerminal=true`,
+`deliveryDisposition=committed`, `resultAvailable=false` and only one
+`native_stop_evidence` Artifact. That `committed` described a durable
+control resolution, not an original Runner result. C06 must recover the
+original operation for `lost/orphaned` even if an older installed producer
+still labels delivery `committed`. Native Composition tests include both
+legacy-contradictory and corrected `unknown` delivery. The finite
+EffectReplayFence model includes nine source states, 288 representative
+Python cases and one deliberately false LOST+committed reachability property.
+An exited/timeout/cancelled process can already have caused a partial effect.
+Do not derive `automaticRetryAdmissible=true` or owner effect completion.
+
+The live R3 cancelled Job's own Workspace marker was independently read back
+through Gateway Artifact `attempt-01a1da1b-5ccf-7211-9d50-6f16ae134985.stdout`:
+`entered` was durable while `exited` was absent (readback SHA-256
+`46eb3d6b7c89c65df13fe70ea8feb5b9da22ff3c131aac57b36615a26d7577bd`).
+This falsifies any implied rule `LOST => no physical effect`, even on a
+mechanically converged control record. It does not establish a provider effect.

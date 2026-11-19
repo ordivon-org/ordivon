@@ -8,8 +8,8 @@ from typing import Any
 
 from opentelemetry.sdk.trace import TracerProvider
 
-from ordivon_gateway.audit import GatewayAuditMiddleware
 from ordivon_gateway.mcp_server import build_server
+from ordivon_gateway.security.audit import GatewayAuditMiddleware
 
 
 def test_gateway_audit_middleware_runs_inside_sdk_opentelemetry() -> None:

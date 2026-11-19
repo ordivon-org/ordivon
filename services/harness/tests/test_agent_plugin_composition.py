@@ -144,8 +144,6 @@ class AgentPluginCompositionTests(unittest.TestCase):
                 names,
                 (
                     "capability.describe",
-                    "continuity.get",
-                    "continuity.list",
                     "system.describe",
                 ),
             )
@@ -161,6 +159,32 @@ class AgentPluginCompositionTests(unittest.TestCase):
                         "tools": [item.to_dict() for item in bridge.definitions()],
                     }
                 ),
+            )
+
+    def test_observation_bridge_default_consumes_current_gateway_release_surface(self) -> None:
+        # Gateway owns the installed tool contract. A legacy Harness fixture must
+        # not make an absent MCP tool appear available to a real consumer.
+        gateway_manifest = Path(__file__).resolve().parents[2] / "gateway" / "mcp-surface.json"
+        current_names = set(json.loads(gateway_manifest.read_text(encoding="utf-8"))["tools"])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            client = FakeMcpClient()
+            client.omit.update(
+                name
+                for name in (
+                    "system.describe",
+                    "capability.describe",
+                    "continuity.get",
+                    "continuity.list",
+                )
+                if name not in current_names
+            )
+            bridge = PluginMcpObservationBridge(plugin.mcp("ordivon-gateway"), client)
+            self.assertEqual(
+                tuple(item.name for item in bridge.definitions()),
+                ("capability.describe", "system.describe"),
             )
 
     def test_observation_bridge_detects_catalog_drift(self) -> None:
@@ -179,6 +203,64 @@ class AgentPluginCompositionTests(unittest.TestCase):
             bridge.validate_runtime_catalog()
             client.omit.add("system.describe")
             with self.assertRaisesRegex(ToolBridgeError, "catalog drifted"):
+                bridge.validate_runtime_catalog()
+
+    def test_observation_bridge_explicit_empty_grant_does_not_expand_to_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            with self.assertRaisesRegex(ValueError, "non-empty"):
+                PluginMcpObservationBridge(
+                    plugin.mcp("ordivon-gateway"),
+                    FakeMcpClient(),
+                    allowed_tools=(),
+                )
+
+    def test_observation_bridge_rejects_duplicate_granted_tools_at_admission(self) -> None:
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+        class DuplicateGrantedTools(FakeMcpClient):
+            def list_tools(self):
+                tools = super().list_tools()
+                return (*tools, next(t for t in tools if t["name"] == "system.describe"))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            with self.assertRaisesRegex(ToolBridgeError, "duplicate granted"):
+                PluginMcpObservationBridge(
+                    plugin.mcp("ordivon-gateway"),
+                    DuplicateGrantedTools(),
+                    allowed_tools=("system.describe",),
+                )
+
+    def test_observation_bridge_rejects_duplicate_granted_tools_on_resume(self) -> None:
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+        class DuplicateOnResume(FakeMcpClient):
+            duplicated = False
+
+            def list_tools(self):
+                tools = super().list_tools()
+                if self.duplicated:
+                    return (*tools, next(t for t in tools if t["name"] == "system.describe"))
+                return tools
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            client = DuplicateOnResume()
+            bridge = PluginMcpObservationBridge(
+                plugin.mcp("ordivon-gateway"),
+                client,
+                allowed_tools=("system.describe",),
+            )
+            bridge.validate_runtime_catalog()
+            client.duplicated = True
+            with self.assertRaisesRegex(ToolBridgeError, "duplicate granted"):
                 bridge.validate_runtime_catalog()
 
     def test_observation_bridge_restores_model_tool_messages(self) -> None:
@@ -204,6 +286,63 @@ class AgentPluginCompositionTests(unittest.TestCase):
             self.assertEqual(restored[0]["role"], "tool")
             self.assertEqual(restored[0]["name"], "system.describe")
             self.assertEqual(restored[0]["observation"]["content"], {"ok": True})
+
+    def test_observation_bridge_execute_refuses_revoked_tool_before_call(self) -> None:
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            client = FakeMcpClient()
+            bridge = PluginMcpObservationBridge(
+                plugin.mcp("ordivon-gateway"), client, allowed_tools=("system.describe",)
+            )
+            client.omit.add("system.describe")
+            with self.assertRaisesRegex(ToolBridgeError, "catalog drifted"):
+                bridge.execute(
+                    AgentToolCall(
+                        tool_call_id="tool-call:revoked:1",
+                        name="system.describe",
+                        arguments={},
+                    ),
+                    step_id="tool-step:revoked:1",
+                )
+            self.assertEqual(client.calls, [])
+
+    def test_observation_bridge_execute_refuses_changed_schema_before_call(self) -> None:
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+        class ChangedSchemaClient(FakeMcpClient):
+            changed = False
+
+            def list_tools(self):
+                tools = list(super().list_tools())
+                if self.changed:
+                    for raw in tools:
+                        if raw["name"] == "system.describe":
+                            raw["inputSchema"] = {"type": "object", "maxProperties": 0}
+                return tuple(tools)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            client = ChangedSchemaClient()
+            bridge = PluginMcpObservationBridge(
+                plugin.mcp("ordivon-gateway"), client, allowed_tools=("system.describe",)
+            )
+            client.changed = True
+            with self.assertRaisesRegex(ToolBridgeError, "catalog drifted"):
+                bridge.execute(
+                    AgentToolCall(
+                        tool_call_id="tool-call:schema-drift:1",
+                        name="system.describe",
+                        arguments={},
+                    ),
+                    step_id="tool-step:schema-drift:1",
+                )
+            self.assertEqual(client.calls, [])
 
     def test_observation_bridge_calls_only_granted_tool(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -172,7 +172,7 @@ The current inventory and deletion rules are [`compatibility.md`](compatibility.
 
 ## Tagged release supply-chain attestations
 
-The live monorepo release authority is the root workflow `.github/workflows/runtime-release.yml`, triggered only by `runtime-v*` tags. The tag name must exactly match the Runtime workspace package version. The workflow records both the tagged repository Commit and the owner-scoped Runtime Commit resolved from `services/runtime`; unrelated sibling-owner commits therefore do not become Runtime release identity.
+The live monorepo release authority is the root workflow `.github/workflows/runtime-release.yml`, triggered only by `runtime-v*` tags. The tag name must exactly match the Runtime workspace package version. The tag checkout must also prove that the exact tagged Commit is reachable from the checked-out protected origin/main history before installing tools or building artifacts; missing main refs and off-main commits fail closed. This protects the current workflow release admission, but is not itself a provider-side tag-immutability rule, proof of historical workflow versions, or evidence of installed release. The workflow records both the tagged repository Commit and the owner-scoped Runtime Commit resolved from `services/runtime`; unrelated sibling-owner commits therefore do not become Runtime release identity.
 
 The tagged workflow runs the Runtime owner verification and cargo-deny policy first, then reuses `scripts/ordivon-runtime-deploy prepare` to build the canonical 13-artifact release set from the exact owner Commit. The candidate manifest remains the authority for artifact names, modes, byte lengths, SHA-256 digests, toolchain identity, owner prefix, and Runtime policy, including whether the optional global execution-concurrency field is owned by that release.
 
@@ -185,3 +185,50 @@ The owner-local `services/runtime/.github/workflows/release-acceptance.yml` rema
 ## Publication
 
 The Rust crates are currently repository-internal and set `publish = false`. Public distribution is through source, tagged releases, and receipted installed binaries until a separate crates.io publication contract is deliberately adopted.
+
+### PostgreSQL Workspace retention: memory and disk are distinct
+
+Native PG Runtime Workspace reclaim now consumes the existing operator-owned
+retention file /etc/ordivon/workspace-retention.json via the systemd unit's
+--policy-file argument. The packaged example is not an automatic production
+default. Missing or invalid explicitly selected policy fails closed. Without a
+policy file, legacy merged-HEAD-only behavior remains. Pinned classes cannot
+be automatically closed. This PG-native adapter consumes only class/rule,
+retention-age and clean-unintegrated opt-in semantics; it does not interpret
+the separate SQLite-era dirty/maximum-lifetime deletion options. Policy
+retention hours cannot shorten CLI minimum
+age; dirty trees and unresolved/non-successful Jobs are never candidates.
+
+For a clean, idle, successfully executed but unintegrated Workspace commit,
+retirement requires operator policy
+forceCloseUnintegratedAfterRetention=true on its selected class. The existing
+Git namespace refs/ordivon/retention preserves the exact source commit before
+the native Workspace close. Native Runtime remains the sole close authority
+and rechecks PG active Jobs, dependents, source digest, installed consumers,
+and worktree state. The adapter passes consumerReleased=false instead of
+inventing evidence of a semantic consumer release: native Runtime owns the
+age-based continuation boundary and retains any rejected close. The PG
+native close now also checks the **latest PG Job activity under the existing
+admission advisory lock**: a resolved, recently completed Job with zero
+active leases is not an idle Workspace merely because the collector started
+its scan before that Job. Native systemd file and manager checks use the
+**actual configured Workspace path**, including the PG carrier, rather than
+the old SQLite-era path. No direct directory delete or deletion on UNKNOWN.
+A native close timeout is reported as UNKNOWN/recoveryRequired, with the
+retained Git ref and native Workspace/tombstone reconciliation step. The
+close receipt is physical carrier evidence, not semantic task completion.
+Each sweep separately reports skipped classifications, eligible unintegrated
+Workspace count, preserved refs and directories outside this source repository's
+Git worktree inventory. Those directories may belong to other source repositories
+and are **not proven orphaned**; this adapter never deletes them.
+
+Diagnose RAM with free, /proc/pressure/memory, /proc/swaps and cgroup/process
+RSS and swap over time. Swap currently in use and Git worktrees using disk
+space cannot independently establish a memory leak. Audit actual hourly
+lifecycle receipts and installed service and operator policy. Run an inspect
+pass without --apply before deployment. The current --limit 25 bounds native
+closes per hour. Only the real operator may enable unintegrated retention;
+a Git ref preserves source but not unverified business completion. Recover
+by asking native Runtime to open a new Workspace at the saved commit after
+reviewing original intent. Linux guest reclaim and Windows VHDX host free
+space are separately observed results.

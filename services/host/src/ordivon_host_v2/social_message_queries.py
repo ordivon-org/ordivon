@@ -9,9 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import psycopg
-
-from .canonical_json import canonical_digest
 from .collaboration_inputs import MessageRelationKind
 from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
@@ -22,6 +19,7 @@ from .collection_pagination import (
 )
 from .errors import ConflictError
 from .social_errors import MessageNotFound
+from .social_message_records import require_message, verify_message_content_digest
 
 
 class SocialMessageReadQueries:
@@ -48,7 +46,7 @@ class SocialMessageReadQueries:
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_message(conn, message_ref)
+            require_message(conn, message_ref)
             rows = conn.execute(
                 "SELECT change_sequence,source_message_ref,relation,target_ref,created_by_actor_ref,created_at "
                 "FROM message_relations WHERE change_sequence>%s "
@@ -110,25 +108,6 @@ class SocialMessageReadQueries:
                 "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
             }
 
-    @staticmethod
-    def _verify_message_content_digest(row: dict[str, Any]) -> None:
-        # Digest is a claim about all immutable message fields, not an
-        # authoritative pointer by itself. Every consumer-visible read must
-        # bind the stored claim to the actual PostgreSQL row bytes/values.
-        actual = canonical_digest(
-            {
-                "messageRef": row["message_ref"],
-                "spaceRef": row["space_ref"],
-                "topicRef": row["topic_ref"],
-                "authorActorRef": row["author_actor_ref"],
-                "messageKind": row["message_kind"],
-                "body": row["body"],
-                "recordedAtMs": row["recorded_at_ms"],
-            }
-        )
-        if actual != row["message_digest"]:
-            raise RuntimeError("Host message content digest differs from stored claim")
-
     def get_message(
         self,
         message_ref: str,
@@ -144,7 +123,7 @@ class SocialMessageReadQueries:
             ).fetchone()
             if row is None:
                 raise MessageNotFound(message_ref)
-            self._verify_message_content_digest(row)
+            verify_message_content_digest(row)
             if expected_digest is not None and row["message_digest"] != expected_digest:
                 raise ConflictError(
                     f"message digest mismatch: expected {expected_digest}, "
@@ -195,12 +174,11 @@ class SocialMessageReadQueries:
         cjk_literal = any("\u3400" <= char <= "\u9fff" for char in query) and not any(
             char.isspace() for char in query.strip()
         )
-        unicode_gram_candidate = cjk_literal and sum(
-            "\u3400" <= char <= "\u9fff" for char in query
-        ) >= 3
+        unicode_gram_candidate = (
+            cjk_literal and sum("\u3400" <= char <= "\u9fff" for char in query) >= 3
+        )
         search_predicate = (
-            "host_unicode_ngrams3(body) @> host_unicode_ngrams3(%s) "
-            "AND strpos(body,%s)>0"
+            "host_unicode_ngrams3(body) @> host_unicode_ngrams3(%s) AND strpos(body,%s)>0"
             if unicode_gram_candidate
             else "strpos(body,%s)>0"
             if cjk_literal
@@ -240,7 +218,7 @@ class SocialMessageReadQueries:
             ).fetchall()
             sql_more = len(rows) > limit
             for row in rows[:limit]:
-                self._verify_message_content_digest(row)
+                verify_message_content_digest(row)
             candidates = [
                 {
                     "sequence": int(row["sequence"]),
@@ -290,16 +268,3 @@ class SocialMessageReadQueries:
                 "truthBoundary": search_boundary
                 + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
             }
-
-    @staticmethod
-    def _require_message(
-        conn: psycopg.Connection[dict[str, Any]], message_ref: str
-    ) -> dict[str, Any]:
-        row = conn.execute(
-            "SELECT message_ref,sequence,space_ref,topic_ref,author_actor_ref "
-            "FROM messages WHERE message_ref=%s",
-            (message_ref,),
-        ).fetchone()
-        if row is None:
-            raise MessageNotFound(message_ref)
-        return row

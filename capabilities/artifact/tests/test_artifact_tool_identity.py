@@ -38,6 +38,34 @@ class NativeToolIdentityTests(unittest.TestCase):
                 "native tool digest drift after verification: decoder", report["issues"]
             )
 
+    def test_package_root_manifest_is_observed_without_claiming_dependency_closure(self):
+        with tempfile.TemporaryDirectory() as d:
+            package_root = Path(d) / "playwright"
+            package_root.mkdir()
+            manifest = package_root / "package.json"
+            manifest.write_bytes(b'{"version":"1.63.0"}')
+            original = hashlib.sha256(manifest.read_bytes()).hexdigest()
+            fact = {"path": str(package_root), "packageJsonSha256": original}
+
+            result = assess_native_tool_paths({"tools": {"nodePackageRoot": fact}})
+            self.assertFalse(result["rejected"], result)
+            self.assertEqual(result["status"], "OBSERVED_POSTRUN_CONSISTENT")
+            self.assertFalse(result["dependenciesComplete"])
+            self.assertEqual(
+                result["observed"]["nodePackageRoot"]["identityScope"], "PACKAGE_JSON_ONLY"
+            )
+            self.assertEqual(
+                result["observed"]["nodePackageRoot"]["path"], str(manifest)
+            )
+
+            manifest.write_bytes(b'{"version":"changed"}')
+            drift = assess_native_tool_paths({"tools": {"nodePackageRoot": fact}})
+            self.assertTrue(drift["rejected"])
+            self.assertIn(
+                "native tool digest drift after verification: nodePackageRoot",
+                drift["issues"],
+            )
+
     def test_unknown_and_malformed_tool_evidence(self):
         for native in ({}, {"tools": None}, {"tools": {}}):
             report = assess_native_tool_paths(native)

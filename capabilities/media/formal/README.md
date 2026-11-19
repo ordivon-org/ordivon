@@ -157,6 +157,60 @@ Agent: report model proof, bounded Python refinement, native byte readback,
 and external browsing/rights acceptance separately. Missing either digest
 remains UNKNOWN rather than FALSE or PASS; do not silently rewrite receipts.
 
+
+## TimedText millisecond delivery precision: source ticks -> native consumer
+
+The selected Production's editable TimedText uses positive integer
+`ticksPerSecond` and source Cue intervals `startTick < endTick`.
+WebVTT and SRT output only represent integer milliseconds, and W3C WebVTT
+requires the end timestamp to be *strictly greater* than start.
+Rounding distinct source ticks may collapse to the same delivery millisecond:
+the former exporter generated `00:00:00.000 --> 00:00:00.000` for
+`ticksPerSecond=10000, startTick=1, endTick=2`.
+
+**Specification:** nearest-millisecond rational conversion with ties to
+even, without binary64 float conversion. A source Cue can be exported only
+if its two converted timestamps remain strictly ordered; otherwise reject
+it without modifying source ticks or silently stretching its duration.
+
+**Model and proof:** `TimedTextDeliveryPrecision.lean` models the pure
+Nat quotient/remainder rounding rule and representability predicate.
+Lean checks that admitted intervals have positive delivery duration, that
+a collapsed interval or zero tick base cannot be admitted, and real
+counterexample/positive/tie-to-even witnesses. These are abstract
+mathematical claims about the selected conversion rule, not the Python
+interpreter or the FFmpeg implementation.
+
+**Implementation refinement:** `timed_text._milliseconds` computes
+`round(Fraction(tick*1000, ticksPerSecond))` exactly. The shared
+`_delivery_interval_milliseconds` controls both exports and is checked
+by the delivery validator. `tests/test_timed_text.py` compares the
+implementation with an independent `divmod` oracle over 9 time bases
+and 92 distinct tick examples, including ties and large integers; this is
+a bounded refinement witness and not universal proof.
+
+**Real consumer:** Production `runtime-introduction` has nine locked
+narration cues and exactly 78 seconds of source duration. Both actual
+WebVTT and SRT exports parsed as nine positive-duration packets in native
+FFprobe. The existing pinned TTML/ttconv native positive/negative smoke
+also passed. Their exact bytes and codec/parser behavior are not proven
+by the Lean model.
+
+**R2.1 standing:** SPEC/MODEL/LEAN proof PASS, bounded source implementation
+refinement PASS, native selected Production readback PASS; general
+implementation refinement, arbitrary subtitle semantics and human
+accessibility remain UNKNOWN. Source-derived files, rights claims, and
+finished delivery are distinct from technical cue correctness.
+
+Human: inspect the source cue time base before delivery, and edit a Cue
+if its intended duration cannot be represented by SRT/WebVTT. Do not
+discard higher-resolution timing just to silence an exporter.
+
+Agent: call `validate_timed_text_delivery` with the actual media duration
+before generating a delivery file, then call `export_srt` or
+`export_webvtt` and inspect native parsed timestamps. An unrepresentable
+Cue is a clear failure of that delivery format, not a reason to mutate
+the canonical source time.
 ## Production Output byte identity (Lean model and real consumer)
 
 `ProductionOutputByteIdentity.lean` proves a small, explicit decision rule:
@@ -215,3 +269,22 @@ observation, not a new workflow scheduler or permission to re-render.
 Human users should check changed file bytes and execute approved steps
 separately; Agents should preserve UNKNOWN, select only the implicated
 dependency closure, and obtain independent Runtime + provider evidence.
+
+
+## Archive source-to-visual relation conservation (Lean model R1)
+
+`ArchiveVisualSourcePreservation.lean` specifies a narrowly scoped partial
+admission function over *already parsed* opaque Work IDs and typed relation
+edges. The Lean kernel proves exact edge preservation and matching edge count
+when admission succeeds, rejection of invalid catalogs, and known endpoints
+for admitted edges. It checks positive, orphan-edge, and duplicate-ID examples.
+
+The actual implementation maps JSON records into that typed domain through
+`productions/archive-archipelago-001/archive_source.py`; the independent
+falsification/refinement witnesses are
+`tests/test_archive_graphics_source_truth.py` and
+`tests/test_archive_vegalite_spec.py`. The exact source and witness file blobs
+are included in `tools/formal/verify.py`'s existing Git SourceCut readset.
+This is not a proof that arbitrary Python values refine the Lean model, nor
+of SVG appearance, JSON hash resistance, GPU or user perception. Retain the
+existing byte-identical frozen-approved SVG test and real renderer checks.

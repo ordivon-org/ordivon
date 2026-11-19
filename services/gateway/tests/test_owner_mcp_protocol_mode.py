@@ -9,8 +9,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ordivon_gateway import upstream
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
+from ordivon_gateway.transport import upstream
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
 
 
 def _private(path: Path, content: str) -> str:
@@ -112,6 +112,7 @@ def test_opt_in_is_never_implicitly_enabled(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_pinned_incompatible_server_fails_without_automatic_retry(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     attempts = []
 
@@ -133,9 +134,14 @@ def test_pinned_incompatible_server_fails_without_automatic_retry(
     monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: FakePool())
     monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client: object())
     monkeypatch.setattr(upstream, "Client", RejectingClient)
+    credential = _private(tmp_path / "host-owner-bearer", "fixture-only-not-production-secret")
     caller = McpOwnerCaller(
         {
-            "host": OwnerEndpoint("http://host.test/mcp", mcp_mode="2026-07-28"),
+            "host": OwnerEndpoint(
+                "http://host.test/mcp",
+                bearer_token_file=credential,
+                mcp_mode="2026-07-28",
+            ),
         }
     )
 
@@ -227,7 +233,7 @@ def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
             uv.should_exit = True
             await asyncio.wait_for(serving, timeout=12)
 
-    caplog.set_level("WARNING", logger="ordivon_gateway.upstream")
+    caplog.set_level("WARNING", logger="ordivon_gateway.transport.upstream")
     projection = asyncio.run(scenario())
     item = projection.capabilities[0]
     assert completed_tool_responses == [200]
