@@ -18,8 +18,8 @@ are optional onboarding pointers, not new execution authority or an additional
 mandatory workflow. The rules below govern consequential changes.
 
 
-1. Work inside the natural owner directory.
-2. Run that owner's native verification before claiming completion.
+1. Route a change to the directory and interface that owns its actual fact or effect. An Owner is a maintenance responsibility, **not an exclusive executor, permission class, or approval authority**: any genuinely authorized Agent may perform non-conflicting work, even after the prior Owner Agent retires.
+2. Use the affected Owner's focused native verification before claiming completion. Do not impose a whole-Owner test suite, formal proof or sign-off on an unrelated routine edit.
 3. Do not import another owner's internals merely because they are in the same Git tree.
 4. Cross-owner effects use the producing/consuming owners' explicit contracts.
 5. Root tooling may orchestrate checks but may not redefine owner truth.
@@ -37,6 +37,14 @@ mandatory workflow. The rules below govern consequential changes.
 14. **Proof and tests:** first state the property, assumptions, failure modes, current source/implementation and affected consumer. Select only relevant formal/model checking, implementation refinement, property/state-machine, differential/consumer-contract, integration/read-back, fault-injection/replay and Agent trajectory/holdout evaluations. Match tools to the Owner, not a universal checklist; see the testing guide. A model PASS does not prove code refinement; a test PASS does not prove universal correctness; a Runtime/Agent success does not establish domain completion.
 15. **Agent decision evidence:** distinguish OBSERVED, DECLARED, DERIVED, VERIFIED, UNKNOWN and FALSIFIED with provenance and currentness. Treat hypotheses and predictions as candidates; consider rival explanations and value of further evidence where material. A model belief, Skill read, evidence graph or Tool discovery never confers effect authority. Finish real work with implementation or justified subtraction, actual execution/observation, affected verification and repair; report explicit remaining UNKNOWN rather than fictitious success.
 16. **Integration discipline:** compare current main, relevant branches/PRs and actual consumers before retaining changes. For cross-Owner or PR-sized work, exchange evidence and counterexamples in the existing Space when useful; a message or Owner opinion is not a proof or a permission gate. Prefer the smallest verified contribution and retire superseded code rather than accumulating parallel implementations.
+
+## Scope effect gates; do not invent approval hierarchies
+
+- **Real permission:** authorization comes from the user's permitted action and the actual authenticated principal, OS/database credentials, Security policy and operation-specific constraints. Host ActorRef, owner names, Space membership, agent consensus, Issue labels and documentation cannot grant authority.
+- **Avoid artificial waits:** a retired or unavailable Owner Agent never blocks an otherwise authorized, non-conflicting executor. Exchange cross-owner evidence when it changes the affected consumer; no peer majority, historical signature or handoff ACK is a standing mandatory gate.
+- **Release by changed effect:** distinguish source/CI and reversible preparation; additive read-only endpoint; scoped write/external action; ingress/credential changes; and old consumer decommission. Verify only the contracts and risks the actual release changes. A new parallel candidate does not require the old endpoint's consumers to migrate before it can be prepared or independently tested.
+- **Safety plus liveness:** production admission must reject demonstrated unauthorized access, destructive conflicts and unqualified high-risk effects. It must also have a reachable, independently testable positive case for every release scope it claims to support. A checker deliberately rejecting every qualified release is an implementation defect, not a policy or Owner veto. Do not turn a necessary precondition or explanatory diagnostic string into a sufficient grant.
+- **Reconcile before retrying:** after response loss, use the owning system's exact operation identifier, revision/CAS and immutable receipt to distinguish not-started, committed and unknown. Preserve other Agents' in-flight consumers, credentials and cursors. Do not broaden a read-only database role to get a passing release check.
 
 ## Evidence-backed detailed reporting and handoffs
 

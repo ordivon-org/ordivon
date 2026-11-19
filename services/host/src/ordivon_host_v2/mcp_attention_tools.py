@@ -14,6 +14,7 @@ from .attention_contracts import (
 )
 from .attention_store import AttentionStore
 from .mcp_domain_errors import _project_domain_errors
+from .wire_common import ExactCursorWire
 
 
 def register_attention_tools(
@@ -82,7 +83,7 @@ def register_attention_tools(
     @mcp.tool(name="attention.delta")
     @_project_domain_errors
     def attention_delta(
-        actorRef: str, afterSequence: int, limit: int = 100, maxBytes: int = 262_144
+        actorRef: str, afterSequence: ExactCursorWire, limit: int = 100, maxBytes: int = 262_144
     ) -> AttentionDeltaResponse:
         return attention.delta(
             actorRef, after_sequence=afterSequence, limit=limit, max_bytes=maxBytes
@@ -92,7 +93,7 @@ def register_attention_tools(
     @_project_domain_errors
     def attention_reentry(
         actorRef: str,
-        afterSequence: int | None = None,
+        afterSequence: ExactCursorWire | None = None,
         limit: int = 100,
         maxBytes: int = 262_144,
     ) -> AttentionReentryResponse:
@@ -102,7 +103,7 @@ def register_attention_tools(
 
     @mcp.tool(name="attention.ack")
     @_project_domain_errors
-    def attention_ack(actorRef: str, cursor: int) -> AttentionAckResponse:
+    def attention_ack(actorRef: str, cursor: ExactCursorWire) -> AttentionAckResponse:
         request = {"actorRef": actorRef, "cursor": cursor}
         return attention.ack(
             actorRef,
