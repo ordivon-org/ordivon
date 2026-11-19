@@ -5,13 +5,9 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
-class ActorKind(StrEnum):
-    UNKNOWN = "unknown"
-    HUMAN = "human"
-    AGENT = "agent"
-    SERVICE = "service"
-    ORGANIZATION = "organization"
+# Transitional import compatibility: the ActorRef schema is owned by references.
+from .references.actor_inputs import ActorKind as ActorKind
+from .references.actor_inputs import ActorRefInput as ActorRefInput
 
 
 class WorkState(StrEnum):
@@ -25,22 +21,6 @@ class WorkRelationKind(StrEnum):
     DEPENDS_ON = "depends_on"
     BLOCKS = "blocks"
     RELATES_TO = "relates_to"
-
-
-class ActorRefInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    actor_ref: str = Field(min_length=3, max_length=512)
-    actor_kind: ActorKind
-
-    @field_validator("actor_ref")
-    @classmethod
-    def validate_actor_ref(cls, value: str) -> str:
-        if value != value.strip() or any(ord(ch) < 0x20 for ch in value):
-            raise ValueError("actor_ref must be trimmed printable text")
-        if ":" not in value:
-            raise ValueError("actor_ref must be namespaced")
-        return value
 
 
 class WorkSnapshotInput(BaseModel):

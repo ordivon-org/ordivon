@@ -39,6 +39,20 @@ related:
 
 No implementation-bound evidence should be cited without its Harness/implementation revision and dependency context.
 
+## Real PostgreSQL Run consumer qualification
+
+The supported Agent Run Python API and installed-wheel Host-free
+create/reopen/inspect smoke require a fresh PostgreSQL test authority, not
+SQLite. An Owner PostgreSQL qualification shard can supply HARNESS_PG_TEST_DSN
+from a dedicated disposable test service. Tests create isolated unique schemas
+and drop only those schemas. The portable queue/release wheel gate validates
+metadata, isolated installation, imports and CLI even without this authority,
+but explicitly reports the Host-free PostgreSQL smoke as NOT_RUN. Supplying
+HARNESS_PG_TEST_DSN makes that smoke mandatory and fail-closed. Local real
+PostgreSQL qualification must use an equivalent test-only DSN; no old SQLite
+Run data are migrated or replayed. Missing PG authority is SKIPPED or NOT_RUN,
+never a PASS receipt.
+
 ## Current portable gate
 
 The current release gate includes:
@@ -102,6 +116,38 @@ A current release-changing Provider, Runtime, recovery or completion path should
 The canonical command is `scripts/local-acceptance run` on an owner-trusted acceptance environment.
 
 A deletion-only recovery change needs evidence for the capability that actually remains. If the retired path has no current writer/consumer and retained-state census finds no instances, do not recreate the obsolete writer merely to manufacture a "live" trajectory. Bind the exact pre-evidence implementation revision, prove writer/consumer and retained-state absence with bounded read-only evidence, regress the surviving Recovery/UNKNOWN path, and run the normal portable gate. Such a deletion receipt proves the scoped retirement; it does not generalize absence beyond the observed authorities.
+
+## Native Workspace-backed Run acceptance (R8 open gate)
+
+A release claiming safe Workspace-backed PAUSED resume must establish the
+**source / installed / physical / domain** boundaries independently. As of
+2026-11-16, Runtime Job `job-01a1e41a-ca97-775b-ab8d-48c231b6455a`
+provides a genuine failing physical baseline, not a repaired acceptance.
+The requirement is to replay the relevant scenario against a candidate
+using two independent PostgreSQL databases and an actual native Git Workspace;
+a mocked Gateway or a passing TLA model alone is insufficient.
+
+| Real consumer scenario | Required acceptance |
+| --- | --- |
+| PAUSED with frozen Workspace grant and **zero Tool calls** | HELD certified before the first pausable model turn; ordinary non-force close rejects; original Run still reopens and uses the same native Workspace |
+| Native close races native claim reserve | Reserve-first prevents close; close-first prevents a false claim; lost reserve response uses the exact original key for readback |
+| Run edits source while HELD | Subsequent original-Run Tool calls still work; changing `sourceStateDigest` does not change native Workspace incarnation or silently issue a new claim |
+| Two Run claims share one Workspace | Terminal Run A release cannot remove PAUSED Run B's Workspace; all active claims must be separately resolved |
+| Provider or Tool outcome UNKNOWN | Never certify Run finalization, release a needed claim, or blindly redispatch an uncertain external effect |
+| Authenticated terminal / explicit successor and real output delivery | Native claim release succeeds only after grant seal, Tool settlement and Git/Artifact/domain consumer evidence; legal close then succeeds with a freshly read close-CAS digest |
+| No-Tool or non-Workspace tool Run | Remains executable without unnecessary long-lived Workspace claim or deadlocked cleanup |
+| Coding hidden DomainQA PASS without required artifacts | Delivery stays unverified until the exact Git commit/patch or Runtime Artifact is persisted and a downstream consumer independently reads the bytes and acknowledges them |
+| Terminal Run with any earlier unsettled Provider/Tool intent | Read the complete original PG ordered Run event chain; any UNKNOWN or unqualified effect prevents certified release |
+| Issuer revoked after admission but before native process spawn | Separately qualify native issuer currentness; Workspace claim success is **not** an OS-spawn revocation proof |
+
+For the normal Coding path also use the existing real-Provider
+`tests/test_live_coding_task_r4.py` and independent
+`evals/harness-edit-addressing-002/qa.py` hidden verifier.
+Its historical success proves one specific hidden QA result, not durable delivery of the model-edited patch. For this case, record `DomainQA_PASS` and `DELIVERY_TO_CONSUMER_UNVERIFIED` until an original-byte consumer readback exists. Check the
+original Harness PostgreSQL Provider/Tool rows, native Runtime Job/Artifact
+bytes, the model's later Tool-output consumption, the exact Git diff,
+domain PASS/FAIL/UNKNOWN and measured token/cost/time separately. No
+individual Job exit code, model candidate or CI PASS implies TaskSolved.
 
 ## Claim discipline
 

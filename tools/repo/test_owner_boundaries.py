@@ -96,14 +96,42 @@ class OwnerBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
             MODULE.validate_consumed_seams((real, alias), (observed,))
 
-    def test_current_declared_source_consumers_are_literal_matched(self) -> None:
-        """This is a bounded source-text witness, not live consumer semantics."""
+    def test_sibling_prefix_does_not_create_cross_owner_dependency(self) -> None:
+        source = "platform/security/mise.toml"
+        for path in (
+            "services/gateway-authzen",
+            "services/gateway_extra",
+            "services/gateway2",
+            "prefixservices/gateway-src",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    MODULE.findings_for_text(source, f'run = "{path}"', OWNERS),
+                    (),
+                )
+
+    def test_real_gateway_path_still_requires_cross_owner_contract(self) -> None:
+        observed = MODULE.findings_for_text(
+            "platform/security/mise.toml",
+            'command = "services/gateway/src/ordivon_gateway/mcp_server.py"',
+            OWNERS,
+        )
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0].to_owner, "gateway")
+
+    def test_current_declared_source_consumers_are_exact_source_matched(self) -> None:
+        """Reuse the production scanner's literal AND Python import consumer graph."""
         findings = []
-        for path in MODULE.tracked_active_files():
+        active = MODULE.tracked_active_files()
+        packages = MODULE.python_package_owners(active, OWNERS)
+        for path in active:
             if MODULE.owner_for_path(path, OWNERS) is None:
                 continue
             source = (MODULE.ROOT / path).read_text(encoding="utf-8", errors="ignore")
             findings.extend(MODULE.findings_for_text(path, source, OWNERS))
+            findings.extend(
+                MODULE.python_import_findings_for_text(path, source, OWNERS, packages)
+            )
         witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
         self.assertEqual(set(witnessed), set(SEAMS))
         self.assertTrue(all(witnessed.values()))

@@ -1,0 +1,111 @@
+{
+  "archivedFrom": "planning/lego-plan-r1.json",
+  "sourceRevision": "1db37d1f0e6aded04c07b12389354bf2f819c71d",
+  "node": {
+    "id": "G07",
+    "label": "BevyNativeProductAssembly",
+    "kind": "native_composition_capability",
+    "responsibility": "Compose one game-specific engine-independent Rust rule machine with upstream Bevy ECS, Plugin, input, sprite and text systems",
+    "authority": "Game product rules owner; Bevy upstream engine owns ECS, renderer, schedules and input",
+    "state": "IMPLEMENTED",
+    "inputs": [
+      "keyboard input",
+      "Bevy ECS world and schedule",
+      "game-specific collection and damage rules"
+    ],
+    "outputs": [
+      "native Bevy App assembly",
+      "bounded Rust rule and Bevy system test evidence"
+    ],
+    "behavioralContract": "Goal collection, hazard damage and restart are game-owned transitions; Bevy-native systems consume those rules. Cargo compile and test do not prove rendered GPU output or human enjoyment. Native FixedUpdate advances movement, collection and hazard rules while Update owns restart input and HUD; frame rate may change how many fixed steps occur in one rendered frame.",
+    "acceptance": [
+      "Pin the actual Bevy version and Cargo.lock.",
+      "Native Rust rule and Bevy Plugin/system tests pass.",
+      "Compile Bevy application with cargo check --locked --all-targets; physical player input/output remains unverified without a graphical run.",
+      "Z3 4.15.4.0 proves nine bitvector model properties over full u64/u8 widths; source refinement remains separate",
+      "Kani 0.68.0 verifies four actual Rust source harnesses; at 2026-11-08 four successfully verified, zero failed, 81 checks",
+      "Bevy native ECS consumer and compile acceptance stay mandatory for real engine-effect claims",
+      "Native TimeUpdateStrategy::FixedTimesteps(0) causes no collection in one display frame; FixedTimesteps(1) advances exactly one actual Bevy simulation step and HUD projection"
+    ],
+    "evidence": [
+      "examples/orbit-collector/Cargo.toml",
+      "examples/orbit-collector/Cargo.lock",
+      "examples/orbit-collector/src/rules.rs",
+      "examples/orbit-collector/src/gameplay.rs",
+      "formal/verify_orbit_rules.py",
+      "formal/README.md"
+    ],
+    "dependencies": [],
+    "sharedRefs": [],
+    "mustNotOwn": [
+      "upstream engine/ECS",
+      "generic game framework",
+      "human enjoyment authority",
+      "Godot runtime state"
+    ],
+    "consumerEvidence": [
+      "examples/orbit-collector/src/main.rs",
+      "examples/orbit-collector/src/gameplay.rs",
+      "examples/orbit-collector/README.md",
+      "examples/orbit-collector/Cargo.toml",
+      "formal/verify_orbit_rules.py"
+    ],
+    "recursiveLegoR21": {
+      "I": [
+        "Bevy app schedule and keyboard events",
+        "product-owned RunState and scene recipe"
+      ],
+      "O": [
+        "Bevy ECS changes, Sprite/Text projections and compiled application"
+      ],
+      "S": [
+        "RunState phase, collected goals, lives and last-hit time",
+        "Bevy Time<Fixed> controls simulation advancement independently of presentation Update"
+      ],
+      "pre": [
+        "Bevy =0.20.1 and Cargo.lock source dependencies available",
+        "target and initial lives are positive"
+      ],
+      "post": [
+        "collect-all leads to Won; exhausted lives lead to Lost; restart makes a fresh run in the bounded tested rule domain"
+      ],
+      "inv": [
+        "terminal rules do not mutate collected/lives",
+        "engine-native ECS and rendering retain upstream ownership",
+        "The private RunState type prevents ordinary Rust consumers from forging an invalid reachable state",
+        "Playing implies collected<target and lives>0; Won implies collected=target; Lost implies lives=0; both terminal states absorb collect/hit"
+      ],
+      "eff": [
+        "Bevy ECS world state, native window and graphics effects when launched; current source verifies compile/tests but not an installed graphical session",
+        "Bevy FixedUpdate simulation and per-frame Update display/input separate effects; actual runtime FPS is UNKNOWN"
+      ],
+      "c": "Rule transitions O(1); ECS/frame scheduling and renderer cost depend on runtime/scene and are not measured",
+      "epsilon": "Graphical runtime, frame rate, input latency and human experience are UNKNOWN; compile PASS is not graphical execution proof Exact deterministic replay across platforms and physical input latency are UNKNOWN; fixed timestep does not itself prove either",
+      "prov": [
+        "examples/orbit-collector/Cargo.toml pins =0.20.1",
+        "examples/orbit-collector/Cargo.lock",
+        "examples/orbit-collector/README.md",
+        "formal/verify_orbit_rules.py",
+        "formal/README.md"
+      ],
+      "unfold": [
+        "examples/orbit-collector/src/rules.rs",
+        "examples/orbit-collector/src/gameplay.rs",
+        "examples/orbit-collector/src/main.rs",
+        "formal/verify_orbit_rules.py"
+      ]
+    }
+  },
+  "slice": {
+    "id": "GS4",
+    "objective": "Use real source-locked Bevy Plugin/ECS for one bounded game-specific Rust ruleset, not a generic engine",
+    "status": "IMPLEMENTED",
+    "nodeIds": [
+      "G07"
+    ],
+    "acceptance": [
+      "Cargo rule tests and Bevy compilation pass.",
+      "Physical renderer/window and human play remain explicitly UNKNOWN."
+    ]
+  }
+}

@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-09
+updated: 2026-11-17
 summary: Current maturity claim for Harness as an independent durable cognitive execution substrate, with supported cognition, Provider and Tool continuity, composition, verification, and known limits.
 evidence_status: verified
 readiness: READY
@@ -32,14 +32,14 @@ related:
 
 Ordivon Harness is an independent caller-neutral **durable cognitive execution substrate for bounded Agent Runs**. The first-party CLI uses the PostgreSQL Journal/CAS only; a separate direct Python SQLite API remains legacy pending final consumer migration. The supported CLI authority is the independent Harness path; the former Host-backed Store/Runner/cutover path was removed.
 
-This page states current maturity. It does not replay the research sequence that produced it. Exact experiments and receipts remain available through the linked canonical research documents and [`../evidence/index.json`](../evidence/index.json).
+This page describes the source's bounded capability and maturity, **not** an automatic production-installation qualification. The 2026-11-17 owner audit found source `5d1721fdd75cea53ee7d3ae023378becaff525c3` while `/opt/ordivon/harness/current` resolved to release `acbb494a3d9f8c811093a0eab1b1c16e33f2bdfc`; core module bytes differed. An operator must independently verify the exact source SHA, installed release, running entry point, PostgreSQL readback, and relevant domain consumer before claiming current deployment readiness. This page does not replay the research sequence that produced its bounded claims. Exact experiments and receipts remain available through the linked canonical research documents and [`../evidence/index.json`](../evidence/index.json).
 
 ## Operational surface
 
 ### Run authority and continuity
 
 - `HarnessRunContract` binds one immutable attempt to caller/objective/context, Provider/Adapter/model, Tool catalog/grants, budget, privacy, completion contract and correlation identity.
-- The PostgreSQL CLI Store owns the admitted CLI Run events, Provider Calls, Tool intents/receipts, leases, revisions, snapshots, recovery evidence and retained objects; legacy direct Python SQLite state is not the PG write authority.
+- The PostgreSQL CLI Store owns the admitted CLI Run events, Provider Calls, Tool intents/receipts, leases, revisions, snapshots, recovery evidence and retained objects; SQLite historical state is not automatically migrated into the new PG epoch; production Run admission uses PostgreSQL.
 - Provider and Tool response loss is recovered from exact durable identity. UNKNOWN is not silently converted into success, failure, or safe redispatch.
 - Run Receipt and `CompletionProposal` remain bounded-Run evidence for the caller/domain; they are not final Task/domain acceptance.
 
@@ -63,7 +63,7 @@ This page states current maturity. It does not replay the research sequence that
 
 ### Supported composition
 
-- `HarnessAgentRun` is the recommended Python Run handle; production PG entrypoints are create_postgres/open_postgres, while state-root create/open remains an unretired legacy direct API.
+- `HarnessAgentRun` is the recommended Python Run handle; production PG entrypoints are create(dsn, schema, ...) and open(dsn, schema, ...); the old state-root public API is retired.
 - Capability truth has three explicit stages: package-installed mechanisms, immutable Run-admitted Contract/Binding authority, and exact turn-admitted `AgentTurnRequest` actions. Earlier stages never imply later stages.
 - the former aggregate installed-capability catalog and workbench read model are retired; supported execution profiles expose exact source-owned digests directly, durable `inspect` is the single retained-state view, and in-process `explain()` reports only the composition it can validate.
 - the former task-conditioned lexical capability-discovery/descriptor layer is retired; Harness keeps no generic capability search/ranking ontology.
@@ -107,8 +107,20 @@ The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibil
 
 ## Known limits
 
+- **Open P0 (2026-11-16): native Workspace-backed SameRun resume is not
+  yet certified safe across independent Harness and Runtime PostgreSQL
+  databases.** In a disposable real-native counterexample, an original Run
+  remained PAUSED while a non-force native Workspace close with
+  `consumerReleased=true` removed its frozen Workspace. Existing Harness
+  PG Run/Tool fences do not create a Runtime PG Workspace claim. The
+  proposed HELD-before-first-pausable-turn, effect-epoch verification and
+  certified release require source, isolated PostgreSQL, installed Runtime
+  and independent consumer validation; a draft claim implementation is
+  not proof of deployed protection. Do not promote this Tool-enabled
+  recovery path to production-ready or restart automated cleanup solely
+  because unit tests or a PR pass.
 - Harness is pre-1.0; public schemas and advanced exports may still change under the documented compatibility policy.
-- The primary CLI does not create Tool-bearing Runtime clients.
+- The primary CLI defaults to no-Tool DeepSeek; a caller may explicitly opt into an authenticated Gateway Tool profile, exact existing Workspace and executable grant. This provides a Tool-bearing CLI without minting Runtime authority. In the source implementation, only a committed original UNKNOWN ToolStep with an `effect-dispatch-pending` pause permits one original-Owner reconciliation on `resume`, never an automatic second submit. Other `runtime_unknown` cases remain stopped. Installed production release, physical issuer-current spawn and independent domain completion remain separately unqualified.
 - Harness begins at one exact `HarnessRunContract`; higher-level multi-Run orchestration/resource allocation and generic Strategy selection/evidence aggregation remain outside Harness.
 - Harness intentionally has no generic capability discovery/ranking service. Large heterogeneous capability ecologies should use their actual owner/tool substrate discovery surfaces; Harness receives exact caller/owner facts only where needed for one Run/turn.
 - Fresh-Agent V1/V2 did not earn a Harness semantic retriever. Reopen retrieval research only when a real owner substrate produces a discriminating discovery failure; current Harness pressure is compact consumption of already-current owner facts.
@@ -118,6 +130,16 @@ The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibil
 - Provider/Tool UNKNOWN may require external reconciliation by the owner that can observe the consequence.
 - Provider-specific opaque continuation is not a current generic Harness surface; integrations that require it must preserve their own Provider-local authority without assuming metadata-only Harness continuity can recover private transcript state.
 - cache hit rate, prompt locality and Provider-specific request efficiency are measured properties rather than correctness thresholds.
+
+- The historical R4 Coding evidence proves one independent hidden
+  `DomainQA_PASS` but did not require persistent output and does not
+  establish that a downstream consumer received the exact edited
+  source. Delivery remains `DELIVERY_TO_CONSUMER_UNVERIFIED` (not proven
+  permanently lost); a candidate's QA result is not a release ACK.
+- Source-level `STOPPED` terminality, or the latest Tool event alone,
+  does not prove all earlier Provider/Tool effects settled. Native
+  Workspace finalization needs the complete original PG event chain
+  and natural Git/Artifact/domain delivery qualification.
 
 ## Verification
 

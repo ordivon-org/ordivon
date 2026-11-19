@@ -38,6 +38,22 @@ def test_attention_mentions_and_replies_route_without_global_scan() -> None:
     assert "parent.author_actor_ref=%(actor_ref)s" in sql
 
 
+def test_bounded_subscription_lateral_uses_existing_topic_space_change_indexes() -> None:
+    # Each message has one immutable topic/space and subscriptions have a
+    # natural-key uniqueness constraint, so the first K per followed target
+    # cannot exclude any of the first K globally distinct message identities.
+    sql = ATTENTION_DELTA_SQL
+    assert sql.count("CROSS JOIN LATERAL") == 2
+    assert sql.count("LIMIT %(limit)s") == 5  # 2 inner, 2 branch, 1 final
+    assert "WHERE m.topic_ref=s.target_ref" in sql
+    assert "WHERE m.space_ref=s.target_ref" in sql
+    assert sql.count("m.change_sequence > s.change_sequence") >= 2
+    # No replacement of the message identity GROUP BY or multi-reason fold.
+    assert "GROUP BY mc.change_sequence,mc.message_ref,mc.topic_ref" in sql
+    assert "bool_or(mc.mentioned)" in sql
+    assert "bool_or(mc.replied_to_me)" in sql
+
+
 def test_attention_cursor_is_monotonic_and_horizon_bounded() -> None:
     source = ATTENTION.read_text() + (ATTENTION.parent / "attention_projections.py").read_text()
     assert "attention cursor cannot move backwards" in source

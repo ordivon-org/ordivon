@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
-import tempfile
+import os
+import uuid
+
+import psycopg
+from psycopg import sql
 
 from anc_canonical import canonical_digest
 
@@ -14,13 +17,10 @@ from ordivon_harness.api import (
     HarnessBoundReference,
     HarnessRunContract,
     NO_TOOL_AGENT_SURFACE_DIGEST,
-    RunBudget,
 )
 from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
-from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
-from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
-from ordivon_harness.standalone import StandaloneHarnessRunner
+from ordivon_harness.agent_run import HarnessAgentRun
+from ordivon_harness.postgres_store import PostgresHarnessStore
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -75,54 +75,38 @@ def main() -> int:
         finish_reason="stop",
         raw_response_digest=canonical_digest({"harness": "host-free-smoke"}),
     )
-    budget = RunBudget(
-        max_model_calls=1,
-        max_tool_calls=1,
-        max_observation_bytes=16_384,
-        max_wall_time_ms=10_000,
-        max_total_tokens=1_000,
-        max_model_retries=0,
-    )
+    dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+    if not dsn:
+        raise RuntimeError("HARNESS_PG_TEST_DSN required for real Host-free PostgreSQL check")
+    schema = "hpg_hostfree_" + uuid.uuid4().hex[:18]
+    with PostgresHarnessStore(dsn, schema=schema, initialize=True):
+        pass
     clock = FixedClock()
-    with tempfile.TemporaryDirectory(prefix="ordivon-harness-host-free-") as directory:
-        root = Path(directory) / "state"
-        with SQLiteHarnessStore.initialize(root) as store:
-            store.create_run(contract)
-            continuity = EventSourcedRunContinuity(store, contract, clock_ms=clock)
-            adapter = ScriptedTurnAdapter((result,))
-            bridge = HarnessAgentBridge(contract, continuity)
-            execution = StandaloneHarnessRunner(
-                contract,
-                continuity,
-                adapter,
-                bridge,
-                budget=budget,
-                clock_ms=clock,
-                monotonic_ms=clock,
-            ).run(({"role": "user", "content": "complete"},))
-            if execution.terminal_result is None:
-                raise RuntimeError("Host-free Harness did not produce terminal evidence")
-            receipt_digest = execution.terminal_result.receipt.digest
-        with SQLiteHarnessStore(root) as reopened_store:
-            reopened = EventSourcedRunContinuity.open(
-                reopened_store,
-                contract.harness_run_id,
-                clock_ms=clock,
-            )
-            inspected = StandaloneHarnessRunner(
-                contract,
-                reopened,
-                ScriptedTurnAdapter((result,)),
-                HarnessAgentBridge(contract, reopened),
-                budget=budget,
-                clock_ms=clock,
-                monotonic_ms=clock,
-            ).inspect_terminal()
-            if inspected.receipt.digest != receipt_digest:
-                raise RuntimeError("Host-free Harness restart inspection differs")
-            if not reopened_store.doctor(full=True)["healthy"]:
-                raise RuntimeError("Host-free Harness Store Doctor failed")
-    print("harness without host: passed")
+    try:
+        first = HarnessAgentRun.create(
+            dsn, schema, contract,
+            lambda _contract: ScriptedTurnAdapter((result,)),
+            clock_ms=clock, monotonic_ms=clock,
+        )
+        execution = first.run(({"role": "user", "content": "complete"},))
+        if execution.terminal_result is None:
+            raise RuntimeError("Host-free Harness did not produce terminal evidence")
+        receipt_digest = execution.terminal_result.receipt.digest
+        reopened = HarnessAgentRun.open(
+            dsn, schema, contract.harness_run_id,
+            lambda _contract: ScriptedTurnAdapter((result,)),
+            clock_ms=clock, monotonic_ms=clock,
+        )
+        inspected = reopened.inspect_terminal()
+        if inspected.receipt.digest != receipt_digest:
+            raise RuntimeError("Host-free Harness PG restart inspection differs")
+        with PostgresHarnessStore(dsn, schema=schema) as store:
+            if not store.doctor(full=True)["healthy"]:
+                raise RuntimeError("Host-free Harness PostgreSQL Store Doctor failed")
+    finally:
+        with psycopg.connect(dsn, autocommit=True) as conn:
+            conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+    print("harness without host: passed (PostgreSQL, reopened and inspected)")
     return 0
 
 

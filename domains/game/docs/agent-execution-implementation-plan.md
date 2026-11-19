@@ -2,6 +2,8 @@
 
 > Agent workers: read [spec](agent-execution-contract-spec.md), root `AGENTS.md`, Game `AGENTS.md`, and existing G11 R2.1 before changing code. Use Superpowers' small red/green steps and verification-before-completion where applicable; this plan is not a new authority or runtime.
 
+> **Current standing (2026-11-15):** This is the 2026-11-09 implementation history, not the next Game work queue. The native clean-checkout import and receipt checks described in Tasks A–C/E are already present in current source and must be re-verified with `mise run test:agent-episode` for affected changes. Historical unchecked boxes remain provenance, not instructions to redo them. Task D is conditional on a real cross-Owner consumer; publication, current CI, and Human acceptance are independent facts.
+
 **Goal:** Make the actual G11 Room Encounter episode acceptance independently executable in a clean Game checkout, while retaining source-bound LEGO evidence and recording the future natural-Owner adoption seams.
 **Architecture:** Extend the existing native `mise` entry using upstream Godot import. Reuse the existing G11 R2.1 declaration, Game real scene tests and GitHub native pipeline; do not add a schema, verifier executor, registry or mandatory Agent workflow.
 **Tech stack:** Godot 4.7.2, Python 3, Rust/Bevy 0.20.1 as existing separate product, mise, GitHub Actions, Game G11 R2.1.
@@ -108,7 +110,7 @@ Dependency: A/B/C above form the verified G11 import and CI seam. R1.1 builds on
 ## Actual execution ledger (2026-11-09)
 
 - Original R1 is MERGED on GitHub: PR #1969 merged 2026-11-09T15:32:15Z, exact head 02425d546d639e51cc5444604525b16463b3a102; native Godot RED/GREEN and full Game verification passed.
-- E1 RED: native captured receipt mutation checks failed to run before the new reader function existed (NameError); real source/engine behavior supplied the original receipt.
+- E1 initial test-scaffolding failure: invoking the proposed missing reader raised NameError before implementation. This is **not** a semantic RED witness that the old reader accepted corrupted native receipts; that old-reader negative outcome was NOT_RUN. Subsequent E3 negative mutations demonstrated the new reader rejects inconsistent actual Godot receipts.
 - E2/E3/E4 GREEN: existing Game reader now checks the actual native receipt state chain, rejected action immutability, terminal phase and player-only output; both tampered native receipts are rejected; 19 native Godot episodes PASS. No separate Game simulator.
 - E5 local native owner verify EXIT0 (Z3/Godot/Bevy/R7), actionlint EXIT0. Independent follow-up GitHub PR status is recorded separately after publication.
 - F1/F2 cross-agent: Host Capability & Verification formal-refinement message #25746 posted; independent peers identified overlapping global #1965/#1973 merged specs and #1977/#1978 open overlap. Do not add another cross-Owner source of authority; only Game G11 code changes.

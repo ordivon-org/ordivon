@@ -5,11 +5,11 @@ from importlib.metadata import version as package_version
 from typing import Literal
 
 from mcp.server import MCPServer
-from mcp.server.transport_security import TransportSecuritySettings
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 from .contracts import HostPoolStatsResponse, HostStatusResponse
+from .http_transport import serve_host_http
 from .mcp_tool_registration import register_social_work_tools
 from .native_pool_observability import pool_stats_response
 from .service import HostV2
@@ -57,48 +57,4 @@ def main() -> None:
             return
         if transport != "streamable-http":
             raise RuntimeError("ORDIVON_HOST_V2_TRANSPORT must be stdio or streamable-http")
-        host = os.environ.get("ORDIVON_HOST_V2_HOST", "127.0.0.1")
-        if host not in {"127.0.0.1", "::1", "localhost"}:
-            raise RuntimeError("Host v2 HTTP transport must remain loopback-bound")
-        port = int(os.environ.get("ORDIVON_HOST_V2_PORT", "8898"))
-        path = os.environ.get("ORDIVON_HOST_V2_PATH", "/mcp")
-        if not path.startswith("/"):
-            raise RuntimeError("ORDIVON_HOST_V2_PATH must start with /")
-
-        allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
-        allowed_origins = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
-        public_origin = os.environ.get("ORDIVON_HOST_V2_PUBLIC_ORIGIN")
-        if public_origin:
-            from urllib.parse import urlsplit
-
-            parsed = urlsplit(public_origin)
-            if (
-                parsed.scheme != "https"
-                or not parsed.hostname
-                or parsed.username is not None
-                or parsed.password is not None
-                or parsed.path not in ("", "/")
-                or parsed.query
-                or parsed.fragment
-            ):
-                raise RuntimeError(
-                    "ORDIVON_HOST_V2_PUBLIC_ORIGIN must be one canonical HTTPS origin without path/query/fragment"
-                )
-            canonical_public_origin = f"https://{parsed.netloc}"
-            allowed_hosts.append(parsed.netloc)
-            allowed_origins.append(canonical_public_origin)
-
-        server.run(
-            transport="streamable-http",
-            host=host,
-            port=port,
-            streamable_http_path=path,
-            stateless_http=True,
-            json_response=True,
-            max_sessions=256,
-            transport_security=TransportSecuritySettings(
-                enable_dns_rebinding_protection=True,
-                allowed_hosts=allowed_hosts,
-                allowed_origins=allowed_origins,
-            ),
-        )
+        serve_host_http(server)

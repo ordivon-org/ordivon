@@ -482,14 +482,17 @@ def derived_problem_legos(
     hierarchy = []
     all_cells = []
     for cell in cells:
-        parent_candidates = [
-            other for other in cells if other["sourceZone"] == cell["sourceZone"]
-            and other is not cell
-            and cell["physicalPrefix"].startswith(other["physicalPrefix"])
-            and len(other["physicalPrefix"]) < len(cell["physicalPrefix"])
-        ]
-        parent = max(parent_candidates, key=lambda x: len(x["physicalPrefix"]),
-                     default=None)
+        # Reuse the validated exact-key index instead of comparing all pairs.
+        # Test *all* proper string prefixes (including ""), preserving the
+        # original startswith semantics rather than assuming path segments.
+        zone = cell["sourceZone"]
+        prefix = cell["physicalPrefix"]
+        parent = next(
+            (cell_by_key[(zone, prefix[:length])]
+             for length in range(len(prefix) - 1, -1, -1)
+             if (zone, prefix[:length]) in cell_by_key),
+            None,
+        )
         if parent is not None:
             hierarchy.append({
                 "relation": "PHYSICAL_PREFIX_CONTAINS_NOT_SEMANTIC_CALL",

@@ -21,30 +21,7 @@
     }
   ],
   "route": {
-    "rules": [
-      {
-        "inbound": [
-          "codex"
-        ],
-        "domain": [
-          "chatgpt.com",
-          "persistent.oaistatic.com",
-          "auth.openai.com",
-          "gateway-mcp.ordivon.com",
-          "falling-union-c376.cloudflareaccess.com"
-        ],
-        "port": [
-          443
-        ],
-        "network": [
-          "tcp"
-        ],
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "action": "reject"
-      }
-    ]
+    "rules": [],
+    "final": "provider-carrier"
   }
 }

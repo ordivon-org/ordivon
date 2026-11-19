@@ -6,9 +6,9 @@ import asyncio
 
 import pytest
 
-from ordivon_gateway.capability_projection import project_execution_capability
 from ordivon_gateway.contracts import CapabilityDescriptor
-from ordivon_gateway.routing import default_routes
+from ordivon_gateway.logic.capability_projection import project_execution_capability
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 

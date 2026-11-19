@@ -39,13 +39,16 @@
       "okx_sensor_capture.py",
       "websocket_proxy_lifecycle.py",
       "etf_eod_snapshot.py",
-      "historical_close_snapshot.py"
+      "historical_close_snapshot.py",
+      "equity_session_calendar.py",
+      "equity_ohlcv_shape.py"
     ],
     "trading": [
       "binance_usdm_private_capture.py",
       "binance_usdm_provider.py",
       "execution_feasibility.py",
       "paper_fill_calendar.py",
+      "nautilus_paper_bridge.py",
       "execution_reconciliation.py",
       "fix44_projection.py",
       "okx_readonly_client.py",
@@ -57,6 +60,7 @@
     "portfolio": [
       "portfolio_counterfactuals.py",
       "strategic_contribution.py",
+      "paper_contribution_plan.py",
       "paper_investment.py",
       "passive_benchmark.py",
       "paper_vintage.py",
@@ -97,7 +101,8 @@
       "postgres_ledger.py",
       "substrate.py",
       "paper_close.py",
-      "postgres_paper_close.py"
+      "postgres_paper_close.py",
+      "paper_simulation_run.py"
     ]
   },
   "dependencyRules": [

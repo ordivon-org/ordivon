@@ -29,6 +29,8 @@ RECEIPT = Path(
     "experimental-episode-analysis-r1/receipt.json"
 )
 MANIFEST_PORT = "episode-corpus-manifest-json"
+# Research's required producer-port contract, separate from product.version.
+MANIFEST_PORT_VERSION = "1.0.0"
 
 
 def digest(data: bytes) -> str:
@@ -66,12 +68,14 @@ def deliver(root: Path = ROOT) -> dict[str, Any]:
         path_property="corpusManifestRelativePath",
         digest_property="corpusManifestSha256",
         owner_root=root,
+        port_version=MANIFEST_PORT_VERSION,
     )
     projected, product_source_digest = project_odps(product_path, bindings=(binding,))
     candidates = [
         port
         for port in projected["dcat:distribution"]
         if port["dct:title"] == MANIFEST_PORT
+        and port.get("dcat:version") == MANIFEST_PORT_VERSION
     ]
     if len(candidates) != 1:
         raise ValueError("required Research output port is absent or ambiguous")
@@ -151,6 +155,7 @@ def deliver(root: Path = ROOT) -> dict[str, Any]:
             "productVersion": version,
             "productSourceDigest": product_source_digest,
             "port": MANIFEST_PORT,
+            "portVersion": MANIFEST_PORT_VERSION,
             "manifestSha256": "sha256:" + props["corpusManifestSha256"],
             "systemAnalysisSha256": "sha256:" + receipt["systemAnalysisSha256"],
             "physicalByteVerification": observed["verification"],

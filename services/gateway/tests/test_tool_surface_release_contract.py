@@ -24,7 +24,7 @@ def test_release_manifest_matches_exact_mcp_surface_and_package_identity() -> No
             assert version("ordivon-gateway") == manifest["packageVersion"]
             assert client.server_info is not None
             assert client.server_info.version == manifest["packageVersion"]
-            assert manifest["surfaceEpoch"] == 9
+            assert manifest["surfaceEpoch"] == 15
             import importlib.util
 
             verifier = ROOT / "packaging" / "windows" / "verify_release.py"
@@ -142,3 +142,144 @@ def test_linux_release_installer_enforces_surface_manifest() -> None:
     installer = (ROOT / "packaging" / "install_release.sh").read_text(encoding="utf-8")
     assert "verify_tool_surface.py" in installer
     assert '"$RELEASE/mcp-surface.json"' in installer
+
+
+def _native_abi_verifier():
+    """Reuse the existing release verifier, never introduce another tool registry."""
+    import importlib.util
+
+    verifier = ROOT / "packaging" / "verify_tool_surface.py"
+    spec = importlib.util.spec_from_file_location("gateway_native_public_abi", verifier)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _old_client_contract() -> list[dict]:
+    return [
+        {
+            "name": "topic.list",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"spaceRef": {"type": "string"}},
+                "required": ["spaceRef"],
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {"topics": {"type": "array"}},
+                "required": ["topics"],
+            },
+        }
+    ]
+
+
+def test_native_public_abi_preserves_old_clients_after_optional_addition() -> None:
+    from copy import deepcopy
+
+    old = _old_client_contract()
+    candidate = deepcopy(old)
+    candidate[0]["inputSchema"]["properties"]["includeArchived"] = {
+        "type": "boolean",
+        "default": False,
+        "title": "Includearchived",
+    }
+    candidate.append(
+        {"name": "capability.search", "inputSchema": {"type": "object"}, "outputSchema": None}
+    )
+    assert _native_abi_verifier().compare_native_tool_contracts(old, candidate) == []
+
+
+def test_native_public_abi_detects_deleted_tool_and_argument() -> None:
+    from copy import deepcopy
+
+    old = _old_client_contract()
+    assert any(
+        "removed tool topic.list" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, [])
+    )
+    candidate = deepcopy(old)
+    del candidate[0]["inputSchema"]["properties"]["spaceRef"]
+    assert any(
+        "input removed field topic.list.spaceRef" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, candidate)
+    )
+
+
+def test_native_public_abi_detects_new_required_and_tightened_input() -> None:
+    from copy import deepcopy
+
+    old = _old_client_contract()
+    candidate = deepcopy(old)
+    candidate[0]["inputSchema"]["properties"]["includeArchived"] = {"type": "boolean"}
+    candidate[0]["inputSchema"]["required"].append("includeArchived")
+    assert any(
+        "input new required topic.list.includeArchived" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, candidate)
+    )
+
+    candidate = deepcopy(old)
+    candidate[0]["inputSchema"]["properties"]["spaceRef"] = {"type": "string", "minLength": 100}
+    assert any(
+        "input changed field topic.list.spaceRef" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, candidate)
+    )
+
+
+def test_native_public_abi_detects_output_contract_loss() -> None:
+    from copy import deepcopy
+
+    old = _old_client_contract()
+    candidate = deepcopy(old)
+    candidate[0]["outputSchema"]["properties"].pop("topics")
+    assert any(
+        "output removed field topic.list.topics" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, candidate)
+    )
+
+
+def test_native_public_abi_ignores_descriptions_but_not_defaults() -> None:
+    from copy import deepcopy
+
+    old = _old_client_contract()
+    old[0]["inputSchema"]["properties"]["spaceRef"]["description"] = "Original"
+    candidate = deepcopy(old)
+    candidate[0]["inputSchema"]["properties"]["spaceRef"]["description"] = "Updated"
+    assert _native_abi_verifier().compare_native_tool_contracts(old, candidate) == []
+    candidate[0]["inputSchema"]["properties"]["spaceRef"]["default"] = "unexpected"
+    assert any(
+        "input changed field topic.list.spaceRef" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, candidate)
+    )
+
+
+def test_release_native_public_abi_gate_is_before_atomic_promotion() -> None:
+    """A changed digest/epoch alone cannot authorize breaking older Agents."""
+    installer = (ROOT / "packaging" / "install_release.sh").read_text(encoding="utf-8")
+    assert '"$PREFIX/current/.venv/bin/python"' in installer
+    assert "--emit-native" in installer
+    assert "--compare-native" in installer
+    assert "native_public_abi=INCOMPATIBLE" in installer
+    assert installer.index("--compare-native") < installer.index('ln -sfn "releases/$COMMIT"')
+    # Preparations can preserve a precise incompatibility report, while
+    # promotion MUST fail before changing the existing current symlink.
+    assert 'if [ "$PREPARE_ONLY" != true ]; then' in installer
+
+
+def test_native_public_abi_detects_lost_required_output_and_schema_definition() -> None:
+    from copy import deepcopy
+
+    old = _old_client_contract()
+    new = deepcopy(old)
+    new[0]["outputSchema"]["required"] = []
+    assert any(
+        "output lost required topic.list.topics" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, new)
+    )
+    old[0]["inputSchema"]["$defs"] = {"Custom": {"type": "string"}}
+    new = deepcopy(old)
+    new[0]["inputSchema"]["$defs"]["Custom"] = {"type": "integer"}
+    assert any(
+        "input changed definition topic.list.Custom" in e
+        for e in _native_abi_verifier().compare_native_tool_contracts(old, new)
+    )

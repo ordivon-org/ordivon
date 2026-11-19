@@ -1,5 +1,7 @@
 # Host R2.1 Contract-Driven Execution — Implementation Plan
 
+> **Historical investigation — superseded contract.** This document records the earlier full-history incident and original options. Current Host authority is defined by README.md, work_queries.py, service.py, and native test_host_history_doctor_postgres.py: the CURRENT Work snapshot is mandatory; older historical revisions are optional retention, checked for integrity when present and never fabricated. The historical checklist below is not a current implementation or production release gate.
+
 > For agentic workers: adopt the already installed `obra-superpowers/writing-plans`, `matt-native/tdd`, `ecc-native/ai-regression-testing`, and `obra-superpowers/verification-before-completion`. Do not install a duplicate process framework. Execute each independent vertical slice with RED→GREEN and read the actual Owner test output.
 
 **Goal:** Improve Host's semantic continuity and historical evidence truth without allowing stale Work hygiene to terminate a real Goal.
@@ -84,8 +86,8 @@
 
 **Files:** `services/host/docs/`, `planning/`, `AGENTS.md`, `README.md`, affected `tools/repo/` consumer checks.
 
-- [ ] Trace real consumers of `SOCIAL_WORK_FABRIC_R1.md`, `SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md`, `planning/social-work-fabric-r1.json` and `planning/host-friction-observatory-r1.json`.
-- [ ] Migrate only currently useful facts into active Host README/Spec; replace dead filename-presence tests with actual behavior contract tests.
+- [ ] Trace real consumers of `SOCIAL_WORK_FABRIC_R1.md` and `SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md`; keep `planning/social-work-fabric-r1.json` because `tools/repo/test_architecture_docs.py` consumes it. The 2026-09-20 `host-friction-observatory-r1.json` has no current programmatic consumer; R3 points to its exact Git blob `a5503d5be27a121b7b9a3d5fa2088ea44cac4c79` instead.
+- [ ] Migrate only currently useful facts into active Host README/Spec. Retire old R1 planning JSON/string mirror tests; existing real PG/MCP, Work CAS, Social/Attention and Repo Owner behavior tests remain the independent verification authority.
 - [ ] Remove obsolete files with `git rm` only after relevant consumers migrate; preserve Alembic 0001..0013 and any newer active migrations.
 - [ ] Run native Host verification and repository architecture checks; commit intentional deletion rather than archiving duplicate shadow docs.
 

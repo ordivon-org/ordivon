@@ -32,7 +32,7 @@ The first-party Harness CLI uses a caller-provisioned PostgreSQL database
 and selected Harness schema. Set `HARNESS_PG_DSN` (and optionally
 `HARNESS_PG_SCHEMA`, default `harness`) before invoking CLI operations.
 There is no SQLite CLI fallback, Host-backed writer or cutover selector.
-The legacy direct Python SQLite API is not the current CLI authority.
+The supported public Python Run API requires PostgreSQL and does not accept a state-root SQLite fallback.
 
 ```bash
 ordivon-harness doctor
@@ -62,6 +62,37 @@ It deliberately does not replay every Run history. A Run is semantically replay-
 A CREATED Run is executed with `run`. A PAUSED Run requires `resume`. A terminal Run is inspected rather than executed again. Contract digest conflicts fail closed.
 
 Multiple workers may open the same PostgreSQL Harness schema, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
+
+### Workspace retention while a Tool-enabled Run can resume (open P0)
+
+**Operator safety notice, 2026-11-16:** Native Runtime `workspace.close`
+currently trusts an explicit `consumerReleased=true` caller assertion in
+a way that does not certify a PAUSED or ACTIVE Harness Run in another
+PostgreSQL database has released its frozen Workspace. The real disposable
+counterexample is Runtime Job
+`job-01a1e41a-ca97-775b-ab8d-48c231b6455a`
+(see the exact authoritative evidence ID in `VERIFICATION.md`);
+the normal caller claim, inactive Job list or four-hour idle age is
+**not** sufficient evidence for reclaiming a live Harness consumer.
+
+Before closing a Workspace referenced by a nonterminal original Run,
+inspect its original Run/Grant, all unresolved Provider/Tool effects,
+the native Workspace/Job projection, uncommitted source and outstanding
+Git/Artifact/domain recipients. Until the native Runtime PG Claim and
+certified release are installed and physically qualified, keep such a
+Workspace held; do not use force or an unverified release assertion to
+make cleanup appear successful. Source edits change the current close-CAS
+digest but not the Run's frozen Workspace identity. Successful terminal
+delivery permits a *qualified* per-Run finalizer, not immediate deletion
+of another Run's Workspace. Missing or uncertain evidence is a HOLD and
+should be reported to the natural Harness/Runtime owners.
+
+**Finalizer rule:** Before certifying release, inspect the full
+Harness PostgreSQL ordered Run event chain, not merely `terminal=true`
+or the latest Tool head; verify every uncertain external effect is
+settled. A hidden QA PASS without a persisted candidate and downstream
+byte-level acceptance is not a delivery certificate. Other PAUSED
+Runs sharing this Workspace may still have their own HELD claims.
 
 ## Provider recovery
 

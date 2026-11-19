@@ -110,6 +110,44 @@ def load_dependency_graph(
             ):
                 raise ValueError("unapproved source-only research projection seam")
             continue
+        # Preserve the existing Gateway/Harness native consumer graph. These
+        # six exact Runtime Rust TEST fixtures only read original Harness
+        # publisher source for PG18 verification; they cannot create a
+        # production Runtime-Harness owner-component dependency.
+        if (
+            seam.get("kind") == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+            and (left, right) == ("runtime", "harness")
+        ):
+            test_sources = {
+                "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs": "root",
+                "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs": "repo_root",
+            }
+            source = seam.get("source_glob")
+            prefix = test_sources.get(source)
+            fixture = "services/harness/tests/original_pg_issuer_native_fixture.py"
+            allowed_paths = {
+                f'{prefix}.join("{fixture}")': fixture,
+                f'{prefix}.join("services/harness/src")': "services/harness/src/",
+                f'{prefix}.join("services/harness")': "services/harness/tests/",
+            } if prefix is not None else {}
+            fragment = seam.get("allowed_fragment")
+            repo = Path(__file__).resolve().parents[2]
+            actual = repo / source if isinstance(source, str) else repo
+            if (
+                fragment not in allowed_paths
+                or seam.get("contract_ref") != fixture
+                or not actual.is_file()
+                or actual.is_symlink()
+                or not (repo / fixture).is_file()
+                or (repo / fixture).is_symlink()
+                or fragment not in actual.read_text(encoding="utf-8")
+            ):
+                raise ValueError("unapproved original Harness test-only source seam")
+            if test_only_consumers is not None:
+                test_only_consumers.append(
+                    (left, right, allowed_paths[fragment], "PATH")
+                )
+            continue
         if seam.get("kind") == "TEST_ONLY_SOURCE_CONTRACT":
             # One native test can consume a different Owner's actual source
             # contract without establishing a bidirectional business edge.

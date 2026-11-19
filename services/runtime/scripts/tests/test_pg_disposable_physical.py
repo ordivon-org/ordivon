@@ -57,14 +57,15 @@ class DisposablePg18Contract(unittest.TestCase):
         self.assertIn("printenv ORDIVON_PG_TEST_DSN", owner_run)
 
     def test_positive_execution_receipts_reject_vacuous_green(self) -> None:
-        lines = [f"test pg_admission::live_pg_tests::pg18_case_{i} ... ok" for i in range(module.EXPECTED_PG18)]
-        good = "\n".join(lines) + "\ntest result: ok. 18 passed; 0 failed; 0 ignored;"
-        self.assertEqual(module.exact_test_count(good), 18)
+        expected = module.EXPECTED_PG18
+        lines = [f"test pg_admission::live_pg_tests::pg18_case_{i} ... ok" for i in range(expected)]
+        good = "\n".join(lines) + f"\ntest result: ok. {expected} passed; 0 failed; 0 ignored;"
+        self.assertEqual(module.exact_test_count(good), expected)
         for false_green in [
-            "test result: ok. 0 passed; 0 failed; 18 ignored;",
-            "test result: ok. 18 passed; 0 failed; 0 ignored;",
+            f"test result: ok. 0 passed; 0 failed; {expected} ignored;",
+            f"test result: ok. {expected} passed; 0 failed; 0 ignored;",
             good.replace("pg18_case_0 ... ok", "pg18_case_0 ... FAILED"),
-            good.replace("18 passed; 0 failed", "17 passed; 1 failed"),
+            good.replace(f"{expected} passed; 0 failed", f"{expected - 1} passed; 1 failed"),
         ]:
             with self.subTest(false_green=false_green[-48:]):
                 with self.assertRaises(ValueError):

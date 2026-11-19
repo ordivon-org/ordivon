@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import tempfile
+import textwrap
 import sys
 import unittest
 from pathlib import Path
@@ -11,6 +15,42 @@ import ci_owner_shards
 
 
 class ShardQueueTests(unittest.TestCase):
+    def test_gateway_only_merge_queue_installs_security_native_opa(self) -> None:
+        # Test the actual workflow's Owner-toolroot selection code. The
+        # Gateway-only merge group must preinstall the Security-pinned OPA,
+        # without adding unrelated Owner tools to other shards.
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        prefix = """python3 - "$selected_roots" <<'PYOWNERS'"""
+        self.assertEqual(workflow.count(prefix), 1)
+        source = textwrap.dedent(
+            workflow.split(prefix + "\n", 1)[1].split("\n          PYOWNERS", 1)[0]
+        )
+        for selected, wanted in (
+            (["gateway:verify"], 1),
+            (["gateway:verify", "security:verify"], 1),
+            (["security:verify"], 1),
+            (["data:verify"], 0),
+            ([], 0),
+        ):
+            with self.subTest(selected=selected), tempfile.TemporaryDirectory() as td:
+                target = Path(td) / "toolroots.txt"
+                env = os.environ.copy()
+                env["OWNER_TASKS_JSON"] = json.dumps(selected)
+                observed = subprocess.run(
+                    [sys.executable, "-c", source, str(target)],
+                    cwd=root,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=12,
+                    check=False,
+                )
+                self.assertEqual(observed.returncode, 0, observed.stderr)
+                roots = target.read_text(encoding="utf-8").splitlines()
+                self.assertEqual(roots.count("platform/security"), wanted)
+                self.assertEqual(len(roots), len(set(roots)))
+
     def test_full_owner_closure_is_exactly_preserved(self) -> None:
         selected = [owner.queue_task for owner in affected_owners.OWNERS]
         result = ci_owner_shards.shard_queue(selected + ["formal:verify"])

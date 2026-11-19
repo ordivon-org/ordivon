@@ -36,9 +36,16 @@ def build_parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run")
     run.add_argument("contract", type=Path)
     _add_input_options(run)
+    _add_gateway_options(run)
     resume = commands.add_parser("resume")
     resume.add_argument("harness_run_id")
     _add_input_options(resume)
+    _add_gateway_options(resume)
+    gateway_profile = commands.add_parser(
+        "gateway-profile",
+        help="read current Gateway execution Tool surface and grant digests, without a Run",
+    )
+    _add_gateway_options(gateway_profile)
     commands.add_parser("store-init")
     commands.add_parser("store-doctor")
     store_inspect = commands.add_parser("store-inspect")
@@ -52,6 +59,18 @@ def build_parser() -> argparse.ArgumentParser:
 def _add_input_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--message", action="append", default=[])
     parser.add_argument("--messages-json", type=Path)
+
+
+def _add_gateway_options(parser: argparse.ArgumentParser) -> None:
+    # Compose the existing MCP/Gateway Bridge instead of a second
+    # transport, router, credential database, or Harness Journal.
+    parser.add_argument("--gateway-url")
+    parser.add_argument("--gateway-workspace-id")
+    parser.add_argument("--gateway-executable", action="append", default=[])
+    parser.add_argument("--gateway-env-variable", action="append", default=[])
+    parser.add_argument("--gateway-max-timeout-ms", type=int, default=300_000)
+    parser.add_argument("--gateway-context")
+    parser.add_argument("--gateway-bearer-token-file", type=Path)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

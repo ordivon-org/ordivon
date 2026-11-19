@@ -212,6 +212,65 @@ class PITResearchContract(unittest.TestCase):
                 evaluation_as_of=datetime.fromisoformat("2026-08-31T20:00:00+00:00"),
             )
 
+    def test_prequential_realized_return_rejects_mixed_price_basis(self):
+        from dataclasses import replace
+
+        sessions, original = self.fixture()
+        decision = {sessions[2]: datetime(2026, 9, 30, 22, tzinfo=UTC)}
+        kwargs = {
+            "assets": ("A", "B"),
+            "valuation_sessions": sessions,
+            "decision_instants": decision,
+            "evaluation_as_of": datetime(2026, 10, 30, 23, tzinfo=UTC),
+        }
+        # A common evaluation-as-of timestamp does NOT make adjusted and
+        # unadjusted prices economically comparable across the two endpoints.
+        baseline = prequential_energy_evaluation(records=original, **kwargs)
+        self.assertEqual(len(baseline), 1)
+        contaminated = [
+            replace(row, price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+            if row.asset == "A" and row.session == sessions[3] else row
+            for row in original
+        ]
+        with self.assertRaisesRegex(PointInTimeError, "incompatible price basis"):
+            prequential_energy_evaluation(records=contaminated, **kwargs)
+
+    def test_evaluation_basis_revision_is_not_turned_into_a_fake_ratio(self):
+        from dataclasses import replace
+
+        sessions, original = self.fixture()
+        frozen_a = next(
+            row for row in original if row.asset == "A" and row.session == sessions[2]
+        )
+        revised = [
+            replace(row, price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+            if row.asset == "A" and row.session == sessions[3] else row
+            for row in original
+        ]
+        revised.append(replace(
+            frozen_a,
+            published_at=datetime(2026, 10, 5, 21, tzinfo=UTC),
+            adjusted_close=50.0,
+            price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED",
+        ))
+        result = prequential_energy_evaluation(
+            records=revised, assets=("A", "B"), valuation_sessions=sessions,
+            decision_instants={sessions[2]: datetime(2026, 9, 30, 22, tzinfo=UTC)},
+            evaluation_as_of=datetime(2026, 10, 30, 23, tzinfo=UTC),
+        )
+        self.assertEqual(
+            result[0]["realized_price_basis"],
+            "EVALUATION_AS_OF_BOTH_ENDPOINTS_MATCHED_RAW_OR_MIXED_UNATTESTED",
+        )
+        evidence = result[0]["reference_revision_evidence"][0]
+        self.assertEqual(evidence["frozen_reference_price_basis"],
+                         "PROVIDER_ADJUSTED_CLOSE_UNATTESTED")
+        self.assertEqual(evidence["evaluation_reference_price_basis"],
+                         "RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+        self.assertEqual(evidence["evaluation_outcome_price_basis"],
+                         "RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+        self.assertIsNone(evidence["reference_revision_factor"])
+
     def test_json_evidence_separate_from_optimizer_input(self):
         sessions, rows = self.fixture()
         payload = {

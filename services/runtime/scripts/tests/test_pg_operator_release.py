@@ -38,6 +38,54 @@ def unprivileged():
         os.setuid(65534)
 
 
+class OperatorBinaryProfileGuards(unittest.TestCase):
+    def test_direct_entrypoints_reject_incomplete_native_profile_before_pg(self) -> None:
+        invalid = (
+            ["ordivon-runtime-pg"],
+            ["ordivon-runtime-runner"],
+            ["ordivon-runtime-pg", "ordivon-runtime-pg"],
+            ["ordivon-runtime-pg", "ordivon-runtime-runner", "ordivon-runtime-runner"],
+            ["ordivon-runtime-pg", "ordivon-runtime-runner", "/usr/bin/sh"],
+            [],
+            None,
+            "ordivon-runtime-pg",
+        )
+        for binaries in invalid:
+            with self.subTest(binaries=binaries):
+                args = Namespace(
+                    binaries=binaries,
+                    install_dir=Path("/var/tmp/no-real-release"),
+                    action="inspect",
+                )
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.expected_runner_path(args)
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.apply_release(args)
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.physical_preflight(args, {})
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.pg_mcp_readiness(args)
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.finalize_receipted_release(None, args, {})
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.verified_release_consumer(args, {})
+                with patch.object(op, "arguments", return_value=args), \
+                     patch.object(op, "pg_connection") as pg_connection:
+                    with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                        op.main()
+                    pg_connection.assert_not_called()
+
+    def test_direct_profile_accepts_both_required_native_consumers(self) -> None:
+        args = Namespace(
+            binaries=["ordivon-runtime-runner", "ordivon-runtime-pg"],
+            install_dir=Path("/var/tmp/no-real-release"),
+        )
+        self.assertEqual(
+            op.expected_runner_path(args),
+            args.install_dir / "ordivon-runtime-runner",
+        )
+
+
 class NativePgReleaseOperator(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -127,15 +175,45 @@ class NativePgReleaseOperator(unittest.TestCase):
         self.install.mkdir()
         (self.candidate/"ordivon-runtime-pg").write_bytes(b"new-pg-runtime")
         (self.install/"ordivon-runtime-pg").write_bytes(b"old-pg-runtime")
-        (self.candidate/"ordivon-runtime-pg").chmod(0o755)
-        (self.install/"ordivon-runtime-pg").chmod(0o755)
+        (self.candidate/"ordivon-runtime-runner").write_bytes(b"new-runner")
+        (self.install/"ordivon-runtime-runner").write_bytes(b"old-runner")
+        qualified_helper = self._testMethodName in {
+            "test_pg_reclaimer_helper_installs_with_native_pair_and_receipt",
+            "test_pg_reclaimer_helper_rolls_back_with_native_pair",
+            "test_pg_reclaimer_helper_candidate_digest_fails_before_dispatch",
+            "test_actual_systemd_pg_binary_replacement_and_http_mcp_readback",
+        }
+        if qualified_helper:
+            (self.candidate/"ordivon-runtime-pg-reclaim").write_bytes(
+                b"new-qualified-pg-reclaimer"
+            )
+            (self.install/"ordivon-runtime-pg-reclaim").write_bytes(
+                b"old-qualified-pg-reclaimer"
+            )
+        installed_names = ("ordivon-runtime-pg", "ordivon-runtime-runner")
+        if qualified_helper:
+            installed_names += ("ordivon-runtime-pg-reclaim",)
+        for name in installed_names:
+            (self.candidate/name).chmod(0o755)
+            (self.install/name).chmod(0o755)
         self.manifest=self.work/"candidate.json"
         self.env_file=self.work/"runtime.env"
         self.env_file.write_text("ORDIVON_PG_BIND=127.0.0.1:65500\n")
-        artifact=op.DEPLOY["artifact_description"](
-            self.candidate/"ordivon-runtime-pg",
-            {"name":"ordivon-runtime-pg","kind":"binary","mode":0o755}
-        )
+        artifacts=[
+            op.DEPLOY["artifact_description"](
+                self.candidate/name,
+                {"name":name,"kind":"binary","mode":0o755},
+            )
+            for name in ("ordivon-runtime-pg", "ordivon-runtime-runner")
+        ]
+        if qualified_helper:
+            artifacts.append(
+                op.DEPLOY["artifact_description"](
+                    self.candidate/"ordivon-runtime-pg-reclaim",
+                    {"name": "ordivon-runtime-pg-reclaim",
+                     "kind": "operator", "mode": 0o755},
+                )
+            )
         tool={"version":"test","resolvedPath":"/usr/bin/true",
               "digest":"sha256:"+"b"*64}
         candidate_json={
@@ -147,8 +225,8 @@ class NativePgReleaseOperator(unittest.TestCase):
             "candidateDir":str(self.candidate.resolve()),
             "builtAtMs":1234,
             "toolchain":{"cargo":tool,"rustc":tool,"host":"x86_64-unknown-linux-gnu"},
-            "artifacts":[artifact],
-            "binaries":[artifact],
+            "artifacts":artifacts,
+            "binaries":[item for item in artifacts if item["kind"] == "binary"],
         }
         self.manifest.write_text(json.dumps(candidate_json),encoding="utf-8")
         request_id="native-operator-"+uuid.uuid4().hex[:20]
@@ -169,12 +247,26 @@ class NativePgReleaseOperator(unittest.TestCase):
             service="ordivon-test-runtime.service",
             allowed_services=["ordivon-test-runtime.service"],
             required_tools=["runtime.describe","release.get"],
-            binaries=["ordivon-runtime-pg"],require_ref="HEAD",
+            binaries=["ordivon-runtime-pg","ordivon-runtime-runner"],
+            include_pg_reclaimer=qualified_helper,
+            require_ref="HEAD",
             drain_seconds=3.,wait_seconds=2.,
             lock_file=self.work/"operator.lock",
             systemctl=Path("/usr/bin/systemctl"),git=Path(binary("git")),
         )
         self.args.receipt_root.mkdir()
+        if self._testMethodName != (
+            "test_actual_systemd_pg_binary_replacement_and_http_mcp_readback"
+        ):
+            # Most unit tests substitute systemd mutations; only the dedicated
+            # native acceptance test exercises the *real* effective ExecStart.
+            service=patch.object(op,"qualified_service_executable_path",
+                                 return_value=self.install/"ordivon-runtime-pg")
+            service.start()
+            self.addCleanup(service.stop)
+            runner_binding=patch.object(op,"qualified_runner_binding")
+            runner_binding.start()
+            self.addCleanup(runner_binding.stop)
         # Production approval comes from privileged operator environment, not
         # caller-controlled CLI arguments. Test-scoped patch is fully restored.
         approved=patch.dict(os.environ, {
@@ -262,12 +354,195 @@ class NativePgReleaseOperator(unittest.TestCase):
         import shutil
         shutil.rmtree(self.work,ignore_errors=True)
 
+
+    def test_release_consumer_rejects_foreign_effect_and_inconclusive_mcp(self) -> None:
+        # The Operator does not infer terminal Standing from a physical
+        # receipt if the canonical authenticated release.get disagrees.
+        receipt=self.args.receipt_root/f"effect-{self.args.effect_id}"
+        receipt.mkdir()
+        op.DEPLOY["write_json_atomic"](receipt/"result.json",{
+            "schemaVersion":2,"status":"deployed",
+        })
+        terminal={"status":"deployed","pgTerminal":"succeeded"}
+        environment={
+            "ORDIVON_PG_BIND":"127.0.0.1:65500",
+            "ORDIVON_PG_TOKEN":"p"*32,
+        }
+        with patch.dict(op.DEPLOY,{"load_environment_file":lambda path:environment}),\
+             patch.object(op,"McpClient") as client:
+            client.return_value.call_tool.return_value={
+                "effectId":"foreign-or-unverified",
+            }
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.verified_release_consumer(self.args,terminal)
+            client.return_value.call_tool.side_effect=TimeoutError(
+                "injected canonical consumer outage"
+            )
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.verified_release_consumer(self.args,terminal)
+            self.assertEqual(client.return_value.call_tool.call_count,2)
+            self.assertEqual(
+                client.return_value.call_tool.call_args.args[0],"release.get"
+            )
+
+    def test_release_drain_does_not_hold_source_lock_while_waiting(self) -> None:
+        """Native PG proof: a terminal writer must progress during Release drain.
+
+        The active-job projection is simulated, but a second *real* PG session
+        must acquire the production source row lock to clear that condition.
+        Holding FOR UPDATE while waiting creates a self-inflicted timeout.
+        """
+        from threading import Event, Thread
+
+        cleared = Event()
+        started = Event()
+        worker_errors: list[str] = []
+        workers: list[Thread] = []
+        self.args.drain_seconds = 0.8
+
+        def terminal_writer() -> None:
+            try:
+                with op.pg_connection(self.dsn, "fresh") as other:
+                    with other.transaction():
+                        other.execute(
+                            "SELECT state FROM _stage_control WHERE id='source' FOR UPDATE"
+                        )
+                    cleared.set()
+            except Exception as error:
+                worker_errors.append(str(error))
+                cleared.set()
+
+        def observed_active(conn, release_job_id):
+            if not started.is_set():
+                started.set()
+                thread = Thread(target=terminal_writer, daemon=True)
+                workers.append(thread)
+                thread.start()
+            return [] if cleared.is_set() else ["agent-finishing-in-pg"]
+
+        try:
+            with patch.object(op, "active_executions", side_effect=observed_active), \
+                 patch.object(op, "pg_mcp_readiness", return_value={
+                     "toolCount": 20,
+                     "toolCatalogDigest": "sha256:" + "f" * 64,
+                 }), patch.dict(op.DEPLOY, {"run": lambda _args: None}), \
+                 patch.object(op, "verified_release_consumer"):
+                outcome = op.apply_release(self.args)
+            self.assertEqual(outcome["status"], "deployed")
+            self.assertTrue(cleared.is_set(), "PG terminal writer must progress during drain")
+            self.assertFalse(worker_errors, worker_errors)
+        finally:
+            for thread in workers:
+                thread.join(timeout=3)
+
+    def test_pg_reclaimer_helper_installs_with_native_pair_and_receipt(self) -> None:
+        """The same PG ReleaseEffect must own every installed consumer byte."""
+        self.args.include_pg_reclaimer = True
+        calls = []
+        with patch.object(op, "pg_mcp_readiness", return_value={
+            "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+        }), patch.dict(op.DEPLOY, {"run": lambda command: calls.append(tuple(command))}), (
+            patch.object(op, "verified_release_consumer")
+        ):
+            result = op.apply_release(self.args)
+            self.assertEqual(result["status"], "deployed")
+            self.assertEqual(result["pgTerminal"], "succeeded")
+            self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                             b"new-qualified-pg-reclaimer")
+            self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(),
+                             b"new-pg-runtime")
+            self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(),
+                             b"new-runner")
+            self.assertEqual(len(calls), 2)
+            receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+            previous = json.loads((receipt / "manifest.json").read_text())
+            self.assertEqual(
+                {record["name"] for record in previous["previous"]},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            self.assertEqual((receipt / "previous" /
+                              "ordivon-runtime-pg-reclaim").read_bytes(),
+                             b"old-qualified-pg-reclaimer")
+            self.assertEqual(
+                {record["name"] for record in result["installed"]},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            replay = op.apply_release(self.args)
+            self.assertTrue(replay["replayed"])
+            self.assertEqual(len(calls), 2, "receipt replay must not reinstall helper")
+
+    def test_pg_reclaimer_helper_rolls_back_with_native_pair(self) -> None:
+        """Systemd start failure must roll back the helper, not just binaries."""
+        self.args.include_pg_reclaimer = True
+        calls = []
+
+        def failed_start(command):
+            calls.append(tuple(command))
+            if command[-2:] == ["start", self.args.service]:
+                raise RuntimeError("injected start failure")
+
+        def restore(previous, install_dir, records, systemctl, service, env_file, wait_seconds):
+            self.assertEqual(
+                {item["name"] for item in records},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            for item in records:
+                op.DEPLOY["atomic_copy"](
+                    previous / item["name"], install_dir / item["name"],
+                    mode=item["mode"],
+                )
+            return {"serviceActive": True, "probe": {"recovered": True}}
+
+        with patch.dict(op.DEPLOY, {
+            "run": failed_start,
+            "restore_previous": restore,
+        }):
+            with self.assertRaisesRegex(RuntimeError, "rolled_back"):
+                op.apply_release(self.args)
+        self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                         b"old-qualified-pg-reclaimer")
+        self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(),
+                         b"old-pg-runtime")
+        self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(),
+                         b"old-runner")
+        self.assertEqual(len(calls), 2)
+        receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+        result = json.loads((receipt / "result.json").read_text())
+        self.assertEqual(result["status"], "rolled_back")
+        self.assertEqual(
+            self.db.execute("SELECT resolution FROM jobs WHERE job_id=%s",
+                            (self.job_id,)).fetchone()["resolution"], "failed",
+        )
+
+    def test_pg_reclaimer_helper_candidate_digest_fails_before_dispatch(self) -> None:
+        """A changed helper cannot borrow an older two-binary ReleaseEffect."""
+        self.args.include_pg_reclaimer = True
+        (self.candidate / "ordivon-runtime-pg-reclaim").write_bytes(
+            b"candidate-changed-after-manifest"
+        )
+        with self.assertRaisesRegex(RuntimeError, "release artifact"):
+            op.apply_release(self.args)
+        self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                         b"old-qualified-pg-reclaimer")
+        self.assertFalse((self.args.receipt_root /
+                          f"effect-{self.args.effect_id}").exists())
+        self.assertEqual(
+            self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s", (self.job_id, op.DISPATCH_EVENT),
+            ).fetchone()["n"], 0,
+        )
+
     def test_release_exactly_once_and_terminal_receipt(self) -> None:
         def run(args):
             self.calls.append(tuple(args))
         with patch.object(op,"pg_mcp_readiness",return_value={
             "toolCount":20,"toolCatalogDigest":"sha256:"+"f"*64,
-        }),patch.dict(op.DEPLOY, {"run":run}):
+        }),patch.dict(op.DEPLOY, {"run":run}),\
+             patch.object(op,"verified_release_consumer") as consumer:
             result=op.apply_release(self.args)
             self.assertEqual(result["status"],"deployed")
             self.assertEqual(result["pgTerminal"],"succeeded")
@@ -278,6 +553,15 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(replay["pgTerminal"],"succeeded")
             self.assertEqual(len(self.calls),2,
                              "exact release replay cannot invoke systemd again")
+            # Even after a real terminal PG receipt, a forged partial native
+            # profile must not bypass Runner qualification on replay.
+            partial = Namespace(**vars(self.args))
+            partial.binaries = ["ordivon-runtime-pg"]
+            with patch.object(op, "pg_connection") as connect:
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.apply_release(partial)
+                connect.assert_not_called()
+            self.assertEqual(len(self.calls),2, "rejected replay must not touch systemd")
             # Do not requalify the physical effect just to replay its exact
             # previously terminal admission after operator revocation.
             self.db.execute(
@@ -287,6 +571,7 @@ class NativePgReleaseOperator(unittest.TestCase):
                 revoked_replay=op.apply_release(self.args)
                 self.assertTrue(revoked_replay["replayed"])
                 self.assertEqual(len(self.calls),2)
+                self.assertEqual(consumer.call_count,3)
             finally:
                 self.db.execute(
                     "UPDATE _stage_control SET promotion_allowed=true WHERE id='release'"
@@ -436,12 +721,28 @@ class NativePgReleaseOperator(unittest.TestCase):
         original.chmod(0o755)
         copy2(pg_binary,self.candidate/"ordivon-runtime-pg")
         (self.candidate/"ordivon-runtime-pg").chmod(0o755)
+        copy2(runner,self.candidate/"ordivon-runtime-runner")
+        copy2(runner,self.install/"ordivon-runtime-runner")
+        for path in (self.candidate/"ordivon-runtime-runner",
+                     self.install/"ordivon-runtime-runner"):
+            path.chmod(0o755)
+        self.args.binaries=["ordivon-runtime-pg","ordivon-runtime-runner"]
         obj=json.loads(self.manifest.read_text())
-        obj["artifacts"]=[op.DEPLOY["artifact_description"](
-            self.candidate/"ordivon-runtime-pg",
-            {"name":"ordivon-runtime-pg","kind":"binary","mode":0o755},
-        )]
-        obj["binaries"]=obj["artifacts"]
+        obj["artifacts"]=[
+            op.DEPLOY["artifact_description"](
+                self.candidate/name,
+                {"name":name,"kind":"binary","mode":0o755},
+            ) for name in self.args.binaries
+        ]
+        if self.args.include_pg_reclaimer:
+            obj["artifacts"].append(
+                op.DEPLOY["artifact_description"](
+                    self.candidate/"ordivon-runtime-pg-reclaim",
+                    {"name":"ordivon-runtime-pg-reclaim","kind":"operator","mode":0o755},
+                )
+            )
+        obj["binaries"]=[item for item in obj["artifacts"]
+                         if item["kind"]=="binary"]
         self.manifest.write_text(json.dumps(obj),encoding="utf-8")
         fresh_manifest=op.DEPLOY["sha256"](self.manifest)
         self.args.candidate_manifest_digest=fresh_manifest
@@ -494,7 +795,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             "ORDIVON_PG_SCHEMA=fresh\n"
             f"ORDIVON_PG_SOURCE_SHA256={self.source_sha}\n"
             f"ORDIVON_PG_STORE_ROOT={self.work/'pg-store'}\n"
-            f"ORDIVON_PG_RUNNER={runner}\n"
+            f"ORDIVON_PG_RUNNER={self.install/'ordivon-runtime-runner'}\n"
             'ORDIVON_PG_EXECUTABLE_ROOTS_JSON=["/usr/bin","/bin"]\n'
             f"ORDIVON_PG_BIND={bind}\n"
             f"ORDIVON_PG_TOKEN={'p'*32}\n"
@@ -513,14 +814,109 @@ class NativePgReleaseOperator(unittest.TestCase):
         try:
             subprocess.run([systemctl,"daemon-reload"],check=True,capture_output=True)
             subprocess.run([systemctl,"start",service],check=True,capture_output=True)
+            # Real consumer misbinding: the unit can execute a totally
+            # different ELF while the operator installs a candidate into
+            # installDir, and the MCP tool catalog remains identical.
+            shadow=self.work/"shadow-active-ordivon-runtime-pg"
+            copy2(pg_binary,shadow)
+            with shadow.open("ab") as stream:
+                stream.write(b"\nshadow-distinct-active-binary-20261111\n")
+            shadow.chmod(0o755)
+            self.assertNotEqual(op.DEPLOY["sha256"](shadow),
+                                op.DEPLOY["sha256"](self.candidate/"ordivon-runtime-pg"))
+            def switch_unit(path, runner_override=None):
+                subprocess.run([systemctl,"stop",service],check=True,capture_output=True)
+                extra=(f"EnvironmentFile={runner_override}\n"
+                       if runner_override is not None else "")
+                unit.write_text(
+                    "[Unit]\nDescription=Ordivon temporary PG Release acceptance\n"
+                    "[Service]\nType=simple\n"
+                    f"EnvironmentFile={self.env_file}\n"
+                    + extra
+                    + f"ExecStart={path}\n"
+                    "Restart=no\nKillMode=control-group\n",encoding="utf-8",
+                )
+                subprocess.run([systemctl,"daemon-reload"],check=True,capture_output=True)
+                subprocess.run([systemctl,"start",service],check=True,capture_output=True)
+            switch_unit(shadow)
+            shadow_catalog=op.DEPLOY["probe_catalog"](
+                f"http://{bind}/mcp","p"*32,
+                client_name="independent-shadow-process-probe",
+                expected_tool_count=20,
+                required_tools=("runtime.describe","release.get"),
+                wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
+            )
+            self.assertEqual(shadow_catalog["toolCount"],20,
+                             "unrelated executable also offers a healthy MCP catalog")
+            with self.assertRaisesRegex(RuntimeError,"PG release preflight rejected"):
+                op.apply_release(self.args)
+            count=self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s",(self.job_id,op.DISPATCH_EVENT),
+            ).fetchone()["n"]
+            self.assertEqual(count,0,"mismatched systemd binary cannot dispatch a ReleaseEffect")
+            self.assertEqual(original.read_bytes()[:2],b"#!",
+                             "mismatched unit must not install candidate")
+            # The operator's base envFile says the correct installed Runner,
+            # but a *later* systemd EnvironmentFile can silently override it.
+            # This is the second production-relevant consumer binding.
+            runner_shadow=self.work/"shadow-runner-binary"
+            copy2(runner,runner_shadow)
+            with runner_shadow.open("ab") as stream:
+                stream.write(b"\nshadow-distinct-runner-digest-20261111\n")
+            runner_shadow.chmod(0o755)
+            self.assertNotEqual(op.DEPLOY["sha256"](runner_shadow),
+                                op.DEPLOY["sha256"](self.candidate/"ordivon-runtime-runner"))
+            runner_override=self.work/"shadow-runner.env"
+            runner_override.write_text(
+                f"ORDIVON_PG_RUNNER={runner_shadow}\n",encoding="utf-8",
+            )
+            switch_unit(original,runner_override=runner_override)
+            self.assertEqual(
+                op.effective_systemd_runner_binding(self.args),str(runner_shadow),
+                "late systemd EnvironmentFile must supersede base Runner path",
+            )
+            with self.assertRaisesRegex(RuntimeError,"PG release preflight rejected"):
+                op.apply_release(self.args)
+            count=self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s",(self.job_id,op.DISPATCH_EVENT),
+            ).fetchone()["n"]
+            self.assertEqual(count,0,"effective Runner mismatch cannot dispatch")
+            switch_unit(original)
             observed=op.apply_release(self.args)
             self.assertEqual(observed["status"],"deployed")
             self.assertEqual(observed["pgTerminal"],"succeeded")
             self.assertEqual(original.read_bytes(),pg_binary.read_bytes())
+            self.assertEqual(
+                (self.install/"ordivon-runtime-pg-reclaim").read_bytes(),
+                (self.candidate/"ordivon-runtime-pg-reclaim").read_bytes(),
+            )
+            self.assertIn(
+                "ordivon-runtime-pg-reclaim",
+                {entry["name"] for entry in observed["installed"]},
+            )
             self.assertEqual(observed["probe"]["toolCount"],20)
+            active=observed["probe"]["activeRuntimeImage"]
+            self.assertEqual(active["path"],str(original))
+            self.assertEqual(active["digest"],op.DEPLOY["sha256"](original))
+            self.assertGreater(active["mainPid"],1)
+            self.assertEqual(active["runnerWitness"],"authenticated_runtime_describe")
+            self.assertEqual(active["runnerDigest"],
+                             op.DEPLOY["sha256"](self.install/"ordivon-runtime-runner"))
             replay=op.apply_release(self.args)
             self.assertTrue(replay["replayed"])
             self.assertEqual(replay["pgTerminal"],"succeeded")
+            # A historical positive receipt cannot legitimize a new caller
+            # bypassing the complete two-binary profile. Fail before PG/OS.
+            partial=Namespace(**vars(self.args))
+            partial.binaries=["ordivon-runtime-pg"]
+            current_pid=op.systemd_property(self.args,"MainPID")
+            with patch.object(op,"pg_connection") as connect:
+                with self.assertRaisesRegex(RuntimeError,"complete native PG and Runner"):
+                    op.apply_release(partial)
+                connect.assert_not_called()
+            self.assertEqual(op.systemd_property(self.args,"MainPID"),current_pid)
             # The PG binary remains the live MCP client target, unlike mocked
             # readiness. Query from a fresh independent transport session.
             from mcp_probe import McpClient
@@ -537,6 +933,61 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed_release["deployedToolCount"],20)
             self.assertEqual(observed_release["semanticCompletionEvaluated"],False)
             self.assertEqual(observed_release["commit"],self.args.commit)
+            # After a valid deployment, drift only the effective systemd
+            # ExecStart. A release replay MUST NOT turn a matching MCP catalog
+            # and disk copy into proof that a different process was installed.
+            switch_unit(shadow)
+            shadow_catalog=op.DEPLOY["probe_catalog"](
+                f"http://{bind}/mcp","p"*32,
+                client_name="replay-shadow-process-probe",
+                expected_tool_count=20,
+                required_tools=("runtime.describe","release.get"),
+                wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
+            )
+            self.assertEqual(shadow_catalog["toolCount"],20)
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            # MainPID now executes the *correct* installed ELF but a fresh
+            # systemd restart points only the Runner at an external binary.
+            switch_unit(original,runner_override=runner_override)
+            self.assertEqual(
+                op.effective_systemd_runner_binding(self.args),str(runner_shadow),
+            )
+            # The systemd start command is a submission, not an HTTP-ready
+            # witness. Wait for the independent modern MCP catalog before
+            # reading the restarted native Rust execution provider.
+            runner_catalog=op.DEPLOY["probe_catalog"](
+                f"http://{bind}/mcp","p"*32,
+                client_name="independent-runner-drift-process-probe",
+                expected_tool_count=20,
+                required_tools=("runtime.describe","release.get"),
+                wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
+            )
+            self.assertEqual(runner_catalog["toolCount"],20)
+            # Read the *actual* Runner provider, not a manifest declaration.
+            live_provider=client.call_tool("runtime.describe",{"schemaVersion":1})
+            self.assertEqual(
+                live_provider["targets"][0]["executionProvider"]["executableDigest"],
+                op.DEPLOY["sha256"](runner_shadow),
+            )
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            switch_unit(original)
+            # Physical release is immutable, but terminal event standing is
+            # independently qualified by the canonical Rust release.get.
+            # Tamper ONLY with this disposable PG test schema.
+            deleted=self.db.execute(
+                "DELETE FROM job_events WHERE job_id=%s AND event_type='JOB_TERMINAL'",
+                (self.job_id,),
+            ).rowcount
+            self.assertEqual(deleted,1)
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            count=self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s",(self.job_id,op.DISPATCH_EVENT),
+            ).fetchone()["n"]
+            self.assertEqual(count,1,"terminal readback failure cannot dispatch again")
         finally:
             subprocess.run([systemctl,"stop",service],capture_output=True)
             unit.unlink(missing_ok=True)

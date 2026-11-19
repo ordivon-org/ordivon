@@ -1,7 +1,7 @@
 # Finance Contractual Execution — R1 specification and implementation plan
 
-Status: IMPLEMENTATION SPEC / scoped source-contract adoption, not a deployed acceptance service.
-Baseline: Ordivon Git `3b43977e682d8c7668f6371ffd998c7821e4312a` (2026-11-09). Currentness must be checked when each ticket starts.
+Status: R2.1 reviewed execution SPEC / scoped source-contract adoption, not a deployed acceptance service.
+Source history: R1 authored at `3b43977e682d8c7668f6371ffd998c7821e4312a`; R2.1 independent review of merged main `8346863be965da34371944679d063fd9fd0358ac` (2026-11-10). Every implementation/claim requires a fresh exact SourceCut.
 Natural responsibility: Finance owns economic meaning; Composition owns task-local obligation compilation; Harness owns Run continuity; Runtime owns physical effects; Artifact owns evidence carriers; Host owns Work collaboration. No new orchestration, verifier registry, agent database or domain completion authority.
 
 ## 1. Problem statement
@@ -43,17 +43,17 @@ The existing R2.1 representation is binding: `ell=(I,O,S,pre,post,inv,eff,c,epsi
 
 ### F01. Finance task acceptance seam (composition of existing responsibilities)
 
-- `I`: task-local immutable objective/source identity, live Finance consumer identity, actual consumer input, existing required gate obligations and verifier-owned evidence.
-- `O`: domain-owned outcome/evidence or precise pending obligation; Composition produces only mechanical-gate projection.
-- `S`: immutable SourceCut plus existing Work/Run/Job/Artifact/Accounting projections, not a new state machine.
+- `I`: `(SourceCut, FinanceObjective, NativeConsumerInput, RequiredGateBindings, EvidenceRefs)`; SourceCut is an exact Git commit; FinanceObjective is a goal/financial-constraint record bound by an existing Owner; ConsumerInput uses the existing Finance CLI schema, not a new task protocol.
+- `O`: `FinanceNativeOutput | ScopedPendingObligation`; in the current read-only slice, FinanceNativeOutput is the exact existing allocation or research assessment object and `ScopedPendingObligation` is UNKNOWN with the affected claim and outstanding evidence. Composition only projects gates.
+- `S`: `SourceCut × existing(Work, Run, Job, Artifact, Accounting)` with no invented mutable TaskState; caller and currentness semantics come from their natural Owners.
 - `pre`: actual consumer is named, required gate binding has exact source identity, correct Owner and support scope; execution eligibility is established at the effect owner.
 - `post`: when a domain outcome is accepted, the claimed consumer predicates have independent current evidence; no other output is silently elevated.
 - `inv`: `DOMAIN_ACCEPTED => consumer_evidence_current && required_domain_predicates_met`; `COMPOSITION_GATES_SATISFIED != DOMAIN_ACCEPTED`; `RESEARCH_ONLY => !externalWriteAllowed`; external contribution != investment profit.
 - `eff`: existing task/Source/Work/Run/Artifact effects; Finance research is read-only, Paper writes dedicated simulated PostgreSQL only; no Live effects from this spec.
-- `c`: native current consumer and verifier costs; `UNKNOWN(scope=general task complexity, obligation=measure at the real workload)`.
-- `epsilon`: exact integer-cent allocations for the bounded contribution consumer; financial price/authenticity and quantitative forecast uncertainty remain explicitly `UNKNOWN`.
-- `prov`: exact Git source and tool revisions, input/evidence identities, native consumer output and verifier scopes.
-- `unfold`: goal → actual consumer → existing task-local Circuit → obligation → native verifier → scoped projection → domain acceptance under Finance owner.
+- `c`: typed `ExecutionCost<DurationSeconds>` for elapsed task/consumer work; `UNKNOWN(reason=no current comparable wall-clock observation, scope=Finance R2.1 cross-owner program, obligation=measure native Owner Job start/finish instants when cost changes the decision)`. CPU seconds, token counts, or monetary spending require separately typed cost coordinates and cannot be silently substituted for wall-clock seconds.
+- `epsilon`: typed `ConservationResidual<USDMinorUnit>` equals exactly `0` for the admitted contribution-only integer-money identity, with cent apportionment kept separate from the conservation residual; `ForecastCalibrationError<scoped metric>` remains `UNKNOWN(reason=no independent external/provider uncertainty calibration, scope=market authenticity and prospective strategy performance, obligation=obtain owner-qualified data and out-of-sample evidence)`. Exact money types do not imply accurate forecasts.
+- `prov`: SourceCut plus exact CLI/transitive-import/readset qualification, input/evidence identities, native consumer output and verifier scopes; a single implementation-file SHA is a test-local fingerprint, not complete executed-source closure.
+- `unfold`: typed domain goal `φ` → actual Finance consumer → task-local Circuit → obligation and owner-native verifier `ψ` → scoped projection → explicit `ψ ⇒ φ` bridge where justified → Finance-owned domain acceptance; absent bridge means UNKNOWN, not an empty proof.
 
 ### Safety / progress properties
 
@@ -71,7 +71,7 @@ A mere report is a valid artifact only when the task itself requests a report. A
 2. **Finance read-only exemplar**: use existing `strategic_contribution` executable as a real output, not an invented portfolio manager. Verify independently observable asset/cash conservation, reserve preservation, no sell, no authority and accurate caller-supplied-data standing.
 3. **Research exemplar**: use `finance_lego freeze-experiment/assess-holdout`, bind versioned experiment identity, preserve missing holdout as UNKNOWN.
 4. **Paper exemplar**: use the existing PG Paper close/readback and Risk consumers against disposable PG and admitted snapshot evidence. No production DB or broker effect.
-5. **Retirement exemplar**: select one truly unconsumed legacy chain by actual consumer scan and native replay/acceptance, then delete scripts, tests, configuration, and stale docs together; do not delete merely because a file is old.
+5. **Retirement decision exemplar**: choose a precisely named historical candidate, inspect its actual consumers and retained proof obligations, and decide KEEP or RETIRE on source-current evidence. Delete obsolete scripts, tests, configuration and stale docs together **only when RETIRE and necessary migrations are proven**; do not impose deletion as a quota or infer lack of use from age.
 6. **Trusted completion**: an Agent/Harness proposal is never a Finance domain verdict. For high-consequence changes the acceptance source cannot be downgraded by the same unreviewed candidate diff.
 
 ## 7. Testing decisions and release gates
@@ -84,21 +84,23 @@ A mere report is a valid artifact only when the task itself requests a report. A
 - Completion: implementation, fresh native test, cross-owner integration, and review against BOTH the spec and source standards. Record SOURCE / MERGED / INSTALLED / CONSUMED separately.
 - No weak-model trials or artificial model-performance benchmarks.
 
-## 8. Tickets — tracer bullet dependency graph
+## 8. Tickets — tracer bullet dependency graph (reviewed R2.1)
 
-**T01 — Bind Spec and real consumer (no blockers).** Publish this spec. Reuse the already existing Finance-native `test_strategic_contribution.py` without duplicating its optimizer tests. Add a cross-Owner test-only Composition consumer of the actual Finance CLI: exact read-only output invariants, non-vacuous negative controls, and no domain-acceptance promotion. Do not introduce a production Finance verifier service.
+**T01 — Portfolio source consumer and exact money types.** Status: R1 source/Composition CLI consumer MERGED by PR #1984; R2.1 independent review found float-equal money false-green, now the current real correction. **No blocker.** Deliver: accepted exact integer-cent, read-only allocations and rejected float/extra-permission counterexamples through the same native CLI/test.
 
-**T02 — Research frozen-outcome consumer (blocked by T01).** Connect the existing Finance freeze/assess CLI to its real artifact/consumer checks. Missing prospective evidence remains UNKNOWN; false capital authorization cannot pass. No alternate Research CLI.
+**T02 — Research frozen-outcome and unknown evidence.** Status: existing 353-line cross-Owner source consumer already MERGED in `2b265d63607b`; do not recreate CLI, gate model or Research evaluator. **No blocker for the narrowly scoped witness correction.** Deliver: missing holdout causes protocol integrity SATISFIED with economic validity UNKNOWN; a forged different standing or reasons cannot satisfy the same scoped protocol check; no capital/trade authority.
 
-**T03 — Cross-owner verification binding (blocked by T01 and T02).** Advance the T01 test-only source consumer into an owner-native, source-current verifier result if a real Finance consumer needs it. Bind it to the existing Composition Gate and Verification Obligation identities; keep `domainAcceptanceEstablished=false` in Composition while Finance owns the real economic verdict. Test stale cuts, mismatched owners, unknown gates and correct positive result. Do not treat T01 test fixtures as authenticated verifier ownership.
+**T03 — Source-current external verifier bridge, only if required.** **Blocked by an evidenced Finance consumer requesting one**, not automatically by T01/T02. A verified `NOT_NEEDED` disposition is admissible when existing Finance owner tests and a native consumer already suffice. If needed, select the exact source-current verifier, operation and real issuer; separate code/model/installed claims. No test-local self-attestation as final authority.
 
-**T04 — Conditional progress and blocker contract (blocked by T03).** At the existing caller/Work consumer, make meaningful progress or qualified blockers inspectable without adding a second Work state machine. A missing optional proof must not block unrelated read-only work; external unknown effects must still be reconciled. Do not assert an unproven liveness theorem.
+**T04 — Conditional Work progress, only at a selected real caller.** **No T03 dependency unless it actually consumes T03 output.** Existing Host/Harness/Outcome Contract work may already own it. Reuse or declare `ALREADY_CONSUMED/NOT_NEEDED` before writing another Work state machine. A real runnable action produces consumer progress, valid no-change or evidence-qualified blocker—not merely narrative.
 
-**T05 — Delete one historical tool island (blocked by T01).** Consumer-rooted delete of an old Finance/LEAN/FIX/Nautilus qualification chain after migrating its actual live consumers. Verify source and CI remain green; deletion is the delivered effect, not a plan.
+**T05 — Consumer-rooted historical tool disposition.** **No fixed deletion quota.** May run independently after the current owner/source census. For one exact historical candidate, compare live consumer closure, retained differential-proof role, mature alternative and cost. If obsolete: migrate necessary retained evidence and actually delete old chain, validate native consumers. If still needed: document the exact KEEP obligation; never delete necessary Wave-A/LEAN/Nautilus tools merely by age.
 
-**T06 — Paper end-to-end ownership (blocked by T02 and T03).** Freeze data → Portfolio decision → Risk → dedicated PG Paper write → Accounting readback → economic comparison. Keep provider/rights and financial live effects UNKNOWN unless separately admitted.
+**T06 — Paper economic close and accounting readback.** **No T03 dependency unless an actual Paper consumer needs that bridge.** Finance Research/Markets evidence qualified for scope → Portfolio/Risk decision → dedicated disposable PostgreSQL Paper close → Accounting readback → economic comparison on cash-flow-matched baseline. Owner-native Paper tests and SQL observation define the acceptance; no Live trading.
 
-**T07 — Integrate and retire scaffolding (blocked by T03–T06).** Two-axis code review, root/Owner CI, merge-queue acceptance, remove superseded docs/config/tests, avoid parallel verifier or action framework, inspect actual consumer output. Success is source+CI convergence; installed external behavior requires separate evidence.
+**T07 — Scoped integration and retirement.** **Blocked only by the in-scope, evidenced changes being submitted, never by speculative T03/T04/T05.** Perform Matt Standards+Spec review, Superpowers fresh verifier readback, ECC native CI, GitHub merge queue. Preserve SourceCut, branch, merged, installed, and consumed standings separately; retire obsolete scaffolding only after real consumer migration.
+
+Keep the ready frontier small and outcome-based. A task may close as `NOT_NEEDED` only on an independent negative-need witness, not because its implementer prefers no work. Do not create seven phantom Host Works for a single source change.
 
 ## 9. Implementation sequence — Superpowers-style per-ticket execution
 
@@ -118,7 +120,7 @@ A1. Current Finance consumer produces a reproducible, independently checked outp
 A2. Missing evidence, stale binding, fake broker authority and completion-by-report cannot be counted as the intended consumer result.
 A3. Required Composition obligations bind to actual verifier owners without granting financial effect authority.
 A4. Finance Paper/native Accounting reality can be read back and economically compared; all live capabilities remain separate.
-A5. At least one obsolete historical implementation chain is physically retired with no broken live consumers.
+A5. At least one precisely named historical tool receives a current consumer-rooted KEEP/RETIRE decision; if RETIRE is proven, delete its implementation and migration scaffolding and show native consumers remain valid. No arbitrary deletion quota.
 A6. Source change, owner verifier, GitHub merge acceptance and installed truth are reported separately.
 A7. No duplicate global Agent workflow, orphan registry or copied skills are introduced.
 
@@ -165,6 +167,27 @@ A declared tuple is not a checked mathematical proof.
 Application: Portfolio's conservation proof does not establish Broker fill,
 Accounting reconciliation, or investment utility; compose only at the
 Finance-native owner boundaries with an explicit support scope.
+
+#### Substitutability rule at the same behavior universe
+
+For saturated assume–guarantee trace contracts `C_old=(A_old, Ĝ_old)`
+and `C_new=(A_new, Ĝ_new)` with the same interface and observational
+universe, safe **replacement** requires `A_old ⊆ A_new` (the new
+component admits *at least* every previously allowed environment)
+and `Ĝ_new ⊆ Ĝ_old` (its saturated guarantees are at least as strong).
+This condition also assumes compatible effects, timing, units,
+provenance and authorized consumers. Under a different trace universe,
+supply an explicit refinement/abstraction relation; set inclusion alone
+is meaningless.
+
+**Concrete failure:** old contribution-only Portfolio accepts a zero
+contribution and returns unchanged holdings. A proposed replacement
+rejecting zero contributions has a *stronger precondition*; even if it
+conserves money perfectly for positive contributions, it is not
+substitutable for the admitted old inputs. Do not mistake passing
+positive-only tests for a refinement theorem. Source:
+`recursive-lego-calculus/references/formal-model.md` and Benveniste
+et al., *Contracts for System Design*.
 
 ### T12.3 Representation and verification refinement — protect the original goal
 
@@ -257,6 +280,27 @@ reconciled separately.
   verification questions and measurements. Avoid 'number of tests',
   'number of policies' and 'no-effect rate' as optimization targets.
 
+#### Organizational control and economics: avoid optimized paperwork
+
+Model the Finance mandate as `M=(G,T,F,L,U,C,A)`: economic goals,
+time horizon, cash flows, liabilities, utility, binding constraints,
+and capital authorization. Human/Principal owns the mandate and
+irreducible preferences; natural Finance owners choose internal
+research methods and algorithms. In principal–agent terms, align
+delegated action with verifiable output and explicit residual risk,
+rather than making the principal approve each optimizer decision.
+
+Follow Basili's Goal→Question→Metric discipline: 'did the requested
+capital/Paper consumer change correctly?' is the goal;
+'which authorized source, account and benchmark demonstrate it?'
+is the question; numerical residuals and native receipts are metrics.
+A count of passed tests, blocked actions, files deleted or policies
+added is not the economic objective. In feedback-control terms,
+identify the observation source and delay before acting; do not
+assume a stiffer policy improves control. This reuses existing
+`systems-engineering`, `feedback-control` and `stpa` method
+LEGOs only for decision-changing ambiguities.
+
 ### T12.8 Decision-method selection (existing thinking LEGOs)
 
 | Real problem | Activate existing method | Derived decision artifact | Native consumer |
@@ -307,9 +351,9 @@ forward window is invented by this spec.
 | T02 research | existing freeze and assess CLI produces frozen plan and scoped UNKNOWN/REVIEW_REQUIRED evidence | absent holdout must keep economic gate open, self-declared independent replication must not certify investment edge, extra authority rejected | Finance Research CLI + Composition gate consumer |
 | T03 binding | exact manifest/obligation/source/binding and real verifier-owner result | stale/mismatched owner/scope/digest fails; no fake Owner truth | Composition R1 native tests, scoped domain verifier |
 | T04 progress | actual Work/caller sees verifiable output or qualified blocker | pure inaction/report under executable change cannot be 'done'; uncertain external effect never retried blindly | existing Host/Harness/Runtime native state |
-| T05 retirement | old unconsumed tool and linked historical scaffolding physically removed | current native CLI and CI unaffected, proof assumptions not fabricated | Capital, affected Owner closure and Git |
+| T05 retirement | exact consumer-rooted KEEP or actual RETIRE for a named candidate | no deletion on stale/incomplete liveness, no self-consumer retention theater; consumer acceptance after real deletion | Capital, affected Owner closure and Git |
 | T06 Paper | frozen research -> policy/risk -> PG Paper ledger -> readback and economic comparison | duplicate effects, unbalanced money, missing market/booking provenance | Capital Paper EOD and Accounting |
-| T07 integration | latest Git/CI merge queue accepted | check changes in trust source; regression, stale source, fake installed truth | root CI / CodeQL / merge queue |
+| T07 integration | actual in-scope source change accepted by GitHub/Owner CI | speculative bridge/deletion not added as merge prerequisite; no false installed/production claims | root CI / CodeQL / merge queue |
 
 A checker changing alongside its implementation cannot self-declare that its
 acceptance semantics were preserved. Existing repository owner-boundary and
@@ -330,16 +374,16 @@ test run made before the current SourceCut cannot be reused as current proof.
 `mise`/pytest/Ruff/formal checker and GitHub CI, not by copied
 Claude-specific hooks or a blanket coverage percentage.
 
-T02 exact implementation site:
-`packages/composition/tests/test_finance_research_frozen_consumer.py`;
-real CLI at `domains/capital/scripts/finance_lego.py`; Finance source
-`domains/capital/src/ordivon_capital/research/experiment_protocol.py`.
-Record those exact test-only consumer paths using the existing
-`TEST_ONLY_SOURCE_CONTRACT` `selection_scope=PATH` mechanism (no owner-wide
-coupling). A frozen plan with a missing holdout must yield a SATISFIED
-*read-only protocol integrity* gate but an UNKNOWN *economic prospective
-validity* gate, so whole-circuit mechanical closure remains OPEN. Both
-claims remain separate from Domain Acceptance.
+T02 is **already implemented** by merged `2b265d63607b` at
+`packages/composition/tests/test_finance_research_frozen_consumer.py`,
+using the real `domains/capital/scripts/finance_lego.py` and
+`research/experiment_protocol.py`; matching
+`TEST_ONLY_SOURCE_CONTRACT selection_scope=PATH` edges already exist.
+The remaining evidenced gap is witness precision: a missing holdout's
+assessment must explicitly be `UNKNOWN / [NO_HOLDOUT_EVIDENCE]`,
+not an arbitrary `REVIEW_REQUIRED` or reasonless declaration. The
+economic validity gate remains UNKNOWN even with complete self-declared
+research evidence; it never grants domain or broker authority.
 
 T03 implements a real source-current verifier/result bridge only when
 the Finance owner exposes one; do not present test fixture signatures
@@ -394,3 +438,42 @@ Do not require human approval of every ordinary Finance analysis decision.
 These sources justify *methods*, not factual installed-system behavior.
 The exact local source cut, executables and native owner tests establish
 that separately.
+
+## 18. R2.1 independent cross-audit and implementation-ready packets (2026-11-10)
+
+Review input: exact merged main `8346863be965da34371944679d063fd9fd0358ac`.
+Independent source-only Codex 0.163.0 audit completed read-only: PASS for
+Hoare/wp distinction, 11-coordinate declaration presence, bounded
+Composition≠Domain authority, CEGAR semantics, non-trading owner
+boundaries; CHANGE for type-inexact money receipt, missing-holdout
+standing/reasons, F01 scoped types, false T03/T05 dependencies, and
+existing T02 work re-creation; HOLD for unobserved deployed/PG/liveness.
+The audit saw pure CLI/predicate negative counterexamples but lacked
+native pytest/jsonschema; subsequent native tests must be observed anew.
+
+| Work | Exact implementation / consumer seam | RED/negative expectation | GREEN/evidence | Decision rule |
+| --- | --- | --- | --- | --- |
+| T01 | `packages/composition/tests/test_finance_contractual_execution_consumer.py` → `domains/capital/scripts/strategic_contribution_brief.py` | equality-preserving float cents or newly granted field must fail | focused Composition pytest and whole Owner `mise run verify` | one exact read-only consumer, no extra optimizer |
+| T02 | `packages/composition/tests/test_finance_research_frozen_consumer.py` → Finance `freeze-experiment` and `assess-holdout` CLI | no holdout + fabricated REVIEW_REQUIRED/empty reasons must fail | source protocol SATISFIED; prospective economic UNKNOWN | duplicate implementation forbidden; PR `2b265d` already merged |
+| T03 | existing Composition verification obligation and Capital native research owner | stale/unqualified verifier cannot discharge a required obligation | real verifier/SourceCut if a named consumer requires it | otherwise close as evidenced NOT_NEEDED, no new bridge |
+| T04 | existing `docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md` and selected Host/Harness caller | runnable task with no outcome does not become domain completion | actual native Work/caller effect or qualified blocker | avoid overriding cross-Owner ongoing PRs |
+| T05 | Capital `tools/` candidate + `tests/` + direct CI/skill consumers | stale consumer graph cannot license deletion | exact KEEP/RETIRE ruling, migration and if RETIRE actual Git deletion | decide by evidence, not target file count |
+| T06 | existing `markets/`, `portfolio/`, `risk/`, `accounting/postgres_paper_close.py`, paper readback & benchmark | missing PG head or unauthenticated marks never become 'empty account' or profit | disposable PG source-qualified Paper close and independent readback | no live financial effect |
+| T07 | native `mise` Owner tasks; `tools/repo/convergence_plan.py`, CI Merge Queue | stale source/changed tests cannot self-certify a conclusion | accepted merge; installed/consumer evidence separately | no closure claim before live evidence |
+
+### Six-axis review for every selected ticket
+
+Record one concrete PASS/CHANGE/HOLD for each: (1) mathematical
+semantics and R2.1 eleven typed coordinates; (2) owner/effect/acceptance
+boundaries and proof-to-consumer refinement; (3) user economic value and
+lack of unnecessary conservatism; (4) Matt SPEC/tracer bullets, ECC
+native TDD, Superpowers fresh verification; (5) duplication and
+DELETE→REUSE→COMPOSE candidate; (6) real positive and negative
+consumer witnesses. A report-only task may yield a report; an execution
+task cannot. Independent reviewers should name falsifiable evidence,
+not merely agree with the producing agent.
+
+The first native GREEN remains source-scoped test evidence; there is no
+claim that a live brokerage trade or external market provenance was
+independently verified. Source-level correctness, PR merger, deployed
+service and domain business results retain separate truth.
