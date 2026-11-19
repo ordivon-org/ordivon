@@ -31,7 +31,7 @@ from .model import (
     AgentTurnFailureCode,
 )
 from .provider_lifecycle import ProviderCallLifecycle, ProviderLifecycleError
-from .run_contract import AgentLoopResult, RunBudget, RunStopCode
+from .run_contract import AgentLoopResult, RunBudget, RunStopCode, _usage_total_tokens
 from .run_recovery import (
     _decide_turn_progress,
     _observation_evidence_signature,
@@ -2254,32 +2254,3 @@ class OrdivonAgentLoop:
             )
             if stopped is not None:
                 return stopped
-
-
-def _usage_total_tokens(usage: dict[str, JsonValue]) -> int | None:
-    """Conservatively reconcile complete, nonnegative Provider counters.
-
-    A contradictory reported total must not override larger, independently
-    reported input/output counts and silently weaken the Token budget. Cache
-    and reasoning counters are subsets of input/output, not extra totals.
-    Partial or missing counters remain unknown rather than invented zeros.
-    """
-
-    def valid_counts(names: tuple[str, ...]) -> list[int]:
-        values: list[int] = []
-        for name in names:
-            value = usage.get(name)
-            if type(value) is int and value >= 0:
-                values.append(value)
-        return values
-
-    candidates = valid_counts(("total_tokens", "totalTokens"))
-    for input_names, output_names in (
-        (("prompt_tokens", "promptTokens"), ("completion_tokens", "completionTokens")),
-        (("input_tokens", "inputTokens"), ("output_tokens", "outputTokens")),
-    ):
-        inputs = valid_counts(input_names)
-        outputs = valid_counts(output_names)
-        if inputs and outputs:
-            candidates.append(max(inputs) + max(outputs))
-    return max(candidates) if candidates else None

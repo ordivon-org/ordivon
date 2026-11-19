@@ -176,14 +176,39 @@ Run composition; `plugin_gateway_effect.py` imports it directly, while
 policies. This is a source-only modularization; it does not install a new
 Harness or grant Runtime issuer privileges.
 
+**Source-certified decomposition of the existing boundaries (2026-11-19):**
+
+| Existing facade | Delegated module | Exact single responsibility |
+| --- | --- | --- |
+| `ordivon/run_continuity.py` | `ordivon/run_source_inspection.py` | Revision-fenced original Tool-source identities and Run finalization source assessment; a query is never a release certificate |
+| `ordivon/runtime_bridge.py` | `ordivon/runtime_effect_policy.py` | Pure original Intent/Fence-to-physical-request validation and Runtime delivery-state interpretation |
+| `ordivon/runtime_bridge.py` | `ordivon/runtime_job_lookup.py` | Bounded Runtime read-only Job recovery lookup by exact original request and Workspace, with strict cursor and returned-identity validation |
+| `ordivon/loop.py` | existing `ordivon/run_contract.py` | Reconcile Provider token-count projections within the existing RunBudget contract, without a second counter model |
+
+All public `EventSourcedRunContinuity` methods continue on the one original
+Run API through an inspection mixin. The Runtime Bridge continues exposing
+its historical functions as aliases to the extracted modules; there is only
+one implementation. No new PostgreSQL Writer, Runtime schedule, effect issuer,
+tool registry or extra state authority was introduced.
+
 **Next structural cuts are consumer-driven, not directory-driven.**
-The present large `ordivon/run_continuity.py` combines cognition mutations,
-Provider lifecycle, Tool receipts and source projections; retain the existing
-public continuity facade and split bounded command/observation kernels only
-with real PG and recovery negative tests. The `ordivon/loop.py` decision
-cycle and `ordivon/runtime_bridge.py` physical reconciliation must similarly
-keep frozen request identity and UNKNOWN across extraction. Do not build
-parallel state machines, event writers or an extra permission registry.
+The remaining `ordivon/run_continuity.py` still couples working-set mutation,
+Provider dispatch, and Tool receipts; they must retain one PG writer and
+atomic Run CAS when extracted. The `ordivon/loop.py` function `_run`
+contains nested `execute_tool_calls`, `evaluate_turn_progress`, and
+`restore_projected_cognition_overlay` with shared mutable locals: do not
+move those closures behind an invented second state machine. Extract a
+single explicit per-attempt state contract only after proving restore/replay
+parity, exact budgets and cancellation. Runtime Bridge's remaining physical
+`_execute` and reconciliation methods must retain frozen request identity,
+original Tool Intent, externally owned Job truth and reachable UNKNOWN.
+
+**Falsification checklist:** negative cross-Workspace Job, reused cursor,
+boolean/u64 cursor, changed clientRequestId, stale Run revision, unresolved
+physical Tool, incomplete external recipient ACK and loss between Owner
+admission and reply. Negative checks verify local code boundaries; neither
+source verification nor a terminal Job proves physically fenced future spawn
+or domain completion.
 
 
 `sqlite_store.py` and `scripts/sqlite_*` are still separately reachable legacy
