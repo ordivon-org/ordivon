@@ -998,6 +998,36 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
+    def test_original_harness_pg_issuer_test_seams_do_not_merge_product_components(self) -> None:
+        """Original Run test fixture is a path-scoped consumer, not runtime authority."""
+        ordinary = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+        self.assertEqual(ordinary["verificationOwners"], ["composition", "runtime"])
+        fixture = MODULE.build_plan(
+            changed_files=["services/harness/tests/original_pg_issuer_native_fixture.py"]
+        )
+        self.assertIn("runtime", fixture["verificationOwners"])
+        self.assertNotIn("composition", fixture["verificationOwners"])
+
+    def test_original_harness_pg_issuer_test_seam_cannot_be_widened(self) -> None:
+        """An arbitrary Runtime file cannot opt out of real dependency closure."""
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / "dependency_contracts.toml"
+            original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+            exact = 'source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs"'
+            self.assertIn(exact, original)
+            policy.write_text(
+                original.replace(
+                    exact,
+                    'source_glob = "services/runtime/crates/ordivon-runtime-core/src/*.rs"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "unapproved original Harness test-only"):
+                MODULE.load_dependency_graph(path=policy)
+
     def test_authority_catalog_queue_projection_uses_native_verification(self) -> None:
         plan = MODULE.build_plan(changed_files=["catalogs/authorities/README.md"])
         self.assertIn("authority-catalog:verify", plan["verifyTasks"])
@@ -1027,18 +1057,85 @@ class ConvergencePlanTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unapproved source-only"):
                 MODULE.load_dependency_graph(path=shadow)
 
-    def test_media_change_expands_to_declared_interaction_component(self) -> None:
+    def test_media_change_expands_only_to_real_product_and_test_consumers(self) -> None:
         plan = MODULE.build_plan(
             changed_files=["capabilities/media/src/ordivon_studio/agent_surface.py"]
         )
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "authority-catalog", "distribution", "game", "media", "workstation"],
+            ["artifact", "authority-catalog", "media", "workstation"],
         )
+        self.assertEqual(plan["taskLocalTestConsumers"], ["workstation"])
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
+
+    def test_workstation_environment_fixtures_are_directed_test_consumers(self) -> None:
+        """Test-only Game/Media path readings do not create product SCCs."""
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("game", graph["workstation"])
+        self.assertNotIn("media", graph["workstation"])
+        game = MODULE.build_plan(changed_files=["domains/game/package.json"])
+        self.assertEqual(game["verificationOwners"], ["game", "workstation"])
+        self.assertEqual(game["taskLocalTestConsumers"], ["workstation"])
+        workstation = MODULE.build_plan(
+            changed_files=["platform/workstation/tests/test_workstation_consequences.py"]
+        )
+        self.assertEqual(workstation["verificationOwners"], ["distribution", "workstation"])
+        self.assertEqual(workstation["taskLocalTestConsumers"], [])
+
+    def test_gateway_test_only_consumers_are_directed_not_product_dependencies(self) -> None:
+        """Provider changes invoke real tests; unrelated consumer edits do not."""
+        gateway = MODULE.build_plan(changed_files=[
+            "services/gateway/src/ordivon_gateway/mcp_server.py"
+        ])
+        self.assertEqual(gateway["verificationOwners"], ["gateway"])
+        self.assertEqual(gateway["taskLocalTestConsumers"], [])
+
+        # This exact Gateway surface is read by a Security-owned test.
+        surface = MODULE.build_plan(changed_files=[
+            "services/gateway/enforcement-surface.json"
+        ])
+        self.assertEqual(surface["verificationOwners"], ["gateway", "security"])
+        self.assertEqual(surface["taskLocalTestConsumers"], ["security"])
+
+        # Harness is a genuine Gateway TEST consumer; its changed source
+        # must still select Gateway and Runtime original test dependents.
+        harness = MODULE.build_plan(changed_files=[
+            "services/harness/src/ordivon_harness/agent_run.py"
+        ])
+        self.assertEqual(
+            harness["verificationOwners"],
+            ["gateway", "harness", "runtime", "security", "web"],
+        )
+        self.assertIn("gateway", harness["taskLocalTestConsumers"])
+
+        security = MODULE.build_plan(changed_files=[
+            "platform/security/services/gateway-authzen/README.md"
+        ])
+        self.assertEqual(
+            security["verificationOwners"],
+            ["gateway", "harness", "security", "web"],
+        )
+        self.assertIn("gateway", security["taskLocalTestConsumers"])
+
+    def test_gateway_harness_test_import_exception_cannot_hide_foreign_import(self) -> None:
+        policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        needle = 'allowed_fragment = "ordivon_harness.runtime_port"'
+        self.assertEqual(policy.count(needle), 1)
+        with tempfile.TemporaryDirectory() as folder:
+            candidate = Path(folder) / "dependency_contracts.toml"
+            for forbidden in (
+                "ordivon_harness.unverified_runtime_port",
+                "ordivon_host_v2.work_store",
+            ):
+                candidate.write_text(
+                    policy.replace(needle, f'allowed_fragment = "{forbidden}"', 1),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "unapproved Gateway Harness test-only import"):
+                    MODULE.load_dependency_graph(path=candidate)
 
     def test_security_change_expands_to_actual_gateway_harness_web_consumers(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])

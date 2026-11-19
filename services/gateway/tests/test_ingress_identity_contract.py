@@ -12,15 +12,18 @@ from types import SimpleNamespace
 import pytest
 from mcp.server.mcpserver import Context
 
-from ordivon_gateway.authorization_targets import _HOST_READ_ONLY_TOOLS, _HOST_READ_SELECTORS
-from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
-from ordivon_gateway.http_ingress_guard import GatewayHTTPIngressGuard
-from ordivon_gateway.ingress_identity import (
+from ordivon_gateway.security import verified_execution_scope
+from ordivon_gateway.security.authorization_targets import (
+    _HOST_READ_ONLY_TOOLS,
+    _HOST_READ_SELECTORS,
+)
+from ordivon_gateway.security.capability_authz import GatewayCapabilityAuthorizationMiddleware
+from ordivon_gateway.security.http_ingress_guard import GatewayHTTPIngressGuard
+from ordivon_gateway.security.ingress_identity import (
     identity_from_state,
     request_state,
     tool_context_state,
 )
-from ordivon_gateway.mcp_server import _verified_execution_scope
 
 PRINCIPAL = "principal:cf-access:" + "a" * 64
 ISSUER = "https://auth.example.test"
@@ -43,7 +46,7 @@ def test_request_and_sdk_tool_context_produce_one_canonical_identity() -> None:
     assert observed.principal == PRINCIPAL
     assert observed.issuer == ISSUER
     assert identity_from_state(tool_context_state(tool)) == observed
-    assert _verified_execution_scope(tool) == (ISSUER, PRINCIPAL)
+    assert verified_execution_scope(tool) == (ISSUER, PRINCIPAL)
 
 
 @pytest.mark.parametrize(
@@ -65,7 +68,7 @@ def test_malformed_trusted_state_cannot_become_request_identity(state) -> None:
     assert identity_from_state(request_state(ctx)) is None
     tool = Context(request_context=SimpleNamespace(request=ctx.request), mcp_server=object())
     assert identity_from_state(tool_context_state(tool)) is None
-    assert _verified_execution_scope(tool) is None
+    assert verified_execution_scope(tool) is None
 
 
 def test_both_security_layers_reject_blank_claims_before_owner_call() -> None:
@@ -103,7 +106,7 @@ def test_invalid_sdk_context_does_not_invent_an_identity() -> None:
 
     tool = Context(request_context=InvalidRequest(), mcp_server=object())
     assert tool_context_state(tool) == {}
-    assert _verified_execution_scope(tool) is None
+    assert verified_execution_scope(tool) is None
 
 
 def test_host_read_selector_map_is_the_only_local_read_name_source() -> None:
@@ -117,7 +120,9 @@ def test_host_read_and_write_security_partition_matches_actual_mcp_manifest() ->
     import json
     from pathlib import Path
 
-    from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
+    from ordivon_gateway.logic.host_tool_contracts import (
+        SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
+    )
 
     surface = Path(__file__).resolve().parents[1] / "enforcement-surface.json"
     manifest = json.loads(surface.read_text(encoding="utf-8"))["tools"]
@@ -143,7 +148,7 @@ def test_audit_does_not_claim_a_partially_observed_principal(caplog) -> None:
     import json
     import logging
 
-    from ordivon_gateway.audit import GatewayAuditMiddleware
+    from ordivon_gateway.security.audit import GatewayAuditMiddleware
 
     ctx = _ctx(
         {"ordivon_access_principal": PRINCIPAL},

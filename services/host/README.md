@@ -150,6 +150,10 @@ an installed production SourceCut witness, or DOMAIN_ACCEPTED. Preserve these
 distinct proof obligations; do not delete the real CAS/race/replay tests merely
 because the revision increment has a source-level proof.
 
+## First-principles Host logic and capability composition
+
+[Host Logic Capability Architecture R1](docs/LOGIC_CAPABILITY_ARCHITECTURE_R1.md) derives the Work/Social/Attention continuity requirements from actual failure and recovery scenarios, maps Thought/Logic/Capability LEGO, and records the current directory/module boundaries. The first source extraction separates ActorRef semantics from Work and read-only Doctor from the Host service façade, without changing MCP contracts or granting permissions.
+
 ## Host Owner operation guide
 
 See [Host Owner Guide](docs/HOST_OWNER_GUIDE.md) for directory retention decisions, reusable LEGO boundaries, and separate Human/Agent workflows. This guide is not a second authority for the MCP tool list or database schema.

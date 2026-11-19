@@ -91,6 +91,85 @@ JSON 约 4,276 JavaScript 字符单元，而逐个 work.get 的 JSON 合计
   调度器。要证明真正节省 Agent token/延迟，需要独立在同一
   Consumer 路径测量，不能只用 JSON 字符数推算。
 
+### 4.2 归档 Topic 引用的历史 WorkRef：可阅读不等于可续写（2026-11-18 只读反证）
+
+**真实跨会话恢复反例**：历史 `space:capacity-maintenance-coordination:r1:20260929` 的
+`topic.list(includeArchived=true)` 可见 8 个归档 Topic（`false` 返回 0），
+`topic.resume` 可读其中 50 条消息。消息正文提及的 18 个不同历史 WorkRef，
+与现时 `work.list` 全页返回的 19 个 Work（`hasMore=false`）交集为 0。
+代表性消息 `message:capacity-maintenance-global-warning:r1:20260929` 和
+`message:capacity-storage-reclaim-complete:r1:20261001` 提及的旧 WorkRef，
+当前 Host `work.get` 返回规范 `NOT_FOUND / retryable=false /
+suggestedAction=discover-before-create`。这只能证明**当前 Host Work 权威
+不能解析该引用**，不能推断它在过去从未存在、已经合法删除或应当被重建。
+
+同一历史完成消息提及的 Runtime GitHub PR #87，可由 GitHub 确认于
+2026-10-01 合并、合并提交 `3b319a16046860c506e49f3a7b59db7e4ad33520`；
+这是 Git 源码交付的独立证据，**不是**旧 WorkSnapshot、当前 Runtime
+运行状态或当前发布版本的证明。本例的只读审计与跨 Owner 异常回执留在原 Host
+Topic #29924 / #29945 / #29953；没有迁移、清理或生成任何旧 Work 行。
+
+**R48 历史 Work 世代反证（2026-11-19）**：原 Host 消息
+`message:ddrive-capacity-rescue:host-open248-classification-manifest-r8:20261016`
+（#17201）保留了 2026-10-16 一份有 248 个不同 **OPEN** Work 的
+`workRef/rev/kind/snapshotDigest` 目录。原归档 Space 的 18 个 WorkRef
+中有 **8 个**精确出现在此目录；其中旧
+`work:runtime:ephemeral-scratch-lifecycle-r1-20261001`
+为 `rev24`，但现行 `work.list` 的 19 个 Work 均创建于
+2026-11-09 至 11-17，与这 248 个历史 OPEN Work 的交集为零。
+**其余 10 个未出现在 OPEN 清单，不等于当时不存在**：
+它们可能已经 `completed/abandoned`；历史消息还记载了
+`work:runtime:storage-pressure-control-r2-20260929` 在 10 月 8 日
+`COMPLETED rev8`（#9181）。上述历史目录是当时的 Host 消息证据，
+**不是可读取的旧 PostgreSQL 行、完整 Snapshot 字节或数据库备份**。
+
+不要把「合法终态 CAS」与「物理删除」混为一谈：历史 #17145/#17176
+报告 10 月 15 日 `works=2534`，7 个 Work 完成/放弃 CAS
+**不减少总量**；#25660 在 11 月 6 日报告按消费者审查物理删除
+8 个 Work/32 个 Snapshot（`392→384`）；#25671 另删
+2 个 Work/28 个 Snapshot（总量 `378`）。11 月 10 日独立
+#26001 报告 `works=5/snapshots=15`，且三个旧终态 Work 缺少
+`revision=1`，当时的 History Doctor **不健康**。目前 PG14
+Doctor 健康仅证明**现行留存行**的内部检查，不能证明全部历史已恢复。
+跨时点总量差额无法归责于这两次小范围删除；大宗退役、数据库世代
+更替、备份/迁移链与授权回执必须由原自然 Host 生命周期/数据 Owner
+按 PG 原始记录独立复核，未知保留 UNKNOWN。源码 Alembic `0009`
+退役的是旧 Task/Board，而非 Social Work Fabric `works`；
+不能把这项迁移当作缺失 Work 的原因。最小再发现入口是带完整 `messageRef` 的原生 `message.get`：
+从序号 #17201/#17176/#25660/#25671/#26001 找到消息的稳定引用，
+再按该引用精确读取，随后对照现行 `work.get/list`；
+不创建 18 个同名 Work、不复制历史注册表、不回填伪 Snapshot。
+
+Agent 的最小无新增接口恢复分支：
+
+1. 对**当前确实存在**的 Work 调用 `work.get`，核对真实 revision 后，
+   才能依 `work.snapshot.commit(expectedRevision=...)` 恢复写入。
+2. 目标 WorkRef 返回现行 Host 的规范 `NOT_FOUND` 时，先用
+   `work.list` 的数量/字节游标审查现有库存，不能因旧消息使用
+   `work:` 前缀就创建相同 WorkRef、合成修订或推断它有当前 Owner。
+   若仅是 Gateway 0.10.12 的泛化 `owner tool returned error`，
+   不得凭此认定 `NOT_FOUND`；需由原 Host 的规范错误或自然 Owner 核实，
+   不应绕过既有 PEP/入口取得凭据。
+3. 通过已有 `topic.list(spaceRef,includeArchived=true)` 和有界
+   `topic.resume`，保留精确 `topicRef/messageRef/message sequence`，
+   用 `message.get` 对需要的原文精确读回。对**已核验为归档来源、
+   当前 Work 不存在**的引用，仅在交接报告中标为
+   `HISTORICAL_REFERENCE_ONLY / current_work_unresolved`，
+   而不是存成新的 Work 生命状态或新注册表。
+4. 与消息中提供的 Git commit/PR、Runtime Artifact/Job、
+   Security 与领域 Owner 证据独立核对。历史消息中 `COMPLETE` 是
+   发表时的陈述，不能直接继承为今天的已安装/已验证状态。
+   旧原生 Work 备份、迁移别名、合法退役原因仍需自然 Owner 查证。
+5. **只有**新任务确需恢复执行且自然 Owner 给出新授权时，才依据现时
+   Work 身份规则新建显式 successor 并附回原消息引用；绝不静默复活旧
+   WorkRef。读取归档不意味着已经语义处理；未处理消息不得提前
+   `topic.cursor.ack` 或 `attention.ack`。
+
+思想边界：跨代身份引用是**导航证据**而非当前 Work 存在性与状态证明；
+逻辑边界是 `work.get` 成功则现行恢复，规范 `NOT_FOUND` 则归档
+`topic.resume` 加外部证据核验；能力仅复用既有 Host Work/Social/
+Attention MCP、Git/Runtime 自然 Owner，无第二份 Reference Registry。
+
 ### 5.1 长历史 Topic 的低成本精确续读（真实消费反例）
 
 对于已订阅但 `topic.cursor.get` 仍返回 0 的 Agent，`attention.reentry` 的 Topic 导航可能仍返回 `resumeAfterSequence=0`。这只表示该 Agent **未消费 Topic 的历史序列**，不表示必须把旧 Topic 全文加载进上下文才能处理一次新变化。
@@ -366,3 +445,33 @@ business value justify the extra churn. Other `_require_actor/_require_topic`
 inherited lookup helpers may remain intentionally in the SocialStore facade,
 but if changing them, use a separate consumer-specific case and native PG
 oracle rather than a global Repository/UoW/DI rewrite.
+
+
+## R27 protected Host PostgreSQL reader identity (not full HBA trust closure)
+
+The installed parallel Host on 127.0.0.1:19008 initially inherited the
+Legacy Host's writable PostgreSQL login. PostgreSQL's
+default_transaction_read_only=on is not a database ACL: R27 native PG18
+testing proved that BEGIN READ WRITE overrides the default, and the old
+login had business-table INSERT, UPDATE and DELETE rights.
+
+The native mitigation is a separate PostgreSQL login,
+ordivon_host_v2_protected_reader, granted CONNECT on the Host database,
+USAGE on its public and ele schemas, and SELECT on the existing business
+tables and sequences (no INSERT, UPDATE, DELETE or schema CREATE).
+The protected systemd unit loads a root-owned mode 0600
+/etc/ordivon/host-v2-protected-reader.env AFTER the shared legacy Host
+EnvFile, solely overriding the new unit's database login. Do not alter
+Legacy Host, Gateway, Peer, or their credentials to switch the reader.
+After Host schema migrations, review SELECT on new relations rather than
+granting pg_read_all_data cluster-wide.
+
+IMPORTANT: The current localhost PG HBA still uses trust for ordinary
+application roles. Although the reader's own SQL lacks write privileges,
+a local caller could still authenticate as a different writable database
+role until that separate HBA migration is completed. This is NOT a
+machine-enforced reader-only sandbox. R27 closed only unauthenticated
+loopback TCP to the postgres superuser while retaining OS-postgres Unix
+socket administration; the remaining roles require staged real-client
+credential migration. No workload machine bearer establishes signed
+Agent Principal authorization.

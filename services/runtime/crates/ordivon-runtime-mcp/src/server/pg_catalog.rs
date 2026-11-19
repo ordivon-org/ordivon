@@ -70,3 +70,51 @@ mod pg_portable_catalog_parity_tests {
         }
     }
 }
+
+/// Additional PG-native Workspace ownership tools: deliberately not legacy
+/// SDK parity tools, and not tied to Harness's independent database.
+fn pg_workspace_claim_catalog() -> Vec<Tool> {
+    fn entry<I: JsonSchema + 'static, O: JsonSchema + 'static>(
+        name: &'static str, title: &'static str, read_only: bool
+    ) -> Tool {
+        let input = rmcp::handler::server::common::schema_for_input::<I>()
+            .expect("PG Workspace Claim input must be typed");
+        let output = rmcp::handler::server::common::schema_for_output::<ToolOutcome<O>>();
+        Tool::new(name, "", input).with_raw_output_schema(output)
+            .with_annotations(ToolAnnotations::from_raw(
+                Some(title.to_owned()), Some(read_only),
+                Some(!read_only), Some(true), Some(false),
+            ))
+    }
+    vec![
+        entry::<ordivon_runtime_core::WorkspaceClaimReserveRequest,
+                 ordivon_runtime_core::WorkspaceClaimProjection>(
+            "workspace.claim.reserve", "Pin workspace for logical Run", false),
+        entry::<ordivon_runtime_core::WorkspaceClaimKeyRequest,
+                 ordivon_runtime_core::WorkspaceClaimProjection>(
+            "workspace.claim.get", "Read exact Runtime workspace claim", true),
+        entry::<ordivon_runtime_core::WorkspaceClaimKeyRequest,
+                 ordivon_runtime_core::WorkspaceClaimProjection>(
+            "workspace.claim.release", "Release physical Workspace pin", false),
+    ]
+}
+
+
+#[cfg(all(test, feature = "postgres-runtime"))]
+mod workspace_claim_catalog_contract_tests {
+    use super::*;
+
+    #[test]
+    fn runtime_owned_pin_tools_are_typed_and_distinct_from_legacy_contracts() {
+        let additions = pg_workspace_claim_catalog();
+        let names = additions.iter().map(|t| t.name.to_string()).collect::<Vec<_>>();
+        assert_eq!(names, [
+            "workspace.claim.reserve", "workspace.claim.get", "workspace.claim.release"
+        ]);
+        assert!(additions.iter().all(|t| !t.input_schema.is_empty()));
+        assert!(additions.iter().all(|t| t.output_schema.is_some()));
+        assert_eq!(pg_portable_tool_catalog().len(), 21);
+        assert!(additions.iter().all(|a|
+            pg_portable_tool_catalog().iter().all(|old| old.name != a.name)));
+    }
+}

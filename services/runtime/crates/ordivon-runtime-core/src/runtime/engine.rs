@@ -1768,6 +1768,7 @@ mod trusted_systemd_command_tests {
         for required in [
             "ProtectSystem=strict",
             "ProtectHome=tmpfs",
+            "InaccessiblePaths=-/etc/ordivon",
             "PrivateNetwork=yes",
             "NoNewPrivileges=yes",
             "CapabilityBoundingSet=",

@@ -18,6 +18,7 @@ import sys
 import tempfile
 import time
 from contextlib import contextmanager
+from collections.abc import Callable
 from pathlib import Path
 
 from mcp_probe import load_bearer_token, load_environment_file, probe_catalog
@@ -1746,6 +1747,7 @@ def wait_for_service_mcp_ready(
     wait_seconds: float,
     require_modern: bool,
     allow_legacy_fallback: bool,
+    readiness_probe: Callable[[float], dict[str, object]] | None = None,
 ) -> dict[str, object]:
     deadline = time.monotonic() + wait_seconds
     wait_service_active(systemctl, service, max(0.001, deadline - time.monotonic()))
@@ -1759,11 +1761,17 @@ def wait_for_service_mcp_ready(
                 raise RuntimeError(str(last_error)) from last_error
             raise RuntimeError(f"MCP readiness deadline expired: {service}")
         try:
+            slice_seconds = min(MCP_READINESS_PROBE_SLICE_SECONDS, remaining)
+            if readiness_probe is not None:
+                observed = readiness_probe(slice_seconds)
+                if not isinstance(observed, dict) or not observed:
+                    raise RuntimeError("rollback readiness probe returned no qualified evidence")
+                return observed
             return probe_mcp(
                 env_file,
                 expected_tool_count=expected_tool_count,
                 required=required,
-                wait_seconds=min(MCP_READINESS_PROBE_SLICE_SECONDS, remaining),
+                wait_seconds=slice_seconds,
                 require_modern=require_modern,
                 allow_legacy_fallback=allow_legacy_fallback,
             )
@@ -1996,7 +2004,11 @@ def restore_previous(
     expected_current_runtime_policy: object | None = None,
     release_authority: object | None = None,
     expected_current_release_authority: object | None = None,
+    readiness_probe: Callable[[float], dict[str, object]] | None = None,
 ) -> dict[str, object]:
+    # The shared physical rollback is backend-neutral. Its default readiness
+    # path is the legacy SQLite MCP probe; PG callers supply the existing
+    # PG-native authenticated catalog + Runner witness instead.
     run([str(systemctl), "stop", service], check=False)
     restored_environment = None
     if runtime_policy is not None or release_authority is not None:
@@ -2025,16 +2037,29 @@ def restore_previous(
             raise RuntimeError(f"rollback artifact digest does not match receipt: {name}")
         atomic_copy(source, target, mode=receipt_record_mode(record))
     run([str(systemctl), "start", service])
-    probe = wait_for_service_mcp_ready(
-        systemctl,
-        service,
-        env_file,
-        expected_tool_count=None,
-        required=(),
-        wait_seconds=wait_seconds,
-        require_modern=False,
-        allow_legacy_fallback=True,
-    )
+    if readiness_probe is None:
+        probe = wait_for_service_mcp_ready(
+            systemctl,
+            service,
+            env_file,
+            expected_tool_count=None,
+            required=(),
+            wait_seconds=wait_seconds,
+            require_modern=False,
+            allow_legacy_fallback=True,
+        )
+    else:
+        probe = wait_for_service_mcp_ready(
+            systemctl,
+            service,
+            env_file,
+            expected_tool_count=None,
+            required=(),
+            wait_seconds=wait_seconds,
+            require_modern=True,
+            allow_legacy_fallback=False,
+            readiness_probe=readiness_probe,
+        )
     result: dict[str, object] = {
         "serviceActive": True,
         "probe": probe,

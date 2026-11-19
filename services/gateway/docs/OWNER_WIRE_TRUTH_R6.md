@@ -63,7 +63,7 @@ Terminal, ResultAvailable, DomainSuccess are independent propositions.
 
 The existing Gateway `execution.get` is a **reconciliation-capable**
 observation, not a command-query-separated, guaranteed no-effect query.
-`services/gateway/src/ordivon_gateway/execution_observations.py` invokes
+`services/gateway/src/ordivon_gateway/capabilities/execution/observations.py` invokes
 natural Runtime `job.observe` even with `waitMs=0`. Runtime explicitly
 documents that `job.observe` may dispatch an already accepted Job once.
 The separate Runtime `job.get` performs pure inspection without

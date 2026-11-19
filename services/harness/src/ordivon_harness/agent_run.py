@@ -210,6 +210,16 @@ class HarnessAgentRun:
         with self._open_store() as store:
             return self._continuity(store).inspect_unsettled_tool_sources()
 
+    def inspect_issued_tool_sources(self) -> dict[str, JsonValue]:
+        """Read ALL original Run issued Tool identities through the PG Run API.
+
+        Source-only evidence: each frozen clientRequestId still requires an
+        independently qualified Runtime Job/Attempt/OS drain and no-redispatch
+        fence before any NoFutureSpawn ACK or Workspace Claim release.
+        """
+        with self._open_store() as store:
+            return self._continuity(store).inspect_issued_tool_sources()
+
     def inspect_finalization_source(self) -> dict[str, JsonValue]:
         """Read PG-only finalization blockers, not an external delivery ACK.
 

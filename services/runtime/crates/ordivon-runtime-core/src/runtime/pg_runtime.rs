@@ -25,6 +25,9 @@ pub struct PgRuntimeConfig {
     pub source_sha256: String,
     /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
     pub harness_issuer_schema: Option<String>,
+    /// Dedicated Harness principal and same-PG issuer cut for the one
+    /// ordinary scheduler's later dispatch, not ordinary admissions.
+    pub harness_dispatch_issuer: Option<(String, String)>,
     pub executor: UniversalExecutorConfig,
     /// Existing physical carrier guards shared with Runtime::workspace.open.
     pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
@@ -225,6 +228,7 @@ fn decode<T: serde::de::DeserializeOwned>(s: &str) -> RuntimeResult<T> {
 }
 
 mod artifact;
+mod claim;
 mod job;
 mod native_stop;
 mod node_query;
@@ -232,6 +236,7 @@ mod reconciliation;
 mod release;
 mod scheduling;
 mod workspace;
+pub use claim::{WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
 
 impl PgRuntime {
     pub fn new(config: PgRuntimeConfig) -> RuntimeResult<Self> {
@@ -279,6 +284,15 @@ impl PgRuntime {
             false,
         )
         .map_err(pg)?;
+        // Fail startup if the operator has not installed the Runtime-owned
+        // claim fence. A missing table must NEVER silently downgrade Close
+        // to the older Job-only protection.
+        db.client
+            .query(
+                "SELECT claim_id FROM workspace_consumer_claims LIMIT 0",
+                &[],
+            )
+            .map_err(io)?;
         // Authorization includes the independently controlled app-role
         // privilege check in store(); only now may native paths be created.
         runtime.config.executor.ensure_store().map_err(io)?;

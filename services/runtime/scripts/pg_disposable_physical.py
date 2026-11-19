@@ -36,8 +36,7 @@ CARGO_ARGS = (
 # Independent Windows PG witness consumer; same disposable PG18 fixture, not
 # a Windows production Writer or a second persistent test authority.
 WINDOWS_PG_WITNESS_CASE = (
-    "pg_admission::live_pg_tests::"
-    "windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
+    "pg_admission::live_pg_tests::windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
 )
 WINDOWS_PG_WITNESS_ARGS = (
     "test",
@@ -54,8 +53,8 @@ WINDOWS_PG_WITNESS_ARGS = (
     "--nocapture",
     "--test-threads=1",
 )
-EXPECTED_PG18 = 19
-PG18_CASE = re.compile(r"^test pg_admission::live_pg_tests::pg18_[^ ]+ \.\.\. ok$", re.M)
+PG18_LISTED_CASE = re.compile(r"^(\S+): test$", re.M)
+PG18_EXECUTED_CASE = re.compile(r"^test (\S+) \.\.\. ok$", re.M)
 PG18_RESULT = re.compile(r"test result: ok\. (\d+) passed; 0 failed; 0 ignored;")
 
 
@@ -76,13 +75,29 @@ def fixture_environment(original: dict[str, str], socket_dir: Path, port: int) -
     return result
 
 
-def exact_test_count(output: str) -> int:
-    """Require actual physical PG18 executions, not a green zero-test command."""
-    observed = len(PG18_CASE.findall(output))
-    results = [int(n) for n in PG18_RESULT.findall(output)]
-    if observed != EXPECTED_PG18 or EXPECTED_PG18 not in results:
-        raise ValueError(f"physical PG18 result unqualified: observed={observed}, summaries={results}")
-    return observed
+def listed_pg18_tests(output: str) -> frozenset[str]:
+    """Trust Cargo's exact --ignored --list test identity, not a frozen count."""
+    cases = PG18_LISTED_CASE.findall(output)
+    if not cases or len(cases) != len(set(cases)) or any("pg18_" not in case for case in cases):
+        raise ValueError("physical PG18 native Cargo inventory missing, duplicate or out of scope")
+    return frozenset(cases)
+
+
+def exact_test_count(output: str, expected: frozenset[str]) -> int:
+    """Require every natively listed test actually pass once, including new modules."""
+    observed = PG18_EXECUTED_CASE.findall(output)
+    summaries = [int(n) for n in PG18_RESULT.findall(output)]
+    if (
+        not expected
+        or len(observed) != len(expected)
+        or len(observed) != len(set(observed))
+        or set(observed) != expected
+        or summaries.count(len(expected)) != 1
+    ):
+        raise ValueError(
+            f"physical PG18 result unqualified: expected={len(expected)} observed={len(observed)} summaries={summaries}"
+        )
+    return len(observed)
 
 
 def run_checked(command: list[str], *, timeout: int = 90) -> None:
@@ -154,28 +169,51 @@ def main() -> int:
             source = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
             dirty = bool(subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"], text=True).strip())
             print(f"sourceCut={source} standing={'DIRTY_UNQUALIFIED' if dirty else 'CLEAN'}")
+            fixture_env = fixture_environment(os.environ, root, port)
+            # The exact Cargo-filtered native test inventory is the expected
+            # consumer set. A static number or a single Rust module prefix
+            # becomes stale when additional PG18 owner tests are added.
+            listing_args = [
+                *CARGO_ARGS[: CARGO_ARGS.index("--")],
+                "--",
+                "--ignored",
+                "--list",
+            ]
+            listed = subprocess.run(
+                [cargo, *listing_args],
+                cwd=ROOT,
+                env=fixture_env,
+                capture_output=True,
+                text=True,
+                timeout=400,
+            )
+            if listed.returncode:
+                raise RuntimeError(
+                    "PG18 native Cargo test inventory failed: " + (listed.stderr or listed.stdout)[-2000:]
+                )
+            expected = listed_pg18_tests(listed.stdout)
             result = subprocess.run(
                 [cargo, *CARGO_ARGS],
                 cwd=ROOT,
-                env=fixture_environment(os.environ, root, port),
+                env=fixture_env,
                 capture_output=True,
                 text=True,
                 timeout=400,
             )
             output = result.stdout + "\n" + result.stderr
             for line in output.splitlines():
-                if "pg_admission::live_pg_tests::pg18_" in line or (
+                if (line.startswith("test ") and "pg18_" in line) or (
                     line.startswith("test result:") and "passed" in line
                 ):
                     print(line[:230])
             if result.returncode:
                 raise RuntimeError(f"PG18 native owner task failed: {output[-3500:]}")
-            n = exact_test_count(output)
-            print(f"DISPOSABLE_PG18_PASS={n}/{EXPECTED_PG18}")
+            n = exact_test_count(output, expected)
+            print(f"DISPOSABLE_PG18_PASS={n}/{len(expected)}")
             windows_result = subprocess.run(
                 [cargo, *WINDOWS_PG_WITNESS_ARGS],
                 cwd=ROOT,
-                env=fixture_environment(os.environ, root, port),
+                env=fixture_env,
                 capture_output=True,
                 text=True,
                 timeout=400,
@@ -187,10 +225,7 @@ def main() -> int:
                 or windows_output.count(witness_line) != 1
                 or not re.search(r"test result: ok\. 1 passed; 0 failed; 0 ignored;", windows_output)
             ):
-                raise RuntimeError(
-                    "Windows PG evidence consumer unqualified: "
-                    + windows_output[-3000:]
-                )
+                raise RuntimeError("Windows PG evidence consumer unqualified: " + windows_output[-3000:])
             print("DISPOSABLE_WINDOWS_PG_WITNESS_PASS=1/1")
         finally:
             if started:

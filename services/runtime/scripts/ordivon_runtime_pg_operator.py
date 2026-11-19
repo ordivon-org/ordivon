@@ -493,8 +493,15 @@ def active_executions(conn: psycopg.Connection, release_job_id: str) -> list[str
     return [row["job_id"] for row in rows]
 
 
-def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
-    """Reuse the mature MCP catalog probe with native PG configuration."""
+def pg_mcp_readiness(
+    args: argparse.Namespace, *, previous_image: bool = False,
+    probe_wait_seconds: float | None = None,
+) -> dict[str, Any]:
+    """Use PG-native MCP and provider evidence for new or restored binaries.
+
+    A rollback may restore an older, valid tool catalog: the *new* candidate
+    tool count is not a requirement for the original installed preimage.
+    """
     require_complete_native_release(args)
     environment = DEPLOY["load_environment_file"](args.env_file)
     bind = environment.get("ORDIVON_PG_BIND")
@@ -503,16 +510,23 @@ def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("native PG MCP bind/token missing from operator service")
     if not DEPLOY["service_active"](args.systemctl,args.service):
         raise RuntimeError("qualified PG Runtime service is not active")
+    wait_seconds = args.wait_seconds if probe_wait_seconds is None else probe_wait_seconds
     probe = DEPLOY["probe_catalog"](
         f"http://{bind}/mcp",
         token,
         client_name="ordivon-runtime-pg-operator",
-        expected_tool_count=args.expected_tool_count,
-        required_tools=tuple(args.required_tools),
-        wait_seconds=args.wait_seconds,
+        expected_tool_count=None if previous_image else args.expected_tool_count,
+        required_tools=() if previous_image else tuple(args.required_tools),
+        wait_seconds=wait_seconds,
         require_modern=True,
         allow_legacy_fallback=False,
     )
+    if previous_image and (
+        not isinstance(probe, dict)
+        or type(probe.get("toolCount")) is not int
+        or probe["toolCount"] < 1
+    ):
+        raise RuntimeError("restored PG MCP catalog has no qualified tools")
     # Catalog/HTTP readiness proves a service responds, not which image or
     # actual Runner its execution provider consumes. Use existing OS and
     # authenticated native Runtime consumers, not a second config parser.
@@ -522,7 +536,7 @@ def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
         described = McpClient(
             f"http://{bind}/mcp", token,
             "ordivon-runtime-pg-operator-runner-witness",
-            timeout=min(15.0, max(1.0, args.wait_seconds)),
+            timeout=min(15.0, max(0.05, wait_seconds)),
         ).call_tool("runtime.describe", {"schemaVersion": 1})
         targets = described.get("targets")
         if not isinstance(targets, list) or len(targets) != 1:
@@ -669,6 +683,9 @@ def operator_fenced_install(
                 rollback = DEPLOY["restore_previous"](
                     previous, args.install_dir, baseline, args.systemctl,
                     args.service,args.env_file,args.wait_seconds,
+                    readiness_probe=lambda slice_seconds: pg_mcp_readiness(
+                        args, previous_image=True, probe_wait_seconds=slice_seconds,
+                    ),
                 )
                 status = "rolled_back"
             except Exception as restore_failure:

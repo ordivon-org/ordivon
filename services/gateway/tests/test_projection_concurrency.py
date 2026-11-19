@@ -185,7 +185,7 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
 
     import httpx2
 
-    import ordivon_gateway.upstream as upstream
+    import ordivon_gateway.transport.upstream as upstream
 
     async def scenario() -> None:
         call_started = asyncio.Event()
@@ -292,7 +292,7 @@ def test_completed_owner_tool_call_cancelled_during_sdk_close_reports_session_cl
     """A finished tools/call and cancellation during cleanup are distinguishable."""
     from types import SimpleNamespace
 
-    from ordivon_gateway import upstream
+    from ordivon_gateway.transport import upstream
 
     async def scenario() -> None:
         close_started = asyncio.Event()

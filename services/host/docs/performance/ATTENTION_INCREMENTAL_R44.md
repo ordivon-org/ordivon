@@ -49,3 +49,98 @@ Hot 整条 SQL EXPLAIN：执行 17.241→8.818 ms；Shared Buffer Hits 4,484→3
 **反例/成本**：重复命中 Delta P95 40.618→42.976 ms（+2.358 ms）；同一批测试下 Reentry P95 反而下降，不能宣称所有尾延迟场景改善。继续监视不同订阅密度、热缓存、超大 Topic 的高分位，并由真实 Agent 消费者验证客户端 schema 与 Host Installed 一致性。
 
 尚未完成：生产 Release 发布/回滚/真实 Agent 端 Token/P95；多 Agent 多会话真实认证；跨日冷缓存/写入并发高压；其他 Owner 安全发布仍 NO-GO。本轮不移动生产指针，不复刻事件总线，不修改 ACK 语义。
+
+## R47 独立反证：重复命中 P95 与高扇出订阅（2026-11-18）
+
+**决策：不修改已合并的 Attention 生产 SQL；不新增缓存、索引或查询路由器。**
+本节按同一原 Golden Road HST Attention 消费场景复核上一节的重叠
+Delta P95 负数，源/安装/远程 Agent 三种状态仍须分开。原先 24 次样本的
+`40.618→42.976 ms` 仅是一条需证伪的反例，不是确定的尾部回归。
+
+### 双数据库同负载交替复验
+
+在原源码 `0480182c5b2fd9310adb02569f61f78d2308fc46`
+读取旧 SQL，在主线 `f772df2a897c6e7b9d2ddde8efccdf936f52a085`
+读取优化 SQL，不另建生产 SQL 副本。原生 Runtime Job
+`job-01a1ef4f-c2cf-75bb-9cd5-e26c8bcc880e`
+通过环回 Docker PostgreSQL 18 + Alembic Schema14 建立两个**独立空数据库**，
+每库分别生成 26,401 条合成 Message 和 1,600 条 Relation。
+固定 Actor、订阅、生效变更序列、数据量、高水位、分页参数，各版本
+64 次 ABBA 交替热态调用真实 `AttentionStore.delta/reentry`。
+
+| 场景及数据库 | Delta P50 旧→新（ms） | Delta P95 旧→新（ms） | Reentry P50 旧→新（ms） | Reentry P95 旧→新（ms） |
+| --- | ---: | ---: | ---: | ---: |
+| Hot A | 48.651→38.600 | 63.195→51.738 | 42.738→34.658 | 48.306→41.879 |
+| Hot B | 45.573→35.230 | 59.327→46.191 | 40.503→33.137 | 53.439→40.728 |
+| Overlap A | 51.740→47.359 | **71.803→74.071（新SQL慢2.268）** | 52.350→48.899 | 74.506→75.194 |
+| Overlap B | 43.526→40.886 | **64.117→53.240（新SQL快10.877）** | 43.135→41.094 | 62.854→49.438 |
+
+对每个数据库的 64 对 Delta 原始样本，以固定随机种子执行
+3,000 次**配对索引重采样**，以原脚本最近秩 P95 统计量计算
+`candidate_p95 - baseline_p95`。描述性 95% 区间分别为
+A **[-18.040, 22.928] ms**、B **[-19.651, 2.969] ms**，
+均跨零；A 64 对中候选快于原版 45 对，B 46 对。
+这不是严格独立的生产置信区间，不能证明未来 P95 无退化；
+但**足以否定“单次合成 P95 为正就必须再改 SQL”**的决策前提。
+当前仅重复同形状合成数据、热缓存及同进程交替，没有刷新
+内核页缓存或实测并发真实认证 Agent。
+
+每个独立数据库原 SQL 与候选在全部分页、命中原因、订阅生效、
+断线后追加消息、真实第二连接未提交写隔离及后续再可见性
+的既有原生 PG Oracle 均通过；其中 Overlap 80 页/4,000 事件，
+Hot 71 页/8,000 事件，Sparse 3 页/15 事件，未推进任何真实 ACK。
+完整已抽取采样序列、EXPLAIN 摘要、负控和原始运行报告 SHA256
+收敛于 `attention-r47-evidence.json`，不再复制三份大型完整
+原生 EXPLAIN JSON 到仓库；原生 Runtime Job 保留执行回执。
+
+### 多订阅：沿能力边界检验 LATERAL 代价
+
+新增**仅测试用途**脚本 `tools/bench_attention_fanout_r47.py`：
+直接从原 Git SHA 读取旧 SQL，以现有 Python Host
+`AttentionStore.delta/reentry`、`EXPLAIN(ANALYZE,BUFFERS,FORMAT JSON)`
+和原 `compare_pages` 逐页相等算法为 Oracle。输入只允许
+**全新、空白、环回** `hostbench` 一次性数据库；不创建第二个系统，
+不需源码运行时分支、订阅存储或查询索引。第三个独立 Docker PostgreSQL18
+原生 Job `job-01a1ef55-31d9-7654-837a-f45f6e86ae7e`
+以 256 Topics、8,192 条轮转分布的合成 Message、
+同一高水位测一位 Agent 关注 1/8/32/128/256 Topics，以及
+同时关注 Space + 其中 128 Topics；每一配置两版交替各 24 样本，
+最终全页完全相等（6 个配置依次 1/3/11/41/82/82 页）。
+
+| 单 Actor 订阅 | Delta P50 旧→新（ms） | Delta P95 旧→新（ms） | SQL EXPLAIN 执行旧→新（ms） | 叶节点行次旧→新 |
+| --- | ---: | ---: | ---: | ---: |
+| 1 Topic | 20.898→20.845 | 25.649→28.233 | 0.293→0.310 | 33→12 |
+| 8 Topics | 20.154→20.008 | 23.589→23.758 | 0.602→0.258 | 264→96 |
+| 32 Topics | 22.372→19.965 | 26.420→24.133 | 5.632→0.947 | 8,224→384 |
+| 128 Topics | 34.215→26.519 | 53.614→48.040 | 5.625→1.552 | 8,320→1,536 |
+| 256 Topics | 27.419→22.916 | 35.732→27.218 | 10.280→3.941 | 8,448→3,072 |
+| Space + 128 Topics | 30.575→20.899 | 38.253→30.829 | 11.794→1.983 | 16,513→1,548 |
+
+所有配置首批 `reasons` 与完整页一致；Space + Topic 双命中
+没有重复事件。256 Topics 的 `shared_hit` **397→3,346**，
+却实际执行更快：访问缓冲区次数不是唯一行扫描次数，也不是
+消费者时延的直接代理。单 Topic 的新 SQL P95 增 2.584 ms、
+8 Topics 增 0.169 ms，同样只有各24次样本；
+**不能把这两项也隐去或认定稳定回归**。
+截至这轮，现役 Host 全局只有约 97 条 Subscription（分布在多个 Actor），
+“256 Topic 属于一个 Actor”只是容量压力反例，不是生产请求分布。
+
+独立重做可使用现有 `uv`、Alembic 与官方 `postgres:18`
+一次性 Docker，先创建环回空数据库 `hostbench`，
+在 `services/host` 下执行
+`uv run python tools/bench_attention_fanout_r47.py --dsn "$DISPOSABLE_DSN" --iterations 24 --output "$REPORT"`；
+脚本对 DSN、Schema14、空库存进行 fail-closed 检查。
+不可连接或改动生产 PG14/Host/Gateway，也不可借此跳过
+Cloudflare Access、AuthZEN、独立 Principal 和旧 Peer 迁移。
+
+PostgreSQL 18 官方语义依据：
+[LATERAL 关联子查询](https://www.postgresql.org/docs/18/queries-table-expressions.html)、
+[索引与 ORDER BY LIMIT](https://www.postgresql.org/docs/18/indexes-ordering.html)、
+[EXPLAIN / BUFFERS](https://www.postgresql.org/docs/18/sql-explain.html)。
+本轮思想型 LEGO 是**先证伪共同瓶颈，再删减方案**；
+逻辑型 LEGO 是在原分页/多原因/ACK不变量下按选择率与扇出
+区分 SQL 执行时间、Host 正常入口和远端 Agent 消费时延；
+能力型 LEGO 继续复用 Python Host+PG18+原 SQL Oracle，
+只增加可重复执行的测试探针。下一步有价值的验收是
+**已安装不可变 Release + 真实独立认证 Agent + 冷启动/并发分布**，
+不是在当前隔离 SQL 上继续叠加复杂度。

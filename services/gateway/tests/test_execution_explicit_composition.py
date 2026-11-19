@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ordivon_gateway.execution_commands import ExecutionCommandMethods
-from ordivon_gateway.execution_observations import ExecutionObservationMethods
+from ordivon_gateway.capabilities.execution.commands import ExecutionCommandMethods
+from ordivon_gateway.capabilities.execution.observations import ExecutionObservationMethods
 from ordivon_gateway.service import GatewayService
 
 

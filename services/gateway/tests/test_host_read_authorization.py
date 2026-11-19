@@ -14,13 +14,13 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from ordivon_gateway.authorization_targets import (
+from ordivon_gateway.security.authorization_targets import (
     _HOST_READ_ONLY_TOOLS,
     CapabilityAuthorizationTargetError,
     resolve_authorization_target,
 )
-from ordivon_gateway.authzen_authorizer import AuthZenPrincipalAuthorizer
-from ordivon_gateway.capability_authz import GatewayCapabilityAuthorizationMiddleware
+from ordivon_gateway.security.authzen_authorizer import AuthZenPrincipalAuthorizer
+from ordivon_gateway.security.capability_authz import GatewayCapabilityAuthorizationMiddleware
 
 # These are the existing Gateway Host read routes, not an extra API surface.
 READ_REQUESTS = {

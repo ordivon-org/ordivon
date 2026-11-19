@@ -145,7 +145,7 @@ def test_deployed_capability_set_is_exact() -> None:
 def test_current_harness_route_does_not_rewrite_historical_deployment() -> None:
     deployed = graph()
     source_routes = module.route_capabilities(
-        (ROOT / "services/gateway/src/ordivon_gateway/routing.py").read_text(encoding="utf-8")
+        (ROOT / "services/gateway/src/ordivon_gateway/logic/routing.py").read_text(encoding="utf-8")
     )
     module.validate_deployed_graph(deployed)
     assert deployed["status"] == "HISTORICAL_DEPLOYED_SNAPSHOT_20260928"

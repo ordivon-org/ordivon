@@ -110,6 +110,83 @@ def load_dependency_graph(
             ):
                 raise ValueError("unapproved source-only research projection seam")
             continue
+        # Gateway's disposable PostgreSQL E2E imports Harness *inside a test*.
+        # Those three exact imports select Gateway when Harness changes; they
+        # are not a reciprocal production dependency of ordinary Gateway code.
+        # Reuse the same owner-scoped test-consumer projection, with an exact
+        # source+module+contract witness rather than an Owner-pair wildcard.
+        if (
+            seam.get("kind") == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+            and (left, right) == ("gateway", "harness")
+        ):
+            source = "services/gateway/tests/test_pg_real_runtime_owner.py"
+            contract = (
+                "services/harness/rust-migration/consumer-acceptance/"
+                "real_native_pg_temporal_boundary.md"
+            )
+            qualified_modules = {
+                "ordivon_harness.agent_plugin",
+                "ordivon_harness.plugin_gateway_effect",
+                "ordivon_harness.runtime_port",
+            }
+            repo = Path(__file__).resolve().parents[2]
+            file = repo / source
+            attestation = repo / contract
+            fragment = seam.get("allowed_fragment")
+            if (
+                seam.get("source_glob") != source
+                or seam.get("contract_ref") != contract
+                or fragment not in qualified_modules
+                or not file.is_file()
+                or file.is_symlink()
+                or not attestation.is_file()
+                or attestation.is_symlink()
+                or fragment not in file.read_text(encoding="utf-8")
+            ):
+                raise ValueError("unapproved Gateway Harness test-only import")
+            if test_only_consumers is not None:
+                test_only_consumers.append(
+                    (left, right, "services/harness/", "OWNER")
+                )
+            continue
+        # Preserve the existing Gateway/Harness native consumer graph. These
+        # six exact Runtime Rust TEST fixtures only read original Harness
+        # publisher source for PG18 verification; they cannot create a
+        # production Runtime-Harness owner-component dependency.
+        if (
+            seam.get("kind") == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+            and (left, right) == ("runtime", "harness")
+        ):
+            test_sources = {
+                "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs": "root",
+                "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs": "repo_root",
+            }
+            source = seam.get("source_glob")
+            prefix = test_sources.get(source)
+            fixture = "services/harness/tests/original_pg_issuer_native_fixture.py"
+            allowed_paths = {
+                f'{prefix}.join("{fixture}")': fixture,
+                f'{prefix}.join("services/harness/src")': "services/harness/src/",
+                f'{prefix}.join("services/harness")': "services/harness/tests/",
+            } if prefix is not None else {}
+            fragment = seam.get("allowed_fragment")
+            repo = Path(__file__).resolve().parents[2]
+            actual = repo / source if isinstance(source, str) else repo
+            if (
+                fragment not in allowed_paths
+                or seam.get("contract_ref") != fixture
+                or not actual.is_file()
+                or actual.is_symlink()
+                or not (repo / fixture).is_file()
+                or (repo / fixture).is_symlink()
+                or fragment not in actual.read_text(encoding="utf-8")
+            ):
+                raise ValueError("unapproved original Harness test-only source seam")
+            if test_only_consumers is not None:
+                test_only_consumers.append(
+                    (left, right, allowed_paths[fragment], "PATH")
+                )
+            continue
         if seam.get("kind") == "TEST_ONLY_SOURCE_CONTRACT":
             # One native test can consume a different Owner's actual source
             # contract without establishing a bidirectional business edge.
@@ -333,7 +410,12 @@ def build_plan(
         base_revision = _git("rev-parse", f"{base}^{{commit}}")
         head_revision = _git("rev-parse", f"{head}^{{commit}}")
         head_tree = _git("rev-parse", f"{head_revision}^{{tree}}")
-        paths = affected_owners.changed_paths(base_revision, head_revision)
+        # Bind this consumer's actual Git-selected repository to the same
+        # immutable object namespace as its own _git SourceCut reads.
+        repo = Path(_git("rev-parse", "--show-toplevel"))
+        paths = affected_owners.changed_paths(
+            base_revision, head_revision, source_repo_root=repo
+        )
 
     affected_owners.require_registered_execution_paths(paths, owners=owners)
     direct = affected_owners.owners_for_paths(paths, owners=owners)
@@ -623,7 +705,7 @@ def build_qualified_temporal_impact(
     # cannot be mistaken for a complete consumer verification obligation.
     # Reuse the already qualified native no-renames Git delta; this is a
     # bounded two-SourceCut read, NOT a repository-wide LEGO census.
-    full_cut_paths = set(affected_owners.changed_paths(base, head))
+    full_cut_paths = set(affected_owners.changed_paths(base, head, source_repo_root=repo))
     if not changed.issubset(full_cut_paths):
         raise ValueError("scoped source delta contradicts canonical exact Git changed paths")
     unseen_paths = sorted(full_cut_paths - changed)

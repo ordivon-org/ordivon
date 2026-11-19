@@ -115,7 +115,13 @@ the native OpenBB V5 Cboe provider, `research.experiment_protocol` and
 `portfolio.passive_benchmark`. It does not duplicate provider HTTP, Qlib,
 the benchmark engine, Risk, accounting, broker, or scheduler. It checks
 the frozen plan and refuses altered weights/costs, missing matched
-sessions, future rows and wrong provider identity. It emits normalized
+sessions, future rows and wrong provider identity. It also reuses the
+Markets `require_xnys_session_grid` consumer against the completed
+observation cut (strictly earlier than each source receipt's UTC date):
+a matched pair of vendor CSVs cannot invent a holiday/weekend or jointly
+omit a completed XNYS session. This is exchange-date qualification,
+not proof of price authenticity, total-return adjustments, or publisher
+rights. It emits normalized
 Cboe CSV data and one partial research receipt **only** into a fresh
 operator-selected private directory outside Git.
 

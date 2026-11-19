@@ -145,7 +145,7 @@ Use `workspace.close` or the receipted lifecycle/reclaim tools. Never delete a w
 
 ### Cache deletion
 
-Use `ordivon-runtime-cache prune`. It protects current Workspace-scoped caches associated with open or active Workspaces, treats legacy source-scoped build caches as reconstructible reclaimable state because current execution never consumes them, and does not interpret package-manager global caches it does not own.
+For the current **Linux PostgreSQL Runtime**, do **not** invoke the SQLite Registry-backed `ordivon-runtime-cache prune`; it does not consume the live PostgreSQL Workspace/Job authority. The installed `ordivon-runtime-pg-reclaim` uses the native `workspace.get` / `workspace.close` contract to close only consumer-released Workspaces. If a Workspace must be retained but its rebuildable build cache is eligible for separate removal, use the existing **bounded, explicitly source-qualified** `ordivon-runtime-pg-buildcache-evict` operator only after verifying installed source, PG activity, native consumers and exact Workspace identity. Its default invocation is observational, not an authorization to sweep all Workspaces. The Linux lifecycle timer was observed disabled/inactive on 2026-11-19; do not infer automatic GC from this document. `ordivon-runtime-cache prune` remains a **legacy SQLite-only** operator that protects open/active Workspace-scoped caches and does not touch package-manager-owned shared caches.
 
 ### Instance retirement
 
