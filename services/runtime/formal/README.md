@@ -497,6 +497,72 @@ PG18 staging import remains VERIFIED_NON_AUTHORITY with promotion_allowed
 false. A real service cutover is not authorized by this model and must not
 run before independently authenticated downstream obligations are satisfied.
 
+## R56: original Run issuer revoke after native caller crash
+
+**Business consumer:** a Coding/Research Agent may revoke a Harness Tool Job
+before it has actually launched. DISPATCH_ISSUED in PostgreSQL is *not* an OS
+launch completion witness. The source runtime/pg_runtime/reconciliation.rs
+commits the PG dispatch event before calling platform::systemd_run. A submitter
+can crash or become unreachable after beginning an asynchronous systemd
+manager handoff, while the target Unit has not yet appeared in a readback.
+The manager may still create the Unit and start the target after revocation.
+A Unit-not-found snapshot, PID lookup, and PostgreSQL revoke COMMIT cannot
+establish NoFutureSpawn.
+
+**Thought / logic / capability split:** invert a seemingly successful
+revocation into a late physical effect. Correct logical finalization requires
+original issuer epoch fenced, and for each issued native caller either a
+certified fence *before* native handoff or a definitively settled native
+manager handoff with exact Unit stop, manager job drained and physical quiet.
+The original recipient bytes must then be accepted by their Domain owner.
+This is ACK after native evidence, not a new SQL ACL or second Registry.
+The capability owners remain the original PG Attempt, native systemd Manager
+and cgroup, and the original Harness recipient.
+
+The existing IssuerRevokeEpochR1 two-Attempt TLA model is refined with
+nativeHandoffPending, crashedCallers and CrashNativeCaller. A caller that
+crashes after entering the native manager handoff does not erase its pending
+delivery, even when the Unit currently appears absent. NativeUnitBirth may
+follow; the model never interprets a crashed caller as a safely blocked
+unstarted launcher. The normal finite model checks
+AckRequiresNoHandoffPending in addition to its previous invariants.
+
+Run the SHA-locked upstream checker:
+  scripts/tla-formal check-issuer-revoke-epoch
+  scripts/tla-formal falsify-issuer-revoke-epoch
+
+An independent operator-OPT-IN physical systemd regression is available:
+  ORDIVON_RUN_NATIVE_ISSUER_HANDOFF_TEST=1 python3 -m unittest discover -s scripts/tests -p test_issuer_native_handoff.py -v
+
+It starts only two UUID-scoped disposable transient Units: a delayed one-shot
+barrier and a target that depends on the barrier. After both systemd-run
+submitting processes have exited, the original systemd Manager owns a queued
+start Job while the target has produced no output. Releasing the barrier
+causes the target to run and create its original output. The test cleans only
+its own exact Units. It verifies a delayed manager start beyond caller
+lifetime, not the narrower absence-of-any-Unit/PG COMMIT race; do not confuse
+these proof boundaries.
+
+Positive TLC probes demonstrate a legitimate crash, later native delivery,
+Stop/Quiet, then ACK. The deliberately unsafe recovery
+UnsafeCrashUnitAbsentMeansFenced must produce TLC's named NoSpawnAfterAck
+violation after a later native Unit birth and target start. It is not
+sufficient to receive a parser error or generic nonzero exit. Existing
+single-of-two premature ACK and pre-Unit late start counterexamples remain.
+
+**SOURCE/MODEL boundary:** this checks a finite abstract two-Attempt protocol;
+the current Rust Native Runtime has not yet implemented a certified native
+manager handoff/abort/settlement witness or original Run-wide NoFutureSpawn
+ACK. No Rust-to-TLA refinement or installed Domain acceptance is claimed.
+An UNKNOWN crashed launch cannot be converted to safe by elapsed time, PG
+locks, systemctl-not-found or an alternative Bearer. Production Finalizer
+integration remains Q1 until original OS/Domain consumers pass positive and
+negative verification. See official
+[Kubernetes finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/)
+for separation of deletion intent from controller ACK, and
+[Temporal Activity execution](https://docs.temporal.io/activity-execution)
+for durable outcome handling; neither makes OS startup atomic with PG.
+
 ## Formal-first replacement ladder: native cancellation → PG reservation
 
 **Specification / invariant (owner):** for a committed, exact Attempt, native process quiescence is a necessary condition to release a cancellation-held reservation without a Runner result. An unqualified physical observation must never release capacity, and absence of a Result must never be interpreted as an external effect succeeding.
