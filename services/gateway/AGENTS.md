@@ -49,16 +49,26 @@ Keep SPECIFIED, MODEL_VERIFIED, BOUNDED_IMPLEMENTATION_CHECKED,
 SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED as distinct facts;
 unexecuted or unqualified stages are UNKNOWN.
 
-## Fail-closed Host preflight: independent diagnosis is not release proof
+## Production change classification: same route is not Host cutover
 
-When the production preflight cannot read Security's service-private policy
-credential, it remains NO_GO with the original unobservable reason. Its
-additional independentHostReadinessObservations are bounded, read-only Host
-route/anonymous/peer/socket probes and never transmit a bearer in that branch.
-A missing positive Host credential proof is not a claim that the token file
-does not exist; a failed probe is UNKNOWN and a momentarily empty socket view
-does not prove Cloudflare migration. Use this result to coordinate with the
-natural Security, Host and Network owners, never to bypass AuthZEN.
+In production the original install_release.sh first proves whether the exact
+installed and prepared SourceCuts qualify for an **unchanged-authority software
+upgrade**, with packaging/check_same_route_admission.py. That source/consumer
+check requires identical ingress/AuthZEN/PEP bytes, bounded equivalence of
+private Owner credential handling and MCP composition, live same-configured
+Owner routes, actual candidate Host SDK read and local/public anonymous-denial
+canaries. No caller flag may request this classification. It does not grant
+authorization; a working authenticated Agent and post-restart canary/rollback
+remain independent.
+
+When code, live route, ingress, credential policy or observation changes,
+UNKNOWN is not A: the original check_live_host_admission.py still applies
+the full **Host/Cloudflare/Security cutover** conditions and its current
+NO_GO. Security's service-private LoadCredential is not a Gateway policy
+readback API. Independent Host/socket observations never transmit a bearer in
+the unavailable branch, and an empty TCP snapshot does not prove migration.
+Keep natural Security, Host, Network and Cloudflare consumers authoritative.
+See docs/HOST_DIRECT_CONSUMER_GATE_R7.md for exact A/B evidence and rollback.
 
 ## HTTP Security PEP and actual CLI wiring
 
