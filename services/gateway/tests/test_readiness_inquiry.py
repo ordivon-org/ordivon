@@ -156,6 +156,55 @@ def test_artifact_multi_owner_keeps_success_and_unknown_on_separate_facets() -> 
     assert all(row[1] == "runtime.describe" for row in owners.calls)
 
 
+def test_invalid_runtime_wire_version_blocks_status_positive_everywhere() -> None:
+    response = runtime("local_linux")
+    response["schemaVersion"] = "1"  # truthy string is NOT a versioned status contract
+    owners = Owners({"runtime.linux": response})
+    execution = asyncio.run(GatewayService(owners).capability_inquire(capability="execution.linux"))
+    aggregate = asyncio.run(
+        GatewayService(owners).capability_inquire(capability="artifact.runtime")
+    )
+    assert execution.readiness_state == "unknown"
+    assert aggregate.readiness_state == "unknown"
+    assert facts(execution)["runtime.linux", "owner.status_envelope_valid"] == "invalid"
+    assert facts(aggregate)["runtime.linux", "owner.status_envelope_valid"] == "invalid"
+    assert any(
+        check.direction == "reverse" and check.action == "runtime.describe"
+        for check in execution.inquiry.next_checks
+    )
+    assert any("owner.status_envelope_valid" in q for q in execution.inquiry.unresolved_questions)
+
+
+def test_malformed_unrelated_target_blocks_execution_and_aggregate_positives() -> None:
+    response = runtime("local_linux")
+    response["targets"].append({"target": "other_target", "configured": "TRUE", "available": True})
+    owners = Owners({"runtime.linux": response})
+    execution = asyncio.run(GatewayService(owners).capability_inquire(capability="execution.linux"))
+    aggregate = asyncio.run(
+        GatewayService(owners).capability_inquire(capability="artifact.runtime")
+    )
+    assert execution.readiness_state == "unknown"
+    assert aggregate.readiness_state == "unknown"
+    assert facts(execution)["runtime.linux", "owner.target_inventory_consistent"] == "invalid"
+    assert facts(aggregate)["runtime.linux", "owner.target_inventory_consistent"] == "invalid"
+    assert facts(aggregate)["runtime.dynamic", "owner.any_runtime_target_ready"] == "unobserved"
+
+
+def test_duplicate_unrelated_target_identity_blocks_execution_positive() -> None:
+    response = runtime("local_linux")
+    response["targets"].extend(
+        [
+            {"target": "second_target", "configured": True, "available": True},
+            {"target": "second_target", "configured": False, "available": False},
+        ]
+    )
+    owners = Owners({"runtime.linux": response})
+    result = asyncio.run(GatewayService(owners).capability_inquire(capability="execution.linux"))
+    assert result.readiness_state == "unknown"
+    assert facts(result)["runtime.linux", "owner.target_inventory_consistent"] == "invalid"
+    assert facts(result)["runtime.linux", "owner.target_identity_unique"] == "contradictory"
+
+
 def test_duplicate_runtime_target_does_not_make_artifact_aggregate_ready() -> None:
     duplicate = runtime("local_linux")
     duplicate["targets"].append(dict(duplicate["targets"][0]))

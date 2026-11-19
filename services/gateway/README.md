@@ -87,6 +87,12 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   AuthZEN denial for that principal. Missing/invalid JWT and local Harness
   service identities keep their prior restrictions. See
   docs/TRUSTED_CF_OPERATOR_R34_LIVE_REPAIR.md.
+- **Semantic evidence refinement**:
+  capability.inquire separates actual readiness predicate changes from raw
+  Owner response changes not yet classified. Every unobserved/invalid
+  proposition stays visible as a question. Execution, Artifact and Inquiry
+  share strict v1 Runtime status validation.
+  See docs/READINESS_SEMANTIC_EVIDENCE_R35.md.
 - **Explicit read-only evidence confirmation**:
   capability.inquire(capability, verifyReadOnly=true) performs one additional
   bounded Owner status observation, then returns original and latest facts,

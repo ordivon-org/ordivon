@@ -96,9 +96,16 @@ def test_raw_owner_json_witness_changes_even_when_legacy_projection_is_identical
     result = probe(GatewayService(owners), "execution.linux", confirm=True)
     verified = result.verification
     assert verified is not None
-    assert verified.verdict == "changed_observation"
+    assert verified.verdict == "same_owner_observation_stable"
     assert verified.initial_projection_digest == verified.latest_projection_digest
     assert verified.fact_changes == []
+    assert any(
+        f.predicate == "gateway.raw_owner_payload_changed"
+        and f.state == "supported"
+        and f.source == "gateway.two_owner_status_sha256_witnesses"
+        for f in result.inquiry.facts
+    )
+    assert any("raw Owner status JSON differs" in q for q in result.inquiry.unresolved_questions)
     receipt = verified.receipts[0]
     assert receipt.first_payload_digest != receipt.latest_payload_digest
     assert receipt.first_payload_digest.startswith("sha256:")
@@ -108,6 +115,33 @@ def test_raw_owner_json_witness_changes_even_when_legacy_projection_is_identical
     assert "changed-internal-tag" not in payload
     assert result.inquiry.observations[0].payload_digest == receipt.latest_payload_digest
     assert verified.initial_inquiry.observations[0].payload_digest == receipt.first_payload_digest
+
+
+def test_owner_timestamp_only_drift_is_not_relabelled_as_capability_regression() -> None:
+    first = runtime("local_linux")
+    latest = runtime("local_linux")
+    first["observedAtMs"] = 100
+    latest["observedAtMs"] = 101
+    owners = SequencedOwners({"runtime.linux": [first, latest]})
+    result = probe(GatewayService(owners), "execution.linux", confirm=True)
+    assert result.readiness_state == "ready"
+    verified = result.verification
+    assert verified is not None
+    assert verified.verdict == "same_owner_observation_stable"
+    assert verified.fact_changes == []
+    assert any(
+        f.predicate == "gateway.raw_owner_payload_changed" and f.state == "supported"
+        for f in result.inquiry.facts
+    )
+    assert any("cause/impact are unclassified" in q for q in result.inquiry.unresolved_questions)
+    assert any(
+        f.predicate == "owner.physical_job_spawned" and f.state == "unobserved"
+        for f in result.inquiry.facts
+    )
+    assert any(
+        "owner.physical_job_spawned" in question for question in result.inquiry.unresolved_questions
+    )
+    assert len(owners.calls) == 2
 
 
 def test_two_timeouts_are_unresolved_not_certified_offline() -> None:
@@ -218,6 +252,10 @@ def test_host_recheck_is_status_only_and_never_claims_work_authorized() -> None:
     assert result.verification is not None
     assert result.verification.receipts[0].action == "host.status"
     assert owners.calls == [("host", "host.status", {"detail": "summary"})] * 2
+    assert any(
+        "host.specific_work_read_authorized" in question
+        for question in result.inquiry.unresolved_questions
+    )
     assert any(
         row.predicate == "host.specific_work_read_authorized" and row.state == "unobserved"
         for row in result.inquiry.facts

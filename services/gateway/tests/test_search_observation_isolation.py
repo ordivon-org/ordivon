@@ -27,6 +27,7 @@ class ProbingCaller:
         if owner == "host":
             return {"schemaVersion": 3, "kind": "ordivon.host-status"}
         return {
+            "schemaVersion": 1,
             "node": {"nodeId": owner},
             "targets": [
                 {

@@ -26,8 +26,13 @@ from ..logic.capability_projection import (
 from ..logic.execution_refs import GatewayError
 from ..logic.host_tool_contracts import host_read_transport_route
 from ..logic.owner_protocol import OwnerToolCaller, _configuration_error, _configured
-from ..logic.readiness_confirmation import compare_readiness_observations, status_probe_owners
-from ..logic.readiness_inquiry import project_readiness_inquiry, valid_runtime_target_inventory
+from ..logic.readiness_confirmation import (
+    annotate_unclassified_payload_drift,
+    compare_readiness_observations,
+    status_probe_owners,
+)
+from ..logic.readiness_inquiry import project_readiness_inquiry
+from ..logic.runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
 from .research import resolve_research_capability
 
 _OWNER_ROLES = {
@@ -288,6 +293,9 @@ class CapabilityCatalog:
                         else None
                     )
                     targets = result.get("targets")
+                    if not valid_runtime_status_envelope(result):
+                        errors.append(f"{owner_id}: invalid versioned Runtime status envelope")
+                        continue
                     # An ill-typed or contradictory Owner projection is UNKNOWN.
                     # Never promote truthy strings or integers into Runtime truth.
                     if not valid_runtime_target_inventory(targets):
@@ -433,14 +441,16 @@ class CapabilityCatalog:
         # Never retry a submission, receipt, Artifact read, Host write or
         # policy grant: only the existing read-only describe/status observation.
         latest = await once()
+        verification = compare_readiness_observations(
+            category=route.category,
+            owner_id=route.owner_id,
+            initial=initial,
+            latest=latest,
+        )
         return latest.model_copy(
             update={
-                "verification": compare_readiness_observations(
-                    category=route.category,
-                    owner_id=route.owner_id,
-                    initial=initial,
-                    latest=latest,
-                )
+                "verification": verification,
+                "inquiry": annotate_unclassified_payload_drift(latest.inquiry, verification),
             }
         )
 

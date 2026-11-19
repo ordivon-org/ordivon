@@ -114,6 +114,8 @@ def compare_readiness_observations(
         # Capture the actual second status round without turning the receipt
         # into a pretense of a signed certificate or an execution result.
         outcome = _probe_result(latest.inquiry, category, current_owner)
+        before_digest = _witness_digest(initial.inquiry, current_owner)
+        after_digest = _witness_digest(latest.inquiry, current_owner)
         receipts.append(
             ReadinessProbeReceipt(
                 owner_id=current_owner,
@@ -128,24 +130,23 @@ def compare_readiness_observations(
                     "not_executed" if outcome == "skipped_unconfigured" else "attempted_read_only"
                 ),
                 evidence_source="same_owner_status_second_observation",
-                first_payload_digest=_witness_digest(initial.inquiry, current_owner),
-                latest_payload_digest=_witness_digest(latest.inquiry, current_owner),
+                first_payload_digest=before_digest,
+                latest_payload_digest=after_digest,
             )
         )
 
     if not receipts or all(row.execution_state == "not_executed" for row in receipts):
         verdict = "no_qualified_probe"
-    elif (
-        changes
-        or initial.readiness_state != latest.readiness_state
-        or any(
-            receipt.first_payload_digest != receipt.latest_payload_digest for receipt in receipts
-        )
-    ):
+    elif changes or initial.readiness_state != latest.readiness_state:
+        # Only a *represented* change supports a changed readiness assertion.
         verdict = "changed_observation"
     elif any(row.outcome != "result_observed" for row in receipts):
+        # Two failures are not a stable state of the natural Owner.
         verdict = "still_unresolved"
     else:
+        # The REPRESENTED STATUS PREDICATES stayed stable. Raw Owner bytes
+        # may still have changed; the exact digest witnesses must be
+        # inspected separately and the cause preserved as an open question.
         verdict = "same_owner_observation_stable"
     return ReadinessVerification(
         method="one_explicit_bounded_reobservation",
@@ -157,3 +158,38 @@ def compare_readiness_observations(
         fact_changes=changes,
         verdict=verdict,  # type: ignore[arg-type]
     )
+
+
+def annotate_unclassified_payload_drift(
+    inquiry: ReadinessInquiry,
+    verification: ReadinessVerification,
+) -> ReadinessInquiry:
+    """Expose raw-only drift as a Gateway-derived fact, without ABI changes.
+
+    Never claim the natural Owner's capabilities changed merely because its
+    JSON changed. A missing digest is UNKNOWN, never a synthetic match.
+    The annotation belongs to the SECOND inquiry only, not the Owner's
+    originally observed target inventory or a forged first receipt.
+    """
+    if verification.verdict != "same_owner_observation_stable":
+        return inquiry
+    facts = list(inquiry.facts)
+    unresolved = list(inquiry.unresolved_questions)
+    for receipt in verification.receipts:
+        before, after = receipt.first_payload_digest, receipt.latest_payload_digest
+        if before is None or after is None or before == after:
+            continue
+        facts.append(
+            ReadinessFact(
+                owner_id=receipt.owner_id,
+                predicate="gateway.raw_owner_payload_changed",
+                state="supported",
+                source="gateway.two_owner_status_sha256_witnesses",
+            )
+        )
+        unresolved.append(
+            f"{receipt.owner_id}: raw Owner status JSON differs between two "
+            "valid reads; represented predicates are unchanged, so its "
+            "cause/impact are unclassified and require native Owner diagnosis"
+        )
+    return inquiry.model_copy(update={"facts": facts, "unresolved_questions": unresolved})
