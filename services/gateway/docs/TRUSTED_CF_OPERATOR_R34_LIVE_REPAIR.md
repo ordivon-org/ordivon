@@ -80,3 +80,34 @@ This update changes package version to 0.10.18, keeps surfaceEpoch17,
 42 tools and the exact same MCP SDK input/output schemas as 0.10.17.
 The original 41 Tool schemas remain the same as 0.10.15.
 Source tests and actual installed client readback are independent facts.
+
+## Second real production counterexample and exact transport fix
+
+A 0.10.18 candidate with explicitly enabled Cloudflare trusted operator was
+installed and passed process start, health, anonymous ingress denial, and
+Linux/Windows discovery. The actual authenticated ChatGPT Gateway host.status
+call no longer failed AuthZEN; instead it returned
+"owner authentication is not configured: host". This was another genuine
+integration failure. The candidate and temporary systemd operator drop-in
+were rolled back and the old 0.10.12 Host path verified healthy.
+
+The source root cause is transport/upstream.py: all Host routes had been
+grouped with protected Runtime/Skills endpoints and required a machine bearer.
+The original live Host owner uses the exact local
+http://127.0.0.1:8898/mcp endpoint with its existing loopback transport
+boundary, and no additional bearer. The legacy client had always used this
+local path.
+
+Only the exact original HTTP loopback Host URL, port 8898, path /mcp,
+without userinfo/query/fragment, is eligible for a machine-bearer-free
+connection. The optional host.read alias (protected Host port 19008),
+all nonlocal Host URLs, and all Runtime/Skills endpoints retain original
+required machine identities. Real Cloudflare operator JWT ingress and
+Security's explicit trust mode are still required to reach these business
+tools remotely. This is not an anonymous Internet MCP endpoint.
+
+The corrected source release is version 0.10.19 with the SAME 42 MCP
+Tool schemas and the SAME surfaceEpoch17; the exact local Host exception
+is a transport behavior compatibility fix. Negative tests cover remote
+Host, wrong port, wrong path, HTTPS, URL credentials and query/fragment.
+Actual post-install Host read/write must still be proved independently.
