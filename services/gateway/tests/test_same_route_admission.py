@@ -73,6 +73,7 @@ def test_changed_or_symlinked_security_source_does_not_qualify(
         _release(tmp_path, "old", rel, "same protected source\n")
         _release(tmp_path, "new", rel, "same protected source\n")
     old, new = tmp_path / "old", tmp_path / "new"
+    monkeypatch.setattr(qualifier, "_same_package_release_contract", lambda *_: True)
     monkeypatch.setattr(qualifier, "_same_security_package", lambda *_: True)
     monkeypatch.setattr(qualifier, "_same_owner_credentials", lambda *_: True)
     monkeypatch.setattr(qualifier, "_same_mcp_composition", lambda *_: True)
@@ -221,6 +222,53 @@ def test_release_source_parent_symlink_does_not_masquerade_as_immutable_source(
         qualifier._safe_regular(root, "alias/policy.py")
 
 
+def test_dep_lock_toolchain_and_old_security_release_checker_cannot_change(
+    qualifier: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for rel in qualifier.STABLE_SECURITY_SOURCE:
+        _release(tmp_path, "old", rel, "unchanged\n")
+        _release(tmp_path, "new", rel, "unchanged\n")
+    for branch in ("old", "new"):
+        _release(
+            tmp_path,
+            branch,
+            "pyproject.toml",
+            '[project]\nname = "ordivon-gateway"\nversion = "0.10.20"\n',
+        )
+        _release(
+            tmp_path,
+            branch,
+            "uv.lock",
+            'version = 1\n\n[[package]]\nname = "ordivon-gateway"\nversion = "0.10.20"\n',
+        )
+    old, new = tmp_path / "old", tmp_path / "new"
+    monkeypatch.setattr(qualifier, "_same_security_package", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_owner_credentials", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_mcp_composition", lambda *_: True)
+    assert qualifier.source_same_route(old, new)
+
+    for relative in (".python-version", "packaging/check_live_host_admission.py"):
+        original = new / relative
+        original.write_text("untrusted new version or security checker\n")
+        assert not qualifier.source_same_route(old, new), relative
+        original.write_text("unchanged\n")
+
+    project = new / "pyproject.toml"
+    lock = new / "uv.lock"
+    project.write_text(project.read_text().replace("0.10.20", "0.10.21"))
+    assert not qualifier._same_package_release_contract(old, new)  # mismatched lock
+    lock.write_text(lock.read_text().replace("0.10.20", "0.10.21"))
+    assert qualifier.source_same_route(old, new)  # only version metadata advanced
+    lock.write_text(lock.read_text() + '\n[[package]]\nname = "rogue"\nversion = "1.0.0"\n')
+    assert not qualifier.source_same_route(old, new)  # different dependency graph
+    lock.write_text(
+        lock.read_text().replace('\n[[package]]\nname = "rogue"\nversion = "1.0.0"\n', "")
+    )
+    project.write_text(project.read_text().replace("0.10.21", "0.10.19"))
+    lock.write_text(lock.read_text().replace("0.10.21", "0.10.19"))
+    assert not qualifier.source_same_route(old, new)  # version downgrade
+
+
 def test_install_release_accepts_only_native_derived_same_route_or_original_cutover() -> None:
     source = INSTALL.read_text(encoding="utf-8")
     assert "check_same_route_admission.py" in source
@@ -232,3 +280,5 @@ def test_install_release_accepts_only_native_derived_same_route_or_original_cuto
         "check_live_host_admission.py"
     )
     assert source.index("check_live_host_admission.py") < source.index('ln -sfn "releases/$COMMIT"')
+    assert "runtime_process_restarted=false" in source
+    assert "post_promotion_agent_consumer_verified=false" in source

@@ -181,3 +181,8 @@ mv -Tf "$PREFIX/current.next" "$PREFIX/current"
 
 printf 'installed_release=%s\n' "$COMMIT"
 printf 'release_dir=%s\n' "$RELEASE"
+# Symlink promotion alone does not restart the Gateway or certify that an
+# authenticated Agent has consumed the new SourceCut. Operational rollout must
+# restart, verify running PID/cwd and Gateway Tool behavior, and rollback on loss.
+printf 'runtime_process_restarted=false\n'
+printf 'post_promotion_agent_consumer_verified=false\n'

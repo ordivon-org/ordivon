@@ -14,6 +14,7 @@ import ast
 import http.client
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -33,7 +34,10 @@ KNOWN_AUTHZEN_ENDPOINT = "https://127.0.0.1:18787/access/v1/evaluation"
 # The owner-credential helpers and composition root have their own exact AST
 # equivalence checks below because R36 moved them without changing authority.
 STABLE_SECURITY_SOURCE = (
-    "pyproject.toml",
+    ".python-version",
+    "packaging/verify_tool_surface.py",
+    "packaging/windows/verify_release.py",
+    "packaging/check_live_host_admission.py",
     "src/ordivon_gateway/__init__.py",
     "src/ordivon_gateway/service.py",
     "src/ordivon_gateway/contracts.py",
@@ -258,12 +262,49 @@ def _same_security_package(installed: Path, candidate: Path) -> bool:
     return old_facade == new_facade
 
 
+def _same_package_release_contract(installed: Path, candidate: Path) -> bool:
+    """Allow package version maintenance, not an unreviewed dependency change.
+
+    Every byte of pyproject.toml and uv.lock except the exact editable
+    ordivon-gateway project version must remain unchanged. Python interpreter,
+    native SDK, and published Tool ABI are fenced by the original installer.
+    """
+    versions = []
+    projected = []
+    project_pattern = re.compile(
+        r'(?m)^version = "((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))"$'
+    )
+    lock_pattern = re.compile(
+        r'(?m)^\[\[package\]\]\nname = "ordivon-gateway"\n'
+        r'version = "((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))"$'
+    )
+    for root in (installed, candidate):
+        project = _safe_regular(root, "pyproject.toml").read_text(encoding="utf-8")
+        lock = _safe_regular(root, "uv.lock").read_text(encoding="utf-8")
+        projects = list(project_pattern.finditer(project))
+        locks = list(lock_pattern.finditer(lock))
+        if len(projects) != 1 or len(locks) != 1:
+            return False
+        version = projects[0].group(1)
+        if version != locks[0].group(1):
+            return False
+        versions.append(tuple(map(int, version.split("."))))
+        projected.append(
+            (
+                project[: projects[0].start(1)] + "<version>" + project[projects[0].end(1) :],
+                lock[: locks[0].start(1)] + "<version>" + lock[locks[0].end(1) :],
+            )
+        )
+    return projected[0] == projected[1] and versions[1] >= versions[0]
+
+
 def source_same_route(installed: Path, candidate: Path) -> bool:
     """Native SDK full public ABI is additionally verified by install_release.sh."""
     if not all(_source_equal(installed, candidate, rel) for rel in STABLE_SECURITY_SOURCE):
         return False
     return (
-        _same_security_package(installed, candidate)
+        _same_package_release_contract(installed, candidate)
+        and _same_security_package(installed, candidate)
         and _same_owner_credentials(installed, candidate)
         and _same_mcp_composition(installed, candidate)
     )

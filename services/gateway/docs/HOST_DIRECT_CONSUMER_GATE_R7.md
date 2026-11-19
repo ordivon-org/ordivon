@@ -18,6 +18,9 @@ a caller-supplied skip flag:
 
 - **A / same route + same authority:** compare immutable current/candidate
   public MCP ABI with the native SDK, unchanged ingress/AuthZEN/PEP source,
+  identical resolved dependency-lock/build and Python-toolchain configuration
+  (allow only the same editable package's nondecreasing release version
+  metadata to change, not any new transitive dependency or CLI entrypoint),
   unchanged private-credential reader and Host loopback semantics, exact
   composition-root AST, installed active systemd PID/SourceCut and equal
   configured Owner URL/credential-class/mode. Require one real candidate-to-
