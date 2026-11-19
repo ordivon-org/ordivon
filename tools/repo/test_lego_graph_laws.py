@@ -2463,7 +2463,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
             isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
             and node.func.id == registration
             and [arg.id if isinstance(arg, ast.Name) else None for arg in node.args]
-            == ["server", "_host"]
+            == (["server", "_host", "project_error"] if owner == "work" else ["server", "_host"])
             for node in ast.walk(gateway_register)
         ), f"Gateway {owner} adapter not registered"
     actual_gateway = _mcp_decorated_route_functions(
@@ -2471,7 +2471,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
         source_override=gateway_text)
     # Bind real registrar composition to the northbound entry point, not
     # detached source declarations that happen to mention tool names.
-    assert "register_host_tools(server, gateway, _owner_boundary)" in (
+    assert "register_host_tools(server, gateway, _owner_boundary, _owner_error_result)" in (
         ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py"
     ).read_text()
     dispatches = {
