@@ -25,6 +25,9 @@ struct Fixture {
     host_visible_test_runner: bool,
     /// Opt in only for disposable Harness-issuer dispatch tests.
     harness_dispatch_test: bool,
+    /// Permit only the original Run's native Runtime Workspace Claim. There
+    /// is intentionally no foreign Harness Schema or issuer SQL function.
+    claim_only_profile: bool,
     harness_schema_override: Option<String>,
 }
 impl Fixture {
@@ -155,6 +158,7 @@ impl Fixture {
             db,
             host_visible_test_runner: false,
             harness_dispatch_test: false,
+            claim_only_profile: false,
             harness_schema_override: None,
         }
     }
@@ -228,19 +232,25 @@ impl Fixture {
             .env("ORDIVON_PG_PRINCIPAL", principal)
             .stdout(Stdio::null())
             .stderr(output);
-        if self.harness_dispatch_test {
+        if self.harness_dispatch_test || self.claim_only_profile {
             let token_file = self.root.join("r16-dedicated-harness-token");
             fs::write(&token_file, "h".repeat(48)).unwrap();
             fs::set_permissions(&token_file, fs::Permissions::from_mode(0o600)).unwrap();
             endpoint
-                .env(
+                .env("ORDIVON_PG_HARNESS_TOKEN_FILE", token_file)
+                .env("ORDIVON_PG_HARNESS_PRINCIPAL", "harness-dispatch-r16");
+            if self.harness_dispatch_test {
+                endpoint.env(
                     "ORDIVON_PG_HARNESS_ISSUER_SCHEMA",
                     self.harness_schema_override
                         .as_deref()
                         .unwrap_or("r16_issuer"),
-                )
-                .env("ORDIVON_PG_HARNESS_TOKEN_FILE", token_file)
-                .env("ORDIVON_PG_HARNESS_PRINCIPAL", "harness-dispatch-r16");
+                );
+            } else {
+                // The explicit opposite of original Harness JobIssuer mode:
+                // only Release/Reserve/GET, no cross-database issuer fixture.
+                endpoint.env_remove("ORDIVON_PG_HARNESS_ISSUER_SCHEMA");
+            }
         }
         if qualified_release {
             let source = self.root.join("release-source");
@@ -5048,6 +5058,163 @@ fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16,
         };
         (status, message["result"].clone())
     })
+}
+
+#[test]
+#[ignore = "real disposable PostgreSQL18, native PG MCP, dedicated Claim finalizer bearer"]
+fn pg18_claim_finalizer_only_ingress_boots_without_foreign_harness_schema() {
+    let mut fixture = Fixture::new();
+    fixture.claim_only_profile = true;
+    let repo = fixture.repo();
+    let id = Uuid::now_v7().simple().to_string();
+    let workspace_id = format!("r52-claimonly-{id}");
+    let request_id = format!("request:r52-claimonly-{id}");
+    let run_ref = format!("harness-run:r52-claimonly-{id}");
+    let issuer_functions: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM pg_proc WHERE proname='harness_current_dispatch_cut'",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        issuer_functions, 0,
+        "no foreign Harness issuer must be present"
+    );
+
+    let ordinary = fixture.endpoint();
+    let dedicated = ordinary.replacen("/mcp", "/harness/mcp", 1);
+    let opened = call(
+        &ordinary,
+        "workspace.open",
+        json!({
+            "workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD",
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let workspace = call(
+        &ordinary,
+        "workspace.get",
+        json!({"workspaceId":workspace_id}),
+    );
+    assert_ne!(workspace["isError"], true, "{workspace}");
+    let original_source_digest = workspace["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .expect("native Git original source digest")
+        .to_owned();
+
+    let (wrong_bearer, _) = r16_dedicated_call(
+        &dedicated,
+        &"p".repeat(32),
+        "workspace.claim.get",
+        json!({"clientRequestId":request_id}),
+    );
+    assert_eq!(wrong_bearer, 401);
+
+    let (reserve_http, reserve) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.reserve",
+        json!({
+            "schemaVersion":1,"workspaceId":workspace_id,
+            "clientRequestId":request_id,"runRef":run_ref,
+            "expectedSourceStateDigest":original_source_digest
+        }),
+    );
+    assert_eq!(reserve_http, 200, "{reserve}");
+    assert_ne!(reserve["isError"], true, "{reserve}");
+    assert_eq!(reserve["structuredContent"]["state"], "held");
+    let claim_id = reserve["structuredContent"]["claimId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let key = json!({"schemaVersion":1,"clientRequestId":request_id});
+
+    // Dedicated token only carries original Claim ownership, not Runtime Job
+    // execution, Workspace closure, or Root release authority. Both raw calls
+    // are denied BEFORE any PG side effect, independent of advertised tools.
+    for (tool, arguments) in [
+        ("workspace.exec", json!({})),
+        (
+            "workspace.close",
+            json!({"workspaceId":workspace_id,"force":true}),
+        ),
+        ("release.apply", json!({})),
+    ] {
+        let (status, result) = r16_dedicated_call(&dedicated, &"h".repeat(48), tool, arguments);
+        assert_eq!(status, 200, "PG MCP protocol response: {result}");
+        assert_eq!(
+            result,
+            Value::Null,
+            "{tool} must be rejected as JSON-RPC error"
+        );
+    }
+    let active_jobs: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM jobs", &[])
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        active_jobs, 0,
+        "Claim-only Finalizer spawned or admitted a Job"
+    );
+    let held = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.get",
+        key.clone(),
+    );
+    assert_eq!(held.0, 200);
+    assert_eq!(held.1["structuredContent"]["state"], "held");
+    assert_eq!(held.1["structuredContent"]["claimId"], claim_id);
+
+    let denied_close = call(
+        &ordinary,
+        "workspace.close",
+        json!({
+            "workspaceId":workspace_id,"force":false,"consumerReleased":true,
+            "expectedSourceStateDigest":original_source_digest,
+        }),
+    );
+    assert_eq!(
+        denied_close["isError"], true,
+        "Claim HELD must block NativeClose"
+    );
+
+    // This verifies physical capability only. Real operation must additionally
+    // qualify Harness Run terminal + recipient ByteACK + native OS effects.
+    let (release_http, release) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.release",
+        key.clone(),
+    );
+    assert_eq!(release_http, 200);
+    assert_ne!(release["isError"], true, "{release}");
+    assert_eq!(release["structuredContent"]["state"], "released");
+    let (replay_http, replay) =
+        r16_dedicated_call(&dedicated, &"h".repeat(48), "workspace.claim.release", key);
+    assert_eq!(replay_http, 200);
+    assert_eq!(replay["structuredContent"]["claimId"], claim_id);
+
+    let closed = call(
+        &ordinary,
+        "workspace.close",
+        json!({
+            "workspaceId":workspace_id,"force":false,"consumerReleased":true,
+            "expectedSourceStateDigest":original_source_digest,
+        }),
+    );
+    assert_ne!(closed["isError"], true, "{closed}");
+    assert_eq!(closed["structuredContent"]["removed"], true);
+
+    eprintln!(
+        "R52_PG18_CLAIM_ONLY_PORT_NO_HARNESS_SCHEMA_PASS \
+         exact original PG Claim HELD/nonforce close DENIED; \
+         raw Job/Close/Root denied; finalizer own key release replay; \
+         original Workspace CAS Close only after release"
+    );
 }
 
 // A real native PG MCP scheduler/HTTP consumer, with only original Run source
