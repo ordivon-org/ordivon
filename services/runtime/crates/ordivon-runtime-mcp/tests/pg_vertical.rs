@@ -193,8 +193,7 @@ impl Fixture {
             match fs::symlink_metadata(&test_runner) {
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                     fs::copy(&runner, &test_runner).unwrap();
-                    fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755))
-                        .unwrap();
+                    fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755)).unwrap();
                 }
                 Ok(meta) if meta.file_type().is_file() => {
                     assert_eq!(
@@ -3167,11 +3166,17 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         "workspace.exec",
         json!({"clientRequestId":"pg-native-physical-0001","execution":{"workspaceId":"ws-physical","executable":"/usr/bin/printf","args":["native-proof"],"cwdRelative":".","timeoutMs":5000},"waitMs":10000}),
     );
-    assert_ne!(exec["isError"], true, "physical native launch required: {exec}");
+    assert_ne!(
+        exec["isError"], true,
+        "physical native launch required: {exec}"
+    );
     // Resource-aware PG admission can return STARTING while the current
     // physical Job is still queued. Observe the SAME committed Job rather
     // than redispatching a second external effect.
-    let admitted_id = exec["structuredContent"]["jobId"].as_str().unwrap().to_owned();
+    let admitted_id = exec["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
     for _ in 0..30 {
         if exec["structuredContent"]["executionTerminal"] == true {
             break;
@@ -3181,7 +3186,10 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
             "job.observe",
             json!({"jobId":admitted_id,"waitMs":1000,"stdoutTailBytes":256}),
         );
-        assert_ne!(exec["isError"], true, "existing PG Job observation failed: {exec}");
+        assert_ne!(
+            exec["isError"], true,
+            "existing PG Job observation failed: {exec}"
+        );
     }
     assert_eq!(
         exec["structuredContent"]["executionDisposition"], "succeeded",
@@ -3328,7 +3336,10 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         "artifact.read",
         json!({"jobId":completed_job,"artifactId":stderr_artifact["artifactId"],"offset":0,"maxBytes":100}),
     );
-    assert_ne!(still_empty_artifact["isError"], true, "{still_empty_artifact}");
+    assert_ne!(
+        still_empty_artifact["isError"], true,
+        "{still_empty_artifact}"
+    );
     assert_eq!(still_empty_artifact["structuredContent"]["content"], "");
     fs::write(&stderr_path, b"forged-stderr-after-terminal").unwrap();
     let forged_stderr = call(
