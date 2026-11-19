@@ -585,6 +585,213 @@ pub fn inspect_windows_pg_job_object(
     PgWindowsJobObjectState::Unknown
 }
 
+/// A live kernel-only completion gate for the original Windows Launcher.
+pub mod native_terminal_gate {
+    use super::{
+        PgWindowsJobObjectState, PgWindowsWitnessIdentity, PgWindowsWitnessObservation,
+        PgWindowsWitnessPhase,
+    };
+
+    /// A pipe identity is allowed to be derived only from an exact Attempt
+    /// already qualified by PostgreSQL. Never use caller-supplied arbitrary paths.
+    pub fn pipe_name(attempt: &str) -> Result<String, String> {
+        if attempt.is_empty()
+            || attempt.len() > 96
+            || !attempt
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+        {
+            return Err("unsafe Windows PG terminal Attempt identifier".into());
+        }
+        Ok(format!(r"\\.\pipe\Ordivon.WinPG.Terminal.{attempt}"))
+    }
+
+    #[cfg(windows)]
+    pub struct PgWindowsNativeTerminalGate {
+        pipe: windows_sys::Win32::Foundation::HANDLE,
+        job_id: String,
+    }
+
+    #[cfg(windows)]
+    impl Drop for PgWindowsNativeTerminalGate {
+        fn drop(&mut self) {
+            unsafe {
+                windows_sys::Win32::Foundation::CloseHandle(self.pipe);
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    impl PgWindowsNativeTerminalGate {
+        /// Call ONLY after the original PostgreSQL terminal/Artifact CAS
+        /// returned Committed or exact Existing. ACK is not an authorization.
+        pub fn ack_after_pg_terminal_commit(
+            self,
+            outcome: &crate::pg_admission::PgTerminalOutcome,
+        ) -> Result<(), String> {
+            use windows_sys::Win32::Storage::FileSystem::WriteFile;
+            let recorded = match outcome {
+                crate::pg_admission::PgTerminalOutcome::Committed(id)
+                | crate::pg_admission::PgTerminalOutcome::Existing(id) => id,
+            };
+            if recorded != &self.job_id {
+                return Err("native terminal gate PG commit owner mismatch".into());
+            }
+            let mut written = 0u32;
+            let ok = unsafe {
+                WriteFile(
+                    self.pipe,
+                    b"T".as_ptr(),
+                    1,
+                    &mut written,
+                    std::ptr::null_mut(),
+                )
+            };
+            if ok == 0 || written != 1 {
+                return Err(format!(
+                    "PG terminal ACK pipe write failed: {}",
+                    std::io::Error::last_os_error()
+                ));
+            }
+            Ok(())
+        }
+    }
+
+    /// Connect only while the ORIGINAL Launcher holds its Job Object handle.
+    /// Native pipe server PID/birth and Job accounting are read from Windows
+    /// kernel, not a target-authored JSON or hash. The caller must hold the
+    /// gate through the PG terminal+Artifact transaction and then ACK it.
+    ///
+    /// Missing gate -> None/UNKNOWN, never a synthetic terminal. A wrong
+    /// issuer or nonempty job causes an explicit error without ACK.
+    #[cfg(windows)]
+    pub fn connect_verified(
+        expected: &PgWindowsWitnessIdentity,
+        witness: &PgWindowsWitnessObservation,
+    ) -> Result<Option<PgWindowsNativeTerminalGate>, String> {
+        use windows_sys::Win32::Foundation::{
+            CloseHandle, GetLastError, FILETIME, INVALID_HANDLE_VALUE,
+        };
+        use windows_sys::Win32::Storage::FileSystem::{CreateFileW, OPEN_EXISTING};
+        use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
+        use windows_sys::Win32::System::Threading::{
+            GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+        };
+
+        if witness.phase != PgWindowsWitnessPhase::ResultWitnessPendingOsReconciliation
+            || witness.result_digest.is_none()
+            || witness.admitted_job_object_name != format!("Ordivon.{}", expected.attempt_id)
+        {
+            return Ok(None);
+        }
+        let (Some(pid), Some(birth)) = (
+            witness.launcher_process_id,
+            witness.launcher_creation_file_time,
+        ) else {
+            return Ok(None);
+        };
+        if pid == 0 || pid > u32::MAX as u64 || birth == 0 {
+            return Err("unqualified original launcher process identity".into());
+        }
+        let name = pipe_name(&expected.attempt_id)?;
+        let wide: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
+        // Generic read/write for a single bounded ACK, no sharing and no
+        // inheritable handle. The server only accepts the original PG parent.
+        let handle = unsafe {
+            CreateFileW(
+                wide.as_ptr(),
+                0x8000_0000 | 0x4000_0000,
+                0,
+                std::ptr::null(),
+                OPEN_EXISTING,
+                0,
+                std::ptr::null_mut(),
+            )
+        };
+        if handle == INVALID_HANDLE_VALUE {
+            let code = unsafe { GetLastError() };
+            if code == 2 || code == 231 {
+                // no server / busy: remain UNKNOWN
+                return Ok(None);
+            }
+            return Err(format!(
+                "PG terminal native pipe unavailable (Win32 {code})"
+            ));
+        }
+        let gate = PgWindowsNativeTerminalGate {
+            pipe: handle,
+            job_id: expected.job_id.clone(),
+        };
+        let mut native_pid = 0u32;
+        if unsafe { GetNamedPipeServerProcessId(handle, &mut native_pid) } == 0
+            || native_pid != pid as u32
+        {
+            return Err("PG terminal native pipe server is not the original Launcher".into());
+        }
+        const SYNCHRONIZE: u32 = 0x0010_0000;
+        let process = unsafe {
+            OpenProcess(
+                PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE,
+                0,
+                native_pid,
+            )
+        };
+        if process.is_null() {
+            return Err("PG terminal launcher process cannot be authenticated".into());
+        }
+        let blank = FILETIME {
+            dwLowDateTime: 0,
+            dwHighDateTime: 0,
+        };
+        let (mut created, mut exited, mut kernel, mut user) = (blank, blank, blank, blank);
+        let verified =
+            unsafe { GetProcessTimes(process, &mut created, &mut exited, &mut kernel, &mut user) };
+        unsafe {
+            CloseHandle(process);
+        }
+        let kernel_birth = ((created.dwHighDateTime as u64) << 32) | created.dwLowDateTime as u64;
+        if verified == 0 || kernel_birth != birth {
+            return Err(
+                "PG terminal native pipe Launcher birth differs from admitted Attempt".into(),
+            );
+        }
+        if super::inspect_windows_pg_job_object(witness) != PgWindowsJobObjectState::Empty {
+            return Err(
+                "PG terminal original Job Object lacks positive kernel Empty observation".into(),
+            );
+        }
+        // Return with the connection HELD. Dropping it without PG CAS does
+        // not send ACK; original Launcher times out and closes its Job handle.
+        Ok(Some(gate))
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        #[test]
+        fn native_terminal_pipe_does_not_allow_aliases_or_device_names() {
+            for rejected in [
+                "",
+                "../attempt",
+                "a/b",
+                "a\\b",
+                "a.b",
+                "a b",
+                "a\0b",
+                "a:b",
+                "🔒",
+                &"x".repeat(97),
+            ] {
+                assert!(pipe_name(rejected).is_err(), "{rejected:?}");
+            }
+            assert_eq!(
+                pipe_name("attempt-01a1").unwrap(),
+                r"\\.\pipe\Ordivon.WinPG.Terminal.attempt-01a1"
+            );
+        }
+    }
+}
+
 /// One bounded native diagnostic: create a unique empty Win32 Job Object,
 /// observe it using the identical read-only production query and close the
 /// handle. Never starts a child, changes service ACL or touches PostgreSQL.
