@@ -6116,6 +6116,30 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
+    // A normal Agent must discover exactly the profiles the same native PG
+    // Job/Attempt and systemd Runner actually admit. Source-only discovery
+    // is never mistaken for the installed node's advertisement.
+    let described = call(&endpoint, "runtime.describe", json!({}));
+    assert_ne!(
+        described["isError"], true,
+        "native Runtime describe: {described}"
+    );
+    let targets = described["structuredContent"]["targets"]
+        .as_array()
+        .expect("PG MCP runtime.describe.targets");
+    let linux = targets
+        .iter()
+        .find(|target| target["target"] == "local_linux")
+        .expect("original local_linux execution provider");
+    let profiles = linux["executionProfiles"]
+        .as_array()
+        .expect("original Linux executionProfiles");
+    for expected in ["trusted_local", "contained_local"] {
+        assert!(
+            profiles.iter().any(|profile| profile.as_str() == Some(expected)),
+            "Runtime advertised no {expected} though native PG provider should accept it: {described}"
+        );
+    }
     let opened = call(
         &endpoint,
         "workspace.open",

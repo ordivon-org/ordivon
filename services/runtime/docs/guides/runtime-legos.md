@@ -128,6 +128,45 @@ inter-Agent security guarantee. Keep automatic destructive GC on HOLD until
 that real control and original Domain evidence are qualified. A human-initiated
 explicit abandon flow must not be mislabeled as successful delivery.
 
+### PostgreSQL ordinary Agent execution: opt-in Native contained profile
+
+The original PG Runtime uses the SAME PostgreSQL Job/Attempt and Linux
+systemd Runner for both execution profiles. Default remains trusted_local,
+which is intended only for explicitly authorized high-control operation.
+On this source branch, local_linux also accepts explicitly selected
+contained_local, and runtime.describe advertises the source capability.
+This is NOT proof of an installed or granted production capability.
+
+Reuse the existing systemd ProtectSystem=strict, private mounts/network,
+NoNewPrivileges, zero capabilities, inaccessible /etc/ordivon and the
+existing original PostgreSQL Job/Attempt/Artifact journal. Runtime creates
+Workspace-owned private HOME, temp, build and package caches BEFORE durable
+PG dispatch, because systemd BindPaths cannot mount nonexistent sources.
+Cache subdirectories themselves are resolved through the existing
+no-follow native directory handles, preventing an original Agent from
+planting a symbolic link and turning a later root-owned bind into host
+path access. Caller-supplied cache mount roots (HOME/CARGO_TARGET_DIR/etc.)
+fail closed
+before any new Job admission, rather than re-exposing arbitrary host paths.
+
+The original Git Common Directory is bound READ-ONLY even for default-scope
+contained requests, so the actual worktree Git identity can be read, and
+a nested Workspace-owned Git repository can be created/committed. Direct
+commit into the shared original worktree is NOT qualified; its metadata is
+deliberately not made writable to a normal contained Agent. Original
+source commits require a separate consumer-qualified ownership effect.
+
+The opt-in true PostgreSQL18/native MCP E2E tests original Job launch and
+terminal Artifact bytes, checks boolean inability to read installed
+control-plane credentials and proc-root escape paths, and rejects hostile
+caller-selected cache mounts without any PG Job/Attempt side effect.
+Contained source uses UID0 within an isolated OS namespace: it is an
+accidental-access barrier, not malicious host-root isolation. Existing
+trusted_local remains an administrator-equivalent grant; a normal
+Coding/Research agent cannot be claimed isolated until original grants
+select contained_local and OS/native consumers are actually installed.
+Domain Run Completed/recipient ByteACK/native effect drain are distinct.
+
 ### Directory ownership after this source-only refactor
 
 This is an incremental reorganization inside the existing owner, not a
