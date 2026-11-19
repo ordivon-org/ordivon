@@ -5,6 +5,21 @@ from typing import Any, Protocol
 from .execution_refs import GatewayError
 
 
+class OwnerCallError(RuntimeError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        owner_id: str | None = None,
+        tool_name: str | None = None,
+        error: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.owner_id = owner_id
+        self.tool_name = tool_name
+        self.error = dict(error) if error is not None else None
+
+
 class OwnerToolCaller(Protocol):
     """Minimal natural-Owner MCP port; transport lives in upstream.py."""
 

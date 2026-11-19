@@ -11,9 +11,10 @@ import asyncio
 
 from mcp import Client
 
+from ordivon_gateway.logic.owner_protocol import OwnerCallError
 from ordivon_gateway.mcp_server import build_server
-from ordivon_gateway.security import OwnerCallError, owner_error_result
 from ordivon_gateway.service import GatewayService
+from ordivon_gateway.transport.owner_error_projection import owner_error_result
 
 HOST_CURSOR_ERROR = {
     "code": "CONFLICT",

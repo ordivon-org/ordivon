@@ -5,7 +5,6 @@ import hashlib
 import json
 from dataclasses import asdict
 from importlib.metadata import version as package_version
-from typing import Any
 
 from ..contracts import (
     CapabilityDescriptor,
@@ -33,6 +32,7 @@ from ..logic.readiness_confirmation import (
 )
 from ..logic.readiness_inquiry import project_readiness_inquiry
 from ..logic.runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
+from .owner_observation import OwnerStatusObserver
 from .research import resolve_research_capability
 
 _OWNER_ROLES = {
@@ -120,42 +120,9 @@ class CapabilityCatalog:
         # A search can restrict observations to matching routes before any I/O.
         # Normalize order independently from search ranking for stable digests.
         selected = sorted(selected, key=lambda route: route.capability)
-        runtime_cache: dict[str, tuple[dict[str, Any] | None, str | None]] = {}
-
-        async def observe_owner(
-            owner_id: str, tool_name: str, arguments: dict[str, Any]
-        ) -> tuple[dict[str, Any] | None, str | None]:
-            # Read-only observation timeout => UNKNOWN owner readiness.
-            # No invented unavailable truth and no cross-request cache.
-            started = asyncio.get_running_loop().time()
-            try:
-                async with asyncio.timeout(self._projection_timeout_seconds):
-                    result = await self._caller.call_tool(owner_id, tool_name, arguments)
-                return result, None
-            except TimeoutError:
-                elapsed_ms = int((asyncio.get_running_loop().time() - started) * 1000)
-                return (
-                    None,
-                    f"TimeoutError: observation {owner_id}/{tool_name} timed out "
-                    f"after {elapsed_ms}ms (budget={self._projection_timeout_seconds:g}s); "
-                    "Owner readiness UNKNOWN",
-                )
-            except Exception as exc:
-                return None, f"{type(exc).__name__}: {str(exc)[:240]}"
-
-        async def runtime_description(
-            owner_id: str,
-        ) -> tuple[dict[str, Any] | None, str | None]:
-            cached = runtime_cache.get(owner_id)
-            if cached is not None:
-                return cached
-            if not _configured(self._caller, owner_id):
-                value = (None, None)
-                runtime_cache[owner_id] = value
-                return value
-            value = await observe_owner(owner_id, "runtime.describe", {"schemaVersion": 1})
-            runtime_cache[owner_id] = value
-            return value
+        # One observation context per describe request: no global status cache.
+        observer = OwnerStatusObserver(self._caller, self._projection_timeout_seconds)
+        runtime_description = observer.runtime_description
 
         async def execution_descriptor(route: CapabilityRoute) -> CapabilityDescriptor:
             configured = _configured(self._caller, route.owner_id)
@@ -190,7 +157,7 @@ class CapabilityCatalog:
                 self._caller, host_status_route
             ):
                 host_probe = probes.create_task(
-                    observe_owner(host_status_route, "host.status", {"detail": "summary"})
+                    observer.observe(host_status_route, "host.status", {"detail": "summary"})
                 )
 
         values: list[CapabilityDescriptor] = []
@@ -339,7 +306,7 @@ class CapabilityCatalog:
         # The one request-scoped observation cache is also the input to a
         # falsifiable inquiry: do not rerun Owner calls or replace UNKNOWN with
         # a guessed negative. Store distinct per-Owner evidence on each result.
-        observed_owner_status = dict(runtime_cache)
+        observed_owner_status = dict(observer.runtime_cache)
         if host_probe is not None:
             observed_owner_status["host"] = host_probe.result()
         owner_configs = {

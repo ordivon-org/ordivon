@@ -11,6 +11,7 @@ from typing import Any
 from ...contracts import RuntimeReleaseAdmission, RuntimeReleaseProjection
 from ...logic.execution_refs import GatewayError
 from ...logic.owner_protocol import OwnerToolCaller
+from ...logic.runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
 
 _OWNER = "runtime.linux"
 _NODE = "linux-pg"
@@ -37,11 +38,12 @@ class RuntimeReleaseProxy:
         node = described.get("node")
         targets = described.get("targets")
         if (
-            not isinstance(node, dict)
+            not valid_runtime_status_envelope(described)
+            or not isinstance(node, dict)
             or node.get("nodeId") != _NODE
             or node.get("platform") != "linux"
             or node.get("native") is not True
-            or not isinstance(targets, list)
+            or not valid_runtime_target_inventory(targets)
             or not any(
                 isinstance(t, dict)
                 and t.get("target") == "local_linux"

@@ -410,3 +410,14 @@ readiness must also be grounded in one unambiguous Runtime target with typed
 context inventories: refer to README.md "Capability observation lifecycle"
 and test_capability_projection.py; malformed Owner data is UNKNOWN rather
 than a positive READY or a global discovery exception.
+
+
+## R37 Thought → Logic → Capability boundaries (source candidate)
+
+- Owner observation adapter: `capabilities/owner_observation.py` performs only bounded `runtime.describe` and `host.status` reads with **request-local** Runtime status memoization. `capabilities/discovery.py` composes descriptors; `logic/readiness_*` decides predicates. A timeout is UNKNOWN, never negative execution evidence.
+- MCP Owner error decoding: `transport/owner_error_decode.py` qualifies a result only against the actual upstream Owner and versioned error schema; `transport/owner_error_projection.py` renders only bounded safe Host fields. Unknown/untrusted structured error maps must not become authoritative, even if an older fixture expected that behavior. Owner RPC failures cannot establish whether effects committed.
+- Native release: `capabilities/execution/release.py` must check the **whole** Runtime target inventory using `logic/runtime_status.py` before forwarding a fresh `release.apply`; a duplicate or malformed sibling target is not safe to ignore. Keep original `release.get` independent of mutable admission preflight.
+- The Host legacy-loopback authentication exception lives in `security/owner_identity.py`, not in transport. It stays exact-URL-only and does not grant general Host/Runtime capability access.
+- Keep the source/Model/Installed/Owner-native effect acceptance distinctions from R36. Details and R2.1 thought/logic/capability contracts: `docs/GATEWAY_LOGIC_CAPABILITY_COUPLING_R36.md`.
+
+R37 endpoint configuration: `transport/owner_endpoint_config.py` is a pure environment-to-`OwnerEndpoint` projection used by `McpOwnerCaller.from_env`; credential policy remains in `security/owner_identity.py`, and the SDK Owner transport in `transport/upstream.py`. It MUST NOT open secrets, authenticate, perform network requests or create a second connection pool.

@@ -12,6 +12,7 @@ from mcp import Client
 from mcp.server import MCPServer
 
 from ordivon_gateway.capabilities.host.work import register_host_work_tools
+from ordivon_gateway.transport.owner_error_projection import owner_error_result
 
 
 def test_native_sdk_rejects_invalid_host_work_arguments_before_forward() -> None:
@@ -23,7 +24,7 @@ def test_native_sdk_rejects_invalid_host_work_arguments_before_forward() -> None
             return {"forwarded": name}
 
         server = MCPServer("gateway-agent-a-host-work-contract")
-        register_host_work_tools(server, fake_host)
+        register_host_work_tools(server, fake_host, owner_error_result)
 
         invalid = (
             (

@@ -3,11 +3,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import time
 from collections.abc import Generator, Mapping
 from typing import Any
-from urllib.parse import urlsplit
 
 import httpx2
 from mcp import Client, types
@@ -25,6 +23,9 @@ from ..security import (
     _headers_for_endpoint as _headers_for_endpoint,
 )
 from ..security import (
+    _is_legacy_loopback_host_endpoint as _is_legacy_loopback_host_endpoint,
+)
+from ..security import (
     _read_private_secret_file as _read_private_secret_file,
 )
 from ..security import (
@@ -36,6 +37,8 @@ from ..security import (
 from ..security import (
     _validate_windows_private_secret_file as _validate_windows_private_secret_file,
 )
+from .owner_endpoint_config import owner_endpoints_from_env
+from .owner_error_decode import extract_owner_tool_error as _extract_owner_tool_error
 
 _LOG = logging.getLogger("ordivon_gateway.upstream")
 
@@ -60,90 +63,6 @@ def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
     return "; ".join(rendered) or f"{type(exc).__name__}: {str(exc)[:180]}"
 
 
-def _extract_owner_tool_error(
-    result: Any, *, owner_id: str, tool_name: str
-) -> dict[str, Any] | None:
-    """Preserve owner-typed errors without granting arbitrary text structured authority."""
-    if isinstance(result.structured_content, dict):
-        candidate = result.structured_content.get("error")
-        if isinstance(candidate, dict):
-            return dict(candidate)
-
-    # Native Runtime MCP serializes typed RuntimeError as an exact JSON
-    # ToolError text envelope on some SDK paths. Preserve only the bounded
-    # Runtime-owned contract; arbitrary prose never gains structured authority.
-    if owner_id.startswith("runtime."):
-        prefix = f"Error executing tool {tool_name}: "
-        for item in result.content:
-            raw = getattr(item, "text", None)
-            if not isinstance(raw, str):
-                continue
-            if raw.startswith(prefix):
-                raw = raw[len(prefix) :]
-            if len(raw) > 4096:
-                continue
-            try:
-                envelope = json.loads(raw)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(envelope, dict) or set(envelope) != {"error"}:
-                continue
-            error = envelope["error"]
-            if not isinstance(error, dict) or error.get("origin") != "runtime_core":
-                continue
-            if not all(
-                isinstance(error.get(field), str) and error[field]
-                for field in ("code", "commitState", "message", "retryClass")
-            ):
-                continue
-            if type(error.get("retryable")) is not bool:
-                continue
-            if error["commitState"] not in {"committed", "not_committed", "unknown"}:
-                continue
-            if "field" in error and not isinstance(error["field"], str):
-                continue
-            fields = (
-                "code",
-                "commitState",
-                "message",
-                "origin",
-                "retryClass",
-                "retryable",
-                "field",
-            )
-            return {field: error[field] for field in fields if field in error}
-        return None
-
-    # Host domain errors are raised by MCP tools and MCP v2 currently serializes that
-    # exception as text rather than structuredContent. Recover only the exact canonical
-    # Host envelope; arbitrary owner prose must remain an opaque OWNER_CALL_FAILED.
-    if owner_id not in {"host", "host.read"}:
-        return None
-    prefix = f"Error executing tool {tool_name}: "
-    for item in result.content:
-        text = getattr(item, "text", None)
-        if not isinstance(text, str) or not text.startswith(prefix):
-            continue
-        try:
-            candidate = json.loads(text[len(prefix) :])
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(candidate, dict):
-            continue
-        if candidate.get("kind") != "ordivon.host-domain-error":
-            continue
-        if candidate.get("schemaVersion") != 1:
-            continue
-        code = candidate.get("code")
-        if not isinstance(code, str) or not code:
-            continue
-        retryable = candidate.get("retryable")
-        if retryable is not None and not isinstance(retryable, bool):
-            continue
-        return dict(candidate)
-    return None
-
-
 class OwnerEndpointAuth(httpx2.Auth):
     """Resolve Owner credentials for each HTTP request, not at pool creation.
 
@@ -159,30 +78,6 @@ class OwnerEndpointAuth(httpx2.Auth):
         if headers:
             request.headers.update(headers)
         yield request
-
-
-def _is_legacy_loopback_host_endpoint(endpoint: OwnerEndpoint) -> bool:
-    """Existing Host 8898 has native loopback trust, not an extra machine bearer.
-
-    Qualify only the exact original loopback URL, NEVER an external Host,
-    optional protected host.read, Windows/Runtime, or an arbitrary port/path.
-    Cloudflare HTTP ingress is authenticated separately before this transport.
-    """
-    try:
-        parsed = urlsplit(endpoint.url)
-        return (
-            parsed.scheme == "http"
-            and parsed.netloc == "127.0.0.1:8898"
-            and parsed.hostname == "127.0.0.1"
-            and parsed.port == 8898
-            and parsed.path == "/mcp"
-            and parsed.username is None
-            and parsed.password is None
-            and not parsed.query
-            and not parsed.fragment
-        )
-    except ValueError:
-        return False
 
 
 class McpOwnerCaller:
@@ -240,55 +135,7 @@ class McpOwnerCaller:
 
     @classmethod
     def from_env(cls) -> McpOwnerCaller:
-        owners: dict[str, OwnerEndpoint] = {}
-        mapping = {
-            "runtime.linux": {
-                "url": "ORDIVON_GATEWAY_LINUX_RUNTIME_URL",
-                "bearer": "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE",
-            },
-            "runtime.harness": {
-                "url": "ORDIVON_GATEWAY_HARNESS_RUNTIME_URL",
-                "bearer": "ORDIVON_GATEWAY_HARNESS_RUNTIME_BEARER_TOKEN_FILE",
-            },
-            "runtime.windows": {
-                "url": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_URL",
-                "bearer": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE",
-                "access_id": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_ID_FILE",
-                "access_secret": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_SECRET_FILE",
-                "mcp_mode": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE",
-            },
-            "host": {
-                "url": "ORDIVON_GATEWAY_HOST_URL",
-                "bearer": "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE",
-            },
-            "host.read": {
-                "url": "ORDIVON_GATEWAY_HOST_READ_URL",
-                "bearer": "ORDIVON_GATEWAY_HOST_READ_BEARER_TOKEN_FILE",
-            },
-            "skills": {
-                "url": "ORDIVON_GATEWAY_SKILLS_URL",
-                "bearer": "ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE",
-            },
-        }
-        for owner_id, keys in mapping.items():
-            url = os.environ.get(str(keys["url"]), "").strip()
-            if not url:
-                continue
-            token_file = os.environ.get(str(keys["bearer"]))
-            access_id_key = keys.get("access_id")
-            access_secret_key = keys.get("access_secret")
-            access_id = os.environ.get(str(access_id_key)) if access_id_key else None
-            access_secret = os.environ.get(str(access_secret_key)) if access_secret_key else None
-            mode_key = keys.get("mcp_mode")
-            mcp_mode = os.environ.get(str(mode_key), "auto").strip() if mode_key else "auto"
-            owners[owner_id] = OwnerEndpoint(
-                url=url,
-                bearer_token_file=token_file.strip() if token_file else None,
-                access_client_id_file=access_id.strip() if access_id else None,
-                access_client_secret_file=access_secret.strip() if access_secret else None,
-                mcp_mode=mcp_mode,
-            )
-        return cls(owners)
+        return cls(owner_endpoints_from_env())
 
     def has_route(self, owner_id: str) -> bool:
         """Presence, not success or admission, for intentional split routing."""

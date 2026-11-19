@@ -417,10 +417,14 @@ def test_native_runtime_mcp_text_error_preserves_typed_recovery_contract() -> No
 
 
 def test_structured_owner_error_precedes_text_fallback() -> None:
+    # An unrelated Runtime envelope must never be treated as Host authority.
+    # A qualified Host domain-error structured response still takes precedence.
     structured = {
-        "code": "REGISTRY_COMMIT_UNKNOWN",
-        "origin": "runtime_core",
-        "retryable": True,
+        "kind": "ordivon.host-domain-error",
+        "schemaVersion": 1,
+        "code": "CONFLICT",
+        "reason": "topic_resume_cursor_ahead",
+        "retryable": False,
     }
     result = SimpleNamespace(
         structured_content={"error": structured},

@@ -37,9 +37,6 @@ from .security import (
     capability_authorizer_from_env as _capability_authorizer_from_env,
 )
 from .security import (
-    owner_error_result as _owner_error_result,
-)
-from .security import (
     qualify_gateway_operation_ref as _qualify_gateway_operation_ref,
 )
 from .security import (
@@ -53,6 +50,7 @@ from .security import (
 )
 from .service import GatewayService
 from .transport.http import build_http_app
+from .transport.owner_error_projection import owner_error_result as _owner_error_result
 from .transport.upstream import McpOwnerCaller, OwnerCallError
 
 
@@ -272,7 +270,7 @@ def build_server(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    register_host_tools(server, gateway, _owner_boundary)
+    register_host_tools(server, gateway, _owner_boundary, _owner_error_result)
 
     return server
 
