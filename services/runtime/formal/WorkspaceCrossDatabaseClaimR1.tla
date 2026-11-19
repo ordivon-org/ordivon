@@ -201,6 +201,20 @@ ClosedHasNoOutstandingPins ==
 UnreleasedGrantsHeld ==
     \A r \in published \ delivered: claim[r] = "active"
 
+\* Desired contract for a long-lived Original Run; this is NOT presently
+\* enforced by the installed Runtime workspace.claim.release. Native release
+\* can be called by the owning Principal while Harness is still CREATED.
+\* A trusted completion/abort certification is required, not a caller Boolean.
+ReleaseRequiresOriginalFinalization ==
+    \A r \in RunIds: claim[r] = "released" => harness[r] = "finished"
+
+\* A native close must not follow a prematurely released original Workspace.
+ClosedHasNoPrematurelyReleasedConsumers ==
+    phase = "closed" =>
+        (\A r \in RunIds:
+            (originalWorkspace[r] \in WorkspaceIds /\ claim[r] = "released") =>
+                harness[r] = "finished")
+
 ClosedHasDeliveredOutputs ==
     phase = "closed" => published \subseteq delivered
 
@@ -305,4 +319,20 @@ UnsafeKnownRebindSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: \E w \in WorkspaceIds:
         UnsafeCallerRebindKnown(r,w))]_vars
 
+\* Current installed-native negative counterexample (2026-11-20):
+\* an authenticated original principal can directly invoke
+\* workspace.claim.release(clientRequestId), bypassing Harness terminal and
+\* recipient byte acknowledgment. Physical close is then admissible.
+\* Do not misread SafeSpec PASS as a claim that installed Rust enforces this.
+UnsafeDirectCallerRelease(r) ==
+    /\ phase = "open"
+    /\ r \in RunIds
+    /\ originalWorkspace[r] \in WorkspaceIds
+    /\ claim[r] = "reserved"
+    /\ harness[r] = "prepared"
+    /\ claim' = [claim EXCEPT ![r] = "released"]
+    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+
+UnsafeDirectReleaseSpec ==
+    Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeDirectCallerRelease(r))]_vars
 =============================================================================
