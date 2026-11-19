@@ -1,18 +1,29 @@
 //! Native PostgreSQL Runtime admission contract, NOT production authority.
 //! Explicitly opt-in until the full lifecycle/refinement/consumer proof exists.
-use postgres::{Client, GenericClient, IsolationLevel, NoTls};
-use serde::de::{self, MapAccess, SeqAccess, Visitor};
-use serde::Deserialize;
+use postgres::{Client, IsolationLevel, NoTls};
 use sha2::{Digest, Sha256};
-use std::collections::HashSet;
 use uuid::Uuid;
 
+mod cancel_contract;
 #[path = "pg_dispatch.rs"]
 mod dispatch;
+mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
+mod terminal_contract;
+mod writer_authority;
+use cancel_contract::cancel_detail;
+pub use cancel_contract::{PgCancelIntent, PgCancelObservation, PgCancelOutcome};
 pub(crate) use dispatch::PgRunnerBound;
 pub use dispatch::{PgBundleReady, PgDispatchIssued};
+use input_contract::unambiguous_json_object;
+pub use input_contract::PgAdmissionInput;
+use terminal_contract::terminal_transition;
+pub(crate) use terminal_contract::{pg_artifact_manifest_digest, valid_pg_artifacts};
+pub use terminal_contract::{PgArtifactRegistration, PgTerminalNoArtifacts, PgTerminalOutcome};
+pub use writer_authority::pg_writer_epoch_digest;
+pub(crate) use writer_authority::require_pg_writer_epoch;
+use writer_authority::{exact_schema, qualified_schema_constraints};
 
 #[derive(Debug)]
 pub enum PgAdmissionError {
@@ -35,285 +46,10 @@ impl From<postgres::Error> for PgAdmissionError {
     }
 }
 
-#[derive(Clone)]
-pub struct PgAdmissionInput {
-    pub job_id: String,
-    pub attempt_id: String,
-    pub reservation_id: String,
-    pub principal: String,
-    pub client_request_id: String,
-    pub request_digest: String,
-    pub operation_digest: String,
-    pub workspace_id: String,
-    pub workspace_snapshot_json: String,
-    pub execution_plan_json: String,
-    pub execution_plan_digest: String,
-    pub launch_token_digest: String,
-    pub bundle_path: String,
-    pub unit_name: String,
-    pub global_limit: i32,
-    pub created_at_ms: i64,
-    pub expected_source_sha256: String,
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum PgAdmissionOutcome {
     Created(String),
     Existing(String),
-}
-
-fn exact_schema(s: &str) -> bool {
-    !matches!(s, "public" | "information_schema")
-        && !s.starts_with("pg_")
-        && !s.is_empty()
-        && s.len() <= 63
-        && s.as_bytes()[0].is_ascii_alphabetic()
-        && s.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_')
-}
-/// One-pass JSON admission: reject duplicate members at ANY depth, including
-/// keys that become identical after JSON escape decoding. Do not retain a
-/// second JSON AST; the durable typed consumers parse only after this gate.
-struct JsonObjectWithUniqueKeys(bool);
-
-impl<'de> Deserialize<'de> for JsonObjectWithUniqueKeys {
-    fn deserialize<D: serde::Deserializer<'de>>(input: D) -> Result<Self, D::Error> {
-        struct UniqueKeysVisitor;
-        impl<'de> Visitor<'de> for UniqueKeysVisitor {
-            type Value = JsonObjectWithUniqueKeys;
-
-            fn expecting(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(fmt, "a JSON value with unique object members")
-            }
-
-            fn visit_bool<E: de::Error>(self, _: bool) -> Result<Self::Value, E> {
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_i64<E: de::Error>(self, _: i64) -> Result<Self::Value, E> {
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_u64<E: de::Error>(self, _: u64) -> Result<Self::Value, E> {
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_f64<E: de::Error>(self, _: f64) -> Result<Self::Value, E> {
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_str<E: de::Error>(self, _: &str) -> Result<Self::Value, E> {
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_string<E: de::Error>(self, _: String) -> Result<Self::Value, E> {
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
-                while seq.next_element::<JsonObjectWithUniqueKeys>()?.is_some() {}
-                Ok(JsonObjectWithUniqueKeys(false))
-            }
-            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
-                let mut keys = HashSet::new();
-                while let Some((key, _)) = map.next_entry::<String, JsonObjectWithUniqueKeys>()? {
-                    if !keys.insert(key) {
-                        return Err(de::Error::custom("duplicate JSON object member"));
-                    }
-                }
-                Ok(JsonObjectWithUniqueKeys(true))
-            }
-        }
-        input.deserialize_any(UniqueKeysVisitor)
-    }
-}
-
-fn unambiguous_json_object(raw: &str) -> bool {
-    matches!(
-        serde_json::from_str::<JsonObjectWithUniqueKeys>(raw),
-        Ok(JsonObjectWithUniqueKeys(true))
-    )
-}
-
-impl PgAdmissionInput {
-    fn validate(&self) -> Result<(), PgAdmissionError> {
-        let strings = [
-            &self.job_id,
-            &self.attempt_id,
-            &self.reservation_id,
-            &self.principal,
-            &self.client_request_id,
-            &self.request_digest,
-            &self.operation_digest,
-            &self.workspace_id,
-            &self.workspace_snapshot_json,
-            &self.execution_plan_json,
-            &self.execution_plan_digest,
-            &self.launch_token_digest,
-            &self.bundle_path,
-            &self.unit_name,
-        ];
-        if strings.iter().any(|s| s.is_empty())
-            || self.created_at_ms < 0
-            || self.global_limit < 0
-            || self.expected_source_sha256.len() != 64
-            || !self
-                .expected_source_sha256
-                .bytes()
-                .all(|b| b.is_ascii_hexdigit())
-            // Durable Runtime consumers decode both carriers as records.
-            // Parsing any JSON value alone admits null/scalars/arrays that
-            // cannot satisfy their existing typed source contracts.
-            || !unambiguous_json_object(&self.workspace_snapshot_json)
-            || !unambiguous_json_object(&self.execution_plan_json)
-        {
-            return Err(PgAdmissionError::InvalidInput);
-        }
-        Ok(())
-    }
-}
-
-/// An operator-owned epoch seal is the *same existing* _stage_control table,
-/// not a second registry.  Source-only qualification can survive a PITR while
-/// PostgreSQL forks a different WAL timeline and loses downstream effect IDs.
-///
-/// The operator stamps id='epoch', state='QUALIFIED_EPOCH', and the digest
-/// calculated by this function while its qualified source/cluster/timeline
-/// is current.  A missing/old epoch always refuses new effects.  The app role
-/// requires SELECT on _stage_control and PUBLIC read-only pg_control functions,
-/// but cannot INSERT/UPDATE the protected state or fingerprint itself.
-pub fn pg_writer_epoch_digest(source: &str, system_id: &str, timeline: i32) -> String {
-    let bytes = format!("ordivon-pg-writer-epoch-v1\0{source}\0{system_id}\0{timeline}");
-    hex::encode(Sha256::digest(bytes.as_bytes()))
-}
-
-pub(crate) fn require_pg_writer_epoch<C: GenericClient>(
-    db: &mut C,
-    expected_source: &str,
-    lock_for_write: bool,
-) -> Result<(), PgAdmissionError> {
-    let physical = db.query_one(
-        "SELECT (SELECT system_identifier::text FROM pg_control_system()), \
-                (SELECT timeline_id FROM pg_control_checkpoint()), \
-                (SELECT left(pg_walfile_name(pg_current_wal_lsn()),8))",
-        &[],
-    )?;
-    let system_id: String = physical.get(0);
-    let timeline: i32 = physical.get(1);
-    let current_wal_timeline: String = physical.get(2);
-    // The control-file checkpoint may lag a promotion. If it does, refuse
-    // admission rather than mistake a freshly branched WAL for the old epoch.
-    if current_wal_timeline != format!("{timeline:08X}") {
-        return Err(PgAdmissionError::Unqualified);
-    }
-    if timeline < 1 {
-        return Err(PgAdmissionError::Unqualified);
-    }
-    let digest = pg_writer_epoch_digest(expected_source, &system_id, timeline);
-    let query = if lock_for_write {
-        "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='epoch' FOR SHARE"
-    } else {
-        "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='epoch'"
-    };
-    let seal = db
-        .query_opt(query, &[])?
-        .ok_or(PgAdmissionError::Unqualified)?;
-    if seal.get::<_, String>(0) != "QUALIFIED_EPOCH"
-        || seal.get::<_, String>(1) != digest
-        || !seal.get::<_, bool>(2)
-    {
-        return Err(PgAdmissionError::Unqualified);
-    }
-    Ok(())
-}
-
-/// Required keys and references for the durable PG authority, not merely
-/// a row-correct historical import. The native stage intentionally does not
-/// assert all of these, and must not be promoted as an active write schema.
-fn qualified_schema_constraints(client: &mut Client, schema: &str) -> Result<(), PgAdmissionError> {
-    let rows = client.query(
-        "SELECT r.relname::text,c.contype::text,ARRAY_AGG(a.attname::text ORDER BY k.ordinality), \
-         COALESCE(ref_ns.nspname::text,''),COALESCE(ref_rel.relname::text,'') \
-         FROM pg_catalog.pg_constraint c \
-         JOIN pg_catalog.pg_class r ON r.oid=c.conrelid \
-         JOIN pg_catalog.pg_namespace n ON n.oid=r.relnamespace \
-         LEFT JOIN pg_catalog.pg_class ref_rel ON ref_rel.oid=c.confrelid \
-         LEFT JOIN pg_catalog.pg_namespace ref_ns ON ref_ns.oid=ref_rel.relnamespace \
-         JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS k(attnum,ordinality) ON TRUE \
-         JOIN pg_catalog.pg_attribute a ON a.attrelid=r.oid AND a.attnum=k.attnum \
-         WHERE n.nspname=$1 AND c.contype IN ('p','u','f') \
-           AND c.convalidated AND NOT c.condeferrable \
-         GROUP BY r.relname,c.oid,c.contype,ref_ns.nspname,ref_rel.relname",
-        &[&schema],
-    )?;
-    let actual: HashSet<(String, String, Vec<String>, String)> = rows
-        .iter()
-        .map(|row| {
-            let ref_schema: String = row.get(3);
-            let ref_table: String = row.get(4);
-            (
-                row.get(0),
-                row.get(1),
-                row.get(2),
-                if ref_schema == schema {
-                    ref_table
-                } else {
-                    String::new()
-                },
-            )
-        })
-        .collect();
-    let required: &[(&str, &str, &[&str], &str)] = &[
-        ("workspace_consumer_claims", "p", &["claim_id"], ""),
-        (
-            "workspace_consumer_claims",
-            "u",
-            &["principal", "client_request_id"],
-            "",
-        ),
-        ("job_allocations", "p", &["attempt_id"], ""),
-        ("job_allocations", "f", &["attempt_id"], "attempts"),
-        ("jobs", "p", &["job_id"], ""),
-        ("jobs", "u", &["principal", "client_request_id"], ""),
-        ("attempts", "p", &["attempt_id"], ""),
-        ("attempts", "u", &["job_id", "attempt_number"], ""),
-        ("attempts", "f", &["job_id"], "jobs"),
-        (
-            "idempotency_keys",
-            "p",
-            &["principal", "client_request_id"],
-            "",
-        ),
-        ("idempotency_keys", "u", &["job_id"], ""),
-        ("idempotency_keys", "f", &["job_id"], "jobs"),
-        ("concurrency_reservations", "p", &["reservation_id"], ""),
-        ("concurrency_reservations", "u", &["attempt_id"], ""),
-        ("concurrency_reservations", "f", &["attempt_id"], "attempts"),
-        ("job_events", "p", &["event_id"], ""),
-        ("job_events", "u", &["job_id", "event_sequence"], ""),
-        ("job_events", "f", &["job_id"], "jobs"),
-        ("job_events", "f", &["attempt_id"], "attempts"),
-        ("artifacts", "p", &["artifact_id"], ""),
-        ("job_runtime_release_effects", "p", &["job_id"], ""),
-        ("job_runtime_release_effects", "u", &["effect_id"], ""),
-        ("job_runtime_release_effects", "f", &["job_id"], "jobs"),
-        (
-            "artifacts",
-            "u",
-            &["attempt_id", "kind", "relative_path"],
-            "",
-        ),
-        ("artifacts", "f", &["job_id"], "jobs"),
-        ("artifacts", "f", &["attempt_id"], "attempts"),
-        ("_stage_control", "p", &["id"], ""),
-    ];
-    if required.iter().any(|(table, kind, columns, target)| {
-        !actual.contains(&(
-            (*table).to_owned(),
-            (*kind).to_owned(),
-            columns.iter().map(|name| (*name).to_owned()).collect(),
-            (*target).to_owned(),
-        ))
-    }) {
-        return Err(PgAdmissionError::Unqualified);
-    }
-    Ok(())
 }
 
 pub struct PgAdmissionStore {
@@ -843,118 +579,6 @@ impl PgAdmissionStore {
     }
 }
 
-#[derive(Clone)]
-pub struct PgTerminalNoArtifacts {
-    pub attempt_id: String,
-    pub expected_row_version: i64,
-    pub terminal_state: String,
-    pub result_digest: String,
-    pub reason_code: String,
-    pub exit_code: Option<i32>,
-    pub finished_at_ms: i64,
-    pub expected_source_sha256: String,
-}
-#[derive(Debug, PartialEq, Eq)]
-pub enum PgTerminalOutcome {
-    Committed(String),
-    Existing(String),
-}
-
-/// PG only commits metadata; physical bytes must be validated by the Runner.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PgArtifactRegistration {
-    pub artifact_id: String,
-    pub kind: String,
-    pub relative_path: String,
-    pub digest: String,
-    pub media_type: String,
-    pub byte_length: i64,
-    pub truncated: bool,
-    pub created_at_ms: i64,
-}
-pub(crate) fn pg_artifact_manifest_digest(artifacts: &[PgArtifactRegistration]) -> String {
-    let mut ordered = artifacts.to_vec();
-    ordered.sort_by(|a, b| a.artifact_id.cmp(&b.artifact_id));
-    let manifest: Vec<_> = ordered
-        .iter()
-        .map(|a| {
-            serde_json::json!({
-                "artifactId":a.artifact_id, "kind":a.kind, "relativePath":a.relative_path,
-                "digest":a.digest, "mediaType":a.media_type,"byteLength":a.byte_length,
-                "truncated":a.truncated, "createdAtMs":a.created_at_ms
-            })
-        })
-        .collect();
-    let bytes = serde_json::to_vec(&manifest).expect("bounded Artifact manifest is JSON");
-    format!("sha256:{}", hex::encode(Sha256::digest(&bytes)))
-}
-pub(crate) fn valid_pg_artifacts(artifacts: &[PgArtifactRegistration]) -> bool {
-    let mut ids = HashSet::new();
-    let mut paths = HashSet::new();
-    artifacts.iter().all(|a| {
-        !a.artifact_id.is_empty()
-            && !a.kind.is_empty()
-            && !a.media_type.is_empty()
-            && a.media_type.len() <= 256
-            && a.byte_length >= 0
-            && a.created_at_ms >= 0
-            && a.digest.starts_with("sha256:")
-            && a.digest.len() == 71
-            && a.digest[7..].bytes().all(|b| b.is_ascii_hexdigit())
-            && !a.relative_path.is_empty()
-            && !a.relative_path.starts_with('/')
-            && !a.relative_path.contains('\\')
-            && !a
-                .relative_path
-                .split('/')
-                .any(|p| p == ".." || p.is_empty())
-            && ids.insert(a.artifact_id.as_str())
-            && paths.insert((a.kind.as_str(), a.relative_path.as_str()))
-    })
-}
-fn terminal_transition(from: &str, to: &str) -> bool {
-    match from {
-        "accepted" => matches!(to, "cancelled" | "failed" | "lost" | "orphaned"),
-        "starting" | "running" | "stopping" | "recovering" => matches!(
-            to,
-            "succeeded" | "failed" | "timed_out" | "cancelled" | "lost" | "orphaned"
-        ),
-        _ => false,
-    }
-}
-#[cfg(kani)]
-mod kani_transition_proofs {
-    use super::terminal_transition;
-
-    #[kani::proof]
-    fn proof_pg_terminal_transition_matches_contract() {
-        let from_id: u8 = kani::any();
-        let to_id: u8 = kani::any();
-        kani::assume(from_id < 12 && to_id < 12);
-        let state = |id: u8| match id {
-            0 => "accepted",
-            1 => "starting",
-            2 => "running",
-            3 => "stopping",
-            4 => "recovering",
-            5 => "succeeded",
-            6 => "failed",
-            7 => "timed_out",
-            8 => "cancelled",
-            9 => "lost",
-            10 => "orphaned",
-            _ => "unqualified",
-        };
-        // Independent, finite contract for the declared runtime state alphabet.
-        let expected = match from_id {
-            0 => matches!(to_id, 6 | 8 | 9 | 10),
-            1..=4 => matches!(to_id, 5..=10),
-            _ => false,
-        };
-        assert_eq!(terminal_transition(state(from_id), state(to_id)), expected);
-    }
-}
-
 impl PgAdmissionStore {
     /// Exact no-Artifact terminal/Job/reservation/event atomicity, no runner or
     /// external output effect. Arbitrary Artifact-bearing terminal commits are
@@ -1160,39 +784,6 @@ impl PgAdmissionStore {
         tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
         Ok(PgTerminalOutcome::Committed(job_id))
     }
-}
-
-#[derive(Clone)]
-pub struct PgCancelIntent {
-    pub job_id: String,
-    pub observed_at_ms: i64,
-    pub expected_source_sha256: String,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum PgCancelOutcome {
-    IntentRecorded(String),
-    Existing(String),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum PgCancelObservation {
-    Confirmed(String),
-    Inconclusive,
-}
-
-fn cancel_detail(i: &PgCancelIntent) -> String {
-    // The original cancel timestamp is part of the immutable request identity
-    // used for reconciliation after an ambiguous COMMIT.
-    let identity = format!(
-        "pg-cancel-intent\\0{}\\0{}\\0{}",
-        i.expected_source_sha256, i.job_id, i.observed_at_ms
-    );
-    let digest = format!(
-        "sha256:{}",
-        hex::encode(Sha256::digest(identity.as_bytes()))
-    );
-    serde_json::json!({"cancelIntentDigest":digest}).to_string()
 }
 
 impl PgAdmissionStore {
