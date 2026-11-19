@@ -1195,7 +1195,7 @@ check_workspace_cross_database_claim() {
 falsify_workspace_cross_database_claim() {
   verify_jar
   local label cfg invariant result output
-  for label in reachability original-reachability legacy-unclaimed-close unsafe-close unsafe-late unsafe-grant unsafe-adoption unsafe-known-rebind unsafe-caller-release unsafe-caller-close; do
+  for label in reachability original-reachability legacy-unclaimed-close unsafe-close unsafe-late unsafe-grant unsafe-adoption unsafe-known-rebind unsafe-caller-release unsafe-forged-ack unsafe-caller-close; do
     cfg="WorkspaceCrossDatabaseClaimR1.$label.cfg"
     case "$label" in
       reachability) invariant=ClosedUnreachable ;;
@@ -1203,6 +1203,7 @@ falsify_workspace_cross_database_claim() {
       unsafe-adoption) invariant=ClaimBoundToOriginal ;;
       unsafe-known-rebind) invariant=ClaimBoundToOriginal ;;
       unsafe-caller-release) invariant=ReleaseRequiresOriginalFinalization ;;
+      unsafe-forged-ack) invariant=ReleaseRequiresIndependentDelivery ;;
       unsafe-caller-close) invariant=ClosedHasNoPrematurelyReleasedConsumers ;;
       legacy-unclaimed-close) invariant=LegacyUnclaimedRunPreserved ;;
       unsafe-close|unsafe-late) invariant=ClosedHasNoOutstandingPins ;;

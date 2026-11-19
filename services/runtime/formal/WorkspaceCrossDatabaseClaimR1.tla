@@ -208,6 +208,12 @@ UnreleasedGrantsHeld ==
 ReleaseRequiresOriginalFinalization ==
     \A r \in RunIds: claim[r] = "released" => harness[r] = "finished"
 
+\* Domain-accepted *original bytes* are distinct from Harness COMPLETED.
+\* The "delivered" set represents an INDEPENDENT recipient truth source; a
+\* self-certified "accepted" Boolean or always-TRUE callback cannot enter it.
+ReleaseRequiresIndependentDelivery ==
+    \A r \in published: claim[r] = "released" => r \in delivered
+
 \* A native close must not follow a prematurely released original Workspace.
 ClosedHasNoPrematurelyReleasedConsumers ==
     phase = "closed" =>
@@ -335,4 +341,22 @@ UnsafeDirectCallerRelease(r) ==
 
 UnsafeDirectReleaseSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeDirectCallerRelease(r))]_vars
+
+\* R29 physical RED: original Harness PG reports COMPLETED, but no separate
+\* recipient received bytes. The caller manufactures an ACK using its own
+\* Run receipt digest, accepted=TRUE and verifier_callback=lambda: TRUE;
+\* the dedicated Claim-only principal then releases the Native claim.
+\* This source action deliberately violates independent Domain acceptance
+\* while passing the weaker original Harness terminal-state predicate.
+UnsafeCallerForgedDeliveryRelease(r) ==
+    /\ phase = "open"
+    /\ r \in published
+    /\ harness[r] = "finished"
+    /\ claim[r] = "active"
+    /\ r \notin delivered
+    /\ claim' = [claim EXCEPT ![r] = "released"]
+    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+
+UnsafeForgedAckSpec ==
+    Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeCallerForgedDeliveryRelease(r))]_vars
 =============================================================================

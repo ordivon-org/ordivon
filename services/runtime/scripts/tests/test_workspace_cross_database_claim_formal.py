@@ -6,7 +6,7 @@ RUNNER = ROOT / "scripts" / "tla-formal"
 
 def test_runtime_claim_and_close_are_separate_from_harness_state():
     text = MODEL.read_text()
-    for name in ("NativeReserve(r) ==", "NativeActivate(r) ==",
+    for name in ("NativeReserve(r,w) ==", "NativeActivate(r) ==",
                  "NativeRelease(r) ==", "NativeClose ==",
                  "ClosedHasNoOutstandingPins ==",
                  "UnreleasedGrantsHeld ==", "StableEligibleEventuallyClosed =="):
@@ -30,3 +30,17 @@ def test_tlc_counterexamples_are_wired_into_native_runner():
     for phrase in ("check-workspace-crossdb)", "falsify-workspace-crossdb)",
                    "Workspace cross-DB $label counterexample PASS"):
         assert phrase in runner
+
+
+def test_source_formal_distinguishes_recipient_bytes_from_forged_run_ack():
+    text = MODEL.read_text()
+    runner = RUNNER.read_text()
+    assert "ReleaseRequiresIndependentDelivery ==" in text
+    assert "UnsafeCallerForgedDeliveryRelease(r) ==" in text
+    assert "UnsafeForgedAckSpec ==" in text
+    assert "unsafe-forged-ack" in runner
+    for name in ("WorkspaceCrossDatabaseClaimR1.cfg",
+                 "WorkspaceCrossDatabaseClaimR1.unsafe-forged-ack.cfg"):
+        assert "INVARIANT ReleaseRequiresIndependentDelivery" in (
+            ROOT / "formal" / name
+        ).read_text()
