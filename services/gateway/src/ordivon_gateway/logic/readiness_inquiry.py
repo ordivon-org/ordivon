@@ -9,6 +9,8 @@ No additional Owner RPC or automatic effect retry occurs in this module.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Mapping
 from typing import Any
 
@@ -18,10 +20,55 @@ from ..contracts import (
     ReadinessCheck,
     ReadinessFact,
     ReadinessInquiry,
+    ReadinessOwnerStatusWitness,
 )
 
 OwnerObservation = tuple[dict[str, Any] | None, str | None]
 OwnerConfiguration = tuple[bool, str | None]
+
+
+def status_witness(
+    owner_id: str,
+    tool_name: str,
+    *,
+    configured: bool,
+    observation: OwnerObservation,
+) -> ReadinessOwnerStatusWitness:
+    """Bind native result bytes without returning unchecked/sensitive Owner JSON."""
+    response, _error = observation
+    if not configured:
+        return ReadinessOwnerStatusWitness(
+            owner_id=owner_id,
+            tool_name=tool_name,  # type: ignore[arg-type]
+            disposition="skipped_unconfigured",
+        )
+    if response is None:
+        return ReadinessOwnerStatusWitness(
+            owner_id=owner_id,
+            tool_name=tool_name,  # type: ignore[arg-type]
+            disposition="no_result",
+        )
+    try:
+        payload = json.dumps(
+            response,
+            sort_keys=True,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except TypeError, ValueError, OverflowError:
+        return ReadinessOwnerStatusWitness(
+            owner_id=owner_id,
+            tool_name=tool_name,  # type: ignore[arg-type]
+            disposition="no_result",
+        )
+    return ReadinessOwnerStatusWitness(
+        owner_id=owner_id,
+        tool_name=tool_name,  # type: ignore[arg-type]
+        disposition="response_received",
+        payload_digest="sha256:" + hashlib.sha256(payload).hexdigest(),
+        payload_bytes=len(payload),
+    )
 
 
 def valid_runtime_target_inventory(targets: object) -> bool:
@@ -256,6 +303,7 @@ def project_readiness_inquiry(
     owner_observations: Mapping[str, OwnerObservation],
 ) -> ReadinessInquiry:
     """Produce a bounded evidence trail, not a second readiness classifier."""
+    observations: list[ReadinessOwnerStatusWitness] = []
     facts: list[ReadinessFact] = []
     unresolved: list[str] = []
     candidates: list[str] = []
@@ -273,6 +321,14 @@ def project_readiness_inquiry(
             unresolved,
             checks,
             candidates,
+        )
+        observations.append(
+            status_witness(
+                owner_id,
+                "runtime.describe",
+                configured=owner_configurations.get(owner_id, (False, None))[0],
+                observation=owner_observations.get(owner_id, (None, None)),
+            )
         )
         if route.category == "release":
             response, _error = owner_observations.get(owner_id, (None, None))
@@ -323,11 +379,28 @@ def project_readiness_inquiry(
                     effect="requires_authorized_context",
                 )
             )
+            checks.append(
+                _check(
+                    "reverse",
+                    owner_id,
+                    "execution.get",
+                    "Existing OperationRef resolves to native Job/Attempt and process evidence",
+                    effect="requires_authorized_context",
+                )
+            )
 
     elif route.category == "artifact":
         scope = "multi_owner_status"
         ready_owners = 0
         for owner_id in ("runtime.linux", "runtime.windows"):
+            observations.append(
+                status_witness(
+                    owner_id,
+                    "runtime.describe",
+                    configured=owner_configurations.get(owner_id, (False, None))[0],
+                    observation=owner_observations.get(owner_id, (None, None)),
+                )
+            )
             _runtime_facts(
                 owner_id,
                 None,
@@ -375,6 +448,14 @@ def project_readiness_inquiry(
         )
 
     elif route.category == "continuity":
+        observations.append(
+            status_witness(
+                "host",
+                "host.status",
+                configured=owner_configurations.get("host", (False, None))[0],
+                observation=owner_observations.get("host", (None, None)),
+            )
+        )
         configured, _ = owner_configurations.get("host", (False, "owner unconfigured"))
         write_configured, _ = owner_configurations.get(
             "host.write", (False, "write endpoint unconfigured")
@@ -499,6 +580,7 @@ def project_readiness_inquiry(
 
     return ReadinessInquiry(
         scope=scope,
+        observations=observations,
         facts=facts,
         unresolved_questions=unresolved,
         possible_explanations=candidates,

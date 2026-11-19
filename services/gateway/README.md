@@ -81,6 +81,11 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
+- **Explicit read-only evidence confirmation**:
+  capability.inquire(capability, verifyReadOnly=true) performs one additional
+  bounded Owner status observation, then returns original and latest facts,
+  raw status digests, exact read-only receipts and changed predicates.
+  It does not execute business effects. See docs/READINESS_CONFIRMATION_R34.md.
 - **Evidence-guided capability inquiry** (capability.inquire):
   verified-Principal-only, exact-capability inspection of bounded status
   observations. Returns separate facts, contradictory records, unresolved

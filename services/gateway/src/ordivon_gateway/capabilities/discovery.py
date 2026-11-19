@@ -26,6 +26,7 @@ from ..logic.capability_projection import (
 from ..logic.execution_refs import GatewayError
 from ..logic.host_tool_contracts import host_read_transport_route
 from ..logic.owner_protocol import OwnerToolCaller, _configuration_error, _configured
+from ..logic.readiness_confirmation import compare_readiness_observations, status_probe_owners
 from ..logic.readiness_inquiry import project_readiness_inquiry, valid_runtime_target_inventory
 from .research import resolve_research_capability
 
@@ -388,20 +389,59 @@ class CapabilityCatalog:
             capabilities=values,
         )
 
-    async def capability_inquire(self, *, capability: str) -> CapabilityInquiryProjection:
-        """One bounded Owner status observation and an unexecuted confirmation plan."""
-        projection = await self.capability_describe(capability)
-        descriptor = projection.capabilities[0]
-        inquiry = descriptor._readiness_inquiry
-        if inquiry is None:
-            raise GatewayError("Gateway readiness inquiry was not assembled")
-        return CapabilityInquiryProjection(
-            capability=descriptor.capability,
-            owner_id=descriptor.owner_id,
-            readiness_state=descriptor.readiness_state,
-            route_digest=projection.route_digest,
-            projection_digest=projection.projection_digest,
-            inquiry=inquiry,
+    async def capability_inquire(
+        self, *, capability: str, verify_read_only: bool = False
+    ) -> CapabilityInquiryProjection:
+        """Explicit one-extra-observation option, no effect calls or background retries."""
+        if type(verify_read_only) is not bool:
+            raise GatewayError("verifyReadOnly must be a JSON boolean")
+        route = self._routes.get(capability)
+        if route is None:
+            raise GatewayError(f"unknown capability: {capability}")
+
+        async def once() -> CapabilityInquiryProjection:
+            projection = await self.capability_describe(capability)
+            descriptor = projection.capabilities[0]
+            inquiry = descriptor._readiness_inquiry
+            if inquiry is None:
+                raise GatewayError("Gateway readiness inquiry was not assembled")
+            return CapabilityInquiryProjection(
+                capability=descriptor.capability,
+                owner_id=descriptor.owner_id,
+                readiness_state=descriptor.readiness_state,
+                route_digest=projection.route_digest,
+                projection_digest=projection.projection_digest,
+                inquiry=inquiry,
+            )
+
+        initial = await once()
+        if not verify_read_only:
+            return initial
+        # Research is pure static route metadata. A second look at that same
+        # object is NOT an independent Owner observation or an information gain.
+        if not status_probe_owners(route.category, route.owner_id):
+            return initial.model_copy(
+                update={
+                    "verification": compare_readiness_observations(
+                        category=route.category,
+                        owner_id=route.owner_id,
+                        initial=initial,
+                        latest=initial,
+                    )
+                }
+            )
+        # Never retry a submission, receipt, Artifact read, Host write or
+        # policy grant: only the existing read-only describe/status observation.
+        latest = await once()
+        return latest.model_copy(
+            update={
+                "verification": compare_readiness_observations(
+                    category=route.category,
+                    owner_id=route.owner_id,
+                    initial=initial,
+                    latest=latest,
+                )
+            }
         )
 
     async def capability_search(

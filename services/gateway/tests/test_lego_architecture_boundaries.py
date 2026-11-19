@@ -24,6 +24,7 @@ LOGIC_FILES = {
     "host_tool_contracts.py",
     "owner_protocol.py",
     "readiness_inquiry.py",
+    "readiness_confirmation.py",
     "research_routes.py",
     "routing.py",
 }

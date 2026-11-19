@@ -99,9 +99,13 @@ def build_server(
         return await gateway.capability_describe(capability)
 
     @server.tool(name="capability.inquire")
-    async def capability_inquire(capability: str) -> CapabilityInquiryProjection:
-        """One read-only investigation, not an Owner effect or a permission grant."""
-        return await gateway.capability_inquire(capability=capability)
+    async def capability_inquire(
+        capability: str, verifyReadOnly: bool = False
+    ) -> CapabilityInquiryProjection:
+        """Optionally re-observe read-only Owner state, never issue a business effect."""
+        return await gateway.capability_inquire(
+            capability=capability, verify_read_only=verifyReadOnly
+        )
 
     @server.tool(name="capability.search")
     async def capability_search(
