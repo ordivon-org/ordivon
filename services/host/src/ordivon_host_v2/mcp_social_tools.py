@@ -32,6 +32,7 @@ from .social_contracts import (
     TopicResumeResponse,
 )
 from .social_store import SocialStore
+from .wire_common import ExactCursorWire
 
 
 def register_social_tools(
@@ -196,7 +197,9 @@ def register_social_tools(
 
     @mcp.tool(name="topic.cursor.ack")
     @_project_domain_errors
-    def topic_cursor_ack(actorRef: str, topicRef: str, cursor: int) -> TopicCursorResponse:
+    def topic_cursor_ack(
+        actorRef: str, topicRef: str, cursor: ExactCursorWire
+    ) -> TopicCursorResponse:
         request = {"actorRef": actorRef, "topicRef": topicRef, "cursor": cursor}
         return social.ack_topic_cursor(
             actor_ref=actorRef,
@@ -209,7 +212,7 @@ def register_social_tools(
     @_project_domain_errors
     def topic_resume(
         topicRef: str,
-        afterSequence: int = 0,
+        afterSequence: ExactCursorWire = 0,
         limit: int = 50,
         maxBytes: int = 524_288,
     ) -> TopicResumeResponse:

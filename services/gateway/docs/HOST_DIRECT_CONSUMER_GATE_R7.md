@@ -4,6 +4,53 @@
 not proof of installed Host authorization, Cloudflare routing, or successful
 migration. The latest version is bound to its Git commit.
 
+## R43: separate software upgrade from Host/Cloudflare migration
+
+The original R7 Host-direct-consumer negative gate is necessary when a release
+**changes the Host route, Owner identity, public ingress, authorization or
+Cloudflare traffic migration**. It does not, by itself, establish that an
+unchanged-route Gateway software patch must first remove existing Host clients.
+Treating those different changes as one mandatory migration prevented ordinary
+Gateway source fixes from reaching a currently functioning Agent.
+
+The existing official install script now derives one of two cases, never from
+a caller-supplied skip flag:
+
+- **A / same route + same authority:** compare immutable current/candidate
+  public MCP ABI with the native SDK, unchanged ingress/AuthZEN/PEP source,
+  identical resolved dependency-lock/build and Python-toolchain configuration
+  (allow only the same editable package's nondecreasing release version
+  metadata to change, not any new transitive dependency or CLI entrypoint),
+  unchanged private-credential reader and Host loopback semantics, exact
+  composition-root AST, installed active systemd PID/SourceCut and equal
+  configured Owner URL/credential-class/mode. Require one real candidate-to-
+  Host MCP read, installed Gateway anonymous HTTP denial and Cloudflare public
+  anonymous denial without accepting redirects. No secrets are read from a
+  different service's private systemd credential. Only then does the original
+  installer permit the existing symlink promotion, without changing systemd
+  units, Host listeners, Security policy or Cloudflare routes.
+- **B / any drift or UNKNOWN:** preserve the existing
+  packaging/check_live_host_admission.py Host/Cloudflare/Security migration
+  requirements. Its independent observations and Security private credential
+  limitation remain real NO_GO until natural Owner proof exists. Empty socket
+  observation is not proof of migration and a service health ping is not a PDP
+  ALLOW.
+
+A passing source A classification is not a new Principal grant, a fully
+certified loaded PDP policy, a checked post-restart process, or a successful
+ChatGPT MCP connector refresh. Before promoting, independently confirm a
+currently authenticated Agent read through the exact live ingress. After the
+promotion and service restart, verify the installed process SourceCut,
+authenticated Agent read/error recovery, anonymous DENY and unchanged natural
+Owner route; on failure restore the prior immutable release and recheck.
+The installer itself changes the symlink but does not restart the service.
+
+Thought: positive business continuity plus reverse authorization-drift
+counterexamples. Logic: ChangeClass / SourceEquivalence /
+OwnerConsumerObservation / FailClosedRecovery. Capability: original systemd,
+native MCP SDK, official release installer, Security AuthZEN and Host Owner,
+bounded Python tests; no second policy engine or new release registry.
+
 ## Real consumer observation behind the change
 
 On 2026-11-14, a native Runtime Job inspected the **currently installed**
@@ -234,8 +281,8 @@ Gateway: first establish Host anonymous denial; then resolve its systemd
 `%d` credential path (or operator-owned absolute path) and use the existing
 Gateway private file reader (bounded, no-follow, same-FD checks). Never
 forward the credential to an arbitrary route or any Host that has not
-denied anonymous initialization. Only fixed `127.0.0.1:8898/mcp` can be
-probed. HTTP 200 must include matching JSON-RPC request ID, MCP protocol
+denied anonymous initialization. Only the original fixed `127.0.0.1:8898/mcp` or the specifically
+qualified protected `127.0.0.1:19008/mcp` workload can be probed. HTTP 200 must include matching JSON-RPC request ID, MCP protocol
 version, capabilities and server metadata; redirect/401/403/invalid JSON
 does not qualify. No token bytes enter logs, receipts or MCP Tool arguments.
 
@@ -270,3 +317,38 @@ This uses the same native bounded Owner private-file reader and HTTP
 canary, not another credential store or scheduling authority. True
 authorization and business continuity still require real authenticated
 Agent read/write and reviewer acceptance after the release.
+
+## R25 Reverse-liveness: qualify protected Host before retiring Legacy
+
+The old `127.0.0.1:8898/mcp` still has direct consumer routes. Turning on
+Bearer there before migrating the Host MCP Plugin and secondary Gateway
+would break those clients. Parallel Change uses an expand step: allow
+exactly `http://127.0.0.1:19008/mcp` as the protected loopback candidate,
+without treating the original Legacy endpoint as already retired.
+
+The existing preflight qualifies the second route only if
+`ordivon-host-v2-protected.service` is active, has `DynamicUser=yes` and
+`User=ordivon-host-v2-protected`, and owns the unique native `LISTEN`
+socket at `127.0.0.1:19008` according to its actual systemd `MainPID`.
+An arbitrary local HTTP server that merely replies 401 is not sufficient.
+Unknown routes, a mismatched PID, wildcard bind addresses, ambiguous
+listeners and systemd EnvironmentFile overrides remain unqualified.
+Only after the observed Host denies anonymous MCP initialize may the
+existing private Gateway Owner bearer reader and positive MCP canary run.
+An active peer still pointing at Legacy while the primary uses the
+protected Host remains an unqualified migration consumer.
+
+R25 physically exercised the installed Host 0.9.0 binary in a transient
+real systemd service with the existing PostgreSQL14 authority, a dynamic
+service identity, systemd LoadCredential, read-only PGOPTIONS and the
+prepared Gateway 0.10.15 native McpOwnerCaller. It read real Work and a
+fixed MessageRef, then stopped the test unit and removed temporary
+credentials. It did not install a permanent protected service or change
+Cloudflare, Security grants, the production Host or the main Gateway.
+
+**The production release gate is unchanged:** qualifying a candidate route
+only establishes a necessary machine workload boundary. The original
+preflight continues to return NO_GO/exit 3 until trusted independently
+verifiable Principal, Security, Cloudflare, direct-client and rollback
+evidence has an effective pre-promotion consumer. An empty legacy TCP
+socket sample does not demonstrate actual direct Host client migration.

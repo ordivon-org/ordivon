@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ordivon_gateway.upstream import (
+from ordivon_gateway.transport.upstream import (
     McpOwnerCaller,
     OwnerCallError,
     OwnerEndpoint,
@@ -96,7 +96,7 @@ def test_windows_service_identity_env_is_file_reference_only(
 def test_conforming_owner_uses_first_class_mcp_client(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    import ordivon_gateway.upstream as upstream
+    import ordivon_gateway.transport.upstream as upstream
 
     observed: dict[str, object] = {}
 
@@ -175,7 +175,7 @@ def test_host_failure_survives_real_gateway_owner_call_boundary(
 ) -> None:
     """The MCP client's owner error must not turn into a Gateway success."""
 
-    import ordivon_gateway.upstream as upstream
+    import ordivon_gateway.transport.upstream as upstream
 
     host_error = {
         "code": "NOT_FOUND",
@@ -278,12 +278,22 @@ def test_runtime_endpoint_requires_explicit_owner_identity_before_configured() -
     }
 
 
-def test_host_endpoint_requires_explicit_service_identity(tmp_path: Path) -> None:
+def test_host_legacy_loopback_owner_requires_no_second_bearer_but_others_do(
+    tmp_path: Path,
+) -> None:
+    # Production Host8898 is an existing local-only MCP endpoint. Requiring
+    # a second service bearer there broke a verified Cloudflare operator
+    # in the real v0.10.18 deployment. Owner Runtime/Skills and host.read are
+    # separately authenticated, not included in this exact URL exception.
     caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})
-    assert caller.is_configured("host") is False
-    assert caller.configuration_error("host") == "owner authentication is not configured"
+    assert caller.is_configured("host") is True
+    assert caller.configuration_error("host") is None
+
+    protected = McpOwnerCaller({"host.read": OwnerEndpoint("http://127.0.0.1:19008/mcp")})
+    assert protected.is_configured("host.read") is False
+    assert protected.configuration_error("host.read") == "owner authentication is not configured"
     with pytest.raises(OwnerCallError) as captured:
-        asyncio.run(caller.call_tool("host", "work.get", {"workRef": "work:test"}))
+        asyncio.run(protected.call_tool("host.read", "work.get", {"workRef": "work:test"}))
     assert captured.value.error["code"] == "OWNER_AUTH_NOT_CONFIGURED"
 
     qualified = McpOwnerCaller(
@@ -338,11 +348,83 @@ def test_arbitrary_owner_error_text_is_not_promoted_to_structured_authority() ->
     assert _extract_owner_tool_error(result, owner_id="runtime.linux", tool_name="work.get") is None
 
 
-def test_structured_owner_error_precedes_text_fallback() -> None:
-    structured = {
-        "code": "REGISTRY_COMMIT_UNKNOWN",
+def test_native_runtime_mcp_text_error_preserves_typed_recovery_contract() -> None:
+    # Native PG Runtime ToolError responses carry a JSON envelope as MCP text.
+    # The error is an owner claim, not permission to infer an effect or replay.
+    original = {
+        "code": "IDEMPOTENCY_CONFLICT",
+        "commitState": "not_committed",
+        "message": "PostgreSQL Runtime: IdempotencyConflict",
         "origin": "runtime_core",
-        "retryable": True,
+        "retryClass": "never",
+        "retryable": False,
+    }
+    result = SimpleNamespace(
+        structured_content=None,
+        content=[SimpleNamespace(text=__import__("json").dumps({"error": original}))],
+    )
+    assert (
+        _extract_owner_tool_error(result, owner_id="runtime.linux", tool_name="workspace.exec")
+        == original
+    )
+
+    # MCP SDK versions may prepend the originating Tool name to the same
+    # canonical JSON payload; the exact Owner call still remains trusted.
+    prefixed = SimpleNamespace(
+        structured_content=None,
+        content=[
+            SimpleNamespace(
+                text="Error executing tool workspace.exec: "
+                + __import__("json").dumps({"error": original})
+            )
+        ],
+    )
+    assert (
+        _extract_owner_tool_error(prefixed, owner_id="runtime.linux", tool_name="workspace.exec")
+        == original
+    )
+
+    # A foreign service, malformed retry flag or arbitrary prose cannot
+    # acquire typed runtime-core error authority through this fallback.
+    for invalid in (
+        {**original, "origin": "unknown_service"},
+        {**original, "retryable": "false"},
+        {"code": "IDEMPOTENCY_CONFLICT"},
+    ):
+        response = SimpleNamespace(
+            structured_content=None,
+            content=[SimpleNamespace(text=__import__("json").dumps({"error": invalid}))],
+        )
+        assert (
+            _extract_owner_tool_error(
+                response, owner_id="runtime.linux", tool_name="workspace.exec"
+            )
+            is None
+        )
+
+    with_extra = SimpleNamespace(
+        structured_content=None,
+        content=[
+            SimpleNamespace(
+                text=__import__("json").dumps({"error": {**original, "private": "secret"}})
+            )
+        ],
+    )
+    sanitized = _extract_owner_tool_error(
+        with_extra, owner_id="runtime.linux", tool_name="workspace.exec"
+    )
+    assert sanitized == original
+
+
+def test_structured_owner_error_precedes_text_fallback() -> None:
+    # An unrelated Runtime envelope must never be treated as Host authority.
+    # A qualified Host domain-error structured response still takes precedence.
+    structured = {
+        "kind": "ordivon.host-domain-error",
+        "schemaVersion": 1,
+        "code": "CONFLICT",
+        "reason": "topic_resume_cursor_ahead",
+        "retryable": False,
     }
     result = SimpleNamespace(
         structured_content={"error": structured},

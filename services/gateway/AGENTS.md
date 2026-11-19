@@ -49,16 +49,26 @@ Keep SPECIFIED, MODEL_VERIFIED, BOUNDED_IMPLEMENTATION_CHECKED,
 SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED as distinct facts;
 unexecuted or unqualified stages are UNKNOWN.
 
-## Fail-closed Host preflight: independent diagnosis is not release proof
+## Production change classification: same route is not Host cutover
 
-When the production preflight cannot read Security's service-private policy
-credential, it remains NO_GO with the original unobservable reason. Its
-additional independentHostReadinessObservations are bounded, read-only Host
-route/anonymous/peer/socket probes and never transmit a bearer in that branch.
-A missing positive Host credential proof is not a claim that the token file
-does not exist; a failed probe is UNKNOWN and a momentarily empty socket view
-does not prove Cloudflare migration. Use this result to coordinate with the
-natural Security, Host and Network owners, never to bypass AuthZEN.
+In production the original install_release.sh first proves whether the exact
+installed and prepared SourceCuts qualify for an **unchanged-authority software
+upgrade**, with packaging/check_same_route_admission.py. That source/consumer
+check requires identical ingress/AuthZEN/PEP bytes, bounded equivalence of
+private Owner credential handling and MCP composition, live same-configured
+Owner routes, actual candidate Host SDK read and local/public anonymous-denial
+canaries. No caller flag may request this classification. It does not grant
+authorization; a working authenticated Agent and post-restart canary/rollback
+remain independent.
+
+When code, live route, ingress, credential policy or observation changes,
+UNKNOWN is not A: the original check_live_host_admission.py still applies
+the full **Host/Cloudflare/Security cutover** conditions and its current
+NO_GO. Security's service-private LoadCredential is not a Gateway policy
+readback API. Independent Host/socket observations never transmit a bearer in
+the unavailable branch, and an empty TCP snapshot does not prove migration.
+Keep natural Security, Host, Network and Cloudflare consumers authoritative.
+See docs/HOST_DIRECT_CONSUMER_GATE_R7.md for exact A/B evidence and rollback.
 
 ## HTTP Security PEP and actual CLI wiring
 
@@ -303,7 +313,7 @@ a separate consumer. The installed Runtime also independently fixed the
 previous UTF-8 subcharacter read zero-progress behavior.
 
 **Release boundary:** This historical incident closure does **not** qualify
-the separate mainline Gateway 0.10.14 / epoch-14 / 41-tool Host/Security
+the separate mainline Gateway 0.10.15 / epoch-15 / 41-tool Host/Security
 credential and delegation migration. At the 2026-11-17 audit the installed
 Gateway is still 0.10.12; Source/Installed/Client authority is distinct.
 Preserve current `mcp-surface.json` and mandatory
@@ -381,8 +391,8 @@ Tools already shared. `host.pool.stats` is an original Host
 operator-only exception that must NOT silently become an Agent Tool.
 The comparison is native original Host+Gateway `tools/list`, not a new
 hardcoded list of all 30 Host Tools. R10 extends this same source checker
-to the original GatewayService `_SOCIAL_WORK_HOST_TOOLS` allowlist, observed
-in the locked Gateway environment. Require
+to the single canonical Host tool set in logic/host_tool_contracts.py,
+observed in the locked Gateway environment. Require
 `sourceEndToEndSourceQualified=true` for Host business Tool public
 registration **and** internal dispatch closure; an absent/extra dispatcher
 name fails even when the two MCP Tool sets match. The original
@@ -410,3 +420,14 @@ readiness must also be grounded in one unambiguous Runtime target with typed
 context inventories: refer to README.md "Capability observation lifecycle"
 and test_capability_projection.py; malformed Owner data is UNKNOWN rather
 than a positive READY or a global discovery exception.
+
+
+## R37 Thought → Logic → Capability boundaries (source candidate)
+
+- Owner observation adapter: `capabilities/owner_observation.py` performs only bounded `runtime.describe` and `host.status` reads with **request-local** Runtime status memoization. `capabilities/discovery.py` composes descriptors; `logic/readiness_*` decides predicates. A timeout is UNKNOWN, never negative execution evidence.
+- MCP Owner error decoding: `transport/owner_error_decode.py` qualifies a result only against the actual upstream Owner and versioned error schema; `transport/owner_error_projection.py` renders only bounded safe Host fields. Unknown/untrusted structured error maps must not become authoritative, even if an older fixture expected that behavior. Owner RPC failures cannot establish whether effects committed.
+- Native release: `capabilities/execution/release.py` must check the **whole** Runtime target inventory using `logic/runtime_status.py` before forwarding a fresh `release.apply`; a duplicate or malformed sibling target is not safe to ignore. Keep original `release.get` independent of mutable admission preflight.
+- The Host legacy-loopback authentication exception lives in `security/owner_identity.py`, not in transport. It stays exact-URL-only and does not grant general Host/Runtime capability access.
+- Keep the source/Model/Installed/Owner-native effect acceptance distinctions from R36. Details and R2.1 thought/logic/capability contracts: `docs/GATEWAY_LOGIC_CAPABILITY_COUPLING_R36.md`.
+
+R37 endpoint configuration: `transport/owner_endpoint_config.py` is a pure environment-to-`OwnerEndpoint` projection used by `McpOwnerCaller.from_env`; credential policy remains in `security/owner_identity.py`, and the SDK Owner transport in `transport/upstream.py`. It MUST NOT open secrets, authenticate, perform network requests or create a second connection pool.

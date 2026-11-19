@@ -671,7 +671,33 @@ pub(crate) fn workspace_source_readset_digest_at(workspace:&Path,paths:&[String]
             #[cfg(unix)] {use std::os::unix::fs::MetadataExt;if meta.nlink()>1{return Err(invalid("scoped sources cannot contain hardlinked files","readPaths"));}}
             hash.update(b"file");
             #[cfg(unix)] {use std::os::unix::fs::PermissionsExt;hash.update(meta.permissions().mode().to_le_bytes());}hash.update(meta.len().to_le_bytes());
-            let mut file=fs::File::open(path).map_err(|e|io_error(path,"open scoped source",e))?;let mut buffer=[0u8;65536];
+            let mut file=fs::File::open(path).map_err(|e|io_error(path,"open scoped source",e))?;
+            #[cfg(windows)] {
+                use std::os::windows::io::AsRawHandle;
+                use windows_sys::Win32::Storage::FileSystem::{
+                    GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION,
+                };
+                // Rust's Windows MetadataExt::number_of_links is unstable on
+                // the pinned stable toolchain. Reuse the already-present
+                // Win32 FileSystem binding and inspect the *opened* handle,
+                // not the original path, to preserve the no-hardlinks guard.
+                // SAFETY: BY_HANDLE_FILE_INFORMATION contains integer/FILETIME
+                // fields, so an all-zero initial value is valid.
+                let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { std::mem::zeroed() };
+                // SAFETY: file owns a live Windows file HANDLE; Win32 fills
+                // the output POD on success. A failed observation is fatal.
+                if unsafe { GetFileInformationByHandle(file.as_raw_handle() as _, &mut info) } == 0 {
+                    return Err(io_error(
+                        path,
+                        "inspect scoped source links",
+                        std::io::Error::last_os_error(),
+                    ));
+                }
+                if info.nNumberOfLinks != 1 {
+                    return Err(invalid("scoped sources cannot contain hardlinked files", "readPaths"));
+                }
+            }
+            let mut buffer=[0u8;65536];
             loop{let size=file.read(&mut buffer).map_err(|e|io_error(path,"read scoped source",e))?;if size==0{break;}hash.update(&buffer[..size]);}
         }else if meta.is_dir(){
             hash.update(b"directory");let mut entries=fs::read_dir(path).map_err(|e|io_error(path,"list scoped source",e))?.collect::<Result<Vec<_>,_>>().map_err(|e|io_error(path,"list scoped source",e))?;
@@ -696,6 +722,13 @@ pub(crate) fn workspace_source_readset_digest_at(workspace:&Path,paths:&[String]
         fs::write(root.join("right/output"),b"independent").unwrap();assert_eq!(before,workspace_source_readset_digest_at(&root,&paths).unwrap());
         fs::write(root.join("left/input"),b"changed").unwrap();assert_ne!(before,workspace_source_readset_digest_at(&root,&paths).unwrap());
         #[cfg(unix)] {std::os::unix::fs::symlink(root.join("left"),root.join("alias")).unwrap();assert!(workspace_source_readset_digest_at(&root,&["alias/input".into()]).is_err());}
+        #[cfg(windows)] {
+            // Win32 GetFileInformationByHandle must keep the Unix nlink()
+            // boundary: a same-byte hardlinked path is not safe scoped input.
+            fs::hard_link(root.join("left/input"),root.join("left/hardlink")).unwrap();
+            assert!(workspace_source_readset_digest_at(&root,&["left".into()]).is_err());
+            fs::remove_file(root.join("left/hardlink")).unwrap();
+        }
         fs::remove_dir_all(root).unwrap();
     }
 }

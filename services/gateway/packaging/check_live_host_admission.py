@@ -19,8 +19,10 @@ import time
 from pathlib import Path
 from typing import Any
 
-from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
-from ordivon_gateway.upstream_identity import OwnerCallError, _read_private_token_file
+from ordivon_gateway.logic.host_tool_contracts import (
+    SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
+)
+from ordivon_gateway.security.owner_identity import OwnerCallError, _read_private_token_file
 
 MAX_POLICY_BYTES = 2_097_152
 MAX_SOCKET_EVIDENCE_BYTES = 131_072
@@ -35,6 +37,11 @@ HOST_TOOLS = frozenset(_SOCIAL_WORK_HOST_TOOLS) | {"host.status"}
 # The installed Gateway Owner endpoint is local; do not chase caller-provided
 # hosts, redirects or public URLs from a production release preflight.
 HOST_OWNER_URL = "http://127.0.0.1:8898/mcp"
+# R25: explicit second stage of Parallel Change, NOT arbitrary local routing.
+# The legacy endpoint remains pinned for its real direct Host MCP consumers.
+PROTECTED_HOST_OWNER_URL = "http://127.0.0.1:19008/mcp"
+PROTECTED_HOST_UNIT = "ordivon-host-v2-protected.service"
+PROTECTED_HOST_PORT = 19008
 MCP_INITIALIZE = json.dumps(
     {
         "jsonrpc": "2.0",
@@ -50,14 +57,16 @@ MCP_INITIALIZE = json.dumps(
 ).encode("utf-8")
 
 
-def _rejects_unauthenticated_host_initialize() -> bool:
+def _rejects_unauthenticated_host_initialize(*, host_port: int = 8898) -> bool:
     """A real, read-only local HTTP canary: only 401/403 prove this negative.
 
     This request intentionally has no Authorization header. 200, other HTTP
     responses, network failures and unknown transports all mean NOT PROVEN.
     stdlib HTTPConnection does not follow redirects or honor HTTP proxies.
     """
-    conn = http.client.HTTPConnection("127.0.0.1", 8898, timeout=4)
+    if host_port not in (8898, PROTECTED_HOST_PORT):
+        return False
+    conn = http.client.HTTPConnection("127.0.0.1", host_port, timeout=4)
     try:
         conn.request(
             "POST",
@@ -150,12 +159,92 @@ def _qualified_systemd_environment(unit: str) -> str | None:
     return None if files.stdout.strip() else environment.stdout
 
 
-def _owner_route_is_probed_endpoint(systemd_environment: str) -> bool:
+def _protected_host_service_owns_listener() -> bool:
+    """Verify a *specific systemd workload* owns the new loopback listener.
+
+    An arbitrary local HTTP service that returns 401 is NOT a trusted Host
+    and must never receive the Gateway's private bearer. This is a native
+    preflight witness only, not an Agent identity or an AuthZEN ALLOW.
+    """
+    try:
+        service = subprocess.run(
+            [
+                "/usr/bin/systemctl",
+                "show",
+                PROTECTED_HOST_UNIT,
+                "-p",
+                "ActiveState",
+                "-p",
+                "MainPID",
+                "-p",
+                "User",
+                "-p",
+                "DynamicUser",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=8,
+        )
+        values = dict(line.split("=", 1) for line in service.stdout.splitlines() if "=" in line)
+        pid = values.get("MainPID", "")
+        if not (
+            values.get("ActiveState") == "active"
+            and values.get("User") == "ordivon-host-v2-protected"
+            and values.get("DynamicUser") == "yes"
+            and pid.isdecimal()
+            and int(pid) > 0
+        ):
+            return False
+        sockets = subprocess.run(
+            [
+                "/usr/bin/ss",
+                "-H",
+                "-l",
+                "-t",
+                "-n",
+                "-p",
+                f"( sport = :{PROTECTED_HOST_PORT} )",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=8,
+        )
+        if len(sockets.stdout.encode("utf-8")) > MAX_SOCKET_EVIDENCE_BYTES:
+            return False
+        listeners = [line.split() for line in sockets.stdout.splitlines()]
+        return bool(
+            len(listeners) == 1
+            and len(listeners[0]) >= 5
+            and listeners[0][0] == "LISTEN"
+            and listeners[0][3] == f"127.0.0.1:{PROTECTED_HOST_PORT}"
+            and {int(x) for x in re.findall(r"pid=(\d+)", sockets.stdout)} == {int(pid)}
+        )
+    except OSError, ValueError, subprocess.SubprocessError:
+        return False
+
+
+def _qualified_host_route_port(systemd_environment: str) -> int | None:
+    """Bind a declared Gateway route to its *actual* locally qualified Owner."""
     try:
         entries = shlex.split(systemd_environment)
     except ValueError:
-        return False
-    return f"ORDIVON_GATEWAY_HOST_URL={HOST_OWNER_URL}" in entries
+        return None
+    declared = [
+        entry.partition("=")[2]
+        for entry in entries
+        if entry.startswith("ORDIVON_GATEWAY_HOST_URL=")
+    ]
+    if declared == [HOST_OWNER_URL]:
+        return 8898
+    if declared == [PROTECTED_HOST_OWNER_URL] and _protected_host_service_owns_listener():
+        return PROTECTED_HOST_PORT
+    return None
+
+
+def _owner_route_is_probed_endpoint(systemd_environment: str) -> bool:
+    return _qualified_host_route_port(systemd_environment) is not None
 
 
 def _policy_data(path: Path) -> dict[str, Any]:
@@ -250,7 +339,10 @@ def _authenticated_host_initialize_accepted(
     from a different app, redirect or malformed MCP JSON is not acceptance.
     Actual Principal/Actor grants and real business tool use still need AuthZEN.
     """
-    if not anonymous_denied or not _owner_route_is_probed_endpoint(systemd_environment):
+    port = _qualified_host_route_port(systemd_environment)
+    if not anonymous_denied or port is None:
+        # Check trusted unit identity BEFORE reading any token, even if a
+        # malicious 401-looking local listener has been provisioned.
         return False
     path = _declared_owner_credential_path(systemd_environment, unit=unit)
     if path is None:
@@ -264,7 +356,7 @@ def _authenticated_host_initialize_accepted(
     if len(bearer) < 32:
         return False
 
-    connection = http.client.HTTPConnection("127.0.0.1", 8898, timeout=4)
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=4)
     try:
         connection.request(
             "POST",
@@ -314,7 +406,9 @@ def _apply_authenticated_host_canary(
     return standing
 
 
-def _unqualified_active_peer_host_consumers(*, anonymous_denied: bool = False) -> tuple[str, ...]:
+def _unqualified_active_peer_host_consumers(
+    *, anonymous_denied: bool = False, primary_host_port: int = 8898
+) -> tuple[str, ...]:
     """Check other ACTIVE Gateway services that point at this Host Owner route.
 
     The release installer promotes only the primary Gateway, but a distinct
@@ -354,12 +448,16 @@ def _unqualified_active_peer_host_consumers(*, anonymous_denied: bool = False) -
         environment = _qualified_systemd_environment(unit)
         if environment is None:
             observed.add(unit)
-        elif _owner_route_is_probed_endpoint(environment):
-            # A declared bearer might be absent or differ from the protected
-            # Host's real secret. Each active peer must prove its *own* private
-            # service credential, not borrow the primary Gateway's canary.
+        else:
+            peer_port = _qualified_host_route_port(environment)
+            if peer_port is None:
+                continue  # Unknown/different Owner target; not this exact Host.
+            # In Parallel Change a peer still using legacy 8898 is a migration
+            # blocker even when the new primary has a working protected port.
+            # NEVER send a new Host bearer to the peer's old/other listener.
             if (
-                not _declares_host_owner_identity(environment)
+                peer_port != primary_host_port
+                or not _declares_host_owner_identity(environment)
                 or not anonymous_denied
                 or not _authenticated_host_initialize_accepted(
                     environment, anonymous_denied=anonymous_denied, unit=unit
@@ -553,10 +651,26 @@ def _independent_host_readiness_observations() -> dict[str, Any]:
     credential_declared = (
         _declares_host_owner_identity(environment) if isinstance(environment, str) else None
     )
-    anonymous_denied = observe(_rejects_unauthenticated_host_initialize)
+    candidate_port = observe(
+        lambda: _qualified_host_route_port(environment) if isinstance(environment, str) else None
+    )
+    anonymous_denied = observe(
+        _rejects_unauthenticated_host_initialize
+        if candidate_port in (None, 8898)
+        else lambda: _rejects_unauthenticated_host_initialize(host_port=candidate_port)
+    )
     clients = observe(_observed_non_gateway_host_tcp_clients)
     # Deliberately NEVER transmit an Owner token in this diagnostic branch.
-    peers = observe(lambda: _unqualified_active_peer_host_consumers(anonymous_denied=False))
+    peers = observe(
+        lambda: _unqualified_active_peer_host_consumers(
+            anonymous_denied=False,
+            **(
+                {"primary_host_port": candidate_port}
+                if candidate_port is not None and candidate_port != 8898
+                else {}
+            ),
+        )
+    )
     if type(anonymous_denied) is not bool:
         anonymous_denied = None
     if not isinstance(clients, list) or any(not isinstance(v, str) for v in clients):
@@ -621,7 +735,14 @@ def main() -> int:
         )
         if security_service.returncode != 0 or security_service.stdout.strip() != "active":
             raise ValueError("current Security PDP is not running")
-        anonymous_denied = _rejects_unauthenticated_host_initialize()
+        candidate_port = _qualified_host_route_port(environment)
+        if candidate_port is None:
+            raise ValueError("systemd configured Host Owner is not an accepted live workload")
+        anonymous_denied = (
+            _rejects_unauthenticated_host_initialize()
+            if candidate_port == 8898
+            else _rejects_unauthenticated_host_initialize(host_port=candidate_port)
+        )
         # Only after a negative anonymous canary can a private workload token
         # safely be offered to this exact known-local Host MCP endpoint.
         authenticated_accepted = _authenticated_host_initialize_accepted(
@@ -636,7 +757,8 @@ def main() -> int:
                     anonymous_host_initialize_denied=anonymous_denied,
                     observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
                     unqualified_active_host_consumers=_unqualified_active_peer_host_consumers(
-                        anonymous_denied=anonymous_denied
+                        anonymous_denied=anonymous_denied,
+                        **({"primary_host_port": candidate_port} if candidate_port != 8898 else {}),
                     ),
                 ),
                 qualified=authenticated_accepted,

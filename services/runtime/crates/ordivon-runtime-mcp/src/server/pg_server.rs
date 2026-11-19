@@ -9,24 +9,113 @@ pub struct PgReleaseOperatorConfig {
     pub dispatcher_timer: String,
 }
 
+// A private in-process ingress classification, NOT a caller-supplied
+// permission. Only pg_main's separately authenticated Harness route may
+// select DedicatedFinalizer. The ordinary tool transport must never infer
+// release authority from an ordinary bearer or the absence of a finalizer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ClaimReleaseIngress {
+    Ordinary,
+    // Original same-PG Harness Issuer remains able to admit Job requests.
+    DedicatedFinalizer,
+    // Separate original Run resource ownership from source-current Job issuance.
+    // The minimal port needs no foreign Harness tables in Runtime PostgreSQL.
+    DedicatedClaimOnly,
+}
+
+impl ClaimReleaseIngress {
+    const fn may_release(self) -> bool {
+        matches!(self, Self::DedicatedFinalizer | Self::DedicatedClaimOnly)
+    }
+
+    const fn claim_only(self) -> bool {
+        matches!(self, Self::DedicatedClaimOnly)
+    }
+}
+
+const CLAIM_ONLY_TOOL_NAMES: &[&str] = &[
+    "workspace.get",
+    "workspace.claim.reserve",
+    "workspace.claim.get",
+    "workspace.claim.release",
+];
+
+fn claim_only_route_guard(ingress: ClaimReleaseIngress, name: &str) -> Result<(), McpError> {
+    if ingress.claim_only() && !CLAIM_ONLY_TOOL_NAMES.contains(&name) {
+        return Err(McpError::invalid_params(
+            "Claim Finalizer ingress does not grant Job execution or Runtime administration",
+            None,
+        ));
+    }
+    Ok(())
+}
+
+/// A caller-supplied key is a recovery coordinate, never release authority.
+/// Keep the real raw-dispatch check testable without constructing a PG client.
+fn claim_release_route_guard(allowed: bool, name: &str) -> Result<(), McpError> {
+    if name == "workspace.claim.release" && !allowed {
+        return Err(McpError::invalid_params(
+            "workspace.claim.release requires the authenticated Run finalizer route",
+            None,
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Clone)]
 pub struct PgRuntimeServer {
     runtime: ordivon_runtime_core::PgRuntime,
     execution: ExecutionContext,
     release: Option<PgReleaseOperatorConfig>,
+    // The ordinary execution bearer is not authority to relinquish another
+    // domain's still-held Workspace. The protected Harness/Finalizer route
+    // alone may expose the original principal-scoped release operation.
+    claim_release_ingress: ClaimReleaseIngress,
 }
 
 impl PgRuntimeServer {
     pub fn new(runtime: ordivon_runtime_core::PgRuntime, execution: ExecutionContext) -> Self {
-        Self { runtime, execution, release: None }
+        Self {
+            runtime,
+            execution,
+            release: None,
+            claim_release_ingress: ClaimReleaseIngress::Ordinary,
+        }
     }
     pub fn with_release(
         runtime: ordivon_runtime_core::PgRuntime,
         execution: ExecutionContext,
         release: Option<PgReleaseOperatorConfig>,
     ) -> Self {
-        Self { runtime, execution, release }
+        Self {
+            runtime,
+            execution,
+            release,
+            claim_release_ingress: ClaimReleaseIngress::Ordinary,
+        }
     }
+    /// This is ONLY called for the separately authenticated dedicated
+    /// Harness ingress selected by the operator at service startup. The
+    /// ordinary route remains deny-by-default even with no dedicated profile.
+    /// A distinct principal cannot silently inherit a prior principal's HELD
+    /// claim: legacy Claim migration needs original-consumer qualification.
+    pub fn for_authenticated_harness_finalizer(mut self) -> Self {
+        self.claim_release_ingress = ClaimReleaseIngress::DedicatedFinalizer;
+        self
+    }
+
+    /// A separately authenticated Claim owner cannot execute, cancel, release
+    /// Runtime binaries, or close Workspaces. Original recipient/OS verification
+    /// is still the external Harness Finalizer's responsibility.
+    pub fn for_authenticated_claim_only_finalizer(mut self) -> Self {
+        self.claim_release_ingress = ClaimReleaseIngress::DedicatedClaimOnly;
+        self
+    }
+
+    fn require_claim_release_authority(&self, name: &str) -> Result<(), McpError> {
+        claim_release_route_guard(self.claim_release_ingress.may_release(), name)
+    }
+
     fn release_ready(&self) -> bool {
         let Some(config)=&self.release else { return false; };
         if !config.source_repo.is_dir()
@@ -54,7 +143,22 @@ impl PgRuntimeServer {
             .status().is_ok_and(|status| status.success())
     }
     fn catalog_for(&self) -> Vec<Tool> {
-        Self::catalog_enabled(self.release_ready())
+        let mut tools =
+            Self::catalog_for_route(self.release_ready(), self.claim_release_ingress.may_release());
+        if self.claim_release_ingress.claim_only() {
+            tools.retain(|tool| CLAIM_ONLY_TOOL_NAMES.contains(&tool.name.as_ref()));
+        }
+        tools
+    }
+    // Protect the Agent-visible catalog as well as raw tools/call: an ordinary
+    // executor should not plan a domain-finalizer effect it cannot invoke.
+    // The raw call guard remains authoritative against a hand-written request.
+    fn catalog_for_route(release_ready: bool, release_allowed: bool) -> Vec<Tool> {
+        let mut tools = Self::catalog_enabled(release_ready);
+        if !release_allowed {
+            tools.retain(|tool| tool.name.as_ref() != "workspace.claim.release");
+        }
+        tools
     }
     pub fn configured_tool_count(&self) -> usize {
         self.catalog_for().len()
@@ -63,7 +167,9 @@ impl PgRuntimeServer {
         Self::catalog_enabled(false)
     }
     fn catalog_enabled(release_ready: bool) -> Vec<Tool> {
-        pg_portable_tool_catalog().into_iter().filter_map(|mut t| {
+        pg_portable_tool_catalog().into_iter()
+            .chain(pg_workspace_claim_catalog())
+            .filter_map(|mut t| {
             let description = match t.name.as_ref() {
                 "runtime.describe" => "Describe only the executable PostgreSQL Runtime capabilities and native Linux runner provider.",
                 "job.list" => "Principal-scoped, newest-first PostgreSQL Job listing with exact cursor and no historical SQLite IDs.",
@@ -74,10 +180,13 @@ impl PgRuntimeServer {
                 "workspace.file" => "Project a digest-verified bounded Workspace binary file into a native MCP resource.",
                 "workspace.content" => "Project an exact digest-bound PNG or JPEG Workspace image using the mature native Workspace reader.",
                 "artifact.content" => "Read an exact digest-verified PostgreSQL Artifact as a native MCP embedded binary resource.",
-                "workspace.close" => "Close a fresh-epoch Git Workspace only after the PostgreSQL Job admission fence finds no active or held consumer.",
+                "workspace.close" => "Close a fresh-epoch Git Workspace only after the PostgreSQL Job and Runtime-owned logical Run Claim fences find no held consumer.",
+                "workspace.claim.reserve" => "Atomically pin a verified OPEN physical Workspace in the Runtime PostgreSQL database. This is not a Harness Run READY or Tool grant; exact clientRequestId supports lost-response readback.",
+                "workspace.claim.get" => "Read only this principal's exact Runtime-owned Workspace claim by the original clientRequestId.",
+                "workspace.claim.release" => "Explicitly release this principal's Runtime-owned Workspace pin; this is not artifact delivery or source finalization.",
                 "workspace.mutate" => "Apply the mature atomic Workspace mutation contract, serialized against active PostgreSQL Job admission.",
                 "workspace.read" => "Read bounded UTF-8 files from an isolated fresh-epoch Workspace using the native Workspace path authority.",
-                "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. A caller-owned stable workspaceId is REQUIRED; on response loss use workspace.get with that exact ID before any replay. Agent notice: PG Workspaces are ephemeral, and the installed lifecycle timer runs on an operator-defined cadence. Four hours after the latest Job activity is only a minimum quiet period, not a guaranteed reclamation deadline. Commit/publish deliverables to Git or Artifact; never use Workspace files as durable evidence. The successful open response includes retentionNotice.",
+                "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. A caller-owned stable workspaceId is REQUIRED; on response loss use workspace.get with that exact ID before any replay. Agent notice: PG Workspaces are ephemeral, and the lifecycle timer may be disabled; if enabled its cadence is operator-defined. Four hours after the latest Job activity is only a minimum quiet period, not a guaranteed reclamation deadline. Commit/publish deliverables to Git or Artifact; never use Workspace files as durable evidence. The successful open response includes retentionNotice.",
                 "workspace.execPlan" => "Run an ordered plan with the mature native Runner; PG commits the exact immutable step plan before physical launch. No input or credential bindings.",
                 "workspace.exec" => "Fresh PostgreSQL execution vertical: one trusted_local local_linux command. Host Dependencies are admitted as exact file commitments and rechecked before native launch; foreignReferences and Windows context are rejected. PostgreSQL commits admission and dispatch intent before the existing systemd runner launches. A starting Attempt is dispatch intent, not proof of a running process. Ambiguous launches are never automatically reissued. Use job.observe to reconcile native runner evidence.",
                 "release.apply" if release_ready => "Admit an exact qualified PG Runtime ReleaseEffect atomically. An independent running native systemd dispatcher consumes it and verifies actual installed Runtime bytes and MCP readback; connection loss requires release.get reconciliation, not another deployment.",
@@ -98,6 +207,11 @@ impl PgRuntimeServer {
     }
     /// Shared by the MCP handler and protocol consumer tests; performs real Core calls.
     pub async fn call(&self, name: String, arguments: serde_json::Value) -> Result<CallToolResult, McpError> {
+        // Enforce before the PG transaction and before any Release readiness
+        // side query. A caller who knows the exact idempotency key still
+        // cannot invoke the physical relinquishment through ordinary /mcp.
+        self.require_claim_release_authority(&name)?;
+        claim_only_route_guard(self.claim_release_ingress, &name)?;
         let release_ready=self.release_ready();
         if !Self::catalog_enabled(release_ready).iter().any(|t|t.name.as_ref()==name) {
             return Err(McpError::invalid_params("Tool is not implemented by the PG vertical", None));
@@ -285,6 +399,18 @@ impl PgRuntimeServer {
                     serde_json::to_value(result).map_err(|e|ToolError::internal(e.to_string()))
                 },
                 "workspace.close" => value(runtime.close_workspace(&parse::<WorkspaceCloseRequest>(arguments)?)),
+                "workspace.claim.reserve" => value(runtime.reserve_workspace_claim(
+                    &execution.principal,
+                    &parse::<ordivon_runtime_core::WorkspaceClaimReserveRequest>(arguments)?
+                )),
+                "workspace.claim.get" => value(runtime.get_workspace_claim(
+                    &execution.principal,
+                    &parse::<ordivon_runtime_core::WorkspaceClaimKeyRequest>(arguments)?
+                )),
+                "workspace.claim.release" => value(runtime.release_workspace_claim(
+                    &execution.principal,
+                    &parse::<ordivon_runtime_core::WorkspaceClaimKeyRequest>(arguments)?
+                )),
                 "workspace.mutate" => value(runtime.mutate_workspace(&parse::<WorkspaceMutateRequest>(arguments)?)),
                 "workspace.read" => {
                     let request:WorkspaceReadRequest=parse(arguments)?;
@@ -378,5 +504,81 @@ mod pg_catalog_consumer_tests {
         let description = tool.description.expect("Agent-visible behavior contract");
         assert!(description.contains("change_or_terminal"), "{description}");
         assert!(!description.contains("not supported"), "{description}");
+    }
+}
+
+
+#[cfg(test)]
+mod claim_release_route_authority_tests {
+    use super::*;
+
+    #[test]
+    fn standalone_claim_finalizer_cannot_admit_jobs_or_close_workspaces() {
+        assert!(ClaimReleaseIngress::DedicatedClaimOnly.may_release());
+        assert!(!ClaimReleaseIngress::Ordinary.may_release());
+        for name in CLAIM_ONLY_TOOL_NAMES {
+            assert!(claim_only_route_guard(ClaimReleaseIngress::DedicatedClaimOnly, name).is_ok());
+        }
+        for forbidden in [
+            "workspace.exec", "workspace.execPlan", "workspace.open",
+            "workspace.close", "workspace.mutate", "job.cancel", "job.observe",
+            "release.apply", "release.get", "artifact.content",
+        ] {
+            assert!(claim_only_route_guard(
+                ClaimReleaseIngress::DedicatedClaimOnly, forbidden
+            ).is_err(), "{forbidden}");
+            assert!(claim_only_route_guard(
+                ClaimReleaseIngress::DedicatedFinalizer, forbidden
+            ).is_ok(), "existing same-PG Harness issuer mode must retain {forbidden}");
+        }
+        assert!(claim_release_route_guard(
+            ClaimReleaseIngress::Ordinary.may_release(), "workspace.claim.release"
+        ).is_err());
+    }
+
+    #[test]
+    fn ordinary_ingress_must_never_inherit_finalizer_release_capability() {
+        // Production may boot with no dedicated Harness profile at all. The
+        // ordinary /mcp constructor must not silently permit raw Claim release.
+        assert!(!ClaimReleaseIngress::Ordinary.may_release());
+        assert!(ClaimReleaseIngress::DedicatedFinalizer.may_release());
+        assert!(claim_release_route_guard(
+            ClaimReleaseIngress::Ordinary.may_release(),
+            "workspace.claim.release"
+        ).is_err());
+        for (route, expected) in [
+            (ClaimReleaseIngress::Ordinary, false),
+            (ClaimReleaseIngress::DedicatedFinalizer, true),
+        ] {
+            let catalog = PgRuntimeServer::catalog_for_route(false, route.may_release());
+            assert_eq!(
+                catalog.iter().any(|tool| tool.name.as_ref() == "workspace.claim.release"),
+                expected,
+            );
+            assert_eq!(
+                claim_release_route_guard(route.may_release(), "workspace.claim.release").is_ok(),
+                expected,
+            );
+        }
+    }
+
+    #[test]
+    fn raw_tool_dispatch_blocks_normal_known_key_but_not_claim_readback() {
+        assert!(claim_release_route_guard(false, "workspace.claim.release").is_err());
+        assert!(claim_release_route_guard(true, "workspace.claim.release").is_ok());
+        assert!(claim_release_route_guard(false, "workspace.claim.get").is_ok());
+        assert!(claim_release_route_guard(false, "workspace.claim.reserve").is_ok());
+        // Tool-name obfuscation cannot become an alternate release API.
+        assert!(PgRuntimeServer::catalog().iter().any(|t|
+            t.name.as_ref() == "workspace.claim.release"));
+        assert!(!PgRuntimeServer::catalog().iter().any(|t|
+            t.name.as_ref() == "workspace.claim.release.legacy"));
+        let isolated = PgRuntimeServer::catalog_for_route(false, false);
+        let dedicated = PgRuntimeServer::catalog_for_route(false, true);
+        assert!(dedicated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert!(!isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert_eq!(dedicated.len(), isolated.len() + 1);
+        assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.reserve"));
+        assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.get"));
     }
 }

@@ -156,13 +156,24 @@ if [ "$PREPARE_ONLY" = true ]; then
   exit 0
 fi
 
-# Real host-delegation and service-owner-identity facts are necessary for a
-# production Gateway upgrade. This protects Agent Host Work/Space/Topic
-# continuity without deciding Security grants in Gateway or relaxing the PEP.
-# Isolated test/staging prefixes keep their existing official install path.
+# Two different production changes must not borrow one another's proof.
+# Class A: an unchanged-authority same-route software upgrade requires the
+# currently installed Security/PEP bytes and exact MCP composition, equal
+# authenticated Owner endpoint configuration, a real Host read, positive
+# running-source identity and live anonymous-denial canaries. Source itself
+# does not grant another Principal or certify a new Host/Cloudflare route.
+# Class B: any route, ingress, policy or Owner-authority change must still pass
+# the original Host/Security/Cloudflare migration admission. Unknown fails
+# closed. Classification comes from the native system, never a caller flag.
+# Isolated test/staging prefixes keep their original installer semantics.
 if [ "$(realpath -m "$PREFIX")" = "/opt/ordivon/gateway" ]; then
-  "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py" \
-    --policy-data "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer"
+  if "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_same_route_admission.py" \
+    --installed-release "$PREFIX/current" --candidate-release "$RELEASE"; then
+    printf 'release_change_class=SAME_ROUTE_EXISTING_AUTHORITY\n'
+  else
+    "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py" \
+      --policy-data "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer"
+  fi
 fi
 
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
@@ -170,3 +181,8 @@ mv -Tf "$PREFIX/current.next" "$PREFIX/current"
 
 printf 'installed_release=%s\n' "$COMMIT"
 printf 'release_dir=%s\n' "$RELEASE"
+# Symlink promotion alone does not restart the Gateway or certify that an
+# authenticated Agent has consumed the new SourceCut. Operational rollout must
+# restart, verify running PID/cwd and Gateway Tool behavior, and rollback on loss.
+printf 'runtime_process_restarted=false\n'
+printf 'post_promotion_agent_consumer_verified=false\n'

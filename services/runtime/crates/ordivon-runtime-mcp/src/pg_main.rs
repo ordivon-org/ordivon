@@ -151,11 +151,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 return Err("Harness principal must be distinct, nonempty and trimmed".into());
             }
-            let schema = issuer_schema
-                .clone()
-                .ok_or("dedicated Harness ingress requires ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
+            // A dedicated Claim finalizer needs original Runtime PG Workspace
+            // ownership only, NOT the optional same-DB Harness Job issuer.
+            // With an issuer schema the existing R16 Job source-currentness
+            // contract remains exactly as before.
             let dedicated = auth.dedicated_harness_from_file(std::path::Path::new(&file))?;
-            Some((dedicated, principal, schema))
+            Some((dedicated, principal, issuer_schema.clone()))
         }
         _ => {
             return Err(
@@ -198,6 +199,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             None
         },
+        harness_dispatch_issuer: isolated_harness
+            .as_ref()
+            .and_then(|(_, principal, schema)| {
+                schema
+                    .as_ref()
+                    .map(|schema| (principal.clone(), schema.clone()))
+            }),
         workspace_headroom,
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
@@ -215,7 +223,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let issuer_runtime_config = isolated_harness
         .as_ref()
         .map(|(_, _, schema)| PgRuntimeConfig {
-            harness_issuer_schema: Some(schema.clone()),
+            // Claim-only path shares the existing physical PG owner and
+            // never reads an unrelated Harness database/issuer function.
+            harness_issuer_schema: schema.clone(),
+            harness_dispatch_issuer: None,
             ..config.clone()
         });
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;
@@ -265,14 +276,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         release,
     );
+    // The ordinary /mcp route ALWAYS starts without Harness Claim release
+    // authority. Missing/incomplete dedicated issuer configuration must fail
+    // closed, not silently restore the raw early-release attack.
+    // Existing ordinary-principal HELD Claims remain pinned; migration to the
+    // dedicated issuer needs an exact, consumer-qualified original Run owner.
     let dedicated_server = match (harness_runtime, isolated_harness.as_ref()) {
-        (Some(runtime), Some((_, principal, _))) => Some(PgRuntimeServer::new(
-            runtime,
-            ExecutionContext {
-                principal: principal.clone(),
-                global_limit: 0,
-            },
-        )),
+        (Some(runtime), Some((_, principal, issuer_schema))) => {
+            let dedicated = PgRuntimeServer::new(
+                runtime,
+                ExecutionContext {
+                    principal: principal.clone(),
+                    global_limit: 0,
+                },
+            );
+            Some(if issuer_schema.is_some() {
+                dedicated.for_authenticated_harness_finalizer()
+            } else {
+                dedicated.for_authenticated_claim_only_finalizer()
+            })
+        }
         (None, None) => None,
         _ => return Err("incomplete Harness Runtime source/ingress binding".into()),
     };

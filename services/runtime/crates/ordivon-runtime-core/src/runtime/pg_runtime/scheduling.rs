@@ -1,8 +1,18 @@
 //! Durable pending work, atomic native allocation and fair dispatch.
+//! Logic policy and physical resource observation live in separate modules.
 use super::*;
+mod failure_policy;
+mod issue_writer;
+mod native_capacity;
+mod policy;
 use crate::resource_scheduling::{
     NodeResources, ResourceRequest, ResourceScheduling, WorkspaceAccess,
 };
+use failure_policy::{decode_accepted_candidate, is_job_scoped_reconciliation_error};
+use issue_writer::record_scheduler_issue;
+use native_capacity::{native_resource_error, unspent_native_allocation};
+pub(super) use policy::scheduling_readback;
+use policy::{next_candidate, PendingCandidate, SchedulerPreflight};
 use std::collections::{BTreeMap, BTreeSet};
 
 // A current Attempt belongs to exactly one Job. The schema does not enforce
@@ -11,321 +21,6 @@ use std::collections::{BTreeMap, BTreeSet};
 const PENDING_JOBS_SQL: &str = "SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id";
 
 const SCHEDULING_READBACK_SQL: &str = "SELECT j.execution_plan_json,a.state,EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active'),j.desired_state,j.resolution,a.attempt_id FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,(SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id WHERE j.job_id=$1";
-
-/// Immutable PG candidate snapshot. Dominant shares are rescored after every
-/// successful allocation; execution plans need not be queried or decoded again.
-struct PendingCandidate {
-    priority: i16,
-    order: usize,
-    job: String,
-    principal: String,
-    attempt_id: String,
-    workspace_id: String,
-    spec: ResourceScheduling,
-}
-
-/// An advisory snapshot for rejecting candidates that definitively cannot
-/// fit the observed resources or conflict with an already committed lease.
-/// This is never allocation authority: claim_resources rechecks PostgreSQL
-/// under its existing transaction lock before admitting any new Attempt.
-#[derive(Default)]
-struct SchedulerPreflight {
-    reserved_cpu: u64,
-    // Claims made after the single native node observation this scheduling
-    // pass are not yet reflected in MemAvailable / pids.current. Existing
-    // allocations are already included in that OS observation and must not
-    // be charged again here.
-    newly_reserved_memory: u64,
-    newly_reserved_pids: u64,
-    active_attempts: BTreeSet<String>,
-    leases: BTreeMap<String, Vec<WorkspaceAccess>>,
-}
-
-impl SchedulerPreflight {
-    fn allows(&self, candidate: &PendingCandidate, node: &NodeResources) -> bool {
-        // An accepted Attempt may already hold a durable Allocation across a
-        // crash/restart. Let the existing idempotent claim resume that exact
-        // Attempt; its own CPU and Workspace lease must not block recovery.
-        if self.active_attempts.contains(&candidate.attempt_id) {
-            return true;
-        }
-        if !node.pressure_allows(&candidate.spec.resources) {
-            return false;
-        }
-        let memory_reserve = (node.memory_total_bytes / 20).max(64 * 1024 * 1024);
-        if !crate::resource_fit::fits(
-            self.reserved_cpu,
-            u64::from(candidate.spec.resources.cpu_millis),
-            node.cpu_millis,
-            candidate.spec.resources.memory_bytes,
-            node.memory_available_bytes
-                .saturating_sub(memory_reserve)
-                .saturating_sub(self.newly_reserved_memory),
-            u64::from(candidate.spec.resources.pids),
-            node.pids_available
-                .saturating_sub(64)
-                .saturating_sub(self.newly_reserved_pids),
-        ) {
-            return false;
-        }
-        !self
-            .leases
-            .get(&candidate.workspace_id)
-            .is_some_and(|active| {
-                active
-                    .iter()
-                    .any(|lease| lease.conflicts(&candidate.spec.workspace_access))
-            })
-    }
-
-    /// One-pass filter of candidates already known to be infeasible in the
-    /// current immutable native/PG snapshot. Subsequent allocations can only
-    /// tighten this preflight; final authority remains the PG claim.
-    fn retain_initially_feasible(
-        &self,
-        candidates: &mut Vec<PendingCandidate>,
-        node: &NodeResources,
-    ) {
-        candidates.retain(|candidate| self.allows(candidate, node));
-    }
-
-    fn record_allocation(&mut self, candidate: &PendingCandidate) -> bool {
-        if !self.active_attempts.insert(candidate.attempt_id.clone()) {
-            return false;
-        }
-        self.reserved_cpu = self
-            .reserved_cpu
-            .saturating_add(u64::from(candidate.spec.resources.cpu_millis));
-        self.newly_reserved_memory = self
-            .newly_reserved_memory
-            .saturating_add(candidate.spec.resources.memory_bytes);
-        self.newly_reserved_pids = self
-            .newly_reserved_pids
-            .saturating_add(u64::from(candidate.spec.resources.pids));
-        self.leases
-            .entry(candidate.workspace_id.clone())
-            .or_default()
-            .push(candidate.spec.workspace_access.clone());
-        true
-    }
-}
-
-fn dominant_share(
-    owner: &str,
-    usage: &BTreeMap<String, (u64, u64, u64)>,
-    node: &NodeResources,
-) -> f64 {
-    let (cpu, memory, pids) = usage.get(owner).copied().unwrap_or_default();
-    (cpu as f64 / node.cpu_millis.max(1) as f64)
-        .max(memory as f64 / node.memory_total_bytes.max(1) as f64)
-        .max(pids as f64 / node.pid_capacity.max(1) as f64)
-}
-
-/// Highest priority, then lowest live dominant share, then FIFO order.
-fn next_candidate(
-    candidates: &[PendingCandidate],
-    usage: &BTreeMap<String, (u64, u64, u64)>,
-    node: &NodeResources,
-) -> Option<usize> {
-    candidates
-        .iter()
-        .enumerate()
-        .min_by(|(_, a), (_, b)| {
-            b.priority
-                .cmp(&a.priority)
-                .then_with(|| {
-                    dominant_share(&a.spec.owner, usage, node).total_cmp(&dominant_share(
-                        &b.spec.owner,
-                        usage,
-                        node,
-                    ))
-                })
-                .then_with(|| a.order.cmp(&b.order))
-        })
-        .map(|(index, _)| index)
-}
-
-// Testable projection: there is no durable, cause-specific placement
-// result in PG, so readback must not pretend to know why Allocation waits.
-pub(super) fn scheduling_readback(
-    request: ResourceScheduling,
-    attempt_state: Option<&str>,
-    desired_state: &str,
-    resolution: Option<&str>,
-    allocated: bool,
-) -> serde_json::Value {
-    let pending = attempt_state == Some("accepted")
-        && desired_state == "run"
-        && resolution.is_none()
-        && !allocated;
-    json!({
-        "state": if allocated {"allocated"} else if pending {"pending"} else {"released"},
-        "request": request,
-        "pendingReason": if pending {Some("cause_unobserved")} else {None}
-    })
-}
-
-/// Native controller read errors mean UNKNOWN, never an unschedulable verdict.
-fn native_resource_error(message: impl std::fmt::Display) -> RuntimeError {
-    RuntimeError::new(
-        RuntimeErrorCode::ToolFailed,
-        format!("native scheduling resource observation unavailable: {message}"),
-        Some("scheduling.resources"),
-        true,
-    )
-}
-
-/// A corrupt committed candidate is a Job-local *invalid request*, not a
-/// failed PostgreSQL Registry. Preserve that distinction in Job events so an
-/// Agent does not mistake one poisoned row for a node-wide database outage.
-fn decode_accepted_candidate(raw: &str) -> RuntimeResult<RuntimeExecutionPlan> {
-    serde_json::from_str(raw).map_err(|parse| {
-        RuntimeError::new(
-            RuntimeErrorCode::InvalidRequest,
-            format!("committed accepted Job has invalid execution plan: {parse}"),
-            Some("executionPlan"),
-            false,
-        )
-    })
-}
-
-/// Only a local, explicitly attributable failure may be isolated. A broken
-/// PostgreSQL writer/transaction or unknown node observation applies to the
-/// entire scheduler and must remain UNKNOWN rather than skipping all jobs.
-fn is_job_scoped_reconciliation_error(error: &RuntimeError) -> bool {
-    matches!(
-        error.code,
-        RuntimeErrorCode::ProviderStateMismatch
-            | RuntimeErrorCode::LaunchIdentityMismatch
-            | RuntimeErrorCode::WorkspaceStateMismatch
-            | RuntimeErrorCode::WorkspaceNotFound
-            | RuntimeErrorCode::ResultIdentityConflict
-            | RuntimeErrorCode::ArtifactIdentityConflict
-            | RuntimeErrorCode::ReconciliationRequired
-            | RuntimeErrorCode::DispatchOutcomeUnknown
-    )
-}
-
-/// One durable diagnostic per Attempt and issue class, using the existing PG
-/// Job event ledger. No new table, worker, admission outcome or terminal state.
-/// A qualified writer and the same allocation/close fence serialize with
-/// admission, terminal commits and other event_sequence appenders.
-fn record_scheduler_issue(
-    runtime: &PgRuntime,
-    db: &mut PgAdmissionStore,
-    job: &str,
-    attempt_id: &str,
-    reason: &str,
-    error: &RuntimeError,
-) -> RuntimeResult<()> {
-    let mut tx = db
-        .client
-        .build_transaction()
-        .isolation_level(postgres::IsolationLevel::ReadCommitted)
-        .start()
-        .map_err(io)?;
-    tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
-        .map_err(io)?;
-    runtime.require_qualified_writer_tx(&mut tx)?;
-    // A stale pending snapshot cannot append an issue to a newer/terminal
-    // Attempt or claim that a separately cancelled Job still needs dispatch.
-    let current = tx
-        .query_opt(
-            "SELECT a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id              WHERE j.job_id=$1 AND a.attempt_id=$2 AND a.state='accepted' AND j.desired_state='run' AND j.resolution IS NULL              FOR UPDATE OF j,a",
-            &[&job, &attempt_id],
-        )
-        .map_err(io)?;
-    if current.is_none() {
-        return Ok(());
-    }
-    let recorded = tx
-        .query_opt(
-            "SELECT 1 FROM job_events WHERE job_id=$1 AND attempt_id=$2              AND event_type='SCHEDULER_ISSUE' AND reason_code=$3 LIMIT 1",
-            &[&job, &attempt_id, &reason],
-        )
-        .map_err(io)?;
-    if recorded.is_some() {
-        return Ok(());
-    }
-    let detail = encode(&json!({
-        "schemaVersion": 1,
-        "errorCode": error.code.as_str(),
-        "field": error.field,
-    }))?;
-    let digest = universal::sha256_bytes(detail.as_bytes());
-    let seq: i64 = tx
-        .query_one(
-            "SELECT COALESCE(MAX(event_sequence),0)+1 FROM job_events WHERE job_id=$1",
-            &[&job],
-        )
-        .map_err(io)?
-        .get(0);
-    tx.execute(
-        "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,previous_state,new_state,reason_code,detail_json,detail_digest,observed_at_ms)          VALUES($1,$2,$3,$4,'SCHEDULER_ISSUE','SYSTEM_DERIVED','accepted','accepted',$5,$6,$7,$8)",
-        &[
-            &format!("event-{}", uuid::Uuid::now_v7()),
-            &job,
-            &attempt_id,
-            &seq,
-            &reason,
-            &detail,
-            &digest,
-            &now()?,
-        ],
-    )
-    .map_err(io)?;
-    tx.commit().map_err(|_| {
-        RuntimeError::new(
-            RuntimeErrorCode::DispatchOutcomeUnknown,
-            "scheduler diagnostic COMMIT outcome unknown; read back the Job event before retrying",
-            Some("jobId"),
-            false,
-        )
-        .with_operation_id(job)
-    })?;
-    Ok(())
-}
-
-/// A *missing unit directory* is an unstarted (or removed) cgroup and thus
-/// contributes no observed usage. The committed PG Allocation still reserves
-/// its full resource request. An existing unit with missing/corrupt controller
-/// files is UNKNOWN and must not be interpreted as zero usage.
-///
-/// Read each cgroup file directly in the normal path: only an ENOENT triggers
-/// an extra directory check, avoiding a per-allocation metadata round trip.
-fn unspent_native_allocation(group: &Path, request: &ResourceRequest) -> RuntimeResult<(u64, u64)> {
-    let read_current = |name: &str| -> RuntimeResult<Option<u64>> {
-        let path = group.join(name);
-        match fs::read_to_string(&path) {
-            Ok(value) => value
-                .trim()
-                .parse::<u64>()
-                .map(Some)
-                .map_err(|e| native_resource_error(format!("{}: {e}", path.display()))),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                match fs::symlink_metadata(group) {
-                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-                    Ok(_) => Err(native_resource_error(format!(
-                        "{} missing from existing cgroup",
-                        path.display()
-                    ))),
-                    Err(e) => Err(native_resource_error(format!("{}: {e}", group.display()))),
-                }
-            }
-            Err(e) => Err(native_resource_error(format!("{}: {e}", path.display()))),
-        }
-    };
-    let Some(memory) = read_current("memory.current")? else {
-        return Ok((request.memory_bytes, u64::from(request.pids)));
-    };
-    let Some(pids) = read_current("pids.current")? else {
-        return Ok((request.memory_bytes, u64::from(request.pids)));
-    };
-    Ok((
-        request.memory_bytes.saturating_sub(memory),
-        u64::from(request.pids).saturating_sub(pids),
-    ))
-}
 
 impl PgRuntime {
     pub(super) fn scheduling_contract(
@@ -527,6 +222,32 @@ impl PgRuntime {
             self.authorize(&mut db, &job, &principal)?;
             let reconciled = match self.reconcile_inner(&mut db, &job, true) {
                 Ok(()) => true,
+                Err(error) if error.code == RuntimeErrorCode::AuthorizationDenied => {
+                    // An original Harness source cut was definitively revoked
+                    // after admission but BEFORE any DISPATCH_ISSUED event.
+                    // Reuse the existing PG-fenced accepted cancellation and
+                    // resource-release path; never poison unrelated Jobs or
+                    // strand a permanent active Allocation on every retry.
+                    // A PG/OS UNKNOWN is NOT an AuthorizationDenied result.
+                    // Keep the reason separate from a user's cancel intent:
+                    // existing Job consumers can trace why it was settled.
+                    record_scheduler_issue(
+                        self,
+                        &mut db,
+                        &job,
+                        &attempt_id,
+                        "HARNESS_ISSUER_NOT_CURRENT_AT_DISPATCH",
+                        &error,
+                    )?;
+                    self.cancel(
+                        &principal,
+                        &JobCancelRequest {
+                            schema_version: 1,
+                            job_id: job.clone(),
+                        },
+                    )?;
+                    false
+                }
                 Err(error) if is_job_scoped_reconciliation_error(&error) => {
                     record_scheduler_issue(
                         self,

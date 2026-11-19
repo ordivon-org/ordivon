@@ -198,7 +198,7 @@ def test_explicit_legacy_loopback_http_compatibility_preserves_existing_live_cli
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A schema-only upgrade must not silently break the existing direct Host client."""
-    from ordivon_host_v2 import mcp_server
+    from ordivon_host_v2 import http_transport, mcp_server
     from ordivon_host_v2.http_identity import AuthenticatedHostApp
 
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
@@ -212,7 +212,7 @@ def test_explicit_legacy_loopback_http_compatibility_preserves_existing_live_cli
     def capture_server(app, *, host, port, log_level) -> None:
         observed.update(app=app, host=host, port=port)
 
-    monkeypatch.setattr(mcp_server.uvicorn, "run", capture_server)
+    monkeypatch.setattr(http_transport.uvicorn, "run", capture_server)
     mcp_server.main()
     assert observed["host"] == "127.0.0.1"
     assert not isinstance(observed["app"], AuthenticatedHostApp)
@@ -221,14 +221,14 @@ def test_explicit_legacy_loopback_http_compatibility_preserves_existing_live_cli
 def test_legacy_http_compatibility_never_overrides_declared_host_bearer(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    from ordivon_host_v2 import mcp_server
+    from ordivon_host_v2 import http_transport, mcp_server
 
     credential, _ = provision(tmp_path)
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
     monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid-host-test-dsn")
     monkeypatch.setenv("ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP", "true")
     monkeypatch.setenv("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE", str(credential))
-    monkeypatch.setattr(mcp_server.uvicorn, "run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(http_transport.uvicorn, "run", lambda *_args, **_kwargs: None)
     with pytest.raises(RuntimeError, match="cannot coexist"):
         mcp_server.main()
 
@@ -264,7 +264,7 @@ def test_systemd_credential_group_read_is_supported(
 def test_host_http_main_installs_native_bearer_gate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    from ordivon_host_v2 import mcp_server
+    from ordivon_host_v2 import http_transport, mcp_server
     from ordivon_host_v2.http_identity import AuthenticatedHostApp
 
     credential, _resource = provision(tmp_path)
@@ -276,10 +276,25 @@ def test_host_http_main_installs_native_bearer_gate(
     def capture_server(app, *, host, port, log_level):
         observed.update({"app": app, "host": host, "port": port})
 
-    monkeypatch.setattr(mcp_server.uvicorn, "run", capture_server)
+    monkeypatch.setattr(http_transport.uvicorn, "run", capture_server)
     mcp_server.main()
     assert isinstance(observed["app"], AuthenticatedHostApp)
     assert observed["host"] in {"127.0.0.1", "localhost", "::1"}
     assert observed["port"] == 8898
     # The actual CLI-composed app, not only a helper unit, rejects without identity.
     assert asyncio.run(request(observed["app"])).status_code == 401
+
+
+def test_http_access_rules_live_only_in_transport_module() -> None:
+    """Do not reintroduce credential/legacy HTTP decisions into business MCP code."""
+    import inspect
+
+    from ordivon_host_v2 import http_transport, mcp_server
+
+    server_source = inspect.getsource(mcp_server)
+    ingress_source = inspect.getsource(http_transport)
+    assert "ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE" not in server_source
+    assert "ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP" not in server_source
+    assert "protect_host_http_app" not in server_source
+    assert "ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE" in ingress_source
+    assert "ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP" in ingress_source

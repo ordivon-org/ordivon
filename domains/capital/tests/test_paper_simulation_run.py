@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from hashlib import sha256
 from pathlib import Path
 
@@ -21,14 +21,15 @@ from ordivon_capital.accounting.paper_simulation_run import run_simulated_paper
 from ordivon_capital.accounting.postgres_paper_close import read_latest_committed_paper_close
 
 
-def _bundle(root: Path) -> dict[str, Path]:
-    days = [
-        date.fromisoformat(x)
-        for x in (
-            "2025-10-14", "2025-10-15", "2025-10-16", "2025-10-17",
-            "2025-10-20", "2025-10-21", "2025-10-22", "2025-10-23",
-        )
-    ]
+def _bundle(root: Path, *, hold: int = 5) -> dict[str, Path]:
+    # Synthetic week-session grid only; never market PIT/calendar evidence.
+    assert hold in (5, 20)
+    days = []
+    cursor = date(2025, 10, 14)
+    while len(days) < hold + 3:
+        if cursor.weekday() < 5:
+            days.append(cursor)
+        cursor += timedelta(days=1)
     buy = PaperBuy(
         "nautilus-paper:SIM-001:native-buy-one", "SPY", 1, 66_679, 1,
         datetime.fromisoformat("2025-10-14T16:01:00-04:00"),
@@ -37,17 +38,17 @@ def _bundle(root: Path) -> dict[str, Path]:
     )
     sell = PaperSell(
         "nautilus-paper:SIM-001:native-sell-one", "SPY", 1, 67_198, 1,
-        datetime.fromisoformat("2025-10-21T16:01:00-04:00"),
-        datetime.fromisoformat("2025-10-22T09:30:00-04:00"),
-        days[7],
+        datetime.fromisoformat(f"{days[-3].isoformat()}T16:01:00-04:00"),
+        datetime.fromisoformat(f"{days[-2].isoformat()}T09:30:00-04:00"),
+        days[-1],
     )
     sessions = [PaperSession(days[0], None, 1_000_000, 900_000, {}, ())]
     sessions += [
         PaperSession(
             day, days[i-1], 0, 0,
-            {"SPY": 66_600 + i * 100} if i < 6 else {},
+            {"SPY": 66_600 + i * 100} if i < len(days) - 2 else {},
             (buy,) if i == 1 else (),
-            (sell,) if i == 6 else (),
+            (sell,) if i == len(days) - 2 else (),
         )
         for i, day in enumerate(days) if i != 0
     ]
@@ -56,7 +57,7 @@ def _bundle(root: Path) -> dict[str, Path]:
         state = value_session(state, day)
     assert state is not None and state.cash_minor == 1_000_517
     pred = (
-        b"datetime,instrument,score\n"
+        b"datetime,instrument,predicted_next_open_to_next_open_fractional_return\n"
         b"2025-10-14,IWM,0.01\n2025-10-14,QQQ,0.02\n2025-10-14,SPY,0.03\n"
     )
     study = {
@@ -65,11 +66,18 @@ def _bundle(root: Path) -> dict[str, Path]:
         "forecast": {
             "point_in_time_eligible": False,
             "native_strategy_exit_event_matches_target": True,
+            "kind": "uncalibrated_multisession_holding_return",
+            "holding_sessions": hold,
+            "exit_price_kind": "next_open",
+            "target_horizon": f"next_session_open_to_T_plus_{hold + 1}_open",
         },
         "signal_quality": {
             "exit_price_kind": "next_open",
-            "holding_sessions": 5,
+            "holding_sessions": hold,
             "matches_native_fixed_holding_exit_event": True,
+            "standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
+            "label_forward_sessions": hold + 1,
+            "horizon": f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{hold + 1}_open",
         },
     }
     sessions_bytes = json.dumps(
@@ -91,11 +99,11 @@ def _bundle(root: Path) -> dict[str, Path]:
         "positions_closed": True,
         "receivable_settled": True,
         "native_open_position_count": 0,
-        "horizon_complete_sessions": 5,
+        "horizon_complete_sessions": hold,
         "selected_instrument": "SPY",
         "research_model_sample_decision": "2025-10-14",
-        "native_entry_session": "2025-10-15",
-        "native_exit_session": "2025-10-22",
+        "native_entry_session": days[1].isoformat(),
+        "native_exit_session": days[-2].isoformat(),
         "native_fill_count": 2,
         "native_order_count": 2,
         "native_fill_claims": [
@@ -345,6 +353,97 @@ def test_native_batch_preflight_reaches_existing_ledger_only_for_coherent_inputs
     native["last_paper_cash_minor"] += 10
     bundle["native"].write_text(json.dumps(native))
     with pytest.raises(ValueError, match="economic identities disagree"):
+        run_simulated_paper("never-connect", **bundle)
+
+
+@pytest.mark.parametrize(
+    "poison",
+    (
+        "legacy_score", "future_label_first", "duplicate_score_header",
+        "forecast_holding", "forecast_target", "forecast_kind",
+        "forecast_exit", "signal_label", "signal_horizon", "signal_standing",
+    ),
+)
+def test_qlib_native_score_and_horizon_must_match_before_pg(
+    tmp_path, monkeypatch, poison,
+):
+    """Adversarial but self-consistent caller artifacts must never reach PG."""
+    bundle = _bundle(tmp_path)
+    study = json.loads(bundle["study"].read_text())
+    original = bundle["predictions"].read_bytes()
+
+    if poison == "legacy_score":
+        pred = original.replace(
+            b"predicted_next_open_to_next_open_fractional_return", b"score"
+        )
+    elif poison == "future_label_first":
+        # An outcome label before the real forecast preserved the selected
+        # SPY in the old first-non-identity-column reader.
+        pred = original.replace(
+            b"predicted_next_open_to_next_open_fractional_return",
+            b"actual_future_label,predicted_next_open_to_next_open_fractional_return",
+        ).replace(b",0.01\n", b",0.01,0.01\n").replace(
+            b",0.02\n", b",0.02,0.02\n"
+        ).replace(b",0.03\n", b",0.03,0.03\n")
+    elif poison == "duplicate_score_header":
+        pred = original.replace(
+            b"predicted_next_open_to_next_open_fractional_return",
+            b"score,score",
+        ).replace(b",0.01\n", b",0.01,0.01\n").replace(
+            b",0.02\n", b",0.02,0.02\n"
+        ).replace(b",0.03\n", b",0.03,0.03\n")
+    else:
+        pred = original
+        if poison == "forecast_holding":
+            study["forecast"]["holding_sessions"] = 20
+        elif poison == "forecast_target":
+            study["forecast"]["target_horizon"] = "next_session_open_to_T_plus_21_open"
+        elif poison == "forecast_kind":
+            study["forecast"]["kind"] = "uncalibrated_one_day_return"
+        elif poison == "forecast_exit":
+            study["forecast"]["exit_price_kind"] = "close"
+        elif poison == "signal_label":
+            study["signal_quality"]["label_forward_sessions"] = 21
+        elif poison == "signal_horizon":
+            study["signal_quality"]["horizon"] = "different_horizon"
+        elif poison == "signal_standing":
+            study["signal_quality"]["standing"] = "PIT_ELIGIBLE"
+
+    bundle["predictions"].write_bytes(pred)
+    study["qlib_prediction_sha256"] = sha256(pred).hexdigest()
+    study_bytes = json.dumps(study).encode()
+    bundle["study"].write_bytes(study_bytes)
+    native = json.loads(bundle["native"].read_text())
+    native["model_study_sha256"] = sha256(study_bytes).hexdigest()
+    native["model_prediction_sha256"] = sha256(pred).hexdigest()
+    bundle["native"].write_text(json.dumps(native))
+
+    import ordivon_capital.accounting.paper_simulation_run as runner
+
+    monkeypatch.setattr(
+        runner, "PostgresPaperClose",
+        lambda _dsn: (_ for _ in ()).throw(ReachedPostgres(
+            "unqualified Qlib consumer reached Paper PG constructor"
+        )),
+    )
+    with pytest.raises(ValueError, match="Qlib|forecast|horizon|score"):
+        run_simulated_paper("never-connect", **bundle)
+
+
+
+@pytest.mark.parametrize("hold", (5, 20))
+def test_valid_h5_h20_native_score_reaches_paper_pg_constructor(
+    tmp_path, monkeypatch, hold,
+):
+    """Both valid native holding hypotheses retain their Paper preflight path."""
+    bundle = _bundle(tmp_path, hold=hold)
+    import ordivon_capital.accounting.paper_simulation_run as runner
+
+    def _pg_sentinel(_dsn):
+        raise ReachedPostgres("valid Paper only")
+
+    monkeypatch.setattr(runner, "PostgresPaperClose", _pg_sentinel)
+    with pytest.raises(ReachedPostgres, match="valid Paper only"):
         run_simulated_paper("never-connect", **bundle)
 
 

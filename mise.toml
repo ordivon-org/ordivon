@@ -67,6 +67,7 @@ uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 [tasks."repo:ci"]
 run = """
 set -euo pipefail
+mise run repo:retirement:verify
 python3 -m unittest tools/repo/test_tracked_secrets.py
 python3 -m unittest tools/repo/test_install_verified_cargo_deny.py
 python3 -m unittest tools/repo/test_source_history_legos.py

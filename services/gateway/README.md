@@ -30,8 +30,8 @@ artifact bytes or installed behavior. No global registry or second PEP exists.
   the Workspace has no local cache. Inspect the four TLC invariants and the
   two expected counterexamples. For physical behavior run `mise run gateway:verify`.
 - **Agent:** first pin the Git SourceCut, inspect the original
-  `src/ordivon_gateway/authorization_targets.py` for the pure requested
-  Owner resource projection and `src/ordivon_gateway/capability_authz.py`
+  `src/ordivon_gateway/security/authorization_targets.py` for the pure requested
+  Owner resource projection and `src/ordivon_gateway/security/capability_authz.py`
   for its independent fail-closed Security PEP, then use
   `tests/test_capability_authz_middleware.py` plus Host/Release and HTTP
   native consumers and invoke `gateway:formal:verify`.
@@ -81,32 +81,73 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
-- **Capability Catalog** (src/ordivon_gateway/capability_catalog.py):
+- **Production release change class (R43)**: the original
+  packaging/install_release.sh derives same-route software upgrades from
+  the exact installed and immutable candidate, unchanged ingress/AuthZEN
+  Security source, private Owner credential semantics, exact native SDK Tool
+  ABI, live systemd SourceCut/route identity, candidate Host read and
+  authenticated-front-door anonymous-denial canaries. Unobserved or changed
+  policy/route/identity uses the original
+  packaging/check_live_host_admission.py cutover NO_GO; it is never a flag
+  to skip Security. The installer stages and changes a symlink but does not
+  restart the live process or prove connected Agent results. Before activation
+  and after restart keep authenticated read/denial, recovery and rollback
+  consumer obligations. See docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
+- **Trusted Cloudflare Access operator (explicit opt-in)**:
+  ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR=true selects the already verified
+  Cloudflare Access app as the operator trust boundary, removing duplicate
+  AuthZEN denial for that principal. Missing/invalid JWT and local Harness
+  service identities keep their prior restrictions. See
+  docs/TRUSTED_CF_OPERATOR_R34_LIVE_REPAIR.md.
+- **Semantic evidence refinement**:
+  capability.inquire separates actual readiness predicate changes from raw
+  Owner response changes not yet classified. Every unobserved/invalid
+  proposition stays visible as a question. Execution, Artifact and Inquiry
+  share strict v1 Runtime status validation.
+  See docs/READINESS_SEMANTIC_EVIDENCE_R35.md.
+- **Explicit read-only evidence confirmation**:
+  capability.inquire(capability, verifyReadOnly=true) performs one additional
+  bounded Owner status observation, then returns original and latest facts,
+  raw status digests, exact read-only receipts and changed predicates.
+  It does not execute business effects. See docs/READINESS_CONFIRMATION_R34.md.
+- **Evidence-guided capability inquiry** (capability.inquire):
+  verified-Principal-only, exact-capability inspection of bounded status
+  observations. Returns separate facts, contradictory records, unresolved
+  predicates, competing hypotheses, and proposed forward/reverse checks.
+  It never secretly retries an effect; original capability.describe/search
+  response schemas are unchanged. See
+  docs/READINESS_INQUIRY_AND_HOST_ROUTING_R33.md.
+- **Optional Host read transport**: set ORDIVON_GATEWAY_HOST_READ_URL and
+  ORDIVON_GATEWAY_HOST_READ_BEARER_TOKEN_FILE when a separate protected Host
+  reader is actually available. Writes use the original Host URL and reads
+  never silently fall back after a protected-read failure.
+
+- **Capability Catalog** (src/ordivon_gateway/capabilities/discovery.py):
   read-only system description, capability description, search and resolution.
   Observes natural owners; never executes effects or claims domain completion.
   Reuses the canonical capability_projection.project_execution_capability operator.
-- **Ingress identity contract** (src/ordivon_gateway/ingress_identity.py):
+- **Ingress identity contract** (src/ordivon_gateway/security/ingress_identity.py):
   all HTTP Guard, AuthZEN PEP, audit, and MCP execution-Context readers
   agree on the complete non-blank Principal/Issuer request-state pair.
   This is a projection of already verified Access state, not an authenticator,
   token issuer, Actor grant, or alternate Security policy.
-- **Authorization resource projection** (src/ordivon_gateway/authorization_targets.py):
+- **Authorization resource projection** (src/ordivon_gateway/security/authorization_targets.py):
   derive Host read/write, Runtime release and Artifact request targets from the
   original Gateway Tool/Owner inputs; no Principal authentication or Security
   decision is issued here. A single existing Host dispatcher remains authoritative.
-- **Gateway Security PEP** (src/ordivon_gateway/capability_authz.py):
+- **Gateway Security PEP** (src/ordivon_gateway/security/capability_authz.py):
   only resolves a target via the original projection, reads verified ingress,
   binds PDP response, validates versioned decision/evidence, and forwards or
   denies. No second Owner or Policy engine.
 - **Gateway application facade** (src/ordivon_gateway/service.py):
   stable public signatures, execution dispatch, artifact reads and Host delegation.
   Its discovery methods delegate rather than duplicating catalog rules.
-- **Explicit Execution composition** (src/ordivon_gateway/execution_commands.py,
-  src/ordivon_gateway/execution_observations.py):
+- **Explicit Execution composition** (src/ordivon_gateway/capabilities/execution/commands.py,
+  src/ordivon_gateway/capabilities/execution/observations.py):
   GatewayService injects the same validated Owner caller/route dependencies
   into existing command and observation modules for submit, resolve, observe,
   cancel and Artifact forwarding. No independent Job state or terminal truth.
-- **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
+- **Owner protocol** (src/ordivon_gateway/logic/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
   import of parse_execution_ref remains available.
@@ -560,7 +601,7 @@ bindings unchanged.
 **Currentness boundary:** this source test does not imply the Gateway main
 release is deployed. At the 2026-11-17 audit, the installed Gateway is 0.10.12
 (release d73424dcae267224c907c102b14dfaf773f3fc11), while this source is
-0.10.14 / MCP surface epoch 14; verify the installed package and authenticated
+0.10.15 / MCP surface epoch 15; verify the installed package and authenticated
 client tool catalog again before any release. The older 0.10.11 observation is
 historical, not the present installed version. Linux Runtime UTF-8
 subcharacter paging is an independent Owner-managed condition: its current
@@ -603,7 +644,7 @@ authoritative total is absent or malformed, completeness remains UNKNOWN
 (None), not True or False.
 Likewise exitCode=True cannot be treated as an integer code. Original
 native consumers and negative tests:
-src/ordivon_gateway/execution_observations.py and
+src/ordivon_gateway/capabilities/execution/observations.py and
 tests/test_gateway_service.py. This is a wire result contract, not a
 new Runtime state model.
 
@@ -632,16 +673,29 @@ promotion *before* changing the current symlink. This does not replace
 #2349's independent Security/Host/Cloudflare/Principal/Agent canaries.
 
 The 2026-11-18 original installed 0.10.12 versus prepared 0.10.14
-native SDK comparison reported five **potential public ABI breaks**:
+native SDK comparison reported five **potential public ABI breaks** (historical R15):
 work.create.initialSnapshot, work.get.revision, work.list.limit,
 work.snapshot.commit.expectedRevision, and
 work.snapshot.commit.snapshot. Some tighter declared bounds may already
 have been enforced by the natural Host; do not silently waive them or
 undo useful schema validation. Obtain real old-consumer acceptance and
 an explicit versioned migration or preserve the old public contract
-before treating promotion as compatible. Native schema comparison is
-only SOURCE/INSTALLED-CANDIDATE contract evidence; it cannot itself
-qualify deployed authentication or domain behavior.
+before treating promotion as compatible. **R18 resolves the five input
+schema differences in source without removing Host-compatible validation:**
+original public 0.10.12 Work Tool schemas are retained for snapshot and
+integer arguments, while existing Pydantic TypeAdapter validators apply the
+same strict Host wire rules before forwarding. Native MCP SDK tests from the
+installed old 38 tools to R18 41 tools show no incompatible contracts; all
+original malformed input negative cases still fail before Owner dispatch.
+For Host-invalid values admitted by the original public JSON Schema, the
+same original Gateway Owner error projector returns the previous structured
+OWNER_CALL_FAILED envelope without sending an Owner RPC. Malformed JSON
+booleans are not schema-admissible integers and may be rejected earlier by
+the SDK's own Tool argument parser. Real old/candidate SDK calls against the
+same installed Host confirm identical Work get/list/create/commit error
+payloads for the four representative schema-admissible invalid cases.
+The separate Security/Host/Cloudflare release #2349 remains NO_GO; schema
+compatibility is not an authentication or user-workflow grant.
 
 When the candidate activates Gateway's Host read/write AuthZEN PEP,
 Security must already have **operator-provisioned current Principal
@@ -822,7 +876,7 @@ remains for ordinary bounded Jobs and is **not** a self-release path.
 ### Availability and deployment gate
 
 Historically, the R12 source candidate extended MCP surface epoch 11 to 12
-(41 tools). This source now declares epoch 14 / package 0.10.14 with 41 tools;
+(41 tools). This source now declares epoch 15 / package 0.10.15 with 41 tools;
 only the exact current release manifest and qualified live MCP discovery can
 establish an installed surface. Source tests and a route demonstration do
 not imply the installed Gateway or ChatGPT connector offers the new pair. Enable only after

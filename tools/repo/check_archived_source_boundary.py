@@ -5,7 +5,6 @@ import argparse
 import fnmatch
 import json
 import subprocess
-import sys
 from functools import cache
 from pathlib import Path
 
@@ -36,10 +35,24 @@ def load_policy(path: Path) -> dict:
 
 
 def tracked_reference_paths(root: Path, locator: str) -> list[str]:
-    proc = git(root, "grep", "-l", "-F", locator, "--", ".", check=False)
+    # Git paths are byte sequences: human-readable grep C-quotes
+    # names containing LF or non-UTF8 bytes. Preserve exact file identity.
+    proc = subprocess.run(
+        ["/usr/bin/git", "-C", str(root), "grep", "-l", "-z", "-F", locator, "--", "."],
+        check=False,
+        capture_output=True,
+    )
     if proc.returncode not in (0, 1):
-        raise RuntimeError(proc.stderr.strip() or "git grep failed")
-    return sorted({line.strip() for line in proc.stdout.splitlines() if line.strip()})
+        raise RuntimeError(
+            proc.stderr.decode("utf-8", errors="replace").strip() or "git grep failed"
+        )
+    return sorted(
+        {
+            item.decode("utf-8", errors="surrogateescape")
+            for item in proc.stdout.split(b"\0")
+            if item
+        }
+    )
 
 
 def matches_glob(path: str, pattern: str) -> bool:
@@ -78,7 +91,10 @@ def classify(path: str, policy: dict) -> tuple[str, str] | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Fail closed when an archived source locator reappears outside explicit historical reference classes."
+        description=(
+            "Fail closed when an archived source locator reappears "
+            "outside explicit historical reference classes."
+        )
     )
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--policy", type=Path, required=True)
@@ -96,11 +112,16 @@ def main() -> int:
     forbidden: list[str] = []
     for path in refs:
         if path == policy_relative:
-            allowed.append({
-                "path": path,
-                "class": "policy-self",
-                "reason": "The retirement policy necessarily names the locator it governs.",
-            })
+            allowed.append(
+                {
+                    "path": path,
+                    "class": "policy-self",
+                    "reason": (
+                        "The retirement policy necessarily names "
+                        "the locator it governs."
+                    ),
+                }
+            )
             continue
         classification = classify(path, policy)
         if classification is None:
@@ -122,14 +143,14 @@ def main() -> int:
         "allowed": allowed,
     }
     if args.json:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(json.dumps(result, ensure_ascii=True, indent=2))
     else:
         print(
             f"{result['status']} archived-source boundary {policy['id']}: "
             f"{len(refs)} tracked reference files, {len(forbidden)} forbidden"
         )
         for path in forbidden:
-            print(f"FORBIDDEN {path}")
+            print(f"FORBIDDEN {json.dumps(path, ensure_ascii=True)}")
     return 0 if not forbidden else 1
 
 

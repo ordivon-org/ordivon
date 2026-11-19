@@ -297,6 +297,10 @@ pub(crate) fn append_contained_properties(
     command.args([
         "--property=ProtectSystem=strict",
         "--property=ProtectHome=tmpfs",
+        // The contained task still has UID 0; ro filesystem alone cannot
+        // keep same-UID 0600 control-plane credentials from it. Let systemd
+        // ignore this binding on hosts that do not install /etc/ordivon.
+        "--property=InaccessiblePaths=-/etc/ordivon",
         "--property=PrivateTmp=yes",
         "--property=PrivateDevices=yes",
         "--property=PrivateNetwork=yes",

@@ -11,9 +11,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from ordivon_gateway import upstream
 from ordivon_gateway.service import GatewayService
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
+from ordivon_gateway.transport import upstream
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
 
 REPORT = json.dumps({"kind": "real-job-deliverable", "accepted": True}, sort_keys=True)
 JOB_ID = "job-actual-fixture"
