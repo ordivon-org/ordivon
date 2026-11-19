@@ -619,3 +619,14 @@ reachability, cross-DB unsafe close, late claim after close, and unauthorized
 grant. This is not a production Runtime Claim API, a cross-DB ACID commit,
 source-to-installed refinement, legacy Run migration or ignored Artifact
 finalization proof.
+
+Refinement R61: this model now distinguishes authenticated Finalizer
+invocation and a terminal Run from an independently received original-byte
+ACK. ReleaseOfPublishedRunRequiresRecipientBytes is checked in the ordinary
+finite safe model. The additional unsafe-caller-ack negative scenario permits
+a valid Finalizer with harness=finished to trust a caller-controlled
+accepted=true despite no original recipient delivery, and TLC must produce
+a real state counterexample. original-delivery-reachability is the converse
+positive non-vacuity check: delivered original bytes permit legal release.
+These are design-level obligations; they neither certify a real consumer's
+signature/source of receipt nor install a trusted Finalizer in Runtime.

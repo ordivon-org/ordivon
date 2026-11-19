@@ -1195,7 +1195,7 @@ check_workspace_cross_database_claim() {
 falsify_workspace_cross_database_claim() {
   verify_jar
   local label cfg invariant result output
-  for label in reachability original-reachability legacy-unclaimed-close unsafe-close unsafe-late unsafe-grant unsafe-adoption unsafe-known-rebind unsafe-caller-release unsafe-caller-close; do
+  for label in reachability original-reachability legacy-unclaimed-close unsafe-close unsafe-late unsafe-grant unsafe-adoption unsafe-known-rebind unsafe-caller-release unsafe-caller-ack original-delivery-reachability unsafe-caller-close; do
     cfg="WorkspaceCrossDatabaseClaimR1.$label.cfg"
     case "$label" in
       reachability) invariant=ClosedUnreachable ;;
@@ -1203,6 +1203,8 @@ falsify_workspace_cross_database_claim() {
       unsafe-adoption) invariant=ClaimBoundToOriginal ;;
       unsafe-known-rebind) invariant=ClaimBoundToOriginal ;;
       unsafe-caller-release) invariant=ReleaseRequiresOriginalFinalization ;;
+      unsafe-caller-ack) invariant=ReleaseOfPublishedRunRequiresRecipientBytes ;;
+      original-delivery-reachability) invariant=VerifiedOriginalByteReleaseUnreachable ;;
       unsafe-caller-close) invariant=ClosedHasNoPrematurelyReleasedConsumers ;;
       legacy-unclaimed-close) invariant=LegacyUnclaimedRunPreserved ;;
       unsafe-close|unsafe-late) invariant=ClosedHasNoOutstandingPins ;;
@@ -1219,6 +1221,25 @@ falsify_workspace_cross_database_claim() {
       echo "Workspace cross-DB $label counterexample FAILED" >&2
       printf '%s\n' "$output" >&2
       exit 1
+    fi
+    if [[ "$label" == "unsafe-caller-ack" ]]; then
+      # Do not let an unrelated failure or a CREATED-Run early release count
+      # as proof of this different, recipient-byte-ACK spoof counterexample.
+      # The offending transition must finish an issued Run while the
+      # independent recipient-delivery witness is still empty.
+      final_state=$(printf '%s\n' "$output" |
+        sed -n '/^State [1-9][0-9]*: <UnsafeFinalizerTrustsCallerAccepted/,/^$/p')
+      if [[ -z "$final_state" ]] ||
+         ! grep -Fq 'harness = [' <<< "$final_state" ||
+         ! grep -Fq '|-> "finished"' <<< "$final_state" ||
+         ! grep -Fq 'claim = [' <<< "$final_state" ||
+         ! grep -Fq '|-> "released"' <<< "$final_state" ||
+         ! grep -Fq 'published = {"run' <<< "$final_state" ||
+         ! grep -Fq 'delivered = {}' <<< "$final_state"; then
+        echo "Workspace original-byte accepted spoof did not show its required independent-ACK trace" >&2
+        printf '%s\n' "$output" | tail -85 >&2
+        exit 1
+      fi
     fi
     echo "Workspace cross-DB $label counterexample PASS"
   done

@@ -208,6 +208,20 @@ UnreleasedGrantsHeld ==
 ReleaseRequiresOriginalFinalization ==
     \A r \in RunIds: claim[r] = "released" => harness[r] = "finished"
 
+\* An issued Tool/Run with ORIGINAL output must retain its Claim until a
+\* recipient-owned byte-delivery witness exists. Run terminal / Finalizer
+\* bearer / caller boolean are not proof of receipt. A never-published
+\* reservation may be safely aborted without pretending to deliver bytes.
+\* This is a MODEL obligation, not an installed cross-DB Runtime proof.
+ReleaseOfPublishedRunRequiresRecipientBytes ==
+    \A r \in published: claim[r] = "released" => r \in delivered
+
+\* Non-vacuity oracle for the positive, real-delivery-first path. TLC MUST
+\* refute this: a completed original Run can deliver and release its Claim.
+VerifiedOriginalByteReleaseUnreachable ==
+    \A r \in RunIds:
+        ~(r \in published /\ r \in delivered /\ claim[r] = "released")
+
 \* A native close must not follow a prematurely released original Workspace.
 ClosedHasNoPrematurelyReleasedConsumers ==
     phase = "closed" =>
@@ -335,4 +349,23 @@ UnsafeDirectCallerRelease(r) ==
 
 UnsafeDirectReleaseSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeDirectCallerRelease(r))]_vars
+\* Adversarial real-Private Harness R29 counterexample (2026-11-20):
+\* even a correctly authenticated DEDICATED Finalizer and finished Run can
+\* be unsafe when a caller's "accepted: true" is trusted instead of a
+\* recipient-owned ORIGINAL BYTE acknowledgement. Here the caller claims
+\* receipt, but the independent delivered set deliberately remains FALSE.
+\* No actual result bytes have reached their original recipient.
+UnsafeFinalizerTrustsCallerAccepted(r) ==
+    /\ phase = "open"
+    /\ r \in published
+    /\ harness[r] = "finished"
+    /\ claim[r] = "active"
+    /\ r \notin delivered
+    /\ claim' = [claim EXCEPT ![r] = "released"]
+    /\ UNCHANGED <<phase, harness, originalWorkspace, claimWorkspace,
+                  published, delivered, liveJob, gitDependent>>
+
+UnsafeCallerAcceptedSpec ==
+    Init /\ [][SafeNext \/ (\E r \in RunIds:
+        UnsafeFinalizerTrustsCallerAccepted(r))]_vars
 =============================================================================
