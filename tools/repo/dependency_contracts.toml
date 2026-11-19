@@ -317,7 +317,8 @@ from_owner = "security"
 to_owner = "gateway"
 source_glob = "platform/security/services/gateway-authzen/tests/test_gateway_host_delegation.py"
 allowed_fragment = "services/gateway/enforcement-surface.json"
-kind = "TEST_ONLY_PUBLIC_TOOL_SURFACE"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
 contract_ref = "services/gateway/enforcement-surface.json"
 
 
@@ -330,7 +331,8 @@ from_owner = "gateway"
 to_owner = "security"
 source_glob = "services/gateway/tests/test_host_read_authorization.py"
 allowed_fragment = "platform/security/services/gateway-authzen"
-kind = "TEST_ONLY_SECURITY_OPA_CONSUMER"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "OWNER"
 contract_ref = "platform/security/services/gateway-authzen/README.md"
 
 # The Gateway's test-owned OPA consumer resolves the Security Owner's
@@ -340,7 +342,8 @@ from_owner = "gateway"
 to_owner = "security"
 source_glob = "services/gateway/tests/test_host_read_authorization.py"
 allowed_fragment = "platform/security/mise.toml"
-kind = "TEST_ONLY_PINNED_SECURITY_TOOLCHAIN"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
 contract_ref = "platform/security/mise.toml"
 
 # Original Harness -> Runtime native PG issuer acceptance: exact TEST-ONLY
