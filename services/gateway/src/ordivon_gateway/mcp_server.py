@@ -12,6 +12,7 @@ from mcp.server.mcpserver import Context
 from .capabilities.host.tools import register_host_tools
 from .contracts import (
     ArtifactChunk,
+    CapabilityInquiryProjection,
     CapabilityProjection,
     CapabilityResolution,
     CapabilitySearchProjection,
@@ -96,6 +97,11 @@ def build_server(
     @server.tool(name="capability.describe")
     async def capability_describe(capability: str | None = None) -> CapabilityProjection:
         return await gateway.capability_describe(capability)
+
+    @server.tool(name="capability.inquire")
+    async def capability_inquire(capability: str) -> CapabilityInquiryProjection:
+        """One read-only investigation, not an Owner effect or a permission grant."""
+        return await gateway.capability_inquire(capability=capability)
 
     @server.tool(name="capability.search")
     async def capability_search(

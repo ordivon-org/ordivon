@@ -60,6 +60,14 @@
       "downstreamAuthorization": "UNKNOWN"
     },
     {
+      "name": "capability.inquire",
+      "routeOwner": "gateway",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
       "name": "capability.resolve",
       "routeOwner": "skills",
       "operation": "read",

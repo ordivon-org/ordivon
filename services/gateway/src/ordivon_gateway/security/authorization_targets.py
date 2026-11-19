@@ -18,7 +18,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..logic.execution_refs import GatewayError, parse_execution_ref
-from ..logic.host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
+from ..logic.host_tool_contracts import (
+    HOST_READ_SELECTORS as _HOST_READ_SELECTORS,
+)
+from ..logic.host_tool_contracts import (
+    HOST_READ_TOOLS as _HOST_READ_ONLY_TOOLS,
+)
+from ..logic.host_tool_contracts import (
+    SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,28 +103,9 @@ def _qualified_host_reference(
 # caller-supplied fields cannot impersonate an Actor or narrow an Owner query.
 # A query without a recognized object selector is explicitly global and
 # requires the PDP to grant that breadth (e.g., work.list or host.status).
-_HOST_READ_SELECTORS: dict[str, tuple[str, ...]] = {
-    "host.status": (),
-    "work.get": ("workRef",),
-    "work.list": (),
-    "space.get": ("spaceRef",),
-    "space.list": ("actorRef", "subjectRef"),
-    "space.participation.list": ("spaceRef",),
-    "space.subject.list": ("spaceRef",),
-    "topic.cursor.get": ("actorRef", "topicRef"),
-    "topic.list": ("spaceRef",),
-    "topic.resume": ("topicRef",),
-    "message.get": ("messageRef",),
-    "message.search": ("spaceRef", "topicRef"),
-    "message.relation.list": ("messageRef",),
-    "subscription.list": ("actorRef",),
-    "attention.get": ("actorRef",),
-    "attention.delta": ("actorRef",),
-    "attention.reentry": ("actorRef",),
-}
 
-# Derive the Host read names from the semantic selectors actually enforced.
-_HOST_READ_ONLY_TOOLS = frozenset(_HOST_READ_SELECTORS)
+
+# Host read/write semantics are shared with the natural Host dispatcher.
 
 
 def _host_request_sha256(arguments: Mapping[str, Any], *, capability: str, action: str) -> str:

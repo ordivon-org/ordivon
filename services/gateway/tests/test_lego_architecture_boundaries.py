@@ -23,6 +23,7 @@ LOGIC_FILES = {
     "execution_refs.py",
     "host_tool_contracts.py",
     "owner_protocol.py",
+    "readiness_inquiry.py",
     "research_routes.py",
     "routing.py",
 }

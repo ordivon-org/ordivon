@@ -81,6 +81,18 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
+- **Evidence-guided capability inquiry** (capability.inquire):
+  verified-Principal-only, exact-capability inspection of bounded status
+  observations. Returns separate facts, contradictory records, unresolved
+  predicates, competing hypotheses, and proposed forward/reverse checks.
+  It never secretly retries an effect; original capability.describe/search
+  response schemas are unchanged. See
+  docs/READINESS_INQUIRY_AND_HOST_ROUTING_R33.md.
+- **Optional Host read transport**: set ORDIVON_GATEWAY_HOST_READ_URL and
+  ORDIVON_GATEWAY_HOST_READ_BEARER_TOKEN_FILE when a separate protected Host
+  reader is actually available. Writes use the original Host URL and reads
+  never silently fall back after a protected-read failure.
+
 - **Capability Catalog** (src/ordivon_gateway/capabilities/discovery.py):
   read-only system description, capability description, search and resolution.
   Observes natural owners; never executes effects or claims domain completion.

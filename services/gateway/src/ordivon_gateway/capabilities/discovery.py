@@ -9,6 +9,7 @@ from typing import Any
 
 from ..contracts import (
     CapabilityDescriptor,
+    CapabilityInquiryProjection,
     CapabilityProjection,
     CapabilityResolution,
     CapabilityRoute,
@@ -23,7 +24,9 @@ from ..logic.capability_projection import (
     project_native_release_capability,
 )
 from ..logic.execution_refs import GatewayError
+from ..logic.host_tool_contracts import host_read_transport_route
 from ..logic.owner_protocol import OwnerToolCaller, _configuration_error, _configured
+from ..logic.readiness_inquiry import project_readiness_inquiry, valid_runtime_target_inventory
 from .research import resolve_research_capability
 
 _OWNER_ROLES = {
@@ -75,7 +78,15 @@ class CapabilityCatalog:
                 configured=(
                     True
                     if owner_id == "research.composition"
-                    else _configured(self._caller, owner_id)
+                    else (
+                        _configured(self._caller, "host")
+                        or (
+                            host_read_transport_route(self._caller) == "host.read"
+                            and _configured(self._caller, "host.read")
+                        )
+                        if owner_id == "host"
+                        else _configured(self._caller, owner_id)
+                    )
                 ),
             )
             for owner_id, role in _OWNER_ROLES.items()
@@ -165,14 +176,15 @@ class CapabilityCatalog:
         if any(route.capability == "artifact.runtime" for route in selected):
             runtime_owners.update(("runtime.linux", "runtime.windows"))
         host_probe = None
+        host_status_route = host_read_transport_route(self._caller)
         async with asyncio.TaskGroup() as probes:
             for owner_id in sorted(runtime_owners):
                 probes.create_task(runtime_description(owner_id))
             if any(route.capability == "continuity.external" for route in selected) and _configured(
-                self._caller, "host"
+                self._caller, host_status_route
             ):
                 host_probe = probes.create_task(
-                    observe_owner("host", "host.status", {"detail": "summary"})
+                    observe_owner(host_status_route, "host.status", {"detail": "summary"})
                 )
 
         values: list[CapabilityDescriptor] = []
@@ -220,7 +232,7 @@ class CapabilityCatalog:
                 continue
 
             if route.capability == "continuity.external":
-                configured = _configured(self._caller, "host")
+                configured = _configured(self._caller, host_status_route)
                 available = False
                 error: str | None = None
                 if host_probe is not None:
@@ -277,13 +289,7 @@ class CapabilityCatalog:
                     targets = result.get("targets")
                     # An ill-typed or contradictory Owner projection is UNKNOWN.
                     # Never promote truthy strings or integers into Runtime truth.
-                    if not isinstance(targets, list) or any(
-                        not isinstance(item, dict)
-                        or type(item.get("configured")) is not bool
-                        or type(item.get("available")) is not bool
-                        or (item.get("available") is True and item.get("configured") is False)
-                        for item in targets
-                    ):
+                    if not valid_runtime_target_inventory(targets):
                         errors.append(f"{owner_id}: invalid Runtime target status projection")
                         continue
                     owner_available = any(
@@ -321,20 +327,47 @@ class CapabilityCatalog:
                 )
             )
 
+        # The one request-scoped observation cache is also the input to a
+        # falsifiable inquiry: do not rerun Owner calls or replace UNKNOWN with
+        # a guessed negative. Store distinct per-Owner evidence on each result.
+        observed_owner_status = dict(runtime_cache)
+        if host_probe is not None:
+            observed_owner_status["host"] = host_probe.result()
+        owner_configs = {
+            owner_id: (
+                _configured(self._caller, owner_id),
+                _configuration_error(self._caller, owner_id),
+            )
+            for owner_id in (
+                "runtime.linux",
+                "runtime.windows",
+                "runtime.harness",
+                "host",
+                "host.read",
+                "skills",
+            )
+        }
+        # "host" is a natural Owner; "host.read" is merely an optional
+        # transport alias, not a new semantic truth or Security Principal.
+        owner_configs["host.write"] = owner_configs["host"]
+        if host_status_route == "host.read":
+            owner_configs["host"] = owner_configs["host.read"]
         enriched: list[CapabilityDescriptor] = []
         for value in values:
             route = self._routes.get(value.capability)
             if route is None:
                 enriched.append(value)
                 continue
-            enriched.append(
-                value.model_copy(
-                    update={
-                        "description": route.description,
-                        "tags": list(route.tags),
-                    }
-                )
+            descriptor = value.model_copy(
+                update={"description": route.description, "tags": list(route.tags)}
             )
+            descriptor._readiness_inquiry = project_readiness_inquiry(
+                descriptor,
+                route,
+                owner_configurations=owner_configs,
+                owner_observations=observed_owner_status,
+            )
+            enriched.append(descriptor)
         values = enriched
 
         payload = [value.model_dump(mode="json") for value in values]
@@ -353,6 +386,22 @@ class CapabilityCatalog:
             projection_digest=digest,
             route_digest=self._route_digest,
             capabilities=values,
+        )
+
+    async def capability_inquire(self, *, capability: str) -> CapabilityInquiryProjection:
+        """One bounded Owner status observation and an unexecuted confirmation plan."""
+        projection = await self.capability_describe(capability)
+        descriptor = projection.capabilities[0]
+        inquiry = descriptor._readiness_inquiry
+        if inquiry is None:
+            raise GatewayError("Gateway readiness inquiry was not assembled")
+        return CapabilityInquiryProjection(
+            capability=descriptor.capability,
+            owner_id=descriptor.owner_id,
+            readiness_state=descriptor.readiness_state,
+            route_digest=projection.route_digest,
+            projection_digest=projection.projection_digest,
+            inquiry=inquiry,
         )
 
     async def capability_search(
