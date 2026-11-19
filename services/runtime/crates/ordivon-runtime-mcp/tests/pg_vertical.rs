@@ -186,8 +186,24 @@ impl Fixture {
             // private source mount. Copy only this disposable Fixture binary
             // into the same private PG test root; never touch installed units.
             let test_runner = self.root.join("ordivon-runtime-runner");
-            fs::copy(&runner, &test_runner).unwrap();
-            fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755)).unwrap();
+            // This fixture may restart its PG endpoint while the previous
+            // native Runner still owns the disposable executable. Re-copying
+            // that same executing inode would fail with ETXTBSY, so reuse its
+            // exact verified bytes instead of attempting an unsafe overwrite.
+            match fs::symlink_metadata(&test_runner) {
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                    fs::copy(&runner, &test_runner).unwrap();
+                    fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755)).unwrap();
+                }
+                Ok(meta) if meta.file_type().is_file() => {
+                    assert_eq!(
+                        fs::read(&test_runner).unwrap(),
+                        fs::read(&runner).unwrap(),
+                        "restarted PG endpoint cannot substitute a different Runner image"
+                    );
+                }
+                other => panic!("disposable Runner copy path changed: {other:?}"),
+            }
             test_runner
         } else {
             runner
@@ -3133,6 +3149,10 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();
+    // Cargo's per-Job /run/ordivon/cargo-target is private to the test's
+    // own native Unit. A sibling transient PG Runner must use the existing
+    // disposable host-visible fixture copy rather than this private mount.
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let open = call(
@@ -3141,7 +3161,7 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         json!({"workspaceId":"ws-physical","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(open["isError"], true, "{open}");
-    let exec = call(
+    let mut exec = call(
         &endpoint,
         "workspace.exec",
         json!({"clientRequestId":"pg-native-physical-0001","execution":{"workspaceId":"ws-physical","executable":"/usr/bin/printf","args":["native-proof"],"cwdRelative":".","timeoutMs":5000},"waitMs":10000}),
@@ -3150,6 +3170,27 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         exec["isError"], true,
         "physical native launch required: {exec}"
     );
+    // Resource-aware PG admission can return STARTING while the current
+    // physical Job is still queued. Observe the SAME committed Job rather
+    // than redispatching a second external effect.
+    let admitted_id = exec["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if exec["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        exec = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":admitted_id,"waitMs":1000,"stdoutTailBytes":256}),
+        );
+        assert_ne!(
+            exec["isError"], true,
+            "existing PG Job observation failed: {exec}"
+        );
+    }
     assert_eq!(
         exec["structuredContent"]["executionDisposition"], "succeeded",
         "{exec}"
@@ -3211,6 +3252,25 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         )
         .unwrap()
         .get(0);
+    // Published stdout must be a separate verified byte carrier from the
+    // Runner's mutable source, so a delayed producer append cannot erase an
+    // already-received Artifact. This is a genuine PG/Native consumer check.
+    let original_stdout = PathBuf::from(&stdout_path).with_file_name("stdout.log");
+    assert_ne!(
+        PathBuf::from(&stdout_path),
+        original_stdout,
+        "registered bytes still alias the mutable Runner source"
+    );
+    fs::write(&original_stdout, b"late-producer-append-after-terminal").unwrap();
+    let published_artifact = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":completed_job,"artifactId":stdout["artifactId"],"offset":0,"maxBytes":100}),
+    );
+    assert_eq!(
+        published_artifact["structuredContent"]["content"], "native-proof",
+        "a mutable Runner source must not invalidate an already published Artifact"
+    );
     fs::write(&stdout_path, b"forged-stdout-after-terminal").unwrap();
     let forged_artifact = call(
         &endpoint,
@@ -3257,6 +3317,30 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         )
         .unwrap()
         .get(0);
+    let original_stderr = PathBuf::from(&stderr_path).with_file_name("stderr.log");
+    assert_ne!(PathBuf::from(&stderr_path), original_stderr);
+    fs::write(&original_stderr, b"late-stderr-after-terminal").unwrap();
+    let still_empty_stderr = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":200}),
+    );
+    assert_ne!(still_empty_stderr["isError"], true, "{still_empty_stderr}");
+    assert!(
+        still_empty_stderr["structuredContent"]["stderrTail"].is_null()
+            || still_empty_stderr["structuredContent"]["stderrTail"] == "",
+        "empty stderr must not gain bytes from its mutable Runner source: {still_empty_stderr}"
+    );
+    let still_empty_artifact = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":completed_job,"artifactId":stderr_artifact["artifactId"],"offset":0,"maxBytes":100}),
+    );
+    assert_ne!(
+        still_empty_artifact["isError"], true,
+        "{still_empty_artifact}"
+    );
+    assert_eq!(still_empty_artifact["structuredContent"]["content"], "");
     fs::write(&stderr_path, b"forged-stderr-after-terminal").unwrap();
     let forged_stderr = call(
         &endpoint,
