@@ -87,5 +87,8 @@ pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revisi
 #[cfg(unix)]
 pub(crate) use workspace::{workspace_source_readset_digest_at, workspace_source_state_digest_at};
 
-#[cfg(test)]
+// These fixtures execute the Linux systemd/cgroup Runner and Unix file
+// permissions; they cannot be compiled as Windows-native unit tests.
+// Keep all existing Linux verification unchanged.
+#[cfg(all(test, unix))]
 mod tests;

@@ -2349,6 +2349,12 @@ internal static class OrdivonWindowsJobLauncher
             if (nativePeer != options.PgTerminalPeerProcessId.Value)
                 throw new InvalidOperationException(
                     "PG terminal pipe peer is not the admission-frozen Runtime process");
+            // The Launcher has authenticated the caller from the OS pipe
+            // endpoint. Only NOW may the caller record native-drain in the
+            // PG Journal. Without this Ready byte, a caller could journal an
+            // event while the real Launcher rejects that mismatched caller.
+            pipe.WriteByte((byte)'R');
+            pipe.Flush();
             // ACK is deliberately one byte, only sent after qualified PG
             // native witness journal commit. Untrusted early EOF/incorrect byte never releases the
             // owner as a *qualified success*; finally still reclaims the handle.
