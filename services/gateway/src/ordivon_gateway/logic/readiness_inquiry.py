@@ -22,6 +22,7 @@ from ..contracts import (
     ReadinessInquiry,
     ReadinessOwnerStatusWitness,
 )
+from .runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
 
 OwnerObservation = tuple[dict[str, Any] | None, str | None]
 OwnerConfiguration = tuple[bool, str | None]
@@ -69,31 +70,6 @@ def status_witness(
         payload_digest="sha256:" + hashlib.sha256(payload).hexdigest(),
         payload_bytes=len(payload),
     )
-
-
-def valid_runtime_target_inventory(targets: object) -> bool:
-    """A positive aggregate must reject duplicate or contradictory targets."""
-    if not isinstance(targets, list):
-        return False
-    names: list[str] = []
-    for item in targets:
-        if not isinstance(item, dict):
-            return False
-        name, configured, available = (
-            item.get("target"),
-            item.get("configured"),
-            item.get("available"),
-        )
-        if (
-            not isinstance(name, str)
-            or not name.strip()
-            or type(configured) is not bool
-            or type(available) is not bool
-            or (available and not configured)
-        ):
-            return False
-        names.append(name)
-    return len(names) == len(set(names))
 
 
 def _fact(owner_id: str, predicate: str, state: str, source: str) -> ReadinessFact:
@@ -185,6 +161,20 @@ def _runtime_facts(
         return
 
     facts.append(_fact(owner_id, "owner.status_observed", "supported", "runtime.describe"))
+    if not valid_runtime_status_envelope(response):
+        facts.append(_fact(owner_id, "owner.status_envelope_valid", "invalid", "runtime.describe"))
+        unresolved.append(f"{owner_id}: Runtime status envelope is missing/invalid version 1")
+        checks.append(
+            _check(
+                "reverse",
+                owner_id,
+                "runtime.describe",
+                "Native Runtime schemaVersion=1 status contract",
+                request={"schemaVersion": 1},
+            )
+        )
+        return
+    facts.append(_fact(owner_id, "owner.status_envelope_valid", "supported", "runtime.describe"))
     targets = response.get("targets")
     if not isinstance(targets, list):
         facts.append(_fact(owner_id, "owner.target_inventory_valid", "invalid", "runtime.describe"))
@@ -207,18 +197,18 @@ def _runtime_facts(
         )
         unresolved.append(f"{owner_id}: strict target inventory is invalid")
 
+    all_rows = [item for item in targets if isinstance(item, dict)]
+    # Inventory identity uniqueness is a *global* Owner contract, even if
+    # this capability uses only one selected target. A duplicate sibling
+    # target must not be hidden by an otherwise healthy selected target.
+    unique_names = {row.get("target") for row in all_rows if isinstance(row.get("target"), str)}
+    duplicates = len(unique_names) < len(all_rows)
     if target_name is None:
-        # Artifact is a dynamic capability: every valid Runtime target may supply
-        # bytes, but an empty inventory must not silently become a positive.
-        matches = [item for item in targets if isinstance(item, dict)]
-        duplicates = len(
-            {item.get("target") for item in matches if isinstance(item.get("target"), str)}
-        ) < len(matches)
+        # Artifact is dynamic; preserve all rows while never selecting an
+        # arbitrary duplicated target as the preferred evidence witness.
+        matches = all_rows
     else:
-        matches = [
-            item for item in targets if isinstance(item, dict) and item.get("target") == target_name
-        ]
-        duplicates = len(matches) > 1
+        matches = [row for row in all_rows if row.get("target") == target_name]
         facts.append(
             _fact(
                 owner_id,
@@ -577,6 +567,18 @@ def project_readiness_inquiry(
             _fact(route.owner_id, "owner.readiness", "unobserved", "route_without_adapter")
         )
         unresolved.append("No Owner-specific readiness observer is implemented")
+
+    # A status-only "ready" must not silently drop an unsatisfied proof
+    # obligation. Do not create a second classifier: enumerate each existing
+    # missing predicate in the same Owner/source evidence representation.
+    for fact in facts:
+        if fact.state in {"unobserved", "invalid", "contradictory"} and not any(
+            fact.predicate in item for item in unresolved
+        ):
+            unresolved.append(
+                f"{fact.owner_id}: {fact.predicate} remains {fact.state}"
+                f" (source: {fact.source}); investigate with natural Owner evidence"
+            )
 
     return ReadinessInquiry(
         scope=scope,

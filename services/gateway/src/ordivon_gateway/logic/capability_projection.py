@@ -17,6 +17,7 @@ from ..contracts import (
     CapabilitySearchMatch,
     CapabilitySearchProjection,
 )
+from .runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
 
 
 def project_execution_capability(
@@ -49,6 +50,18 @@ def project_execution_capability(
             available=False,
             context_mode=route.context_mode,  # type: ignore[arg-type]
             observation_error=observation_error,
+            truth_boundary=route.truth_boundary,
+        )
+
+    if not valid_runtime_status_envelope(owner_response):
+        return CapabilityDescriptor(
+            capability=route.capability,
+            owner_id=route.owner_id,
+            category=route.category,
+            configured=False,
+            available=False,
+            context_mode=route.context_mode,  # type: ignore[arg-type]
+            observation_error="invalid versioned Runtime status envelope",
             truth_boundary=route.truth_boundary,
         )
 
@@ -116,6 +129,21 @@ def project_execution_capability(
             available=False,
             context_mode=route.context_mode,  # type: ignore[arg-type]
             observation_error="owner returned invalid execution-target status",
+            truth_boundary=route.truth_boundary,
+        )
+
+    # Check the whole Owner target inventory AFTER reporting the selected
+    # target's precise malformed-status counterexample. A valid selected
+    # target can never mask an invalid or duplicate sibling target.
+    if not valid_runtime_target_inventory(targets):
+        return CapabilityDescriptor(
+            capability=route.capability,
+            owner_id=route.owner_id,
+            category=route.category,
+            configured=False,
+            available=False,
+            context_mode=route.context_mode,  # type: ignore[arg-type]
+            observation_error="owner returned invalid execution-target inventory",
             truth_boundary=route.truth_boundary,
         )
 

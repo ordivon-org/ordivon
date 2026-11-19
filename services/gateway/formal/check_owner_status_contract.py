@@ -77,7 +77,7 @@ async def check() -> dict[str, int]:
             "available": offered,
             "windowsAuthorities": ["limited"],
         }
-        observed = {"node": {"nodeId": "windows-native"}, "targets": [target]}
+        observed = {"schemaVersion": 1, "node": {"nodeId": "windows-native"}, "targets": [target]}
         projected = project_execution_capability(
             route, configured_at_gateway=True, owner_response=observed
         )
@@ -116,15 +116,24 @@ async def check() -> dict[str, int]:
         "windowsAuthorities": ["limited"],
     }
     inventory_cases: list[tuple[dict[str, Any], bool]] = [
-        ({}, False),  # Missing targets container.
-        ({"targets": None}, False),
-        ({"targets": {"target": qualified}}, False),
-        ({"targets": []}, False),  # No matching route.
-        ({"targets": [qualified, qualified]}, False),  # Ambiguous match.
-        ({"targets": [{**qualified, "windowsAuthorities": None}]}, False),
-        ({"targets": [{**qualified, "windowsContexts": None}]}, False),
-        ({"targets": [{"target": "windows_native", "configured": True, "available": True}]}, True),
-        ({"targets": [{**qualified, "windowsContexts": []}]}, True),
+        ({"targets": [qualified]}, False),  # No Runtime protocol version.
+        ({"schemaVersion": True, "targets": [qualified]}, False),  # bool is not int.
+        ({"schemaVersion": 2, "targets": [qualified]}, False),  # Unknown version.
+        ({"schemaVersion": 1}, False),  # Missing targets container.
+        ({"schemaVersion": 1, "targets": None}, False),
+        ({"schemaVersion": 1, "targets": {"target": qualified}}, False),
+        ({"schemaVersion": 1, "targets": []}, False),  # No matching route.
+        ({"schemaVersion": 1, "targets": [qualified, qualified]}, False),  # Ambiguous match.
+        ({"schemaVersion": 1, "targets": [{**qualified, "windowsAuthorities": None}]}, False),
+        ({"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": None}]}, False),
+        (
+            {
+                "schemaVersion": 1,
+                "targets": [{"target": "windows_native", "configured": True, "available": True}],
+            },
+            True,
+        ),
+        ({"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": []}]}, True),
     ]
     malformed_inventories = 0
     for response, should_be_available in inventory_cases:

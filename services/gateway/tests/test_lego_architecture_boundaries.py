@@ -25,6 +25,7 @@ LOGIC_FILES = {
     "owner_protocol.py",
     "readiness_inquiry.py",
     "readiness_confirmation.py",
+    "runtime_status.py",
     "research_routes.py",
     "routing.py",
 }
