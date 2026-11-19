@@ -8,8 +8,8 @@ from pydantic import Field
 
 from .mcp_domain_errors import _project_domain_errors
 from .postgres_bounds import POSTGRES_BIGINT_MAX
-from .work_contracts import ActorRefResponse, WorkListResponse, WorkResponse
-from .work_inputs import ActorKind, ActorRefInput, WorkCreateInput, WorkSnapshotInput, WorkState
+from .work_contracts import WorkListResponse, WorkResponse
+from .work_inputs import WorkCreateInput, WorkSnapshotInput, WorkState
 from .work_store import WorkStore
 
 # Exact Host CAS identities and inventory limits use bounded strict integers.
@@ -24,19 +24,6 @@ def register_work_tools(
     request_id: Callable[[str, object], str],
 ) -> None:
     """Expose WorkStore contracts, without introducing another state authority."""
-
-    @mcp.tool(name="actor.declare")
-    @_project_domain_errors
-    def actor_declare(
-        actorRef: str,
-        actorKind: Literal["unknown", "human", "agent", "service", "organization"],
-    ) -> ActorRefResponse:
-        value = ActorRefInput(actor_ref=actorRef, actor_kind=ActorKind(actorKind))
-        request = value.model_dump(mode="json")
-        return work.declare_actor(
-            value,
-            client_request_id=request_id("actor-declare", request),
-        )
 
     @mcp.tool(name="work.create")
     @_project_domain_errors

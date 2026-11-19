@@ -10,10 +10,11 @@ from typing import Any, Literal
 
 import psycopg
 
+from .attention_reentry import project_reentry, reentry_topic_refs
 from .attention_sql import ATTENTION_DELTA_SQL
-from .canonical_json import canonical_bytes
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError
+from .topic_cursor_records import list_topic_cursors_in_tx
 
 TargetKind = Literal["work", "space", "topic"]
 
@@ -265,86 +266,14 @@ class AttentionReadProjections:
                 conn, actor_ref, after_sequence=after_sequence,
                 limit=limit, max_bytes=max_bytes,
             )
-            events = delta["events"]
-            topic_refs = sorted({
-                str(event["navigationRef"])
-                for event in events
-                if event["navigationKind"] == "topic"
-            })
-            cursors: dict[str, int] = {}
-            if topic_refs:
-                rows = conn.execute(
-                    "SELECT topic_ref,cursor FROM topic_consumption_cursors "
-                    "WHERE actor_ref=%s AND topic_ref=ANY(%s)",
-                    (actor_ref, topic_refs),
-                ).fetchall()
-                cursors = {row["topic_ref"]: int(row["cursor"]) for row in rows}
-
-            def projection(count: int) -> dict[str, Any]:
-                prefix = events[:count]
-                groups: dict[tuple[str, str], dict[str, Any]] = {}
-                for event in prefix:
-                    key = (event["navigationKind"], event["navigationRef"])
-                    item = groups.get(key)
-                    if item is None:
-                        item = {
-                            "navigationKind": key[0],
-                            "navigationRef": key[1],
-                            "latestChangeSequence": int(event["changeSequence"]),
-                            "eventKinds": [],
-                            "reasons": [],
-                            "eventCount": 0,
-                        }
-                        groups[key] = item
-                    item["latestChangeSequence"] = max(
-                        int(item["latestChangeSequence"]), int(event["changeSequence"])
-                    )
-                    item["eventKinds"] = sorted(set(item["eventKinds"]) | {event["eventKind"]})
-                    item["reasons"] = sorted(set(item["reasons"]) | set(event["reasons"]))
-                    item["eventCount"] = int(item["eventCount"]) + 1
-
-                items = list(groups.values())
-                for item in items:
-                    if item["navigationKind"] == "topic":
-                        item["resumeAfterSequence"] = cursors.get(str(item["navigationRef"]), 0)
-
-                trimmed = count < len(events)
-                has_more = trimmed or delta["hasMore"]
-                next_sequence = (
-                    int(prefix[-1]["changeSequence"])
-                    if trimmed else delta["nextAfterSequence"]
-                )
-                return {
-                    "schemaVersion": 1,
-                    "kind": "ordivon.host-attention-reentry-r1",
-                    "actorRef": actor_ref,
-                    "afterSequence": after_sequence,
-                    "snapshotHighSequence": delta["snapshotHighSequence"],
-                    "items": items,
-                    "rawEventCount": count,
-                    "hasMore": has_more,
-                    "nextAfterSequence": next_sequence,
-                    "rankingApplied": False,
-                    "truthBoundary": "rebuildable re-entry navigation only; no score, priority, assignment, scheduling, or foreign truth ownership",
-                }
-
-            result = projection(len(events))
-            if len(canonical_bytes(result)) <= max_bytes:
-                return result
-
-            # Grouped output can exceed the budget even if raw delta fits.
-            # A prefix cannot shrink when another event is added, so find the
-            # longest fitting event prefix without a second database query.
-            low, high = 1, len(events) - 1
-            best: dict[str, Any] | None = None
-            while low <= high:
-                middle = (low + high) // 2
-                candidate = projection(middle)
-                if len(canonical_bytes(candidate)) <= max_bytes:
-                    best = candidate
-                    low = middle + 1
-                else:
-                    high = middle - 1
-            if best is None:
-                raise ValueError("max_bytes cannot fit one re-entry navigation item")
-            return best
+            topic_refs = reentry_topic_refs(delta["events"])
+            cursors = list_topic_cursors_in_tx(
+                conn, actor_ref=actor_ref, topic_refs=topic_refs
+            )
+            return project_reentry(
+                delta,
+                actor_ref=actor_ref,
+                after_sequence=after_sequence,
+                cursors=cursors,
+                max_bytes=max_bytes,
+            )
