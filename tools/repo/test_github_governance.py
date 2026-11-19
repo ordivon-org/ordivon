@@ -264,6 +264,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         retirement = tasks["repo:retirement:verify"]["run"]
         self.assertIn("tools/repo/check_archived_source_boundary.py", retirement)
         self.assertIn("tools/repo/test-check-archived-source-boundary.sh", retirement)
+        native_smoke = (ROOT / "tools/repo/test-check-archived-source-boundary.sh").read_text(encoding="utf-8")
+        self.assertIn('TMP="$(mktemp -d)"', native_smoke)
+        self.assertNotIn("/root/ordivon-migration-tmp", native_smoke)
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         mechanics = next(
             step["run"]
