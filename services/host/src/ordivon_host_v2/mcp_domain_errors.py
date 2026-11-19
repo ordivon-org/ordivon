@@ -7,7 +7,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from psycopg_pool import PoolTimeout, TooManyRequests
 from pydantic import ValidationError
 
-from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .errors import ActorRefNotFound, ConflictError, WorkNotFound, WorkRevisionUnavailable
 from .social_errors import MessageNotFound, SpaceNotFound, TopicNotFound
 
 
@@ -51,6 +51,26 @@ def _domain_error_payload(exc: Exception) -> dict[str, object]:
             resourceKind="message",
             resourceRef=str(exc),
             suggestedAction="inspect-owner-inventory",
+        )
+    elif isinstance(exc, WorkRevisionUnavailable):
+        # CONFLICT and its original detail text remain compatible. Reason,
+        # exact observed Work revision and differentiated recovery action
+        # come from one PG transaction, not guessed history or foreign effects.
+        action = {
+            "revision_ahead_of_current": "reread-current-work-before-waiting-for-revision",
+            "historical_snapshot_absent": "inspect-retention-and-archive-before-recovery",
+            "current_snapshot_missing": "stop-current-work-consumption-and-check-host-integrity",
+        }[exc.reason]
+        payload.update(
+            code="CONFLICT",
+            detail=str(exc),
+            reason=exc.reason,
+            resourceKind="work",
+            resourceRef=exc.work_ref,
+            requestedRevision=exc.requested_revision,
+            observedCurrentRevision=exc.current_revision,
+            evidenceBoundary="same-transaction-host-work-and-snapshot-read",
+            suggestedAction=action,
         )
     elif isinstance(exc, ConflictError):
         payload.update(
