@@ -2,7 +2,6 @@
 //! Explicitly opt-in until the full lifecycle/refinement/consumer proof exists.
 use postgres::{Client, IsolationLevel, NoTls};
 use sha2::{Digest, Sha256};
-use std::collections::HashSet;
 use uuid::Uuid;
 
 mod cancel_contract;
