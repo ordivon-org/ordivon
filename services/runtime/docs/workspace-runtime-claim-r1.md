@@ -1,7 +1,10 @@
 # Runtime-owned Workspace consumer claim — R1
 
-**Status:** source implementation and disposable PG18/Git qualification only.
-**Not:** a deployed producer, an Artifact finalizer, or a complete Harness Tool grant.
+**Status:** historical R1 physical-Claim design; a Native-first Harness Run-birth
+consumer is separately installed, and the dedicated release-route guard is
+merged SOURCE (#2490), **not** currently Installed in Linux Runtime.
+**Not:** a certified independent Domain Finalizer or permission to remove an
+original PAUSED/ACTIVE Run's Workspace.
 
 ## Hard boundary
 
@@ -34,19 +37,29 @@ different databases. Do not infer that a successful Job releases a logical Run.
   durable `held` claim. Repeated exact requests read back the original row.
 - `workspace.claim.get`: read the original physical claim by the same
   authenticated principal and request key, including state and store scope.
-- `workspace.claim.release`: make that owner's `held→released`
-  transition under the same Runtime lock. This is an explicit consumer
-  assertion, **not** proof that output was published.
+- `workspace.claim.release`: make that original authenticated owner's
+  `held→released` transition under the same Runtime lock. This is an explicit
+  consumer assertion, **not** proof of Run completion, recipient delivery or
+  OS effect drain. When a **complete dedicated** `/harness/mcp` bearer,
+  principal and issuer schema are configured, #2490 hides and rejects this
+  effect on ordinary `/mcp` at the **raw handler**, not only `tools/list`.
+  Without the complete installed profile, the legacy ordinary release path
+  remains available for original-principal claim recovery.
+  The current installed Runtime has **not** enabled that dedicated profile.
 
 The schema includes the canonical native `store_root` because Workspace IDs
 are store-local. Absolute path-based scope is adequate only within the
 qualified Runtime store authority where roots are unique; cross-machine
 identical paths require an independently proven Runtime authority identity.
 
-## Multi-database handoff — not yet implemented
+## Multi-database handoff — partial Native-first installation
 
-A complete consumer path requires these additional protocol obligations
-owned by the actual Harness/Gateway/Runtime editors:
+Harness R27 has an installed native-first Run-birth consumer: reserve a real
+Runtime PG Claim, then create the original Harness PG Run. This protects new
+Runs against ordinary close while the Claim stays HELD; it does **not** protect
+historical unclaimed PAUSED Runs or prevent a same-principal direct release.
+The following list is the **target complete consumer contract**, not a claim
+that all five stages are already installed and accepted:
 
 1. Harness allocates a stable Run ID in a non-executable state.
 2. Runtime `reserve` succeeds and is read back after uncertain responses.
@@ -74,9 +87,19 @@ Arbitrary age expiry is not proof that an activated user has released it.
 - Current candidate binary explicitly refuses to start if this table or
   required constraints are missing. Cutover requires staged schema +
   new qualified source hash/epoch + actual installed MCP readback.
-- Before general release, review remote principal/issuer authorization of
-  `reserve` and `release`, and ensure direct Gateway/trusted-local
-  consumers are covered. The existing release path is not changed here.
+- Before any source→Installed cutover, independently qualify the original
+  Claim's `(principal,clientRequestId)` owner; an older HELD Claim cannot be
+  recovered by swapping to a new bearer/principal. Keep old/unknown consumers
+  HELD rather than rewriting a physical pin based on elapsed time.
+- A dedicated `/harness/mcp` token and raw-call release guard prevent ordinary
+  wrong-route release in the tested **SOURCE** only; they do not certify a
+  `COMPLETED` Harness Run, original recipient byte ACK, or all issued OS
+  effects drained. Installed native `trusted_local` jobs currently execute
+  with root authority: another root-owned `0600` bearer file is not a
+  security boundary against those already authorized root Jobs.
+  Qualify the ordinary-execution OS identity, original Trust/Finalizer role,
+  caller/recipient byte ACK and native close before enabling automatic GC.
+  See [Runtime LEGO consumer boundary](guides/runtime-legos.md).
 - The source-level fixture `python3 services/runtime/tests/run_workspace_claim_pg18.py`
   creates and destroys its **own PG18 cluster**. It tests two-database lock
   independence, additive SQL migration, scoped same-name Workspaces, native

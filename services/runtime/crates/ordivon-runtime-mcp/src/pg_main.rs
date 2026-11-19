@@ -269,24 +269,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         release,
     );
-    // The ordinary execution route and the authenticated Harness route must
-    // not share long-lived Run relinquishment authority. This takes effect
-    // only with the complete, separately authenticated dedicated Harness
-    // profile; historic ordinary-principal Claims require consumer-qualified
-    // migration rather than automatic owner rebinding.
-    let server = if isolated_harness.is_some() {
-        server.without_claim_release()
-    } else {
-        server
-    };
+    // The ordinary /mcp route ALWAYS starts without Harness Claim release
+    // authority. Missing/incomplete dedicated issuer configuration must fail
+    // closed, not silently restore the raw early-release attack.
+    // Existing ordinary-principal HELD Claims remain pinned; migration to the
+    // dedicated issuer needs an exact, consumer-qualified original Run owner.
     let dedicated_server = match (harness_runtime, isolated_harness.as_ref()) {
-        (Some(runtime), Some((_, principal, _))) => Some(PgRuntimeServer::new(
-            runtime,
-            ExecutionContext {
-                principal: principal.clone(),
-                global_limit: 0,
-            },
-        )),
+        (Some(runtime), Some((_, principal, _))) => Some(
+            PgRuntimeServer::new(
+                runtime,
+                ExecutionContext {
+                    principal: principal.clone(),
+                    global_limit: 0,
+                },
+            )
+            .for_authenticated_harness_finalizer(),
+        ),
         (None, None) => None,
         _ => return Err("incomplete Harness Runtime source/ingress binding".into()),
     };
