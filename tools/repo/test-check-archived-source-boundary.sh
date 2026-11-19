@@ -55,6 +55,14 @@ printf '{"source":"/legacy/source"}\n' >"$repo/artifacts/history/evidence.json"
 printf 'assert "/legacy/source"\n' >"$repo/tests/negative.py"
 printf 'clean = true\n' >"$repo/src/current.py"
 printf '/legacy/source\n' >"$repo/productions/w1/source/valid.json"
+python3 - "$repo" <<'PY'
+import os
+import sys
+from pathlib import Path
+root = Path(sys.argv[1])
+(root / "docs" / "line\nbreak.md").write_text("/legacy/source\n", encoding="utf-8")
+(root / "docs" / os.fsdecode(b"\xff.md")).write_text("/legacy/source\n", encoding="utf-8")
+PY
 git -C "$repo" add .
 git -C "$repo" commit -q -m baseline
 
@@ -64,7 +72,10 @@ python3 - "$TMP/pass.json" <<'PY'
 import json,sys
 v=json.load(open(sys.argv[1]))
 assert v["status"] == "PASS"
-assert v["trackedReferenceFileCount"] == 5
+assert v["trackedReferenceFileCount"] == 7
+assert {row["path"] for row in v["allowed"]} >= {
+    "docs/line\nbreak.md", "docs/\udcff.md"
+}
 assert v["forbiddenReferenceFileCount"] == 0
 PY
 
