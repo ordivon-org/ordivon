@@ -288,3 +288,149 @@ def test_official_mcp_http_client_preserves_unstructured_native_tool_error():
         thread.join(timeout=10)
         sock.close()
         assert not thread.is_alive()
+
+
+def test_native_claim_finalizer_endpoint_is_sealed_from_ordinary_and_foreign_routes():
+    from ordivon_harness.mcp_http_client import LoopbackClaimFinalizerEndpoint
+
+    url = "http://127.0.0.1:8899/harness/mcp"
+    finalizer = LoopbackClaimFinalizerEndpoint(url)
+    assert finalizer.url == url
+    assert finalizer.to_dict() == {
+        "name": "ordivon-runtime-claim-finalizer",
+        "type": "streamable-http",
+        "url": url,
+    }
+    with pytest.raises(ValueError):
+        LoopbackMcpEndpoint(url)
+    for bad in (
+        "http://127.0.0.1:8899/mcp",
+        "http://127.0.0.1:8899/harness/mcp/",
+        "http://127.0.0.1:8899/harness/mcp?token=not-authority",
+        "http://localhost:8899/harness/mcp",
+        "http://192.168.1.2:8899/harness/mcp",
+        "http://127.0.0.2:8899/harness/mcp",
+        "https://127.0.0.1:8899/harness/mcp",
+        "https://untrusted.example/harness/mcp",
+        "http://alice:secret@127.0.0.1:8899/harness/mcp",
+    ):
+        with pytest.raises(ValueError):
+            LoopbackClaimFinalizerEndpoint(bad)
+
+
+def test_original_private_harness_native_claim_cli_rejects_old_principal_route(tmp_path):
+    from types import SimpleNamespace
+
+    from ordivon_harness import independent_cli
+    from ordivon_harness.mcp_http_client import LoopbackClaimFinalizerEndpoint
+
+    bearer = tmp_path / "separate-finalizer-token"
+    bearer.write_text("f" * 64, encoding="utf-8")
+    bearer.chmod(0o600)
+    args = SimpleNamespace(
+        runtime_claim_url="http://127.0.0.1:8899/harness/mcp",
+        runtime_claim_bearer_token_file=bearer,
+    )
+    client = independent_cli._native_claim_client(args, object())
+    assert isinstance(client.component, LoopbackClaimFinalizerEndpoint)
+    assert client.component.url == args.runtime_claim_url
+    assert client.bearer_token_file == bearer
+    assert client._request_headers() == {"Authorization": "Bearer " + "f" * 64}
+
+    # The ordinary tool executor may legitimately run Jobs but cannot be
+    # handed the original Finalizer credential to pin/release a new Run.
+    for old_or_external_url in (
+        "http://127.0.0.1:8899/mcp",
+        "https://gateway.example/harness/mcp",
+        "http://localhost:8899/harness/mcp",
+    ):
+        args.runtime_claim_url = old_or_external_url
+        with pytest.raises(ValueError):
+            independent_cli._native_claim_client(args, object())
+    args.runtime_claim_url = "http://127.0.0.1:8899/harness/mcp"
+    with pytest.raises(ValueError, match="Workspace-bearing Gateway Run"):
+        independent_cli._native_claim_client(args, None)
+
+
+def test_original_private_finalizer_port_calls_real_official_sdk_over_harness_mcp(tmp_path):
+    """Real MCP HTTP consumer using the native dedicated path and bearer file.
+
+    This verifies transport and credentials, not a HarnessPG terminal/domain ACK.
+    """
+    import asyncio
+    import socket
+    import threading
+    import time
+
+    import uvicorn
+    from mcp.server import MCPServer
+    from starlette.responses import PlainTextResponse
+
+    from ordivon_harness.mcp_http_client import LoopbackClaimFinalizerEndpoint
+
+    owner = MCPServer("original-private-harness-finalizer-route-test")
+
+    @owner.tool()
+    def native_claim_probe() -> dict[str, str]:
+        return {"owner": "dedicated-finalizer", "permission": "claim-only"}
+
+    # Mount the existing official MCP app, not a custom transport or mock
+    # OfficialMcpClient. Real /harness/mcp requires the bearer on every HTTP
+    # request, while a caller on /mcp is not an alternate Finalizer.
+    scoped = owner.streamable_http_app(
+        streamable_http_path="/harness/mcp",
+        stateless_http=True,
+        json_response=True,
+    )
+    authorized_headers = []
+    bearer_value = "Bearer " + "d" * 64
+
+    async def authenticated_app(scope, receive, send):
+        if scope["type"] == "http":
+            headers = dict(scope["headers"])
+            bearer = headers.get(b"authorization", b"").decode("ascii", "ignore")
+            if bearer != bearer_value:
+                await PlainTextResponse("unauthorized", status_code=401)(
+                    scope, receive, send
+                )
+                return
+            authorized_headers.append((scope["path"], bearer == bearer_value))
+        await scoped(scope, receive, send)
+
+    server = uvicorn.Server(
+        uvicorn.Config(authenticated_app, host="127.0.0.1", log_level="error")
+    )
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(8)
+    port = sock.getsockname()[1]
+    thread = threading.Thread(
+        target=lambda: asyncio.run(server.serve(sockets=[sock])), daemon=True
+    )
+    thread.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert server.started
+
+        bearer = tmp_path / "original-finalizer-token"
+        bearer.write_text("d" * 64, encoding="utf-8")
+        bearer.chmod(0o600)
+        endpoint = LoopbackClaimFinalizerEndpoint(
+            f"http://127.0.0.1:{port}/harness/mcp"
+        )
+        native_client = OfficialMcpClient(endpoint, bearer_token_file=bearer)
+        names = tuple(tool["name"] for tool in native_client.list_tools())
+        assert "native_claim_probe" in names
+        assert native_client.call_tool("native_claim_probe", {}) == (
+            False,
+            {"owner": "dedicated-finalizer", "permission": "claim-only"},
+        )
+        assert authorized_headers and all(good for _, good in authorized_headers)
+        assert all(path.endswith("/harness/mcp") for path, _ in authorized_headers)
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        sock.close()
+        assert not thread.is_alive()

@@ -8,7 +8,7 @@ from anc_canonical import JsonValue, validate_json_value
 
 from .agent_run import HarnessAgentRun
 from .agent_plugin import AgentPluginMcpComponent
-from .mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
+from .mcp_http_client import LoopbackClaimFinalizerEndpoint, LoopbackMcpEndpoint, OfficialMcpClient
 from .plugin_gateway_effect import (
     PluginGatewayExecutionBridgeFactory,
     PluginGatewayExecutionGrant,
@@ -167,13 +167,11 @@ def _native_claim_client(args, gateway: PluginGatewayExecutionBridgeFactory | No
             "Gateway Workspace Run requires --runtime-claim-url and "
             "--runtime-claim-bearer-token-file; no unprotected fallback"
         )
-    component = (
-        LoopbackMcpEndpoint(url, name="ordivon-runtime-native-claim")
-        if url.startswith("http://")
-        else AgentPluginMcpComponent(
-            name="ordivon-runtime-native-claim", transport="streamable-http", url=url,
-        )
-    )
+    # New Run Birth must own the Claim under the independent Finalizer principal.
+    # Neither the normal /mcp route nor an unverified remote HTTPS destination
+    # can receive this privileged bearer. Older normal-principal Claims cannot
+    # be silently adopted by substituting a token or URL.
+    component = LoopbackClaimFinalizerEndpoint(url)
     return OfficialMcpClient(component, bearer_token_file=bearer)
 
 
