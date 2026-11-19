@@ -269,6 +269,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         release,
     );
+    // The ordinary execution route and the authenticated Harness route must
+    // not share long-lived Run relinquishment authority. This takes effect
+    // only with the complete, separately authenticated dedicated Harness
+    // profile; historic ordinary-principal Claims require consumer-qualified
+    // migration rather than automatic owner rebinding.
+    let server = if isolated_harness.is_some() {
+        server.without_claim_release()
+    } else {
+        server
+    };
     let dedicated_server = match (harness_runtime, isolated_harness.as_ref()) {
         (Some(runtime), Some((_, principal, _))) => Some(PgRuntimeServer::new(
             runtime,
