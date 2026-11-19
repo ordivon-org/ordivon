@@ -62,6 +62,41 @@ fn claim_release_route_guard(allowed: bool, name: &str) -> Result<(), McpError> 
     Ok(())
 }
 
+/// Advertise only profiles accepted for NEW effects by the authenticated
+/// transport, rather than exposing a caller-selected privileged alternative.
+fn project_ingress_execution_profiles(
+    description: &mut serde_json::Value,
+    required: Option<ExecutionProfile>,
+) {
+    let Some(required) = required else { return; };
+    if let Some(targets) = description.get_mut("targets").and_then(serde_json::Value::as_array_mut) {
+        for target in targets {
+            if target.get("target").and_then(serde_json::Value::as_str) == Some("local_linux") {
+                target["executionProfiles"] = json!([required.as_str()]);
+            }
+        }
+    }
+}
+
+/// Restrict advertised new effects for an authenticated contained-only Agent.
+/// A manually authored raw tools/call is independently checked by Core after
+/// committed replay; tools/list filtering is never the authorization gate.
+fn restrict_new_effect_catalog(
+    tools: &mut Vec<Tool>,
+    required: Option<ExecutionProfile>,
+) {
+    if required == Some(ExecutionProfile::ContainedLocal) {
+        tools.retain(|tool| tool.name.as_ref() != "release.apply");
+        for tool in tools {
+            if matches!(tool.name.as_ref(), "workspace.exec" | "workspace.execPlan") {
+                tool.description = Some(
+                    "Authenticated contained_local-only Job admission. Caller-selected trusted_local is DENIED for new effects; exact previously committed Job recovery remains allowed.".into()
+                );
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct PgRuntimeServer {
     runtime: ordivon_runtime_core::PgRuntime,
@@ -71,6 +106,9 @@ pub struct PgRuntimeServer {
     // domain's still-held Workspace. The protected Harness/Finalizer route
     // alone may expose the original principal-scoped release operation.
     claim_release_ingress: ClaimReleaseIngress,
+    // Authentication-bound NEW-Job policy, never a tools/call argument.
+    // Core performs historical exact-key recovery before this check.
+    required_new_execution_profile: Option<ExecutionProfile>,
 }
 
 impl PgRuntimeServer {
@@ -80,6 +118,7 @@ impl PgRuntimeServer {
             execution,
             release: None,
             claim_release_ingress: ClaimReleaseIngress::Ordinary,
+            required_new_execution_profile: None,
         }
     }
     pub fn with_release(
@@ -92,6 +131,7 @@ impl PgRuntimeServer {
             execution,
             release,
             claim_release_ingress: ClaimReleaseIngress::Ordinary,
+            required_new_execution_profile: None,
         }
     }
     /// This is ONLY called for the separately authenticated dedicated
@@ -109,6 +149,14 @@ impl PgRuntimeServer {
     /// is still the external Harness Finalizer's responsibility.
     pub fn for_authenticated_claim_only_finalizer(mut self) -> Self {
         self.claim_release_ingress = ClaimReleaseIngress::DedicatedClaimOnly;
+        self
+    }
+
+    /// Operator-selected ordinary Agent ingress. An authenticated caller
+    /// cannot upgrade a new contained Job by supplying trusted_local in JSON.
+    /// The old trusted operator ingress remains the default until cutover.
+    pub fn restrict_ordinary_jobs_to_contained(mut self) -> Self {
+        self.required_new_execution_profile = Some(ExecutionProfile::ContainedLocal);
         self
     }
 
@@ -148,6 +196,7 @@ impl PgRuntimeServer {
         if self.claim_release_ingress.claim_only() {
             tools.retain(|tool| CLAIM_ONLY_TOOL_NAMES.contains(&tool.name.as_ref()));
         }
+        restrict_new_effect_catalog(&mut tools, self.required_new_execution_profile);
         tools
     }
     // Protect the Agent-visible catalog as well as raw tools/call: an ordinary
@@ -265,6 +314,7 @@ impl PgRuntimeServer {
         let execution=self.execution.clone();
         let release=self.release.clone();
         let annotation_runtime=runtime.clone();
+        let required_new_execution_profile=self.required_new_execution_profile;
         // A Job ID alone must not cause a schema-invalid response. Reuse the
         // exact qualified MCP output-schema tool set from pg_output_contract.
         let annotate_job_scheduling = pg_scheduling_success_definition(&name).is_some();
@@ -284,7 +334,10 @@ impl PgRuntimeServer {
                         return Err(ToolError::invalid("schemaVersion must be 1", "schemaVersion"));
                     }
                     let mut description=runtime.describe().map_err(ToolError::from)?;
-                    description["structuredReleaseConfigured"]=json!(release_ready);
+                    project_ingress_execution_profiles(&mut description, required_new_execution_profile);
+                    description["structuredReleaseConfigured"]=json!(
+                        release_ready && required_new_execution_profile.is_none()
+                    );
                     Ok(description)
                 },
                 "release.apply" => {
@@ -308,6 +361,13 @@ impl PgRuntimeServer {
                     {
                         return serde_json::to_value(replay)
                             .map_err(|e|ToolError::internal(e.to_string()));
+                    }
+                    if required_new_execution_profile == Some(ExecutionProfile::ContainedLocal) {
+                        return Err(ToolError::from(RuntimeError::new(
+                            ordivon_runtime_core::RuntimeErrorCode::AuthorizationDenied,
+                            "ordinary contained ingress cannot admit new operator ReleaseEffects",
+                            Some("release"), false
+                        )));
                     }
                     if !release_ready {
                         return Err(ToolError::invalid(
@@ -437,9 +497,12 @@ impl PgRuntimeServer {
                 "workspace.execPlan" => {
                     let request:WorkspaceExecPlanRequest=parse(arguments)?;
                     let bound=execution.bind_plan(request)?;
-                    value(runtime.run(&bound))
+                    value(runtime.run_with_execution_profile_policy(&bound, required_new_execution_profile))
                 },
-                "workspace.exec" => value(runtime.run(&execution.bind(parse(arguments)?))),
+                "workspace.exec" => {
+                    let bound=execution.bind(parse(arguments)?);
+                    value(runtime.run_with_execution_profile_policy(&bound, required_new_execution_profile))
+                },
                 "job.get" => {let r:JobGetRequest=parse(arguments)?; if r.schema_version!=1 {return Err(ToolError::invalid("schemaVersion must be 1","schemaVersion"));} value(runtime.get(&execution.principal,&r.job_id,r.event_limit))},
                 "job.observe" => value(runtime.observe(&execution.principal,&parse(arguments)?)),
                 "job.cancel" => value(runtime.cancel(&execution.principal,&parse(arguments)?)),
@@ -580,5 +643,37 @@ mod claim_release_route_authority_tests {
         assert_eq!(dedicated.len(), isolated.len() + 1);
         assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.reserve"));
         assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.get"));
+    }
+}
+
+#[cfg(test)]
+mod authenticated_execution_profile_projection_tests {
+    use super::*;
+
+    #[test]
+    fn only_bound_contained_profile_is_advertised_to_normal_agents() {
+        let mut description=json!({
+            "targets":[
+                {"target":"local_linux","executionProfiles":["trusted_local","contained_local"]},
+                {"target":"windows_native","executionProfiles":["trusted_local"]}
+            ]
+        });
+        project_ingress_execution_profiles(&mut description,Some(ExecutionProfile::ContainedLocal));
+        assert_eq!(description["targets"][0]["executionProfiles"],json!(["contained_local"]));
+        assert_eq!(description["targets"][1]["executionProfiles"],json!(["trusted_local"]));
+        let unchanged=description.clone();
+        project_ingress_execution_profiles(&mut description,None);
+        assert_eq!(description,unchanged);
+    }
+
+    #[test]
+    fn contained_ordinary_catalog_hides_new_operator_release_but_keeps_readback() {
+        let mut catalog=PgRuntimeServer::catalog_for_route(true,false);
+        assert!(catalog.iter().any(|tool|tool.name.as_ref()=="release.apply"));
+        restrict_new_effect_catalog(&mut catalog,Some(ExecutionProfile::ContainedLocal));
+        assert!(!catalog.iter().any(|tool|tool.name.as_ref()=="release.apply"));
+        assert!(catalog.iter().any(|tool|tool.name.as_ref()=="release.get"));
+        let exec=catalog.iter().find(|tool|tool.name.as_ref()=="workspace.exec").unwrap();
+        assert!(exec.description.as_ref().unwrap().contains("contained_local-only"));
     }
 }
