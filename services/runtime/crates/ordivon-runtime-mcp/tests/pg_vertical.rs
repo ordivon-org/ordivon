@@ -5749,3 +5749,177 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
     }
     eprintln!("R17_GENUINE_ORIGINAL_HARNESS_DEDICATED_MCP_PG_NATIVE_REVOKE_PASS");
 }
+
+#[test]
+#[ignore = "requires disposable PostgreSQL18 and isolated native Runtime MCP"]
+fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut() {
+    // Real PG18 + two authenticated MCP routes, not a simulated Server::call.
+    // This establishes only the ROUTE boundary. The external Domain ACK
+    // and trusted Finalizer policy remain separate unqualified obligations.
+    let mut fixture = Fixture::new();
+    let original_workspace = format!("r28-ordinary-original-{}", Uuid::now_v7().simple());
+    let repo = fixture.repo();
+    let ordinary_url = fixture.endpoint();
+    let opened = call(
+        &ordinary_url,
+        "workspace.open",
+        json!({"workspaceId":original_workspace,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let original_state = call(
+        &ordinary_url,
+        "workspace.get",
+        json!({"schemaVersion":1,"workspaceId":original_workspace}),
+    );
+    assert_ne!(original_state["isError"], true, "{original_state}");
+    let original_digest = original_state["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let original_key = format!("r28-legacy-claim-{}", Uuid::now_v7().simple());
+    let born = call(
+        &ordinary_url,
+        "workspace.claim.reserve",
+        json!({
+            "schemaVersion":1,
+            "clientRequestId":original_key,
+            "workspaceId":original_workspace,
+            "runRef":format!("harness-run:r28-legacy-{}",Uuid::now_v7().simple()),
+            "expectedSourceStateDigest":original_digest,
+        }),
+    );
+    assert_ne!(born["isError"], true, "{born}");
+    assert_eq!(born["structuredContent"]["state"], "held");
+
+    let mut endpoint_process = fixture.endpoint.take().unwrap();
+    endpoint_process.kill().unwrap();
+    endpoint_process.wait().unwrap();
+    // Reuse the existing issuer-shim fixture from R16, without giving
+    // runtime_app SELECT/UPDATE on any private Harness Run rows.
+    fixture
+        .db
+        .batch_execute(
+            "CREATE SCHEMA r16_issuer;
+         CREATE FUNCTION r16_issuer.harness_current_dispatch_cut(text,bigint,text)
+         RETURNS TABLE(event_kind text,payload_digest text,payload_kind text,
+             payload_len bigint,payload_content bytea,fence_kind text,
+             fence_len bigint,fence_content bytea,intent_digest text,
+             intent_kind text,intent_len bigint,intent_content bytea)
+         LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
+         AS $issuer$ BEGIN RETURN; END $issuer$;
+         REVOKE ALL ON FUNCTION
+           r16_issuer.harness_current_dispatch_cut(text,bigint,text) FROM PUBLIC;
+         GRANT USAGE ON SCHEMA r16_issuer TO runtime_app;
+         GRANT EXECUTE ON FUNCTION
+           r16_issuer.harness_current_dispatch_cut(text,bigint,text) TO runtime_app;",
+        )
+        .unwrap();
+    fixture.harness_dispatch_test = true;
+    let ordinary_url = fixture.endpoint();
+    let dedicated_url = ordinary_url.replacen("/mcp", "/harness/mcp", 1);
+
+    // The old principal remains the authoritative owner of its original
+    // HELD Claim; enabling a finalizer profile must not silently rebind it.
+    let preserved = call(
+        &ordinary_url,
+        "workspace.claim.get",
+        json!({"schemaVersion":1,"clientRequestId":original_key}),
+    );
+    assert_ne!(preserved["isError"], true, "{preserved}");
+    assert_eq!(preserved["structuredContent"]["state"], "held");
+
+    // A direct, handcrafted JSON-RPC tools/call must be denied BEFORE PG,
+    // even when the caller knows the exact old original Claim request key.
+    let (status, denied) = r16_dedicated_call(
+        &ordinary_url,
+        &"p".repeat(32),
+        "workspace.claim.release",
+        json!({"schemaVersion":1,"clientRequestId":original_key}),
+    );
+    assert_eq!(status, 200, "{denied}");
+    assert!(
+        denied.is_null(),
+        "raw ordinary release unexpectedly accepted: {denied}"
+    );
+    let still_held = call(
+        &ordinary_url,
+        "workspace.claim.get",
+        json!({"schemaVersion":1,"clientRequestId":original_key}),
+    );
+    assert_eq!(still_held["structuredContent"]["state"], "held");
+    let original_close = call(
+        &ordinary_url,
+        "workspace.close",
+        json!({"schemaVersion":1,"workspaceId":original_workspace,
+               "force":false,"consumerReleased":true,
+               "expectedSourceStateDigest":original_digest}),
+    );
+    assert_eq!(original_close["isError"], true, "{original_close}");
+    assert_eq!(
+        original_close["structuredContent"]["error"]["code"], "CONCURRENCY_LIMIT",
+        "{original_close}"
+    );
+
+    // The new privileged identity is not an alias for the old holder's key.
+    let (wrong_route, _) = r16_dedicated_call(
+        &dedicated_url,
+        &"p".repeat(32),
+        "workspace.claim.get",
+        json!({"schemaVersion":1,"clientRequestId":original_key}),
+    );
+    assert_eq!(wrong_route, 401);
+    let (right_route, wrong_holder) = r16_dedicated_call(
+        &dedicated_url,
+        &"h".repeat(48),
+        "workspace.claim.get",
+        json!({"schemaVersion":1,"clientRequestId":original_key}),
+    );
+    assert_eq!(right_route, 200);
+    assert_eq!(wrong_holder["isError"], true, "{wrong_holder}");
+
+    // Creating a DIFFERENT dedicated-principal original Claim is allowed,
+    // but does not certify any future early release as Domain-approved.
+    let protected_workspace = format!("r28-dedicated-{}", Uuid::now_v7().simple());
+    let second = call(
+        &ordinary_url,
+        "workspace.open",
+        json!({"schemaVersion":1,"workspaceId":protected_workspace,
+               "sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(second["isError"], true, "{second}");
+    let second_state = call(
+        &ordinary_url,
+        "workspace.get",
+        json!({"schemaVersion":1,"workspaceId":protected_workspace}),
+    );
+    let second_digest = second_state["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .unwrap();
+    let dedicated_key = format!("r28-dedicated-key-{}", Uuid::now_v7().simple());
+    let (dedicated_status, held) = r16_dedicated_call(
+        &dedicated_url,
+        &"h".repeat(48),
+        "workspace.claim.reserve",
+        json!({
+            "schemaVersion":1,"clientRequestId":dedicated_key,
+            "workspaceId":protected_workspace,
+            "runRef":format!("harness-run:r28-dedicated-{}", Uuid::now_v7().simple()),
+            "expectedSourceStateDigest":second_digest,
+        }),
+    );
+    assert_eq!(dedicated_status, 200);
+    assert_ne!(held["isError"], true, "{held}");
+    assert_eq!(held["structuredContent"]["state"], "held");
+    let (dedicated_read_status, held_after) = r16_dedicated_call(
+        &dedicated_url,
+        &"h".repeat(48),
+        "workspace.claim.get",
+        json!({"schemaVersion":1,"clientRequestId":dedicated_key}),
+    );
+    assert_eq!(dedicated_read_status, 200);
+    assert_eq!(held_after["structuredContent"]["state"], "held");
+
+    eprintln!(
+        "R28_NATIVE_PG18_MCP_RAW_RELEASE_ROUTE_DENIED_OLD_CLAIM_PRESERVED_NEW_DEDICATED_HELD_PASS"
+    );
+}
