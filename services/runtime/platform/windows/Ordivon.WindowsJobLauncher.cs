@@ -2158,7 +2158,7 @@ internal static class OrdivonWindowsJobLauncher
             }
             // PG-only explicit opt-in: retain the REAL Job Object handle
             // until the qualified PG consumer has queried this exact live
-            // object and durably committed a terminal and its Artifacts.
+            // object and durably committed its native drain witness event.
             // Ordinary Windows execution retains original close-before-result behavior.
             if (!options.PgTerminalPeerProcessId.HasValue)
             {
@@ -2197,7 +2197,8 @@ internal static class OrdivonWindowsJobLauncher
                 // the kernel reported ActiveProcesses==0 while we still own
                 // this handle.  The consumer connects after result.json exists,
                 // independently checks the kernel object, then ACKs only
-                // AFTER its PostgreSQL current-Attempt terminal CAS.
+                // AFTER its PostgreSQL durable native drain witness COMMIT.
+                // The actual terminal/Artifact CAS follows Launcher exit.
                 WaitForQualifiedPgTerminalConsumer(options);
                 CloseHandle(job);
                 job = IntPtr.Zero;
@@ -2345,15 +2346,15 @@ internal static class OrdivonWindowsJobLauncher
             if (nativePeer != options.PgTerminalPeerProcessId.Value)
                 throw new InvalidOperationException(
                     "PG terminal pipe peer is not the admission-frozen Runtime process");
-            // ACK is deliberately one byte, only sent after PG terminal+Artifact
-            // commit. Untrusted early EOF/incorrect byte never releases the
+            // ACK is deliberately one byte, only sent after qualified PG
+            // native witness journal commit. Untrusted early EOF/incorrect byte never releases the
             // owner as a *qualified success*; finally still reclaims the handle.
             byte[] ack = new byte[1];
             IAsyncResult receipt = pipe.BeginRead(ack, 0, 1, null, null);
             if (!receipt.AsyncWaitHandle.WaitOne(30000))
-                throw new InvalidOperationException("PG terminal CAS acknowledgement timed out");
+                throw new InvalidOperationException("PG native witness acknowledgement timed out");
             if (pipe.EndRead(receipt) != 1 || ack[0] != (byte)'T')
-                throw new InvalidOperationException("PG terminal CAS acknowledgement missing");
+                throw new InvalidOperationException("PG native witness acknowledgement missing");
         }
     }
 

@@ -11,8 +11,11 @@ use uuid::Uuid;
 mod dispatch;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
+#[path = "pg_admission_native_windows_drain.rs"]
+mod native_windows_drain;
 pub(crate) use dispatch::PgRunnerBound;
 pub use dispatch::{PgBundleReady, PgDispatchIssued};
+pub(crate) use native_windows_drain::{PgNativeWindowsDrainInput, PgNativeWindowsDrainOutcome};
 
 #[derive(Debug)]
 pub enum PgAdmissionError {
@@ -1702,6 +1705,142 @@ mod live_pg_tests {
             created_at_ms: 1234567,
             expected_source_sha256: "a".repeat(64),
         }
+    }
+
+    /// Physical SQL qualification of the SAME existing Job event writer.
+    /// This does not simulate a kernel witness or install a Windows PG binary:
+    /// caller-side native Win32 qualification is independently required.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN PostgreSQL instance"]
+    fn windows_native_drain_event_is_current_attempt_fenced_and_never_terminal_on_its_own() {
+        use crate::pg_admission::{PgNativeWindowsDrainInput, PgNativeWindowsDrainOutcome};
+        let dsn = physical_pg_test_dsn();
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut input = payload(
+            "win-native-drain-r1",
+            "job-win-native-drain-r1",
+            "workspace-win-native-drain-r1",
+            2,
+        );
+        input.launch_token_digest = format!("sha256:{}", "b".repeat(64));
+        let request_digest = format!("sha256:{}", "c".repeat(64));
+        let mut owner = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert!(matches!(
+            owner.admit(&input).unwrap(),
+            PgAdmissionOutcome::Created(_)
+        ));
+        allocate_fixture(&mut scratch, &input);
+        // Only test fixture moves the record to a native issued state.
+        // The real caller must pass through immutable bundle + issue fences.
+        owner.client.execute(
+            "UPDATE attempts SET state='starting',bundle_digest=$1,row_version=row_version+1              WHERE attempt_id=$2",
+            &[&request_digest, &input.attempt_id],
+        ).unwrap();
+        let row_version: i64 = owner
+            .client
+            .query_one(
+                "SELECT row_version FROM attempts WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        let native = PgNativeWindowsDrainInput {
+            job_id: input.job_id.clone(),
+            attempt_id: input.attempt_id.clone(),
+            expected_row_version: row_version,
+            expected_source_sha256: "a".repeat(64),
+            launch_token_digest: input.launch_token_digest.clone(),
+            request_digest: request_digest.clone(),
+            result_digest: format!("sha256:{}", "d".repeat(64)),
+            launcher_process_id: 1244,
+            launcher_creation_file_time: 8192000,
+            observed_at_ms: input.created_at_ms + 9,
+        };
+        assert!(!owner.qualified_native_windows_drain(&native).unwrap());
+        let mut stale = native.clone();
+        stale.expected_row_version += 1;
+        assert!(matches!(
+            owner.record_native_windows_drain(&stale),
+            Err(PgAdmissionError::Blocked)
+        ));
+        let mut wrong_source = native.clone();
+        wrong_source.expected_source_sha256 = "0".repeat(64);
+        assert!(matches!(
+            owner.record_native_windows_drain(&wrong_source),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        assert_eq!(
+            owner.record_native_windows_drain(&native).unwrap(),
+            PgNativeWindowsDrainOutcome::Committed(input.job_id.clone()),
+        );
+        assert_eq!(
+            owner.record_native_windows_drain(&native).unwrap(),
+            PgNativeWindowsDrainOutcome::Existing(input.job_id.clone()),
+        );
+        assert!(owner.qualified_native_windows_drain(&native).unwrap());
+        // Simulate a new Runtime connection after loss of the original ACK:
+        // journal durability, NOT the original in-memory observation time,
+        // is the recovery truth. Reconciliation can continue after restart.
+        let mut reopened = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let mut after_restart = native.clone();
+        after_restart.observed_at_ms += 1000;
+        assert!(reopened
+            .qualified_native_windows_drain(&after_restart)
+            .unwrap());
+        let mut incorrect = native.clone();
+        incorrect.launcher_process_id += 1;
+        assert!(!owner.qualified_native_windows_drain(&incorrect).unwrap());
+        assert!(matches!(
+            owner.record_native_windows_drain(&incorrect),
+            Err(PgAdmissionError::IdempotencyConflict)
+        ));
+        assert_eq!(scratch.count("artifacts"), 0);
+        assert_eq!(scratch.count("job_events"), 4); // 3 admission + 1 native
+        let attempt: String = owner
+            .client
+            .query_one(
+                "SELECT state FROM attempts WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(attempt, "starting");
+        let resolution: Option<String> = owner
+            .client
+            .query_one(
+                "SELECT resolution FROM jobs WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(resolution, None);
+        let reserved: String = owner
+            .client
+            .query_one(
+                "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(reserved, "active");
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET current_attempt_id=NULL WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
+        assert!(!owner.qualified_native_windows_drain(&native).unwrap());
+        // Even if a malicious/buggy database writer edits a journal event,
+        // a digest mismatch must no longer qualify native terminal evidence.
+        scratch.admin.execute(
+            "UPDATE job_events SET detail_json='{}' WHERE job_id=$1 AND event_type='WINDOWS_NATIVE_JOB_DRAIN_OBSERVED'",
+            &[&input.job_id],
+        ).unwrap();
+        assert!(!reopened
+            .qualified_native_windows_drain(&after_restart)
+            .unwrap());
     }
 
     /// Independent Windows native evidence reader consumes exact PostgreSQL

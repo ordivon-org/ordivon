@@ -594,7 +594,7 @@ pub mod native_terminal_gate {
 
     /// A pipe identity is allowed to be derived only from an exact Attempt
     /// already qualified by PostgreSQL. Never use caller-supplied arbitrary paths.
-    pub fn pipe_name(attempt: &str) -> Result<String, String> {
+    pub(crate) fn pipe_name(attempt: &str) -> Result<String, String> {
         if attempt.is_empty()
             || attempt.len() > 96
             || !attempt
@@ -607,7 +607,7 @@ pub mod native_terminal_gate {
     }
 
     #[cfg(windows)]
-    pub struct PgWindowsNativeTerminalGate {
+    pub(crate) struct PgWindowsNativeTerminalGate {
         pipe: windows_sys::Win32::Foundation::HANDLE,
         job_id: String,
     }
@@ -623,19 +623,19 @@ pub mod native_terminal_gate {
 
     #[cfg(windows)]
     impl PgWindowsNativeTerminalGate {
-        /// Call ONLY after the original PostgreSQL terminal/Artifact CAS
-        /// returned Committed or exact Existing. ACK is not an authorization.
-        pub fn ack_after_pg_terminal_commit(
+        /// Call ONLY after the original PostgreSQL native drain Journal event
+        /// COMMIT returned Committed or exact Existing. ACK is not an authorization.
+        pub(crate) fn ack_after_pg_durable_drain_commit(
             self,
-            outcome: &crate::pg_admission::PgTerminalOutcome,
+            outcome: &crate::pg_admission::PgNativeWindowsDrainOutcome,
         ) -> Result<(), String> {
             use windows_sys::Win32::Storage::FileSystem::WriteFile;
             let recorded = match outcome {
-                crate::pg_admission::PgTerminalOutcome::Committed(id)
-                | crate::pg_admission::PgTerminalOutcome::Existing(id) => id,
+                crate::pg_admission::PgNativeWindowsDrainOutcome::Committed(id)
+                | crate::pg_admission::PgNativeWindowsDrainOutcome::Existing(id) => id,
             };
             if recorded != &self.job_id {
-                return Err("native terminal gate PG commit owner mismatch".into());
+                return Err("native drain PG journal commit owner mismatch".into());
             }
             let mut written = 0u32;
             let ok = unsafe {
@@ -649,7 +649,7 @@ pub mod native_terminal_gate {
             };
             if ok == 0 || written != 1 {
                 return Err(format!(
-                    "PG terminal ACK pipe write failed: {}",
+                    "native drain ACK pipe write failed: {}",
                     std::io::Error::last_os_error()
                 ));
             }
@@ -660,12 +660,13 @@ pub mod native_terminal_gate {
     /// Connect only while the ORIGINAL Launcher holds its Job Object handle.
     /// Native pipe server PID/birth and Job accounting are read from Windows
     /// kernel, not a target-authored JSON or hash. The caller must hold the
-    /// gate through the PG terminal+Artifact transaction and then ACK it.
+    /// gate through a durable same-PG native witness event commit, then ACK.
+    /// The separate terminal+Artifact CAS requires the original Launcher to exit.
     ///
     /// Missing gate -> None/UNKNOWN, never a synthetic terminal. A wrong
     /// issuer or nonempty job causes an explicit error without ACK.
     #[cfg(windows)]
-    pub fn connect_verified(
+    pub(crate) fn connect_verified(
         expected: &PgWindowsWitnessIdentity,
         witness: &PgWindowsWitnessObservation,
     ) -> Result<Option<PgWindowsNativeTerminalGate>, String> {
@@ -763,6 +764,50 @@ pub mod native_terminal_gate {
         // Return with the connection HELD. Dropping it without PG CAS does
         // not send ACK; original Launcher times out and closes its Job handle.
         Ok(Some(gate))
+    }
+
+    /// The actual Windows PG Runtime owner calls this while the original
+    /// Launcher is alive, after inspect_windows_pg_bundle validated the
+    /// immutable request+Result. It persists the positive OS observation in
+    /// the EXISTING PG Job Journal and releases the Launcher only after
+    /// commit. A separate reconciliation after Launcher exit consumes it.
+    #[cfg(windows)]
+    pub(crate) fn record_verified_native_drain(
+        store: &mut crate::pg_admission::PgAdmissionStore,
+        source_sha256: &str,
+        expected_row_version: i64,
+        expected: &PgWindowsWitnessIdentity,
+        witness: &PgWindowsWitnessObservation,
+    ) -> Result<bool, String> {
+        use crate::pg_admission::PgNativeWindowsDrainInput;
+        let Some(gate) = connect_verified(expected, witness)? else {
+            return Ok(false);
+        };
+        let event = PgNativeWindowsDrainInput {
+            job_id: expected.job_id.clone(),
+            attempt_id: expected.attempt_id.clone(),
+            expected_row_version,
+            expected_source_sha256: source_sha256.to_owned(),
+            launch_token_digest: expected.launch_token_digest.clone(),
+            request_digest: expected.request_digest.clone(),
+            result_digest: witness
+                .result_digest
+                .clone()
+                .ok_or("native drain missing bound Result")?,
+            launcher_process_id: u32::try_from(
+                witness.launcher_process_id.ok_or("launcher PID absent")?,
+            )
+            .map_err(|_| "launcher PID out of range")?,
+            launcher_creation_file_time: witness
+                .launcher_creation_file_time
+                .ok_or("launcher birth absent")?,
+            observed_at_ms: crate::universal::now_unix_ms().map_err(|e| e.to_string())? as i64,
+        };
+        let recorded = store
+            .record_native_windows_drain(&event)
+            .map_err(|e| format!("native Windows drain PG commit: {e:?}"))?;
+        gate.ack_after_pg_durable_drain_commit(&recorded)?;
+        Ok(true)
     }
 
     #[cfg(test)]
