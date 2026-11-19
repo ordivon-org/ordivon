@@ -5023,7 +5023,7 @@ fn b_r3_native_cancel_corrupt_frozen_plan_stops_issued_os_unit() {
     eprintln!("R30_NATIVE_PG18_CORRUPT_PLAN_CANCEL_OS_DRAIN_PASS job={job_id} original_unit={unit_name} denied_false_success={}",cancel["isError"]);
 }
 
-fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
+fn r16_raw_mcp_envelope(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let client = reqwest::Client::new();
         let response = client
@@ -5056,8 +5056,17 @@ fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16,
         } else {
             serde_json::from_str(&body).unwrap()
         };
-        (status, message["result"].clone())
+        (status, message)
     })
+}
+
+fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
+    let (status, envelope) = r16_raw_mcp_envelope(url, bearer, name, args);
+    if status == 200 {
+        (status, envelope["result"].clone())
+    } else {
+        (status, envelope)
+    }
 }
 
 #[test]
@@ -5997,16 +6006,22 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
 
     // A direct, handcrafted JSON-RPC tools/call must be denied BEFORE PG,
     // even when the caller knows the exact old original Claim request key.
-    let (status, denied) = r16_dedicated_call(
+    let (status, denied) = r16_raw_mcp_envelope(
         &ordinary_url,
         &"p".repeat(32),
         "workspace.claim.release",
         json!({"schemaVersion":1,"clientRequestId":original_key}),
     );
     assert_eq!(status, 200, "{denied}");
+    assert_eq!(
+        denied["error"]["code"], -32602,
+        "raw normal release must fail explicitly before PG, not yield ambiguous null: {denied}"
+    );
     assert!(
-        denied.is_null(),
-        "raw ordinary release unexpectedly accepted: {denied}"
+        denied["error"]["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("authenticated Run finalizer route")),
+        "the native handler must explain its route-bound denial: {denied}"
     );
     let still_held = call(
         &ordinary_url,
