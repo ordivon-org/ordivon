@@ -185,13 +185,13 @@ class NativeWorkspaceClaimBirthTests(PostgresAgentRunCase, unittest.TestCase):
                 execution_binding=binding, runtime=FakeRuntime(),
                 workspace_claim_client=native,
             )
-        # Harness PG committed the original CREATED event despite the separate
-        # Runtime PG failure. It was NOT returned as a usable Run.
+        # No native HELD Claim means NO PG Run birth, not a recoverable
+        # caller-selected orphan. Retrying after native recovery is a true
+        # first birth, not permission to rebind an existing original Run.
         from ordivon_harness.postgres_store import PostgresHarnessStore
         with PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema) as store:
-            projection = store.load_run(value.harness_run_id)
-            self.assertEqual(projection.status.value, "created")
-            self.assertEqual(projection.revision, 1)
+            with self.assertRaises(KeyError):
+                store.load_run(value.harness_run_id)
         self.assertIsNone(native.claim)
         self.assertEqual(native.reserve_count, 0)
         native.fail_reserve_without_commit = False

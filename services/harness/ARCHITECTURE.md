@@ -191,21 +191,34 @@ its historical functions as aliases to the extracted modules; there is only
 one implementation. No new PostgreSQL Writer, Runtime schedule, effect issuer,
 tool registry or extra state authority was introduced.
 
-**Legacy Run re-entry is a bounded migration path, not blanket retroactive GC approval.**
-The supported `HarnessAgentRun.open` path can load an already existing original
-PostgreSQL Run and, for a workspace-bearing nonterminal Run, reserve/recover a
-native HELD Workspace Claim before returning a model-executable handle. The
-real-PG18 `tests/test_legacy_workspace_claim_reentry_pg.py` verifies original
-created/paused Run re-entry, lost-reserve-response recovery, denial without a
-native claim, existing Claim's workspace identity, and released-claim
-non-resurrection using a fake Native transport. This **does not** qualify
-original legacy active workspaces in the installed environment. In particular,
-a caller-supplied workspace reference is not itself historical proof of the
-original Run's physical Workspace: acquire independently authenticated original
-Workspace provenance and source/currentness evidence before per-Run adoption.
-A Run whose original Workspace has already been deleted cannot be rescued by
-a new Claim. Do not auto-migrate unknown Runs, promote tests of a fake Native
-client to physical Runtime proof, or turn on global Workspace GC.
+**Original Run birth and legacy adoption are distinct operations.**
+For NEW Workspace-bearing Runs, the supported `HarnessAgentRun.create`
+first obtains the native HELD Workspace Claim, then commits the original Run
+birth to the existing Harness PostgreSQL Journal. An unconfirmed native
+reservation means **no newly born PG Run**; a lost reserve reply that did
+commit is recovered by the exact stable native request key before PG birth.
+An orphan HELD Claim after a later PG failure is protected and requires
+explicit original-owner reconciliation; it is not auto-released by a TTL.
+
+For EXISTING PostgreSQL Runs, both `HarnessAgentRun.open` and idempotent
+`create` must read the same original Native Claim and prove HELD before
+any Provider/Tool execution. They **never** reserve a new Workspace Claim
+using the current caller's mutable Workspace reference. No-tool Runs are
+unaffected. Native NOT_COMMITTED claim absence is distinguished from
+transport UNKNOWN; neither allows dispatch or automatic re-pinning.
+
+The real-PG18 `tests/test_workspace_claim_run_birth.py` and
+`tests/test_legacy_workspace_claim_reentry_pg.py` prove the two
+operations, lost reply, error and race-recovery boundaries with a Fake
+Native transport. They are source/isolated PG evidence, **not** physical
+proof for old production Runs. A caller-supplied WorkspaceRef, original
+RunContract/sourceRef hash or successful PG reopen cannot establish an
+unclaimed historical Run's physical Workspace provenance. A natural
+authenticated Runtime Owner must first verify original physical identity,
+source and effect history, then pin it in Runtime under the original
+Run identity; only afterwards can normal `open` resume it. A deleted
+original Workspace cannot be repaired by claiming another one. Do not
+auto-migrate old Runs or enable global Workspace GC.
 
 **Next structural cuts are consumer-driven, not directory-driven.**
 The remaining `ordivon/run_continuity.py` still couples working-set mutation,

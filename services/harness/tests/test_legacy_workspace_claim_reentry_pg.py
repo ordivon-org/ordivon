@@ -13,6 +13,7 @@ import uuid
 import pytest
 
 from ordivon_harness.agent_run import HarnessAgentRun
+from ordivon_harness.workspace_claim import WorkspaceRunClaim
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.runtime_port import HarnessWorkspaceAdmissionUnavailable
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
@@ -72,6 +73,11 @@ def test_legacy_pg_run_is_recovered_and_pinned_before_model_execution(pg_schema)
     dsn, schema, value = _legacy_run(pg_schema)
     client = FakeNativeWorkspaceClaimClient()
     assert client._claim is None
+    # Represent a separately authenticated Native Owner's original
+    # Workspace adoption. The original PG Run alone cannot create this.
+    WorkspaceRunClaim(
+        value, execution_binding(value).workspace_ref, client
+    ).reserve_or_recover()
 
     restored = _reopen(dsn, schema, value, client)
     assert restored.workspace_claim is not None
@@ -115,9 +121,15 @@ def test_legacy_pg_run_requires_native_claim_client_before_model_call(pg_schema)
 
 
 def test_lost_native_reserve_reply_recovers_existing_claim_without_reissue(pg_schema):
-    dsn, schema, value = _legacy_run(pg_schema)
+    dsn, schema = pg_schema
+    value = contract("new-lost-reply-" + uuid.uuid4().hex[:12], tools=True)
     client = LostReserveReplyClient()
-    restored = _reopen(dsn, schema, value, client)
+    restored = HarnessAgentRun.create(
+        dsn, schema, value,
+        lambda _: ScriptedTurnAdapter((needs_input(),)),
+        execution_binding=execution_binding(value),
+        runtime=FakeRuntime(), workspace_claim_client=client,
+    )
     assert client.lost_reply
     assert client.reserve_calls == 1
     assert restored.workspace_claim.require_held()["state"] == "held"
@@ -131,6 +143,7 @@ def test_lost_native_reserve_reply_recovers_existing_claim_without_reissue(pg_sc
 def test_original_run_cannot_rebind_to_other_workspace_after_claim(pg_schema):
     dsn, schema, value = _legacy_run(pg_schema)
     client = FakeNativeWorkspaceClaimClient()
+    WorkspaceRunClaim(value, execution_binding(value).workspace_ref, client).reserve_or_recover()
     _reopen(dsn, schema, value, client)
     original = client._claim["workspaceId"]
     with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="identity"):
@@ -141,6 +154,7 @@ def test_original_run_cannot_rebind_to_other_workspace_after_claim(pg_schema):
 def test_released_claim_cannot_be_resurrected_on_legacy_reentry(pg_schema):
     dsn, schema, value = _legacy_run(pg_schema)
     client = FakeNativeWorkspaceClaimClient()
+    WorkspaceRunClaim(value, execution_binding(value).workspace_ref, client).reserve_or_recover()
     _reopen(dsn, schema, value, client)
     client._claim["state"] = "released"
     with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="not HELD"):
@@ -157,7 +171,7 @@ class MissingWorkspaceClient(FakeNativeWorkspaceClaimClient):
         return super().call_tool(name, arguments)
 
 
-def test_historical_paused_pg_run_can_repin_before_original_resume(pg_schema):
+def test_historical_paused_pg_run_needs_original_held_claim_before_resume(pg_schema):
     dsn, schema = pg_schema
     value = contract("legacy-paused-" + uuid.uuid4().hex[:12], tools=True)
     binding = execution_binding(value)
@@ -174,29 +188,104 @@ def test_historical_paused_pg_run_can_repin_before_original_resume(pg_schema):
     assert original.status()["status"] == "paused"
     assert len(original.adapter.requests) == 1
 
-    # This new transport represents the old PG Run with no native Claim.
-    # It is a test-only source fixture; the old real Runtime Claim would not
-    # actually disappear merely because a new Harness process is created.
+    # A fake unclaimed native transport cannot retroactively adopt this
+    # already-PAUSED original Run, even if caller supplies the same ID.
     cold_native_client = FakeNativeWorkspaceClaimClient()
     assert cold_native_client._claim is None
-    resumed = _reopen(dsn, schema, value, cold_native_client, turn=completed())
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="not HELD"):
+        _reopen(dsn, schema, value, cold_native_client, turn=completed())
+    assert cold_native_client._claim is None
+
+    # Re-entry against the ORIGINAL preexisting held claim remains live.
+    resumed = _reopen(dsn, schema, value, first_client, turn=completed())
     assert resumed.status()["status"] == "paused"
     assert resumed.workspace_claim.require_held()["state"] == "held"
-    assert resumed.adapter.requests == []
     done = resumed.resume(
         additional_messages=({"role": "user", "content": "continue safely"},)
     )
     assert done.loop_result.stop_code.value == "candidate_completed"
     assert resumed.status()["status"] == "completed"
     assert len(resumed.adapter.requests) == 1
-    assert cold_native_client._claim["state"] == "held"
+    assert first_client._claim["state"] == "held"
 
 
 def test_legacy_run_with_missing_physical_workspace_cannot_start_model(pg_schema):
     dsn, schema, value = _legacy_run(pg_schema)
     client = MissingWorkspaceClient()
-    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="rejected"):
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="not HELD"):
         _reopen(dsn, schema, value, client)
     assert client._claim is None
     with PostgresHarnessStore(dsn, schema=schema) as store:
         assert store.load_run(value.harness_run_id).status.value == "created"
+
+
+def test_existing_original_pg_run_without_claim_must_not_auto_reserve(pg_schema):
+    dsn, schema, value = _legacy_run(pg_schema)
+    client = FakeNativeWorkspaceClaimClient()
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="not HELD"):
+        _reopen(dsn, schema, value, client)
+    assert client._claim is None
+    with PostgresHarnessStore(dsn, schema=schema) as store:
+        assert store.load_run(value.harness_run_id).status.value == "created"
+
+
+def test_idempotent_create_cannot_adopt_existing_run_into_caller_workspace(pg_schema):
+    dsn, schema, value = _legacy_run(pg_schema)
+    client = FakeNativeWorkspaceClaimClient()
+    binding = execution_binding(value)
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="not HELD"):
+        HarnessAgentRun.create(
+            dsn, schema, value, lambda _: ScriptedTurnAdapter((needs_input(),)),
+            execution_binding=binding, runtime=FakeRuntime(),
+            workspace_claim_client=client,
+        )
+    assert client._claim is None
+
+
+def test_failed_initial_native_claim_does_not_commit_pg_and_allows_true_new_birth(pg_schema):
+    """Before PG birth neither Run nor physical Claim can claim W1 as original."""
+    from dataclasses import replace
+
+    dsn, schema = pg_schema
+    value = contract("birth-missing-claim-" + uuid.uuid4().hex[:12], tools=True)
+    binding = execution_binding(value)
+    adapter = ScriptedTurnAdapter((needs_input(),))
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable):
+        HarnessAgentRun.create(
+            dsn, schema, value, lambda _: adapter,
+            execution_binding=binding, runtime=FakeRuntime(),
+            workspace_claim_client=MissingWorkspaceClient(),
+        )
+    assert adapter.requests == []
+    with PostgresHarnessStore(dsn, schema=schema) as store:
+        with pytest.raises(KeyError):
+            store.load_run(value.harness_run_id)
+
+    # The first W1 claim never committed AND PG Run never existed. A new
+    # properly admitted Run can be born against W2 without inheriting a
+    # false historical binding from the failed, pre-birth attempt.
+    later_client = FakeNativeWorkspaceClaimClient()
+    admitted = HarnessAgentRun.create(
+        dsn, schema, value, lambda _: adapter,
+        execution_binding=replace(binding, workspace_ref="workspace:foreign-W2"),
+        runtime=FakeRuntime(), workspace_claim_client=later_client,
+    )
+    assert admitted.status()["status"] == "created"
+    assert later_client._claim["workspaceId"] == "workspace:foreign-W2"
+    assert later_client._claim["state"] == "held"
+    assert adapter.requests == []
+
+
+def test_no_tool_legacy_created_run_still_recovers_without_claim(pg_schema):
+    """No physical Workspace and no native Claim needed for a pure model Run."""
+    dsn, schema = pg_schema
+    value = contract("pure-legacy-" + uuid.uuid4().hex[:12], tools=False)
+    with PostgresHarnessStore(dsn, schema=schema) as store:
+        store.create_run(value)
+    restored = HarnessAgentRun.open(
+        dsn, schema, value.harness_run_id,
+        lambda _: ScriptedTurnAdapter((needs_input(),)),
+    )
+    result = restored.run(({"role": "user", "content": "pure model"},))
+    assert result.paused
+    assert restored.workspace_claim is None

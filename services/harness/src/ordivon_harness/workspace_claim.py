@@ -107,7 +107,10 @@ class WorkspaceRunClaim:
         return result
 
     def require_held(self) -> dict[str, JsonValue]:
-        claim = self.get()
+        # An authenticated native NOT_COMMITTED absence is actionable (not
+        # HELD); transport failure, malformed evidence and lost replies
+        # remain UNKNOWN and must never become permission to auto-reserve.
+        claim = self.get(allow_absent=True)
         if claim is None or claim["state"] != "held":
             raise HarnessWorkspaceAdmissionUnavailable(
                 "original native Runtime Workspace Claim is not HELD"

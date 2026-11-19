@@ -93,20 +93,25 @@ class HarnessAgentRun:
         adapter = cls._resolve_adapter(contract, adapter_factory)
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
+
+        # Source authority may predate this process. Reject a conflicting
+        # original Run BEFORE any native reservation with caller-selected
+        # workspace input.
         with factory() as store:
             try:
                 projection = store.load_run(contract.harness_run_id)
             except KeyError:
-                store.create_run(contract)
-                projection_status_terminal = False
+                projection = None
             else:
-                projection_status_terminal = projection.status.terminal
-                if (projection.contract_digest != contract.digest
+                if (
+                    projection.contract_digest != contract.digest
                     or projection.caller_id != contract.caller_id
-                    or projection.caller_run_ref != contract.caller_run_ref):
+                    or projection.caller_run_ref != contract.caller_run_ref
+                ):
                     raise HarnessAgentRunCompositionError(
                         "existing Harness PG Run differs from supplied Contract"
                     )
+
         claim = RunCompositionPolicy.select_workspace_claim(
             contract,
             execution_binding=execution_binding,
@@ -115,8 +120,23 @@ class HarnessAgentRun:
             workspace_claim_workspace_id=workspace_claim_workspace_id,
             workspace_claim_client=workspace_claim_client,
         )
-        if claim is not None and not projection_status_terminal:
-            claim.reserve_or_recover()
+
+        if projection is None:
+            # Physical pin FIRST, PG Run birth SECOND. A native outage cannot
+            # leave a newly created PG Run that has never been protected by a
+            # Workspace Claim. A lost native reserve reply is recovered with
+            # its original idempotency key before any PG Run is committed.
+            if claim is not None:
+                claim.reserve_or_recover()
+            with factory() as store:
+                store.create_run(contract)
+            if claim is not None:
+                claim.require_held()
+        elif claim is not None and not projection.status.terminal:
+            # An existing Run has no trustworthy historical Workspace
+            # origin in a mutable caller ExecutionBinding. It may only
+            # re-enter with a previously issued, exact native HELD Claim.
+            claim.require_held()
         return cls._bind(
             contract, adapter, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,
@@ -144,7 +164,12 @@ class HarnessAgentRun:
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
-        """Reopen from the authoritative PostgreSQL Journal after process loss."""
+        """Reopen an existing PostgreSQL Run only under its original native Claim.
+
+        Legacy unclaimed Workspace-bearing Runs need independently verified
+        native adoption before reentry; this public method cannot infer their
+        physical Workspace provenance from a caller's supplied reference.
+        """
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
         with factory() as store:
@@ -167,7 +192,10 @@ class HarnessAgentRun:
             workspace_claim_client=workspace_claim_client,
         )
         if claim is not None and not projection_status_terminal:
-            claim.reserve_or_recover()
+            # The immutable PG Run predates this process. Only a native
+            # HELD Claim for its original Run+Workspace may authorize reentry;
+            # never create a new pin from the caller's mutable binding.
+            claim.require_held()
         return cls._bind(
             contract, adapter, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,
