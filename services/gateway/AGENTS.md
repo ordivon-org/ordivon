@@ -70,6 +70,33 @@ the unavailable branch, and an empty TCP snapshot does not prove migration.
 Keep natural Security, Host, Network and Cloudflare consumers authoritative.
 See docs/HOST_DIRECT_CONSUMER_GATE_R7.md for exact A/B evidence and rollback.
 
+## R44 physical readiness is not systemd Type=simple "Started"
+
+On 2026-11-20 the formally merged Gateway source passed the exact original
+same-route release gate and changed the immutable source symlink. An Agent's
+immediate `systemctl restart` return / MainPID check raced with the actual
+Type=simple process startup; the Agent's own deployment wrapper rolled back.
+The physical old SourceCut and real connected Host consumer recovered. A
+second rollout waited for actual post-restart PID/cwd plus HTTP health and
+anonymous MCP DENY and succeeded, then real ChatGPT consumed typed Host
+cursor recovery. The original installer **does not** restart the service.
+
+After an authorized installer promotion, invoke the original systemd restart
+with a bounded timeout and then run the **read-only** existing-service observer:
+
+```sh
+python3 services/gateway/packaging/check_running_release.py \
+  --expected-sourcecut "${MERGED_FULL_GIT_SHA}" \
+  --previous-pid "${OLD_REAL_MAINPID}" --timeout-seconds 16
+```
+
+Its `READY` means only exact running SourceCut+PID, local HTTP health and
+local anonymous MCP denial. It never restarts, reads credentials, calls the
+PDP for new grants or substitutes for Cloudflare/ChatGPT authenticated
+Tool and typed-error acceptance. Any `NO_GO` or timeout requires checking
+physical state before an actual rollback; a systemd "Started" event is not
+an application-ready receipt. Do not add an Agent approval gate.
+
 ## HTTP Security PEP and actual CLI wiring
 
 For human and Agent alike, do not infer Gateway capability protection from
