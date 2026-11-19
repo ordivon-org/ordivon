@@ -220,6 +220,42 @@ Run identity; only afterwards can normal `open` resume it. A deleted
 original Workspace cannot be repaired by claiming another one. Do not
 auto-migrate old Runs or enable global Workspace GC.
 
+**R29 Native Claim-only client; source, delivery and deletion remain separate.**
+Current Rust Runtime's `ClaimFinalizerOnly` profile uses a separate authenticated
+`/harness/mcp` Principal and exposes only `workspace.get`,
+`workspace.claim.reserve/get/release`. It does NOT require the original
+Harness JobIssuer SQL function in the Runtime database. Harness PG and Runtime
+PG may remain distinct databases; an original Run can obtain and retain the
+exact native HELD Claim across those databases without moving any Harness
+table, Registry or scheduling controller.
+
+The independent CLI for a NEW Workspace-bearing Run accepts only an explicit
+dedicated `--runtime-claim-url http://127.0.0.1:<port>/harness/mcp`
+(and private `--runtime-claim-bearer-token-file`). It does not downgrade
+to ordinary `/mcp`; that route cannot release its own Claims once the
+ordinary native release-denial source is installed. Existing normal Gateway
+execution continues using ordinary `/mcp` and a different Bearer. No Run,
+User message or Tool grant contains the Native Claim credential.
+
+**Not a certified Finalizer yet.** A separate token and a strong normal-route
+DENY prevent accidental ordinary release; they do not prevent the *privileged*
+Claim-only caller from issuing `workspace.claim.release` while original
+Harness PG still reports CREATED, no recipient byte has been accepted and
+normal nonforce Close must still be protected. R29 reproduced that physical
+RED with a disposable original Run against the exact native Claim-only
+Runtime candidate; it does not affect a real user Workspace. The existing
+`release_workspace_after_delivery` checks Run status, PG source-settled and
+a supplied recipient ACK plus verifier callback, but those supplied values
+are NOT independent authenticated domain or OS attestations.
+
+Qualify a true Finalizer only after its current authenticated original Run,
+recipient's original output bytes/receipt, all actually issued native Attempts
+and no-future-spawn/drain have been independently verified, and its Bearer is
+inaccessible to ordinary executors. A root `trusted_local` execution that
+can read the same protected file is not isolated by chmod 0600 alone.
+Do not install Claim-only credentials, release historical claims or enable
+global GC based only on source tests or simulated ACKs.
+
 **Next structural cuts are consumer-driven, not directory-driven.**
 The remaining `ordivon/run_continuity.py` still couples working-set mutation,
 Provider dispatch, and Tool receipts; they must retain one PG writer and
