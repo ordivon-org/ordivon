@@ -2,17 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypedDict
 
+# Existing Python imports continue to work while the wire owner is Actor References.
+from .references.actor_contracts import ActorRefResponse as ActorRefResponse
 from .wire_common import AdmissionWire
-
-
-class ActorRefResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-actor-ref"]
-    admission: AdmissionWire
-    actorRef: str
-    actorKind: Literal["unknown", "human", "agent", "service", "organization"]
-    createdAt: str
-    truthBoundary: str
 
 
 class WorkResponse(TypedDict):
