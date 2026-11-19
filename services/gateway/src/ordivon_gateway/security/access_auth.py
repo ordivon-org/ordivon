@@ -201,6 +201,7 @@ class CloudflareAccessMiddleware:
                 state = scope.setdefault("state", {})
                 state["ordivon_access_principal"] = "principal:local-service:harness"
                 state["ordivon_access_issuer"] = "ordivon-local-service"
+                state["ordivon_access_verified_by_gateway"] = "local_service_bearer"
                 await self._app(scope, receive, send)
                 return
 
@@ -234,4 +235,5 @@ class CloudflareAccessMiddleware:
         state = scope.setdefault("state", {})
         state["ordivon_access_principal"] = identity.principal
         state["ordivon_access_issuer"] = identity.issuer
+        state["ordivon_access_verified_by_gateway"] = "cloudflare_access_jwt"
         await self._app(scope, receive, send)

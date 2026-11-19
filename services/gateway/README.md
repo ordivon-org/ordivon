@@ -81,6 +81,12 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
+- **Trusted Cloudflare Access operator (explicit opt-in)**:
+  ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR=true selects the already verified
+  Cloudflare Access app as the operator trust boundary, removing duplicate
+  AuthZEN denial for that principal. Missing/invalid JWT and local Harness
+  service identities keep their prior restrictions. See
+  docs/TRUSTED_CF_OPERATOR_R34_LIVE_REPAIR.md.
 - **Explicit read-only evidence confirmation**:
   capability.inquire(capability, verifyReadOnly=true) performs one additional
   bounded Owner status observation, then returns original and latest facts,

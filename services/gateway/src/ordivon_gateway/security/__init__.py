@@ -14,6 +14,7 @@ from .entrypoint import (
     install_tool_security,
     protect_http_app,
     require_release_access,
+    trusted_operator_from_env,
 )
 from .execution_access import (
     qualify_gateway_operation_ref,
@@ -33,6 +34,7 @@ from .owner_identity import (
 from .owner_identity import (
     _owner_error_result as owner_error_result,
 )
+from .trusted_operator import TrustedCloudflareOperator
 
 __all__ = [
     "AuthZenPrincipalAuthorizer",
@@ -54,6 +56,8 @@ __all__ = [
     "qualify_gateway_operation_ref",
     "require_http_execution_identity",
     "require_release_access",
+    "TrustedCloudflareOperator",
+    "trusted_operator_from_env",
     "verified_execution_request_id",
     "verified_execution_scope",
 ]

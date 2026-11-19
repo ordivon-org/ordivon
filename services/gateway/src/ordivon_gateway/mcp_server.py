@@ -26,6 +26,7 @@ from .contracts import (
 from .security import (
     CapabilityAuthorizer,
     GatewayAuditMiddleware,
+    TrustedCloudflareOperator,
     install_tool_security,
     require_release_access,
 )
@@ -43,6 +44,9 @@ from .security import (
 )
 from .security import (
     require_http_execution_identity as _require_http_execution_identity,
+)
+from .security import (
+    trusted_operator_from_env as _trusted_operator_from_env,
 )
 from .security import (
     verified_execution_request_id as _verified_execution_request_id,
@@ -65,6 +69,7 @@ def build_server(
     capability_authorizer: CapabilityAuthorizer | None = None,
     protect_artifact_reads: bool = False,
     require_http_execution_identity: bool = False,
+    trusted_operator: TrustedCloudflareOperator | None = None,
 ) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
@@ -88,6 +93,7 @@ def build_server(
         capability_authorizer=capability_authorizer,
         protect_artifact_reads=protect_artifact_reads,
         require_http_execution_identity=require_http_execution_identity,
+        trusted_operator=trusted_operator,
     )
 
     @server.tool(name="system.describe")
@@ -145,7 +151,9 @@ def build_server(
         ctx: Context = None,
     ) -> RuntimeReleaseAdmission:
         # Release admission policy belongs to Security; Runtime still owns the effect.
-        require_release_access(ctx, require_http_execution_identity, capability_authorizer)
+        require_release_access(
+            ctx, require_http_execution_identity, capability_authorizer, trusted_operator
+        )
         scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
         return await _owner_boundary(
             gateway.runtime_release_apply(
@@ -286,6 +294,7 @@ def main() -> None:
         capability_authorizer=_capability_authorizer_from_env(),
         protect_artifact_reads=(transport == "streamable-http"),
         require_http_execution_identity=(transport == "streamable-http"),
+        trusted_operator=_trusted_operator_from_env(),
     )
     if transport == "stdio":
         server.run()
