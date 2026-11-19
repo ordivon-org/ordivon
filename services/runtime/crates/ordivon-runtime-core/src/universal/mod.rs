@@ -84,8 +84,11 @@ pub(crate) use workspace::{
 };
 #[cfg(feature = "operator-tools")]
 pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revision_at};
+// Scoped read-set hashing uses portable Git/filesystem logic. The Windows
+// consumer must not silently lose the original source-continuity commitment.
+pub(crate) use workspace::workspace_source_readset_digest_at;
 #[cfg(unix)]
-pub(crate) use workspace::{workspace_source_readset_digest_at, workspace_source_state_digest_at};
+pub(crate) use workspace::workspace_source_state_digest_at;
 
 #[cfg(test)]
 mod tests;
