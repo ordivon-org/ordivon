@@ -191,6 +191,22 @@ its historical functions as aliases to the extracted modules; there is only
 one implementation. No new PostgreSQL Writer, Runtime schedule, effect issuer,
 tool registry or extra state authority was introduced.
 
+**Legacy Run re-entry is a bounded migration path, not blanket retroactive GC approval.**
+The supported `HarnessAgentRun.open` path can load an already existing original
+PostgreSQL Run and, for a workspace-bearing nonterminal Run, reserve/recover a
+native HELD Workspace Claim before returning a model-executable handle. The
+real-PG18 `tests/test_legacy_workspace_claim_reentry_pg.py` verifies original
+created/paused Run re-entry, lost-reserve-response recovery, denial without a
+native claim, existing Claim's workspace identity, and released-claim
+non-resurrection using a fake Native transport. This **does not** qualify
+original legacy active workspaces in the installed environment. In particular,
+a caller-supplied workspace reference is not itself historical proof of the
+original Run's physical Workspace: acquire independently authenticated original
+Workspace provenance and source/currentness evidence before per-Run adoption.
+A Run whose original Workspace has already been deleted cannot be rescued by
+a new Claim. Do not auto-migrate unknown Runs, promote tests of a fake Native
+client to physical Runtime proof, or turn on global Workspace GC.
+
 **Next structural cuts are consumer-driven, not directory-driven.**
 The remaining `ordivon/run_continuity.py` still couples working-set mutation,
 Provider dispatch, and Tool receipts; they must retain one PG writer and
