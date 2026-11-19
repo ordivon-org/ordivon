@@ -5013,7 +5013,7 @@ fn b_r3_native_cancel_corrupt_frozen_plan_stops_issued_os_unit() {
     eprintln!("R30_NATIVE_PG18_CORRUPT_PLAN_CANCEL_OS_DRAIN_PASS job={job_id} original_unit={unit_name} denied_false_success={}",cancel["isError"]);
 }
 
-fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
+fn r16_raw_mcp_response(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let client = reqwest::Client::new();
         let response = client
@@ -5046,8 +5046,17 @@ fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16,
         } else {
             serde_json::from_str(&body).unwrap()
         };
-        (status, message["result"].clone())
+        (status, message)
     })
+}
+
+fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
+    let (status, envelope) = r16_raw_mcp_response(url, bearer, name, args);
+    if status != 200 {
+        (status, envelope)
+    } else {
+        (status, envelope["result"].clone())
+    }
 }
 
 // A real native PG MCP scheduler/HTTP consumer, with only original Run source
@@ -5748,4 +5757,128 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
         thread::sleep(Duration::from_millis(100));
     }
     eprintln!("R17_GENUINE_ORIGINAL_HARNESS_DEDICATED_MCP_PG_NATIVE_REVOKE_PASS");
+}
+
+// Physical consumer regression for #782/#2490: native PostgreSQL and the real
+// two-bearer HTTP MCP transport, not just a unit test of a name filter.
+// It establishes route identity only; a finalizer still needs independent
+// original Run completion, output delivery and native drain before release.
+#[test]
+#[ignore = "requires isolated PostgreSQL and real native authenticated MCP endpoints"]
+fn native_pg_claim_release_raw_tool_requires_finalizer_route() {
+    let mut fixture = Fixture::new();
+    fixture.harness_dispatch_test = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let dedicated = endpoint.replacen("/mcp", "/harness/mcp", 1);
+    let workspace_id = format!("ws-claim-route-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let exact = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":workspace_id}),
+    );
+    let source_digest = exact["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .expect("original Native Workspace identity");
+
+    // Give the ordinary caller the EXACT owner key, not a wrong-principal key
+    // that would be rejected even by the old vulnerable implementation.
+    let ordinary_key = format!("normal-claim-{}", Uuid::now_v7().simple());
+    let ordinary = call(
+        &endpoint,
+        "workspace.claim.reserve",
+        json!({"workspaceId":workspace_id,"runRef":"harness-run:r53-normal",
+               "clientRequestId":ordinary_key,
+               "expectedSourceStateDigest":source_digest}),
+    );
+    assert_ne!(ordinary["isError"], true, "{ordinary}");
+    assert_eq!(ordinary["structuredContent"]["state"], "held");
+
+    let (normal_status, denied) = r16_raw_mcp_response(
+        &endpoint,
+        &"p".repeat(32),
+        "workspace.claim.release",
+        json!({"clientRequestId":ordinary_key}),
+    );
+    assert_eq!(normal_status, 200, "{denied}");
+    assert_eq!(denied["error"]["code"], -32602, "{denied}");
+    assert!(
+        denied["error"]["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("authenticated Run finalizer route")),
+        "raw forbidden call must explicitly deny release, not return ambiguous null: {denied}"
+    );
+    let still_held = call(
+        &endpoint,
+        "workspace.claim.get",
+        json!({"clientRequestId":ordinary_key}),
+    );
+    assert_eq!(
+        still_held["structuredContent"]["state"], "held",
+        "ordinary raw release must not mutate the genuine matching PG Claim"
+    );
+
+    let protected_key = format!("dedicated-claim-{}", Uuid::now_v7().simple());
+    let (reserve_status, protected) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.reserve",
+        json!({"workspaceId":workspace_id,"runRef":"harness-run:r53-protected",
+               "clientRequestId":protected_key,
+               "expectedSourceStateDigest":source_digest}),
+    );
+    assert_eq!(reserve_status, 200, "{protected}");
+    assert_eq!(
+        protected["structuredContent"]["state"], "held",
+        "{protected}"
+    );
+
+    // Changing tokens cannot adopt the legacy ordinary-principal Claim.
+    let (_, foreign_key) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.get",
+        json!({"clientRequestId":ordinary_key}),
+    );
+    assert_eq!(foreign_key["isError"], true, "{foreign_key}");
+    let (wrong_token_status, _) = r16_dedicated_call(
+        &dedicated,
+        &"p".repeat(32),
+        "workspace.claim.release",
+        json!({"clientRequestId":protected_key}),
+    );
+    assert_eq!(wrong_token_status, 401);
+
+    // This is a protocol/role positive, NOT a simulated Domain Byte ACK.
+    // A finalizer must independently qualify completion before this call.
+    let (release_status, released) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.release",
+        json!({"clientRequestId":protected_key}),
+    );
+    assert_eq!(release_status, 200, "{released}");
+    assert_eq!(
+        released["structuredContent"]["state"], "released",
+        "{released}"
+    );
+
+    let guarded_close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":workspace_id,"consumerReleased":true,
+               "force":false,"expectedSourceStateDigest":source_digest}),
+    );
+    assert_eq!(guarded_close["isError"], true, "{guarded_close}");
+    assert_eq!(
+        guarded_close["structuredContent"]["error"]["code"], "CONCURRENCY_LIMIT",
+        "the independently held ordinary-principal Claim must still protect the Workspace"
+    );
+    eprintln!("R53_NATIVE_PG_FINALIZER_ROUTE_RAW_RELEASE_DENIED_WITH_REAL_OWNER_KEY");
 }
