@@ -29,6 +29,7 @@ struct Fixture {
     /// is intentionally no foreign Harness Schema or issuer SQL function.
     claim_only_profile: bool,
     harness_schema_override: Option<String>,
+    ordinary_contained_only: bool,
 }
 impl Fixture {
     fn new() -> Self {
@@ -160,6 +161,7 @@ impl Fixture {
             harness_dispatch_test: false,
             claim_only_profile: false,
             harness_schema_override: None,
+            ordinary_contained_only: false,
         }
     }
     fn endpoint(&mut self) -> String {
@@ -232,6 +234,11 @@ impl Fixture {
             .env("ORDIVON_PG_PRINCIPAL", principal)
             .stdout(Stdio::null())
             .stderr(output);
+        if self.ordinary_contained_only {
+            endpoint.env("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE", "contained_local");
+        } else {
+            endpoint.env_remove("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE");
+        }
         if self.harness_dispatch_test || self.claim_only_profile {
             let token_file = self.root.join("r16-dedicated-harness-token");
             fs::write(&token_file, "h".repeat(48)).unwrap();
@@ -6339,4 +6346,226 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     );
     assert_ne!(state["isError"], true, "{state}");
     assert_eq!(state["structuredContent"]["dirty"], false, "{state}");
+}
+
+/**
+ * Original PG/Native consumer contract for a real operator cutover:
+ * (a) legacy already-committed trusted effect remains reconnectable by
+ * exact principal+clientRequestId after new admission is restricted;
+ * (b) a new same-bearer trusted_local Job is DENIED before any PG Job birth;
+ * (c) a new contained_local Job still launches under the same PG authority.
+ * The fixture uses disposable PG18, real HTTP MCP and a native systemd Runner.
+ */
+#[test]
+#[ignore = "requires disposable PostgreSQL18 and real systemd transient units"]
+fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let initial_endpoint = fixture.endpoint();
+    let opened = call(
+        &initial_endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-r60-profile","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    let old_request = json!({
+        "clientRequestId":"r60-original-trusted-before-cutover",
+        "execution":{
+            "workspaceId":"ws-r60-profile",
+            "executable":"/usr/bin/printf",
+            "args":["R60_ORIGINAL_TRUSTED_ONCE"],
+            "cwdRelative":".",
+            "executionProfile":"trusted_local",
+            "timeoutMs":15000
+        },
+        "waitMs":10000,
+        "stdoutTailBytes":1024
+    });
+    let mut original = call(&initial_endpoint, "workspace.exec", old_request.clone());
+    assert_ne!(original["isError"], true, "{original}");
+    let original_id = original["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if original["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        original = call(
+            &initial_endpoint,
+            "job.observe",
+            json!({
+                "jobId":original_id,"waitMs":2000,"stdoutTailBytes":1024
+            }),
+        );
+    }
+    assert_eq!(
+        original["structuredContent"]["executionDisposition"], "succeeded",
+        "{original}"
+    );
+    assert_eq!(
+        original["structuredContent"]["stdoutTail"],
+        "R60_ORIGINAL_TRUSTED_ONCE"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    let mut old_endpoint = fixture.endpoint.take().unwrap();
+    old_endpoint.kill().unwrap();
+    old_endpoint.wait().unwrap();
+    fixture.ordinary_contained_only = true;
+    let restricted_endpoint = fixture.endpoint();
+
+    let described = call(
+        &restricted_endpoint,
+        "runtime.describe",
+        json!({"schemaVersion":1}),
+    );
+    assert_ne!(described["isError"], true, "{described}");
+    let profiles = described["structuredContent"]["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["target"] == "local_linux")
+        .unwrap()["executionProfiles"]
+        .clone();
+    assert_eq!(
+        profiles,
+        json!(["contained_local"]),
+        "Agent-visible discovery must not advertise the unqualified privileged profile"
+    );
+
+    let recovered = call(&restricted_endpoint, "workspace.exec", old_request);
+    assert_ne!(
+        recovered["isError"], true,
+        "already committed old Job must remain retrievable across restricted cutover: {recovered}"
+    );
+    assert_eq!(recovered["structuredContent"]["jobId"], original_id);
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1,
+        "idempotent replay must never create another external effect"
+    );
+
+    let forbidden = call(
+        &restricted_endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"r60-new-trusted-must-not-be-admitted",
+            "execution":{"workspaceId":"ws-r60-profile","executable":"/usr/bin/printf",
+                "args":["R60_PRIVILEGED_SPAWN_SHOULD_NOT_HAPPEN"],"cwdRelative":".",
+                "executionProfile":"trusted_local","timeoutMs":10000},
+            "waitMs":0
+        }),
+    );
+    assert_eq!(forbidden["isError"], true, "{forbidden}");
+    assert_eq!(
+        forbidden["structuredContent"]["error"]["code"], "AUTHORIZATION_DENIED",
+        "ordinary bearer cannot self-upgrade execution profile"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    let plan_forbidden = call(
+        &restricted_endpoint,
+        "workspace.execPlan",
+        json!({
+            "clientRequestId":"r60-trusted-plan-must-be-denied",
+            "execution":{"workspaceId":"ws-r60-profile","executionProfile":"trusted_local",
+                "steps":[{"id":"unsafe","executable":"/usr/bin/printf",
+                    "args":["R60_TRUSTED_PLAN_SHOULD_NOT_RUN"],"cwdRelative":".","timeoutMs":5000}]},
+            "waitMs":0
+        }),
+    );
+    assert_eq!(plan_forbidden["isError"], true, "{plan_forbidden}");
+    assert_eq!(
+        plan_forbidden["structuredContent"]["error"]["code"],
+        "AUTHORIZATION_DENIED"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    let mut contained = call(
+        &restricted_endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"r60-new-contained-positive-native",
+            "execution":{"workspaceId":"ws-r60-profile","executable":"/usr/bin/printf",
+                "args":["R60_CONTAINED_NATIVE_WORKS"],"cwdRelative":".",
+                "executionProfile":"contained_local","timeoutMs":20000},
+            "waitMs":10000,"stdoutTailBytes":1024
+        }),
+    );
+    assert_ne!(contained["isError"], true, "{contained}");
+    let contained_id = contained["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if contained["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        contained = call(
+            &restricted_endpoint,
+            "job.observe",
+            json!({
+            "jobId":contained_id,"waitMs":2000,"stdoutTailBytes":1024}),
+        );
+        assert_ne!(contained["isError"], true, "{contained}");
+    }
+    assert_eq!(
+        contained["structuredContent"]["executionDisposition"], "succeeded",
+        "{contained}"
+    );
+    assert_eq!(
+        contained["structuredContent"]["stdoutTail"],
+        "R60_CONTAINED_NATIVE_WORKS"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        2
+    );
+    let artifacts = contained["structuredContent"]["artifacts"]
+        .as_array()
+        .unwrap();
+    let stdout = artifacts.iter().find(|v| v["kind"] == "stdout").unwrap();
+    let bytes = call(
+        &restricted_endpoint,
+        "artifact.read",
+        json!({"jobId":contained_id,"artifactId":stdout["artifactId"],
+               "offset":0,"maxBytes":1024}),
+    );
+    assert_eq!(
+        bytes["structuredContent"]["content"],
+        "R60_CONTAINED_NATIVE_WORKS"
+    );
+    eprintln!("R60_AUTHENTICATED_PROFILE_CUTOVER_TRUSTED_DENIED_OLD_REPLAY_CONTAINED_NATIVE_GREEN");
 }

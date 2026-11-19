@@ -88,6 +88,40 @@ fn parse_pg_headroom_pair(
     }
 }
 
+/// Explicit operator cutover for ordinary Agent Job admission. This policy
+/// is bound to the authenticated MCP server, never submitted by the Agent.
+#[cfg(target_os = "linux")]
+fn ordinary_contained_only(raw: Option<&str>) -> Result<bool, &'static str> {
+    match raw {
+        None | Some("trusted_local") => Ok(false), // legacy administrator compatibility
+        Some("contained_local") => Ok(true),
+        Some(_) => {
+            Err("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE must be trusted_local or contained_local")
+        }
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod ordinary_ingress_profile_configuration_tests {
+    use super::ordinary_contained_only;
+
+    #[test]
+    fn only_an_explicit_operator_mode_can_restrict_ordinary_new_jobs() {
+        assert_eq!(ordinary_contained_only(None), Ok(false));
+        assert_eq!(ordinary_contained_only(Some("trusted_local")), Ok(false));
+        assert_eq!(ordinary_contained_only(Some("contained_local")), Ok(true));
+        for invalid in [
+            "",
+            "all",
+            "TrustedLocal",
+            "contained_local, trusted_local",
+            "auto",
+        ] {
+            assert!(ordinary_contained_only(Some(invalid)).is_err(), "{invalid}");
+        }
+    }
+}
+
 #[cfg(all(test, target_os = "linux"))]
 mod headroom_configuration_tests {
     use super::parse_pg_headroom_pair;
@@ -135,6 +169,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
     }
     let auth = pg_auth::PgAuth::from_env(&token)?;
+    // Existing deployments retain the exact trusted_local behavior until
+    // operators qualify the contained consumer and intentionally cut over.
+    let contained_ordinary_only = ordinary_contained_only(
+        pg_auth::optional_env("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE")?.as_deref(),
+    )?;
     let issuer_schema = pg_auth::optional_env("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
     let harness_bearer_file = pg_auth::optional_env("ORDIVON_PG_HARNESS_TOKEN_FILE")?;
     let harness_principal = pg_auth::optional_env("ORDIVON_PG_HARNESS_PRINCIPAL")?;
@@ -276,6 +315,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         release,
     );
+    let server = if contained_ordinary_only {
+        server.restrict_ordinary_jobs_to_contained()
+    } else {
+        server
+    };
     // The ordinary /mcp route ALWAYS starts without Harness Claim release
     // authority. Missing/incomplete dedicated issuer configuration must fail
     // closed, not silently restore the raw early-release attack.
