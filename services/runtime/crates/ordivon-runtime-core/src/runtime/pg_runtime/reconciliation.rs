@@ -90,6 +90,54 @@ fn needs_recovery_observation(state: AttemptState, terminal: bool) -> bool {
         )
 }
 
+// Only active stdout/stderr are live previews. A terminal output must be
+// projected from the *registered* Artifact path (old live-path registrations
+// remain readable if their bytes still match; new Runs use sealed copies).
+fn output_projection_relative_path(
+    kind: &str,
+    terminal: bool,
+    registered_relative: Option<&str>,
+) -> RuntimeResult<PathBuf> {
+    let candidate = if terminal {
+        registered_relative.ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "terminal output has no committed Artifact path",
+                Some("artifact"),
+                false,
+            )
+        })?
+    } else {
+        return Ok(PathBuf::from(format!("{kind}.log")));
+    };
+    universal::validate_relative_path(candidate, "artifactPath").map_err(|_| {
+        RuntimeError::new(
+            RuntimeErrorCode::ArtifactIdentityConflict,
+            "terminal output Artifact path is not a valid relative path",
+            Some("artifact"),
+            false,
+        )
+    })
+}
+
+#[cfg(test)]
+mod terminal_output_path_selection_tests {
+    use super::output_projection_relative_path;
+
+    #[test]
+    fn terminal_uses_registered_seal_and_active_uses_mutable_preview() {
+        let active = output_projection_relative_path("stdout", false, None).unwrap();
+        assert_eq!(active.to_str(), Some("stdout.log"));
+        let sealed =
+            output_projection_relative_path("stdout", true, Some("sealed-stdout.log")).unwrap();
+        assert_eq!(sealed.to_str(), Some("sealed-stdout.log"));
+        let legacy = output_projection_relative_path("stderr", true, Some("stderr.log")).unwrap();
+        assert_eq!(legacy.to_str(), Some("stderr.log"));
+        assert!(output_projection_relative_path("stdout", true, None).is_err());
+        assert!(output_projection_relative_path("stdout", true, Some("../escape")).is_err());
+    }
+}
+
 fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
     match fs::symlink_metadata(path.join("result.json")) {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(true),
@@ -1174,14 +1222,25 @@ impl PgRuntime {
             if terminal && !rows.iter().any(|row| row.get::<_, String>(1) == kind) {
                 continue;
             }
-            let path = Path::new(&a.bundle_path).join(format!("{kind}.log"));
+            let registered = if terminal {
+                rows.iter().find(|row| row.get::<_, String>(1) == kind)
+            } else {
+                None
+            };
+            let relative: Option<String> = registered.map(|row| row.get(5));
+            let relative_path =
+                output_projection_relative_path(kind, terminal, relative.as_deref())?;
+            let path = Path::new(&a.bundle_path).join(&relative_path);
             if path.exists() {
                 let (window, begin, end, available) = if terminal {
                     // The terminal log is immutable evidence. Verify the entire
                     // exact file against PostgreSQL before returning any bytes.
                     let bytes = {
                         use std::io::Read;
-                        let file = fs::File::open(&path).map_err(io)?;
+                        let dir = universal::open_directory_nofollow(Path::new(&a.bundle_path))
+                            .map_err(io)?;
+                        let file = universal::open_regular_file_beneath(&dir, &relative_path, true)
+                            .map_err(io)?;
                         let mut bytes = vec![];
                         file.take(self.config.executor.max_output_bytes + 1)
                             .read_to_end(&mut bytes)
@@ -1196,12 +1255,9 @@ impl PgRuntime {
                         .unwrap_or(available.saturating_sub(limit))
                         .min(available);
                     let end = begin.saturating_add(limit).min(available);
-                    let expected = rows
-                        .iter()
-                        .find(|row| row.get::<_, String>(1) == kind)
+                    let expected = registered
                         .ok_or_else(|| error("terminal output Artifact registration missing"))?;
-                    if expected.get::<_, String>(5) != format!("{kind}.log")
-                        || expected.get::<_, i64>(3) != bytes.len() as i64
+                    if expected.get::<_, i64>(3) != bytes.len() as i64
                         || expected.get::<_, String>(2) != universal::sha256_bytes(&bytes)
                     {
                         return Err(RuntimeError::new(

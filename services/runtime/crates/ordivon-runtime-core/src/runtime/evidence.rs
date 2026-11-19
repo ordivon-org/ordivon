@@ -7,7 +7,8 @@ use super::{
     RuntimeErrorCode, RuntimeResult, TerminalCommit,
 };
 use crate::universal::{
-    sha256_bytes, sha256_file, CapturedOutput, RunnerRequest, RunnerResourceReceipt, RunnerResult,
+    open_directory_nofollow, open_regular_file_beneath, sha256_bytes, sha256_file,
+    write_bytes_atomic, CapturedOutput, RunnerRequest, RunnerResourceReceipt, RunnerResult,
     RunnerTerminalStatus, RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
     RESOURCE_RECEIPT_SCHEMA_VERSION, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
@@ -391,10 +392,42 @@ fn validate_captured_output(
             false,
         ));
     }
-    let path = Path::new(&attempt.bundle_path).join(expected_file);
-    let metadata = fs::metadata(&path).map_err(|error| io_error("inspect output", error))?;
-    let digest = sha256_file(&path).map_err(map_universal_error)?;
-    if digest != output.digest || metadata.len() != output.retained_bytes {
+    let bundle = Path::new(&attempt.bundle_path);
+    let path = bundle.join(expected_file);
+
+    // The Runner owns a live preview log. Its original path is not an
+    // immutable Artifact even when a terminal result correctly describes
+    // its bytes. Read a bounded, single original handle and verify the
+    // complete Runner commitment before publishing a distinct sealed file.
+    #[cfg(unix)]
+    let original = {
+        let root = open_directory_nofollow(bundle)
+            .map_err(|error| io_error("open Attempt bundle", error))?;
+        open_regular_file_beneath(&root, Path::new(expected_file), true)
+            .map_err(|error| io_error("open Runner output", error))?
+    };
+    #[cfg(not(unix))]
+    let original = {
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|error| io_error("inspect Runner output", error))?;
+        if !metadata.file_type().is_file() {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Runner output is not a regular non-symlink file",
+                Some("artifact"),
+                false,
+            ));
+        }
+        fs::File::open(&path).map_err(|error| io_error("open Runner output", error))?
+    };
+    use std::io::Read;
+    let mut bytes = Vec::new();
+    original
+        .take(output.retained_bytes.saturating_add(1))
+        .read_to_end(&mut bytes)
+        .map_err(|error| io_error("read Runner output", error))?;
+    let digest = sha256_bytes(&bytes);
+    if digest != output.digest || bytes.len() as u64 != output.retained_bytes {
         return Err(RuntimeError::new(
             RuntimeErrorCode::ArtifactIdentityConflict,
             "Runner output digest or byte length changed",
@@ -402,13 +435,64 @@ fn validate_captured_output(
             false,
         ));
     }
+
+    // Reuse the native durable temp+sync+atomic-rename writer, not a second
+    // Artifact database or a hard link to an inode the original producer can
+    // still mutate. Exact retry must never replace different sealed bytes.
+    let sealed_name = if stdout {
+        "sealed-stdout.log"
+    } else {
+        "sealed-stderr.log"
+    };
+    let sealed_path = bundle.join(sealed_name);
+    match fs::symlink_metadata(&sealed_path) {
+        Ok(metadata) if metadata.file_type().is_file() => {
+            if fs::read(&sealed_path).map_err(|error| io_error("read sealed output", error))?
+                != bytes
+            {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ArtifactIdentityConflict,
+                    "Existing sealed Artifact bytes differ from Runner commitment",
+                    Some("artifact"),
+                    false,
+                ));
+            }
+        }
+        Ok(_) => {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Sealed Artifact path is not a regular file",
+                Some("artifact"),
+                false,
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            write_bytes_atomic(&sealed_path, &bytes).map_err(map_universal_error)?;
+        }
+        Err(error) => return Err(io_error("inspect sealed output", error)),
+    }
+    // A concurrent publisher can only certify exactly the same bytes.
+    // Never register a temporary, partial or different file as immutable.
+    if sha256_file(&sealed_path).map_err(map_universal_error)? != digest
+        || fs::metadata(&sealed_path)
+            .map_err(|error| io_error("inspect sealed output", error))?
+            .len()
+            != bytes.len() as u64
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ArtifactIdentityConflict,
+            "Sealed Artifact bytes differ from Runner commitment",
+            Some("artifact"),
+            false,
+        ));
+    }
     Ok(ArtifactRegistration {
         artifact_id: expected_id,
         kind: expected_kind.to_string(),
-        relative_path: expected_file.to_string(),
+        relative_path: sealed_name.to_string(),
         digest,
         media_type: "text/plain; charset=utf-8".to_string(),
-        byte_length: metadata.len(),
+        byte_length: bytes.len() as u64,
         truncated: output.truncated,
     })
 }
@@ -621,7 +705,121 @@ mod windows_native_result_to_pg_terminal_contract_tests {
         assert_eq!(terminal.artifacts.len(), 3);
         assert_eq!(terminal.artifacts[0].kind, "stdout");
         assert_eq!(terminal.artifacts[0].digest, sha256_bytes(stdout));
+        assert_eq!(terminal.artifacts[0].relative_path, "sealed-stdout.log");
+        assert_eq!(terminal.artifacts[1].relative_path, "sealed-stderr.log");
+        assert_eq!(
+            fs::read(directory.path().join("sealed-stdout.log")).unwrap(),
+            stdout
+        );
+        assert_eq!(
+            fs::read(directory.path().join("sealed-stderr.log")).unwrap(),
+            b""
+        );
         assert_eq!(terminal.artifacts[2].kind, "execution_result");
+    }
+
+    #[test]
+    fn terminal_artifact_keeps_committed_bytes_after_original_log_appends() {
+        // The native Runner may have produced a correct terminal receipt, but
+        // the original log pathname is still writeable by a delayed producer.
+        // Consumers need stable registered Artifact bytes, not a mutable tail.
+        let directory = tempfile::tempdir().unwrap();
+        let attempt = admitted_windows_attempt(directory.path());
+        let stdout = b"original committed output\n";
+        fs::write(directory.path().join("stdout.log"), stdout).unwrap();
+        fs::write(directory.path().join("stderr.log"), b"").unwrap();
+        fs::write(
+            directory.path().join("result.json"),
+            serde_json::to_vec(&native_launcher_result(&attempt, stdout)).unwrap(),
+        )
+        .unwrap();
+        let terminal = prepare_runner_terminal_from_bundle(&attempt).unwrap();
+        let registered_stdout = &terminal.artifacts[0];
+        assert_ne!(registered_stdout.relative_path, "stdout.log");
+        assert_eq!(registered_stdout.digest, sha256_bytes(stdout));
+        fs::write(
+            directory.path().join("stdout.log"),
+            b"original committed output\nlate append not part of registered output\n",
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read(directory.path().join(&registered_stdout.relative_path)).unwrap(),
+            stdout
+        );
+        assert_eq!(
+            sha256_bytes(
+                &fs::read(directory.path().join(&registered_stdout.relative_path)).unwrap()
+            ),
+            registered_stdout.digest
+        );
+        assert!(prepare_runner_terminal_from_bundle(&attempt).is_err());
+    }
+
+    #[test]
+    fn terminal_artifact_refuses_to_reseal_a_different_preexisting_snapshot() {
+        let directory = tempfile::tempdir().unwrap();
+        let attempt = admitted_windows_attempt(directory.path());
+        let stdout = b"committed bytes\n";
+        fs::write(directory.path().join("stdout.log"), stdout).unwrap();
+        fs::write(directory.path().join("stderr.log"), b"").unwrap();
+        fs::write(
+            directory.path().join("result.json"),
+            serde_json::to_vec(&native_launcher_result(&attempt, stdout)).unwrap(),
+        )
+        .unwrap();
+        let first = prepare_runner_terminal_from_bundle(&attempt).unwrap();
+        assert_eq!(first.artifacts[0].relative_path, "sealed-stdout.log");
+        let replay = prepare_runner_terminal_from_bundle(&attempt).unwrap();
+        assert_eq!(first.artifacts[0].digest, replay.artifacts[0].digest);
+        assert_eq!(
+            first.artifacts[0].relative_path,
+            replay.artifacts[0].relative_path
+        );
+
+        fs::write(
+            directory.path().join("sealed-stdout.log"),
+            b"corrupted after publish",
+        )
+        .unwrap();
+        let error = prepare_runner_terminal_from_bundle(&attempt).unwrap_err();
+        assert_eq!(
+            error.code,
+            crate::runtime::RuntimeErrorCode::ArtifactIdentityConflict
+        );
+        assert_eq!(
+            fs::read(directory.path().join("sealed-stdout.log")).unwrap(),
+            b"corrupted after publish",
+            "no implicit digest rewrite, reseal or repair of a committed Artifact"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn terminal_artifact_does_not_adopt_symlinked_seal_path() {
+        let directory = tempfile::tempdir().unwrap();
+        let attempt = admitted_windows_attempt(directory.path());
+        let stdout = b"immutable output\n";
+        fs::write(directory.path().join("stdout.log"), stdout).unwrap();
+        fs::write(directory.path().join("stderr.log"), b"").unwrap();
+        fs::write(
+            directory.path().join("result.json"),
+            serde_json::to_vec(&native_launcher_result(&attempt, stdout)).unwrap(),
+        )
+        .unwrap();
+        std::os::unix::fs::symlink(
+            directory.path().join("stdout.log"),
+            directory.path().join("sealed-stdout.log"),
+        )
+        .unwrap();
+        let error = prepare_runner_terminal_from_bundle(&attempt).unwrap_err();
+        assert_eq!(
+            error.code,
+            crate::runtime::RuntimeErrorCode::ArtifactIdentityConflict
+        );
+        assert_eq!(
+            fs::read(directory.path().join("stdout.log")).unwrap(),
+            stdout,
+        );
     }
 
     #[test]
