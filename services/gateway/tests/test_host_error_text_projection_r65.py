@@ -4,6 +4,7 @@ The connected MCP client may collapse structuredContent into a plain failure.
 Only a narrow verified Host navigation error may expose public nonsecret fields;
 unknown Owner errors must remain opaque. This is not an authorization change.
 """
+
 from __future__ import annotations
 
 import asyncio
