@@ -8,13 +8,15 @@ from .attention_projections import AttentionReadProjections
 from .attention_projections import TargetKind as TargetKind
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
-from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .errors import ActorRefNotFound, ConflictError
 from .postgres_connections import HostPostgresConnections
 from .references.actor_refs import ActorReferenceLookup
-from .social_errors import SpaceNotFound, TopicNotFound
+from .references.record_refs import RecordReferenceLookup
 
 
-class AttentionStore(AttentionReadProjections, ActorReferenceLookup, HostPostgresConnections):
+class AttentionStore(
+    AttentionReadProjections, ActorReferenceLookup, RecordReferenceLookup, HostPostgresConnections
+):
     """Actor-scoped navigation compiled directly from owner rows, not a second event bus."""
 
     def follow(
@@ -150,19 +152,3 @@ class AttentionStore(AttentionReadProjections, ActorReferenceLookup, HostPostgre
             is None
         ):
             raise ActorRefNotFound(actor_ref)
-
-    @staticmethod
-    def _require_target(
-        conn: psycopg.Connection[dict[str, Any]], target_kind: TargetKind, target_ref: str
-    ) -> None:
-        table = {"work": "works", "space": "spaces", "topic": "topics"}[target_kind]
-        column = {"work": "work_ref", "space": "space_ref", "topic": "topic_ref"}[target_kind]
-        if (
-            conn.execute(f"SELECT 1 FROM {table} WHERE {column}=%s", (target_ref,)).fetchone()
-            is None
-        ):
-            if target_kind == "work":
-                raise WorkNotFound(target_ref)
-            if target_kind == "space":
-                raise SpaceNotFound(target_ref)
-            raise TopicNotFound(target_ref)
