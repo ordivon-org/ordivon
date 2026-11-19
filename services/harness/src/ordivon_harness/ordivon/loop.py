@@ -554,6 +554,7 @@ class OrdivonAgentLoop:
                     "requestedModelId": self.adapter.model_id,
                     "effectiveModelIds": list(dict.fromkeys(effective_models)),
                     "providerUsage": provider_usage,
+                    "tokenCounterCoverage": _provider_token_counter_coverage(provider_usage),
                 },
             )
 
@@ -2283,3 +2284,33 @@ def _usage_total_tokens(usage: dict[str, JsonValue]) -> int | None:
         if inputs and outputs:
             candidates.append(max(inputs) + max(outputs))
     return max(candidates) if candidates else None
+
+
+def _provider_token_counter_coverage(
+    provider_usage: list[dict[str, JsonValue]],
+) -> dict[str, JsonValue]:
+    """Expose which *completed* Provider Results have countable token counters.
+
+    This is a deterministic read-only projection of the already retained
+    Provider result usage. The Loop's 'totalTokens' remains the existing
+    conservative debit, NOT a verified cost invoice; a numeric zero when no
+    counters were reported does not mean zero tokens were consumed. Failed or
+    ambiguous Provider attempts can incur external cost without a result.
+    """
+
+    completed = len(provider_usage)
+    countable = sum(_usage_total_tokens(usage) is not None for usage in provider_usage)
+    if completed == 0:
+        standing = "no_completed_calls"
+    elif countable == completed:
+        standing = "all_countable"
+    elif countable == 0:
+        standing = "none_countable"
+    else:
+        standing = "partially_countable"
+    return {
+        "status": standing,
+        "completedCalls": completed,
+        "countableCalls": countable,
+        "uncountableCalls": completed - countable,
+    }
