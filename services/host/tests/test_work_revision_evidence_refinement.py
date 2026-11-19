@@ -16,6 +16,7 @@ from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.errors import ConflictError, WorkRevisionUnavailable
 from ordivon_host_v2.mcp_domain_errors import _domain_error_payload
 from ordivon_host_v2.mcp_server import build_server
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput, WorkCreateInput, WorkSnapshotInput
 from ordivon_host_v2.work_queries import read_work_in_tx
 from ordivon_host_v2.work_store import WorkStore
@@ -138,7 +139,7 @@ def test_pg18_work_revision_absence_three_distinct_facts() -> None:
     actor = f"actor:agent:revision-evidence:{token}"
     work_ref = f"work:revision-evidence:{token}"
     store = WorkStore(TEST_DSN)
-    store.declare_actor(
+    ActorReferenceStore(store.dsn).declare_actor(
         ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor-evidence:{token}",
     )

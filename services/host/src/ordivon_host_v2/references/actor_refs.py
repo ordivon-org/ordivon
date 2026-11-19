@@ -14,7 +14,7 @@ import psycopg
 from ..canonical_json import canonical_digest
 from ..command_receipts import claim_command_receipt, record_command_receipt
 from ..errors import ActorRefNotFound, ConflictError
-from ..work_inputs import ActorRefInput
+from .actor_inputs import ActorRefInput
 
 
 class ActorReferenceLookup:
