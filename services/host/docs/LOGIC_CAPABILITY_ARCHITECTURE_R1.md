@@ -84,3 +84,7 @@ R59 增量：在 R58 的既有 references/ 包内增加 record_refs.py，只承�
 ## 5. 逻辑模块不是审批流程
 
 `ActorRef` 表示社会协作中谁被引用，不是 Cloudflare Principal，更不是 OS/PG 授权。Work.completed 是语义状态，不证明 Runtime Job 已结束。Participation、MessageRelation、Attention ACK 不是投票、权限、任务分配或领域验收；跨 Owner 写入仍需真实执行边界。整套逻辑不需要新 Policy DB、Agent Owner 审批、二套事件总线或万能任务中心。
+
+## 6. 将 UNKNOWN 解压为可区分的观察命题
+
+参见 [UNKNOWN_EVIDENCE_REFINEMENT_R1.md](UNKNOWN_EVIDENCE_REFINEMENT_R1.md)。从本次 PostgreSQL 读取是否成功、Work/修订是否存在、历史保存/当前指针是否可用、Runtime 外部效果是否被自然 Owner 验证四个独立方向，联合正向见证与逆向反例。不能把历史 Snapshot 不存在擅自解释为「已裁剪」，也不能把 Gateway 超时当成 Host 未提交。新版 Work 修订缺失保留原 CONFLICT 代码，只增加已知的修订坐标、原因及分流恢复动作。
