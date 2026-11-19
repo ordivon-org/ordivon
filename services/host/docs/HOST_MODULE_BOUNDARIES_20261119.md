@@ -89,3 +89,41 @@ services/host/
 必须先验证 Ruff、当前测试、独立 PG18 全量测试、MCP tools/list 的名称与 Schema，以及源工作区的 diff/提交身份。**测试通过不等于已安装或跨 Gateway/Principal 消费者验收**。
 
 除非有真实受影响的消费者，否则停止进一步目录搬移；优先修真实错误，再拆真实隐藏的变更理由。操作不允许清理他人 Workspace、历史 Work/Message PG 行或在线凭据。
+
+## 7. R2 模块拆解：Topic 消费位置规则（2026-11-19）
+
+**反向发现**：原 `SocialTopicCommands.ack_topic_cursor`、`SocialTopicReadQueries.get_topic_cursor`、`AttentionReadProjections.reentry` 分别读写 `topic_consumption_cursors`。即使没有循环 import，也存在三个不同修改位置会影响同一个游标不变量的风险。只把三个文件放到不同包中无法解决这个问题。
+
+**最小源码变化**：新增 `topic_cursor_records.py`，集中提供事务内四个函数：`topic_high_sequence_in_tx`、`get_topic_cursor_in_tx`、`ack_topic_cursor_in_tx`、`list_topic_cursors_in_tx`。各调用方保留自己的事务、查验 Actor/Topic、命令回执及公开工具签名；Attention 保留一个 REPEATABLE READ MVCC cut，不新建第二个 PG 连接。Topic 消息消费游标与 Attention 全局变化游标仍然是两个不同坐标域。
+
+- **正向**：读到 Actor/Topic 的已提交 cursor 和同事务 TopicHigh；ACK 单调推进；Attention 从当前已观察变化页得到精确 TopicRef 及 cursor。
+- **逆向**：`cursor=True`、浮点、负数、越界、后退均拒绝；另一个 Topic 的超前游标不能被接收；Attention 不能用新快照覆盖旧事件页的消费位置。调用者尚未消费页时 ACK 是操作层面的误用，不通过多建数据库来假装可以阻止。
+- **声明的责任**：`TopicCursor` 能力只负责原生 PG 的消费位置单调性；它不能证明 Agent 已理解消息、业务完成或身份已授权。
+- **不变量**：一个 `(actorRef, topicRef)` 的 cursor 不会由合法 ACK 后退，不会超过对应 Topic 消息地平线；读取的事件页和游标在 Attention 中属于同一个 MVCC snapshot；`topic.cursor.get` 与 `topic.cursor.ack` 的外部 Wire 不变。
+- **消费证据**：`tests/test_topic_cursor_boundary_r2.py` 覆盖源边界和前向/反向拒绝；`test_dual_cursor_horizon_postgres.py` 与 `test_attention_single_snapshot_postgres.py` 覆盖 PG 真并发和错域游标；最终还必须由完整 PG18 集成和原生 MCP 源测试验收。
+- **不做**：不新建全局消费管理器、额外 Receipt registry、缓存、二级 EventStore 或新的 MCP tool，也不修改生产共享游标。
+
+## 8. R2 模块拆解：Attention 的语义表征与 PG 查询分离
+
+**问题性质**：同一 `AttentionReadProjections.reentry` 同时承载多源 PG 增量查询、Topic 消费位置读取、消息归组、原因集合归并、字节约束和继续游标计算。按信息隐藏原则，这里真正相互独立的变化轴不是“Work/Social/Attention”字面目录，而是 **PG 事实读取策略** 与 **Agent 恢复导航表征策略**。
+
+**实际拆解**：
+- `attention_projections.py`：仍在同一 READ ONLY / REPEATABLE READ 事务中完成 `_delta_in_tx` 与 Topic cursor 查询；只负责从真实 owner rows 获得精确输入。
+- `attention_reentry.py`：无数据库依赖的纯函数 `reentry_topic_refs`、`project_reentry`；仅从有序的 delta 事件页与已取得的 Topic cursor 折叠、分组、裁剪一个可恢复导航投影。
+- 原 `AttentionStore.reentry` / `attention.reentry` 工具名、Wire、cursor 语义、分组顺序、字节上限均不变。
+
+**正向逻辑模块**：
+`Input = (actorRef, afterSequence, bounded ordered delta events, cursors, maxBytes)`；
+`Output = (grouped navigation items, rawEventCount, snapshotHighSequence, nextAfterSequence, hasMore)`；
+同一个 `(navigationKind,navigationRef)` 折叠为一组，事件原因去重且排序，最新变更取最大，Topic 附上已消费 Topic cursor，不产生优先级或任务分配分数。
+
+**逆向反例**：
+- 若为了容纳字节预算随意丢掉中间事件，即使输出看似短也会破坏 `nextAfterSequence` 可恢复性；本实现只能选原事件页的完整**前缀**。
+- 若重新查询 SQL 来生成更短页，便可能将不同时间点的事件与 cursor 拼在一起；本实现不发第二个 SQL。
+- 若最后一个原事件之后仍有 `delta.hasMore`，即使投影经过归组变得很短，`hasMore` 仍不能说 false。
+- 若把 Actor Social 订阅当成 Agent 任务优先级，会把导航事实升级为决定权；输出始终声明 `rankingApplied=false`。
+- 若不能容纳一个导航项，不允许悄悄返回空页并推进消费坐标，必须显式拒绝。
+
+**能力与验证**：复用 RFC8785 canonical JSON 字节长度、有限事件折叠与原生 PG 事务。新增 `test_attention_reentry_pure_r2.py` 验证归组顺序、游标和原因保真、最长有界前缀、拒绝容量不足；原 `test_attention_single_snapshot_postgres.py` 保持真实并发证明。同样不新建 EventStore、评分引擎或消息队列。
+
+**后续变更门槛**：仅当有真实 Agent 导航漏事件、误 ACK 或可量化载荷开销时，才考虑进一步优化投影或分页；不因 Python 文件行数而添加更多中间层。
