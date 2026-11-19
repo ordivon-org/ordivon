@@ -240,7 +240,7 @@ def test_verified_ingress_to_authorization_real_request_state_contract(tmp_path)
     nodes = {item["id"]: item for item in plan["nodes"]}
     assert "G07" in nodes["G06"]["dependencies"]
     assert any(
-        item["path"] == "src/ordivon_gateway/capability_authz.py"
+        item["path"] == "src/ordivon_gateway/security/capability_authz.py"
         and "SOURCE_REQUEST_STATE_CONSUMER" in item["standing"]
         for item in nodes["G07"]["consumerBindings"]
     )
