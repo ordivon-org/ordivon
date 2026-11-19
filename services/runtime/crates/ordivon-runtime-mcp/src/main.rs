@@ -11,7 +11,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{header, HeaderMap, HeaderValue, Request, StatusCode};
+use axum::http::{header, HeaderValue, Request, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::Router;
