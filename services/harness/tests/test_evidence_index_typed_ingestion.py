@@ -301,7 +301,16 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         ).stdout.strip()
         filename = "harness-campaign3-rich-effect-owner-v1-capture.json"
         errors = validator(filename, current_head, historical=True)
-        self.assertTrue(any("ancestor" in error for error in errors))
+        # A merged monorepo can have multiple legitimate Add histories. Both
+        # nonancestor order and ambiguous creation MUST reject this HEAD;
+        # accepting either reason never weakens the lineage validator.
+        self.assertTrue(
+            any(
+                "ancestor" in error or "exactly one creation commit" in error
+                for error in errors
+            ),
+            errors,
+        )
         from unittest.mock import patch
 
         # Only this one exact monorepo importer allows HISTORICAL retention.
