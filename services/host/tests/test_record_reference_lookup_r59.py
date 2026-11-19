@@ -9,6 +9,7 @@ import pytest
 from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.errors import WorkNotFound
 from ordivon_host_v2.references.actor_refs import ActorReferenceLookup, ActorReferenceRegistry
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.references.record_refs import RecordReferenceLookup
 from ordivon_host_v2.social_errors import SpaceNotFound, TopicNotFound
 from ordivon_host_v2.social_store import SocialStore
@@ -98,4 +99,5 @@ def test_shared_record_lookup_preserves_r58_actorref_and_public_facades() -> Non
     assert WorkStore._require_actor is ActorReferenceLookup._require_actor
     assert SocialStore._require_actor is ActorReferenceLookup._require_actor
     assert AttentionStore._require_actor is ActorReferenceLookup._require_actor
-    assert WorkStore.declare_actor is ActorReferenceRegistry.declare_actor
+    assert ActorReferenceStore.declare_actor is ActorReferenceRegistry.declare_actor
+    assert not hasattr(WorkStore, "declare_actor")
