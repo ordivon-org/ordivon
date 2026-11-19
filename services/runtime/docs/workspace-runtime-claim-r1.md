@@ -1,8 +1,9 @@
 # Runtime-owned Workspace consumer claim — R1
 
 **Status:** historical R1 physical-Claim design; a Native-first Harness Run-birth
-consumer is separately installed, and the dedicated release-route guard is
-merged SOURCE (#2490), **not** currently Installed in Linux Runtime.
+consumer is separately installed. Ordinary release default-DENY (#2493)
+and claim-only authenticated ingress (#2502) are both merged SOURCE,
+**not** installed in Linux Runtime at the observed service PID 1854.
 **Not:** a certified independent Domain Finalizer or permission to remove an
 original PAUSED/ACTIVE Run's Workspace.
 
@@ -40,12 +41,16 @@ different databases. Do not infer that a successful Job releases a logical Run.
 - `workspace.claim.release`: make that original authenticated owner's
   `held→released` transition under the same Runtime lock. This is an explicit
   consumer assertion, **not** proof of Run completion, recipient delivery or
-  OS effect drain. When a **complete dedicated** `/harness/mcp` bearer,
-  principal and issuer schema are configured, #2490 hides and rejects this
-  effect on ordinary `/mcp` at the **raw handler**, not only `tools/list`.
-  Without the complete installed profile, the legacy ordinary release path
-  remains available for original-principal claim recovery.
-  The current installed Runtime has **not** enabled that dedicated profile.
+  OS effect drain. In the merged SOURCE (#2493), ordinary `/mcp` **always**
+  denies this operation at the raw `tools/call` handler and omits it from
+  `tools/list`, **even without** a configured dedicated Harness profile.
+  A separately authenticated `/harness/mcp` token file and principal can
+  enable **Claim-only** release (#2502), which does **not** require a
+  Harness Job issuer schema or a copied Harness PostgreSQL database.
+  Configuring the optional issuer schema activates the distinct existing
+  same-PG Job Issuer contract. These are separate capabilities.
+  The installed Runtime observed at PID 1854 still uses the old ordinary
+  release behavior; the source fix alone cannot protect it.
 
 The schema includes the canonical native `store_root` because Workspace IDs
 are store-local. Absolute path-based scope is adequate only within the
@@ -57,8 +62,10 @@ identical paths require an independently proven Runtime authority identity.
 Harness R27 has an installed native-first Run-birth consumer: reserve a real
 Runtime PG Claim, then create the original Harness PG Run. This protects new
 Runs against ordinary close while the Claim stays HELD; it does **not** protect
-historical unclaimed PAUSED Runs or prevent a same-principal direct release.
-The following list is the **target complete consumer contract**, not a claim
+historical unclaimed PAUSED Runs. The installed old ordinary-principal
+release API can still be called directly; new SOURCE #2493 blocks that path
+only after an independently qualified installation. The following list is
+the **target complete consumer contract**, not a claim
 that all five stages are already installed and accepted:
 
 1. Harness allocates a stable Run ID in a non-executable state.
@@ -91,10 +98,14 @@ Arbitrary age expiry is not proof that an activated user has released it.
   Claim's `(principal,clientRequestId)` owner; an older HELD Claim cannot be
   recovered by swapping to a new bearer/principal. Keep old/unknown consumers
   HELD rather than rewriting a physical pin based on elapsed time.
-- A dedicated `/harness/mcp` token and raw-call release guard prevent ordinary
-  wrong-route release in the tested **SOURCE** only; they do not certify a
-  `COMPLETED` Harness Run, original recipient byte ACK, or all issued OS
-  effects drained. Installed native `trusted_local` jobs currently execute
+- A dedicated `/harness/mcp` bearer and principal provide a Claim-only
+  route in merged SOURCE #2502. With or without that profile, #2493 denies
+  ordinary raw release in SOURCE; neither change certifies a `COMPLETED`
+  Harness Run, original recipient byte ACK, or all issued OS effects drained.
+  A historical claim held by the old ordinary principal is **not** silently
+  transferable to the new principal; do not restore general release just
+  to clear old rows. A qualified original consumer/explicit abandon must
+  resolve its real ownership and retained output first. Installed native `trusted_local` jobs currently execute
   with root authority: another root-owned `0600` bearer file is not a
   security boundary against those already authorized root Jobs.
   Qualify the ordinary-execution OS identity, original Trust/Finalizer role,
