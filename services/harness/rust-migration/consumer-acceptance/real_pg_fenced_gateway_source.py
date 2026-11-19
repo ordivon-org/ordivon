@@ -13,6 +13,7 @@ import json
 import os
 import secrets
 import time
+from pathlib import Path
 
 from anc_canonical import canonical_digest
 from ordivon_harness.core_contracts import (
@@ -21,7 +22,11 @@ from ordivon_harness.core_contracts import (
     HarnessRunContract,
 )
 from ordivon_harness.execution_binding import HarnessExecutionBinding
-from ordivon_harness.ordivon.model import ScriptedTurnAdapter
+from ordivon_harness.agent_run import HarnessAgentRun
+from ordivon_harness.mcp_http_client import OfficialMcpClient, LoopbackMcpEndpoint
+from ordivon_harness.ordivon.model import (
+    AgentRunConclusion, AgentTurnResult, ScriptedTurnAdapter,
+)
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import (
     HarnessRuntimeBridge,
@@ -120,8 +125,97 @@ original = _build_workspace_exec_request(
     wait_ms=0,
 )
 clock = Clock()
+auto_native_claim = os.environ.get("ORDIVON_R22_AUTO_NATIVE_CLAIM") == "1"
+claim_request_id = None
+
+
+class OriginalTestToolSurface:
+    """Original manually prepared Tool Intent stays owned by the existing PG Journal.
+
+    No model-facing tool or physical runtime permission is fabricated by this
+    test-only composition; the real first Tool Job is submitted separately.
+    """
+    catalog_digest = contract.tool_catalog_digest
+    grant_digest = contract.tool_grant_digest
+
+
+class LostReplyOnceNativeClaim:
+    def __init__(self):
+        url = os.environ["ORDIVON_R22_NATIVE_MCP_URL"]
+        token = Path(os.environ["ORDIVON_R22_NATIVE_CLAIM_TOKEN_FILE"])
+        self.inner = OfficialMcpClient(
+            LoopbackMcpEndpoint(url, name="r22-native-claim-source"),
+            bearer_token_file=token,
+        )
+        self.lost = False
+
+    def call_tool(self, name, arguments):
+        outcome = self.inner.call_tool(name, arguments)
+        if (
+            name == "workspace.claim.reserve"
+            and os.environ.get("ORDIVON_R22_LOSE_NATIVE_CLAIM_REPLY") == "1"
+            and not self.lost
+        ):
+            self.lost = True
+            raise ConnectionError("R22 simulated loss after committed Native reserve")
+        return outcome
+
+
 with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
-    assert store.create_run(contract).value == "created"
+    if auto_native_claim:
+        native_claim = LostReplyOnceNativeClaim()
+        run = HarnessAgentRun.create(
+            dsn,
+            schema,
+            contract,
+            lambda _: ScriptedTurnAdapter((AgentTurnResult(
+                model_call_id="model-call:r22-unused-fixture",
+                model_id=ScriptedTurnAdapter.model_id,
+                content="unused-scripted-turn",
+                tool_calls=(),
+                conclusion=AgentRunConclusion(
+                    status="candidate_completed", summary="Only for Run composition"
+                ),
+                usage={"inputTokens": 1, "outputTokens": 1},
+                finish_reason="stop",
+                raw_response_digest=sha("unused-scripted-model"),
+            ),)),
+            tool_bridge=OriginalTestToolSurface(),
+            workspace_claim_client=native_claim,
+            workspace_claim_workspace_id=workspace,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        assert run.status()["status"] == "created"
+        claim_request_id = run.workspace_claim.request_id
+        assert run.workspace_claim.require_held()["state"] == "held"
+        if os.environ.get("ORDIVON_R22_REOPEN_AFTER_LOST_REPLY") == "1":
+            reopened = HarnessAgentRun.open(
+                dsn,
+                schema,
+                run_id,
+                lambda _: ScriptedTurnAdapter((AgentTurnResult(
+                model_call_id="model-call:r22-unused-fixture",
+                model_id=ScriptedTurnAdapter.model_id,
+                content="unused-scripted-turn",
+                tool_calls=(),
+                conclusion=AgentRunConclusion(
+                    status="candidate_completed", summary="Only for Run composition"
+                ),
+                usage={"inputTokens": 1, "outputTokens": 1},
+                finish_reason="stop",
+                raw_response_digest=sha("unused-scripted-model"),
+            ),)),
+                tool_bridge=OriginalTestToolSurface(),
+                workspace_claim_client=native_claim,
+                workspace_claim_workspace_id=workspace,
+                clock_ms=clock,
+                monotonic_ms=clock,
+            )
+            assert reopened.harness_run_id == run_id
+            assert reopened.workspace_claim.require_held()["claimId"] == run.workspace_claim.require_held()["claimId"]
+    else:
+        assert store.create_run(contract).value == "created"
     continuity = EventSourcedRunContinuity(store, contract, clock_ms=clock)
     continuity.bind_state(
         HarnessRunState(
@@ -174,6 +268,7 @@ print(
     json.dumps(
         {
             "runId": run_id,
+            "claimRequestId": claim_request_id,
             "clientRequestId": intent.client_request_id,
             "intentDigest": intent.digest,
             "fenceDigest": actual.fence.digest,

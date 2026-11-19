@@ -461,9 +461,66 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             },
                         }
 
-                    valid_source = verified_harness_source(
-                        "prepare", ORDIVON_R22_EXEC_OUTPUT="R25_VALID_ISSUER_PG_NATIVE"
+                    r22_auto_claim = (
+                        os.getenv("ORDIVON_R22_AUTOMATIC_NATIVE_CLAIM_POSITIVE") == "1"
                     )
+                    if r22_auto_claim:
+                        assert issuer_isolated
+                        assert os.getenv("ORDIVON_R13_FALSIFY_ACTIVE_ISSUER_CLOSE") == "1"
+                    native_source_options = {
+                        "ORDIVON_R22_AUTO_NATIVE_CLAIM": "1",
+                        "ORDIVON_R22_NATIVE_MCP_URL": f"http://127.0.0.1:{port}/mcp",
+                        "ORDIVON_R22_NATIVE_CLAIM_TOKEN_FILE": str(tokenfile),
+                        "ORDIVON_R22_LOSE_NATIVE_CLAIM_REPLY": (
+                            "1" if os.getenv("ORDIVON_R22_SIMULATE_RESERVE_REPLY_LOSS") == "1" else "0"
+                        ),
+                        "ORDIVON_R22_REOPEN_AFTER_LOST_REPLY": (
+                            "1" if os.getenv("ORDIVON_R22_SIMULATE_RESERVE_REPLY_LOSS") == "1" else "0"
+                        ),
+                    } if r22_auto_claim else {}
+                    valid_source = verified_harness_source(
+                        "prepare", ORDIVON_R22_EXEC_OUTPUT="R25_VALID_ISSUER_PG_NATIVE",
+                        **native_source_options,
+                    )
+                    if (
+                        r22_auto_claim
+                        and os.getenv("ORDIVON_R22_SIMULATE_RESERVE_REPLY_LOSS") == "1"
+                    ):
+                        # The first Harness process has already exited. A new
+                        # process must reattach the same PG Run/Native Claim.
+                        reconnect_script = (
+                            source_root / "harness/rust-migration/consumer-acceptance"
+                            / "real_pg_native_claim_reconnect.py"
+                        )
+                        assert reconnect_script.is_file()
+                        resumed_process = subprocess.run(
+                            [os.environ["ORDIVON_GATEWAY_PG_E2E_HARNESS_PYTHON"],
+                             str(reconnect_script)],
+                            env={
+                                **os.environ,
+                                "PYTHONPATH": str(source_root / "harness/src"),
+                                "ORDIVON_R22_HARNESS_PG_DSN": (
+                                    f"host={root} port=5432 dbname=postgres user=postgres"
+                                ),
+                                "ORDIVON_R22_EXPECT_RUN": valid_source["runId"],
+                                "ORDIVON_R22_RUNTIME_WORKSPACE": "ws-gateway-native",
+                                "ORDIVON_R22_EXPECT_CLAIM_REQUEST_ID": valid_source[
+                                    "claimRequestId"
+                                ],
+                                "ORDIVON_R22_NATIVE_MCP_URL": f"http://127.0.0.1:{port}/mcp",
+                                "ORDIVON_R22_NATIVE_CLAIM_TOKEN_FILE": str(tokenfile),
+                            },
+                            text=True, capture_output=True, timeout=45, check=False,
+                        )
+                        assert resumed_process.returncode == 0, (
+                            "Harness new-process original Run/Claim reconnect failed: "
+                            f"{resumed_process.stderr[-1800:]}"
+                        )
+                        assert (
+                            "R22_NEW_PROCESS_REATTACHED_EXACT_ORIGINAL_RUN_AND_NATIVE_CLAIM"
+                            in resumed_process.stdout
+                        ), resumed_process.stdout
+                        print(resumed_process.stdout.strip(), flush=True)
                     # This disposable cluster explicitly permits the Runtime
                     # app PG role to lock/read issuer Run rows. A production
                     # deployment should use a narrower issuer-defined
@@ -541,7 +598,41 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         r20_explicit_claim = (
                             os.getenv("ORDIVON_R20_EXPLICIT_NATIVE_CLAIM_POSITIVE") == "1"
                         )
-                        r20_claim_key = "harness-r20-original-active-run-held-native"
+                        if r22_auto_claim and r20_explicit_claim:
+                            pytest.fail("automatic native Claim cannot use manual reserve control")
+                        r20_claim_key = (
+                            valid_source["claimRequestId"] if r22_auto_claim
+                            else "harness-r20-original-active-run-held-native"
+                        )
+                        if r22_auto_claim:
+                            assert r20_claim_key.startswith("request:harness-workspace-claim:")
+                            original_claim = await caller.call_tool(
+                                "runtime.linux", "workspace.claim.get",
+                                {"clientRequestId": r20_claim_key},
+                            )
+                            assert original_claim["state"] == "held"
+                            assert original_claim["runRef"] == valid_source["runId"]
+                            assert original_claim["workspaceId"] == "ws-gateway-native"
+                            print("R22_NORMAL_HARNESS_CREATE_NATIVE_CLAIM_HELD", flush=True)
+                            # Physical source file remains uniquely recoverable after
+                            # active Job completion; this is not an Artifact ACK.
+                            marker = "R22_UNCOMMITTED_UNIQUE_WORKSPACE_SOURCE"
+                            mutation = await caller.call_tool(
+                                "runtime.linux", "workspace.mutate",
+                                {
+                                    "workspaceId": "ws-gateway-native",
+                                    "mutations": [{
+                                        "mode": "WRITE", "relativePath": "original-run-proof.txt",
+                                        "content": marker,
+                                    }],
+                                },
+                            )
+                            assert mutation["mutations"][0]["relativePath"] == "original-run-proof.txt"
+                            native_workspace = await caller.call_tool(
+                                "runtime.linux", "workspace.get",
+                                {"workspaceId": "ws-gateway-native"},
+                            )
+                            assert native_workspace["activeJobIds"] == []
                         if r20_explicit_claim:
                             request = {
                                 "workspaceId": "ws-gateway-native",
@@ -585,7 +676,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                                 "CONCURRENCY_LIMIT",
                                 "WORKSPACE_STATE_MISMATCH",
                             }, denied.error
-                            if r20_explicit_claim:
+                            if r20_explicit_claim or r22_auto_claim:
                                 # A generic Git race must NOT count as a
                                 # successful HELD-Claim close barrier.
                                 assert denied.error.get("code") == "CONCURRENCY_LIMIT"
@@ -594,10 +685,61 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                                     {"clientRequestId": r20_claim_key},
                                 )
                                 assert retained["state"] == "held"
-                                print(
-                                    "R20_TRUE_HARNESS_RUN_HELD_CLAIM_CLOSE_BLOCKED",
-                                    flush=True,
-                                )
+                                if r22_auto_claim:
+                                    file = await caller.call_tool(
+                                        "runtime.linux", "workspace.read",
+                                        {
+                                            "workspaceId": "ws-gateway-native",
+                                            "relativePath": "original-run-proof.txt",
+                                            "mode": "FULL", "maxBytes": 4096,
+                                        },
+                                    )
+                                    assert file["content"] == "R22_UNCOMMITTED_UNIQUE_WORKSPACE_SOURCE"
+                                    print("R22_ACTIVE_RUN_TERMINAL_JOB_NATIVE_CLOSE_DENIED_FILE_READABLE", flush=True)
+                                    ordinary_release_script = (
+                                        source_root / "harness/rust-migration/consumer-acceptance"
+                                        / "real_pg_native_claim_release.py"
+                                    )
+                                    assert ordinary_release_script.is_file()
+                                    # Physical Runtime PG is database postgres.
+                                    # This ordinary Harness Run uses a DIFFERENT
+                                    # database in the same disposable PG18 cluster.
+                                    psql("CREATE DATABASE harness_r22_release")
+                                    completed_release = subprocess.run(
+                                        [os.environ["ORDIVON_GATEWAY_PG_E2E_HARNESS_PYTHON"],
+                                         str(ordinary_release_script)],
+                                        env={
+                                            **os.environ,
+                                            "PYTHONPATH": str(source_root / "harness/src"),
+                                            "ORDIVON_R22_HARNESS_PG_DSN": (
+                                                f"host={root} port=5432 dbname=harness_r22_release user=postgres"
+                                            ),
+                                            "ORDIVON_R22_NATIVE_MCP_URL": (
+                                                f"http://127.0.0.1:{port}/mcp"
+                                            ),
+                                            "ORDIVON_R22_NATIVE_CLAIM_TOKEN_FILE": str(tokenfile),
+                                            "ORDIVON_R22_REAL_SOURCE_REPOSITORY": str(repository),
+                                            "ORDIVON_R22_REAL_RECIPIENT_PATH": str(
+                                                root / "real-recipient-accepted-output.txt"
+                                            ),
+                                        },
+                                        text=True, capture_output=True, timeout=100,
+                                        check=False,
+                                    )
+                                    assert completed_release.returncode == 0, (
+                                        "original native ordinary completion/release failed: "
+                                        f"{completed_release.stderr[-2500:]}"
+                                    )
+                                    assert (
+                                        "R22_NORMAL_RUN_OUTPUT_DELIVERED_CLAIM_RELEASED_NATIVE_CLOSE_REMOVED"
+                                        in completed_release.stdout
+                                    ), completed_release.stdout
+                                    print(completed_release.stdout.strip(), flush=True)
+                                else:
+                                    print(
+                                        "R20_TRUE_HARNESS_RUN_HELD_CLAIM_CLOSE_BLOCKED",
+                                        flush=True,
+                                    )
                             print(
                                 "R13_NATIVE_CLOSE_ACTIVE_HARNESS_RUN_BLOCKED_BY_SOURCE_OWNER",
                                 flush=True,
