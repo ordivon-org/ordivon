@@ -16,13 +16,38 @@ pub struct PgReleaseOperatorConfig {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ClaimReleaseIngress {
     Ordinary,
+    // Original same-PG Harness Issuer remains able to admit Job requests.
     DedicatedFinalizer,
+    // Separate original Run resource ownership from source-current Job issuance.
+    // The minimal port needs no foreign Harness tables in Runtime PostgreSQL.
+    DedicatedClaimOnly,
 }
 
 impl ClaimReleaseIngress {
     const fn may_release(self) -> bool {
-        matches!(self, Self::DedicatedFinalizer)
+        matches!(self, Self::DedicatedFinalizer | Self::DedicatedClaimOnly)
     }
+
+    const fn claim_only(self) -> bool {
+        matches!(self, Self::DedicatedClaimOnly)
+    }
+}
+
+const CLAIM_ONLY_TOOL_NAMES: &[&str] = &[
+    "workspace.get",
+    "workspace.claim.reserve",
+    "workspace.claim.get",
+    "workspace.claim.release",
+];
+
+fn claim_only_route_guard(ingress: ClaimReleaseIngress, name: &str) -> Result<(), McpError> {
+    if ingress.claim_only() && !CLAIM_ONLY_TOOL_NAMES.contains(&name) {
+        return Err(McpError::invalid_params(
+            "Claim Finalizer ingress does not grant Job execution or Runtime administration",
+            None,
+        ));
+    }
+    Ok(())
 }
 
 /// A caller-supplied key is a recovery coordinate, never release authority.
@@ -79,6 +104,14 @@ impl PgRuntimeServer {
         self
     }
 
+    /// A separately authenticated Claim owner cannot execute, cancel, release
+    /// Runtime binaries, or close Workspaces. Original recipient/OS verification
+    /// is still the external Harness Finalizer's responsibility.
+    pub fn for_authenticated_claim_only_finalizer(mut self) -> Self {
+        self.claim_release_ingress = ClaimReleaseIngress::DedicatedClaimOnly;
+        self
+    }
+
     fn require_claim_release_authority(&self, name: &str) -> Result<(), McpError> {
         claim_release_route_guard(self.claim_release_ingress.may_release(), name)
     }
@@ -110,7 +143,12 @@ impl PgRuntimeServer {
             .status().is_ok_and(|status| status.success())
     }
     fn catalog_for(&self) -> Vec<Tool> {
-        Self::catalog_for_route(self.release_ready(), self.claim_release_ingress.may_release())
+        let mut tools =
+            Self::catalog_for_route(self.release_ready(), self.claim_release_ingress.may_release());
+        if self.claim_release_ingress.claim_only() {
+            tools.retain(|tool| CLAIM_ONLY_TOOL_NAMES.contains(&tool.name.as_ref()));
+        }
+        tools
     }
     // Protect the Agent-visible catalog as well as raw tools/call: an ordinary
     // executor should not plan a domain-finalizer effect it cannot invoke.
@@ -173,6 +211,7 @@ impl PgRuntimeServer {
         // side query. A caller who knows the exact idempotency key still
         // cannot invoke the physical relinquishment through ordinary /mcp.
         self.require_claim_release_authority(&name)?;
+        claim_only_route_guard(self.claim_release_ingress, &name)?;
         let release_ready=self.release_ready();
         if !Self::catalog_enabled(release_ready).iter().any(|t|t.name.as_ref()==name) {
             return Err(McpError::invalid_params("Tool is not implemented by the PG vertical", None));
@@ -472,6 +511,30 @@ mod pg_catalog_consumer_tests {
 #[cfg(test)]
 mod claim_release_route_authority_tests {
     use super::*;
+
+    #[test]
+    fn standalone_claim_finalizer_cannot_admit_jobs_or_close_workspaces() {
+        assert!(ClaimReleaseIngress::DedicatedClaimOnly.may_release());
+        assert!(!ClaimReleaseIngress::Ordinary.may_release());
+        for name in CLAIM_ONLY_TOOL_NAMES {
+            assert!(claim_only_route_guard(ClaimReleaseIngress::DedicatedClaimOnly, name).is_ok());
+        }
+        for forbidden in [
+            "workspace.exec", "workspace.execPlan", "workspace.open",
+            "workspace.close", "workspace.mutate", "job.cancel", "job.observe",
+            "release.apply", "release.get", "artifact.content",
+        ] {
+            assert!(claim_only_route_guard(
+                ClaimReleaseIngress::DedicatedClaimOnly, forbidden
+            ).is_err(), "{forbidden}");
+            assert!(claim_only_route_guard(
+                ClaimReleaseIngress::DedicatedFinalizer, forbidden
+            ).is_ok(), "existing same-PG Harness issuer mode must retain {forbidden}");
+        }
+        assert!(claim_release_route_guard(
+            ClaimReleaseIngress::Ordinary.may_release(), "workspace.claim.release"
+        ).is_err());
+    }
 
     #[test]
     fn ordinary_ingress_must_never_inherit_finalizer_release_capability() {
