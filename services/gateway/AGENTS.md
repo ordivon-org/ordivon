@@ -29,13 +29,38 @@ passing high-level SDK tests does not qualify Gateway production rollout or
 prove the Runtime UTF-8 subcharacter-page issue fixed at its natural Owner.
 
 ## Readset
-1. README.md / mcp-surface.json — declared surface, not installed evidence.
-2. src/ordivon_gateway/mcp_server.py / service.py — MCP and API facade.
-3. routing.py / capability_catalog.py / capability_projection.py — discovery.
-4. execution_* / execution_refs.py — Runtime delegation and correlation.
-5. host_*_tools.py / upstream*.py — Host/Owner forwarding.
-6. access_auth.py / ingress_identity.py — verified ingress identity and shared request coordinates.
-7. authorization_targets.py / capability_authz.py — pure Owner request-target projection and Security PEP decision binding.
+Follow the existing **source tree**; these are real relative paths under
+`services/gateway/`, not historical module aliases. Read only the boundary
+needed by the current consumer:
+
+1. `README.md` and `mcp-surface.json` — declared Tool contract; separately
+   verify the actually installed SourceCut and connected Agent capture.
+2. `src/ordivon_gateway/mcp_server.py` and `src/ordivon_gateway/service.py`
+   — MCP registration, dependency composition and public facade.
+3. `src/ordivon_gateway/logic/routing.py`,
+   `src/ordivon_gateway/logic/capability_projection.py` and
+   `src/ordivon_gateway/capabilities/discovery.py` — natural Owner routes
+   and non-authoritative capability observation.
+4. `src/ordivon_gateway/capabilities/execution/commands.py`,
+   `src/ordivon_gateway/capabilities/execution/observations.py`,
+   `src/ordivon_gateway/capabilities/execution/release.py` and
+   `src/ordivon_gateway/logic/execution_refs.py` — Runtime invocation,
+   result identity and delegated native release effects.
+5. `src/ordivon_gateway/capabilities/host/dispatch.py`,
+   `src/ordivon_gateway/capabilities/host/tools.py`,
+   `src/ordivon_gateway/capabilities/host/work.py`,
+   `src/ordivon_gateway/capabilities/host/social.py`,
+   `src/ordivon_gateway/capabilities/host/attention.py` and
+   `src/ordivon_gateway/transport/upstream.py` — exact Host forwarding
+   and official MCP SDK transport.
+6. `src/ordivon_gateway/security/access_auth.py` and
+   `src/ordivon_gateway/security/ingress_identity.py` — verified ingress.
+7. `src/ordivon_gateway/security/authorization_targets.py` and
+   `src/ordivon_gateway/security/capability_authz.py` — requested resources
+   and the existing Security PEP, never a second policy authority.
+
+Do not resurrect deleted `capability_catalog.py`, `execution_commands.py`,
+or `host_*_tools.py` modules simply to follow an obsolete path in a handoff.
 
 ## Human
 Pin Git revision. Compare released tool surface with live system.describe and
