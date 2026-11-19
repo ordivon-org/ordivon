@@ -29,7 +29,7 @@ impl PgRuntime {
             "structuredReleaseConfigured":false,
             "targets":[{
                 "target":"local_linux","configured":true,"available":true,
-                "executionProfiles":["trusted_local"],"structuredPlan":true,
+                "executionProfiles":["trusted_local","contained_local"],"structuredPlan":true,
                 "immutableInputs":false,"hostDependencyCommitments":true,
                 "hostDependencyContinuityScope":"runtime_host_namespace_path_witness",
                 "executionProvider":{"contract":"local_linux_runner_v1","executableDigest":digest}
