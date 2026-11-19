@@ -187,6 +187,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .into_iter()
     .flatten()
     .collect();
+    // Optional operator-owned Unix payload owner. Ordinary callers never set
+    // it. A contained Job requires both nonzero IDs; otherwise admission
+    // fails closed rather than running the task as host UID 0.
+    let contained_workspace_owner = match (
+        pg_auth::optional_env("ORDIVON_PG_WORKSPACE_UID")?,
+        pg_auth::optional_env("ORDIVON_PG_WORKSPACE_GID")?,
+    ) {
+        (None, None) => None,
+        (Some(uid), Some(gid)) => {
+            let uid = uid.parse::<u32>()?;
+            let gid = gid.parse::<u32>()?;
+            if uid == 0 || gid == 0 {
+                return Err("contained Workspace payload owner must be nonroot".into());
+            }
+            Some((uid, gid))
+        }
+        _ => return Err("PG Workspace UID and GID must be configured together".into()),
+    };
     let config = PgRuntimeConfig {
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
@@ -210,8 +228,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
             workspace_root: None,
-            workspace_uid: None,
-            workspace_gid: None,
+            workspace_uid: contained_workspace_owner.map(|(uid, _)| uid),
+            workspace_gid: contained_workspace_owner.map(|(_, gid)| gid),
             runner_path: Some(PathBuf::from(required("ORDIVON_PG_RUNNER")?)),
             allowed_executable_roots: serde_json::from_str(&required(
                 "ORDIVON_PG_EXECUTABLE_ROOTS_JSON",

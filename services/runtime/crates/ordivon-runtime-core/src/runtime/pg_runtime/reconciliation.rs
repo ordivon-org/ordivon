@@ -693,8 +693,53 @@ impl PgRuntime {
                 attempt_id: Some(a.attempt_id.clone()),
                 launch_token: Some(token),
                 unit_name: Some(a.unit_name.clone()),
-                payload: None,
-                inherit_host_environment: true,
+                // Reuse the existing Unix Runner child privilege drop, leaving
+                // the Runner's PG/result bundle under its original UID 0.
+                // The task's Workspace identity comes only from the
+                // operator-configured native owner, never a caller field.
+                payload: if plan.execution_profile == ExecutionProfile::ContainedLocal {
+                    let (Some(uid), Some(gid)) = (
+                        self.config.executor.workspace_uid,
+                        self.config.executor.workspace_gid,
+                    ) else {
+                        return Err(RuntimeError::invalid(
+                            "contained_local requires configured nonroot task owner",
+                            "execution.executionProfile",
+                        ));
+                    };
+                    if uid == 0 || gid == 0 {
+                        return Err(RuntimeError::invalid(
+                            "contained_local task owner may not be root",
+                            "execution.executionProfile",
+                        ));
+                    }
+                    Some(universal::RunnerPayloadConfig {
+                        uid,
+                        gid,
+                        workspace_view: plan.workspace_path.clone(),
+                        cwd_view: plan.cwd.clone(),
+                        runtime_view: self
+                            .config
+                            .executor
+                            .workspace_cache_path(&plan.workspace_id)
+                            .join("home")
+                            .to_string_lossy()
+                            .into_owned(),
+                        cache_view: self
+                            .config
+                            .executor
+                            .workspace_cache_path(&plan.workspace_id)
+                            .to_string_lossy()
+                            .into_owned(),
+                    })
+                } else {
+                    None
+                },
+                // Ordinary trusted jobs preserve their historical
+                // environment. The contained child must never inherit
+                // control-plane environment from the trusted Runner.
+                inherit_host_environment: plan.execution_profile
+                    != ExecutionProfile::ContainedLocal,
                 task_id: a.attempt_id.clone(),
                 workspace_id: plan.workspace_id.clone(),
                 workspace_path: plan.workspace_path.clone(),

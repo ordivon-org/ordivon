@@ -305,7 +305,9 @@ pub(crate) fn append_contained_properties(
         "--property=PrivateDevices=yes",
         "--property=PrivateNetwork=yes",
         "--property=NoNewPrivileges=yes",
-        "--property=CapabilityBoundingSet=",
+        // Trusted Runner (not target Command) needs only native capability
+        // to drop each child to the already qualified Workspace owner.
+        "--property=CapabilityBoundingSet=CAP_SETUID CAP_SETGID",
         "--property=AmbientCapabilities=",
         "--property=RestrictSUIDSGID=yes",
         "--property=RestrictNamespaces=yes",

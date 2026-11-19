@@ -51,12 +51,66 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
             false,
         )
     })?;
+    // Payload identity comes from the original committed Runner request, not
+    // from the result (which may omit or falsify UID/GID). Where a legacy
+    // fixture has no committed request, it must still have NO payload.
+    let mut committed_payload = None;
+    let request_path = Path::new(&current.bundle_path).join(REQUEST_FILE);
+    if let Some(committed) = current
+        .bundle_digest
+        .as_deref()
+        .filter(|_| request_path.is_file())
+    {
+        let request_bytes = fs::read(&request_path)
+            .map_err(|err| io_error("read committed Runner request", err))?;
+        if sha256_bytes(&request_bytes) != committed {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ResultIdentityConflict,
+                "Runner request bytes disagree with committed PG bundle digest",
+                Some("result"),
+                false,
+            ));
+        }
+        let request: RunnerRequest = serde_json::from_slice(&request_bytes).map_err(|err| {
+            RuntimeError::new(
+                RuntimeErrorCode::ResultIdentityConflict,
+                format!("invalid committed Runner request: {err}"),
+                Some("result"),
+                false,
+            )
+        })?;
+        if request.job_id.as_deref() != Some(current.job_id.as_str())
+            || request.attempt_id.as_deref() != Some(current.attempt_id.as_str())
+            || request.task_id != current.attempt_id
+            || request
+                .launch_token
+                .as_deref()
+                .map(|token| sha256_bytes(token.as_bytes()))
+                .as_deref()
+                != Some(current.launch_token_digest.as_str())
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ResultIdentityConflict,
+                "payload-bearing Runner request is not the original Attempt",
+                Some("result"),
+                false,
+            ));
+        }
+        committed_payload = request.payload.map(|p| (p.uid, p.gid));
+    } else if result.payload_uid.is_some() || result.payload_gid.is_some() {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ResultIdentityConflict,
+            "payload result has no committed Runner request identity",
+            Some("result"),
+            false,
+        ));
+    }
     if result.task_id != current.attempt_id
         || result.job_id.as_deref() != Some(current.job_id.as_str())
         || result.attempt_id.as_deref() != Some(current.attempt_id.as_str())
         || result.launch_token_digest.as_deref() != Some(current.launch_token_digest.as_str())
-        || result.payload_uid.is_some()
-        || result.payload_gid.is_some()
+        || result.payload_uid != committed_payload.map(|p| p.0)
+        || result.payload_gid != committed_payload.map(|p| p.1)
     {
         return Err(RuntimeError::new(
             RuntimeErrorCode::ResultIdentityConflict,
@@ -683,6 +737,85 @@ mod windows_native_result_to_pg_terminal_contract_tests {
                 "retainedBytes": 0, "droppedBytes": 0, "truncated": false
             }
         })
+    }
+
+    #[test]
+    fn payload_identity_requires_exact_original_committed_request_not_result_claims() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut attempt = admitted_windows_attempt(directory.path());
+        let stdout = b"original nonroot task bytes\n";
+        fs::write(directory.path().join("stdout.log"), stdout).unwrap();
+        fs::write(directory.path().join("stderr.log"), b"").unwrap();
+        let root = directory.path().to_string_lossy().into_owned();
+        let mut request = json!({
+            "schemaVersion": 1,
+            "jobId": attempt.job_id,
+            "attemptId": attempt.attempt_id,
+            "taskId": attempt.attempt_id,
+            "launchToken": "original-one-shot-launch-token",
+            "unitName": attempt.unit_name,
+            "workspaceId": "original-ws",
+            "workspacePath": root,
+            "executable": "/usr/bin/true",
+            "executableDigest": sha256_bytes(b"example-executable"),
+            "args": [],
+            "cwd": root,
+            "env": {},
+            "timeoutMs": 1000,
+            "stdoutLimitBytes": 4096,
+            "stderrLimitBytes": 4096,
+            "payload": {
+                "uid": 65534, "gid": 65534,
+                "workspaceView": root, "cwdView": root,
+                "runtimeView": root, "cacheView": root
+            }
+        });
+        let request_bytes = serde_json::to_vec(&request).unwrap();
+        let _: crate::universal::RunnerRequest =
+            serde_json::from_slice(&request_bytes).expect("real Runner request schema");
+        attempt.bundle_digest = Some(sha256_bytes(&request_bytes));
+        let request_path = directory.path().join("request.json");
+        fs::write(&request_path, &request_bytes).unwrap();
+        let mut result = native_launcher_result(&attempt, stdout);
+        result["payloadUid"] = json!(65534);
+        result["payloadGid"] = json!(65534);
+        let result_path = directory.path().join("result.json");
+        fs::write(&result_path, serde_json::to_vec(&result).unwrap()).unwrap();
+        let committed = prepare_runner_terminal_from_bundle(&attempt)
+            .expect("same original PG committed nonroot identity");
+        assert_eq!(committed.state, AttemptState::Succeeded);
+
+        for (uid, gid) in [
+            (json!(null), json!(null)),
+            (json!(0), json!(65534)),
+            (json!(65534), json!(0)),
+            (json!(65534), json!(65535)),
+        ] {
+            result["payloadUid"] = uid;
+            result["payloadGid"] = gid;
+            fs::write(&result_path, serde_json::to_vec(&result).unwrap()).unwrap();
+            let err = prepare_runner_terminal_from_bundle(&attempt).unwrap_err();
+            assert_eq!(
+                err.code,
+                crate::runtime::RuntimeErrorCode::ResultIdentityConflict
+            );
+        }
+        result["payloadUid"] = json!(65534);
+        result["payloadGid"] = json!(65534);
+        fs::write(&result_path, serde_json::to_vec(&result).unwrap()).unwrap();
+        request["payload"]["uid"] = json!(0);
+        fs::write(&request_path, serde_json::to_vec(&request).unwrap()).unwrap();
+        let err = prepare_runner_terminal_from_bundle(&attempt).unwrap_err();
+        assert_eq!(
+            err.code,
+            crate::runtime::RuntimeErrorCode::ResultIdentityConflict
+        );
+        fs::remove_file(&request_path).unwrap();
+        let err = prepare_runner_terminal_from_bundle(&attempt).unwrap_err();
+        assert_eq!(
+            err.code,
+            crate::runtime::RuntimeErrorCode::ResultIdentityConflict
+        );
     }
 
     #[test]

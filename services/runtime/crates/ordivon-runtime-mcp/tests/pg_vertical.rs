@@ -29,6 +29,9 @@ struct Fixture {
     /// is intentionally no foreign Harness Schema or issuer SQL function.
     claim_only_profile: bool,
     harness_schema_override: Option<String>,
+    // Only the nonroot contained test owns an isolated disposable UID/GID.
+    // Unrelated PG18 fixtures preserve their historical Workspace owners.
+    contained_nonroot_test: bool,
 }
 impl Fixture {
     fn new() -> Self {
@@ -160,6 +163,7 @@ impl Fixture {
             harness_dispatch_test: false,
             claim_only_profile: false,
             harness_schema_override: None,
+            contained_nonroot_test: false,
         }
     }
     fn endpoint(&mut self) -> String {
@@ -232,6 +236,11 @@ impl Fixture {
             .env("ORDIVON_PG_PRINCIPAL", principal)
             .stdout(Stdio::null())
             .stderr(output);
+        if self.contained_nonroot_test {
+            endpoint
+                .env("ORDIVON_PG_WORKSPACE_UID", "65534")
+                .env("ORDIVON_PG_WORKSPACE_GID", "65534");
+        }
         if self.harness_dispatch_test || self.claim_only_profile {
             let token_file = self.root.join("r16-dedicated-harness-token");
             fs::write(&token_file, "h".repeat(48)).unwrap();
@@ -6114,6 +6123,7 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
 fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let mut fixture = Fixture::new();
     fixture.host_visible_test_runner = true;
+    fixture.contained_nonroot_test = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let opened = call(
@@ -6122,6 +6132,22 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
         json!({"workspaceId":"ws-contained-git","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(opened["isError"], true, "native Workspace OPEN: {opened}");
+    // A second Workspace is the exact scope a different Agent could hold
+    // under the same operator-owned test UID/GID. It must not become visible
+    // through the first task's native contained mount, even by absolute path.
+    let foreign = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-contained-foreign","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(
+        foreign["isError"], true,
+        "foreign native Workspace: {foreign}"
+    );
+    let foreign_probe = fixture
+        .root
+        .join("store/workspaces/ws-contained-foreign/foreign-probe.txt");
+    fs::write(&foreign_probe, b"foreign scope must not be read").unwrap();
     // A caller's HOME/TMPDIR/CARGO_TARGET_DIR is untrusted DATA. The
     // ContainedLocal systemd launcher bind-mounts those paths: fail before
     // native Job admission rather than granting arbitrary host mount access.
@@ -6202,6 +6228,16 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let command = r#"set -eu
 if test -e /etc/ordivon && test -r /etc/ordivon; then echo 'CONTAINED_CONTROL_DIRECTORY_VISIBLE'; exit 53; fi
 if test -r /etc/ordivon/runtime-mcp.token; then echo 'CONTAINED_SECRET_VISIBLE'; exit 54; fi
+# Only ask the kernel whether the root-owned host credential is readable.
+# Do NOT open or print any secret contents. A pass means the process is NOT
+# isolated from host-root-owned credentials outside the configured denylist.
+if test -r /etc/shadow; then echo 'CONTAINED_HOST_ROOT_READABLE'; exit 57; fi
+if test "$(id -u)" != 65534; then echo 'CONTAINED_TASK_NOT_NONROOT'; exit 58; fi
+if mv .git .git-moved 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_REBIND'; exit 59; fi
+if rm .git 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_DELETE'; exit 60; fi
+if test -r "$FOREIGN_PROBE" || test -w "$FOREIGN_PROBE"; then
+    echo 'CONTAINED_FOREIGN_WORKSPACE_ACCESS'; exit 61;
+fi
 printf 'native-contained-workspace' > contained-native.txt
 git rev-parse --is-inside-work-tree >/dev/null
 if git add contained-native.txt >/dev/null 2>&1; then echo 'CONTAINED_WRITABLE_SHARED_GIT_AUTHORITY'; exit 55; fi
@@ -6218,6 +6254,7 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
                 "args":["-lc",command],
                 "cwdRelative":".",
                 "executionProfile":"contained_local",
+                "env":{"FOREIGN_PROBE": foreign_probe.to_string_lossy().into_owned()},
                 "timeoutMs":15000
             },
             "waitMs":10000,
@@ -6339,4 +6376,21 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     );
     assert_ne!(state["isError"], true, "{state}");
     assert_eq!(state["structuredContent"]["dirty"], false, "{state}");
+    // Cache parent directories are shared operator assets; only original
+    // Workspace-private cache descendants may receive the task's group.
+    for ancestor in ["cache", "cache/workspaces", "cache/tmp", "cache/build"] {
+        let path = fixture.root.join("store").join(ancestor);
+        let meta = fs::metadata(&path).expect("shared cache ancestor");
+        assert_eq!(meta.uid(), 0, "root owner changed for {ancestor}");
+        assert_ne!(
+            meta.gid(),
+            65534,
+            "task group owns shared ancestor {ancestor}"
+        );
+        assert_eq!(
+            meta.permissions().mode() & 0o020,
+            0,
+            "shared cache ancestor became group writable: {ancestor}"
+        );
+    }
 }

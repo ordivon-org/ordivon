@@ -376,7 +376,11 @@ fn transfer_workspace_ownership(root: &Path, uid: u32, gid: u32) -> Result<(), U
             .map_err(|error| io_error(path, "inspect ownership target", error))?;
         if metadata.is_dir() {
             chown_nofollow(path, 0, gid)?;
-            fs::set_permissions(path, fs::Permissions::from_mode(0o770))
+            // A writable group directory without the sticky bit permits a
+            // payload to unlink/replace the root-owned .git pointer despite
+            // that file's read-only mode. Sticky protects root-owned entries
+            // while the payload can create/remove its own source files.
+            fs::set_permissions(path, fs::Permissions::from_mode(if uid == 0 { 0o770 } else { 0o1770 }))
                 .map_err(|error| io_error(path, "set workspace directory mode", error))?;
             for entry in fs::read_dir(path)
                 .map_err(|error| io_error(path, "read ownership directory", error))?
@@ -385,9 +389,13 @@ fn transfer_workspace_ownership(root: &Path, uid: u32, gid: u32) -> Result<(), U
                 visit(&entry.path(), uid, gid)?;
             }
         } else if path.file_name().is_some_and(|name| name == ".git") {
-            chown_nofollow(path, 0, 0)?;
+            // A contained payload may READ the original worktree Git
+            // pointer but must never write/delete/rebind it. Keep root
+            // ownership, scoped read for the original Workspace group, and
+            // sticky root-owned parent so rename/unlink is denied.
+            chown_nofollow(path, 0, if uid == 0 { 0 } else { gid })?;
             if metadata.is_file() {
-                fs::set_permissions(path, fs::Permissions::from_mode(0o400))
+                fs::set_permissions(path, fs::Permissions::from_mode(if uid == 0 { 0o400 } else { 0o440 }))
                     .map_err(|error| io_error(path, "protect Git worktree identity", error))?;
             }
         } else {
@@ -401,7 +409,7 @@ fn transfer_workspace_ownership(root: &Path, uid: u32, gid: u32) -> Result<(), U
         fs::metadata(root).map_err(|error| io_error(root, "verify workspace ownership", error))?;
     if metadata.uid() != 0
         || metadata.gid() != gid
-        || metadata.permissions().mode() & 0o7777 != 0o770
+        || metadata.permissions().mode() & 0o7777 != if uid == 0 { 0o770 } else { 0o1770 }
     {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::WorkspacePathDenied,
