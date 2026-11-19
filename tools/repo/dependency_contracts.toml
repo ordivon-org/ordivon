@@ -104,7 +104,7 @@ from_owner = "workstation"
 to_owner = "game"
 source_glob = "platform/workstation/tests/test_workstation_consequences.py"
 allowed_fragment = "domains/game"
-kind = "TEST_ONLY_ENVIRONMENT_BINDING"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "platform/workstation/README.md"
 
 [[seams]]
@@ -112,7 +112,7 @@ from_owner = "workstation"
 to_owner = "media"
 source_glob = "platform/workstation/tests/test_workstation_consequences.py"
 allowed_fragment = "capabilities/media"
-kind = "TEST_ONLY_ENVIRONMENT_BINDING"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "platform/workstation/README.md"
 
 [[seams]]
