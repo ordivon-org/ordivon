@@ -92,7 +92,13 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   to skip Security. The installer stages and changes a symlink but does not
   restart the live process or prove connected Agent results. Before activation
   and after restart keep authenticated read/denial, recovery and rollback
-  consumer obligations. See docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
+  consumer obligations. The read-only
+  `packaging/check_running_release.py --expected-sourcecut SHA
+  --previous-pid PID` waits for a distinct real systemd PID/cwd and
+  local HTTP/anonymous-denial canaries rather than treating the unit's
+  `Type=simple` Started event as application readiness. It cannot certify
+  external authenticated Agent Tools or change any service. See
+  docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
 - **Trusted Cloudflare Access operator (explicit opt-in)**:
   ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR=true selects the already verified
   Cloudflare Access app as the operator trust boundary, removing duplicate
