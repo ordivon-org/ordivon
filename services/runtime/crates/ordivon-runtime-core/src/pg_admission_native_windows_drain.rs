@@ -54,6 +54,7 @@ fn event_detail(i: &PgNativeWindowsDrainInput) -> String {
         "launchTokenDigest": i.launch_token_digest,
         "requestDigest": i.request_digest,
         "resultDigest": i.result_digest,
+        "expectedRowVersion": i.expected_row_version,
         "jobObject": format!("Ordivon.{}", i.attempt_id),
         "launcherProcessId": i.launcher_process_id,
         "launcherCreationFileTime": i.launcher_creation_file_time,
@@ -61,6 +62,94 @@ fn event_detail(i: &PgNativeWindowsDrainInput) -> String {
         "observedUnixMs": i.observed_at_ms,
     })
     .to_string()
+}
+
+/// Pure canonical native-issuer event identity, shared by current readback
+/// and by the ORIGINAL terminal+Artifact transaction. This function does not
+/// authenticate the OS: only native_terminal_gate may *produce* the event.
+fn event_detail_matches(
+    detail: &str,
+    digest: &str,
+    job_id: &str,
+    attempt_id: &str,
+    source_sha256: &str,
+    launch_token_digest: &str,
+    request_digest: &str,
+    result_digest: &str,
+    expected_row_version: i64,
+) -> Option<serde_json::Value> {
+    if sha256_digest(detail.as_bytes()) != digest {
+        return None;
+    }
+    let v: serde_json::Value = serde_json::from_str(detail).ok()?;
+    let matches = v.get("schemaVersion").and_then(|x| x.as_u64()) == Some(1)
+        && v.get("jobId").and_then(|x| x.as_str()) == Some(job_id)
+        && v.get("attemptId").and_then(|x| x.as_str()) == Some(attempt_id)
+        && v.get("sourceSha256").and_then(|x| x.as_str()) == Some(source_sha256)
+        && v.get("launchTokenDigest").and_then(|x| x.as_str()) == Some(launch_token_digest)
+        && v.get("requestDigest").and_then(|x| x.as_str()) == Some(request_digest)
+        && v.get("resultDigest").and_then(|x| x.as_str()) == Some(result_digest)
+        && v.get("expectedRowVersion").and_then(|x| x.as_i64()) == Some(expected_row_version)
+        && v.get("jobObject").and_then(|x| x.as_str())
+            == Some(format!("Ordivon.{attempt_id}").as_str())
+        && v.get("launcherProcessId")
+            .and_then(|x| x.as_u64())
+            .is_some_and(|pid| pid > 0 && pid <= u32::MAX as u64)
+        && v.get("launcherCreationFileTime")
+            .and_then(|x| x.as_u64())
+            .is_some_and(|birth| birth > 0)
+        && v.get("kernelActiveProcesses").and_then(|x| x.as_u64()) == Some(0)
+        && v.get("observedUnixMs")
+            .and_then(|x| x.as_i64())
+            .is_some_and(|time| time >= 0);
+    matches.then_some(v)
+}
+
+/// The terminal transaction is the LAST defense against a caller bypassing
+/// the OS-original witness consumer. This is only invoked for a Windows
+/// native Attempt and never for the Linux systemd/cgroup runner.
+///
+/// This checks the existing Job Journal IN THE SAME serializable transaction
+/// that updates Attempt/Job/Reservation and records original Artifacts.
+pub(super) fn require_native_windows_drain_in_terminal_tx(
+    tx: &mut postgres::Transaction<'_>,
+    job_id: &str,
+    attempt_id: &str,
+    source_sha256: &str,
+    launch_token_digest: &str,
+    request_digest: &str,
+    result_digest: &str,
+    expected_row_version: i64,
+) -> Result<(), PgAdmissionError> {
+    let rows = tx.query(
+        "SELECT origin,reason_code,detail_json,detail_digest FROM job_events \
+         WHERE job_id=$1 AND attempt_id=$2 AND event_type=$3",
+        &[&job_id, &attempt_id, &NATIVE_DRAIN_EVENT],
+    )?;
+    if rows.len() != 1 {
+        return Err(PgAdmissionError::Blocked);
+    }
+    let row = &rows[0];
+    let detail: String = row.get(2);
+    let digest: String = row.get(3);
+    if row.get::<_, String>(0) != "SYSTEM_OBSERVED"
+        || row.get::<_, String>(1) != NATIVE_DRAIN_REASON
+        || event_detail_matches(
+            &detail,
+            &digest,
+            job_id,
+            attempt_id,
+            source_sha256,
+            launch_token_digest,
+            request_digest,
+            result_digest,
+            expected_row_version,
+        )
+        .is_none()
+    {
+        return Err(PgAdmissionError::Blocked);
+    }
+    Ok(())
 }
 
 impl PgAdmissionStore {
@@ -131,7 +220,30 @@ impl PgAdmissionStore {
             &[&i.job_id, &i.attempt_id, &NATIVE_DRAIN_EVENT],
         )?;
         if let Some(row) = existing {
-            if row.get::<_, String>(0) != detail || row.get::<_, String>(1) != digest {
+            let stored_detail: String = row.get(0);
+            let stored_digest: String = row.get(1);
+            // The original witness timestamp is immutable, but a fresh
+            // observation after an ambiguous COMMIT may use a different time.
+            // Replay is qualified by full source/Attempt/OS identity, never
+            // by a caller's claim that no prior mutation happened.
+            let exact = event_detail_matches(
+                &stored_detail,
+                &stored_digest,
+                &i.job_id,
+                &i.attempt_id,
+                &i.expected_source_sha256,
+                &i.launch_token_digest,
+                &i.request_digest,
+                &i.result_digest,
+                i.expected_row_version,
+            )
+            .is_some_and(|v| {
+                v.get("launcherProcessId").and_then(|x| x.as_u64())
+                    == Some(i.launcher_process_id as u64)
+                    && v.get("launcherCreationFileTime").and_then(|x| x.as_u64())
+                        == Some(i.launcher_creation_file_time)
+            });
+            if !exact {
                 return Err(PgAdmissionError::IdempotencyConflict);
             }
             tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
@@ -223,29 +335,23 @@ impl PgAdmissionStore {
         {
             return Ok(false);
         }
-        let v: serde_json::Value =
-            serde_json::from_str(&detail).map_err(|_| PgAdmissionError::InvalidInput)?;
-        if v.get("schemaVersion").and_then(|v| v.as_u64()) != Some(1)
-            || v.get("jobId").and_then(|v| v.as_str()) != Some(i.job_id.as_str())
-            || v.get("attemptId").and_then(|v| v.as_str()) != Some(i.attempt_id.as_str())
-            || v.get("sourceSha256").and_then(|v| v.as_str())
-                != Some(i.expected_source_sha256.as_str())
-            || v.get("launchTokenDigest").and_then(|v| v.as_str())
-                != Some(i.launch_token_digest.as_str())
-            || v.get("requestDigest").and_then(|v| v.as_str()) != Some(i.request_digest.as_str())
-            || v.get("resultDigest").and_then(|v| v.as_str()) != Some(i.result_digest.as_str())
-            || v.get("jobObject").and_then(|v| v.as_str())
-                != Some(format!("Ordivon.{}", i.attempt_id).as_str())
-            || v.get("launcherProcessId").and_then(|v| v.as_u64())
-                != Some(i.launcher_process_id as u64)
-            || v.get("launcherCreationFileTime").and_then(|v| v.as_u64())
-                != Some(i.launcher_creation_file_time)
-            || v.get("kernelActiveProcesses").and_then(|v| v.as_u64()) != Some(0)
-            || !v
-                .get("observedUnixMs")
-                .and_then(|v| v.as_i64())
-                .is_some_and(|t| t >= 0)
-        {
+        let match_v = event_detail_matches(
+            &detail,
+            &digest,
+            &i.job_id,
+            &i.attempt_id,
+            &i.expected_source_sha256,
+            &i.launch_token_digest,
+            &i.request_digest,
+            &i.result_digest,
+            i.expected_row_version,
+        );
+        if !match_v.is_some_and(|v| {
+            v.get("launcherProcessId").and_then(|x| x.as_u64())
+                == Some(i.launcher_process_id as u64)
+                && v.get("launcherCreationFileTime").and_then(|x| x.as_u64())
+                    == Some(i.launcher_creation_file_time)
+        }) {
             return Ok(false);
         }
         tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
