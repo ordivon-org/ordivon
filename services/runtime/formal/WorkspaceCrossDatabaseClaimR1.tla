@@ -15,9 +15,9 @@ WorkspaceValues == WorkspaceIds \cup {"unknown"}
 ClaimStates == {"none", "reserved", "active", "released"}
 RunStates == {"absent", "prepared", "ready", "finished"}
 
-VARIABLES phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, liveJob, gitDependent
+VARIABLES phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, callerAck, liveJob, gitDependent
 
-vars == <<phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, liveJob, gitDependent>>
+vars == <<phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, callerAck, liveJob, gitDependent>>
 
 Init ==
     /\ phase = "open"
@@ -27,6 +27,7 @@ Init ==
     /\ claimWorkspace = [r \in RunIds |-> "unknown"]
     /\ published = {}
     /\ delivered = {}
+    /\ callerAck = {}
     /\ liveJob = FALSE
     /\ gitDependent = FALSE
 
@@ -39,7 +40,7 @@ HarnessPrepare(r,w) ==
     \* not supplied for the first time by a later Agent on open/retry.
     /\ harness' = [harness EXCEPT ![r] = "prepared"]
     /\ originalWorkspace' = [originalWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, claim, claimWorkspace, published, delivered, liveJob, gitDependent>>
+    /\ UNCHANGED <<phase, claim, claimWorkspace, published, delivered, callerAck, liveJob, gitDependent>>
 
 LegacyPrepareWithoutOriginal(r) ==
     /\ phase = "open"
@@ -47,7 +48,7 @@ LegacyPrepareWithoutOriginal(r) ==
     /\ harness[r] = "absent"
     \* A historical Run with no persisted original Workspace stays UNKNOWN.
     /\ harness' = [harness EXCEPT ![r] = "prepared"]
-    /\ UNCHANGED <<phase, claim, originalWorkspace, claimWorkspace, published, delivered, liveJob, gitDependent>>
+    /\ UNCHANGED <<phase, claim, originalWorkspace, claimWorkspace, published, delivered, callerAck, liveJob, gitDependent>>
 
 NativeReserve(r,w) ==
     /\ phase = "open"
@@ -61,7 +62,7 @@ NativeReserve(r,w) ==
     \* but original Workspace identity must come from the immutable Run birth.
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
     /\ claimWorkspace' = [claimWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent>>
+    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, callerAck, liveJob, gitDependent>>
 
 HarnessReady(r) ==
     /\ phase = "open"
@@ -69,7 +70,7 @@ HarnessReady(r) ==
     /\ harness[r] = "prepared"
     /\ claim[r] = "reserved"
     /\ harness' = [harness EXCEPT ![r] = "ready"]
-    /\ UNCHANGED <<phase, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, claim, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 NativeActivate(r) ==
     /\ phase = "open"
@@ -77,7 +78,7 @@ NativeActivate(r) ==
     /\ harness[r] = "ready"
     /\ claim[r] = "reserved"
     /\ claim' = [claim EXCEPT ![r] = "active"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 PublishToolGrant(r) ==
     /\ phase = "open"
@@ -86,14 +87,14 @@ PublishToolGrant(r) ==
     /\ claim[r] = "active"
     /\ r \notin published
     /\ published' = published \cup {r}
-    /\ UNCHANGED <<phase, harness, claim, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, claim, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 HarnessFinish(r) ==
     /\ phase = "open"
     /\ r \in published
     /\ harness[r] = "ready"
     /\ harness' = [harness EXCEPT ![r] = "finished"]
-    /\ UNCHANGED <<phase, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, claim, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 DeliverOutput(r) ==
     /\ phase = "open"
@@ -103,7 +104,19 @@ DeliverOutput(r) ==
     \* Artifact/Git output exact delivery is a distinct finalizer, not
     \* equivalent to successful Job resolution or elapsed retention time.
     /\ delivered' = delivered \cup {r}
-    /\ UNCHANGED <<phase, harness, claim, published, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, claim, published, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+
+\* Untrusted caller-reported ACK is observable, but it is not a
+\* delivery event. A caller can say accepted even when the recipient
+\* has not received a single original byte (native PG18/HTTP RED R29).
+CallerAttestsDelivery(r) ==
+    /\ phase = "open"
+    /\ r \in published
+    /\ harness[r] = "finished"
+    /\ r \notin callerAck
+    /\ callerAck' = callerAck \cup {r}
+    /\ UNCHANGED <<phase, harness, claim, originalWorkspace, claimWorkspace,
+                  published, delivered, liveJob, gitDependent>>
 
 NativeRelease(r) ==
     /\ phase = "open"
@@ -112,7 +125,7 @@ NativeRelease(r) ==
     /\ harness[r] = "finished"
     /\ r \in delivered
     /\ claim' = [claim EXCEPT ![r] = "released"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 AbortNeverIssuedReservation(r) ==
     /\ phase = "open"
@@ -123,31 +136,31 @@ AbortNeverIssuedReservation(r) ==
     \* A TTL without such proof cannot safely release an active consumer.
     /\ claim' = [claim EXCEPT ![r] = "released"]
     /\ harness' = [harness EXCEPT ![r] = "finished"]
-    /\ UNCHANGED <<phase, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 BeginJob ==
     /\ phase = "open"
     /\ ~liveJob
     /\ liveJob' = TRUE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, callerAck, gitDependent, originalWorkspace, claimWorkspace>>
 
 EndJob ==
     /\ phase = "open"
     /\ liveJob
     /\ liveJob' = FALSE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, callerAck, gitDependent, originalWorkspace, claimWorkspace>>
 
 AddGitDependent ==
     /\ phase = "open"
     /\ ~gitDependent
     /\ gitDependent' = TRUE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, liveJob, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, callerAck, liveJob, originalWorkspace, claimWorkspace>>
 
 RemoveGitDependent ==
     /\ phase = "open"
     /\ gitDependent
     /\ gitDependent' = FALSE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, liveJob, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, callerAck, liveJob, originalWorkspace, claimWorkspace>>
 
 Eligible ==
     /\ phase = "open"
@@ -160,7 +173,7 @@ NativeClose ==
     /\ Eligible
     \* Close, reserve and activate share the Runtime DB admission lock.
     /\ phase' = "closed"
-    /\ UNCHANGED <<harness, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<harness, claim, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 Progress ==
     \/ \E r \in RunIds: \E w \in WorkspaceIds: HarnessPrepare(r,w)
@@ -171,6 +184,7 @@ Progress ==
     \/ \E r \in RunIds: PublishToolGrant(r)
     \/ \E r \in RunIds: HarnessFinish(r)
     \/ \E r \in RunIds: DeliverOutput(r)
+    \/ \E r \in RunIds: CallerAttestsDelivery(r)
     \/ \E r \in RunIds: NativeRelease(r)
     \/ \E r \in RunIds: AbortNeverIssuedReservation(r)
     \/ BeginJob
@@ -191,6 +205,7 @@ TypeOK ==
     /\ published \subseteq RunIds
     /\ delivered \subseteq RunIds
     /\ delivered \subseteq published
+    /\ callerAck \subseteq RunIds
     /\ liveJob \in BOOLEAN
     /\ gitDependent \in BOOLEAN
 
@@ -214,6 +229,12 @@ ClosedHasNoPrematurelyReleasedConsumers ==
         (\A r \in RunIds:
             (originalWorkspace[r] \in WorkspaceIds /\ claim[r] = "released") =>
                 harness[r] = "finished")
+
+\* A supposedly completed Run with a caller-asserted ACK has not yet
+\* established independently received bytes. A trusted finalizer may
+\* release an issued Run only after genuine recipient evidence.
+PublishedReleaseRequiresOriginalDelivery ==
+    \A r \in published: claim[r] = "released" => r \in delivered
 
 ClosedHasDeliveredOutputs ==
     phase = "closed" => published \subseteq delivered
@@ -247,7 +268,7 @@ UnsafeCrossDatabaseClose ==
     /\ ~liveJob
     /\ ~gitDependent
     /\ phase' = "closed"
-    /\ UNCHANGED <<harness, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<harness, claim, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 UnsafeCrossDbSpec == Init /\ [][Progress \/ UnsafeCrossDatabaseClose]_vars
 
@@ -258,7 +279,7 @@ UnsafeLateForeignClaim(r) ==
     /\ r \in RunIds
     /\ claim[r] = "none"
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 UnsafeLateSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeLateForeignClaim(r))]_vars
@@ -271,7 +292,7 @@ UnsafeUnqualifiedGrant(r) ==
     /\ harness[r] = "prepared"
     /\ r \notin published
     /\ published' = published \cup {r}
-    /\ UNCHANGED <<phase, harness, claim, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, claim, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 UnsafeGrantSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeUnqualifiedGrant(r))]_vars
@@ -288,7 +309,7 @@ UnsafeCallerAdoptsLegacy(r,w) ==
     /\ claim[r] = "none"
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
     /\ claimWorkspace' = [claimWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent>>
+    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, callerAck, liveJob, gitDependent>>
 
 UnsafeAdoptionSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: \E w \in WorkspaceIds:
@@ -313,7 +334,7 @@ UnsafeCallerRebindKnown(r,w) ==
     /\ claim[r] = "none"
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
     /\ claimWorkspace' = [claimWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent>>
+    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, callerAck, liveJob, gitDependent>>
 
 UnsafeKnownRebindSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: \E w \in WorkspaceIds:
@@ -331,8 +352,43 @@ UnsafeDirectCallerRelease(r) ==
     /\ claim[r] = "reserved"
     /\ harness[r] = "prepared"
     /\ claim' = [claim EXCEPT ![r] = "released"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
+    /\ UNCHANGED <<phase, harness, published, delivered, callerAck, liveJob, gitDependent, originalWorkspace, claimWorkspace>>
 
 UnsafeDirectReleaseSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeDirectCallerRelease(r))]_vars
+\* REAL NATIVE COUNTEREXAMPLE R29: even with the dedicated Finalizer
+\* Bearer, the model caller fabricates accepted=true and a validating
+\* callback. The original Run is finished but recipient bytes are absent.
+\* The installed application-level predicate cannot distinguish worlds.
+UnsafeFinalizerTrustsCallerAck(r) ==
+    /\ phase = "open"
+    /\ r \in published
+    /\ harness[r] = "finished"
+    /\ claim[r] = "active"
+    /\ r \in callerAck
+    /\ r \notin delivered
+    /\ claim' = [claim EXCEPT ![r] = "released"]
+    /\ UNCHANGED <<phase, harness, published, delivered, callerAck, liveJob,
+                  gitDependent, originalWorkspace, claimWorkspace>>
+
+UnsafeForgedAckSpec ==
+    Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeFinalizerTrustsCallerAck(r))]_vars
+
+\* Runtime's native close does not observe the Harness database or recipient
+\* delivery. After forged release, PG sees no HELD claim and no native Job;
+\* ordinary nonforce Close is physically possible even with lost user bytes.
+UnsafeNativeCloseAfterForgedAck ==
+    /\ phase = "open"
+    /\ \E r \in published:
+        claim[r] = "released" /\ r \in callerAck /\ r \notin delivered
+    /\ \A r \in RunIds: claim[r] \notin {"reserved", "active"}
+    /\ ~liveJob
+    /\ ~gitDependent
+    /\ phase' = "closed"
+    /\ UNCHANGED <<harness, claim, originalWorkspace, claimWorkspace, published,
+                  delivered, callerAck, liveJob, gitDependent>>
+
+UnsafeForgedCloseSpec ==
+    Init /\ [][SafeNext \/ (\E r \in RunIds:
+        UnsafeFinalizerTrustsCallerAck(r)) \/ UnsafeNativeCloseAfterForgedAck]_vars
 =============================================================================

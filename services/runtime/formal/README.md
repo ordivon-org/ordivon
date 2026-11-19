@@ -614,8 +614,16 @@ Only a committed native ACTIVE claim authorizes a Tool grant; successful Job,
 elapsed time and an unauthenticated caller release do not.
 
 Run scripts/tla-formal check-workspace-crossdb for safety and weak-fair close,
-and scripts/tla-formal falsify-workspace-crossdb for legitimate close
-reachability, cross-DB unsafe close, late claim after close, and unauthorized
-grant. This is not a production Runtime Claim API, a cross-DB ACID commit,
-source-to-installed refinement, legacy Run migration or ignored Artifact
-finalization proof.
+and scripts/tla-formal falsify-workspace-crossdb for legitimate close,
+cross-DB unsafe close, late claim, unauthorized grant, direct raw release, and
+forged recipient acknowledgments. The typed callerAck records a caller's
+assertion separately from delivered, which represents independent recipient
+acceptance of original bytes. The safe native-release contract requires the
+latter. Two TLA+ negative configurations require concrete counterexample
+traces: a privileged Finalizer trusts a false caller ACK to release a published
+Run, then ordinary claim-only nonforce Close deletes its undelivered output.
+These are refinements of an existing cross-DB model, grounded in independent
+Harness native PG18/HTTP reproduction; they do not prove a deployed Finalizer
+or supply a real domain receipt. This is not a production Runtime Claim API, a
+cross-DB ACID commit, source-to-installed refinement, legacy Run migration,
+trusted OS NoFutureSpawn certification, or Artifact finalization proof.
