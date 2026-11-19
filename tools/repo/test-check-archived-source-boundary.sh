@@ -21,7 +21,7 @@ for path, pattern, expected in cases:
     if actual is not expected:
         raise SystemExit(f"glob contract mismatch: {path} ~ {pattern}: {actual} != {expected}")
 PY
-TMP="$(mktemp -d /root/ordivon-migration-tmp/archived-source-boundary-test.XXXXXX)"
+TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 repo="$TMP/repo"
