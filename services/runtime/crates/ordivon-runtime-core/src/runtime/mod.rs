@@ -32,6 +32,7 @@ mod reservation_state;
 mod supervisor;
 mod types;
 mod windows;
+mod windows_authorization;
 mod windows_broker;
 mod workspace_state;
 
@@ -136,8 +137,9 @@ pub(crate) use types::{ArtifactRegistration, TerminalCommit};
 pub use types::{ArtifactRegistration, RuntimeInvariantViolation, TerminalCommit};
 pub use windows::{
     materialize_windows_credential_binding, WindowsCredentialMaterializationObservation,
-    WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile, WindowsExecutionConfig,
+    WindowsExecutionConfig,
 };
+pub use windows_authorization::{WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile};
 pub use windows_broker::WindowsPrivilegedBrokerConfig;
 
 #[cfg(all(test, feature = "transactional-runtime"))]
