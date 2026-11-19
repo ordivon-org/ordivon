@@ -381,8 +381,8 @@ Tools already shared. `host.pool.stats` is an original Host
 operator-only exception that must NOT silently become an Agent Tool.
 The comparison is native original Host+Gateway `tools/list`, not a new
 hardcoded list of all 30 Host Tools. R10 extends this same source checker
-to the original GatewayService `_SOCIAL_WORK_HOST_TOOLS` allowlist, observed
-in the locked Gateway environment. Require
+to the single canonical Host tool set in logic/host_tool_contracts.py,
+observed in the locked Gateway environment. Require
 `sourceEndToEndSourceQualified=true` for Host business Tool public
 registration **and** internal dispatch closure; an absent/extra dispatcher
 name fails even when the two MCP Tool sets match. The original

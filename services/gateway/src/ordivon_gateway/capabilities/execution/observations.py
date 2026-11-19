@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from .contracts import (
+from ...contracts import (
     ArtifactChunk,
     CapabilityRoute,
     ExecutionObservation,
     ExecutionResolution,
 )
-from .execution_refs import GatewayError, parse_execution_ref
-from .execution_refs import format_execution_ref as _execution_ref
-from .owner_protocol import (
+from ...logic.execution_refs import GatewayError, parse_execution_ref
+from ...logic.execution_refs import format_execution_ref as _execution_ref
+from ...logic.owner_protocol import (
     OwnerToolCaller,
     _owner_optional_disposition,
     _owner_receipt_state,

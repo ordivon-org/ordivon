@@ -30,8 +30,8 @@ artifact bytes or installed behavior. No global registry or second PEP exists.
   the Workspace has no local cache. Inspect the four TLC invariants and the
   two expected counterexamples. For physical behavior run `mise run gateway:verify`.
 - **Agent:** first pin the Git SourceCut, inspect the original
-  `src/ordivon_gateway/authorization_targets.py` for the pure requested
-  Owner resource projection and `src/ordivon_gateway/capability_authz.py`
+  `src/ordivon_gateway/security/authorization_targets.py` for the pure requested
+  Owner resource projection and `src/ordivon_gateway/security/capability_authz.py`
   for its independent fail-closed Security PEP, then use
   `tests/test_capability_authz_middleware.py` plus Host/Release and HTTP
   native consumers and invoke `gateway:formal:verify`.
@@ -81,32 +81,32 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
-- **Capability Catalog** (src/ordivon_gateway/capability_catalog.py):
+- **Capability Catalog** (src/ordivon_gateway/capabilities/discovery.py):
   read-only system description, capability description, search and resolution.
   Observes natural owners; never executes effects or claims domain completion.
   Reuses the canonical capability_projection.project_execution_capability operator.
-- **Ingress identity contract** (src/ordivon_gateway/ingress_identity.py):
+- **Ingress identity contract** (src/ordivon_gateway/security/ingress_identity.py):
   all HTTP Guard, AuthZEN PEP, audit, and MCP execution-Context readers
   agree on the complete non-blank Principal/Issuer request-state pair.
   This is a projection of already verified Access state, not an authenticator,
   token issuer, Actor grant, or alternate Security policy.
-- **Authorization resource projection** (src/ordivon_gateway/authorization_targets.py):
+- **Authorization resource projection** (src/ordivon_gateway/security/authorization_targets.py):
   derive Host read/write, Runtime release and Artifact request targets from the
   original Gateway Tool/Owner inputs; no Principal authentication or Security
   decision is issued here. A single existing Host dispatcher remains authoritative.
-- **Gateway Security PEP** (src/ordivon_gateway/capability_authz.py):
+- **Gateway Security PEP** (src/ordivon_gateway/security/capability_authz.py):
   only resolves a target via the original projection, reads verified ingress,
   binds PDP response, validates versioned decision/evidence, and forwards or
   denies. No second Owner or Policy engine.
 - **Gateway application facade** (src/ordivon_gateway/service.py):
   stable public signatures, execution dispatch, artifact reads and Host delegation.
   Its discovery methods delegate rather than duplicating catalog rules.
-- **Explicit Execution composition** (src/ordivon_gateway/execution_commands.py,
-  src/ordivon_gateway/execution_observations.py):
+- **Explicit Execution composition** (src/ordivon_gateway/capabilities/execution/commands.py,
+  src/ordivon_gateway/capabilities/execution/observations.py):
   GatewayService injects the same validated Owner caller/route dependencies
   into existing command and observation modules for submit, resolve, observe,
   cancel and Artifact forwarding. No independent Job state or terminal truth.
-- **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
+- **Owner protocol** (src/ordivon_gateway/logic/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
   import of parse_execution_ref remains available.
@@ -603,7 +603,7 @@ authoritative total is absent or malformed, completeness remains UNKNOWN
 (None), not True or False.
 Likewise exitCode=True cannot be treated as an integer code. Original
 native consumers and negative tests:
-src/ordivon_gateway/execution_observations.py and
+src/ordivon_gateway/capabilities/execution/observations.py and
 tests/test_gateway_service.py. This is a wire result contract, not a
 new Runtime state model.
 

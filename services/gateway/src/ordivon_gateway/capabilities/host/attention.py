@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from mcp.server import MCPServer
 
-from .host_tool_contracts import HostCollectionBytes
+from ...logic.host_tool_contracts import HostCollectionBytes
 
 
 def register_host_attention_tools(

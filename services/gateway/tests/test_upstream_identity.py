@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ordivon_gateway.upstream import (
+from ordivon_gateway.transport.upstream import (
     McpOwnerCaller,
     OwnerCallError,
     OwnerEndpoint,
@@ -96,7 +96,7 @@ def test_windows_service_identity_env_is_file_reference_only(
 def test_conforming_owner_uses_first_class_mcp_client(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    import ordivon_gateway.upstream as upstream
+    import ordivon_gateway.transport.upstream as upstream
 
     observed: dict[str, object] = {}
 
@@ -175,7 +175,7 @@ def test_host_failure_survives_real_gateway_owner_call_boundary(
 ) -> None:
     """The MCP client's owner error must not turn into a Gateway success."""
 
-    import ordivon_gateway.upstream as upstream
+    import ordivon_gateway.transport.upstream as upstream
 
     host_error = {
         "code": "NOT_FOUND",

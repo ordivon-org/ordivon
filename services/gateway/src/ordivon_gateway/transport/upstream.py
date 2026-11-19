@@ -13,26 +13,26 @@ from mcp import Client, types
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
 from opentelemetry.propagate import inject as inject_trace_context
 
-from .owner_protocol import OwnerToolCaller as OwnerToolCaller
-from .security import (
+from ..logic.owner_protocol import OwnerToolCaller as OwnerToolCaller
+from ..security import (
     OwnerCallError as OwnerCallError,
 )
-from .security import (
+from ..security import (
     OwnerEndpoint as OwnerEndpoint,
 )
-from .security import (
+from ..security import (
     _headers_for_endpoint as _headers_for_endpoint,
 )
-from .security import (
+from ..security import (
     _read_private_secret_file as _read_private_secret_file,
 )
-from .security import (
+from ..security import (
     _read_private_token_file as _read_private_token_file,
 )
-from .security import (
+from ..security import (
     _runtime_identity_configured as _runtime_identity_configured,
 )
-from .security import (
+from ..security import (
     _validate_windows_private_secret_file as _validate_windows_private_secret_file,
 )
 

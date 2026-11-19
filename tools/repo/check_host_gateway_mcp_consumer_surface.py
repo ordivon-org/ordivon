@@ -24,10 +24,10 @@ _HOST_OPERATOR_ONLY = frozenset({"host.pool.stats"})
 
 
 async def _emit_source(owner: str) -> dict[str, Any]:
-    # Observe the original GatewayService allowlist in the Gateway environment,
+    # Observe the original Host dispatch contract in the Gateway environment,
     # rather than introducing a second copied Tool registry.
     if owner == "gateway-dispatch":
-        from ordivon_gateway.service import _SOCIAL_WORK_HOST_TOOLS
+        from ordivon_gateway.logic.host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
 
         return {"dispatchHostToolNames": sorted(_SOCIAL_WORK_HOST_TOOLS)}
 

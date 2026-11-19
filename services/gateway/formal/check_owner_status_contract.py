@@ -20,8 +20,8 @@ import asyncio
 from itertools import product
 from typing import Any
 
-from ordivon_gateway.capability_projection import project_execution_capability
-from ordivon_gateway.routing import default_routes
+from ordivon_gateway.logic.capability_projection import project_execution_capability
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 VALUES: tuple[Any, ...] = (

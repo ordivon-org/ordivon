@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .contracts import CapabilityRoute as CapabilityRoute
+from ..contracts import CapabilityRoute as CapabilityRoute
 from .research_routes import research_capabilities
 
 

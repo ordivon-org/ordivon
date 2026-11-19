@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 from mcp.server import MCPServer
 from pydantic import Field
 
-from .host_tool_contracts import HostCollectionBytes, HostMessageBytes
+from ...logic.host_tool_contracts import HostCollectionBytes, HostMessageBytes
 
 
 def register_host_social_tools(

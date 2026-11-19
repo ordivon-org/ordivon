@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.exceptions import ToolError
 
-from ..execution_refs import GatewayError
+from ..logic.execution_refs import GatewayError
 from .ingress_identity import identity_from_state, tool_context_state
 
 if TYPE_CHECKING:

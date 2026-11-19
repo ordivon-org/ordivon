@@ -10,7 +10,7 @@ import re
 from collections.abc import Mapping
 from typing import Any, Literal
 
-from .contracts import (
+from ..contracts import (
     CapabilityDescriptor,
     CapabilityProjection,
     CapabilityRoute,

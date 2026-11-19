@@ -17,8 +17,8 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from ..execution_refs import GatewayError, parse_execution_ref
-from ..host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
+from ..logic.execution_refs import GatewayError, parse_execution_ref
+from ..logic.host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
 
 
 @dataclass(frozen=True, slots=True)

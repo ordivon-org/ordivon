@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ordivon_gateway.capability_projection import (
+from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
+from ordivon_gateway.logic.capability_projection import (
     project_capability_search,
     project_execution_capability,
 )
-from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
-from ordivon_gateway.routing import default_routes
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 

@@ -74,7 +74,7 @@ def test_sdk_rejects_illegal_owner_budgets_before_any_host_call() -> None:
 def test_gateway_topic_archive_forwarding_uses_existing_owner_tool() -> None:
     from mcp.server import MCPServer
 
-    from ordivon_gateway.host_social_tools import register_host_social_tools
+    from ordivon_gateway.capabilities.host.social import register_host_social_tools
 
     async def scenario() -> None:
         calls: list[tuple[str, dict]] = []

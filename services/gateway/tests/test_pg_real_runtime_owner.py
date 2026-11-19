@@ -25,7 +25,7 @@ from mcp import Client
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayService
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
 
 
 @pytest.mark.skipif(

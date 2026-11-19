@@ -9,8 +9,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ordivon_gateway import upstream
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
+from ordivon_gateway.transport import upstream
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
 
 
 def _private(path: Path, content: str) -> str:
@@ -233,7 +233,7 @@ def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
             uv.should_exit = True
             await asyncio.wait_for(serving, timeout=12)
 
-    caplog.set_level("WARNING", logger="ordivon_gateway.upstream")
+    caplog.set_level("WARNING", logger="ordivon_gateway.transport.upstream")
     projection = asyncio.run(scenario())
     item = projection.capabilities[0]
     assert completed_tool_responses == [200]
