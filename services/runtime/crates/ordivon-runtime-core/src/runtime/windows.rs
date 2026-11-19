@@ -927,6 +927,8 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub timeout_ms: u64,
     pub stdout_limit_bytes: u64,
     pub stderr_limit_bytes: u64,
+    /// PG-only original Runtime process identity. Ordinary legacy jobs leave None.
+    pub pg_terminal_peer_pid: Option<u32>,
 }
 
 /// Windows-native launcher contract after all control-plane path projection has completed.
@@ -958,6 +960,7 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub timeout_ms: u64,
     pub stdout_limit_bytes: u64,
     pub stderr_limit_bytes: u64,
+    pub pg_terminal_peer_pid: Option<u32>,
     pub emit_launcher_start: bool,
 }
 
@@ -1521,6 +1524,7 @@ pub(crate) fn spawn_windows_native(
         // It records launcher identity from that OS handle immediately after spawn, so the
         // launcher must not race the parent by self-publishing the same first-stage evidence.
         emit_launcher_start: false,
+        pg_terminal_peer_pid: spec.pg_terminal_peer_pid,
     };
     let launcher_stderr_path = spec.bundle_path.join("launcher-stderr.log");
     let mut command = Command::new(&launcher);
@@ -1728,6 +1732,17 @@ pub(crate) fn append_windows_launcher_arguments(
         .arg("false");
     if spec.emit_launcher_start {
         command.arg("--emit-launcher-start");
+    }
+    if let Some(peer) = spec.pg_terminal_peer_pid {
+        if peer == 0 {
+            return Err(RuntimeError::invalid(
+                "PG terminal peer process ID must be nonzero",
+                "windows.pgTerminalPeerProcessId",
+            ));
+        }
+        command
+            .arg("--pg-terminal-peer-process-id")
+            .arg(peer.to_string());
     }
 
     match (
@@ -2349,6 +2364,7 @@ mod tests {
             stdout_limit_bytes: 4096,
             stderr_limit_bytes: 4096,
             emit_launcher_start: false,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2458,6 +2474,7 @@ mod tests {
             stdout_limit_bytes: 4096,
             stderr_limit_bytes: 4096,
             emit_launcher_start: false,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2555,7 +2572,7 @@ mod tests {
         let args = Vec::<String>::new();
         let environment = BTreeMap::new();
         let budget = ExecutionBudget::default();
-        let spec = WindowsLauncherInvocationSpec {
+        let mut spec = WindowsLauncherInvocationSpec {
             bundle: "C:\\ProgramData\\Ordivon\\attempts\\attempt-2",
             job_id: "job-2",
             attempt_id: "attempt-2",
@@ -2581,6 +2598,7 @@ mod tests {
             stdout_limit_bytes: 1024,
             stderr_limit_bytes: 1024,
             emit_launcher_start: true,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2594,6 +2612,26 @@ mod tests {
                 .filter(|arg| arg.as_str() == "--emit-launcher-start")
                 .count(),
             1
+        );
+        // The actual PG parent holds the original process handle and writes
+        // windows-launcher-start.json. It MUST NOT enable the competing
+        // Launcher self-writer merely to obtain the native drain gate.
+        spec.emit_launcher_start = false;
+        spec.pg_terminal_peer_pid = Some(12345);
+        let mut pg_command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
+        append_windows_launcher_arguments(&mut pg_command, &spec).unwrap();
+        let pg_arguments = pg_command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(!pg_arguments.iter().any(|arg| arg == "--emit-launcher-start"));
+        assert!(pg_arguments.windows(2).any(|pair|
+            pair[0] == "--pg-terminal-peer-process-id" && pair[1] == "12345"));
+        spec.pg_terminal_peer_pid = Some(0);
+        assert_eq!(
+            append_windows_launcher_arguments(&mut Command::new("launcher"), &spec)
+                .unwrap_err().code,
+            RuntimeErrorCode::InvalidRequest
         );
     }
 
