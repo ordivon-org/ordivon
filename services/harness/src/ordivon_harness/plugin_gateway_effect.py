@@ -8,7 +8,7 @@ from .agent_plugin import AgentPluginMcpComponent
 from .agent_tool_observation import HarnessToolObservation
 from .core_contracts import HarnessRunContract
 from .execution_binding import HarnessExecutionBinding
-from .run_authority import (
+from .gateway_execution_policy import (
     PluginGatewayExecutionGrant,
     _forward_granted_timeout,
     authorize_gateway_tool_call,
