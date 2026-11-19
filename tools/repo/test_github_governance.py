@@ -252,6 +252,26 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
 
+    def test_repo_mechanics_runs_the_existing_retirement_guard(self) -> None:
+        """Archived-source protection is part of the actual protected root CI."""
+        import tomllib
+        import yaml
+
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+        script = tasks["repo:ci"]["run"]
+        commands = [line.strip() for line in script.splitlines()]
+        self.assertEqual(commands.count("mise run repo:retirement:verify"), 1)
+        retirement = tasks["repo:retirement:verify"]["run"]
+        self.assertIn("tools/repo/check_archived_source_boundary.py", retirement)
+        self.assertIn("tools/repo/test-check-archived-source-boundary.sh", retirement)
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        mechanics = next(
+            step["run"]
+            for step in workflow["jobs"]["repo-mechanics"]["steps"]
+            if step.get("name") == "Repository mechanics"
+        )
+        self.assertIn("mise run repo:ci", mechanics)
+
     def test_root_mise_retry_runs_only_native_install_and_preserves_failures(self) -> None:
         """A finite upstream outage retries missing tools and never masks exhaustion."""
         import os
