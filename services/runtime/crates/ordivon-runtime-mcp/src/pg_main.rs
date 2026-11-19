@@ -198,6 +198,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             None
         },
+        harness_dispatch_issuer: isolated_harness
+            .as_ref()
+            .map(|(_, principal, schema)| (principal.clone(), schema.clone())),
         workspace_headroom,
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
@@ -216,6 +219,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .as_ref()
         .map(|(_, _, schema)| PgRuntimeConfig {
             harness_issuer_schema: Some(schema.clone()),
+            harness_dispatch_issuer: None,
             ..config.clone()
         });
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;
@@ -265,6 +269,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         release,
     );
+    // The ordinary execution route and the authenticated Harness route must
+    // not share long-lived Run relinquishment authority. This takes effect
+    // only with the complete, separately authenticated dedicated Harness
+    // profile; historic ordinary-principal Claims require consumer-qualified
+    // migration rather than automatic owner rebinding.
+    let server = if isolated_harness.is_some() {
+        server.without_claim_release()
+    } else {
+        server
+    };
     let dedicated_server = match (harness_runtime, isolated_harness.as_ref()) {
         (Some(runtime), Some((_, principal, _))) => Some(PgRuntimeServer::new(
             runtime,

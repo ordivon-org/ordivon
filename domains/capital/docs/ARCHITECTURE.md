@@ -133,8 +133,36 @@ canonical Capital Accounting.
 Neither internal accounting substrate proves exchange settlement, legal
 ownership, withdrawability or venue trade reality. Reconciliation still
 distinguishes unknown effect (`NO_MUTATION`), authoritative proven no-effect
-(`VOID_PENDING_TRANSFER`) and positive execution
-(`POST_PENDING_TRANSFER`) without resurrecting terminal history.
+(`VOID_PENDING_TRANSFER`) and **fully reconciled exact-quantity execution**
+(`POST_PENDING_TRANSFER`) without resurrecting terminal history. A positive
+**partial** execution is PARTIAL_EXECUTION_UNSETTLED -> NO_MUTATION, including
+partial-fill-then-cancel: it must not post an entire pending reservation or
+void a reservation whose venue effect is positive. Trading retains the
+authoritative fill/remaining-quantity evidence until a separately qualified,
+amount-aware Accounting consumer exists. Venue trade IDs are deduplicated and
+an ambiguous reused client order ID never selects an arbitrary order.
+**One-time amount-aware terminal resolution (TigerBeetle two-phase contract).**
+The current Accounting PostgreSQL owner accepts a POST_PENDING_TRANSFER with
+an exact integer posted_amount in (0, reserved] and atomically removes the
+*entire reserved amount* from pending while posting only the observed amount.
+The difference becomes available headroom, not an independent phantom credit.
+POSTED is terminal even when the posted amount is smaller than reserved:
+another POST, VOID, or amount-changing replay cannot post again.
+DurableReservationHistory(CONSUMED, posted_amount=...) must match the exact
+read-back amount; absent explicit amount means the historical full-post case.
+Durable PG refinement requires the original pending transfer and terminal
+resolution to carry their actual persisted statuses; missing or inconsistent
+status is not a successful MATCH. Independent Z3 model obligations and
+disposable PostgreSQL concurrency
+tests cover this bounded invariant, not venue or source authenticity.
+
+Trading still returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION for an
+incomplete or unauthenticated partial fill. Neither venue qty * price nor
+Accounting's accepted numeric posted_amount is financial truth by itself:
+only after Trading qualifies terminal fill/fee/currency evidence may an
+external effect consumer request a one-time amount-aware resolution. Live
+and Demo providers are **not automatically connected to this new authority**.
+
 For installed truth, inspect the actual Accounting owner/Runtime release
 and live service rather than inferring it from this architecture page.
 

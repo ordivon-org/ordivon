@@ -10,9 +10,9 @@ import pytest
 from ordivon_host_v2.collaboration_inputs import SpaceInput
 from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
-from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -24,7 +24,7 @@ pytestmark = [
 def _actor() -> str:
     assert DSN is not None
     actor = f"actor:agent:concurrent-social-create:{uuid4().hex}"
-    WorkStore(DSN).declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{actor}",
     )

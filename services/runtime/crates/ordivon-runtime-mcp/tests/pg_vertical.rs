@@ -23,6 +23,9 @@ struct Fixture {
     /// Opt in only for an E2E test that executes a sibling native systemd Unit
     /// across Cargo's private sandbox mount. Other fixtures are unchanged.
     host_visible_test_runner: bool,
+    /// Opt in only for disposable Harness-issuer dispatch tests.
+    harness_dispatch_test: bool,
+    harness_schema_override: Option<String>,
 }
 impl Fixture {
     fn new() -> Self {
@@ -151,6 +154,8 @@ impl Fixture {
             endpoint: None,
             db,
             host_visible_test_runner: false,
+            harness_dispatch_test: false,
+            harness_schema_override: None,
         }
     }
     fn endpoint(&mut self) -> String {
@@ -181,8 +186,24 @@ impl Fixture {
             // private source mount. Copy only this disposable Fixture binary
             // into the same private PG test root; never touch installed units.
             let test_runner = self.root.join("ordivon-runtime-runner");
-            fs::copy(&runner, &test_runner).unwrap();
-            fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755)).unwrap();
+            // This fixture may restart its PG endpoint while the previous
+            // native Runner still owns the disposable executable. Re-copying
+            // that same executing inode would fail with ETXTBSY, so reuse its
+            // exact verified bytes instead of attempting an unsafe overwrite.
+            match fs::symlink_metadata(&test_runner) {
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                    fs::copy(&runner, &test_runner).unwrap();
+                    fs::set_permissions(&test_runner, fs::Permissions::from_mode(0o755)).unwrap();
+                }
+                Ok(meta) if meta.file_type().is_file() => {
+                    assert_eq!(
+                        fs::read(&test_runner).unwrap(),
+                        fs::read(&runner).unwrap(),
+                        "restarted PG endpoint cannot substitute a different Runner image"
+                    );
+                }
+                other => panic!("disposable Runner copy path changed: {other:?}"),
+            }
             test_runner
         } else {
             runner
@@ -207,6 +228,20 @@ impl Fixture {
             .env("ORDIVON_PG_PRINCIPAL", principal)
             .stdout(Stdio::null())
             .stderr(output);
+        if self.harness_dispatch_test {
+            let token_file = self.root.join("r16-dedicated-harness-token");
+            fs::write(&token_file, "h".repeat(48)).unwrap();
+            fs::set_permissions(&token_file, fs::Permissions::from_mode(0o600)).unwrap();
+            endpoint
+                .env(
+                    "ORDIVON_PG_HARNESS_ISSUER_SCHEMA",
+                    self.harness_schema_override
+                        .as_deref()
+                        .unwrap_or("r16_issuer"),
+                )
+                .env("ORDIVON_PG_HARNESS_TOKEN_FILE", token_file)
+                .env("ORDIVON_PG_HARNESS_PRINCIPAL", "harness-dispatch-r16");
+        }
         if qualified_release {
             let source = self.root.join("release-source");
             let receipts = self.root.join("receipts");
@@ -1038,7 +1073,17 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(names.len(), 20);
+    // Original D #2333 adds exactly the three native physical Claim tools to
+    // the already qualified PG-only catalog; a stale 20-tool test must not
+    // reject the legitimate exact 23-tool source without inspecting names.
+    assert_eq!(names.len(), 23, "{names:?}");
+    for claim_tool in [
+        "workspace.claim.reserve",
+        "workspace.claim.get",
+        "workspace.claim.release",
+    ] {
+        assert!(names.contains(&claim_tool), "{names:?}");
+    }
     // Operator startup receipt must describe the *same* catalog advertised
     // by the mature MCP SDK; it cannot silently retain an obsolete count.
     let startup = fs::read_to_string(fixture.root.join("endpoint.log")).unwrap();
@@ -1617,6 +1662,146 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     eprintln!("real PostgreSQL + HTTP MCP verified; native initial launch outcome: {exec}");
 }
 
+/// Real native PG18+HTTP MCP+Git consumer for the existing bounded
+/// Workspace.list projection. Pages must remain stable with >4 physical
+/// Workspaces; a broken Git checkout is a local issue, not a lost cursor.
+#[test]
+#[ignore = "uses a disposable PG18 fixture and 12 real Git worktrees"]
+fn pg_workspace_list_many_git_worktrees_preserves_order_and_local_issues() {
+    use std::collections::BTreeSet;
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let ids = (0..12)
+        .map(|i| format!("ws-r28-page-{i:02}"))
+        .collect::<Vec<_>>();
+    for id in &ids {
+        let opened = call(
+            &endpoint,
+            "workspace.open",
+            json!({"workspaceId":id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+        );
+        assert_ne!(opened["isError"], true, "open {id}: {opened}");
+    }
+    let dirty_id = &ids[4];
+    fs::write(
+        fixture
+            .root
+            .join("store/workspaces")
+            .join(dirty_id)
+            .join("untracked.txt"),
+        b"R28_DIRTY_WORKTREE",
+    )
+    .unwrap();
+    let corrupt_id = &ids[8];
+    let corrupt_git = fixture
+        .root
+        .join("store/workspaces")
+        .join(corrupt_id)
+        .join(".git");
+    let original_git = fs::read(&corrupt_git).unwrap();
+    fs::write(&corrupt_git, "gitdir: /nonexistent/r28-corrupt-worktree\n").unwrap();
+
+    let start = Instant::now();
+    let full = call(&endpoint, "workspace.list", json!({"limit":20}));
+    let full_ms = start.elapsed().as_millis();
+    assert_ne!(full["isError"], true, "{full}");
+    let rows = full["structuredContent"]["workspaces"]
+        .as_array()
+        .expect("physical Workspace page");
+    assert_eq!(
+        rows.len(),
+        11,
+        "corrupt Worktree must remain an issue: {full}"
+    );
+    assert!(full["structuredContent"]["nextCursor"].is_null(), "{full}");
+    let issues = full["structuredContent"]["issues"].as_array().unwrap();
+    assert!(
+        issues.iter().any(|item| {
+            item["workspaceId"] == corrupt_id.as_str() && item["stage"] == "projection"
+        }),
+        "physical corrupt Worktree was silently hidden: {full}"
+    );
+    let returned = rows
+        .iter()
+        .map(|r| r["workspaceId"].as_str().unwrap().to_string())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(returned.len(), 11);
+    for id in &ids {
+        assert_eq!(
+            returned.contains(id),
+            id != corrupt_id,
+            "missing or false Workspace {id}"
+        );
+    }
+    assert!(
+        rows.iter()
+            .find(|r| r["workspaceId"] == dirty_id.as_str())
+            .unwrap()["dirty"]
+            == true
+    );
+    for pair in rows.windows(2) {
+        let earlier = pair[0]["createdAtMs"].as_u64().unwrap();
+        let later = pair[1]["createdAtMs"].as_u64().unwrap();
+        assert!(
+            earlier > later
+                || (earlier == later
+                    && pair[0]["workspaceId"].as_str().unwrap()
+                        < pair[1]["workspaceId"].as_str().unwrap())
+        );
+    }
+
+    let mut paged = BTreeSet::new();
+    let mut cursor = Value::Null;
+    let mut pages = 0;
+    let started = Instant::now();
+    loop {
+        pages += 1;
+        assert!(pages <= 7, "physical cursor was stuck on corrupt Workspace");
+        let page = call(
+            &endpoint,
+            "workspace.list",
+            json!({"limit":3,"cursor":cursor}),
+        );
+        assert_ne!(page["isError"], true, "{page}");
+        for row in page["structuredContent"]["workspaces"].as_array().unwrap() {
+            assert!(
+                paged.insert(row["workspaceId"].as_str().unwrap().to_string()),
+                "duplicate across stable physical cursors: {page}"
+            );
+        }
+        cursor = page["structuredContent"]["nextCursor"].clone();
+        if cursor.is_null() {
+            break;
+        }
+    }
+    assert_eq!(paged, returned, "paged and full inventory disagree");
+    let paged_ms = started.elapsed().as_millis();
+    // Diagnostic only, not a flaky threshold: stable repeated warm reads
+    // compare identical real MCP semantics on serial and bounded projections.
+    let mut full_samples_ms = Vec::with_capacity(5);
+    for _ in 0..5 {
+        let t = Instant::now();
+        let repeat = call(&endpoint, "workspace.list", json!({"limit":20}));
+        assert_ne!(repeat["isError"], true, "{repeat}");
+        let seen = repeat["structuredContent"]["workspaces"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["workspaceId"].as_str().unwrap().to_string())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(seen, returned, "repeated native read changed identity set");
+        full_samples_ms.push(t.elapsed().as_millis());
+    }
+    full_samples_ms.sort_unstable();
+    let median_full_ms = full_samples_ms[2];
+    fs::write(&corrupt_git, original_git).unwrap();
+    eprintln!(
+        "R28_PG18_MCP_LIST_12_WORKTREES_P50_MS={median_full_ms} SAMPLES_MS={full_samples_ms:?}"
+    );
+    eprintln!("R28_PG18_MCP_LIST_12_WORKTREES_PASS full_ms={full_ms} paged_ms={paged_ms} pages={pages} returned={} issues={}",rows.len(),issues.len());
+}
+
 /// Cross-owner Harness dispatch fencing carries Runtime-native ForeignReference
 /// correlation, not a capability or a new Runtime-owned authority. The PG Job
 /// must freeze it in the exact request digest + native Runner plan. Repeating
@@ -2014,6 +2199,7 @@ fn pg_workspace_open_fails_on_either_carrier_before_git_effect() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -2097,6 +2283,7 @@ fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -2230,6 +2417,7 @@ fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -2414,6 +2602,7 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("store"),
@@ -2960,6 +3149,10 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();
+    // Cargo's per-Job /run/ordivon/cargo-target is private to the test's
+    // own native Unit. A sibling transient PG Runner must use the existing
+    // disposable host-visible fixture copy rather than this private mount.
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let open = call(
@@ -2968,7 +3161,7 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         json!({"workspaceId":"ws-physical","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(open["isError"], true, "{open}");
-    let exec = call(
+    let mut exec = call(
         &endpoint,
         "workspace.exec",
         json!({"clientRequestId":"pg-native-physical-0001","execution":{"workspaceId":"ws-physical","executable":"/usr/bin/printf","args":["native-proof"],"cwdRelative":".","timeoutMs":5000},"waitMs":10000}),
@@ -2977,6 +3170,27 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         exec["isError"], true,
         "physical native launch required: {exec}"
     );
+    // Resource-aware PG admission can return STARTING while the current
+    // physical Job is still queued. Observe the SAME committed Job rather
+    // than redispatching a second external effect.
+    let admitted_id = exec["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if exec["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        exec = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":admitted_id,"waitMs":1000,"stdoutTailBytes":256}),
+        );
+        assert_ne!(
+            exec["isError"], true,
+            "existing PG Job observation failed: {exec}"
+        );
+    }
     assert_eq!(
         exec["structuredContent"]["executionDisposition"], "succeeded",
         "{exec}"
@@ -3038,6 +3252,25 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         )
         .unwrap()
         .get(0);
+    // Published stdout must be a separate verified byte carrier from the
+    // Runner's mutable source, so a delayed producer append cannot erase an
+    // already-received Artifact. This is a genuine PG/Native consumer check.
+    let original_stdout = PathBuf::from(&stdout_path).with_file_name("stdout.log");
+    assert_ne!(
+        PathBuf::from(&stdout_path),
+        original_stdout,
+        "registered bytes still alias the mutable Runner source"
+    );
+    fs::write(&original_stdout, b"late-producer-append-after-terminal").unwrap();
+    let published_artifact = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":completed_job,"artifactId":stdout["artifactId"],"offset":0,"maxBytes":100}),
+    );
+    assert_eq!(
+        published_artifact["structuredContent"]["content"], "native-proof",
+        "a mutable Runner source must not invalidate an already published Artifact"
+    );
     fs::write(&stdout_path, b"forged-stdout-after-terminal").unwrap();
     let forged_artifact = call(
         &endpoint,
@@ -3084,6 +3317,30 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         )
         .unwrap()
         .get(0);
+    let original_stderr = PathBuf::from(&stderr_path).with_file_name("stderr.log");
+    assert_ne!(PathBuf::from(&stderr_path), original_stderr);
+    fs::write(&original_stderr, b"late-stderr-after-terminal").unwrap();
+    let still_empty_stderr = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":200}),
+    );
+    assert_ne!(still_empty_stderr["isError"], true, "{still_empty_stderr}");
+    assert!(
+        still_empty_stderr["structuredContent"]["stderrTail"].is_null()
+            || still_empty_stderr["structuredContent"]["stderrTail"] == "",
+        "empty stderr must not gain bytes from its mutable Runner source: {still_empty_stderr}"
+    );
+    let still_empty_artifact = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":completed_job,"artifactId":stderr_artifact["artifactId"],"offset":0,"maxBytes":100}),
+    );
+    assert_ne!(
+        still_empty_artifact["isError"], true,
+        "{still_empty_artifact}"
+    );
+    assert_eq!(still_empty_artifact["structuredContent"]["content"], "");
     fs::write(&stderr_path, b"forged-stderr-after-terminal").unwrap();
     let forged_stderr = call(
         &endpoint,
@@ -3721,6 +3978,7 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("self-qualified-attempt"),
@@ -3777,6 +4035,7 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
         harness_issuer_schema: None,
+        harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
         executor: UniversalExecutorConfig {
             store_root: fixture.root.join("session-authority-candidate"),
@@ -4752,4 +5011,741 @@ fn b_r3_native_cancel_corrupt_frozen_plan_stops_issued_os_unit() {
     assert_eq!(row["executableName"], Value::Null);
     assert_eq!(row["cwdRelative"], Value::Null);
     eprintln!("R30_NATIVE_PG18_CORRUPT_PLAN_CANCEL_OS_DRAIN_PASS job={job_id} original_unit={unit_name} denied_false_success={}",cancel["isError"]);
+}
+
+fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let client = reqwest::Client::new();
+        let response = client
+            .post(url)
+            .bearer_auth(bearer)
+            .header("Accept", "application/json, text/event-stream")
+            .header("MCP-Protocol-Version", "2026-07-28")
+            .header("Mcp-Method", "tools/call")
+            .header("Mcp-Name", name)
+            .json(&json!({
+                "jsonrpc":"2.0","id":1,"method":"tools/call",
+                "params":{"name":name,"arguments":args,
+                    "_meta":{
+                        "io.modelcontextprotocol/protocolVersion":"2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities":{}
+                    }
+                }
+            }))
+            .send()
+            .await
+            .unwrap();
+        let status = response.status().as_u16();
+        let body = response.text().await.unwrap();
+        if status != 200 {
+            return (status, json!({"body":body}));
+        }
+        let message: Value = if body.starts_with("event:") || body.starts_with("data:") {
+            serde_json::from_str(body.lines().find_map(|s| s.strip_prefix("data: ")).unwrap())
+                .unwrap()
+        } else {
+            serde_json::from_str(&body).unwrap()
+        };
+        (status, message["result"].clone())
+    })
+}
+
+// A real native PG MCP scheduler/HTTP consumer, with only original Run source
+// simulated as definitively revoked. Admission is seeded into disposable PG,
+// so this does not claim real Harness authenticated *admission* or Native ACK.
+#[test]
+#[ignore = "requires native PG18 / test-only systemd Runner and isolated MCP service"]
+fn pg_mcp_scheduler_revoked_harness_job_reuses_existing_cancel() {
+    use ordivon_runtime_core::pg_admission::{
+        PgAdmissionInput, PgAdmissionOutcome, PgAdmissionStore,
+    };
+    use sha2::{Digest, Sha256};
+    let digest =
+        |bytes: &[u8]| -> String { format!("sha256:{}", hex::encode(Sha256::digest(bytes))) };
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let normal_endpoint = fixture.endpoint();
+    let workspace_id = format!("r16-owned-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &normal_endpoint,
+        "workspace.open",
+        json!({"workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(
+        opened["isError"], true,
+        "original native Workspace required: {opened}"
+    );
+    let normal = call(
+        &normal_endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":format!("r16-ordinary-{}",Uuid::now_v7().simple()),
+            "execution":{"workspaceId":workspace_id,"executable":"/usr/bin/printf",
+                "args":["r16-normal"],"cwdRelative":".","timeoutMs":15000},
+            "waitMs":0
+        }),
+    );
+    assert_ne!(
+        normal["isError"], true,
+        "ordinary admission failed: {normal}"
+    );
+    let normal_id = normal["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        let observed = call(
+            &normal_endpoint,
+            "job.observe",
+            json!({
+                "jobId":normal_id,"waitMs":2000
+            }),
+        );
+        assert_ne!(
+            observed["isError"], true,
+            "ordinary observe failed: {observed}"
+        );
+        if observed["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                observed["structuredContent"]["executionDisposition"], "succeeded",
+                "ordinary native runner did not execute: {observed}"
+            );
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "ordinary native runner not terminal: {observed}"
+        );
+    }
+    let row = fixture
+        .db
+        .query_one(
+            "SELECT workspace_snapshot_json,execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&normal_id],
+        )
+        .unwrap();
+    let snapshot: String = row.get(0);
+    let mut plan: Value = serde_json::from_str(&row.get::<_, String>(1)).unwrap();
+
+    // Stop only this test's disposable service. It cannot issue an old Job
+    // while the new accepted Attempt is prepared in the same isolated PG.
+    let mut previous = fixture.endpoint.take().unwrap();
+    previous.kill().unwrap();
+    previous.wait().unwrap();
+
+    fixture
+        .db
+        .batch_execute(
+            "CREATE SCHEMA r16_issuer;
+         CREATE FUNCTION r16_issuer.harness_current_dispatch_cut(text,bigint,text)
+         RETURNS TABLE(event_kind text,payload_digest text,payload_kind text,
+             payload_len bigint,payload_content bytea,fence_kind text,
+             fence_len bigint,fence_content bytea,intent_digest text,
+             intent_kind text,intent_len bigint,intent_content bytea)
+         LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
+         AS $issuer$ BEGIN RETURN; END $issuer$;
+         REVOKE ALL ON FUNCTION
+          r16_issuer.harness_current_dispatch_cut(text,bigint,text) FROM PUBLIC;
+         GRANT USAGE ON SCHEMA r16_issuer TO runtime_app;
+         GRANT EXECUTE ON FUNCTION
+          r16_issuer.harness_current_dispatch_cut(text,bigint,text) TO runtime_app;",
+        )
+        .unwrap();
+    // A source-owned issuer returned no current cut: no future physical
+    // dispatch may be committed for this previously accepted Test Job.
+    let job = format!("job-r16-{}", Uuid::now_v7().simple());
+    let attempt = format!("attempt-r16-{}", Uuid::now_v7().simple());
+    let operation_digest = digest(format!("r16-operation:{job}").as_bytes());
+    let launch_token =
+        digest(format!("runtime-launch-v1\0{attempt}\0{operation_digest}").as_bytes());
+    let frozen_ref = json!([
+        {"namespace":"ordivon.harness","type":"harness_run",
+         "id":"harness-run:r16-original"},
+        {"namespace":"ordivon.harness","type":"dispatch_fence",
+         "id":"harness-dispatch-fence:r16-original",
+         "generation":"1","digest":format!("sha256:{}","f".repeat(64))}
+    ]);
+    plan["principal"] = json!("harness-dispatch-r16");
+    plan["foreignReferences"] = frozen_ref;
+    if plan["budget"]["scheduling"].is_object() {
+        plan["budget"]["scheduling"]["owner"] = json!("harness-dispatch-r16");
+    }
+    let plan_json = serde_json::to_string(&plan).unwrap();
+    let created_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let input = PgAdmissionInput {
+        job_id: job.clone(),
+        attempt_id: attempt.clone(),
+        reservation_id: format!("reservation-{attempt}"),
+        principal: "harness-dispatch-r16".into(),
+        client_request_id: format!("r16-client-{attempt}"),
+        request_digest: digest(format!("r16-request:{job}").as_bytes()),
+        operation_digest,
+        workspace_id: workspace_id.clone(),
+        workspace_snapshot_json: snapshot,
+        execution_plan_json: plan_json.clone(),
+        execution_plan_digest: digest(plan_json.as_bytes()),
+        launch_token_digest: digest(launch_token.as_bytes()),
+        bundle_path: fixture
+            .root
+            .join("store")
+            .join("pg-attempts")
+            .join(&attempt)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{attempt}.service"),
+        global_limit: 0,
+        created_at_ms: created_at,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let dsn = format!(
+        "host={} user=postgres dbname=postgres",
+        fixture.root.display()
+    );
+    let mut admission = PgAdmissionStore::connect(&dsn, "fresh").unwrap();
+    assert_eq!(
+        admission.admit(&input).unwrap(),
+        PgAdmissionOutcome::Created(job.clone())
+    );
+    drop(admission);
+    // This is a definite source denial, not a network error/PG UNKNOWN.
+    // Single scheduler must consume the *existing* accepted Job rather than
+    // launching a new Attempt or blocking unrelated ordinary Jobs.
+    fixture.harness_dispatch_test = true;
+    let endpoint = fixture.endpoint();
+    let deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let row = fixture
+            .db
+            .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&job])
+            .unwrap();
+        let resolution: Option<String> = row.get(0);
+        if resolution.as_deref() == Some("cancelled") {
+            break;
+        }
+        if Instant::now() >= deadline {
+            let state = fixture
+                .db
+                .query_one(
+                    "SELECT j.desired_state,j.resolution,a.state,a.row_version,
+                    a.bundle_digest,r.state
+                 FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id
+                 JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
+                 WHERE j.job_id=$1",
+                    &[&job],
+                )
+                .unwrap();
+            let events = fixture
+                .db
+                .query(
+                    "SELECT event_sequence,event_type,reason_code
+                 FROM job_events WHERE job_id=$1 ORDER BY event_sequence",
+                    &[&job],
+                )
+                .unwrap();
+            let allocation = fixture
+                .db
+                .query(
+                    "SELECT state,owner FROM job_allocations WHERE attempt_id=$1",
+                    &[&attempt],
+                )
+                .unwrap();
+            let log = fs::read_to_string(fixture.root.join("endpoint.log")).unwrap_or_default();
+            panic!(
+                "scheduler timed out. desired={:?} resolved={:?} attempt={:?} version={} bundle={:?} reservation={:?} events={:?} alloc={:?} logTail={}",
+                state.get::<_,String>(0),state.get::<_,Option<String>>(1),
+                state.get::<_,String>(2),state.get::<_,i64>(3),
+                state.get::<_,Option<String>>(4),state.get::<_,String>(5),
+                events.iter().map(|r|(r.get::<_,i64>(0),r.get::<_,String>(1),r.get::<_,String>(2))).collect::<Vec<_>>(),
+                allocation.iter().map(|r|(r.get::<_,String>(0),r.get::<_,String>(1))).collect::<Vec<_>>(),
+                log.chars().rev().take(1700).collect::<String>().chars().rev().collect::<String>()
+            )
+        }
+        thread::sleep(Duration::from_millis(120));
+    }
+    let state = fixture
+        .db
+        .query_one(
+            "SELECT j.resolution,a.state,r.state
+         FROM jobs j JOIN attempts a ON a.job_id=j.job_id
+         JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
+         WHERE j.job_id=$1",
+            &[&job],
+        )
+        .unwrap();
+    assert_eq!(
+        state.get::<_, Option<String>>(0).as_deref(),
+        Some("cancelled")
+    );
+    assert_eq!(state.get::<_, String>(1), "cancelled");
+    assert_eq!(state.get::<_, String>(2), "released");
+    let issued: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        issued, 0,
+        "revoked original Job must never pass PG dispatch"
+    );
+    let issue: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='SCHEDULER_ISSUE'
+         AND reason_code='HARNESS_ISSUER_NOT_CURRENT_AT_DISPATCH'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(issue, 1, "must record a single actionable source denial");
+    let artifact: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM artifacts a JOIN attempts t ON t.attempt_id=a.attempt_id
+         WHERE t.job_id=$1 AND a.kind='admission_cancel_evidence'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        artifact, 1,
+        "existing cancelled-before-dispatch Artifact required"
+    );
+    let live_allocations: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_allocations a JOIN attempts t ON t.attempt_id=a.attempt_id
+         WHERE t.job_id=$1 AND a.state='active'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        live_allocations, 0,
+        "source revocation must release capacity"
+    );
+
+    // A dedicated Harness MCP consumer reads the exact cancelled Job and
+    // its original cancellation Artifact; the ordinary bearer is forbidden.
+    let dedicated_endpoint = endpoint.replacen("/mcp", "/harness/mcp", 1);
+    let (wrong_status, _) = r16_dedicated_call(
+        &dedicated_endpoint,
+        &"p".repeat(32),
+        "job.get",
+        json!({"jobId":job}),
+    );
+    assert_eq!(
+        wrong_status, 401,
+        "ordinary bearer must not impersonate Harness"
+    );
+    let (right_status, readback) = r16_dedicated_call(
+        &dedicated_endpoint,
+        &"h".repeat(48),
+        "job.get",
+        json!({"jobId":job}),
+    );
+    assert_eq!(
+        right_status, 200,
+        "dedicated Harness bearer must authenticate"
+    );
+    assert_ne!(
+        readback["isError"], true,
+        "dedicated Job readback failed: {readback}"
+    );
+    assert_eq!(
+        readback["structuredContent"]["job"]["resolution"], "cancelled",
+        "dedicated job.get reports historical Job resolution, not job.observe: {readback}"
+    );
+    assert_eq!(
+        readback["structuredContent"]["job"]["mechanicallyConverged"],
+        true
+    );
+    assert_eq!(
+        readback["structuredContent"]["job"]["semanticCompletionEvaluated"], false,
+        "native cancellation must not claim domain Tool success"
+    );
+    assert_eq!(
+        readback["structuredContent"]["artifacts"]["byKind"]["admission_cancel_evidence"],
+        1
+    );
+    let artifact_id: String = fixture
+        .db
+        .query_one(
+            "SELECT a.artifact_id FROM artifacts a JOIN attempts t ON t.attempt_id=a.attempt_id
+         WHERE t.job_id=$1 AND a.kind='admission_cancel_evidence'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    let (artifact_status, artifact_readback) = r16_dedicated_call(
+        &dedicated_endpoint,
+        &"h".repeat(48),
+        "artifact.read",
+        json!({"jobId":job,"artifactId":artifact_id,"offset":0,"maxBytes":4096}),
+    );
+    assert_eq!(artifact_status, 200);
+    assert_ne!(
+        artifact_readback["isError"], true,
+        "dedicated readback must deliver original cancellation evidence: {artifact_readback}"
+    );
+    let content = artifact_readback["structuredContent"]["content"]
+        .as_str()
+        .unwrap();
+    let evidence: Value = serde_json::from_str(content).unwrap();
+    assert_eq!(evidence["jobId"], job);
+    assert_eq!(evidence["dispatchIssued"], false);
+    assert_eq!(evidence["terminalState"], "cancelled");
+
+    // Normal consumer can still execute after the dedicated source denial.
+    let ordinary = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":format!("r16-followup-{}",Uuid::now_v7().simple()),
+            "execution":{"workspaceId":workspace_id,"executable":"/usr/bin/printf",
+                "args":["ordinary-still-works"],"cwdRelative":".","timeoutMs":15000},
+            "waitMs":0
+        }),
+    );
+    assert_ne!(
+        ordinary["isError"], true,
+        "unrelated Job poisoned: {ordinary}"
+    );
+    let follow_id = ordinary["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({
+                "jobId":follow_id,"waitMs":2000
+            }),
+        );
+        assert_ne!(
+            observed["isError"], true,
+            "unrelated observe failed: {observed}"
+        );
+        if observed["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                observed["structuredContent"]["executionDisposition"], "succeeded",
+                "unrelated Job must succeed: {observed}"
+            );
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "unrelated job stalled: {observed}"
+        );
+    }
+    eprintln!("R16_NATIVE_MCP_SCHEDULER_ISSUER_DENIED_CANCEL_RELEASED_PASS");
+}
+
+/// Opt-in true Publisher→restricted PG source→authenticated MCP admission→
+/// source revocation→single native Scheduler→dedicated client readback.
+/// Capacity is held by a **real**, harmless test-owned native Job to produce a
+/// deterministic queued interval; no global Scheduler flag or second Registry.
+#[test]
+#[ignore = "requires disposable PG18, original Harness Python deps and native systemd runner"]
+fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    fixture.harness_dispatch_test = true;
+    let repo = fixture.repo();
+    let id = Uuid::now_v7().simple().to_string();
+    let issuer_schema = format!("r17_hpg_{}", &id[..19]);
+    fixture.harness_schema_override = Some(issuer_schema.clone());
+    let run_id = format!("harness-run:r17-native-{}", &id[..19]);
+    let workspace_id = format!("r17-own-{}", &id[..19]);
+    let fixture_dsn = format!(
+        "host={} user=postgres dbname=postgres",
+        fixture.root.display()
+    );
+    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
+    let script = repo_root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
+    let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".into());
+    let pythonpath = format!(
+        "{}:{}",
+        repo_root.join("services/harness/src").display(),
+        repo_root.join("services/harness").display()
+    );
+    let original = |action: &str| -> Value {
+        let out = Command::new(&python)
+            .arg(&script)
+            .arg(action)
+            .arg("--dsn")
+            .arg(&fixture_dsn)
+            .arg("--schema")
+            .arg(&issuer_schema)
+            .arg("--run")
+            .arg(&run_id)
+            .arg("--workspace")
+            .arg(&workspace_id)
+            .env("PYTHONPATH", &pythonpath)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "real Harness {action} failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let source = original("issue");
+    assert_eq!(source["runId"], run_id);
+    assert_eq!(source["fenceGeneration"], 2);
+    fixture.db.batch_execute(&format!(
+        "GRANT USAGE ON SCHEMA \"{issuer_schema}\" TO runtime_app;
+         GRANT EXECUTE ON FUNCTION \"{issuer_schema}\".harness_current_dispatch_cut(text,bigint,text)
+            TO runtime_app;"
+    )).unwrap();
+    let original_private_allowed: bool = fixture
+        .db
+        .query_one(
+            "SELECT has_table_privilege('runtime_app',$1,'SELECT')",
+            &[&format!("{issuer_schema}.runs")],
+        )
+        .unwrap()
+        .get(0);
+    assert!(
+        !original_private_allowed,
+        "operator Source Run table must never be readable by Runtime app"
+    );
+
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(
+        opened["isError"], true,
+        "real disposable native Git workspace: {opened}"
+    );
+    let described = call(&endpoint, "runtime.describe", json!({}));
+    let cpu = described["structuredContent"]["scheduling"]["node"]["cpuMillis"]
+        .as_u64()
+        .unwrap();
+    assert!(cpu > 100, "test machine must have finite CPU headroom");
+
+    // Mature real PG fair-share test pattern: one full-CPU physical Job
+    // holds capacity, forcing the genuinely admitted Harness Job to remain
+    // accepted until the original PG source has been independently revoked.
+    let release = fixture.root.join("r17-release-cpu");
+    // An assertion failure must not leave the test-owned native blocker
+    // running after its fixture database disappears.
+    struct ReleaseOwnBlockerOnDrop(PathBuf);
+    impl Drop for ReleaseOwnBlockerOnDrop {
+        fn drop(&mut self) {
+            let _ = fs::write(&self.0, b"allow own blocker exit");
+            thread::sleep(Duration::from_millis(300));
+        }
+    }
+    let _release_on_drop = ReleaseOwnBlockerOnDrop(release.clone());
+    let blocker_script = format!("while [ ! -f '{}' ]; do sleep 0.1; done", release.display());
+    let blocker = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":format!("r17-blocker-{id}"),
+            "execution":{
+                "workspaceId":workspace_id,
+                "executable":"/usr/bin/sh","args":["-c",blocker_script],
+                "cwdRelative":".","timeoutMs":60000,
+                "budget":{"scheduling":{
+                    "owner":"r17-original-issuer-test",
+                    "resources":{"cpuMillis":cpu,"memoryBytes":16777216,"pids":8},
+                    "workspaceAccess":{"readOnly":true}
+                }}
+            },
+            "waitMs":0
+        }),
+    );
+    assert_ne!(
+        blocker["isError"], true,
+        "original benign blocker rejected: {blocker}"
+    );
+    let blocker_id = blocker["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let allocated: i64 = fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_allocations x
+             JOIN attempts a ON a.attempt_id=x.attempt_id
+             WHERE a.job_id=$1 AND x.state='active'",
+                &[&blocker_id],
+            )
+            .unwrap()
+            .get(0);
+        if allocated == 1 {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "benign full-CPU native Job not allocated: {blocker}"
+        );
+        thread::sleep(Duration::from_millis(40));
+    }
+
+    // Native operator-managed dedicated Bearer, not caller-added foreignRefs
+    // or an unqualified open service port.
+    let dedicated = endpoint.replacen("/mcp", "/harness/mcp", 1);
+    let original_request = source["loweredRequest"].clone();
+    let (bad_status, _) = r16_dedicated_call(
+        &dedicated,
+        &"p".repeat(32),
+        "workspace.exec",
+        original_request.clone(),
+    );
+    assert_eq!(
+        bad_status, 401,
+        "ordinary Runtime bearer cannot impersonate Harness"
+    );
+    let (status, admitted) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.exec",
+        original_request,
+    );
+    assert_eq!(
+        status, 200,
+        "qualified dedicated MCP must accept the request: {admitted}"
+    );
+    assert_ne!(
+        admitted["isError"], true,
+        "real original Harness frozen PhysicalRequest rejected: {admitted}"
+    );
+    let job = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .expect("real dedicated Harness PG admitted same Job")
+        .to_owned();
+    let before = fixture
+        .db
+        .query_one(
+            "SELECT a.state,j.principal FROM attempts a JOIN jobs j ON j.job_id=a.job_id
+         WHERE j.job_id=$1",
+            &[&job],
+        )
+        .unwrap();
+    assert_eq!(
+        before.get::<_, String>(0),
+        "accepted",
+        "full CPU fixture must prove source revoked BEFORE PG dispatch"
+    );
+    assert_eq!(before.get::<_, String>(1), "harness-dispatch-r16");
+    let dispatch_before: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        dispatch_before, 0,
+        "source must be revoked before any dispatch"
+    );
+
+    let revoked = original("revoke");
+    assert_eq!(revoked["sourceStanding"], "unknown");
+    assert_eq!(revoked["finalization"]["sourceStanding"], "blocked");
+    assert_eq!(revoked["revision"], 3);
+    fs::write(&release, b"allow harmless own blocker exit").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    loop {
+        let state = fixture
+            .db
+            .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, Option<String>>(0);
+        if state.as_deref() == Some("cancelled") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "real source-revoked accepted Harness Job was not cancelled: {state:?}"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    let issued: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events
+         WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(issued, 0);
+    let reason: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events
+         WHERE job_id=$1 AND event_type='SCHEDULER_ISSUE'
+         AND reason_code='HARNESS_ISSUER_NOT_CURRENT_AT_DISPATCH'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reason, 1);
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT r.state FROM concurrency_reservations r
+         JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$1",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reservation, "released");
+    let (read_status, readback) =
+        r16_dedicated_call(&dedicated, &"h".repeat(48), "job.get", json!({"jobId":job}));
+    assert_eq!(read_status, 200);
+    assert_eq!(
+        readback["structuredContent"]["job"]["resolution"],
+        "cancelled"
+    );
+    assert_eq!(
+        readback["structuredContent"]["job"]["semanticCompletionEvaluated"],
+        false
+    );
+    assert_eq!(readback["structuredContent"]["episodes"]["dispatches"], 0);
+
+    // Keep the only physical native blocker fully terminal before Fixture
+    // Drop; never leave an orphaned test-owned systemd Unit or cgroup.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT resolution FROM jobs WHERE job_id=$1",
+                &[&blocker_id],
+            )
+            .unwrap();
+        let resolution: Option<String> = row.get(0);
+        if resolution.as_deref() == Some("succeeded") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "test-only native blocker not terminal: {resolution:?}"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    eprintln!("R17_GENUINE_ORIGINAL_HARNESS_DEDICATED_MCP_PG_NATIVE_REVOKE_PASS");
 }

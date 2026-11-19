@@ -234,8 +234,8 @@ Gateway: first establish Host anonymous denial; then resolve its systemd
 `%d` credential path (or operator-owned absolute path) and use the existing
 Gateway private file reader (bounded, no-follow, same-FD checks). Never
 forward the credential to an arbitrary route or any Host that has not
-denied anonymous initialization. Only fixed `127.0.0.1:8898/mcp` can be
-probed. HTTP 200 must include matching JSON-RPC request ID, MCP protocol
+denied anonymous initialization. Only the original fixed `127.0.0.1:8898/mcp` or the specifically
+qualified protected `127.0.0.1:19008/mcp` workload can be probed. HTTP 200 must include matching JSON-RPC request ID, MCP protocol
 version, capabilities and server metadata; redirect/401/403/invalid JSON
 does not qualify. No token bytes enter logs, receipts or MCP Tool arguments.
 
@@ -270,3 +270,38 @@ This uses the same native bounded Owner private-file reader and HTTP
 canary, not another credential store or scheduling authority. True
 authorization and business continuity still require real authenticated
 Agent read/write and reviewer acceptance after the release.
+
+## R25 Reverse-liveness: qualify protected Host before retiring Legacy
+
+The old `127.0.0.1:8898/mcp` still has direct consumer routes. Turning on
+Bearer there before migrating the Host MCP Plugin and secondary Gateway
+would break those clients. Parallel Change uses an expand step: allow
+exactly `http://127.0.0.1:19008/mcp` as the protected loopback candidate,
+without treating the original Legacy endpoint as already retired.
+
+The existing preflight qualifies the second route only if
+`ordivon-host-v2-protected.service` is active, has `DynamicUser=yes` and
+`User=ordivon-host-v2-protected`, and owns the unique native `LISTEN`
+socket at `127.0.0.1:19008` according to its actual systemd `MainPID`.
+An arbitrary local HTTP server that merely replies 401 is not sufficient.
+Unknown routes, a mismatched PID, wildcard bind addresses, ambiguous
+listeners and systemd EnvironmentFile overrides remain unqualified.
+Only after the observed Host denies anonymous MCP initialize may the
+existing private Gateway Owner bearer reader and positive MCP canary run.
+An active peer still pointing at Legacy while the primary uses the
+protected Host remains an unqualified migration consumer.
+
+R25 physically exercised the installed Host 0.9.0 binary in a transient
+real systemd service with the existing PostgreSQL14 authority, a dynamic
+service identity, systemd LoadCredential, read-only PGOPTIONS and the
+prepared Gateway 0.10.15 native McpOwnerCaller. It read real Work and a
+fixed MessageRef, then stopped the test unit and removed temporary
+credentials. It did not install a permanent protected service or change
+Cloudflare, Security grants, the production Host or the main Gateway.
+
+**The production release gate is unchanged:** qualifying a candidate route
+only establishes a necessary machine workload boundary. The original
+preflight continues to return NO_GO/exit 3 until trusted independently
+verifiable Principal, Security, Cloudflare, direct-client and rollback
+evidence has an effective pre-promotion consumer. An empty legacy TCP
+socket sample does not demonstrate actual direct Host client migration.

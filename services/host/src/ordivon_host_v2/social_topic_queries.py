@@ -16,7 +16,9 @@ from .collection_pagination import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .social_errors import TopicResumeCursorAhead
 from .social_message_records import verify_message_content_digest
+from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
 
 
 class SocialTopicReadQueries:
@@ -102,6 +104,13 @@ class SocialTopicReadQueries:
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             topic = self._require_topic(conn, topic_ref)
+            # A cursor from Attention's global change clock (or a different
+            # Topic) can be numerically ahead of this Topic's message horizon.
+            # Returning an empty hasMore=false page would conceal that mistake.
+            # Read the Topic high in the same MVCC cut as the message page.
+            topic_high = topic_high_sequence_in_tx(conn, topic_ref)
+            if after_sequence > topic_high:
+                raise TopicResumeCursorAhead(topic_ref, after_sequence, topic_high)
             rows = conn.execute(
                 "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
                 "message_kind,body,message_digest,recorded_at_ms,created_at "
@@ -165,22 +174,4 @@ class SocialTopicReadQueries:
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             self._require_topic(conn, topic_ref)
-            row = conn.execute(
-                "SELECT cursor FROM topic_consumption_cursors WHERE actor_ref=%s AND topic_ref=%s",
-                (actor_ref, topic_ref),
-            ).fetchone()
-            high = int(
-                conn.execute(
-                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
-                    (topic_ref,),
-                ).fetchone()["high"]
-            )
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-cursor",
-                "actorRef": actor_ref,
-                "topicRef": topic_ref,
-                "cursor": 0 if row is None else int(row["cursor"]),
-                "topicHighSequence": high,
-                "truthBoundary": "topic navigation cursor only; not evidence of semantic acceptance",
-            }
+            return get_topic_cursor_in_tx(conn, actor_ref=actor_ref, topic_ref=topic_ref)

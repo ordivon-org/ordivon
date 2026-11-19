@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-17
+updated: 2026-11-19
 summary: Owner-native index of Runtime capability and reasoning LEGOs, with Human and Agent consumption paths.
 evidence_status: observed
 readiness: READY
@@ -31,6 +31,133 @@ related:
 This guide is a **consumer index**, not a second tool catalog or a new execution framework. Authoritative tools are discovered from the connected Runtime node, source truth comes from the specific Git revision, and physical results come from a Job/Attempt and provider evidence. The existing planning graph is [planning/lego-plan-r1.json](../../planning/lego-plan-r1.json); conceptual foundations are [Runtime Research](../../research/README.md).
 
 A LEGO is described by `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`: inputs/outputs, owned state, pre/postconditions, invariant, possible effects, cost/capacity, uncertainty, provenance, and decomposition. Each entry must distinguish **specification**, **model/validator**, and **installed implementation**. The implementation and physical model are not proven equivalent merely because they share a name.
+
+## First-principles architecture: thought -> logic -> capability (2026-11-19)
+
+Runtime is the physical effect-and-evidence kernel, not another Agent,
+Host, approval authority, domain judge, or shadow process manager.
+
+**Goal:** Given one identified, admitted operation in a source-bound Workspace,
+execute under an actual OS process owner and return qualified bounded evidence;
+when PostgreSQL, filesystem, and OS effects are inconsistent, preserve the
+exact UNKNOWN instead of inventing completion, absence, or safe retry.
+
+**Observed architecture:** The Core crate owns contracts, the PostgreSQL writer,
+use-case logic and OS adapters; the MCP crate owns network/protocol presentation;
+Git, PostgreSQL, native OS and retained file bytes own different kinds of
+truth. The still-installed Windows R6 writer is not equivalent to Linux PG.
+A PostgreSQL transaction cannot atomically commit with OS process launch,
+Windows Job Objects, Git worktrees or arbitrary external effects.
+
+**Change:** Remove hidden dependencies between contract validation, writer
+authority, transactional decisions and physical effects. Avoid a big-bang
+directory rename or a parallel framework.
+
+### Three LEGO categories, two reasoning directions
+
+| Category | Role | Concrete Runtime instance |
+| --- | --- | --- |
+| Positive Thought | Work forward from goal to necessary invariants and sufficient observable conditions | A result needs committed operation identity, kernel ownership, terminal evidence, Artifact readback |
+| Reverse Thought | Start with a failed inference/counterexample, then derive missing requirements | Starting != running; cancel requested != stopped; no Result != no effect; terminal Job != every Run consumer finished |
+| Logic | Reframe failure/requirements as a decision: inputs, state, rules, outputs, UNKNOWN and counterexamples | Admission/replay, scheduling, dispatch, reconciliation, consumer ownership, safe retirement |
+| Capability | Carry the decision on a mature concrete substrate, with explicit interface and truth owner | PostgreSQL tx/CAS, Git worktree, systemd/cgroup, Windows Job Object, native Runner, SHA-256 files, MCP |
+
+A LEGO is a contractable responsibility, not automatically one function,
+Tool, file, Agent, Skill or proof document. Use the existing typed R2.1
+fields only for a formally declared/admitted LEGO; do not duplicate registries.
+
+### Essential questions and current implementation
+
+| Question | Logic LEGO and output | Capability carrier (actual source path) |
+| --- | --- | --- |
+| Which exact source and Workspace? | Identity, snapshot/host dependency, consumer grant/close fence | universal/workspace/, runtime/pg_runtime/workspace.rs, claim.rs, Git |
+| Who submitted what, and is it a replay? | Transport auth -> request normalization -> issuer and writer qualification -> idempotent admission | MCP access_auth.rs/pg_auth.rs; runtime/admission_validation.rs; pg_admission/input_contract.rs, writer_authority.rs, pg_issuer_guard.rs and pg_admission.rs |
+| Can execution be placed? | Resource-fit, owner fairness, actual reservation vs UNKNOWN | resource_fit.rs, resource_scheduling.rs, pg_runtime/scheduling.rs, PG and kernel counters |
+| Did execution physically start? | Dispatch generation, native process identity, exact immutable Runner binding | pg_dispatch.rs, pg_runtime/job.rs, universal/runner.rs, runtime/platform/linux.rs; runtime/windows.rs and Windows launcher |
+| Has stop or terminal happened? | Stop intent != stop evidence; terminal transition/CAS; reconcile ambiguous state | pg_runtime/job/cancellation.rs, pg_runtime/native_stop.rs, pg_runtime/reconciliation.rs, pg_admission/terminal_contract.rs and cancel_contract.rs |
+| Can a caller consume output? | Result identity, bounded Artifact manifest and digest-verified readback | pg_readback.rs, pg_runtime/artifact.rs, universal/resource_receipt.rs, artifact files |
+| Can a Workspace/resource be removed? | Current Job and logical Run consumers all released, exact native close/retention | pg_runtime/workspace.rs and claim.rs, workspace_headroom.rs, Git worktree |
+| Is a released binary installed and usable? | Source/manifest -> ReleaseEffect -> actual file/process -> consumer result | pg_runtime/release.rs, release scripts, systemd/SCM, actual Runtime Job and Artifact |
+
+### Cross-database Run Claim release: source contract, not Installed proof
+
+A Runtime workspace.claim.reserve protects the physical Git Workspace even
+after its last Job exits. Its principal + clientRequestId is a **recovery
+coordinate**, not a trustworthy statement that an external Harness Run or a
+recipient finished consuming the output. An authenticated caller with the
+original Claim owner identity can otherwise call workspace.claim.release
+before Harness Run terminal/recipient Byte ACK; ordinary workspace.close
+can then remove unique material. This happened in a real disposable Run +
+installed Runtime native test, not just in the formal model.
+
+The existing dedicated /harness/mcp route has an independently authenticated
+principal and token; **its mere presence in source does not mean it is
+configured or installed**. When a complete dedicated route is configured,
+source pg_main.rs now explicitly denies workspace.claim.release on the
+ordinary /mcp execution route and omits it from that route's tool catalog.
+The guard runs on raw tools/call even when a client invokes a known tool name,
+and uses the existing MCP authenticated route
+identity, not an Agent-ref or caller-supplied boolean. The dedicated claim
+client must be owned by the real Harness finalizer and kept outside ordinary
+tool-executor/model grants.
+
+**Cutover requires consumer migration:** Claims created under the old ordinary
+principal are not automatically transferable to the new dedicated principal.
+Do not enable this control in a live Harness instance until birth/reopen,
+terminal/recipient delivery/physical drain, finalizer token routing, and
+legacy-HELD disposition are tested from actual installed clients. A dedicated
+caller still cannot independently prove external Domain Byte ACK using only
+Runtime PG and OS state: true finalization remains the original Harness/Domain
+authority. Missing finalizer identity or uncertain external acceptance keeps
+the relevant early-release/auto-GC operation on HOLD, not unrelated Jobs.
+
+### Directory ownership after this source-only refactor
+
+This is an incremental reorganization inside the existing owner, not a
+second runtime or a completed fleet migration.
+
+| Source directory or module | Stable responsibility | Forbidden dependency |
+| --- | --- | --- |
+| crates/ordivon-runtime-core/src/pg_admission/input_contract.rs | Pure JSON/field contract; unambiguous object keys | Database connection, OS process execution |
+| pg_admission/writer_authority.rs | PostgreSQL schema identification, physical epoch and qualified relational constraints | Job admission business transaction or a new approval system |
+| pg_admission/terminal_contract.rs | Pure Attempt terminal state decision, Artifact manifest; original Kani proof stays adjacent | PG commit, OS stop |
+| pg_admission/cancel_contract.rs | Cancellation immutable identity and DTO | Process termination |
+| pg_admission.rs | Existing PostgreSQL transaction/CAS implementations and replay, with above contracts imported | Cloudflare parsing, extra Registry |
+| runtime/pg_runtime/ | PG-bound Job/Workspace/scheduling/reconciliation use-case composition | Harness goal/Run semantics |
+| runtime/pg_runtime/job/cancellation.rs | Existing PG Job cancel use-case: authorize -> persist intent -> native stop request -> reconciliation/readback | HTTP principal decoding, invented native stop implementation, semantic task completion |
+| runtime/platform/ and universal/ | Native Linux/Windows execution and generic Git/Runner/FS capabilities | Upstream Agent reasoning or policy hierarchy |
+| ordivon-runtime-mcp/src/ | Protocol presentation and existing authenticated principal mapping | Reimplement PG Job state machine |
+| runtime/engine/, runtime/registry/ | Gated SQLite legacy path; retain only while installed Windows needs it | Linux PG production writer |
+
+**Concrete code move:** The old approximately 4,038-line pg_admission.rs
+mixed input uniqueness, qualified writer authority, terminal/Artifact
+policy, cancel intent and PG business transactions. Four small cohesive
+modules now own those first four responsibilities; SQL transactions stay
+in the established parent. Public DTOs and call signatures are retained;
+no database schema, public Tool, release or installed service is changed.
+
+### Dependency and retirement rules
+
+1. MCP authenticates and decodes a request; Runtime logical contracts decide
+   identity, admission and resolution; PostgreSQL persists; the native provider
+   launches/stops; evidence projection reports what can really be established.
+   Pure contracts may not connect to PostgreSQL or invoke an OS subprocess.
+2. Cloudflare Zero Trust covers upstream ingress, not PG writer-epoch or
+   local OS file/process authority. Preserve existing real authentication and
+   authorization boundaries, without inventing another AuthZEN or Owner veto.
+   The Windows policy / legacy MCP request-auth split is in source PR #2457,
+   OPEN at this audit, not assumed merged or installed.
+3. Evidence is owned at its origin: Git (source), PG (Job/Attempt/cancel/CAS),
+   systemd or Job Object (process), files (Artifact bytes), Harness (Run
+   continuation). A missing OS result does not justify a new physical attempt.
+4. Do not erase legacy SQLite solely on source-level PG compilation.
+   The key unresolved Windows positive consumer is trusted pre-close
+   JobObject drain -> current PG Attempt terminal -> accessible Artifact.
+   OpenJobObject=NotFound after closing is not a positive drain witness.
+5. Separate SOURCE, MODEL, CODE, INSTALLED and PHYSICAL standing.
+   Prefer removing superseded code over adding wrappers, checks, ledgers or
+   redundant tool aliases. An additional module must replace a known
+   coupling and have an identified real consumer.
 
 ## Workspace lifecycle and current stock audit
 

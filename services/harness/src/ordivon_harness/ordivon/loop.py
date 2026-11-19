@@ -356,6 +356,15 @@ class OrdivonAgentLoop:
             messages.extend(dict(message) for message in initial_messages)
             observations = [HarnessToolObservation.from_dict(item) for item in state.observations]
             provider_usage = [dict(item) for item in state.provider_usage]
+            # An older PAUSED snapshot may have undercharged contradictory
+            # Provider totals. Reconcile the immutable reported history before
+            # admitting another model call; never reduce an existing debit.
+            reported_history_tokens = sum(
+                count
+                for raw_usage in provider_usage
+                if (count := _usage_total_tokens(raw_usage)) is not None
+            )
+            total_tokens = max(total_tokens, reported_history_tokens)
             effective_models = list(state.effective_model_ids)
             if not effective_models and state.effective_model_id is not None:
                 effective_models.append(state.effective_model_id)
@@ -2248,21 +2257,29 @@ class OrdivonAgentLoop:
 
 
 def _usage_total_tokens(usage: dict[str, JsonValue]) -> int | None:
-    for key in ("total_tokens", "totalTokens"):
-        value = usage.get(key)
-        if type(value) is int and value >= 0:
-            return value
-    prompt = usage.get("prompt_tokens", usage.get("promptTokens"))
-    completion = usage.get("completion_tokens", usage.get("completionTokens"))
-    if type(prompt) is int and prompt >= 0 and type(completion) is int and completion >= 0:
-        return prompt + completion
-    input_tokens = usage.get("input_tokens", usage.get("inputTokens"))
-    output_tokens = usage.get("output_tokens", usage.get("outputTokens"))
-    if (
-        type(input_tokens) is int
-        and input_tokens >= 0
-        and type(output_tokens) is int
-        and output_tokens >= 0
+    """Conservatively reconcile complete, nonnegative Provider counters.
+
+    A contradictory reported total must not override larger, independently
+    reported input/output counts and silently weaken the Token budget. Cache
+    and reasoning counters are subsets of input/output, not extra totals.
+    Partial or missing counters remain unknown rather than invented zeros.
+    """
+
+    def valid_counts(names: tuple[str, ...]) -> list[int]:
+        values: list[int] = []
+        for name in names:
+            value = usage.get(name)
+            if type(value) is int and value >= 0:
+                values.append(value)
+        return values
+
+    candidates = valid_counts(("total_tokens", "totalTokens"))
+    for input_names, output_names in (
+        (("prompt_tokens", "promptTokens"), ("completion_tokens", "completionTokens")),
+        (("input_tokens", "inputTokens"), ("output_tokens", "outputTokens")),
     ):
-        return input_tokens + output_tokens
-    return None
+        inputs = valid_counts(input_names)
+        outputs = valid_counts(output_names)
+        if inputs and outputs:
+            candidates.append(max(inputs) + max(outputs))
+    return max(candidates) if candidates else None

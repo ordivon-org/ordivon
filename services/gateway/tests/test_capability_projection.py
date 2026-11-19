@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ordivon_gateway.capability_projection import (
+from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
+from ordivon_gateway.logic.capability_projection import (
     project_capability_search,
     project_execution_capability,
 )
-from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
-from ordivon_gateway.routing import default_routes
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 
@@ -310,6 +310,7 @@ def test_capability_search_rejects_invalid_bounds_without_owner_calls() -> None:
 def test_execution_descriptor_is_pure_and_preserves_owner_observation() -> None:
     route = default_routes()["execution.windows"]
     owner_response = {
+        "schemaVersion": 1,
         "node": {"nodeId": "Windows-A"},
         "targets": [
             {
@@ -322,6 +323,7 @@ def test_execution_descriptor_is_pure_and_preserves_owner_observation() -> None:
         ],
     }
     original = {
+        "schemaVersion": 1,
         "node": dict(owner_response["node"]),
         "targets": [
             {
@@ -365,7 +367,10 @@ def test_projection_preserves_unconfigured_and_missing_target_distinction() -> N
     mismatched = project_execution_capability(
         route,
         configured_at_gateway=True,
-        owner_response={"targets": [{"target": "windows_native"}]},
+        owner_response={
+            "schemaVersion": 1,
+            "targets": [{"target": "windows_native", "configured": True, "available": True}],
+        },
     )
     assert not mismatched.configured
     assert mismatched.observation_error == "owner did not advertise the routed execution target"

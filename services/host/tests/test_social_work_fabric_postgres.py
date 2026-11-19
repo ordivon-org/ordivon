@@ -22,6 +22,7 @@ from ordivon_host_v2.collaboration_inputs import (
 )
 from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import (
@@ -60,7 +61,7 @@ def snapshot(frontier: str) -> WorkSnapshotInput:
 
 
 def declare_actor(store: WorkStore, actor_ref: str) -> None:
-    store.declare_actor(
+    ActorReferenceStore(store.dsn).declare_actor(
         ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{actor_ref}",
     )

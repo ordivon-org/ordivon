@@ -507,6 +507,7 @@ def prequential_energy_evaluation(
         )
         frozen_market = point_in_time_prices(records, as_of=t)
         realized = []
+        realized_bases = []
         reference_revision_evidence = []
         for asset in names:
             frozen_before = frozen_market.get((asset, valuation_session))
@@ -514,11 +515,12 @@ def prequential_energy_evaluation(
             evaluation_after = final_market.get((asset, next_session))
             if frozen_before is None or evaluation_before is None or evaluation_after is None:
                 raise PointInTimeError("next-session market outcome not yet published")
-            # Never divide a post-event adjusted close by a PRE-event vintage
-            # adjusted close: corporate-action back-adjustments can generate
-            # fake realized gains/losses across incompatible price bases.
-            # Freeze the forecast at t; measure both realized endpoints from
-            # the common evaluation-as-of snapshot, never from mixed clocks.
+            # One evaluation clock is necessary but insufficient: vendor
+            # adjusted and unadjusted prices can coexist in that same clock.
+            # Both realized endpoints MUST use the same stated price basis.
+            if evaluation_before.price_basis != evaluation_after.price_basis:
+                raise PointInTimeError("incompatible price basis within realized return")
+            realized_bases.append(evaluation_before.price_basis)
             realized.append(evaluation_after.adjusted_close / evaluation_before.adjusted_close)
             reference_revision_evidence.append(
                 {
@@ -526,9 +528,17 @@ def prequential_energy_evaluation(
                     "frozen_reference_close": frozen_before.adjusted_close,
                     "evaluation_reference_close": evaluation_before.adjusted_close,
                     "evaluation_outcome_close": evaluation_after.adjusted_close,
+                    # A change of basis is not a comparable reference-price
+                    # revision ratio. Preserve evidence without inventing a
+                    # cross-basis multiplicative correction factor.
                     "reference_revision_factor": (
                         evaluation_before.adjusted_close / frozen_before.adjusted_close
+                        if frozen_before.price_basis == evaluation_before.price_basis
+                        else None
                     ),
+                    "frozen_reference_price_basis": frozen_before.price_basis,
+                    "evaluation_reference_price_basis": evaluation_before.price_basis,
+                    "evaluation_outcome_price_basis": evaluation_after.price_basis,
                     "reference_revised_since_decision": evaluation_before != frozen_before,
                     "frozen_reference_source_sha256": frozen_before.raw_source_sha256,
                     "evaluation_reference_source_sha256": evaluation_before.raw_source_sha256,
@@ -551,7 +561,11 @@ def prequential_energy_evaluation(
             "evaluation_as_of": evaluated_at.isoformat(),
             "outcome_session": next_session.isoformat(),
             "realized_joint_gross": realized,
-            "realized_price_basis": "EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED",
+            "realized_price_basis": (
+                "EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED"
+                if all(b == "PROVIDER_ADJUSTED_CLOSE_UNATTESTED" for b in realized_bases)
+                else "EVALUATION_AS_OF_BOTH_ENDPOINTS_MATCHED_RAW_OR_MIXED_UNATTESTED"
+            ),
             "reference_revision_evidence": reference_revision_evidence,
             "training_n": distribution.training_return_count,
             "forecast_method": forecast_method,

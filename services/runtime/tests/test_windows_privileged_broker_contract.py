@@ -6,6 +6,8 @@ WINDOWS_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "win
 BROKER_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "windows_broker.rs"
 TYPES_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "types.rs"
 EXECUTION_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "engine" / "execution.rs"
+PREPARATION_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "engine" / "execution_preparation.rs"
+LAUNCH_IDENTITY_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "engine" / "launch_identity.rs"
 MCP_MAIN = ROOT / "crates" / "ordivon-runtime-mcp" / "src" / "main.rs"
 WINDOWS_DEPLOY = ROOT / "crates" / "ordivon-runtime-core" / "src" / "bin" / "ordivon-runtime-windows-deploy.rs"
 
@@ -95,25 +97,27 @@ def test_broker_protocol_is_bounded_and_never_impersonates_client():
 
 def test_elevated_windows_context_freezes_privileged_broker_digest_and_fails_closed_on_drift():
     types = TYPES_RS.read_text(encoding="utf-8")
-    execution = EXECUTION_RS.read_text(encoding="utf-8")
+    preparation = PREPARATION_RS.read_text(encoding="utf-8")
+    launch_identity = LAUNCH_IDENTITY_RS.read_text(encoding="utf-8")
     broker = BROKER_RS.read_text(encoding="utf-8")
     assert "privileged_broker_digest: Option<String>" in types
-    assert "privileged_broker_digest =" in execution
-    assert "windows_privileged_broker_profile_allowlist_v1" in execution
-    assert "verify_digest(expected_broker_digest)" in execution
+    assert "privileged_broker_digest =" in preparation
+    assert "windows_privileged_broker_profile_allowlist_v1" in preparation
+    assert "verify_digest(expected_broker_digest)" in launch_identity
     assert "LaunchIdentityMismatch" in broker
 
 
 def test_current_main_preserves_one_native_launch_identity_contract_for_direct_and_broker_paths():
     windows = WINDOWS_RS.read_text(encoding="utf-8")
     execution = EXECUTION_RS.read_text(encoding="utf-8")
+    launch_identity = LAUNCH_IDENTITY_RS.read_text(encoding="utf-8")
     assert "windows_broker::spawn" in windows
     assert "child_process_creation_time_file_time(&child)" in windows
     assert "WindowsNativeLaunchObservation {" in windows
     assert "observation.launcher_process_id" in windows
     assert "launcher_process_creation_time_file_time:" in windows
     assert "bind_native_windows_dispatch_owner(&starting, &dispatch)" in execution
-    assert "launcher_process_creation_time_file_time:" in execution
+    assert "launcher_process_creation_time_file_time:" in launch_identity
 
 
 def test_elevated_observe_and_deadline_use_same_authority_router():
