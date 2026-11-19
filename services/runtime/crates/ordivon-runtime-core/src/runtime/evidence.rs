@@ -393,6 +393,7 @@ fn validate_captured_output(
         ));
     }
     let bundle = Path::new(&attempt.bundle_path);
+    #[cfg(not(unix))]
     let path = bundle.join(expected_file);
 
     // The Runner owns a live preview log. Its original path is not an
