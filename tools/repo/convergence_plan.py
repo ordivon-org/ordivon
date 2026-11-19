@@ -371,7 +371,12 @@ def build_plan(
         base_revision = _git("rev-parse", f"{base}^{{commit}}")
         head_revision = _git("rev-parse", f"{head}^{{commit}}")
         head_tree = _git("rev-parse", f"{head_revision}^{{tree}}")
-        paths = affected_owners.changed_paths(base_revision, head_revision)
+        # Bind this consumer's actual Git-selected repository to the same
+        # immutable object namespace as its own _git SourceCut reads.
+        repo = Path(_git("rev-parse", "--show-toplevel"))
+        paths = affected_owners.changed_paths(
+            base_revision, head_revision, source_repo_root=repo
+        )
 
     affected_owners.require_registered_execution_paths(paths, owners=owners)
     direct = affected_owners.owners_for_paths(paths, owners=owners)
@@ -661,7 +666,7 @@ def build_qualified_temporal_impact(
     # cannot be mistaken for a complete consumer verification obligation.
     # Reuse the already qualified native no-renames Git delta; this is a
     # bounded two-SourceCut read, NOT a repository-wide LEGO census.
-    full_cut_paths = set(affected_owners.changed_paths(base, head))
+    full_cut_paths = set(affected_owners.changed_paths(base, head, source_repo_root=repo))
     if not changed.issubset(full_cut_paths):
         raise ValueError("scoped source delta contradicts canonical exact Git changed paths")
     unseen_paths = sorted(full_cut_paths - changed)
