@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from typing import Any
 
-import psycopg
+# Existing tests/tool consumers monkeypatch the shared psycopg module here.
+import psycopg as psycopg
 from psycopg.types.json import Jsonb
 
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
-from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .errors import ConflictError, WorkNotFound
 from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .postgres_connections import HostPostgresConnections
+from .references.actor_refs import ActorReferenceRegistry
+from .references.record_refs import RecordReferenceLookup
 from .work_inputs import (
-    ActorRefInput,
     WorkCreateInput,
     WorkSnapshotInput,
     WorkState,
@@ -31,47 +33,18 @@ def _next_work_revision(expected_revision: int) -> int:
     return expected_revision + 1
 
 
-class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
+class WorkStore(
+    ActorReferenceRegistry,
+    WorkRelationCommands,
+    WorkReadQueries,
+    RecordReferenceLookup,
+    HostPostgresConnections,
+):
     """Greenfield Social Work Fabric Work Graph authority.
 
     This store owns durable Host semantic work continuity only. It deliberately does not
     inspect Runtime, Git, domain truth, social priority, assignment, or EffectAuthority.
     """
-
-    def declare_actor(self, value: ActorRefInput, *, client_request_id: str) -> dict[str, Any]:
-        request = {"operation": "actor.declare", **value.model_dump(mode="json")}
-        request_digest = canonical_digest(request)
-        with self._connect() as conn, conn.transaction():
-            replay = claim_command_receipt(conn, client_request_id, "actor.declare", request_digest)
-            if replay is not None:
-                return replay
-            row = conn.execute(
-                "INSERT INTO actor_refs(actor_ref,actor_kind) VALUES (%s,%s) "
-                "ON CONFLICT (actor_ref) DO NOTHING RETURNING actor_ref,actor_kind,created_at",
-                (value.actor_ref, value.actor_kind.value),
-            ).fetchone()
-            admission = "committed"
-            if row is None:
-                row = conn.execute(
-                    "SELECT actor_ref,actor_kind,created_at FROM actor_refs WHERE actor_ref=%s",
-                    (value.actor_ref,),
-                ).fetchone()
-                if row is None:
-                    raise RuntimeError("actor declaration disappeared")
-                if row["actor_kind"] != value.actor_kind.value:
-                    raise ConflictError("actor_ref already exists with a different actor_kind")
-                admission = "existing"
-            result = {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-actor-ref",
-                "admission": admission,
-                "actorRef": row["actor_ref"],
-                "actorKind": row["actor_kind"],
-                "createdAt": row["created_at"].isoformat(),
-                "truthBoundary": "Host-stored stable actor reference only; not authenticated identity or authorization",
-            }
-            record_command_receipt(conn, client_request_id, "actor.declare", request_digest, result)
-            return result
 
     def create_work(self, value: WorkCreateInput, *, client_request_id: str) -> dict[str, Any]:
         payload = value.initial_snapshot.canonical_payload()
@@ -221,16 +194,3 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
                 conn, client_request_id, "work.snapshot.commit", request_digest, result
             )
             return result
-
-    @staticmethod
-    def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:
-        if (
-            conn.execute("SELECT 1 FROM actor_refs WHERE actor_ref=%s", (actor_ref,)).fetchone()
-            is None
-        ):
-            raise ActorRefNotFound(actor_ref)
-
-    @staticmethod
-    def _require_work(conn: psycopg.Connection[dict[str, Any]], work_ref: str) -> None:
-        if conn.execute("SELECT 1 FROM works WHERE work_ref=%s", (work_ref,)).fetchone() is None:
-            raise WorkNotFound(work_ref)
