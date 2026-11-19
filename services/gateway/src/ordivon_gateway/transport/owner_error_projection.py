@@ -6,40 +6,53 @@ fields to user-visible text. Other upstream content remains opaque.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from mcp_types import CallToolResult, TextContent
 
 from ..logic.owner_protocol import OwnerCallError
 
-_SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_.:-]{1,96}$")
-_HOST_PUBLIC_FIELDS = ("code", "reason", "resourceKind", "suggestedAction", "evidenceBoundary")
-_HOST_PUBLIC_NUMBERS = ("requestedAfterSequence", "observedTopicHighSequence")
 
+def _host_cursor_recovery_text(exc: OwnerCallError) -> str | None:
+    """Expose only verified, nonsecret Host navigation facts in MCP text.
 
-def _host_error_summary(owner_id: str | None, error: dict[str, Any]) -> str | None:
-    if owner_id not in {"host", "host.read"}:
+    Some connected MCP clients surface an isError result's text but discard
+    structuredContent. Avoid embedding arbitrary Owner details, refs, stack
+    traces, or private credentials. All unknown shapes remain opaque.
+    This is a presentation-only projection, not a new trust/authorization rule.
+    """
+    if exc.owner_id != "host" or exc.tool_name != "topic.resume":
+        return None
+    error = exc.error
+    if not isinstance(error, dict):
         return None
     if (
         error.get("kind") != "ordivon.host-domain-error"
         or type(error.get("schemaVersion")) is not int
         or error["schemaVersion"] != 1
+        or error.get("code") != "CONFLICT"
+        or error.get("reason") != "topic_resume_cursor_ahead"
+        or error.get("resourceKind") != "topic"
+        or error.get("retryable") is not False
+        or error.get("suggestedAction") != "reread-topic-horizon-and-check-cursor-domain"
     ):
         return None
-    code = error.get("code")
-    if not isinstance(code, str) or _SAFE_TOKEN.fullmatch(code) is None:
+    requested = error.get("requestedAfterSequence")
+    observed = error.get("observedTopicHighSequence")
+    if (
+        type(requested) is not int
+        or type(observed) is not int
+        or not (0 <= observed < requested <= 2**63 - 1)
+    ):
         return None
-    parts: list[str] = []
-    for field in _HOST_PUBLIC_FIELDS:
-        value = error.get(field)
-        if isinstance(value, str) and _SAFE_TOKEN.fullmatch(value):
-            parts.append(f"{field}={value}")
-    for field in _HOST_PUBLIC_NUMBERS:
-        value = error.get(field)
-        if type(value) is int and 0 <= value <= 2**63 - 1:
-            parts.append(f"{field}={value}")
-    return "Host domain error: " + "; ".join(parts)
+    return (
+        "owner tool returned error: host/topic.resume; "
+        "code=CONFLICT reason=topic_resume_cursor_ahead "
+        f"requestedAfterSequence={requested} "
+        f"observedTopicHighSequence={observed} "
+        "suggestedAction=reread-topic-horizon-and-check-cursor-domain "
+        "retryable=false"
+    )
 
 
 def owner_error_result(exc: OwnerCallError) -> CallToolResult:
@@ -58,7 +71,7 @@ def owner_error_result(exc: OwnerCallError) -> CallToolResult:
         structured["gatewayOwnerId"] = exc.owner_id
     if exc.tool_name is not None:
         structured["gatewayOwnerTool"] = exc.tool_name
-    message = _host_error_summary(exc.owner_id, error) or str(exc)
+    message = _host_cursor_recovery_text(exc) or str(exc)
     return CallToolResult(
         content=[TextContent(type="text", text=message)],
         structuredContent=structured,

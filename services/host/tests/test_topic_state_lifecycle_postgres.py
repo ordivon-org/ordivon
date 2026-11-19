@@ -9,9 +9,9 @@ import pytest
 
 from ordivon_host_v2.collaboration_inputs import MessageInput, SpaceInput, TopicInput
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
-from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -26,7 +26,7 @@ def setup_topic() -> tuple[SocialStore, str, str, str]:
     actor = f"actor:agent:topic-state:{token}"
     space = f"space:topic-state:{token}"
     topic = f"topic:state:{token}"
-    WorkStore(DSN).declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:topic-state:{token}",
     )

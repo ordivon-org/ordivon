@@ -10,6 +10,7 @@ def _host_error(**overrides):
         "schemaVersion": 1,
         "code": "CONFLICT",
         "reason": "topic_resume_cursor_ahead",
+        "retryable": False,
         "resourceKind": "topic",
         "requestedAfterSequence": 100000000,
         "observedTopicHighSequence": 30362,
@@ -40,10 +41,15 @@ def test_host_typed_error_visible_without_raw_detail():
 
 
 def test_host_domain_unknown_string_is_not_exposed():
-    exc = OwnerCallError("safe generic", owner_id="host", error=_host_error(reason="SECRET Value"))
+    exc = OwnerCallError(
+        "safe generic",
+        owner_id="host",
+        tool_name="topic.resume",
+        error=_host_error(reason="SECRET Value"),
+    )
     message = owner_error_result(exc).content[0].text
     assert "SECRET" not in message
-    assert "code=CONFLICT" in message
+    assert message == "safe generic"
 
 
 def test_unvalidated_upstream_does_not_gain_public_error_authority():

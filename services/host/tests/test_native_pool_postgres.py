@@ -146,7 +146,7 @@ def test_mcp_process_owns_and_closes_pool(
     monkeypatch: pytest.MonkeyPatch, transport: str, tmp_path: Path,
 ) -> None:
     """Native pool encloses STDIO or authenticated HTTP and closes on exit."""
-    from ordivon_host_v2 import mcp_server
+    from ordivon_host_v2 import http_transport, mcp_server
 
     events: list[object] = []
 
@@ -195,8 +195,8 @@ def test_mcp_process_owns_and_closes_pool(
             assert host == "127.0.0.1" and port == 8898 and log_level == "info"
             events.append(("serve", app))
 
-        monkeypatch.setattr(mcp_server, "protect_host_http_app", fake_protect)
-        monkeypatch.setattr(mcp_server.uvicorn, "run", fake_serve)
+        monkeypatch.setattr(http_transport, "protect_host_http_app", fake_protect)
+        monkeypatch.setattr(http_transport.uvicorn, "run", fake_serve)
     mcp_server.main()
 
     assert events[1] == "open"

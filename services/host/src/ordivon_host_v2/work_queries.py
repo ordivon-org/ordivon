@@ -13,7 +13,7 @@ import psycopg
 
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
-from .errors import ConflictError, WorkNotFound
+from .errors import WorkNotFound, WorkRevisionUnavailable
 from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .work_inputs import WorkState
 
@@ -30,14 +30,21 @@ def read_work_in_tx(
     ).fetchone()
     if work is None:
         raise WorkNotFound(work_ref)
-    target_revision = int(work["current_revision"]) if revision is None else revision
+    current_revision = int(work["current_revision"])
+    target_revision = current_revision if revision is None else revision
+    # A snapshot row above the committed Work pointer is not a committed
+    # Work revision, even if a damaged/imported database happens to hold it.
+    # Reject before reading its contents; no positive data row can overrule
+    # the authoritative revision frontier.
+    if target_revision > current_revision:
+        raise WorkRevisionUnavailable(work_ref, target_revision, current_revision)
     snapshot = conn.execute(
         "SELECT snapshot_digest,payload,writer_actor_ref,created_at FROM work_snapshots "
         "WHERE work_ref=%s AND revision=%s",
         (work_ref, target_revision),
     ).fetchone()
     if snapshot is None:
-        raise ConflictError(f"work {work_ref} has no revision {target_revision}")
+        raise WorkRevisionUnavailable(work_ref, target_revision, current_revision)
     payload = snapshot["payload"]
     if not isinstance(payload, dict):
         raise RuntimeError("work snapshot payload is not a PostgreSQL jsonb object")
