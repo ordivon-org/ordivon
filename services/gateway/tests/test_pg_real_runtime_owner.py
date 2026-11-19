@@ -1288,13 +1288,26 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     ).resolve(strict=True)
                     assert committed_after_terminal["args"] == source_execution["args"]
                     assert committed_after_terminal["timeoutMs"] == source_execution["timeoutMs"]
-                    # The issuer-free correlation route is not an exact Tool
-                    # authority. Native PG legitimately adds its private Cargo
-                    # target to the *effective* frozen Plan; the original
-                    # Harness request remains unchanged and provenance-only.
-                    # Preserve an explicitly authored target unchanged.
+                    # Issuer-free correlation does not authenticate the
+                    # original Harness intent. Runtime legitimately adds only
+                    # its known Workspace-private defaults to the frozen Plan.
+                    # A same-PG qualified issuer instead binds the exact
+                    # original environment: no synthesized defaults allowed.
+                    # setdefault preserves every explicitly authored value.
                     expected_effective_env = dict(source_execution["env"])
-                    expected_effective_env.setdefault("CARGO_TARGET_DIR", "/run/ordivon/cargo-target")
+                    if not issuer_bound:
+                        expected_effective_env.setdefault(
+                            "CARGO_TARGET_DIR", "/run/ordivon/cargo-target"
+                        )
+                        workspace_cache = (
+                            root / "store" / "cache" / "workspaces" / "ws-gateway-native"
+                        )
+                        for name, path in (
+                            ("XDG_CACHE_HOME", workspace_cache),
+                            ("PYTHONPYCACHEPREFIX", workspace_cache / "python-bytecode"),
+                            ("RUFF_CACHE_DIR", workspace_cache / "ruff"),
+                        ):
+                            expected_effective_env.setdefault(name, str(path))
                     assert committed_after_terminal["env"] == expected_effective_env
                     # Runtime's source-faithful normalized Plan stores the
                     # *resolved* absolute workspace cwd, not the caller's
