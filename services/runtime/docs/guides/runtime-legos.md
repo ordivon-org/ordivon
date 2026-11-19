@@ -94,8 +94,9 @@ The existing dedicated /harness/mcp route has an independently authenticated
 principal and token; **its mere presence in source does not mean it is
 configured or installed**. When a complete dedicated route is configured,
 source pg_main.rs now explicitly denies workspace.claim.release on the
-ordinary /mcp execution route. The guard runs on raw tools/call, regardless
-of what tools/list shows, and uses the existing MCP authenticated route
+ordinary /mcp execution route and omits it from that route's tool catalog.
+The guard runs on raw tools/call even when a client invokes a known tool name,
+and uses the existing MCP authenticated route
 identity, not an Agent-ref or caller-supplied boolean. The dedicated claim
 client must be owned by the real Harness finalizer and kept outside ordinary
 tool-executor/model grants.

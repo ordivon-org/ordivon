@@ -84,7 +84,17 @@ impl PgRuntimeServer {
             .status().is_ok_and(|status| status.success())
     }
     fn catalog_for(&self) -> Vec<Tool> {
-        Self::catalog_enabled(self.release_ready())
+        Self::catalog_for_route(self.release_ready(), self.claim_release_allowed)
+    }
+    // Protect the Agent-visible catalog as well as raw tools/call: an ordinary
+    // executor should not plan a domain-finalizer effect it cannot invoke.
+    // The raw call guard remains authoritative against a hand-written request.
+    fn catalog_for_route(release_ready: bool, release_allowed: bool) -> Vec<Tool> {
+        let mut tools = Self::catalog_enabled(release_ready);
+        if !release_allowed {
+            tools.retain(|tool| tool.name.as_ref() != "workspace.claim.release");
+        }
+        tools
     }
     pub fn configured_tool_count(&self) -> usize {
         self.catalog_for().len()
@@ -448,5 +458,12 @@ mod claim_release_route_authority_tests {
             t.name.as_ref() == "workspace.claim.release"));
         assert!(!PgRuntimeServer::catalog().iter().any(|t|
             t.name.as_ref() == "workspace.claim.release.legacy"));
+        let isolated = PgRuntimeServer::catalog_for_route(false, false);
+        let dedicated = PgRuntimeServer::catalog_for_route(false, true);
+        assert!(dedicated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert!(!isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert_eq!(dedicated.len(), isolated.len() + 1);
+        assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.reserve"));
+        assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.get"));
     }
 }
