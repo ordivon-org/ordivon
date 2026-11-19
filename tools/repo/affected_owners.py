@@ -289,7 +289,13 @@ def _source_diff_base(base: str, head: str) -> str:
     return merge_bases[0]
 
 
-def changed_paths(base: str, head: str) -> tuple[str, ...]:
+def changed_paths(
+    base: str, head: str, *, source_repo_root: Path | None = None
+) -> tuple[str, ...]:
+    # The default is this manifest's repository. A compositional caller may
+    # explicitly select a *different* Git source used by its own native
+    # SourceCut reader; neither path silently inherits subprocess CWD.
+    repo = SOURCE_REPO_ROOT if source_repo_root is None else Path(source_repo_root).resolve()
     # Preserve both sides of a cross-owner move, rather than allowing Git's
     # similarity detection to hide the source owner from verification.
     proc = subprocess.run(
@@ -297,7 +303,7 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
             # SourceCut membership must be the actual immutable Git DAG, not
             # a locally installed refs/replace overlay. A replacement commit
             # could otherwise omit a changed Formal verifier source.
-            "git", "-C", str(SOURCE_REPO_ROOT), "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
+            "git", "-C", str(repo), "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
             "--diff-filter=ACDMRTUXB", f"{base}...{head}",
         ],
         # Object replacement and the separate legacy graft file can each

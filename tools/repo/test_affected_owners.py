@@ -631,6 +631,13 @@ verify_task = "y:verify"
                 observed["changedPaths"], ["services/runtime/src/right.py"]
             )
             self.assertIn("runtime", [owner["name"] for owner in observed["owners"]])
+            # A second legitimate consumer uses its own explicitly selected
+            # source repository. Neither selector reads the foreign CWD.
+            with patch.object(MODULE, "SOURCE_REPO_ROOT", foreign):
+                self.assertEqual(
+                    MODULE.changed_paths(base, head, source_repo_root=source),
+                    ("services/runtime/src/right.py",),
+                )
 
 
 if __name__ == "__main__":
