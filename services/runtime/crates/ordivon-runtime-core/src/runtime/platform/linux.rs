@@ -1191,8 +1191,7 @@ mod tests {
         });
         assert_eq!(
             build
-                .err()
-                .expect("symlink must be denied before native dispatch")
+                .expect_err("symlink must be denied before native dispatch")
                 .code,
             RuntimeErrorCode::WorkspaceStateMismatch
         );
