@@ -79,6 +79,38 @@ fields only for a formally declared/admitted LEGO; do not duplicate registries.
 | Can a Workspace/resource be removed? | Current Job and logical Run consumers all released, exact native close/retention | pg_runtime/workspace.rs and claim.rs, workspace_headroom.rs, Git worktree |
 | Is a released binary installed and usable? | Source/manifest -> ReleaseEffect -> actual file/process -> consumer result | pg_runtime/release.rs, release scripts, systemd/SCM, actual Runtime Job and Artifact |
 
+### Cross-database Run Claim release: source contract, not Installed proof
+
+A Runtime workspace.claim.reserve protects the physical Git Workspace even
+after its last Job exits. Its principal + clientRequestId is a **recovery
+coordinate**, not a trustworthy statement that an external Harness Run or a
+recipient finished consuming the output. An authenticated caller with the
+original Claim owner identity can otherwise call workspace.claim.release
+before Harness Run terminal/recipient Byte ACK; ordinary workspace.close
+can then remove unique material. This happened in a real disposable Run +
+installed Runtime native test, not just in the formal model.
+
+The existing dedicated /harness/mcp route has an independently authenticated
+principal and token; **its mere presence in source does not mean it is
+configured or installed**. When a complete dedicated route is configured,
+source pg_main.rs now explicitly denies workspace.claim.release on the
+ordinary /mcp execution route and omits it from that route's tool catalog.
+The guard runs on raw tools/call even when a client invokes a known tool name,
+and uses the existing MCP authenticated route
+identity, not an Agent-ref or caller-supplied boolean. The dedicated claim
+client must be owned by the real Harness finalizer and kept outside ordinary
+tool-executor/model grants.
+
+**Cutover requires consumer migration:** Claims created under the old ordinary
+principal are not automatically transferable to the new dedicated principal.
+Do not enable this control in a live Harness instance until birth/reopen,
+terminal/recipient delivery/physical drain, finalizer token routing, and
+legacy-HELD disposition are tested from actual installed clients. A dedicated
+caller still cannot independently prove external Domain Byte ACK using only
+Runtime PG and OS state: true finalization remains the original Harness/Domain
+authority. Missing finalizer identity or uncertain external acceptance keeps
+the relevant early-release/auto-GC operation on HOLD, not unrelated Jobs.
+
 ### Directory ownership after this source-only refactor
 
 This is an incremental reorganization inside the existing owner, not a

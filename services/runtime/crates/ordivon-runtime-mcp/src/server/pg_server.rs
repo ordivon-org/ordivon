@@ -9,24 +9,54 @@ pub struct PgReleaseOperatorConfig {
     pub dispatcher_timer: String,
 }
 
+/// A caller-supplied key is a recovery coordinate, never release authority.
+/// Keep the real raw-dispatch check testable without constructing a PG client.
+fn claim_release_route_guard(allowed: bool, name: &str) -> Result<(), McpError> {
+    if name == "workspace.claim.release" && !allowed {
+        return Err(McpError::invalid_params(
+            "workspace.claim.release requires the authenticated Run finalizer route",
+            None,
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Clone)]
 pub struct PgRuntimeServer {
     runtime: ordivon_runtime_core::PgRuntime,
     execution: ExecutionContext,
     release: Option<PgReleaseOperatorConfig>,
+    // The ordinary execution bearer is not authority to relinquish another
+    // domain's still-held Workspace. The protected Harness/Finalizer route
+    // alone may expose the original principal-scoped release operation.
+    claim_release_allowed: bool,
 }
 
 impl PgRuntimeServer {
     pub fn new(runtime: ordivon_runtime_core::PgRuntime, execution: ExecutionContext) -> Self {
-        Self { runtime, execution, release: None }
+        Self { runtime, execution, release: None, claim_release_allowed: true }
     }
     pub fn with_release(
         runtime: ordivon_runtime_core::PgRuntime,
         execution: ExecutionContext,
         release: Option<PgReleaseOperatorConfig>,
     ) -> Self {
-        Self { runtime, execution, release }
+        Self { runtime, execution, release, claim_release_allowed: true }
     }
+    /// Route-bound deny, set only by operator-owned authenticated MCP wiring.
+    /// This blocks raw tools/call, not just the advertised tool catalog.
+    /// Do not enable until an independently authenticated finalizer owns
+    /// Run-born Claims: existing principal-scoped HELD keys cannot be
+    /// silently adopted by a different principal.
+    pub fn without_claim_release(mut self) -> Self {
+        self.claim_release_allowed = false;
+        self
+    }
+
+    fn require_claim_release_authority(&self, name: &str) -> Result<(), McpError> {
+        claim_release_route_guard(self.claim_release_allowed, name)
+    }
+
     fn release_ready(&self) -> bool {
         let Some(config)=&self.release else { return false; };
         if !config.source_repo.is_dir()
@@ -54,7 +84,17 @@ impl PgRuntimeServer {
             .status().is_ok_and(|status| status.success())
     }
     fn catalog_for(&self) -> Vec<Tool> {
-        Self::catalog_enabled(self.release_ready())
+        Self::catalog_for_route(self.release_ready(), self.claim_release_allowed)
+    }
+    // Protect the Agent-visible catalog as well as raw tools/call: an ordinary
+    // executor should not plan a domain-finalizer effect it cannot invoke.
+    // The raw call guard remains authoritative against a hand-written request.
+    fn catalog_for_route(release_ready: bool, release_allowed: bool) -> Vec<Tool> {
+        let mut tools = Self::catalog_enabled(release_ready);
+        if !release_allowed {
+            tools.retain(|tool| tool.name.as_ref() != "workspace.claim.release");
+        }
+        tools
     }
     pub fn configured_tool_count(&self) -> usize {
         self.catalog_for().len()
@@ -103,6 +143,10 @@ impl PgRuntimeServer {
     }
     /// Shared by the MCP handler and protocol consumer tests; performs real Core calls.
     pub async fn call(&self, name: String, arguments: serde_json::Value) -> Result<CallToolResult, McpError> {
+        // Enforce before the PG transaction and before any Release readiness
+        // side query. A caller who knows the exact idempotency key still
+        // cannot invoke the physical relinquishment through ordinary /mcp.
+        self.require_claim_release_authority(&name)?;
         let release_ready=self.release_ready();
         if !Self::catalog_enabled(release_ready).iter().any(|t|t.name.as_ref()==name) {
             return Err(McpError::invalid_params("Tool is not implemented by the PG vertical", None));
@@ -395,5 +439,31 @@ mod pg_catalog_consumer_tests {
         let description = tool.description.expect("Agent-visible behavior contract");
         assert!(description.contains("change_or_terminal"), "{description}");
         assert!(!description.contains("not supported"), "{description}");
+    }
+}
+
+
+#[cfg(test)]
+mod claim_release_route_authority_tests {
+    use super::*;
+
+    #[test]
+    fn raw_tool_dispatch_blocks_normal_known_key_but_not_claim_readback() {
+        assert!(claim_release_route_guard(false, "workspace.claim.release").is_err());
+        assert!(claim_release_route_guard(true, "workspace.claim.release").is_ok());
+        assert!(claim_release_route_guard(false, "workspace.claim.get").is_ok());
+        assert!(claim_release_route_guard(false, "workspace.claim.reserve").is_ok());
+        // Tool-name obfuscation cannot become an alternate release API.
+        assert!(PgRuntimeServer::catalog().iter().any(|t|
+            t.name.as_ref() == "workspace.claim.release"));
+        assert!(!PgRuntimeServer::catalog().iter().any(|t|
+            t.name.as_ref() == "workspace.claim.release.legacy"));
+        let isolated = PgRuntimeServer::catalog_for_route(false, false);
+        let dedicated = PgRuntimeServer::catalog_for_route(false, true);
+        assert!(dedicated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert!(!isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert_eq!(dedicated.len(), isolated.len() + 1);
+        assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.reserve"));
+        assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.get"));
     }
 }
