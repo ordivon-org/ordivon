@@ -74,7 +74,7 @@ fields only for a formally declared/admitted LEGO; do not duplicate registries.
 | Who submitted what, and is it a replay? | Transport auth -> request normalization -> issuer and writer qualification -> idempotent admission | MCP access_auth.rs/pg_auth.rs; runtime/admission_validation.rs; pg_admission/input_contract.rs, writer_authority.rs, pg_issuer_guard.rs and pg_admission.rs |
 | Can execution be placed? | Resource-fit, owner fairness, actual reservation vs UNKNOWN | resource_fit.rs, resource_scheduling.rs, pg_runtime/scheduling.rs, PG and kernel counters |
 | Did execution physically start? | Dispatch generation, native process identity, exact immutable Runner binding | pg_dispatch.rs, pg_runtime/job.rs, universal/runner.rs, runtime/platform/linux.rs; runtime/windows.rs and Windows launcher |
-| Has stop or terminal happened? | Stop intent != stop evidence; terminal transition/CAS; reconcile ambiguous state | pg_runtime/native_stop.rs, pg_runtime/reconciliation.rs, pg_admission/terminal_contract.rs and cancel_contract.rs |
+| Has stop or terminal happened? | Stop intent != stop evidence; terminal transition/CAS; reconcile ambiguous state | pg_runtime/job/cancellation.rs, pg_runtime/native_stop.rs, pg_runtime/reconciliation.rs, pg_admission/terminal_contract.rs and cancel_contract.rs |
 | Can a caller consume output? | Result identity, bounded Artifact manifest and digest-verified readback | pg_readback.rs, pg_runtime/artifact.rs, universal/resource_receipt.rs, artifact files |
 | Can a Workspace/resource be removed? | Current Job and logical Run consumers all released, exact native close/retention | pg_runtime/workspace.rs and claim.rs, workspace_headroom.rs, Git worktree |
 | Is a released binary installed and usable? | Source/manifest -> ReleaseEffect -> actual file/process -> consumer result | pg_runtime/release.rs, release scripts, systemd/SCM, actual Runtime Job and Artifact |
@@ -92,6 +92,7 @@ second runtime or a completed fleet migration.
 | pg_admission/cancel_contract.rs | Cancellation immutable identity and DTO | Process termination |
 | pg_admission.rs | Existing PostgreSQL transaction/CAS implementations and replay, with above contracts imported | Cloudflare parsing, extra Registry |
 | runtime/pg_runtime/ | PG-bound Job/Workspace/scheduling/reconciliation use-case composition | Harness goal/Run semantics |
+| runtime/pg_runtime/job/cancellation.rs | Existing PG Job cancel use-case: authorize -> persist intent -> native stop request -> reconciliation/readback | HTTP principal decoding, invented native stop implementation, semantic task completion |
 | runtime/platform/ and universal/ | Native Linux/Windows execution and generic Git/Runner/FS capabilities | Upstream Agent reasoning or policy hierarchy |
 | ordivon-runtime-mcp/src/ | Protocol presentation and existing authenticated principal mapping | Reimplement PG Job state machine |
 | runtime/engine/, runtime/registry/ | Gated SQLite legacy path; retain only while installed Windows needs it | Linux PG production writer |
