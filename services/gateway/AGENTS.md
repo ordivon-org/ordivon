@@ -333,7 +333,8 @@ an unqualified count as a success witness.
 
 **Agent effect boundary (2026-11-18, original Host #28845):**
 Gateway `execution.get` is **not a guaranteed pure read**. The current
-`execution_observations.py` calls Runtime `job.observe` even when `waitMs=0`.
+`src/ordivon_gateway/capabilities/execution/observations.py` calls the
+Runtime `job.observe` operation even when `waitMs=0`.
 The native Runtime may dispatch an already-admitted Job while reconciling.
 Harness `plugin_gateway_effect.py` explicitly fences bound replay and also
 consumes `execution.get` for `task.observe`. This does not prove every
