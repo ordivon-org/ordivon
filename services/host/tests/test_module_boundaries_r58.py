@@ -14,6 +14,7 @@ from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.errors import ActorRefNotFound
 from ordivon_host_v2.health.diagnostics import HostStatusQueries
 from ordivon_host_v2.references.actor_refs import ActorReferenceLookup, ActorReferenceRegistry
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.service import HostV2
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_store import WorkStore
@@ -23,7 +24,8 @@ def test_actor_reference_lookup_is_shared_not_three_copies() -> None:
     assert WorkStore._require_actor is ActorReferenceLookup._require_actor
     assert SocialStore._require_actor is ActorReferenceLookup._require_actor
     assert AttentionStore._require_actor is ActorReferenceLookup._require_actor
-    assert WorkStore.declare_actor is ActorReferenceRegistry.declare_actor
+    assert ActorReferenceStore.declare_actor is ActorReferenceRegistry.declare_actor
+    assert not hasattr(WorkStore, "declare_actor")
     assert not hasattr(SocialStore, "declare_actor")
     assert not hasattr(AttentionStore, "declare_actor")
 

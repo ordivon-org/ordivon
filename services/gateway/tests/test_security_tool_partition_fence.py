@@ -16,9 +16,9 @@ from typing import Any
 import pytest
 from mcp import Client
 
-from ordivon_gateway.authorization_targets import resolve_authorization_target
-from ordivon_gateway.http_ingress_guard import needs_verified_ingress
 from ordivon_gateway.mcp_server import build_server
+from ordivon_gateway.security.authorization_targets import resolve_authorization_target
+from ordivon_gateway.security.http_ingress_guard import needs_verified_ingress
 
 ROOT = Path(__file__).resolve().parents[1]
 

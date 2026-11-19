@@ -93,8 +93,8 @@ class AttentionStore(
             return result
 
     def ack(self, actor_ref: str, *, cursor: int, client_request_id: str) -> dict[str, Any]:
-        if cursor < 0:
-            raise ValueError("cursor must be non-negative")
+        if type(cursor) is not int or cursor < 0:
+            raise ValueError("cursor must be a non-negative exact integer")
         request = {"operation": "attention.ack", "actorRef": actor_ref, "cursor": cursor}
         request_digest = canonical_digest(request)
         with self._connect() as conn, conn.transaction():

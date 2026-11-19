@@ -11,7 +11,7 @@ from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ConflictError, WorkNotFound
 from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .postgres_connections import HostPostgresConnections
-from .references.actor_refs import ActorReferenceRegistry
+from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
 from .work_inputs import (
     WorkCreateInput,
@@ -34,7 +34,7 @@ def _next_work_revision(expected_revision: int) -> int:
 
 
 class WorkStore(
-    ActorReferenceRegistry,
+    ActorReferenceLookup,
     WorkRelationCommands,
     WorkReadQueries,
     RecordReferenceLookup,
