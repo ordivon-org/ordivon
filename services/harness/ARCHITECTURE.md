@@ -150,6 +150,42 @@ and evaluation fixtures are not authoritative execution entrypoints.
 | `docs/`, `research/`, `evidence/` | Current owner guidance, prior experiments and provenance | Keep the source-of-truth distinction explicit: historical results are not automatically current deployment claims |
 | `systemd/`, `containers/`, `.github/` | Service units, containers, native release automation | Verify installed revision and live consumer independently of a Git or CI result |
 
+### Thought → Logic → Capability: current source map
+
+Thought LEGO are reusable methods, not owners or a runtime permission layer:
+construct forward from the caller's objective; work backward from loss,
+duplicate effect, stale authority, ambiguous output, and incorrect completion.
+A logic LEGO expresses each problem as state, preconditions, invariants, failure
+partitions and falsification obligations. A capability LEGO is the source
+implementation behind the existing Store, Provider, Tool and Runtime ports.
+
+| Logical problem | Current capability-bearing source | Non-negotiable boundary |
+| --- | --- | --- |
+| Contract/Run composition | `core_contracts.py`, `agent_run.py`, `run_authority.py` | One immutable Contract; Run composition must not select external task outcomes |
+| Current cognition vs history | `working_view.py`, `ordivon/turn_projection.py`, `ordivon/run_continuity.py` | Retained evidence is not automatic model-visible relevance |
+| Provider turn and retry | `ordivon/loop.py`, `ordivon/provider_lifecycle.py` | Provider reply/transport result is not domain completion |
+| Durable continuity | `postgres_store.py`, `ordivon/run_continuity.py`, `crates/harness-pg/` | Existing Harness PG writer is the only Run journal authority |
+| Tool effect and current permission | `gateway_execution_policy.py`, `plugin_gateway_effect.py`, `ordivon/runtime_bridge.py`, `runtime_port.py` | Caller grant, native admission and physical receipt are different facts |
+| Workspace lifecycle | `workspace_claim.py`, `run_authority.py`, `agent_run.py` | Run ACTIVE without active Jobs must still protect its Workspace |
+| Recovery/finalization | `ordivon/run_continuity.py`, `ordivon/runtime_bridge.py`, `agent_run.py` | UNKNOWN is partitioned by issuer/OS/recipient observations; release requires independent acceptance |
+| Formal verification | `formal/`, `tests/`, `crates/harness-core/` | Source proof, PostgreSQL test, installed native effect, domain receipt are separate claims |
+
+The Gateway permission kernel `gateway_execution_policy.py` is independent of
+Run composition; `plugin_gateway_effect.py` imports it directly, while
+`run_authority.py` re-exports historical names without owning duplicate
+policies. This is a source-only modularization; it does not install a new
+Harness or grant Runtime issuer privileges.
+
+**Next structural cuts are consumer-driven, not directory-driven.**
+The present large `ordivon/run_continuity.py` combines cognition mutations,
+Provider lifecycle, Tool receipts and source projections; retain the existing
+public continuity facade and split bounded command/observation kernels only
+with real PG and recovery negative tests. The `ordivon/loop.py` decision
+cycle and `ordivon/runtime_bridge.py` physical reconciliation must similarly
+keep frozen request identity and UNKNOWN across extraction. Do not build
+parallel state machines, event writers or an extra permission registry.
+
+
 `sqlite_store.py` and `scripts/sqlite_*` are still separately reachable legacy
 implementations or migration inputs; their existence does not authorize them as
 the active PostgreSQL write authority. The old `store_ops.py` SQLite-only backup
