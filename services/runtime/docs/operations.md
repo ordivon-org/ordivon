@@ -705,6 +705,13 @@ neither a GREEN plan nor five matching bytes grant permission to mutate
 the Root control plane. Treat the plan as an operator review input, not an
 installer, a signed authorization, or a live Service receipt.
 
+For a nested monorepo checkout, the `--source-repo` must be the actual
+Runtime **owner directory** (`<checkout>/services/runtime`), not the Git
+repository root. Bind `--expected-owner-tree` to the exact
+`git -C <checkout> rev-parse '<commit>:services/runtime'` object. A Git
+repository-root source and a Runtime-owner source have different tree
+identities; do not weaken the source authority if the plan rejects them.
+
 An isolated Root candidate may now be **staged but never installed** using
 the same existing deployer command with the root-bundle-stage subcommand and
 the plan's source-repo, commit, require-ref, expected-owner-tree and live
@@ -865,12 +872,26 @@ the unit and database. Failure tests also cover a forged result,
 Operator privilege and WAL-epoch revocation, unknown dispatch reply,
 partial file replace, systemd start failure and exact replay.
 
-**Production release gate remains closed:** no installed Linux PG node
-has been observed advertising structuredReleaseConfigured=true or a
-qualified release.apply. Tests of disposable service installation do not
-imply that a production Operator/Artifact/service has been installed.
-The PG transport must still connect MCP release.apply and the
-independent Operator invocation/restart acceptance before that claim.
+**Live release capability is not installed release evidence.** A Linux PG
+Runtime can report `structuredReleaseConfigured=true` and accept a
+`release.apply` as one durable ReleaseEffect while the independent Root
+dispatcher is configured, without replacing the live Server/Runner. The
+existing PostgreSQL admission transaction already cordons **new** Jobs
+while that Effect is pending; do not create a second cordon or hold its
+source/transaction lock while older Jobs need to terminalize. A release
+can still finish `not_committed` when previously admitted Agent Jobs
+exceed the Root Operator's finite `drainSeconds` budget.
+
+Before a fresh source-qualified release, read the actual Root operator
+configuration and effective systemd one-shot `TimeoutStartUSec`:
+`drainSeconds`, MCP `waitSeconds`, stop/start, physical preimage
+retention and possible rollback must fit a bounded, verified maintenance
+window. Never cancel unrelated Owner Jobs to obtain a green drain and
+never replay a terminal failed ReleaseEffect under the old identity.
+Only the original `release.get` result, immutable operator receipt,
+exact installed Server/Runner digests and live authenticated MCP
+readback can establish a completed installation; an accepted request,
+source merge, or successful disposable PostgreSQL test cannot.
 
 ### PostgreSQL serialization-abort admission (2026-11-08)
 
