@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 
 @dataclass(frozen=True)
@@ -30,6 +30,33 @@ class OwnerDescriptor(StrictModel):
     configured: bool
 
 
+class ReadinessFact(StrictModel):
+    owner_id: str
+    predicate: str
+    state: Literal["supported", "refuted", "unobserved", "invalid", "contradictory"]
+    source: str
+
+
+class ReadinessCheck(StrictModel):
+    direction: Literal["forward", "reverse"]
+    owner_id: str
+    action: str
+    expected_evidence: str
+    effect: Literal["read_only", "requires_authorized_context"] = "read_only"
+    execution_state: Literal["proposed_not_executed"] = "proposed_not_executed"
+    request: dict[str, Any] | None = None
+
+
+class ReadinessInquiry(StrictModel):
+    """Evidence and falsifiable checks, not permission to perform a side effect."""
+
+    scope: Literal["owner_status", "multi_owner_status", "route_metadata"]
+    facts: list[ReadinessFact] = Field(default_factory=list)
+    unresolved_questions: list[str] = Field(default_factory=list)
+    possible_explanations: list[str] = Field(default_factory=list)
+    next_checks: list[ReadinessCheck] = Field(default_factory=list)
+
+
 class CapabilityDescriptor(StrictModel):
     capability: str
     owner_id: str
@@ -46,6 +73,7 @@ class CapabilityDescriptor(StrictModel):
     tags: list[str] = Field(default_factory=list)
 
     readiness_state: Literal["ready", "not_ready", "unknown"] = "unknown"
+    _readiness_inquiry: ReadinessInquiry | None = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def derive_readiness_state(self) -> CapabilityDescriptor:
@@ -64,6 +92,22 @@ class CapabilityDescriptor(StrictModel):
         else:
             self.readiness_state = "not_ready"
         return self
+
+
+class CapabilityInquiryProjection(StrictModel):
+    """Explicit investigation endpoint, keeping capability.describe ABI unchanged."""
+
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-capability-inquiry"] = "ordivon.gateway-capability-inquiry"
+    truth_role: Literal["read-only-owner-evidence-not-authority"] = (
+        "read-only-owner-evidence-not-authority"
+    )
+    capability: str
+    owner_id: str
+    readiness_state: Literal["ready", "not_ready", "unknown"]
+    route_digest: str | None = None
+    projection_digest: str
+    inquiry: ReadinessInquiry
 
 
 class CapabilitySearchMatch(StrictModel):

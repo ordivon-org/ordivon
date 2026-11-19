@@ -116,7 +116,7 @@ def _extract_owner_tool_error(
     # Host domain errors are raised by MCP tools and MCP v2 currently serializes that
     # exception as text rather than structuredContent. Recover only the exact canonical
     # Host envelope; arbitrary owner prose must remain an opaque OWNER_CALL_FAILED.
-    if owner_id != "host":
+    if owner_id not in {"host", "host.read"}:
         return None
     prefix = f"Error executing tool {tool_name}: "
     for item in result.content:
@@ -236,6 +236,10 @@ class McpOwnerCaller:
                 "url": "ORDIVON_GATEWAY_HOST_URL",
                 "bearer": "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE",
             },
+            "host.read": {
+                "url": "ORDIVON_GATEWAY_HOST_READ_URL",
+                "bearer": "ORDIVON_GATEWAY_HOST_READ_BEARER_TOKEN_FILE",
+            },
             "skills": {
                 "url": "ORDIVON_GATEWAY_SKILLS_URL",
                 "bearer": "ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE",
@@ -261,12 +265,16 @@ class McpOwnerCaller:
             )
         return cls(owners)
 
+    def has_route(self, owner_id: str) -> bool:
+        """Presence, not success or admission, for intentional split routing."""
+        return owner_id in self._owners
+
     def configuration_error(self, owner_id: str) -> str | None:
         endpoint = self._owners.get(owner_id)
         if endpoint is None:
             return "owner endpoint is not configured"
         if (
-            owner_id.startswith("runtime.") or owner_id in {"skills", "host"}
+            owner_id.startswith("runtime.") or owner_id in {"skills", "host", "host.read"}
         ) and not _runtime_identity_configured(endpoint):
             return "owner authentication is not configured"
         return None

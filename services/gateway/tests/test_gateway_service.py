@@ -97,6 +97,7 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
             assert set(by_name) == {
                 "system.describe",
                 "capability.describe",
+                "capability.inquire",
                 "capability.resolve",
                 "capability.search",
                 "execution.submit",

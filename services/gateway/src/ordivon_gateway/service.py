@@ -10,6 +10,7 @@ from .capabilities.execution.release import RuntimeReleaseProxy
 from .capabilities.host.dispatch import HostContinuityAdapter
 from .contracts import (
     ArtifactChunk,
+    CapabilityInquiryProjection,
     CapabilityProjection,
     CapabilityResolution,
     CapabilityRoute,
@@ -65,6 +66,9 @@ class GatewayService:
 
     async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
         return await self._catalog.capability_describe(capability)
+
+    async def capability_inquire(self, *, capability: str) -> CapabilityInquiryProjection:
+        return await self._catalog.capability_inquire(capability=capability)
 
     async def capability_search(
         self,
