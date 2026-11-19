@@ -10,6 +10,7 @@ import os
 import stat
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from ..logic.owner_protocol import OwnerCallError
 
@@ -23,6 +24,30 @@ class OwnerEndpoint:
     # Delegate protocol negotiation entirely to the upstream MCP Python SDK.
     # "auto" remains the compatibility default; opt in only for a verified Owner.
     mcp_mode: str = "auto"
+
+
+def _is_legacy_loopback_host_endpoint(endpoint: OwnerEndpoint) -> bool:
+    """Existing Host 8898 has native loopback trust, not an extra machine bearer.
+
+    Qualify only the exact original loopback URL, NEVER an external Host,
+    optional protected host.read, Windows/Runtime, or an arbitrary port/path.
+    Cloudflare HTTP ingress is authenticated separately before this transport.
+    """
+    try:
+        parsed = urlsplit(endpoint.url)
+        return (
+            parsed.scheme == "http"
+            and parsed.netloc == "127.0.0.1:8898"
+            and parsed.hostname == "127.0.0.1"
+            and parsed.port == 8898
+            and parsed.path == "/mcp"
+            and parsed.username is None
+            and parsed.password is None
+            and not parsed.query
+            and not parsed.fragment
+        )
+    except ValueError:
+        return False
 
 
 def _runtime_identity_configured(endpoint: OwnerEndpoint) -> bool:

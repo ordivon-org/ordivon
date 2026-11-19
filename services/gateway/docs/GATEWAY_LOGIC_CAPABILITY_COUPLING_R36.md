@@ -55,3 +55,38 @@ P2：继续按实际 SDK schema、Git/安装服务和用户消费来退役空壳
 - 仓库架构检查、`git diff --check`：复核并通过才能作为源码候选。
 - `mise run gateway:formal:verify`：执行时因未找到符合锁文件 SHA 的 TLA+ JAR 退出；不能报告为模型 PASS/FAIL。
 - `Git commit` ≠ `PR merge` ≠ `正式安装` ≠ `真实跨服务消费`。R36 本轮只签收实际完成阶段，不触碰现役 /opt release、Security token 或其他 Agent Workspace。
+
+
+## R37｜继续推进现有模块，避免重建 Gateway（2026-11-19）
+
+从 R36 的本地提交 `d73d84e8363887c3b871ed268a2d532e98247ac0` 继续，在原分支/Workspace 完成如下 SOURCE CANDIDATE 变更。
+
+### 目标—现实—变化
+
+1. **能力就绪性**：过去 `capabilities/discovery.py` 同时负责观察（Owner RPC、超时、请求级状态缓存）和能力语义投影。现在抽取 `capabilities/owner_observation.py` 的 `OwnerStatusObserver`。每次 `_describe_routes` 有独立观察上下文；只调用现有 `runtime.describe` / `host.status`，不缓存跨请求的物理事实。纯 `logic/runtime_status.py` 与 `logic/readiness_*.py` 继续负责有效性和 UNKNOWN 判断。正向：探测明确版本化状态；逆向：超时是未观测，不能自动重试效果。
+2. **Owner 错误**：过去 `transport/upstream.py` 内嵌 Host/Runtime 文本错误解析，而且将任意 `structuredContent.error` 当作可信结构，容许 Runtime origin 错误从 Host 身份透传。现在抽出 `transport/owner_error_decode.py`，并为 Host domain-error v1 和 Runtime native error 分别约束字段、版本整数、负载上限与准确 Owner。无对应已知格式的错误保留 opaque，不伪造权威错误类型；向客户端输出仍由 R36 的 `transport/owner_error_projection.py` 负责。兼容导出 `upstream._extract_owner_tool_error` 留给现有测试和调用者。逆向负例涵盖 `True == 1`、伪造跨 Owner、无资格的 Skills、过大 Error、错 Tool。
+3. **发布前严格性**：过去 `execution/release.py` 只寻找一个可用 local_linux target，若另有重复/矛盾 target 仍有通过可能。现在它和 `logic/capability_projection.py` 的 release discovery 共享 `valid_runtime_status_envelope` / `valid_runtime_target_inventory`，全量校验响应；反例明确验证拒绝发布前错误库存，不触发 `release.apply`。这只是 Gateway 输入条件，不能替代 Runtime 真正发布准入；`release.get` 仍按原请求恢复，丢回包不新建发布。
+4. **权限与传输解耦**：具体 Host loopback 信任例外 `_is_legacy_loopback_host_endpoint` 从 `transport/upstream.py` 移到 `security/owner_identity.py`；保留受限定的原 Host 本机路径规则，不扩大其他网络地址信任。
+
+### 自然 Owner 和改变理由
+
+- Security：唯一 Principal/PDP/凭据及例外校验，不在业务适配器里新增策略。
+- Transport：MCP SDK 会话、连接、错误解码及展示，不自行解释 Host Work 或 Runtime Job 业务成功。
+- Capability：只协调对外功能和必要的只读观察，绝不接管自然 Owner 的物理事实。
+- Logic：无 I/O 的契约验证、映射、状态精化。错误类型也保持独立于 MCP。
+
+### R2.1 LEGO 与正式实践
+
+- 观察 LEGO：`I=(Owner, status tool, observation budget)`，`O=(response?,error?)`，`pre=explicit metadata read`，`post=only same request owner observations`，`inv=timeout!⇒not_executed`（记号含义：超时**不能推导**未执行），`eff=bounded status RPC`，`prov=source consumer tests`。
+- 错误解码 LEGO：`I=(authenticated transport owner, actual MCP tool, output envelope)`；`O=(qualified error | None)`；`inv=qualified⇒versioned owner-matching envelope`；未知的错误继续 UNKNOWN，不从错误消息推断外部效果。
+- 发布检查 LEGO：`I=Runtime describe targets`；`post=only entire valid inventory may reach release.apply`；`inv=malformed sibling cannot be hidden`；Runtime 和 Security 保留最终决定权。
+- 参考成熟实践：Ports & Adapters（AWS Prescriptive Guidance `https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html`），MCP 官方工具错误与结构化内容 `https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx`。有目的地解耦，不为无消费者逻辑额外建立运行时服务。
+
+### 验收与剩余约束
+
+- 原 `mise run gateway:verify` 包含 Python 测试、Ruff、B01 48 组路由、B03 100 组状态对与 9 组目标库存，全数通过；新增三组独立回归模块。
+- Gateway `mcp-surface.json` 仍维持 42 Tools、epoch17；没有修改对外 MCP 函数签名或添加 Owner 数据库。
+- 本轮未执行正式 Security 授权许可、真实 Runtime release、正式 Cloudflare Gateway 版本安装；不能从本地 tests PASS 推导 Installer、Postgres物理效果或生产状态。
+- 原 SourceCut / R36 / R37 必须按独立 Git、Native MCP 和正式安装证据辨认；TLA+ Jar 缺失时不能报告 MODEL_VERIFIED。
+
+5. **端点配置与 MCP 调用生命周期**：R37 又从 `transport/upstream.py` 拆出 `transport/owner_endpoint_config.py`。它只把环境变量映射到已有 `OwnerEndpoint` 和密钥文件**路径**，不打开密钥、不做认证或调用 Owner；`McpOwnerCaller.from_env` 仅委托该投影。新增 `tests/test_owner_endpoint_config.py`，运行时连接池/SDK协议模式仍由原 Upstream 控制。原 `upstream.py` 从约20.5KB缩至约11.6KB，重点是去混合职责，不是根据文件大小优化。

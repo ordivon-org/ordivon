@@ -18,6 +18,7 @@ class FakeOwner:
     def __init__(self, description: dict[str, Any] | None = None) -> None:
         self.calls: list[tuple[str, str, dict[str, Any]]] = []
         self.description = description or {
+            "schemaVersion": 1,
             "node": {"nodeId": "linux-pg", "platform": "linux", "native": True},
             "structuredReleaseConfigured": True,
             "targets": [{"target": "local_linux", "configured": True, "available": True}],

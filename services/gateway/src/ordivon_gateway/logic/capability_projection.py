@@ -230,13 +230,12 @@ def project_native_release_capability(
         targets = owner_response.get("targets")
         enabled = owner_response.get("structuredReleaseConfigured")
         if (
-            type(owner_response.get("schemaVersion")) is not int
-            or owner_response["schemaVersion"] != 1
+            not valid_runtime_status_envelope(owner_response)
             or not isinstance(node, dict)
             or node.get("nodeId") != "linux-pg"
             or node.get("platform") != "linux"
             or node.get("native") is not True
-            or not isinstance(targets, list)
+            or not valid_runtime_target_inventory(targets)
             or type(enabled) is not bool
         ):
             issue = "invalid native Linux Runtime structured-release status"
