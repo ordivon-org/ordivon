@@ -848,6 +848,12 @@ class NativePgReleaseOperator(unittest.TestCase):
         """
         from shutil import copy2
         import socket
+        # The default-deny ordinary PG route removes the dangerous direct
+        # Claim release tool even without a dedicated Harness issuer:
+        # 21 portable + 3 Claim - release.apply - claim.release = 22.
+        # Preserve an exact source-bound catalog assertion in native E2E.
+        native_tool_count = 22
+        self.args.expected_tool_count = native_tool_count
         runner=SCRIPTS.parent/"target/debug/ordivon-runtime-runner"
         pg_binary=SCRIPTS.parent/"target/debug/ordivon-runtime-pg"
         if not runner.is_file() or not pg_binary.is_file():
@@ -897,7 +903,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             "contract":"runtime_release_v1","effectId":self.args.effect_id,
             "requestDigest":request_digest,"workspaceId":"ws-test-release",
             "commit":self.args.commit,"candidateManifestDigest":fresh_manifest,
-            "expectedToolCount":20,"receiptPath":
+            "expectedToolCount":native_tool_count,"receiptPath":
                 str(self.args.receipt_root/f"effect-{self.args.effect_id}"),
         }
         bd=op.digest(op.canonical_json(binding).encode())
@@ -908,8 +914,9 @@ class NativePgReleaseOperator(unittest.TestCase):
         )
         self.db.execute(
             "UPDATE job_runtime_release_effects SET request_digest=%s,"
-            "candidate_manifest_digest=%s,binding_digest=%s WHERE job_id=%s",
-            (request_digest,fresh_manifest,bd,self.job_id),
+            "candidate_manifest_digest=%s,binding_digest=%s,"
+            "expected_tool_count=%s WHERE job_id=%s",
+            (request_digest,fresh_manifest,bd,native_tool_count,self.job_id),
         )
         self.db.execute(
             "CREATE ROLE runtime_app LOGIN"
@@ -982,11 +989,11 @@ class NativePgReleaseOperator(unittest.TestCase):
             shadow_catalog=op.DEPLOY["probe_catalog"](
                 f"http://{bind}/mcp","p"*32,
                 client_name="independent-shadow-process-probe",
-                expected_tool_count=20,
+                expected_tool_count=native_tool_count,
                 required_tools=("runtime.describe","release.get"),
                 wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
             )
-            self.assertEqual(shadow_catalog["toolCount"],20,
+            self.assertEqual(shadow_catalog["toolCount"],native_tool_count,
                              "unrelated executable also offers a healthy MCP catalog")
             with self.assertRaisesRegex(RuntimeError,"PG release preflight rejected"):
                 op.apply_release(self.args)
@@ -1036,7 +1043,7 @@ class NativePgReleaseOperator(unittest.TestCase):
                 "ordivon-runtime-pg-reclaim",
                 {entry["name"] for entry in observed["installed"]},
             )
-            self.assertEqual(observed["probe"]["toolCount"],20)
+            self.assertEqual(observed["probe"]["toolCount"],native_tool_count)
             active=observed["probe"]["activeRuntimeImage"]
             self.assertEqual(active["path"],str(original))
             self.assertEqual(active["digest"],op.DEPLOY["sha256"](original))
@@ -1070,7 +1077,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed_release["effectDisposition"],"deployed")
             self.assertEqual(observed_release["receiptAvailable"],True)
             self.assertEqual(observed_release["executionDisposition"],"succeeded")
-            self.assertEqual(observed_release["deployedToolCount"],20)
+            self.assertEqual(observed_release["deployedToolCount"],native_tool_count)
             self.assertEqual(observed_release["semanticCompletionEvaluated"],False)
             self.assertEqual(observed_release["commit"],self.args.commit)
             # After a valid deployment, drift only the effective systemd
@@ -1080,11 +1087,11 @@ class NativePgReleaseOperator(unittest.TestCase):
             shadow_catalog=op.DEPLOY["probe_catalog"](
                 f"http://{bind}/mcp","p"*32,
                 client_name="replay-shadow-process-probe",
-                expected_tool_count=20,
+                expected_tool_count=native_tool_count,
                 required_tools=("runtime.describe","release.get"),
                 wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
             )
-            self.assertEqual(shadow_catalog["toolCount"],20)
+            self.assertEqual(shadow_catalog["toolCount"],native_tool_count)
             with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
                 op.apply_release(self.args)
             # MainPID now executes the *correct* installed ELF but a fresh
@@ -1099,11 +1106,11 @@ class NativePgReleaseOperator(unittest.TestCase):
             runner_catalog=op.DEPLOY["probe_catalog"](
                 f"http://{bind}/mcp","p"*32,
                 client_name="independent-runner-drift-process-probe",
-                expected_tool_count=20,
+                expected_tool_count=native_tool_count,
                 required_tools=("runtime.describe","release.get"),
                 wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
             )
-            self.assertEqual(runner_catalog["toolCount"],20)
+            self.assertEqual(runner_catalog["toolCount"],native_tool_count)
             # Read the *actual* Runner provider, not a manifest declaration.
             live_provider=client.call_tool("runtime.describe",{"schemaVersion":1})
             self.assertEqual(
