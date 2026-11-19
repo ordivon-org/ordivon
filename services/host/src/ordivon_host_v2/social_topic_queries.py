@@ -16,6 +16,7 @@ from .collection_pagination import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .social_errors import TopicResumeCursorAhead
 from .social_message_records import verify_message_content_digest
 
 
@@ -102,6 +103,18 @@ class SocialTopicReadQueries:
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             topic = self._require_topic(conn, topic_ref)
+            # A cursor from Attention's global change clock (or a different
+            # Topic) can be numerically ahead of this Topic's message horizon.
+            # Returning an empty hasMore=false page would conceal that mistake.
+            # Read the Topic high in the same MVCC cut as the message page.
+            topic_high = int(
+                conn.execute(
+                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
+                    (topic_ref,),
+                ).fetchone()["high"]
+            )
+            if after_sequence > topic_high:
+                raise TopicResumeCursorAhead(topic_ref, after_sequence, topic_high)
             rows = conn.execute(
                 "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
                 "message_kind,body,message_digest,recorded_at_ms,created_at "
