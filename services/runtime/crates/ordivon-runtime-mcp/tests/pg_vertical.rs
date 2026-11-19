@@ -5093,8 +5093,42 @@ fn pg18_native_mcp_raw_claim_release_denies_ordinary_executor() {
     assert!(names.contains(&"workspace.claim.reserve".to_string()));
     assert!(names.contains(&"workspace.claim.get".to_string()));
 
-    let request = json!({"clientRequestId":
-        format!("r20-finalizer-test-{}",Uuid::now_v7().simple())});
+    // Protect an actually HELD Claim, not only an unknown synthetic key.
+    // The source/Workspace/Claim all belong to this disposable native PG.
+    let repo = fixture.repo();
+    let workspace_id = format!("r20-held-{}", Uuid::now_v7().simple());
+    let (open_status, opened) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.open",
+        json!({"workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_eq!(open_status, 200);
+    assert_ne!(opened["isError"], true, "dedicated native open: {opened}");
+    let (get_status, physical) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.get",
+        json!({"workspaceId":workspace_id}),
+    );
+    assert_eq!(get_status, 200);
+    assert_ne!(physical["isError"], true, "{physical}");
+    let digest = physical["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .expect("real physical Git Source digest")
+        .to_owned();
+    let original_key = format!("r20-original-{}", Uuid::now_v7().simple());
+    let (claim_status, claimed) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.reserve",
+        json!({"workspaceId":workspace_id,"clientRequestId":original_key,
+            "runRef":"harness-run:r20-synthetic","expectedSourceStateDigest":digest}),
+    );
+    assert_eq!(claim_status, 200);
+    assert_eq!(claimed["structuredContent"]["state"], "held", "{claimed}");
+
+    let request = json!({"clientRequestId":original_key});
     // Direct hand-written tools/call must fail at the MCP authorization
     // boundary, BEFORE PG can try to resolve the caller's known claim key.
     let (status, denied) = tokio::runtime::Runtime::new().unwrap().block_on(async {
@@ -5137,6 +5171,19 @@ fn pg18_native_mcp_raw_claim_release_denies_ordinary_executor() {
         "raw release must not reach the PG Claim lookup: {denied}"
     );
     assert!(denied.get("result").is_none(), "{denied}");
+    let held: String = fixture
+        .db
+        .query_one(
+            "SELECT state FROM workspace_consumer_claims
+         WHERE principal=$1 AND client_request_id=$2",
+            &[&"harness-dispatch-r16", &original_key],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        held, "held",
+        "raw ordinary release must not mutate the real PG Claim"
+    );
 
     // Bearer separation must hold in BOTH directions, not merely in the
     // advertised tools/list catalog.
@@ -5162,7 +5209,8 @@ fn pg18_native_mcp_raw_claim_release_denies_ordinary_executor() {
         &dedicated,
         &"h".repeat(48),
         "workspace.claim.release",
-        request,
+        json!({"clientRequestId":
+            format!("r20-intentionally-missing-{}",Uuid::now_v7().simple())}),
     );
     assert_eq!(issuer_status, 200);
     assert_eq!(issuer_reply["isError"], true, "{issuer_reply}");
