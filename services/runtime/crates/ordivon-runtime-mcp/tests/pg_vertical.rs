@@ -5050,6 +5050,153 @@ fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16,
     })
 }
 
+/// Production P0 #782 / #2490: an isolated native PG18 and two real MCP
+/// Bearers prove that the normal execution realm cannot relinquish a Run-born
+/// HELD Claim, even when it learns the exact request key. This verifies only
+/// authenticated route isolation, NOT external Harness-PG/domain completion.
+#[test]
+#[ignore = "requires disposable PostgreSQL18 and native MCP HTTP endpoint"]
+fn pg_native_claim_release_is_denied_to_ordinary_bearer_with_known_original_key() {
+    let mut fixture = Fixture::new();
+    fixture.harness_dispatch_test = true;
+    fixture
+        .db
+        .batch_execute(
+            "CREATE SCHEMA r16_issuer;
+         CREATE FUNCTION r16_issuer.harness_current_dispatch_cut(text,bigint,text)
+         RETURNS TABLE(event_kind text,payload_digest text,payload_kind text,
+             payload_len bigint,payload_content bytea,fence_kind text,
+             fence_len bigint,fence_content bytea,intent_digest text,
+             intent_kind text,intent_len bigint,intent_content bytea)
+         LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
+         AS $issuer$ BEGIN RETURN; END $issuer$;
+         REVOKE ALL ON FUNCTION
+            r16_issuer.harness_current_dispatch_cut(text,bigint,text) FROM PUBLIC;
+         GRANT USAGE ON SCHEMA r16_issuer TO runtime_app;
+         GRANT EXECUTE ON FUNCTION
+            r16_issuer.harness_current_dispatch_cut(text,bigint,text) TO runtime_app;",
+        )
+        .unwrap();
+
+    let repo = fixture.repo();
+    let normal = fixture.endpoint();
+    let dedicated = normal.replacen("/mcp", "/harness/mcp", 1);
+    let names = rpc(&normal, "tools/list", json!({}))["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|tool| tool["name"].as_str().map(str::to_owned))
+        .collect::<Vec<_>>();
+    assert!(!names.iter().any(|name| name == "workspace.claim.release"));
+    assert!(names.iter().any(|name| name == "workspace.claim.reserve"));
+
+    let workspace_id = format!("ws-claim-authz-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &normal,
+        "workspace.open",
+        json!({"workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let workspace = call(
+        &normal,
+        "workspace.get",
+        json!({"workspaceId":workspace_id}),
+    );
+    assert_ne!(workspace["isError"], true, "{workspace}");
+    let digest = workspace["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let key = format!("request:claim-authz-{}", Uuid::now_v7().simple());
+    let claim_key = json!({"schemaVersion":1,"clientRequestId":key});
+
+    let (wrong_token_status, _) = r16_dedicated_call(
+        &dedicated,
+        &"p".repeat(32),
+        "workspace.claim.reserve",
+        json!({"clientRequestId":key,"workspaceId":workspace_id,
+            "runRef":"harness-run:disposable-authz-only",
+            "expectedSourceStateDigest":digest}),
+    );
+    assert_eq!(wrong_token_status, 401);
+    let (reserve_status, reserved) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.reserve",
+        json!({"clientRequestId":key,"workspaceId":workspace_id,
+            "runRef":"harness-run:disposable-authz-only",
+            "expectedSourceStateDigest":digest}),
+    );
+    assert_eq!(reserve_status, 200);
+    assert_ne!(reserved["isError"], true, "{reserved}");
+    assert_eq!(reserved["structuredContent"]["state"], "held", "{reserved}");
+
+    // The normal bearer knows both exact key and RunRef. The server's
+    // raw tools/call guard, not its catalog alone, must reject release.
+    let (normal_release_status, normal_release) = r16_dedicated_call(
+        &normal,
+        &"p".repeat(32),
+        "workspace.claim.release",
+        claim_key.clone(),
+    );
+    assert!(
+        normal_release.is_null() || normal_release["isError"] == true,
+        "ordinary raw release unexpectedly authorized: HTTP {normal_release_status}: {normal_release}"
+    );
+    let foreign = call(&normal, "workspace.claim.get", claim_key.clone());
+    assert_eq!(foreign["isError"], true, "{foreign}");
+    assert_eq!(
+        foreign["structuredContent"]["error"]["code"], "WORKSPACE_NOT_FOUND",
+        "normal principal must not see the dedicated owner Claim: {foreign}"
+    );
+    let (held_status, held) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.get",
+        claim_key.clone(),
+    );
+    assert_eq!(held_status, 200);
+    assert_eq!(held["structuredContent"]["state"], "held", "{held}");
+
+    let blocked_close = call(
+        &normal,
+        "workspace.close",
+        json!({"workspaceId":workspace_id,
+            "expectedSourceStateDigest":digest,"consumerReleased":true,"force":false}),
+    );
+    assert_eq!(blocked_close["isError"], true, "{blocked_close}");
+    assert_eq!(
+        blocked_close["structuredContent"]["error"]["code"], "CONCURRENCY_LIMIT",
+        "the native HELD Claim must actually block physical close"
+    );
+
+    // Explicitly expose the remaining UNSOLVED threat: this dedicated
+    // credential is an authenticated issuer, not Run terminal/ByteACK
+    // evidence. The controlled scratch principal can still release before
+    // the non-existent external Harness Run has completed. Therefore
+    // this test MUST NOT be reported as the strong #782 Finalizer closure.
+    let (release_status, released) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.release",
+        claim_key,
+    );
+    assert_eq!(release_status, 200);
+    assert_eq!(
+        released["structuredContent"]["state"], "released",
+        "{released}"
+    );
+    let removed = call(
+        &normal,
+        "workspace.close",
+        json!({"workspaceId":workspace_id,
+            "expectedSourceStateDigest":digest,"consumerReleased":true,"force":false}),
+    );
+    assert_ne!(removed["isError"], true, "{removed}");
+    assert_eq!(removed["structuredContent"]["removed"], true, "{removed}");
+    eprintln!("NATIVE_PG_AUTHZ_REALM_DENY_PASS_BUT_EXTERNAL_FINALIZER_PROOF_STILL_ABSENT");
+}
+
 // A real native PG MCP scheduler/HTTP consumer, with only original Run source
 // simulated as definitively revoked. Admission is seeded into disposable PG,
 // so this does not claim real Harness authenticated *admission* or Native ACK.
