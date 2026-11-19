@@ -5014,40 +5014,299 @@ fn b_r3_native_cancel_corrupt_frozen_plan_stops_issued_os_unit() {
 }
 
 fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16, Value) {
+    // The old R16 physical Harness consumer and R52 raw-Claim route test
+    // now share one authentic Streamable HTTP envelope implementation.
+    let (status, envelope) = r52_native_mcp_request(
+        url,
+        bearer,
+        "tools/call",
+        json!({"name":name,"arguments":args}),
+    );
+    if status == 200 {
+        (status, envelope["result"].clone())
+    } else {
+        (status, envelope)
+    }
+}
+
+fn r52_native_mcp_request(url: &str, bearer: &str, method: &str, params: Value) -> (u16, Value) {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let client = reqwest::Client::new();
-        let response = client
+        let mut request = client
             .post(url)
             .bearer_auth(bearer)
             .header("Accept", "application/json, text/event-stream")
             .header("MCP-Protocol-Version", "2026-07-28")
-            .header("Mcp-Method", "tools/call")
-            .header("Mcp-Name", name)
+            .header("Mcp-Method", method);
+        if let Some(name) = params.get("name").and_then(Value::as_str) {
+            request = request.header("Mcp-Name", name);
+        }
+        let mut params = params;
+        if let Value::Object(ref mut object) = params {
+            object.insert(
+                "_meta".into(),
+                json!({
+                    "io.modelcontextprotocol/protocolVersion":"2026-07-28",
+                    "io.modelcontextprotocol/clientCapabilities":{}
+                }),
+            );
+        }
+        let response = request
             .json(&json!({
-                "jsonrpc":"2.0","id":1,"method":"tools/call",
-                "params":{"name":name,"arguments":args,
-                    "_meta":{
-                        "io.modelcontextprotocol/protocolVersion":"2026-07-28",
-                        "io.modelcontextprotocol/clientCapabilities":{}
-                    }
-                }
+                "jsonrpc":"2.0","id":1,"method":method,"params":params
             }))
             .send()
             .await
             .unwrap();
         let status = response.status().as_u16();
         let body = response.text().await.unwrap();
-        if status != 200 {
-            return (status, json!({"body":body}));
-        }
-        let message: Value = if body.starts_with("event:") || body.starts_with("data:") {
-            serde_json::from_str(body.lines().find_map(|s| s.strip_prefix("data: ")).unwrap())
+        let result: Value = if status == 200 {
+            if body.starts_with("event:") || body.starts_with("data:") {
+                serde_json::from_str(
+                    body.lines()
+                        .find_map(|line| line.strip_prefix("data: "))
+                        .expect("SSE body contains data"),
+                )
                 .unwrap()
+            } else {
+                serde_json::from_str(&body).unwrap()
+            }
         } else {
-            serde_json::from_str(&body).unwrap()
+            json!({"body":body})
         };
-        (status, message["result"].clone())
+        (status, result)
     })
+}
+
+fn r52_claim_route_tool(url: &str, bearer: &str, name: &str, arguments: Value) -> Value {
+    let (status, envelope) = r52_native_mcp_request(
+        url,
+        bearer,
+        "tools/call",
+        json!({"name":name,"arguments":arguments}),
+    );
+    assert_eq!(status, 200, "native MCP {name} HTTP error: {envelope}");
+    assert!(
+        envelope.get("error").is_none(),
+        "native MCP protocol-level {name} error: {envelope}"
+    );
+    envelope["result"].clone()
+}
+
+/// Physical Run-resource fence and finalizer route contract. This verifies
+/// actual HTTP tokens, PG principal ownership, raw call denial and native Git
+/// close with a *disposable* original Run. It does not claim that a Finalizer
+/// may release before independently verified Domain Byte ACK.
+#[test]
+#[ignore = "native disposable PostgreSQL18, Harness original issuer and PG MCP binary"]
+fn pg18_native_finalizer_route_raw_claim_release_denied_until_authorized_owner() {
+    let mut fixture = Fixture::new();
+    fixture.harness_dispatch_test = true;
+    let repo = fixture.repo();
+    let id = Uuid::now_v7().simple().to_string();
+    let issuer_schema = format!("r52_issuer_{}", &id[..18]);
+    fixture.harness_schema_override = Some(issuer_schema.clone());
+    let run_id = format!("harness-run:r52-claim-{}", &id[..18]);
+    let workspace_id = format!("r52-claim-own-{}", &id[..18]);
+    let fixture_dsn = format!(
+        "host={} user=postgres dbname=postgres",
+        fixture.root.display()
+    );
+    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
+    let script = repo_root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
+    let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let pythonpath = format!(
+        "{}:{}",
+        repo_root.join("services/harness/src").display(),
+        repo_root.join("services/harness").display(),
+    );
+    let original = Command::new(&python)
+        .arg(&script)
+        .arg("issue")
+        .arg("--dsn")
+        .arg(&fixture_dsn)
+        .arg("--schema")
+        .arg(&issuer_schema)
+        .arg("--run")
+        .arg(&run_id)
+        .arg("--workspace")
+        .arg(&workspace_id)
+        .env("PYTHONPATH", &pythonpath)
+        .output()
+        .unwrap();
+    assert!(
+        original.status.success(),
+        "original Harness source issue failed: {}",
+        String::from_utf8_lossy(&original.stderr)
+    );
+    fixture.db.batch_execute(&format!(
+        "GRANT USAGE ON SCHEMA \"{issuer_schema}\" TO runtime_app;
+         GRANT EXECUTE ON FUNCTION \"{issuer_schema}\".harness_current_dispatch_cut(text,bigint,text)
+         TO runtime_app;"
+    )).unwrap();
+
+    let ordinary = fixture.endpoint();
+    let dedicated = ordinary.replacen("/mcp", "/harness/mcp", 1);
+    let normal_token = "p".repeat(32);
+    let coordinator_token = "h".repeat(48);
+    let claim_key = format!("r52-physical-finalizer-key-{id}");
+    let claim_key_request = json!({
+        "schemaVersion":1,"clientRequestId":claim_key
+    });
+
+    let (normal_list_status, normal_list) =
+        r52_native_mcp_request(&ordinary, &normal_token, "tools/list", json!({}));
+    assert_eq!(normal_list_status, 200, "{normal_list}");
+    let (finalizer_list_status, finalizer_list) =
+        r52_native_mcp_request(&dedicated, &coordinator_token, "tools/list", json!({}));
+    assert_eq!(finalizer_list_status, 200, "{finalizer_list}");
+    let list_contains = |list: &Value, name: &str| {
+        list["result"]["tools"]
+            .as_array()
+            .expect("real MCP tools/list")
+            .iter()
+            .any(|item| item["name"] == name)
+    };
+    assert!(!list_contains(&normal_list, "workspace.claim.release"));
+    assert!(list_contains(&normal_list, "workspace.claim.get"));
+    assert!(list_contains(&normal_list, "workspace.claim.reserve"));
+    assert!(list_contains(&finalizer_list, "workspace.claim.release"));
+    let (normal_at_finalizer, _) =
+        r52_native_mcp_request(&dedicated, &normal_token, "tools/list", json!({}));
+    assert_eq!(normal_at_finalizer, 401);
+    let (finalizer_at_normal, _) =
+        r52_native_mcp_request(&ordinary, &coordinator_token, "tools/list", json!({}));
+    assert_eq!(finalizer_at_normal, 401);
+
+    let opened = r52_claim_route_tool(
+        &ordinary,
+        &normal_token,
+        "workspace.open",
+        json!({"workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(
+        opened["isError"], true,
+        "original native Git open: {opened}"
+    );
+    // The normal open projection has no current digest. Real installed
+    // Harness reads the native workspace.get truth before any Claim reserve.
+    let current_workspace = r52_claim_route_tool(
+        &ordinary,
+        &normal_token,
+        "workspace.get",
+        json!({"workspaceId":workspace_id}),
+    );
+    assert_ne!(current_workspace["isError"], true, "{current_workspace}");
+    let digest = current_workspace["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .expect("native Git sourceStateDigest")
+        .to_owned();
+    let reserve = r52_claim_route_tool(
+        &dedicated,
+        &coordinator_token,
+        "workspace.claim.reserve",
+        json!({
+            "schemaVersion":1,"clientRequestId":claim_key,
+            "workspaceId":workspace_id,"runRef":run_id,
+            "expectedSourceStateDigest":digest
+        }),
+    );
+    assert_ne!(
+        reserve["isError"], true,
+        "dedicated native Claim birth: {reserve}"
+    );
+    let claim = &reserve["structuredContent"];
+    assert_eq!(claim["state"], "held");
+    assert_eq!(claim["runRef"], run_id);
+    let original_claim_id = claim["claimId"].as_str().unwrap().to_owned();
+
+    // Same original key + ordinary real Bearer must be denied before PG.
+    let (denied_status, denied) = r52_native_mcp_request(
+        &ordinary,
+        &normal_token,
+        "tools/call",
+        json!({
+            "name":"workspace.claim.release",
+            "arguments":claim_key_request
+        }),
+    );
+    assert_eq!(denied_status, 200, "{denied}");
+    assert!(
+        denied.get("error").is_some(),
+        "unlisted known raw call was admitted despite route guard: {denied}"
+    );
+    let held = r52_claim_route_tool(
+        &dedicated,
+        &coordinator_token,
+        "workspace.claim.get",
+        claim_key_request.clone(),
+    );
+    assert_eq!(held["structuredContent"]["state"], "held");
+    assert_eq!(held["structuredContent"]["claimId"], original_claim_id);
+
+    // The normal principal cannot project the new dedicated principal's
+    // Claim. No "same idempotency key" replay acquires release authority.
+    let wrong_owner = r52_claim_route_tool(
+        &ordinary,
+        &normal_token,
+        "workspace.claim.get",
+        claim_key_request.clone(),
+    );
+    assert_eq!(wrong_owner["isError"], true, "{wrong_owner}");
+
+    let close_while_held = r52_claim_route_tool(
+        &ordinary,
+        &normal_token,
+        "workspace.close",
+        json!({
+            "workspaceId":workspace_id,"consumerReleased":true,
+            "force":false,"expectedSourceStateDigest":digest
+        }),
+    );
+    assert_eq!(
+        close_while_held["isError"], true,
+        "ordinary nonforce native Workspace close destroyed HELD original Run: {close_while_held}"
+    );
+
+    // This is an authority/transport test only. In a real consumer, the
+    // Finalizer must first qualify original Harness Run terminal,
+    // recipient bytes and the native OS effect drain.
+    let released = r52_claim_route_tool(
+        &dedicated,
+        &coordinator_token,
+        "workspace.claim.release",
+        claim_key_request.clone(),
+    );
+    assert_ne!(released["isError"], true, "{released}");
+    assert_eq!(released["structuredContent"]["state"], "released");
+    let replay = r52_claim_route_tool(
+        &dedicated,
+        &coordinator_token,
+        "workspace.claim.release",
+        claim_key_request,
+    );
+    assert_ne!(replay["isError"], true);
+    assert_eq!(replay["structuredContent"]["claimId"], original_claim_id);
+    assert_eq!(replay["structuredContent"]["state"], "released");
+
+    let closed = r52_claim_route_tool(
+        &ordinary,
+        &normal_token,
+        "workspace.close",
+        json!({
+            "workspaceId":workspace_id,
+            "consumerReleased":true,"force":false,
+            "expectedSourceStateDigest":digest
+        }),
+    );
+    assert_ne!(closed["isError"], true, "{closed}");
+    assert_eq!(closed["structuredContent"]["removed"], true);
+    eprintln!(
+        "R52_NATIVE_DUAL_BEARER_PG18_ROUTE_RELEASE_CAS_PASS \
+         ordinary_denied=TRUE held_close_denied=TRUE \
+         wrong_owner_denied=TRUE finalizer_replay_succeeded=TRUE \
+         nonforce_original_ws_removed_only_after_release=TRUE"
+    );
 }
 
 // A real native PG MCP scheduler/HTTP consumer, with only original Run source
