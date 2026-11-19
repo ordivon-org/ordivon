@@ -81,6 +81,18 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
+- **Production release change class (R43)**: the original
+  packaging/install_release.sh derives same-route software upgrades from
+  the exact installed and immutable candidate, unchanged ingress/AuthZEN
+  Security source, private Owner credential semantics, exact native SDK Tool
+  ABI, live systemd SourceCut/route identity, candidate Host read and
+  authenticated-front-door anonymous-denial canaries. Unobserved or changed
+  policy/route/identity uses the original
+  packaging/check_live_host_admission.py cutover NO_GO; it is never a flag
+  to skip Security. The installer stages and changes a symlink but does not
+  restart the live process or prove connected Agent results. Before activation
+  and after restart keep authenticated read/denial, recovery and rollback
+  consumer obligations. See docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
 - **Trusted Cloudflare Access operator (explicit opt-in)**:
   ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR=true selects the already verified
   Cloudflare Access app as the operator trust boundary, removing duplicate

@@ -4,6 +4,50 @@
 not proof of installed Host authorization, Cloudflare routing, or successful
 migration. The latest version is bound to its Git commit.
 
+## R43: separate software upgrade from Host/Cloudflare migration
+
+The original R7 Host-direct-consumer negative gate is necessary when a release
+**changes the Host route, Owner identity, public ingress, authorization or
+Cloudflare traffic migration**. It does not, by itself, establish that an
+unchanged-route Gateway software patch must first remove existing Host clients.
+Treating those different changes as one mandatory migration prevented ordinary
+Gateway source fixes from reaching a currently functioning Agent.
+
+The existing official install script now derives one of two cases, never from
+a caller-supplied skip flag:
+
+- **A / same route + same authority:** compare immutable current/candidate
+  public MCP ABI with the native SDK, unchanged ingress/AuthZEN/PEP source,
+  unchanged private-credential reader and Host loopback semantics, exact
+  composition-root AST, installed active systemd PID/SourceCut and equal
+  configured Owner URL/credential-class/mode. Require one real candidate-to-
+  Host MCP read, installed Gateway anonymous HTTP denial and Cloudflare public
+  anonymous denial without accepting redirects. No secrets are read from a
+  different service's private systemd credential. Only then does the original
+  installer permit the existing symlink promotion, without changing systemd
+  units, Host listeners, Security policy or Cloudflare routes.
+- **B / any drift or UNKNOWN:** preserve the existing
+  packaging/check_live_host_admission.py Host/Cloudflare/Security migration
+  requirements. Its independent observations and Security private credential
+  limitation remain real NO_GO until natural Owner proof exists. Empty socket
+  observation is not proof of migration and a service health ping is not a PDP
+  ALLOW.
+
+A passing source A classification is not a new Principal grant, a fully
+certified loaded PDP policy, a checked post-restart process, or a successful
+ChatGPT MCP connector refresh. Before promoting, independently confirm a
+currently authenticated Agent read through the exact live ingress. After the
+promotion and service restart, verify the installed process SourceCut,
+authenticated Agent read/error recovery, anonymous DENY and unchanged natural
+Owner route; on failure restore the prior immutable release and recheck.
+The installer itself changes the symlink but does not restart the service.
+
+Thought: positive business continuity plus reverse authorization-drift
+counterexamples. Logic: ChangeClass / SourceEquivalence /
+OwnerConsumerObservation / FailClosedRecovery. Capability: original systemd,
+native MCP SDK, official release installer, Security AuthZEN and Host Owner,
+bounded Python tests; no second policy engine or new release registry.
+
 ## Real consumer observation behind the change
 
 On 2026-11-14, a native Runtime Job inspected the **currently installed**
