@@ -1445,6 +1445,7 @@ PY_PARTIAL_ACK
   # Let the stronger post-ACK effect invariant identify the later spawn,
   # instead of stopping immediately on the weaker all-quiet predicate.
   sed -i '/^[[:space:]]*AckRequiresAllIssuedQuiescent$/d' "$dir/IssuerRevokeEpochR1.cfg"
+  sed -i '/^[[:space:]]*AckRequiresNoHandoffPending$/d' "$dir/IssuerRevokeEpochR1.cfg"
   sed -i '/^[[:space:]]*NoUnitBirthAfterAck$/d' "$dir/IssuerRevokeEpochR1.cfg"
   set +e
   output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
@@ -1481,6 +1482,7 @@ PY_PREUNIT_ACK
   # Observe NoSpawnAfterAck AFTER the late Unit birth, not the earlier
   # acknowledgement-completeness and Unit-birth safety invariants.
   sed -i -e '/^[[:space:]]*AckRequiresAllIssuedQuiescent$/d' \
+         -e '/^[[:space:]]*AckRequiresNoHandoffPending$/d' \
          -e '/^[[:space:]]*NoUnitBirthAfterAck$/d' "$dir/IssuerRevokeEpochR1.cfg"
   set +e
   output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
@@ -1498,6 +1500,79 @@ PY_PREUNIT_ACK
     exit 1
   fi
   echo "Issuer pre-Unit stale-launcher physical-late-start counterexample PASS"
+
+  # A caller can die after submitting an async systemd manager start while no
+  # Unit is visible. The genuine OS handoff can still deliver a native Unit.
+  # This positive reachability prevents a vacuous crash branch that never
+  # lets native delivery, stop and a legitimate post-drain ACK occur.
+  set +e
+  output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeEpochR1.crash-ack-positive-reach.cfg \
+    IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant CrashThenAckUnreachable is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output" ||
+     ! grep -Eq 'crashedCallers = \{"[ab]"' <<< "$output"; then
+    echo "Issuer crashed native caller then legitimately drained ACK reachability FAILED" >&2
+    printf '%s\n' "$output" | tail -55 >&2
+    exit 1
+  fi
+  echo "Issuer crashed-native-caller recovered physical ACK reachability PASS"
+
+  # CEGAR native OS: "No currently visible systemd Unit" does NOT cancel an
+  # already-submitted manager request. This bad algorithm falsely reclassifies
+  # a crashed but still pending launcher as permanently blocked, then ACKs.
+  # The real manager may create the Unit after ACK and start the target.
+  cp "$ROOT/formal/IssuerRevokeEpochR1.tla" "$dir/IssuerRevokeEpochR1.tla"
+  cp "$ROOT/formal/IssuerRevokeEpochR1.safe.cfg" "$dir/IssuerRevokeEpochR1.cfg"
+  python3 - "$dir/IssuerRevokeEpochR1.tla" <<'PY_CRASH_ABSENCE'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+src = p.read_text(encoding="utf-8")
+marker = "Next ==\n"
+unsafe = r'''UnsafeCrashUnitAbsentMeansFenced(a) ==
+    /\ issuer = "revoked"
+    /\ a \in nativeHandoffPending
+    /\ launcher[a] = "crashed_unknown"
+    /\ nativeUnit[a] = "absent"
+    /\ launcher' = [launcher EXCEPT ![a] = "blocked"]
+    /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
+
+'''
+assert src.count(marker) == 1, "native crash model Next source drift"
+p.write_text(src.replace(
+    marker,
+    unsafe + marker + r"    \/ \E a \in AttemptIds: UnsafeCrashUnitAbsentMeansFenced(a)" + "\n",
+    1,
+))
+PY_CRASH_ABSENCE
+  # Ignore the earlier "ACK has pending manager request" and Unit-birth
+  # invariants deliberately, so the independent physical target late spawn
+  # violation (not just early bookkeeping) must actually be reachable.
+  sed -i -e '/^[[:space:]]*AckRequiresAllIssuedQuiescent$/d' \
+         -e '/^[[:space:]]*AckRequiresNoHandoffPending$/d' \
+         -e '/^[[:space:]]*NoUnitBirthAfterAck$/d' "$dir/IssuerRevokeEpochR1.cfg"
+  set +e
+  output=$(cd "$dir" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeEpochR1.cfg IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant NoSpawnAfterAck is violated.' <<< "$output" ||
+     ! grep -Fq '"crashed_unknown"' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output" ||
+     ! grep -Fq 'unitBornAfterAck = TRUE' <<< "$output" ||
+     ! grep -Eq '^State [1-9][0-9]*:' <<< "$output"; then
+    echo "Issuer crashed-unit-absent premature ACK native-late-start counterexample FAILED" >&2
+    printf '%s\n' "$output" | tail -80 >&2
+    exit 1
+  fi
+  echo "Issuer crashed-launcher unit-absent native late-spawn counterexample PASS"
 )
 
 case "${1:-check}" in
