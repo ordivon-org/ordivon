@@ -1294,7 +1294,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     # Harness request remains unchanged and provenance-only.
                     # Preserve an explicitly authored target unchanged.
                     expected_effective_env = dict(source_execution["env"])
-                    expected_effective_env.setdefault("CARGO_TARGET_DIR", "/proc/self/fd/198")
+                    expected_effective_env.setdefault("CARGO_TARGET_DIR", "/run/ordivon/cargo-target")
                     assert committed_after_terminal["env"] == expected_effective_env
                     # Runtime's source-faithful normalized Plan stores the
                     # *resolved* absolute workspace cwd, not the caller's
