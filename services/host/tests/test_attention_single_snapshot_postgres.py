@@ -19,9 +19,9 @@ from psycopg_pool import ConnectionPool
 from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.canonical_json import canonical_bytes
 from ordivon_host_v2.collaboration_inputs import MessageInput, MessageKind, SpaceInput, TopicInput
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
-from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -35,10 +35,9 @@ def _fixture() -> tuple[str, str, str, SocialStore]:
     token = uuid4().hex
     actor, author = (f"actor:agent:mvcc:{part}:{token}" for part in ("reader", "writer"))
     space, topic = f"space:mvcc:{token}", f"topic:mvcc:{token}"
-    work = WorkStore(DSN)
     social = SocialStore(DSN)
     for ref in (actor, author):
-        work.declare_actor(
+        ActorReferenceStore(DSN).declare_actor(
             ActorRefInput(actor_ref=ref, actor_kind=ActorKind.AGENT),
             client_request_id=f"declare:{ref}",
         )

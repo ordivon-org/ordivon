@@ -11,6 +11,7 @@ from .errors import ConflictError
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
+from .topic_cursor_records import ack_topic_cursor_in_tx
 
 
 class SocialTopicCommands:
@@ -167,40 +168,9 @@ class SocialTopicCommands:
                 return replay
             self._require_actor(conn, actor_ref)
             self._require_topic(conn, topic_ref)
-            high = int(
-                conn.execute(
-                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
-                    (topic_ref,),
-                ).fetchone()["high"]
+            result = ack_topic_cursor_in_tx(
+                conn, actor_ref=actor_ref, topic_ref=topic_ref, cursor=cursor
             )
-            if cursor > high:
-                raise ConflictError("topic cursor cannot acknowledge beyond current topic horizon")
-            current = conn.execute(
-                "SELECT cursor FROM topic_consumption_cursors "
-                "WHERE actor_ref=%s AND topic_ref=%s FOR UPDATE",
-                (actor_ref, topic_ref),
-            ).fetchone()
-            previous = 0 if current is None else int(current["cursor"])
-            if cursor < previous:
-                raise ConflictError("topic cursor cannot move backwards")
-            updated = conn.execute(
-                "INSERT INTO topic_consumption_cursors(actor_ref,topic_ref,cursor) VALUES (%s,%s,%s) "
-                "ON CONFLICT (actor_ref,topic_ref) DO UPDATE SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp() "
-                "WHERE topic_consumption_cursors.cursor<=EXCLUDED.cursor RETURNING cursor",
-                (actor_ref, topic_ref, cursor),
-            ).fetchone()
-            if updated is None:
-                raise ConflictError("topic cursor cannot move backwards")
-            result = {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-cursor-ack",
-                "actorRef": actor_ref,
-                "topicRef": topic_ref,
-                "previousCursor": previous,
-                "cursor": cursor,
-                "topicHighSequence": high,
-                "truthBoundary": "topic navigation acknowledgement only; not semantic acceptance",
-            }
             record_command_receipt(
                 conn, client_request_id, "topic.cursor.ack", request_digest, result
             )

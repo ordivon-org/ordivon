@@ -30,6 +30,48 @@ class OwnerCallError(RuntimeError):
         self.error = dict(error) if error is not None else None
 
 
+def _host_cursor_recovery_text(exc: OwnerCallError) -> str | None:
+    """Expose only verified, nonsecret Host navigation facts in MCP text.
+
+    Some connected MCP clients surface an isError result's text but discard
+    structuredContent. Avoid embedding arbitrary Owner details, refs, stack
+    traces, or private credentials. All unknown shapes remain opaque.
+    This is a presentation-only projection, not a new trust/authorization rule.
+    """
+    if exc.owner_id != "host" or exc.tool_name != "topic.resume":
+        return None
+    error = exc.error
+    if not isinstance(error, dict):
+        return None
+    if (
+        error.get("kind") != "ordivon.host-domain-error"
+        or type(error.get("schemaVersion")) is not int
+        or error["schemaVersion"] != 1
+        or error.get("code") != "CONFLICT"
+        or error.get("reason") != "topic_resume_cursor_ahead"
+        or error.get("resourceKind") != "topic"
+        or error.get("retryable") is not False
+        or error.get("suggestedAction") != "reread-topic-horizon-and-check-cursor-domain"
+    ):
+        return None
+    requested = error.get("requestedAfterSequence")
+    observed = error.get("observedTopicHighSequence")
+    if (
+        type(requested) is not int
+        or type(observed) is not int
+        or not (0 <= observed < requested <= 2**63 - 1)
+    ):
+        return None
+    return (
+        "owner tool returned error: host/topic.resume; "
+        "code=CONFLICT reason=topic_resume_cursor_ahead "
+        f"requestedAfterSequence={requested} "
+        f"observedTopicHighSequence={observed} "
+        "suggestedAction=reread-topic-horizon-and-check-cursor-domain "
+        "retryable=false"
+    )
+
+
 def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
     """Project all owner-boundary errors through one stable public envelope."""
     error = (
@@ -47,7 +89,7 @@ def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
     if exc.tool_name is not None:
         structured["gatewayOwnerTool"] = exc.tool_name
     return CallToolResult(
-        content=[TextContent(type="text", text=str(exc))],
+        content=[TextContent(type="text", text=_host_cursor_recovery_text(exc) or str(exc))],
         structuredContent=structured,
         isError=True,
     )
