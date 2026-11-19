@@ -289,3 +289,82 @@ def test_no_tool_legacy_created_run_still_recovers_without_claim(pg_schema):
     result = restored.run(({"role": "user", "content": "pure model"},))
     assert result.paused
     assert restored.workspace_claim is None
+
+
+def test_orphan_held_native_claim_recovers_after_first_pg_birth_failure(pg_schema):
+    """Native HELD precedes PG; a failed PG commit is retried under one key."""
+    from unittest.mock import patch
+
+    dsn, schema = pg_schema
+    value = contract("native-orphan-retry-" + uuid.uuid4().hex[:12], tools=True)
+    binding = execution_binding(value)
+    client = LostReserveReplyClient()
+    adapter = ScriptedTurnAdapter((needs_input(),))
+    with patch.object(
+        PostgresHarnessStore, "create_run",
+        side_effect=RuntimeError("injected PG birth failure after original native HELD"),
+    ):
+        with pytest.raises(RuntimeError, match="injected PG birth failure"):
+            HarnessAgentRun.create(
+                dsn, schema, value, lambda _: adapter,
+                execution_binding=binding, runtime=FakeRuntime(),
+                workspace_claim_client=client,
+            )
+    assert client._claim["state"] == "held"
+    assert client.reserve_calls == 1
+    with PostgresHarnessStore(dsn, schema=schema) as store:
+        with pytest.raises(KeyError):
+            store.load_run(value.harness_run_id)
+    retried = HarnessAgentRun.create(
+        dsn, schema, value, lambda _: adapter,
+        execution_binding=binding, runtime=FakeRuntime(),
+        workspace_claim_client=client,
+    )
+    assert retried.status()["status"] == "created"
+    assert client.reserve_calls == 1
+    assert retried.workspace_claim.require_held()["runRef"] == value.harness_run_id
+    assert adapter.requests == []
+
+
+def test_native_held_but_pg_unborn_rejects_caller_workspace_swap(pg_schema):
+    """W1 remains durable and cannot be overwritten by W2 before PG birth."""
+    from dataclasses import replace
+    from unittest.mock import patch
+
+    dsn, schema = pg_schema
+    value = contract("native-orphan-no-swap-" + uuid.uuid4().hex[:12], tools=True)
+    binding = execution_binding(value)
+    client = LostReserveReplyClient()
+    with patch.object(
+        PostgresHarnessStore, "create_run",
+        side_effect=RuntimeError("PG unavailable after Native HELD"),
+    ):
+        with pytest.raises(RuntimeError, match="PG unavailable"):
+            HarnessAgentRun.create(
+                dsn, schema, value,
+                lambda _: ScriptedTurnAdapter((needs_input(),)),
+                execution_binding=binding, runtime=FakeRuntime(),
+                workspace_claim_client=client,
+            )
+    original_workspace = client._claim["workspaceId"]
+    with pytest.raises(HarnessWorkspaceAdmissionUnavailable, match="identity"):
+        HarnessAgentRun.create(
+            dsn, schema, value,
+            lambda _: ScriptedTurnAdapter((needs_input(),)),
+            execution_binding=replace(binding, workspace_ref="workspace:malicious-W2"),
+            runtime=FakeRuntime(), workspace_claim_client=client,
+        )
+    assert client._claim["workspaceId"] == original_workspace
+    assert client.reserve_calls == 1
+    with PostgresHarnessStore(dsn, schema=schema) as store:
+        with pytest.raises(KeyError):
+            store.load_run(value.harness_run_id)
+
+    restored = HarnessAgentRun.create(
+        dsn, schema, value,
+        lambda _: ScriptedTurnAdapter((needs_input(),)),
+        execution_binding=binding, runtime=FakeRuntime(),
+        workspace_claim_client=client,
+    )
+    assert restored.status()["status"] == "created"
+    assert client.reserve_calls == 1
