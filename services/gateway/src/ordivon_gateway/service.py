@@ -67,8 +67,12 @@ class GatewayService:
     async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
         return await self._catalog.capability_describe(capability)
 
-    async def capability_inquire(self, *, capability: str) -> CapabilityInquiryProjection:
-        return await self._catalog.capability_inquire(capability=capability)
+    async def capability_inquire(
+        self, *, capability: str, verify_read_only: bool = False
+    ) -> CapabilityInquiryProjection:
+        return await self._catalog.capability_inquire(
+            capability=capability, verify_read_only=verify_read_only
+        )
 
     async def capability_search(
         self,

@@ -22,7 +22,9 @@ from .authzen_authorizer import AuthZenPrincipalAuthorizer
 from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
 from .execution_access import require_http_execution_identity
 from .http_ingress_guard import GatewayHTTPIngressGuard
+from .ingress_identity import tool_context_state
 from .owner_identity import _read_private_secret_file
+from .trusted_operator import TrustedCloudflareOperator
 
 
 def install_tool_security(
@@ -31,8 +33,9 @@ def install_tool_security(
     capability_authorizer: CapabilityAuthorizer | None,
     protect_artifact_reads: bool,
     require_http_execution_identity: bool,
+    trusted_operator: TrustedCloudflareOperator | None = None,
 ) -> None:
-    """Order access identity before target authorization; deny if PDP absent."""
+    """Apply ingress identity then trusted Cloudflare operator OR delegated PDP."""
     if require_http_execution_identity:
         server.middleware.append(GatewayHTTPIngressGuard())
     if (
@@ -40,17 +43,27 @@ def install_tool_security(
         or protect_artifact_reads
         or require_http_execution_identity
     ):
-        server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
+        server.middleware.append(
+            GatewayCapabilityAuthorizationMiddleware(
+                capability_authorizer,
+                trusted_operator=trusted_operator,
+            )
+        )
 
 
 def require_release_access(
     context: Context | None,
     require_verified_http: bool,
     authorizer: CapabilityAuthorizer | None,
+    trusted_operator: TrustedCloudflareOperator | None = None,
 ) -> None:
     """Do not release Runtime from an unauthenticated/stdio-only request."""
     require_http_execution_identity(context)
-    if not require_verified_http or authorizer is None:
+    if not require_verified_http:
+        raise ToolError("Runtime release requires an authenticated HTTP ingress")
+    if trusted_operator is not None and trusted_operator.allows(tool_context_state(context)):
+        return
+    if authorizer is None:
         raise ToolError("Runtime release requires a configured HTTP Security PEP")
 
 
@@ -64,6 +77,19 @@ def _bool_env(name: str, default: bool = False) -> bool:
     if normalized in {"0", "false", "no"}:
         return False
     raise RuntimeError(f"{name} must be true or false")
+
+
+def trusted_operator_from_env() -> TrustedCloudflareOperator | None:
+    """No implicit trust: operator selects Cloudflare Access as sole gateway PDP."""
+    if not _bool_env("ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR"):
+        return None
+    if not _bool_env("ORDIVON_GATEWAY_TRUST_CF_ACCESS"):
+        raise RuntimeError("trusted CF operator requires JWT-verifying Cloudflare Access ingress")
+    issuer = os.environ.get("ORDIVON_GATEWAY_CF_ACCESS_ISSUER", "").strip().rstrip("/")
+    audience = os.environ.get("ORDIVON_GATEWAY_CF_ACCESS_AUDIENCE", "").strip()
+    if not issuer.startswith("https://") or not audience:
+        raise RuntimeError("trusted CF operator requires a configured issuer and audience")
+    return TrustedCloudflareOperator(issuer=issuer)
 
 
 def access_verifier_from_env() -> CloudflareAccessVerifier | None:

@@ -278,12 +278,22 @@ def test_runtime_endpoint_requires_explicit_owner_identity_before_configured() -
     }
 
 
-def test_host_endpoint_requires_explicit_service_identity(tmp_path: Path) -> None:
+def test_host_legacy_loopback_owner_requires_no_second_bearer_but_others_do(
+    tmp_path: Path,
+) -> None:
+    # Production Host8898 is an existing local-only MCP endpoint. Requiring
+    # a second service bearer there broke a verified Cloudflare operator
+    # in the real v0.10.18 deployment. Owner Runtime/Skills and host.read are
+    # separately authenticated, not included in this exact URL exception.
     caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})
-    assert caller.is_configured("host") is False
-    assert caller.configuration_error("host") == "owner authentication is not configured"
+    assert caller.is_configured("host") is True
+    assert caller.configuration_error("host") is None
+
+    protected = McpOwnerCaller({"host.read": OwnerEndpoint("http://127.0.0.1:19008/mcp")})
+    assert protected.is_configured("host.read") is False
+    assert protected.configuration_error("host.read") == "owner authentication is not configured"
     with pytest.raises(OwnerCallError) as captured:
-        asyncio.run(caller.call_tool("host", "work.get", {"workRef": "work:test"}))
+        asyncio.run(protected.call_tool("host.read", "work.get", {"workRef": "work:test"}))
     assert captured.value.error["code"] == "OWNER_AUTH_NOT_CONFIGURED"
 
     qualified = McpOwnerCaller(

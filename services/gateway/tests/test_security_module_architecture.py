@@ -16,7 +16,12 @@ EXTRACTED = {
     "ingress_identity.py",
     "owner_identity.py",
 }
-EXPECTED_SECURITY = EXTRACTED | {"__init__.py", "entrypoint.py", "execution_access.py"}
+EXPECTED_SECURITY = EXTRACTED | {
+    "__init__.py",
+    "entrypoint.py",
+    "execution_access.py",
+    "trusted_operator.py",
+}
 
 
 def test_permission_files_have_single_physical_home() -> None:

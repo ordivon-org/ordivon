@@ -14,6 +14,7 @@ from .authorization_targets import (
     resolve_authorization_target,
 )
 from .ingress_identity import identity_from_state, request_state
+from .trusted_operator import TrustedCloudflareOperator
 
 
 class CapabilityAuthorizer(Protocol):
@@ -55,7 +56,7 @@ def _error(code: str, message: str, *, capability: str | None) -> CallToolResult
 
 
 class GatewayCapabilityAuthorizationMiddleware:
-    """Fail-closed PEP for a deliberately narrow set of Gateway owner objects.
+    """Verified Cloudflare operator or delegated AuthZEN object PEP.
 
     Identity comes only from trusted request state populated by ingress middleware. Tool
     arguments and MCP ``_meta`` are never identity/admission authorities. Protected targets
@@ -68,9 +69,11 @@ class GatewayCapabilityAuthorizationMiddleware:
         authorizer: CapabilityAuthorizer | None,
         *,
         target_resolver: AuthorizationTargetResolver = resolve_authorization_target,
+        trusted_operator: TrustedCloudflareOperator | None = None,
     ) -> None:
         self._authorizer = authorizer
         self._target_resolver = target_resolver
+        self._trusted_operator = trusted_operator
 
     async def __call__(
         self,
@@ -104,6 +107,12 @@ class GatewayCapabilityAuthorizationMiddleware:
             )
 
         principal, issuer = identity.principal, identity.issuer
+        # The verified Cloudflare App policy is the operator's entitlement
+        # boundary when explicitly selected. A second object-by-object PDP
+        # must not deny an already verified trusted operator. Host/Runtime
+        # native owner checks and the canonical request target still apply.
+        if self._trusted_operator is not None and self._trusted_operator.allows(state):
+            return await call_next(ctx)
         if self._authorizer is None:
             return _error(
                 "CAPABILITY_AUTHZ_UNAVAILABLE",

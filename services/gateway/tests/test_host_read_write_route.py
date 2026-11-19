@@ -94,6 +94,55 @@ def test_host_status_discovery_follows_the_read_endpoint_with_distinct_write_fac
     assert facts["host.specific_work_read_authorized"] == "unobserved"
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://192.0.2.3:8898/mcp",
+        "http://localhost:8898/mcp",
+        "http://0.0.0.0:8898/mcp",
+        "http://127.0.0.1:19008/mcp",
+        "http://127.0.0.1:8898/mcp2",
+        "http://127.0.0.1:8898/mcp?admin=1",
+        "http://127.0.0.1:8898/mcp#fragment",
+        "https://127.0.0.1:8898/mcp",
+        "http://bad-user@127.0.0.1:8898/mcp",
+    ],
+)
+def test_uncredentialed_nonlegacy_host_routes_still_require_machine_identity(url: str) -> None:
+    caller = McpOwnerCaller({"host": url})
+    assert caller.has_route("host")
+    assert caller.configuration_error("host") == "owner authentication is not configured"
+
+
+def test_exact_legacy_host_8898_loopback_transport_reuses_original_owner() -> None:
+    caller = McpOwnerCaller(
+        {
+            "host": "http://127.0.0.1:8898/mcp",
+            "host.read": "http://127.0.0.1:19008/mcp",
+            "runtime.linux": "http://127.0.0.1:8897/mcp",
+            "skills": "http://127.0.0.1:19002/mcp",
+        }
+    )
+    assert caller.has_route("host")
+    assert caller.configuration_error("host") is None
+    assert caller.is_configured("host")
+    # This legacy transport exception must never expand to independently
+    # protected Host readers or natural Runtime/Skills Owners.
+    for name in ("host.read", "runtime.linux", "skills"):
+        assert caller.configuration_error(name) == "owner authentication is not configured"
+
+
+def test_exact_legacy_host_env_qualifies_without_invented_bearer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ORDIVON_GATEWAY_HOST_URL", "http://127.0.0.1:8898/mcp")
+    monkeypatch.delenv("ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE", raising=False)
+    monkeypatch.delenv("ORDIVON_GATEWAY_HOST_READ_URL", raising=False)
+    caller = McpOwnerCaller.from_env()
+    assert caller.has_route("host")
+    assert caller.configuration_error("host") is None
+
+
 def test_read_route_without_machine_identity_remains_declared_but_unqualified(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

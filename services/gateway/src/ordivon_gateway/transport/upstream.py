@@ -7,6 +7,7 @@ import os
 import time
 from collections.abc import Generator, Mapping
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx2
 from mcp import Client, types
@@ -160,6 +161,30 @@ class OwnerEndpointAuth(httpx2.Auth):
         yield request
 
 
+def _is_legacy_loopback_host_endpoint(endpoint: OwnerEndpoint) -> bool:
+    """Existing Host 8898 has native loopback trust, not an extra machine bearer.
+
+    Qualify only the exact original loopback URL, NEVER an external Host,
+    optional protected host.read, Windows/Runtime, or an arbitrary port/path.
+    Cloudflare HTTP ingress is authenticated separately before this transport.
+    """
+    try:
+        parsed = urlsplit(endpoint.url)
+        return (
+            parsed.scheme == "http"
+            and parsed.netloc == "127.0.0.1:8898"
+            and parsed.hostname == "127.0.0.1"
+            and parsed.port == 8898
+            and parsed.path == "/mcp"
+            and parsed.username is None
+            and parsed.password is None
+            and not parsed.query
+            and not parsed.fragment
+        )
+    except ValueError:
+        return False
+
+
 class McpOwnerCaller:
     def __init__(self, owners: Mapping[str, str | OwnerEndpoint]) -> None:
         normalized: dict[str, OwnerEndpoint] = {}
@@ -273,9 +298,16 @@ class McpOwnerCaller:
         endpoint = self._owners.get(owner_id)
         if endpoint is None:
             return "owner endpoint is not configured"
+        identity_required = owner_id.startswith("runtime.") or owner_id in {
+            "skills",
+            "host",
+            "host.read",
+        }
         if (
-            owner_id.startswith("runtime.") or owner_id in {"skills", "host", "host.read"}
-        ) and not _runtime_identity_configured(endpoint):
+            identity_required
+            and not (owner_id == "host" and _is_legacy_loopback_host_endpoint(endpoint))
+            and not _runtime_identity_configured(endpoint)
+        ):
             return "owner authentication is not configured"
         return None
 
