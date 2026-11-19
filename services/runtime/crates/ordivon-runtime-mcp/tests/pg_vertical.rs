@@ -5050,6 +5050,129 @@ fn r16_dedicated_call(url: &str, bearer: &str, name: &str, args: Value) -> (u16,
     })
 }
 
+/// A true disposable PG18 + native HTTP MCP acceptance of the protected
+/// Claim-release boundary. This is route authorization, NOT proof of external
+/// Harness Run completion or recipient-byte acknowledgement.
+#[test]
+#[ignore = "requires disposable native PG18 and MCP binary built with Runtime workspace"]
+fn pg18_native_mcp_raw_claim_release_denies_ordinary_executor() {
+    let mut fixture = Fixture::new();
+    // Reuse the exact existing bounded test issuer shape. No extra PG,
+    // no production authority, and no new scheduler or Registry.
+    fixture
+        .db
+        .batch_execute(
+            "CREATE SCHEMA r16_issuer;
+         CREATE FUNCTION r16_issuer.harness_current_dispatch_cut(text,bigint,text)
+         RETURNS TABLE(event_kind text,payload_digest text,payload_kind text,
+           payload_len bigint,payload_content bytea,fence_kind text,
+           fence_len bigint,fence_content bytea,intent_digest text,
+           intent_kind text,intent_len bigint,intent_content bytea)
+         LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
+         AS $issuer$ BEGIN RETURN; END $issuer$;
+         REVOKE ALL ON FUNCTION
+           r16_issuer.harness_current_dispatch_cut(text,bigint,text) FROM PUBLIC;
+         GRANT USAGE ON SCHEMA r16_issuer TO runtime_app;
+         GRANT EXECUTE ON FUNCTION
+           r16_issuer.harness_current_dispatch_cut(text,bigint,text) TO runtime_app;",
+        )
+        .unwrap();
+    fixture.harness_dispatch_test = true;
+    let ordinary = fixture.endpoint();
+    let dedicated = ordinary.replacen("/mcp", "/harness/mcp", 1);
+    let names = rpc(&ordinary, "tools/list", json!({}))["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap().to_owned())
+        .collect::<Vec<_>>();
+    assert!(
+        !names.contains(&"workspace.claim.release".to_string()),
+        "ordinary Agent must not see the Domain finalizer: {names:?}"
+    );
+    assert!(names.contains(&"workspace.claim.reserve".to_string()));
+    assert!(names.contains(&"workspace.claim.get".to_string()));
+
+    let request = json!({"clientRequestId":
+        format!("r20-finalizer-test-{}",Uuid::now_v7().simple())});
+    // Direct hand-written tools/call must fail at the MCP authorization
+    // boundary, BEFORE PG can try to resolve the caller's known claim key.
+    let (status, denied) = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let response = reqwest::Client::new()
+            .post(&ordinary)
+            .bearer_auth("p".repeat(32))
+            .header("Accept", "application/json, text/event-stream")
+            .header("MCP-Protocol-Version", "2026-07-28")
+            .header("Mcp-Method", "tools/call")
+            .header("Mcp-Name", "workspace.claim.release")
+            .json(&json!({
+                "jsonrpc":"2.0","id":1,"method":"tools/call",
+                "params":{"name":"workspace.claim.release","arguments":request,
+                  "_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+                           "io.modelcontextprotocol/clientCapabilities":{}}}
+            }))
+            .send()
+            .await
+            .unwrap();
+        let status = response.status().as_u16();
+        let body = response.text().await.unwrap();
+        let message: Value = if body.starts_with("event:") || body.starts_with("data:") {
+            serde_json::from_str(
+                body.lines()
+                    .find_map(|line| line.strip_prefix("data: "))
+                    .unwrap(),
+            )
+            .unwrap()
+        } else {
+            serde_json::from_str(&body).unwrap()
+        };
+        (status, message)
+    });
+    assert_eq!(
+        status, 200,
+        "MCP raw denial must be a protocol error: {denied}"
+    );
+    assert_eq!(
+        denied["error"]["code"], -32602,
+        "raw release must not reach the PG Claim lookup: {denied}"
+    );
+    assert!(denied.get("result").is_none(), "{denied}");
+
+    // Bearer separation must hold in BOTH directions, not merely in the
+    // advertised tools/list catalog.
+    let (ordinary_on_issuer, _) = r16_dedicated_call(
+        &dedicated,
+        &"p".repeat(32),
+        "workspace.claim.release",
+        request.clone(),
+    );
+    assert_eq!(ordinary_on_issuer, 401);
+    let (issuer_on_ordinary, _) = r16_dedicated_call(
+        &ordinary,
+        &"h".repeat(48),
+        "workspace.claim.release",
+        request.clone(),
+    );
+    assert_eq!(issuer_on_ordinary, 401);
+
+    // The truly authenticated dedicated route is allowed to reach the
+    // *existing* principal-scoped PG Claim lookup (which reports NOT_FOUND
+    // for this intentionally absent request), not a different implementation.
+    let (issuer_status, issuer_reply) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.claim.release",
+        request,
+    );
+    assert_eq!(issuer_status, 200);
+    assert_eq!(issuer_reply["isError"], true, "{issuer_reply}");
+    assert_eq!(
+        issuer_reply["structuredContent"]["error"]["code"], "WORKSPACE_NOT_FOUND",
+        "dedicated route must bind original principal and query original PG: {issuer_reply}"
+    );
+    eprintln!("R20_NATIVE_PG_MCP_RAW_FINALIZER_ROUTE_AUTHZ_PASS");
+}
+
 // A real native PG MCP scheduler/HTTP consumer, with only original Run source
 // simulated as definitively revoked. Admission is seeded into disposable PG,
 // so this does not claim real Harness authenticated *admission* or Native ACK.
