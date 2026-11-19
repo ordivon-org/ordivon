@@ -1085,6 +1085,58 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(workstation["verificationOwners"], ["distribution", "workstation"])
         self.assertEqual(workstation["taskLocalTestConsumers"], [])
 
+    def test_gateway_test_only_consumers_are_directed_not_product_dependencies(self) -> None:
+        """Provider changes invoke real tests; unrelated consumer edits do not."""
+        gateway = MODULE.build_plan(changed_files=[
+            "services/gateway/src/ordivon_gateway/mcp_server.py"
+        ])
+        self.assertEqual(gateway["verificationOwners"], ["gateway"])
+        self.assertEqual(gateway["taskLocalTestConsumers"], [])
+
+        # This exact Gateway surface is read by a Security-owned test.
+        surface = MODULE.build_plan(changed_files=[
+            "services/gateway/enforcement-surface.json"
+        ])
+        self.assertEqual(surface["verificationOwners"], ["gateway", "security"])
+        self.assertEqual(surface["taskLocalTestConsumers"], ["security"])
+
+        # Harness is a genuine Gateway TEST consumer; its changed source
+        # must still select Gateway and Runtime original test dependents.
+        harness = MODULE.build_plan(changed_files=[
+            "services/harness/src/ordivon_harness/agent_run.py"
+        ])
+        self.assertEqual(
+            harness["verificationOwners"],
+            ["gateway", "harness", "runtime", "security", "web"],
+        )
+        self.assertIn("gateway", harness["taskLocalTestConsumers"])
+
+        security = MODULE.build_plan(changed_files=[
+            "platform/security/services/gateway-authzen/README.md"
+        ])
+        self.assertEqual(
+            security["verificationOwners"],
+            ["gateway", "harness", "security", "web"],
+        )
+        self.assertIn("gateway", security["taskLocalTestConsumers"])
+
+    def test_gateway_harness_test_import_exception_cannot_hide_foreign_import(self) -> None:
+        policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        needle = 'allowed_fragment = "ordivon_harness.runtime_port"'
+        self.assertEqual(policy.count(needle), 1)
+        with tempfile.TemporaryDirectory() as folder:
+            candidate = Path(folder) / "dependency_contracts.toml"
+            for forbidden in (
+                "ordivon_harness.unverified_runtime_port",
+                "ordivon_host_v2.work_store",
+            ):
+                candidate.write_text(
+                    policy.replace(needle, f'allowed_fragment = "{forbidden}"', 1),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "unapproved Gateway Harness test-only import"):
+                    MODULE.load_dependency_graph(path=candidate)
+
     def test_security_change_expands_to_actual_gateway_harness_web_consumers(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         # The native Gateway PG acceptance now imports real Harness API in

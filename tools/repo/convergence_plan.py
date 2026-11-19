@@ -110,6 +110,45 @@ def load_dependency_graph(
             ):
                 raise ValueError("unapproved source-only research projection seam")
             continue
+        # Gateway's disposable PostgreSQL E2E imports Harness *inside a test*.
+        # Those three exact imports select Gateway when Harness changes; they
+        # are not a reciprocal production dependency of ordinary Gateway code.
+        # Reuse the same owner-scoped test-consumer projection, with an exact
+        # source+module+contract witness rather than an Owner-pair wildcard.
+        if (
+            seam.get("kind") == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+            and (left, right) == ("gateway", "harness")
+        ):
+            source = "services/gateway/tests/test_pg_real_runtime_owner.py"
+            contract = (
+                "services/harness/rust-migration/consumer-acceptance/"
+                "real_native_pg_temporal_boundary.md"
+            )
+            qualified_modules = {
+                "ordivon_harness.agent_plugin",
+                "ordivon_harness.plugin_gateway_effect",
+                "ordivon_harness.runtime_port",
+            }
+            repo = Path(__file__).resolve().parents[2]
+            file = repo / source
+            attestation = repo / contract
+            fragment = seam.get("allowed_fragment")
+            if (
+                seam.get("source_glob") != source
+                or seam.get("contract_ref") != contract
+                or fragment not in qualified_modules
+                or not file.is_file()
+                or file.is_symlink()
+                or not attestation.is_file()
+                or attestation.is_symlink()
+                or fragment not in file.read_text(encoding="utf-8")
+            ):
+                raise ValueError("unapproved Gateway Harness test-only import")
+            if test_only_consumers is not None:
+                test_only_consumers.append(
+                    (left, right, "services/harness/", "OWNER")
+                )
+            continue
         # Preserve the existing Gateway/Harness native consumer graph. These
         # six exact Runtime Rust TEST fixtures only read original Harness
         # publisher source for PG18 verification; they cannot create a

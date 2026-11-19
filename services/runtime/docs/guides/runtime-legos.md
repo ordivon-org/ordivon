@@ -90,26 +90,43 @@ before Harness Run terminal/recipient Byte ACK; ordinary workspace.close
 can then remove unique material. This happened in a real disposable Run +
 installed Runtime native test, not just in the formal model.
 
-The existing dedicated /harness/mcp route has an independently authenticated
-principal and token; **its mere presence in source does not mean it is
-configured or installed**. When a complete dedicated route is configured,
-source pg_main.rs now explicitly denies workspace.claim.release on the
-ordinary /mcp execution route and omits it from that route's tool catalog.
-The guard runs on raw tools/call even when a client invokes a known tool name,
-and uses the existing MCP authenticated route
-identity, not an Agent-ref or caller-supplied boolean. The dedicated claim
-client must be owned by the real Harness finalizer and kept outside ordinary
-tool-executor/model grants.
+The separately authenticated /harness/mcp route exists in source, not
+automatically in the installed service. Ordinary /mcp **always denies**
+workspace.claim.release, including when dedicated credentials are not
+configured; both tools/list and the actual raw tools/call enforce the boundary.
+A caller-supplied key or Agent actor label is never a release credential.
+The source change is staged on the protected ordinary-default-deny PR and
+must be verified against the exact installed service before claims about
+production safety.
+
+**Two different capabilities must not be coupled:** a Claim finalizer
+requires original Runtime PostgreSQL Workspace owner state, whereas a Harness
+Job issuer requires the optional same-database source-currentness SQL function.
+Runtime PG and Harness PG may reside in the same physical PostgreSQL cluster
+while remaining separate databases. The dedicated route requires
+ORDIVON_PG_HARNESS_TOKEN_FILE and ORDIVON_PG_HARNESS_PRINCIPAL
+(operator-owned, mutually distinct from ordinary authentication). With no
+ORDIVON_PG_HARNESS_ISSUER_SCHEMA it enters Claim-only mode, allowing exactly
+workspace.get and workspace.claim.reserve/get/release. The route cannot open,
+close or execute Workspaces, cancel Jobs, or apply releases, even via raw
+tools/call. When the issuer schema is present, the original same-PG Harness
+Job issuance/dispatch fencing mode remains unchanged. Do not copy Harness
+tables into Runtime merely to issue or release a physical Workspace Claim.
 
 **Cutover requires consumer migration:** Claims created under the old ordinary
 principal are not automatically transferable to the new dedicated principal.
-Do not enable this control in a live Harness instance until birth/reopen,
-terminal/recipient delivery/physical drain, finalizer token routing, and
-legacy-HELD disposition are tested from actual installed clients. A dedicated
-caller still cannot independently prove external Domain Byte ACK using only
-Runtime PG and OS state: true finalization remains the original Harness/Domain
-authority. Missing finalizer identity or uncertain external acceptance keeps
-the relevant early-release/auto-GC operation on HOLD, not unrelated Jobs.
+A correctly installed trusted Harness coordinator must use the dedicated
+identity from original Run birth, restore the same key on restart, and only
+release after independently verifying original Run terminal, delivered
+recipient bytes and Native OS effects drained. A dedicated bearer by itself
+does not prove any of these conditions. In particular, ordinary trusted_local
+Jobs currently execute as host root and may read root-only credential files:
+two distinct root-owned Bearer files do not protect against untrusted root code.
+Normal Agent compute must use a genuine separate native OS principal or
+capability boundary before treating a separate finalizer token as a hard
+inter-Agent security guarantee. Keep automatic destructive GC on HOLD until
+that real control and original Domain evidence are qualified. A human-initiated
+explicit abandon flow must not be mislabeled as successful delivery.
 
 ### Directory ownership after this source-only refactor
 

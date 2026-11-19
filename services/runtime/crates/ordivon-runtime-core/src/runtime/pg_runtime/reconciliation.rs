@@ -1090,11 +1090,11 @@ impl PgRuntime {
                 .write(true)
                 .open(path.join("native-stop-evidence.lock"))
                 .map_err(io)?;
-            use std::os::fd::AsRawFd;
-            // SAFETY: the open File owns a valid descriptor; the lock is released on drop.
-            if unsafe { libc::flock(receipt_lock.as_raw_fd(), libc::LOCK_EX) } != 0 {
-                return Err(io(std::io::Error::last_os_error()));
-            }
+            // Rust std locks this File as flock(LOCK_EX) on Unix and
+            // LockFileEx on Windows. Keep the exclusive guard alive until
+            // the native receipt and PG terminal+Artifact CAS are resolved.
+            // The lock is relinquished automatically when File is dropped.
+            receipt_lock.lock().map_err(io)?;
             // A result that arrived while systemctl/cgroup was being queried
             // must take the existing digest/identity-verified result path on
             // the *next* reconciliation. Do not commit an irreversible LOST
@@ -2100,5 +2100,29 @@ mod pg_reconciliation_direct_error_tests {
                 assert_eq!(projected.retry_after_ms, Some(250));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod native_stop_lock_portability_tests {
+    #[test]
+    fn native_stop_receipt_lock_excludes_an_independent_writer_until_drop() {
+        let temporary = tempfile::tempdir().expect("isolated native stop lock fixture");
+        let path = temporary.path().join("native-stop-evidence.lock");
+        let first = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .unwrap();
+        let second = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+        first.lock().expect("first exclusive lock");
+        assert!(
+            matches!(second.try_lock(), Err(std::fs::TryLockError::WouldBlock)),
+            "a second handle cannot publish a conflicting native stop receipt"
+        );
+        drop(first);
+        second
+            .try_lock()
+            .expect("dropping the first File must release its lock");
     }
 }

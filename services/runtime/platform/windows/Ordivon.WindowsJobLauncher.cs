@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -13,6 +14,7 @@ using System.Threading;
 
 internal static class OrdivonWindowsJobLauncher
 {
+    private const uint JobObjectBasicAccountingInformationClass = 1;
     private const uint JobObjectExtendedLimitInformationClass = 9;
     private const uint JobObjectCpuRateControlInformationClass = 15;
     private const uint JobObjectLimitActiveProcess = 0x00000008;
@@ -92,6 +94,21 @@ internal static class OrdivonWindowsJobLauncher
         public ulong ReadTransferCount;
         public ulong WriteTransferCount;
         public ulong OtherTransferCount;
+    }
+
+    // JobObjectBasicAccountingInformation: kernel count of ALL processes
+    // currently associated with this exact retained Job Object handle.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JobObjectBasicAccountingInformation
+    {
+        public long TotalUserTime;
+        public long TotalKernelTime;
+        public long ThisPeriodTotalUserTime;
+        public long ThisPeriodTotalKernelTime;
+        public uint TotalPageFaultCount;
+        public uint TotalProcesses;
+        public uint ActiveProcesses;
+        public uint TotalTerminatedProcesses;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -2114,6 +2131,16 @@ internal static class OrdivonWindowsJobLauncher
             {
                 TerminateWholeJob(job, CancelledExit);
             }
+            // An original PG Attempt needs a positive kernel observation while
+            // this launcher still OWNS its Job Object handle.  A name lookup
+            // after CloseHandle is not evidence of an empty object: Windows
+            // destroys the named object when its last handle disappears.
+            // Ordinary legacy execution keeps its existing result contract.
+            if (options.EmitLauncherStartEvidence)
+            {
+                JobObjectBasicAccountingInformation drained = WaitForNativeJobDrain(job);
+                WriteWindowsJobDrainEvidence(options, pi, drained);
+            }
             CloseHandle(job);
             job = IntPtr.Zero;
             stdoutThread.Join();
@@ -2193,6 +2220,95 @@ internal static class OrdivonWindowsJobLauncher
                 code.ToString(CultureInfo.InvariantCulture));
         }
         return new CaptureWorker { ReadHandle = readHandle, Path = path, Limit = limit };
+    }
+
+    // Query while the exact Job handle is still owned; never infer an
+    // absent JobObject name means all prior processes stopped.
+    private static JobObjectBasicAccountingInformation QueryNativeJobAccounting(IntPtr job)
+    {
+        int size = Marshal.SizeOf(typeof(JobObjectBasicAccountingInformation));
+        IntPtr memory = Marshal.AllocHGlobal(size);
+        try
+        {
+            uint returned;
+            if (!QueryInformationJobObject(
+                    job, JobObjectBasicAccountingInformationClass, memory, (uint)size, out returned))
+            {
+                ThrowWin32("QueryInformationJobObject(native drain)");
+            }
+            if (returned != 0 && returned < (uint)size)
+            {
+                throw new InvalidOperationException("incomplete native Job Object accounting receipt");
+            }
+            return (JobObjectBasicAccountingInformation)Marshal.PtrToStructure(
+                memory, typeof(JobObjectBasicAccountingInformation));
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(memory);
+        }
+    }
+
+    private static JobObjectBasicAccountingInformation WaitForNativeJobDrain(IntPtr job)
+    {
+        Stopwatch deadline = Stopwatch.StartNew();
+        while (true)
+        {
+            JobObjectBasicAccountingInformation accounting = QueryNativeJobAccounting(job);
+            if (accounting.ActiveProcesses == 0)
+            {
+                if (accounting.TotalProcesses == 0)
+                {
+                    throw new InvalidOperationException(
+                        "native Job Object reports no assigned target at drain");
+                }
+                return accounting;
+            }
+            if (deadline.ElapsedMilliseconds >= 5000)
+            {
+                throw new InvalidOperationException(
+                    "native Job Object remains populated after target termination");
+            }
+            Thread.Sleep(20);
+        }
+    }
+
+    private static ulong ProcessCreationFileTime(IntPtr process, string label)
+    {
+        FileTime created, exited, kernel, user;
+        if (!GetProcessTimes(process, out created, out exited, out kernel, out user))
+        {
+            ThrowWin32("GetProcessTimes(" + label + ")");
+        }
+        return ((ulong)created.dwHighDateTime << 32) | created.dwLowDateTime;
+    }
+
+    private static void WriteWindowsJobDrainEvidence(
+        Options options, ProcessInformation target, JobObjectBasicAccountingInformation accounting)
+    {
+        // Point-in-time native witness, not a FutureSpawn/Issuer revocation ACK.
+        // Its carrier requires independent identity and provenance verification
+        // before any PostgreSQL terminal CAS; callers must not trust it alone.
+        if (accounting.ActiveProcesses != 0 || accounting.TotalProcesses == 0)
+            throw new InvalidOperationException("native Job Object is not positively drained");
+        string json = "{" +
+            "\"schemaVersion\":1," +
+            "\"jobId\":" + JsonString(options.RuntimeJobId) + "," +
+            "\"attemptId\":" + JsonString(options.RuntimeAttemptId) + "," +
+            "\"launchTokenDigest\":" + JsonString(options.RuntimeLaunchTokenDigest) + "," +
+            "\"requestDigest\":" + JsonString(options.RuntimeRequestDigest) + "," +
+            "\"jobName\":" + JsonString(options.JobName) + "," +
+            "\"launcherProcessId\":" + GetCurrentProcessId().ToString(CultureInfo.InvariantCulture) + "," +
+            "\"launcherProcessCreationTimeFileTime\":" +
+                ProcessCreationFileTime(GetCurrentProcess(), "native-drain launcher").ToString(CultureInfo.InvariantCulture) + "," +
+            "\"targetProcessId\":" + target.dwProcessId.ToString(CultureInfo.InvariantCulture) + "," +
+            "\"targetProcessCreationTimeFileTime\":" +
+                ProcessCreationFileTime(target.hProcess, "native-drain target").ToString(CultureInfo.InvariantCulture) + "," +
+            "\"totalProcesses\":" + accounting.TotalProcesses.ToString(CultureInfo.InvariantCulture) + "," +
+            "\"activeProcesses\":0," +
+            "\"observedUnixMs\":" + UnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture) +
+            "}";
+        WriteTextAtomic(Path.Combine(options.RuntimeBundle, "windows-job-drain.json"), json);
     }
 
     private static void TerminateWholeJob(IntPtr job, uint exitCode)
