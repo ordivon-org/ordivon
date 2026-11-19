@@ -22,6 +22,9 @@ internal static class OrdivonWindowsJobLauncher
     private const uint JobObjectCpuRateControlHardCap = 0x4;
     private const uint CreateSuspended = 0x00000004;
     private const uint CreateUnicodeEnvironment = 0x00000400;
+    private const uint ExtendedStartupInfoPresent = 0x00080000;
+    private const int ProcThreadAttributeHandleList = 0x00020002;
+    private const int ProcThreadAttributeJobList = 0x0002000d;
     private const uint StartfUseStdHandles = 0x00000100;
     private const uint Infinite = 0xffffffff;
     private const uint WaitTimeout = 258;
@@ -130,6 +133,94 @@ internal static class OrdivonWindowsJobLauncher
         public IntPtr hStdInput;
         public IntPtr hStdOutput;
         public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct StartupInfoEx
+    {
+        public StartupInfo StartupInfo;
+        public IntPtr AttributeList;
+    }
+
+    // Both attribute buffers must remain allocated until DeleteProcThreadAttributeList.
+    // A JOB_LIST attaches a target to the owned Job *during* process creation,
+    // rather than after a suspended child has already been created.
+    private sealed class OwnedProcessCreationAttributes : IDisposable
+    {
+        private IntPtr list;
+        private IntPtr jobValue;
+        private IntPtr inheritedHandles;
+        private bool initialized;
+
+        public IntPtr List { get { return list; } }
+
+        public OwnedProcessCreationAttributes(IntPtr job, IntPtr stdoutWrite, IntPtr stderrWrite)
+        {
+            try
+            {
+                IntPtr size = IntPtr.Zero;
+                InitializeProcThreadAttributeList(IntPtr.Zero, 2, 0, ref size);
+                if (size == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("native process attribute list sizing failed");
+                }
+                list = Marshal.AllocHGlobal(size);
+                if (!InitializeProcThreadAttributeList(list, 2, 0, ref size))
+                {
+                    ThrowWin32("InitializeProcThreadAttributeList");
+                }
+                initialized = true;
+                jobValue = Marshal.AllocHGlobal(IntPtr.Size);
+                Marshal.WriteIntPtr(jobValue, job);
+                if (!UpdateProcThreadAttribute(
+                    list, 0, new IntPtr(ProcThreadAttributeJobList),
+                    jobValue, new IntPtr(IntPtr.Size), IntPtr.Zero, IntPtr.Zero))
+                {
+                    ThrowWin32("UpdateProcThreadAttribute(JOB_LIST)");
+                }
+                // The only payload-inheritable handles are its two capture pipes.
+                // Stdin is deliberately null for the noninteractive Runtime API.
+                inheritedHandles = Marshal.AllocHGlobal(IntPtr.Size * 2);
+                Marshal.WriteIntPtr(inheritedHandles, 0, stdoutWrite);
+                Marshal.WriteIntPtr(inheritedHandles, IntPtr.Size, stderrWrite);
+                if (!UpdateProcThreadAttribute(
+                    list, 0, new IntPtr(ProcThreadAttributeHandleList),
+                    inheritedHandles, new IntPtr(IntPtr.Size * 2),
+                    IntPtr.Zero, IntPtr.Zero))
+                {
+                    ThrowWin32("UpdateProcThreadAttribute(HANDLE_LIST)");
+                }
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (initialized)
+            {
+                DeleteProcThreadAttributeList(list);
+                initialized = false;
+            }
+            if (inheritedHandles != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(inheritedHandles);
+                inheritedHandles = IntPtr.Zero;
+            }
+            if (jobValue != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(jobValue);
+                jobValue = IntPtr.Zero;
+            }
+            if (list != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(list);
+                list = IntPtr.Zero;
+            }
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -368,6 +459,18 @@ internal static class OrdivonWindowsJobLauncher
         out ProcessInformation processInformation);
 
     [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool InitializeProcThreadAttributeList(
+        IntPtr list, int attributeCount, uint flags, ref IntPtr size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool UpdateProcThreadAttribute(
+        IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr valueSize,
+        IntPtr previousValue, IntPtr returnSize);
+
+    [DllImport("kernel32.dll")]
+    private static extern void DeleteProcThreadAttributeList(IntPtr list);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
     private static extern uint ResumeThread(IntPtr thread);
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -501,6 +604,20 @@ internal static class OrdivonWindowsJobLauncher
         IntPtr environment,
         string currentDirectory,
         ref StartupInfo startupInfo,
+        out ProcessInformation processInformation);
+
+    [DllImport("advapi32.dll", EntryPoint = "CreateProcessAsUserW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CreateProcessAsUserWithAttributes(
+        IntPtr token,
+        string applicationName,
+        StringBuilder commandLine,
+        IntPtr processAttributes,
+        IntPtr threadAttributes,
+        bool inheritHandles,
+        uint creationFlags,
+        IntPtr environment,
+        string currentDirectory,
+        ref StartupInfoEx startupInfo,
         out ProcessInformation processInformation);
 
     [DllImport("userenv.dll", SetLastError = true)]
@@ -1817,6 +1934,7 @@ internal static class OrdivonWindowsJobLauncher
         Thread stdoutThread = null;
         Thread stderrThread = null;
         ProcessInformation pi = new ProcessInformation();
+        OwnedProcessCreationAttributes creationAttributes = null;
         bool processCreated = false;
         bool resumed = false;
         long startedUnixMs = UnixTimeMilliseconds();
@@ -1865,17 +1983,23 @@ internal static class OrdivonWindowsJobLauncher
                 options.StderrLimitBytes.Value,
                 out stderrWrite);
 
-            StartupInfo si = new StartupInfo();
-            si.cb = (uint)Marshal.SizeOf(typeof(StartupInfo));
-            if (options.Identity == ExecutionIdentity.ActiveUser) si.lpDesktop = "winsta0\\default";
-            si.dwFlags = StartfUseStdHandles;
-            si.hStdInput = GetStdHandle(StdInputHandle);
-            si.hStdOutput = stdoutWrite;
-            si.hStdError = stderrWrite;
+            // CreateProcessAsUserW receives both native attributes atomically.
+            // Creating a suspended target then AssignProcessToJobObject left a
+            // launcher-crash window in which an unowned process already existed.
+            creationAttributes = new OwnedProcessCreationAttributes(job, stdoutWrite, stderrWrite);
+            StartupInfoEx si = new StartupInfoEx();
+            si.StartupInfo.cb = (uint)Marshal.SizeOf(typeof(StartupInfoEx));
+            if (options.Identity == ExecutionIdentity.ActiveUser)
+                si.StartupInfo.lpDesktop = "winsta0\\default";
+            si.StartupInfo.dwFlags = StartfUseStdHandles;
+            si.StartupInfo.hStdInput = IntPtr.Zero;
+            si.StartupInfo.hStdOutput = stdoutWrite;
+            si.StartupInfo.hStdError = stderrWrite;
+            si.AttributeList = creationAttributes.List;
 
             StringBuilder commandLine = new StringBuilder(BuildCommandLine(options.Executable, options.TargetArguments));
-            uint creationFlags = CreateSuspended | CreateUnicodeEnvironment;
-            if (!CreateProcessAsUserW(
+            uint creationFlags = CreateSuspended | CreateUnicodeEnvironment | ExtendedStartupInfoPresent;
+            if (!CreateProcessAsUserWithAttributes(
                     executionToken,
                     options.Executable,
                     commandLine,
@@ -1888,18 +2012,17 @@ internal static class OrdivonWindowsJobLauncher
                     ref si,
                     out pi))
             {
-                ThrowWin32("CreateProcessAsUserW");
+                ThrowWin32("CreateProcessAsUserW(STARTUPINFOEX)");
             }
             processCreated = true;
+            creationAttributes.Dispose();
+            creationAttributes = null;
             CloseHandle(stdoutWrite);
             stdoutWrite = IntPtr.Zero;
             CloseHandle(stderrWrite);
             stderrWrite = IntPtr.Zero;
 
-            if (!AssignProcessToJobObject(job, pi.hProcess))
-            {
-                ThrowWin32("AssignProcessToJobObject");
-            }
+            // Positive readback protects against an OS/provider mismatch.
             bool inJob;
             if (!IsProcessInJob(pi.hProcess, job, out inJob))
             {
@@ -2037,6 +2160,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         finally
         {
+            if (creationAttributes != null) creationAttributes.Dispose();
             if (stdoutWrite != IntPtr.Zero) CloseHandle(stdoutWrite);
             if (stderrWrite != IntPtr.Zero) CloseHandle(stderrWrite);
             if (environment != IntPtr.Zero) Marshal.FreeHGlobal(environment);
