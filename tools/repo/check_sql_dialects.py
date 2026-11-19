@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only, version-exact acceptance for Ordivon's tracked SQL dialect files."""
+"""Read-only SQL dialect acceptance; PostgreSQL 18 minor updates are compatible."""
 from __future__ import annotations
 
 import argparse
@@ -473,6 +473,21 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
     return issues
 
 
+def supported_postgres_client_version(version: str) -> bool:
+    """Accept same-major PostgreSQL minor maintenance releases at/above baseline.
+
+    The native SQL AST parser independently verifies every tracked PostgreSQL
+    source. A patch update to the PostgreSQL 18 client is not a dialect migration;
+    an older minor, new major, malformed version, or missing CLI remains UNKNOWN.
+    """
+    observed = re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", version)
+    if observed is None:
+        return False
+    baseline_major, baseline_minor = map(int, EXPECTED["postgresql"].split("."))
+    major, minor = map(int, observed.groups())
+    return major == baseline_major and minor >= baseline_minor
+
+
 def check(root: Path) -> tuple[list[str], list[str]]:
     issues: list[str] = []
     facts: list[str] = []
@@ -568,8 +583,11 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         p = run_bounded(["psql", "--version"], cwd=root)
         observed = re.search(r"([0-9]+\.[0-9]+)", p.stdout + p.stderr)
         current = observed.group(1) if p.returncode == 0 and observed else "UNAVAILABLE"
-        if current != EXPECTED["postgresql"]:
-            issues.append(f"psql {current} != latest {EXPECTED['postgresql']}")
+        if not supported_postgres_client_version(current):
+            issues.append(
+                f"psql {current} is outside supported PostgreSQL "
+                f"{EXPECTED['postgresql']}+ maintenance versions of the same major"
+            )
         from pglast import parse_sql  # Explicit CLI dependency: uv --with pglast==8.6
         if importlib.metadata.version("pglast") != EXPECTED["pglast"]:
             issues.append("PostgreSQL AST parser version is not pinned to exact 8.6")

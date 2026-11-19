@@ -520,5 +520,27 @@ class SQLDialectBoundaryTests(unittest.TestCase):
                 self.assertIsNone(classify(name))
 
 
+    def test_pg_minor_maintenance_versions_without_major_downgrade(self):
+        """A supported minor update is not a new SQL dialect authority."""
+        from tools.repo.check_sql_dialects import supported_postgres_client_version
+
+        for version, supported in (
+            ("18.5", False),
+            ("18.6", True),
+            ("18.7", True),
+            ("18.99", True),
+            ("19.0", False),
+            ("17.12", False),
+            ("UNAVAILABLE", False),
+            ("18.7.1", False),
+            ("18.7oops", False),
+            ("18.07", False),
+            ("18.-1", False),
+            ("", False),
+        ):
+            with self.subTest(version=version):
+                self.assertIs(supported_postgres_client_version(version), supported)
+
+
 if __name__ == "__main__":
     unittest.main()
