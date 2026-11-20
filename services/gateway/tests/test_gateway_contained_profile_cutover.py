@@ -55,7 +55,9 @@ class ProfileCutoverOwner:
                     error={
                         "origin": "runtime_core",
                         "code": "IDEMPOTENCY_CONFLICT",
-                        "field": "clientRequestId",
+                        # The existing native PG IdempotencyConflict mapping
+                        # intentionally omits 'field'; it is an exact-key
+                        # durable identity conflict, not a new admission.
                         "commitState": "not_committed",
                         "retryClass": "never",
                         "retryable": False,
@@ -147,6 +149,27 @@ def test_new_uncommitted_denial_selects_only_qualified_owner_contained_profile()
     assert len(owner.committed) == 1
 
 
+def test_new_contained_job_replays_same_original_key_after_gateway_restart() -> None:
+    owner = ProfileCutoverOwner(contained_only=True)
+    first = asyncio.run(_submit(GatewayService(owner), "new-contained-original-key"))
+    assert first.native_id == "job-original-1"
+    first_committed = owner.committed["new-contained-original-key"][0]
+    assert first_committed["execution"]["executionProfile"] == "contained_local"
+    # No Gateway cache or shadow Job Registry survives this new façade.
+    again = asyncio.run(_submit(GatewayService(owner), "new-contained-original-key"))
+    assert again.native_id == first.native_id
+    assert len(owner.committed) == 1
+    assert [tool for _, tool, _ in owner.calls] == [
+        "workspace.exec",
+        "runtime.describe",
+        "workspace.exec",
+        "workspace.exec",
+        "runtime.describe",
+        "workspace.exec",
+    ]
+    assert owner.calls[-1][2] == first_committed
+
+
 def test_explicit_privileged_context_is_not_automatically_downgraded() -> None:
     owner = ProfileCutoverOwner(contained_only=True)
     with pytest.raises(OwnerCallError) as exc:
@@ -167,6 +190,7 @@ def test_explicit_privileged_context_is_not_automatically_downgraded() -> None:
         {"field": "execution.workspaceId"},
         {"origin": "gateway_adapter"},
         {"code": "REGISTRY_BUSY"},
+        {"code": "IDEMPOTENCY_CONFLICT", "field": "clientRequestId"},
     ],
 )
 def test_ambiguous_or_other_denial_never_dispatches_second_physical_effect(
@@ -276,5 +300,10 @@ def test_old_request_with_different_bytes_must_not_be_reinterpreted() -> None:
         )
     assert exc.value.error is not None
     assert exc.value.error["code"] == "IDEMPOTENCY_CONFLICT"
-    assert [tool for _, tool, _ in owner.calls] == ["workspace.exec", "workspace.exec"]
+    assert [tool for _, tool, _ in owner.calls] == [
+        "workspace.exec",
+        "workspace.exec",
+        "runtime.describe",
+        "workspace.exec",
+    ]
     assert len(owner.committed) == 1
