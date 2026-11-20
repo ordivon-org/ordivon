@@ -667,6 +667,51 @@ mod authenticated_execution_profile_projection_tests {
     }
 
     #[test]
+    fn root_release_qualified_catalog_count_differs_from_no_root_fixture() {
+        // R62 real production release rolled back before acceptance because
+        // the disposable/no-Root integration profile advertised 22 tools but
+        // Root-qualified ordinary /mcp advertised 23 (release.apply added).
+        // Keep these exact *route/identity/config* contracts distinct.
+        let ordinary_without_release = PgRuntimeServer::catalog_for_route(false, false);
+        let ordinary_with_release = PgRuntimeServer::catalog_for_route(true, false);
+        assert_eq!(ordinary_without_release.len(), 22);
+        assert_eq!(ordinary_with_release.len(), 23);
+        assert!(!ordinary_without_release.iter().any(|t| t.name.as_ref() == "release.apply"));
+        assert!(ordinary_with_release.iter().any(|t| t.name.as_ref() == "release.apply"));
+        assert!(!ordinary_with_release
+            .iter()
+            .any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert!(ordinary_with_release
+            .iter()
+            .any(|t| t.name.as_ref() == "release.get"));
+
+        let dedicated_finalizer = PgRuntimeServer::catalog_for_route(true, true);
+        assert_eq!(dedicated_finalizer.len(), 24);
+        assert!(dedicated_finalizer
+            .iter()
+            .any(|t| t.name.as_ref() == "workspace.claim.release"));
+
+        // An authenticated ordinary contained-only profile cannot admit a
+        // new Root release even when the operator's timer is configured.
+        let mut ordinary_contained = ordinary_with_release;
+        restrict_new_effect_catalog(
+            &mut ordinary_contained,
+            Some(ExecutionProfile::ContainedLocal),
+        );
+        assert_eq!(ordinary_contained.len(), 22);
+        assert!(!ordinary_contained
+            .iter()
+            .any(|t| t.name.as_ref() == "release.apply"));
+
+        // Claim-only is a third authority. Do not count its 4 capabilities
+        // as the ordinary/Root release identity used by a SourceCut.
+        let mut claim_only = dedicated_finalizer;
+        claim_only.retain(|t| CLAIM_ONLY_TOOL_NAMES.contains(&t.name.as_ref()));
+        assert_eq!(claim_only.len(), 4);
+        assert!(!claim_only.iter().any(|t| t.name.as_ref() == "release.apply"));
+    }
+
+    #[test]
     fn contained_ordinary_catalog_hides_new_operator_release_but_keeps_readback() {
         let mut catalog=PgRuntimeServer::catalog_for_route(true,false);
         assert!(catalog.iter().any(|tool|tool.name.as_ref()=="release.apply"));
