@@ -6,15 +6,50 @@ from ...contracts import (
     CapabilityRoute,
     ExecutionReceipt,
 )
+from ...logic.capability_projection import project_execution_capability
 from ...logic.execution_refs import GatewayError, parse_execution_ref
 from ...logic.execution_refs import format_execution_ref as _execution_ref
 from ...logic.owner_protocol import (
+    OwnerCallError,
     OwnerToolCaller,
     _owner_optional_disposition,
     _owner_receipt_state,
     _required_bool,
     _required_str,
 )
+
+
+def _qualified_profile_switch_failure(
+    error: OwnerCallError,
+    *,
+    owner_id: str,
+) -> bool:
+    """Only Runtime-native precommit policy denial or exact-key conflict qualifies.
+
+    When the old trusted_local request is already committed, it succeeds
+    unchanged. A newly committed contained_local request instead causes an
+    exact key/immutable-payload conflict on the trusted default when replayed:
+    the one contained_local alternative is safe only because the Runtime
+    already reported that original key was occupied. No other error may
+    justify a different physical proposal or unbounded retry.
+    """
+    e = error.error
+    return (
+        error.owner_id == owner_id
+        and error.tool_name == "workspace.exec"
+        and isinstance(e, dict)
+        and e.get("origin") == "runtime_core"
+        and (
+            (
+                e.get("code") == "AUTHORIZATION_DENIED"
+                and e.get("field") == "execution.executionProfile"
+            )
+            or (e.get("code") == "IDEMPOTENCY_CONFLICT" and "field" not in e)
+        )
+        and e.get("commitState") == "not_committed"
+        and e.get("retryClass") == "never"
+        and e.get("retryable") is False
+    )
 
 
 class ExecutionCommandMethods:
@@ -108,7 +143,60 @@ class ExecutionCommandMethods:
             "stdoutTailBytes": 4096,
             "stderrTailBytes": 4096,
         }
-        result = await self._caller.call_tool(route.owner_id, route.owner_tool, payload)
+        try:
+            result = await self._caller.call_tool(route.owner_id, route.owner_tool, payload)
+        except OwnerCallError as denied:
+            # Legacy absent-context requests originally meant trusted_local.
+            # They must be replayed with their ORIGINAL immutable payload first:
+            # a committed Job cannot be moved to a different executionProfile.
+            # Once Runtime proves the NEW trusted default was not admitted
+            # (or the key has already committed a different immutable profile),
+            # reuse the read-only capability projector to select its only
+            # currently admissible contained_local profile. No global cache,
+            # second RouteAuthority, or automatic privilege escalation.
+            if (
+                capability != "execution.linux"
+                or context is not None
+                or route.default_context != "trusted_local"
+                or not _qualified_profile_switch_failure(denied, owner_id=route.owner_id)
+            ):
+                raise
+            description = await self._caller.call_tool(
+                route.owner_id, "runtime.describe", {"schemaVersion": 1}
+            )
+            observed = project_execution_capability(
+                route, configured_at_gateway=True, owner_response=description
+            )
+            # Do not let the projection's filtering of ill-typed context
+            # elements silently turn a mixed/unknown inventory into a single
+            # qualified profile. This fallback needs exact Owner wire data.
+            targets = description.get("targets")
+            exact_profiles = (
+                [
+                    target["executionProfiles"]
+                    for target in targets
+                    if isinstance(target, dict) and target.get("target") == route.execution_target
+                ]
+                if isinstance(targets, list)
+                else []
+            )
+            if not (
+                observed.configured is True
+                and observed.available is True
+                and observed.observation_error is None
+                and observed.contexts == ["contained_local"]
+                and exact_profiles == [["contained_local"]]
+            ):
+                raise denied
+            # A profile denial creates no effect. An idempotency conflict
+            # certifies the exact key already exists in Runtime PG: the second
+            # call can only recover the existing contained profile, or conflict
+            # again. Keep all business fields and identity unchanged.
+            next_payload = {
+                **payload,
+                "execution": {**execution, "executionProfile": "contained_local"},
+            }
+            result = await self._caller.call_tool(route.owner_id, route.owner_tool, next_payload)
         native_id = _required_str(result, "jobId")
         return ExecutionReceipt(
             operation_ref=_execution_ref(route.owner_id, native_id),
