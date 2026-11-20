@@ -1788,13 +1788,17 @@ mod live_pg_tests {
             .unwrap();
         assert_eq!(ver, 1);
         assert_eq!(
-            db.mark_dispatch_issued_pg(&PgDispatchIssued {
-                attempt_id: attempt.clone(),
-                expected_row_version: ver,
-                expected_bundle_digest: request_digest.clone(),
-                observed_at_ms: input.created_at_ms + 2,
-                expected_source_sha256: source.clone(),
-            })
+            db.mark_dispatch_issued_pg(
+                &PgDispatchIssued {
+                    attempt_id: attempt.clone(),
+                    expected_row_version: ver,
+                    expected_bundle_digest: request_digest.clone(),
+                    observed_at_ms: input.created_at_ms + 2,
+                    expected_source_sha256: source.clone(),
+                },
+                None,
+                None
+            )
             .unwrap(),
             2
         );
