@@ -5,11 +5,12 @@ Runs ONLY with explicit R29_NATIVE_BIN/R29_NATIVE_RUNNER/R29_RUNTIME_SOURCE.
 Creates a fresh Unix-socket-only PostgreSQL cluster, TWO distinct databases
 and roles, a disposable Native Runtime MCP process and ONE native Git Workspace.
 Never reads production DSNs, uses installed tokens, or touches installed units.
-The final local recipient is test-scoped, NOT external Domain acceptance.
+The independent Coding consumer is test-scoped, NOT final user acceptance.
 """
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -35,7 +36,7 @@ from tests.test_r3_supported_agent_run import (
 )
 
 SOURCE = "5ae84bdb6a89781fd380c91696f4c904c8a69ec9"
-BIN_DIR = Path("/var/tmp/ordivon-r29-finalizer-native-bin-20261120")
+BIN_DIR = Path("/var/tmp/ordivon-r31-domain-gt-claimonly-bin-20261120")
 
 
 def checked_executable(key: str, filename: str) -> Path:
@@ -249,13 +250,24 @@ def main() -> None:
         assert run_handle.workspace_claim.require_held()["claimId"] == claim["claimId"]
         print("R29_FINALIZER_CLAIM_DENIES_NORMAL_CLOSE_BEFORE_ACCEPTANCE=PASS", flush=True)
 
-        # A real native Job writes a small original source file, then exits.
+        # A real native Job publishes TWO scoped outputs: a unique Run output
+        # and actual Coding task source. An unrelated downstream Git consumer
+        # must retain BOTH before test-scoped release of their original pin.
         original_bytes = ("R29_CROSSDB_NATIVE_TEST_OUTPUT_" + suffix).encode()
         filename = "r29-original-unique.txt"
+        harness_src = Path(__file__).resolve().parents[2]
+        fixture = harness_src / "fixtures/harness-edit-addressing-repeated-v1/feature_flags.py"
+        oracle = harness_src / "evals/harness-edit-addressing-002/oracle/feature_flags.py"
+        original_coding = fixture.read_text(encoding="utf-8")
+        assert original_coding.count("return False") == 2
         call(ordinary, "workspace.mutate", {
             "schemaVersion": 1, "workspaceId": workspace_id,
-            "mutations": [{"mode": "WRITE", "relativePath": filename,
-                           "content": original_bytes.decode()}],
+            "mutations": [
+                {"mode": "WRITE", "relativePath": filename,
+                 "content": original_bytes.decode()},
+                {"mode": "WRITE", "relativePath": "feature_flags.py",
+                 "content": original_coding},
+            ],
         })
         issued_id = "r29-original-job-" + suffix
         physical = call(ordinary, "workspace.exec", {
@@ -263,7 +275,12 @@ def main() -> None:
             "execution": {
                 "workspaceId": workspace_id, "executable": "/usr/bin/bash",
                 "cwdRelative": ".",
-                "args": ["-lc", "git add r29-original-unique.txt && "
+                "args": ["-lc",
+                         "python3 -c 'from pathlib import Path; "
+                         "p=Path(\"feature_flags.py\"); v=p.read_text(); "
+                         "a,b,c=v.rpartition(\"return False\"); "
+                         "assert b; p.write_text(a+\"return True\"+c)' && "
+                         "git add r29-original-unique.txt feature_flags.py && "
                          "git -c user.name='R29 Source' "
                          "-c user.email='r29@example.invalid' commit -m 'original output'"],
                 "timeoutMs": 30000,
@@ -287,6 +304,11 @@ def main() -> None:
             "relativePath": filename, "mode": "FULL", "maxBytes": 4096,
         })
         assert original_read["content"].encode() == original_bytes
+        actual_coding = call(ordinary, "workspace.read", {
+            "schemaVersion": 1, "workspaceId": workspace_id,
+            "relativePath": "feature_flags.py", "mode": "FULL", "maxBytes": 4096,
+        })["content"].encode()
+        assert actual_coding == oracle.read_bytes(), "native Job must produce the exact hidden-QA target"
         denied, _ = ordinary.call_tool("workspace.close", {
             "schemaVersion": 1, "workspaceId": workspace_id,
             "force": False, "consumerReleased": True,
@@ -299,15 +321,79 @@ def main() -> None:
         assert final_run.loop_result.stop_code.value == "candidate_completed"
         final = run_handle.inspect_finalization_source()
         assert final["sourceStanding"] == "source-settled"
-        recipient = root / "accepted-by-test-recipient.bin"
+        # Reuse the ORIGINAL independent Coding Domain evaluator and normal Git.
+        # This trusted test driver controls both temporary roots; it does NOT
+        # prove a real external user ACK or protected Finalizer credentials.
+        gate_path = harness_src / "evals/harness-edit-addressing-002/delivery_gate.py"
+        spec = importlib.util.spec_from_file_location("r31_original_coding_delivery_gate", gate_path)
+        assert spec is not None and spec.loader is not None
+        gate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gate)
+        source_candidate = root / "native-coding-candidate.py"
+        source_candidate.write_bytes(actual_coding)
+        recipient_repo = root / "independent-coding-consumer-git"
+        recipient_repo.mkdir()
+        run(["git", "-C", str(recipient_repo), "init", "-q"])
+        recipient = recipient_repo / filename
         recipient.write_bytes(original_bytes)
+        received_coding = recipient_repo / "feature_flags.py"
+        # A caller who points at a plausible Git commit containing DIFFERENT
+        # bytes must not be allowed to treat that as independent delivery.
+        received_coding.write_bytes(original_coding.encode())
+
+        def consumer_commit(message: str) -> str:
+            # This disposable receiver owns exactly two expected outputs;
+            # stage removals too, so partial-delivery failure is observable.
+            run(["git", "-C", str(recipient_repo), "add", "-A"])
+            run(["git", "-C", str(recipient_repo),
+                 "-c", "user.name=Independent Coding Receiver",
+                 "-c", "user.email=receiver@example.invalid",
+                 "commit", "-q", "-m", message])
+            return run(["git", "-C", str(recipient_repo), "rev-parse", "HEAD"],
+                       stdout=subprocess.PIPE).stdout.strip()
+
+        wrong_commit = consumer_commit("incorrect content before actual receipt")
+        try:
+            gate.qualify(source_candidate, recipient_repo, wrong_commit)
+        except gate.DeliveryGateError as exc:
+            assert "does not match" in str(exc)
+        else:
+            raise AssertionError("stale consumer Git blob was accepted as delivered")
+        assert run_handle.workspace_claim.require_held()["state"] == "held"
+        print("R31_EXTERNAL_GIT_WRONG_ORIGINAL_BYTES_STILL_HELD=PASS", flush=True)
+
+        # Domain QA and the named Coding source can be green while another
+        # original unsubmitted artifact would still be lost by NativeClose.
+        # The consumer graph must cover ALL scoped unique outputs, not just the
+        # one source file selected by a task-level QA gate.
+        received_coding.write_bytes(actual_coding)
+        recipient.unlink()
+        partial_commit = consumer_commit("Coding QA passes but other output missing")
+        partial = gate.qualify(source_candidate, recipient_repo, partial_commit)
+        assert partial["consumerGitByteReadbackQualified"] is True
+        assert run(["git", "-C", str(recipient_repo), "ls-tree",
+                    partial_commit, "--", filename],
+                   stdout=subprocess.PIPE).stdout == ""
+        assert run_handle.workspace_claim.require_held()["state"] == "held"
+        print("R31_CODING_QA_PASS_WITH_MISSING_SECOND_OUTPUT_MUST_STAY_HELD=PASS", flush=True)
+
+        recipient.write_bytes(original_bytes)
+        consumer_sha = consumer_commit("accepted ALL scoped original native outputs")
+        independent = gate.qualify(source_candidate, recipient_repo, consumer_sha)
+        assert independent["domainQA"] == "passed"
+        assert independent["domainQATrials"] == 3
+        assert independent["consumerGitByteReadbackQualified"] is True
+        assert independent["finalUserDeliveryProven"] is False
+        assert independent["userAcknowledgement"] == "UNKNOWN"
         expected_sha = hashlib.sha256(original_bytes).hexdigest()
         acknowledgement = {
             "harnessRunId": value.harness_run_id,
             "runReceiptDigest": final["runReceiptDigest"],
             "accepted": True,
             "sha256": expected_sha,
+            "consumerCommit": consumer_sha,
         }
+        print("R31_ORIGINAL_CODING_HIDDENQA_AND_DURABLE_GIT_BYTE_READBACK=PASS", flush=True)
         try:
             run_handle.release_workspace_after_delivery(
                 recipient_ack=acknowledgement,
@@ -326,8 +412,14 @@ def main() -> None:
             return bool(
                 source_state["sourceStanding"] == "source-settled"
                 and actual["activeJobIds"] == []
-                and recipient.read_bytes() == original_bytes
-                and hashlib.sha256(recipient.read_bytes()).hexdigest() == ack["sha256"]
+                and ack["consumerCommit"] == consumer_sha
+                and run(["git", "-C", str(recipient_repo), "show",
+                         consumer_sha + ":" + filename],
+                        stdout=subprocess.PIPE).stdout.encode() == original_bytes
+                and run(["git", "-C", str(recipient_repo), "show",
+                         consumer_sha + ":feature_flags.py"],
+                        stdout=subprocess.PIPE).stdout.encode() == actual_coding
+                and hashlib.sha256(original_bytes).hexdigest() == ack["sha256"]
             )
 
         released = run_handle.release_workspace_after_delivery(
@@ -342,6 +434,13 @@ def main() -> None:
         })
         assert closed["removed"] is True
         assert recipient.read_bytes() == original_bytes
+        assert run(["git", "-C", str(recipient_repo), "show",
+                    consumer_sha + ":feature_flags.py"],
+                   stdout=subprocess.PIPE).stdout.encode() == actual_coding
+        # Workspace physical deletion has occurred; verified independent Git
+        # source blob remains readable. User completion is STILL UNKNOWN.
+        assert independent["finalUserDeliveryProven"] is False
+        print("R31_POST_NATIVE_CLOSE_EXTERNAL_CODING_COMMIT_REMAINS_READABLE=PASS", flush=True)
         tombstone = call(dedicated, "workspace.claim.get", {
             "schemaVersion": 1, "clientRequestId": run_handle.workspace_claim.request_id,
         })

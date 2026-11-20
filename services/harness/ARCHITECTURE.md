@@ -256,6 +256,34 @@ can read the same protected file is not isolated by chmod 0600 alone.
 Do not install Claim-only credentials, release historical claims or enable
 global GC based only on source tests or simulated ACKs.
 
+**R31 independent Coding durable handoff is not final user satisfaction.**
+The existing `evals/harness-edit-addressing-002/delivery_gate.py` performs
+hidden task QA, immutable Git commit/path verification and exact-byte readback
+from a separate consumer repository; it explicitly returns
+`finalUserDeliveryProven=false` and `userAcknowledgement=UNKNOWN`.
+The opt-in real PostgreSQL 18 + Rust Native MCP Claim-only consumer at
+`rust-migration/consumer-acceptance/live_claimonly_cross_db_pg18.py`
+now drives a real OS Job that edits Coding source and a second unique file.
+A stale/incorrect independent Git commit fails verification while the native
+Claim remains HELD. A second, more subtle test commits QA-correct Coding source
+but omits the other unique original output: Domain QA passes, yet the Native
+Claim must remain HELD because the scoped output consumer graph is incomplete.
+After the same test-controlled downstream Git repository actually stores and
+reads back both original outputs, three hidden QA trials pass and scoped
+nonforce Workspace close leaves both Git blobs intact.
+
+This demonstrates a *durable downstream copy* can end a test Workspace's
+unique-byte dependency **without proving the final user has received or
+accepted the result**. It does not qualify production Claim release:
+that disposable Git repository and callback are owned by the test process;
+there is no independently authenticated production recipient, no trusted
+all-issued Native manager handoff/no-future-spawn attestation, and ordinary
+root `trusted_local` still must not gain the real Finalizer Bearer. A passing
+QA result, caller-provided Git path/commit, self-reported ACK or OS Job exit
+must not be promoted to trusted Finalizer authority. A real Coding/Research
+Domain owner must identify an independent durable recipient with its own
+retention and access policy before any real resource relinquishment.
+
 **Next structural cuts are consumer-driven, not directory-driven.**
 The remaining `ordivon/run_continuity.py` still couples working-set mutation,
 Provider dispatch, and Tool receipts; they must retain one PG writer and
