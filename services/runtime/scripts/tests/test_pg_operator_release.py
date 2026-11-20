@@ -850,8 +850,12 @@ class NativePgReleaseOperator(unittest.TestCase):
         import socket
         # The default-deny ordinary PG route removes the dangerous direct
         # Claim release tool even without a dedicated Harness issuer:
-        # 21 portable + 3 Claim - release.apply - claim.release = 22.
-        # Preserve an exact source-bound catalog assertion in native E2E.
+        # This disposable PG18/systemd fixture has NO qualified Root release
+        # source: 21 portable + 3 Claim - release.apply - claim.release = 22.
+        # A production Root-qualified ordinary ingress has release.apply
+        # available and therefore 23 (not 22). The existing Rust PG server
+        # unit test checks BOTH profiles and protects the real readiness cut.
+        # Never change the scratch count to match production by assertion.
         native_tool_count = 22
         self.args.expected_tool_count = native_tool_count
         runner=SCRIPTS.parent/"target/debug/ordivon-runtime-runner"

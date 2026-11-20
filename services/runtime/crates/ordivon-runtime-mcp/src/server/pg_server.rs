@@ -626,6 +626,40 @@ mod claim_release_route_authority_tests {
     }
 
     #[test]
+    fn root_qualified_mcp_catalog_adds_release_apply_without_reenabling_claim_release() {
+        // This is an installed Root ReleaseEffect readiness contract, not a
+        // documentation estimate. The real production release rolled back
+        // when its issuer sent expectedToolCount=22 but the Root-qualified
+        // ordinary MCP endpoint exposed 23. The scratch native PG release
+        // test legitimately uses 22 because it has NO Root release source.
+        for (release_ready, finalizer_authorized, expected_count) in [
+            (false, false, 22),
+            (true, false, 23),
+            (false, true, 23),
+            (true, true, 24),
+        ] {
+            let catalog =
+                PgRuntimeServer::catalog_for_route(release_ready, finalizer_authorized);
+            let names = catalog
+                .iter()
+                .map(|tool| tool.name.as_ref())
+                .collect::<std::collections::HashSet<_>>();
+            assert_eq!(catalog.len(), expected_count);
+            assert_eq!(names.len(), catalog.len(), "no duplicate MCP names");
+            assert_eq!(names.contains("release.apply"), release_ready);
+            assert_eq!(
+                names.contains("workspace.claim.release"),
+                finalizer_authorized,
+                "Root operator authorization must not re-enable domain Claim release"
+            );
+            assert!(names.contains("release.get"));
+            assert!(names.contains("runtime.describe"));
+            assert!(names.contains("workspace.claim.reserve"));
+            assert!(names.contains("workspace.claim.get"));
+        }
+    }
+
+    #[test]
     fn raw_tool_dispatch_blocks_normal_known_key_but_not_claim_readback() {
         assert!(claim_release_route_guard(false, "workspace.claim.release").is_err());
         assert!(claim_release_route_guard(true, "workspace.claim.release").is_ok());
