@@ -37,6 +37,28 @@ fn observe_committed_job_with_bounded_busy_recovery<T>(
     preserve_committed_job_identity(job_id, result)
 }
 
+/// A direct job.observe already has a PG-authorized, durable Job identity.
+/// A serializable reconciliation transaction can abort while the native OS
+/// launch is still in flight. Never retry the reconciliation/effect itself on
+/// that error: inspect the SAME existing Job read-only with the native bounded
+/// SQLSTATE 40001/40P01 recovery instead. A starting/unknown projection is
+/// not a terminal witness and does not authorize a new physical dispatch.
+fn project_committed_job_after_reconcile<T>(
+    job_id: &str,
+    reconciliation: RuntimeResult<()>,
+    project: impl FnMut() -> RuntimeResult<T>,
+) -> RuntimeResult<T> {
+    match reconciliation {
+        Ok(()) => {}
+        Err(error) if error.code == RuntimeErrorCode::RegistryBusy && error.retryable => {
+            // Only the definitely aborted DB transaction is retryable.
+            // Retain the possibly issued physical effect exactly once.
+        }
+        Err(error) => return Err(error.with_operation_id(job_id)),
+    }
+    observe_committed_job_with_bounded_busy_recovery(job_id, project)
+}
+
 // A foreign reference is caller-authored metadata, never execution authority.
 // Without a configured same-PG issuer verifier it cannot affect the environment.
 // With a verifier, preserve exact source intent for the PG transactional guard.
@@ -904,12 +926,15 @@ impl PgRuntime {
                     }
                 })?;
             verified_committed_job = true;
-            preserve_committed_job_identity(
-                &request.job_id,
-                self.reconcile(&mut db, &request.job_id),
-            )?;
+            // A concurrent PG writer may abort this reconciliation after
+            // durable DISPATCH_ISSUED or an OS handoff. Direct job.observe
+            // must never repeat that physical effect on SQLSTATE 40001:
+            // recover by projecting the exact already-authorized Job only.
+            let reconciliation = self.reconcile(&mut db, &request.job_id);
             let value =
-                preserve_committed_job_identity(&request.job_id, self.project(&mut db, request))?;
+                project_committed_job_after_reconcile(&request.job_id, reconciliation, || {
+                    self.project(&mut db, request)
+                })?;
             // Gateway observes change_or_terminal. Only compare durable
             // observable state, not time-dependent display projections.
             let signature = (
@@ -1187,6 +1212,71 @@ mod committed_observation_tests {
         let final_error = exhausted.unwrap_err();
         assert_eq!(final_error.code, RuntimeErrorCode::RegistryBusy);
         assert_eq!(final_error.operation_id.as_deref(), Some("job-stable"));
+    }
+
+    #[test]
+    fn direct_observe_busy_reconciliation_only_projects_original_job() {
+        let mut reads = 0;
+        let value = project_committed_job_after_reconcile(
+            "job-same-physical-identity",
+            Err(RuntimeError::new(
+                RuntimeErrorCode::RegistryBusy,
+                "aborted PG reconciliation after possible OS handoff",
+                None,
+                true,
+            )),
+            || {
+                reads += 1;
+                if reads == 1 {
+                    Err(RuntimeError::new(
+                        RuntimeErrorCode::RegistryBusy,
+                        "read-only projection also aborted once",
+                        None,
+                        true,
+                    ))
+                } else {
+                    Ok("PG-existing-attempt-only")
+                }
+            },
+        )
+        .unwrap();
+        assert_eq!(value, "PG-existing-attempt-only");
+        assert_eq!(reads, 2, "recovery only repeats same-Job PG reads");
+
+        for (code, retryable) in [
+            (RuntimeErrorCode::DispatchOutcomeUnknown, false),
+            (RuntimeErrorCode::RegistryBusy, false),
+            (RuntimeErrorCode::ReconciliationRequired, false),
+        ] {
+            let mut read_count = 0;
+            let refused: RuntimeResult<()> = project_committed_job_after_reconcile(
+                "job-same-physical-identity",
+                Err(RuntimeError::new(
+                    code.clone(),
+                    "physical effect or owner status is not proven safe",
+                    None,
+                    retryable,
+                )),
+                || {
+                    read_count += 1;
+                    Ok(())
+                },
+            );
+            assert_eq!(read_count, 0, "must not mask an uncertain effect");
+            let error = refused.unwrap_err();
+            assert_eq!(error.code, code);
+            assert_eq!(
+                error.operation_id.as_deref(),
+                Some("job-same-physical-identity")
+            );
+        }
+        let mut observed = 0;
+        project_committed_job_after_reconcile("job-committed", Ok(()), || {
+            observed += 1;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(observed, 1, "a successful reconciliation projects once");
     }
 
     #[test]
