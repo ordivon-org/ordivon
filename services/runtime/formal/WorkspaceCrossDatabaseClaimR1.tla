@@ -15,9 +15,9 @@ WorkspaceValues == WorkspaceIds \cup {"unknown"}
 ClaimStates == {"none", "reserved", "active", "released"}
 RunStates == {"absent", "prepared", "ready", "finished"}
 
-VARIABLES phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent
+VARIABLES phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent, nativeHandoffPending, nativeHandoffEverQueued
 
-vars == <<phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent>>
+vars == <<phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent, nativeHandoffPending, nativeHandoffEverQueued>>
 
 Init ==
     /\ phase = "open"
@@ -30,6 +30,8 @@ Init ==
     /\ recipientAccepted = {}
     /\ liveJob = FALSE
     /\ gitDependent = FALSE
+    /\ nativeHandoffPending = FALSE
+    /\ nativeHandoffEverQueued = FALSE
 
 HarnessPrepare(r,w) ==
     /\ phase = "open"
@@ -40,7 +42,7 @@ HarnessPrepare(r,w) ==
     \* not supplied for the first time by a later Agent on open/retry.
     /\ harness' = [harness EXCEPT ![r] = "prepared"]
     /\ originalWorkspace' = [originalWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, claim, claimWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted>>
+    /\ UNCHANGED <<phase, claim, claimWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 LegacyPrepareWithoutOriginal(r) ==
     /\ phase = "open"
@@ -48,7 +50,7 @@ LegacyPrepareWithoutOriginal(r) ==
     /\ harness[r] = "absent"
     \* A historical Run with no persisted original Workspace stays UNKNOWN.
     /\ harness' = [harness EXCEPT ![r] = "prepared"]
-    /\ UNCHANGED <<phase, claim, originalWorkspace, claimWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted>>
+    /\ UNCHANGED <<phase, claim, originalWorkspace, claimWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 NativeReserve(r,w) ==
     /\ phase = "open"
@@ -62,7 +64,7 @@ NativeReserve(r,w) ==
     \* but original Workspace identity must come from the immutable Run birth.
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
     /\ claimWorkspace' = [claimWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 HarnessReady(r) ==
     /\ phase = "open"
@@ -70,7 +72,7 @@ HarnessReady(r) ==
     /\ harness[r] = "prepared"
     /\ claim[r] = "reserved"
     /\ harness' = [harness EXCEPT ![r] = "ready"]
-    /\ UNCHANGED <<phase, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 NativeActivate(r) ==
     /\ phase = "open"
@@ -78,7 +80,7 @@ NativeActivate(r) ==
     /\ harness[r] = "ready"
     /\ claim[r] = "reserved"
     /\ claim' = [claim EXCEPT ![r] = "active"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 PublishToolGrant(r) ==
     /\ phase = "open"
@@ -87,14 +89,14 @@ PublishToolGrant(r) ==
     /\ claim[r] = "active"
     /\ r \notin published
     /\ published' = published \cup {r}
-    /\ UNCHANGED <<phase, harness, claim, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, claim, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 HarnessFinish(r) ==
     /\ phase = "open"
     /\ r \in published
     /\ harness[r] = "ready"
     /\ harness' = [harness EXCEPT ![r] = "finished"]
-    /\ UNCHANGED <<phase, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 DeliverOutput(r) ==
     /\ phase = "open"
@@ -105,7 +107,7 @@ DeliverOutput(r) ==
     \* their independent recipient acceptance are yet authenticated here.
     \* Caller accepted=true, digest or a lambda-True verifier is not proof.
     /\ delivered' = delivered \cup {r}
-    /\ UNCHANGED <<phase, harness, claim, published, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, claim, published, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 \* Assumption/authority boundary: this action may be issued ONLY by an
 \* independently authenticated recipient, with original bytes and matching
@@ -117,7 +119,7 @@ IndependentRecipientAccept(r) ==
     /\ r \notin recipientAccepted
     /\ harness[r] = "finished"
     /\ recipientAccepted' = recipientAccepted \cup {r}
-    /\ UNCHANGED <<phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, liveJob, gitDependent>>
+    /\ UNCHANGED <<phase, harness, claim, originalWorkspace, claimWorkspace, published, delivered, liveJob, gitDependent, nativeHandoffPending, nativeHandoffEverQueued>>
 
 NativeRelease(r) ==
     /\ phase = "open"
@@ -126,8 +128,12 @@ NativeRelease(r) ==
     /\ harness[r] = "finished"
     /\ r \in delivered
     /\ r \in recipientAccepted
+    \* An independent Domain ACK is not authority to abandon an unresolved
+    \* native Manager handoff or active original physical Job.
+    /\ ~nativeHandoffPending
+    /\ ~liveJob
     /\ claim' = [claim EXCEPT ![r] = "released"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 AbortNeverIssuedReservation(r) ==
     /\ phase = "open"
@@ -138,31 +144,57 @@ AbortNeverIssuedReservation(r) ==
     \* A TTL without such proof cannot safely release an active consumer.
     /\ claim' = [claim EXCEPT ![r] = "released"]
     /\ harness' = [harness EXCEPT ![r] = "finished"]
-    /\ UNCHANGED <<phase, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 BeginJob ==
     /\ phase = "open"
     /\ ~liveJob
     /\ liveJob' = TRUE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 EndJob ==
     /\ phase = "open"
     /\ liveJob
     /\ liveJob' = FALSE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
+
+\* OS Manager queued work is not necessarily a running PID or visible Unit.
+\* The true issuer/manager handoff identity and its terminal observation are
+\* external implementation proof obligations, modeled here as one Boolean.
+\* This deliberately composes the independent IssuerRevokeEpochR1 #2518
+\* negative with the original Workspace Claim/Recipient ACK model #2511.
+QueueNativeManagerHandoff ==
+    /\ phase = "open"
+    /\ ~nativeHandoffPending
+    /\ ~liveJob
+    /\ \E r \in published: claim[r] = "active"
+    /\ nativeHandoffPending' = TRUE
+    /\ nativeHandoffEverQueued' = TRUE
+    /\ UNCHANGED <<phase, harness, claim, originalWorkspace, claimWorkspace,
+                  published, delivered, recipientAccepted, liveJob, gitDependent>>
+
+\* systemd may materialize the native attempt AFTER its submitter exited.
+NativeManagerBirth ==
+    /\ phase = "open"
+    /\ nativeHandoffPending
+    /\ ~liveJob
+    /\ nativeHandoffPending' = FALSE
+    /\ liveJob' = TRUE
+    /\ UNCHANGED <<phase, harness, claim, originalWorkspace, claimWorkspace,
+                  published, delivered, recipientAccepted, gitDependent,
+                  nativeHandoffEverQueued>>
 
 AddGitDependent ==
     /\ phase = "open"
     /\ ~gitDependent
     /\ gitDependent' = TRUE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, liveJob, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, liveJob, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 RemoveGitDependent ==
     /\ phase = "open"
     /\ gitDependent
     /\ gitDependent' = FALSE
-    /\ UNCHANGED <<phase, harness, claim, published, delivered, liveJob, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, claim, published, delivered, liveJob, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 Eligible ==
     /\ phase = "open"
@@ -170,13 +202,14 @@ Eligible ==
     /\ published \subseteq delivered
     /\ published \subseteq recipientAccepted
     /\ ~liveJob
+    /\ ~nativeHandoffPending
     /\ ~gitDependent
 
 NativeClose ==
     /\ Eligible
     \* Close, reserve and activate share the Runtime DB admission lock.
     /\ phase' = "closed"
-    /\ UNCHANGED <<harness, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<harness, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 Progress ==
     \/ \E r \in RunIds: \E w \in WorkspaceIds: HarnessPrepare(r,w)
@@ -192,6 +225,8 @@ Progress ==
     \/ \E r \in RunIds: AbortNeverIssuedReservation(r)
     \/ BeginJob
     \/ EndJob
+    \/ QueueNativeManagerHandoff
+    \/ NativeManagerBirth
     \/ AddGitDependent
     \/ RemoveGitDependent
 
@@ -211,6 +246,8 @@ TypeOK ==
     /\ recipientAccepted \subseteq delivered
     /\ liveJob \in BOOLEAN
     /\ gitDependent \in BOOLEAN
+    /\ nativeHandoffPending \in BOOLEAN
+    /\ nativeHandoffEverQueued \in BOOLEAN
 
 ClosedHasNoOutstandingPins ==
     phase = "closed" =>
@@ -245,6 +282,16 @@ ClosedHasIndependentRecipientAcceptance ==
 ClosedHasDeliveredOutputs ==
     phase = "closed" => published \subseteq delivered
 
+\* OS admission handoff is independently observable even before a PID.
+\* With no pending OS Manager delivery, a normal source-owned Claim pin
+\* can be released after the independently authenticated Domain recipient.
+NativePendingHasOriginalPin ==
+    nativeHandoffPending =>
+        \E r \in published: claim[r] = "active"
+
+ClosedHasNoManagerQueue ==
+    phase = "closed" => ~nativeHandoffPending
+
 ClosedHasNoPhysicalDependencies ==
     phase = "closed" => ~liveJob /\ ~gitDependent
 
@@ -265,6 +312,13 @@ NoOriginalClaimEver == \A r \in RunIds: claim[r] = "none"
 IndependentAcceptedReleaseUnreachable ==
     \A r \in RunIds: ~(claim[r] = "released" /\ r \in recipientAccepted)
 
+\* Must be FALSE: pending Manager work may actually finish, and a Run
+\* with real recipient ACK and an original native handoff can be released
+\* and physically closed after that effect has settled.
+ManagerHandoffDrainedCloseUnreachable ==
+    ~(phase = "closed" /\ nativeHandoffEverQueued /\
+      ~nativeHandoffPending /\ ~liveJob)
+
 StableEligibleEventuallyClosed ==
     (<>[]Eligible) => <> (phase = "closed")
 
@@ -279,7 +333,7 @@ UnsafeCrossDatabaseClose ==
     /\ ~liveJob
     /\ ~gitDependent
     /\ phase' = "closed"
-    /\ UNCHANGED <<harness, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<harness, claim, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 UnsafeCrossDbSpec == Init /\ [][Progress \/ UnsafeCrossDatabaseClose]_vars
 
@@ -290,7 +344,7 @@ UnsafeLateForeignClaim(r) ==
     /\ r \in RunIds
     /\ claim[r] = "none"
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 UnsafeLateSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeLateForeignClaim(r))]_vars
@@ -303,7 +357,7 @@ UnsafeUnqualifiedGrant(r) ==
     /\ harness[r] = "prepared"
     /\ r \notin published
     /\ published' = published \cup {r}
-    /\ UNCHANGED <<phase, harness, claim, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, claim, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 UnsafeGrantSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeUnqualifiedGrant(r))]_vars
@@ -320,7 +374,7 @@ UnsafeCallerAdoptsLegacy(r,w) ==
     /\ claim[r] = "none"
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
     /\ claimWorkspace' = [claimWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 UnsafeAdoptionSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: \E w \in WorkspaceIds:
@@ -345,7 +399,7 @@ UnsafeCallerRebindKnown(r,w) ==
     /\ claim[r] = "none"
     /\ claim' = [claim EXCEPT ![r] = "reserved"]
     /\ claimWorkspace' = [claimWorkspace EXCEPT ![r] = w]
-    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, originalWorkspace, published, delivered, liveJob, gitDependent, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 UnsafeKnownRebindSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: \E w \in WorkspaceIds:
@@ -363,7 +417,7 @@ UnsafeDirectCallerRelease(r) ==
     /\ claim[r] = "reserved"
     /\ harness[r] = "prepared"
     /\ claim' = [claim EXCEPT ![r] = "released"]
-    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted>>
+    /\ UNCHANGED <<phase, harness, published, delivered, liveJob, gitDependent, originalWorkspace, claimWorkspace, recipientAccepted, nativeHandoffPending, nativeHandoffEverQueued>>
 
 UnsafeDirectReleaseSpec ==
     Init /\ [][SafeNext \/ (\E r \in RunIds: UnsafeDirectCallerRelease(r))]_vars
@@ -380,7 +434,7 @@ UnsafeSelfCertifiedRelease(r) ==
     /\ r \notin recipientAccepted
     /\ claim[r] = "active"
     /\ claim' = [claim EXCEPT ![r] = "released"]
-    /\ UNCHANGED <<phase, harness, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent>>
+    /\ UNCHANGED <<phase, harness, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent, nativeHandoffPending, nativeHandoffEverQueued>>
 
 \* If native close ALSO trusts the caller's delivery declaration (instead
 \* of a trustworthy recipient), the original workspace can be deleted.
@@ -395,10 +449,59 @@ UnsafeCloseAfterFakeAck ==
     /\ ~liveJob
     /\ ~gitDependent
     /\ phase' = "closed"
-    /\ UNCHANGED <<harness, claim, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent>>
+    /\ UNCHANGED <<harness, claim, originalWorkspace, claimWorkspace, published, delivered, recipientAccepted, liveJob, gitDependent, nativeHandoffPending, nativeHandoffEverQueued>>
 
 UnsafeSelfCertSpec ==
     Init /\ [][SafeNext
         \/ (\E r \in RunIds: UnsafeSelfCertifiedRelease(r))
         \/ UnsafeCloseAfterFakeAck]_vars
+
+\* Real native OS manager race even with a genuinely accepted Domain ACK:
+\* a caller has stopped, activeJobIds may be empty, but systemd still owns
+\* a queued StartTransientUnit. This original Run may NOT release its pin.
+UnsafeReleaseWhileManagerQueued(r) ==
+    /\ phase = "open"
+    /\ nativeHandoffPending
+    /\ ~liveJob
+    /\ r \in published
+    /\ claim[r] = "active"
+    /\ harness[r] = "finished"
+    /\ r \in delivered
+    /\ r \in recipientAccepted
+    /\ claim' = [claim EXCEPT ![r] = "released"]
+    /\ UNCHANGED <<phase, harness, originalWorkspace, claimWorkspace,
+                  published, delivered, recipientAccepted, liveJob,
+                  gitDependent, nativeHandoffPending, nativeHandoffEverQueued>>
+
+\* If a close checks only PID/Job inventory and Domain ACK, it may delete
+\* the Workspace while OS Manager is still holding delayed work.
+UnsafeCloseWithQueuedManager ==
+    /\ phase = "open"
+    /\ nativeHandoffPending
+    /\ ~liveJob
+    /\ ~gitDependent
+    /\ \A r \in RunIds: claim[r] \notin {"reserved", "active"}
+    /\ published \subseteq delivered
+    /\ published \subseteq recipientAccepted
+    /\ phase' = "closed"
+    /\ UNCHANGED <<harness, claim, originalWorkspace, claimWorkspace,
+                  published, delivered, recipientAccepted, liveJob,
+                  gitDependent, nativeHandoffPending, nativeHandoffEverQueued>>
+
+\* The native OS action can materialize after original workspace deletion.
+UnsafeManagerBirthAfterClose ==
+    /\ phase = "closed"
+    /\ nativeHandoffPending
+    /\ ~liveJob
+    /\ nativeHandoffPending' = FALSE
+    /\ liveJob' = TRUE
+    /\ UNCHANGED <<phase, harness, claim, originalWorkspace, claimWorkspace,
+                  published, delivered, recipientAccepted, gitDependent,
+                  nativeHandoffEverQueued>>
+
+UnsafeManagerSpec ==
+    Init /\ [][SafeNext
+        \/ (\E r \in RunIds: UnsafeReleaseWhileManagerQueued(r))
+        \/ UnsafeCloseWithQueuedManager
+        \/ UnsafeManagerBirthAfterClose]_vars
 =============================================================================
