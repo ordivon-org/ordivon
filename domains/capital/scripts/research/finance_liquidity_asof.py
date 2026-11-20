@@ -27,6 +27,19 @@ H41_MAX_BYTES = 2_000_000
 DTS_MAX_BYTES = 100_000
 SOFR_MAX_BYTES = 2_000_000
 
+DEALER_CATALOG_MAX_BYTES = 600_000
+DEALER_SERIES_MAX_BYTES = 200_000
+DEALER_REPORTED_SERIES_BREAK = "SBN2024"
+DEALER_SERIES_BREAK_START = date(2024, 7, 3)
+DEALER_KEYS = {
+    "PDPOSGST-TOT": ("treasuryExTipsNetDealerPosition", "DEALER POSITION - LONG."),
+    "PDSIOSB-UTSETTOT": (
+        "treasuryExTipsSecuritiesBorrowed",
+        "DEALER FINANCING SECURITIES BORROWED",
+    ),
+    "PDSOOS-UTSETTOT": ("treasuryExTipsSecuritiesLent", "DEALER FINANCING SECURITIES LENT"),
+}
+
 H41_ROWS = {
     "reserveSupply": ("t1", "Total factors supplying reserve funds"),
     "reserveAbsorption": (
@@ -264,6 +277,132 @@ def parse_sofr(raw: bytes) -> dict[date, dict[str, str]]:
     return result
 
 
+def parse_dealer_sources(*, catalog: bytes, series: dict[str, bytes]) -> dict[str, dict]:
+    """NY Fed FR2004 weekly time series, preserving '*' as NOT_PUBLISHED.
+
+    Source catalog is required to bind an official Key Id, a human economic
+    definition and its published SBN2024 structural series break.
+    """
+    if not catalog or len(catalog) > DEALER_CATALOG_MAX_BYTES:
+        raise ValueError("invalid primary-dealer catalog bytes")
+    if set(series) != set(DEALER_KEYS):
+        raise ValueError("primary-dealer native source series set incomplete")
+    metadata = list(csv.DictReader(io.StringIO(catalog.decode("utf-8-sig"))))
+    if not metadata or set(metadata[0]) != {"Key Id", "Label", "Series Break"}:
+        raise ValueError("unrecognized primary-dealer official metadata")
+    rows_by_key = {}
+    for row in metadata:
+        key = row["Key Id"]
+        if key in DEALER_KEYS:
+            if key in rows_by_key:
+                raise ValueError("duplicate primary dealer catalog definition")
+            rows_by_key[key] = row
+    result = {}
+    for key, (name, label_evidence) in DEALER_KEYS.items():
+        row = rows_by_key.get(key)
+        if row is None or row["Series Break"] != DEALER_REPORTED_SERIES_BREAK:
+            raise ValueError(f"unqualified dealer source series break: {key}")
+        if label_evidence not in row["Label"]:
+            raise ValueError(f"changed dealer economic definition: {key}")
+        data = series[key]
+        if not data or len(data) > DEALER_SERIES_MAX_BYTES:
+            raise ValueError(f"unbounded dealer financial source: {key}")
+        parsed = json.loads(data)
+        raw_rows = parsed.get("pd", {}).get("timeseries")
+        if not isinstance(raw_rows, list) or not raw_rows:
+            raise ValueError("dealer series native structure invalid")
+        values = {}
+        for point in raw_rows:
+            d = _valid_iso_day(point["asofdate"])
+            if point["keyid"] != key or d.weekday() != 2 or d in values:
+                raise ValueError("dealer source weekly identity/date disagreement")
+            if d < DEALER_SERIES_BREAK_START:
+                continue
+            raw_value = point.get("value")
+            if raw_value == "*":
+                # NY Fed does not publish categories with too few
+                # respondents. No imputation and NOT a zero-valued balance.
+                value = None
+            else:
+                if not isinstance(raw_value, str):
+                    raise ValueError("dealer financial amount not an official string")
+                try:
+                    amount = Decimal(raw_value)
+                except InvalidOperation as exc:
+                    raise ValueError("dealer financial amount unreported/invalid") from exc
+                if not amount.is_finite() or abs(amount) > Decimal("1e10"):
+                    raise ValueError("dealer financial amount outside bounded unit")
+                if key != "PDPOSGST-TOT" and amount < 0:
+                    raise ValueError("dealer financed securities amount negative")
+                value = str(amount)
+            values[d] = value
+        if not values:
+            raise ValueError("no dealer observations in qualified 2024 series break")
+        result[key] = {
+            "name": name,
+            "values": values,
+            "sourceSha256": _sha(data),
+            "seriesBreak": DEALER_REPORTED_SERIES_BREAK,
+        }
+    return result
+
+
+def _dealer_scheduled_publication(week_ended: date) -> datetime:
+    """Next week's Thursday ~16:15 ET, buffered to 16:30 ET.
+
+    The Federal business day on or after that Thursday is the earliest
+    schedule-qualified instant, not proof of actual historical release.
+    """
+    if week_ended.weekday() != 2:
+        raise ValueError("NY Fed primary-dealer week ended must be Wednesday")
+    import pandas as pd
+    from pandas.tseries.holiday import USFederalHolidayCalendar
+    from pandas.tseries.offsets import CustomBusinessDay
+
+    day = pd.Timestamp(week_ended + timedelta(days=8))
+    fed_business = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    if not fed_business.is_on_offset(day):
+        day = day + fed_business
+    return datetime.combine(day.date(), time(16, 30), tzinfo=NY)
+
+
+def _dealer_asof(*, local: datetime, series: dict[str, dict]) -> dict:
+    result = {}
+    for key, source in series.items():
+        eligible = [d for d in source["values"] if _dealer_scheduled_publication(d) <= local]
+        latest = max(eligible) if eligible else None
+        value = source["values"][latest] if latest is not None else None
+        result[source["name"]] = {
+            "seriesKey": key,
+            "seriesBreak": source["seriesBreak"],
+            "weekEnded": latest.isoformat() if latest else None,
+            "scheduledAvailableAtNewYork": (
+                _dealer_scheduled_publication(latest).isoformat() if latest else None
+            ),
+            "valueUsdMillions": value,
+            "availability": (
+                "NO_WEEK_YET_RELEASE_ELIGIBLE"
+                if latest is None
+                else "PUBLISHED_VALUE_WITHHELD"
+                if value is None
+                else "PUBLISHED_NUMERIC_LATEST_SNAPSHOT"
+            ),
+            "sourceSha256": source["sourceSha256"],
+        }
+    weeks = {r["weekEnded"] for r in result.values()}
+    return {
+        "weeklySeries": result,
+        "weekAlignment": (
+            "NO_ELIGIBLE_DEALER_WEEK"
+            if weeks == {None}
+            else "SAME_REPORTED_WEEK"
+            if len(weeks) == 1
+            else "DIFFERENT_OBSERVATION_WEEKS"
+        ),
+        "firstPublishedVintageAttested": False,
+    }
+
+
 def asof_snapshot(
     *,
     when: datetime,
@@ -271,6 +410,7 @@ def asof_snapshot(
     dts: list[DTS],
     sofr: dict[date, dict[str, str]],
     sofr_sha256: str,
+    dealer_series: dict[str, dict] | None = None,
 ) -> dict:
     if when.tzinfo is None or when.utcoffset() is None:
         raise ValueError("as-of instant must be timezone aware")
@@ -319,6 +459,9 @@ def asof_snapshot(
             "h41": "DATED_OFFICIAL_ARCHIVE_SCHEDULED_1630_ET_NOT_EXTERNAL_FIRST_CAPTURE_PROOF",
             "dts": "LATEST_API_NEXT_FEDERAL_BUSINESS_DAY_1630_ET_SCHEDULE_NOT_FIRST_VINTAGE",
             "sofr": "LATEST_CSV_EFFECTIVE_DATE_AT_LEAST_TWO_XNYS_SESSIONS_OLD",
+            "dealer": "LATEST_API_PREVIOUS_WEEK_THURSDAY_1630_ET_SCHEDULE_NOT_FIRST_VINTAGE"
+            if dealer_series is not None
+            else "NOT_REQUESTED",
         },
         "h41": (
             {
@@ -351,12 +494,23 @@ def asof_snapshot(
             else None
         ),
         "crossSourceTga": consistency,
+        "dealer": _dealer_asof(local=local, series=dealer_series)
+        if dealer_series is not None
+        else None,
         "compositeLiquidityScore": None,
         "capitalAndTradingAuthority": False,
     }
 
 
-def run(*, raw_h41: dict[str, bytes], raw_dts: list[bytes], raw_sofr: bytes, at: list[str]) -> dict:
+def run(
+    *,
+    raw_h41: dict[str, bytes],
+    raw_dts: list[bytes],
+    raw_sofr: bytes,
+    at: list[str],
+    raw_dealer_catalog: bytes | None = None,
+    raw_dealer_series: dict[str, bytes] | None = None,
+) -> dict:
     releases = [parse_h41(raw, file_label=name) for name, raw in raw_h41.items()]
     dts = [parse_dts(raw) for raw in raw_dts]
     if len({r.release_date for r in releases}) != len(releases):
@@ -364,6 +518,13 @@ def run(*, raw_h41: dict[str, bytes], raw_dts: list[bytes], raw_sofr: bytes, at:
     if len({r.record_date for r in dts}) != len(dts):
         raise ValueError("duplicate Treasury source record date")
     rates = parse_sofr(raw_sofr)
+    if (raw_dealer_catalog is None) != (raw_dealer_series is None):
+        raise ValueError("dealer catalog and series inputs must be provided together")
+    dealer = (
+        parse_dealer_sources(catalog=raw_dealer_catalog, series=raw_dealer_series)
+        if raw_dealer_catalog is not None and raw_dealer_series is not None
+        else None
+    )
     snapshots = [
         asof_snapshot(
             when=datetime.fromisoformat(day),
@@ -371,6 +532,7 @@ def run(*, raw_h41: dict[str, bytes], raw_dts: list[bytes], raw_sofr: bytes, at:
             dts=dts,
             sofr=rates,
             sofr_sha256=_sha(raw_sofr),
+            dealer_series=dealer,
         )
         for day in at
     ]
@@ -382,12 +544,15 @@ def run(*, raw_h41: dict[str, bytes], raw_dts: list[bytes], raw_sofr: bytes, at:
             "h41DatedReleases": len(releases),
             "dtsDays": len(dts),
             "sofrObservations": len(rates),
+            "dealerNativeSeries": len(dealer) if dealer is not None else 0,
         },
         "limitations": [
             "Historical H41 release archive page is dated but independent HTTP first-publication proof is not provided.",
             "Treasury DTS API is latest table, not a proved first-published vintage; next federal business day 16:30 ET buffer is a schedule assumption.",
             "SOFR effective date is not first publication; two XNYS session lag differs from the NYFed repo calendar.",
             "A matched same-day TGA amount is economic consistency, NOT publication-time certification.",
+            "Dealer series are weekly reports published following-week Thursday ~16:15 ET, with 16:30 ET buffer; * is unpublished, not zero.",
+            "Dealer 2024 structural series break prevents naive comparison with earlier data; current API values may be revised.",
             "No ETF total return, broker fills, portfolio alpha or financial effect authority.",
         ],
     }
@@ -398,6 +563,13 @@ def main():
     parser.add_argument("--h41", type=Path, required=True, action="append")
     parser.add_argument("--dts", type=Path, required=True, action="append")
     parser.add_argument("--sofr", type=Path, required=True)
+    parser.add_argument("--dealer-catalog", type=Path, help="Official NY Fed series metadata CSV")
+    parser.add_argument(
+        "--dealer-series",
+        type=Path,
+        action="append",
+        help="Official NY Fed /api/pd/get/KEY.json, named KEY.json",
+    )
     parser.add_argument(
         "--at",
         required=True,
@@ -406,6 +578,8 @@ def main():
     )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.dealer_series and len({p.stem for p in args.dealer_series}) != len(args.dealer_series):
+        parser.error("duplicate dealer source ID is not an independent source")
     captures = {f.name: _read(f, H41_MAX_BYTES) for f in args.h41}
     if len(captures) != len(args.h41):
         raise SystemExit("duplicate H41 capture filename")
@@ -413,6 +587,14 @@ def main():
         raw_h41=captures,
         raw_dts=[_read(p, DTS_MAX_BYTES) for p in args.dts],
         raw_sofr=_read(args.sofr, SOFR_MAX_BYTES),
+        raw_dealer_catalog=(
+            _read(args.dealer_catalog, DEALER_CATALOG_MAX_BYTES) if args.dealer_catalog else None
+        ),
+        raw_dealer_series=(
+            {p.stem: _read(p, DEALER_SERIES_MAX_BYTES) for p in args.dealer_series}
+            if args.dealer_series
+            else None
+        ),
         at=args.at,
     )
     serialized = json.dumps(data, indent=2, sort_keys=True)

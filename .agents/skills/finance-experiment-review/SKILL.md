@@ -95,6 +95,23 @@ budget, independent market timestamp or provider financial effects.
 REVIEW_REQUIRED still requires independent review even when the caller
 claims independentReproduction=true; it never grants capital or orders.
 
+### Primary-dealer financing (official optional Research inputs)
+
+The same Finance liquidity as-of research consumer supports the
+NY Fed Primary Dealer metadata catalog and exactly 3 post-2024
+series: PDPOSGST-TOT, PDSIOSB-UTSETTOT, PDSOOS-UTSETTOT.
+Those Wednesday reports are normally released the FOLLOWING
+Thursday near 16:15 New York time (the consumer uses a 16:30
+buffer, and shifts federal holidays); do not leak them to the
+observation-week equity decision. The source has an official
+structural break in 2024. Any asterisk value is non-published
+and must remain null with PUBLISHED_VALUE_WITHHELD status,
+not zero, extrapolated, or smoothed. The real source audit,
+five as-of replay examples, IDs and optional command arguments
+are documented in domains/capital/docs/FINANCE_LIQUIDITY_ASOF_R2.md.
+No trade/portfolio effect or independent first-vintage certification
+is implied by this data reception.
+
 ## Official monetary-liquidity as-of consumer (R2)
 
 Before using historical liquidity features, run
