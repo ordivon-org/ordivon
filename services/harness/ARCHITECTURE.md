@@ -243,10 +243,37 @@ Claim-only caller from issuing `workspace.claim.release` while original
 Harness PG still reports CREATED, no recipient byte has been accepted and
 normal nonforce Close must still be protected. R29 reproduced that physical
 RED with a disposable original Run against the exact native Claim-only
-Runtime candidate; it does not affect a real user Workspace. The existing
-`release_workspace_after_delivery` checks Run status, PG source-settled and
-a supplied recipient ACK plus verifier callback, but those supplied values
-are NOT independent authenticated domain or OS attestations.
+Runtime candidate; it does not affect a real user Workspace. **R34 removal of false Finalizer certification.** Earlier original
+`release_workspace_after_delivery` checked Run status and caller-supplied
+`accepted=true` plus a caller-owned verifier callback. The disposable
+NativePG18 test proved that a completed Run with NO downstream recipient
+could still physically release its Claim through `lambda: True`, and its
+normal nonforce close could destroy its unique Workspace. The same lack of
+proof remains at the *privileged raw Native Claim-only route*.
+
+The normal `HarnessAgentRun.release_workspace_after_delivery` compatibility
+entry now rejects ANY Workspace-bearing caller ACK or callback and preserves
+the original HELD Claim; a Run without a Workspace Claim still returns None.
+The source-only `RunCompositionPolicy.require_release_ready` and
+`WorkspaceRunClaim.release_after_verified_delivery` convenience methods
+were removed, not replaced by a second receipt registry or boolean gate.
+The normal Run-facing object offers Claim reserve/recover/get, not a fake
+independent-release promise. Two unconsumed historical opt-in scripts that
+implicitly promoted a caller ACK were retired (preserved in Git history).
+The original Gateway integration still consumes
+`real_pg_native_claim_release.py`; that legacy disposable script now asserts
+Run-level self-certification is rejected before using its explicitly marked
+test-only privileged raw action. Neither it nor the main
+`live_claimonly_cross_db_pg18.py` raw release experiment qualifies a
+production Finalizer.
+
+**This is deliberate fail-closed functionality reduction, not the delivery
+completion.** A true Finalizer still needs the existing Runtime-controlled
+original Claim authority, separately authenticated original Domain receipt
+for ALL meaningful outputs, a trusted Native OS all-issued/no-future-spawn
+and drain witness, and protected release-to-close coordination. The private
+Harness current installation remains old until actual production receiver
+and OS safety are independently qualified.
 
 Qualify a true Finalizer only after its current authenticated original Run,
 recipient's original output bytes/receipt, all actually issued native Attempts

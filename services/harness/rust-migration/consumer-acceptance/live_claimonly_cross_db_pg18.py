@@ -36,7 +36,7 @@ from tests.test_r3_supported_agent_run import (
 )
 
 SOURCE = "5ae84bdb6a89781fd380c91696f4c904c8a69ec9"
-BIN_DIR = Path("/var/tmp/ordivon-r33-git-scope-native-bin-20261120")
+BIN_DIR = Path("/var/tmp/ordivon-r34-failclosed-native-bin-20261120")
 
 
 def checked_executable(key: str, filename: str) -> Path:
@@ -448,10 +448,29 @@ def main() -> None:
                 and hashlib.sha256(original_bytes).hexdigest() == ack["sha256"]
             )
 
-        released = run_handle.release_workspace_after_delivery(
-            recipient_ack=acknowledgement,
-            verify_delivered_and_drained=accepted,
-        )
+        # The Run-facing production method cannot promote caller-controlled
+        # Git+ACK+callback into an independently authorized Domain/OS proof.
+        # Even this physically convincing TEST recipient must be refused.
+        assert accepted(final, acknowledgement)
+        try:
+            run_handle.release_workspace_after_delivery(
+                recipient_ack=acknowledgement,
+                verify_delivered_and_drained=accepted,
+            )
+        except HarnessWorkspaceAdmissionUnavailable:
+            pass
+        else:
+            raise AssertionError("caller callback incorrectly released original Claim")
+        assert run_handle.workspace_claim.require_held()["state"] == "held"
+        print("R34_ORIGINAL_RUN_SELF_CERTIFIED_DOMAIN_RELEASE_DENIED=PASS", flush=True)
+        # TEST-ONLY simulated trusted-finalizer action. This deliberately
+        # bypasses the product gate and proves that the *privileged native raw
+        # endpoint itself* has no independent Domain/NoFutureSpawn authority.
+        # It MUST NOT be offered to normal production Harness Run callers.
+        released = call(dedicated, "workspace.claim.release", {
+            "schemaVersion": 1,
+            "clientRequestId": run_handle.workspace_claim.request_id,
+        })
         assert released["state"] == "released"
         closed = call(ordinary, "workspace.close", {
             "schemaVersion": 1, "workspaceId": workspace_id,
@@ -546,23 +565,28 @@ def main() -> None:
             "runReceiptDigest": fake_source["runReceiptDigest"],
             "accepted": True,
         }
-        # No recipient ever received bytes for this Run. Passing a fabricated
-        # true callback nevertheless causes a genuine Native release.
-        fake_released = fake_run.release_workspace_after_delivery(
-            recipient_ack=forged_ack,
-            verify_delivered_and_drained=lambda _source, _ack: True,
-        )
-        assert fake_released["state"] == "released"
+        # No recipient ever received bytes for this Run; a fabricated
+        # receipt and True callback now MUST NOT reach the native release API.
+        try:
+            fake_run.release_workspace_after_delivery(
+                recipient_ack=forged_ack,
+                verify_delivered_and_drained=lambda _source, _ack: True,
+            )
+        except HarnessWorkspaceAdmissionUnavailable:
+            pass
+        else:
+            raise AssertionError("caller-fabricated ACK released unaccepted source")
+        assert fake_run.workspace_claim.require_held()["state"] == "held"
         fake_ws_state = call(ordinary, "workspace.get", {
             "schemaVersion": 1, "workspaceId": fake_ack_workspace,
         })
-        fake_closed = call(ordinary, "workspace.close", {
+        denied, refusal = ordinary.call_tool("workspace.close", {
             "schemaVersion": 1, "workspaceId": fake_ack_workspace,
             "force": False, "consumerReleased": True,
             "expectedSourceStateDigest": fake_ws_state["sourceStateDigest"],
         })
-        assert fake_closed["removed"] is True
-        print("R29_CALLER_SUPPLIED_VERIFIER_TRUE_WITHOUT_DOMAIN_ACK=REAL_PHYSICAL_RED", flush=True)
+        assert denied and refusal.get("error", {}).get("code") == "CONCURRENCY_LIMIT", refusal
+        print("R34_FAKE_ACK_TRUE_CALLBACK_CANNOT_RELEASE_NATIVE_CLAIM=PASS", flush=True)
         print("R29_HARNESS_NATIVE_CLAIMONLY_PHYSICAL_CONSUMER=PASS", flush=True)
     finally:
         if runtime_process is not None:

@@ -138,40 +138,53 @@ class NativeWorkspaceClaimBirthTests(PostgresAgentRunCase, unittest.TestCase):
                 workspace_claim_client=native,
             )
 
-    def test_normal_completion_can_release_after_verified_delivery(self):
+    def test_original_workspace_never_releases_from_caller_ack_or_callback(self):
         native = NativeClaimFixture()
         run, _ = self._create("release", native)
-        with self.assertRaises(HarnessWorkspaceAdmissionUnavailable):
+        calls: list[str] = []
+
+        def caller_self_certified(_source, _ack):
+            calls.append("unsafe-caller-verifier-invoked")
+            return True
+
+        # Even a trivial unconditional True must not be invoked; normal
+        # Harness Run code has no independently authenticated finalizer.
+        with self.assertRaisesRegex(
+            HarnessWorkspaceAdmissionUnavailable, "remains HELD",
+        ):
             run.release_workspace_after_delivery(
-                recipient_ack={}, verify_delivered_and_drained=lambda *_: True,
+                recipient_ack={}, verify_delivered_and_drained=caller_self_certified,
             )
-        result = run.run(({ "role": "user", "content": "finish" },))
+        self.assertEqual(calls, [])
+        self.assertEqual(native.claim["state"], "held")
+
+        result = run.run(({"role": "user", "content": "finish"},))
         self.assertEqual(result.loop_result.stop_code.value, "candidate_completed")
         finalization = run.inspect_finalization_source()
         self.assertEqual(finalization["sourceStanding"], "source-settled")
         with tempfile.TemporaryDirectory() as tmp:
-            destination = Path(tmp) / "delivered.txt"
-            destination.write_text("accepted bytes", encoding="utf-8")
-            output_digest = canonical_digest({"bytes": destination.read_text()})
-            ack = {"harnessRunId": run.harness_run_id,
-                   "runReceiptDigest": finalization["runReceiptDigest"],
-                   "accepted": True, "outputDigest": output_digest}
-            with self.assertRaises(HarnessWorkspaceAdmissionUnavailable):
-                run.release_workspace_after_delivery(
-                    recipient_ack=ack, verify_delivered_and_drained=lambda *_: False,
-                )
-            self.assertEqual(native.claim["state"], "held")
-            released = run.release_workspace_after_delivery(
-                recipient_ack=ack,
-                verify_delivered_and_drained=lambda _source, proof: (
-                    canonical_digest({"bytes": destination.read_text()}) == proof["outputDigest"]
-                ),
-            )
-            self.assertEqual(released["state"], "released")
-            marker = Path(tmp) / "original.txt"
-            marker.write_text("releasable")
-            self.assertTrue(native.ordinary_close(marker))
-            self.assertFalse(marker.exists())
+            destination = Path(tmp) / "not-real-domain-recipient.txt"
+            destination.write_text("caller-controlled accepted bytes", encoding="utf-8")
+            ack = {
+                "harnessRunId": run.harness_run_id,
+                "runReceiptDigest": finalization["runReceiptDigest"],
+                "accepted": True,
+                "outputDigest": canonical_digest({"bytes": destination.read_text()}),
+            }
+            for verifier in (caller_self_certified, lambda _source, _ack: True):
+                with self.assertRaisesRegex(
+                    HarnessWorkspaceAdmissionUnavailable, "remains HELD",
+                ):
+                    run.release_workspace_after_delivery(
+                        recipient_ack=ack,
+                        verify_delivered_and_drained=verifier,
+                    )
+                self.assertEqual(native.claim["state"], "held")
+                marker = Path(tmp) / "valuable-uncommitted-output.txt"
+                marker.write_text("irreplaceable", encoding="utf-8")
+                self.assertFalse(native.ordinary_close(marker))
+                self.assertEqual(marker.read_text(), "irreplaceable")
+        self.assertEqual(calls, [])
 
     def test_unconfirmed_reserve_never_exposes_executable_run_and_recovers_same_pg_run(self):
         native = NativeClaimFixture()

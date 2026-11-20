@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Opt-in: normal Harness Run-birth -> native HELD -> real output ACK -> release/close.
+"""Legacy opt-in disposable PG18 test: native HELD and test-only raw release.
 
-Use only with disposable Runtime PG18/Git and a private authenticated loopback
-MCP endpoint. Harness PG and Runtime PG remain distinct authorities.
+The existing Gateway real-PG18 fixture consumes this exact script. It is NOT
+a certified production recipient or independent Finalizer. The ordinary Run
+MUST reject caller-authored ACK and callbacks. The final raw release is an
+explicit privileged negative-control capability for this disposable fixture
+ONLY, and must not be exposed to real Coding Agents or current ordinary MCP.
 """
 from __future__ import annotations
 
@@ -20,6 +23,7 @@ from ordivon_harness.core_contracts import (
 )
 from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
 from ordivon_harness.postgres_store import PostgresHarnessStore
+from ordivon_harness.runtime_port import HarnessWorkspaceAdmissionUnavailable
 from ordivon_harness.ordivon.agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST, NO_TOOL_AGENT_SURFACE_DIGEST,
 )
@@ -177,9 +181,24 @@ def main() -> None:
             and hashlib.sha256(delivered_to.read_bytes()).hexdigest() == consumer_ack["sha256"]
         )
 
-    released = run.release_workspace_after_delivery(
-        recipient_ack=ack, verify_delivered_and_drained=verified,
-    )
+    assert verified(finalization, ack)
+    try:
+        run.release_workspace_after_delivery(
+            recipient_ack=ack, verify_delivered_and_drained=verified,
+        )
+    except HarnessWorkspaceAdmissionUnavailable:
+        pass
+    else:
+        raise AssertionError("caller ACK incorrectly promoted to real Finalizer")
+    assert run.workspace_claim.require_held()["state"] == "held"
+    print("R34_NORMAL_HARNESS_RUN_CANNOT_SELF_CERTIFY_CLAIM_RELEASE", flush=True)
+    # Explicit TEST-ONLY raw action used by the older Gateway fixture.
+    # This does not authenticate a production Domain receiver or OS fence.
+    # Modern ordinary production MCP rightfully denies it altogether.
+    released = physical(runtime, "workspace.claim.release", {
+        "schemaVersion": 1,
+        "clientRequestId": run.workspace_claim.request_id,
+    })
     assert released["state"] == "released"
     closed = physical(runtime, "workspace.close", {
         "workspaceId": workspace, "force": False, "consumerReleased": True,

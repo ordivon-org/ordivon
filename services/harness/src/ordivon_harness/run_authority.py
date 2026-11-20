@@ -5,9 +5,7 @@ Harness owners. Gateway effect authorization lives in gateway_execution_policy.
 """
 from __future__ import annotations
 
-from typing import Callable, Protocol
-
-from anc_canonical import JsonValue
+from typing import Protocol
 
 from .core_contracts import HarnessRunContract
 # Existing import paths remain valid for callers while Gateway policy is isolated.
@@ -30,7 +28,6 @@ from .runtime_port import (
     HarnessRuntimeClient, HarnessWorkspaceAdmissionUnavailable,
 )
 from .standalone import HarnessCognitionProfile
-from .store import HarnessRunStatus
 from .workspace_claim import NativeWorkspaceClaimClient, WorkspaceRunClaim
 
 
@@ -209,39 +206,3 @@ class RunCompositionPolicy:
                 "Workspace-bearing Run requires authenticated native Runtime Claim client"
             )
         return WorkspaceRunClaim(contract, candidates[0], workspace_claim_client)
-
-    @staticmethod
-    def require_release_ready(
-        *,
-        harness_run_id: str,
-        run_status: HarnessRunStatus,
-        finalization: dict[str, JsonValue],
-        recipient_ack: dict[str, JsonValue],
-        verify_delivered_and_drained: Callable[[dict[str, JsonValue], dict[str, JsonValue]], bool],
-    ) -> None:
-        if run_status is not HarnessRunStatus.COMPLETED:
-            raise HarnessWorkspaceAdmissionUnavailable(
-                "Workspace Claim cannot release before original Run completes"
-            )
-        if finalization.get("sourceStanding") != "source-settled":
-            raise HarnessWorkspaceAdmissionUnavailable(
-                "Workspace Claim cannot release with unsettled original Run effects"
-            )
-        if (
-            recipient_ack.get("harnessRunId") != harness_run_id
-            or recipient_ack.get("runReceiptDigest") != finalization.get("runReceiptDigest")
-            or recipient_ack.get("accepted") is not True
-        ):
-            raise HarnessWorkspaceAdmissionUnavailable(
-                "Workspace Claim release lacks bound recipient acknowledgment"
-            )
-        try:
-            accepted = verify_delivered_and_drained(finalization, recipient_ack)
-        except Exception as exc:
-            raise HarnessWorkspaceAdmissionUnavailable(
-                "recipient/Runtime drain verification failed; Claim remains HELD"
-            ) from exc
-        if accepted is not True:
-            raise HarnessWorkspaceAdmissionUnavailable(
-                "recipient/Runtime drain not independently accepted; Claim remains HELD"
-            )

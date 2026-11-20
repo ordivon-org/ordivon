@@ -21,7 +21,7 @@ from .ordivon.runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
     HarnessRuntimeBridge,
 )
-from .runtime_port import HarnessRuntimeClient
+from .runtime_port import HarnessRuntimeClient, HarnessWorkspaceAdmissionUnavailable
 from .workspace_claim import NativeWorkspaceClaimClient, WorkspaceRunClaim
 from .run_authority import (
     HarnessAgentRunCompositionError, HarnessToolBridgeFactory, RunCompositionPolicy,
@@ -244,23 +244,20 @@ class HarnessAgentRun:
         recipient_ack: dict[str, JsonValue],
         verify_delivered_and_drained: Callable[[dict[str, JsonValue], dict[str, JsonValue]], bool],
     ) -> dict[str, JsonValue] | None:
-        """Release after terminal Run and recipient/physical handoff qualification."""
+        """Fail closed: caller ACK/callback is not an independent release authority.
+
+        Kept for compatibility only. An ordinary Run cannot decide the fate
+        of its unique Workspace bytes, even when it is COMPLETED. The real
+        trusted Finalizer must verify a natural Domain receiver and native
+        OS no-future-spawn under a separate authority, then release the
+        original Claim itself. Neither authority is currently provided here.
+        """
         if self.workspace_claim is None:
             return None
-        with self._open_store() as store:
-            projection = store.load_run(self.harness_run_id)
-            finalization = (
-                self._continuity(store).inspect_finalization_source()
-                if projection.status is HarnessRunStatus.COMPLETED else {}
-            )
-        RunCompositionPolicy.require_release_ready(
-            harness_run_id=self.harness_run_id,
-            run_status=projection.status,
-            finalization=finalization,
-            recipient_ack=recipient_ack,
-            verify_delivered_and_drained=verify_delivered_and_drained,
+        raise HarnessWorkspaceAdmissionUnavailable(
+            "original Workspace Claim remains HELD: caller-supplied recipient "
+            "ACK/verifier cannot qualify independent Domain and native OS drain"
         )
-        return self.workspace_claim.release_after_verified_delivery()
 
     @property
     def harness_run_id(self) -> str:

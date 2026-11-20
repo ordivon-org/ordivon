@@ -153,29 +153,3 @@ class WorkspaceRunClaim:
         # Readback, not a local Boolean or a successful HTTP status, proves
         # that native Runtime physically pins the Workspace.
         return self.require_held()
-
-    def release_after_verified_delivery(self) -> dict[str, JsonValue]:
-        """Release only after caller separately qualified terminal+delivery.
-
-        Runtime release itself asserts consumer relinquishment, not domain ACK;
-        this routine cannot manufacture or validate a delivery receipt.
-        """
-        current = self.get()
-        if current is None:
-            raise HarnessWorkspaceAdmissionUnavailable("Workspace Claim absent")
-        if current["state"] == "released":
-            return current
-        try:
-            self._call("workspace.claim.release", {
-                "schemaVersion": 1, "clientRequestId": self.request_id,
-            })
-        except HarnessWorkspaceAdmissionUnavailable:
-            recovered = self.get()
-            if recovered is None or recovered["state"] != "released":
-                raise
-        released = self.get()
-        if released is None or released["state"] != "released":
-            raise HarnessWorkspaceAdmissionUnavailable(
-                "native Workspace Claim release has no durable readback"
-            )
-        return released
