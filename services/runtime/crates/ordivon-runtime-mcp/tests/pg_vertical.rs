@@ -5207,22 +5207,31 @@ fn pg18_claim_finalizer_only_ingress_boots_without_foreign_harness_schema() {
         "Claim HELD must block NativeClose"
     );
 
-    // This verifies physical capability only. Real operation must additionally
-    // qualify Harness Run terminal + recipient ByteACK + native OS effects.
-    let (release_http, release) = r16_dedicated_call(
-        &dedicated,
-        &"h".repeat(48),
-        "workspace.claim.release",
-        key.clone(),
-    );
-    assert_eq!(release_http, 200);
-    assert_ne!(release["isError"], true, "{release}");
-    assert_eq!(release["structuredContent"]["state"], "released");
-    let (replay_http, replay) =
-        r16_dedicated_call(&dedicated, &"h".repeat(48), "workspace.claim.release", key);
-    assert_eq!(replay_http, 200);
-    assert_eq!(replay["structuredContent"]["claimId"], claim_id);
-
+    // Independent Domain output acceptance and every issued native OS Job
+    // have not been verified. Even this SAME original dedicated bearer and
+    // SAME original immutable key may NOT release a HELD Run. Both first
+    // attempt and replay must fail before opening any PG write transaction.
+    for _ in 0..2 {
+        let (http, response) = r16_raw_mcp_envelope(
+            &dedicated,
+            &"h".repeat(48),
+            "workspace.claim.release",
+            key.clone(),
+        );
+        assert_eq!(http, 200, "{response}");
+        assert_eq!(response["error"]["code"], -32602, "{response}");
+        assert!(
+            response["error"]["message"]
+                .as_str()
+                .is_some_and(|message| message.contains("independently received")),
+            "{response}"
+        );
+    }
+    let (get_http, after) =
+        r16_dedicated_call(&dedicated, &"h".repeat(48), "workspace.claim.get", key);
+    assert_eq!(get_http, 200);
+    assert_eq!(after["structuredContent"]["claimId"], claim_id);
+    assert_eq!(after["structuredContent"]["state"], "held");
     let closed = call(
         &ordinary,
         "workspace.close",
@@ -5231,14 +5240,25 @@ fn pg18_claim_finalizer_only_ingress_boots_without_foreign_harness_schema() {
             "expectedSourceStateDigest":original_source_digest,
         }),
     );
-    assert_ne!(closed["isError"], true, "{closed}");
-    assert_eq!(closed["structuredContent"]["removed"], true);
+    assert_eq!(closed["isError"], true, "unsafe original Close: {closed}");
+    assert_eq!(
+        closed["structuredContent"]["error"]["code"], "CONCURRENCY_LIMIT",
+        "{closed}"
+    );
+    let claim_state: String = fixture
+        .db
+        .query_one(
+            "SELECT state FROM workspace_consumer_claims WHERE claim_id=$1",
+            &[&claim_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(claim_state, "held", "native PG pin must not be released");
 
     eprintln!(
-        "R52_PG18_CLAIM_ONLY_PORT_NO_HARNESS_SCHEMA_PASS \
-         exact original PG Claim HELD/nonforce close DENIED; \
-         raw Job/Close/Root denied; finalizer own key release replay; \
-         original Workspace CAS Close only after release"
+        "R65_NATIVE_PG18_DEDICATED_BEARER_NO_DOMAIN_OR_OS_FINALIZER_HELD \
+         reserve/read succeed, raw release/replay DENIED before PG, \
+         original Workspace nonforce Close DENIED"
     );
 }
 
@@ -6036,7 +6056,7 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
     assert!(
         denied["error"]["message"]
             .as_str()
-            .is_some_and(|message| message.contains("authenticated Run finalizer route")),
+            .is_some_and(|message| message.contains("independently received")),
         "the native handler must explain its route-bound denial: {denied}"
     );
     let still_held = call(
@@ -6116,6 +6136,25 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
     );
     assert_eq!(dedicated_read_status, 200);
     assert_eq!(held_after["structuredContent"]["state"], "held");
+
+    // A fresh dedicated-principal HELD Claim must also resist the exact same
+    // bearer + key before ANY original independent recipient or OS drain.
+    let (same_http, protected) = r16_raw_mcp_envelope(
+        &dedicated_url,
+        &"h".repeat(48),
+        "workspace.claim.release",
+        json!({"schemaVersion":1,"clientRequestId":dedicated_key}),
+    );
+    assert_eq!(same_http, 200, "{protected}");
+    assert_eq!(protected["error"]["code"], -32602, "{protected}");
+    let (held_http, still_held) = r16_dedicated_call(
+        &dedicated_url,
+        &"h".repeat(48),
+        "workspace.claim.get",
+        json!({"schemaVersion":1,"clientRequestId":dedicated_key}),
+    );
+    assert_eq!(held_http, 200);
+    assert_eq!(still_held["structuredContent"]["state"], "held");
 
     eprintln!(
         "R28_NATIVE_PG18_MCP_RAW_RELEASE_ROUTE_DENIED_OLD_CLAIM_PRESERVED_NEW_DEDICATED_HELD_PASS"
