@@ -6279,6 +6279,36 @@ if rm .git 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_DELETE'; exit 60; fi
 if test -r "$FOREIGN_PROBE" || test -w "$FOREIGN_PROBE"; then
     echo 'CONTAINED_FOREIGN_WORKSPACE_ACCESS'; exit 61;
 fi
+# The trusted native cancel marker and Runner result live in this original
+# Attempt's control bundle. This test touches neither file: it tries one
+# disposable O_EXCL name and unlinks it only if the security boundary failed.
+# The bundle is deliberately mounted RW for the trusted Runner; Linux DAC
+# on a nonroot child must still prevent direct writes.
+python3 - <<'PY_SAFE_BUNDLE_PROBE'
+import errno
+import os
+import sys
+mounts = [
+    fields[4] for line in open("/proc/self/mountinfo", encoding="utf-8")
+    if len(fields := line.split()) > 5
+    and "/pg-attempts/attempt-" in fields[4]
+]
+if len(mounts) != 1:
+    print("CONTAINED_BUNDLE_MOUNT_UNQUALIFIED")
+    sys.exit(66)
+candidate = os.path.join(mounts[0], "r64-probe-only-" + str(os.getpid()))
+try:
+    fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+except OSError as error:
+    if error.errno not in (errno.EACCES, errno.EPERM, errno.EROFS):
+        print("CONTAINED_BUNDLE_WRITE_UNEXPECTED_ERROR")
+        sys.exit(68)
+else:
+    os.close(fd)
+    os.unlink(candidate)
+    print("CONTAINED_WRITABLE_TRUSTED_BUNDLE")
+    sys.exit(67)
+PY_SAFE_BUNDLE_PROBE
 printf 'native-contained-workspace' > contained-native.txt
 chmod 600 contained-native.txt
 git rev-parse --is-inside-work-tree >/dev/null
