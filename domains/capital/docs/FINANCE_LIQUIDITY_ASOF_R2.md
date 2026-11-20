@@ -49,9 +49,13 @@ not independent physical financial measurement.
   is the 2026-11-12 archive, using November 11 Wednesday stock.
 - Thursday 2026-11-19 17:00 EST: the 2026-11-19 archive is past
   its expected 16:30 EST release time, using November 18 stock.
-- Friday 2026-11-20 10:00 EST: FiscalData 2026-11-18 is eligible
-  under a deliberately conservative two-calendar-day convention;
-  the H.4.1 and DTS TGA for November 18 then corroborate.
+- Thursday 2026-11-19 16:00 EST: the Nov 18 Treasury DTS is not yet
+  schedule-qualified; Treasury documents publication by 16:00 on the
+  *next US federal business day*. This consumer adds a 30-minute
+  buffer, so the first eligible scheduled time is Thu 16:30 EST.
+- Thursday 2026-11-19 17:00 EST: both H41 Nov 19 and DTS Nov 18
+  are eligible by their documented schedules; the TGA balances match.
+  Friday 2026-11-20 10:00 EST retains that qualified comparison.
 - SOFR effective dates are held back by two *XNYS exchange sessions*,
   and kept as exact decimal strings. NY Fed normally publishes SOFR
   around 08:00 Eastern on the next repo business day; this exchange
@@ -65,6 +69,17 @@ capture; current FiscalData and SOFR endpoints are latest-series
 views, not complete historical original vintages. Historical
 publication minute, corrections and rights are not proven by a
 current SHA-256 file identity.
+
+**No weekend/holiday future data:** The old +2 calendar day convention
+was NOT conservative on Friday, since Sunday is earlier than the actual
+following Federal business day. The source reader now uses pandas'
+existing USFederalHolidayCalendar/CustomBusinessDay and a 16:30 New
+York scheduled deadline on the **next federal business day**. For
+Friday 2026-11-13 the next scheduled release is Monday 11-16;
+Wednesday 11-11 Veterans Day is NOT an ordinary Treasury business
+day. This reproduces the official Treasury next-business-day
+publication rule. The actual historical first HTTP capture remains
+unattested; no timestamp is fabricated or silently promoted.
 
 **Actual DTS accounting layout after 2022-04-18:** the
 close_today_bal field contains the literal null sentinel.
@@ -162,4 +177,5 @@ Official field and release guidance:
 - https://www.federalreserve.gov/monetarypolicy/bst_fedsbalancesheet.htm
 - https://fiscaldata.treasury.gov/datasets/daily-treasury-statement/operating-cash-balance
 - https://fiscaldata.treasury.gov/api-documentation/
+- https://fiscaldata.treasury.gov/release-calendar/
 - https://www.newyorkfed.org/markets/reference-rates/sofr
