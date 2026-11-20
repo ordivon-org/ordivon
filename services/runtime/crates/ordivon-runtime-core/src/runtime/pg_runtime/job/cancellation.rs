@@ -96,6 +96,9 @@ impl PgRuntime {
                 // Runner while checking cancel and spawning each payload.
                 // Once this marker is durable and the lock is released, any
                 // later Runner step must observe cancellation before spawn.
+                // Windows PG uses its own native JobObject launcher and does
+                // not run the Unix Runner. Preserve its separate protocol.
+                #[cfg(unix)]
                 let _spawn_guard =
                     universal::lock_attempt_spawn_fence(Path::new(&a.bundle_path)).map_err(io)?;
                 universal::write_json_atomic(
