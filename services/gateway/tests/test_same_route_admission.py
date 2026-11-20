@@ -77,6 +77,9 @@ def test_changed_or_symlinked_security_source_does_not_qualify(
     monkeypatch.setattr(qualifier, "_same_security_package", lambda *_: True)
     monkeypatch.setattr(qualifier, "_same_owner_credentials", lambda *_: True)
     monkeypatch.setattr(qualifier, "_same_mcp_composition", lambda *_: True)
+    # This synthetic fixture isolates the original Security-file equality
+    # contract; the full executable source-closure has its own real-tree test.
+    monkeypatch.setattr(qualifier, "_same_executable_source", lambda *_: True)
     assert qualifier.source_same_route(old, new)
     security_path = "src/ordivon_gateway/security/capability_authz.py"
     (new / security_path).write_text("deny=False # authorization bypass\n")
@@ -245,6 +248,8 @@ def test_dep_lock_toolchain_and_old_security_release_checker_cannot_change(
     monkeypatch.setattr(qualifier, "_same_security_package", lambda *_: True)
     monkeypatch.setattr(qualifier, "_same_owner_credentials", lambda *_: True)
     monkeypatch.setattr(qualifier, "_same_mcp_composition", lambda *_: True)
+    # This test isolates the original lock/toolchain contract.
+    monkeypatch.setattr(qualifier, "_same_executable_source", lambda *_: True)
     assert qualifier.source_same_route(old, new)
 
     for relative in (".python-version", "packaging/check_live_host_admission.py"):
@@ -282,3 +287,87 @@ def test_install_release_accepts_only_native_derived_same_route_or_original_cuto
     assert source.index("check_live_host_admission.py") < source.index('ln -sfn "releases/$COMMIT"')
     assert "runtime_process_restarted=false" in source
     assert "post_promotion_agent_consumer_verified=false" in source
+
+
+def test_same_route_fences_actual_owner_dispatch_source_closure(
+    qualifier: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A public read action must not secretly dispatch an Owner write action."""
+    import shutil
+
+    for name in ("old", "candidate"):
+        shutil.copytree(
+            ROOT / "src/ordivon_gateway",
+            tmp_path / name / "src/ordivon_gateway",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+    old, candidate = tmp_path / "old", tmp_path / "candidate"
+    monkeypatch.setattr(qualifier, "STABLE_SECURITY_SOURCE", ())
+    monkeypatch.setattr(qualifier, "_same_package_release_contract", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_security_package", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_owner_credentials", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_mcp_composition", lambda *_: True)
+    assert qualifier.source_same_route(old, candidate)
+
+    # Only an isolated source transformation. No MCP call or Host effect.
+    path = candidate / "src/ordivon_gateway/capabilities/host/work.py"
+    original = path.read_text()
+    read_dispatch = (
+        'return await _host("work.get", {"workRef": workRef, "revision": verified_revision})'
+    )
+    assert original.count(read_dispatch) == 1
+    path.write_text(
+        original.replace(
+            read_dispatch,
+            'return await _host("work.snapshot.commit", '
+            '{"workRef": workRef, "revision": verified_revision})',
+        )
+    )
+    assert not qualifier.source_same_route(old, candidate)
+    path.write_text(original)
+
+    # Future non-protected leaf modules, owner transport methods and dynamic
+    # module additions are in the same executable-closure obligation.
+    for relative in (
+        "src/ordivon_gateway/capabilities/execution/commands.py",
+        "src/ordivon_gateway/transport/upstream.py",
+        "src/ordivon_gateway/logic/capability_projection.py",
+    ):
+        target = candidate / relative
+        original_source = target.read_text()
+        target.write_text(original_source + "\nR46_UNQUALIFIED_EXECUTABLE_CHANGE = True\n")
+        assert not qualifier.source_same_route(old, candidate), relative
+        target.write_text(original_source)
+
+    new_module = candidate / "src/ordivon_gateway/capabilities/host/unreviewed_effect.py"
+    new_module.write_text('def forward_write(): return "work.snapshot.commit"\n')
+    assert not qualifier.source_same_route(old, candidate)
+    new_module.unlink()
+    assert qualifier.source_same_route(old, candidate)
+
+
+def test_same_route_allows_source_comment_but_not_symlinked_module(
+    qualifier: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import shutil
+
+    for name in ("old", "candidate"):
+        shutil.copytree(
+            ROOT / "src/ordivon_gateway",
+            tmp_path / name / "src/ordivon_gateway",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+    old, candidate = tmp_path / "old", tmp_path / "candidate"
+    monkeypatch.setattr(qualifier, "STABLE_SECURITY_SOURCE", ())
+    monkeypatch.setattr(qualifier, "_same_package_release_contract", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_security_package", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_owner_credentials", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_mcp_composition", lambda *_: True)
+    path = candidate / "src/ordivon_gateway/capabilities/host/work.py"
+    original = path.read_text()
+    path.write_text(original + "\n# comment-only update: same executable AST\n")
+    assert qualifier.source_same_route(old, candidate)
+    path.unlink()
+    path.symlink_to(old / "src/ordivon_gateway/capabilities/host/work.py")
+    with pytest.raises(ValueError, match="symlink|regular"):
+        qualifier.source_same_route(old, candidate)

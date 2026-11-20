@@ -6130,6 +6130,10 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
 fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let mut fixture = Fixture::new();
     fixture.host_visible_test_runner = true;
+    // Exercise the actual ordinary-Agent contained-only route while the
+    // independent operator config binds its task to nonroot UID/GID.
+    // Neither a trusted_local escape nor a root-contained task may green.
+    fixture.ordinary_contained_only = true;
     fixture.contained_nonroot_test = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
@@ -6151,12 +6155,11 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let profiles = linux["executionProfiles"]
         .as_array()
         .expect("original Linux executionProfiles");
-    for expected in ["trusted_local", "contained_local"] {
-        assert!(
-            profiles.iter().any(|profile| profile.as_str() == Some(expected)),
-            "Runtime advertised no {expected} though native PG provider should accept it: {described}"
-        );
-    }
+    assert_eq!(
+        profiles,
+        &vec![json!("contained_local")],
+        "ordinary ingress must not offer a privileged Git commit escape: {described}"
+    );
     let opened = call(
         &endpoint,
         "workspace.open",
@@ -6264,12 +6267,20 @@ if test -r /etc/ordivon/runtime-mcp.token; then echo 'CONTAINED_SECRET_VISIBLE';
 # isolated from host-root-owned credentials outside the configured denylist.
 if test -r /etc/shadow; then echo 'CONTAINED_HOST_ROOT_READABLE'; exit 57; fi
 if test "$(id -u)" != 65534; then echo 'CONTAINED_TASK_NOT_NONROOT'; exit 58; fi
+# Native Runner retains only CAP_DAC_READ_SEARCH for original-source
+# reconciliation; the untrusted child must inherit NO effective capabilities.
+while read -r field value _; do
+    if test "$field" = "CapEff:" && test "$value" != "0000000000000000"; then
+        echo 'CONTAINED_TASK_HAS_EFFECTIVE_CAPS'; exit 62
+    fi
+done < /proc/self/status
 if mv .git .git-moved 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_REBIND'; exit 59; fi
 if rm .git 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_DELETE'; exit 60; fi
 if test -r "$FOREIGN_PROBE" || test -w "$FOREIGN_PROBE"; then
     echo 'CONTAINED_FOREIGN_WORKSPACE_ACCESS'; exit 61;
 fi
 printf 'native-contained-workspace' > contained-native.txt
+chmod 600 contained-native.txt
 git rev-parse --is-inside-work-tree >/dev/null
 if git add contained-native.txt >/dev/null 2>&1; then echo 'CONTAINED_WRITABLE_SHARED_GIT_AUTHORITY'; exit 55; fi
 printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
@@ -6368,37 +6379,180 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
         read["structuredContent"]["content"],
         "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
     );
-    // The read-only Git common-dir bind deliberately rejects direct shared
-    // repository writes by a contained Agent. A separate authenticated native
-    // source-control consumer may commit the already-produced original bytes.
-    let mut committed = call(
+    // A real contained-only Coding Agent must be able to deliver a source
+    // candidate without returning to a trusted_local root-equivalent Job.
+    // Use Git's existing alternate object directory and private index,
+    // leaving the shared common-dir/HEAD/refs read-only to the Agent.
+    let original_head = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert!(original_head.status.success());
+    let original_head = String::from_utf8(original_head.stdout).unwrap();
+    let original_head = original_head.trim();
+    let private_commit_script = r#"set -eu
+if test -r /etc/ordivon/runtime-mcp.token; then exit 53; fi
+if test -r /etc/ordivon; then exit 54; fi
+git init -q --bare .agent-private.git
+common="$(git rev-parse --path-format=absolute --git-common-dir)"
+printf '%s\n' "$common/objects" > .agent-private.git/objects/info/alternates
+export GIT_OBJECT_DIRECTORY="$PWD/.agent-private.git/objects"
+export GIT_ALTERNATE_OBJECT_DIRECTORIES="$common/objects"
+export GIT_INDEX_FILE="$PWD/.agent-private-index"
+git read-tree HEAD
+git add contained-native.txt
+tree="$(git write-tree)"
+base="$(git rev-parse HEAD)"
+candidate="$(printf 'original contained source delivery\n' | git -c user.name=ContainedAgent -c user.email=agent@example.invalid commit-tree "$tree" -p "$base")"
+git --git-dir="$PWD/.agent-private.git" update-ref refs/heads/agent-candidate "$candidate"
+printf '%s' "$candidate"
+"#;
+    let mut candidate = call(
         &endpoint,
         "workspace.exec",
-        json!({"clientRequestId":"pg-contained-independent-source-commit",
+        json!({"clientRequestId":"pg-contained-private-git-candidate-r57",
             "execution":{"workspaceId":"ws-contained-git","executable":"/usr/bin/bash",
-                "args":["-lc","git add contained-native.txt && git -c user.name=SourceOwner -c user.email=owner@example.invalid commit -qm 'commit contained result'"],
-                "cwdRelative":".","executionProfile":"trusted_local","timeoutMs":15000},
-            "waitMs":10000}),
+                "args":["-lc",private_commit_script],
+                "cwdRelative":".","executionProfile":"contained_local","timeoutMs":20000},
+            "waitMs":10000,"stdoutTailBytes":1024}),
     );
-    assert_ne!(committed["isError"], true, "{committed}");
-    let committed_job = committed["structuredContent"]["jobId"]
+    assert_ne!(candidate["isError"], true, "{candidate}");
+    let candidate_job = candidate["structuredContent"]["jobId"]
         .as_str()
         .unwrap()
         .to_owned();
-    for _ in 0..20 {
-        if committed["structuredContent"]["executionTerminal"] == true {
+    for _ in 0..30 {
+        if candidate["structuredContent"]["executionTerminal"] == true {
             break;
         }
-        committed = call(
+        candidate = call(
             &endpoint,
             "job.observe",
-            json!({"jobId":committed_job,"waitMs":2000}),
+            json!({"jobId":candidate_job,"waitMs":2000,"stdoutTailBytes":1024}),
         );
-        assert_ne!(committed["isError"], true, "{committed}");
+        assert_ne!(candidate["isError"], true, "{candidate}");
+    }
+    if candidate["structuredContent"]["executionDisposition"] != "succeeded" {
+        let result_artifact = candidate["structuredContent"]["artifacts"]
+            .as_array()
+            .and_then(|items| items.iter().find(|item| item["kind"] == "execution_result"))
+            .and_then(|item| item["artifactId"].as_str());
+        if let Some(artifact_id) = result_artifact {
+            let actual = call(
+                &endpoint,
+                "artifact.read",
+                json!({"jobId":candidate_job,"artifactId":artifact_id,
+                       "offset":0,"maxBytes":4096}),
+            );
+            eprintln!(
+                "R63_CONTAINED_PRIVATE_GIT_RESULT={}",
+                actual["structuredContent"]["content"]
+            );
+        }
     }
     assert_eq!(
-        committed["structuredContent"]["executionDisposition"], "succeeded",
-        "{committed}"
+        candidate["structuredContent"]["executionDisposition"], "succeeded",
+        "real contained private Git candidate creation: {candidate}"
+    );
+    let candidate_commit = candidate["structuredContent"]["stdoutTail"]
+        .as_str()
+        .expect("original contained stdout is candidate SHA");
+    assert!(
+        candidate_commit.len() == 40 && candidate_commit.bytes().all(|b| b.is_ascii_hexdigit()),
+        "native candidate must be one complete Git SHA: {candidate}"
+    );
+    let private_bare = fixture
+        .root
+        .join("store/workspaces/ws-contained-git/.agent-private.git");
+    let original_without_candidate = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["cat-file", "-e", &format!("{candidate_commit}^{{commit}}")])
+        .output()
+        .unwrap();
+    assert!(
+        !original_without_candidate.status.success(),
+        "contained Agent must not have written to original repository Git object store"
+    );
+    let before_import = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8(before_import.stdout).unwrap().trim(),
+        original_head
+    );
+
+    // Independent trusted *source recipient* reads the Agent's immutable
+    // candidate using standard Git, not by granting that Agent a Root Job.
+    // Fetching only a reviewed ref leaves the original protected HEAD intact.
+    let imported = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .arg("fetch")
+        .args(["--no-tags"])
+        .arg(&private_bare)
+        .arg("refs/heads/agent-candidate:refs/heads/reviewed-contained-output")
+        .output()
+        .unwrap();
+    assert!(
+        imported.status.success(),
+        "source recipient Git fetch: {}",
+        String::from_utf8_lossy(&imported.stderr)
+    );
+    let accepted = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["rev-parse", "refs/heads/reviewed-contained-output"])
+        .output()
+        .unwrap();
+    assert!(accepted.status.success());
+    assert_eq!(
+        String::from_utf8(accepted.stdout).unwrap().trim(),
+        candidate_commit,
+        "trusted recipient must import exact candidate Commit, not a caller-reported hash"
+    );
+    let original_output = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["show", &format!("{candidate_commit}:contained-native.txt")])
+        .output()
+        .unwrap();
+    assert!(original_output.status.success());
+    assert_eq!(original_output.stdout, b"native-contained-workspace");
+    let after_import = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8(after_import.stdout).unwrap().trim(),
+        original_head,
+        "separate recipient import must not update protected original HEAD"
+    );
+    assert!(
+        Command::new("git")
+            .arg("-C")
+            .arg(&repo)
+            .args(["fsck", "--connectivity-only"])
+            .status()
+            .unwrap()
+            .success(),
+        "source recipient requires connected Git object closure"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        2,
+        "contained files + contained private Commit: no third trusted_local Job"
     );
     let state = call(
         &endpoint,
@@ -6406,7 +6560,13 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
         json!({"workspaceId":"ws-contained-git"}),
     );
     assert_ne!(state["isError"], true, "{state}");
-    assert_eq!(state["structuredContent"]["dirty"], false, "{state}");
+    // A Git candidate belongs to the separate original consumer and must
+    // remain in this Workspace until independent source acceptance. The
+    // original protected HEAD is intentionally unchanged.
+    assert_eq!(
+        state["structuredContent"]["dirty"], true,
+        "source proposal must remain retained until original recipient acceptance: {state}"
+    );
     // Cache parent directories are shared operator assets; only original
     // Workspace-private cache descendants may receive the task's group.
     for ancestor in ["cache", "cache/workspaces", "cache/tmp", "cache/build"] {
@@ -6424,6 +6584,7 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
             "shared cache ancestor became group writable: {ancestor}"
         );
     }
+    eprintln!("R63_ORDINARY_NONROOT_PRIVATE_GIT_ORIGINAL_SOURCE_RECIPIENT_PASS");
 }
 
 /**
@@ -6646,4 +6807,172 @@ fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() 
         "R60_CONTAINED_NATIVE_WORKS"
     );
     eprintln!("R60_AUTHENTICATED_PROFILE_CUTOVER_TRUSTED_DENIED_OLD_REPLAY_CONTAINED_NATIVE_GREEN");
+}
+
+/** Direct MCP Tool callers omit executionProfile by original schema default.
+ * Only the authenticated restricted ingress may re-interpret the implicit
+ * NEW effect after Runtime first checks the old exact request identity.
+ */
+#[test]
+#[ignore = "requires disposable PostgreSQL18 and real native systemd Runner"]
+fn pg_direct_implicit_profile_exact_replay_and_explicit_trusted_denial() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    fixture.ordinary_contained_only = true;
+    let repo = fixture.repo();
+    let url = fixture.endpoint();
+    let opened = call(
+        &url,
+        "workspace.open",
+        json!({
+            "workspaceId":"ws-r61-native-direct","sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let request = json!({
+        "clientRequestId":"r61-native-direct-omitted-profile",
+        "execution":{"workspaceId":"ws-r61-native-direct",
+            "executable":"/usr/bin/printf","args":["R61_DIRECT_NATIVE_CONTAINED"],
+            "cwdRelative":".","timeoutMs":20000},
+        "waitMs":10000,"stdoutTailBytes":1024
+    });
+    let mut current = call(&url, "workspace.exec", request.clone());
+    assert_ne!(current["isError"], true, "{current}");
+    let id = current["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if current["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        current = call(
+            &url,
+            "job.observe",
+            json!({
+                "jobId":id,"waitMs":2000,"stdoutTailBytes":1024
+            }),
+        );
+        assert_ne!(current["isError"], true, "{current}");
+    }
+    assert_eq!(
+        current["structuredContent"]["executionDisposition"], "succeeded",
+        "{current}"
+    );
+    assert_eq!(
+        current["structuredContent"]["stdoutTail"],
+        "R61_DIRECT_NATIVE_CONTAINED"
+    );
+    let replay = call(&url, "workspace.exec", request);
+    assert_ne!(replay["isError"], true, "{replay}");
+    assert_eq!(replay["structuredContent"]["jobId"], id);
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+    let denied = call(
+        &url,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"r61-native-direct-explicit-trusted-deny",
+            "execution":{"workspaceId":"ws-r61-native-direct",
+              "executable":"/usr/bin/true","cwdRelative":".",
+              "executionProfile":"trusted_local","timeoutMs":10000},
+            "waitMs":0
+        }),
+    );
+    assert_eq!(denied["isError"], true, "{denied}");
+    assert_eq!(
+        denied["structuredContent"]["error"]["code"],
+        "AUTHORIZATION_DENIED"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    let plan = json!({
+        "clientRequestId":"r61-native-direct-plan-omitted-profile",
+        "execution":{"workspaceId":"ws-r61-native-direct",
+            "steps":[{"id":"single","executable":"/usr/bin/printf",
+                "args":["R61_NATIVE_PLAN_CONTAINED"],
+                "cwdRelative":".","timeoutMs":10000}],
+            "timeoutMs":20000},
+        "waitMs":10000,"stdoutTailBytes":1024
+    });
+    let mut planned = call(&url, "workspace.execPlan", plan.clone());
+    assert_ne!(planned["isError"], true, "{planned}");
+    let pid = planned["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if planned["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        planned = call(
+            &url,
+            "job.observe",
+            json!({
+                "jobId":pid,"waitMs":2000,"stdoutTailBytes":1024
+            }),
+        );
+        assert_ne!(planned["isError"], true, "{planned}");
+    }
+    assert_eq!(
+        planned["structuredContent"]["executionDisposition"], "succeeded",
+        "{planned}"
+    );
+    assert_eq!(
+        planned["structuredContent"]["stdoutTail"],
+        "R61_NATIVE_PLAN_CONTAINED"
+    );
+    let plan_replay = call(&url, "workspace.execPlan", plan);
+    assert_ne!(plan_replay["isError"], true, "{plan_replay}");
+    assert_eq!(plan_replay["structuredContent"]["jobId"], pid);
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        2
+    );
+    let denied_plan = call(
+        &url,
+        "workspace.execPlan",
+        json!({
+            "clientRequestId":"r61-direct-explicit-plan-trusted-deny",
+            "execution":{
+                "workspaceId":"ws-r61-native-direct",
+                "executionProfile":"trusted_local",
+                "steps":[{"id":"forbidden","executable":"/usr/bin/true",
+                    "cwdRelative":".","timeoutMs":5000}],
+                "timeoutMs":10000
+            },
+            "waitMs":0
+        }),
+    );
+    assert_eq!(denied_plan["isError"], true, "{denied_plan}");
+    assert_eq!(
+        denied_plan["structuredContent"]["error"]["code"],
+        "AUTHORIZATION_DENIED"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        2
+    );
+    eprintln!("R61_DIRECT_MCP_IMPLICIT_NATIVE_EXEC_AND_PLAN_EXACT_REPLAY_GREEN");
 }

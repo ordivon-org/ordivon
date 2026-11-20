@@ -18,6 +18,11 @@ EXTENDS Naturals, TLC
 \* launch ownership receipt, crash/recovery no-redispatch and Domain ACK.
 \* R56: native caller crash leaves a pending OS manager handoff with no Unit
 \* visible yet; only true handoff reconciliation may satisfy NoFutureSpawn.
+\* R57: a separate Manager CancelJob(exact accepted start Job) can discharge
+\* that one pending OS handoff AFTER the original launcher has definitely
+\* stopped. Cancellation acknowledgment is an atomic abstract transition:
+\* the real systemd Manager must establish exact-Job cancellation and no
+\* further caller submit, not merely return from systemctl or show "not found".
 \* This remains MODEL-ONLY, not a deployed OS/PG atomicity guarantee.
 
 AttemptIds == {"a", "b"}
@@ -114,6 +119,28 @@ FenceUnstarted(a) ==
                    revokeAck, unitBornAfterAck, spawnedAfterAck,
                    nativeHandoffPending, crashedCallers>>
 
+\* Only a *manager-qualified* cancellation of the EXACT queued
+\* native start may retire the original attempt without target birth.
+\* Preconditions: issuer fenced, submitting native caller is no longer
+\* capable of issuing a new StartUnit, and systemd independently confirms
+\* the original queued Job was cancelled. This action is an ABSTRACT OS
+\* ownership/ack transition, not a PG event or current Unit absence.
+\* The native submitter-crash path is a sufficient but not necessary
+\* caller-terminal proof in this finite two-Attempt model.
+ConfirmExactNativeManagerCancel(a) ==
+    /\ issuer = "revoked"
+    /\ fenced
+    /\ a \in issued
+    /\ a \in crashedCallers
+    /\ a \in nativeHandoffPending
+    /\ launcher[a] = "crashed_unknown"
+    /\ nativeUnit[a] = "absent"
+    /\ launcher' = [launcher EXCEPT ![a] = "blocked"]
+    /\ nativeHandoffPending' = nativeHandoffPending \ {a}
+    /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   crashedCallers>>
+
 NativeTargetStart(a) ==
     /\ a \in issued
     /\ nativeUnit[a] = "pending"
@@ -167,6 +194,7 @@ Next ==
     \/ CommitRevoke
     \/ \E a \in AttemptIds: NativeUnitBirth(a)
     \/ \E a \in AttemptIds: FenceUnstarted(a)
+    \/ \E a \in AttemptIds: ConfirmExactNativeManagerCancel(a)
     \/ \E a \in AttemptIds: NativeTargetStart(a)
     \/ \E a \in AttemptIds: RequestStop(a)
     \/ \E a \in AttemptIds: ObserveQuiet(a)
@@ -199,6 +227,12 @@ AckRequiresNoHandoffPending == revokeAck => nativeHandoffPending = {}
 
 \* Legitimate crash + later manager delivery + native Stop + ACK is reachable.
 CrashThenAckUnreachable == ~(revokeAck /\ crashedCallers # {})
+
+\* A different positive path uses a qualified original Manager Job cancellation
+\* with no target creation. The original issuer still needs all OTHER issued
+\* Attempts independently finalized before it may publish an epoch-wide ACK.
+ExactCancelAckUnreachable ==
+    ~(revokeAck /\ \E a \in crashedCallers: launcher[a] = "blocked")
 
 \* Separate intentionally false positive-path reachability checks.
 AckUnreachable == ~revokeAck

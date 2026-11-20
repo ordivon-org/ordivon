@@ -1195,7 +1195,7 @@ check_workspace_cross_database_claim() {
 falsify_workspace_cross_database_claim() {
   verify_jar
   local label cfg invariant result output
-  for label in reachability original-reachability recipient-reachability legacy-unclaimed-close unsafe-close unsafe-late unsafe-grant unsafe-adoption unsafe-known-rebind unsafe-caller-release unsafe-caller-close unsafe-selfcert-release unsafe-selfcert-close; do
+  for label in reachability original-reachability recipient-reachability legacy-unclaimed-close unsafe-close unsafe-late unsafe-grant unsafe-adoption unsafe-known-rebind unsafe-caller-release unsafe-caller-close unsafe-selfcert-release unsafe-selfcert-close manager-quiet-reachability unsafe-manager-release unsafe-manager-close unsafe-manager-late-birth; do
     cfg="WorkspaceCrossDatabaseClaimR1.$label.cfg"
     case "$label" in
       reachability) invariant=ClosedUnreachable ;;
@@ -1207,6 +1207,10 @@ falsify_workspace_cross_database_claim() {
       unsafe-caller-close) invariant=ClosedHasNoPrematurelyReleasedConsumers ;;
       unsafe-selfcert-release) invariant=ReleaseRequiresIndependentRecipientAck ;;
       unsafe-selfcert-close) invariant=ClosedHasIndependentRecipientAcceptance ;;
+      manager-quiet-reachability) invariant=ManagerHandoffDrainedCloseUnreachable ;;
+      unsafe-manager-release) invariant=NativePendingHasOriginalPin ;;
+      unsafe-manager-close) invariant=ClosedHasNoManagerQueue ;;
+      unsafe-manager-late-birth) invariant=ClosedHasNoPhysicalDependencies ;;
       legacy-unclaimed-close) invariant=LegacyUnclaimedRunPreserved ;;
       unsafe-close|unsafe-late) invariant=ClosedHasNoOutstandingPins ;;
       unsafe-grant) invariant=UnreleasedGrantsHeld ;;
@@ -1520,6 +1524,29 @@ PY_PREUNIT_ACK
     exit 1
   fi
   echo "Issuer crashed-native-caller recovered physical ACK reachability PASS"
+
+  # A successful exact Manager cancellation is an independent safe path:
+  # caller definitely stopped, the original queued systemd Job was really
+  # cancelled, and all other issued Attempts are independently settled.
+  # This is a positive reachability test of an abstract OS ACK, not a
+  # Rust/PG implementation or proof from absence of a Unit alone.
+  set +e
+  output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeEpochR1.exact-cancel-ack-positive-reach.cfg \
+    IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant ExactCancelAckUnreachable is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output" ||
+     ! grep -Fq '"crashed_unknown"' <<< "$output" ||
+     ! grep -Fq 'nativeHandoffPending = {}' <<< "$output" ||
+     ! grep -Eq '^State [1-9][0-9]*:' <<< "$output"; then
+    echo "Issuer exact native Manager cancellation ACK positive path FAILED" >&2
+    printf '%s\n' "$output" | tail -60 >&2
+    exit 1
+  fi
+  echo "Issuer exact-Manager-cancel / all-issued safe ACK reachability PASS"
 
   # CEGAR native OS: "No currently visible systemd Unit" does NOT cancel an
   # already-submitted manager request. This bad algorithm falsely reclassifies
