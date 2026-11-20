@@ -371,3 +371,78 @@ def test_same_route_allows_source_comment_but_not_symlinked_module(
     path.symlink_to(old / "src/ordivon_gateway/capabilities/host/work.py")
     with pytest.raises(ValueError, match="symlink|regular"):
         qualifier.source_same_route(old, candidate)
+
+
+def test_exact_prior_release_execution_profile_transition_keeps_full_source_fence(
+    qualifier: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the original immutable approved adapter pair may change.
+
+    Never whitelist the commands module generically: a substituted Owner call,
+    new module or changed Security grant still requires full change admission.
+    """
+    import hashlib
+    import shutil
+
+    old, candidate = tmp_path / "old", tmp_path / "candidate"
+    for root in (old, candidate):
+        shutil.copytree(
+            ROOT / "src/ordivon_gateway",
+            root / "src/ordivon_gateway",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+    commands = qualifier._EXECUTION_CUTOVER_REL
+    assert (
+        hashlib.sha256((candidate / commands).read_bytes()).hexdigest()
+        == qualifier._EXECUTION_CUTOVER_SOURCE_PAIR[1]
+    ), "original merged public main must match the reviewed migration bytes"
+    # Synthetic pre-migration adapter, solely to check the strict two-byte-cut
+    # predicate. Physical installed positive exercises the REAL original a83*
+    # file, not this test-generated old source.
+    previous = (old / commands).read_text(encoding="utf-8")
+    (old / commands).write_text(
+        previous + "\nR62_SYNTHETIC_PRE_CUTOVER_OWNER_ADAPTER = True\n",
+        encoding="utf-8",
+    )
+    synthetic_before_digest = hashlib.sha256((old / commands).read_bytes()).hexdigest()
+    synthetic_after_digest = hashlib.sha256((candidate / commands).read_bytes()).hexdigest()
+    assert not qualifier._same_executable_source(old, candidate)
+    monkeypatch.setattr(
+        qualifier,
+        "_EXECUTION_CUTOVER_SOURCE_PAIR",
+        (synthetic_before_digest, synthetic_after_digest),
+    )
+    assert qualifier._same_executable_source(old, candidate)
+
+    changed = candidate / commands
+    original = changed.read_text(encoding="utf-8")
+    changed.write_text(original + '\nR62_WRONG_RUNTIME_TOOL = "release.apply"\n')
+    assert not qualifier._same_executable_source(old, candidate)
+    changed.write_text(original)
+    assert qualifier._same_executable_source(old, candidate)
+
+    unrelated = candidate / "src/ordivon_gateway/capabilities/host/work.py"
+    previous_unrelated = unrelated.read_text(encoding="utf-8")
+    unrelated.write_text(previous_unrelated + "\nR62_UNQUALIFIED_HOST_WRITE = True\n")
+    assert not qualifier._same_executable_source(old, candidate)
+    unrelated.write_text(previous_unrelated)
+
+    owner_route = candidate / "src/ordivon_gateway/logic/routing.py"
+    previous_route = owner_route.read_text(encoding="utf-8")
+    owner_route.write_text(previous_route + '\nR62_UNQUALIFIED_OWNER = "runtime.admin"\n')
+    assert not qualifier._same_executable_source(old, candidate)
+    owner_route.write_text(previous_route)
+
+    new_module = candidate / "src/ordivon_gateway/capabilities/execution/unreviewed.py"
+    new_module.write_text('def dispatch(): return "release.apply"\n')
+    assert not qualifier._same_executable_source(old, candidate)
+    new_module.unlink()
+
+    # The installed original exact digest pair is NOT automatically available
+    # for arbitrary synthetic source. Missing source proof stays NO_GO.
+    monkeypatch.setattr(
+        qualifier,
+        "_EXECUTION_CUTOVER_SOURCE_PAIR",
+        ("0" * 64, "f" * 64),
+    )
+    assert not qualifier._same_executable_source(old, candidate)
