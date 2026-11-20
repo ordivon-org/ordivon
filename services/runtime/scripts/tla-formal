@@ -1086,6 +1086,33 @@ PY_WINPG_NO_JOB_OBJECT
       exit 1
     fi
     echo 'WinPG missing durable native drain guard counterexample PASS'
+    # Third original-issuer falsifier: the PostgreSQL writer must never
+    # record a trusted native event before the Launcher itself confirms the
+    # kernel-frozen client PID with Ready('R'). This detects the race where
+    # PG persisted a native event *before* Launcher rejected its client.
+    cp "$ROOT/formal/RuntimeWindowsPgAttemptR1.tla" "$tmp_dir/RuntimeWindowsPgAttemptR1.tla"
+    python3 - "$tmp_dir/RuntimeWindowsPgAttemptR1.tla" <<'PY_WINPG_NO_READY'
+from pathlib import Path
+import sys
+path=Path(sys.argv[1])
+src=path.read_text(encoding='utf-8')
+index=src.index("CommitTrustedNativeDrainJournal ==")
+prefix,body=src[:index],src[index:]
+guard='    /\\ peerReady\n'
+assert body.count(guard)==1, "Windows native issuer Ready guard changed"
+path.write_text(prefix+body.replace(guard,'',1), encoding='utf-8')
+PY_WINPG_NO_READY
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimeWindowsPgAttemptR1.cfg RuntimeWindowsPgAttemptR1.tla) > "$tmp_dir/unguarded-issuer.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant NativeDrainRequiresIssuerReady is violated' "$tmp_dir/unguarded-issuer.log"; then
+      echo 'WinPG missing original-issuer Ready guard negative control FAILED' >&2
+      tail -45 "$tmp_dir/unguarded-issuer.log" >&2
+      exit 1
+    fi
+    echo 'WinPG missing original-issuer Ready guard counterexample PASS'
   )
 }
 
