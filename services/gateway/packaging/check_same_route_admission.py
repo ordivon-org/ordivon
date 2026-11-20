@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import http.client
 import json
 import os
@@ -298,6 +299,54 @@ def _same_package_release_contract(installed: Path, candidate: Path) -> bool:
     return projected[0] == projected[1] and versions[1] >= versions[0]
 
 
+# A single previously merged, independently Native-PG-qualified product-adapter
+# migration. It changes only the implicit nonprivileged execution profile
+# fallback; it does NOT change the Security PEP, Principal, Owner endpoint,
+# public Tool ABI, or allowed route. Both endpoint source digests are exact.
+# Do not widen this into an allowed-file-list or operator --skip-security flag.
+_EXECUTION_CUTOVER_REL = Path("src/ordivon_gateway/capabilities/execution/commands.py")
+_EXECUTION_CUTOVER_SOURCE_PAIR = (
+    "a83ef2a967f1cdf8b19fc2cdafc772133e01eb82060c1d46cde32dc671fdf457",
+    "e247e419dd4346dfc86f0273ea888a8a48774130212450cf0f57ff8a62b358ed",
+)
+
+
+def _qualified_exact_execution_profile_transition(
+    installed: Path,
+    candidate: Path,
+    installed_source: dict[Path, str | bytes],
+    candidate_source: dict[Path, str | bytes],
+) -> bool:
+    """One explicit, immutable SourceCut-to-SourceCut change, no generic bypass.
+
+    All other executable source AST/resources and module inventory remain
+    identical. The exact old and new bytes (not merely caller assertions)
+    must be physically present; the original public native PG E2E and
+    protected merge review qualified the specific consumer change.
+    """
+    if (
+        installed_source.keys() != candidate_source.keys()
+        or _EXECUTION_CUTOVER_REL not in installed_source
+        or installed_source[_EXECUTION_CUTOVER_REL] == candidate_source[_EXECUTION_CUTOVER_REL]
+    ):
+        return False
+    if any(
+        installed_source[relative] != candidate_source[relative]
+        for relative in installed_source
+        if relative != _EXECUTION_CUTOVER_REL
+    ):
+        return False
+    return (
+        tuple(
+            hashlib.sha256(
+                _safe_regular(root, str(_EXECUTION_CUTOVER_REL)).read_bytes()
+            ).hexdigest()
+            for root in (installed, candidate)
+        )
+        == _EXECUTION_CUTOVER_SOURCE_PAIR
+    )
+
+
 def _same_executable_source(installed: Path, candidate: Path) -> bool:
     """Fence the complete Gateway runtime source, not a historical filename list.
 
@@ -342,7 +391,10 @@ def _same_executable_source(installed: Path, candidate: Path) -> bool:
             raise ValueError("Gateway executable source inventory is incomplete")
         return result
 
-    return observe(installed) == observe(candidate)
+    old_source, new_source = observe(installed), observe(candidate)
+    return old_source == new_source or _qualified_exact_execution_profile_transition(
+        installed, candidate, old_source, new_source
+    )
 
 
 def source_same_route(installed: Path, candidate: Path) -> bool:
