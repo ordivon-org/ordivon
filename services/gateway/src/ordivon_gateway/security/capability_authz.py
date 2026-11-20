@@ -8,6 +8,7 @@ from typing import Any, Protocol
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
+from ..logic.host_tool_contracts import bind_public_tool_call
 from .authorization_targets import (
     AuthorizationTargetResolver,
     CapabilityAuthorizationTargetError,
@@ -55,6 +56,21 @@ def _error(code: str, message: str, *, capability: str | None) -> CallToolResult
     )
 
 
+async def _forward_bound_public_tool(
+    ctx: ServerRequestContext[Any, Any],
+    call_next: CallNext,
+    tool_name: str,
+    arguments: Mapping[str, Any],
+) -> HandlerResult:
+    """Carry actual public MCP action/args through the existing Owner call.
+
+    This is not a second Security decision or a token. ContextVar is reset
+    even when a Tool fails or a request is cancelled.
+    """
+    with bind_public_tool_call(tool_name, arguments):
+        return await call_next(ctx)
+
+
 class GatewayCapabilityAuthorizationMiddleware:
     """Verified Cloudflare operator or delegated AuthZEN object PEP.
 
@@ -93,7 +109,8 @@ class GatewayCapabilityAuthorizationMiddleware:
         except CapabilityAuthorizationTargetError as exc:
             return _error(exc.code, str(exc), capability=exc.capability)
         if target is None:
-            return await call_next(ctx)
+            # An unprotected public Tool cannot secretly invoke a Host Tool.
+            return await _forward_bound_public_tool(ctx, call_next, tool_name, arguments)
 
         capability = target.capability
         resource = target.authzen_resource()
@@ -112,7 +129,7 @@ class GatewayCapabilityAuthorizationMiddleware:
         # must not deny an already verified trusted operator. Host/Runtime
         # native owner checks and the canonical request target still apply.
         if self._trusted_operator is not None and self._trusted_operator.allows(state):
-            return await call_next(ctx)
+            return await _forward_bound_public_tool(ctx, call_next, tool_name, arguments)
         if self._authorizer is None:
             return _error(
                 "CAPABILITY_AUTHZ_UNAVAILABLE",
@@ -194,7 +211,7 @@ class GatewayCapabilityAuthorizationMiddleware:
                         "Interactive Principal ALLOW omitted valid AuthZEN evidence.",
                         capability=capability,
                     )
-            return await call_next(ctx)
+            return await _forward_bound_public_tool(ctx, call_next, tool_name, arguments)
         if outcome == "STEP_UP":
             return _error(
                 "CAPABILITY_AUTHZ_STEP_UP_REQUIRED",

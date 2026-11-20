@@ -156,6 +156,32 @@ that installed Security grants exist.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
 
+## Host public Action / actual Owner operation (R47 source consumer)
+
+The **existing** `GatewayCapabilityAuthorizationMiddleware` already sees
+`ServerRequestContext.params["name"]` and the original Tool arguments.
+After its normal Security ALLOW or verified trusted-operator branch, it now
+binds that public Tool identity only for `call_next(ctx)` using Python's
+request-local `ContextVar` in the existing `logic/host_tool_contracts.py`.
+The normal unprotected Tool branch also binds its real public name: a public
+capability probe must never secretly dispatch a Host write/read.
+
+The existing `capabilities/host/dispatch.py` rejects a different delegated
+Host Tool, a retargeted authorized read selector, or changed public Host
+arguments **before** its original Owner caller is reached. This reuses the
+same MCP Tool and AuthZEN resource projection; it is not a second
+authenticator, authorization service, policy store, or independent grant.
+The binding is reset even when a Tool fails. Direct local service calls
+outside MCP have no verified-public-request claim and retain the original
+Owner semantics; they are not production Agent permission evidence.
+
+The adversarial tests in `tests/test_host_public_action_effect_binding.py`
+exercise read→write replacement, scope replacement, mutated write Actor,
+cross-request isolation, DENY zero-dispatch, and original MCP SDK positive/
+negative Tool calls. They are **source** evidence only; do not infer the
+running installed SourceCut changed until the protected PR is merged,
+installed and the actual connected Agent repeats the Host business canary.
+
 ## Shared HTTP request identity (source contract)
 
 `ingress_identity.py` is the only Gateway source reader of the request-local

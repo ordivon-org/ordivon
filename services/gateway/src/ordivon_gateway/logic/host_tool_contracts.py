@@ -1,10 +1,35 @@
-"""Shared Host MCP wire byte-budget boundaries."""
+"""Shared Host MCP wire byte-budget boundaries and public action identity."""
 
 from __future__ import annotations
 
-from typing import Annotated
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Annotated, Any
 
 from pydantic import Field
+
+# A request-local identity witness, NOT another authentication/authorization
+# authority. The already installed MCP Security middleware binds the public
+# Tool and its original args for precisely the duration of call_next(ctx).
+# Natural Host and Security continue to own domain effects and PDP decisions.
+_PUBLIC_TOOL_CALL: ContextVar[tuple[str, Mapping[str, Any]] | None] = ContextVar(
+    "ordivon_gateway_public_tool_call", default=None
+)
+
+
+@contextmanager
+def bind_public_tool_call(tool_name: str, arguments: Mapping[str, Any]) -> Iterator[None]:
+    token = _PUBLIC_TOOL_CALL.set((tool_name, dict(arguments)))
+    try:
+        yield
+    finally:
+        _PUBLIC_TOOL_CALL.reset(token)
+
+
+def current_public_tool_call() -> tuple[str, Mapping[str, Any]] | None:
+    return _PUBLIC_TOOL_CALL.get()
+
 
 HostCollectionBytes = Annotated[int, Field(ge=16_384, le=4_194_304)]
 HostMessageBytes = Annotated[int, Field(ge=131_072, le=4_194_304)]
