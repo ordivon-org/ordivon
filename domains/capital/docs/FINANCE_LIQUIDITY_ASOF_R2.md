@@ -26,6 +26,17 @@ absorption equals Table 2 reserve stock in all four downloaded
 original dated reports. On Nov 18 specifically:
 6,793,431 - 3,791,641 = 3,001,790 million USD.
 
+**Critical RRP definition counterexample:** H.4.1 Table 2 reports
+a total Reverse Repurchase Agreements stock, NOT the stand-alone
+ON RRP facility balance. On 2026-11-18, the Wednesday value is
+317,043 USD million, decomposed into **316,712** million for Foreign
+official and international accounts and **331** million for Others.
+Both report series reconcile exactly. For each of the four dates
+the source reverse-repo total equals its explicit two subclasses.
+Do not insert 317 billion into a market model as an ON RRP balance.
+The H.4.1 Others subtotal by itself is likewise NOT independent
+proof of the ON RRP facility's full outstanding balance.
+
 The three observed same-day TGA balances exactly match the
 other official publication, but the two publications share
 related accounting inputs: this is a cross-publication check,

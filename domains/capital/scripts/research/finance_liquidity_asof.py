@@ -36,6 +36,8 @@ H41_ROWS = {
     "bankReserves": ("t2", "Reserve balances with Federal Reserve Banks"),
     "treasuryGeneralAccount": ("t2", "U.S. Treasury, General Account"),
     "reverseRepo": ("t2", "Reverse repurchase agreements"),
+    "reverseRepoForeignOfficial": ("t2", "Foreign official and international accounts"),
+    "reverseRepoOthers": ("t2", "Others"),
 }
 
 DTS_ROWS = {
@@ -149,6 +151,10 @@ def parse_h41(raw: bytes, *, file_label: str) -> H41:
         if value is None or not re.fullmatch(r"-?\d{1,3}(?:,\d{3})*|0", value):
             raise ValueError(f"H41 Wednesday actual-stock missing: {key}")
         values[key] = int(value.replace(",", ""))
+    if values["reverseRepo"] != (
+        values["reverseRepoForeignOfficial"] + values["reverseRepoOthers"]
+    ):
+        raise ValueError("H41 reverse repo foreign-official plus others subdivision mismatch")
     if values["reserveSupply"] - values["reserveAbsorption"] != values["bankReserves"]:
         raise ValueError("H41 reserve conservation disagrees with official figures")
     if any(values[k] < 0 for k in ("bankReserves", "treasuryGeneralAccount", "reverseRepo")):

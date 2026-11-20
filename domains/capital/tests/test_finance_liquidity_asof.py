@@ -24,6 +24,8 @@ H41_VALUES = {
     "bankReserves": 3001790,
     "treasuryGeneralAccount": 892310,
     "reverseRepo": 317043,
+    "reverseRepoForeignOfficial": 316712,
+    "reverseRepoOthers": 331,
 }
 DTS_NUMBERS = (921222, 22093, 51006, 892310)
 
@@ -41,6 +43,8 @@ def _h41(*, release="November 19, 2026", observed="Nov 18, 2026", values=None, f
         ("t2", "16", "Reserve balances with Federal Reserve Banks", "bankReserves"),
         ("t2", "8", "U.S. Treasury, General Account", "treasuryGeneralAccount"),
         ("t2", "2", "Reverse repurchase agreements" + footnote, "reverseRepo"),
+        ("t2", "3", "Foreign official and international accounts", "reverseRepoForeignOfficial"),
+        ("t2", "4", "Others", "reverseRepoOthers"),
     ]
     body = "".join(
         f'<tr><td id="{tab}r{n}c1">{label}</td><td id="{tab}r{n}c5">{values[key]:,}</td></tr>'
@@ -91,6 +95,19 @@ def test_real_official_figure_accounting_identity_and_units():
     assert h.values["reserveSupply"] - h.values["reserveAbsorption"] == 3001790
     assert h.values["treasuryGeneralAccount"] == d.closing == 892310
     assert d.rounding_residual == -1
+
+
+def test_reverse_repo_total_is_not_misidentified_as_only_on_rrp():
+    h, _, _ = _parse()
+    assert h.values["reverseRepo"] == 317043
+    assert h.values["reverseRepoForeignOfficial"] == 316712
+    assert h.values["reverseRepoOthers"] == 331
+    assert h.values["reverseRepo"] == (
+        h.values["reverseRepoForeignOfficial"] + h.values["reverseRepoOthers"]
+    )
+    wrong = dict(H41_VALUES, reverseRepoForeignOfficial=316711)
+    with pytest.raises(ValueError, match="subdivision mismatch"):
+        m.parse_h41(_h41(values=wrong), file_label="h41-20261119.html")
 
 
 def test_h41_closing_of_wednesday_is_not_weekly_average():

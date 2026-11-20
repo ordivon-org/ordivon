@@ -107,7 +107,10 @@ domains/capital/docs/FINANCE_LIQUIDITY_ASOF_R2.md.
 The H.4.1 Wednesday stocks are not weekly averages; after 2022,
 the DTS TGA Closing Balance amount is on the open_today_bal field.
 Thursday 16:00 New York stock close precedes the generally 16:30
-H.4.1 publication. Keep conflicting source dates/values as unknown
+H.4.1 publication. The H.4.1 reverse-repo total includes foreign
+official accounts and is NOT synonymous with ON RRP; the existing
+Research as-of reader verifies its reported foreign-official and Others
+subdivisions. Keep conflicting source dates/values as unknown
 or explicit conflict rather than picking a convenient latest number.
 Archived web pages, blank revision flags and SHA-256 digests do
 not prove historical first-publication timestamps. This consumer
