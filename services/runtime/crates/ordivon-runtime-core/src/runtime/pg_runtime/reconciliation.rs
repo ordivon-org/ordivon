@@ -765,18 +765,35 @@ impl PgRuntime {
                 } else {
                     (self.config.harness_issuer_schema.as_deref(), None)
                 };
-            db.mark_dispatch_issued_pg(
-                &PgDispatchIssued {
+            let issued_version = db
+                .mark_dispatch_issued_pg(
+                    &PgDispatchIssued {
+                        attempt_id: a.attempt_id.clone(),
+                        expected_row_version: a.row_version as i64,
+                        expected_bundle_digest: digest.clone(),
+                        observed_at_ms: now()?,
+                        expected_source_sha256: self.config.source_sha256.clone(),
+                    },
+                    issuer_schema,
+                    issuer_principal,
+                )
+                .map_err(pg)?;
+            // One issuer owns this at-most-once physical call. If a STOP
+            // committed after DISPATCH_ISSUED but before we ever called
+            // systemd, settle without inventing a Runner start/exit.
+            // Never apply this fact from a recovering or different issuer.
+            if db
+                .settle_cancel_before_native_handoff(&PgDispatchIssued {
                     attempt_id: a.attempt_id.clone(),
-                    expected_row_version: a.row_version as i64,
+                    expected_row_version: issued_version,
                     expected_bundle_digest: digest,
                     observed_at_ms: now()?,
                     expected_source_sha256: self.config.source_sha256.clone(),
-                },
-                issuer_schema,
-                issuer_principal,
-            )
-            .map_err(pg)?;
+                })
+                .map_err(pg)?
+            {
+                return Ok(());
+            }
             let output = super::platform::systemd_run(&super::platform::SystemdRunSpec {
                 unit_name: &a.unit_name,
                 runner: self
@@ -820,6 +837,15 @@ impl PgRuntime {
                 .with_operation_id(job.to_string()));
             }
             a = self.attempt(db, job)?.0;
+            // A cancellation may win *after* the pre-handoff CAS and while
+            // systemd-run delivers to the asynchronous Manager. Request an
+            // exact Unit stop; the later OS+PG reconciliation alone may
+            // certify terminal state. This is NOT a NoFutureSpawn ACK.
+            if a.termination_intent == AttemptTerminationIntent::StopRequested
+                && !a.state.is_terminal()
+            {
+                let _ = super::platform::stop_unit_no_block(&a.unit_name)?;
+            }
         }
         let path = PathBuf::from(&a.bundle_path);
         // DISPATCH_ISSUED is intent, not a physical start. Only the native
