@@ -162,6 +162,25 @@ def parse_h41(raw: bytes, *, file_label: str) -> H41:
     return H41(release_date, observed, values, _sha(raw))
 
 
+def _treasury_next_scheduled_publication(record_date: date) -> datetime:
+    """DTS: next US FEDERAL business day, published by 16:00 New York.
+
+    Historical source docs describe the following-business-day release.
+    A 16:30 local-time eligibility buffer is a scheduled-bound estimate,
+    not an independently authenticated first HTTP observation.
+    """
+    import pandas as pd
+    from pandas.tseries.holiday import USFederalHolidayCalendar
+    from pandas.tseries.offsets import CustomBusinessDay
+
+    federal_day = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    stamp = pd.Timestamp(record_date)
+    if not federal_day.is_on_offset(stamp):
+        raise ValueError("DTS observation date is not a US federal business day")
+    following = (stamp + federal_day).date()
+    return datetime.combine(following, time(16, 30), tzinfo=NY)
+
+
 def parse_dts(raw: bytes) -> DTS:
     if not raw or len(raw) > DTS_MAX_BYTES:
         raise ValueError("invalid DTS source size")
@@ -188,6 +207,7 @@ def parse_dts(raw: bytes) -> DTS:
     day = next(iter(dates))
     if day < date(2022, 4, 18):
         raise ValueError("unsupported pre-2022 DTS source layout")
+    _treasury_next_scheduled_publication(day)  # rejects US federal-holiday rows
     delta = (
         data[DTS_ROWS["opening"]]
         + data[DTS_ROWS["deposits"]]
@@ -262,14 +282,11 @@ def asof_snapshot(
     ]
     latest_h41 = max(h41_eligible, key=lambda x: x.release_date) if h41_eligible else None
 
-    # Treasury DTS latest downloadable table does not expose an original
-    # hour-by-hour historical publication receipt. Withhold a dated row for
-    # two calendar days after its record_date (a convention, not PIT proof).
-    eligible_dts = [
-        r
-        for r in dts
-        if datetime.combine(r.record_date + timedelta(days=2), time(), tzinfo=NY) <= local
-    ]
+    # Official DTS states "by 4pm the following business day".
+    # USE THE US FEDERAL HOLIDAY CALENDAR: XNYS is open on Veterans Day
+    # when Treasury is closed. This is scheduled availability, NOT an
+    # independently signed original HTTP publication-time receipt.
+    eligible_dts = [r for r in dts if _treasury_next_scheduled_publication(r.record_date) <= local]
     latest_dts = max(eligible_dts, key=lambda x: x.record_date) if eligible_dts else None
 
     import exchange_calendars as xcals
@@ -300,7 +317,7 @@ def asof_snapshot(
         "decisionAtNewYork": local.isoformat(),
         "sourceQualification": {
             "h41": "DATED_OFFICIAL_ARCHIVE_SCHEDULED_1630_ET_NOT_EXTERNAL_FIRST_CAPTURE_PROOF",
-            "dts": "LATEST_API_POST_2022_PLUS_TWO_DAY_CONSERVATIVE_DELAY_NOT_FIRST_VINTAGE",
+            "dts": "LATEST_API_NEXT_FEDERAL_BUSINESS_DAY_1630_ET_SCHEDULE_NOT_FIRST_VINTAGE",
             "sofr": "LATEST_CSV_EFFECTIVE_DATE_AT_LEAST_TWO_XNYS_SESSIONS_OLD",
         },
         "h41": (
@@ -368,7 +385,7 @@ def run(*, raw_h41: dict[str, bytes], raw_dts: list[bytes], raw_sofr: bytes, at:
         },
         "limitations": [
             "Historical H41 release archive page is dated but independent HTTP first-publication proof is not provided.",
-            "Treasury DTS API is latest table, not a proved first-published vintage; two-day delay is a conservative design choice.",
+            "Treasury DTS API is latest table, not a proved first-published vintage; next federal business day 16:30 ET buffer is a schedule assumption.",
             "SOFR effective date is not first publication; two XNYS session lag differs from the NYFed repo calendar.",
             "A matched same-day TGA amount is economic consistency, NOT publication-time certification.",
             "No ETF total return, broker fills, portfolio alpha or financial effect authority.",

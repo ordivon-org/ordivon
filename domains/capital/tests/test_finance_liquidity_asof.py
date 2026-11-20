@@ -189,12 +189,15 @@ def test_thursday_stock_close_cannot_consume_later_h41_release():
     )
     assert before["h41"] is None
     assert after["h41"]["releasedOn"] == "2026-11-19"
-    # At both instants the delayed API observation is NOT eligible.
-    assert before["dts"] is after["dts"] is None
+    # The official DTS release for the Wednesday observation is normally
+    # by 16:00 Thursday; we use a 16:30 ET scheduled buffer.
+    assert before["dts"] is None
+    assert after["dts"]["recordDate"] == "2026-11-18"
+    assert after["crossSourceTga"] == "MATCHED_SAME_DAY_MILLION_USD"
     assert after["capitalAndTradingAuthority"] is False
 
 
-def test_cross_source_same_day_only_after_conservative_treasury_availability():
+def test_cross_source_same_day_after_federal_business_release_time():
     h, d, s = _parse()
     after = m.asof_snapshot(
         when=datetime.fromisoformat("2026-11-20T15:00:00+00:00"),
@@ -206,6 +209,65 @@ def test_cross_source_same_day_only_after_conservative_treasury_availability():
     assert after["crossSourceTga"] == "MATCHED_SAME_DAY_MILLION_USD"
     assert after["sofr"]["effectiveDate"] == "2026-11-18"
     assert after["compositeLiquidityScore"] is None
+
+
+def test_friday_treasury_report_cannot_release_on_weekend():
+    h, _, s = _parse()
+    d = m.parse_dts(_dts(day="2026-11-13"))
+    # Friday observation: next Federal business day Monday November 16,
+    # not Sunday November 15, even if 2 calendar days have passed.
+    before = m.asof_snapshot(
+        when=datetime.fromisoformat("2026-11-15T22:00:00+00:00"),
+        h41=[h],
+        dts=[d],
+        sofr=s,
+        sofr_sha256="synthetic",
+    )
+    after = m.asof_snapshot(
+        when=datetime.fromisoformat("2026-11-16T22:00:00+00:00"),
+        h41=[h],
+        dts=[d],
+        sofr=s,
+        sofr_sha256="synthetic",
+    )
+    assert before["dts"] is None
+    assert after["dts"]["recordDate"] == "2026-11-13"
+
+
+def test_veterans_day_holiday_is_not_issued_treasury_observation():
+    with pytest.raises(ValueError, match="not a US federal business day"):
+        m.parse_dts(_dts(day="2026-11-11"))
+    h, _, s = _parse()
+    d = m.parse_dts(_dts(day="2026-11-10"))
+    # Wednesday 11/11 is a federal holiday; Nov10 DTS can qualify
+    # only at the following Federal business day Thu Nov12 16:30 ET.
+    before = m.asof_snapshot(
+        when=datetime.fromisoformat("2026-11-11T22:00:00+00:00"),
+        h41=[h],
+        dts=[d],
+        sofr=s,
+        sofr_sha256="synthetic",
+    )
+    after = m.asof_snapshot(
+        when=datetime.fromisoformat("2026-11-12T22:00:00+00:00"),
+        h41=[h],
+        dts=[d],
+        sofr=s,
+        sofr_sha256="synthetic",
+    )
+    assert before["dts"] is None
+    assert after["dts"]["recordDate"] == "2026-11-10"
+
+
+def test_treasury_thanksgiving_and_dst_release_boundaries():
+    scheduled = m._treasury_next_scheduled_publication(
+        datetime.fromisoformat("2026-11-25T12:00:00").date()
+    )
+    assert scheduled.isoformat() == "2026-11-27T16:30:00-05:00"
+    regular = m._treasury_next_scheduled_publication(
+        datetime.fromisoformat("2026-07-15T12:00:00").date()
+    )
+    assert regular.isoformat() == "2026-07-16T16:30:00-04:00"
 
 
 def test_cross_source_disagreement_is_not_collapsed_into_one_authority():
