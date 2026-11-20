@@ -370,6 +370,11 @@ pub(crate) fn append_contained_properties(
         "--property=ProtectKernelLogs=yes",
         "--property=ProtectControlGroups=yes",
         "--property=ProtectProc=invisible",
+        // File-system mount isolation by itself is not process isolation.
+        // Two contained tasks with the same nonroot UID can otherwise open
+        // each other's mount view via /proc/<peer-pid>/root despite a denied
+        // direct path. Scope /proc and PIDs to this native systemd Unit.
+        "--property=PrivatePIDs=yes",
         "--property=ProcSubset=pid",
         "--property=KeyringMode=private",
         "--property=RestrictAddressFamilies=AF_UNIX",
