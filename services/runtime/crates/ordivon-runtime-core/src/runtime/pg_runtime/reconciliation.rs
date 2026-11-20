@@ -36,6 +36,15 @@ fn observed_namespace_pid(host_pid: u32) -> Option<u32> {
     namespace_pid_from_host_status(&status, host_pid)
 }
 
+/// One native observation binds the Manager's host PID to the Runner's
+/// namespace-local PID and the same kernel process starttime. Keep the
+/// three dependent facts together rather than accepting free-floating PIDs.
+struct NativePidReadback<'a> {
+    host_pid: Option<u32>,
+    namespace_pid: Option<u32>,
+    process_start: Option<&'a str>,
+}
+
 /// Project RUNNING only from a positively bound Linux Runner plus the
 /// kernel supervisor's host PID, the same kernel process starttime, and its
 /// namespace-local PID. An issued dispatch, partial stdout, or the mere
@@ -46,9 +55,7 @@ fn native_running_witness(
     job: &str,
     attempt: &str,
     launch_digest: &str,
-    observed_host_pid: Option<u32>,
-    observed_namespace_pid: Option<u32>,
-    observed_process_start: Option<&str>,
+    observed: NativePidReadback<'_>,
     provider_digest: &str,
 ) -> bool {
     let expected_unit = format!("ordivon-pg-{attempt}.service");
@@ -60,9 +67,9 @@ fn native_running_witness(
         && start.control_group == format!("/system.slice/{expected_unit}")
         && start.namespace_pid != 0
         && !start.namespace_process_start_identity.is_empty()
-        && observed_host_pid.is_some_and(|pid| pid != 0)
-        && observed_namespace_pid == Some(start.namespace_pid)
-        && observed_process_start == Some(start.namespace_process_start_identity.as_str())
+        && observed.host_pid.is_some_and(|pid| pid != 0)
+        && observed.namespace_pid == Some(start.namespace_pid)
+        && observed.process_start == Some(start.namespace_process_start_identity.as_str())
         && start.observed_unix_ms > 0
         && start.runner_executable_digest.as_deref() == Some(provider_digest)
         && native.get("LoadState").map(String::as_str) == Some("loaded")
@@ -73,7 +80,7 @@ fn native_running_witness(
         && native
             .get("MainPID")
             .and_then(|pid| pid.parse::<u32>().ok())
-            == observed_host_pid
+            == observed.host_pid
 }
 
 /// Retain PostgreSQL's SQLSTATE across direct Client reads. The shared
@@ -891,9 +898,11 @@ impl PgRuntime {
                         job,
                         &a.attempt_id,
                         &a.launch_token_digest,
-                        host_pid,
-                        namespace_pid,
-                        host_process_start.as_deref(),
+                        NativePidReadback {
+                            host_pid,
+                            namespace_pid,
+                            process_start: host_process_start.as_deref(),
+                        },
                         provider["executionProvider"]["executableDigest"]
                             .as_str()
                             .unwrap_or(""),
@@ -1361,9 +1370,11 @@ mod native_runner_start_tests {
             job,
             attempt,
             launch_digest,
-            Some(1234),
-            Some(start.namespace_pid),
-            Some(start.namespace_process_start_identity.as_str()),
+            NativePidReadback {
+                host_pid: Some(1234),
+                namespace_pid: Some(start.namespace_pid),
+                process_start: Some(start.namespace_process_start_identity.as_str()),
+            },
             provider_digest,
         )
     }
@@ -1403,9 +1414,11 @@ mod native_runner_start_tests {
                 "job-a",
                 "attempt-a",
                 &start.launch_token_digest,
-                host_pid,
-                inner_pid,
-                started,
+                NativePidReadback {
+                    host_pid,
+                    namespace_pid: inner_pid,
+                    process_start: started,
+                },
                 provider,
             )
         };
@@ -1429,9 +1442,11 @@ mod native_runner_start_tests {
                     "job-a",
                     "attempt-a",
                     &start.launch_token_digest,
-                    Some(1234),
-                    Some(start.namespace_pid),
-                    stale,
+                    NativePidReadback {
+                        host_pid: Some(1234),
+                        namespace_pid: Some(start.namespace_pid),
+                        process_start: stale,
+                    },
                     provider
                 ),
                 "PID-only proof wrongly qualified a replaced or unobserved process"
