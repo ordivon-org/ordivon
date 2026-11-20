@@ -10,6 +10,9 @@ mod dispatch;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
+// Native Win32 observation/journal WRITER is Windows-only. The *same-PG*
+// terminal read validator is cross-platform and must remain available even
+// to the Linux PG CAS code when asked to validate original Win32 Attempt.
 #[path = "pg_admission_native_windows_drain.rs"]
 mod native_windows_drain;
 mod terminal_contract;
@@ -20,6 +23,7 @@ pub(crate) use dispatch::PgRunnerBound;
 pub use dispatch::{PgBundleReady, PgDispatchIssued};
 use input_contract::unambiguous_json_object;
 pub use input_contract::PgAdmissionInput;
+#[cfg(any(windows, test))]
 pub(crate) use native_windows_drain::{PgNativeWindowsDrainInput, PgNativeWindowsDrainOutcome};
 use terminal_contract::terminal_transition;
 pub(crate) use terminal_contract::{pg_artifact_manifest_digest, valid_pg_artifacts};

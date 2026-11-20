@@ -7,15 +7,21 @@
 //! retains the handle until this existing Job event transaction commits and
 //! the Runtime sends its acknowledgement. Terminal CAS happens separately,
 //! after the original Launcher is observed exited.
-use super::{require_pg_writer_epoch, PgAdmissionError, PgAdmissionStore};
+use super::PgAdmissionError;
+#[cfg(any(windows, test))]
+use super::{require_pg_writer_epoch, PgAdmissionStore};
+#[cfg(any(windows, test))]
 use postgres::IsolationLevel;
+#[cfg(any(windows, test))]
 use serde_json::json;
 use sha2::{Digest, Sha256};
+#[cfg(any(windows, test))]
 use uuid::Uuid;
 
 const NATIVE_DRAIN_EVENT: &str = "WINDOWS_NATIVE_JOB_DRAIN_OBSERVED";
 const NATIVE_DRAIN_REASON: &str = "KERNEL_ORIGINAL_LAUNCHER_ACTIVE_ZERO";
 
+#[cfg(any(windows, test))]
 #[derive(Clone, Debug)]
 pub(crate) struct PgNativeWindowsDrainInput {
     pub job_id: String,
@@ -30,6 +36,7 @@ pub(crate) struct PgNativeWindowsDrainInput {
     pub observed_at_ms: i64,
 }
 
+#[cfg(any(windows, test))]
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum PgNativeWindowsDrainOutcome {
     Committed(String),
@@ -39,9 +46,11 @@ pub(crate) enum PgNativeWindowsDrainOutcome {
 fn sha256_digest(bytes: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
 }
+#[cfg(any(windows, test))]
 fn valid_digest(v: &str) -> bool {
     v.len() == 71 && v.starts_with("sha256:") && v[7..].bytes().all(|b| b.is_ascii_hexdigit())
 }
+#[cfg(any(windows, test))]
 fn event_detail(i: &PgNativeWindowsDrainInput) -> String {
     // Stable key serialization plus exact real OS identity, not the target's
     // read/write receipt. Trust comes from the kernel observation at write
@@ -152,6 +161,7 @@ pub(super) fn require_native_windows_drain_in_terminal_tx(
     Ok(())
 }
 
+#[cfg(any(windows, test))]
 impl PgAdmissionStore {
     /// Append a single idempotent immutable event to the real Job's journal.
     /// No terminal, Artifact, capacity release, process launch, or OS control
@@ -285,6 +295,7 @@ impl PgAdmissionStore {
     }
 }
 
+#[cfg(any(windows, test))]
 impl PgAdmissionStore {
     /// Read the same existing PG Journal event after the original Launcher has
     /// exited and its named JobObject may have been destroyed. This is not a

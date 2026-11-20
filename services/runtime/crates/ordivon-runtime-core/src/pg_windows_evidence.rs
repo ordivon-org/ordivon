@@ -756,7 +756,11 @@ pub fn inspect_windows_pg_job_object(
 }
 
 /// A live kernel-only completion gate for the original Windows Launcher.
+/// Preserve the Linux-only formal/unit falsifiers without exporting an unused
+/// production native pipe path on the Linux PG host.
+#[cfg(any(windows, test))]
 pub mod native_terminal_gate {
+    #[cfg(windows)]
     use super::{
         PgWindowsJobObjectState, PgWindowsWitnessIdentity, PgWindowsWitnessObservation,
         PgWindowsWitnessPhase,
