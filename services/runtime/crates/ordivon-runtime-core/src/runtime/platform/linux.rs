@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -285,6 +285,52 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     Ok(command)
 }
 
+// Existing queued plans also reach this native boundary after recovery.
+// Do not let a writable Workspace cache symlink turn systemd BindPaths into a
+// host-private mount even if the environment string was Runtime-generated.
+// Inspect every component, not just the final leaf. The operator still owns
+// the trusted source roots; this is a physical no-symlink dispatch fence.
+pub(crate) fn validate_contained_bind_source(path: &Path) -> RuntimeResult<()> {
+    if !path.is_absolute() {
+        return Err(RuntimeError::invalid(
+            "contained bind source must be an absolute directory",
+            "executionProfile",
+        ));
+    }
+    let mut prefix = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::RootDir => prefix.push(component.as_os_str()),
+            Component::Normal(name) => {
+                prefix.push(name);
+                let metadata = fs::symlink_metadata(&prefix).map_err(|_| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::WorkspaceStateMismatch,
+                        "contained bind source is absent or cannot be inspected",
+                        Some("executionProfile"),
+                        false,
+                    )
+                })?;
+                if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                    return Err(RuntimeError::new(
+                        RuntimeErrorCode::WorkspaceStateMismatch,
+                        "contained bind source contains a symlink or non-directory",
+                        Some("executionProfile"),
+                        false,
+                    ));
+                }
+            }
+            _ => {
+                return Err(RuntimeError::invalid(
+                    "contained bind source cannot contain parent or prefix traversal",
+                    "executionProfile",
+                ))
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn append_contained_properties(
     command: &mut Command,
     runner: &Path,
@@ -371,6 +417,7 @@ pub(crate) fn append_contained_properties(
         }
     }
     for path in writable_paths {
+        validate_contained_bind_source(&path)?;
         let value = systemd_path_value(&path)?;
         command.arg(format!("--property=BindPaths={value}:{value}"));
     }
@@ -1087,6 +1134,71 @@ pub(crate) fn wait_for_attempt_change(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn contained_native_bind_source_rejects_symlink_leaf_ancestor_and_traversal() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-contained-bind-{}-{}",
+            std::process::id(),
+            uuid::Uuid::now_v7()
+        ));
+        let trusted = root.join("trusted");
+        let workspace = trusted.join("workspace");
+        let bundle = trusted.join("bundle");
+        let private = root.join("synthetic-private");
+        for dir in [&workspace, &bundle, &private] {
+            fs::create_dir_all(dir).unwrap();
+        }
+        fs::create_dir_all(private.join("nested")).unwrap();
+        validate_contained_bind_source(&workspace).unwrap();
+        validate_contained_bind_source(&bundle).unwrap();
+
+        let leaf = trusted.join("home-symlink");
+        std::os::unix::fs::symlink(&private, &leaf).unwrap();
+        let parent = trusted.join("cache-symlink");
+        std::os::unix::fs::symlink(&private, &parent).unwrap();
+        for source in [&leaf, &parent.join("nested")] {
+            let error = validate_contained_bind_source(source).unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::WorkspaceStateMismatch);
+            assert!(!error.retryable);
+        }
+        let traversal = workspace.join("..").join("bundle");
+        assert_eq!(
+            validate_contained_bind_source(&traversal).unwrap_err().code,
+            RuntimeErrorCode::InvalidRequest
+        );
+        assert_eq!(
+            validate_contained_bind_source(&trusted.join("missing"))
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::WorkspaceStateMismatch
+        );
+
+        let environment =
+            BTreeMap::from([("HOME".to_string(), leaf.to_string_lossy().into_owned())]);
+        let build = build_systemd_run_command(&SystemdRunSpec {
+            unit_name: "ordivon-contained-bind-negative.service",
+            runner: Path::new("/usr/bin/true"),
+            bundle_path: &bundle,
+            workspace_path: &workspace,
+            workspace_git_common_dir: None,
+            cargo_target_mount: None,
+            input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
+            runtime_ceiling_ms: 1000,
+            budget: &super::super::super::ExecutionBudget::default(),
+            execution_profile: super::super::super::ExecutionProfile::ContainedLocal,
+            environment: &environment,
+        });
+        assert_eq!(
+            build
+                .expect_err("symlink must be denied before native dispatch")
+                .code,
+            RuntimeErrorCode::WorkspaceStateMismatch
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn executable_validation_preserves_absolute_proxy_invocation_path() {

@@ -51,6 +51,63 @@ OwnerConsumerObservation / FailClosedRecovery. Capability: original systemd,
 native MCP SDK, official release installer, Security AuthZEN and Host Owner,
 bounded Python tests; no second policy engine or new release registry.
 
+## R44: physically observed post-restart temporal counterexample (2026-11-20)
+
+**Exact production release evidence:** GitHub #2504 was merged and the real
+Gateway immutable SourceCut `1f3e9e31b6c399cc607a8957c2ef6bc116d79458`
+passed both the original SDK 42-Tool ABI and same-route native checks. The
+original installer switched the symlink without restarting the service, as
+documented. The first Agent-authored restart wrapper immediately asserted
+MainPID/cwd after `systemctl restart`, failed, and restored old SourceCut.
+Native systemd journal recorded the first start and immediate rollback in
+the same second. Old version physically recovered and the connected ChatGPT
+Host Tools still worked. The unit was independently found to use
+`Type=simple`: an accepted systemd start does **not** prove application
+initialization or listener readiness. The exact failing immediate predicate
+was not separately logged, so don't invent which assertion fired.
+
+The second rollout used the same official installer and unchanged PEP/Host
+routes, but after restarting it performed **bounded polling** for a distinct
+MainPID, `/proc/<MainPID>/cwd` equal to the new immutable SourceCut, HTTP200
+on `127.0.0.1:8899/health`, and anonymous MCP initialize HTTP403. It
+succeeded: installed PID 1990757, Cloudflare public unauthenticated HTTP401;
+the current ChatGPT connected `host.status` and `work.get` succeeded.
+The previously generic `topic.resume` error now preserved
+`CONFLICT/topic_resume_cursor_ahead` with the actual Host
+`observedTopicHighSequence` and suggested recovery action.
+
+To prevent repeat false rollback without adding another deployment service,
+`packaging/check_running_release.py` is a **read-only** bounded physical
+readiness observer. Invoke after the existing production restart, supplying
+the intended exact Git SourceCut and the true old MainPID; it prints READY
+only if current symlink, running native systemd PID, exact process cwd,
+local HTTP health and local anonymous denial are all proven:
+
+```sh
+python3 services/gateway/packaging/check_running_release.py \
+  --expected-sourcecut "${MERGED_FULL_GIT_SHA}" \
+  --previous-pid "${OLD_REAL_MAINPID}" \
+  --timeout-seconds 16
+```
+
+Its observable state is monotonic **only within the two sequential PID
+checks and local canaries of that single read**; it cannot grant policy,
+restart a process, prove Cloudflare ingress mapping, confirm external
+ChatGPT tool-list refresh or replace real authenticated Agent acceptance.
+A negative or unobservable result is `NO_GO`, not evidence that the old
+SourceCut was already physically restored; a separate authorized rollback
+and readback must close that effect. The code itself is source-only until
+merged and present in the installed release or invoked from an exact
+verified Git worktree.
+
+Thought: SRE consumer acceptance, temporal falsification of systemd
+`Started ⇒ Ready`, and delete duplicate release/PDP logic.
+Logic: `PhysicalSource+PostStartPID+Health+AnonymousDeny ⇒ LocalReady`;
+`LocalReady ⇏ AuthenticatedClientAccepted`.
+Capability: existing native systemd, `/proc`, Python HTTP, original
+`check_same_route_admission._local_anonymous_denied`, bounded pytest
+negative cases, actual ChatGPT connected MCP calls. No new long-lived state.
+
 ## Real consumer observation behind the change
 
 On 2026-11-14, a native Runtime Job inspected the **currently installed**

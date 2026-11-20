@@ -588,6 +588,11 @@ impl Runtime {
     }
 
     fn dispatch_attempt(&self, attempt: &AttemptRecord) -> RuntimeResult<()> {
+        // Keep a pre-upgrade stored ContainedLocal plan from materializing a
+        // caller-chosen host bind after recovery. Deny before DISPATCH_ISSUED,
+        // preserving the original accepted identity for operator reconciliation.
+        let frozen = self.registry.execution_plan(&attempt.job_id)?;
+        self.verify_committed_contained_mount_environment(&frozen)?;
         let starting = self.registry.mark_dispatch_issued(
             &attempt.attempt_id,
             attempt.row_version,

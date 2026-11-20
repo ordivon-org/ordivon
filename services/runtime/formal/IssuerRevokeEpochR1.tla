@@ -16,13 +16,18 @@ EXTENDS Naturals, TLC
 \* Unit birth and physical target start are distinct actions. A real
 \* implementation still must prove all-epoch issuance enumeration, the exact
 \* launch ownership receipt, crash/recovery no-redispatch and Domain ACK.
+\* R56: native caller crash leaves a pending OS manager handoff with no Unit
+\* visible yet; only true handoff reconciliation may satisfy NoFutureSpawn.
+\* This remains MODEL-ONLY, not a deployed OS/PG atomicity guarantee.
 
 AttemptIds == {"a", "b"}
 VARIABLES issuer, issued, launcher, nativeUnit, stopIntent, fenced,
-          revokeAck, unitBornAfterAck, spawnedAfterAck
+          revokeAck, unitBornAfterAck, spawnedAfterAck,
+          nativeHandoffPending, crashedCallers
 
 vars == <<issuer, issued, launcher, nativeUnit, stopIntent, fenced,
-          revokeAck, unitBornAfterAck, spawnedAfterAck>>
+          revokeAck, unitBornAfterAck, spawnedAfterAck,
+          nativeHandoffPending, crashedCallers>>
 
 Init ==
     /\ issuer = "current"
@@ -34,6 +39,8 @@ Init ==
     /\ revokeAck = FALSE
     /\ unitBornAfterAck = FALSE
     /\ spawnedAfterAck = FALSE
+    /\ nativeHandoffPending = {}
+    /\ crashedCallers = {}
 
 \* Exact PG DISPATCH_ISSUED commit: DOES NOT imply a systemd Unit exists.
 Issue(a) ==
@@ -43,7 +50,8 @@ Issue(a) ==
     /\ launcher[a] = "not_started"
     /\ issued' = issued \cup {a}
     /\ UNCHANGED <<issuer, launcher, nativeUnit, stopIntent, fenced,
-                   revokeAck, unitBornAfterAck, spawnedAfterAck>>
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 \* Native caller entered an already-issued launch. Revoking PG cannot undo
 \* a systemd-run invocation which has not produced any observable Unit yet.
@@ -54,8 +62,21 @@ BeginNativeLaunch(a) ==
     /\ launcher[a] = "not_started"
     /\ nativeUnit[a] = "absent"
     /\ launcher' = [launcher EXCEPT ![a] = "inflight"]
+    /\ nativeHandoffPending' = nativeHandoffPending \cup {a}
     /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
-                   revokeAck, unitBornAfterAck, spawnedAfterAck>>
+                   revokeAck, unitBornAfterAck, spawnedAfterAck, crashedCallers>>
+
+\* Caller may crash after submitting the async systemd manager request.
+\* The Unit can remain absent while the manager may still deliver it later.
+CrashNativeCaller(a) ==
+    /\ a \in nativeHandoffPending
+    /\ launcher[a] = "inflight"
+    /\ nativeUnit[a] = "absent"
+    /\ launcher' = [launcher EXCEPT ![a] = "crashed_unknown"]
+    /\ crashedCallers' = crashedCallers \cup {a}
+    /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending>>
 
 CommitRevoke ==
     /\ issuer = "current"
@@ -63,19 +84,22 @@ CommitRevoke ==
     /\ issuer' = "revoked"
     /\ fenced' = TRUE
     /\ UNCHANGED <<issued, launcher, nativeUnit, stopIntent,
-                   revokeAck, unitBornAfterAck, spawnedAfterAck>>
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 \* A stale native caller may submit AFTER revoke commit. Safe ACK is blocked
 \* until the caller has either ended or is durably fenced before launching.
 NativeUnitBirth(a) ==
     /\ a \in issued
-    /\ launcher[a] = "inflight"
+    /\ a \in nativeHandoffPending
+    /\ launcher[a] \in {"inflight", "crashed_unknown", "blocked"}
     /\ nativeUnit[a] = "absent"
     /\ nativeUnit' = [nativeUnit EXCEPT ![a] = "pending"]
     /\ launcher' = [launcher EXCEPT ![a] = "delivered"]
+    /\ nativeHandoffPending' = nativeHandoffPending \ {a}
     /\ unitBornAfterAck' = (unitBornAfterAck \/ revokeAck)
     /\ UNCHANGED <<issuer, issued, stopIntent, fenced,
-                   revokeAck, spawnedAfterAck>>
+                   revokeAck, spawnedAfterAck, crashedCallers>>
 
 \* This is an abstract owner-qualified durable scheduler fence, NOT merely
 \* a PG row update, timeout or observation that systemctl has no Unit.
@@ -87,7 +111,8 @@ FenceUnstarted(a) ==
     /\ nativeUnit[a] = "absent"
     /\ launcher' = [launcher EXCEPT ![a] = "blocked"]
     /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
-                   revokeAck, unitBornAfterAck, spawnedAfterAck>>
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 NativeTargetStart(a) ==
     /\ a \in issued
@@ -95,7 +120,8 @@ NativeTargetStart(a) ==
     /\ nativeUnit' = [nativeUnit EXCEPT ![a] = "running"]
     /\ spawnedAfterAck' = (spawnedAfterAck \/ revokeAck)
     /\ UNCHANGED <<issuer, issued, launcher, stopIntent, fenced,
-                   revokeAck, unitBornAfterAck>>
+                   revokeAck, unitBornAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 RequestStop(a) ==
     /\ issuer = "revoked"
@@ -103,7 +129,8 @@ RequestStop(a) ==
     /\ nativeUnit[a] \in {"pending", "running"}
     /\ stopIntent' = stopIntent \cup {a}
     /\ UNCHANGED <<issuer, issued, launcher, nativeUnit, fenced,
-                   revokeAck, unitBornAfterAck, spawnedAfterAck>>
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 \* Verified absence of pending systemd manager Job, PID and cgroup AFTER
 \* native handoff; an inflight launcher with no Unit cannot enter here.
@@ -113,7 +140,8 @@ ObserveQuiet(a) ==
     /\ nativeUnit[a] \in {"pending", "running"}
     /\ nativeUnit' = [nativeUnit EXCEPT ![a] = "quiescent"]
     /\ UNCHANGED <<issuer, issued, launcher, stopIntent, fenced,
-                   revokeAck, unitBornAfterAck, spawnedAfterAck>>
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 LaunchFinalized(a) ==
     \/ (launcher[a] = "blocked" /\ nativeUnit[a] = "absent")
@@ -129,11 +157,13 @@ PublishAck ==
     /\ \A a \in AttemptIds: LaunchFinalized(a)
     /\ revokeAck' = TRUE
     /\ UNCHANGED <<issuer, issued, launcher, nativeUnit, stopIntent, fenced,
-                   unitBornAfterAck, spawnedAfterAck>>
+                   unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 Next ==
     \/ \E a \in AttemptIds: Issue(a)
     \/ \E a \in AttemptIds: BeginNativeLaunch(a)
+    \/ \E a \in AttemptIds: CrashNativeCaller(a)
     \/ CommitRevoke
     \/ \E a \in AttemptIds: NativeUnitBirth(a)
     \/ \E a \in AttemptIds: FenceUnstarted(a)
@@ -147,19 +177,28 @@ Spec == Init /\ [][Next]_vars
 TypeOK ==
     /\ issuer \in {"current", "revoked"}
     /\ issued \subseteq AttemptIds
-    /\ launcher \in [AttemptIds -> {"not_started", "inflight", "delivered", "blocked"}]
+    /\ launcher \in [AttemptIds -> {"not_started", "inflight", "crashed_unknown",
+                                      "delivered", "blocked"}]
     /\ nativeUnit \in [AttemptIds -> {"absent", "pending", "running", "quiescent"}]
     /\ stopIntent \subseteq AttemptIds
     /\ fenced \in BOOLEAN
     /\ revokeAck \in BOOLEAN
     /\ unitBornAfterAck \in BOOLEAN
     /\ spawnedAfterAck \in BOOLEAN
+    /\ nativeHandoffPending \subseteq AttemptIds
+    /\ crashedCallers \subseteq AttemptIds
 
 NoUnitBirthAfterAck == ~unitBornAfterAck
 NoSpawnAfterAck == ~spawnedAfterAck
 AckRequiresAllIssuedQuiescent ==
     revokeAck => (fenced /\ issuer = "revoked" /\ issued = AttemptIds /\
                   \A a \in AttemptIds: LaunchFinalized(a))
+
+\* Distinguish actual manager handoff from a stale "Unit absent" snapshot.
+AckRequiresNoHandoffPending == revokeAck => nativeHandoffPending = {}
+
+\* Legitimate crash + later manager delivery + native Stop + ACK is reachable.
+CrashThenAckUnreachable == ~(revokeAck /\ crashedCallers # {})
 
 \* Separate intentionally false positive-path reachability checks.
 AckUnreachable == ~revokeAck

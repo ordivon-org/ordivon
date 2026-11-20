@@ -12,6 +12,17 @@ impl PgRuntime {
             .ok_or_else(|| error("native runner missing"))?;
         super::platform::validate_runner(runner)?;
         let digest = universal::sha256_file(runner).map_err(io)?;
+        // A working ordinary contained path requires the operator-owned
+        // native Unix task identity. An unconfigured Runtime may still admit
+        // trusted_local, but must not advertise unexecutable containment.
+        let profiles = if matches!(
+            (self.config.executor.workspace_uid, self.config.executor.workspace_gid),
+            (Some(uid), Some(gid)) if uid != 0 && gid != 0
+        ) {
+            vec!["trusted_local", "contained_local"]
+        } else {
+            vec!["trusted_local"]
+        };
         Ok(json!({
             "schemaVersion":1,
             "node":{"nodeId":"linux-pg","platform":"linux","native":true},
@@ -29,7 +40,7 @@ impl PgRuntime {
             "structuredReleaseConfigured":false,
             "targets":[{
                 "target":"local_linux","configured":true,"available":true,
-                "executionProfiles":["trusted_local"],"structuredPlan":true,
+                "executionProfiles":profiles,"structuredPlan":true,
                 "immutableInputs":false,"hostDependencyCommitments":true,
                 "hostDependencyContinuityScope":"runtime_host_namespace_path_witness",
                 "executionProvider":{"contract":"local_linux_runner_v1","executableDigest":digest}

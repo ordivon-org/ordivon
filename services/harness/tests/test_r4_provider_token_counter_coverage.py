@@ -1,0 +1,140 @@
+"""Read-only Provider token-counter coverage over existing Harness receipts.
+
+The unit cases are hermetic. The PostgreSQL case reuses the original
+HarnessAgentRun public create -> run -> open -> resume -> inspect_terminal
+flow and is qualified only with an explicitly supplied real test DSN.
+"""
+
+from __future__ import annotations
+
+from dataclasses import replace
+from pathlib import Path
+import unittest
+
+from ordivon_harness.ordivon.loop import (
+    _provider_token_counter_coverage,
+    _usage_total_tokens,
+)
+from ordivon_harness.ordivon.model import ScriptedTurnAdapter
+from tests.pg_test_support import PostgresAgentRunCase
+from tests.test_r3_supported_agent_run import (
+    FixedClock,
+    completed,
+    contract,
+    needs_input,
+)
+
+
+class ProviderTokenCounterCoverageTests(unittest.TestCase):
+    def test_no_completed_calls_is_not_a_zero_cost_invoice(self) -> None:
+        self.assertEqual(
+            _provider_token_counter_coverage([]),
+            {
+                "status": "no_completed_calls",
+                "completedCalls": 0,
+                "countableCalls": 0,
+                "uncountableCalls": 0,
+            },
+        )
+
+    def test_explicit_zero_is_countable_but_missing_is_not(self) -> None:
+        self.assertEqual(
+            _provider_token_counter_coverage([{"totalTokens": 0}, {}, {"inputTokens": 2}]),
+            {
+                "status": "partially_countable",
+                "completedCalls": 3,
+                "countableCalls": 1,
+                "uncountableCalls": 2,
+            },
+        )
+
+    def test_complete_pair_is_countable_and_subsets_are_not_added(self) -> None:
+        usage = {
+            "totalTokens": 0,
+            "inputTokens": 90,
+            "outputTokens": 60,
+            "cacheReadTokens": 80,
+            "reasoningTokens": 30,
+        }
+        self.assertEqual(_usage_total_tokens(usage), 150)
+        self.assertEqual(
+            _provider_token_counter_coverage([usage]),
+            {
+                "status": "all_countable",
+                "completedCalls": 1,
+                "countableCalls": 1,
+                "uncountableCalls": 0,
+            },
+        )
+
+    def test_bool_negative_partial_and_nested_only_are_not_reported_zero(self) -> None:
+        unusable = [
+            {"totalTokens": True},
+            {"total_tokens": -1},
+            {"inputTokens": 1},
+            {"outputTokens": 1},
+            {"cacheReadTokens": 11, "reasoningTokens": 3},
+            {"usage": {"totalTokens": 15}},
+        ]
+        self.assertEqual(
+            _provider_token_counter_coverage(unusable),
+            {
+                "status": "none_countable",
+                "completedCalls": len(unusable),
+                "countableCalls": 0,
+                "uncountableCalls": len(unusable),
+            },
+        )
+
+
+class ProviderTokenCounterCoveragePgTests(PostgresAgentRunCase, unittest.TestCase):
+    def setUp(self) -> None:
+        self.set_up_pg()
+
+    def test_public_pg_pause_resume_terminal_receipt_coverage(self) -> None:
+        clock = FixedClock()
+        value = contract("token-coverage-r4")
+        first_turn = replace(needs_input("model-call:coverage-missing"), usage={})
+        first = self.create_pg(
+            Path("."),
+            value,
+            lambda _contract: ScriptedTurnAdapter((first_turn,)),
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        paused = first.run(({"role": "user", "content": "start"},))
+        self.assertTrue(paused.paused)
+        self.assertEqual(paused.loop_result.usage["totalTokens"], 0)
+        self.assertEqual(
+            paused.loop_result.usage["tokenCounterCoverage"]["status"],
+            "none_countable",
+        )
+
+        second_turn = replace(
+            completed("model-call:coverage-reported"),
+            usage={"inputTokens": 2, "outputTokens": 3},
+        )
+        reopened = self.open_pg(
+            Path("."),
+            value.harness_run_id,
+            lambda _contract: ScriptedTurnAdapter((second_turn,)),
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        finished = reopened.resume(additional_messages=({"role": "user", "content": "answer"},))
+        self.assertEqual(finished.loop_result.stop_code.value, "candidate_completed")
+        coverage = {
+            "status": "partially_countable",
+            "completedCalls": 2,
+            "countableCalls": 1,
+            "uncountableCalls": 1,
+        }
+        self.assertEqual(finished.loop_result.usage["tokenCounterCoverage"], coverage)
+        self.assertEqual(finished.loop_result.usage["totalTokens"], 5)
+        self.assertEqual(
+            [item.get("inputTokens") for item in finished.loop_result.usage["providerUsage"]],
+            [None, 2],
+        )
+        terminal = reopened.inspect_terminal()
+        self.assertEqual(terminal.receipt.usage["tokenCounterCoverage"], coverage)
+        self.assertEqual(terminal.receipt.usage["totalTokens"], 5)

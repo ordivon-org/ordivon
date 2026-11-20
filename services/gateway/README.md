@@ -92,7 +92,13 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   to skip Security. The installer stages and changes a symlink but does not
   restart the live process or prove connected Agent results. Before activation
   and after restart keep authenticated read/denial, recovery and rollback
-  consumer obligations. See docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
+  consumer obligations. The read-only
+  `packaging/check_running_release.py --expected-sourcecut SHA
+  --previous-pid PID` waits for a distinct real systemd PID/cwd and
+  local HTTP/anonymous-denial canaries rather than treating the unit's
+  `Type=simple` Started event as application readiness. It cannot certify
+  external authenticated Agent Tools or change any service. See
+  docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
 - **Trusted Cloudflare Access operator (explicit opt-in)**:
   ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR=true selects the already verified
   Cloudflare Access app as the operator trust boundary, removing duplicate
@@ -152,12 +158,19 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   reference grammar stays in execution_refs.py; the service.py compatibility
   import of parse_execution_ref remains available.
 
-Dependencies point from service to capability_catalog, execution_commands,
-execution_observations, and execution_refs. Both existing execution modules use
-owner_protocol for response validation and reuse the existing execution_refs
-wire grammar; neither imports service. Catalog inputs are the owner caller, copied route map and probe timeout. Extraction preserves the public route and JSON
-contracts. Behavioral tests establish observed compatibility, not proof
-of implementation-level semantic equivalence.
+The actual `GatewayService` composition root imports
+`capabilities.discovery.CapabilityCatalog`,
+`capabilities.execution.commands.ExecutionCommandMethods`,
+`capabilities.execution.observations.ExecutionObservationMethods`,
+`capabilities.execution.release.RuntimeReleaseProxy`, and
+`capabilities.host.dispatch.HostContinuityAdapter`.
+The execution adapters use `logic/owner_protocol.py` to validate Owner
+responses and `logic/execution_refs.py` for the public operation-reference
+grammar; no capability adapter imports the service facade. Discovery receives
+the Owner caller, a copied validated route map and a probe timeout. These
+extractions preserve the declared route and JSON contracts, but source tests
+alone do not prove installed business behavior or universal semantic
+equivalence.
 
 **Execution cancellation identity contract (Gateway B01 / Runtime owner):** the
 `execution.cancel` adapter forwards the exact Runtime Job identity from the

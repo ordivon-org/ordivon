@@ -410,8 +410,58 @@ mod cargo_issuer_environment_tests {
         assert_eq!(actual["CARGO_TARGET_DIR"], explicit["CARGO_TARGET_DIR"]);
     }
 }
+fn authorize_new_execution_profile(
+    requested: ExecutionProfile,
+    required: Option<ExecutionProfile>,
+) -> RuntimeResult<()> {
+    if required.is_some_and(|expected| expected != requested) {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::AuthorizationDenied,
+            "authenticated ingress does not authorize this executionProfile",
+            Some("execution.executionProfile"),
+            false,
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod profile_admission_guard_tests {
+    use super::*;
+
+    #[test]
+    fn profile_authority_is_fixed_by_ingress_not_proposal() {
+        assert!(authorize_new_execution_profile(
+            ExecutionProfile::ContainedLocal,
+            Some(ExecutionProfile::ContainedLocal)
+        )
+        .is_ok());
+        let denied = authorize_new_execution_profile(
+            ExecutionProfile::TrustedLocal,
+            Some(ExecutionProfile::ContainedLocal),
+        )
+        .unwrap_err();
+        assert_eq!(denied.code, RuntimeErrorCode::AuthorizationDenied);
+        assert!(
+            authorize_new_execution_profile(ExecutionProfile::TrustedLocal, None).is_ok(),
+            "existing trusted local operator path stays available"
+        );
+    }
+}
+
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
+        self.run_with_execution_profile_policy(proposal, None)
+    }
+
+    /// Authenticate new effects by the server-bound ingress profile without
+    /// breaking already-committed exact-key recovery. Replay MUST remain before
+    /// this mutable policy check: the former trusted Job is not re-spawned.
+    pub fn run_with_execution_profile_policy(
+        &self,
+        proposal: &JobRunProposal,
+        required_new_profile: Option<ExecutionProfile>,
+    ) -> RuntimeResult<JobObservation> {
         super::admission_validation::validate_resource_run_proposal_structure(proposal)?;
         proposal
             .execution
@@ -434,6 +484,9 @@ impl PgRuntime {
             );
         }
         let e = &proposal.execution;
+        // Only NEW admission is subject to the current ingress profile.
+        // Existing principal+clientRequestId was reconciled above.
+        authorize_new_execution_profile(e.execution_profile, required_new_profile)?;
         // ForeignReferences are not authorization. A real Harness dispatch
         // fence is only a source-owned exact-physical-intent indicator: do not
         // modify its environment before the actual issuer authority check.
