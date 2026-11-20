@@ -473,3 +473,43 @@ def test_withheld_dealer_not_a_market_research_alpha_or_capital_approval():
     )
     assert all(r["capitalAndTradingAuthority"] is False for r in output["snapshots"])
     assert all(r["compositeLiquidityScore"] is None for r in output["snapshots"])
+
+
+def test_no_week_yet_eligible_is_not_mislabeled_as_same_reported_week():
+    catalog, raw = _dealer_inputs()
+    panel = m.parse_dealer_sources(catalog=catalog, series=raw)
+    state = m._dealer_asof(local=datetime.fromisoformat("2024-07-10T10:00:00-04:00"), series=panel)
+    assert state["weekAlignment"] == "NO_ELIGIBLE_DEALER_WEEK"
+    assert all(
+        row["availability"] == "NO_WEEK_YET_RELEASE_ELIGIBLE"
+        and row["weekEnded"] is None
+        and row["valueUsdMillions"] is None
+        for row in state["weeklySeries"].values()
+    )
+
+
+def test_duplicate_dealer_cli_file_is_rejected_before_file_read(monkeypatch, capsys):
+    import sys
+
+    args = [
+        "finance_liquidity_asof.py",
+        "--h41",
+        "fake.html",
+        "--dts",
+        "fake.json",
+        "--sofr",
+        "fake.csv",
+        "--at",
+        "2026-11-20T15:00:00+00:00",
+        "--dealer-catalog",
+        "catalog.csv",
+        "--dealer-series",
+        "PDPOSGST-TOT.json",
+        "--dealer-series",
+        "PDPOSGST-TOT.json",
+    ]
+    monkeypatch.setattr(sys, "argv", args)
+    with pytest.raises(SystemExit) as exc:
+        m.main()
+    assert exc.value.code == 2
+    assert "duplicate dealer source ID" in capsys.readouterr().err

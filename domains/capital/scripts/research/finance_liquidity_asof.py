@@ -392,7 +392,13 @@ def _dealer_asof(*, local: datetime, series: dict[str, dict]) -> dict:
     weeks = {r["weekEnded"] for r in result.values()}
     return {
         "weeklySeries": result,
-        "weekAlignment": "SAME_REPORTED_WEEK" if len(weeks) == 1 else "DIFFERENT_OBSERVATION_WEEKS",
+        "weekAlignment": (
+            "NO_ELIGIBLE_DEALER_WEEK"
+            if weeks == {None}
+            else "SAME_REPORTED_WEEK"
+            if len(weeks) == 1
+            else "DIFFERENT_OBSERVATION_WEEKS"
+        ),
         "firstPublishedVintageAttested": False,
     }
 
@@ -572,6 +578,8 @@ def main():
     )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.dealer_series and len({p.stem for p in args.dealer_series}) != len(args.dealer_series):
+        parser.error("duplicate dealer source ID is not an independent source")
     captures = {f.name: _read(f, H41_MAX_BYTES) for f in args.h41}
     if len(captures) != len(args.h41):
         raise SystemExit("duplicate H41 capture filename")
