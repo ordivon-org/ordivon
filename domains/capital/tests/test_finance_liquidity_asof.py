@@ -338,3 +338,138 @@ def test_fiscal_and_h41_observation_days_are_not_implicitly_joined():
     assert result["crossSourceTga"] == "DIFFERENT_OBSERVATION_DAY"
     assert result["dts"]["recordDate"] == "2026-11-04"
     assert result["h41"]["observedOn"] == "2026-11-18"
+
+
+def _dealer_inputs(*, withhold_lent=True):
+    """Two real-shaped NY Fed weekly observations across three native key IDs."""
+    import csv
+    import io
+
+    o = io.StringIO()
+    writer = csv.writer(o)
+    writer.writerow(["Key Id", "Label", "Series Break"])
+    for key, (_, evidence) in m.DEALER_KEYS.items():
+        writer.writerow([key, "Total - U.S. Treasury: " + evidence, "SBN2024"])
+    meta = o.getvalue().encode()
+    data = {}
+    for key in m.DEALER_KEYS:
+        previous = (
+            "467271"
+            if key == "PDPOSGST-TOT"
+            else ("423640" if key == "PDSIOSB-UTSETTOT" else "120072")
+        )
+        newer = (
+            "456007"
+            if key == "PDPOSGST-TOT"
+            else ("411760" if key == "PDSIOSB-UTSETTOT" else "*" if withhold_lent else "123465")
+        )
+        data[key] = json.dumps(
+            {
+                "pd": {
+                    "timeseries": [
+                        {"asofdate": "2026-11-04", "keyid": key, "value": previous},
+                        {"asofdate": "2026-11-11", "keyid": key, "value": newer},
+                        {"asofdate": "2026-11-18", "keyid": key, "value": "999999"},
+                    ]
+                }
+            }
+        ).encode()
+    return meta, data
+
+
+def test_official_dealer_observation_is_not_available_same_week():
+    catalog, raw = _dealer_inputs()
+    series = m.parse_dealer_sources(catalog=catalog, series=raw)
+    before = m._dealer_asof(
+        local=datetime.fromisoformat("2026-11-19T16:00:00-05:00"), series=series
+    )
+    after = m._dealer_asof(local=datetime.fromisoformat("2026-11-19T16:31:00-05:00"), series=series)
+    net = "treasuryExTipsNetDealerPosition"
+    assert before["weeklySeries"][net]["weekEnded"] == "2026-11-04"
+    assert before["weeklySeries"][net]["valueUsdMillions"] == "467271"
+    assert after["weeklySeries"][net]["weekEnded"] == "2026-11-11"
+    assert after["weeklySeries"][net]["valueUsdMillions"] == "456007"
+    assert after["weeklySeries"][net]["scheduledAvailableAtNewYork"] == "2026-11-19T16:30:00-05:00"
+    assert after["firstPublishedVintageAttested"] is False
+
+
+def test_nyfed_star_is_not_zero_or_previous_week_imputation():
+    catalog, raw = _dealer_inputs()
+    series = m.parse_dealer_sources(catalog=catalog, series=raw)
+    snap = m._dealer_asof(local=datetime.fromisoformat("2026-11-20T10:00:00-05:00"), series=series)
+    lent = snap["weeklySeries"]["treasuryExTipsSecuritiesLent"]
+    assert lent["weekEnded"] == "2026-11-11"
+    assert lent["availability"] == "PUBLISHED_VALUE_WITHHELD"
+    assert lent["valueUsdMillions"] is None
+    assert snap["weekAlignment"] == "SAME_REPORTED_WEEK"
+    assert snap["weeklySeries"]["treasuryExTipsSecuritiesBorrowed"]["valueUsdMillions"] == "411760"
+
+
+def test_primary_dealer_thanksgiving_federal_holiday_delays_release():
+    assert (
+        m._dealer_scheduled_publication(
+            datetime.fromisoformat("2026-11-18T12:00:00").date()
+        ).isoformat()
+        == "2026-11-27T16:30:00-05:00"
+    )
+    catalog, raw = _dealer_inputs(withhold_lent=False)
+    series = m.parse_dealer_sources(catalog=catalog, series=raw)
+    thursday = m._dealer_asof(
+        local=datetime.fromisoformat("2026-11-26T17:00:00-05:00"), series=series
+    )
+    friday = m._dealer_asof(
+        local=datetime.fromisoformat("2026-11-27T16:31:00-05:00"), series=series
+    )
+    net = "treasuryExTipsNetDealerPosition"
+    assert thursday["weeklySeries"][net]["weekEnded"] == "2026-11-11"
+    assert friday["weeklySeries"][net]["weekEnded"] == "2026-11-18"
+
+
+def test_wrong_dealer_catalog_break_and_key_substitution_rejected():
+    catalog, raw = _dealer_inputs()
+    with pytest.raises(ValueError, match="series set incomplete"):
+        m.parse_dealer_sources(catalog=catalog, series={})
+    invalid_catalog = catalog.replace(b"SBN2024", b"SBN2015", 1)
+    with pytest.raises(ValueError, match="series break"):
+        m.parse_dealer_sources(catalog=invalid_catalog, series=raw)
+    fake = dict(raw)
+    key = "PDPOSGST-TOT"
+    data = json.loads(fake[key])
+    data["pd"]["timeseries"][1]["keyid"] = "PDSOOS-UTSETTOT"
+    fake[key] = json.dumps(data).encode()
+    with pytest.raises(ValueError, match="weekly identity"):
+        m.parse_dealer_sources(catalog=catalog, series=fake)
+
+
+def test_withheld_dealer_not_a_market_research_alpha_or_capital_approval():
+    catalog, raw = _dealer_inputs()
+    output = m.run(
+        raw_h41={"h41-20261119.html": _h41()},
+        raw_dts=[_dts()],
+        raw_sofr=_sofr(),
+        raw_dealer_catalog=catalog,
+        raw_dealer_series=raw,
+        at=["2026-11-19T21:00:00+00:00", "2026-11-19T22:00:00+00:00", "2026-11-20T15:00:00+00:00"],
+    )
+    assert output["sourceCounts"]["dealerNativeSeries"] == 3
+    assert output["standing"] == "RELEASE_CALENDAR_ALIGNED_SOURCE_HISTORY_UNATTESTED"
+    assert (
+        output["snapshots"][0]["dealer"]["weeklySeries"]["treasuryExTipsNetDealerPosition"][
+            "weekEnded"
+        ]
+        == "2026-11-04"
+    )
+    assert (
+        output["snapshots"][1]["dealer"]["weeklySeries"]["treasuryExTipsNetDealerPosition"][
+            "weekEnded"
+        ]
+        == "2026-11-11"
+    )
+    assert (
+        output["snapshots"][2]["dealer"]["weeklySeries"]["treasuryExTipsSecuritiesLent"][
+            "valueUsdMillions"
+        ]
+        is None
+    )
+    assert all(r["capitalAndTradingAuthority"] is False for r in output["snapshots"])
+    assert all(r["compositeLiquidityScore"] is None for r in output["snapshots"])

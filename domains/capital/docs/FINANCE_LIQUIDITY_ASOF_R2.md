@@ -131,6 +131,76 @@ release and observed dates, financial stock amounts, exact
 SOFR decimals, source standing and conflict status. No
 network or broker write is performed by the research script.
 
+## Dealer financing: source-native, release-qualified (P0 extension)
+
+The exact SAME Finance Research as-of CLI optionally reads 3 NY Fed
+Primary Dealer FR 2004 weekly statistics, not another platform or
+separate data authority. The official catalog has 1,539 keys.
+Only post-Jul-2024 official structural break SBN2024 observations are
+admitted; older series with different definitions are not stitched
+together.
+
+| NY Fed series ID | Financial interpretation | 2024-break published weeks |
+|---|---|---|
+| PDPOSGST-TOT | US Treasuries excluding TIPS: dealer net long-short position | 124 / 124 |
+| PDSIOSB-UTSETTOT | Same Treasuries: securities borrowed | 124 / 124 |
+| PDSOOS-UTSETTOT | Same Treasuries: securities lent | 49 / 124; **75 withheld** |
+
+Data units: USD millions, according to the official FR 2004 weekly
+statistical release. The Fed usually publishes on the FOLLOWING
+Thursday at approximately 16:15 New York time. This consumer uses a
+16:30 buffered schedule and shifts federal holidays to the next US
+federal business day; it does not certify historical first publication.
+
+Official missing token * means data not publicly reported, NOT
+a reported zero or proof that no financing occurred. The NY Fed
+notes that categories with fewer than 3 dealers reporting are not
+published, and that the historical endpoint can contain revisions.
+The model retains original week identity and outputs null value with
+PUBLISHED_VALUE_WITHHELD rather than zero or a previous valid value.
+
+Actual official inputs replayed at five decision instants:
+
+| NY decision instant | Eligible dealer week | Net position USD mn | Borrowed USD mn | Lent USD mn |
+|---|---|---:|---:|---:|
+| 2026-11-05 17:00 | 2026-10-28 | 452,759 | 425,849 | WITHHELD |
+| 2026-11-19 16:00 | 2026-11-04 | 467,271 | 423,640 | 120,072 |
+| 2026-11-19 16:35 | 2026-11-11 | 456,007 | 411,760 | 123,465 |
+| 2026-11-19 17:00 | 2026-11-11 | 456,007 | 411,760 | 123,465 |
+| 2026-11-20 10:00 | 2026-11-11 | 456,007 | 411,760 | 123,465 |
+
+The three positions and financing activities are not a conservation
+equation and cannot be netted to infer cash flowing into equities.
+They describe a reporting subset of dealers and are NOT global
+liquidity, SPX Alpha or actual matched ETF total-return economics.
+
+Use optional (all-or-nothing) arguments with provider raw data kept in
+an ignored local workspace, in addition to the existing H41/DTS/SOFR
+inputs:
+
+    --dealer-catalog .artifacts/liquidity-dealer-r1-private/pd-series-metadata.csv
+    --dealer-series .artifacts/liquidity-dealer-r1-private/PDPOSGST-TOT.json
+    --dealer-series .artifacts/liquidity-dealer-r1-private/PDSIOSB-UTSETTOT.json
+    --dealer-series .artifacts/liquidity-dealer-r1-private/PDSOOS-UTSETTOT.json
+
+Original API endpoints:
+- https://markets.newyorkfed.org/api/pd/list/timeseries.csv
+- https://markets.newyorkfed.org/api/pd/get/PDPOSGST-TOT.json
+- https://markets.newyorkfed.org/api/pd/get/PDSIOSB-UTSETTOT.json
+- https://markets.newyorkfed.org/api/pd/get/PDSOOS-UTSETTOT.json
+- https://www.newyorkfed.org/markets/counterparties/primary-dealers-statistics
+
+Captured source byte SHA-256 identities (2026-11-21):
+- catalog 31776e9749211f25d0e68fb5478f5d5ce9bb88161e4239246acba721fdfe3efe
+- position 51b4367f1f22a550327492232717d5b5e8125e224a84c802826a1cfec75307d6
+- borrowed d42ced99aec6975b7c3e9ca33699d807b8a7e1a521708ebe36c1c19042b379f5
+- lent 03a4257af15a6d0f8bebf6b34433ce44c494c20f8b22911df5987c8f067e18e8
+
+The captured source bytes were kept private and NOT committed.
+These hashes prove present bytes, not historical first availability.
+New test inputs are synthetic fixtures with actual provider-shaped
+field semantics; no real provider data is bundled in Git.
+
 ## Thought, logic, capabilities and stop rule
 
 - Positive Thought LEGO: monetary economics, reserve accounting,
