@@ -79,6 +79,144 @@ def _path_in_commit(value: str, *, target_filename: str = "feature_flags.py") ->
     return value
 
 
+def _git_path_set(root: Path, *args: str) -> set[str]:
+    """NUL-safe Git inventory, with bounded discovery and no path guessing."""
+    raw = _git(root, *args)
+    if not raw:
+        return set()
+    if len(raw) > 1024 * 1024:
+        raise DeliveryGateError("original output path inventory exceeds safe bound")
+    paths = raw.split(b"\0")
+    if paths[-1] != b"":
+        raise DeliveryGateError("original Git path inventory was truncated")
+    result: set[str] = set()
+    for value in paths[:-1]:
+        try:
+            path = value.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise DeliveryGateError("non-UTF8 original path requires source review") from exc
+        posix = PurePosixPath(path)
+        if (
+            not path or "\0" in path or "\\" in path or posix.is_absolute()
+            or path != posix.as_posix() or any(part in (".", "..") for part in posix.parts)
+        ):
+            raise DeliveryGateError("invalid original Git path")
+        result.add(path)
+    if len(result) > 2048:
+        raise DeliveryGateError("original output scope exceeds bounded qualification")
+    return result
+
+
+def qualify_original_git_output_scope(
+    original_repo: Path,
+    original_base_commit: str,
+    consumer_repo: Path,
+    consumer_commit: str,
+) -> dict[str, Any]:
+    """Compare *every* Git-worktree delta with independent immutable Git bytes.
+
+    This is a bounded worktree/Git-scope verifier, not a trusted Run-wide
+    output manifest, original recipient authorization, or Native OS drain.
+    Unknown ignored/deleted outputs fail closed. The caller-selected original
+    workspace, baseline and destination are not independently authenticated.
+    """
+    if not (
+        isinstance(original_base_commit, str)
+        and COMMIT_RE.fullmatch(original_base_commit)
+        and isinstance(consumer_commit, str)
+        and COMMIT_RE.fullmatch(consumer_commit)
+    ):
+        raise DeliveryGateError("original/consumer baselines require immutable full Git IDs")
+    if original_repo.is_symlink() or consumer_repo.is_symlink():
+        raise DeliveryGateError("original and recipient Git roots must be directories")
+    origin = original_repo.resolve(strict=True)
+    receiver = consumer_repo.resolve(strict=True)
+    if origin == receiver or origin in receiver.parents or receiver in origin.parents:
+        raise DeliveryGateError("original and consumer Git roots must be independent")
+    for repo in (origin, receiver):
+        git_root = Path(_git(repo, "rev-parse", "--show-toplevel").decode().strip()).resolve()
+        if git_root != repo:
+            raise DeliveryGateError("expected exact original or consumer Git root")
+    source_base = _git(
+        origin, "rev-parse", "--verify", original_base_commit + "^{commit}",
+    ).decode().strip()
+    if source_base != original_base_commit:
+        raise DeliveryGateError("original baseline changed during verification")
+    receiver_commit = _git(
+        receiver, "rev-parse", "--verify", consumer_commit + "^{commit}",
+    ).decode().strip()
+    if receiver_commit != consumer_commit:
+        raise DeliveryGateError("consumer immutable commit identity changed")
+    # Enumerate both staged/committed modifications since the original
+    # baseline and still-untracked outputs. Git -z retains spaces/newlines.
+    removed = _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=D", original_base_commit, "--",
+    )
+    if removed:
+        raise DeliveryGateError("deleted original source needs explicit Domain decision")
+    ignored = _git_path_set(
+        origin, "ls-files", "--others", "--ignored", "--exclude-standard", "-z",
+    )
+    if ignored:
+        raise DeliveryGateError("ignored original outputs require Domain retention decision: UNKNOWN")
+    changed = _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=ACMRT", original_base_commit, "--",
+    )
+    untracked = _git_path_set(origin, "ls-files", "--others", "--exclude-standard", "-z")
+    scoped = sorted(changed | untracked)
+    if not scoped:
+        raise DeliveryGateError("empty original Git output scope requires explicit Domain decision")
+    digests: dict[str, str] = {}
+    for relative in scoped:
+        original = origin / relative
+        if original.is_symlink() or not original.is_file() or origin not in original.resolve().parents:
+            raise DeliveryGateError("original output must be ordinary in-root file, not symlink")
+        if original.stat().st_size > 64 * 1024 * 1024:
+            raise DeliveryGateError("large original file requires streaming Artifact recipient")
+        source_bytes = original.read_bytes()
+        entry = _git(receiver, "ls-tree", consumer_commit, "--", relative).decode().strip()
+        if not (entry.startswith("100644 blob ") or entry.startswith("100755 blob ")):
+            raise DeliveryGateError("consumer omitted original output or stored non-file Git object")
+        received = _git(receiver, "show", consumer_commit + ":" + relative)
+        if received != source_bytes:
+            raise DeliveryGateError("original/consumer Git output bytes mismatch")
+        if original.read_bytes() != source_bytes:
+            raise DeliveryGateError("original output changed during consumer verification")
+        digests[relative] = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    # Consumer blobs are immutable under this exact commit. Verify source
+    # membership did not change while reading; native Run Epoch fencing is
+    # still independently required before a real protected Finalizer.
+    if removed != _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=D", original_base_commit, "--",
+    ) or changed != _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=ACMRT", original_base_commit, "--",
+    ) or untracked != _git_path_set(
+        origin, "ls-files", "--others", "--exclude-standard", "-z",
+    ) or ignored != _git_path_set(
+        origin, "ls-files", "--others", "--ignored", "--exclude-standard", "-z",
+    ):
+        raise DeliveryGateError("original output scope changed during verification")
+    return {
+        "originalOutputSetStanding": "verified_test_scope",
+        "completeOriginalOutputSetReadbackQualified": True,
+        "originalOutputPaths": scoped,
+        "originalOutputDigests": digests,
+        "originalBaseCommit": original_base_commit,
+        "consumerCommit": consumer_commit,
+        "sourceScope": "git-worktree-delta-and-untracked-only",
+        "scopeAuthority": "caller-supplied-original-and-consumer-not-authenticated",
+        "originalRunFullOutputCoverage": "UNKNOWN",
+        "workspaceSourceFenced": False,
+        "finalUserDeliveryProven": False,
+        "userAcknowledgement": "UNKNOWN",
+        "productionFinalizerEligible": False,
+    }
+
+
 def qualify(
     candidate_path: Path,
     consumer_repo: Path,
@@ -86,6 +224,8 @@ def qualify(
     delivered_path: str | None = None,
     *,
     task_id: str = TASK_ID,
+    original_workspace_repo: Path | None = None,
+    original_base_commit: str | None = None,
 ) -> dict[str, Any]:
     """Require hidden DomainQA and exact bytes read from an independent Git commit.
 
@@ -150,7 +290,23 @@ def qualify(
     if delivered != source_bytes:
         raise DeliveryGateError("consumer Git blob does not match the independently QA-passed candidate")
     source_sha = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    if (original_workspace_repo is None) != (original_base_commit is None):
+        raise DeliveryGateError("original workspace and immutable baseline must both be supplied")
+    scope: dict[str, Any] = (
+        qualify_original_git_output_scope(
+            original_workspace_repo, original_base_commit, repo, consumer_commit,
+        )
+        if original_workspace_repo is not None and original_base_commit is not None
+        else {
+            "originalOutputSetStanding": "UNKNOWN",
+            "completeOriginalOutputSetReadbackQualified": False,
+            "originalRunFullOutputCoverage": "UNKNOWN",
+            "workspaceSourceFenced": False,
+            "productionFinalizerEligible": False,
+        }
+    )
     return {
+        **scope,
         "schemaVersion": 1,
         "kind": "ordivon.harness-coding-consumer-delivery-qualification",
         "taskId": task_id,
@@ -179,6 +335,8 @@ def main() -> int:
     parser.add_argument("--consumer-commit", required=True)
     parser.add_argument("--consumer-path", default=None)
     parser.add_argument("--task-id", choices=tuple(TASK_TARGETS), default=TASK_ID)
+    parser.add_argument("--original-workspace-repo", type=Path, default=None)
+    parser.add_argument("--original-base-commit", default=None)
     args = parser.parse_args()
     try:
         value = qualify(
@@ -187,6 +345,8 @@ def main() -> int:
             args.consumer_commit,
             delivered_path=args.consumer_path,
             task_id=args.task_id,
+            original_workspace_repo=args.original_workspace_repo,
+            original_base_commit=args.original_base_commit,
         )
     except (DeliveryGateError, FileNotFoundError, OSError, subprocess.TimeoutExpired) as error:
         print(json.dumps({

@@ -185,3 +185,137 @@ def test_candidate_mutating_after_last_qa_must_not_be_qualified(
     monkeypatch.setattr(GATE, "_task_qa", lambda task_id=GATE.TASK_ID: qa)
     with pytest.raises(GATE.DeliveryGateError, match="candidate changed during"):
         GATE.qualify(candidate, repo, commit)
+
+
+def _original_and_consumer_git_roots(tmp_path: Path) -> tuple[Path, str, Path]:
+    """Two physically distinct disposable Git repositories; source baseline is fixed."""
+    original = tmp_path / "original-workspace"
+    original.mkdir()
+    _git(original, "init", "-q")
+    (original / ".gitignore").write_text("ignored-unique.bin\n")
+    (original / "feature_flags.py").write_text(
+        "def alpha_enabled():\n    return False\n"
+    )
+    _git(original, "add", ".gitignore", "feature_flags.py")
+    _git(
+        original, "-c", "user.name=Origin", "-c", "user.email=origin@example.invalid",
+        "commit", "-q", "-m", "original baseline",
+    )
+    baseline = _git(original, "rev-parse", "HEAD")
+    (original / "feature_flags.py").write_bytes(ORACLE.read_bytes())
+    (original / "unique result with spaces.bin").write_bytes(b"original\0unique\n")
+    recipient = tmp_path / "actual-consumer-git"
+    recipient.mkdir()
+    _git(recipient, "init", "-q")
+    return original, baseline, recipient
+
+
+def _recipient_commit(repo: Path, original: Path, *names: str) -> str:
+    for name in names:
+        target = repo / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(original / name, target)
+    _git(repo, "add", "-A")
+    _git(
+        repo, "-c", "user.name=Receiver",
+        "-c", "user.email=receiver@example.invalid",
+        "commit", "-q", "-m", "original receiver contents",
+    )
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_git_origin_scope_requires_every_changed_and_untracked_byte(tmp_path: Path) -> None:
+    origin, baseline, consumer = _original_and_consumer_git_roots(tmp_path)
+    partial = _recipient_commit(consumer, origin, "feature_flags.py")
+    with pytest.raises(GATE.DeliveryGateError, match="missing|omitted"):
+        GATE.qualify_original_git_output_scope(origin, baseline, consumer, partial)
+    # QA and selected source byte readback may pass while the untracked output
+    # is the only surviving copy in the original Workspace.
+    assert GATE.qualify(origin / "feature_flags.py", consumer, partial)[
+        "consumerGitByteReadbackQualified"
+    ] is True
+    complete = _recipient_commit(
+        consumer, origin, "feature_flags.py", "unique result with spaces.bin",
+    )
+    value = GATE.qualify_original_git_output_scope(
+        origin, baseline, consumer, complete,
+    )
+    assert value["completeOriginalOutputSetReadbackQualified"] is True
+    assert value["originalOutputSetStanding"] == "verified_test_scope"
+    assert set(value["originalOutputPaths"]) == {
+        "feature_flags.py", "unique result with spaces.bin",
+    }
+    assert value["finalUserDeliveryProven"] is False
+    assert value["workspaceSourceFenced"] is False
+    qualified = GATE.qualify(
+        origin / "feature_flags.py", consumer, complete,
+        original_workspace_repo=origin, original_base_commit=baseline,
+    )
+    assert qualified["completeOriginalOutputSetReadbackQualified"] is True
+    assert qualified["domainQA"] == "passed"
+
+
+def test_git_origin_scope_ignored_unique_output_requires_explicit_domain_decision(
+    tmp_path: Path,
+) -> None:
+    origin, baseline, consumer = _original_and_consumer_git_roots(tmp_path)
+    (origin / "ignored-unique.bin").write_bytes(b"sole-copy-ignored")
+    commit = _recipient_commit(
+        consumer, origin, "feature_flags.py", "unique result with spaces.bin",
+        "ignored-unique.bin",
+    )
+    # Even copying it must not imply that it is the full output set: the
+    # original ignored/worktree source needs a trusted retention decision.
+    with pytest.raises(GATE.DeliveryGateError, match="ignored|UNKNOWN"):
+        GATE.qualify_original_git_output_scope(origin, baseline, consumer, commit)
+
+
+def test_git_origin_scope_rejects_source_mutation_after_consumer_commit(
+    tmp_path: Path,
+) -> None:
+    origin, baseline, consumer = _original_and_consumer_git_roots(tmp_path)
+    commit = _recipient_commit(
+        consumer, origin, "feature_flags.py", "unique result with spaces.bin",
+    )
+    (origin / "unique result with spaces.bin").write_bytes(b"changed-source")
+    with pytest.raises(GATE.DeliveryGateError, match="mismatch|does not match"):
+        GATE.qualify_original_git_output_scope(origin, baseline, consumer, commit)
+
+
+def test_git_origin_scope_rejects_symlink_untracked_or_deleted_original(
+    tmp_path: Path,
+) -> None:
+    origin, baseline, consumer = _original_and_consumer_git_roots(tmp_path)
+    commit = _recipient_commit(
+        consumer, origin, "feature_flags.py", "unique result with spaces.bin",
+    )
+    (origin / "unique result with spaces.bin").unlink()
+    (origin / "unique result with spaces.bin").symlink_to(
+        tmp_path / "outside-root",
+    )
+    with pytest.raises(GATE.DeliveryGateError, match="symlink|ordinary"):
+        GATE.qualify_original_git_output_scope(origin, baseline, consumer, commit)
+    (origin / "unique result with spaces.bin").unlink()
+    (origin / "feature_flags.py").unlink()
+    with pytest.raises(GATE.DeliveryGateError, match="deleted|removed"):
+        GATE.qualify_original_git_output_scope(origin, baseline, consumer, commit)
+
+
+def test_git_origin_scope_without_provenance_never_qualifies_entire_run(
+    tmp_path: Path,
+) -> None:
+    origin, baseline, consumer = _original_and_consumer_git_roots(tmp_path)
+    commit = _recipient_commit(
+        consumer, origin, "feature_flags.py", "unique result with spaces.bin",
+    )
+    value = GATE.qualify(origin / "feature_flags.py", consumer, commit)
+    assert value["consumerGitByteReadbackQualified"] is True
+    assert value["completeOriginalOutputSetReadbackQualified"] is False
+    assert value["originalOutputSetStanding"] == "UNKNOWN"
+    with pytest.raises(GATE.DeliveryGateError, match="both|baseline"):
+        GATE.qualify(
+            origin / "feature_flags.py", consumer, commit,
+            original_workspace_repo=origin,
+        )
+    with pytest.raises(GATE.DeliveryGateError, match="immutable full Git"):
+        GATE.qualify_original_git_output_scope(origin, "HEAD", consumer, commit)

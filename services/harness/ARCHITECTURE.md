@@ -284,6 +284,34 @@ must not be promoted to trusted Finalizer authority. A real Coding/Research
 Domain owner must identify an independent durable recipient with its own
 retention and access policy before any real resource relinquishment.
 
+**R33 concrete Coding Git-worktree scope qualification (not a new Registry).**
+The original task-specific `evals/harness-edit-addressing-002/delivery_gate.py`
+keeps its established hidden QA and exact consumer `git show` verification.
+Without a trusted original Workspace and immutable base Git Commit it now
+explicitly returns `completeOriginalOutputSetReadbackQualified=false` and
+`originalOutputSetStanding=UNKNOWN`, even if the single selected Coding
+file passes QA. Its optional `--original-workspace-repo` and
+`--original-base-commit` reuse ordinary `git diff -z` and
+`git ls-files -z` to discover all changed/staged/committed and untracked
+Git-worktree outputs, then compare every one against an exact immutable
+recipient Git Commit and original bytes. Missing/stale bytes or deleted,
+ignored, symlink, oversized or ambiguous source content fail closed rather
+than silently discard unique values. Ignore-rule discoveries are not
+classified disposable simply because Git ignores them: a Domain retention
+policy or proper Artifact handling must first resolve them. This catches the
+R31 physical scenario where Coding QA passed but another original unique
+file never reached the recipient.
+
+The successful optional result is intentionally ONLY
+`originalOutputSetStanding=verified_test_scope` with
+`originalRunFullOutputCoverage=UNKNOWN`,
+`workspaceSourceFenced=false` and `productionFinalizerEligible=false`.
+Git worktree delta is not the whole Harness Run's native Artifact set,
+original Tool provenance, true recipient AuthN/retention, or systemd
+NoFutureSpawn. The caller may pass its own repo path and base SHA; those
+inputs are NOT trusted production authority. Do not promote this QA result
+alone into `workspace.claim.release` or a real user ACK.
+
 **Next structural cuts are consumer-driven, not directory-driven.**
 The remaining `ordivon/run_continuity.py` still couples working-set mutation,
 Provider dispatch, and Tool receipts; they must retain one PG writer and

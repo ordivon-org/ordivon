@@ -36,7 +36,7 @@ from tests.test_r3_supported_agent_run import (
 )
 
 SOURCE = "5ae84bdb6a89781fd380c91696f4c904c8a69ec9"
-BIN_DIR = Path("/var/tmp/ordivon-r31-domain-gt-claimonly-bin-20261120")
+BIN_DIR = Path("/var/tmp/ordivon-r33-git-scope-native-bin-20261120")
 
 
 def checked_executable(key: str, filename: str) -> Path:
@@ -199,6 +199,14 @@ def main() -> None:
             "sourceRepo": str(source_repo), "sourceRevision": SOURCE,
         })
         assert original["workspaceId"] == workspace_id
+        # The disposable Native store has the original checkout at the
+        # documented StoreConfig.workspaces_root(), not at the recipient Git.
+        native_source_worktree = root / "runtime-store" / "workspaces" / workspace_id
+        assert native_source_worktree.is_dir()
+        assert run(["git", "-C", str(native_source_worktree), "rev-parse",
+                    "--show-toplevel"], stdout=subprocess.PIPE).stdout.strip() == str(
+                        native_source_worktree.resolve()
+                    )
         value = contract("r29-crossdb-" + suffix, tools=True)
         binding = replace(execution_binding(value), workspace_ref=workspace_id)
         adapter_calls: list[str] = []
@@ -371,15 +379,33 @@ def main() -> None:
         partial_commit = consumer_commit("Coding QA passes but other output missing")
         partial = gate.qualify(source_candidate, recipient_repo, partial_commit)
         assert partial["consumerGitByteReadbackQualified"] is True
-        assert run(["git", "-C", str(recipient_repo), "ls-tree",
-                    partial_commit, "--", filename],
-                   stdout=subprocess.PIPE).stdout == ""
+        assert partial["completeOriginalOutputSetReadbackQualified"] is False
+        try:
+            gate.qualify(
+                source_candidate, recipient_repo, partial_commit,
+                original_workspace_repo=native_source_worktree,
+                original_base_commit=SOURCE,
+            )
+        except gate.DeliveryGateError as exc:
+            assert "omitted" in str(exc), str(exc)
+        else:
+            raise AssertionError("QA-picked single output wrongly qualified whole native source")
         assert run_handle.workspace_claim.require_held()["state"] == "held"
-        print("R31_CODING_QA_PASS_WITH_MISSING_SECOND_OUTPUT_MUST_STAY_HELD=PASS", flush=True)
+        print("R33_ACTUAL_NATIVE_SOURCE_GIT_SCOPE_OMITTED_SECOND_BLOB_DENIED=PASS", flush=True)
 
         recipient.write_bytes(original_bytes)
         consumer_sha = consumer_commit("accepted ALL scoped original native outputs")
-        independent = gate.qualify(source_candidate, recipient_repo, consumer_sha)
+        independent = gate.qualify(
+            source_candidate, recipient_repo, consumer_sha,
+            original_workspace_repo=native_source_worktree,
+            original_base_commit=SOURCE,
+        )
+        assert independent["completeOriginalOutputSetReadbackQualified"] is True
+        assert set(independent["originalOutputPaths"]) == {
+            "feature_flags.py", filename,
+        }, independent["originalOutputPaths"]
+        assert independent["originalRunFullOutputCoverage"] == "UNKNOWN"
+        assert independent["productionFinalizerEligible"] is False
         assert independent["domainQA"] == "passed"
         assert independent["domainQATrials"] == 3
         assert independent["consumerGitByteReadbackQualified"] is True
