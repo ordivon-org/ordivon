@@ -95,6 +95,24 @@ budget, independent market timestamp or provider financial effects.
 REVIEW_REQUIRED still requires independent review even when the caller
 claims independentReproduction=true; it never grants capital or orders.
 
+## Official monetary-liquidity as-of consumer (R2)
+
+Before using historical liquidity features, run
+domains/capital/scripts/research/finance_liquidity_asof.py against
+privately captured official H.4.1 dated HTML, FiscalData DTS JSON
+and NY Fed SOFR CSV. Supply --h41 / --dts / --sofr and an explicit
+timezone-qualified --at as described in
+domains/capital/docs/FINANCE_LIQUIDITY_ASOF_R2.md.
+
+The H.4.1 Wednesday stocks are not weekly averages; after 2022,
+the DTS TGA Closing Balance amount is on the open_today_bal field.
+Thursday 16:00 New York stock close precedes the generally 16:30
+H.4.1 publication. Keep conflicting source dates/values as unknown
+or explicit conflict rather than picking a convenient latest number.
+Archived web pages, blank revision flags and SHA-256 digests do
+not prove historical first-publication timestamps. This consumer
+never creates capital or trading authority.
+
 ## Method
 
 1. Select the simplest cash-flow-matched passive benchmark before claiming a
