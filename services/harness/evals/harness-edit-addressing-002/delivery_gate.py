@@ -217,6 +217,139 @@ def qualify_original_git_output_scope(
     }
 
 
+def qualify_original_native_job_artifact_git_scope(
+    native_client: Any,
+    native_job_id: str,
+    consumer_repo: Path,
+    consumer_commit: str,
+) -> dict[str, Any]:
+    """Read ALL registered original NativePG Job Artifact bytes into immutable Git.
+
+    This test-scoped reader reuses original PG Job observation/artifact.read,
+    not a new Artifact registry. The supplied Job/client are NOT by themselves
+    bound to an authenticated original Harness Run, Domain recipient or
+    retention contract, so this does NOT authorize production Claim release.
+    """
+    if (
+        not isinstance(native_job_id, str)
+        or not native_job_id
+        or len(native_job_id) > 256
+        or not isinstance(consumer_commit, str)
+        or not COMMIT_RE.fullmatch(consumer_commit)
+    ):
+        raise DeliveryGateError("original native Job and immutable receiver commit required")
+    if not hasattr(native_client, "call_tool"):
+        raise DeliveryGateError("original NativePG Artifact reader unavailable")
+
+    def native(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        try:
+            is_error, response = native_client.call_tool(name, arguments)
+        except Exception as exc:
+            raise DeliveryGateError("original NativePG Artifact read UNKNOWN") from exc
+        if type(is_error) is not bool or is_error or not isinstance(response, dict):
+            raise DeliveryGateError("original NativePG Artifact read unavailable or rejected")
+        return response
+
+    def original_job() -> dict[str, Any]:
+        result = native("job.get", {"schemaVersion": 1, "jobId": native_job_id})
+        job = result.get("job")
+        inventory = result.get("artifacts")
+        if (
+            not isinstance(job, dict) or job.get("jobId") != native_job_id
+            or job.get("resolution") != "succeeded"
+            or job.get("mechanicallyConverged") is not True
+            or not isinstance(inventory, dict)
+            or type(inventory.get("count")) is not int
+            or inventory["count"] < 1 or inventory["count"] > 32
+        ):
+            raise DeliveryGateError("original native Job or Artifact inventory not settled")
+        return result
+
+    first = original_job()
+    owner = native("job.observe", {
+        "schemaVersion": 1, "jobId": native_job_id, "waitMs": 0,
+        "stdoutTailBytes": 0, "stderrTailBytes": 0,
+    })
+    descriptors = owner.get("artifacts")
+    if (
+        owner.get("jobId") != native_job_id
+        or owner.get("executionTerminal") is not True
+        or owner.get("executionDisposition") != "succeeded"
+        or owner.get("deliveryDisposition") != "committed"
+        or owner.get("recoveryRequired") is not False
+        or not isinstance(descriptors, list)
+        or len(descriptors) != first["artifacts"]["count"]
+    ):
+        raise DeliveryGateError("original NativePG Artifact inventory incomplete or unstable")
+
+    digest_by_artifact: dict[str, str] = {}
+    repo = consumer_repo.resolve(strict=True)
+    if Path(_git(repo, "rev-parse", "--show-toplevel").decode().strip()).resolve() != repo:
+        raise DeliveryGateError("Native Artifact consumer must be exact Git root")
+    if _git(repo, "rev-parse", "--verify", consumer_commit + "^{commit}").decode().strip() != consumer_commit:
+        raise DeliveryGateError("Native Artifact recipient immutable commit changed")
+    for descriptor in descriptors:
+        if not isinstance(descriptor, dict):
+            raise DeliveryGateError("original Native Artifact descriptor invalid")
+        artifact_id = descriptor.get("artifactId")
+        digest = descriptor.get("digest")
+        count = descriptor.get("retainedBytes")
+        if (
+            not isinstance(artifact_id, str) or len(artifact_id) > 180
+            or not artifact_id or artifact_id in {".", ".."}
+            or any(x in artifact_id for x in ("/", "\\", "\x00"))
+            or artifact_id in digest_by_artifact
+            or not isinstance(digest, str)
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+            or type(count) is not int or count < 0 or count > 1024 * 1024
+            or descriptor.get("truncated") is not False
+            or descriptor.get("droppedBytes", 0) not in (None, 0)
+        ):
+            raise DeliveryGateError("original Native Artifact scope malformed, truncated or too large")
+        original = native("artifact.read", {
+            "schemaVersion": 1, "jobId": native_job_id,
+            "artifactId": artifact_id, "offset": 0,
+            "maxBytes": 1024 * 1024,
+        })
+        value = original.get("content")
+        if (
+            original.get("jobId") != native_job_id
+            or original.get("artifactId") != artifact_id
+            or not isinstance(value, str)
+            or original.get("offset") != 0
+            or original.get("eof") is not True
+            or original.get("digest") != digest
+        ):
+            raise DeliveryGateError("original Native Artifact identity/readback incomplete")
+        data = value.encode("utf-8")
+        if (
+            original.get("nextOffset") != len(data)
+            or len(data) != count
+            or "sha256:" + hashlib.sha256(data).hexdigest() != digest
+        ):
+            raise DeliveryGateError("original Native Artifact digest or byteLength mismatch")
+        consumer_path = "artifacts/" + artifact_id
+        entry = _git(repo, "ls-tree", consumer_commit, "--", consumer_path).decode().strip()
+        if not (entry.startswith("100644 blob ") or entry.startswith("100755 blob ")):
+            raise DeliveryGateError("consumer omitted original Native Artifact Git blob")
+        if _git(repo, "show", consumer_commit + ":" + consumer_path) != data:
+            raise DeliveryGateError("original Native Artifact and consumer Git bytes mismatch")
+        digest_by_artifact[artifact_id] = digest
+
+    if original_job()["artifacts"]["count"] != len(digest_by_artifact):
+        raise DeliveryGateError("original Native Artifact set changed during verification")
+    return {
+        "nativeJobArtifactSetReadbackQualified": True,
+        "nativeJobArtifactCount": len(digest_by_artifact),
+        "nativeJobArtifactDigests": digest_by_artifact,
+        "nativeJobId": native_job_id,
+        "nativeArtifactScopeAuthority": "caller-supplied-job-client-not-original-run-authenticated",
+        "nativeJobArtifactScopeStanding": "verified_test_scope",
+        "originalRunFullOutputCoverage": "UNKNOWN",
+        "productionFinalizerEligible": False,
+    }
+
+
 def qualify(
     candidate_path: Path,
     consumer_repo: Path,
@@ -226,6 +359,8 @@ def qualify(
     task_id: str = TASK_ID,
     original_workspace_repo: Path | None = None,
     original_base_commit: str | None = None,
+    original_native_job_id: str | None = None,
+    original_native_client: Any | None = None,
 ) -> dict[str, Any]:
     """Require hidden DomainQA and exact bytes read from an independent Git commit.
 
@@ -305,8 +440,23 @@ def qualify(
             "productionFinalizerEligible": False,
         }
     )
+    if (original_native_job_id is None) != (original_native_client is None):
+        raise DeliveryGateError("original Native Job and reader must both be provided")
+    if original_native_job_id is not None and original_workspace_repo is None:
+        raise DeliveryGateError("original Git baseline required alongside Native Job Artifacts")
+    native_scope = (
+        qualify_original_native_job_artifact_git_scope(
+            original_native_client, original_native_job_id, repo, consumer_commit,
+        )
+        if original_native_job_id is not None
+        else {"nativeJobArtifactSetReadbackQualified": False,
+              "nativeJobArtifactScopeStanding": "UNKNOWN",
+              "originalRunFullOutputCoverage": "UNKNOWN",
+              "productionFinalizerEligible": False}
+    )
     return {
         **scope,
+        **native_scope,
         "schemaVersion": 1,
         "kind": "ordivon.harness-coding-consumer-delivery-qualification",
         "taskId": task_id,

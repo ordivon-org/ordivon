@@ -319,3 +319,156 @@ def test_git_origin_scope_without_provenance_never_qualifies_entire_run(
         )
     with pytest.raises(GATE.DeliveryGateError, match="immutable full Git"):
         GATE.qualify_original_git_output_scope(origin, "HEAD", consumer, commit)
+
+
+def _native_artifact_receiver(tmp_path: Path):
+    """Original Git files and two independently registered Native PG artifacts."""
+    import hashlib
+    from types import SimpleNamespace
+
+    origin, base, receiver = _original_and_consumer_git_roots(tmp_path)
+    artifact_values = {
+        "attempt-original.stdout": "native output preserved\n".encode(),
+        "attempt-original.report": "实验结果：独立证据\n".encode(),
+    }
+    objects = [
+        {
+            "artifactId": artifact_id,
+            "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+            "retainedBytes": len(data),
+            "truncated": False,
+            "kind": "stdout" if artifact_id.endswith(".stdout") else "result",
+        }
+        for artifact_id, data in artifact_values.items()
+    ]
+    native_job = "job-physical-original-123"
+    calls: list[str] = []
+
+    def call_tool(name, args):
+        calls.append(name)
+        assert args["jobId"] == native_job
+        if name == "job.get":
+            return False, {
+                "job": {
+                    "jobId": native_job,
+                    "resolution": "succeeded",
+                    "mechanicallyConverged": True,
+                },
+                "artifacts": {"count": len(objects)},
+            }
+        if name == "job.observe":
+            return False, {
+                "jobId": native_job, "executionTerminal": True,
+                "executionDisposition": "succeeded",
+                "deliveryDisposition": "committed", "recoveryRequired": False,
+                "artifacts": objects,
+            }
+        if name == "artifact.read":
+            data = artifact_values[args["artifactId"]]
+            return False, {
+                "jobId": native_job, "artifactId": args["artifactId"],
+                "content": data.decode(),
+                "offset": 0, "nextOffset": len(data), "eof": True,
+                "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+            }
+        raise AssertionError("unexpected native tool " + name)
+
+    return origin, base, receiver, native_job, artifact_values, objects, SimpleNamespace(
+        call_tool=call_tool, calls=calls,
+    )
+
+
+def _commit_native_artifact_receiver(
+    repo: Path, original: Path, artifacts: dict[str, bytes], *, omit: set[str] = frozenset(),
+):
+    _recipient_commit(repo, original, "feature_flags.py", "unique result with spaces.bin")
+    for artifact_id, data in artifacts.items():
+        if artifact_id not in omit:
+            target = repo / "artifacts" / artifact_id
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+    _git(repo, "add", "-A")
+    if len(omit) != len(artifacts):
+        _git(repo, "-c", "user.name=Receiver", "-c", "user.email=receiver@example.invalid",
+             "commit", "-q", "-m", "receive native original PG registered artifact bytes")
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_native_pg_artifact_omitted_even_when_all_git_and_hiddenqa_pass(tmp_path: Path) -> None:
+    origin, base, consumer, job, artifacts, _objects, native = _native_artifact_receiver(tmp_path)
+    omitted = {"attempt-original.report"}
+    commit = _commit_native_artifact_receiver(consumer, origin, artifacts, omit=omitted)
+    assert GATE.qualify(
+        origin / "feature_flags.py", consumer, commit,
+        original_workspace_repo=origin, original_base_commit=base,
+    )["completeOriginalOutputSetReadbackQualified"] is True
+    with pytest.raises(GATE.DeliveryGateError, match="native|omitted|artifact"):
+        GATE.qualify(
+            origin / "feature_flags.py", consumer, commit,
+            original_workspace_repo=origin, original_base_commit=base,
+            original_native_job_id=job, original_native_client=native,
+        )
+
+
+def test_native_pg_artifact_corrupt_consumer_blob_rejected(tmp_path: Path) -> None:
+    origin, base, consumer, job, artifacts, _objects, native = _native_artifact_receiver(tmp_path)
+    corrupt = dict(artifacts)
+    corrupt["attempt-original.report"] = b"changed-test-not-original"
+    commit = _commit_native_artifact_receiver(consumer, origin, corrupt)
+    with pytest.raises(GATE.DeliveryGateError, match="mismatch|artifact"):
+        GATE.qualify(
+            origin / "feature_flags.py", consumer, commit,
+            original_workspace_repo=origin, original_base_commit=base,
+            original_native_job_id=job, original_native_client=native,
+        )
+
+
+def test_native_pg_artifact_full_scope_exact_bytes_but_run_authority_unknown(tmp_path: Path) -> None:
+    origin, base, consumer, job, artifacts, _objects, native = _native_artifact_receiver(tmp_path)
+    commit = _commit_native_artifact_receiver(consumer, origin, artifacts)
+    value = GATE.qualify(
+        origin / "feature_flags.py", consumer, commit,
+        original_workspace_repo=origin, original_base_commit=base,
+        original_native_job_id=job, original_native_client=native,
+    )
+    assert value["completeOriginalOutputSetReadbackQualified"] is True
+    assert value["nativeJobArtifactSetReadbackQualified"] is True
+    assert value["nativeJobArtifactCount"] == 2
+    assert value["originalRunFullOutputCoverage"] == "UNKNOWN"
+    assert value["productionFinalizerEligible"] is False
+    assert value["finalUserDeliveryProven"] is False
+    assert native.calls.count("artifact.read") == 2
+
+
+def test_native_pg_artifact_scope_requires_pair_and_registered_digest(
+    tmp_path: Path,
+) -> None:
+    origin, base, consumer, job, artifacts, objects, native = _native_artifact_receiver(tmp_path)
+    commit = _commit_native_artifact_receiver(consumer, origin, artifacts)
+    with pytest.raises(GATE.DeliveryGateError, match="both|original"):
+        GATE.qualify(
+            origin / "feature_flags.py", consumer, commit,
+            original_workspace_repo=origin, original_base_commit=base,
+            original_native_job_id=job,
+        )
+    objects[0]["digest"] = "sha256:" + "0" * 64
+    with pytest.raises(GATE.DeliveryGateError, match="digest|Artifact"):
+        GATE.qualify(
+            origin / "feature_flags.py", consumer, commit,
+            original_workspace_repo=origin, original_base_commit=base,
+            original_native_job_id=job, original_native_client=native,
+        )
+
+
+def test_native_pg_artifact_incomplete_inventory_or_truncation_stays_unknown(
+    tmp_path: Path,
+) -> None:
+    origin, base, consumer, job, artifacts, objects, native = _native_artifact_receiver(tmp_path)
+    commit = _commit_native_artifact_receiver(consumer, origin, artifacts)
+    objects[0]["truncated"] = True
+    with pytest.raises(GATE.DeliveryGateError, match="truncated|artifact"):
+        GATE.qualify(
+            origin / "feature_flags.py", consumer, commit,
+            original_workspace_repo=origin, original_base_commit=base,
+            original_native_job_id=job, original_native_client=native,
+        )

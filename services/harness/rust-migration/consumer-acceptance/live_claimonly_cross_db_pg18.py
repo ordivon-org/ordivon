@@ -36,7 +36,7 @@ from tests.test_r3_supported_agent_run import (
 )
 
 SOURCE = "5ae84bdb6a89781fd380c91696f4c904c8a69ec9"
-BIN_DIR = Path("/var/tmp/ordivon-r34-failclosed-native-bin-20261120")
+BIN_DIR = Path("/var/tmp/ordivon-r35-fulljobartifacts-native-bin-20261121")
 
 
 def checked_executable(key: str, filename: str) -> Path:
@@ -394,13 +394,58 @@ def main() -> None:
         print("R33_ACTUAL_NATIVE_SOURCE_GIT_SCOPE_OMITTED_SECOND_BLOB_DENIED=PASS", flush=True)
 
         recipient.write_bytes(original_bytes)
-        consumer_sha = consumer_commit("accepted ALL scoped original native outputs")
+        consumer_sha = consumer_commit("accepted ALL scoped original Git worktree outputs")
+        # This stronger R35 negative must fail *after* QA and all Git source
+        # outputs are delivered: NativePG registered artifacts are another
+        # independent original output family and cannot silently be dropped.
+        assert gate.qualify(
+            source_candidate, recipient_repo, consumer_sha,
+            original_workspace_repo=native_source_worktree,
+            original_base_commit=SOURCE,
+        )["completeOriginalOutputSetReadbackQualified"] is True
+        original_artifacts = physical.get("artifacts")
+        assert isinstance(original_artifacts, list) and original_artifacts, physical
+        try:
+            gate.qualify(
+                source_candidate, recipient_repo, consumer_sha,
+                original_workspace_repo=native_source_worktree,
+                original_base_commit=SOURCE,
+                original_native_job_id=native_job_id,
+                original_native_client=ordinary,
+            )
+        except gate.DeliveryGateError as exc:
+            assert "omitted" in str(exc), str(exc)
+        else:
+            raise AssertionError("complete original Coding Git wrongly covered native Artifacts")
+        assert run_handle.workspace_claim.require_held()["state"] == "held"
+        print("R35_NATIVE_OS_JOB_ARTIFACTS_OMITTED_GIT_QA_GREEN_CLAIM_HELD=PASS", flush=True)
+        for artifact in original_artifacts:
+            artifact_id = artifact["artifactId"]
+            native_bytes = call(ordinary, "artifact.read", {
+                "schemaVersion": 1, "jobId": native_job_id,
+                "artifactId": artifact_id, "offset": 0, "maxBytes": 1024 * 1024,
+            })
+            assert native_bytes["eof"] is True
+            actual = native_bytes["content"].encode("utf-8")
+            assert native_bytes["nextOffset"] == len(actual)
+            assert len(actual) == artifact["retainedBytes"]
+            assert native_bytes["digest"] == artifact["digest"]
+            assert "sha256:" + hashlib.sha256(actual).hexdigest() == artifact["digest"]
+            target = recipient_repo / "artifacts" / artifact_id
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(actual)
+        consumer_sha = consumer_commit("accepted original Git and full native PG Artifact set")
         independent = gate.qualify(
             source_candidate, recipient_repo, consumer_sha,
             original_workspace_repo=native_source_worktree,
             original_base_commit=SOURCE,
+            original_native_job_id=native_job_id,
+            original_native_client=ordinary,
         )
         assert independent["completeOriginalOutputSetReadbackQualified"] is True
+        assert independent["nativeJobArtifactSetReadbackQualified"] is True
+        assert independent["nativeJobArtifactCount"] == len(original_artifacts)
+        print("R35_NATIVE_OS_JOB_COMPLETE_REGISTERED_ARTIFACT_SET_IMMUTABLE_GIT_PASS", flush=True)
         assert set(independent["originalOutputPaths"]) == {
             "feature_flags.py", filename,
         }, independent["originalOutputPaths"]
@@ -482,6 +527,14 @@ def main() -> None:
         assert run(["git", "-C", str(recipient_repo), "show",
                     consumer_sha + ":feature_flags.py"],
                    stdout=subprocess.PIPE).stdout.encode() == actual_coding
+        for artifact in original_artifacts:
+            artifact_id = artifact["artifactId"]
+            retained = run(["git", "-C", str(recipient_repo), "show",
+                            consumer_sha + ":artifacts/" + artifact_id],
+                           stdout=subprocess.PIPE).stdout.encode("utf-8")
+            assert len(retained) == artifact["retainedBytes"]
+            assert "sha256:" + hashlib.sha256(retained).hexdigest() == artifact["digest"]
+        print("R35_POST_WORKSPACE_DELETE_ALL_NATIVE_ARTIFACT_GIT_BLOBS_READABLE=PASS", flush=True)
         # Workspace physical deletion has occurred; verified independent Git
         # source blob remains readable. User completion is STILL UNKNOWN.
         assert independent["finalUserDeliveryProven"] is False

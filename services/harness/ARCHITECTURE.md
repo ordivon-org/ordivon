@@ -339,6 +339,35 @@ NoFutureSpawn. The caller may pass its own repo path and base SHA; those
 inputs are NOT trusted production authority. Do not promote this QA result
 alone into `workspace.claim.release` or a real user ACK.
 
+**R35 original NativePG registered Artifact-set consumer closure (scoped).**
+The existing Coding evaluator now optionally composes its R33 original Git
+worktree scope with the original *one* NativePG Job's complete registered
+Artifact descriptor set. It reuses existing authenticated NativePG
+`job.get` + terminal `job.observe` and bounded `artifact.read`:
+every Artifact ID, PG-registered digest, retained byte length, complete
+UTF-8 bytes and original Runtime Job identity must match its corresponding
+immutable downstream Git `artifacts/<artifactId>` blob. Incomplete lists,
+missing/changed blobs, tampered digest, truncated or over-limit Artifacts,
+nonterminal/unknown Job observations and mutable Git refs fail closed. This
+uses the original Runtime PG Artifact registry and original Git objects;
+there is no shadow Artifact registry or another control-plane service.
+
+The opt-in real NativePG18/two-database/OS/Git consumer now proves the new
+hard negative: Coding hidden QA and ALL scoped original Git-worktree files
+are green, but any unreceived Native Job Artifact makes the same original
+Coding Gate refuse handoff while native Claim remains HELD. Exact original
+Native Artifact registered bytes are copied into an immutable independent
+consumer Git commit; after the test-only privileged release and nonforce
+Workspace deletion, ALL these Artifact Git blobs remain independently
+readable with matching length+SHA-256. This is a test-owned recipient,
+not proof of a genuine original Coding/Research recipient's AuthN, retention
+or original Run Tool-to-Job binding. The newly supplied Native Job ID and
+reader are *caller-provided test inputs*; `originalRunFullOutputCoverage`
+remains `UNKNOWN`, `productionFinalizerEligible=false` and no true
+user ACK or Native all-issued NoFutureSpawn can be inferred. R34 normal
+Run release remains fail closed; raw dedicated Native release is still
+unqualified and must not be installed for ordinary model execution.
+
 **Next structural cuts are consumer-driven, not directory-driven.**
 The remaining `ordivon/run_continuity.py` still couples working-set mutation,
 Provider dispatch, and Tool receipts; they must retain one PG writer and
