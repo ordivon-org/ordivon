@@ -29,6 +29,9 @@ struct Fixture {
     /// is intentionally no foreign Harness Schema or issuer SQL function.
     claim_only_profile: bool,
     harness_schema_override: Option<String>,
+    // Only the contained-native tests install disposable nonroot payload ownership.
+    // Original other PostgreSQL18 fixtures preserve historical owner behavior.
+    contained_nonroot_test: bool,
     ordinary_contained_only: bool,
 }
 impl Fixture {
@@ -161,6 +164,7 @@ impl Fixture {
             harness_dispatch_test: false,
             claim_only_profile: false,
             harness_schema_override: None,
+            contained_nonroot_test: false,
             ordinary_contained_only: false,
         }
     }
@@ -234,6 +238,11 @@ impl Fixture {
             .env("ORDIVON_PG_PRINCIPAL", principal)
             .stdout(Stdio::null())
             .stderr(output);
+        if self.contained_nonroot_test || self.ordinary_contained_only {
+            endpoint
+                .env("ORDIVON_PG_WORKSPACE_UID", "65534")
+                .env("ORDIVON_PG_WORKSPACE_GID", "65534");
+        }
         if self.ordinary_contained_only {
             endpoint.env("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE", "contained_local");
         } else {
@@ -6121,9 +6130,11 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
 fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let mut fixture = Fixture::new();
     fixture.host_visible_test_runner = true;
-    // This is the actual ordinary-Agent policy. A test that secretly needs
-    // trusted_local to commit a file would green a broken Coding cutover.
+    // Exercise the actual ordinary-Agent contained-only route while the
+    // independent operator config binds its task to nonroot UID/GID.
+    // Neither a trusted_local escape nor a root-contained task may green.
     fixture.ordinary_contained_only = true;
+    fixture.contained_nonroot_test = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     // A normal Agent must discover exactly the profiles the same native PG
@@ -6155,6 +6166,22 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
         json!({"workspaceId":"ws-contained-git","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(opened["isError"], true, "native Workspace OPEN: {opened}");
+    // A second Workspace is the exact scope a different Agent could hold
+    // under the same operator-owned test UID/GID. It must not become visible
+    // through the first task's native contained mount, even by absolute path.
+    let foreign = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-contained-foreign","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(
+        foreign["isError"], true,
+        "foreign native Workspace: {foreign}"
+    );
+    let foreign_probe = fixture
+        .root
+        .join("store/workspaces/ws-contained-foreign/foreign-probe.txt");
+    fs::write(&foreign_probe, b"foreign scope must not be read").unwrap();
     // A caller's HOME/TMPDIR/CARGO_TARGET_DIR is untrusted DATA. The
     // ContainedLocal systemd launcher bind-mounts those paths: fail before
     // native Job admission rather than granting arbitrary host mount access.
@@ -6235,7 +6262,25 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let command = r#"set -eu
 if test -e /etc/ordivon && test -r /etc/ordivon; then echo 'CONTAINED_CONTROL_DIRECTORY_VISIBLE'; exit 53; fi
 if test -r /etc/ordivon/runtime-mcp.token; then echo 'CONTAINED_SECRET_VISIBLE'; exit 54; fi
+# Only ask the kernel whether the root-owned host credential is readable.
+# Do NOT open or print any secret contents. A pass means the process is NOT
+# isolated from host-root-owned credentials outside the configured denylist.
+if test -r /etc/shadow; then echo 'CONTAINED_HOST_ROOT_READABLE'; exit 57; fi
+if test "$(id -u)" != 65534; then echo 'CONTAINED_TASK_NOT_NONROOT'; exit 58; fi
+# Native Runner retains only CAP_DAC_READ_SEARCH for original-source
+# reconciliation; the untrusted child must inherit NO effective capabilities.
+while read -r field value _; do
+    if test "$field" = "CapEff:" && test "$value" != "0000000000000000"; then
+        echo 'CONTAINED_TASK_HAS_EFFECTIVE_CAPS'; exit 62
+    fi
+done < /proc/self/status
+if mv .git .git-moved 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_REBIND'; exit 59; fi
+if rm .git 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_DELETE'; exit 60; fi
+if test -r "$FOREIGN_PROBE" || test -w "$FOREIGN_PROBE"; then
+    echo 'CONTAINED_FOREIGN_WORKSPACE_ACCESS'; exit 61;
+fi
 printf 'native-contained-workspace' > contained-native.txt
+chmod 600 contained-native.txt
 git rev-parse --is-inside-work-tree >/dev/null
 if git add contained-native.txt >/dev/null 2>&1; then echo 'CONTAINED_WRITABLE_SHARED_GIT_AUTHORITY'; exit 55; fi
 printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
@@ -6251,6 +6296,7 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
                 "args":["-lc",command],
                 "cwdRelative":".",
                 "executionProfile":"contained_local",
+                "env":{"FOREIGN_PROBE": foreign_probe.to_string_lossy().into_owned()},
                 "timeoutMs":15000
             },
             "waitMs":10000,
@@ -6388,6 +6434,24 @@ printf '%s' "$candidate"
         );
         assert_ne!(candidate["isError"], true, "{candidate}");
     }
+    if candidate["structuredContent"]["executionDisposition"] != "succeeded" {
+        let result_artifact = candidate["structuredContent"]["artifacts"]
+            .as_array()
+            .and_then(|items| items.iter().find(|item| item["kind"] == "execution_result"))
+            .and_then(|item| item["artifactId"].as_str());
+        if let Some(artifact_id) = result_artifact {
+            let actual = call(
+                &endpoint,
+                "artifact.read",
+                json!({"jobId":candidate_job,"artifactId":artifact_id,
+                       "offset":0,"maxBytes":4096}),
+            );
+            eprintln!(
+                "R63_CONTAINED_PRIVATE_GIT_RESULT={}",
+                actual["structuredContent"]["content"]
+            );
+        }
+    }
     assert_eq!(
         candidate["structuredContent"]["executionDisposition"], "succeeded",
         "real contained private Git candidate creation: {candidate}"
@@ -6496,11 +6560,31 @@ printf '%s' "$candidate"
         json!({"workspaceId":"ws-contained-git"}),
     );
     assert_ne!(state["isError"], true, "{state}");
+    // A Git candidate belongs to the separate original consumer and must
+    // remain in this Workspace until independent source acceptance. The
+    // original protected HEAD is intentionally unchanged.
     assert_eq!(
         state["structuredContent"]["dirty"], true,
         "source proposal must remain retained until original recipient acceptance: {state}"
     );
-    eprintln!("R57_CONTAINED_ONLY_GIT_ALTERNATES_SOURCE_RECIPIENT_FETCH_NATIVE_PG18_PASS");
+    // Cache parent directories are shared operator assets; only original
+    // Workspace-private cache descendants may receive the task's group.
+    for ancestor in ["cache", "cache/workspaces", "cache/tmp", "cache/build"] {
+        let path = fixture.root.join("store").join(ancestor);
+        let meta = fs::metadata(&path).expect("shared cache ancestor");
+        assert_eq!(meta.uid(), 0, "root owner changed for {ancestor}");
+        assert_ne!(
+            meta.gid(),
+            65534,
+            "task group owns shared ancestor {ancestor}"
+        );
+        assert_eq!(
+            meta.permissions().mode() & 0o020,
+            0,
+            "shared cache ancestor became group writable: {ancestor}"
+        );
+    }
+    eprintln!("R63_ORDINARY_NONROOT_PRIVATE_GIT_ORIGINAL_SOURCE_RECIPIENT_PASS");
 }
 
 /**

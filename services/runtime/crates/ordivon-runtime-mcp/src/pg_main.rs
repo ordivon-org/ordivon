@@ -101,9 +101,33 @@ fn ordinary_contained_only(raw: Option<&str>) -> Result<bool, &'static str> {
     }
 }
 
+// Do not start a Runtime that advertises contained-only Jobs while the
+// system has no operator-owned Unix task identity to execute them.
+// Unlike per-Job rejection, service startup failure cannot advertise a
+// usable Agent execution capability that does not exist.
+#[cfg(target_os = "linux")]
+fn require_ordinary_contained_owner(
+    restricted: bool,
+    owner: Option<(u32, u32)>,
+) -> Result<(), &'static str> {
+    if restricted && !matches!(owner, Some((uid, gid)) if uid != 0 && gid != 0) {
+        return Err("contained-only ordinary ingress requires nonroot Workspace UID and GID");
+    }
+    Ok(())
+}
+
 #[cfg(all(test, target_os = "linux"))]
 mod ordinary_ingress_profile_configuration_tests {
-    use super::ordinary_contained_only;
+    use super::{ordinary_contained_only, require_ordinary_contained_owner};
+
+    #[test]
+    fn contained_ingress_must_have_real_nonroot_task_identity_at_startup() {
+        assert!(require_ordinary_contained_owner(true, None).is_err());
+        assert!(require_ordinary_contained_owner(true, Some((0, 65534))).is_err());
+        assert!(require_ordinary_contained_owner(true, Some((65534, 0))).is_err());
+        assert!(require_ordinary_contained_owner(true, Some((65534, 65534))).is_ok());
+        assert!(require_ordinary_contained_owner(false, None).is_ok());
+    }
 
     #[test]
     fn only_an_explicit_operator_mode_can_restrict_ordinary_new_jobs() {
@@ -226,6 +250,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .into_iter()
     .flatten()
     .collect();
+    // Optional operator-owned Unix payload owner. Ordinary callers never set
+    // it. A contained Job requires both nonzero IDs; otherwise admission
+    // fails closed rather than running the task as host UID 0.
+    let contained_workspace_owner = match (
+        pg_auth::optional_env("ORDIVON_PG_WORKSPACE_UID")?,
+        pg_auth::optional_env("ORDIVON_PG_WORKSPACE_GID")?,
+    ) {
+        (None, None) => None,
+        (Some(uid), Some(gid)) => {
+            let uid = uid.parse::<u32>()?;
+            let gid = gid.parse::<u32>()?;
+            if uid == 0 || gid == 0 {
+                return Err("contained Workspace payload owner must be nonroot".into());
+            }
+            Some((uid, gid))
+        }
+        _ => return Err("PG Workspace UID and GID must be configured together".into()),
+    };
+    require_ordinary_contained_owner(contained_ordinary_only, contained_workspace_owner)?;
     let config = PgRuntimeConfig {
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
@@ -249,8 +292,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         executor: UniversalExecutorConfig {
             store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
             workspace_root: None,
-            workspace_uid: None,
-            workspace_gid: None,
+            workspace_uid: contained_workspace_owner.map(|(uid, _)| uid),
+            workspace_gid: contained_workspace_owner.map(|(_, gid)| gid),
             runner_path: Some(PathBuf::from(required("ORDIVON_PG_RUNNER")?)),
             allowed_executable_roots: serde_json::from_str(&required(
                 "ORDIVON_PG_EXECUTABLE_ROOTS_JSON",

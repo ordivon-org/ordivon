@@ -93,6 +93,7 @@ fn pg_workspace_tool_environment(
 fn pg_bounded_contained_cache_directory(
     executor: &UniversalExecutorConfig,
     path: &Path,
+    workspace_id: &str,
 ) -> RuntimeResult<()> {
     use std::ffi::CString;
     use std::os::fd::{AsRawFd, FromRawFd};
@@ -105,6 +106,22 @@ fn pg_bounded_contained_cache_directory(
             "execution.env",
         )
     })?;
+    // The parents cache/, cache/tmp/, cache/workspaces/, cache/build/
+    // are SHARED Runtime authority. Never chgrp/chmod them for a single
+    // task. Only the exact private Workspace cache and its descendants
+    // can become writable by that task's Unix group.
+    let private_roots = [
+        executor.workspace_cache_path(workspace_id),
+        executor.workspace_tmp_path(workspace_id),
+        executor.workspace_build_cache_path(workspace_id),
+    ];
+    if !private_roots.iter().any(|root| path.starts_with(root)) {
+        return Err(RuntimeError::invalid(
+            "contained cache is not rooted in the original Workspace",
+            "execution.env",
+        ));
+    }
+    let mut walked = executor.store_root.clone();
     let mut current = universal::open_directory_nofollow(&executor.store_root).map_err(io)?;
     for component in components.components() {
         let Component::Normal(name) = component else {
@@ -113,6 +130,7 @@ fn pg_bounded_contained_cache_directory(
                 "execution.env",
             ));
         };
+        walked.push(name);
         let segment = CString::new(name.as_bytes()).map_err(|_| {
             RuntimeError::invalid("contained cache path contains NUL", "execution.env")
         })?;
@@ -149,6 +167,24 @@ fn pg_bounded_contained_cache_directory(
                 "execution.env",
             ));
         }
+        // Only the opened, nofollow WORKSPACE-PRIVATE cache root and
+        // descendants may be group-writable. A single Agent must not gain
+        // ownership/write permission over other Workspaces via a shared
+        // cache ancestor.
+        if private_roots.iter().any(|root| walked.starts_with(root)) {
+            let gid = executor.workspace_gid.ok_or_else(|| {
+                RuntimeError::invalid(
+                    "contained workspace GID absent",
+                    "execution.executionProfile",
+                )
+            })?;
+            if unsafe { libc::fchown(next, 0, gid) } < 0 || unsafe { libc::fchmod(next, 0o770) } < 0
+            {
+                let failure = std::io::Error::last_os_error();
+                unsafe { libc::close(next) };
+                return Err(io(failure));
+            }
+        }
         current = unsafe { std::fs::File::from_raw_fd(next) };
     }
     Ok(())
@@ -158,6 +194,7 @@ fn pg_bounded_contained_cache_directory(
 fn pg_bounded_contained_cache_directory(
     _executor: &UniversalExecutorConfig,
     _path: &Path,
+    _workspace_id: &str,
 ) -> RuntimeResult<()> {
     Err(RuntimeError::invalid(
         "contained_local requires Linux native directory authority",
@@ -174,7 +211,15 @@ fn pg_contained_workspace_environment(
     mut environment: std::collections::BTreeMap<String, String>,
     executor: &UniversalExecutorConfig,
     workspace_id: &str,
+    original_workspace_path: &Path,
 ) -> RuntimeResult<std::collections::BTreeMap<String, String>> {
+    if !matches!((executor.workspace_uid, executor.workspace_gid), (Some(uid), Some(gid)) if uid != 0 && gid != 0)
+    {
+        return Err(RuntimeError::invalid(
+            "contained_local requires operator-owned nonroot Workspace UID/GID",
+            "execution.executionProfile",
+        ));
+    }
     let workspace_cache = executor.workspace_cache_path(workspace_id);
     let workspace_tmp = executor.workspace_tmp_path(workspace_id);
     let build_cache = executor.workspace_build_cache_path(workspace_id);
@@ -214,12 +259,35 @@ fn pg_contained_workspace_environment(
         }
     }
     for (name, path) in paths {
-        pg_bounded_contained_cache_directory(executor, &path)?;
+        pg_bounded_contained_cache_directory(executor, &path, workspace_id)?;
         environment.insert(name.to_owned(), path.to_string_lossy().into_owned());
     }
     environment
         .entry("PATH".to_string())
         .or_insert_with(|| "/usr/bin:/bin".to_string());
+    // Git sees the root-owned worktree and rejects it for the unprivileged
+    // payload. Exempt ONLY the original PG-admitted worktree in Git's
+    // protected command-scope config; never authorize safe.directory='*'
+    // or grant source-common-dir write authority.
+    for (name, expected) in [
+        ("GIT_CONFIG_COUNT", "1".to_owned()),
+        ("GIT_CONFIG_KEY_0", "safe.directory".to_owned()),
+        (
+            "GIT_CONFIG_VALUE_0",
+            original_workspace_path.to_string_lossy().into_owned(),
+        ),
+    ] {
+        if environment
+            .get(name)
+            .is_some_and(|actual| actual != &expected)
+        {
+            return Err(RuntimeError::invalid(
+                format!("contained_local {name} cannot override Git worktree identity"),
+                "execution.env",
+            ));
+        }
+        environment.insert(name.to_owned(), expected);
+    }
     Ok(environment)
 }
 
@@ -552,6 +620,7 @@ impl PgRuntime {
                         step.env.clone(),
                         &self.config.executor,
                         &record.workspace_id,
+                        Path::new(&record.workspace_path),
                     )?
                 } else {
                     pg_workspace_tool_environment(
@@ -605,6 +674,7 @@ impl PgRuntime {
                     e.env.clone(),
                     &self.config.executor,
                     &record.workspace_id,
+                    Path::new(&record.workspace_path),
                 )?
             } else {
                 pg_workspace_tool_environment(
