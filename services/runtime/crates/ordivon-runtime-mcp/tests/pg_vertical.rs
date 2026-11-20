@@ -6724,3 +6724,171 @@ fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() 
     );
     eprintln!("R60_AUTHENTICATED_PROFILE_CUTOVER_TRUSTED_DENIED_OLD_REPLAY_CONTAINED_NATIVE_GREEN");
 }
+
+/** Direct MCP Tool callers omit executionProfile by original schema default.
+ * Only the authenticated restricted ingress may re-interpret the implicit
+ * NEW effect after Runtime first checks the old exact request identity.
+ */
+#[test]
+#[ignore = "requires disposable PostgreSQL18 and real native systemd Runner"]
+fn pg_direct_implicit_profile_exact_replay_and_explicit_trusted_denial() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    fixture.ordinary_contained_only = true;
+    let repo = fixture.repo();
+    let url = fixture.endpoint();
+    let opened = call(
+        &url,
+        "workspace.open",
+        json!({
+            "workspaceId":"ws-r61-native-direct","sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let request = json!({
+        "clientRequestId":"r61-native-direct-omitted-profile",
+        "execution":{"workspaceId":"ws-r61-native-direct",
+            "executable":"/usr/bin/printf","args":["R61_DIRECT_NATIVE_CONTAINED"],
+            "cwdRelative":".","timeoutMs":20000},
+        "waitMs":10000,"stdoutTailBytes":1024
+    });
+    let mut current = call(&url, "workspace.exec", request.clone());
+    assert_ne!(current["isError"], true, "{current}");
+    let id = current["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if current["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        current = call(
+            &url,
+            "job.observe",
+            json!({
+                "jobId":id,"waitMs":2000,"stdoutTailBytes":1024
+            }),
+        );
+        assert_ne!(current["isError"], true, "{current}");
+    }
+    assert_eq!(
+        current["structuredContent"]["executionDisposition"], "succeeded",
+        "{current}"
+    );
+    assert_eq!(
+        current["structuredContent"]["stdoutTail"],
+        "R61_DIRECT_NATIVE_CONTAINED"
+    );
+    let replay = call(&url, "workspace.exec", request);
+    assert_ne!(replay["isError"], true, "{replay}");
+    assert_eq!(replay["structuredContent"]["jobId"], id);
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+    let denied = call(
+        &url,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"r61-native-direct-explicit-trusted-deny",
+            "execution":{"workspaceId":"ws-r61-native-direct",
+              "executable":"/usr/bin/true","cwdRelative":".",
+              "executionProfile":"trusted_local","timeoutMs":10000},
+            "waitMs":0
+        }),
+    );
+    assert_eq!(denied["isError"], true, "{denied}");
+    assert_eq!(
+        denied["structuredContent"]["error"]["code"],
+        "AUTHORIZATION_DENIED"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    let plan = json!({
+        "clientRequestId":"r61-native-direct-plan-omitted-profile",
+        "execution":{"workspaceId":"ws-r61-native-direct",
+            "steps":[{"id":"single","executable":"/usr/bin/printf",
+                "args":["R61_NATIVE_PLAN_CONTAINED"],
+                "cwdRelative":".","timeoutMs":10000}],
+            "timeoutMs":20000},
+        "waitMs":10000,"stdoutTailBytes":1024
+    });
+    let mut planned = call(&url, "workspace.execPlan", plan.clone());
+    assert_ne!(planned["isError"], true, "{planned}");
+    let pid = planned["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..30 {
+        if planned["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        planned = call(
+            &url,
+            "job.observe",
+            json!({
+                "jobId":pid,"waitMs":2000,"stdoutTailBytes":1024
+            }),
+        );
+        assert_ne!(planned["isError"], true, "{planned}");
+    }
+    assert_eq!(
+        planned["structuredContent"]["executionDisposition"], "succeeded",
+        "{planned}"
+    );
+    assert_eq!(
+        planned["structuredContent"]["stdoutTail"],
+        "R61_NATIVE_PLAN_CONTAINED"
+    );
+    let plan_replay = call(&url, "workspace.execPlan", plan);
+    assert_ne!(plan_replay["isError"], true, "{plan_replay}");
+    assert_eq!(plan_replay["structuredContent"]["jobId"], pid);
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        2
+    );
+    let denied_plan = call(
+        &url,
+        "workspace.execPlan",
+        json!({
+            "clientRequestId":"r61-direct-explicit-plan-trusted-deny",
+            "execution":{
+                "workspaceId":"ws-r61-native-direct",
+                "executionProfile":"trusted_local",
+                "steps":[{"id":"forbidden","executable":"/usr/bin/true",
+                    "cwdRelative":".","timeoutMs":5000}],
+                "timeoutMs":10000
+            },
+            "waitMs":0
+        }),
+    );
+    assert_eq!(denied_plan["isError"], true, "{denied_plan}");
+    assert_eq!(
+        denied_plan["structuredContent"]["error"]["code"],
+        "AUTHORIZATION_DENIED"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        2
+    );
+    eprintln!("R61_DIRECT_MCP_IMPLICIT_NATIVE_EXEC_AND_PLAN_EXACT_REPLAY_GREEN");
+}
