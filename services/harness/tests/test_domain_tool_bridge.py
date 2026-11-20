@@ -171,6 +171,85 @@ class DomainToolBridgeTests(unittest.TestCase):
             runner.run(self._plan(allowed_tools=("missing_tool",)))
         self.assertEqual(adapter.requests, [])
 
+    def test_empty_current_grant_allows_cognition_only_without_domain_effect(self) -> None:
+        bridge = _SecurityPlanBridge()
+        adapter = ScriptedTurnAdapter(
+            (
+                _result(
+                    "no-current-tools",
+                    conclusion=AgentRunConclusion(
+                        "candidate_completed",
+                        "No domain Tool is currently usable; do not issue one.",
+                    ),
+                ),
+            )
+        )
+        plan = self._plan(allowed_tools=())
+        runner = DomainToolLoopRunner(adapter, bridge)
+        empty_identity = runner.execution_identity(plan)
+        populated_identity = runner.execution_identity(self._plan())
+        self.assertEqual(empty_identity["domain"]["allowedTools"], [])
+        self.assertNotEqual(
+            empty_identity["domain"]["grantedCatalogDigest"],
+            populated_identity["domain"]["grantedCatalogDigest"],
+        )
+
+        result = runner.run(plan)
+
+        self.assertIs(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
+        self.assertEqual(tuple(tool.name for tool in adapter.requests[0].tools), ())
+        self.assertEqual(result.tool_calls, 0)
+        self.assertEqual(bridge.calls, [])
+
+        # Exercise the original Provider HTTP body constructor, not a custom
+        # summary: a zero-grant domain Turn must advertise no domain action.
+        import json
+
+        from ordivon_harness.ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
+
+        offline_provider = DeepSeekTurnAdapter(
+            DeepSeekSettings(api_key="synthetic-no-network"),
+            transport=object(),
+        )
+        _, _, _, request_body = offline_provider._prepare_request(adapter.requests[0])
+        provider_payload = json.loads(request_body)
+        tool_names = {entry["function"]["name"] for entry in provider_payload.get("tools", ())}
+        self.assertTrue(tool_names.isdisjoint({tool.name for tool in bridge.catalog.tools}))
+        self.assertNotIn("select_team_plan", tool_names)
+        self.assertNotIn("inspect_hidden_truth", tool_names)
+
+    def test_empty_current_grant_blocks_stale_model_tool_call(self) -> None:
+        bridge = _SecurityPlanBridge()
+        adapter = ScriptedTurnAdapter(
+            (
+                _result(
+                    "stale-tool-attempt",
+                    calls=(
+                        AgentToolCall(
+                            "tool-call:security:stale",
+                            "select_team_plan",
+                            {"plan": "native-policy"},
+                        ),
+                    ),
+                ),
+                _result(
+                    "reconsider-no-tool",
+                    conclusion=AgentRunConclusion(
+                        "candidate_completed",
+                        "A previously seen Tool is no longer granted.",
+                    ),
+                ),
+            )
+        )
+        runner = DomainToolLoopRunner(adapter, bridge)
+        plan = self._plan(allowed_tools=())
+
+        result = runner.run(plan)
+
+        self.assertEqual(tuple(tool.name for tool in adapter.requests[0].tools), ())
+        self.assertEqual(bridge.calls, [], "stale Tool must never execute")
+        self.assertNotEqual(result.stop_code, RunStopCode.HARNESS_FAILED)
+
     def test_catalog_digest_binds_revision_and_tool_shape(self) -> None:
         first = _SecurityPlanBridge.catalog
         second = DomainToolCatalog(

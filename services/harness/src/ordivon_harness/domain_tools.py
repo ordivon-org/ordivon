@@ -82,8 +82,10 @@ class DomainToolCatalog:
         )
 
     def _select(self, allowed_tools: tuple[str, ...]) -> tuple[AgentToolDefinition, ...]:
-        if not allowed_tools or len(allowed_tools) != len(set(allowed_tools)):
-            raise ValueError("domain Tool grant must be non-empty and unique")
+        # Zero admitted Tools is a valid, strictly subtractive cognition-only Turn.
+        # The underlying domain catalog still requires an actual Tool surface.
+        if len(allowed_tools) != len(set(allowed_tools)):
+            raise ValueError("domain Tool grant must be unique")
         available = {tool.name: tool for tool in self.tools}
         missing = sorted(set(allowed_tools) - set(available))
         if missing:
@@ -128,8 +130,8 @@ class DomainToolLoopPlan:
             raise ValueError("domain loop requires at least one initial message")
         for message in self.initial_messages:
             validate_json_value(message)
-        if not self.allowed_tools or len(self.allowed_tools) != len(set(self.allowed_tools)):
-            raise ValueError("domain loop allowed Tools must be non-empty and unique")
+        if len(self.allowed_tools) != len(set(self.allowed_tools)):
+            raise ValueError("domain loop allowed Tools must be unique")
         if self.assignment_deadline_ms is not None and self.assignment_deadline_ms < 0:
             raise ValueError("domain loop deadline must be non-negative")
 
