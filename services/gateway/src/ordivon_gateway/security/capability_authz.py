@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
 from typing import Any, Protocol
 
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
@@ -103,7 +104,9 @@ class GatewayCapabilityAuthorizationMiddleware:
         if not isinstance(tool_name, str):
             return await call_next(ctx)
         raw_arguments = ctx.params.get("arguments")
-        arguments = dict(raw_arguments) if isinstance(raw_arguments, dict) else {}
+        # A PEP must bind the original decoded JSON by value, not to
+        # nested dict/list aliases that downstream Tool code can mutate.
+        arguments = deepcopy(raw_arguments) if isinstance(raw_arguments, dict) else {}
         try:
             target = self._target_resolver(tool_name, arguments)
         except CapabilityAuthorizationTargetError as exc:

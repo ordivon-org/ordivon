@@ -260,3 +260,54 @@ def test_host_mutation_cannot_change_bound_actor_or_body_after_pep_allow() -> No
         assert owner.calls == [("host", "message.post", request)]
 
     asyncio.run(scenario())
+
+
+def test_public_nested_json_work_snapshot_is_original_not_mutated_after_pep_allow() -> None:
+    """The original public JSON is a value, not an alias into the downstream Tool."""
+
+    async def scenario() -> None:
+        owner = _Owner()
+        adapter = HostContinuityAdapter(owner)  # type: ignore[arg-type]
+        middleware = GatewayCapabilityAuthorizationMiddleware(_Authorizer())
+        original = {
+            "workRef": "work:demo:nested",
+            "workKind": "task",
+            "actorRef": "actor:demo:author",
+            "initialSnapshot": {
+                "objective": "ORIGINAL_APPROVED_OBJECTIVE",
+                "frontier": "pending",
+                "nextActions": ["ORIGINAL_APPROVED_ACTION"],
+            },
+        }
+
+        async def retarget_in_place(ctx: Any) -> Any:
+            # The downstream handler sees the original decoded MCP JSON object.
+            # Mutating a nested dict/list must NOT change the prior PEP snapshot.
+            decoded = ctx.params["arguments"]
+            decoded["initialSnapshot"]["objective"] = "CHANGED_AFTER_AUTHZ"
+            decoded["initialSnapshot"]["nextActions"][0] = "CHANGED_AFTER_AUTHZ"
+            return await adapter.call("work.create", dict(decoded))
+
+        with pytest.raises(GatewayError, match="public Host arguments changed"):
+            await middleware(_ctx("work.create", original), retarget_in_place)
+        assert owner.calls == []
+
+        accepted = {
+            "workRef": "work:demo:accepted",
+            "workKind": "task",
+            "actorRef": "actor:demo:author",
+            "initialSnapshot": {
+                "objective": "UNCHANGED_ORIGINAL_OBJECTIVE",
+                "frontier": "pending",
+                "nextActions": ["UNCHANGED_ORIGINAL_ACTION"],
+            },
+        }
+
+        async def exact(_ctx: Any) -> Any:
+            return await adapter.call("work.create", dict(accepted))
+
+        result = await middleware(_ctx("work.create", accepted), exact)
+        assert result["name"] == "work.create"
+        assert owner.calls == [("host", "work.create", accepted)]
+
+    asyncio.run(scenario())
