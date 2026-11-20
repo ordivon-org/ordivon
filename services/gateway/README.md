@@ -84,8 +84,10 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 - **Production release change class (R43)**: the original
   packaging/install_release.sh derives same-route software upgrades from
   the exact installed and immutable candidate, unchanged ingress/AuthZEN
-  Security source, private Owner credential semantics, exact native SDK Tool
-  ABI, live systemd SourceCut/route identity, candidate Host read and
+  Security source, private Owner credential semantics, **all executable
+  Gateway package modules and Owner operation dispatch AST** (not only the
+  public MCP Tool schema), exact native SDK Tool ABI, live systemd
+  SourceCut/route identity, candidate Host read and
   authenticated-front-door anonymous-denial canaries. Unobserved or changed
   policy/route/identity uses the original
   packaging/check_live_host_admission.py cutover NO_GO; it is never a flag

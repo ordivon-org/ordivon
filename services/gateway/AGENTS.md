@@ -82,7 +82,16 @@ upgrade**, with packaging/check_same_route_admission.py. That source/consumer
 check requires identical ingress/AuthZEN/PEP bytes, bounded equivalence of
 private Owner credential handling and MCP composition, live same-configured
 Owner routes, actual candidate Host SDK read and local/public anonymous-denial
-canaries. No caller flag may request this classification. It does not grant
+canaries. Source-qualified A also checks the **complete executable Gateway
+package**, not just the old list of Security/entrypoint files: additions or
+deletions of package modules, symlinked sources, and AST-different Python leaf
+adapters are unqualified; source comments may differ without changing AST.
+A stable `tools/list` name/input schema does not guarantee an unchanged
+Owner Tool dispatch: a public `work.get` must not silently forward
+`work.snapshot.commit`. A real behavior change needs its own Security,
+Owner-dispatch, and Agent consumer proof before production release; Host/
+Cloudflare migration B evidence cannot substitute for that separate proof.
+No caller flag may request this classification. It does not grant
 authorization; a working authenticated Agent and post-restart canary/rollback
 remain independent.
 
