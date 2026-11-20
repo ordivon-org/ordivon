@@ -97,6 +97,52 @@ fn restrict_new_effect_catalog(
     }
 }
 
+/// A direct MCP caller may omit executionProfile because the original
+/// public Tool schema defaults to trusted_local. Historical committed Jobs
+/// must be observed through that ORIGINAL identity first, even after the
+/// authenticated ordinary ingress is restricted to contained_local.
+///
+/// Only a qualified native precommit profile denial or exact PG-key conflict
+/// permits one alternate contained admission. The PG Store rechecks the
+/// principal and full immutable request digest; the MCP layer is not a new
+/// permission authority or retry ledger.
+fn run_pg_direct_implicit_profile(
+    runtime: &ordivon_runtime_core::PgRuntime,
+    mut bound: JobRunProposal,
+    required: Option<ExecutionProfile>,
+    caller_omitted_profile: bool,
+) -> Result<JobObservation, RuntimeError> {
+    let initial = runtime.run_with_execution_profile_policy(&bound, required);
+    let can_reenter_contained = caller_omitted_profile
+        && required == Some(ExecutionProfile::ContainedLocal)
+        && bound.execution.execution_profile == ExecutionProfile::TrustedLocal
+        && initial.as_ref().err().is_some_and(|error| {
+            !error.retryable
+                && error.operation_id.is_none()
+                && match error.code {
+                    ordivon_runtime_core::RuntimeErrorCode::AuthorizationDenied => {
+                        error.field.as_deref() == Some("execution.executionProfile")
+                    }
+                    ordivon_runtime_core::RuntimeErrorCode::IdempotencyConflict => {
+                        error.field.is_none()
+                    }
+                    _ => false,
+                }
+        });
+    if can_reenter_contained {
+        bound.execution.execution_profile = ExecutionProfile::ContainedLocal;
+        runtime.run_with_execution_profile_policy(&bound, required)
+    } else {
+        initial
+    }
+}
+
+fn profile_omitted_from_raw_tool_arguments(arguments: &serde_json::Value) -> bool {
+    arguments.get("execution")
+        .and_then(serde_json::Value::as_object)
+        .is_some_and(|execution| !execution.contains_key("executionProfile"))
+}
+
 #[derive(Clone)]
 pub struct PgRuntimeServer {
     runtime: ordivon_runtime_core::PgRuntime,
@@ -495,13 +541,19 @@ impl PgRuntimeServer {
                 },
                 "workspace.open" => value(runtime.open_workspace(&parse::<WorkspaceOpenRequest>(arguments)?.bind())),
                 "workspace.execPlan" => {
+                    let omitted=profile_omitted_from_raw_tool_arguments(&arguments);
                     let request:WorkspaceExecPlanRequest=parse(arguments)?;
                     let bound=execution.bind_plan(request)?;
-                    value(runtime.run_with_execution_profile_policy(&bound, required_new_execution_profile))
+                    value(run_pg_direct_implicit_profile(
+                        &runtime,bound,required_new_execution_profile,omitted
+                    ))
                 },
                 "workspace.exec" => {
+                    let omitted=profile_omitted_from_raw_tool_arguments(&arguments);
                     let bound=execution.bind(parse(arguments)?);
-                    value(runtime.run_with_execution_profile_policy(&bound, required_new_execution_profile))
+                    value(run_pg_direct_implicit_profile(
+                        &runtime,bound,required_new_execution_profile,omitted
+                    ))
                 },
                 "job.get" => {let r:JobGetRequest=parse(arguments)?; if r.schema_version!=1 {return Err(ToolError::invalid("schemaVersion must be 1","schemaVersion"));} value(runtime.get(&execution.principal,&r.job_id,r.event_limit))},
                 "job.observe" => value(runtime.observe(&execution.principal,&parse(arguments)?)),
@@ -720,5 +772,25 @@ mod authenticated_execution_profile_projection_tests {
         assert!(catalog.iter().any(|tool|tool.name.as_ref()=="release.get"));
         let exec=catalog.iter().find(|tool|tool.name.as_ref()=="workspace.exec").unwrap();
         assert!(exec.description.as_ref().unwrap().contains("contained_local-only"));
+    }
+}
+
+#[cfg(test)]
+mod direct_implicit_execution_profile_tests {
+    use super::*;
+
+    #[test]
+    fn explicit_trusted_or_present_null_can_never_be_auto_reinterpreted() {
+        assert!(profile_omitted_from_raw_tool_arguments(&json!({
+            "execution":{"workspaceId":"ws-direct","executable":"/usr/bin/true"}
+        })));
+        for explicit in [
+            json!({"execution":{"executionProfile":"trusted_local"}}),
+            json!({"execution":{"executionProfile":"contained_local"}}),
+            json!({"execution":{"executionProfile":null}}),
+            json!({"notExecution":{}}),
+        ] {
+            assert!(!profile_omitted_from_raw_tool_arguments(&explicit));
+        }
     }
 }
