@@ -99,7 +99,7 @@ fn terminal_events_coherent(
     let event_query = if release.is_some() {
         "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('RELEASE_EFFECT_RECEIPTED','JOB_TERMINAL')"
     } else {
-        "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('PROCESS_EXITED','JOB_TERMINAL')"
+        "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('PROCESS_EXITED','NATIVE_HANDOFF_PREVENTED','JOB_TERMINAL')"
     };
     let rows = tx.query(event_query, &[&snapshot.job_id, &snapshot.attempt_id])?;
     if rows.len() != 2 {
@@ -138,7 +138,7 @@ fn terminal_events_coherent(
     if release.is_some() && !artifacts.is_empty() {
         return Ok(false);
     }
-    let mut process_observed = false;
+    let mut terminal_source_observed = false;
     let mut terminal_recorded = false;
     for row in rows {
         let event_type: String = row.get(0);
@@ -162,7 +162,7 @@ fn terminal_events_coherent(
                 let authority = release.as_ref().expect("guarded release binding");
                 let bound_effect: String = authority.get(0);
                 let bound_request: String = authority.get(1);
-                if process_observed
+                if terminal_source_observed
                     || detail.get("resultDigest").and_then(|v| v.as_str())
                         != snapshot.result_digest.as_deref()
                     || detail.get("receiptDigest").and_then(|v| v.as_str())
@@ -174,10 +174,46 @@ fn terminal_events_coherent(
                 {
                     return Ok(false);
                 }
-                process_observed = true;
+                terminal_source_observed = true;
+            }
+            "NATIVE_HANDOFF_PREVENTED"
+                if origin == "SYSTEM_DERIVED"
+                    && release.is_none()
+                    && resolution == "cancelled"
+                    && snapshot.desired_state == "cancelled"
+                    && artifacts.is_empty() =>
+            {
+                // This is a positive issuer-before-OS-call cancellation,
+                // deliberately NOT a PROCESS_EXITED or systemd Manager ACK.
+                // Source code's at-most-once physical handoff ordering is
+                // needed in addition to these durable PG events.
+                if terminal_source_observed
+                    || detail.get("resultDigest").and_then(|v| v.as_str())
+                        != snapshot.result_digest.as_deref()
+                    || detail.get("nativeCallIssued").and_then(|v| v.as_bool()) != Some(false)
+                    || detail.get("dispatchIssued").and_then(|v| v.as_bool()) != Some(true)
+                {
+                    return Ok(false);
+                }
+                let issued: i64 = tx.query_one(
+                    "SELECT COUNT(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2                      AND event_type='DISPATCH_ISSUED' AND origin='SYSTEM_DERIVED'                      AND reason_code='AT_MOST_ONCE_BOUNDARY_COMMITTED'",
+                    &[&snapshot.job_id, &snapshot.attempt_id],
+                )?.get(0);
+                let stopped: i64 = tx.query_one(
+                    "SELECT COUNT(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2                      AND event_type='STOP_REQUESTED'",
+                    &[&snapshot.job_id, &snapshot.attempt_id],
+                )?.get(0);
+                let runner_bound: i64 = tx.query_one(
+                    "SELECT COUNT(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2                      AND event_type='RUNNER_BOUND'",
+                    &[&snapshot.job_id, &snapshot.attempt_id],
+                )?.get(0);
+                if issued != 1 || stopped != 1 || runner_bound != 0 {
+                    return Ok(false);
+                }
+                terminal_source_observed = true;
             }
             "PROCESS_EXITED" if origin == "SYSTEM_OBSERVED" => {
-                if process_observed
+                if terminal_source_observed
                     || detail.get("resultDigest").and_then(|v| v.as_str())
                         != snapshot.result_digest.as_deref()
                     || detail.get("artifactSetDigest").and_then(|v| v.as_str())
@@ -185,7 +221,7 @@ fn terminal_events_coherent(
                 {
                     return Ok(false);
                 }
-                process_observed = true;
+                terminal_source_observed = true;
             }
             "JOB_TERMINAL" if origin == "SYSTEM_DERIVED" => {
                 if terminal_recorded
@@ -198,7 +234,7 @@ fn terminal_events_coherent(
             _ => return Ok(false),
         }
     }
-    Ok(process_observed && terminal_recorded)
+    Ok(terminal_source_observed && terminal_recorded)
 }
 
 impl PgAdmissionStore {
