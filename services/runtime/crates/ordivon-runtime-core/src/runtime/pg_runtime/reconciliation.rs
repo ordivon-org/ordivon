@@ -521,7 +521,7 @@ impl PgRuntime {
             "jobId":job,"attemptId":a.attempt_id,"dispatchIssued":false,
             "terminalState":"cancelled","finishedAtMs":cancelled_at}))
         .map_err(io)?;
-        fs::create_dir_all(&path).map_err(io)?;
+        prepare_private_pg_attempt_bundle(&path)?;
         let evidence_path = path.join("admission-cancel-evidence.json");
         // All bytes are deterministic from committed PG identity and its
         // first stop event, including across concurrent exact replays.
@@ -778,7 +778,7 @@ impl PgRuntime {
                 stdout_limit_bytes: plan.stdout_limit_bytes,
                 stderr_limit_bytes: plan.stderr_limit_bytes,
             };
-            fs::create_dir_all(&a.bundle_path).map_err(io)?;
+            prepare_private_pg_attempt_bundle(Path::new(&a.bundle_path))?;
             let request_path = Path::new(&a.bundle_path).join("request.json");
             let bytes = serde_json::to_vec(&req).map_err(io)?;
             // Existing published bytes must match; never replace a committed bundle.

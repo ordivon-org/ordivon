@@ -90,7 +90,7 @@ impl PgRuntime {
         }
         let a = self.cancel_attempt_identity(db, &request.job_id)?;
         if !a.state.is_terminal() {
-            fs::create_dir_all(&a.bundle_path).map_err(io)?;
+            prepare_private_pg_attempt_bundle(Path::new(&a.bundle_path))?;
             universal::write_json_atomic(
                 &Path::new(&a.bundle_path).join("cancel-requested.json"),
                 &json!({"requestedAtMs":now()?}),
