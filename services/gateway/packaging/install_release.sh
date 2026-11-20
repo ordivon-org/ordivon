@@ -167,10 +167,35 @@ fi
 # closed. Classification comes from the native system, never a caller flag.
 # Isolated test/staging prefixes keep their original installer semantics.
 if [ "$(realpath -m "$PREFIX")" = "/opt/ordivon/gateway" ]; then
-  if "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_same_route_admission.py" \
-    --installed-release "$PREFIX/current" --candidate-release "$RELEASE"; then
-    printf 'release_change_class=SAME_ROUTE_EXISTING_AUTHORITY\n'
+  # The exact candidate (not the stale checkout/caller) classifies its own
+  # source; the same real Owner/ingress/negative canaries remain obligatory.
+  # Class C is a bounded actual Action->Effect change, NOT a Host migration.
+  # An unqualified code-only change (exit 4) must never fall through to B.
+  QUALIFICATION_RC=0
+  QUALIFICATION_JSON=$("$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_same_route_admission.py" \
+    --installed-release "$PREFIX/current" --candidate-release "$RELEASE") || QUALIFICATION_RC=$?
+  printf '%s\n' "$QUALIFICATION_JSON"
+  if [ "$QUALIFICATION_RC" -eq 0 ]; then
+    RELEASE_CHANGE_CLASS=$(printf '%s\n' "$QUALIFICATION_JSON" | /usr/bin/python3 -c '
+import json,sys
+data=json.load(sys.stdin)
+status=data.get("status")
+scope=data.get("releaseChangeClass")
+expected={
+    "QUALIFIED_SAME_ROUTE": "SAME_ROUTE_EXISTING_AUTHORITY",
+    "QUALIFIED_ACTION_CHANGE": "QUALIFIED_BUSINESS_ACTION_CHANGE",
+}
+if status not in expected or expected[status] != scope:
+    raise SystemExit("unqualified release change classification")
+print(scope)
+')
+    printf 'release_change_class=%s\n' "$RELEASE_CHANGE_CLASS"
+  elif [ "$QUALIFICATION_RC" -eq 4 ]; then
+    printf 'release_change_class=UNQUALIFIED_BUSINESS_CODE_NO_GO\n' >&2
+    exit 4
   else
+    # Only independent Owner/Ingress/Security migration/unknown physical
+    # conditions enter the original B gate, which remains fail-closed.
     "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py" \
       --policy-data "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer"
   fi

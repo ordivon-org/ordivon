@@ -13,38 +13,36 @@ unchanged-route Gateway software patch must first remove existing Host clients.
 Treating those different changes as one mandatory migration prevented ordinary
 Gateway source fixes from reaching a currently functioning Agent.
 
-The existing official install script now derives one of two cases, never from
-a caller-supplied skip flag:
+The existing official installer now derives the **actual production change
+class** from the exact immutable candidate, not from a user bypass flag:
 
-- **A / same route + same authority:** compare immutable current/candidate
-  public MCP ABI with the native SDK, unchanged ingress/AuthZEN/PEP source,
-  identical resolved dependency-lock/build and Python-toolchain configuration
-  (allow only the same editable package's nondecreasing release version
-  metadata to change, not any new transitive dependency or CLI entrypoint),
-  unchanged private-credential reader and Host loopback semantics, exact
-  composition-root AST, and the **entire executable source tree** (matching
-  module/resource inventory, Python AST for every leaf Owner transport and
-  capability adapter, exact bytes for non-Python resources). This closes a
-  real isolated-source R46 counterexample: `work.get` could otherwise
-  forward to `work.snapshot.commit` with the same public MCP schema while
-  `source_same_route` incorrectly returned true. No Host effect was executed
-  in the falsifier. Source comments can differ, but an unknown executable
-  change fails A until independently qualified against Security and actual
-  downstream operation identity. This conservative A gate is NOT proof that
-  every code update is a Host/Cloudflare B migration.
-  Require installed active systemd PID/SourceCut and equal configured
-  Owner URL/credential-class/mode. Require one real candidate-to-
-  Host MCP read, installed Gateway anonymous HTTP denial and Cloudflare public
-  anonymous denial without accepting redirects. No secrets are read from a
-  different service's private systemd credential. Only then does the original
-  installer permit the existing symlink promotion, without changing systemd
-  units, Host listeners, Security policy or Cloudflare routes.
-- **B / any drift or UNKNOWN:** preserve the existing
-  packaging/check_live_host_admission.py Host/Cloudflare/Security migration
-  requirements. Its independent observations and Security private credential
-  limitation remain real NO_GO until natural Owner proof exists. Empty socket
-  observation is not proof of migration and a service health ping is not a PDP
-  ALLOW.
+- **A / same executable behavior and authority:** entire module/resource
+  inventory, Python AST and stable Security/Owner/transport/SDK surface are
+  unchanged. This directly closes the previous R46 public `work.get` ->
+  actual `work.snapshot.commit` release false positive. No arbitrary
+  SourceCut or current `execution/commands.py` SHA-pair waiver survives.
+- **C / action-code change with unchanged authority:** source inventory
+  remains identical; only the existing action/Host actual Owner/PEP
+  continuation code may change. Immutable interpreter/dependency package,
+  systemd/Ingress/Cloudflare/Host/Runtime Owner identity, Authorization
+  Target construction and public MCP SDK tool ABI retain their existing
+  checks. The candidate's own native code is exercised in **isolated fake
+  Owner** canaries: verified public read remains read, real AuthZEN-shaped
+  DENY/STEP_UP/UNKNOWN/forged-resource cannot forward, changed authorized
+  `topicRef`/`authorActorRef` never reaches a Host writer, and an ambiguous
+  Runtime execution effect is never blindly retried. No production Host
+  write, live Runtime Job, private credential or Principal grant is used
+  in these preflight probes. Existing production systemd PID/cwd, real
+  candidate Host read and local/public anonymous denial gates still apply.
+  Source-level plus protected CI is not a universal Python security proof.
+  Unknown code-only changes are **NO_GO** with a separate exit status and
+  must not be routed into unrelated B.
+- **B / real Host/Cloudflare/Principal/Owner migration or unobservable
+  authority:** preserve the original `check_live_host_admission.py`
+  cutover obligations. Its known direct-Host consumers, peer identity and
+  Security private-credential limits still mean NO_GO unless natural
+  consumer witnesses exist. An empty socket list is never migration
+  completion.
 
 A passing source A classification is not a new Principal grant, a fully
 certified loaded PDP policy, a checked post-restart process, or a successful
