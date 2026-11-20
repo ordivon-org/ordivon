@@ -109,6 +109,7 @@ def test_source_drift_fails_closed_before_contacting_any_remote_owner(
     (tmp_path / "current").symlink_to(root / "old")
     monkeypatch.setattr(qualifier, "LIVE_PREFIX", tmp_path)
     monkeypatch.setattr(qualifier, "source_same_route", lambda *_: False)
+    monkeypatch.setattr(qualifier, "_authority_source_unchanged", lambda *_: False)
     monkeypatch.setattr(
         qualifier,
         "_qualified_live_config",
@@ -116,7 +117,7 @@ def test_source_drift_fails_closed_before_contacting_any_remote_owner(
     )
     result = qualifier.assess(root / "old", root / "new")
     assert result["status"] == "NO_GO"
-    assert result["reason"] == "SOURCE_AUTHORITY_OR_COMPOSITION_DRIFT"
+    assert result["reason"] == "AUTHORITY_SOURCE_CHANGE_REQUIRES_SEPARATE_MIGRATION_PROOF"
 
 
 def test_owner_token_reader_and_mcp_auth_refactor_cannot_expand_authority(
@@ -181,6 +182,7 @@ def test_same_route_backend_cutover_not_contained_in_a_source_result(
     (tmp_path / "current").symlink_to(old)
     monkeypatch.setattr(qualifier, "LIVE_PREFIX", tmp_path)
     monkeypatch.setattr(qualifier, "source_same_route", lambda *_: False)
+    monkeypatch.setattr(qualifier, "_authority_source_unchanged", lambda *_: False)
     result = qualifier.assess(old, new)
     assert result["status"] == "NO_GO"
     assert result.get("candidateRealHostReadAccepted") is None
@@ -373,15 +375,10 @@ def test_same_route_allows_source_comment_but_not_symlinked_module(
         qualifier.source_same_route(old, candidate)
 
 
-def test_exact_prior_release_execution_profile_transition_keeps_full_source_fence(
+def test_business_action_change_is_a_separate_proven_source_boundary(
     qualifier: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Only the original immutable approved adapter pair may change.
-
-    Never whitelist the commands module generically: a substituted Owner call,
-    new module or changed Security grant still requires full change admission.
-    """
-    import hashlib
+    """No historical source-digest exception and no arbitrary module bypass."""
     import shutil
 
     old, candidate = tmp_path / "old", tmp_path / "candidate"
@@ -391,58 +388,176 @@ def test_exact_prior_release_execution_profile_transition_keeps_full_source_fenc
             root / "src/ordivon_gateway",
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
         )
-    commands = qualifier._EXECUTION_CUTOVER_REL
-    assert (
-        hashlib.sha256((candidate / commands).read_bytes()).hexdigest()
-        == qualifier._EXECUTION_CUTOVER_SOURCE_PAIR[1]
-    ), "original merged public main must match the reviewed migration bytes"
-    # Synthetic pre-migration adapter, solely to check the strict two-byte-cut
-    # predicate. Physical installed positive exercises the REAL original a83*
-    # file, not this test-generated old source.
-    previous = (old / commands).read_text(encoding="utf-8")
-    (old / commands).write_text(
-        previous + "\nR62_SYNTHETIC_PRE_CUTOVER_OWNER_ADAPTER = True\n",
+    # This is an isolated SOURCE INVENTORY test. Real immutable release
+    # trust-root/SDK/Owner/PEP checks run separately in the original assessor.
+    monkeypatch.setattr(qualifier, "_authority_source_unchanged", lambda *_: True)
+    assert qualifier._business_action_change_scope(old, candidate) is None
+    assert qualifier._same_executable_source(old, candidate)
+
+    # Old code would have required a hardcoded previous/next SHA pair for
+    # this actual business module. C instead scopes an existing operation
+    # seam, preserving a mandatory independent Action/Effect canary.
+    commands = candidate / "src/ordivon_gateway/capabilities/execution/commands.py"
+    original = commands.read_text()
+    commands.write_text(original + "\nR48_PROFILE_ACTION_SOURCE_CHANGE = True\n")
+    assert not qualifier._same_executable_source(old, candidate)
+    assert qualifier._business_action_change_scope(old, candidate) == frozenset(
+        {Path("src/ordivon_gateway/capabilities/execution/commands.py")}
+    )
+    commands.write_text(original)
+
+    # Additional new executable module, changed Owner routing, changed
+    # authorization target, or arbitrary Host wrapper must NOT qualify C.
+    for relative in (
+        "src/ordivon_gateway/logic/routing.py",
+        "src/ordivon_gateway/security/authorization_targets.py",
+        "src/ordivon_gateway/capabilities/host/work.py",
+        "src/ordivon_gateway/transport/upstream.py",
+    ):
+        target = candidate / relative
+        baseline = target.read_text()
+        target.write_text(baseline + "\nR48_UNREVIEWED_ROUTE_CHANGE = True\n")
+        assert qualifier._business_action_change_scope(old, candidate) is None, relative
+        target.write_text(baseline)
+
+    added = candidate / "src/ordivon_gateway/capabilities/execution/hidden_owner.py"
+    added.write_text('def invoke_owner(): return "release.apply"\n')
+    assert qualifier._business_action_change_scope(old, candidate) is None
+    added.unlink()
+
+    candidate_path = candidate / "src/ordivon_gateway/security/capability_authz.py"
+    candidate_path.unlink()
+    candidate_path.symlink_to(old / "src/ordivon_gateway/security/capability_authz.py")
+    with pytest.raises(ValueError, match="symlink|regular"):
+        qualifier._business_action_change_scope(old, candidate)
+
+
+def test_candidate_native_action_effect_canary_is_source_only_and_fail_closed(
+    qualifier: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Same native project Python, no Host/Runtime/Security external call."""
+    assert qualifier._candidate_action_effect_canary(ROOT)
+    monkeypatch.setattr(
+        qualifier,
+        "_CANDIDATE_ACTION_EFFECT_PROBE",
+        'raise AssertionError("unsafe delegated Owner operation")',
+    )
+    assert not qualifier._candidate_action_effect_canary(ROOT)
+
+
+def test_changed_business_code_cannot_be_relabelled_host_migration() -> None:
+    installer = INSTALL.read_text(encoding="utf-8")
+    # Exit 4 is a real code-only NO_GO: do not call the unrelated B checker.
+    assert 'elif [ "$QUALIFICATION_RC" -eq 4 ]; then' in installer
+    assert "UNQUALIFIED_BUSINESS_CODE_NO_GO" in installer
+    assert installer.index("UNQUALIFIED_BUSINESS_CODE_NO_GO") < installer.index(
+        "check_live_host_admission.py"
+    )
+    assert "QUALIFIED_BUSINESS_ACTION_CHANGE" in installer
+    assert "--skip-security" not in installer
+
+
+@pytest.mark.parametrize(
+    ("status", "reason", "expected_code"),
+    [
+        ("QUALIFIED_SAME_ROUTE", None, 0),
+        ("QUALIFIED_ACTION_CHANGE", None, 0),
+        ("NO_GO", "UNQUALIFIED_BUSINESS_ACTION_SOURCE_CHANGE", 4),
+        ("NO_GO", "ACTION_EFFECT_CONSUMER_PROOF_MISSING", 4),
+        ("NO_GO", "LIVE_SAME_ROUTE_PRECONDITIONS_FAILED", 4),
+        ("NO_GO", "AUTHORITY_SOURCE_CHANGE_REQUIRES_SEPARATE_MIGRATION_PROOF", 3),
+        ("NO_GO", "SAME_ROUTE_PRECONDITIONS_UNOBSERVABLE", 3),
+    ],
+)
+def test_original_release_qualification_exit_distinguishes_real_migration_from_code(
+    qualifier: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    status: str,
+    reason: str | None,
+    expected_code: int,
+) -> None:
+    import sys
+
+    observation = {
+        "schemaVersion": 1,
+        "kind": "ordivon.gateway-same-route-qualification",
+        "status": status,
+    }
+    if reason is not None:
+        observation["reason"] = reason
+    monkeypatch.setattr(qualifier, "assess", lambda *_: observation)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "packaging/check_same_route_admission.py",
+            "--installed-release",
+            "/tmp/existing",
+            "--candidate-release",
+            "/tmp/candidate",
+        ],
+    )
+    assert qualifier.main() == expected_code
+    assert f'"status": "{status}"' in capsys.readouterr().out
+
+
+def test_class_c_cannot_change_imported_authzen_host_resource_selectors(
+    qualifier: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """R49 live counterexample: changed import breaks PEP even if projector bytes stay."""
+    import shutil
+
+    old, candidate = tmp_path / "old", tmp_path / "candidate"
+    for root in (old, candidate):
+        shutil.copytree(
+            ROOT / "src/ordivon_gateway",
+            root / "src/ordivon_gateway",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+
+    # Isolate the real imported Host bindings from unrelated package metadata.
+    monkeypatch.setattr(
+        qualifier,
+        "STABLE_SECURITY_SOURCE",
+        tuple(
+            path
+            for path in qualifier.STABLE_SECURITY_SOURCE
+            if path.startswith("src/ordivon_gateway/")
+        ),
+    )
+    monkeypatch.setattr(qualifier, "_same_package_release_contract", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_owner_credentials", lambda *_: True)
+    monkeypatch.setattr(qualifier, "_same_mcp_composition", lambda *_: True)
+
+    target = candidate / "src/ordivon_gateway/logic/host_tool_contracts.py"
+    baseline = target.read_text(encoding="utf-8")
+    assert qualifier._same_security_consumed_host_bindings(old, candidate)
+
+    # A source change in the imported selector map would make an actual
+    # work.get by workRef appear unscoped to the AuthZEN target projector.
+    unsafe = baseline.replace('"work.get": ("workRef",),', '"work.get": ("topicRef",),')
+    assert unsafe != baseline and baseline.count('"work.get": ("workRef",),') == 1
+    target.write_text(unsafe, encoding="utf-8")
+    assert not qualifier._same_security_consumed_host_bindings(old, candidate)
+    assert not qualifier._authority_source_unchanged(old, candidate)
+    assert qualifier._business_action_change_scope(old, candidate) is None
+
+    # Removing an Owner write from the Host capabilities list is also
+    # security-relevant even if authorization_targets.py is byte-identical.
+    target.write_text(
+        baseline.replace('        "work.snapshot.commit",\n', "", 1), encoding="utf-8"
+    )
+    assert not qualifier._same_security_consumed_host_bindings(old, candidate)
+    assert qualifier._business_action_change_scope(old, candidate) is None
+
+    # A harmless addition of a non-PEP helper may still enter the separate
+    # bounded Action→Effect canary; C is not the old whole-source AST A gate.
+    target.write_text(
+        baseline + "\n\ndef _non_security_test_helper():\n    return None\n",
         encoding="utf-8",
     )
-    synthetic_before_digest = hashlib.sha256((old / commands).read_bytes()).hexdigest()
-    synthetic_after_digest = hashlib.sha256((candidate / commands).read_bytes()).hexdigest()
-    assert not qualifier._same_executable_source(old, candidate)
-    monkeypatch.setattr(
-        qualifier,
-        "_EXECUTION_CUTOVER_SOURCE_PAIR",
-        (synthetic_before_digest, synthetic_after_digest),
+    assert qualifier._same_security_consumed_host_bindings(old, candidate)
+    assert qualifier._business_action_change_scope(old, candidate) == frozenset(
+        {Path("src/ordivon_gateway/logic/host_tool_contracts.py")}
     )
-    assert qualifier._same_executable_source(old, candidate)
-
-    changed = candidate / commands
-    original = changed.read_text(encoding="utf-8")
-    changed.write_text(original + '\nR62_WRONG_RUNTIME_TOOL = "release.apply"\n')
-    assert not qualifier._same_executable_source(old, candidate)
-    changed.write_text(original)
-    assert qualifier._same_executable_source(old, candidate)
-
-    unrelated = candidate / "src/ordivon_gateway/capabilities/host/work.py"
-    previous_unrelated = unrelated.read_text(encoding="utf-8")
-    unrelated.write_text(previous_unrelated + "\nR62_UNQUALIFIED_HOST_WRITE = True\n")
-    assert not qualifier._same_executable_source(old, candidate)
-    unrelated.write_text(previous_unrelated)
-
-    owner_route = candidate / "src/ordivon_gateway/logic/routing.py"
-    previous_route = owner_route.read_text(encoding="utf-8")
-    owner_route.write_text(previous_route + '\nR62_UNQUALIFIED_OWNER = "runtime.admin"\n')
-    assert not qualifier._same_executable_source(old, candidate)
-    owner_route.write_text(previous_route)
-
-    new_module = candidate / "src/ordivon_gateway/capabilities/execution/unreviewed.py"
-    new_module.write_text('def dispatch(): return "release.apply"\n')
-    assert not qualifier._same_executable_source(old, candidate)
-    new_module.unlink()
-
-    # The installed original exact digest pair is NOT automatically available
-    # for arbitrary synthetic source. Missing source proof stays NO_GO.
-    monkeypatch.setattr(
-        qualifier,
-        "_EXECUTION_CUTOVER_SOURCE_PAIR",
-        ("0" * 64, "f" * 64),
-    )
-    assert not qualifier._same_executable_source(old, candidate)

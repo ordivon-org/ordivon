@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import hashlib
 import http.client
 import json
 import os
@@ -299,102 +298,478 @@ def _same_package_release_contract(installed: Path, candidate: Path) -> bool:
     return projected[0] == projected[1] and versions[1] >= versions[0]
 
 
-# A single previously merged, independently Native-PG-qualified product-adapter
-# migration. It changes only the implicit nonprivileged execution profile
-# fallback; it does NOT change the Security PEP, Principal, Owner endpoint,
-# public Tool ABI, or allowed route. Both endpoint source digests are exact.
-# Do not widen this into an allowed-file-list or operator --skip-security flag.
-_EXECUTION_CUTOVER_REL = Path("src/ordivon_gateway/capabilities/execution/commands.py")
-_EXECUTION_CUTOVER_SOURCE_PAIR = (
-    "a83ef2a967f1cdf8b19fc2cdafc772133e01eb82060c1d46cde32dc671fdf457",
-    "e247e419dd4346dfc86f0273ea888a8a48774130212450cf0f57ff8a62b358ed",
+# Real executable/action modules, not historical old/new SourceCut hashes.
+# Class C can change only a bounded, already-existing *business* seam; the
+# Security/identity/Owner route source, source inventory and public ABI remain
+# separately qualified. New action modules require an explicit consumer proof.
+_ACTION_EFFECT_MODULES = frozenset(
+    {
+        Path("src/ordivon_gateway/capabilities/execution/commands.py"),
+        Path("src/ordivon_gateway/capabilities/host/dispatch.py"),
+        Path("src/ordivon_gateway/logic/host_tool_contracts.py"),
+        Path("src/ordivon_gateway/security/capability_authz.py"),
+    }
 )
 
 
-def _qualified_exact_execution_profile_transition(
-    installed: Path,
-    candidate: Path,
-    installed_source: dict[Path, str | bytes],
-    candidate_source: dict[Path, str | bytes],
-) -> bool:
-    """One explicit, immutable SourceCut-to-SourceCut change, no generic bypass.
-
-    All other executable source AST/resources and module inventory remain
-    identical. The exact old and new bytes (not merely caller assertions)
-    must be physically present; the original public native PG E2E and
-    protected merge review qualified the specific consumer change.
-    """
-    if (
-        installed_source.keys() != candidate_source.keys()
-        or _EXECUTION_CUTOVER_REL not in installed_source
-        or installed_source[_EXECUTION_CUTOVER_REL] == candidate_source[_EXECUTION_CUTOVER_REL]
-    ):
-        return False
-    if any(
-        installed_source[relative] != candidate_source[relative]
-        for relative in installed_source
-        if relative != _EXECUTION_CUTOVER_REL
-    ):
-        return False
-    return (
-        tuple(
-            hashlib.sha256(
-                _safe_regular(root, str(_EXECUTION_CUTOVER_REL)).read_bytes()
-            ).hexdigest()
-            for root in (installed, candidate)
-        )
-        == _EXECUTION_CUTOVER_SOURCE_PAIR
-    )
+def _executable_source_inventory(root: Path) -> dict[Path, str | bytes]:
+    """Use actual source files, not a parallel owner/module registry."""
+    package = Path("src/ordivon_gateway")
+    base = root.resolve(strict=True)
+    directory = base / package
+    if not directory.is_dir() or directory.is_symlink():
+        raise ValueError("Gateway executable source directory is unavailable")
+    result: dict[Path, str | bytes] = {}
+    for item in directory.rglob("*"):
+        relative = item.relative_to(base)
+        if item.is_symlink():
+            raise ValueError("Gateway source contains a symlink")
+        if "__pycache__" in relative.parts:
+            continue
+        if item.is_dir():
+            continue
+        source = _safe_regular(root, str(relative))
+        if source.suffix == ".py":
+            result[relative] = ast.dump(
+                ast.parse(source.read_text(encoding="utf-8")),
+                include_attributes=False,
+            )
+        else:
+            result[relative] = source.read_bytes()
+    if len(result) < 25 or package / "__init__.py" not in result:
+        raise ValueError("Gateway executable source inventory is incomplete")
+    return result
 
 
 def _same_executable_source(installed: Path, candidate: Path) -> bool:
-    """Fence the complete Gateway runtime source, not a historical filename list.
+    """Class A means actual executable Python semantics remain equivalent."""
+    return _executable_source_inventory(installed) == _executable_source_inventory(candidate)
 
-    All imported leaf adapters can control the actual Owner operation AFTER
-    Gateway Security has evaluated the *public* Tool name. For class A, their
-    executable Python AST must therefore remain unchanged; comments alone do
-    not change Python execution. Non-Python package resources remain byte
-    exact. Any module addition, deletion, symlink or unrecognized resource is
-    unqualified, regardless of the SDK's unchanged public input schema.
 
-    This is a conservative source/authority-equivalence check, not a proof
-    that every future functional change requires Host/Cloudflare migration.
-    Changed code needs independent action/Security/consumer qualification.
+_SECURITY_CONSUMED_HOST_BINDINGS = frozenset(
+    {"SOCIAL_WORK_HOST_TOOLS", "HOST_READ_TOOLS", "HOST_READ_SELECTORS"}
+)
+
+
+def _same_security_consumed_host_bindings(installed: Path, candidate: Path) -> bool:
+    """Preserve *actual* Host Tool/read-selector definitions used by AuthZEN.
+
+    authorization_targets.py imports these declarations indirectly from the
+    shared Host contract. Byte-identical authorization_targets.py does NOT
+    imply unchanged Security target semantics if the imported selector map
+    changes. C may modify request-local binding helpers but not this PEP
+    resource interpretation. Read declarations from the real source itself,
+    not a second tool registry or commit hash.
     """
-    package = Path("src/ordivon_gateway")
+    path = "src/ordivon_gateway/logic/host_tool_contracts.py"
 
-    def observe(root: Path) -> dict[Path, str | bytes]:
-        base = root.resolve(strict=True)
-        directory = base / package
-        if not directory.is_dir() or directory.is_symlink():
-            raise ValueError("Gateway executable source directory is unavailable")
-        result: dict[Path, str | bytes] = {}
-        for item in directory.rglob("*"):
-            relative = item.relative_to(base)
-            # Check symlinks before ignoring native Python's generated bytecode
-            # cache; a path inside the source release must not redirect out.
-            if item.is_symlink():
-                raise ValueError("Gateway source contains a symlink")
-            if "__pycache__" in relative.parts:
-                continue
-            if item.is_dir():
-                continue
-            source = _safe_regular(root, str(relative))
-            if source.suffix == ".py":
-                result[relative] = ast.dump(
-                    ast.parse(source.read_text(encoding="utf-8")),
-                    include_attributes=False,
-                )
-            else:
-                result[relative] = source.read_bytes()
-        if len(result) < 25 or package / "__init__.py" not in result:
-            raise ValueError("Gateway executable source inventory is incomplete")
-        return result
+    def declarations(root: Path) -> dict[str, str]:
+        source = ast.parse(_safe_regular(root, path).read_text(encoding="utf-8"))
+        found: dict[str, str] = {}
+        for node in source.body:
+            names: list[str] = []
+            if isinstance(node, ast.Assign):
+                names = [name.id for name in node.targets if isinstance(name, ast.Name)]
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                names = [node.target.id]
+            for name in names:
+                if name not in _SECURITY_CONSUMED_HOST_BINDINGS:
+                    continue
+                if name in found:
+                    raise ValueError("ambiguous Host Security binding declaration")
+                found[name] = ast.dump(node, include_attributes=False)
+        if set(found) != _SECURITY_CONSUMED_HOST_BINDINGS:
+            raise ValueError("Host authorization selector declaration incomplete")
+        return found
 
-    old_source, new_source = observe(installed), observe(candidate)
-    return old_source == new_source or _qualified_exact_execution_profile_transition(
-        installed, candidate, old_source, new_source
+    return declarations(installed) == declarations(candidate)
+
+
+def _authority_source_unchanged(installed: Path, candidate: Path) -> bool:
+    """Keep the native installed Principal, Owner and HTTP routing authorities.
+
+    The only excluded modules form the actual business Action→Effect seam.
+    No caller parameter or second authority registry selects exclusions.
+    """
+    return (
+        all(
+            _source_equal(installed, candidate, item)
+            for item in STABLE_SECURITY_SOURCE
+            if Path(item) not in _ACTION_EFFECT_MODULES
+        )
+        and _same_package_release_contract(installed, candidate)
+        and _same_owner_credentials(installed, candidate)
+        and _same_mcp_composition(installed, candidate)
+        and _same_security_consumed_host_bindings(installed, candidate)
     )
+
+
+def _business_action_change_scope(installed: Path, candidate: Path) -> frozenset[Path] | None:
+    """Permit only already-present Action/Owner operation seams to enter C.
+
+    New modules, hidden grant code, changed authorization targets, arbitrary
+    transports, compiler/SDK version or public ABI are never classified C.
+    This is a necessary risk boundary, not an authorization ALLOW.
+    """
+    before = _executable_source_inventory(installed)
+    after = _executable_source_inventory(candidate)
+    if before.keys() != after.keys():
+        return None
+    changed = frozenset(path for path in before if before[path] != after[path])
+    if not changed or not changed <= _ACTION_EFFECT_MODULES:
+        return None
+    if not _authority_source_unchanged(installed, candidate):
+        return None
+    return changed
+
+
+_CANDIDATE_ACTION_EFFECT_PROBE = r'''
+"""Isolated candidate-native PEP and Owner consumer proof; no real Owner call."""
+import asyncio
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+from ordivon_gateway.security.authorization_targets import resolve_authorization_target
+from ordivon_gateway.capabilities.host.dispatch import HostContinuityAdapter
+from ordivon_gateway.logic.execution_refs import GatewayError
+from ordivon_gateway.security.capability_authz import GatewayCapabilityAuthorizationMiddleware
+from ordivon_gateway.service import GatewayService
+from ordivon_gateway.transport.upstream import OwnerCallError
+
+
+class Policy:
+    def __init__(self, outcome, *, forged_resource=False):
+        self.outcome = outcome
+        self.forged_resource = forged_resource
+
+    async def authorize(self, **request):
+        return {
+            "schemaVersion": 3,
+            "kind": "ordivon.security.gateway-capability-authz",
+            "principalId": request["principal_id"],
+            "issuer": request["issuer"],
+            "requestedCapability": request["requested_capability"],
+            "requestedResource": (
+                {"type": "untrusted", "id": "forged"}
+                if self.forged_resource else request["requested_resource"]
+            ),
+            "qualificationTarget": True,
+            "authorizationProfile": "interactive-principal-authzen",
+            "outcome": self.outcome,
+            "authorizationEvidence": {
+                "standard": "openid-authzen-authorization-api-1.0",
+                "decision": self.outcome == "ALLOW",
+                "requestId": "candidate-effect-canary",
+                "responseRequestId": "candidate-effect-canary",
+            },
+            "authorityProjection": None,
+            "effectAdmission": None,
+        }
+
+
+def ctx(name, arguments):
+    return SimpleNamespace(
+        method="tools/call",
+        params={"name": name, "arguments": arguments},
+        request=SimpleNamespace(
+            scope={"state": {
+                "ordivon_access_principal": "principal:release:isolated-test",
+                "ordivon_access_issuer": "isolated-test-only",
+            }}
+        ),
+    )
+
+
+class Host:
+    def __init__(self):
+        self.calls = []
+
+    def has_route(self, route):
+        return False
+
+    async def call_tool(self, route, tool, arguments):
+        self.calls.append((route, tool, arguments))
+        return {"kind": "isolated-test-only", "tool": tool}
+
+
+async def rejected(call):
+    try:
+        await call()
+    except GatewayError:
+        return
+    raise AssertionError("unqualified Owner effect reached")
+
+
+class Runtime:
+    def __init__(self, error=None):
+        self.calls = []
+        self.error = error or {
+            "origin": "runtime_core",
+            "code": "AUTHORIZATION_DENIED",
+            "field": "execution.executionProfile",
+            "commitState": "not_committed",
+            "retryClass": "never",
+            "retryable": False,
+        }
+
+    async def call_tool(self, owner, tool, arguments):
+        self.calls.append((owner, tool, arguments))
+        assert owner == "runtime.linux", "unexpected native Owner"
+        if tool == "runtime.describe":
+            return {
+                "schemaVersion": 1,
+                "node": {"nodeId": "linux-pg", "platform": "linux", "native": True},
+                "targets": [{
+                    "target": "local_linux",
+                    "configured": True,
+                    "available": True,
+                    "executionProfiles": ["contained_local"],
+                }],
+            }
+        assert tool == "workspace.exec", "unexpected effectful Owner operation"
+        if arguments["execution"]["executionProfile"] == "trusted_local":
+            raise OwnerCallError(
+                "isolated profile denial", owner_id=owner, tool_name=tool,
+                error=self.error,
+            )
+        assert arguments["execution"]["executionProfile"] == "contained_local"
+        return {
+            "jobId": "job-r48-isolated-fake",
+            "status": "succeeded",
+            "executionTerminal": True,
+        }
+
+
+class RecordingPolicy(Policy):
+    def __init__(self, outcome, *, forged_resource=False):
+        super().__init__(outcome, forged_resource=forged_resource)
+        self.calls = []
+
+    async def authorize(self, **request):
+        self.calls.append(request)
+        return await super().authorize(**request)
+
+
+def protected_arguments(name):
+    # These are syntactically valid for the *real* server-derived
+    # AuthorizationTargetResolver. Never downgrade an invalid target into
+    # a valid PDP denial claim; the authorizer must actually be called.
+    arguments = {
+        "actorRef": "actor:isolated:canary",
+        "authorActorRef": "actor:isolated:canary",
+    }
+    if name == "artifact.read":
+        arguments.update({
+            "operationRef": "ordivon-exec:v1:runtime.linux:job-canary-1",
+            "artifactId": "stdout",
+        })
+    elif name == "runtime.release.apply":
+        arguments.update({
+            "requestId": "release-canary",
+            "workspaceId": "ws-release-canary",
+            "commit": "a" * 40,
+            "candidateManifestDigest": "sha256:" + "b" * 64,
+            "expectedToolCount": 42,
+        })
+    return arguments
+
+
+async def check_original_security_partition():
+    inventory = json.loads(Path("enforcement-surface.json").read_text())
+    protected = [
+        tool["name"] for tool in inventory["tools"]
+        if tool["gatewayObjectPep"] != "none"
+    ]
+    assert len(protected) >= 30
+    assert len(set(protected)) == len(protected)
+    assert {"runtime.release.apply", "artifact.read", "message.post"} <= set(protected)
+
+    async def forbidden(_ctx):
+        raise AssertionError("protected operation bypassed Security decision")
+
+    for name in protected:
+        arguments = protected_arguments(name)
+        expected = resolve_authorization_target(name, arguments)
+        assert expected is not None, name
+        for outcome in ("DENY", "STEP_UP", "UNKNOWN"):
+            policy = RecordingPolicy(outcome)
+            middleware = GatewayCapabilityAuthorizationMiddleware(policy)
+            result = await middleware(ctx(name, arguments), forbidden)
+            assert result.is_error is True, (name, outcome)
+            assert len(policy.calls) == 1, (name, outcome)
+            call = policy.calls[0]
+            assert call["tool_name"] == name
+            assert call["requested_capability"] == expected.capability
+            assert call["requested_resource"] == expected.authzen_resource()
+            assert call["principal_id"] == "principal:release:isolated-test"
+            assert call["issuer"] == "isolated-test-only"
+        # Even forged apparent ALLOW for a distinct resource must reject.
+        fake = RecordingPolicy("ALLOW", forged_resource=True)
+        result = await GatewayCapabilityAuthorizationMiddleware(fake)(
+            ctx(name, arguments), forbidden
+        )
+        assert result.is_error is True, name
+        assert len(fake.calls) == 1, name
+
+
+async def run():
+    await check_original_security_partition()
+    host = Host()
+    adapter = HostContinuityAdapter(host)
+    allow = GatewayCapabilityAuthorizationMiddleware(Policy("ALLOW"))
+    deny = GatewayCapabilityAuthorizationMiddleware(Policy("DENY"))
+
+    original = {"workRef": "work:canary:one"}
+    ok = await allow(ctx("work.get", original), lambda _: adapter.call("work.get", original))
+    assert ok["tool"] == "work.get" and len(host.calls) == 1
+    host.calls.clear()
+
+    blocked = await deny(ctx("work.get", original), lambda _: adapter.call("work.get", original))
+    assert blocked.is_error is True and not host.calls
+    for outcome in ("STEP_UP", "UNKNOWN"):
+        other = GatewayCapabilityAuthorizationMiddleware(Policy(outcome))
+        result = await other(
+            ctx("work.get", original), lambda _: adapter.call("work.get", original)
+        )
+        assert result.is_error is True and not host.calls
+
+    forged = GatewayCapabilityAuthorizationMiddleware(
+        Policy("ALLOW", forged_resource=True)
+    )
+    result = await forged(
+        ctx("work.get", original), lambda _: adapter.call("work.get", original)
+    )
+    assert result.is_error is True and not host.calls
+
+    await rejected(lambda: allow(
+        ctx("work.get", original),
+        lambda _: adapter.call("work.snapshot.commit", {"workRef": "work:canary:one"}),
+    ))
+    assert not host.calls
+
+    await rejected(lambda: allow(
+        ctx("topic.resume", {"topicRef": "topic:canary:one"}),
+        lambda _: adapter.call("topic.resume", {"topicRef": "topic:canary:other"}),
+    ))
+    assert not host.calls
+
+    await rejected(lambda: GatewayCapabilityAuthorizationMiddleware(None)(
+        ctx("capability.describe", {"capability": "continuity.external"}),
+        lambda _: adapter.call("work.get", original),
+    ))
+    assert not host.calls
+
+    # R64: old shallow snapshot aliases nested public JSON. A Tool handler
+    # can mutate it after AuthZEN ALLOW unless the PEP freezes a value copy.
+    nested = {
+        "workRef": "work:canary:nested",
+        "workKind": "task",
+        "actorRef": "actor:canary:original",
+        "initialSnapshot": {
+            "objective": "original",
+            "frontier": "pending",
+            "nextActions": ["original"],
+        },
+    }
+
+    async def change_nested_after_authorization(request):
+        decoded = request.params["arguments"]
+        decoded["initialSnapshot"]["objective"] = "forged"
+        decoded["initialSnapshot"]["nextActions"][0] = "forged"
+        return await adapter.call("work.create", dict(decoded))
+
+    await rejected(lambda: allow(
+        ctx("work.create", nested), change_nested_after_authorization
+    ))
+    assert not host.calls
+
+    writer = {
+        "messageRef": "message:canary:one",
+        "spaceRef": "space:canary:one",
+        "topicRef": "topic:canary:one",
+        "authorActorRef": "actor:canary:original",
+        "body": "canary", "recordedAtMs": 1795100000000, "messageKind": "note",
+    }
+    await rejected(lambda: allow(
+        ctx("message.post", writer),
+        lambda _: adapter.call("message.post", {
+            **writer, "authorActorRef": "actor:canary:forged",
+        }),
+    ))
+    assert not host.calls
+
+    runtime = Runtime()
+    receipt = await GatewayService(runtime).execution_submit(
+        capability="execution.linux",
+        request_id="release-isolated-source-contract",
+        workspace_id="ws-canary",
+        executable="/usr/bin/printf",
+        args=["canary"],
+    )
+    assert receipt.native_id == "job-r48-isolated-fake"
+    assert [name for _, name, _ in runtime.calls] == [
+        "workspace.exec", "runtime.describe", "workspace.exec",
+    ]
+    assert runtime.calls[0][2]["clientRequestId"] == runtime.calls[-1][2]["clientRequestId"]
+
+    ambiguous = Runtime(error={
+        "origin": "runtime_core",
+        "code": "AUTHORIZATION_DENIED",
+        "field": "execution.executionProfile",
+        "commitState": "unknown",
+        "retryClass": "never",
+        "retryable": False,
+    })
+    try:
+        await GatewayService(ambiguous).execution_submit(
+            capability="execution.linux",
+            request_id="ambiguous-release-isolated",
+            workspace_id="ws-canary",
+            executable="/usr/bin/printf",
+            args=["canary"],
+        )
+    except OwnerCallError:
+        pass
+    else:
+        raise AssertionError("uncertain Runtime effect triggered a retry")
+    assert [name for _, name, _ in ambiguous.calls] == ["workspace.exec"]
+
+
+asyncio.run(run())
+'''
+
+
+def _candidate_action_effect_canary(candidate: Path) -> bool:
+    """Exercise actual candidate native Python/PEP/Host/Runtime paths, not mocks in production.
+
+    All Owner callers are isolated in-memory fakes. No credential, Host RPC,
+    Runtime Job, Security grant or Network request is performed by the canary.
+    """
+    python = candidate / ".venv" / "bin" / "python"
+    if not python.is_file() or not os.access(python, os.X_OK):
+        raise ValueError("candidate installed Python environment unavailable")
+    command = [str(python), "-c", _CANDIDATE_ACTION_EFFECT_PROBE]
+    # Source under review is not an Owner and must not inherit the running
+    # Gateway service account's real private Host/Runtime credential access.
+    # The official installer separately verifies that the true service user
+    # can import the release. This in-memory consumer canary runs as the
+    # native account without those private credentials (nor as root).
+    if candidate.resolve().is_relative_to(LIVE_PREFIX / "releases"):
+        runuser = Path("/usr/sbin/runuser")
+        if not runuser.is_file() or not os.access(runuser, os.X_OK):
+            raise ValueError("native unprivileged candidate runner unavailable")
+        command = [str(runuser), "-u", "nobody", "--", *command]
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=22,
+        cwd=str(candidate),
+        env={"PATH": "/usr/bin:/bin", "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1"},
+    )
+    return result.returncode == 0 and not result.stdout and len(result.stderr) <= 16_384
 
 
 def source_same_route(installed: Path, candidate: Path) -> bool:
@@ -627,15 +1002,40 @@ def assess(installed: Path, candidate: Path) -> dict[str, object]:
         raise ValueError("release roots outside the original immutable prefix")
     if (LIVE_PREFIX / "current").resolve() != installed.resolve():
         raise ValueError("installed release is not current")
-    same_source = source_same_route(installed, candidate)
-    if not same_source:
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.gateway-same-route-qualification",
-            "status": "NO_GO",
-            "reason": "SOURCE_AUTHORITY_OR_COMPOSITION_DRIFT",
-        }
 
+    class_a = source_same_route(installed, candidate)
+    action_scope: frozenset[Path] = frozenset()
+    consumer_proof = False
+    if not class_a:
+        # The natural Host/Cloudflare migration B only owns an actual
+        # ingress/Principal/Owner authority change. A normal code change is
+        # not a reason to perform an unrelated Host migration.
+        if not _authority_source_unchanged(installed, candidate):
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.gateway-same-route-qualification",
+                "status": "NO_GO",
+                "reason": "AUTHORITY_SOURCE_CHANGE_REQUIRES_SEPARATE_MIGRATION_PROOF",
+            }
+        action_scope = _business_action_change_scope(installed, candidate) or frozenset()
+        if not action_scope:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.gateway-same-route-qualification",
+                "status": "NO_GO",
+                "reason": "UNQUALIFIED_BUSINESS_ACTION_SOURCE_CHANGE",
+            }
+        consumer_proof = _candidate_action_effect_canary(candidate)
+        if not consumer_proof:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.gateway-same-route-qualification",
+                "status": "NO_GO",
+                "reason": "ACTION_EFFECT_CONSUMER_PROOF_MISSING",
+            }
+
+    # Preserve every existing live A authority/identity/negative canary for
+    # C as well. Native SDK public Tool ABI is an independent installer gate.
     env, initial_pid = _qualified_live_config(installed)
     same_owner, owner_count = _owner_profiles_same(installed, candidate, env)
     candidate_owner_read = _candidate_host_read_accepted(candidate, env)
@@ -658,19 +1058,30 @@ def assess(installed: Path, candidate: Path) -> dict[str, object]:
     return {
         "schemaVersion": 1,
         "kind": "ordivon.gateway-same-route-qualification",
-        "status": "QUALIFIED_SAME_ROUTE" if qualified else "NO_GO",
-        "sameSourceSecurityAndComposition": same_source,
+        "status": (
+            ("QUALIFIED_SAME_ROUTE" if class_a else "QUALIFIED_ACTION_CHANGE")
+            if qualified
+            else "NO_GO"
+        ),
+        "releaseChangeClass": (
+            "SAME_ROUTE_EXISTING_AUTHORITY" if class_a else "QUALIFIED_BUSINESS_ACTION_CHANGE"
+        ),
+        "reason": None if qualified else "LIVE_SAME_ROUTE_PRECONDITIONS_FAILED",
+        "sameSourceSecurityAndComposition": class_a,
         "sameConfiguredOwnerEndpoints": same_owner,
         "candidateRealHostReadAccepted": candidate_owner_read,
         "ownerCount": owner_count,
         "installedLocalAnonymousDenied": local_denied,
         "remotePublicAnonymousDenied": remote_denied,
         "installedSourceAndServiceUnchanged": current_still_same,
+        "actionEffectConsumerSourceProof": consumer_proof,
+        "changedActionModules": sorted(str(x) for x in action_scope),
         "truthBoundary": (
-            "Same installed ingress, unmodified Security PEP, natural Owner routes and "
-            "pre-promotion negative canaries only. Does NOT certify a new "
-            "Principal grant, Host/Cloudflare cutover, post-promotion result or "
-            "ChatGPT connector refresh."
+            "Installed Authority/Ingress/Owner config, candidate inert Action/Effect "
+            "contract and pre-promotion anonymous-negative canaries only. "
+            "Class C does NOT establish a new Principal grant, immutable code "
+            "behavior theorem, true external Agent consumer or post-promotion "
+            "Runtime Job/Host semantic completion. Validate those separately."
         ),
     }
 
@@ -698,7 +1109,15 @@ def main() -> int:
             "diagnosticType": type(exc).__name__,
         }
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["status"] == "QUALIFIED_SAME_ROUTE" else 3
+    if result["status"] in {"QUALIFIED_SAME_ROUTE", "QUALIFIED_ACTION_CHANGE"}:
+        return 0
+    if result.get("reason") in {
+        "UNQUALIFIED_BUSINESS_ACTION_SOURCE_CHANGE",
+        "ACTION_EFFECT_CONSUMER_PROOF_MISSING",
+        "LIVE_SAME_ROUTE_PRECONDITIONS_FAILED",
+    }:
+        return 4  # this same-route candidate failed; do NOT claim Host migration B
+    return 3  # unknown or independent Host/Cloudflare authority migration
 
 
 if __name__ == "__main__":

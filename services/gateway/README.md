@@ -81,22 +81,27 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
-- **Production release change class:** `packaging/install_release.sh` checks
-  the exact installed and candidate releases: unchanged ingress/AuthZEN
-  authority, Owner endpoint/credential identity, executable source closure,
-  native MCP SDK ABI, genuine Host read, and local/public anonymous-denial
-  canaries. A reviewed version-qualified *single-source transition* is allowed
-  only for the original checker's exact old/new byte pair, not as a general
-  executable module allow-list. Changed Security/Owner operation semantics
-  require independently verified authority/effect qualification; do not
-  assume unchanged authorization or a Host/Cloudflare route migration, and
-  never introduce a caller `--skip-security`. Symlink promotion alone does not
-  restart the running process or prove connected Agent delivery. Use
-  `packaging/check_running_release.py --expected-sourcecut SHA
-  --previous-pid PID` to verify the new systemd PID/cwd, HTTP health, and
-  anonymous denial. Separately qualify the connected authenticated Agent's
-  original Tool results and replay. Preserve the old immutable release for
-  rollback. See docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
+- **Production release qualification:** the official
+  `packaging/install_release.sh` derives the class from the exact installed
+  and immutable candidate SourceCuts, never a caller flag. **A** retains full
+  executable source/AST identity and all original native SDK, Owner/Ingress,
+  Security, live candidate Host read, and local/public anonymous-denial gates.
+  **C** independently checks a bounded existing business Action→Effect seam
+  with unchanged AuthZEN resource projector, Ingress/Principal, service and
+  Owner identity, complete executable source inventory, tool ABI and dependency
+  contract. Candidate-native negative checks cover all declared protected
+  Tools (DENY/STEP_UP/UNKNOWN/forged-resource), public Host operation/selector
+  mismatch, nested JSON mutation after authorization, and Runtime uncertain
+  effect replay. Code-only NO_GO is **not** Host/Cloudflare migration evidence.
+  **B** still owns actual Host/Ingress/Security authority migration under the
+  original fail-closed `check_live_host_admission.py` gate.
+  Neither A nor C grants an Agent Principal permissions or certifies an
+  external authenticated consumer. After a protected SourceCut merge and
+  original installer promotion, separately verify new systemd PID/cwd,
+  HTTP health, local/public anonymous denial and real connected Agent Tool
+  results. Restore the previous immutable release after a failed rollout;
+  use the target SourceCut's own original installer, not a stale checkout.
+  See `docs/HOST_DIRECT_CONSUMER_GATE_R7.md`.
 - **Trusted Cloudflare Access operator (explicit opt-in)**:
   ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR=true selects the already verified
   Cloudflare Access app as the operator trust boundary, removing duplicate
