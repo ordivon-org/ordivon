@@ -93,9 +93,9 @@ fn pg_workspace_claim_catalog() -> Vec<Tool> {
         entry::<ordivon_runtime_core::WorkspaceClaimKeyRequest,
                  ordivon_runtime_core::WorkspaceClaimProjection>(
             "workspace.claim.get", "Read exact Runtime workspace claim", true),
-        entry::<ordivon_runtime_core::WorkspaceClaimKeyRequest,
-                 ordivon_runtime_core::WorkspaceClaimProjection>(
-            "workspace.claim.release", "Release physical Workspace pin", false),
+        // No raw release Tool is registered until the original Run has an
+        // independent Domain recipient and all-issued native OS finalizer.
+        // A dedicated bearer cannot make these facts true by itself.
     ]
 }
 
@@ -109,7 +109,7 @@ mod workspace_claim_catalog_contract_tests {
         let additions = pg_workspace_claim_catalog();
         let names = additions.iter().map(|t| t.name.to_string()).collect::<Vec<_>>();
         assert_eq!(names, [
-            "workspace.claim.reserve", "workspace.claim.get", "workspace.claim.release"
+            "workspace.claim.reserve", "workspace.claim.get"
         ]);
         assert!(additions.iter().all(|t| !t.input_schema.is_empty()));
         assert!(additions.iter().all(|t| t.output_schema.is_some()));

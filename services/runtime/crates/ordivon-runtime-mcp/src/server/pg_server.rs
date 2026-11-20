@@ -25,7 +25,14 @@ enum ClaimReleaseIngress {
 
 impl ClaimReleaseIngress {
     const fn may_release(self) -> bool {
-        matches!(self, Self::DedicatedFinalizer | Self::DedicatedClaimOnly)
+        // The original Run's complete independently received output bytes AND
+        // every issued native OS effect remain unverified. An authenticated
+        // route bearer or clientRequestId is not finalizer authority.
+        // Keep the release capability unavailable until a real independently
+        // witnessed Domain/OS finalizer is implemented, not a caller boolean.
+        match self {
+            Self::Ordinary | Self::DedicatedFinalizer | Self::DedicatedClaimOnly => false,
+        }
     }
 
     const fn claim_only(self) -> bool {
@@ -37,7 +44,6 @@ const CLAIM_ONLY_TOOL_NAMES: &[&str] = &[
     "workspace.get",
     "workspace.claim.reserve",
     "workspace.claim.get",
-    "workspace.claim.release",
 ];
 
 fn claim_only_route_guard(ingress: ClaimReleaseIngress, name: &str) -> Result<(), McpError> {
@@ -52,10 +58,13 @@ fn claim_only_route_guard(ingress: ClaimReleaseIngress, name: &str) -> Result<()
 
 /// A caller-supplied key is a recovery coordinate, never release authority.
 /// Keep the real raw-dispatch check testable without constructing a PG client.
-fn claim_release_route_guard(allowed: bool, name: &str) -> Result<(), McpError> {
-    if name == "workspace.claim.release" && !allowed {
+fn claim_release_route_guard(_route_bearer_authenticated: bool, name: &str) -> Result<(), McpError> {
+    // Deliberately refuse EVEN authenticated finalizer bearers. No current
+    // ingress carries independently verified original Domain bytes and
+    // all-issued OS NoFutureSpawn; a boolean is never a sufficient receipt.
+    if name == "workspace.claim.release" {
         return Err(McpError::invalid_params(
-            "workspace.claim.release requires the authenticated Run finalizer route",
+            "workspace.claim.release unavailable: independently received complete Run output and all-issued native OS NoFutureSpawn proof are not verified",
             None,
         ));
     }
@@ -180,19 +189,19 @@ impl PgRuntimeServer {
             required_new_execution_profile: None,
         }
     }
-    /// This is ONLY called for the separately authenticated dedicated
-    /// Harness ingress selected by the operator at service startup. The
-    /// ordinary route remains deny-by-default even with no dedicated profile.
-    /// A distinct principal cannot silently inherit a prior principal's HELD
-    /// claim: legacy Claim migration needs original-consumer qualification.
+    /// This is ONLY called for a separately authenticated Harness ingress.
+    /// Authentication permits original Job/Claim operations, not releasing an
+    /// original Run's physical pin. Domain complete-receiver and all-issued
+    /// native OS finalization remain unimplemented, so raw release is denied.
+    /// A distinct principal must never inherit a prior HELD Claim.
     pub fn for_authenticated_harness_finalizer(mut self) -> Self {
         self.claim_release_ingress = ClaimReleaseIngress::DedicatedFinalizer;
         self
     }
 
-    /// A separately authenticated Claim owner cannot execute, cancel, release
-    /// Runtime binaries, or close Workspaces. Original recipient/OS verification
-    /// is still the external Harness Finalizer's responsibility.
+    /// A separately authenticated Claim owner may reserve/read original
+    /// physical pins, not execute, cancel, release, or close. A bearer alone
+    /// is not proof of original recipient bytes or Native NoFutureSpawn.
     pub fn for_authenticated_claim_only_finalizer(mut self) -> Self {
         self.claim_release_ingress = ClaimReleaseIngress::DedicatedClaimOnly;
         self
@@ -259,7 +268,7 @@ impl PgRuntimeServer {
         self.catalog_for().len()
     }
     pub fn catalog() -> Vec<Tool> {
-        Self::catalog_enabled(false)
+        Self::catalog_for_route(false, false)
     }
     fn catalog_enabled(release_ready: bool) -> Vec<Tool> {
         pg_portable_tool_catalog().into_iter()
@@ -513,10 +522,6 @@ impl PgRuntimeServer {
                     &execution.principal,
                     &parse::<ordivon_runtime_core::WorkspaceClaimKeyRequest>(arguments)?
                 )),
-                "workspace.claim.release" => value(runtime.release_workspace_claim(
-                    &execution.principal,
-                    &parse::<ordivon_runtime_core::WorkspaceClaimKeyRequest>(arguments)?
-                )),
                 "workspace.mutate" => value(runtime.mutate_workspace(&parse::<WorkspaceMutateRequest>(arguments)?)),
                 "workspace.read" => {
                     let request:WorkspaceReadRequest=parse(arguments)?;
@@ -629,7 +634,7 @@ mod claim_release_route_authority_tests {
 
     #[test]
     fn standalone_claim_finalizer_cannot_admit_jobs_or_close_workspaces() {
-        assert!(ClaimReleaseIngress::DedicatedClaimOnly.may_release());
+        assert!(!ClaimReleaseIngress::DedicatedClaimOnly.may_release());
         assert!(!ClaimReleaseIngress::Ordinary.may_release());
         for name in CLAIM_ONLY_TOOL_NAMES {
             assert!(claim_only_route_guard(ClaimReleaseIngress::DedicatedClaimOnly, name).is_ok());
@@ -656,14 +661,15 @@ mod claim_release_route_authority_tests {
         // Production may boot with no dedicated Harness profile at all. The
         // ordinary /mcp constructor must not silently permit raw Claim release.
         assert!(!ClaimReleaseIngress::Ordinary.may_release());
-        assert!(ClaimReleaseIngress::DedicatedFinalizer.may_release());
+        assert!(!ClaimReleaseIngress::DedicatedFinalizer.may_release());
         assert!(claim_release_route_guard(
             ClaimReleaseIngress::Ordinary.may_release(),
             "workspace.claim.release"
         ).is_err());
         for (route, expected) in [
             (ClaimReleaseIngress::Ordinary, false),
-            (ClaimReleaseIngress::DedicatedFinalizer, true),
+            (ClaimReleaseIngress::DedicatedFinalizer, false),
+            (ClaimReleaseIngress::DedicatedClaimOnly, false),
         ] {
             let catalog = PgRuntimeServer::catalog_for_route(false, route.may_release());
             assert_eq!(
@@ -680,21 +686,45 @@ mod claim_release_route_authority_tests {
     #[test]
     fn raw_tool_dispatch_blocks_normal_known_key_but_not_claim_readback() {
         assert!(claim_release_route_guard(false, "workspace.claim.release").is_err());
-        assert!(claim_release_route_guard(true, "workspace.claim.release").is_ok());
+        assert!(claim_release_route_guard(true, "workspace.claim.release").is_err());
         assert!(claim_release_route_guard(false, "workspace.claim.get").is_ok());
         assert!(claim_release_route_guard(false, "workspace.claim.reserve").is_ok());
         // Tool-name obfuscation cannot become an alternate release API.
-        assert!(PgRuntimeServer::catalog().iter().any(|t|
+        assert!(!PgRuntimeServer::catalog().iter().any(|t|
             t.name.as_ref() == "workspace.claim.release"));
         assert!(!PgRuntimeServer::catalog().iter().any(|t|
             t.name.as_ref() == "workspace.claim.release.legacy"));
         let isolated = PgRuntimeServer::catalog_for_route(false, false);
         let dedicated = PgRuntimeServer::catalog_for_route(false, true);
-        assert!(dedicated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
+        assert!(!dedicated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
         assert!(!isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.release"));
-        assert_eq!(dedicated.len(), isolated.len() + 1);
+        assert_eq!(dedicated.len(), isolated.len());
         assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.reserve"));
         assert!(isolated.iter().any(|t| t.name.as_ref() == "workspace.claim.get"));
+    }
+
+    #[test]
+    fn privileged_route_without_independent_domain_and_all_issued_os_receipt_cannot_release() {
+        // This is the original real two-PG negative: a bearer/key/RunRef is
+        // NOT an independently delivered complete original output set, nor
+        // the OS manager's proof of no future spawn. Do not invent a false
+        // authorization bit until an actual original finalizer exists.
+        for ingress in [
+            ClaimReleaseIngress::Ordinary,
+            ClaimReleaseIngress::DedicatedFinalizer,
+            ClaimReleaseIngress::DedicatedClaimOnly,
+        ] {
+            assert!(!ingress.may_release(), "{ingress:?}");
+            assert!(claim_release_route_guard(
+                ingress.may_release(), "workspace.claim.release"
+            ).is_err(), "raw route {ingress:?} must hold original Claim");
+            let catalog = PgRuntimeServer::catalog_for_route(false, ingress.may_release());
+            assert!(!catalog.iter().any(|tool| tool.name.as_ref() == "workspace.claim.release"));
+            for name in ["workspace.claim.reserve", "workspace.claim.get"] {
+                assert!(catalog.iter().any(|tool| tool.name.as_ref() == name));
+                assert!(claim_release_route_guard(ingress.may_release(), name).is_ok());
+            }
+        }
     }
 }
 
@@ -738,8 +768,8 @@ mod authenticated_execution_profile_projection_tests {
             .any(|t| t.name.as_ref() == "release.get"));
 
         let dedicated_finalizer = PgRuntimeServer::catalog_for_route(true, true);
-        assert_eq!(dedicated_finalizer.len(), 24);
-        assert!(dedicated_finalizer
+        assert_eq!(dedicated_finalizer.len(), 23);
+        assert!(!dedicated_finalizer
             .iter()
             .any(|t| t.name.as_ref() == "workspace.claim.release"));
 
@@ -755,11 +785,13 @@ mod authenticated_execution_profile_projection_tests {
             .iter()
             .any(|t| t.name.as_ref() == "release.apply"));
 
-        // Claim-only is a third authority. Do not count its 4 capabilities
-        // as the ordinary/Root release identity used by a SourceCut.
+        // Claim-only is a third identity, NOT a finalization proof; only the
+        // original pin reserve/get remain callable before independent Domain/OS.
         let mut claim_only = dedicated_finalizer;
         claim_only.retain(|t| CLAIM_ONLY_TOOL_NAMES.contains(&t.name.as_ref()));
-        assert_eq!(claim_only.len(), 4);
+        // workspace.get + Claim reserve/get remain available read-only;
+        // the former raw release slot has been retired for every route.
+        assert_eq!(claim_only.len(), 3);
         assert!(!claim_only.iter().any(|t| t.name.as_ref() == "release.apply"));
     }
 
