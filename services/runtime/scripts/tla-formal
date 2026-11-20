@@ -1521,6 +1521,29 @@ PY_PREUNIT_ACK
   fi
   echo "Issuer crashed-native-caller recovered physical ACK reachability PASS"
 
+  # A successful exact Manager cancellation is an independent safe path:
+  # caller definitely stopped, the original queued systemd Job was really
+  # cancelled, and all other issued Attempts are independently settled.
+  # This is a positive reachability test of an abstract OS ACK, not a
+  # Rust/PG implementation or proof from absence of a Unit alone.
+  set +e
+  output=$(cd "$ROOT/formal" && java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+    -workers 1 -config IssuerRevokeEpochR1.exact-cancel-ack-positive-reach.cfg \
+    IssuerRevokeEpochR1.tla 2>&1)
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+     ! grep -Fxq 'Error: Invariant ExactCancelAckUnreachable is violated.' <<< "$output" ||
+     ! grep -Fq 'revokeAck = TRUE' <<< "$output" ||
+     ! grep -Fq '"crashed_unknown"' <<< "$output" ||
+     ! grep -Fq 'nativeHandoffPending = {}' <<< "$output" ||
+     ! grep -Eq '^State [1-9][0-9]*:' <<< "$output"; then
+    echo "Issuer exact native Manager cancellation ACK positive path FAILED" >&2
+    printf '%s\n' "$output" | tail -60 >&2
+    exit 1
+  fi
+  echo "Issuer exact-Manager-cancel / all-issued safe ACK reachability PASS"
+
   # CEGAR native OS: "No currently visible systemd Unit" does NOT cancel an
   # already-submitted manager request. This bad algorithm falsely reclassifies
   # a crashed but still pending launcher as permanently blocked, then ACKs.

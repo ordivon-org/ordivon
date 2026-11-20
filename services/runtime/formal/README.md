@@ -534,14 +534,44 @@ Run the SHA-locked upstream checker:
 An independent operator-OPT-IN physical systemd regression is available:
   ORDIVON_RUN_NATIVE_ISSUER_HANDOFF_TEST=1 python3 -m unittest discover -s scripts/tests -p test_issuer_native_handoff.py -v
 
-It starts only two UUID-scoped disposable transient Units: a delayed one-shot
-barrier and a target that depends on the barrier. After both systemd-run
-submitting processes have exited, the original systemd Manager owns a queued
-start Job while the target has produced no output. Releasing the barrier
-causes the target to run and create its original output. The test cleans only
-its own exact Units. It verifies a delayed manager start beyond caller
-lifetime, not the narrower absence-of-any-Unit/PG COMMIT race; do not confuse
-these proof boundaries.
+The original R56 late-start case starts only two UUID-scoped transient
+Units: one delayed one-shot barrier and its dependent target. Once both
+systemd-run submitting processes have exited, the actual manager holds an
+exact numbered queued start Job while the target has produced no output.
+Releasing the barrier allows the target to run and create its original output.
+
+**R57 qualified native cancellation contrast:** a second opt-in test
+cancels the *exact* test-owned manager Job by its observed numeric identity
+before releasing the dependency barrier; the original pending Job disappears,
+and the target remains absent after the barrier clears. A third test starts
+two unrelated UUID-scoped queued Jobs, cancels only one by its manager identity,
+and proves the other still physically launches. Exact one-Job cancellation
+does not cancel the second issued Attempt and cannot justify an epoch-wide
+NoFutureSpawn ACK. All tests synchronously stop/read back only their own
+transient Units. Default invocation skips all physical tests. The tests
+are physical systemd manager semantics, not the narrower PG issuer-revocation
+race or original Runtime Artifact/Run delivery acceptance.
+
+The established two-Attempt TLA model now includes an abstract
+ConfirmExactNativeManagerCancel(a) transition. Its preconditions encode
+issuer dispatch fence, definitively exited original caller, exact original
+pending manager Job positively cancelled, and no target Unit already born.
+Only then does the original pending handoff become a blocked attempt. Normal
+TLC verifies the same post-ACK NoUnitBirth/NoSpawn invariants; the new
+ExactCancelAckUnreachable deliberately fails to show a valid original
+Run-wide ACK after the other Attempt is independently fenced or drained.
+The existing intentionally unsafe Unit-absence-only recovery still produces
+an actual named NoSpawnAfterAck counterexample. In particular, the Rust
+Runtime has **NOT** implemented a trustworthy StartUnit/JobRemoved/CancelJob
+identity receipt nor a PG-sourced proof that a crashed launcher can never
+submit a second manager Job. This OS cancellation result is a candidate
+native capability to compose, not itself a production release permit.
+
+Official systemd
+[Manager D-Bus](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html)
+documents StartUnit/StartTransientUnit returning a manager Job path and the
+JobRemoved signal correlation that an authenticated original launcher can
+reuse; use the original manager rather than inventing a second scheduler.
 
 Positive TLC probes demonstrate a legitimate crash, later native delivery,
 Stop/Quiet, then ACK. The deliberately unsafe recovery
