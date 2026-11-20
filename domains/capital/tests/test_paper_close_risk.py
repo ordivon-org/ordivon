@@ -151,7 +151,7 @@ def test_full_risk_cli_consumes_native_market_binding_and_accounting_receipt(tmp
     paths["receipt"].write_text(json.dumps(receipt))
     env = os.environ | {"PYTHONPATH": str(ROOT / "src")}
     call = subprocess.run(
-        [sys.executable, "-m", "ordivon_capital.risk.paper_close_risk",
+        [sys.executable, str(ROOT / "scripts/applications/paper_risk.py"),
          "--receipt", str(paths["receipt"]),
          "--snapshot", str(paths["snapshot"]),
          "--binding", str(paths["binding"])],
@@ -316,7 +316,7 @@ def test_readonly_pg_receipt_and_risk_cli_after_simulated_sell(tmp_path: Path):
     paths["binding"].write_text(json.dumps(binding))
     cli = subprocess.run(
         [
-            sys.executable, "-m", "ordivon_capital.risk.paper_close_risk",
+            sys.executable, str(ROOT / "scripts/applications/paper_risk.py"),
             "--account", account, "--session", sale_day.session.isoformat(),
             "--snapshot", str(paths["snapshot"]), "--binding", str(paths["binding"]),
         ], cwd=ROOT, env=os.environ | {

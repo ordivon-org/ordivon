@@ -159,7 +159,7 @@ def test_real_pg_latest_readonly_head_to_monthly_plan_and_markdown(tmp_path):
     paths["binding"].write_text(json.dumps(binding))
     paths["target"].write_text(json.dumps(TARGET))
     command = [
-        sys.executable, "-m", "ordivon_capital.portfolio.paper_contribution_plan",
+        sys.executable, str(ROOT / "scripts/applications/paper_contribution.py"),
         "--account", account, "--market-snapshot", str(paths["source"]),
         "--market-binding", str(paths["binding"]),
         "--target-weights", str(paths["target"]),
@@ -200,7 +200,7 @@ def test_unknown_account_does_not_create_a_new_investment_portfolio(tmp_path):
     (tmp_path / "targets").write_text(json.dumps(TARGET))
     result = subprocess.run(
         [
-            sys.executable, "-m", "ordivon_capital.portfolio.paper_contribution_plan",
+            sys.executable, str(ROOT / "scripts/applications/paper_contribution.py"),
             "--account", "missing-" + uuid4().hex,
             "--market-snapshot", str(tmp_path / "snapshot"),
             "--market-binding", str(tmp_path / "binding"),

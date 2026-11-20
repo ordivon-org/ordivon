@@ -213,7 +213,7 @@ Markets 独立准入的原始未复权收盘价，而不从复权历史柱子猜
 
 ```sh
 cd domains/capital
-scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk \
+scripts/run-capability-python scripts/applications/paper_risk.py \
   --account PAPER_ACCOUNT --session YYYY-MM-DD \
   --snapshot /private/etf-raw-marks.json \
   --binding /private/operator-market-binding.json
@@ -238,7 +238,7 @@ Accounting/Markets/Risk 原生消费者给出。
 
 ```sh
 cd domains/capital
-scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+scripts/run-capability-python scripts/applications/paper_performance.py \
   --account PAPER_ACCOUNT --session YYYY-MM-DD --previous-session YYYY-MM-DD \
   --snapshot /private/etf-raw-marks.json \
   --binding /private/operator-market-binding.json
@@ -380,7 +380,7 @@ Paper 日结、独立 Markets 估值绑定和 Risk 结果；原有机器 JSON
 从 domains/capital 目录调用现有脚本：
 
     export ORDIVON_CAPITAL_PAPER_PG_DSN='...经核实的专用Paper测试或模拟数据库...'
-    scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+    scripts/run-capability-python scripts/applications/paper_performance.py \
       --account PAPER_ACCOUNT --session YYYY-MM-DD \
       --previous-session YYYY-MM-DD \
       --snapshot /path/to/private-market-snapshot.json \
@@ -426,7 +426,7 @@ UNKNOWN、历史 PIT 不明时不可报告风险通过或授予真实交易效�
 
 ~~~sh
 export ORDIVON_CAPITAL_PAPER_PG_DSN='...已验证的专用Paper数据库DSN...'
-scripts/run-capability-python -m ordivon_capital.portfolio.paper_contribution_plan \
+scripts/run-capability-python scripts/applications/paper_contribution.py \
   --account PAPER_ACCOUNT \
   --market-snapshot /path/to/private-raw-eod.json \
   --market-binding /path/to/validated-binding.json \

@@ -1,5 +1,8 @@
 # Ordivon Capital Architecture
 
+> 2026-11-20 当前 Finance CLI 跨域编排减法：参见 [Finance Logic/Capability Architecture R2](FINANCE_LOGIC_CAPABILITY_ARCHITECTURE_R2_20261120.md)。三个 Paper CLI 已从 Portfolio/Risk 计算模块迁至 scripts/applications；原 -m CLI 已被显式停用，纯计算 API 保留。
+
+
 ## Finance Agent roles / Security authorization composition (2026-11-08)
 
 Finance has no required seven-Owner architecture. The seven existing Python

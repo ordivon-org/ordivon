@@ -223,7 +223,7 @@ def test_real_stdin_files_use_existing_markets_risk_accounting_sources(tmp_path)
     ):
         (tmp_path / name).write_text(json.dumps(data))
     cmd = [
-        sys.executable, "-m", "ordivon_capital.portfolio.paper_close_performance",
+        sys.executable, str(ROOT / "scripts/applications/paper_performance.py"),
         "--snapshot", str(tmp_path / "market.json"),
         "--binding", str(tmp_path / "binding.json"),
         "--current-receipt", str(tmp_path / "current.json"),
@@ -259,7 +259,7 @@ def test_persistent_mode_never_invents_readback_without_paper_database(tmp_path)
                         "ORDIVON_CAPITAL_PAPER_PG_DSN": ""}
     p = subprocess.run(
         [
-            sys.executable, "-m", "ordivon_capital.portfolio.paper_close_performance",
+            sys.executable, str(ROOT / "scripts/applications/paper_performance.py"),
             "--snapshot", str(tmp_path / "snapshot"),
             "--binding", str(tmp_path / "binding"),
             "--account", "daily-performance-test",
@@ -306,7 +306,7 @@ def test_postgresql_committed_paper_close_readback_to_portfolio(tmp_path):
     (tmp_path / "binding").write_text(json.dumps(binding))
     p = subprocess.run(
         [
-            sys.executable, "-m", "ordivon_capital.portfolio.paper_close_performance",
+            sys.executable, str(ROOT / "scripts/applications/paper_performance.py"),
             "--snapshot", str(tmp_path / "snapshot"),
             "--binding", str(tmp_path / "binding"),
             "--account", account, "--session", "2026-01-09",
