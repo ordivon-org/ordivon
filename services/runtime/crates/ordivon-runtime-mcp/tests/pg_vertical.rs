@@ -6267,6 +6267,26 @@ if test -r /etc/ordivon/runtime-mcp.token; then echo 'CONTAINED_SECRET_VISIBLE';
 # isolated from host-root-owned credentials outside the configured denylist.
 if test -r /etc/shadow; then echo 'CONTAINED_HOST_ROOT_READABLE'; exit 57; fi
 if test "$(id -u)" != 65534; then echo 'CONTAINED_TASK_NOT_NONROOT'; exit 58; fi
+# The real systemd mount table exposes this task's *own* original PG Attempt
+# bundle, even if the containing host source path is hidden by /var tmpfs.
+# The trusted UID0 Runner writes request/result and cancel marker here; the
+# nonroot Agent child must not read that request or create/replace a marker.
+# Do not inspect or mutate any other Attempt, secret, or control file.
+bundle="$(awk '$5 ~ /\/pg-attempts\/attempt-/ { print $5 }' /proc/self/mountinfo)"
+if test -z "$bundle" || test "$(printf '%s\n' "$bundle" | wc -l)" -ne 1; then
+    echo 'CONTAINED_OWN_ATTEMPT_BUNDLE_NOT_UNIQUE'; exit 63
+fi
+if test -r "$bundle/request.json"; then
+    echo 'CONTAINED_OWN_ATTEMPT_REQUEST_READABLE'; exit 64
+fi
+if test -w "$bundle"; then
+    echo 'CONTAINED_OWN_ATTEMPT_BUNDLE_WRITABLE'; exit 65
+fi
+control_probe="$bundle/.r59-benign-noclobber"
+if (set -C; printf 'own-bundle-probe' > "$control_probe") 2>/dev/null; then
+    rm -f -- "$control_probe"
+    echo 'CONTAINED_OWN_ATTEMPT_CONTROL_PROBE_CREATED'; exit 66
+fi
 # Native Runner retains only CAP_DAC_READ_SEARCH for original-source
 # reconciliation; the untrusted child must inherit NO effective capabilities.
 while read -r field value _; do
@@ -6347,6 +6367,26 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     assert_eq!(
         result["structuredContent"]["stdoutTail"],
         "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
+    );
+    // Independent trusted Runtime test receiver verifies the real native
+    // filesystem metadata, not just a task-printed string or static args.
+    // It never reads request.json or another Job's Attempt bundle.
+    let own_bundle: String = fixture
+        .db
+        .query_one("SELECT bundle_path FROM attempts WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get(0);
+    let native_mode = fs::symlink_metadata(&own_bundle).unwrap();
+    assert!(native_mode.file_type().is_dir());
+    assert_eq!(
+        native_mode.uid(),
+        0,
+        "PG Attempt control bundle must be root-owned"
+    );
+    assert_eq!(
+        native_mode.mode() & 0o777,
+        0o700,
+        "native Agent's own PG control bundle must be private before request.json"
     );
     let workspace = call(
         &endpoint,

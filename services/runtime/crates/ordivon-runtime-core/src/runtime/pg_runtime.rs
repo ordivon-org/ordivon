@@ -101,6 +101,32 @@ mod pg_delivery_semantics_tests {
     }
 }
 
+/// One original owner-controlled filesystem boundary shared by the normal
+/// PG issuer, accepted-before-dispatch cancellation and native stop. Neither
+/// the systemd service umask nor a disposable PG18 MCP process' umask may
+/// decide whether the contained untrusted task can READ its frozen request.
+fn prepare_private_pg_attempt_bundle(path: &Path) -> RuntimeResult<()> {
+    fs::create_dir_all(path).map_err(io)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let metadata = fs::symlink_metadata(path).map_err(io)?;
+        if !metadata.is_dir() || metadata.uid() != 0 {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "PG Attempt control bundle must be a root-owned directory",
+                Some("bundlePath"),
+                false,
+            ));
+        }
+        // Before ANY request or cancel marker is published, remove search
+        // authority from the nonroot Agent child. The trusted UID0 Runner
+        // continues writing its existing start/result/artifact files here.
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(io)?;
+    }
+    Ok(())
+}
+
 fn error(message: impl Into<String>) -> RuntimeError {
     RuntimeError::new(RuntimeErrorCode::RegistryUnavailable, message, None, false)
 }
