@@ -22,8 +22,18 @@ a caller-supplied skip flag:
   (allow only the same editable package's nondecreasing release version
   metadata to change, not any new transitive dependency or CLI entrypoint),
   unchanged private-credential reader and Host loopback semantics, exact
-  composition-root AST, installed active systemd PID/SourceCut and equal
-  configured Owner URL/credential-class/mode. Require one real candidate-to-
+  composition-root AST, and the **entire executable source tree** (matching
+  module/resource inventory, Python AST for every leaf Owner transport and
+  capability adapter, exact bytes for non-Python resources). This closes a
+  real isolated-source R46 counterexample: `work.get` could otherwise
+  forward to `work.snapshot.commit` with the same public MCP schema while
+  `source_same_route` incorrectly returned true. No Host effect was executed
+  in the falsifier. Source comments can differ, but an unknown executable
+  change fails A until independently qualified against Security and actual
+  downstream operation identity. This conservative A gate is NOT proof that
+  every code update is a Host/Cloudflare B migration.
+  Require installed active systemd PID/SourceCut and equal configured
+  Owner URL/credential-class/mode. Require one real candidate-to-
   Host MCP read, installed Gateway anonymous HTTP denial and Cloudflare public
   anonymous denial without accepting redirects. No secrets are read from a
   different service's private systemd credential. Only then does the original
