@@ -287,6 +287,41 @@ fn pg_contained_workspace_environment(
     environment
         .entry("PATH".to_string())
         .or_insert_with(|| "/usr/bin:/bin".to_string());
+    // This EXACT environment is frozen into the PG RunnerRequest. The
+    // unprivileged child runs with env_clear(): a systemd Unit --setenv or
+    // inherited root control-plane environment NEVER reaches it.
+    // The private Git snapshot was created before Workspace OPEN became
+    // ACTIVE. A legacy Workspace with no snapshot remains unqualified.
+    let private_git = workspace_cache.join("agent-git");
+    if !std::fs::symlink_metadata(&private_git)
+        .is_ok_and(|meta| meta.is_dir() && !meta.file_type().is_symlink())
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::WorkspaceStateMismatch,
+            "Workspace has no independently materialized nonroot Git snapshot",
+            Some("execution.workspaceId"),
+            false,
+        ));
+    }
+    pg_bounded_contained_cache_directory(executor, &private_git, workspace_id)?;
+    for (name, expected) in [
+        ("GIT_DIR", private_git.to_string_lossy().into_owned()),
+        (
+            "GIT_WORK_TREE",
+            original_workspace_path.to_string_lossy().into_owned(),
+        ),
+    ] {
+        if environment
+            .get(name)
+            .is_some_and(|actual| actual != &expected)
+        {
+            return Err(RuntimeError::invalid(
+                format!("contained_local {name} cannot override original Git binding"),
+                "execution.env",
+            ));
+        }
+        environment.insert(name.to_owned(), expected);
+    }
     // Git sees the root-owned worktree and rejects it for the unprivileged
     // payload. Exempt ONLY the original PG-admitted worktree in Git's
     // protected command-scope config; never authorize safe.directory='*'

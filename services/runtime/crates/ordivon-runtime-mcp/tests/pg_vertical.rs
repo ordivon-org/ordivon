@@ -6302,8 +6302,8 @@ fi
 printf 'native-contained-workspace' > contained-native.txt
 chmod 600 contained-native.txt
 git rev-parse --is-inside-work-tree >/dev/null
-if git add contained-native.txt >/dev/null 2>&1; then echo 'CONTAINED_WRITABLE_SHARED_GIT_AUTHORITY'; exit 55; fi
-printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
+if ! git add contained-native.txt; then echo 'CONTAINED_PRIVATE_GIT_ADD_FAILED'; git rev-parse --absolute-git-dir; echo GIT_DIR_BIND_PRESENT=${GIT_DIR:+yes}; exit 55; fi
+printf 'PG_CONTAINED_GIT_PRIVATE_ADD_AND_CREDENTIAL_BOUNDARY_OK'
 "#;
     let mut result = call(
         &endpoint,
@@ -6366,7 +6366,7 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     );
     assert_eq!(
         result["structuredContent"]["stdoutTail"],
-        "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
+        "PG_CONTAINED_GIT_PRIVATE_ADD_AND_CREDENTIAL_BOUNDARY_OK"
     );
     // Independent trusted Runtime test receiver verifies the real native
     // filesystem metadata, not just a task-printed string or static args.
@@ -6417,12 +6417,11 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     assert_ne!(read["isError"], true, "{read}");
     assert_eq!(
         read["structuredContent"]["content"],
-        "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
+        "PG_CONTAINED_GIT_PRIVATE_ADD_AND_CREDENTIAL_BOUNDARY_OK"
     );
-    // A real contained-only Coding Agent must be able to deliver a source
-    // candidate without returning to a trusted_local root-equivalent Job.
-    // Use Git's existing alternate object directory and private index,
-    // leaving the shared common-dir/HEAD/refs read-only to the Agent.
+    // The ordinary nonroot Coding task uses standard Git add/commit against
+    // its exact-SHA independent Git index/refs. The original protected Git
+    // repository never becomes writable and no second trusted Job is needed.
     let original_head = Command::new("git")
         .arg("-C")
         .arg(&repo)
@@ -6435,19 +6434,8 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     let private_commit_script = r#"set -eu
 if test -r /etc/ordivon/runtime-mcp.token; then exit 53; fi
 if test -r /etc/ordivon; then exit 54; fi
-git init -q --bare .agent-private.git
-common="$(git rev-parse --path-format=absolute --git-common-dir)"
-printf '%s\n' "$common/objects" > .agent-private.git/objects/info/alternates
-export GIT_OBJECT_DIRECTORY="$PWD/.agent-private.git/objects"
-export GIT_ALTERNATE_OBJECT_DIRECTORIES="$common/objects"
-export GIT_INDEX_FILE="$PWD/.agent-private-index"
-git read-tree HEAD
-git add contained-native.txt
-tree="$(git write-tree)"
-base="$(git rev-parse HEAD)"
-candidate="$(printf 'original contained source delivery\n' | git -c user.name=ContainedAgent -c user.email=agent@example.invalid commit-tree "$tree" -p "$base")"
-git --git-dir="$PWD/.agent-private.git" update-ref refs/heads/agent-candidate "$candidate"
-printf '%s' "$candidate"
+git -c user.name=ContainedAgent -c user.email=agent@example.invalid commit -qm 'original contained source delivery'
+printf '%s' "$(git rev-parse HEAD)"
 "#;
     let mut candidate = call(
         &endpoint,
@@ -6505,7 +6493,7 @@ printf '%s' "$candidate"
     );
     let private_bare = fixture
         .root
-        .join("store/workspaces/ws-contained-git/.agent-private.git");
+        .join("store/cache/workspaces/ws-contained-git/agent-git");
     let original_without_candidate = Command::new("git")
         .arg("-C")
         .arg(&repo)
@@ -6536,7 +6524,7 @@ printf '%s' "$candidate"
         .arg("fetch")
         .args(["--no-tags"])
         .arg(&private_bare)
-        .arg("refs/heads/agent-candidate:refs/heads/reviewed-contained-output")
+        .arg("refs/heads/agent-work:refs/heads/reviewed-contained-output")
         .output()
         .unwrap();
     assert!(
@@ -6624,6 +6612,140 @@ printf '%s' "$candidate"
             "shared cache ancestor became group writable: {ancestor}"
         );
     }
+
+    // Original-runtime lifecycle falsifier: an ordinary Coding Agent can
+    // produce a UNIQUE Git commit with NO change to the original Workspace
+    // source files. A caller-asserted consumerReleased and the original
+    // sourceStateDigest are not sufficient to GC the only candidate.
+    let empty_ws = "ws-contained-git-empty";
+    let opened_empty = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":empty_ws,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened_empty["isError"], true, "{opened_empty}");
+    let mut empty = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-contained-only-git-empty-commit-r60",
+            "execution":{"workspaceId":empty_ws,"executable":"/usr/bin/bash",
+                "args":["-lc",
+                    "set -eu; git -c user.name=ContainedAgent -c user.email=agent@example.invalid -c commit.gpgSign=false commit --allow-empty -qm 'native-only-original-git-candidate'; printf '%s' $(git rev-parse HEAD)"],
+                "cwdRelative":".","executionProfile":"contained_local","timeoutMs":15000},
+            "waitMs":7000,"stdoutTailBytes":256}),
+    );
+    assert_ne!(empty["isError"], true, "{empty}");
+    let empty_job = empty["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..22 {
+        if empty["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        empty = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":empty_job,"waitMs":1500,"stdoutTailBytes":256}),
+        );
+        assert_ne!(empty["isError"], true, "{empty}");
+    }
+    assert_eq!(
+        empty["structuredContent"]["executionDisposition"], "succeeded",
+        "{empty}"
+    );
+    let empty_commit = empty["structuredContent"]["stdoutTail"].as_str().unwrap();
+    assert_eq!(empty_commit.len(), 40);
+    assert_ne!(
+        empty_commit, original_head,
+        "an empty private commit must advance only Agent Git"
+    );
+
+    let empty_original = call(&endpoint, "workspace.get", json!({"workspaceId":empty_ws}));
+    assert_ne!(empty_original["isError"], true, "{empty_original}");
+    assert_eq!(
+        empty_original["structuredContent"]["dirty"], false,
+        "the outer root-owned Git tree is intentionally byte-clean: {empty_original}"
+    );
+    let source_digest = empty_original["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .expect("original CAS source state");
+    let refused = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":empty_ws,"consumerReleased":true,"force":false,
+              "expectedSourceStateDigest":source_digest}),
+    );
+    assert_eq!(
+        refused["isError"], true,
+        "private-only candidate cannot disappear from the original CAS Close: {refused}"
+    );
+    assert_eq!(
+        refused["structuredContent"]["error"]["code"], "WORKSPACE_DIRTY",
+        "{refused}"
+    );
+    let snapshot = fixture
+        .root
+        .join("store/cache/workspaces")
+        .join(empty_ws)
+        .join("agent-git");
+    assert!(
+        snapshot.join("objects").is_dir(),
+        "private candidate must remain"
+    );
+    let receiver = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .arg("fetch")
+        .args(["--no-tags"])
+        .arg(&snapshot)
+        .arg("refs/heads/agent-work:refs/heads/reviewed-empty-output")
+        .output()
+        .unwrap();
+    assert!(
+        receiver.status.success(),
+        "consumer must import independently: {}",
+        String::from_utf8_lossy(&receiver.stderr)
+    );
+    let received = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["rev-parse", "refs/heads/reviewed-empty-output"])
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8(received.stdout).unwrap().trim(),
+        empty_commit
+    );
+    // The independent test-owned consumer now possesses immutable Git
+    // objects. Only then may the source-side private ref be relinquished.
+    let retired = Command::new("git")
+        .arg("--git-dir")
+        .arg(&snapshot)
+        .args(["update-ref", "refs/heads/agent-work", original_head])
+        .output()
+        .unwrap();
+    assert!(
+        retired.status.success(),
+        "retire candidate after receiver readback: {}",
+        String::from_utf8_lossy(&retired.stderr)
+    );
+    let closed = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":empty_ws,"consumerReleased":true,"force":false,
+              "expectedSourceStateDigest":source_digest}),
+    );
+    assert_ne!(
+        closed["isError"], true,
+        "candidate accepted, original native Close: {closed}"
+    );
+    assert_eq!(closed["structuredContent"]["removed"], true, "{closed}");
+    assert!(
+        !snapshot.exists(),
+        "old private Git cache was not collected"
+    );
+    eprintln!("R60_REAL_PG18_GIT_EMPTY_COMMIT_SOURCECLEAN_NATIVE_CLOSE_DENY_THEN_INDEPENDENT_ACCEPT_CLOSE_PASS");
     eprintln!("R63_ORDINARY_NONROOT_PRIVATE_GIT_ORIGINAL_SOURCE_RECIPIENT_PASS");
 }
 

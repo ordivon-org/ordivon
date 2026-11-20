@@ -633,12 +633,107 @@ fn reconcile_closing_workspace(
     })
 }
 
+
+/// Before the ORIGINAL Workspace CAS/close cleans caches, preserve any Git
+/// content which exists ONLY in the unprivileged independent Git store.
+/// This includes an empty Git commit (outer worktree clean), extra refs, or
+/// a staged-only change. An ambiguous private repository is held, not GC'd.
+#[cfg(unix)]
+fn workspace_private_git_has_outputs(
+    private: &Path,
+    original_sha: &str,
+) -> Result<bool, UniversalExecError> {
+    let meta = fs::symlink_metadata(private)
+        .map_err(|e| io_error(private, "inspect private Git", e))?;
+    if !meta.is_dir() || meta.file_type().is_symlink() {
+        return Ok(true);
+    }
+    let head = fs::read_to_string(private.join("HEAD"))
+        .map_err(|_| unfinished_open_error("private Git HEAD not readable"))?;
+    if head.trim() != "ref: refs/heads/agent-work" {
+        return Ok(true);
+    }
+    let ref_path = private.join("refs/heads/agent-work");
+    let ref_meta = fs::symlink_metadata(&ref_path)
+        .map_err(|_| unfinished_open_error("private Git original ref missing"))?;
+    if !ref_meta.is_file() || ref_meta.file_type().is_symlink() {
+        return Ok(true);
+    }
+    let base = fs::read_to_string(&ref_path)
+        .map_err(|_| unfinished_open_error("private Git original ref unreadable"))?;
+    if base.trim() != original_sha || private.join("packed-refs").exists() {
+        return Ok(true);
+    }
+    for dir in [private.join("refs/heads"), private.join("refs/tags")] {
+        for entry in fs::read_dir(&dir)
+            .map_err(|e| io_error(&dir, "read private Git refs", e))?
+        {
+            let entry = entry.map_err(|e| io_error(&dir, "inspect private Git ref", e))?;
+            if dir.ends_with("heads") && entry.file_name() == "agent-work" {
+                continue;
+            }
+            return Ok(true);
+        }
+    }
+    // A staged-only candidate changes this private Git index even if the
+    // original root-owned linked Worktree's file digest is unchanged.
+    let result = workspace_git_command()
+        .arg("--git-dir")
+        .arg(private)
+        .args(["-c", "core.fsmonitor=false", "diff-index", "--cached", "--quiet", "HEAD", "--"])
+        .output()
+        .map_err(|e| tool_unavailable("git", e))?;
+    match result.status.code() {
+        Some(0) => Ok(false),
+        Some(1) => Ok(true),
+        _ => Err(unfinished_open_error("cannot prove private Git index has no unique output")),
+    }
+}
+
+#[cfg(not(unix))]
+fn workspace_private_git_has_outputs(
+    _private: &Path, _original_sha: &str,
+) -> Result<bool, UniversalExecError> {
+    Ok(false)
+}
+
+fn require_no_unreceived_private_git_candidate(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+) -> Result<(), UniversalExecError> {
+    let private = config.workspace_cache_path(workspace_id).join("agent-git");
+    match fs::symlink_metadata(&private) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(io_error(&private, "inspect private Git", error)),
+        Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {}
+        Ok(_) => return Err(unfinished_open_error("private Git metadata replaced")),
+    }
+    let bytes = read_workspace_record_bytes(&config.workspace_record_path(workspace_id))?;
+    let record: serde_json::Value = serde_json::from_slice(&bytes)
+        .map_err(|_| unfinished_open_error("private Git record authority unavailable"))?;
+    let revision = record
+        .get("sourceRevision")
+        .or_else(|| record.get("record").and_then(|r| r.get("sourceRevision")))
+        .and_then(|r| r.as_str())
+        .ok_or_else(|| unfinished_open_error("private Git SourceRevision missing"))?;
+    if workspace_private_git_has_outputs(&private, revision)? {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::WorkspaceDirty,
+            "private Git ref/index contains undelivered candidate; original Workspace must remain HELD",
+            Some("workspaceId"),
+            false,
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn remove_git_workspace(
     config: &UniversalExecutorConfig,
     request: &WorkspaceCloseRequest,
 ) -> Result<WorkspaceCloseResult, UniversalExecError> {
     request.validate_shape()?;
     config.ensure_store()?;
+    require_no_unreceived_private_git_candidate(config, &request.workspace_id)?;
     // Do not unlink the only durable recovery intent while a batch is partial.
     ensure_workspace_mutation_quiescent(config, &request.workspace_id)?;
     let record_path = config.workspace_record_path(&request.workspace_id);
