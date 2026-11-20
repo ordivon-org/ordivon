@@ -81,26 +81,22 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 
 ### Source boundaries
 
-- **Production release change class (R43)**: the original
-  packaging/install_release.sh derives same-route software upgrades from
-  the exact installed and immutable candidate, unchanged ingress/AuthZEN
-  Security source, private Owner credential semantics, **all executable
-  Gateway package modules and Owner operation dispatch AST** (not only the
-  public MCP Tool schema), exact native SDK Tool ABI, live systemd
-  SourceCut/route identity, candidate Host read and
-  authenticated-front-door anonymous-denial canaries. Unobserved or changed
-  policy/route/identity uses the original
-  packaging/check_live_host_admission.py cutover NO_GO; it is never a flag
-  to skip Security. The installer stages and changes a symlink but does not
-  restart the live process or prove connected Agent results. Before activation
-  and after restart keep authenticated read/denial, recovery and rollback
-  consumer obligations. The read-only
+- **Production release change class:** `packaging/install_release.sh` checks
+  the exact installed and candidate releases: unchanged ingress/AuthZEN
+  authority, Owner endpoint/credential identity, executable source closure,
+  native MCP SDK ABI, genuine Host read, and local/public anonymous-denial
+  canaries. A reviewed version-qualified *single-source transition* is allowed
+  only for the original checker's exact old/new byte pair, not as a general
+  executable module allow-list. Changed Security/Owner operation semantics
+  require independently verified authority/effect qualification; do not
+  assume unchanged authorization or a Host/Cloudflare route migration, and
+  never introduce a caller `--skip-security`. Symlink promotion alone does not
+  restart the running process or prove connected Agent delivery. Use
   `packaging/check_running_release.py --expected-sourcecut SHA
-  --previous-pid PID` waits for a distinct real systemd PID/cwd and
-  local HTTP/anonymous-denial canaries rather than treating the unit's
-  `Type=simple` Started event as application readiness. It cannot certify
-  external authenticated Agent Tools or change any service. See
-  docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
+  --previous-pid PID` to verify the new systemd PID/cwd, HTTP health, and
+  anonymous denial. Separately qualify the connected authenticated Agent's
+  original Tool results and replay. Preserve the old immutable release for
+  rollback. See docs/HOST_DIRECT_CONSUMER_GATE_R7.md.
 - **Trusted Cloudflare Access operator (explicit opt-in)**:
   ORDIVON_GATEWAY_TRUSTED_CF_OPERATOR=true selects the already verified
   Cloudflare Access app as the operator trust boundary, removing duplicate
@@ -613,16 +609,15 @@ to the mature SDK driver with no second HTTP client, retry, Job store or
 effect authority. Preserve public Gateway Tool names and Owner identity
 bindings unchanged.
 
-**Currentness boundary:** this source test does not imply the Gateway main
-release is deployed. At the 2026-11-17 audit, the installed Gateway is 0.10.12
-(release d73424dcae267224c907c102b14dfaf773f3fc11), while this source is
-0.10.15 / MCP surface epoch 15; verify the installed package and authenticated
-client tool catalog again before any release. The older 0.10.11 observation is
-historical, not the present installed version. Linux Runtime UTF-8
-subcharacter paging is an independent Owner-managed condition: its current
-installed fix must be established from Runtime's own real readback, not from
-this Gateway source test. Gateway rejects non-progress cursors rather than
-fabricating completion. Recheck both installed layers after any release.
+**Currentness boundary:** historical source versions and past incident PIDs
+do not identify the currently running Gateway. Verify `systemctl` MainPID,
+`/proc/<PID>/cwd`, `/opt/ordivon/gateway/current`, and the exact immutable
+release before interpreting any source or CI result. The original installed
+`packaging/check_running_release.py` proves local readiness only; an
+authenticated connected Agent must separately read the actual Host/Runtime
+Tool result and original Artifact bytes. Runtime Owner fixes are independently
+qualified by Runtime, not by Gateway source. UNKNOWN consumer delivery stays
+UNKNOWN.
 
 Proof of business delivery requires the original owner Job identity, terminal
 evidence, source-qualified output bytes, and an independently verified Artifact
@@ -687,30 +682,17 @@ conservatively. The official installer reports incompatibilities during
 promotion *before* changing the current symlink. This does not replace
 #2349's independent Security/Host/Cloudflare/Principal/Agent canaries.
 
-The 2026-11-18 original installed 0.10.12 versus prepared 0.10.14
-native SDK comparison reported five **potential public ABI breaks** (historical R15):
-work.create.initialSnapshot, work.get.revision, work.list.limit,
-work.snapshot.commit.expectedRevision, and
-work.snapshot.commit.snapshot. Some tighter declared bounds may already
-have been enforced by the natural Host; do not silently waive them or
-undo useful schema validation. Obtain real old-consumer acceptance and
-an explicit versioned migration or preserve the old public contract
-before treating promotion as compatible. **R18 resolves the five input
-schema differences in source without removing Host-compatible validation:**
-original public 0.10.12 Work Tool schemas are retained for snapshot and
-integer arguments, while existing Pydantic TypeAdapter validators apply the
-same strict Host wire rules before forwarding. Native MCP SDK tests from the
-installed old 38 tools to R18 41 tools show no incompatible contracts; all
-original malformed input negative cases still fail before Owner dispatch.
-For Host-invalid values admitted by the original public JSON Schema, the
-same original Gateway Owner error projector returns the previous structured
-OWNER_CALL_FAILED envelope without sending an Owner RPC. Malformed JSON
-booleans are not schema-admissible integers and may be rejected earlier by
-the SDK's own Tool argument parser. Real old/candidate SDK calls against the
-same installed Host confirm identical Work get/list/create/commit error
-payloads for the four representative schema-admissible invalid cases.
-The separate Security/Host/Cloudflare release #2349 remains NO_GO; schema
-compatibility is not an authentication or user-workflow grant.
+**Historical public ABI counterexample (2026-11-18):** narrowing five Work
+Tool input schemas (`work.create.initialSnapshot`, `work.get.revision`,
+`work.list.limit`, `work.snapshot.commit.expectedRevision`, and
+`work.snapshot.commit.snapshot`) initially created compatibility uncertainty.
+The original Gateway retained the old public JSON schema while validating
+the stricter Host wire contract before Owner forwarding. The original MCP SDK
+old-versus-candidate native ABI comparison and malformed-input negatives
+were independent checks. That historical result is not a compatibility or
+installation receipt for today's release. Always recheck the current SDK
+surface and real connected Agent/Owner errors. Public ABI compatibility
+cannot grant Host, Cloudflare or AuthZEN permissions.
 
 When the candidate activates Gateway's Host read/write AuthZEN PEP,
 Security must already have **operator-provisioned current Principal
@@ -890,19 +872,15 @@ remains for ordinary bounded Jobs and is **not** a self-release path.
 
 ### Availability and deployment gate
 
-Historically, the R12 source candidate extended MCP surface epoch 11 to 12
-(41 tools). This source now declares epoch 15 / package 0.10.15 with 41 tools;
-only the exact current release manifest and qualified live MCP discovery can
-establish an installed surface. Source tests and a route demonstration do
-not imply the installed Gateway or ChatGPT connector offers the new pair. Enable only after
-(1) normal Gateway release qualification, (2) existing Host/Security AuthZEN
-PEP consumer admission and real release authorization grant, (3) installed
-Gateway MCP discovery and caller action approval, (4) Runtime Owner actual
-release qualification and immutable candidate manifest, (5) owner-native
-ReleaseEffect/receipt readback. Do not force a Gateway upgrade over the known
-live Host authorization/grant gap. Until all gates are actually verified,
-production `runtime.release.apply` stays unavailable; do not bypass using
-`execution.submit` or manual installer calls.
+Historical Tool counts, README version strings, source tests and a healthy
+Gateway route do not establish the running capabilities. Read each candidate's
+`mcp-surface.json` and `pyproject.toml`, then verify the installed native MCP
+SDK contract and true systemd PID/cwd plus a connected authenticated Agent.
+The Gateway may expose `runtime.release.apply` while a particular Principal
+still lacks the independent Security AuthZEN `runtime.release.linux` ALLOW.
+Owner-native PostgreSQL ReleaseEffect and its immutable receipt, exact Tool
+action and actual Artifact bytes remain separate consumer obligations.
+Never replace them with an `execution.submit` or manual binary copy.
 
 ## Agent discovery of native Linux Runtime release (R13)
 
