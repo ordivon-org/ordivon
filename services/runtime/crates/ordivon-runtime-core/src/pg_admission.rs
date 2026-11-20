@@ -2549,11 +2549,10 @@ mod live_pg_tests {
             observed_at_ms: a.created_at_ms + 3,
             expected_source_sha256: a.expected_source_sha256.clone(),
         };
-        assert_eq!(
-            store
+        assert!(
+            !store
                 .settle_cancel_before_native_handoff(&original_issuer)
                 .unwrap(),
-            false,
             "a live noncancelled issuer must still be permitted to submit native OS"
         );
         assert_eq!(
@@ -2572,11 +2571,10 @@ mod live_pg_tests {
             store.settle_cancel_before_native_handoff(&bad),
             Err(PgAdmissionError::Blocked)
         ));
-        assert_eq!(
+        assert!(
             store
                 .settle_cancel_before_native_handoff(&original_issuer)
                 .unwrap(),
-            true,
             "unique original issuer owns no systemd call and must now settle cancellation"
         );
         let row = scratch.admin.query_one(
