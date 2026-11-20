@@ -158,6 +158,11 @@ notes that categories with fewer than 3 dealers reporting are not
 published, and that the historical endpoint can contain revisions.
 The model retains original week identity and outputs null value with
 PUBLISHED_VALUE_WITHHELD rather than zero or a previous valid value.
+Before the first released qualified dealer week, the consumer
+returns NO_ELIGIBLE_DEALER_WEEK, not the misleading SAME_REPORTED_WEEK.
+Duplicate dealer source-key file bindings are rejected before reading
+source bytes, so duplicated input cannot hide an omitted series.
+
 
 Actual official inputs replayed at five decision instants:
 
@@ -222,7 +227,7 @@ field semantics; no real provider data is bundled in Git.
   experiment scheduler or Agent-role framework.
 - Consumer: Agent researchers can recover *what could have been
   eligible at an explicit time* without creating false daily
-  liquidity signals. 12 pure/source-native falsification tests
+  liquidity signals. 23 source-native counterexample tests
   exercise accounting, date, DST, revisions, future SOFR and
   wrong-column cases.
 
