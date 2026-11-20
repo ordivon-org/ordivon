@@ -283,6 +283,12 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         )
         if contained_cutover:
             env["ORDIVON_PG_ORDINARY_EXECUTION_PROFILE"] = "contained_local"
+            # The native contained-only Runtime requires an operator-owned,
+            # non-root task identity even in a disposable PostgreSQL fixture.
+            # Use the same isolated nobody identity as the native PG18 tests;
+            # never borrow production Runtime or Gateway credentials.
+            env["ORDIVON_PG_WORKSPACE_UID"] = "65534"
+            env["ORDIVON_PG_WORKSPACE_GID"] = "65534"
         if os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ADMISSION") == "1":
             # Same cluster and issuer, with either legacy strict whole-endpoint
             # policy or the distinct authenticated Harness route.
