@@ -1,16 +1,61 @@
 //! PostgreSQL Attempt readback, native reconciliation, and Job result projection.
 use super::*;
 
+/// NSpid lists kernel PIDs in nested namespaces, from the namespace of the
+/// host procfs mount through the innermost namespace. A private systemd
+/// PID namespace changes the Runner's getpid() without changing the kernel
+/// process starttime. Reject malformed, duplicated, or mismatched host
+/// identities rather than trusting a supplied namespace PID alone.
+fn namespace_pid_from_host_status(status: &str, host_pid: u32) -> Option<u32> {
+    if host_pid == 0 {
+        return None;
+    }
+    let mut namespace_pid = None;
+    for line in status.lines() {
+        let Some(value) = line.strip_prefix("NSpid:") else {
+            continue;
+        };
+        if namespace_pid.is_some() {
+            return None;
+        }
+        let values: Option<Vec<u32>> = value
+            .split_whitespace()
+            .map(|part| part.parse::<u32>().ok().filter(|pid| *pid != 0))
+            .collect();
+        let values = values?;
+        if values.first().copied() != Some(host_pid) {
+            return None;
+        }
+        namespace_pid = values.last().copied();
+    }
+    namespace_pid
+}
+
+fn observed_namespace_pid(host_pid: u32) -> Option<u32> {
+    let status = std::fs::read_to_string(format!("/proc/{host_pid}/status")).ok()?;
+    namespace_pid_from_host_status(&status, host_pid)
+}
+
+/// One native observation binds the Manager's host PID to the Runner's
+/// namespace-local PID and the same kernel process starttime. Keep the
+/// three dependent facts together rather than accepting free-floating PIDs.
+struct NativePidReadback<'a> {
+    host_pid: Option<u32>,
+    namespace_pid: Option<u32>,
+    process_start: Option<&'a str>,
+}
+
 /// Project RUNNING only from a positively bound Linux Runner plus the
-/// kernel supervisor's current native identity. An issued dispatch, partial
-/// stdout, or the mere presence of runner-start.json is insufficient.
+/// kernel supervisor's host PID, the same kernel process starttime, and its
+/// namespace-local PID. An issued dispatch, partial stdout, or the mere
+/// presence of runner-start.json is insufficient.
 fn native_running_witness(
     start: &RunnerStartEvidence,
     native: &std::collections::BTreeMap<String, String>,
     job: &str,
     attempt: &str,
     launch_digest: &str,
-    observed_process_start: Option<&str>,
+    observed: NativePidReadback<'_>,
     provider_digest: &str,
 ) -> bool {
     let expected_unit = format!("ordivon-pg-{attempt}.service");
@@ -22,7 +67,9 @@ fn native_running_witness(
         && start.control_group == format!("/system.slice/{expected_unit}")
         && start.namespace_pid != 0
         && !start.namespace_process_start_identity.is_empty()
-        && observed_process_start == Some(start.namespace_process_start_identity.as_str())
+        && observed.host_pid.is_some_and(|pid| pid != 0)
+        && observed.namespace_pid == Some(start.namespace_pid)
+        && observed.process_start == Some(start.namespace_process_start_identity.as_str())
         && start.observed_unix_ms > 0
         && start.runner_executable_digest.as_deref() == Some(provider_digest)
         && native.get("LoadState").map(String::as_str) == Some("loaded")
@@ -30,8 +77,10 @@ fn native_running_witness(
         && native.get("InvocationID").map(String::as_str) == Some(start.invocation_id.as_str())
         && !start.invocation_id.is_empty()
         && native.get("ControlGroup").map(String::as_str) == Some(start.control_group.as_str())
-        && native.get("MainPID").map(String::as_str)
-            == Some(start.namespace_pid.to_string().as_str())
+        && native
+            .get("MainPID")
+            .and_then(|pid| pid.parse::<u32>().ok())
+            == observed.host_pid
 }
 
 /// Retain PostgreSQL's SQLSTATE across direct Client reads. The shared
@@ -879,13 +928,26 @@ impl PgRuntime {
                     let bytes = fs::read(&start_path).map_err(io)?;
                     let start: RunnerStartEvidence = serde_json::from_slice(&bytes).map_err(io)?;
                     let native = super::platform::systemctl_show(&a.unit_name)?;
+                    // systemd MainPID is in the host namespace. PrivatePIDs
+                    // may make RunnerStart.namespace_pid equal 1: never read
+                    // host /proc/1 as though it were this Runner.
+                    let host_pid = native
+                        .get("MainPID")
+                        .and_then(|pid| pid.parse::<u32>().ok())
+                        .filter(|pid| *pid != 0);
+                    let host_process_start = host_pid.and_then(super::platform::process_identity);
+                    let namespace_pid = host_pid.and_then(observed_namespace_pid);
                     if native_running_witness(
                         &start,
                         &native,
                         job,
                         &a.attempt_id,
                         &a.launch_token_digest,
-                        super::platform::process_identity(start.namespace_pid).as_deref(),
+                        NativePidReadback {
+                            host_pid,
+                            namespace_pid,
+                            process_start: host_process_start.as_deref(),
+                        },
                         provider["executionProvider"]["executableDigest"]
                             .as_str()
                             .unwrap_or(""),
@@ -1353,9 +1415,63 @@ mod native_runner_start_tests {
             job,
             attempt,
             launch_digest,
-            Some(start.namespace_process_start_identity.as_str()),
+            NativePidReadback {
+                host_pid: Some(1234),
+                namespace_pid: Some(start.namespace_pid),
+                process_start: Some(start.namespace_process_start_identity.as_str()),
+            },
             provider_digest,
         )
+    }
+
+    #[test]
+    fn namespace_status_binding_never_synthesizes_host_or_inner_pid() {
+        assert_eq!(
+            super::namespace_pid_from_host_status("Name:\trunner\nNSpid:\t54321\t1\n", 54321),
+            Some(1)
+        );
+        assert_eq!(
+            super::namespace_pid_from_host_status("NSpid:\t1234\n", 1234),
+            Some(1234)
+        );
+        for broken in [
+            "Name:\trunner\n",
+            "NSpid:\t54321\t0\n",
+            "NSpid:\t54321\tinvalid\n",
+            "NSpid:\t54321\t1\nNSpid:\t54321\t1\n",
+            "NSpid:\t54322\t1\n",
+        ] {
+            assert_eq!(super::namespace_pid_from_host_status(broken, 54321), None);
+        }
+    }
+
+    #[test]
+    fn private_pid_namespace_witness_preserves_host_manager_binding() {
+        let mut start = start();
+        start.namespace_pid = 1;
+        let mut native = unit();
+        native.insert("MainPID".into(), "54321".into());
+        let provider = start.runner_executable_digest.as_deref().unwrap();
+        let check = |host_pid, inner_pid, started| {
+            super::native_running_witness(
+                &start,
+                &native,
+                "job-a",
+                "attempt-a",
+                &start.launch_token_digest,
+                NativePidReadback {
+                    host_pid,
+                    namespace_pid: inner_pid,
+                    process_start: started,
+                },
+                provider,
+            )
+        };
+        assert!(check(Some(54321), Some(1), Some("start-1234")));
+        assert!(!check(Some(54321), None, Some("start-1234")));
+        assert!(!check(Some(54321), Some(54321), Some("start-1234")));
+        assert!(!check(Some(54322), Some(1), Some("start-1234")));
+        assert!(!check(Some(54321), Some(1), Some("stale-starttime")));
     }
 
     #[test]
@@ -1371,7 +1487,11 @@ mod native_runner_start_tests {
                     "job-a",
                     "attempt-a",
                     &start.launch_token_digest,
-                    stale,
+                    NativePidReadback {
+                        host_pid: Some(1234),
+                        namespace_pid: Some(start.namespace_pid),
+                        process_start: stale,
+                    },
                     provider
                 ),
                 "PID-only proof wrongly qualified a replaced or unobserved process"
