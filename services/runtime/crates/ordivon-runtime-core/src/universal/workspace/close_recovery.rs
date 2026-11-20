@@ -733,9 +733,11 @@ pub(crate) fn remove_git_workspace(
 ) -> Result<WorkspaceCloseResult, UniversalExecError> {
     request.validate_shape()?;
     config.ensure_store()?;
-    require_no_unreceived_private_git_candidate(config, &request.workspace_id)?;
-    // Do not unlink the only durable recovery intent while a batch is partial.
+    // Never inspect the private Git candidate before the existing lifecycle
+    // quiescence fence; an already-running nonroot task could still commit
+    // after an early read and before the physical cache is deleted.
     ensure_workspace_mutation_quiescent(config, &request.workspace_id)?;
+    require_no_unreceived_private_git_candidate(config, &request.workspace_id)?;
     let record_path = config.workspace_record_path(&request.workspace_id);
     let target = config.workspace_path(&request.workspace_id);
 
