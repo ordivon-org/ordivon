@@ -49,7 +49,7 @@ Only four classes of custom behavior are expected to survive migration:
 3. **Owner semantic verification** — an owner decides whether restored bytes or a mechanically healthy service are semantically usable for that owner.
 4. **Cross-E2E handoff contracts** — explicit transfer between desired state, physical realization, Runtime execution truth, and owner verdict.
 
-See `docs/ARCHITECTURE.md` and `docs/MIGRATION_R1.md`.
+Current owner design: [Workstation architecture](docs/ARCHITECTURE.md); current node/software facts: [native inventory sources](inventory/README.md). The 2026-09 migration notes are historical Git evidence, not current service state.
 
 ## Maintained provider implementations
 
