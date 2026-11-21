@@ -127,6 +127,17 @@ include!("workspace/records.rs");
 include!("workspace/file_io.rs");
 include!("workspace/changes.rs");
 include!("workspace/source_state.rs");
+// Explicit Rust module interfaces: no include! flattening for OS consumers
+// or private-Git output qualification. Existing Workspace close orchestration
+// invokes exactly these two capabilities, without importing their internals.
+#[cfg(target_os = "linux")]
+mod systemd_consumers;
+#[cfg(target_os = "linux")]
+use systemd_consumers::ensure_no_closing_workspace_systemd_consumer;
+mod private_git_outputs;
+use private_git_outputs::{
+    require_no_unreceived_private_git_candidate, workspace_private_git_has_outputs,
+};
 include!("workspace/close_recovery.rs");
 include!("workspace/paths_git.rs");
 
