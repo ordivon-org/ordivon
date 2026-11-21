@@ -134,10 +134,24 @@ include!("workspace/source_state.rs");
 mod systemd_consumers;
 #[cfg(target_os = "linux")]
 use systemd_consumers::ensure_no_closing_workspace_systemd_consumer;
-mod private_git_outputs;
-use private_git_outputs::{
-    require_no_unreceived_private_git_candidate, workspace_private_git_has_outputs,
+mod git_recovery;
+use git_recovery::{
+    ensure_rescue_ref, recover_missing_workspace_head, registered_workspace_head,
+    remove_git_worktree_from_workspace, remove_registered_workspace_with_broken_metadata,
+    remove_residual_workspace_directory,
 };
+mod private_git_outputs;
+// Shared OPENING metadata error vocabulary for record and Git capabilities.
+fn unfinished_open_error(reason: &str) -> UniversalExecError {
+    UniversalExecError::new(
+        UniversalExecErrorCode::MetadataCorrupt,
+        format!("Workspace opening cannot be reconciled safely: {reason}"),
+        Some("workspaceId"),
+        false,
+    )
+}
+
+use private_git_outputs::workspace_private_git_has_outputs;
 include!("workspace/close_recovery.rs");
 include!("workspace/paths_git.rs");
 
