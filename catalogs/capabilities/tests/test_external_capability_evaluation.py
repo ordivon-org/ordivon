@@ -157,8 +157,8 @@ class RadarTests(unittest.TestCase):
                     '</span></article>').encode() + b" " * 1500
             return subprocess.CompletedProcess(args, 0, stdout=html, stderr=b"")
 
-        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
-                "github_radar_incremental.fetch_json",
+        with patch("github_radar.provider.subprocess.run", side_effect=official_curl), patch(
+                "github_radar.provider.fetch_json",
                 return_value={"apiStatus": "OK", "totalStars": 42, "licenseMetadata": "MIT"}):
             observed = live_observation(1)
         self.assertEqual([w["window"] for w in observed["windows"]], ["daily", "monthly"])
@@ -194,7 +194,7 @@ class RadarTests(unittest.TestCase):
         from unittest.mock import patch
         from github_radar_incremental import live_observation
         failed = subprocess.CompletedProcess([], 7, stdout=b"", stderr=b"origin offline")
-        with patch("github_radar_incremental.subprocess.run", return_value=failed):
+        with patch("github_radar.provider.subprocess.run", return_value=failed):
             with self.assertRaisesRegex(RuntimeError, "all official GitHub Trending windows failed"):
                 live_observation(2)
 
@@ -233,8 +233,8 @@ class RadarTests(unittest.TestCase):
             return subprocess.CompletedProcess(
                 args, 0, stdout=(first + second + " " * 1500).encode(), stderr=b"")
 
-        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
-                "github_radar_incremental.fetch_json",
+        with patch("github_radar.provider.subprocess.run", side_effect=official_curl), patch(
+                "github_radar.provider.fetch_json",
                 return_value={"apiStatus": "OK", "totalStars": 100}):
             raw = live_observation(10)
         result = normalize(raw, set())
@@ -259,8 +259,8 @@ class RadarTests(unittest.TestCase):
                         f'{win}</a></h2><span>2 stars {label}</span></article>')
             return subprocess.CompletedProcess(
                 args, 0, stdout=(page + " " * 1500).encode(), stderr=b"")
-        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
-                "github_radar_incremental.fetch_json",
+        with patch("github_radar.provider.subprocess.run", side_effect=official_curl), patch(
+                "github_radar.provider.fetch_json",
                 return_value={"apiStatus": "OK", "totalStars": 10}):
             raw = live_observation(10)
         coverage = normalize(raw, set())["sourceCoverage"]
