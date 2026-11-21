@@ -1,7 +1,10 @@
 //! Workspace retirement uses Runtime-owned PG Claim and active Job admission fences.
 //! A caller's release assertion never overrides a still-HELD Claim.
 //! PostgreSQL commit and Git worktree removal are separate effects; ambiguity remains explicit.
-use super::*;
+use super::{
+    io, universal, workspace_consumer_sql, workspace_effect_commit, PgRuntime, RuntimeError,
+    RuntimeErrorCode, RuntimeResult, WorkspaceCloseRequest, WorkspaceCloseResult,
+};
 
 // An automated collector does not have evidence that the consumer released
 // its Workspace merely because the final Job exited successfully. The native
@@ -118,7 +121,7 @@ impl PgRuntime {
             ));
         }
         let result = universal::remove_git_workspace(&self.config.executor, request)
-            .map_err(super::super::error::map_universal_error)?;
+            .map_err(crate::runtime::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.close")?;
         Ok(result)
     }
