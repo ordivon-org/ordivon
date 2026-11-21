@@ -160,6 +160,7 @@ research = [
     { name = "scipy" },
 ]
 test = [
+    { name = "exchange-calendars" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyarrow" },
@@ -189,6 +190,7 @@ research = [
     { name = "scipy", specifier = "==1.18.1" },
 ]
 test = [
+    { name = "exchange-calendars", specifier = "==4.13.2" },
     { name = "numpy", specifier = "==2.5.3" },
     { name = "pandas", specifier = "==3.1.1" },
     { name = "pyarrow", specifier = "==26.0.0" },
