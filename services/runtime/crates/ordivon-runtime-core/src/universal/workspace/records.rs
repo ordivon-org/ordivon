@@ -12,15 +12,6 @@ struct OpeningWorkspaceRecord {
     created_unix_ms: u128,
 }
 
-fn unfinished_open_error(reason: &str) -> UniversalExecError {
-    UniversalExecError::new(
-        UniversalExecErrorCode::MetadataCorrupt,
-        format!("Workspace opening cannot be reconciled safely: {reason}"),
-        Some("workspaceId"),
-        false,
-    )
-}
-
 // The persisted intent is necessary but not sufficient. Git must prove the
 // exact detached worktree remains registered in the same source and is clean.
 fn managed_physical_target(target: &Path) -> Result<PathBuf, UniversalExecError> {

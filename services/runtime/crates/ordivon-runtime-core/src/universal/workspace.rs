@@ -127,6 +127,31 @@ include!("workspace/records.rs");
 include!("workspace/file_io.rs");
 include!("workspace/changes.rs");
 include!("workspace/source_state.rs");
+// Explicit Rust module interfaces: no include! flattening for OS consumers
+// or private-Git output qualification. Existing Workspace close orchestration
+// invokes exactly these two capabilities, without importing their internals.
+#[cfg(target_os = "linux")]
+mod systemd_consumers;
+#[cfg(target_os = "linux")]
+use systemd_consumers::ensure_no_closing_workspace_systemd_consumer;
+mod git_recovery;
+use git_recovery::{
+    ensure_rescue_ref, recover_missing_workspace_head, registered_workspace_head,
+    remove_git_worktree_from_workspace, remove_registered_workspace_with_broken_metadata,
+    remove_residual_workspace_directory,
+};
+mod private_git_outputs;
+// Shared OPENING metadata error vocabulary for record and Git capabilities.
+fn unfinished_open_error(reason: &str) -> UniversalExecError {
+    UniversalExecError::new(
+        UniversalExecErrorCode::MetadataCorrupt,
+        format!("Workspace opening cannot be reconciled safely: {reason}"),
+        Some("workspaceId"),
+        false,
+    )
+}
+
+use private_git_outputs::workspace_private_git_has_outputs;
 include!("workspace/close_recovery.rs");
 include!("workspace/paths_git.rs");
 
