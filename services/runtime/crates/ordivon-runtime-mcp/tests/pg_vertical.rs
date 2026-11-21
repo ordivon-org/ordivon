@@ -6829,6 +6829,10 @@ printf '%s' "$(git rev-parse HEAD)"
 fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() {
     let mut fixture = Fixture::new();
     fixture.host_visible_test_runner = true;
+    // Original contained_local consumer needs the native nonroot Git owner
+    // established on the Workspace BEFORE the trusted->contained cutover.
+    // This is the existing mature fixture mechanism, not a new Runtime grant.
+    fixture.contained_nonroot_test = true;
     let repo = fixture.repo();
     let initial_endpoint = fixture.endpoint();
     let opened = call(
