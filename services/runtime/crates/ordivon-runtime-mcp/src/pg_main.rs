@@ -3,314 +3,48 @@
 mod access_auth;
 #[cfg(target_os = "linux")]
 mod pg_auth;
-/// A running MCP listener without a running scheduler is not a healthy Runtime.
-/// Allow normal shutdown, but fail the process on an unexpected scheduler exit
-/// so the existing systemd Restart=always policy can restore the control plane.
-#[cfg(target_os = "linux")]
-fn scheduler_exit_result(
-    shutdown_requested: bool,
-    result: Result<(), tokio::task::JoinError>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    match result {
-        Err(error) => Err(format!("PG scheduling controller crashed: {error}").into()),
-        Ok(()) if !shutdown_requested => {
-            Err("PG scheduling controller exited without shutdown".into())
-        }
-        Ok(()) => Ok(()),
-    }
-}
-
-/// Supervise the native scheduler and the MCP listener as one availability
-/// unit. Losing either side without an operator shutdown is a service failure.
-#[cfg(target_os = "linux")]
-async fn supervise_pg_service<F>(
-    shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    mut scheduler_task: tokio::task::JoinHandle<()>,
-    server: F,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    F: std::future::Future<Output = std::io::Result<()>>,
-{
-    use std::sync::atomic::Ordering;
-    tokio::pin!(server);
-    tokio::select! {
-        scheduler_result = &mut scheduler_task => {
-            scheduler_exit_result(shutdown.load(Ordering::Acquire), scheduler_result)?;
-            server.await?;
-        }
-        server_result = &mut server => {
-            let requested = shutdown.load(Ordering::Acquire);
-            shutdown.store(true, Ordering::Release);
-            server_result?;
-            if !requested {
-                return Err("PG MCP listener exited without shutdown".into());
-            }
-            scheduler_exit_result(true, scheduler_task.await)?;
-        }
-    }
-    Ok(())
-}
-
-/// An unexpected loss of the HTTP listener must fail the entire service even
-/// if a synchronous scheduler call never unblocks. Tokio waits indefinitely
-/// for started spawn_blocking tasks on Runtime drop, so simply propagating the
-/// error out of #[tokio::main] cannot guarantee systemd will see process exit.
-/// The existing PG Journal/Runner owns durable native effects; this controller
-/// must stop and let systemd restart rather than impersonate a live service.
-#[cfg(target_os = "linux")]
-fn finish_pg_control_plane(
-    result: Result<(), Box<dyn std::error::Error>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if let Err(error) = &result {
-        eprintln!("PG Runtime control plane failed; exiting for systemd restart: {error}");
-        std::process::exit(1);
-    }
-    result
-}
 
 #[cfg(target_os = "linux")]
-fn parse_pg_headroom_pair(
-    path_key: &str,
-    minimum_key: &str,
-    path: Option<String>,
-    minimum: Option<String>,
-) -> Result<Option<ordivon_runtime_core::WorkspaceHeadroomConfig>, Box<dyn std::error::Error>> {
-    match (path, minimum) {
-        (None, None) => Ok(None),
-        (Some(path), Some(minimum)) => Ok(Some(ordivon_runtime_core::WorkspaceHeadroomConfig {
-            path: std::path::PathBuf::from(path),
-            minimum_free_bytes: minimum.parse()?,
-        })),
-        _ => Err(std::io::Error::other(format!(
-            "{path_key} and {minimum_key} must be configured together"
-        ))
-        .into()),
-    }
-}
-
-/// Explicit operator cutover for ordinary Agent Job admission. This policy
-/// is bound to the authenticated MCP server, never submitted by the Agent.
+#[path = "pg_main/config.rs"]
+mod config;
 #[cfg(target_os = "linux")]
-fn ordinary_contained_only(raw: Option<&str>) -> Result<bool, &'static str> {
-    match raw {
-        None | Some("trusted_local") => Ok(false), // legacy administrator compatibility
-        Some("contained_local") => Ok(true),
-        Some(_) => {
-            Err("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE must be trusted_local or contained_local")
-        }
-    }
-}
-
-// Do not start a Runtime that advertises contained-only Jobs while the
-// system has no operator-owned Unix task identity to execute them.
-// Unlike per-Job rejection, service startup failure cannot advertise a
-// usable Agent execution capability that does not exist.
+#[path = "pg_main/control.rs"]
+mod control;
+#[cfg(all(test, target_os = "linux"))]
+#[path = "pg_main/headroom_configuration_tests.rs"]
+mod headroom_configuration_tests;
 #[cfg(target_os = "linux")]
-fn require_ordinary_contained_owner(
-    restricted: bool,
-    owner: Option<(u32, u32)>,
-) -> Result<(), &'static str> {
-    if restricted && !matches!(owner, Some((uid, gid)) if uid != 0 && gid != 0) {
-        return Err("contained-only ordinary ingress requires nonroot Workspace UID and GID");
-    }
-    Ok(())
-}
+#[path = "pg_main/http_routes.rs"]
+mod http_routes;
+#[cfg(all(test, target_os = "linux"))]
+#[path = "pg_main/ordinary_ingress_profile_configuration_tests.rs"]
+mod ordinary_ingress_profile_configuration_tests;
+#[cfg(all(test, target_os = "linux"))]
+#[path = "pg_main/scheduler_supervision_tests.rs"]
+mod scheduler_supervision_tests;
+#[cfg(target_os = "linux")]
+#[path = "pg_main/server_bind.rs"]
+mod server_bind;
 
 #[cfg(all(test, target_os = "linux"))]
-mod ordinary_ingress_profile_configuration_tests {
-    use super::{ordinary_contained_only, require_ordinary_contained_owner};
-
-    #[test]
-    fn contained_ingress_must_have_real_nonroot_task_identity_at_startup() {
-        assert!(require_ordinary_contained_owner(true, None).is_err());
-        assert!(require_ordinary_contained_owner(true, Some((0, 65534))).is_err());
-        assert!(require_ordinary_contained_owner(true, Some((65534, 0))).is_err());
-        assert!(require_ordinary_contained_owner(true, Some((65534, 65534))).is_ok());
-        assert!(require_ordinary_contained_owner(false, None).is_ok());
-    }
-
-    #[test]
-    fn only_an_explicit_operator_mode_can_restrict_ordinary_new_jobs() {
-        assert_eq!(ordinary_contained_only(None), Ok(false));
-        assert_eq!(ordinary_contained_only(Some("trusted_local")), Ok(false));
-        assert_eq!(ordinary_contained_only(Some("contained_local")), Ok(true));
-        for invalid in [
-            "",
-            "all",
-            "TrustedLocal",
-            "contained_local, trusted_local",
-            "auto",
-        ] {
-            assert!(ordinary_contained_only(Some(invalid)).is_err(), "{invalid}");
-        }
-    }
-}
-
+use config::{ordinary_contained_only, parse_pg_headroom_pair, require_ordinary_contained_owner};
 #[cfg(all(test, target_os = "linux"))]
-mod headroom_configuration_tests {
-    use super::parse_pg_headroom_pair;
-
-    #[test]
-    fn pg_native_entry_rejects_unpaired_or_non_numeric_guest_capacity() {
-        let parse = |path: Option<&str>, bytes: Option<&str>| {
-            parse_pg_headroom_pair(
-                "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH",
-                "ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES",
-                path.map(str::to_owned),
-                bytes.map(str::to_owned),
-            )
-        };
-        assert!(parse(Some("/var/lib/ordivon"), None).is_err());
-        assert!(parse(None, Some("21474836480")).is_err());
-        assert!(parse(Some("/var/lib/ordivon"), Some("twenty-gb")).is_err());
-        assert!(parse(None, None).unwrap().is_none());
-        let valid = parse(Some("/var/lib/ordivon"), Some("21474836480"))
-            .unwrap()
-            .unwrap();
-        assert_eq!(valid.path, std::path::PathBuf::from("/var/lib/ordivon"));
-        assert_eq!(valid.minimum_free_bytes, 21474836480);
-    }
-}
+use control::scheduler_exit_result;
+#[cfg(target_os = "linux")]
+use control::{finish_pg_control_plane, supervise_pg_service};
 
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use ordivon_runtime_core::{PgRuntime, PgRuntimeConfig, UniversalExecutorConfig};
-    use ordivon_runtime_mcp::server::{ExecutionContext, PgReleaseOperatorConfig, PgRuntimeServer};
-    use rmcp::transport::streamable_http_server::{
-        session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
-    };
-    use std::{net::SocketAddr, path::PathBuf};
-    let required = |key: &str| {
-        std::env::var(key).map_err(|_| std::io::Error::other(format!("{key} required")))
-    };
-    let bind: SocketAddr = required("ORDIVON_PG_BIND")?.parse()?;
-    if !bind.ip().is_loopback() {
-        return Err("PG vertical requires an explicit loopback bind".into());
-    }
-    let token = required("ORDIVON_PG_TOKEN")?;
-    if token.len() < 32 {
-        return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
-    }
-    let auth = pg_auth::PgAuth::from_env(&token)?;
-    // Existing deployments retain the exact trusted_local behavior until
-    // operators qualify the contained consumer and intentionally cut over.
-    let contained_ordinary_only = ordinary_contained_only(
-        pg_auth::optional_env("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE")?.as_deref(),
-    )?;
-    let issuer_schema = pg_auth::optional_env("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
-    let harness_bearer_file = pg_auth::optional_env("ORDIVON_PG_HARNESS_TOKEN_FILE")?;
-    let harness_principal = pg_auth::optional_env("ORDIVON_PG_HARNESS_PRINCIPAL")?;
-    // The dedicated profile must be complete. Bare issuer_schema retains the
-    // already-tested, isolated legacy all-Job mode; it must not be installed
-    // on a shared endpoint that also accepts ordinary execution requests.
-    let isolated_harness = match (harness_bearer_file, harness_principal) {
-        (None, None) => None,
-        (Some(file), Some(principal)) => {
-            if principal == required("ORDIVON_PG_PRINCIPAL")?
-                || principal.is_empty()
-                || principal.trim() != principal
-                || principal.len() > 256
-            {
-                return Err("Harness principal must be distinct, nonempty and trimmed".into());
-            }
-            // A dedicated Claim finalizer needs original Runtime PG Workspace
-            // ownership only, NOT the optional same-DB Harness Job issuer.
-            // With an issuer schema the existing R16 Job source-currentness
-            // contract remains exactly as before.
-            let dedicated = auth.dedicated_harness_from_file(std::path::Path::new(&file))?;
-            Some((dedicated, principal, issuer_schema.clone()))
-        }
-        _ => {
-            return Err(
-                "dedicated Harness token file and principal must be configured together".into(),
-            )
-        }
-    };
-    // The PG native binary must consume the same two carrier budgets as the
-    // legacy entrypoint. Never mistake a legacy MCP compile for PG coverage.
-    let headroom_pair = |path_key: &str, minimum_key: &str| {
-        parse_pg_headroom_pair(
-            path_key,
-            minimum_key,
-            pg_auth::optional_env(path_key)?,
-            pg_auth::optional_env(minimum_key)?,
-        )
-    };
-    let workspace_headroom = [
-        headroom_pair(
-            "ORDIVON_WORKSPACE_HEADROOM_PATH",
-            "ORDIVON_WORKSPACE_MIN_FREE_BYTES",
-        )?,
-        headroom_pair(
-            "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH",
-            "ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES",
-        )?,
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    // Optional operator-owned Unix payload owner. Ordinary callers never set
-    // it. A contained Job requires both nonzero IDs; otherwise admission
-    // fails closed rather than running the task as host UID 0.
-    let contained_workspace_owner = match (
-        pg_auth::optional_env("ORDIVON_PG_WORKSPACE_UID")?,
-        pg_auth::optional_env("ORDIVON_PG_WORKSPACE_GID")?,
-    ) {
-        (None, None) => None,
-        (Some(uid), Some(gid)) => {
-            let uid = uid.parse::<u32>()?;
-            let gid = gid.parse::<u32>()?;
-            if uid == 0 || gid == 0 {
-                return Err("contained Workspace payload owner must be nonroot".into());
-            }
-            Some((uid, gid))
-        }
-        _ => return Err("PG Workspace UID and GID must be configured together".into()),
-    };
-    require_ordinary_contained_owner(contained_ordinary_only, contained_workspace_owner)?;
-    let config = PgRuntimeConfig {
-        dsn: required("ORDIVON_PG_DSN")?,
-        schema: required("ORDIVON_PG_SCHEMA")?,
-        source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,
-        // A dedicated authenticated Harness route uses its own cloned
-        // PgRuntime configuration (same source/database/Runner, one scheduler).
-        // Normal /mcp Job admissions retain their original execution contract.
-        harness_issuer_schema: if isolated_harness.is_none() {
-            issuer_schema.clone()
-        } else {
-            None
-        },
-        harness_dispatch_issuer: isolated_harness
-            .as_ref()
-            .and_then(|(_, principal, schema)| {
-                schema
-                    .as_ref()
-                    .map(|schema| (principal.clone(), schema.clone()))
-            }),
-        workspace_headroom,
-        executor: UniversalExecutorConfig {
-            store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
-            workspace_root: None,
-            workspace_uid: contained_workspace_owner.map(|(uid, _)| uid),
-            workspace_gid: contained_workspace_owner.map(|(_, gid)| gid),
-            runner_path: Some(PathBuf::from(required("ORDIVON_PG_RUNNER")?)),
-            allowed_executable_roots: serde_json::from_str(&required(
-                "ORDIVON_PG_EXECUTABLE_ROOTS_JSON",
-            )?)?,
-            max_runtime_ms: 30 * 60 * 1000,
-            max_output_bytes: 4 * 1024 * 1024,
-        },
-    };
-    let issuer_runtime_config = isolated_harness
-        .as_ref()
-        .map(|(_, _, schema)| PgRuntimeConfig {
-            // Claim-only path shares the existing physical PG owner and
-            // never reads an unrelated Harness database/issuer function.
-            harness_issuer_schema: schema.clone(),
-            harness_dispatch_issuer: None,
-            ..config.clone()
-        });
+    use ordivon_runtime_core::PgRuntime;
+    let config::PgStartup {
+        bind,
+        auth,
+        contained_ordinary_only,
+        isolated_harness,
+        config,
+        issuer_runtime_config,
+    } = config::load_pg_startup()?;
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;
     // The issuer view is a second IN-PROCESS port into the same PG and
     // shared native Runner, never a second scheduler, registry or service.
@@ -336,108 +70,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scheduler = runtime.clone();
     let scheduler_task =
         tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
-    // The release interface remains absent unless the separate native
-    // operator is explicitly installed/configured. PgRuntimeServer also
-    // verifies actual live timer and independently qualified PG release stage.
-    let release = std::env::var("ORDIVON_PG_RELEASE_SOURCE_REPO")
-        .ok()
-        .map(|source_repo| {
-            Ok::<_, std::io::Error>(PgReleaseOperatorConfig {
-                source_repo: PathBuf::from(source_repo),
-                operator_executable: PathBuf::from(required("ORDIVON_PG_RELEASE_OPERATOR_BIN")?),
-                receipt_root: PathBuf::from(required("ORDIVON_PG_RELEASE_RECEIPT_ROOT")?),
-                dispatcher_timer: required("ORDIVON_PG_RELEASE_DISPATCH_TIMER")?,
-            })
-        })
-        .transpose()?;
-    let server = PgRuntimeServer::with_release(
+    let (server, dedicated_server) = server_bind::bind_pg_runtime_servers(
         runtime,
-        ExecutionContext {
-            principal: required("ORDIVON_PG_PRINCIPAL")?,
-            global_limit: 0,
-        },
-        release,
-    );
-    let server = if contained_ordinary_only {
-        server.restrict_ordinary_jobs_to_contained()
-    } else {
-        server
-    };
-    // The ordinary /mcp route ALWAYS starts without Harness Claim release
-    // authority. Missing/incomplete dedicated issuer configuration must fail
-    // closed, not silently restore the raw early-release attack.
-    // Existing ordinary-principal HELD Claims remain pinned; migration to the
-    // dedicated issuer needs an exact, consumer-qualified original Run owner.
-    let dedicated_server = match (harness_runtime, isolated_harness.as_ref()) {
-        (Some(runtime), Some((_, principal, issuer_schema))) => {
-            let dedicated = PgRuntimeServer::new(
-                runtime,
-                ExecutionContext {
-                    principal: principal.clone(),
-                    global_limit: 0,
-                },
-            );
-            Some(if issuer_schema.is_some() {
-                dedicated.for_authenticated_harness_finalizer()
-            } else {
-                dedicated.for_authenticated_claim_only_finalizer()
-            })
-        }
-        (None, None) => None,
-        _ => return Err("incomplete Harness Runtime source/ingress binding".into()),
-    };
-    let mut transport = StreamableHttpServerConfig::default();
-    if let Some(hosts) = pg_auth::optional_env("ORDIVON_PG_ALLOWED_HOSTS_JSON")? {
-        transport
-            .allowed_hosts
-            .extend(serde_json::from_str::<Vec<String>>(&hosts)?);
-    }
-    let configured_tool_count = server.configured_tool_count();
-    let service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            move || Ok(server.clone()),
-            Default::default(),
-            transport.clone(),
-        );
-    let mut app = axum::Router::new().nest_service("/mcp", service);
-    if let Some(harness_server) = dedicated_server {
-        let harness_service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
-            StreamableHttpService::new(
-                move || Ok(harness_server.clone()),
-                Default::default(),
-                transport.clone(),
-            );
-        app = app.nest_service("/harness/mcp", harness_service);
-    }
-    let harness_auth = isolated_harness.map(|(auth, _, _)| auth);
-    let app = app
-        .layer(axum::middleware::from_fn(
-            move |request: axum::extract::Request, next: axum::middleware::Next| {
-                let auth = auth.clone();
-                let harness_auth = harness_auth.clone();
-                async move {
-                    let path = request.uri().path();
-                    let protected = path == "/harness/mcp" || path.starts_with("/harness/mcp/");
-                    let admitted = if protected {
-                        match harness_auth {
-                            Some(harness) => harness.authorized(request.headers()).await,
-                            None => false,
-                        }
-                    } else {
-                        auth.authorized(request.headers()).await
-                    };
-                    if admitted {
-                        next.run(request).await
-                    } else {
-                        axum::response::Response::builder()
-                            .status(401)
-                            .body(axum::body::Body::empty())
-                            .unwrap()
-                    }
-                }
-            },
-        ))
-        .layer(tower_http::limit::RequestBodyLimitLayer::new(1024 * 1024));
+        harness_runtime,
+        contained_ordinary_only,
+        &isolated_harness,
+    )?;
+    let (app, configured_tool_count) =
+        http_routes::build_pg_http_routes(server, dedicated_server, auth, isolated_harness)?;
     let listener = tokio::net::TcpListener::bind(bind).await?;
     eprintln!(
         "fresh PG Runtime MCP: http://{}/mcp ({} tools)",
@@ -472,137 +112,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn main() {
     eprintln!("The scoped PG execution vertical currently requires Linux");
     std::process::exit(64);
-}
-
-#[cfg(all(test, target_os = "linux"))]
-mod scheduler_supervision_tests {
-    use super::{finish_pg_control_plane, scheduler_exit_result, supervise_pg_service};
-    use std::sync::{atomic::AtomicBool, Arc};
-
-    #[tokio::test]
-    async fn silent_scheduler_exit_is_a_process_failure() {
-        let result = tokio::task::spawn_blocking(|| ()).await;
-        assert!(scheduler_exit_result(false, result).is_err());
-    }
-
-    #[tokio::test]
-    async fn expected_scheduler_shutdown_is_not_an_error() {
-        let result = tokio::task::spawn_blocking(|| ()).await;
-        assert!(scheduler_exit_result(true, result).is_ok());
-    }
-
-    #[tokio::test]
-    async fn supervisor_fails_fast_even_if_the_listener_would_never_finish() {
-        let shutdown = Arc::new(AtomicBool::new(false));
-        let scheduler = tokio::task::spawn_blocking(|| ());
-        let still_listening = std::future::pending::<std::io::Result<()>>();
-        let result = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            supervise_pg_service(shutdown, scheduler, still_listening),
-        )
-        .await
-        .expect("scheduler death must not leave HTTP serving indefinitely");
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn supervisor_allows_normal_listener_and_scheduler_shutdown() {
-        let shutdown = Arc::new(AtomicBool::new(true));
-        let scheduler = tokio::task::spawn_blocking(|| ());
-        let listener = std::future::ready(Ok(()));
-        assert!(supervise_pg_service(shutdown, scheduler, listener)
-            .await
-            .is_ok());
-    }
-
-    #[tokio::test]
-    async fn supervisor_rejects_listener_termination_without_shutdown() {
-        let shutdown = Arc::new(AtomicBool::new(false));
-        let scheduler = tokio::task::spawn_blocking(|| ());
-        let listener = std::future::ready(Ok(()));
-        assert!(supervise_pg_service(shutdown, scheduler, listener)
-            .await
-            .is_err());
-    }
-
-    #[test]
-    fn fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler() {
-        use std::process::{Command, Stdio};
-        use std::time::{Duration, Instant};
-
-        const ENV: &str = "ORDIVON_TEST_FATAL_PG_CONTROL_EXIT";
-        if let Ok(mode) = std::env::var(ENV) {
-            let runtime = tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .unwrap();
-            let result = runtime.block_on(async {
-                let (started_tx, started_rx) = std::sync::mpsc::channel();
-                // The blocking task has actually started and intentionally does
-                // not finish. The child process is always reaped by its parent.
-                tokio::task::spawn_blocking(move || {
-                    let _ = started_tx.send(());
-                    loop {
-                        std::thread::park();
-                    }
-                });
-                started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
-                let error: Box<dyn std::error::Error> = "synthetic listener failure".into();
-                if mode == "fatal" {
-                    finish_pg_control_plane(Err(error))
-                } else {
-                    Err(error)
-                }
-            });
-            let _ = result;
-            drop(runtime); // The uncorrected control path waits forever here.
-            return;
-        }
-        let run = |mode: &str| {
-            Command::new(std::env::current_exe().unwrap())
-                .args([
-                    "--exact",
-                    "scheduler_supervision_tests::fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler",
-                    "--nocapture",
-                ])
-                .env(ENV, mode)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .unwrap()
-        };
-        let mut uncorrected = run("return");
-        std::thread::sleep(Duration::from_millis(400));
-        assert!(
-            uncorrected.try_wait().unwrap().is_none(),
-            "returning Err from tokio::main alone is not an exit"
-        );
-        uncorrected.kill().unwrap();
-        uncorrected.wait().unwrap();
-
-        let mut corrected = run("fatal");
-        let deadline = Instant::now() + Duration::from_secs(3);
-        loop {
-            if let Some(status) = corrected.try_wait().unwrap() {
-                assert_eq!(
-                    status.code(),
-                    Some(1),
-                    "fatal supervision must exit nonzero"
-                );
-                break;
-            }
-            if Instant::now() > deadline {
-                corrected.kill().unwrap();
-                corrected.wait().unwrap();
-                panic!("fatal supervisor did not exit while scheduler was blocked");
-            }
-            std::thread::sleep(Duration::from_millis(20));
-        }
-    }
-
-    #[tokio::test]
-    async fn scheduler_panic_is_not_hidden_by_shutdown() {
-        let result = tokio::task::spawn_blocking(|| panic!("synthetic scheduler panic")).await;
-        assert!(scheduler_exit_result(true, result).is_err());
-    }
 }
