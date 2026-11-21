@@ -105,6 +105,7 @@ fn local_linux_provider_snapshot_binds_exact_runner_digest() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn local_linux_provider_rejects_symlink_runner_without_relaxing_contract() {
     use std::os::unix::fs::symlink;
