@@ -132,6 +132,14 @@ The adapter also requires current dogfood to remain explicitly non-production:
 
 ## R3 acceptance results
 
+**Historical source-bound results (2026-11-16 note).** The projection digests and
+`mechanicalClosure=true` below are original R3 receipts from its earlier source cut;
+they must not be treated as a current, independently verified Composition Gate.
+The current caller-report-only evaluator exposes `reportedGateClosure`, holds
+`evidenceVerificationStanding=UNKNOWN`, and never grants
+`mechanicalClosure=true` without real Owner-native evidence qualification.
+Do not rewrite the frozen SHA values to pretend these observations were reproduced.
+
 ### Research ↔ Artifact
 
 ```text
