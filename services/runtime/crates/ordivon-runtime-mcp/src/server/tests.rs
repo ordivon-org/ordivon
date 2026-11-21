@@ -1453,25 +1453,9 @@ fn structured_release_source_resolves_owner_commit_inside_monorepo() {
 }
 
 #[test]
-fn structured_release_keeps_workspace_identity_out_of_deployer_cli() {
-    let tools_source = include_str!("tools.rs");
-    let release_start = tools_source
-        .find("name = \"release.apply\"")
-        .expect("release.apply source");
-    let release_end = tools_source[release_start..]
-        .find("name = \"release.get\"")
-        .map(|offset| release_start + offset)
-        .expect("release.get source");
-    let release_apply_source = &tools_source[release_start..release_end];
-    assert!(
-        !release_apply_source.contains("\"--workspace-id\""),
-        "workspace identity belongs to the Runtime release effect, not the deployer CLI"
-    );
-    assert!(
-        release_apply_source.contains("workspace_id: request.workspace_id.clone()"),
-        "release effect identity must continue to bind the Workspace"
-    );
-
+fn structured_release_tool_schema_requires_workspace_identity() {
+    // The Tool contract is public behavior; CLI argument composition is
+    // separately tested through the exact planner the production Tool calls.
     let server = Sandbox::new("release-workspace-owner").server();
     let tool = server
         .tool_router

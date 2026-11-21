@@ -130,6 +130,8 @@ include!("tool_error.rs");
 include!("tracing.rs");
 
 mod handler;
+mod release_apply;
+mod release_invocation;
 mod tools;
 
 #[cfg(test)]
