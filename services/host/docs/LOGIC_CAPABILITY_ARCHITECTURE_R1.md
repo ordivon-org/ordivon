@@ -1,4 +1,4 @@
-# Host：从问题逻辑到能力 LEGO 的结构设计（R58）
+# Host：从问题逻辑到能力 LEGO 的结构设计（R58 基线；2026-11-21 迭代）
 
 本文件依据 Host 当前 PostgreSQL schema 14、31 个 MCP Tool 与 `src/ordivon_host_v2/` 真实调用链整理。它是**问题和代码的导航**，不是第二份运行权限策略、MCP Tool 注册表、任务执行引擎或审批机制。
 
@@ -27,7 +27,7 @@
 | L5 生命周期：老内容清理造成唯一成果丢失 | 消费者闭包、逆向可恢复 | 归档仍能精确读；没有确认外部消费者结束时不物理删除 | Work terminal CAS、Topic archive、原 Owner 读回 |
 | L6 身份与权限混淆：ActorRef 被误当认证主体 | 拆分引用和权限；最少信任边界 | 声明/存在性只维护社会引用；认证由 Host/Gateway 入口承担；PG Role 独立 | `references/actor_refs.py`、`http_identity.py`、`http_transport.py` |
 | L7 内部真相可信：Work/Social/Attention 之间数据漂移 | 独立证伪、UNKNOWN 不变 PASS | 完整性查询使用同一只读事务快照；跨域真实效果留给 Runtime/Git | `health/diagnostics.py`、`service.py` |
-| L8 接口/协议与业务解耦：入口改动影响实体存储 | 表征/执行分离、直接复用成熟 SDK | 既有 MCP 名称、入参/出参、正负认证不变化 | `mcp_*_tools.py`、`mcp_tool_registration.py`、`http_transport.py` |
+| L8 接口/协议与业务解耦：入口改动影响实体存储 | 表征/执行分离、直接复用成熟 SDK | 既有 MCP 名称、入参/出参、正负认证不变化 | `mcp_space_tools.py`、`mcp_topic_tools.py`、`mcp_message_tools.py`、`mcp_tool_registration.py`、`http_transport.py` |
 
 ## 3. 能力边界与共享底座
 
@@ -92,3 +92,24 @@ R59 增量：在 R58 的既有 references/ 包内增加 record_refs.py，只承�
 ## 7. Attention / Topic 消费者双游标
 
 [DUAL_CURSOR_EVIDENCE_R1.md](DUAL_CURSOR_EVIDENCE_R1.md) 把变更发现、消息返回、导航 ACK、语义消费分为不同命题；`social_topic_queries.py` 的同一 MVCC 消息高水位负控拒绝跨域/未来游标的虚假空页，而不会添加新的 MCP Tool 或权限。
+
+
+## 8. 2026-11-21 源码拆分：按真实社会操作边界分开 MCP Adapter
+
+**观察到的耦合**：原 `mcp_social_tools.py` 327 行同时注册 6 个 Space、6 个 Topic、5 个 Message MCP Tool。三类互不相同的请求输入、TypedDict 输出、幂等请求生成器和 Topic Cursor 参数被放在一个函数里。增加一项 Message 功能时，Agent 必须同时加载并理解 Space 和 Topic 的接口定义；逻辑语义正确但源文件的变更冲突面过大。
+
+**已做的最小源代码变更**（基于真实 Git Source；不更改 Domain Store、PostgreSQL、Tool Schema）：
+
+- `mcp_social_tools.py`：只保留原有 `register_social_tools(mcp, social, request_id)` 组合入口，保持原先 Space→Topic→Message 的注册顺序。
+- `mcp_space_tools.py`：专属 Space 创建、查询、参与关系注册。
+- `mcp_topic_tools.py`：专属 Topic 创建、状态、列举、游标读取/确认与 resume。
+- `mcp_message_tools.py`：专属 Message 写入、精确读、全文搜索与消息关系。
+
+这是 **Capability Port 的拆分**，不宣称原本共享的 `SocialStore` 已完成彻底的领域端口隔离，更不是新建四个持久化 Owner。真实协作不变量仍由 `social_space_*` / `social_topic_*` / `social_message_*` 和 PostgreSQL 原子事务承载。Topic 与 Attention 游标仍属不同领域。
+
+**验证目标**：调用者只看 31 项官方 MCP Tool 行为，不关心源文件名称。独立 PG18 disposable + Alembic14 + 原 Host 全套 pytest 539 passed、Ruff passed；无 DSN 的原生 pytest 包含 DB SKIP，不单独用于 PG 成功声明。Source 变更不等于 Git merged、installed、loaded 或外部消费者验收。
+
+**下一步可证伪的拆分候选**：
+1. `SocialStore` 的多重 mixin 和 `RecordReferenceLookup` 共享 helper：找出实际循环导入、误用或改动冲突的调用链后，优先注入明确的能力接口，不是凭文件数量新增 Repository。
+2. `attention_projections.py` 的订阅发现、变更 SQL、reentry 视图：仅当能证明分页/同事务快照约束保持时，拆为更窄的读取组合。
+3. `social_contracts.py` 统一 TypedDict：在保留现役 Pydantic/JSON Schema Digest 与旧消费者 ABI 前提下，再按 Space/Topic/Message 细分；不得因为文件迁移强制修改公开 Tool 定义。
