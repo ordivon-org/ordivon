@@ -750,9 +750,13 @@ committed candidate files and its optional stage manifest may occupy the
 NEW Root directory before activation; the old directory can retain its
 separate historical artifacts as a protected rollback preimage. Python
 normally creates __pycache__ on first import: the packaged one-shot
-dispatcher therefore runs its interpreter with the native -B flag, so
-the future Root bundle stays a closed five-file import namespace. The
-physical Root owner must compare the **effective installed systemd ExecStart**
+dispatcher therefore runs its interpreter with the native -B flag. Root
+administrator CLI entrypoints must also set native Python
+sys.dont_write_bytecode before their first bundled local import: a simple
+Deployer/Operator --help invocation must not regenerate an unqualified
+__pycache__ in an already qualified Root install. Both paths are tested
+against real isolated Python program invocation with host cache redirects
+unset. The physical Root owner must compare the **effective installed systemd ExecStart**
 to this package definition before applying/accepting a switch; changing
 the package source alone cannot update a running unit. On unsupported
 Linux filesystems there is **no non-atomic fallback**.
