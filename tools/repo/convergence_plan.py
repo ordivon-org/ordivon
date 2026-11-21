@@ -13,6 +13,12 @@ from collections.abc import Iterable
 from pathlib import Path
 
 import affected_owners
+from pg_issuer_consumer import (
+    RUNTIME_PG_CORE_ROOT as _RUNTIME_PG_CORE_ROOT,
+)
+from pg_issuer_consumer import (
+    locate_original_harness_issuer_source as _original_harness_issuer_behavior_source,
+)
 
 DEPENDENCY_PATH = Path(__file__).with_name("dependency_contracts.toml")
 ROOT_TASKS_PATH = Path(__file__).resolve().parents[2] / "mise.toml"
@@ -42,61 +48,6 @@ def _git(*args: str) -> str:
 
 def _digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-_RUNTIME_PG_CORE_ROOT = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/"
-_ORIGINAL_HARNESS_PG_ISSUER_TEST = (
-    "pg18_original_harness_store_real_issuer_same_job_late_revoke"
-)
-
-
-def _original_harness_issuer_behavior_source(repo: Path) -> str:
-    """Find one actual Rust PG18 Harness issuer consumer by test behavior.
-
-    Renaming or moving the test module must not change the consumer edge.
-    A broad owner-pair wildcard, symlink, duplicated/fake test, or a missing
-    executable test is not an authorized way to suppress verification.
-    """
-    core = repo / _RUNTIME_PG_CORE_ROOT
-    if not core.is_dir() or core.is_symlink():
-        raise ValueError("unapproved original Harness test-only source seam")
-    pattern = re.compile(
-        r"(?m)^\s*fn\s+"
-        + re.escape(_ORIGINAL_HARNESS_PG_ISSUER_TEST)
-        + r"\s*\("
-    )
-    matches: list[str] = []
-    for candidate in sorted(core.rglob("*.rs")):
-        if not candidate.is_file() or candidate.is_symlink():
-            continue
-        source = candidate.read_text(encoding="utf-8")
-        found = list(pattern.finditer(source))
-        for match in found:
-            # Tests here run by the original libtest Cargo owner. The test
-            # annotation must belong to THIS function, not another test.
-            annotations = source[max(0, match.start() - 220):match.start()]
-            annotations = annotations.rsplit("}", 1)[-1]
-            if not (
-                re.search(r"#\[test\]", annotations)
-                and re.search(r"#\[ignore\s*=", annotations)
-            ):
-                continue
-            # Preserve the genuine Harness publisher + Python module lookup
-            # inside this one issuer behavior, not a coincidental import in
-            # another Rust test file.
-            body = source[match.start():].split("\n#[test]", 1)[0]
-            if all(
-                fragment in body
-                for fragment in (
-                    'root.join("services/harness/tests/original_pg_issuer_native_fixture.py")',
-                    'root.join("services/harness/src")',
-                    'root.join("services/harness")',
-                )
-            ):
-                matches.append(candidate.relative_to(repo).as_posix())
-    if len(matches) != 1:
-        raise ValueError("unapproved original Harness test-only source seam")
-    return matches[0]
 
 
 def load_dependency_graph(
@@ -743,8 +694,8 @@ def build_qualified_temporal_impact(
     implementation proof, runtime call graph, installed-effect certification,
     or permission to reuse stale proofs.
     """
-    from source_history_legos import compact_source_impact, source_membership_delta
     import exhaustive_coverage as source
+    from source_history_legos import compact_source_impact, source_membership_delta
 
     if not prefixes or len(prefixes) > 8 or len(set(prefixes)) != len(prefixes):
         raise ValueError("temporal impact requires 1..8 distinct scoped Git prefixes")
