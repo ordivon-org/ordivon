@@ -299,7 +299,12 @@ The applications/ package is a composition layer, not an eighth Capital
 domain: applications/paper_simulation_run.py composes Portfolio mandate +
 Governance NON_LIVE decision + Accounting PG close, while
 applications/nautilus_paper_bridge.py translates native Nautilus effects to
-the Paper accounting input. No old import-only shims remain.
+the Paper accounting input. No old import-only shims remain. The follow-up read-only Paper entrypoint split keeps
+risk/paper_close_risk.py, portfolio/paper_close_performance.py and
+portfolio/paper_contribution_plan.py free of direct PG/CLI I/O; application
+consumers paper_risk_cli, paper_performance_cli and paper_contribution_cli
+own CLI parsing, source readback and presentation orchestration.
+
 
 Regression acceptance is based on observable economic outcomes, source/cut
 semantics, PG idempotency, and an actual acyclic core-domain AST dependency

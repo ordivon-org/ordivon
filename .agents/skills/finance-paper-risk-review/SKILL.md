@@ -42,7 +42,7 @@ Do not create another broker, Finance Agent service, ledger or risk engine.
 
        export ORDIVON_CAPITAL_PAPER_PG_DSN='...paper-only DSN...'
        cd domains/capital
-       scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk --account ACCOUNT --session YYYY-MM-DD --snapshot snapshot.json --binding binding.json
+       scripts/run-capability-python -m ordivon_capital.applications.paper_risk_cli --account ACCOUNT --session YYYY-MM-DD --snapshot snapshot.json --binding binding.json
 
    The alternative --receipt FILE reads a caller-provided JSON file
    and leaves accountingPersistenceReverified=false. Never claim
