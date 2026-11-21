@@ -515,6 +515,9 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
     }
 
     let mut fixture = Fixture::new();
+    // A sibling native systemd Runner cannot execute Cargo's private source
+    // path: use the established host-visible per-fixture runner artifact.
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let commit = String::from_utf8(
         Command::new("git")
@@ -575,6 +578,31 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
         .as_str()
         .unwrap()
         .to_string();
+    // Test the promised state, not the duration of a submit call. A real
+    // native PG/systemd job can still be STARTING after the initial 5s
+    // submit wait; grafting a fake ReleaseEffect before the ordinary Job
+    // terminates does not test the intended missing-operator-receipt case.
+    let terminal_deadline = Instant::now() + Duration::from_secs(70);
+    loop {
+        let actual = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":7000,"waitUntil":"terminal",
+                "stdoutTailBytes":0,"stderrTailBytes":0}),
+        );
+        assert_ne!(actual["isError"], true, "{actual}");
+        if actual["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                actual["structuredContent"]["status"], "succeeded",
+                "original native ordinary Job did not succeed: {actual}"
+            );
+            break;
+        }
+        assert!(
+            Instant::now() < terminal_deadline,
+            "original native ordinary Job did not reach terminal before release graft: {actual}"
+        );
+    }
     let release = RuntimeReleaseRequest {
         schema_version: 1,
         client_request_id: client_id.into(),
