@@ -1,5 +1,11 @@
 //! Original PG atomic Claim reserve with Workspace lifecycle and exact Source binding.
-use super::*;
+use super::contract::{validate_key, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
+use super::persistence::query_claim;
+use super::{
+    io, now, universal, workspace_effect_commit, PgRuntime, RuntimeError, RuntimeErrorCode,
+    RuntimeResult,
+};
+use uuid::Uuid;
 
 impl PgRuntime {
     /// A HELD claim is a durable physical pin. The Run remains semantic truth
@@ -58,7 +64,7 @@ impl PgRuntime {
         // source identity must refuse claim creation, including after a crash
         // between Git removal and closed tombstone.
         let record = universal::load_workspace_record(&self.config.executor, &request.workspace_id)
-            .map_err(super::super::error::map_universal_error)?;
+            .map_err(crate::runtime::error::map_universal_error)?;
         let physical_digest =
             universal::workspace_source_state_digest(&self.config.executor, &request.workspace_id)
                 .map_err(io)?;

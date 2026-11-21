@@ -1,5 +1,5 @@
 //! Public Runtime-owned Workspace Claim contract and original caller identity validation.
-use super::*;
+use super::{RuntimeError, RuntimeResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

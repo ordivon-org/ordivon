@@ -1,5 +1,6 @@
 //! Original PostgreSQL Claim row projection and exact principal/request-key readback.
-use super::*;
+use super::contract::WorkspaceClaimProjection;
+use super::{io, RuntimeResult};
 
 pub(super) fn query_claim<C: postgres::GenericClient>(
     client: &mut C,

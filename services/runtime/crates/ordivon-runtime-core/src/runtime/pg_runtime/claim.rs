@@ -8,11 +8,11 @@ mod contract;
 mod lifecycle;
 mod persistence;
 
+#[cfg(test)]
 use contract::validate_key;
 pub use contract::{
     WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest,
 };
-use persistence::query_claim;
 
 #[cfg(test)]
 mod claim_contract_tests;
