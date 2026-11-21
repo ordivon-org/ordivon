@@ -35,9 +35,7 @@ CARGO_ARGS = (
 )
 # Independent Windows PG witness consumer; same disposable PG18 fixture, not
 # a Windows production Writer or a second persistent test authority.
-WINDOWS_PG_WITNESS_CASE = (
-    "pg_admission::live_pg_tests::windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
-)
+WINDOWS_PG_WITNESS_CASE = "windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
 WINDOWS_PG_WITNESS_ARGS = (
     "test",
     "--locked",
@@ -49,7 +47,6 @@ WINDOWS_PG_WITNESS_ARGS = (
     WINDOWS_PG_WITNESS_CASE,
     "--",
     "--ignored",
-    "--exact",
     "--nocapture",
     "--test-threads=1",
 )
@@ -73,6 +70,25 @@ def fixture_environment(original: dict[str, str], socket_dir: Path, port: int) -
             raise RuntimeError("FD-backed Cargo target is not an existing directory")
         result["CARGO_TARGET_DIR"] = str(actual)
     return result
+
+
+def qualified_single_physical_witness(output: str, test_identity: str) -> bool:
+    """Require exactly one real passing test by meaning, not Rust module path.
+
+    In particular, an empty --exact selection, duplicated test execution,
+    a failed binary, or a successful-but-different test is not evidence.
+    The caller also checks the physical subprocess exit status.
+    """
+    successes = PG18_EXECUTED_CASE.findall(output)
+    one_summary = re.findall(
+        r"(?m)^test result: ok\. 1 passed; 0 failed; 0 ignored;",
+        output,
+    )
+    return (
+        len(successes) == 1
+        and successes[0].rsplit("::", 1)[-1] == test_identity
+        and len(one_summary) == 1
+    )
 
 
 def listed_pg18_tests(output: str) -> frozenset[str]:
@@ -219,11 +235,8 @@ def main() -> int:
                 timeout=400,
             )
             windows_output = windows_result.stdout + "\n" + windows_result.stderr
-            witness_line = f"test {WINDOWS_PG_WITNESS_CASE} ... ok"
-            if (
-                windows_result.returncode != 0
-                or windows_output.count(witness_line) != 1
-                or not re.search(r"test result: ok\. 1 passed; 0 failed; 0 ignored;", windows_output)
+            if windows_result.returncode != 0 or not qualified_single_physical_witness(
+                windows_output, WINDOWS_PG_WITNESS_CASE
             ):
                 raise RuntimeError("Windows PG evidence consumer unqualified: " + windows_output[-3000:])
             print("DISPOSABLE_WINDOWS_PG_WITNESS_PASS=1/1")

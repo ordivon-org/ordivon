@@ -93,6 +93,30 @@ class DisposablePg18Contract(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     module.exact_test_count(false_green, expected)
 
+    def test_physical_windows_witness_is_bound_to_behavior_not_module_path(self) -> None:
+        name = module.WINDOWS_PG_WITNESS_CASE
+        self.assertNotIn("::", name)
+        for namespace in (
+            "pg_admission::live_pg_tests",
+            "pg_admission::live_pg_tests::admission_cases",
+            "new_pg_core::physical",
+        ):
+            evidence = (
+                f"test {namespace}::{name} ... ok\\n"
+                "test result: ok. 1 passed; 0 failed; 0 ignored;"
+            ).replace("\\n", "\n")
+            self.assertTrue(module.qualified_single_physical_witness(evidence, name))
+
+        for bad in (
+            "test result: ok. 0 passed; 0 failed; 0 ignored;",
+            f"test new_scope::{name} ... FAILED\ntest result: FAILED. 0 passed; 1 failed;",
+            f"test new_scope::{name} ... ok\ntest result: ok. 0 passed; 0 failed;",
+            f"test new_scope::wrong ... ok\ntest result: ok. 1 passed; 0 failed;",
+            f"test new_scope::{name} ... ok\ntest extra::{name} ... ok\ntest result: ok. 2 passed; 0 failed;",
+        ):
+            with self.subTest(output=bad):
+                self.assertFalse(module.qualified_single_physical_witness(bad, name))
+
     def test_inventory_rejects_empty_duplicate_and_unscoped_test(self) -> None:
         fixture = "pg_admission::live_pg_tests::pg18_existing"
         for source in (
