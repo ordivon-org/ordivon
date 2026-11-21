@@ -24,7 +24,7 @@ use native_capacity::{native_resource_error, unspent_native_allocation};
 #[cfg(test)]
 use policy::{next_candidate, PendingCandidate, SchedulerPreflight};
 #[cfg(test)]
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 // A current Attempt belongs to exactly one Job. The schema does not enforce
 // uniqueness of jobs.current_attempt_id, so bind both identities at the query
