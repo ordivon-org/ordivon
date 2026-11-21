@@ -47,11 +47,12 @@ retired. Use Temporal or provider-native release tools at a real consumer when
 needed. The old composition declaration and local LEGO plan were removed because
 they had no actual execution consumer; no replacement registry or plan is needed.
 
-R1-R7/R9 migration notes were retired from the working tree; Git history
-retains their dated text. The R8 note remains as a cross-reference named in
-`evidence/r8-validation-20260912.json`, but that record's historical SHA-256
-does not match the current note. Neither describes an active executable path.
-Historical evidence JSON is source-cut evidence, not live deployment proof.
+The old R1-R10 validation receipts, proposed write intents and the R8 design
+note have no current execution consumer and are retained in Git history rather
+than the active source tree. The R7 input is retained for Workstation's real
+n8n consumer; R5 historical carrier coverage remains under its existing
+secret-scan exception. Neither is a live provider-write permission or
+publication receipt.
 
 ## Source verification
 
