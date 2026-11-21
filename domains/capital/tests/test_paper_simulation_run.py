@@ -17,8 +17,8 @@ from ordivon_capital.accounting.paper_close import (
     PaperSession,
     value_session,
 )
-from ordivon_capital.accounting.paper_simulation_run import run_simulated_paper
 from ordivon_capital.accounting.postgres_paper_close import read_latest_committed_paper_close
+from ordivon_capital.applications.paper_simulation_run import run_simulated_paper
 
 
 def _bundle(root: Path, *, hold: int = 5) -> dict[str, Path]:
@@ -146,7 +146,7 @@ def test_native_economic_prices_cannot_be_rewritten_at_both_legs(
     # Before fixing the consumer, the final cash is unchanged and native
     # session-byte hash can be co-edited, so both wrong fill prices were accepted.
     bundle = _bundle(tmp_path)
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
 
     sessions = json.loads(bundle["sessions"].read_text())
     sessions[1]["buys"][0]["price_minor"] += 100
@@ -170,7 +170,7 @@ def test_native_fill_fee_time_and_summary_remain_bound_before_pg(
     tmp_path, monkeypatch, mutation,
 ):
     bundle = _bundle(tmp_path)
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
     days = json.loads(bundle["sessions"].read_text())
     native = json.loads(bundle["native"].read_text())
     if mutation == "balanced_fees":
@@ -196,7 +196,7 @@ def test_native_fill_identity_cannot_be_forged_when_session_digest_is_updated(
     tmp_path, monkeypatch,
 ):
     bundle = _bundle(tmp_path)
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
     days = json.loads(bundle["sessions"].read_text())
     days[1]["buys"][0]["fill_id"] = "FAKE-NONNAUTILUS-TRADE"
     altered = json.dumps(days, sort_keys=True).encode()
@@ -268,7 +268,7 @@ def test_portfolio_mandate_scope_fails_before_pg(tmp_path, monkeypatch, mutation
     else:
         data["portfolioRef"] = "broker-account-prod"
     mandate.write_text(json.dumps(data))
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
     monkeypatch.setattr(
         runner, "PostgresPaperClose",
         lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("wrong mandate reached PG")),
@@ -280,13 +280,20 @@ def test_portfolio_mandate_scope_fails_before_pg(tmp_path, monkeypatch, mutation
 def test_nonlive_governance_is_called_before_paper_pg(tmp_path, monkeypatch):
     bundle = _bundle(tmp_path)
     mandate = _mandate(tmp_path)
-    import ordivon_capital.accounting.paper_simulation_run as runner
-    from ordivon_capital.governance.policy_decision import PolicyDecisionError
+    import ordivon_capital.applications.paper_simulation_run as runner
+    # Change the effective execution-policy input, not the current module
+    # implementation's private helper or its physical file location.
+    original_read = Path.read_text
 
-    def refused(*_args):
-        raise PolicyDecisionError("current lane is no longer NON_LIVE")
+    def blocked_execution_lane(path, *args, **kwargs):
+        raw = original_read(path, *args, **kwargs)
+        if path.name == "execution_policy.json":
+            declaration = json.loads(raw)
+            declaration["currentLane"] = "EXTERNAL_WRITE"
+            return json.dumps(declaration)
+        return raw
 
-    monkeypatch.setattr(runner, "enforce_non_live", refused)
+    monkeypatch.setattr(Path, "read_text", blocked_execution_lane)
     monkeypatch.setattr(
         runner, "PostgresPaperClose",
         lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("policy denied but wrote PG")),
@@ -300,7 +307,7 @@ def test_valid_portfolio_mandate_composes_current_nonlive_and_portfolio_plan(
 ):
     bundle = _bundle(tmp_path)
     mandate = _mandate(tmp_path)
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
     monkeypatch.setattr(
         runner, "PostgresPaperClose",
         lambda _dsn: (_ for _ in ()).throw(ReachedPostgres("valid mandate reached PG")),
@@ -317,7 +324,7 @@ def test_native_batch_preflight_reaches_existing_ledger_only_for_coherent_inputs
     tmp_path, monkeypatch,
 ):
     bundle = _bundle(tmp_path)
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
 
     def _reached(_dsn):
         raise ReachedPostgres("validated before first PG schema or transaction")
@@ -418,7 +425,7 @@ def test_qlib_native_score_and_horizon_must_match_before_pg(
     native["model_prediction_sha256"] = sha256(pred).hexdigest()
     bundle["native"].write_text(json.dumps(native))
 
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
 
     monkeypatch.setattr(
         runner, "PostgresPaperClose",
@@ -437,7 +444,7 @@ def test_valid_h5_h20_native_score_reaches_paper_pg_constructor(
 ):
     """Both valid native holding hypotheses retain their Paper preflight path."""
     bundle = _bundle(tmp_path, hold=hold)
-    import ordivon_capital.accounting.paper_simulation_run as runner
+    import ordivon_capital.applications.paper_simulation_run as runner
 
     def _pg_sentinel(_dsn):
         raise ReachedPostgres("valid Paper only")

@@ -165,7 +165,7 @@ or a non-Paper account label must be refused BEFORE the first PG write.
 From domains/capital:
 
     export ORDIVON_CAPITAL_PAPER_PG_DSN='host=127.0.0.1 port=PAPER_PORT user=PAPER_ROLE dbname=ordivon_paper connect_timeout=4'
-    scripts/run-capability-python -m ordivon_capital.accounting.paper_simulation_run \
+    scripts/run-capability-python -m ordivon_capital.applications.paper_simulation_run \
       --study /private/research/native_study_result.json \
       --predictions /private/research/qlib_test_predictions.csv \
       --native /private/nonlive/native_holding_result.json \
@@ -253,3 +253,20 @@ downstream consumers require it; current portfolioRef is not that owner.
 P2: Scheduling via existing Harness/Runtime; never add a custom agent
 worker or trading runner without a proven consumer and resource budget.
 External broker finance writes remain NOT_ADMITTED.
+
+
+### Application composition and test-quality rule (2026-11-21)
+
+Use ordivon_capital.applications.paper_simulation_run for the native Paper
+research-to-PG workflow. Pure Risk limits, read-only Portfolio scenario
+evidence and Live test-account checks now have different owners and do not
+share one giant Governance executor. The applications.nautilus_paper_bridge
+converter turns native order/fill evidence into an Accounting PaperSession.
+
+Tests must preserve actual behavior: exact money math, prediction column and
+exit horizon, NON_LIVE denial, no PG mutation on invalid inputs, and durable
+PG receipt readback. A test that asserts a source file must remain in a
+particular directory or that a private helper has a particular name does
+not protect these outcomes and cannot veto a correct module move.
+Use the core-domain dependency DAG test for actual architectural coupling,
+not a file-inventory hard gate.

@@ -302,8 +302,7 @@
         "src/ordivon_capital/accounting/durable.py",
         "src/ordivon_capital/accounting/postgres_ledger.py",
         "src/ordivon_capital/accounting/paper_close.py",
-        "src/ordivon_capital/accounting/postgres_paper_close.py",
-        "src/ordivon_capital/accounting/paper_simulation_run.py"
+        "src/ordivon_capital/accounting/postgres_paper_close.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -501,7 +500,7 @@
     {
       "id": "governance-execution-policy",
       "sourcePatterns": [
-        "src/ordivon_capital/governance/policy_decision.py"
+        "src/ordivon_capital/governance/*.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -510,13 +509,12 @@
         "Open Policy Agent 1.20.2 historical challenger only"
       ],
       "localStanding": "BOUNDED_LOCAL_DETERMINISTIC_IMPLEMENTATION_PREFERRED",
-      "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
+      "localResponsibility": "execute bounded NON_LIVE/external-write authorization and LIVE test-account qualification; Risk owns numeric limits, Portfolio owns scenario evidence completeness; fail closed for actual effects"
     },
     {
       "id": "trading-execution-reconciliation",
       "sourcePatterns": [
         "src/ordivon_capital/trading/execution_reconciliation.py",
-        "src/ordivon_capital/trading/nautilus_paper_bridge.py",
         "tools/nautilus_rc4/nonlive_effect_qualification.py"
       ],
       "ownerClasses": [
@@ -823,7 +821,7 @@
     {
       "id": "trading-paper-fill-calendar",
       "sourcePatterns": [
-        "src/ordivon_capital/trading/paper_fill_calendar.py"
+        "src/ordivon_capital/accounting/paper_fill_calendar.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"

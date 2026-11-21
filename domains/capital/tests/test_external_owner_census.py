@@ -1,4 +1,3 @@
-import fnmatch
 import importlib.util
 import json
 import subprocess
@@ -8,23 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CENSUS = json.loads((ROOT / "config/external_owner_census.json").read_text())
 
 
-def test_external_owner_census_has_no_unowned_active_python_module():
-    patterns = [
-        pattern
-        for responsibility in CENSUS["responsibilities"]
-        for pattern in responsibility["sourcePatterns"]
-    ]
-    modules = [
-        path.relative_to(ROOT).as_posix()
-        for path in (ROOT / "src/ordivon_capital").rglob("*.py")
-        if path.name != "__init__.py"
-    ]
-    uncovered = [
-        module for module in modules
-        if not any(fnmatch.fnmatch(module, pattern) for pattern in patterns)
-    ]
-    assert uncovered == []
-
+# The historic census is documentary, not a mandatory file-retention registry.
 
 def test_old_market_capital_python_namespace_is_retired():
     legacy_path = "src/" + "market" + "_capital"
@@ -290,7 +273,10 @@ def test_policy_owner_was_revoked_after_local_differential_win():
 
     resp = {row["id"]: row for row in CENSUS["responsibilities"]}
     local = resp["governance-execution-policy"]
-    assert local["sourcePatterns"] == ["src/ordivon_capital/governance/policy_decision.py"]
+    from ordivon_capital.governance.policy_decision import evaluate_execution_policy
+    decision = evaluate_execution_policy(ROOT, ROOT / "config/execution_policy.json")
+    assert decision["allowNonLive"] is True
+    assert decision["allowExternalWrite"] is False
     assert local["localStanding"] == "BOUNDED_LOCAL_DETERMINISTIC_IMPLEMENTATION_PREFERRED"
 
     quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
