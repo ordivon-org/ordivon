@@ -89,7 +89,7 @@ research-only file store remains confined to ignored ./output/mlruns.
 ## Independent simulated Paper batch consumer (Q1 R3, 2026-11-13)
 
 After the existing native test-producer generates native_holding_result.json
-and paper_sessions.json, Capital accounting.paper_simulation_run consumes
+and paper_sessions.json, Capital applications.paper_simulation_run consumes
 those exact-by-digest outputs and the Qlib study/predictions in another
 process, without re-running native Nautilus. Its stable r3sim_... key is
 simulation-run-specific, not a real customer mapping. The original

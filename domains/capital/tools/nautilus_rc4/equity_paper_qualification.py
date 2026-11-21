@@ -28,7 +28,7 @@ from nautilus_trader.model import (
 from nautilus_trader.trading import Strategy
 
 from ordivon_capital.accounting.paper_close import PaperBuy, PaperSession, value_session
-from ordivon_capital.trading.paper_fill_calendar import admit_paper_session_calendar
+from ordivon_capital.accounting.paper_fill_calendar import admit_paper_session_calendar
 
 USD = Currency.from_str("USD")
 PREVIOUS, SESSION, BANK_HOLIDAY, SETTLEMENT = map(
