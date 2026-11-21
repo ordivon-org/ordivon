@@ -57,6 +57,8 @@ def test_hidden_domain_qa_and_independent_git_delivery_pass(tmp_path: Path) -> N
     assert result["finalUserDeliveryProven"] is False
     assert result["userAcknowledgement"] == "UNKNOWN"
     assert result["domainQATrials"] == 3
+    assert result["independentConsumerBehaviorObserved"] is True
+    assert result["independentConsumerQATrials"] == 3
 
 
 def test_public_pass_but_hidden_fail_cannot_deliver(tmp_path: Path) -> None:
@@ -108,6 +110,8 @@ def test_multiregion_two_separated_edits_are_qa_passed_and_git_readable(tmp_path
     assert result["taskId"] == MULTIREGION_TASK_ID
     assert result["consumerPath"] == "pipeline.py"
     assert result["domainQATrials"] == 3
+    assert result["independentConsumerBehaviorObserved"] is True
+    assert result["independentConsumerQATrials"] == 3
     assert result["consumerGitByteReadbackQualified"] is True
     assert result["finalUserDeliveryProven"] is False
     assert result["userAcknowledgement"] == "UNKNOWN"
@@ -184,4 +188,56 @@ def test_candidate_mutating_after_last_qa_must_not_be_qualified(
     monkeypatch.setattr(qa, "run_candidate", mutate_after_last_original_qa)
     monkeypatch.setattr(GATE, "_task_qa", lambda task_id=GATE.TASK_ID: qa)
     with pytest.raises(GATE.DeliveryGateError, match="candidate changed during"):
+        GATE.qualify(candidate, repo, commit)
+
+
+@pytest.mark.parametrize(
+    ("task_id", "filename", "adversarial_source"),
+    [
+        (
+            GATE.TASK_ID,
+            "feature_flags.py",
+            "import sys\n\n"
+            "def alpha_enabled():\n"
+            "    return False if sys.argv[0].endswith('test_outcome.py') else True\n\n"
+            "def beta_enabled():\n"
+            "    return True\n",
+        ),
+        (
+            MULTIREGION_TASK_ID,
+            "pipeline.py",
+            "import sys\n\n"
+            "DEFAULT_TIMEOUT_SECONDS = 30\n\n"
+            "def retry_limit():\n"
+            "    return 3\n\n"
+            "def execution_mode():\n"
+            "    return 'safe' if sys.argv[0].endswith('test_outcome.py') else 'unsafe'\n",
+        ),
+    ],
+)
+def test_context_aware_hidden_verifier_pass_is_not_independent_consumer_qualification(
+    tmp_path: Path, task_id: str, filename: str, adversarial_source: str,
+) -> None:
+    """Known safe-to-execute fixture: hidden-verifier awareness must not certify business truth."""
+    candidate = tmp_path / "candidate.py"
+    candidate.write_text(adversarial_source)
+    repo, commit = _consumer_repo(tmp_path, candidate, filename)
+    with pytest.raises(GATE.DeliveryGateError, match="independent consumer"):
+        GATE.qualify(candidate, repo, commit, task_id=task_id)
+
+
+def test_missing_independent_consumer_evidence_cannot_promote_hidden_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """UNKNOWN consumer evidence must not be silently coerced into delivery."""
+    candidate = tmp_path / "candidate.py"
+    shutil.copyfile(ORACLE, candidate)
+    repo, commit = _consumer_repo(tmp_path, candidate)
+    qa = GATE._task_qa()
+    monkeypatch.setattr(
+        qa, "run_candidate",
+        lambda label, source: {"visiblePassed": True, "hiddenPassed": True},
+    )
+    monkeypatch.setattr(GATE, "_task_qa", lambda task_id=GATE.TASK_ID: qa)
+    with pytest.raises(GATE.DeliveryGateError, match="independent consumer"):
         GATE.qualify(candidate, repo, commit)
