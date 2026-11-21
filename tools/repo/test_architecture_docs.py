@@ -1098,7 +1098,7 @@ def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
     assert selection["evidenceScope"] == "NATIVE_CONSUMER_PASS"
     assert selection["sourceQualification"]["branchDeletionAllowed"] is False
     owner = tomllib.loads((ROOT / "platform/network/mise.toml").read_text())
-    assert owner["tools"]["uv"] == "0.13.5"
+    assert owner["tools"]["uv"] == "latest"
     assert "ci" in owner["tasks"] and "behavior" in owner["tasks"]
     module.validate_formal_issue_census(census, plans)
 
@@ -1942,7 +1942,7 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
                 ROOT / owner / "evidence/r7-artifact-development-publication-intent.json"
             ).is_file()
         else:
-            assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
+            assert mise["tools"]["uv"] == "latest"
         assert task in mise["tasks"]
     module.validate_formal_issue_census(census, plans)
 
@@ -2556,3 +2556,18 @@ def test_repository_admission_rejects_deployed_host_tool_duplicate() -> None:
     with patch.object(module, "_load_json", side_effect=load_forged):
         with pytest.raises(module.ArchitectureDocsError, match="duplicate.*normalTools"):
             module.validate_repository(ROOT)
+
+
+def test_active_mise_uv_requests_track_latest_across_owners() -> None:
+    """One shared mise-managed uv, not 15 permanently pinned tool versions."""
+    import tomllib
+
+    present = []
+    for path in ROOT.rglob("mise.toml"):
+        if any(part in {".git", ".venv", "node_modules", ".cache"} for part in path.parts):
+            continue
+        request = tomllib.loads(path.read_text(encoding="utf-8")).get("tools", {}).get("uv")
+        if request is not None:
+            present.append(path.relative_to(ROOT))
+            assert request == "latest", f"{path}: project uv shadows automatic upgrades"
+    assert len(present) >= 15
