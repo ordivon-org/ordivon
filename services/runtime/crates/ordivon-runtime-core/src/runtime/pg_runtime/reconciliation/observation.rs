@@ -33,24 +33,6 @@ pub(super) fn output_projection_relative_path(
     })
 }
 
-#[cfg(test)]
-mod terminal_output_path_selection_tests {
-    use super::output_projection_relative_path;
-
-    #[test]
-    fn terminal_uses_registered_seal_and_active_uses_mutable_preview() {
-        let active = output_projection_relative_path("stdout", false, None).unwrap();
-        assert_eq!(active.to_str(), Some("stdout.log"));
-        let sealed =
-            output_projection_relative_path("stdout", true, Some("sealed-stdout.log")).unwrap();
-        assert_eq!(sealed.to_str(), Some("sealed-stdout.log"));
-        let legacy = output_projection_relative_path("stderr", true, Some("stderr.log")).unwrap();
-        assert_eq!(legacy.to_str(), Some("stderr.log"));
-        assert!(output_projection_relative_path("stdout", true, None).is_err());
-        assert!(output_projection_relative_path("stdout", true, Some("../escape")).is_err());
-    }
-}
-
 pub(super) fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
     match fs::symlink_metadata(path.join("result.json")) {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(true),
@@ -85,4 +67,22 @@ pub(super) fn active_log_window(
     let mut window = vec![0; usize::try_from(end - begin).map_err(io)?];
     file.read_exact(&mut window).map_err(io)?;
     Ok((window, begin, end, available))
+}
+
+#[cfg(test)]
+mod terminal_output_path_selection_tests {
+    use super::output_projection_relative_path;
+
+    #[test]
+    fn terminal_uses_registered_seal_and_active_uses_mutable_preview() {
+        let active = output_projection_relative_path("stdout", false, None).unwrap();
+        assert_eq!(active.to_str(), Some("stdout.log"));
+        let sealed =
+            output_projection_relative_path("stdout", true, Some("sealed-stdout.log")).unwrap();
+        assert_eq!(sealed.to_str(), Some("sealed-stdout.log"));
+        let legacy = output_projection_relative_path("stderr", true, Some("stderr.log")).unwrap();
+        assert_eq!(legacy.to_str(), Some("stderr.log"));
+        assert!(output_projection_relative_path("stdout", true, None).is_err());
+        assert!(output_projection_relative_path("stdout", true, Some("../escape")).is_err());
+    }
 }
