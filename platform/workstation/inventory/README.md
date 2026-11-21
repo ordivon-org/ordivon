@@ -1,5 +1,7 @@
 # Workstation v2 machine inventory
 
+Latest dated external toolchain/dependency census: [2026-11-15 source and machine observations](../docs/TOOLCHAIN_DEPENDENCY_CENSUS_20261115.md). This report is evidence only; always consult the native sources below for live decisions.
+
 Workstation v2 owns the **generic node-local inventory and realization-discovery boundary**, not a universal capability registry.
 
 The inventory answers bounded physical questions such as:
