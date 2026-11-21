@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-16
+updated: 2026-11-21
 summary: Canonical world model for Harness as the durable cognitive execution substrate of an Agent, including cognition, control, effects, continuity and caller/Runtime/Host boundaries.
 evidence_status: verified
 readiness: READY
@@ -132,6 +132,57 @@ caller / domain / optional Host
 Harness does not own caller Task state, domain commitments, final acceptance, or Runtime Workspace/Job truth. Runtime does not know the Harness state machine. Host is an optional caller rather than a persistence prerequisite.
 
 > **Run terminality is not epistemic closure.** `candidate_completed` means the bounded Run formed a candidate result; it may retain explicit unresolved unknowns for caller/domain judgment.
+
+## R37: Agent-readable logic and capability boundaries (source candidate)
+
+The original public imports remain `ordivon_harness.domain_tools` and
+`ordivon_harness.plugin_gateway_effect`. These modules are stable entrypoints,
+not large implementation owners. A caller or another Agent can learn *what
+a module does* without learning the entire Provider/Runtime pipeline.
+
+| Logic contract | Natural capability module | May depend on | Does not own |
+| --- | --- | --- | --- |
+| Domain Tool catalog, admitted subset, domain Loop plan | `domain_tool_contracts.py` | model Tool definitions, Run budget, canonical digest | Provider invocation, effects, Runtime |
+| Domain Tool authorization and Provider composition | `domain_tool_execution.py` | contracts and the existing Agent Loop | Domain Task truth, new IAM or Tool Registry |
+| Gateway wire observation and source-field consistency | `gateway_mcp_wire.py` | canonical JSON and wire errors | physical Job or authorization |
+| Gateway original remote execution/recovery | `gateway_mcp_runtime.py` | wire decoder and original Gateway/Runtime admission | new OS Runner, Run Journal |
+| Gateway admitted Tool/Runtime translation | `gateway_execution_bridge.py` | original execution policy and runtime adapter | new grant, independent result Store |
+| Gateway immutable original source factory | `gateway_execution_factory.py` | the bridge and original grant/source identity | separate issuer or Domain finalization |
+
+The dependency direction is **contracts → authorized execution** for Domain
+Tools and **wire → Runtime MCP adapter → Harness bridge → Factory** for Gateway.
+Stable facades import these capabilities, never the reverse. The original
+Host-free public API and cross-language behavior consumers remain unchanged.
+This refactor does **not** qualify the missing original Run→all issued Native
+OS Job→independent Domain receiver→Finalizer chain. Source tests being green
+are not production installation, Domain ACK or NoFutureSpawn evidence.
+
+A Tool catalog must contain well-formed unique Tool definitions; the **admitted
+subset may be empty**. That lets an Agent use the normal bounded Provider
+loop for cognition-only turns without pretending to own or run a Tool. Every
+ungranted Tool effect is still denied before the Domain bridge executes it.
+
+The original terminal-evidence import cycle is now removed. The former
+`independent_result` ↔ `ordivon/run_continuity` ↔
+`ordivon/run_source_inspection` source SCC mixed terminal receipt reading,
+original PG recovery commands and Doctor. It is now a directed composition:
+
+- `independent_result_contracts.py`: wire-stable immutable receipt,
+  completion proposal and stored-result records
+- `independent_result_reader.py`: only terminal/Trace read and Doctor,
+  with original PG Run/Contract identity checks and no Journal writer
+- `independent_result.py`: original compatible public
+  `IndependentRunRecorder` writer and terminal-conflict reconciliation
+  using the existing continuity owner
+- `ordivon/run_continuity.py` and
+  `ordivon/run_source_inspection.py`: consume the independent reader
+  directly, not the full writer
+
+Source AST import-graph verification now checks **all first-party modules
+automatically** for SCCs without naming any original implementation file.
+The refactored package has no detected import cycles. This is a dependency
+mechanism and an Agent-composability guarantee, not a claim that all external
+OS effects or Domain output receivers are settled.
 
 ## Source layout and retention boundaries
 

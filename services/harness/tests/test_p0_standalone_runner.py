@@ -458,13 +458,6 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "maxToolCalls"):
             StandaloneHarnessRunner._validate_budget(drifted, execution)
 
-    def test_new_terminal_modules_do_not_import_host(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
-        for relative in ("independent_result.py", "standalone.py", "ordivon/events.py"):
-            source = (root / relative).read_text(encoding="utf-8")
-            self.assertNotIn("ordivon_host", source)
-            self.assertNotIn("_host_compat", source)
-            self.assertNotIn("CommittedHarnessAssignment", source)
 
 
 if __name__ == "__main__":

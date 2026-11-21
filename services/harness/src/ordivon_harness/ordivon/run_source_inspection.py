@@ -171,7 +171,7 @@ class RunSourceInspection:
         owner's proof, not a fact this Harness PostgreSQL Journal can certify.
         UNKNOWN remains unresolved even on a terminal Run projection.
         """
-        from ..independent_result import IndependentRunRecorder
+        from ..independent_result_reader import IndependentRunReader
         from .continuity_guards import inspect_all_unsettled_effect_sources
 
         projection = self.store.load_run(self.harness_run_id)
@@ -231,7 +231,7 @@ class RunSourceInspection:
             or events[-1].run_revision != projection.revision
         ):
             raise ValueError("finalization Run terminal projection differs from Journal")
-        terminal = IndependentRunRecorder(
+        terminal = IndependentRunReader(
             self.store, self.contract, self.binding, clock_ms=self.clock_ms
         ).load_terminal_result()
         provider_ids, tool_digests = inspect_all_unsettled_effect_sources(

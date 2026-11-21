@@ -2465,42 +2465,53 @@ def test_gateway_factory_rejects_frozen_catalog_drift_before_model_or_tool(
     assert client.calls == []
 
 
-def test_gateway_factory_build_uses_one_original_grant_snapshot_after_binding_hook(
-    pg_schema, monkeypatch: pytest.MonkeyPatch
+def test_gateway_factory_build_keeps_original_run_grant_during_source_mutation(
+    pg_schema,
 ) -> None:
-    """An adversarial mid-build W1->W2 mutation cannot mix the same RunRoot.
+    """W1 original Run remains W1 even when caller mutates Factory during build.
 
-    Source race injection deliberately swaps the mutable Factory attribute
-    after the first W1 HarnessExecutionBinding is constructed, but before
-    Runtime adapter/bridge construction. A real Native issuer certificate
-    is not implied by this Source-level consistency negative.
+    A real, deterministic mutable caller-derived source changes exactly when
+    the Factory reads its published catalog digest. This preserves the race
+    invariant without pinning the location of HarnessExecutionBinding or any
+    former Python implementation file.
     """
     from dataclasses import replace
 
-    import ordivon_harness.plugin_gateway_effect as effect
-
     client = GatewayExecutionFixture()
-    factory = _factory(client)
+    seed = _factory(client)
+    mutations: list[str] = []
+
+    class RacyCallerFactory(PluginGatewayExecutionBridgeFactory):
+        def __getattribute__(self, name):
+            value = super().__getattribute__(name)
+            if name == "catalog_digest" and self._r37_mutate_during_build:
+                self._r37_mutate_during_build = False
+                self.execution_grant = replace(
+                    self.execution_grant, workspace_id="ws-w2-midbuild"
+                )
+                self.component = replace(
+                    self.component, url="https://untrusted.example/mcp"
+                )
+                self._remote_tool_digests["execution.get"] = _digest(
+                    "recovery-catalog-midbuild"
+                )
+                self._definition.input_schema["properties"]["executable"]["enum"] = [
+                    "/usr/bin/false"
+                ]
+                self._definition = replace(
+                    self._definition, description="changed after original guard"
+                )
+                self.client = GatewayExecutionFixture()
+                mutations.append(self.execution_grant.workspace_id)
+            return value
+
+    factory = RacyCallerFactory(seed.component, client, seed.execution_grant)
+    factory._r37_mutate_during_build = False
     contract = _contract(factory)
-    old_binding_constructor = effect.HarnessExecutionBinding
     original_remote_get_digest = factory._remote_tool_digests["execution.get"]
     original_gateway_url = factory.component.url
-    mutations = []
+    factory._r37_mutate_during_build = True
 
-    def swap_factory_after_binding(*args, **kwargs):
-        original_binding = old_binding_constructor(*args, **kwargs)
-        factory.execution_grant = replace(
-            factory.execution_grant, workspace_id="ws-w2-midbuild"
-        )
-        factory.component = replace(factory.component, url="https://untrusted.example/mcp")
-        factory._remote_tool_digests["execution.get"] = _digest("recovery-catalog-midbuild")
-        factory._definition.input_schema["properties"]["executable"]["enum"] = ["/usr/bin/false"]
-        factory._definition = replace(factory._definition, description="changed after original guard")
-        factory.client = GatewayExecutionFixture()
-        mutations.append(factory.execution_grant.workspace_id)
-        return original_binding
-
-    monkeypatch.setattr(effect, "HarnessExecutionBinding", swap_factory_after_binding)
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         store.create_run(contract)
         continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)

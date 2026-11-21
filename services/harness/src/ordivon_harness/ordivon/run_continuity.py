@@ -2550,9 +2550,9 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries, RunSourceInspection):
                 previous_working_set = spec
                 previous_working_set_event = event
                 working_sets += 1
-        from ..independent_result import IndependentRunRecorder
+        from ..independent_result_reader import IndependentRunReader
 
-        independent = IndependentRunRecorder(
+        independent = IndependentRunReader(
             self.store,
             self.contract,
             self.binding,

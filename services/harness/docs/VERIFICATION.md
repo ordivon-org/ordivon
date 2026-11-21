@@ -14,7 +14,7 @@ audience:
   - operator
   - researcher
   - agent
-updated: 2026-09-18
+updated: 2026-11-21
 summary: Claim classes, evidence strength, historical evidence interpretation and current release gates.
 evidence_status: verified
 readiness: READY
@@ -52,6 +52,47 @@ HARNESS_PG_TEST_DSN makes that smoke mandatory and fail-closed. Local real
 PostgreSQL qualification must use an equivalent test-only DSN; no old SQLite
 Run data are migrated or replayed. Missing PG authority is SKIPPED or NOT_RUN,
 never a PASS receipt.
+
+## Test quality: stable behavior before file layout (R37)
+
+A test is a **business or mechanism contract**, not an obstacle to retiring a
+Python file. Moving a class, renaming a private helper, splitting a large
+module or deleting an unused historical implementation must not fail a test
+when its actual documented consumer behavior stays identical.
+
+- **Normal behavior**: create real Agent/domain entrypoints and assert their
+  visible Tool definitions, Run stop reason, observations and output.
+- **Denial behavior**: supply unknown, duplicate and ungranted Tools and verify
+  rejection **before** a Domain/Runtime effect. Exercise empty Tool grants as
+  cognition-only, not as wildcard authority or a fatal error.
+- **Identity and concurrency**: test one immutable original Grant/Run across
+  adversarial W1→W2 mutations by invoking the supported Factory/Run behavior.
+  Do not monkeypatch a variable in a particular implementation source file.
+- **Physical truth**: tests using fake MCP clients are contract tests only.
+  Workspace loss, native job spawning, cancellation, output-byte delivery and
+  Finalizer release require isolated real PG18/Runtime/OS consumers and
+  immutable independent readback; an empty test fixture cannot certify them.
+- **Boundary and provenance**: architecture-wide imports may be checked as a
+  package dependency property, and published API/tool/CLI contracts may be
+  checked for stability. A test must **not** prohibit arbitrary retired
+  filenames, hardcode the module containing a class, or require obsolete
+  planning node IDs. A historical file path is test data only where the exact
+  external artifact is itself the user-visible contract.
+- **Refactoring verification**: maintain a bounded pre-change negative where
+  a business defect is repaired, run affected original consumer regressions,
+  the complete isolated PG18 suite, source imports, Ruff, docs, evidence and
+  installed Wheel checks. Record skipped and unknown physical proof honestly.
+- **Test retirement**: replace a source-location assertion with the mechanism
+  it was meant to protect. If that behavior is already covered in an
+  independent whole-package or end-to-end test, retire the duplicate rather
+  than force a historical file to exist. Formal properties constrain
+  state/effect transitions, not directory names.
+
+These rules permit finer Agent-facing modules without reducing the strength
+of authorization or physical delivery evidence. The R37 module split keeps
+`domain_tools` and `plugin_gateway_effect` as stable consumer entrypoints;
+tests assert real grants, no-effect cognition, Gateway source identity and
+same-Run exact execution rather than the old file that defined a helper.
 
 ## Current portable gate
 

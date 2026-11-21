@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
 import unittest
 
 from anc_canonical import canonical_digest
@@ -194,12 +193,6 @@ class HarnessCoreContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "zero"):
             HarnessRunContract.from_dict(raw)
 
-    def test_new_core_modules_do_not_import_host(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
-        for name in ("core_contracts.py", "store.py", "sqlite_store.py"):
-            source = (root / name).read_text(encoding="utf-8")
-            self.assertNotIn("ordivon_host", source)
-            self.assertNotIn("_host_compat", source)
 
 
 if __name__ == "__main__":

@@ -469,23 +469,6 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "Tool Grant"):
                     HarnessAgentBridge(wrong, continuity)
 
-    def test_independent_agent_bridge_has_no_host_or_runtime_imports(self) -> None:
-        source = (
-            Path(__file__).resolve().parents[1]
-            / "src"
-            / "ordivon_harness"
-            / "ordivon"
-            / "agent_bridge.py"
-        ).read_text(encoding="utf-8")
-        for forbidden in (
-            "ordivon_host",
-            "_host_compat",
-            "CommittedHarnessAssignment",
-            "RuntimeClient",
-            "HostHarnessRunStore",
-            "from .tools import",
-        ):
-            self.assertNotIn(forbidden, source)
 
 
 if __name__ == "__main__":
