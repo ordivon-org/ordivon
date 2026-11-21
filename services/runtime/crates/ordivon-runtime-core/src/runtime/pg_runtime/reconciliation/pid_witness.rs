@@ -1,6 +1,6 @@
 //! Bind the manager's host PID, namespace PID and Linux kernel start identity.
 
-use super::*;
+use crate::universal::RunnerStartEvidence;
 
 pub(super) fn namespace_pid_from_host_status(status: &str, host_pid: u32) -> Option<u32> {
     if host_pid == 0 {

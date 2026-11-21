@@ -1,11 +1,6 @@
 //! PostgreSQL Attempt readback, native reconciliation, and Job result projection.
 use super::*;
 
-/// NSpid lists kernel PIDs in nested namespaces, from the namespace of the
-/// host procfs mount through the innermost namespace. A private systemd
-/// PID namespace changes the Runner's getpid() without changing the kernel
-/// process starttime. Reject malformed, duplicated, or mismatched host
-/// identities rather than trusting a supplied namespace PID alone.
 // Composition only: one PgRuntime, one PG store and one systemd Runner.
 // Each private child owns a distinct logical responsibility; no alternate
 // authorizer, registry or source-file placement contract is introduced.
@@ -19,10 +14,19 @@ mod scan;
 #[cfg(test)]
 mod tests;
 
-use attempt_readback::*;
-use observation::*;
-use pid_witness::*;
-use scan::*;
+use attempt_readback::{
+    needs_recovery_observation, require_recovery_current_attempt, READBACK_VERIFIED_ATTEMPT_SQL,
+    RECONCILIATION_STAGE_SQL, RECOVERY_CURRENT_ATTEMPT_SQL, RELEASE_CURRENT_ATTEMPT_STATE_SQL,
+};
+use observation::{active_log_window, output_projection_relative_path, runner_result_still_absent};
+use pid_witness::{
+    namespace_pid_from_host_status, native_running_witness, observed_namespace_pid,
+    NativePidReadback,
+};
+use scan::{
+    advance_reconciliation_cursor, latest_reconciliation_key, next_reconciliation_cursor,
+    scan_reconciliation_page,
+};
 
 /// Preserve original SQLSTATE rather than translating PG failures into generic I/O.
 fn pg_read_error(error: postgres::Error) -> RuntimeError {

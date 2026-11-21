@@ -1,7 +1,12 @@
 //! Rebind PG readback to the current or independently verified Attempt identity.
 //! No historical MAX(attempt) guessing and no new native launch authority.
 
-use super::*;
+use super::{
+    error, io, pg_read_error, AttemptRecord, AttemptState, PgAdmissionStore, PgJobSnapshot,
+    PgRuntime, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan, RuntimeResult,
+};
+use serde_json::json;
+use std::path::Path;
 
 // Keep the exact recovery current-Attempt selectors shared with native PG
 // falsification tests; current is an explicit Job pointer, not MAX(number).

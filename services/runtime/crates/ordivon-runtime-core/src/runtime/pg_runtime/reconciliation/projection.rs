@@ -1,7 +1,13 @@
 //! Project terminal artifacts or bounded active previews from observed facts.
 //! Projection itself never admits or reissues native effects.
 
-use super::*;
+use super::{
+    active_log_window, error, io, needs_recovery_observation, output_projection_relative_path, pg,
+    pg_delivery_disposition, pg_read_error, universal, JobObservation, JobObserveRequest,
+    PgAdmissionStore, PgJobReadback, PgRuntime, RuntimeError, RuntimeErrorCode, RuntimeResult,
+};
+use serde_json::json;
+use std::path::Path;
 
 impl PgRuntime {
     pub(in crate::runtime::pg_runtime) fn project(
