@@ -1612,6 +1612,718 @@ exit 0
         self.assertEqual(len(release_mise), 1)
         self.assertIs(release_mise[0]["with"]["cache"], False)
 
+    def test_runtime_tagged_release_builds_installed_pg_cohort_not_legacy_defaults(self) -> None:
+        """Actual PostgreSQL Server/Runner/Reclaimer are the native release consumers."""
+        import ast
+        import yaml
+
+        native = ast.parse(
+            (ROOT / "services/runtime/scripts/ordivon-runtime-deploy").read_text()
+        )
+        decl = {}
+        for node in native.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS",
+                    ):
+                        decl[target.id] = ast.literal_eval(node.value)
+        pg_binaries = {"ordivon-runtime-pg", "ordivon-runtime-runner"}
+        operator = {
+            x[0] for x in decl["DEFAULT_OPERATOR_ARTIFACTS"]
+            if x[0] == "ordivon-runtime-pg-reclaim"
+        }
+        self.assertEqual(operator, {"ordivon-runtime-pg-reclaim"})
+        expected = pg_binaries | operator
+        self.assertNotEqual(expected, set(decl["DEFAULT_BINARIES"]))
+
+        build = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )["jobs"]["runtime-release"]["steps"]
+        publish = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release-publish.yml").read_text()
+        )["jobs"]["publish-runtime-release"]["steps"]
+        prepare = next(x["run"] for x in build if x["name"].startswith("Build exact canonical"))
+        stage = next(x["run"] for x in build if x["name"].startswith("Materialize exact"))
+        verifier = next(x["run"] for x in publish if x["name"].startswith("Verify exact downloaded"))
+        self.assertIn("--binary ordivon-runtime-pg", prepare)
+        self.assertIn("--binary ordivon-runtime-runner", prepare)
+        self.assertIn("--include-pg-reclaimer", prepare)
+        self.assertIn("ordivon-runtime-pg", stage)
+        self.assertIn("ordivon-runtime-runner", stage)
+        self.assertIn("ordivon-runtime-pg-reclaim", stage)
+        self.assertIn("ordivon-runtime-pg", verifier)
+        self.assertIn("ordivon-runtime-runner", verifier)
+        self.assertIn("ordivon-runtime-pg-reclaim", verifier)
+        self.assertNotIn('canonical["DEFAULT_BINARIES"]', stage)
+        self.assertNotIn('canonical["DEFAULT_BINARIES"]', verifier)
+        # An exact native PG release has 2 binary files + 1 operator, not
+        # any of the old five legacy server/doctor/inspect/repair defaults.
+        self.assertEqual(len(expected), 3)
+        # Prove the native production API's actual profile selection, not
+        # merely the existence of flag-shaped text in a workflow.
+        import argparse
+        import runpy
+        saved_path = list(sys.path)
+        try:
+            sys.path.insert(0, str(ROOT / "services/runtime/scripts"))
+            native_code = runpy.run_path(
+                str(ROOT / "services/runtime/scripts/ordivon-runtime-deploy")
+            )
+        finally:
+            sys.path[:] = saved_path
+        opts = argparse.Namespace(
+            binaries=["ordivon-runtime-pg", "ordivon-runtime-runner"],
+            include_pg_reclaimer=True,
+        )
+        specs = native_code["release_artifact_specs"](opts)
+        self.assertEqual({spec["name"] for spec in specs}, expected)
+        commands = native_code["candidate_build_commands"](
+            Path("/usr/bin/cargo"),
+            Path("/tmp/runtime-test-pg/target/release"),
+            native_code["binaries"](opts),
+            explicit_binary_selection=True,
+        )
+        self.assertEqual(len(commands), 2)
+        self.assertTrue(any(
+            "--features" in command and "postgres-runtime" in command
+            and "ordivon-runtime-pg" in command for command in commands
+        ))
+        self.assertTrue(any(
+            "--features" in command and "runtime-contract" in command
+            and "ordivon-runtime-runner" in command for command in commands
+        ))
+        self.assertFalse(any("--all-features" in command for command in commands))
+        root_bundle = {name for name, _ in native_code["ROOT_OPERATOR_BUNDLE"]}
+        self.assertEqual(len(root_bundle), 5)
+        self.assertNotEqual(root_bundle, expected)
+
+    def test_runtime_publisher_runs_only_as_default_branch_trusted_workflow(self) -> None:
+        """Release authority cannot be carried in an old tag's workflow file."""
+        import yaml
+
+        build_path = ROOT / ".github/workflows/runtime-release.yml"
+        publish_path = ROOT / ".github/workflows/runtime-release-publish.yml"
+        self.assertTrue(publish_path.exists(), "protected-main publisher source missing")
+        builder = yaml.safe_load(build_path.read_text())
+        publisher = yaml.safe_load(publish_path.read_text())
+        self.assertEqual(set(builder["jobs"]), {"runtime-release"})
+        self.assertEqual(builder["permissions"]["contents"], "read")
+        self.assertNotIn("contents: write", build_path.read_text())
+        event = publisher.get("on", publisher.get(True, {}))["workflow_run"]
+        self.assertEqual(event["workflows"], ["Runtime Tagged Release"])
+        self.assertEqual(event["types"], ["completed"])
+        publish = publisher["jobs"]["publish-runtime-release"]
+        self.assertEqual(publish["permissions"]["contents"], "write")
+        self.assertEqual(publish["permissions"]["actions"], "read")
+        self.assertEqual(publish["environment"], "runtime-release-publisher")
+        self.assertIn("vars.ORDIVON_RUNTIME_RELEASE_PUBLISH", publish["if"])
+        steps = publish["steps"]
+        self.assertEqual(steps[0]["with"]["ref"], "$" + "{{ github.sha }}")
+        self.assertEqual(
+            steps[2]["with"]["run-id"], "$" + "{{ env.RUNTIME_BUILD_RUN_ID }}"
+        )
+        self.assertIn("github-token", steps[2]["with"])
+        self.assertIn("gh attestation verify", steps[3]["run"])
+        self.assertIn("gh release create", steps[4]["run"])
+        self.assertNotIn("checkout", steps[4]["run"])
+
+    def test_runtime_release_publisher_rejects_equal_size_asset_substitution(self) -> None:
+        """Execute the actual provider readback Python: bytes, not size, decide."""
+        import ast
+        import hashlib
+        import json
+        import os
+        import yaml
+
+        source = ast.parse(
+            (ROOT / "services/runtime/scripts/ordivon-runtime-deploy").read_text()
+        )
+        declarations = {}
+        for node in source.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                    ):
+                        declarations[target.id] = ast.literal_eval(node.value)
+        native_names = sorted(
+            {"ordivon-runtime-pg", "ordivon-runtime-runner"} | {
+                entry[0] for entry in declarations["DEFAULT_OPERATOR_ARTIFACTS"]
+                if entry[0] == "ordivon-runtime-pg-reclaim"
+            }
+        )
+
+        doc = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release-publish.yml").read_text()
+        )
+        step = doc["jobs"]["publish-runtime-release"]["steps"][4]["run"]
+        created_code = step.split("<<'PY_RELEASE'\n", 1)[1].split(
+            "\nPY_RELEASE\n", 1
+        )[0]
+        published_code = step.split("<<'PY_PUBLISHED'\n", 1)[1].split(
+            "\nPY_PUBLISHED\n", 1
+        )[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subjects = root / "attest-subjects"
+            subjects.mkdir()
+            for n, name in enumerate(native_names):
+                (subjects / name).write_bytes(f"content-{n}".encode())
+            for name in (
+                "candidate-manifest.json", "prepare.json", "release-identity.json",
+                "subjects.sha256", "sbom.spdx.json",
+            ):
+                (root / name).write_bytes(f"evidence:{name}".encode())
+            names = sorted(
+                list(subjects.iterdir())
+                + [root / name for name in (
+                    "candidate-manifest.json", "prepare.json", "release-identity.json",
+                    "subjects.sha256", "sbom.spdx.json",
+                )]
+            )
+            correct = [
+                {
+                    "name": path.name,
+                    "size": path.stat().st_size,
+                    "digest": "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "state": "uploaded",
+                }
+                for path in names
+            ]
+            tag = "runtime-v0.1.0"
+            env = {**os.environ, "RUNTIME_TAG": tag}
+
+            def verify(script: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, "-c", script, str(root)],
+                    env=env, text=True, capture_output=True, timeout=15,
+                    check=False,
+                )
+
+            def write_releases(before: list, after: list | None = None):
+                (root / "created-release.json").write_text(
+                    json.dumps({"tagName": tag, "isDraft": True, "assets": before})
+                )
+                (root / "published-release.json").write_text(
+                    json.dumps({
+                        "tagName": tag, "isDraft": False,
+                        "assets": before if after is None else after,
+                    })
+                )
+
+            write_releases(correct)
+            self.assertEqual(verify(created_code).returncode, 0)
+            self.assertEqual(verify(published_code).returncode, 0)
+
+            # A wrong asset with the exact same file size must not publish.
+            forged = [dict(item) for item in correct]
+            forged[0]["digest"] = "sha256:" + "0" * 64
+            self.assertEqual(forged[0]["size"], correct[0]["size"])
+            write_releases(forged)
+            rejected = verify(created_code)
+            self.assertNotEqual(
+                rejected.returncode, 0,
+                "equal-size substituted remote release asset was admitted",
+            )
+
+            missing_digest = [dict(item) for item in correct]
+            missing_digest[0]["digest"] = None
+            write_releases(missing_digest)
+            self.assertNotEqual(verify(created_code).returncode, 0)
+
+            # GitHub can return an asset record before upload is complete.
+            # A correct name/size/digest is not a provider upload receipt.
+            pending = [dict(item) for item in correct]
+            pending[0]["state"] = "new"
+            write_releases(pending)
+            self.assertNotEqual(
+                verify(created_code).returncode, 0,
+                "draft provider asset state=new was admitted as uploaded",
+            )
+            absent_state = [dict(item) for item in correct]
+            del absent_state[0]["state"]
+            write_releases(absent_state)
+            self.assertNotEqual(
+                verify(created_code).returncode, 0,
+                "draft asset with missing provider upload state was admitted",
+            )
+            write_releases(correct, pending)
+            self.assertNotEqual(
+                verify(published_code).returncode, 0,
+                "published provider asset state=new was admitted as uploaded",
+            )
+            # Publication must reject a second-party edit after draft audit.
+            write_releases(correct, forged)
+            self.assertNotEqual(verify(published_code).returncode, 0)
+
+            # Non-security metadata changes must not poison byte acceptance.
+            before = [{**asset, "downloadCount": 1} for asset in correct]
+            after = [{**asset, "downloadCount": 2} for asset in correct]
+            write_releases(before, after)
+            self.assertEqual(
+                verify(published_code).returncode, 0,
+                "download-count-only changes must not invalidate asset identities",
+            )
+
+    def test_runtime_release_identity_must_be_derived_from_git_source(self) -> None:
+        """A plausible manifest cannot invent a different Runtime owner source."""
+        import ast
+        import hashlib
+        import json
+        import os
+        import subprocess
+        import tomllib
+        import yaml
+
+        doc = yaml.safe_load((ROOT / ".github/workflows/runtime-release-publish.yml").read_text())
+        body = doc["jobs"]["publish-runtime-release"]["steps"][3]["run"]
+        verifier = body.split("<<'PY_SUBJECTS'\n", 1)[1].split(
+            "\nPY_SUBJECTS\n", 1
+        )[0]
+
+        def git(*args: str) -> str:
+            return subprocess.check_output(
+                ["git", *args], cwd=ROOT, text=True, timeout=15
+            ).strip()
+
+        source = git("rev-parse", "HEAD")
+        owner_commit = git(
+            "-C", "services/runtime", "log", "-1", "--format=%H", source, "--", "."
+        )
+        owner_tree = git("rev-parse", owner_commit + ":services/runtime")
+        with (ROOT / "services/runtime/Cargo.toml").open("rb") as stream:
+            version = tomllib.load(stream)["workspace"]["package"]["version"]
+        tree = ast.parse(
+            (ROOT / "services/runtime/scripts/ordivon-runtime-deploy").read_text()
+        )
+        native = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                    ):
+                        native[target.id] = ast.literal_eval(node.value)
+        names = sorted(
+            {"ordivon-runtime-pg", "ordivon-runtime-runner"} | {
+                entry[0] for entry in native["DEFAULT_OPERATOR_ARTIFACTS"]
+                if entry[0] == "ordivon-runtime-pg-reclaim"
+            }
+        )
+        self.assertGreater(len(names), 0)
+
+        tag = "runtime-v" + version
+        identity = {
+            "schemaVersion": 1, "tag": tag, "repositoryCommit": source,
+            "owner": "services/runtime", "ownerCommit": owner_commit,
+            "ownerTree": owner_tree, "version": version,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "attest-subjects"
+            folder.mkdir()
+            artifacts = []
+            for i, name in enumerate(names):
+                payload = bytes([i]) * (i + 1)
+                (folder / name).write_bytes(payload)
+                artifacts.append({
+                    "name": name, "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+                })
+            manifest = {
+                "commit": owner_commit, "sourceOwnerPrefix": "services/runtime",
+                "sourceMaterialization": "detached_git_checkout",
+                "binaries": [
+                    {"name": name} for name in ("ordivon-runtime-pg", "ordivon-runtime-runner")
+                ],
+                "artifacts": artifacts,
+            }
+            checksums = root / "subjects.sha256"
+            canonical_checksums = "".join(
+                item["digest"][7:] + "  " + item["name"] + "\n"
+                for item in artifacts
+            )
+            checksums.write_text(canonical_checksums)
+            metadata = root / "release-identity.json"
+            manifest_file = root / "candidate-manifest.json"
+            env = {**os.environ, "RUNTIME_TAG": tag, "RUNTIME_BUILD_SHA": source}
+
+            def verify(change_identity=None, change_manifest=None):
+                metadata.write_text(json.dumps(
+                    identity if change_identity is None else change_identity
+                ))
+                manifest_file.write_text(json.dumps(
+                    manifest if change_manifest is None else change_manifest
+                ))
+                return subprocess.run(
+                    [sys.executable, "-c", verifier, str(root)],
+                    cwd=ROOT, env=env, text=True, capture_output=True,
+                    timeout=18, check=False,
+                )
+
+            accepted = verify()
+            self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+            for key, forged in (
+                ("ownerCommit", "a" * 40), ("ownerTree", "b" * 40),
+                ("version", "9.9.9"),
+            ):
+                with self.subTest(identity_field=key):
+                    rejected = verify({**identity, key: forged})
+                    self.assertNotEqual(rejected.returncode, 0)
+            self.assertNotEqual(verify(change_manifest={
+                **manifest, "commit": "f" * 40,
+            }).returncode, 0)
+            for field, false_source in (
+                ("repositoryCommit", "f" * 40),
+                ("owner", "different-owner"),
+            ):
+                self.assertNotEqual(verify(change_identity={
+                    **identity, field: false_source,
+                }).returncode, 0)
+            first = folder / names[0]
+            original_bytes = first.read_bytes()
+            first.write_bytes(b"tampered")
+            self.assertNotEqual(verify().returncode, 0)
+            first.write_bytes(original_bytes)
+            self.assertEqual(verify().returncode, 0)
+            last = folder / names[-1]
+            last_bytes = last.read_bytes()
+            last.unlink()
+            self.assertNotEqual(verify().returncode, 0)
+            last.write_bytes(last_bytes)
+            self.assertEqual(verify().returncode, 0)
+            checksums.write_text(canonical_checksums + "0"*64 + "  ../../outside\n")
+            self.assertNotEqual(
+                verify().returncode, 0,
+                "publisher accepted untrusted checksum pathname outside staged subjects",
+            )
+            checksums.write_text(canonical_checksums)
+            self.assertEqual(verify().returncode, 0)
+            self.assertNotEqual(verify(change_manifest={
+                **manifest, "artifacts": artifacts[:-1],
+            }).returncode, 0)
+
+    def test_runtime_publication_policy_rejects_untrusted_tag_and_ruleset(self) -> None:
+        """Run actual protected-main Python against real Git remote and fake GH responses."""
+        import copy
+        import json
+        import os
+        import yaml
+
+        workflow = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release-publish.yml").read_text()
+        )
+        run = workflow["jobs"]["publish-runtime-release"]["steps"][1]["run"]
+        code = run.split("<<'PY_TRUSTED_RUN'\n", 1)[1].split(
+            "\nPY_TRUSTED_RUN\n", 1
+        )[0]
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            repo_root = base / "repo"
+            remote = base / "remote.git"
+            repo_root.mkdir()
+            fake_bin = base / "bin"
+            fake_bin.mkdir()
+            gh = fake_bin / "gh"
+            gh.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json,os,sys\n"
+                "if len(sys.argv)!=3 or sys.argv[1]!='api': sys.exit(2)\n"
+                "response=json.loads(os.environ['GH_TEST_RESPONSES'])\n"
+                "if sys.argv[2] not in response: sys.exit(4)\n"
+                "print(json.dumps(response[sys.argv[2]]))\n"
+            )
+            gh.chmod(0o755)
+            env_base = {k: v for k, v in os.environ.items()
+                        if not k.startswith("GIT_")}
+            env_base["PATH"] = str(fake_bin) + os.pathsep + env_base["PATH"]
+
+            def git(*args: str, cwd: Path = repo_root) -> str:
+                result = subprocess.run(
+                    ["git", *args], cwd=cwd, env=env_base,
+                    text=True, capture_output=True, timeout=18, check=True,
+                )
+                return result.stdout.strip()
+
+            git("init", "--bare", "-q", str(remote), cwd=base)
+            git("init", "-q")
+            git("config", "user.name", "Policy Fixture")
+            git("config", "user.email", "policy@example.invalid")
+            git("branch", "-M", "main")
+            (repo_root / "state").write_text("built source\n")
+            (repo_root / ".github/workflows").mkdir(parents=True)
+            (repo_root / "services/runtime").mkdir(parents=True)
+            (repo_root / ".github/workflows/runtime-release.yml").write_text(
+                "name: Runtime Tagged Release\n"
+            )
+            (repo_root / "services/runtime/release-input.txt").write_text(
+                "native-pg3-source\n"
+            )
+            git("add", ".")
+            git("commit", "-qm", "tagged source")
+            tag_sha = git("rev-parse", "HEAD")
+            tag = "runtime-v0.1.0"
+            git("tag", tag)
+            (repo_root / "state").write_text("new protected main\n")
+            git("commit", "-qam", "current policy")
+            main_sha = git("rev-parse", "HEAD")
+            git("remote", "add", "origin", str(remote))
+            git("push", "-q", "-u", "origin", "main")
+            git("push", "-q", "origin", "refs/tags/" + tag)
+            provider_root = "repos/ordivon-org/ordivon"
+            baseline = {
+                provider_root: {
+                    "id": 74, "full_name": "ordivon-org/ordivon",
+                    "default_branch": "main",
+                },
+                provider_root + "/actions/runs/901": {
+                    "id": 901, "run_attempt": 1, "event": "push",
+                    "status": "completed", "conclusion": "success",
+                    "workflow_id": 33,
+                    "head_branch": tag, "head_sha": tag_sha,
+                    "head_repository": {"id": 74}, "repository": {"id": 74},
+                    "path": ".github/workflows/runtime-release.yml@refs/tags/" + tag,
+                },
+                provider_root + "/actions/workflows/runtime-release.yml": {
+                    "id": 33, "name": "Runtime Tagged Release",
+                },
+                provider_root + "/environments/runtime-release-publisher": {
+                    "name": "runtime-release-publisher",
+                    "can_admins_bypass": False,
+                    "deployment_branch_policy": {"protected_branches": True},
+                    "protection_rules": [{
+                        "type": "required_reviewers",
+                        "prevent_self_review": True,
+                        "reviewers": [
+                            {"type": "User", "reviewer": {"id": 1}}
+                        ],
+                    }],
+                },
+                provider_root + "/rulesets": [{
+                    "id": 66, "name": "runtime-release-tag-immutability-r1",
+                    "target": "tag", "enforcement": "active",
+                }],
+                provider_root + "/rulesets/66": {
+                    "name": "runtime-release-tag-immutability-r1",
+                    "target": "tag", "enforcement": "active",
+                    "bypass_actors": [],
+                    "conditions": {
+                        "ref_name": {"include": ["refs/tags/runtime-v*"], "exclude": []},
+                    },
+                    "rules": [{"type": "update"}, {"type": "deletion"}],
+                },
+            }
+            environment_key = provider_root + "/environments/runtime-release-publisher"
+            run_key = provider_root + "/actions/runs/901"
+            approvals_key = provider_root + "/actions/runs/902/approvals"
+            ruleset_key = provider_root + "/rulesets/66"
+            baseline[run_key]["actor"] = {"id": 2}
+            baseline[approvals_key] = [{
+                "state": "approved",
+                "user": {"id": 1},
+                "environments": [{"name": "runtime-release-publisher"}],
+            }]
+            captured_env = base / "github_env"
+
+            def admit(providers=None, extra=None):
+                captured_env.write_text("")
+                env = {
+                    **env_base, "GH_TEST_RESPONSES": json.dumps(
+                        baseline if providers is None else providers
+                    ),
+                    "GITHUB_REPOSITORY": "ordivon-org/ordivon",
+                    "GITHUB_EVENT_NAME": "workflow_run",
+                    "GITHUB_REF": "refs/heads/main",
+                    "GITHUB_SHA": main_sha,
+                    "EXPECTED_REPOSITORY_ID": "74",
+                    "UPSTREAM_RUN_ID": "901",
+                    "UPSTREAM_RUN_ATTEMPT": "1",
+                    "GITHUB_RUN_ID": "902",
+                    "GITHUB_ENV": str(captured_env),
+                    **(extra or {}),
+                }
+                return subprocess.run(
+                    [sys.executable, "-c", code],
+                    cwd=repo_root, env=env, capture_output=True,
+                    text=True, timeout=25, check=False,
+                )
+
+            good = admit()
+            self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+            written = captured_env.read_text()
+            self.assertIn("RUNTIME_TAG=" + tag + "\n", written)
+            self.assertIn("RUNTIME_BUILD_SHA=" + tag_sha + "\n", written)
+            self.assertIn("RUNTIME_BUILD_RUN_ID=901\n", written)
+            for key, value in (
+                ("GITHUB_REF", "refs/tags/" + tag),
+                ("GITHUB_EVENT_NAME", "push"),
+                ("GITHUB_SHA", "f" * 40),
+                ("UPSTREAM_RUN_ATTEMPT", "2"),
+                ("EXPECTED_REPOSITORY_ID", "1"),
+            ):
+                with self.subTest(environment_key=key):
+                    self.assertNotEqual(admit(extra={key: value}).returncode, 0)
+            mutants = []
+            def mutate(key, field, value):
+                item = copy.deepcopy(baseline)
+                item[key][field] = value
+                mutants.append(item)
+            mutate(run_key, "event", "pull_request")
+            mutate(run_key, "conclusion", "failure")
+            mutate(run_key, "workflow_id", 99)
+            mutate(run_key, "head_branch", "runtime-v../../bad")
+            mutate(run_key, "head_sha", "f" * 40)
+            mutate(run_key, "head_repository", {"id": 1})
+            mutate(run_key, "run_attempt", 2)
+            mutate(run_key, "path", ".github/workflows/other.yml")
+            no_self_review = copy.deepcopy(baseline)
+            no_self_review[environment_key]["protection_rules"][0]["prevent_self_review"] = False
+            mutants.append(no_self_review)
+            # A malicious or obsolete top-level property must not override
+            # the actual nested provider protection rule.
+            spoofed_top = copy.deepcopy(no_self_review)
+            spoofed_top[environment_key]["prevent_self_review"] = True
+            mutants.append(spoofed_top)
+            mutate(environment_key, "can_admins_bypass", True)
+            mutate(environment_key, "protection_rules", [])
+            mutate(environment_key, "deployment_branch_policy", {"protected_branches": False})
+            mutate(ruleset_key, "bypass_actors", [{"actor_id": 1}])
+            mutate(ruleset_key, "enforcement", "disabled")
+            mutate(ruleset_key, "rules", [{"type": "deletion"}])
+            for i, data in enumerate(mutants):
+                with self.subTest(mutant=i):
+                    rejected = admit(data)
+                    self.assertNotEqual(
+                        rejected.returncode, 0,
+                        "untrusted promotion identity / authority was admitted",
+                    )
+            unapproved = copy.deepcopy(baseline)
+            unapproved[approvals_key] = []
+            self.assertNotEqual(
+                admit(unapproved).returncode, 0,
+                "environment configuration is not proof of a real approval",
+            )
+            self_reviewed = copy.deepcopy(baseline)
+            self_reviewed[approvals_key][0]["user"]["id"] = 2
+            self.assertNotEqual(
+                admit(self_reviewed).returncode, 0,
+                "upstream Tag pusher must not approve their own promotion",
+            )
+            wrong_reviewer = copy.deepcopy(baseline)
+            wrong_reviewer[approvals_key][0]["user"]["id"] = 999
+            self.assertNotEqual(admit(wrong_reviewer).returncode, 0)
+            rejected = copy.deepcopy(baseline)
+            rejected[approvals_key][0]["state"] = "rejected"
+            self.assertNotEqual(admit(rejected).returncode, 0)
+            no_env = copy.deepcopy(baseline)
+            del no_env[environment_key]
+            self.assertNotEqual(admit(no_env).returncode, 0)
+            no_rule = copy.deepcopy(baseline)
+            no_rule[provider_root + "/rulesets"] = []
+            self.assertNotEqual(admit(no_rule).returncode, 0)
+            # Historic tag build source is not valid under a newly changed
+            # trusted main workflow or owner tree, despite main ancestry.
+            (repo_root / ".github/workflows/runtime-release.yml").write_text(
+                "name: Runtime Tagged Release\n# newer security source\n"
+            )
+            git("add", ".github/workflows/runtime-release.yml")
+            git("commit", "-qm", "updated trusted builder")
+            newer_main = git("rev-parse", "HEAD")
+            git("push", "-q", "origin", "main")
+            not_current = admit(extra={"GITHUB_SHA": newer_main})
+            self.assertNotEqual(not_current.returncode, 0)
+            self.assertIn("RUNTIME_PUBLISH_STALE_TAG_BUILDER_POLICY", not_current.stderr)
+            (repo_root / ".github/workflows/runtime-release.yml").write_text(
+                "name: Runtime Tagged Release\n"
+            )
+            git("add", ".github/workflows/runtime-release.yml")
+            git("commit", "-qm", "restore trusted builder")
+            (repo_root / "services/runtime/release-input.txt").write_text(
+                "native-pg3-changed\n"
+            )
+            git("add", "services/runtime/release-input.txt")
+            git("commit", "-qm", "new owner source without new tag")
+            newer_main = git("rev-parse", "HEAD")
+            git("push", "-q", "origin", "main")
+            mismatch = admit(extra={"GITHUB_SHA": newer_main})
+            self.assertNotEqual(mismatch.returncode, 0)
+            self.assertIn("RUNTIME_PUBLISH_STALE_TAG_OWNER_TREE", mismatch.stderr)
+
+    def test_runtime_tagged_release_has_provider_native_publication_boundary(self) -> None:
+        """Tagged code can only build; current default-branch policy promotes."""
+        import yaml
+
+        build_path = ROOT / ".github/workflows/runtime-release.yml"
+        publish_path = ROOT / ".github/workflows/runtime-release-publish.yml"
+        original = yaml.safe_load(build_path.read_text())
+        promoted = yaml.safe_load(publish_path.read_text())
+        build = original["jobs"]["runtime-release"]
+        publish = promoted["jobs"]["publish-runtime-release"]
+        self.assertEqual(set(original["jobs"]), {"runtime-release"})
+        self.assertEqual(build["permissions"]["contents"], "read")
+        self.assertEqual(original["permissions"]["contents"], "read")
+        self.assertNotIn("contents: write", build_path.read_text())
+        self.assertEqual(promoted["permissions"]["contents"], "read")
+        self.assertEqual(publish["permissions"]["contents"], "write")
+        self.assertEqual(publish["permissions"]["actions"], "read")
+        self.assertNotIn("id-token", publish["permissions"])
+        self.assertEqual(publish["environment"], "runtime-release-publisher")
+        self.assertIn("github.event.workflow_run.event == 'push'", publish["if"])
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", publish["if"])
+        self.assertIn("vars.ORDIVON_RUNTIME_RELEASE_PUBLISH", publish["if"])
+        names = [step["name"] for step in publish["steps"]]
+        self.assertEqual(names, [
+            "Checkout trusted main policy for publication",
+            "Admit trusted builder and protected publication authority",
+            "Download verified Runtime release candidate",
+            "Verify exact downloaded Runtime attestations",
+            "Publish exact Runtime GitHub Release",
+        ])
+        checkout = publish["steps"][0]
+        self.assertEqual(checkout["with"]["ref"], "$" + "{{ github.sha }}")
+        self.assertEqual(checkout["with"]["fetch-depth"], 0)
+        self.assertIs(checkout["with"]["persist-credentials"], False)
+        policy = publish["steps"][1]["run"]
+        download = publish["steps"][2]
+        proof = publish["steps"][3]["run"]
+        effect = publish["steps"][4]["run"]
+        self.assertIn("RUNTIME_PUBLISH_UNTRUSTED_UPSTREAM_RUN", policy)
+        self.assertIn("RUNTIME_PUBLISH_MAIN_POLICY_CHANGED", policy)
+        self.assertIn("workflow.get", policy)
+        self.assertIn("run_attempt", policy)
+        self.assertIn("required_reviewers", policy)
+        self.assertIn("prevent_self_review", policy)
+        self.assertIn("can_admins_bypass", policy)
+        self.assertIn("runtime-release-tag-immutability-r1", policy)
+        self.assertIn("bypass_actors", policy)
+        self.assertIn("refs/tags/runtime-v*", policy)
+        self.assertIn("merge-base", policy)
+        self.assertIn("RUNTIME_BUILD_SHA", policy)
+        self.assertRegex(download["uses"], r"^actions/download-artifact@[0-9a-f]{40}$")
+        self.assertEqual(
+            download["with"]["run-id"],
+            "$" + "{{ env.RUNTIME_BUILD_RUN_ID }}",
+        )
+        self.assertEqual(
+            download["with"]["github-token"], "$" + "{{ github.token }}",
+        )
+        self.assertEqual(download["with"]["digest-mismatch"], "error")
+        self.assertIn("sha256sum --check --strict", proof)
+        self.assertIn("gh attestation verify", proof)
+        self.assertIn("--signer-workflow", proof)
+        self.assertIn("--source-digest", proof)
+        self.assertIn("--source-ref", proof)
+        self.assertIn("git(\"show\",", proof)
+        self.assertIn("gh release create", effect)
+        self.assertIn("--verify-tag", effect)
+        self.assertIn("--draft", effect)
+        self.assertIn("gh release edit", effect)
+        self.assertIn("--draft=false", effect)
+        self.assertIn("gh release view", effect)
+        self.assertLess(effect.index("gh release create"), effect.index("gh release edit"))
+        self.assertNotIn("--clobber", effect)
+        self.assertNotIn("curl", effect)
+
     def test_runtime_tag_requires_reachable_protected_main_source(self) -> None:
         """Execute the real tagged-release source gate against distinct Git DAGs.
 
@@ -1696,6 +2408,7 @@ exit 0
         import ast
         import hashlib
         import os
+        import shutil
         import yaml
 
         source = ast.parse(
@@ -1710,7 +2423,11 @@ exit 0
                     ):
                         values[target.id] = ast.literal_eval(node.value)
         self.assertEqual(set(values), {"DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"})
-        names = [*values["DEFAULT_BINARIES"], *(x[0] for x in values["DEFAULT_OPERATOR_ARTIFACTS"])]
+        names = [
+            "ordivon-runtime-pg", "ordivon-runtime-runner",
+            *(x[0] for x in values["DEFAULT_OPERATOR_ARTIFACTS"]
+              if x[0] == "ordivon-runtime-pg-reclaim"),
+        ]
         self.assertEqual(len(names), len(set(names)))
 
         release = yaml.safe_load(
@@ -1739,11 +2456,20 @@ exit 0
                     "mode": mode, "path": str(path), "bytes": path.stat().st_size,
                     "digest": "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
                 })
-            manifest = {"sourceOwnerPrefix": "services/runtime", "artifacts": artifacts}
+            manifest = {
+                "sourceOwnerPrefix": "services/runtime",
+                "binaries": [
+                    {"name": "ordivon-runtime-pg"}, {"name": "ordivon-runtime-runner"},
+                ],
+                "artifacts": artifacts,
+            }
             manifest_path = package / "candidate-manifest.json"
             env = dict(os.environ, RUNNER_TEMP=str(root))
 
             def run_stage(data):
+                stage_dir = package / "attest-subjects"
+                if stage_dir.exists():
+                    shutil.rmtree(stage_dir)
                 manifest_path.write_text(json.dumps(data), encoding="utf-8")
                 return subprocess.run(
                     ["bash", "-c", stage], cwd=ROOT, env=env, capture_output=True,
