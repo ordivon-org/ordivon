@@ -44,6 +44,61 @@ def _digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+_RUNTIME_PG_CORE_ROOT = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/"
+_ORIGINAL_HARNESS_PG_ISSUER_TEST = (
+    "pg18_original_harness_store_real_issuer_same_job_late_revoke"
+)
+
+
+def _original_harness_issuer_behavior_source(repo: Path) -> str:
+    """Find one actual Rust PG18 Harness issuer consumer by test behavior.
+
+    Renaming or moving the test module must not change the consumer edge.
+    A broad owner-pair wildcard, symlink, duplicated/fake test, or a missing
+    executable test is not an authorized way to suppress verification.
+    """
+    core = repo / _RUNTIME_PG_CORE_ROOT
+    if not core.is_dir() or core.is_symlink():
+        raise ValueError("unapproved original Harness test-only source seam")
+    pattern = re.compile(
+        r"(?m)^\s*fn\s+"
+        + re.escape(_ORIGINAL_HARNESS_PG_ISSUER_TEST)
+        + r"\s*\("
+    )
+    matches: list[str] = []
+    for candidate in sorted(core.rglob("*.rs")):
+        if not candidate.is_file() or candidate.is_symlink():
+            continue
+        source = candidate.read_text(encoding="utf-8")
+        found = list(pattern.finditer(source))
+        for match in found:
+            # Tests here run by the original libtest Cargo owner. The test
+            # annotation must belong to THIS function, not another test.
+            annotations = source[max(0, match.start() - 220):match.start()]
+            annotations = annotations.rsplit("}", 1)[-1]
+            if not (
+                re.search(r"#\[test\]", annotations)
+                and re.search(r"#\[ignore\s*=", annotations)
+            ):
+                continue
+            # Preserve the genuine Harness publisher + Python module lookup
+            # inside this one issuer behavior, not a coincidental import in
+            # another Rust test file.
+            body = source[match.start():].split("\n#[test]", 1)[0]
+            if all(
+                fragment in body
+                for fragment in (
+                    'root.join("services/harness/tests/original_pg_issuer_native_fixture.py")',
+                    'root.join("services/harness/src")',
+                    'root.join("services/harness")',
+                )
+            ):
+                matches.append(candidate.relative_to(repo).as_posix())
+    if len(matches) != 1:
+        raise ValueError("unapproved original Harness test-only source seam")
+    return matches[0]
+
+
 def load_dependency_graph(
     owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
     path: Path = DEPENDENCY_PATH,
@@ -157,8 +212,11 @@ def load_dependency_graph(
             seam.get("kind") == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
             and (left, right) == ("runtime", "harness")
         ):
+            # The original Harness issuer is a *physical test behavior*,
+            # not a permanent file address. Its bounded Rust owner source
+            # root plus one unique, annotated libtest case is the consumer.
             test_sources = {
-                "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs": "root",
+                _RUNTIME_PG_CORE_ROOT: "root",
                 "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs": "repo_root",
             }
             source = seam.get("source_glob")
@@ -171,7 +229,12 @@ def load_dependency_graph(
             } if prefix is not None else {}
             fragment = seam.get("allowed_fragment")
             repo = Path(__file__).resolve().parents[2]
-            actual = repo / source if isinstance(source, str) else repo
+            if source == _RUNTIME_PG_CORE_ROOT:
+                # Resolve the true test by executable Cargo behavior. No
+                # exact pg_admission.rs/issuer_cases.rs file-shape assertion.
+                actual = repo / _original_harness_issuer_behavior_source(repo)
+            else:
+                actual = repo / source if isinstance(source, str) else repo
             if (
                 fragment not in allowed_paths
                 or seam.get("contract_ref") != fixture
