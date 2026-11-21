@@ -449,6 +449,36 @@ cross-PG native close, then prove its safe rejection, safe legal release,
 multi-Run sharing, editing during HELD, and independent domain TaskSolved.
 See `docs/VERIFICATION.md` and `docs/OPERATIONS.md`.
 
+### Run authority as a separate module (source candidate, R22)
+
+The file-by-file audit separates **permission decisions** from **business work**.
+This is a source boundary; merged code and physical installation are different
+facts. It does not introduce a new permission registry, owner approval chain,
+shared transaction across Harness/Runtime databases, or replacement MCP API.
+
+| Actual file | Sole responsibility after extraction | Forbidden responsibility |
+| --- | --- | --- |
+| `src/ordivon_harness/run_authority.py` | Validate Run composition, caller Tool grant/executable/env/timeout, exact Workspace selection, immutable Gateway effect sources, current Runtime issuer Port and post-delivery release prerequisites | Execute physical Jobs, persist a second Run/Claim registry, infer user/domain success from Job completion |
+| `src/ordivon_harness/agent_run.py` | Run creation/reopen, PG Journal/Continuity, turn scheduling, reporting output; call authority decisions, not implement them | Invent policy/identity booleans, infer native HELD from an active Run |
+| `src/ordivon_harness/workspace_claim.py` | Idempotent native Runtime `workspace.claim.reserve/get/release` using one original Run/contract request key, physical HELD readback, lost-response reconciliation | Decide permissions or grant Tool invocation based on a claim alone |
+| `src/ordivon_harness/plugin_gateway_effect.py` | Gateway execution lowering/dispatch/resolve/receipt, consume the authority decision before first send and original-effect replay | Reimplement allowlist or issuer checks in each execution branch |
+| `src/ordivon_harness/runtime_port.py` | Existing structural Protocols, typed Runtime errors | Duplicate a physical Runtime Claim backend |
+| `src/ordivon_harness/execution_binding.py` | Immutable Run/Workspace/foreign reference identities and request ID construction | Authorize effects or own their physical state |
+| `src/ordivon_harness/mcp_http_client.py` | Existing authenticated SDK transport and private bearer-file validation | Choose Run lifecycle or domain delivery |
+| `src/ordivon_harness/cli.py` and `independent_cli.py` | Compose configured Gateway/native clients and Run commands; no silent unprotected fallback for Workspace Run | Interpret transport identity as Runtime issuer privilege |
+
+No-Tool Runs and custom Tools without a Runtime Workspace do **not** pay a
+native Claim requirement. Any workspace-bearing original Run must receive
+native HELD readback before its handle can run; a lost Runtime reserve response
+is reconciled with the exact same request key. `CREATED` in Harness PG after
+native timeout is not an executable Run. A terminal Run must not trigger
+automatic physical release: verified recipient delivery and native drain are
+separate inputs, and actual Runtime close still applies its own source/Job
+checks. Dedicated high-risk NoFutureSpawn guarantees remain unqualified until
+native OS/issuer owner evidence exists. The file-level test double only proves
+policy wiring; native physical close acceptance requires a separate real Runtime
+PG/Git/Job test and installed readback.
+
 ## Pause, resume and recovery
 
 Pause snapshots retain Provider source identity plus the Run state content or content digests authorized by the Contract. Exact-content resume starts from an authorized snapshot and may append caller messages. In the non-projected path those messages remain part of the canonical Provider-visible transcript. In a projected WorkingView Run, plain caller `user` messages following a `needs_input` Snapshot are now a separate caller-owned cognition ingress: they are projected after any current-attempt Tool exchanges that happened before that pause, survive WorkingSet transitions, precede Tool exchanges produced after the caller reply, and expire when the next `needs_input` Snapshot starts a new interaction. Their exact bytes are recovered from the authorized Snapshot/RunState continuation and revalidated before Provider dispatch; a forged bridge cannot invent them. Because this is model content rather than a Tool channel, exact caller ingress requires model-content authority but not Tool-content authority. Digest-only recovery remains conservative and cannot reconstruct omitted caller bytes.

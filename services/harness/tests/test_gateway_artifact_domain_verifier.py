@@ -23,6 +23,7 @@ from ordivon_harness.plugin_gateway_effect import PluginGatewayExecutionBridgeFa
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from tests.test_plugin_gateway_effect import GatewayTextArtifacts
 from tests.test_plugin_gateway_effect import FixedClock, _adapter, _contract, _factory
+from tests.pg_test_support import FakeNativeWorkspaceClaimClient
 
 HARNESS = Path(__file__).resolve().parents[1]
 TASK = HARNESS / "evals/harness-edit-addressing-002"
@@ -112,6 +113,7 @@ p.write_text(prefix + 'return True' + suffix)
         contract,
         lambda _: scripted,
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )

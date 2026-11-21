@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.pg_test_support import FakeNativeWorkspaceClaimClient
 
 import tempfile
 
@@ -362,6 +363,7 @@ def test_gateway_artifact_text_reaches_next_model_turn_and_original_pg(pg_schema
         contract,
         lambda _: model,
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -424,6 +426,7 @@ def test_effect_gateway_runtime_validation_rejects_duplicate_required_tool_names
         contract,
         lambda _: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -460,6 +463,7 @@ def test_effect_gateway_rejects_tool_schema_drift_after_run_preflight_before_int
         _contract(factory),
         lambda _: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -500,6 +504,7 @@ def test_effect_gateway_catalog_transport_loss_before_intent_is_typed_and_non_di
         _contract(factory),
         lambda _: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -595,6 +600,7 @@ def test_effect_gateway_real_mcp_http_schema_drift_before_pg_intent_never_dispat
             _contract(factory),
             lambda _: _adapter(),
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -628,6 +634,7 @@ def test_omitted_timeout_is_bounded_by_actual_harness_grant(pg_schema) -> None:
             _contract(factory),
             lambda _contract: _adapter(timeout_ms=None),
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -668,6 +675,7 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
             contract,
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -714,6 +722,7 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, 
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -780,6 +789,7 @@ def test_durable_effect_handoff_rejects_post_intent_mutation_before_owner_call(
         _contract(factory),
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -805,6 +815,7 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_sc
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -861,6 +872,7 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_sc
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=FixedClock(),
             monotonic_ms=FixedClock(),
         )
@@ -1080,6 +1092,7 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation(pg_sc
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -1262,6 +1275,7 @@ def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object, p
             _contract(factory),
             lambda _contract: adapter,
             tool_bridge_factory=factory,
+            workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             clock_ms=clock,
             monotonic_ms=clock,
         )
@@ -1611,6 +1625,7 @@ def test_real_pg_harness_stays_unknown_when_gateway_owner_identity_cannot_be_pro
         _contract(factory),
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=FixedClock(),
         monotonic_ms=FixedClock(),
     )
@@ -1722,6 +1737,7 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
         original,
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -1731,6 +1747,7 @@ def test_two_real_pg_harness_runs_share_workspace_without_cross_run_release(pg_s
         overlapping,
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -1835,6 +1852,7 @@ def test_r8_workspace_bound_bridge_turn_hook_has_exact_frozen_grant(pg_schema) -
     HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
@@ -1876,6 +1894,7 @@ def test_r8_pg_tool_intent_is_rejected_without_remote_dispatch_on_claim_loss(pg_
     run = HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=strict_factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     run.run(())
     assert not any(name == "execution.submit" for name, _ in client.calls)
@@ -1935,6 +1954,7 @@ def test_r8_pg_owner_readback_error_refuses_effect_without_job_reconciliation(pg
     run = HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=strict_factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     run.run(())
     # The trusted Claim Port did not send physical execution. Looking up a Job
@@ -2369,6 +2389,7 @@ def test_gateway_paused_original_pg_run_rejects_mutated_factory_workspace_before
         contract,
         lambda _contract: _adapter(),
         tool_bridge_factory=factory,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
         clock_ms=clock,
         monotonic_ms=clock,
     )
@@ -2587,6 +2608,7 @@ def test_original_pg_bridge_adapter_keeps_original_client_and_native_port(pg_sch
     HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
@@ -2617,6 +2639,7 @@ def test_original_pg_bridge_adapter_rejects_postbuild_effect_source_rebinding(
     HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     replacement_port = _SourceOnlyWorkspaceAdmission()
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
@@ -2661,6 +2684,7 @@ def test_r11_original_pg_frozen_gateway_client_cannot_rebind_to_new_transport(
     HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     assert original_client.list_tools() == replacement_client.list_tools()
     factory.client = replacement_client
@@ -2693,6 +2717,7 @@ def test_r11_original_pg_factory_strict_native_claim_policy_cannot_be_downgraded
     HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     factory._workspace_admission_required = False
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
@@ -2728,6 +2753,7 @@ def test_r11_original_pg_qualified_native_port_cannot_be_swapped_after_runbirth(
     HarnessAgentRun.create(
         pg_schema[0], pg_schema[1], contract, lambda _: _adapter(),
         tool_bridge_factory=factory, clock_ms=clock, monotonic_ms=clock,
+        workspace_claim_client=FakeNativeWorkspaceClaimClient(),
     )
     with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
         continuity = EventSourcedRunContinuity.open(store, contract.harness_run_id)
