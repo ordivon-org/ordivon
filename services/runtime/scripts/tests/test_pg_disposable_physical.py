@@ -111,7 +111,7 @@ class DisposablePg18Contract(unittest.TestCase):
             "test result: ok. 0 passed; 0 failed; 0 ignored;",
             f"test new_scope::{name} ... FAILED\ntest result: FAILED. 0 passed; 1 failed;",
             f"test new_scope::{name} ... ok\ntest result: ok. 0 passed; 0 failed;",
-            f"test new_scope::wrong ... ok\ntest result: ok. 1 passed; 0 failed;",
+            "test new_scope::wrong ... ok\ntest result: ok. 1 passed; 0 failed;",
             f"test new_scope::{name} ... ok\ntest extra::{name} ... ok\ntest result: ok. 2 passed; 0 failed;",
         ):
             with self.subTest(output=bad):
