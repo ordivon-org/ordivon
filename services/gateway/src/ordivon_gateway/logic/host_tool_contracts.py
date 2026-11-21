@@ -2,34 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
-from contextvars import ContextVar
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import Field
 
-# A request-local identity witness, NOT another authentication/authorization
-# authority. The already installed MCP Security middleware binds the public
-# Tool and its original args for precisely the duration of call_next(ctx).
-# Natural Host and Security continue to own domain effects and PDP decisions.
-_PUBLIC_TOOL_CALL: ContextVar[tuple[str, Mapping[str, Any]] | None] = ContextVar(
-    "ordivon_gateway_public_tool_call", default=None
+# Stable compatibility exports. The generic request identity seam belongs
+# to Gateway call context, not to Host Tool catalog semantics.
+from .public_tool_binding import (
+    bind_public_tool_call as bind_public_tool_call,
 )
-
-
-@contextmanager
-def bind_public_tool_call(tool_name: str, arguments: Mapping[str, Any]) -> Iterator[None]:
-    token = _PUBLIC_TOOL_CALL.set((tool_name, dict(arguments)))
-    try:
-        yield
-    finally:
-        _PUBLIC_TOOL_CALL.reset(token)
-
-
-def current_public_tool_call() -> tuple[str, Mapping[str, Any]] | None:
-    return _PUBLIC_TOOL_CALL.get()
-
+from .public_tool_binding import (
+    current_public_tool_call as current_public_tool_call,
+)
 
 HostCollectionBytes = Annotated[int, Field(ge=16_384, le=4_194_304)]
 HostMessageBytes = Annotated[int, Field(ge=131_072, le=4_194_304)]

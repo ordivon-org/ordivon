@@ -9,7 +9,7 @@ from typing import Any, Protocol
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
-from ..logic.host_tool_contracts import bind_public_tool_call
+from ..logic.public_tool_binding import bind_public_tool_call
 from .authorization_targets import (
     AuthorizationTargetResolver,
     CapabilityAuthorizationTargetError,
