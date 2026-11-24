@@ -491,3 +491,27 @@ qualification are separate modules. The check decision always records
 currentApplicability=UNKNOWN_EXTERNAL_ASSUMPTIONS and
 currentSecurityStanding=NOT_ASSESSED_BY_CHECK_RECEIPT. External advisory
 freshness, dynamic reads and deployed behavior require separate evidence.
+
+## R5 integration: native Check Run/Workflow Attempt context
+
+A Check Run numeric ID is not a declared temporal ordering. Qualify the
+GitHub commit Check Suite coverage (native limit: 1000 suites), the
+all-attempts bounded listing, exact Check Suite/Workflow Run identity and
+the named Job in the provider's current explicit Run Attempt. Re-observe
+the Run identity after reading the Attempt Jobs; this is bounded observation,
+not an atomic snapshot. The named job is not current security or proof reuse.
+
+If one SourceCut has multiple Run contexts, return
+UNKNOWN_AMBIGUOUS_WORKFLOW_CONTEXT with observed Run/Suite/Check identities.
+The caller can select --current-workflow-run-id or --prior-workflow-run-id
+rather than guessing the highest Check Run ID. Distinct contexts need not
+be reruns: actual 18f161988416b0b5a1b71afb6f5927984767a95f had merge_group
+Run 45365227069 and push Run 45366387771, both successful; both were read
+and independently matched to their explicit native Attempt 1 Job.
+
+Native references:
+- https://docs.github.com/en/rest/checks/runs
+- https://docs.github.com/en/rest/actions/workflow-jobs
+- https://docs.github.com/en/rest/actions/workflow-runs
+
+No new CI dispatch, storage, scheduler, or proof admission is introduced.

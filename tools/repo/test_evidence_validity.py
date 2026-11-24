@@ -7,6 +7,7 @@ import itertools
 from pathlib import Path
 from unittest.mock import Mock
 
+import evidence_github_checks as github_checks
 import pytest
 
 SOURCE = Path(__file__).with_name("evidence_validity.py")
@@ -46,12 +47,26 @@ class FixtureGh:
 
 
 @pytest.fixture(autouse=True)
-def source_id(monkeypatch):
+def source_id(monkeypatch, request):
     # Unit tests assert provider and decision logic. One external read-only
     # smoke uses actual Git objects and live GitHub metadata separately.
     monkeypatch.setattr(module, "_exact_commit", lambda sha: sha)
     monkeypatch.setattr(module, "require_ancestral_source_cuts", lambda *a: None)
     monkeypatch.setattr(module, "qualify_current_selector", lambda *a: None)
+    # Decision and Formal fixtures exercise their own seams. The native
+    # provider protocol cases below use the real qualification operators.
+    if request.node.name.startswith("test_native_provider_"):
+        return
+    monkeypatch.setattr(github_checks, "_check_suite_count", lambda *a: (1, 1))
+
+    def fixture_attempt(gh, repo, sha, name, rows):
+        current = [row for row in rows if row.get("fixtureCurrentAttempt")]
+        if len(rows) == 1:
+            return rows[0], {}
+        assert len(current) == 1, "fixture must explicitly identify current attempt"
+        return current[0], {}
+
+    monkeypatch.setattr(github_checks, "_native_attempt_selection", fixture_attempt)
 
 
 def provider(row: dict | None = None, *, previous: list[dict] | None = None):
@@ -111,7 +126,7 @@ def test_pending_failed_or_skipped_check_never_recurs_as_pass(
 
 def test_later_failed_rerun_overrides_older_success():
     gh = provider()
-    newer_failure = dict(GOOD, id=110, conclusion="failure")
+    newer_failure = dict(GOOD, id=110, conclusion="failure", fixtureCurrentAttempt=True)
     gh.rows[CURRENT] = [dict(GOOD), newer_failure]
     result = module.decide(
         repo=module.DEFAULT_REPOSITORY, current_sha=CURRENT, github=gh
@@ -164,7 +179,7 @@ def test_provider_requests_all_attempts_not_completed_only_view():
         def api(self, endpoint):
             rows = [dict(GOOD)]
             if "filter=all" in endpoint:
-                rows.append(dict(GOOD, id=102, status="queued", conclusion=None))
+                rows.append(dict(GOOD, id=102, status="queued", conclusion=None, fixtureCurrentAttempt=True))
             return {"total_count": len(rows), "check_runs": rows}
 
     result = module.decide(
@@ -189,6 +204,181 @@ def test_provider_page_count_change_is_not_complete_evidence():
         module.decide(
             repo=module.DEFAULT_REPOSITORY, current_sha=CURRENT, github=MovingPages()
         )
+
+
+
+class NativeProviderFixture:
+    """Controlled native REST protocol, not real workflow execution."""
+
+    def __init__(self):
+        self.repo = module.DEFAULT_REPOSITORY
+        self.sha = CURRENT
+        self.run_id = 731
+        self.suite_id = 812
+        self.attempt = 2
+        self.suite_count = 1
+        self.run_reads = 0
+        self.suite_reads = 0
+        self.suite_count_after = None
+        self.attempt_after = None
+        self.calls = []
+        self.checks = [
+            self.check(999, "completed", "success"),
+            self.check(101, "completed", "failure"),
+        ]
+        self.jobs = [self.job(self.checks[1])]
+        self.workflow_path = ".github/workflows/ci.yml"
+
+    def check(self, identifier, status, conclusion, *, run_id=None, suite_id=None):
+        return dict(
+            GOOD, id=identifier, head_sha=self.sha, status=status,
+            conclusion=conclusion, check_suite={"id": suite_id or self.suite_id},
+            details_url=f"https://github.com/{self.repo}/actions/runs/{run_id or self.run_id}/job/{identifier}",
+        )
+
+    def job(self, check):
+        return {
+            "id": check["id"], "name": check["name"], "run_id": self.run_id,
+            "run_attempt": self.attempt, "head_sha": self.sha,
+            "check_run_url": f"https://api.github.com/repos/{self.repo}/check-runs/{check['id']}",
+            "status": check["status"], "conclusion": check["conclusion"],
+        }
+
+    def api(self, endpoint):
+        self.calls.append(endpoint)
+        if "/check-suites?" in endpoint:
+            self.suite_reads += 1
+            count = (self.suite_count_after if self.suite_reads > 1
+                     and self.suite_count_after is not None else self.suite_count)
+            return {
+                "total_count": count, "check_suites": [
+                    {"id": self.suite_id, "head_sha": self.sha},
+                ] if count else [],
+            }
+        if "/check-runs?" in endpoint:
+            assert "filter=all" in endpoint
+            return {"total_count": len(self.checks), "check_runs": self.checks}
+        if endpoint.endswith(f"/actions/runs/{self.run_id}"):
+            self.run_reads += 1
+            attempt = (self.attempt_after if self.run_reads > 1
+                       and self.attempt_after is not None else self.attempt)
+            return {
+                "id": self.run_id, "head_sha": self.sha, "check_suite_id": self.suite_id,
+                "run_attempt": attempt, "repository": {"full_name": self.repo},
+                "path": self.workflow_path, "event": "pull_request",
+                "status": "completed", "conclusion": "failure",
+            }
+        if f"/attempts/{self.attempt}/jobs?" in endpoint:
+            return {"total_count": len(self.jobs), "jobs": self.jobs}
+        raise AssertionError(endpoint)
+
+
+def _native_provider_decision(fixture, *, run_id=None):
+    return module.decide_with_optional_formal_source_delta(
+        repo=fixture.repo, current_sha=fixture.sha, prior_sha=None,
+        check_name="root-verification", include_formal_source_delta=False,
+        github=fixture, current_workflow_run_id=run_id,
+    )
+
+
+def test_native_provider_current_attempt_not_numeric_id():
+    fixture = NativeProviderFixture()
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "INVESTIGATE_EXISTING_RESULT"
+    assert result["currentEvidence"]["checkRunId"] == 101
+    assert result["currentEvidence"]["workflowRunAttempt"] == 2
+    assert result["currentEvidence"]["selectionBasis"] == "NATIVE_WORKFLOW_RUN_ATTEMPT_JOB"
+    assert result["currentEvidence"]["observationAtomic"] is False
+    assert fixture.run_reads == 2
+    assert not result["proofReuseAdmissible"]
+
+
+def test_native_provider_current_pending_attempt_not_old_pass():
+    fixture = NativeProviderFixture()
+    fixture.checks[1] = fixture.check(101, "queued", None)
+    fixture.jobs = [fixture.job(fixture.checks[1])]
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "OBSERVE_EXISTING_RUN"
+    assert result["currentEvidence"]["checkRunId"] == 101
+
+
+def test_native_provider_qualified_pass_has_exact_run_job_and_attempt():
+    fixture = NativeProviderFixture()
+    fixture.checks[1] = fixture.check(101, "completed", "success")
+    fixture.jobs = [fixture.job(fixture.checks[1])]
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "REUSE_CURRENT_RECEIPT"
+    assert result["currentEvidence"]["workflowRunId"] == 731
+    assert result["currentEvidence"]["checkSuiteId"] == 812
+    assert result["currentEvidence"]["workflowRunAttempt"] == 2
+    assert not result["proofReuseAdmissible"]
+
+
+@pytest.mark.parametrize("mutation,reason", [
+    ("suite-cap", "UNKNOWN_CHECK_SUITE_COVERAGE"),
+    ("suite-drift", "UNKNOWN_CHECK_SUITE_COVERAGE"),
+    ("distinct-context", "UNKNOWN_AMBIGUOUS_WORKFLOW_CONTEXT"),
+    ("different-workflow", "UNKNOWN_WORKFLOW_CONTEXT"),
+    ("wrong-job-url", "UNKNOWN_WORKFLOW_CONTEXT"),
+    ("missing-attempt-job", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("mismatched-job-status", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("mismatched-job-identity", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("attempt-drift", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("duplicate-named-job", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+])
+def test_native_provider_ambiguity_and_incomplete_observation_fail_closed(mutation, reason):
+    fixture = NativeProviderFixture()
+    if mutation == "suite-cap":
+        fixture.suite_count = 1001
+    elif mutation == "suite-drift":
+        fixture.suite_count_after = 2
+    elif mutation == "distinct-context":
+        fixture.checks[0] = fixture.check(999, "completed", "success", run_id=732, suite_id=813)
+    elif mutation == "different-workflow":
+        fixture.workflow_path = ".github/workflows/other.yml"
+    elif mutation == "wrong-job-url":
+        fixture.checks[1]["details_url"] = fixture.checks[0]["details_url"]
+    elif mutation == "missing-attempt-job":
+        fixture.jobs = []
+    elif mutation == "mismatched-job-status":
+        fixture.jobs[0]["conclusion"] = "success"
+    elif mutation == "mismatched-job-identity":
+        fixture.jobs[0]["check_run_url"] = "https://api.github.com/repos/ordivon-org/ordivon/check-runs/999"
+    elif mutation == "attempt-drift":
+        fixture.attempt_after = 3
+    elif mutation == "duplicate-named-job":
+        fixture.jobs.append(fixture.job(fixture.checks[0]))
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "UNKNOWN_CURRENT_CHECK_PROVIDER"
+    assert result["providerQualification"] == reason
+    assert not result["existingCheckReceiptReusable"]
+    assert not result["proofReuseAdmissible"]
+
+
+
+def test_native_provider_explicit_run_resolves_ambiguous_context_without_id_guess():
+    fixture = NativeProviderFixture()
+    fixture.checks[0] = fixture.check(999, "completed", "success", run_id=732, suite_id=813)
+    ambiguous = _native_provider_decision(fixture)
+    assert ambiguous["nextOperation"] == "select-explicit-workflow-run-id"
+    assert ambiguous["observedWorkflowContextCount"] == 2
+    assert ambiguous["observedWorkflowContextsComplete"]
+    assert {row["workflowRunId"] for row in ambiguous["observedWorkflowContexts"]} == {731, 732}
+    # Reset the independent provider observation for the explicit lookup.
+    fixture = NativeProviderFixture()
+    fixture.checks[0] = fixture.check(999, "completed", "success", run_id=732, suite_id=813)
+    result = _native_provider_decision(fixture, run_id=731)
+    assert result["disposition"] == "INVESTIGATE_EXISTING_RESULT"
+    assert result["currentEvidence"]["workflowRunId"] == 731
+    assert result["currentEvidence"]["checkRunId"] == 101
+
+
+def test_native_provider_missing_requested_run_is_unknown_not_absence():
+    fixture = NativeProviderFixture()
+    result = _native_provider_decision(fixture, run_id=10000)
+    assert result["providerQualification"] == "UNKNOWN_REQUESTED_WORKFLOW_CONTEXT"
+    assert result["nextOperation"] == "inspect-requested-workflow-run"
+    assert not result["existingCheckReceiptReusable"]
 
 
 def test_cross_sha_prior_pass_uses_native_owner_impact_not_false_reuse(monkeypatch):

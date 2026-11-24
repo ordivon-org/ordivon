@@ -21,7 +21,11 @@ from urllib.parse import urlsplit
 import convergence_plan
 from ci_telemetry import Gh
 from evidence_check_decision import _decision, _standing
-from evidence_github_checks import _provider_checks, _select_check
+from evidence_github_checks import (
+    CheckObservationError,
+    _provider_checks,
+    _select_check,
+)
 from evidence_source_policy import qualify_current_selector
 from source_history_legos import current_tree, require_ancestral_source_cuts
 from source_history_legos import git as git_native
@@ -47,6 +51,8 @@ def decide(
     prior_sha: str | None = None,
     check_name: str = "root-verification",
     github: Gh | None = None,
+    current_workflow_run_id: int | None = None,
+    prior_workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
     if not REPO_PATTERN.fullmatch(repo) or repo != DEFAULT_REPOSITORY:
         raise ValueError("GitHub repository must be the canonical Ordivon owner/name")
@@ -59,7 +65,8 @@ def decide(
     current = _select_check(
         _provider_checks(gh, repo, current_sha),
         sha=current_sha,
-        check_name=check_name,
+        check_name=check_name, gh=gh, repo=repo,
+        workflow_run_id=current_workflow_run_id,
     )
     past = None
     # A current pending/failed result already determines this Check Run's
@@ -69,7 +76,8 @@ def decide(
         past = _select_check(
             _provider_checks(gh, repo, prior_sha),
             sha=prior_sha,
-            check_name=check_name,
+            check_name=check_name, gh=gh, repo=repo,
+            workflow_run_id=prior_workflow_run_id,
         )
     impact = None
     if (
@@ -512,6 +520,7 @@ def fetch_original_formal_report(
     source_sha: str,
     github: Gh | None = None,
     candidate_sha: str | None = None,
+    workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
     """Use original GitHub Check Run and official gh run download (read-only).
 
@@ -525,7 +534,8 @@ def fetch_original_formal_report(
     check = _select_check(
         _provider_checks(gh, repo, source_sha),
         sha=source_sha,
-        check_name="root-verification",
+        check_name="root-verification", gh=gh, repo=repo,
+        workflow_run_id=workflow_run_id,
     )
     if _standing(check) != "PASS":
         raise ValueError("historical Formal report requires prior successful check")
@@ -609,6 +619,8 @@ def decide_with_optional_formal_source_delta(
     include_formal_source_delta: bool,
     github: Gh | None = None,
     git_repo: Path | None = None,
+    current_workflow_run_id: int | None = None,
+    prior_workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
     """GitHub provider uncertainty does not erase immutable Git source evidence.
 
@@ -628,6 +640,8 @@ def decide_with_optional_formal_source_delta(
             prior_sha=prior_sha,
             check_name=check_name,
             github=github,
+            current_workflow_run_id=current_workflow_run_id,
+            prior_workflow_run_id=prior_workflow_run_id,
         )
     except (
         OSError,
@@ -642,15 +656,34 @@ def decide_with_optional_formal_source_delta(
             "currentSourceCut": current_sha,
             "priorSourceCut": prior_sha,
             "disposition": "UNKNOWN_CURRENT_CHECK_PROVIDER",
-            "nextOperation": "inspect-current-provider-when-published",
+            "nextOperation": (
+                {
+                    "UNKNOWN_AMBIGUOUS_WORKFLOW_CONTEXT": "select-explicit-workflow-run-id",
+                    "UNKNOWN_REQUESTED_WORKFLOW_CONTEXT": "inspect-requested-workflow-run",
+                    "UNKNOWN_CHECK_SUITE_COVERAGE": "inspect-native-check-suite-coverage",
+                    "UNKNOWN_WORKFLOW_ATTEMPT_CHECK": "inspect-native-workflow-attempt",
+                    "UNKNOWN_WORKFLOW_CONTEXT": "inspect-native-workflow-identity",
+                }.get(exc.reason, "inspect-current-provider-when-published")
+                if isinstance(exc, CheckObservationError)
+                else "inspect-current-provider-when-published"
+            ),
             "existingCheckReceiptReusable": False,
             "proofReuseAdmissible": False,
+            "currentApplicability": "UNKNOWN_EXTERNAL_ASSUMPTIONS",
+            "currentSecurityStanding": "NOT_ASSESSED_BY_CHECK_RECEIPT",
             "errorType": type(exc).__name__,
+            "providerQualification": (
+                exc.reason if isinstance(exc, CheckObservationError) else "UNKNOWN_PROVIDER_OR_SOURCE"
+            ),
             "nonClaims": [
                 "Missing current GitHub Check Run is not an execution failure",
                 "Immutable local Git and prior Artifact evidence are independent",
             ],
         }
+        if isinstance(exc, CheckObservationError) and exc.contexts:
+            decision["observedWorkflowContexts"] = exc.contexts[:32]
+            decision["observedWorkflowContextCount"] = len(exc.contexts)
+            decision["observedWorkflowContextsComplete"] = len(exc.contexts) <= 32
     if not include_formal_source_delta:
         return decision
     if prior_sha is None:
@@ -1094,6 +1127,10 @@ def main() -> int:
     parser.add_argument("--repo", default=DEFAULT_REPOSITORY)
     parser.add_argument("--current-sha", required=True)
     parser.add_argument("--prior-sha")
+    parser.add_argument("--current-workflow-run-id", type=int,
+                        help="explicit native Workflow Run identity for current Check Run")
+    parser.add_argument("--prior-workflow-run-id", type=int,
+                        help="explicit native Workflow Run identity for prior Check Run/Artifact")
     parser.add_argument("--check-name", default="root-verification")
     parser.add_argument(
         "--formal-source-delta",
@@ -1133,6 +1170,8 @@ def main() -> int:
             prior_sha=args.prior_sha,
             check_name=args.check_name,
             include_formal_source_delta=args.formal_source_delta,
+            current_workflow_run_id=args.current_workflow_run_id,
+            prior_workflow_run_id=args.prior_workflow_run_id,
         )
         if (
             args.historical_formal_report is not None
@@ -1151,6 +1190,7 @@ def main() -> int:
                         repo=args.repo,
                         source_sha=args.prior_sha,
                         candidate_sha=args.current_sha,
+                        workflow_run_id=args.prior_workflow_run_id,
                     )
                 else:
                     report = inspect_historical_formal_report_file(
