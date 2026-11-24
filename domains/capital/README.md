@@ -47,6 +47,14 @@ not an account observation, suitability assessment or execution grant.
 See [dated liability reserve](docs/FINANCE_GOAL_RESERVE_R1.md).
 
 
+**Fund NAV total-return comparison R2:** the existing passive benchmark
+accepts schemaVersion 2 for matched USD fund NAV total returns already
+including distributions and net of fund expenses. Only external investor
+costs may be declared separately; see
+[Fund NAV benchmark R2](docs/FINANCE_FUND_NAV_BENCHMARK_R2.md).
+The September 2026 SHY/SPY example transcribes issuer-reported rounded
+monthly data and remains retrospective, not authenticated PIT or fills.
+
 **Finance multi-frequency as-of state (2026-11-20):** [Liquidity As-of R2](docs/FINANCE_LIQUIDITY_ASOF_R2.md) composes official dated Fed H.4.1, Treasury DTS and NY Fed SOFR at an explicit research time, with cross-source TGA accounting reconciliation, not a fabricated daily global-liquidity index.
 
 **Finance liquidity science (2026-11-20):** The direct, negative-results SOFR-to-SPX price-index ablation in [Finance Liquidity Research R1](docs/FINANCE_LIQUIDITY_RESEARCH_R1.md) is a Research-only experiment, not a market-wide liquidity proxy, qualified historical PIT test, investable SPY benchmark or broker policy. No new Owner, native executor, ledger or trading authority was added.

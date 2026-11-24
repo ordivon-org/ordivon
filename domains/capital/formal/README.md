@@ -359,3 +359,11 @@ bounds for arbitrary finite obligations. Run
 `mise run //domains/capital:verify:formal:liability-reserve`.
 Python parser/date selection refinement is tested separately; real
 liability completeness remains caller-dependent.
+
+## Fund NAV total-return cost basis
+
+The existing `PortfolioPassiveBenchmarkR1.smt2` additionally proves
+strict fee drag from duplicate positive fund fees and exhibits a ranking
+reversal. Its native task is included in full Finance verify. The model
+cannot establish provider semantics; schema v2 and native behavioral tests
+make the declared basis and external-cost scope explicit.
