@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
 
 import psycopg
@@ -12,6 +14,8 @@ from .collaboration_inputs import (
 )
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ConflictError
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
@@ -35,6 +39,11 @@ def _reply_target_precedes_source(source_sequence: int, target_sequence: int) ->
 
 class SocialMessageCommands:
     """PostgreSQL commands through the sole Host SocialStore authority."""
+
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def post_message(self, value: MessageInput) -> dict[str, Any]:
         request = {"operation": "message.post", **value.model_dump(mode="json")}
@@ -74,12 +83,14 @@ class SocialMessageCommands:
                     verify_message_content_digest(row)
                     return self._post_message_response(row, admission="existing")
                 return replay
-            self._require_actor(conn, value.author_actor_ref)
-            self._require_space(conn, value.space_ref)
+            ActorReferenceLookup._require_actor(conn, value.author_actor_ref)
+            RecordReferenceLookup._require_space(conn, value.space_ref)
             # The same-topic row fence precedes the IDENTITY default so a
             # later visible sequence cannot overtake a pending older one.
             # NO KEY UPDATE remains compatible with FK KEY SHARE on topics.
-            topic = self._require_topic(conn, value.topic_ref, for_no_key_update=True)
+            topic = RecordReferenceLookup._require_topic(
+                conn, value.topic_ref, for_no_key_update=True
+            )
             if topic["space_ref"] != value.space_ref:
                 raise ConflictError("topic does not belong to the supplied space")
             if topic["state"] != "open":
@@ -163,7 +174,7 @@ class SocialMessageCommands:
             )
             if replay is not None:
                 return replay
-            self._require_actor(conn, value.actor_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
             source = require_message(conn, value.source_message_ref)
             self._validate_relation_target(conn, source, value)
             row = conn.execute(
@@ -232,5 +243,5 @@ class SocialMessageCommands:
             ):
                 raise ConflictError("message cannot supersede itself")
         elif value.relation == MessageRelationKind.MENTIONS:
-            self._require_actor(conn, value.target_ref)
+            ActorReferenceLookup._require_actor(conn, value.target_ref)
         # references/about intentionally accept opaque external refs; presence is not existence proof.

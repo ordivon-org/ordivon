@@ -458,3 +458,22 @@ state or semantics and is removed. Every public read still owns exactly one
 REPEATABLE READ, READ ONLY transaction; command mixins and same-transaction
 command readbacks are unchanged. This is independent of Social MCP port
 registration (#2589); no public Tool, schema, credential or new read database.
+
+### R6 Social command composition (candidate following explicit reads)
+
+`SocialStore` remains the public write/read facade and owns its native
+`HostPostgresConnections` adapter. The Space, Topic, Message and Coordination
+Intent command providers each accept the caller's checkout function explicitly;
+their ActorRef/record checks call the canonical reference provider on the
+same transaction connection. There is no separate writer, transaction manager,
+authorization decision or connection pool. The ten read and eight command
+methods retain their existing signatures and native MCP contract.
+
+The eight commands' concrete acceptance includes direct and pooled single
+checkouts, typed missing-reference failures, successful reuse of a request ID
+after rollback, exact receipt replay apart from the existing admission marker,
+and opaque external reference versus real ActorRef mention behavior.
+`test_topic_message_identity_waits_for_real_pg_topic_no_key_update_lock`
+continues to verify the real same-topic ordering fence, independently of
+inheritance or source formatting. These are finite implementation witnesses,
+not a universal proof or installed production qualification.
