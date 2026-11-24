@@ -1378,6 +1378,35 @@ class FormalTraceContractTests(unittest.TestCase):
         self.assertEqual({x["standing"] for x in observed["standingByWitness"]}, {"RECHECK_REQUIRED"})
         self.assertEqual(observed["sourceReadsetEvidence"]["implementationProfile"], "pg")
 
+    def test_pg_obligation_rejects_valid_but_unrelated_native_witness(self):
+        trace, invariants = manifests()
+        # Swapping real, correctly registered, same-role tests previously
+        # qualified the wrong property while preserving the complete set.
+        swapped = copy.deepcopy(trace)
+        rows = {row["id"]: row for row in swapped["pgNativeWitnesses"]}
+        a, b = rows["PG.dispatchCAS"], rows["PG.admissionUnique"]
+        for field in ("path", "symbol"):
+            a[field], b[field] = b[field], a[field]
+        self.assertTrue(self.module.validate(swapped, invariants))
+        # Another genuine abstract relation is not interchangeable either.
+        wrong = copy.deepcopy(trace)
+        row = next(row for row in wrong["pgNativeWitnesses"] if row["id"] == "PG.dispatchCAS")
+        row["modelRelations"] = ["RuntimeDispatch.TerminalEvidenceIsCommitted"]
+        self.assertTrue(self.module.validate(wrong, invariants))
+
+    def test_pg_readset_has_actual_runner_and_task_inputs(self):
+        trace, invariants = manifests()
+        evidence = self.module.project_proving_test_source_readsets(trace, invariants, profile="pg")
+        rows = {row["id"]: row["sourcePaths"] for row in evidence["items"]}
+        self.assertIn("services/runtime/mise.toml", rows["proof:runtime:PG.providerContract"])
+        for path in (
+            "services/runtime/scripts/pg_disposable_physical.py",
+            "services/runtime/scripts/tests/test_pg_physical_verification_contract.py",
+            "services/runtime/scripts/tests/test_pg_disposable_physical.py",
+        ):
+            self.assertIn(path, rows["proof:runtime:PG.dispatchCAS"])
+            self.assertNotIn(path, rows["proof:runtime:PG.providerContract"])
+
     def test_pg_profile_rejects_missing_or_relabelled_witness(self):
         trace, invariants = manifests()
         for change in ("missing", "legacy-role", "unknown-relation", "missing-condition"):
