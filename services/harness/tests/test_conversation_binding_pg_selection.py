@@ -20,16 +20,25 @@ def test_conversation_affinity_reads_pg_without_legacy_fallback(
     )
     observed: list[str] = []
 
-    class PG:
-        def get_binding(self, campaign_ref: str, agent_id: str):
-            observed.append(f"pg:{agent_id}")
-            return {
-                "sessionId": session()["sessionId"],
-                "providerResource": "https://chatgpt.com/c/current",
-                "bindingDigest": "sha256:" + "a" * 64,
-            }
+    import postgres_conversation_binding as pg_binding
 
-    monkeypatch.setattr(svc, "_pg_conversation_binding_owner", lambda: PG())
+    def read_existing(dsn, campaign_ref, agent_id, *, legacy_source, fresh_bootstrap):
+        observed.append(f"pg:{agent_id}")
+        assert dsn == "postgresql://test/no-effect"
+        assert campaign_ref == "sha256:" + "a" * 64
+        assert legacy_source == svc.config.ledger
+        assert fresh_bootstrap is False
+        return {
+            "sessionId": session()["sessionId"],
+            "providerResource": "https://chatgpt.com/c/current",
+            "bindingDigest": "sha256:" + "a" * 64,
+        }
+
+    monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN", "postgresql://test/no-effect")
+    monkeypatch.delenv("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP", raising=False)
+    monkeypatch.setattr(pg_binding.PostgresConversationBindingStore, "read_existing", read_existing)
+    monkeypatch.setattr(svc, "_pg_conversation_binding_owner",
+                        Mock(side_effect=AssertionError("writer construction forbidden")))
     monkeypatch.setattr(svc, "_materialization", lambda *_: None)
     monkeypatch.setattr(
         browserless,
@@ -90,9 +99,13 @@ def test_unsealed_pg_role_cannot_revert_to_sqlite(
         browserless.BrowserlessAutomationConfig.from_dict(config(tmp_path))
     )
 
-    def reject_pg():
+    import postgres_conversation_binding as pg_binding
+
+    def reject_pg(*args, **kwargs):
         raise browserless.ConversationBindingConflict("source not sealed")
 
+    monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN", "postgresql://test/no-effect")
+    monkeypatch.setattr(pg_binding.PostgresConversationBindingStore, "read_existing", reject_pg)
     monkeypatch.setattr(svc, "_pg_conversation_binding_owner", reject_pg)
     monkeypatch.setattr(svc, "_materialization", lambda *_: None)
     monkeypatch.setattr(
