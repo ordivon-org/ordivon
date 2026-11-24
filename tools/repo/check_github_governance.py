@@ -3,12 +3,16 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
+import tomllib
 from pathlib import Path
 
-import tomllib
 import yaml
 from affected_owners import load_owners
+from github_governance.codeowners import active_rooted_codeowners
+from github_governance.codeql import validate_monorepo_codeql
+from github_governance.dependency_coverage import configured_dirs, update_for
+from github_governance.git_paths import dirs_for_lock as _dirs_for_lock
+from github_governance.git_paths import tracked as _tracked
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
@@ -17,151 +21,14 @@ RUNTIME_RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "runtime-release.yml
 CODEOWNERS = ROOT / ".github" / "CODEOWNERS"
 CODEQL_WORKFLOW = ROOT / ".github" / "workflows" / "codeql.yml"
 
+
 def tracked(pattern: str) -> tuple[str, ...]:
-    # Git paths are byte sequences and may contain LF, quotes, or non-UTF-8
-    # bytes. Its default human-readable quoting cannot certify file identity.
-    # Use Git's native NUL-delimited representation, preserving lossless
-    # filesystem byte round-tripping through Python's surrogateescape.
-    output = subprocess.check_output(
-        ["git", "-C", str(ROOT), "ls-files", "-z", "--", pattern],
-    )
-    return tuple(
-        part.decode("utf-8", errors="surrogateescape")
-        for part in output.split(b"\0")
-        if part
-    )
+    """Compatibility adapter: the source repository belongs to this entrypoint."""
+    return _tracked(ROOT, pattern)
+
 
 def dirs_for_lock(pattern: str, filename: str) -> set[str]:
-    result: set[str] = set()
-    for path in tracked(pattern):
-        p = Path(path)
-        if p.name != filename:
-            continue
-        result.add("/" + p.parent.as_posix())
-    return result
-
-def update_for(config: dict, ecosystem: str) -> dict:
-    matches = [
-        row
-        for row in config.get("updates", [])
-        if row.get("package-ecosystem") == ecosystem
-    ]
-    if len(matches) != 1:
-        raise AssertionError(f"{ecosystem}: expected exactly one root update entry, got {len(matches)}")
-    return matches[0]
-
-def configured_dirs(row: dict) -> set[str]:
-    if "directories" in row:
-        return set(row["directories"])
-    if "directory" in row:
-        return {row["directory"]}
-    return set()
-
-def active_rooted_codeowners(source: str) -> dict[str, tuple[str, ...]]:
-    """The repository's literal-root CODEOWNERS profile, not string mentions.
-
-    GitHub treats comments as inert and the LAST matching rule as effective.
-    The root-governance contract accepts only a default '*' rule first and
-    later exact, rooted paths with assigned owners. A new wildcard/pattern
-    grammar requires a source-bound owner test, not a guessed parser.
-    """
-    explicit: dict[str, tuple[str, ...]] = {}
-    for lineno, line in enumerate(source.splitlines(), start=1):
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        fields = line.split()
-        pattern = fields[0]
-        owners = tuple(field for field in fields[1:] if not field.startswith("#"))
-        if not owners or any(
-            not (
-                owner.startswith("@")
-                and len(owner) > 1
-                or "@" in owner
-                and not owner.startswith("@")
-            )
-            for owner in owners
-        ):
-            raise AssertionError(f"CODEOWNERS line {lineno} has no valid owner")
-        if pattern == "*":
-            if explicit:
-                raise AssertionError(
-                    "CODEOWNERS catch-all after explicit roots overrides them"
-                )
-            continue
-        if (
-            not pattern.startswith("/")
-            or any(token in pattern for token in "*?[]!\\")
-            or any(
-                segment in (".", "..", "") for segment in pattern.strip("/").split("/")
-            )
-            or pattern in explicit
-        ):
-            raise AssertionError(
-                f"CODEOWNERS unsupported, ambiguous or duplicate root rule: {pattern}"
-            )
-        # A later broad root may override ownership of an earlier narrower
-        # root. This existing contract forbids ambiguous explicit overlaps;
-        # it does not attempt to reimplement GitHub's complete glob engine.
-        if any(
-            pattern.startswith(existing) or existing.startswith(pattern)
-            for existing in explicit
-            if existing.endswith("/")
-        ):
-            raise AssertionError(
-                f"CODEOWNERS overlapping explicit root rule: {pattern}"
-            )
-        explicit[pattern] = owners
-    return explicit
-
-
-def validate_monorepo_codeql(source: str) -> None:
-    """Ensure all three source languages get a real root-loaded CodeQL workflow."""
-    workflow = yaml.safe_load(source)
-    if not isinstance(workflow, dict):
-        raise AssertionError("CodeQL workflow is not a YAML mapping")
-    triggers = workflow.get("on", workflow.get(True))
-    if not isinstance(triggers, dict):
-        raise AssertionError("CodeQL is missing event triggers")
-    for event in ("pull_request", "merge_group", "push", "workflow_dispatch", "schedule"):
-        if event not in triggers:
-            raise AssertionError(f"CodeQL missing active {event} event")
-    if workflow.get("permissions", {}).get("security-events") != "write":
-        raise AssertionError("CodeQL cannot upload security results")
-    jobs = workflow.get("jobs", {})
-    if not isinstance(jobs, dict) or set(jobs) != {"analyze"}:
-        raise AssertionError("CodeQL requires exactly one bounded analysis job")
-    job = jobs["analyze"]
-    matrix = job.get("strategy", {}).get("matrix", {})
-    languages = matrix.get("language")
-    if not isinstance(languages, list) or set(languages) != {
-        "python", "javascript-typescript", "rust"
-    } or len(languages) != 3:
-        raise AssertionError("CodeQL matrix lost a supported Monorepo language")
-    steps = job.get("steps")
-    if not isinstance(steps, list) or any(not isinstance(step, dict) for step in steps):
-        raise AssertionError("CodeQL missing valid steps")
-    action_sha = "1c5b675653bb5c22dbe9b12b556ec555138e09fd"
-    expected = {
-        f"github/codeql-action/init@{action_sha}",
-        f"github/codeql-action/analyze@{action_sha}",
-    }
-    actual = {
-        step.get("uses")
-        for step in steps
-        if str(step.get("uses", "")).startswith("github/codeql-action/")
-    }
-    if actual != expected:
-        raise AssertionError("CodeQL init/analyze SHA actions missing or drifting")
-    init = next(step for step in steps if step.get("uses", "").endswith("/init@" + action_sha))
-    analyze = next(step for step in steps if step.get("uses", "").endswith("/analyze@" + action_sha))
-    matrix_value = "$" + "{{ matrix.language }}"
-    if init.get("with", {}).get("languages") != matrix_value:
-        raise AssertionError("CodeQL does not bind each matrix language")
-    if init.get("with", {}).get("build-mode") != "none":
-        raise AssertionError("CodeQL Rust extraction cannot be qualified as no-build")
-    if analyze.get("with", {}).get("category") != "/language:" + matrix_value:
-        raise AssertionError("CodeQL language and result category are not bound")
+    return _dirs_for_lock(ROOT, pattern, filename)
 
 
 def main() -> int:

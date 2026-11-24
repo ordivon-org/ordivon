@@ -209,9 +209,9 @@ decision time, preserving cross-ETF joint monthly outcomes and explicit
 economic input (CRRA gamma, cash/debt rates, cost and broker margins).
 
 Run from `domains/capital`:
-    PYTHONPATH=src uv run --no-sync python -m ordivon_capital.research.pit_joint_forecast --input request.json --solve
+    PYTHONPATH=src uv run --no-sync python -m ordivon_capital.applications.pit_portfolio --input request.json
 
-The old evidence-only request (without --solve) remains backward compatible.
+The evidence-only request remains in `ordivon_capital.research.pit_joint_forecast` without a solver flag.
 `conditional_allocation` is conditional on `forecast_evidence` and the caller's
 economic contract. It is NOT a market-verified optimal policy, not a claimed
 real-world probability distribution and never authorizes a live trade.
