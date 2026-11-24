@@ -8,6 +8,10 @@ Old Security directly owns a large Windows/KVM mechanism surface: QEMU process l
 
 Security v2 does not assume this machinery must migrate. The displacement direction is mature external ownership first.
 
+## 2026-11-25 re-observation
+
+See [Shirudo readiness R1](SHIRUDO-READINESS-R1.md): native KVM API 12 and VM object creation succeeded; QEMU 11.1.3 and swtpm 0.10.2 present. The libvirt client is installed but its system connection failed (socket absent), and guestfish/virt-customize were not found on PATH. The September findings below are historical, not current lifecycle readiness. No new service started.
+
 ## Current host provider state
 
 Verified current physical state:

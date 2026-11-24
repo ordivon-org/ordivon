@@ -36,6 +36,7 @@ A provider is admitted only when it closes a distinct lifecycle gap. Duplicate s
 | Signing/DSSE | Sigstore/Cosign | integration proven | Production identity remains external KMS/HSM/keyless authority |
 | Runtime detection | Falco, modern eBPF where supported | R1 engine start verified; event delivery blocked on current WSL2 host | Detection evidence provider; no independent Security execution authority |
 | Runtime inline enforcement | Tetragon | conditional, not baseline | Admit only when a consumer specifically requires kernel-inline enforcement and authority boundaries are explicit |
+| Signed BPF enforcement and measured defense | Shirudo | conditional experimental candidate, not installed; current WSL target NO-GO | Reuse provider-native signed upatches and TPM evidence; see [readiness R1](SHIRUDO-READINESS-R1.md); not a replacement for Falco on ordinary hosts |
 | VM lifecycle | libvirt | displacement proven | Consume provider state/evidence |
 | Hypervisor | QEMU/KVM | displacement proven | External execution substrate |
 | Virtual TPM | swtpm via libvirt | displacement proven | External provider lifecycle |

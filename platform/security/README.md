@@ -18,6 +18,8 @@ Current implemented provider/integration set: Gitleaks, Semgrep, OSV-Scanner, Tr
 
 The selected lifecycle expansion is recorded in [`docs/TECHNOLOGY-SELECTION-R2.md`](docs/TECHNOLOGY-SELECTION-R2.md). P0 additions are OWASP Threat Model Library TM-BOM with Threat Dragon as editor/viewer, OpenSSF Scorecard, OWASP ZAP Automation Framework, ClusterFuzzLite, and SLSA v1.2 Build Provenance. Falco is the selected P1 runtime-detection provider; Tetragon is conditional for consumers that actually require kernel-inline enforcement. Selection does not imply installation or production admission.
 
+Shirudo is a conditional experimental signed-BPF enforcement candidate, not a deployed provider. See [Arch/WSL readiness R1](docs/SHIRUDO-READINESS-R1.md) for native evidence, incompatible BPF consumers and isolated VM acceptance. The current WSL kernel is not an eligible enforcing target.
+
 ## Artifact contract
 
 Provider-native formats are retained instead of normalized into a proprietary finding model:
