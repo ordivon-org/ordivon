@@ -243,10 +243,27 @@ try {
   assert.equal(grantFlow.grantsStatus, 200);
   assert.equal(grantFlow.grantsBody.grants.length, 1);
   assert.equal(grantFlow.grantsBody.grants[0].active, true);
+  const hostileAgent = 'agent:<ScRiPt>alert(1)</ScRiPt><img src=x onerror="alert(2)">';
+  store.createAgentGrant({
+    grantId: "grant:browser-escaping-fixture",
+    principalId: "principal:browser-e2e",
+    agentId: hostileAgent,
+    audience: config.origin,
+    allowedActions: ["canary.note.create"],
+    resourcePrefixes: ["/canary/notes"],
+    expiresAtEpochSeconds: Math.floor(Date.now() / 1000) + 60,
+    maxRiskClass: "R2",
+    stepUpAtOrAbove: "R4",
+    remainingEffects: 1,
+  }, Math.floor(Date.now() / 1000));
   const operatorCurrent = await page.goto(config.origin + "/operator/grants");
   assert.equal(operatorCurrent?.status(), 200);
   assert.equal(operatorCurrent?.headers()["cache-control"], "no-store");
   assert.equal(await page.getByRole("heading", { name: "Agent grants" }).count(), 1);
+  const hostileRow = page.getByRole("row").filter({ hasText: "grant:browser-escaping-fixture" });
+  assert.equal(await hostileRow.getByRole("cell", { name: hostileAgent, exact: true }).count(), 1);
+  assert.equal(await hostileRow.locator("script, img").count(), 0);
+
   const grantRow = page.getByRole("row").filter({
     hasText: grantFlow.verifyBody.grant.grantId as string,
   });
