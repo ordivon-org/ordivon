@@ -61,3 +61,29 @@
 (assert (not (= basis-before basis-after)))
 (check-sat)
 (pop 1)
+
+; RTDSM month-resolution admission. Integers are ordered calendar month
+; indices. Availability from the following month is a conservative contract,
+; not evidence of exact historical provider publication.
+(declare-const vintage-month Int)
+(declare-const decision-month Int)
+(declare-const later-vintage-month Int)
+(define-fun month-visible ((decision Int) (vintage Int)) Bool
+  (>= decision (+ vintage 1)))
+(push 1)
+(assert (>= vintage-month decision-month))
+(assert (month-visible decision-month vintage-month))
+(check-sat)
+(pop 1)
+(push 1)
+(assert (month-visible decision-month vintage-month))
+(assert (>= later-vintage-month decision-month))
+(assert (month-visible decision-month later-vintage-month))
+(check-sat)
+(pop 1)
+; Incorrect current-month visibility would leak data during the month.
+(push 1)
+(assert (= vintage-month decision-month))
+(assert (not (month-visible decision-month vintage-month)))
+(check-sat)
+(pop 1)

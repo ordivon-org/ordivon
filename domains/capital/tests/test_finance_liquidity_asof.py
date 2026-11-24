@@ -513,3 +513,57 @@ def test_duplicate_dealer_cli_file_is_rejected_before_file_read(monkeypatch, cap
         m.main()
     assert exc.value.code == 2
     assert "duplicate dealer source ID" in capsys.readouterr().err
+
+
+def test_optional_routput_integrates_without_conflating_other_sources(monkeypatch):
+    from ordivon_capital.markets import rtdsm_real_output as r
+
+    archive = r.admit_routput_rows([
+        ["DATE", "ROUTPUT26M9", "ROUTPUT26M10"],
+        ["2026:Q2", 24000.0, 24000.0],
+        ["2026:Q3", "#N/A", 24200.0],
+    ], source_sha256="b" * 64)
+    monkeypatch.setattr(r, "parse_routput_archive", lambda raw, expected_sha256: archive)
+    output = m.run(
+        raw_h41={"h41-20261119.html": _h41()}, raw_dts=[_dts()], raw_sofr=_sofr(),
+        at=["2026-11-19T17:00:00-05:00"],
+        raw_routput=b"fixture", routput_sha256="b" * 64, routput_quarter="2026:Q3",
+    )
+    row = output["snapshots"][0]
+    assert row["realOutput"]["levelRealUsdBillions"] == "24200.0"
+    assert row["realOutput"]["vintageColumn"] == "ROUTPUT26M10"
+    assert row["compositeLiquidityScore"] is None
+    assert row["capitalAndTradingAuthority"] is False
+
+
+@pytest.mark.provider_qualification
+def test_actual_routput_workbook_through_existing_asof_cli(tmp_path):
+    import os
+    import subprocess
+
+    path = os.environ.get("ORDIVON_FINANCE_ROUTPUT_XLSX")
+    if not path:
+        pytest.skip("exact original ROUTPUT workbook not supplied")
+    # Macro workbook is real; the other independent inputs here are fixtures
+    # and deliberately later than the two historical research decision dates.
+    h41 = tmp_path / "h41-20261119.html"
+    dts = tmp_path / "dts.json"
+    sofr = tmp_path / "sofr.csv"
+    h41.write_bytes(_h41())
+    dts.write_bytes(_dts())
+    sofr.write_bytes(_sofr())
+    out = subprocess.run(
+        [sys.executable, str(SOURCE), "--h41", str(h41), "--dts", str(dts),
+         "--sofr", str(sofr), "--routput", path,
+         "--routput-sha256", "ae854a7518bf3a0504e4c477344bd7ed98c4321326ed2b1952b69ffaa1a7adce",
+         "--routput-quarter", "2024:Q4", "--at", "2025-02-01T00:00:00-05:00",
+         "--at", "2025-03-01T00:00:00-05:00"],
+        env={**os.environ, "PYTHONPATH": str(SOURCE.parents[2] / "src")},
+        text=True, capture_output=True, check=True,
+    )
+    unknown, known = json.loads(out.stdout)["snapshots"]
+    assert unknown["realOutput"]["reason"] == "MISSING_IN_ELIGIBLE_VINTAGE"
+    assert known["realOutput"]["levelRealUsdBillions"] == "23530.9"
+    assert known["realOutput"]["sourceBytesDigestStanding"] == "MATCHED_EXPECTED_SHA256"
+    assert known["h41"] is None and known["dts"] is None and known["sofr"] is None
+    assert known["compositeLiquidityScore"] is None
