@@ -40,6 +40,7 @@
       "websocket_proxy_lifecycle.py",
       "etf_eod_snapshot.py",
       "historical_close_snapshot.py",
+      "rtdsm_real_output.py",
       "equity_session_calendar.py",
       "equity_ohlcv_shape.py"
     ],

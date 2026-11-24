@@ -303,3 +303,14 @@ economic replay for separate qualification. Do not promote calendar
 intersection (including far-future dates) to `PIT_VERIFIED`,
 `HOLDOUT_AVAILABLE`, `OOS_VALIDATED`, capital authority or strategy alpha.
 No new data catalog, temporal proof service or Agent is needed.
+
+### Historical macro vintage source: Philadelphia Fed ROUTPUT
+
+When ALFRED is unavailable, the existing Finance multi-frequency as-of
+consumer can optionally accept the real Philadelphia Fed ROUTPUT workbook.
+See `domains/capital/docs/FINANCE_RTDSM_ROUTPUT_R1.md` for exact source,
+digest, source-clock, reproduction and optional CLI flags. Use the native
+Calamine dependency in the research group. Do not use the current GDP
+series to fill an earlier missing vintage; do not compute a level ratio
+across rebasing vintages. GDP is macro context, not an ETF fill or
+a global liquidity score.

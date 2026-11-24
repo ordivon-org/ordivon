@@ -254,3 +254,12 @@ Official field and release guidance:
 - https://fiscaldata.treasury.gov/api-documentation/
 - https://fiscaldata.treasury.gov/release-calendar/
 - https://www.newyorkfed.org/markets/reference-rates/sofr
+
+## Optional historical macro context (ROUTPUT)
+
+The existing consumer may also take the Philadelphia Fed monthly vintage
+workbook for quarterly real GDP; see
+[RTDSM ROUTPUT R1](FINANCE_RTDSM_ROUTPUT_R1.md). This is separately qualified
+historical macro context, not a liquidity stock. Its conservative
+month-resolution availability rule must not be applied to daily SOFR,
+Treasury or H41 series.

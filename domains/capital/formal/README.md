@@ -351,3 +351,10 @@ trade settlement.
 
 Official references: https://docs.tigerbeetle.com/coding/two-phase-transfers/
 and https://www.postgresql.org/docs/current/transaction-iso.html .
+
+## Historical monthly vintage availability
+
+`MarketsCapturePITR1.smt2` also checks conservative following-month
+admission and a current-month leakage witness for RTDSM. This month-index
+model is not original provider timestamp attestation or a universal proof
+of calendar/Excel parsing.
