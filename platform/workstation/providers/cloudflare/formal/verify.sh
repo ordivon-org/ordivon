@@ -12,21 +12,33 @@ expected="936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
 test "$(sha256sum -- "$jar" | cut -d' ' -f1)" = "$expected" || { echo "Unqualified TLA+ JAR digest" >&2; exit 2; }
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-cp "$owner_root"/formal/EdgeCommitEvidenceR1.* "$tmp/"
+cp "$owner_root"/formal/EdgeCommitEvidenceR1.* "$owner_root"/formal/EdgeArtifactEpochR1.* "$tmp/"
 cd "$tmp"
-java -cp "$jar" tla2sany.SANY EdgeCommitEvidenceR1.tla
-java -cp "$jar" tlc2.TLC -workers 1 -config EdgeCommitEvidenceR1.cfg EdgeCommitEvidenceR1.tla > positive.log || { cat positive.log; exit 1; }
-grep -F 'Model checking completed. No error has been found.' positive.log
-grep -E 'states generated|distinct states|depth' positive.log
-for check in 'unsafe:CommittedEvidenceExists' 'late-probe:NeverLateAfterPendingObservation' 'cleanup-probe:NeverCleanup' 'recover-probe:NeverRecover'; do
-  variant="${check%%:*}"
-  inv="${check#*:}"
-  set +e
-  java -cp "$jar" tlc2.TLC -workers 1 -config "EdgeCommitEvidenceR1.$variant.cfg" EdgeCommitEvidenceR1.tla > "$variant.log" 2>&1
-  rc=$?
-  set -e
-  if [[ "$rc" != 12 ]] || ! grep -Fx "Error: Invariant $inv is violated." "$variant.log"; then
-    cat "$variant.log"
-    exit 1
-  fi
-done
+
+verify_model() {
+  local model="$1"
+  shift
+  java -cp "$jar" tla2sany.SANY "$model.tla"
+  java -cp "$jar" tlc2.TLC -workers 1 -config "$model.cfg" "$model.tla" > "$model.positive.log" || { cat "$model.positive.log"; exit 1; }
+  grep -F 'Model checking completed. No error has been found.' "$model.positive.log"
+  grep -E 'states generated|distinct states|depth' "$model.positive.log"
+  local check variant inv rc
+  for check in "$@"; do
+    variant="${check%%:*}"
+    inv="${check#*:}"
+    set +e
+    java -cp "$jar" tlc2.TLC -workers 1 -config "$model.$variant.cfg" "$model.tla" > "$model.$variant.log" 2>&1
+    rc=$?
+    set -e
+    if [[ "$rc" != 12 ]] || ! grep -Fx "Error: Invariant $inv is violated." "$model.$variant.log"; then
+      cat "$model.$variant.log"
+      exit 1
+    fi
+  done
+}
+
+verify_model EdgeCommitEvidenceR1 \
+  unsafe:CommittedEvidenceExists late-probe:NeverLateAfterPendingObservation \
+  cleanup-probe:NeverCleanup recover-probe:NeverRecover
+verify_model EdgeArtifactEpochR1 \
+  unsafe:RetainedEvidenceUnchanged collision-probe:NeverCollision commit-probe:NeverNewCommit

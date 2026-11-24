@@ -198,10 +198,11 @@ def validate_task(key: str, task: dict[str, Any]) -> list[str]:
     if key != f"{CLEANUP_PREFIX}{request_id}/g{generation}.json":
         raise GarbageCollectionError(f"Cleanup key does not bind Request ID and generation: {key}")
     if operation == "fetch":
-        allowed = {f"fetch/v2/{request_id}/g{generation}/body"}
+        prefix = f"fetch/v2/{request_id}/g{generation}/"
+        names = {"body"}
     elif operation == "browser.run":
         prefix = f"browser/v2/{request_id}/g{generation}/"
-        allowed = {prefix + name for name in ("screenshot.png", "content.html", "manifest.json")}
+        names = {"screenshot.png", "content.html", "manifest.json"}
     else:
         raise GarbageCollectionError(f"Cleanup task has invalid operation: {key}")
     if not isinstance(reason, str) or not reason or len(reason) > 128:
@@ -209,9 +210,24 @@ def validate_task(key: str, task: dict[str, Any]) -> list[str]:
     if (
         not isinstance(artifact_keys, list)
         or not 1 <= len(artifact_keys) <= 16
-        or not all(isinstance(item, str) and item in allowed for item in artifact_keys)
+        or not all(isinstance(item, str) and item.startswith(prefix) for item in artifact_keys)
     ):
         raise GarbageCollectionError(f"Cleanup task has invalid Artifact keys: {key}")
+    bundles = set()
+    for item in artifact_keys:
+        parts = item[len(prefix):].split("/")
+        if len(parts) == 1 and parts[0] in names:
+            bundles.add(None)  # legacy generation-only record
+        elif (
+            len(parts) == 2
+            and re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", parts[0])
+            and parts[1] in names
+        ):
+            bundles.add(parts[0])
+        else:
+            raise GarbageCollectionError(f"Cleanup task has invalid Artifact keys: {key}")
+    if len(bundles) != 1:
+        raise GarbageCollectionError(f"Cleanup task mixes Artifact bundles: {key}")
     return list(dict.fromkeys(artifact_keys))
 
 

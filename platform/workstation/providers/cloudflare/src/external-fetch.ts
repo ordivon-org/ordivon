@@ -1,3 +1,4 @@
+import { newArtifactBundlePrefix } from "./artifacts.js";
 import { sha256Hex } from "./auth.js";
 import type { ArtifactReference, FetchReceiptDetails } from "./contracts.js";
 import type { ExecutionLease } from "./execution.js";
@@ -146,9 +147,10 @@ export async function executeExternalFetch(
 
     const body = await readResponseLimited(response, request.maximumBytes);
     const sha256 = await sha256Hex(body);
-    const artifactKey = `fetch/v2/${lease.request_id}/g${lease.lease_generation}/body`;
+    const artifactKey = `${newArtifactBundlePrefix(lease)}/body`;
     const contentType = mediaType(response);
     const stored = await environment.ARTIFACTS.put(artifactKey, body, {
+      onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType },
       customMetadata: {
         receipt_id: lease.request_id,

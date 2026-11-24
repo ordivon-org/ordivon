@@ -135,6 +135,22 @@ class GarbageCollectionTests(unittest.TestCase):
                 with self.assertRaises(gc.GarbageCollectionError):
                     gc.validate_task(key, task | changes)
 
+    def test_audit_accepts_single_new_bundle_but_rejects_mixed_epochs(self) -> None:
+        task = {
+            "schema_version": 1, "request_id": "request_001",
+            "operation": "browser.run", "lease_generation": 2,
+            "reason": "browser_partial_write",
+        }
+        key = "cleanup/v2/request_001/g2.json"
+        prefix = "browser/v2/request_001/g2/"
+        one = prefix + "12345678-1234-4abc-8def-123456789abc/"
+        two = prefix + "87654321-1234-4abc-8def-123456789abc/"
+        keys = [one + "screenshot.png", one + "content.html"]
+        self.assertEqual(gc.validate_task(key, task | {"artifact_keys": keys}), keys)
+        for mixed in ([keys[0], two + "content.html"], [keys[0], prefix + "content.html"]):
+            with self.assertRaises(gc.GarbageCollectionError):
+                gc.validate_task(key, task | {"artifact_keys": mixed})
+
     def test_all_legacy_tombstones_are_reported_without_remote_deletion(self) -> None:
         key = "cleanup/v2/request_001/g2.json"
         for reason in (

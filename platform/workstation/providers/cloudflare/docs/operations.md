@@ -109,7 +109,7 @@ ordivon-edge status --repo /root/projects/ordivon/platform/workstation/providers
 ordivon-edge capabilities
 ordivon-edge fetch https://developers.cloudflare.com/ --maximum-bytes 262144
 ordivon-edge receipt <receipt-id>
-ordivon-edge artifact-get fetch/v2/<receipt-id>/g<generation>/body \
+ordivon-edge artifact-get <artifact-key-from-receipt> \
   --sha256 <sha256-from-receipt> \
   --output /tmp/result.bin
 ```
@@ -150,9 +150,9 @@ ordivon-edge browser-run https://example.com/ \
 A successful run creates three private artifacts:
 
 ```text
-browser/v2/<request-id>/g<generation>/screenshot.png
-browser/v2/<request-id>/g<generation>/content.html
-browser/v2/<request-id>/g<generation>/manifest.json
+browser/v2/<request-id>/g<generation>/<bundle-uuid>/screenshot.png
+browser/v2/<request-id>/g<generation>/<bundle-uuid>/content.html
+browser/v2/<request-id>/g<generation>/<bundle-uuid>/manifest.json
 ```
 
 The manifest is the receipt's primary `artifact`; all three references appear in `artifacts`. Download each object with `ordivon-edge artifact-get`.
@@ -167,7 +167,7 @@ New operations persist an authoritative state under `requests/v2/`. Receipt quer
 ordivon-edge receipt <request-id> --wait
 ```
 
-New Artifact paths include the lease generation. Consumers must use the keys returned by the Receipt rather than constructing paths.
+New Artifact paths include the lease generation and an independent execution bundle UUID. Consumers must use the opaque keys returned by the Receipt rather than constructing paths. Existing generation-only keys remain readable. Each new Artifact is written with an R2 create-only condition; a preexisting key is not overwritten. After the bounded provider retention window, durable consumers must rely on their own verified copies, not on indefinite Edge custody.
 
 ## Execution budgets
 

@@ -12,7 +12,8 @@ import {
   beginRequest,
   commitReceipt,
   loadReceiptRecord,
-  requestStateKey
+  requestStateKey,
+  receiptMirrorKey
 } from "../src/idempotency.js";
 import { handleRequest } from "../src/index.js";
 import { createReceipt } from "../src/receipts.js";
@@ -215,9 +216,11 @@ test("commit failure removes newly written artifacts and preserves pending state
     ((await response.json()) as { error: string }).error,
     "execution_lease_lost"
   );
-  const artifactKey = `fetch/v2/${requestId}/g1/body`;
+  assert.equal(memory.deletedKeys.length, 1);
+  const artifactKey = memory.deletedKeys[0]!;
+  assert.ok(artifactKey.startsWith(`fetch/v2/${requestId}/g1/`));
+  assert.match(artifactKey, /\/body$/);
   assert.equal(await environment.ARTIFACTS.get(artifactKey), null);
-  assert.ok(memory.deletedKeys.includes(artifactKey));
   const state = await loadReceiptRecord(environment.ARTIFACTS, requestId);
   assert.equal(state?.status, "pending");
 });
@@ -243,10 +246,8 @@ test("ambiguous commit response is recovered by rereading committed state", asyn
   assert.equal(response.status, 200);
   const envelope = (await response.json()) as EdgeReceiptEnvelope;
   assert.equal(envelope.receipt.status, "succeeded");
-  assert.notEqual(
-    await environment.ARTIFACTS.get(`fetch/v2/${requestId}/g1/body`),
-    null
-  );
+  assert.ok(envelope.receipt.artifact);
+  assert.notEqual(await environment.ARTIFACTS.get(envelope.receipt.artifact.key), null);
 });
 
 for (const operation of ["fetch", "browser.run"] as const) {
@@ -606,6 +607,103 @@ for (const fault of ["return_null", "throw_after"] as const) {
       assert.equal(browserCalls, 1);
       assert.equal(limitCalls, 1);
       assert.equal(memory.putCount(stateKey), 2);
+    }
+  });
+}
+
+for (const operation of ["fetch", "browser.run"] as const) {
+  test(`${operation}: expired intent cannot overwrite retained Artifact bytes`, async () => {
+    const memory = new MemoryR2();
+    const environment = makeEnv(memory);
+    const requestId = "retention_epoch_r6_001";
+    const route = operation === "fetch" ? "/v1/fetch" : "/v1/browser/run";
+    let run = 0;
+    const dependencies = {
+      fetcher: async () => new Response("run-" + (++run)),
+      browserRunner: { async quickAction() {
+        ++run;
+        return new Response(JSON.stringify({
+          success: true,
+          result: {
+            content: "<html>run-" + run + "</html>",
+            screenshot: Buffer.from([137,80,78,71,13,10,26,10,run]).toString("base64")
+          },
+          meta: { status: 200, title: "run-" + run }
+        }), { headers: { "content-type": "application/json" } });
+      }},
+      logWriter: NO_LOG
+    };
+    const invoke = async (suffix: string) => {
+      const body = JSON.stringify({ url: "https://allowed.example.org/" + suffix });
+      const response = await handleRequest(signedRequest("https://edge.invalid" + route, {
+        method: "POST", body, requestId
+      }), environment, dependencies);
+      assert.equal(response.status, 200);
+      return (await response.json() as EdgeReceiptEnvelope).receipt;
+    };
+    const first = await invoke("first");
+    assert.equal(first.execution.lease_generation, 1);
+    const originals = (first.artifacts ?? []).map(ref => ({
+      key: ref.key, bytes: memory.objects.get(ref.key)!.bytes.slice()
+    }));
+    assert.equal(originals.length, operation === "fetch" ? 1 : 3);
+    // Model only state and mirror expiry; old Artifact bytes remain.
+    memory.objects.delete(requestStateKey(requestId));
+    memory.objects.delete(receiptMirrorKey(requestId));
+    const second = await invoke("second");
+    assert.equal(second.execution.lease_generation, 1);
+    assert.equal(run, 2);
+    for (const original of originals) {
+      assert.deepEqual(memory.objects.get(original.key)?.bytes, original.bytes);
+      assert.ok(!second.artifacts?.some(ref => ref.key === original.key));
+    }
+  });
+
+  test(`${operation}: an existing bundle key is never overwritten by a new write`, async () => {
+    const memory = new MemoryR2();
+    const base = makeEnv(memory);
+    const bucket = base.ARTIFACTS;
+    const requestId = "retention_collision_r6_001";
+    let collision: string | undefined;
+    const environment = {
+      ...base,
+      ARTIFACTS: {
+        ...bucket,
+        async put(key: string, value: Parameters<R2Bucket["put"]>[1], options?: R2PutOptions) {
+          if (key.startsWith(operation === "fetch" ? "fetch/v2/" : "browser/v2/")
+              && key.endsWith(operation === "fetch" ? "/body" : "/content.html")) {
+            assert.equal(collision, undefined);
+            collision = key;
+            await bucket.put(key, "previously retained bytes");
+          }
+          return bucket.put(key, value, options);
+        }
+      } as R2Bucket
+    };
+    const route = operation === "fetch" ? "/v1/fetch" : "/v1/browser/run";
+    const response = await handleRequest(signedRequest("https://edge.invalid" + route, {
+      method: "POST", body: JSON.stringify({ url: "https://allowed.example.org/result" }), requestId
+    }), environment, {
+      fetcher: async () => new Response("new"),
+      browserRunner: { async quickAction() {
+        return new Response(JSON.stringify({
+          success: true, result: {
+            content: "<html>new</html>",
+            screenshot: Buffer.from([137,80,78,71,13,10,26,10]).toString("base64")
+          }, meta: { status: 200, title: "new" }
+        }), { headers: { "content-type": "application/json" } });
+      }},
+      logWriter: NO_LOG
+    });
+    assert.equal(response.status, 500);
+    assert.ok(collision);
+    assert.equal(await (await bucket.get(collision))?.text(), "previously retained bytes");
+    assert.ok(!memory.deletedKeys.includes(collision));
+    const final = await loadReceiptRecord(bucket, requestId);
+    assert.equal(final?.status, "failed");
+    if (operation === "browser.run") {
+      assert.equal(memory.deletedKeys.length, 1);
+      assert.match(memory.deletedKeys[0]!, /\/screenshot\.png$/);
     }
   });
 }

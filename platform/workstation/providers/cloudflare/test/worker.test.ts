@@ -87,10 +87,13 @@ test("bounded fetch persists an artifact and receipt, then replays without refet
   const firstEnvelope = (await first.json()) as EdgeReceiptEnvelope;
   assert.equal(firstEnvelope.replayed, false);
   assert.equal(firstEnvelope.receipt.status, "succeeded");
-  assert.equal(firstEnvelope.receipt.artifact?.key, `fetch/v2/${requestId}/g1/body`);
+  const firstKey = firstEnvelope.receipt.artifact?.key;
+  assert.ok(firstKey);
+  assert.ok(firstKey.startsWith(`fetch/v2/${requestId}/g1/`));
+  assert.match(firstKey, /\/[0-9a-f-]{36}\/body$/);
   assert.equal(fetchCount, 1);
   assert.ok(memory.objects.has(`receipts/v2/${requestId}.json`));
-  assert.ok(memory.objects.has(`fetch/v2/${requestId}/g1/body`));
+  assert.ok(memory.objects.has(firstKey));
 
   const second = await handleRequest(
     signedRequest("https://edge.invalid/v1/fetch", {
@@ -300,22 +303,24 @@ test("bounded browser run stores screenshot, content, manifest, and replays", as
   assert.equal(envelope.receipt.browser?.final_url_observed, false);
   assert.equal(envelope.receipt.browser?.final_url, undefined);
   assert.equal(envelope.receipt.artifacts?.length, 3);
-  assert.equal(
-    envelope.receipt.artifact?.key,
-    `browser/v2/${requestId}/g1/manifest.json`
-  );
+  const manifestKey = envelope.receipt.artifact?.key;
+  assert.ok(manifestKey);
+  assert.ok(manifestKey.startsWith(`browser/v2/${requestId}/g1/`));
+  assert.match(manifestKey, /\/[0-9a-f-]{36}\/manifest\.json$/);
+  const bundle = manifestKey.slice(0, -"/manifest.json".length);
+  assert.deepEqual(envelope.receipt.artifacts?.map(ref => ref.key), [
+    `${bundle}/screenshot.png`, `${bundle}/content.html`, manifestKey
+  ]);
   assert.equal(browserCount, 1);
 
-  const screenshotObject = await environment.ARTIFACTS.get(
-    `browser/v2/${requestId}/g1/screenshot.png`
-  );
+  const screenshotObject = await environment.ARTIFACTS.get(`${bundle}/screenshot.png`);
   assert.notEqual(screenshotObject, null);
   assert.deepEqual(
     new Uint8Array(await screenshotObject!.arrayBuffer()),
     screenshot
   );
-  assert.ok(memory.objects.has(`browser/v2/${requestId}/g1/content.html`));
-  assert.ok(memory.objects.has(`browser/v2/${requestId}/g1/manifest.json`));
+  assert.ok(memory.objects.has(`${bundle}/content.html`));
+  assert.ok(memory.objects.has(manifestKey));
   assert.ok(memory.objects.has(`receipts/v2/${requestId}.json`));
 
   const replay = await handleRequest(

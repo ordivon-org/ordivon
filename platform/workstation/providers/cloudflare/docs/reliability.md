@@ -102,10 +102,10 @@ An expired lease can be replaced only when its policy and capability versions st
 Artifact paths include that generation:
 
 ```text
-fetch/v2/<request-id>/g<generation>/body
-browser/v2/<request-id>/g<generation>/screenshot.png
-browser/v2/<request-id>/g<generation>/content.html
-browser/v2/<request-id>/g<generation>/manifest.json
+fetch/v2/<request-id>/g<generation>/<bundle-uuid>/body
+browser/v2/<request-id>/g<generation>/<bundle-uuid>/screenshot.png
+browser/v2/<request-id>/g<generation>/<bundle-uuid>/content.html
+browser/v2/<request-id>/g<generation>/<bundle-uuid>/manifest.json
 ```
 
 This prevents cleanup by a stale executor from deleting a newer executor's output.
@@ -152,7 +152,9 @@ The test suite injects R2 failures and checks:
 - positively observed same-intent takeover still permits old-generation cleanup without removing the new generation;
 - expired requests cannot cross a policy-version boundary;
 - rate-limited operations are receipted and replay does not consume the budget again;
-- Receipt serialization excludes lease tokens and ETags.
+- Receipt serialization excludes lease tokens and ETags;
+- Fetch and Browser reusing a Request ID after modeled state expiry preserve older retained Artifact bytes;
+- create-only collisions do not overwrite or clean up preexisting objects; Browser cleans only its own successfully written partial keys.
 
 ## Deferred cleanup
 
@@ -168,7 +170,7 @@ The tombstone contains only Request ID, operation, lease generation, Artifact ke
 
 The execution policy is no longer a manually maintained label. Edge hashes `config/edge-policy.json` together with the effective Fetch hostname allowlist and stores the resulting `p1.6.<digest>` fingerprint in each lease and Receipt. Configuration changes therefore fence expired work even when the capability contract version itself is unchanged.
 
-Request-ID idempotency, authoritative request state, and Receipt mirrors are retained for 90 days. Capability Artifacts are retained for 91 days, providing a one-day safety margin so a lifecycle-managed Artifact does not expire before its replayable Receipt. The retention contract is exposed by `GET /v1/capabilities`.
+Request-ID idempotency, authoritative request state, and Receipt mirrors are retained for 90 days. Capability Artifacts are retained for 91 days, providing a one-day safety margin so a lifecycle-managed Artifact does not expire before its replayable Receipt. The retention contract is exposed by `GET /v1/capabilities`. Request identity and generation uniqueness are scoped to the retained request state: after that state expires, a new intent can again have generation 1 while an old Artifact still exists. A new physical execution therefore allocates an independent bundle UUID, and all its Artifact writes use R2 create-only conditions. Legacy generation-only references remain readable; no historical Receipt or Artifact is rewritten. The one-day nominal margin is not an independent proof of indefinite consumer custody or exact provider deletion timing. Long-lived consumers must make a digest-verified durable copy before expiry.
 
 ## Browser navigation evidence
 
@@ -193,3 +195,9 @@ ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar pnpm formal:verify
 ```
 
 The positive model checks five invariants. The unsafe cleanup strategy must violate committed evidence integrity; three additional negative-property probes require reachability of late commit, cleanup, and recovery. The model does not cover R2 availability/liveness, retention expiry, corrupt or foreign state, repeated internal commit invocations, or all TypeScript traces. It is not a complete implementation refinement proof or a production acceptance result. Keep concrete HTTP/Artifact regression tests until a qualified refinement bridge replaces their specific obligations.
+
+## Bounded formal model: retained Artifact identity after state expiry
+
+`formal/EdgeArtifactEpochR1.tla` models a retained old Artifact, expiration of its request state, reuse of the request identity, and allocation of a new execution bundle. Allocation may select a fresh slot or collide with an occupied slot: UUID uniqueness is not assumed for safety. The new write can succeed only under the native create-only condition. The unsafe unconditional-write variant must violate retained byte integrity. Separate probes require both collision rejection and independent new commit to be reachable.
+
+The source bridge is `newArtifactBundlePrefix`, both capability writers' `onlyIf: { etagDoesNotMatch: "*" }`, and the normal Handler fault tests for state expiry and preexisting keys. This model abstracts one representative Artifact; Browser partial-write isolation is checked separately by concrete tests. It excludes old Artifact expiration, arbitrary external writes/deletes, complete provider fault behavior, and full implementation refinement. The bounded provider contract is not long-term consumer custody.

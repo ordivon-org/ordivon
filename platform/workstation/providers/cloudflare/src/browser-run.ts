@@ -1,3 +1,4 @@
+import { newArtifactBundlePrefix } from "./artifacts.js";
 import { sha256Hex } from "./auth.js";
 import { createBrowserManifest } from "./browser-manifest.js";
 import {
@@ -168,6 +169,7 @@ async function storeArtifact(
 ): Promise<ArtifactReference> {
   const sha256 = await sha256Hex(body);
   const stored = await bucket.put(key, body, {
+    onlyIf: { etagDoesNotMatch: "*" },
     httpMetadata: { contentType: mediaType },
     customMetadata: {
       receipt_id: lease.request_id,
@@ -214,7 +216,7 @@ export async function executeBrowserRun(
     throw new EdgeError("browser_output_too_large", 502, "Rendered HTML exceeded its budget.", "failed");
   }
   const screenshot = decodeScreenshot(snapshot.result.screenshot);
-  const base = `browser/v2/${lease.request_id}/g${lease.lease_generation}`;
+  const base = newArtifactBundlePrefix(lease);
   const writtenKeys: string[] = [];
   try {
     const screenshotArtifact = await storeArtifact(
