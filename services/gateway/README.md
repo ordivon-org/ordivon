@@ -428,6 +428,15 @@ httpx2 instrumentation to attribute wire subrequests before changing pooling.
 Run Gateway source tests plus native loopback and installed-Owner
 readback to distinguish transport correctness from deployed availability.
 
+The Gateway-owned audit correlation and optional trace-context injection are
+best-effort diagnostics, not authorization or Owner result evidence. Ordinary
+projection failures cannot suppress the Owner invocation or replace its result;
+a partial injected metadata carrier is discarded. Cancellation remains
+cancellation even when its diagnostic warning fails. The normal PEP, verified
+identity and Owner error contracts are unchanged. Diagnostic warnings omit
+exception payloads and may themselves be lost. This does not qualify the outer
+MCP SDK middleware, exporter latency/backpressure or a deployed telemetry sink.
+
 ### Verified Owner protocol pin (opt-in; MCP SDK native)
 
 With upstream MCP Python SDK v2, `Client(mode="auto")` probes
