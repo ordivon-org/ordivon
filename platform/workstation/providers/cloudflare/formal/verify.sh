@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 owner_root="$(cd "$(dirname "$0")/.." && pwd)"
-repo_root="$(cd "$owner_root/../../../.." && pwd)"
-jar="${ORDIVON_TLA_TOOLS_JAR:-$repo_root/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
+jar="${ORDIVON_TLA_TOOLS_JAR:-}"
 if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
   echo "Edge TLC needs the pinned absolute regular TLA+ JAR" >&2
   exit 2
 fi
-expected="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
+# Qualify the external TLC binary, not another Owner\x27s private source tree.
+# TLA+ TLC v1.7.4 (official release), SHA-256 of tla2tools.jar.
+expected="936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
 test "$(sha256sum -- "$jar" | cut -d' ' -f1)" = "$expected" || { echo "Unqualified TLA+ JAR digest" >&2; exit 2; }
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

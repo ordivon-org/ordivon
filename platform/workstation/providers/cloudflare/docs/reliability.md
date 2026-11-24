@@ -170,10 +170,10 @@ Browser snapshot Receipts preserve the requested URL and explicitly report `fina
 | Choose cleanup | same-intent strictly newer observed generation | old-generation-only cleanup test |
 | Choose recover | matching committed Receipt readback | existing post-write response-loss test |
 
-Run the optional owner-scoped model check using the existing Runtime-pinned TLC toolchain:
+Run the optional owner-scoped model check with an explicit, absolute path to the qualified upstream TLA+ TLC v1.7.4 JAR. The verifier checks the pinned SHA-256, so a previously provisioned identical binary can be reused without importing another Owner's private source or cache layout:
 
 ```bash
 ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar pnpm formal:verify
-````
+```
 
 The positive model checks five invariants. The unsafe cleanup strategy must violate committed evidence integrity; three additional negative-property probes require reachability of late commit, cleanup, and recovery. The model does not cover R2 availability/liveness, retention expiry, corrupt or foreign state, repeated internal commit invocations, or all TypeScript traces. It is not a complete implementation refinement proof or a production acceptance result. Keep concrete HTTP/Artifact regression tests until a qualified refinement bridge replaces their specific obligations.
