@@ -265,19 +265,26 @@ def test_queue_telemetry_provider_projection_is_deterministic() -> None:
             ],
         },
         merge_group_runs=[
-            {"id": 70, "head_branch": "gh-readonly-queue/main/pr-7-base",
+            {"id": 70, "path": ".github/workflows/ci.yml", "event": "merge_group", "run_attempt": 1, "head_branch": "gh-readonly-queue/main/pr-7-base",
              "head_sha": "a", "created_at": "2026-09-22T12:00:05Z", "conclusion": "success"},
-            {"id": 80, "head_branch": "gh-readonly-queue/main/pr-8-base",
+            {"id": 80, "path": ".github/workflows/ci.yml", "event": "merge_group", "run_attempt": 1, "head_branch": "gh-readonly-queue/main/pr-8-base",
              "head_sha": "b", "created_at": "2026-09-22T12:00:20Z", "conclusion": "failure"},
-            {"id": 81, "head_branch": "gh-readonly-queue/main/pr-8-base2",
+            {"id": 81, "path": ".github/workflows/ci.yml", "event": "merge_group", "run_attempt": 1, "head_branch": "gh-readonly-queue/main/pr-8-base2",
              "head_sha": "c", "created_at": "2026-09-22T12:00:30Z", "conclusion": "success"},
+            {"id": 82, "path": ".github/workflows/codeql.yml", "event": "merge_group",
+             "run_attempt": 1, "head_branch": "gh-readonly-queue/main/pr-8-base2",
+             "head_sha": "c", "created_at": "2026-09-22T12:00:30Z", "conclusion": "failure"},
+            {"id": 83, "head_branch": "gh-readonly-queue/main/pr-8-base2",
+             "head_sha": "c", "created_at": "2026-09-22T12:00:31Z", "conclusion": "success"},
         ],
         jobs={
-            "70": [{"name": "root-verification", "created_at": "2026-09-22T12:00:06Z",
+            "70": [{"name": "root-verification", "run_id": 70, "run_attempt": 1, "created_at": "2026-09-22T12:00:06Z",
                     "started_at": "2026-09-22T12:00:08Z", "completed_at": "2026-09-22T12:00:30Z"}],
-            "80": [{"name": "root-verification", "created_at": "2026-09-22T12:00:21Z",
+            "80": [{"name": "root-verification", "run_id": 80, "run_attempt": 1, "created_at": "2026-09-22T12:00:21Z",
                     "started_at": "2026-09-22T12:00:22Z", "completed_at": "2026-09-22T12:00:27Z"}],
-            "81": [{"name": "root-verification", "created_at": "2026-09-22T12:00:31Z",
+            "81": [{"name": "root-verification", "run_id": 81, "run_attempt": 2,
+                    "started_at": "2026-09-22T12:00:00Z", "completed_at": "2026-09-22T12:05:00Z"},
+                   {"name": "root-verification", "run_id": 81, "run_attempt": 1, "created_at": "2026-09-22T12:00:31Z",
                     "started_at": "2026-09-22T12:00:32Z", "completed_at": "2026-09-22T12:00:50Z"}],
         },
     )
@@ -293,6 +300,60 @@ def test_queue_telemetry_provider_projection_is_deterministic() -> None:
     by_pr = {row["pr"]: row for row in result["episodeMetrics"]}
     assert by_pr[7]["verificationSeconds"] == 22
     assert by_pr[8]["mergeGroupRuns"] == 2
+    assert by_pr[8]["mergeGroupRunId"] == 81
+    assert by_pr[8]["verificationSeconds"] == 18
+    assert result["coverage"]["excludedUnqualifiedWorkflowRuns"] == 2
+    assert result["coverage"]["requiredWorkflowPath"] == ".github/workflows/ci.yml"
+
+
+def test_queue_telemetry_reads_exact_attempt_pages_only_for_sampled_prs() -> None:
+    calls = []
+
+    def fake_api(endpoint):
+        calls.append(endpoint)
+        if "/pulls?" in endpoint:
+            return [{"number": 7, "merged_at": "2026-11-24T10:00:00Z"}]
+        if "/workflows/ci.yml/runs?" in endpoint:
+            return {"workflow_runs": [
+                {"id": 70, "path": ".github/workflows/ci.yml", "event": "merge_group",
+                 "run_attempt": 2, "head_branch": "gh-readonly-queue/main/pr-7-base"},
+                {"id": 80, "path": ".github/workflows/ci.yml", "event": "merge_group",
+                 "run_attempt": 1, "head_branch": "gh-readonly-queue/main/pr-8-base"},
+            ]}
+        assert "/runs/70/attempts/2/jobs?" in endpoint
+        ids = range(101, 102) if "page=2" in endpoint else range(1, 101)
+        return {"total_count": 101, "jobs": [
+            {"id": i, "run_id": 70, "run_attempt": 2} for i in ids
+        ]}
+
+    owner = queue_module.Gh("ordivon-org/ordivon")
+    owner.api = fake_api
+    owner.paginated_list = lambda endpoint: []
+    snapshot = owner.collect(limit=1)
+    assert [run["id"] for run in snapshot.merge_group_runs] == [70]
+    assert len(snapshot.jobs["70"]) == 101
+    assert not any("/runs/80/" in endpoint for endpoint in calls)
+    assert any("page=2" in endpoint for endpoint in calls)
+
+    def wrong_attempt(endpoint):
+        response = fake_api(endpoint)
+        if "/jobs?" in endpoint:
+            response["jobs"][0]["run_attempt"] = 1
+        return response
+
+    owner.api = wrong_attempt
+    with pytest.raises(ValueError, match="unqualified or duplicate"):
+        owner.collect(limit=1)
+
+    def incomplete(endpoint):
+        response = fake_api(endpoint)
+        if "/jobs?" in endpoint:
+            response["jobs"] = response["jobs"][:1]
+        return response
+
+    owner.api = incomplete
+    with pytest.raises(ValueError, match="incomplete"):
+        owner.collect(limit=1)
 
 
 CI_TELEMETRY_PATH = ROOT / "tools" / "repo" / "ci_telemetry.py"

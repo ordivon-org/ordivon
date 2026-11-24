@@ -218,7 +218,8 @@ def assess(
         contention = gate(
             "QUEUE_CONTENTION",
             "NOT_PROVEN",
-            "observed episodes contain no requeue or unsuccessful merge-group signal",
+            ("observed episodes contain no requeue or unsuccessful merge-group signal "
+             "within the supplied workflow observation scope"),
             {
                 "episodes": queue_count,
                 "requeues": requeues,
