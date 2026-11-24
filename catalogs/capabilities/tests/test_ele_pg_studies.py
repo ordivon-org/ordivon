@@ -112,7 +112,9 @@ def test_source_identity_distinguishes_analysis_and_acceptance(tmp_path: Path) -
     )
 
 
-def test_source_cut_excludes_dirty_staged_untracked_and_symlink_inputs(tmp_path: Path) -> None:
+def test_source_cut_excludes_dirty_staged_untracked_and_symlink_inputs(
+    tmp_path: Path,
+) -> None:
     git(tmp_path, "init", "-q")
     provider_path = "catalogs/capabilities/providers/sample.md"
     provider = source_file(tmp_path, provider_path, "# Original\n")
@@ -128,7 +130,10 @@ def test_source_cut_excludes_dirty_staged_untracked_and_symlink_inputs(tmp_path:
     source_file(tmp_path, "catalogs/capabilities/providers/untracked.md", "# Untracked\n")
     corpus = MODULE.capture_source(tmp_path)
     assert corpus.revision == revision
-    assert {s.study_id for s in corpus.studies} == {"provider:sample", "provider:target"}
+    assert {s.study_id for s in corpus.studies} == {
+        "provider:sample",
+        "provider:target",
+    }
     for study in corpus.studies:
         expected = git(tmp_path, "show", f"{revision}:{study.source_path}")
         assert study.content.encode("utf-8") == expected
@@ -181,6 +186,38 @@ def test_local_git_replace_ref_cannot_substitute_committed_blob(tmp_path: Path) 
     assert corpus.studies[0].sha256 == hashlib.sha256(b"# Original\n").hexdigest()
 
 
+def test_capture_uses_requested_repository_not_inherited_git_dir(tmp_path, monkeypatch):
+    expected = tmp_path / "expected"
+    foreign = tmp_path / "foreign"
+    for root, title in ((expected, "# Expected"), (foreign, "# Foreign")):
+        root.mkdir()
+        git(root, "init", "-q")
+        source_file(root, "catalogs/capabilities/providers/sample.md", title + "\n")
+        commit(root)
+    expected_cut = git(expected, "rev-parse", "HEAD").decode().strip()
+    monkeypatch.setenv("GIT_DIR", str(foreign / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(foreign))
+    corpus = MODULE.capture_source(expected)
+    assert corpus.revision == expected_cut
+    assert corpus.studies[0].content == "# Expected\n"
+
+
+def test_capture_uses_linked_worktree_and_rejects_subdirectory(tmp_path):
+    root = tmp_path / "main"
+    root.mkdir()
+    git(root, "init", "-q")
+    source_file(root, "catalogs/capabilities/providers/sample.md", "# Main\n")
+    commit(root)
+    linked = tmp_path / "linked"
+    git(root, "worktree", "add", "--detach", str(linked))
+    source_file(linked, "catalogs/capabilities/providers/sample.md", "# Linked\n")
+    linked_cut = commit(linked)
+    assert MODULE.capture_source(linked).revision == linked_cut
+    assert MODULE.capture_source(linked).studies[0].content == "# Linked\n"
+    with pytest.raises(ValueError, match="repository root"):
+        MODULE.capture_source(linked / "catalogs")
+
+
 def test_native_pg_import_replay_retire_and_exact_cut_readback(tmp_path: Path, monkeypatch) -> None:
     # Explicit scratch-only test. Never read the operator's ordinary ELE DSN.
     dsn = os.getenv("ORDIVON_ELE_TEST_DSN")
@@ -198,14 +235,22 @@ def test_native_pg_import_replay_retire_and_exact_cut_readback(tmp_path: Path, m
     a.write_text("# Uncommitted\n")
     first = MODULE.migrate(corpus)
     assert first["source_cut"] == revision
-    assert (first["current_studies"], first["current_sections"], first["retained_versions"]) == (
+    assert (
+        first["current_studies"],
+        first["current_sections"],
+        first["retained_versions"],
+    ) == (
         2,
         3,
         2,
     )
     assert (first["new_versions"], first["new_sections"]) == (2, 3)
     replay = MODULE.migrate(corpus)
-    assert (replay["new_versions"], replay["new_sections"], replay["references_rebuilt"]) == (
+    assert (
+        replay["new_versions"],
+        replay["new_sections"],
+        replay["references_rebuilt"],
+    ) == (
         0,
         0,
         0,
@@ -268,6 +313,49 @@ def test_native_pg_import_replay_retire_and_exact_cut_readback(tmp_path: Path, m
         restored["retained_versions"],
         restored["new_versions"],
     ) == (2, 3, 2, 0)
+
+    # The actual show consumer must not pair an old digest with new sections
+    # when a different writer switches heads between its SELECT statements.
+    old_corpus = MODULE.capture_source(tmp_path)
+    old = next(study for study in old_corpus.studies if study.study_id == "provider:a")
+    a.write_text("# New A\n## New child\n")
+    commit(tmp_path)
+    new_corpus = MODULE.capture_source(tmp_path)
+    new = next(study for study in new_corpus.studies if study.study_id == "provider:a")
+    MODULE.migrate(new_corpus)
+    MODULE.migrate(old_corpus)
+    import psycopg
+
+    switches = []
+
+    class SwitchingCursor(psycopg.Cursor):
+        def execute(self, statement, params=None, **kwargs):
+            self.switch_after_fetch = "SELECT study_id,kind,source_path,sha256" in str(statement)
+            return super().execute(statement, params, **kwargs)
+
+        def fetchone(self):
+            row = super().fetchone()
+            if self.switch_after_fetch:
+                self.switch_after_fetch = False
+                with psycopg.connect(dsn) as writer:
+                    writer.execute(
+                        "UPDATE ele.study_heads SET sha256=%s, source_cut=%s WHERE study_id=%s",
+                        (new.sha256, new_corpus.revision, new.study_id),
+                    )
+                switches.append(True)
+            return row
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            MODULE,
+            "connect",
+            lambda: psycopg.connect(dsn, cursor_factory=SwitchingCursor),
+        )
+        observed = query("show", study_id="provider:a")
+    assert switches == [True]
+    assert observed["study"]["sha256"] == old.sha256
+    assert "".join(section["body"] for section in observed["sections"]) == old.content
+    assert query("show", study_id="provider:a")["study"]["sha256"] == new.sha256
 
 
 def test_explicit_json_references_preserve_consumer_boundary() -> None:

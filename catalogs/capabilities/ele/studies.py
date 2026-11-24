@@ -190,11 +190,15 @@ class SourceCorpus:
 
 
 def git_bytes(root: Path, *args: str) -> bytes:
-    """Read original Git objects, ignoring local replace refs."""
-    return subprocess.check_output(["git", "--no-replace-objects", *args], cwd=root)
+    """Read original objects from the requested checkout, not ambient Git selectors."""
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    return subprocess.check_output(["git", "--no-replace-objects", *args], cwd=root, env=env)
 
 
 def source_cut(root: Path = ROOT) -> str:
+    top = git_bytes(root, "rev-parse", "--show-toplevel").decode("utf-8").rstrip("\n")
+    if Path(top).resolve() != root.resolve():
+        raise ValueError("ELE capture requires the requested repository root")
     revision = git_bytes(root, "rev-parse", "--verify", "HEAD^{commit}").decode("ascii").strip()
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("exact Git source revision required")
@@ -267,7 +271,14 @@ def connect() -> Any:
 def verify_cursor(cur: Any, corpus: SourceCorpus) -> dict[str, int]:
     studies, references = corpus.studies, corpus.references
     expected = {
-        s.study_id: (s.sha256, s.source_path, s.kind, s.title, len(s.sections), corpus.revision)
+        s.study_id: (
+            s.sha256,
+            s.source_path,
+            s.kind,
+            s.title,
+            len(s.sections),
+            corpus.revision,
+        )
         for s in studies
     }
     cur.execute(
@@ -283,7 +294,14 @@ def verify_cursor(cur: Any, corpus: SourceCorpus) -> dict[str, int]:
     actual = {}
     corrupt: list[str] = []
     for study_id, digest, path, kind, title, body, sections, revision in cur.fetchall():
-        actual[study_id] = (digest.strip(), path, kind, title, sections, revision.strip())
+        actual[study_id] = (
+            digest.strip(),
+            path,
+            kind,
+            title,
+            sections,
+            revision.strip(),
+        )
         if hashlib.sha256(body.encode("utf-8")).hexdigest() != digest.strip():
             corrupt.append(study_id)
     if expected != actual or corrupt:
@@ -496,6 +514,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.action == "migrate":
         return migrate(corpus)
     with connect() as conn, conn.cursor() as cur:
+        # Multi-query consumers must observe one committed catalog generation,
+        # even when a concurrent importer changes the heads.
+        cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
         if args.action == "verify":
             return verify_cursor(cur, corpus)
         if args.action == "stats":
