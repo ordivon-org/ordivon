@@ -3,12 +3,12 @@ from __future__ import annotations
 import importlib.util
 import io
 import json
-from contextlib import redirect_stdout
 import pathlib
 import sys
 import tempfile
 import unittest
 import urllib.parse
+from contextlib import redirect_stdout
 from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
