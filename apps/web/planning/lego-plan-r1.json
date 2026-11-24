@@ -33,13 +33,16 @@
       ],
       "behavioralContract": "Challenge consumption is one-shot; credential and challenge are persisted to the Owner-local store; browser/virtual authenticator proof is not a claim of physical human presence.",
       "acceptance": [
-        "Owner session/challenge tests verify one-shot behavior and browser E2E evidence scopes without treating canary enrollment as production-ready."
+        "Owner session/challenge tests verify one-shot behavior and browser E2E evidence scopes without treating canary enrollment as production-ready.",
+        "Native ChallengeStore consumer tests prove payload snapshot capture, digest mismatch/malformed JSON rejection before consume, rollback and one-shot behavior; no arbitrary DB tamper resistance is claimed."
       ],
       "evidence": [
         "src/webauthn.ts",
         "src/store.ts",
         "test/app.test.ts",
-        "README.md"
+        "README.md",
+        "src/store-challenges.ts",
+        "test/challenge-store.test.ts"
       ],
       "dependencies": [],
       "mustNotOwn": [
