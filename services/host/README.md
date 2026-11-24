@@ -100,24 +100,24 @@ pagination consumer tests. No new Host database, Tool or model executor.
 ## Host formal verification: Human and Agent entrypoints
 
 **Human:** From services/host, run mise run formal:reply-source to check both
-strict causal reply ordering and PostgreSQL-bounded Work revision increments
+strict causal reply ordering and V1 JSON-safe Work revision increments
 through the locked CrossHair symbolic executor. Run mise run verify for the
 complete native Owner gate; a skipped PostgreSQL test is not a passing
 database integration test. The selected invariant is revision r >= 1,
-with r + 1 <= 2^63 - 1. A request at the signed BIGINT maximum is
-invalid before PostgreSQL access because the next revision would overflow.
+with r + 1 <= 2^53 - 1. A request at the JSON safe integer maximum is
+invalid before PostgreSQL access because the next revision would exceed the wire domain.
 
 **Agent:** The proof subjects are the actual called functions
 social_message_commands._reply_target_precedes_source and
-work_store._next_work_revision, not separate model copies. Preserve their
+work_revision_logic.next_work_revision, not separate model copies. Preserve their
 PEP 316 pre/postconditions, re-run the same native CrossHair entrypoint
 after changing these source files, and then qualify the Work CAS transaction
 and reply-edge SQL using existing Host PostgreSQL consumer tests.
 Formally confirmed pure arithmetic never certifies psycopg connection,
 commit, concurrency, installed release, or MCP effects. PostgreSQL
-numeric bounds are shared in postgres_bounds.py; do not recreate
+and V1 JSON numeric bounds are shared in postgres_bounds.py; do not recreate
 per-module constants. The read-side Work.get accepts revisions up to the
-signed BIGINT maximum, while Work.snapshot.commit requires a strictly lower
+JSON safe integer maximum, while Work.snapshot.commit requires a strictly lower
 expectedRevision so an increment can be represented; both the native MCP
 input and the WorkStore boundary enforce these domains.
 
@@ -129,7 +129,7 @@ effective contract is the existing `WorkStore.commit_snapshot` public behavior:
 
 | Typed R2.1 coordinate | Host Work snapshot CAS interpretation |
 | --- | --- |
-| I | WorkRef, exact expectedRevision: int in [1, 2^63-2], WorkSnapshotInput, ActorRef, WorkState, ClientRequestId |
+| I | WorkRef, exact expectedRevision: int in [1, 2^53-2], WorkSnapshotInput, ActorRef, WorkState, ClientRequestId |
 | O | Work readback with committed/existing admission, or a typed conflict/error; no claim of semantic Work completion |
 | S | Actual Host PostgreSQL works, work_snapshots, actor_refs and command receipt rows in one transaction |
 | pre | Exact bounded integer, valid typed payload/actor; a new commit requires current revision = expected and current state = open |
@@ -139,7 +139,7 @@ effective contract is the existing `WorkStore.commit_snapshot` public behavior:
 | c | UNKNOWN(reason=unmeasured transaction latency under realistic contention, scope=Host PG18 Work CAS, obligation=record consumer-relevant cost if optimizing) |
 | epsilon | UNKNOWN(reason=no general quantified external availability/failure bound, scope=database/deployment effects, obligation=qualify installed PG consumer); pure revision arithmetic is exact |
 | prov | Actual code in `src/ordivon_host_v2/work_store.py` and `work_queries.py`; locked CrossHair 0.0.112 source contract, real PostgreSQL 18 Alembic/pytest via `mise run test:postgres:disposable`, exact SourceCut is the tested Git revision |
-| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> _next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> read_work_in_tx -> record_command_receipt |
+| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> read_work_in_tx -> record_command_receipt |
 
 Evidence standing is **DECLARATION_COMPLETE** for this scoped contract; the
 native CrossHair confirms the called revision arithmetic only, while the
@@ -281,3 +281,16 @@ check alone is not an installed Agent consumer acceptance.
 current Work/Social/Attention dependency direction, real consumers, rejected
 second authorities and closure conditions. It does not replace the MCP surface,
 PG migration chain or the installed Agent consumer observations.
+
+
+### Numeric V1 interoperability (surface epoch 8)
+
+Host numeric input coordinates (revision, cursor, expected Topic horizon and
+message/intent timestamps) must be exact nonnegative JSON integers at most
+2^53-1; a new Work CAS must leave room for its successor. The physical PG
+BIGINT capacity is unchanged. Existing valid request IDs, JCS bytes, digest
+and receipts are unchanged; no automatic string conversion or data migration.
+The official native tools/list declares the input limits. Larger exact values
+would require a versioned string-based wire contract and consumer migration.
+Gateway ingress validation and imported/generated rows approaching this bound
+are separate consumer/operational obligations, not certified by this input change.

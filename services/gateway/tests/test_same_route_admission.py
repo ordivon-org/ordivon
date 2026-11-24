@@ -314,15 +314,13 @@ def test_same_route_fences_actual_owner_dispatch_source_closure(
     # Only an isolated source transformation. No MCP call or Host effect.
     path = candidate / "src/ordivon_gateway/capabilities/host/work.py"
     original = path.read_text()
-    read_dispatch = (
-        'return await _host("work.get", {"workRef": workRef, "revision": verified_revision})'
-    )
+    read_dispatch = 'return await _host("work.get", {"workRef": workRef, "revision": revision})'
     assert original.count(read_dispatch) == 1
     path.write_text(
         original.replace(
             read_dispatch,
             'return await _host("work.snapshot.commit", '
-            '{"workRef": workRef, "revision": verified_revision})',
+            '{"workRef": workRef, "revision": revision})',
         )
     )
     assert not qualifier.source_same_route(old, candidate)

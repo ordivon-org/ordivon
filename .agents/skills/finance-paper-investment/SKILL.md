@@ -53,6 +53,7 @@ test the historical source consumer when it is available:
 | Intention | Natural Owner | Native entrypoint | Actual standing |
 |---|---|---|---|
 | Allocate caller-defined new virtual contribution while protecting cash | Portfolio | `scripts/run-strategic-contribution-brief` | Stateless, no orders |
+| Derive cash reserve from dated outstanding needs before allocating a contribution | Portfolio / Applications | same CLI with goal-funded request kind; see `examples/goal_funded_contribution_r1.json` | Read-only; no future-income assumption |
 | Compare equal-cashflow strategy and passive benchmark | Portfolio | `python -m ordivon_capital.portfolio.passive_benchmark --input replay.json` under Capital toolchain | Read-only economic description |
 | Replay a qualified historical source from a pinned snapshot | Portfolio | `scripts/run-paper-etf-replay-r1 --request request.json --source source.csv [--output private-receipt.json]` | Historical simulation only |
 | Compare the economic effect of two source vintages | Portfolio | `scripts/run-paper-etf-vintage-compare-r1 --reference-request ... --reference-source ... --candidate-request ... --candidate-source ...` | Descriptive revision sensitivity |
@@ -64,6 +65,31 @@ test the historical source consumer when it is available:
 
 All command paths above are relative to `domains/capital` except the direct reference to the other canonical Skill. Before using one, check its exact option interface (`--help`) and latest source/contract version.
 
+
+## Compare fund total returns without double charging fees
+
+For issuer-published USD fund NAV total returns already net of fund
+expenses, use the existing passive benchmark CLI with schemaVersion 2:
+`examples/fund_nav_benchmark_202609_r2.json`.
+Require identical, contiguous return intervals for each leg; use only
+explicit external investor costs. Do not insert gross index, market-price,
+unqualified adjusted-close, annualized multi-year or price-only returns
+into this NAV basis. A source reference is not historical PIT attestation.
+See `domains/capital/docs/FINANCE_FUND_NAV_BENCHMARK_R2.md`.
+Do not rewrite frozen legacy results based on unverified fee semantics.
+
+## Protect dated obligations before contributing
+
+Use the existing strategic contribution CLI with
+`examples/goal_funded_contribution_r1.json` as the request shape. Supply
+caller-confirmed outstanding obligations, as-of date, reserve-through date,
+distinct emergency cash and desired contribution in USD cents.
+Do not assume future earnings, market gains or asset sales. A
+`RESERVE_SHORTFALL` result contains no allocation plan; a
+`CONTRIBUTION_CAPPED` result shows the unallocated requested amount.
+Obligations outside the horizon are disclosed, not funded. No result
+authenticates account balances or grants execution. Read
+`domains/capital/docs/FINANCE_GOAL_RESERVE_R1.md` for the exact scope.
 
 ## Algebraic investment research is not Paper settlement
 

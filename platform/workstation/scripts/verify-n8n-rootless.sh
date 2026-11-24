@@ -47,6 +47,6 @@ printf '%s\n' '== outbound connectivity =='
 run_n8n podman exec ordivon-n8n node -e "fetch('https://api.github.com',{headers:{'user-agent':'ordivon-n8n-acceptance'}}).then(r=>{console.log(r.status); if(!r.ok)process.exit(2)}).catch(e=>{console.error(e);process.exit(3)})"
 
 printf '%s\n' '== PostgreSQL =='
-runuser -u postgres -- psql -h /var/lib/postgres/ordivon-data-r5-pg-14550-v4 -p 55434 -d n8n -Atqc "select 'tables='||count(*) from pg_tables where schemaname='public';"
+runuser -u postgres -- psql -h /var/lib/postgres/ordivon-data-r5-pg-14550-v4 -p 14550 -d n8n -Atqc "select 'tables='||count(*) from pg_tables where schemaname='public';"
 
 printf '%s\n' 'n8n rootless acceptance: PASS'

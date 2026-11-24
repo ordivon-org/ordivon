@@ -408,7 +408,7 @@ or a service-account qualification.
 
 Verification: `cargo test -p ordivon-runtime-core --no-default-features
 --features postgres-registry-admission pg_windows` checks bounded pure cases;
-`python3 scripts/pg_disposable_physical.py` runs the original 18 cases plus
+`python3 scripts/pg_disposable_physical.py` runs the complete native PG18 test inventory plus
 the independent Windows PG reader against a disposable PostgreSQL 18 schema;
 `scripts/tla-formal check-windows-pg-attempt` and
 `falsify-windows-pg-attempt` check the finite owner/exit model and required
@@ -417,6 +417,18 @@ compilability, **not** Windows-native execution. Actual Windows PG Writer,
 native launcher, process recovery, Gateway consumers and installed release
 remain separate OPEN obligations; do not switch or delete the live SQLite
 Registry on the strength of these checks.
+
+The three PostgreSQL verification tasks reuse the same native Cargo library-test
+selection and exact execution-witness comparison:
+`mise run test:postgres-registry:disposable` creates an isolated fixture;
+`mise run test:postgres-registry:physical` requires an explicit isolated
+`ORDIVON_PG_TEST_DSN`; `mise run test:postgres-registry:stage` requires the
+separate historical-stage test DSN `ORDIVON_PG_STAGE_TEST_DSN`.
+Empty or wrong inventories, zero executed tests, mismatched test identities,
+duplicate execution, and nonzero native exits cannot qualify. The stage lane
+must select exactly its one named witness; its passing result is not a
+fresh-epoch or Windows production acceptance. An operator DSN is not supplied
+by default and is never inherited by the disposable fixture.
 
 ## Agent usage
 

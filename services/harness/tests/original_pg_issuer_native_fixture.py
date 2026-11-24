@@ -39,6 +39,9 @@ def main() -> None:
     parser.add_argument("--schema", required=True)
     parser.add_argument("--run", required=True)
     parser.add_argument("--workspace", required=True)
+    # A deliberate collision in a disposable cross-Run test only. Normal
+    # callers keep the existing execution-binding-derived key.
+    parser.add_argument("--client-request-id", default=None)
     args = parser.parse_args()
     if args.action == "issue":
         store = PostgresHarnessStore(args.dsn, schema=args.schema, initialize=True)
@@ -67,6 +70,8 @@ def main() -> None:
                 stdout_limit_bytes=1024,
                 stderr_limit_bytes=1024,
             )
+            if args.client_request_id is not None:
+                original["clientRequestId"] = args.client_request_id
             assignment = cont.binding
             intent = HarnessToolStepIntent(
                 intent_id=f"harness-tool-step-intent:{args.run.split(':', 1)[-1]}:r17",
