@@ -480,21 +480,34 @@ class PostgresWakeTurnMap:
             if pg_row is None or self._canonical_rows([pg_row]) != [old]:
                 raise WakeTurnConflict("legacy wake identity differs from PostgreSQL")
 
-    def get(self, wake_intent_id: str) -> dict[str, Any] | None:
+    @classmethod
+    def read_existing(cls, dsn: str, wake_intent_id: str) -> dict[str, Any] | None:
+        """Observe an ACTIVE owner without constructing a writer or executing DDL."""
+        if not isinstance(dsn, str) or not dsn.strip():
+            raise ValueError("PostgreSQL wake reader requires an explicit DSN")
         wake_intent_id = _text(wake_intent_id, "wakeIntentId")
-        with psycopg.connect(self.dsn, row_factory=dict_row) as db:
-            self._admit_cutover_state(db)
-            row = db.execute(
-                "SELECT * FROM ordivon_harness.wake_turn_map WHERE wake_intent_id=%s",
-                (wake_intent_id,),
-            ).fetchone()
-            if row is None:
+        with psycopg.connect(dsn) as db:
+            db.execute("SET TRANSACTION READ ONLY")
+            cls._admit_cutover_state(db)
+            cls._require_pg_schema(db)
+            with db.cursor(row_factory=dict_row) as cursor:
+                rows = cursor.execute(
+                    "SELECT wake_intent_id,campaign_ref,agent_id,prompt_digest,"
+                    "turn_request_id,created_at_ms FROM ordivon_harness.wake_turn_map "
+                    "WHERE wake_intent_id=%s", (wake_intent_id,),
+                ).fetchmany(2)
+            if not rows:
                 return None
+            if len(rows) != 1 or rows[0]["wake_intent_id"] != wake_intent_id:
+                raise WakeTurnConflict("PostgreSQL wake observation identity ambiguous")
             try:
-                require_uuid7(row["turn_request_id"], "turnRequestId")
+                cls._canonical_rows(rows)
             except (ValueError, TypeError) as error:
                 raise WakeTurnConflict("PostgreSQL wake receipt identity invalid") from error
-            return self._receipt(row, "existing")
+            return cls._receipt(rows[0], "existing")
+
+    def get(self, wake_intent_id: str) -> dict[str, Any] | None:
+        return self.read_existing(self.dsn, wake_intent_id)
 
     def allocate(
         self,

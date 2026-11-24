@@ -214,6 +214,18 @@ to initialize them automatically and does not override the live SQLite
 materialization ledger. This is a **scoped** PG-only cutover: general Harness
 Run/CAS and Browserless materialization remain separate owners.
 
+### Read existing PostgreSQL identity/effect state without writer initialization
+
+The existing-owner methods `PostgresWakeTurnMap.read_existing(dsn, wake_intent_id)`
+and `PostgresTurnEffects.read_existing(dsn, turn_id)` run read-only transactions.
+They reuse the existing cutover admission and exact owner tables; an inactive
+or unavailable authority is an error, not an absent identity. They neither
+execute schema initialization nor authorize SEND. The Browserless turn-effect
+projection uses this read path directly. A confirmed `UNKNOWN` effect is not
+an absent claim and must not be treated as permission to retry SEND. These read
+primitives do not activate PG, certify a production role migration, or prove
+that the provider produced an assistant response.
+
 ### PG-first Turn Effects: retire legacy effect writer (explicit operator cutover)
 
 `PostgresTurnEffects.stage_legacy` deliberately stays `PENDING`; it is a copy,

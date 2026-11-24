@@ -491,3 +491,40 @@ def test_pg_effect_cli_promotes_real_history_only_after_confirmation(
     assert receipt["sourceDigest"].startswith("sha256:")
     assert owner.get("turn:old")["updated_at_ms"] == 5
     assert _claim(owner, "turn:new")["admittedToSend"] is True
+
+
+def test_existing_effect_observation_and_service_need_no_writer_authority(
+    owner: PostgresTurnEffects, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from types import SimpleNamespace
+    from agent_automation_browserless import BrowserlessAutomationService
+
+    read_dsn = os.environ.get("ORDIVON_PG_EFFECT_READ_TEST_DSN")
+    if not read_dsn:
+        pytest.skip("disposable PG read-only role not provided")
+    with pytest.raises(TurnEffectConflict, match="PENDING|not certified"):
+        PostgresTurnEffects.read_existing(read_dsn, "turn:1")
+    source = tmp_path / "absent.sqlite"
+    owner.activate_empty_fresh(source)
+    assert PostgresTurnEffects.read_existing(read_dsn, "turn:1") is None
+    _claim(owner)
+    row = PostgresTurnEffects.read_existing(read_dsn, "turn:1")
+    assert row["state"] == "UNKNOWN" and row["receipt_json"] is None
+    owner.record_after_send(
+        "turn:1", "sha256:" + "a" * 64, "https://chatgpt.com/c/existing",
+        "COMPLETED", {"accepted": True}, now_ms=4567,
+    )
+    assert PostgresTurnEffects.read_existing(read_dsn, "turn:1") == owner.get("turn:1")
+    monkeypatch.setenv("ORDIVON_TURN_EFFECT_POSTGRES_DSN", read_dsn)
+    service = object.__new__(BrowserlessAutomationService)
+    service.config = SimpleNamespace(turn_ledger=source)
+    projected = service._turn_effect_row("turn:1")
+    assert projected == {
+        "promptDigest": "sha256:" + "a" * 64,
+        "targetCoordinate": "https://chatgpt.com/c/existing",
+        "state": "COMPLETED", "receipt": {"accepted": True}, "updatedAtMs": 4567,
+    }
+    assert not source.exists()
+    with psycopg.connect(read_dsn) as db:
+        with pytest.raises(psycopg.Error):
+            db.execute("DELETE FROM ordivon_harness.turn_effects")

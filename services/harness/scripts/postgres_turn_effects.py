@@ -299,23 +299,44 @@ class PostgresTurnEffects:
                 if marker != ("ACTIVE", None):
                     raise TurnEffectConflict("PG cutover already pending or sealed")
 
-    def _require_active(self, pg: psycopg.Connection) -> None:
-        pg.execute("SELECT pg_advisory_xact_lock_shared(%s)", (self._LOCK_KEY,))
+    @classmethod
+    def _require_active(cls, pg: psycopg.Connection) -> None:
+        pg.execute("SELECT pg_advisory_xact_lock_shared(%s)", (cls._LOCK_KEY,))
         marker = pg.execute(
             "SELECT state FROM ordivon_harness.turn_effect_cutover WHERE cutover_id='legacy'"
         ).fetchone()
         if marker is None or marker["state"] != "ACTIVE":
             raise TurnEffectConflict("PG effects cutover PENDING or not certified")
 
-    def get(self, turn_id: str) -> dict[str, Any] | None:
-        with psycopg.connect(self.dsn, row_factory=dict_row) as pg:
+    @classmethod
+    def read_existing(cls, dsn: str, turn_id: str) -> dict[str, Any] | None:
+        """Observe durable effect standing without initializing a writer."""
+        if not isinstance(dsn, str) or not dsn.strip():
+            raise ValueError("PostgreSQL effect reader requires an explicit DSN")
+        if not isinstance(turn_id, str) or not turn_id:
+            raise TurnEffectConflict("missing effect identity")
+        names = (
+            "turn_request_id", "prompt_digest", "target_coordinate",
+            "state", "receipt_json", "updated_at_ms",
+        )
+        with psycopg.connect(dsn, row_factory=dict_row) as pg:
             with pg.transaction():
-                self._require_active(pg)
-                row = pg.execute(
-                    "SELECT * FROM ordivon_harness.turn_effects WHERE turn_request_id=%s",
-                    (turn_id,),
-                ).fetchone()
-                return dict(row) if row else None
+                pg.execute("SET TRANSACTION READ ONLY")
+                cls._require_active(pg)
+                rows = pg.execute(
+                    "SELECT turn_request_id,prompt_digest,target_coordinate,state,"
+                    "receipt_json,updated_at_ms FROM ordivon_harness.turn_effects "
+                    "WHERE turn_request_id=%s", (turn_id,),
+                ).fetchmany(2)
+                if not rows:
+                    return None
+                if len(rows) != 1 or rows[0]["turn_request_id"] != turn_id:
+                    raise TurnEffectConflict("PostgreSQL effect observation identity ambiguous")
+                cls._validate_row(tuple(rows[0][name] for name in names))
+                return dict(rows[0])
+
+    def get(self, turn_id: str) -> dict[str, Any] | None:
+        return self.read_existing(self.dsn, turn_id)
 
     def claim_before_send(
         self, turn_id: str, prompt: str, target: str, *, now_ms: int | None = None

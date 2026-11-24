@@ -1459,7 +1459,7 @@ class BrowserlessAutomationService:
             except ModuleNotFoundError:
                 from scripts.postgres_turn_effects import PostgresTurnEffects
 
-            record = PostgresTurnEffects(pg_dsn).get(turn_request_id)
+            record = PostgresTurnEffects.read_existing(pg_dsn, turn_request_id)
             if record is None:
                 return None
             return {
