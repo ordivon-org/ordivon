@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import unittest
 from importlib import import_module
+from itertools import product
 from pathlib import Path
 from unittest import mock
 
@@ -171,6 +172,98 @@ class WebInteractionRouteTests(unittest.TestCase):
     def test_caller_cannot_invent_browser_use_availability(self):
         with self.assertRaises(ValueError):
             self.resolve(R.TaskNeeds(), ("browser_use",))
+
+
+# Independent finite-domain contract: cognition selects actions, not a carrier.
+# Readiness here is a synthetic availability observation, neither permission
+# to execute nor a domain completion witness.
+class RouteBehaviorSpec(unittest.TestCase):
+    def test_cognition_is_orthogonal_to_interactive_carrier(self):
+        for direct, fallback, native_requested, native_available, caller_pw in product(
+            (False, True), repeat=5
+        ):
+            availability = {
+                name: {"state": "unavailable", "reason": "synthetic"}
+                for name in AVAILABLE
+            }
+            if direct:
+                availability["playwright"]["state"] = "available"
+            if fallback:
+                availability["browser_use"]["state"] = "available"
+            caller = tuple(
+                name
+                for name, present in (
+                    ("native_connector", native_available),
+                    ("playwright", caller_pw),
+                )
+                if present
+            )
+            expected = next(
+                (
+                    route
+                    for route, adequate in (
+                        ("native_connector", native_requested and native_available),
+                        ("playwright", direct or caller_pw),
+                        ("browser_use", fallback),
+                    )
+                    if adequate
+                ),
+                None,
+            )
+            with mock.patch.object(R, "census", return_value=availability):
+                for deterministic, adaptive in ((True, False), (False, True), (False, False)):
+                    with self.subTest(
+                        direct=direct,
+                        fallback=fallback,
+                        native_requested=native_requested,
+                        native_available=native_available,
+                        caller_pw=caller_pw,
+                        deterministic=deterministic,
+                        adaptive=adaptive,
+                    ):
+                        decision = R.resolve(
+                            R.TaskNeeds(
+                                native_provider_available=native_requested,
+                                requires_interaction=True,
+                                deterministic_browser_flow=deterministic,
+                                adaptive_browser_reasoning=adaptive,
+                            ),
+                            caller_available=caller,
+                        )
+                        self.assertEqual(decision["selectedRoute"], expected)
+                        self.assertEqual(
+                            decision["standing"],
+                            "ROUTED" if expected else "NO_ADMITTED_PROVIDER",
+                        )
+                        self.assertEqual(decision["semanticSelector"], "agent_or_caller")
+                        self.assertEqual(decision["completionAuthority"], "owning_domain")
+                        self.assertEqual(
+                            sum(x["standing"] == "selected" for x in decision["considered"]),
+                            int(expected is not None),
+                        )
+
+    def test_primary_intent_cannot_silently_fall_back_to_browser(self):
+        availability = {
+            name: {
+                "state": "available" if name in ("playwright", "browser_use") else "unavailable",
+                "reason": "synthetic",
+            }
+            for name in AVAILABLE
+        }
+        desktop = R.TaskNeeds(requires_interaction=True, requires_desktop_gui=True)
+        acquisition = R.TaskNeeds(site_scale_web_acquisition=True)
+        for needs, caller, expected in (
+            (R.TaskNeeds(), (), None),
+            (acquisition, (), None),
+            (desktop, (), None),
+            (desktop, ("computer_use",), "computer_use"),
+            (acquisition, ("firecrawl",), "firecrawl"),
+        ):
+            with self.subTest(needs=needs, caller=caller):
+                with mock.patch.object(R, "census", return_value=availability):
+                    decision = R.resolve(needs, caller_available=caller)
+                self.assertEqual(decision["selectedRoute"], expected)
+                self.assertEqual(decision["completionAuthority"], "owning_domain")
 
 
 if __name__ == "__main__":
