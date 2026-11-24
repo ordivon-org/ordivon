@@ -124,7 +124,8 @@
         "src/webauthn.ts",
         "src/store.ts",
         "src/app.ts",
-        "test/agent-authority.test.ts"
+        "test/agent-authority.test.ts",
+        "src/agent-canary-routes.ts"
       ],
       "dependencies": [
         "W01"
@@ -169,7 +170,8 @@
         "src/agent-authority.ts",
         "src/app.ts",
         "test/agent-authority.test.ts",
-        "test/agent-native-e2e.ts"
+        "test/agent-native-e2e.ts",
+        "src/agent-canary-routes.ts"
       ],
       "dependencies": [
         "W03"
@@ -182,7 +184,7 @@
       "sharedRefs": [],
       "consumerBindings": [
         {
-          "path": "apps/web/src/app.ts",
+          "path": "apps/web/src/agent-canary-routes.ts",
           "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
         },
         {
@@ -215,7 +217,10 @@
         "src/app.ts",
         "src/webauthn.ts",
         "test/agent-authority.test.ts",
-        "test/agent-native-e2e.ts"
+        "test/agent-native-e2e.ts",
+        "src/agent-canary-routes.ts",
+        "formal/AgentEffectResponseR1.tla",
+        "formal/README.md"
       ],
       "dependencies": [
         "W01",
@@ -224,7 +229,7 @@
       ],
       "consumerBindings": [
         {
-          "path": "apps/web/src/app.ts",
+          "path": "apps/web/src/agent-canary-routes.ts",
           "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
         },
         {
@@ -234,7 +239,8 @@
       ],
       "acceptance": [
         "Native Web tests cover exact replay/conflict, R4 approval and revoked Grant historical replay.",
-        "Local canary write != external provider effect, no installed/exactly-once distributed claim."
+        "Local canary write != external provider effect, no installed/exactly-once distributed claim.",
+        "Native HTTP tests replay three deterministic async admission interleavings; bounded TLA+ model checks response invariants, not deployed refinement."
       ],
       "formalObligations": [
         "Source/transaction behavior does not prove installed WebStore durability, physical provider effects or cross-provider exactly-once."
@@ -268,7 +274,8 @@
         "src/server.ts",
         "src/config.ts",
         "test/app.test.ts",
-        "test/agent-authority.test.ts"
+        "test/agent-authority.test.ts",
+        "src/agent-canary-routes.ts"
       ],
       "dependencies": [
         "W01",
