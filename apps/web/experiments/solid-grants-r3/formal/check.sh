@@ -11,7 +11,7 @@ java -cp "$jar" tla2sany.SANY ObservationGenerationR1.tla
 java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/safe" -config ObservationGenerationR1.safe.cfg ObservationGenerationR1.tla > "$tmp/safe.log"
 grep -F 'Model checking completed. No error has been found.' "$tmp/safe.log"
 grep -F 'distinct states found' "$tmp/safe.log"
-for pair in legacy:DenialNotReplacedByStale legacy-lifecycle:NoPrivateRowsWhenInactive reach-observed:NeverObserved reach-denied:NeverDenied reach-suspended:NeverSuspended; do
+for pair in legacy:DenialNotReplacedByStale legacy-lifecycle:NoPrivateRowsWhenInactive legacy-hint:NoPrivateRowsAfterHint reach-observed:NeverObserved reach-denied:NeverDenied reach-suspended:NeverSuspended reach-hinted:NeverHinted; do
  name=${pair%:*}; inv=${pair#*:}
  set +e
  java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/$name" -config "ObservationGenerationR1.$name.cfg" ObservationGenerationR1.tla > "$tmp/$name.log" 2>&1

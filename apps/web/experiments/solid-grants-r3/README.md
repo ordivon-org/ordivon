@@ -72,15 +72,16 @@ execution. An unobserved remote revocation still requires an owner read.
 ## Bounded model
 
 ObservationGenerationR1 models at most three generation advances (including
-suspend/resume) and three response outcomes. TLC safe configuration checks
-four semantic invariants; two legacy configs demonstrate denial resurrection
-and hidden-page restoration, three reach configs check observed/denied/
-suspended remain reachable. Duplicate-completion and wire
+suspend/resume/peer hint) and three response outcomes. TLC safe configuration checks
+five semantic invariants; three legacy configs demonstrate denial resurrection,
+hidden-page restoration and peer-hint resurrection. Four reach configs check
+observed/denied/suspended/hinted remain reachable. The hint model checks the
+receiver fence, not logout transport, message delivery or authentication. Duplicate-completion and wire
 validation are covered by native TypeScript tests. Model proof is not a
 source-refinement or distributed authentication proof.
 
 Use the existing pinned TLC 1.7.4 JAR and its expected SHA256 supplied by
-the root toolchain composition. Run all five expected negative/reachability
+the root toolchain composition. Run all seven expected negative/reachability
 controls as well as the safe model; temporary state is removed automatically:
 
     ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools.jar \
