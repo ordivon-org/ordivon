@@ -105,6 +105,52 @@ class IssuerRevokeEpochModelTests(unittest.TestCase):
         self.assertIn("revokeAck = TRUE", result.stdout)
         self.assertIn("spawnedAfterAck = TRUE", result.stdout)
 
+    def test_manager_cancel_requires_durable_observed_receipt(self):
+        config = (
+            "SPECIFICATION Spec\nINVARIANT AckRequiresDurableCancellationReceipt\n"
+            "PROPERTY DurableCancelRequiresObserved\nCHECK_DEADLOCK FALSE\n"
+        )
+        result = self.run_model(self.source, config)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        for invariant in ("LostReceiptUnreachable", "ExactCancelAckUnreachable"):
+            result = self.run_model(
+                self.source,
+                f"SPECIFICATION Spec\nINVARIANT {invariant}\nCHECK_DEADLOCK FALSE\n",
+            )
+            self.assertEqual(result.returncode, 12, result.stdout)
+            self.assertIn(f"Error: Invariant {invariant} is violated.", result.stdout)
+            expected = ("manager_cancel_receipt_lost" if invariant == "LostReceiptUnreachable"
+                        else "manager_cancel_durable")
+            self.assertIn(expected, result.stdout)
+
+    def test_physical_cancel_without_receipt_cannot_ack(self):
+        mutant = self.replace_once(
+            self.source,
+            'launcher[a] = "manager_cancel_durable" /\\ nativeUnit[a]',
+            'launcher[a] \\in {"manager_cancel_durable", "manager_cancel_receipt_lost"} /\\ nativeUnit[a]',
+        )
+        result = self.run_model(
+            mutant, "SPECIFICATION Spec\nINVARIANT AckRequiresDurableCancellationReceipt\nCHECK_DEADLOCK FALSE\n"
+        )
+        self.assertEqual(result.returncode, 12, result.stdout)
+        self.assertIn("Error: Invariant AckRequiresDurableCancellationReceipt is violated.", result.stdout)
+        self.assertIn("manager_cancel_receipt_lost", result.stdout)
+        self.assertIn("revokeAck = TRUE", result.stdout)
+
+    def test_cannot_invent_receipt_after_signal_loss(self):
+        mutant = self.replace_once(
+            self.source,
+            'PersistExactNativeManagerCancel(a) ==\n    /\\ launcher[a] = "manager_cancel_observed"',
+            'PersistExactNativeManagerCancel(a) ==\n    /\\ launcher[a] \\in {"manager_cancel_observed", "manager_cancel_receipt_lost"}',
+        )
+        result = self.run_model(
+            mutant, "SPECIFICATION Spec\nPROPERTY DurableCancelRequiresObserved\nCHECK_DEADLOCK FALSE\n"
+        )
+        self.assertEqual(result.returncode, 13, result.stdout)
+        self.assertIn("Error: Action property DurableCancelRequiresObserved is violated.", result.stdout)
+        self.assertIn("manager_cancel_receipt_lost", result.stdout)
+        self.assertIn("manager_cancel_durable", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
