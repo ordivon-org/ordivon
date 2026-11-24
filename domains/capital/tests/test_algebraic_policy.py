@@ -258,3 +258,57 @@ def test_independent_spec_rejects_forged_success_even_with_zero_residual(field: 
         assert_one_period_economic_replay(
             problem, replace(result, **{field: forged, "numerical_residual": 0.0})
         )
+
+
+@pytest.mark.parametrize(
+    "field,value", (
+        ("gamma", True), ("probability", True),
+        ("initial_margin", (True,)), ("turnover_cost", (False,)),
+        ("old_weights", (False,)), ("risky_gross_returns", (True,)),
+        ("cash_gross_return", True), ("debt_gross_return", True),
+        ("maintenance", (False,)), ("gamma", "2"), ("gamma", 10**400),
+    ),
+    ids=(
+        "bool-gamma", "bool-probability", "bool-initial-margin", "bool-fee",
+        "bool-old-weight", "bool-gross-return", "bool-lend", "bool-borrow",
+        "bool-maintenance", "numeric-string", "overflowing-integer",
+    ),
+)
+def test_economic_contract_rejects_non_numeric_or_unrepresentable_values(field, value):
+    # JSON booleans and numbers have distinct economic meanings even though
+    # Python bool is a subclass of int. Numeric strings are not observations.
+    scenario = Scenario(1.0, (1.2,), 1.0, 1.04, (.2,))
+    problem = OnePeriodProblem(2.0, (.5,), (.01,), (0.0,), (scenario,))
+    if field in {"gamma", "initial_margin", "turnover_cost", "old_weights"}:
+        invalid = replace(problem, **{field: value})
+    else:
+        invalid = replace(problem, scenarios=(replace(scenario, **{field: value}),))
+    with pytest.raises(AlgebraicPolicyError):
+        solve_one_period(invalid)
+
+
+def test_feasible_economic_replay_is_not_an_optimality_certificate() -> None:
+    problem = _solver_contract_cases()[1]
+    # Cash-only is admissible, all identities are exact, and even the
+    # published standing and residual can be forged without changing them.
+    cash_only = OnePeriodSolution(
+        risky_weights=(0.0,), cash_weight=1.0, debt_weight=0.0,
+        transaction_cost=0.0, post_trade_equity=1.0,
+        scenario_equities=(1.0, 1.0), expected_equity=1.0,
+        expected_utility=0.0, certainty_equivalent=1.0, numerical_residual=0.0,
+    )
+    assert_one_period_economic_replay(problem, cash_only)
+    # Independent admissible witness: buy one unit, no debt or fees.
+    # It strictly dominates cash in both supplied scenarios, so strict
+    # monotonicity of CRRA refutes optimality of cash without a solver.
+    invest = OnePeriodSolution(
+        risky_weights=(1.0,), cash_weight=0.0, debt_weight=0.0,
+        transaction_cost=0.0, post_trade_equity=1.0,
+        scenario_equities=(1.8, 2.0), expected_equity=.4 * 1.8 + .6 * 2.0,
+        expected_utility=.4 * math.log(1.8) + .6 * math.log(2.0),
+        certainty_equivalent=math.exp(.4 * math.log(1.8) + .6 * math.log(2.0)),
+        numerical_residual=0.0,
+    )
+    assert_one_period_economic_replay(problem, invest)
+    assert all(a > b for a, b in zip(invest.scenario_equities, cash_only.scenario_equities, strict=True))
+    assert invest.expected_utility > cash_only.expected_utility

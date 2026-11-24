@@ -96,38 +96,52 @@ def merton_single_risky_crra(
     return 1.0
 
 
+def _finite_economic_number(value: object) -> bool:
+    """Economic scalar input, not an implicitly coerced boolean/string.
+
+    The numerical solver uses floating-point arithmetic; out-of-range
+    integers must fail at admission rather than in the optimizer.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
 def _validate(problem: OnePeriodProblem) -> None:
     n = len(problem.initial_margin)
     if n == 0 or len(problem.turnover_cost) != n or len(problem.old_weights) != n:
         raise AlgebraicPolicyError("nonempty, aligned asset vector required")
-    if not math.isfinite(problem.gamma) or problem.gamma <= 0:
+    if not _finite_economic_number(problem.gamma) or problem.gamma <= 0:
         raise AlgebraicPolicyError("positive finite CRRA gamma required")
     for margin in problem.initial_margin:
-        if not math.isfinite(margin) or not 0 < margin <= 1:
+        if not _finite_economic_number(margin) or not 0 < margin <= 1:
             raise AlgebraicPolicyError("broker initial margin must be in (0,1]")
-    if any(not math.isfinite(x) or x < 0 for x in problem.turnover_cost):
+    if any(not _finite_economic_number(x) or x < 0 for x in problem.turnover_cost):
         raise AlgebraicPolicyError("nonnegative turnover costs required")
-    if any(not math.isfinite(x) or x < 0 for x in problem.old_weights):
+    if any(not _finite_economic_number(x) or x < 0 for x in problem.old_weights):
         raise AlgebraicPolicyError("long-only existing risky weights required")
     if not problem.scenarios:
         raise AlgebraicPolicyError("conditional outcome distribution required")
     probability_sum = 0.0
     for s in problem.scenarios:
         if not (
-            math.isfinite(s.probability)
+            _finite_economic_number(s.probability)
             and s.probability > 0
             and len(s.risky_gross_returns) == n
             and len(s.maintenance) == n
-            and math.isfinite(s.cash_gross_return)
-            and math.isfinite(s.debt_gross_return)
+            and _finite_economic_number(s.cash_gross_return)
+            and _finite_economic_number(s.debt_gross_return)
             and s.cash_gross_return > 0
             and s.debt_gross_return >= s.cash_gross_return
         ):
             raise AlgebraicPolicyError("scenario probability/shape/financing invalid")
         probability_sum += s.probability
-        if any(not math.isfinite(x) or x < 0 for x in s.risky_gross_returns):
+        if any(not _finite_economic_number(x) or x < 0 for x in s.risky_gross_returns):
             raise AlgebraicPolicyError("nonnegative finite risky gross returns required")
-        if any(not math.isfinite(x) or not 0 <= x <= 1 for x in s.maintenance):
+        if any(not _finite_economic_number(x) or not 0 <= x <= 1 for x in s.maintenance):
             raise AlgebraicPolicyError("invalid provider maintenance requirement")
     if not math.isclose(probability_sum, 1.0, rel_tol=1e-10, abs_tol=1e-12):
         raise AlgebraicPolicyError("scenario probabilities must sum to one")
