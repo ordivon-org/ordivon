@@ -1,6 +1,6 @@
 use super::terminal_event::terminal_events_coherent;
 use super::types::{PgJobReadback, PgJobSnapshot};
-use crate::pg_admission::{require_pg_writer_epoch, PgAdmissionError, PgAdmissionStore};
+use crate::pg_admission::{PgAdmissionError, PgAdmissionStore, require_pg_writer_epoch};
 use postgres::IsolationLevel;
 
 impl PgAdmissionStore {
@@ -56,6 +56,23 @@ impl PgAdmissionStore {
             return Ok(PgJobReadback::Inconclusive);
         };
         let attempt_id: String = attempt.get(0);
+        // The selected Attempt cannot certify the whole Job while an older
+        // Attempt still has an unresolved lifecycle or capacity reservation.
+        // Read the original PG history in the same snapshot; missing
+        // reservation evidence is not a released predecessor.
+        let unsettled_predecessor: bool = tx
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM attempts a \
+             LEFT JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id \
+             WHERE a.job_id=$1 AND a.attempt_id<>$2 \
+               AND (a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost') \
+                    OR c.state IS DISTINCT FROM 'released'))",
+                &[&job_id, &attempt_id],
+            )?
+            .get(0);
+        if unsettled_predecessor {
+            return Ok(PgJobReadback::Inconclusive);
+        }
         let Some(reservation) = tx.query_opt(
             "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
             &[&attempt_id],
