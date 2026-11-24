@@ -7,7 +7,11 @@ row validation; it does not introduce separate persistence or route policy.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
+
+import psycopg
 
 from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
@@ -16,13 +20,18 @@ from .collection_pagination import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_space_records import read_space_in_tx
 
 
 class SocialSpaceReadQueries:
     """Read-only PostgreSQL projections; SocialStore remains the sole write authority."""
 
-    dsn: str
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def get_space(
         self,
@@ -63,7 +72,7 @@ class SocialSpaceReadQueries:
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_space(conn, space_ref)
+            RecordReferenceLookup._require_space(conn, space_ref)
             rows = conn.execute(
                 "SELECT subject_ref FROM space_subjects WHERE space_ref=%s "
                 "AND (%s::text IS NULL OR subject_ref>%s) ORDER BY subject_ref LIMIT %s",
@@ -110,7 +119,7 @@ class SocialSpaceReadQueries:
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_space(conn, space_ref)
+            RecordReferenceLookup._require_space(conn, space_ref)
             rows = conn.execute(
                 "SELECT actor_ref,standing,updated_at FROM participations WHERE space_ref=%s "
                 "AND (%s::text IS NULL OR actor_ref>%s) ORDER BY actor_ref LIMIT %s",
@@ -170,7 +179,7 @@ class SocialSpaceReadQueries:
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if actor_ref is not None:
-                self._require_actor(conn, actor_ref)
+                ActorReferenceLookup._require_actor(conn, actor_ref)
             rows = conn.execute(
                 "SELECT s.space_ref,s.purpose,s.created_at,"
                 "(SELECT count(*) FROM topics t WHERE t.space_ref=s.space_ref AND t.state='open') AS open_topics,"

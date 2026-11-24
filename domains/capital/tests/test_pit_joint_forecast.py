@@ -933,6 +933,42 @@ class MarketCapturedVintageAdmission(unittest.TestCase):
         self.assertAlmostEqual(earlier[key].adjusted_close, 108.9)
         self.assertAlmostEqual(later[key].adjusted_close, 999)
 
+    def test_market_capture_rejects_caller_invented_exchange_clocks(self):
+        cases = [
+            (self.csv(), date(2026, 10, 30),
+             datetime(2026, 10, 30, 15, tzinfo=UTC),
+             datetime(2026, 10, 30, 16, tzinfo=UTC)),
+            (self.csv().replace(b"2026-10-30", b"2026-10-31"), date(2026, 10, 31),
+             datetime(2026, 10, 31, 20, tzinfo=UTC),
+             datetime(2026, 11, 1, 12, tzinfo=UTC)),
+            (self.csv().replace(b"2026-10-30", b"2026-11-27"), date(2026, 11, 27),
+             datetime(2026, 11, 27, 21, tzinfo=UTC),
+             datetime(2026, 11, 27, 22, tzinfo=UTC)),
+        ]
+        for raw, session, close, capture in cases:
+            with self.subTest(session=session, close=close):
+                with self.assertRaisesRegex(PointInTimeError, "XNYS"):
+                    self.admitted(raw, last_session=session,
+                                  last_session_close_at=close, captured_at=capture)
+
+    def test_market_capture_rejects_priced_non_session_inside_sparse_history(self):
+        for invalid in (b"2026-09-05", b"2026-09-07"):
+            with self.subTest(invalid=invalid):
+                raw = self.csv().replace(b"2026-09-30", invalid)
+                with self.assertRaisesRegex(PointInTimeError, "XNYS"):
+                    self.admitted(raw)
+
+    def test_market_capture_accepts_real_early_close_without_dense_history(self):
+        raw = self.csv().replace(b"2026-10-30", b"2026-11-27")
+        rows = self.admitted(
+            raw, last_session=date(2026, 11, 27),
+            last_session_close_at=datetime(2026, 11, 27, 18, tzinfo=UTC),
+            captured_at=datetime(2026, 11, 27, 18, tzinfo=UTC),
+        )
+        self.assertEqual(len(rows), 8)
+        self.assertTrue(all(r.published_at == datetime(2026, 11, 27, 18, tzinfo=UTC)
+                            for r in rows))
+
     def test_digest_missing_quotes_and_impossible_capture_are_rejected(self):
         raw = self.csv()
         with self.assertRaisesRegex(PointInTimeError, "Markets source admission"):

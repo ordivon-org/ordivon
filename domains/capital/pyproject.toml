@@ -18,6 +18,8 @@ nonlive = [
     "pandas==3.1.1",
 ]
 research = [
+    # Rust-backed XLSX reader qualified against the Philadelphia Fed vintage workbook.
+    "python-calamine==0.9.1",
     "numpy==2.5.3",
     "scipy==1.18.1",
     "scikit-learn==1.9.1",

@@ -72,3 +72,18 @@ after natural lock release. For an authorized deployment choose the actual
 lock and statement timeouts explicitly for that session; quiesce affected
 consumers, do not kill unrelated writers or globally change PostgreSQL
 settings. The bounded test is not evidence of production lock duration.
+
+
+## Native serving-process readiness
+
+The production main unit historically called HostV2.initialize() in its
+ExecStartPre; the standalone STDIO entrypoint and protected HTTP unit did not.
+The shared serving entrypoint now checks the existing owner schema using the
+same native pool before either transport serves. build_server() deliberately
+remains an offline SDK composition/discovery entrypoint, not serving admission.
+No automatic migration, credential change or extra authority is introduced.
+A dedicated schema-14 fixture (ORDIVON_HOST_V2_MIGRATION_STARTUP_DSN) proves
+both native processes reject the mismatch before serving; the normal
+schema-15 test DB proves actual STDIO and authenticated loopback HTTP calls.
+A schema check at startup does not guarantee compatibility across an online
+migration: quiesce all affected serving consumers before changing schema.

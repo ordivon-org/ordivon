@@ -119,6 +119,7 @@ description = "Validate Runtime dispatch contract trace and model-check pinned T
 run = """
 set -euo pipefail
 python scripts/verify_formal_trace.py
+python scripts/verify_formal_trace.py --native-profile pg
 # Read the cache path from the existing upstream-locked toolchain contract.
 local_jar=$(python -c 'import json; print(json.load(open("formal/toolchain.lock.json", encoding="utf-8"))["cacheRelativePath"])')
 if [[ "${ORDIVON_TLA_TOOLS_JAR+x}" != x && ! -f "$local_jar" ]]; then

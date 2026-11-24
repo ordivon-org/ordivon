@@ -13,15 +13,23 @@ import ast
 import json
 import re
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
 import convergence_plan
 from ci_telemetry import Gh
 from evidence_check_decision import _decision, _standing
-from evidence_github_checks import _provider_checks, _select_check
+from evidence_formal_archive import (
+    ARCHIVE_PROVENANCE,
+    decode_report_json,
+    download_formal_archive,
+)
+from evidence_github_checks import (
+    CheckObservationError,
+    _provider_checks,
+    _select_check,
+    bounded_provider_rows,
+)
 from evidence_source_policy import qualify_current_selector
 from source_history_legos import current_tree, require_ancestral_source_cuts
 from source_history_legos import git as git_native
@@ -47,6 +55,8 @@ def decide(
     prior_sha: str | None = None,
     check_name: str = "root-verification",
     github: Gh | None = None,
+    current_workflow_run_id: int | None = None,
+    prior_workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
     if not REPO_PATTERN.fullmatch(repo) or repo != DEFAULT_REPOSITORY:
         raise ValueError("GitHub repository must be the canonical Ordivon owner/name")
@@ -59,7 +69,8 @@ def decide(
     current = _select_check(
         _provider_checks(gh, repo, current_sha),
         sha=current_sha,
-        check_name=check_name,
+        check_name=check_name, gh=gh, repo=repo,
+        workflow_run_id=current_workflow_run_id,
     )
     past = None
     # A current pending/failed result already determines this Check Run's
@@ -69,7 +80,8 @@ def decide(
         past = _select_check(
             _provider_checks(gh, repo, prior_sha),
             sha=prior_sha,
-            check_name=check_name,
+            check_name=check_name, gh=gh, repo=repo,
+            workflow_run_id=prior_workflow_run_id,
         )
     impact = None
     if (
@@ -326,10 +338,7 @@ def inspect_historical_formal_report_file(
     """Read bounded JSON downloaded from the official existing GitHub run."""
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 1048576:
         raise ValueError("historical Formal report must be bounded regular file")
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (ValueError, UnicodeError) as exc:
-        raise ValueError("historical Formal report must contain valid JSON") from exc
+    payload = decode_report_json(path.read_bytes())
     return inspect_historical_formal_report(
         repo=repo,
         source_sha=source_sha,
@@ -402,7 +411,7 @@ def _workflow_formal_artifact(
     head_sha: str,
     run: dict[str, Any],
     git_repo: Path,
-) -> tuple[dict[str, Any], str, str]:
+) -> tuple[dict[str, Any], str, str, dict[str, Any] | None]:
     """Select one actual Formal Artifact, not an artifact guessed from PR head.
 
     GitHub's pull_request workflow Check Run is tied to PR Head while
@@ -411,37 +420,10 @@ def _workflow_formal_artifact(
     the merge SourceCut as a historical execution context.
     """
     prefix = "ordivon-core-formal-"
-    rows: list[dict[str, Any]] = []
-    page = 1
-    while True:
-        payload = gh.api(
-            f"repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100&page={page}"
-        )
-        if (
-            not isinstance(payload, dict)
-            or type(payload.get("total_count")) is not int
-            or not isinstance(payload.get("artifacts"), list)
-        ):
-            raise ValueError("historical Formal Artifact index unavailable")
-        count = payload["total_count"]
-        batch = payload["artifacts"]
-        if (
-            not (0 <= count <= 2000)
-            or len(batch) > 100
-            or any(not isinstance(row, dict) for row in batch)
-        ):
-            raise ValueError("historical Formal Artifact listing is invalid")
-        rows.extend(batch)
-        if len(rows) == count:
-            break
-        if len(rows) > count or not batch or page >= 20:
-            raise ValueError("historical Formal Artifact listing is incomplete")
-        page += 1
-    identifiers = [row.get("id") for row in rows]
-    if any(type(item) is not int or item <= 0 for item in identifiers) or (
-        len(set(identifiers)) != len(identifiers)
-    ):
-        raise ValueError("historical Formal Artifact listing duplicates identities")
+    rows = bounded_provider_rows(
+        gh, f"repos/{repo}/actions/runs/{run_id}/artifacts",
+        key="artifacts", label="historical Formal Artifact",
+    )
     matching = [
         row
         for row in rows
@@ -464,46 +446,44 @@ def _workflow_formal_artifact(
         or re.fullmatch(r"sha256:[0-9a-f]{64}", artifact["digest"]) is None
     ):
         raise ValueError("historical Formal Artifact provenance is unqualified")
+    witness = None
     if actual_sha == head_sha:
         relation = "DIRECT_WORKFLOW_HEAD"
     else:
         if run.get("event") != "pull_request":
             raise ValueError("non-PR workflow Artifact source differs from Head")
         prs = run.get("pull_requests")
-        if not isinstance(prs, list) or len(prs) != 1 or not isinstance(prs[0], dict):
+        if not isinstance(prs, list) or len(prs) > 1:
             raise ValueError("PR workflow lacks unique exact provenance")
-        pr = prs[0]
-        if (
-            type(pr.get("number")) is not int
-            or pr["number"] <= 0
-            or not isinstance(pr.get("head"), dict)
-            or not isinstance(pr.get("base"), dict)
-            or pr["head"].get("sha") != head_sha
-        ):
-            raise ValueError("PR workflow Head SourceCut does not match provider")
-        # Read the original Git commit object with native replace/graft guards.
         lineage = (
-            git_native(
-                git_repo,
-                "--no-replace-objects",
-                "rev-list",
-                "--parents",
-                "-n",
-                "1",
-                actual_sha,
-            )
-            .strip()
-            .split()
+            git_native(git_repo, "--no-replace-objects", "rev-list",
+                       "--parents", "-n", "1", actual_sha).strip().split()
         )
-        if (
-            len(lineage) != 3
-            or lineage[0] != actual_sha
-            or lineage[1] != pr["base"].get("sha")
-            or lineage[2] != head_sha
-        ):
+        if len(lineage) != 3 or lineage[0] != actual_sha or lineage[2] != head_sha:
             raise ValueError("PR synthetic merge parents mismatch original Run")
-        relation = "PR_SYNTHETIC_MERGE_BASE_AND_HEAD"
-    return artifact, actual_sha, relation
+        if not prs:
+            # GitHub can drop PR associations after a PR is merged. Preserve
+            # independently qualified archive/content and Git parent facts,
+            # but do NOT promote the missing original base attestation.
+            relation = "PR_SYNTHETIC_MERGE_HEAD_MATCH_BASE_UNATTESTED"
+        else:
+            pr = prs[0]
+            if (
+                not isinstance(pr, dict)
+                or type(pr.get("number")) is not int or pr["number"] <= 0
+                or not isinstance(pr.get("head"), dict)
+                or not isinstance(pr.get("base"), dict)
+                or pr["head"].get("sha") != head_sha
+            ):
+                raise ValueError("PR workflow Head SourceCut does not match provider")
+            if lineage[1] != pr["base"].get("sha"):
+                raise ValueError("PR synthetic merge parents mismatch original Run")
+            relation = "PR_SYNTHETIC_MERGE_BASE_AND_HEAD"
+        witness = {
+            "observedBase": lineage[1], "observedHead": lineage[2],
+            "providerBaseAttested": relation == "PR_SYNTHETIC_MERGE_BASE_AND_HEAD",
+        }
+    return artifact, actual_sha, relation, witness
 
 
 def fetch_original_formal_report(
@@ -512,11 +492,12 @@ def fetch_original_formal_report(
     source_sha: str,
     github: Gh | None = None,
     candidate_sha: str | None = None,
+    workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
-    """Use original GitHub Check Run and official gh run download (read-only).
+    """Read the native immutable Artifact ID and verify archive digest, then Git content.
 
-    There is no generic proof permission, no new Artifact REST downloader
-    and no verification dispatch. Source-blobs are checked after download.
+    No generic proof permission or verification dispatch. Historical PR
+    source binding and toolchain/consumer applicability remain independent.
     """
     source_sha = _exact_commit(source_sha)
     if repo != DEFAULT_REPOSITORY:
@@ -525,30 +506,38 @@ def fetch_original_formal_report(
     check = _select_check(
         _provider_checks(gh, repo, source_sha),
         sha=source_sha,
-        check_name="root-verification",
+        check_name="root-verification", gh=gh, repo=repo,
+        workflow_run_id=workflow_run_id,
     )
     if _standing(check) != "PASS":
         raise ValueError("historical Formal report requires prior successful check")
-    path = urlsplit(check["detailsUrl"]).path
-    match = re.fullmatch(
-        r"/ordivon-org/ordivon/actions/runs/([1-9][0-9]*)/job/[1-9][0-9]*",
-        path,
-    )
-    if match is None:
-        raise ValueError("historical Formal report run identity missing")
-    run_id = match.group(1)
-    # A Check Run's details URL must actually target this immutable Git
-    # SourceCut's workflow run, not merely a plausible GitHub URL.
-    run = gh.api(f"repos/{repo}/actions/runs/{run_id}")
-    if (
-        not isinstance(run, dict)
-        or run.get("id") != int(run_id)
-        or run.get("head_sha") != source_sha
-        or not isinstance(run.get("repository"), dict)
-        or run["repository"].get("full_name") != repo
-    ):
-        raise ValueError("historical Formal workflow run SourceCut mismatch")
-    artifact, execution_sha, source_relation = _workflow_formal_artifact(
+    run_id = str(check["workflowRunId"])
+    attempt = check["workflowRunAttempt"]
+    endpoint = f"repos/{repo}/actions/runs/{run_id}"
+
+    def original_run():
+        run = gh.api(endpoint)
+        if (
+            not isinstance(run, dict) or run.get("id") != int(run_id)
+            or run.get("head_sha") != source_sha
+            or not isinstance(run.get("repository"), dict)
+            or run["repository"].get("full_name") != repo
+            or run.get("check_suite_id") != check["checkSuiteId"]
+            or run.get("run_attempt") != attempt
+            or run.get("path") != ".github/workflows/ci.yml"
+        ):
+            raise ValueError("historical Formal workflow run SourceCut mismatch")
+        return run
+
+    run = original_run()
+    # Native Artifact metadata identifies Run, not Attempt. Refuse the
+    # association on rerun until an independent attempt-specific witness exists.
+    if attempt != 1:
+        raise CheckObservationError(
+            "UNKNOWN_FORMAL_ARTIFACT_ATTEMPT",
+            "historical artifact metadata lacks attempt-specific identity for rerun",
+        )
+    artifact, execution_sha, source_relation, source_witness = _workflow_formal_artifact(
         gh=gh,
         repo=repo,
         run_id=run_id,
@@ -557,38 +546,26 @@ def fetch_original_formal_report(
         git_repo=Path.cwd(),
     )
     name = artifact["name"]
-    with tempfile.TemporaryDirectory(prefix="ordivon-formal-evidence-") as directory:
-        subprocess.run(
-            [
-                "gh",
-                "run",
-                "download",
-                run_id,
-                "--repo",
-                repo,
-                "--name",
-                name,
-                "--dir",
-                directory,
-            ],
-            capture_output=True,
-            check=True,
-            timeout=75,
-        )
-        result = inspect_historical_formal_report_file(
-            repo=Path.cwd(),
-            source_sha=execution_sha,
-            path=Path(directory) / "ordivon-core-formal-report.json",
-        )
+    payload = download_formal_archive(repo, artifact)
+    result = inspect_historical_formal_report(
+        repo=Path.cwd(), source_sha=execution_sha, report=payload,
+    )
+    original_run()
     result["originalCheckRunId"] = check["checkRunId"]
     result["originalWorkflowRunId"] = run_id
+    result["originalWorkflowRunAttempt"] = attempt
     result["githubArtifactName"] = name
     result["githubArtifactId"] = artifact["id"]
     result["githubArtifactArchiveDigest"] = artifact["digest"]
     result["requestedWorkflowHeadSha"] = source_sha
     result["verifiedExecutionSourceCut"] = execution_sha
     result["sourceRelationship"] = source_relation
-    result["artifactProvenance"] = "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+    if source_witness is not None:
+        result["sourceRelationshipWitness"] = source_witness
+    result["artifactProvenance"] = ARCHIVE_PROVENANCE
+    result["archiveQualification"] = "EXACT_ARTIFACT_ID_SHA256_AND_SIZE"
+    if source_relation == "PR_SYNTHETIC_MERGE_HEAD_MATCH_BASE_UNATTESTED":
+        result["sourceRelationshipObligation"] = "RECOVER_ORIGINAL_PROVIDER_PR_BASE_ATTESTATION"
     if candidate_sha is not None:
         result["executionInputsVsCandidate"] = (
             compare_formal_execution_inputs_to_candidate(
@@ -609,6 +586,8 @@ def decide_with_optional_formal_source_delta(
     include_formal_source_delta: bool,
     github: Gh | None = None,
     git_repo: Path | None = None,
+    current_workflow_run_id: int | None = None,
+    prior_workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
     """GitHub provider uncertainty does not erase immutable Git source evidence.
 
@@ -628,6 +607,8 @@ def decide_with_optional_formal_source_delta(
             prior_sha=prior_sha,
             check_name=check_name,
             github=github,
+            current_workflow_run_id=current_workflow_run_id,
+            prior_workflow_run_id=prior_workflow_run_id,
         )
     except (
         OSError,
@@ -642,15 +623,34 @@ def decide_with_optional_formal_source_delta(
             "currentSourceCut": current_sha,
             "priorSourceCut": prior_sha,
             "disposition": "UNKNOWN_CURRENT_CHECK_PROVIDER",
-            "nextOperation": "inspect-current-provider-when-published",
+            "nextOperation": (
+                {
+                    "UNKNOWN_AMBIGUOUS_WORKFLOW_CONTEXT": "select-explicit-workflow-run-id",
+                    "UNKNOWN_REQUESTED_WORKFLOW_CONTEXT": "inspect-requested-workflow-run",
+                    "UNKNOWN_CHECK_SUITE_COVERAGE": "inspect-native-check-suite-coverage",
+                    "UNKNOWN_WORKFLOW_ATTEMPT_CHECK": "inspect-native-workflow-attempt",
+                    "UNKNOWN_WORKFLOW_CONTEXT": "inspect-native-workflow-identity",
+                }.get(exc.reason, "inspect-current-provider-when-published")
+                if isinstance(exc, CheckObservationError)
+                else "inspect-current-provider-when-published"
+            ),
             "existingCheckReceiptReusable": False,
             "proofReuseAdmissible": False,
+            "currentApplicability": "UNKNOWN_EXTERNAL_ASSUMPTIONS",
+            "currentSecurityStanding": "NOT_ASSESSED_BY_CHECK_RECEIPT",
             "errorType": type(exc).__name__,
+            "providerQualification": (
+                exc.reason if isinstance(exc, CheckObservationError) else "UNKNOWN_PROVIDER_OR_SOURCE"
+            ),
             "nonClaims": [
                 "Missing current GitHub Check Run is not an execution failure",
                 "Immutable local Git and prior Artifact evidence are independent",
             ],
         }
+        if isinstance(exc, CheckObservationError) and exc.contexts:
+            decision["observedWorkflowContexts"] = exc.contexts[:32]
+            decision["observedWorkflowContextCount"] = len(exc.contexts)
+            decision["observedWorkflowContextsComplete"] = len(exc.contexts) <= 32
     if not include_formal_source_delta:
         return decision
     if prior_sha is None:
@@ -761,7 +761,8 @@ def compare_original_formal_tool_inputs(
     if (
         not isinstance(historical_receipt, dict)
         or historical_receipt.get("artifactProvenance")
-        != "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+        != ARCHIVE_PROVENANCE
+        or historical_receipt.get("archiveQualification") != "EXACT_ARTIFACT_ID_SHA256_AND_SIZE"
         or current_observation.get("kind")
         != "ordivon.native-formal-tool-input-observation"
         or current_observation.get("sourceCut") != target_source_cut
@@ -929,10 +930,28 @@ def assess_formal_evidence_claim(
         ]
         return assessment
     execution_cut = evidence.get("verifiedExecutionSourceCut")
+    relationship = evidence.get("sourceRelationship")
+    witness = evidence.get("sourceRelationshipWitness")
+    partial_pr_binding = (
+        relationship == "PR_SYNTHETIC_MERGE_HEAD_MATCH_BASE_UNATTESTED"
+        and isinstance(witness, dict)
+        and witness.get("providerBaseAttested") is False
+        and isinstance(witness.get("observedBase"), str)
+        and SHA_PATTERN.fullmatch(witness["observedBase"]) is not None
+        and isinstance(witness.get("observedHead"), str)
+        and SHA_PATTERN.fullmatch(witness["observedHead"]) is not None
+        and witness["observedHead"] == evidence.get("requestedWorkflowHeadSha")
+        and evidence.get("sourceRelationshipObligation") == "RECOVER_ORIGINAL_PROVIDER_PR_BASE_ATTESTATION"
+    )
     metadata_qualified = (
         evidence.get("standing") == "CONTENT_MATCHES_DECLARED_GIT_SOURCE"
         and evidence.get("artifactProvenance")
-        == "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
+        == ARCHIVE_PROVENANCE
+        and evidence.get("archiveQualification") == "EXACT_ARTIFACT_ID_SHA256_AND_SIZE"
+        and type(evidence.get("originalWorkflowRunAttempt")) is int
+        and evidence["originalWorkflowRunAttempt"] == 1
+        and isinstance(evidence.get("githubArtifactArchiveDigest"), str)
+        and re.fullmatch(r"sha256:[0-9a-f]{64}", evidence["githubArtifactArchiveDigest"]) is not None
         and evidence.get("sourceCut") == execution_cut
         and isinstance(execution_cut, str)
         and SHA_PATTERN.fullmatch(execution_cut) is not None
@@ -948,12 +967,10 @@ def assess_formal_evidence_claim(
         and type(evidence.get("githubArtifactId")) is int
         and evidence["githubArtifactId"] > 0
         and evidence.get("githubArtifactName") == "ordivon-core-formal-" + execution_cut
-        and isinstance(evidence.get("sourceRelationship"), str)
-        and evidence["sourceRelationship"]
-        in {
-            "DIRECT_WORKFLOW_HEAD",
-            "PR_SYNTHETIC_MERGE_BASE_AND_HEAD",
-        }
+        and (
+            relationship in ("DIRECT_WORKFLOW_HEAD", "PR_SYNTHETIC_MERGE_BASE_AND_HEAD")
+            or partial_pr_binding
+        )
         and type(delta.get("priorDeclaredPaths")) is int
         and type(delta.get("candidateDeclaredPaths")) is int
         and delta["priorDeclaredPaths"] > 0
@@ -970,7 +987,10 @@ def assess_formal_evidence_claim(
         return assessment
     assessment["evidenceRefs"] = [
         {
-            "kind": "GITHUB_ORIGINAL_FORMAL_ARTIFACT",
+            "kind": (
+                "GITHUB_ARTIFACT_ARCHIVE_CONTENT_ONLY"
+                if partial_pr_binding else "GITHUB_ORIGINAL_FORMAL_ARTIFACT"
+            ),
             "checkRunId": evidence["originalCheckRunId"],
             "artifactId": evidence["githubArtifactId"],
             "executionSourceCut": execution_cut,
@@ -1013,6 +1033,22 @@ def assess_formal_evidence_claim(
         return assessment
     assessment["declaredSourceInputStanding"] = standing
     assessment["changedDeclaredPaths"] = changed
+    if partial_pr_binding:
+        assessment["decision"] = "UNKNOWN_ORIGINAL_PR_BASE_ATTESTATION"
+        assessment["nextOperation"] = "recover-original-provider-pr-base-attestation"
+        assessment["unresolvedObligations"] = [
+            {
+                "kind": "RECOVER_ORIGINAL_PROVIDER_PR_BASE_ATTESTATION",
+                "observedGitParents": witness,
+                "reason": "Archive content and Git source comparison are qualified, but original provider Base association is absent",
+            }
+        ]
+        if changed:
+            assessment["unresolvedObligations"].append({
+                "kind": "INSPECT_CHANGED_FORMAL_DECLARED_INPUTS", "paths": changed,
+                "reason": "Independent two-snapshot source change witness; not proof failure",
+            })
+        return assessment
     if claim_kind == FORMAL_SOURCE_INPUT_CLAIM:
         if standing == "UNCHANGED_DECLARED_SOURCE_INPUTS":
             assessment["decision"] = "SUPPORTED_SCOPED_SOURCE_INPUT_FACT"
@@ -1094,6 +1130,10 @@ def main() -> int:
     parser.add_argument("--repo", default=DEFAULT_REPOSITORY)
     parser.add_argument("--current-sha", required=True)
     parser.add_argument("--prior-sha")
+    parser.add_argument("--current-workflow-run-id", type=int,
+                        help="explicit native Workflow Run identity for current Check Run")
+    parser.add_argument("--prior-workflow-run-id", type=int,
+                        help="explicit native Workflow Run identity for prior Check Run/Artifact")
     parser.add_argument("--check-name", default="root-verification")
     parser.add_argument(
         "--formal-source-delta",
@@ -1133,6 +1173,8 @@ def main() -> int:
             prior_sha=args.prior_sha,
             check_name=args.check_name,
             include_formal_source_delta=args.formal_source_delta,
+            current_workflow_run_id=args.current_workflow_run_id,
+            prior_workflow_run_id=args.prior_workflow_run_id,
         )
         if (
             args.historical_formal_report is not None
@@ -1151,6 +1193,7 @@ def main() -> int:
                         repo=args.repo,
                         source_sha=args.prior_sha,
                         candidate_sha=args.current_sha,
+                        workflow_run_id=args.prior_workflow_run_id,
                     )
                 else:
                     report = inspect_historical_formal_report_file(
@@ -1171,6 +1214,10 @@ def main() -> int:
                     "standing": "UNKNOWN_FORMAL_RECEIPT_CONTENT",
                     "proofReuseAdmissible": False,
                     "errorType": type(exc).__name__,
+                    "receiptQualification": (
+                        exc.reason if isinstance(exc, CheckObservationError)
+                        else "UNKNOWN_ARCHIVE_OR_SOURCE_BINDING"
+                    ),
                 }
         if args.compare_current_formal_tool_inputs:
             try:

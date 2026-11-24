@@ -95,7 +95,7 @@ if [[ -n "$container" ]]; then
     fi
   done
   # Preserve the original 0014 state in separate destructive negative fixtures.
-  for variant in clock history allocator lock; do
+  for variant in clock history allocator lock startup; do
     database="ordivon_migration_$variant"
     docker exec "$container" createdb -U ordivon_ci "$database"
     migration_dsn="postgresql://ordivon_ci:$password@127.0.0.1:$port/$database"

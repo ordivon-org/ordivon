@@ -28,6 +28,26 @@ def require_xnys_session_grid(
     The caller must separately verify immutable captured bytes, instrument
     identity, source rights, issuer revisions and historical availability.
     """
+    return _qualify_xnys_session_dates(
+        source_dates, symbol=symbol, requested_start=requested_start,
+        requested_end=requested_end, complete=True,
+    )
+
+
+def require_xnys_session_subset(
+    source_dates: Iterable[Any], *, symbol: str, requested_start: str, requested_end: str
+) -> dict[str, Any]:
+    """Qualify sparse priced observations without claiming daily completeness."""
+    return _qualify_xnys_session_dates(
+        source_dates, symbol=symbol, requested_start=requested_start,
+        requested_end=requested_end, complete=False,
+    )
+
+
+def _qualify_xnys_session_dates(
+    source_dates: Iterable[Any], *, symbol: str, requested_start: str,
+    requested_end: str, complete: bool,
+) -> dict[str, Any]:
     if not isinstance(symbol, str) or not (1 <= len(symbol) <= 30):
         raise MarketSessionQualificationError("symbol: invalid identity")
     raw = list(source_dates)
@@ -73,8 +93,8 @@ def require_xnys_session_grid(
         raise MarketSessionQualificationError(f"{symbol}: invalid source request bounds") from exc
     if len(expected) < 2 or len(expected) > MAX_SOURCE_ROWS:
         raise MarketSessionQualificationError(f"{symbol}: no bounded exchange sessions requested")
-    if not sessions.equals(expected):
-        invented = sessions.difference(expected)
+    invented = sessions.difference(expected)
+    if len(invented) or (complete and not sessions.equals(expected)):
         missing = expected.difference(sessions)
         raise MarketSessionQualificationError(
             f"{symbol}: XNYS_SESSION_GRID_MISMATCH"
@@ -82,14 +102,20 @@ def require_xnys_session_grid(
             f" missing={[str(x.date()) for x in missing[:4]]}"
         )
     return {
-        "kind": "ordivon.capital.markets.xnys-daily-session-grid",
+        "kind": (
+            "ordivon.capital.markets.xnys-daily-session-grid" if complete
+            else "ordivon.capital.markets.xnys-session-subset"
+        ),
         "calendar": "exchange_calendars:XNYS",
         "firstSession": str(sessions[0].date()),
         "lastSession": str(sessions[-1].date()),
         "sessions": len(sessions),
         "requestedStart": requested_start,
         "requestedEnd": requested_end,
-        "dateStanding": "EXCHANGE_SESSION_ALIGNED_SOURCE_UNVERIFIED",
+        "dateStanding": (
+            "EXCHANGE_SESSION_ALIGNED_SOURCE_UNVERIFIED" if complete
+            else "EXCHANGE_SESSION_SUBSET_ALIGNED_SOURCE_UNVERIFIED"
+        ),
         "historicalPITVerified": False,
         "priceAdjustmentVerified": False,
         "capitalAuthority": False,
