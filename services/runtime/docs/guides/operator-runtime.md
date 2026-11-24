@@ -12,7 +12,7 @@ owners:
 audience:
   - operator
   - user
-updated: 2026-11-07
+updated: 2026-11-16
 summary: Human-operated Runtime discovery, fault diagnosis, cleanup, and storage-cutover guidance.
 evidence_status: observed
 readiness: READY
@@ -60,6 +60,39 @@ Linux references: https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.h
 ## Changes and acceptance
 
 Use an isolated Git Workspace, validate the smallest affected contract, then use the **existing** release/receipt path. Acceptance evidence includes code diff, selected Rust tests, MCP tool discovery, native Linux and Windows execution where applicable, PG restart/recovery, and installed binary/endpoint confirmation. A source change without deployment remains source-only.
+
+### Native PG release: the lifecycle helper is a release consumer
+
+A PostgreSQL Runtime upgrade has **three physical artifacts** when the lifecycle
+Reclaimer is being updated: `ordivon-runtime-pg`, `ordivon-runtime-runner`, and
+`ordivon-runtime-pg-reclaim`. A normal explicit `--binary` subset installs only
+the selected binaries; it does **not** refresh the installed Reclaimer. A green
+source PR, active lifecycle timer, or successful Runtime service restart cannot
+prove that the scheduled helper runs current source bytes.
+
+The existing `ordivon-runtime-deploy prepare` accepts the exact two native
+`--binary` arguments **plus** `--include-pg-reclaimer`. Prepare the entire
+candidate from one authorized Git commit and keep the resulting three-artifact
+Manifest and its digest unchanged through the existing `plan` and qualified
+Operator `apply` path. Do not retrofit the flag onto an older two-artifact
+Manifest or manually `cp` the helper into the installed directory. The
+qualified `ordivon-runtime-pg-operator` and the root Release Dispatcher must
+consume the same candidate artifact set; the root-owned Release Dispatcher
+JSON has optional **Boolean** `includePgReclaimer: true` (absent/false means
+binary-only). Never enable that setting against an older installed Dispatcher
+which cannot validate and forward it.
+
+After the **protected source merge and authorized production release**, read
+the exact `release.get` terminal receipt, candidate/installed artifact SHA-256
+and actual systemd `MainPID` executable and authenticated Runner digest.
+Inspect `systemctl show -p ExecStart ordivon-runtime-lifecycle.service` to
+identify the **effective** helper path and verify that its installed bytes
+match the helper recorded in the three-artifact release receipt. A systemd
+oneshot `Result=success` proves that a command exited, not which source cut
+was consumed. Run an operator-owned bounded `--dry-run` before permitting
+automatic deletion policy changes. Existing no-Job/failure policy admission
+does not prove an independently frozen or paused Harness Run released its
+Workspace; require actual owner/finalizer evidence before declaring safe GC.
 
 Read [Agent Execution Guide](agent-runtime.md), [Operations](../operations.md), [Recovery](../recovery.md), and [Owner Audit](../audits/2026-11-07-runtime-owner-audit.md).
 

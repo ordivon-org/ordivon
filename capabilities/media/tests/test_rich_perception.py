@@ -121,6 +121,24 @@ class RichPerceptionTest(unittest.TestCase):
         self.assertGreaterEqual(null["tests"]["videoChangeVsAudioFlux"]["percentile"], 0.75)
 
 
+    def test_video_rate_report_uses_selected_native_fallback_not_zero_zero(self) -> None:
+        probe = {
+            "streams": [{
+                "codec_type": "video", "avg_frame_rate": "0/0",
+                "r_frame_rate": "30000/1001", "nb_frames": "90",
+                "duration": "3", "width": 320, "height": 180,
+            }],
+            "format": {"duration": "3"},
+        }
+        change = [{"frame": 5, "timeSeconds": 0.5, "meanAbsoluteLumaDifference": 1.0}]
+        signal = [{"timeSeconds": 0.5, "lavfi.signalstats.YAVG": 48.0,
+                   "lavfi.signalstats.SATAVG": 8.0}]
+        with patch("ordivon_studio.rich_perception.probe_media", return_value=probe):
+            with patch("ordivon_studio.rich_perception._observe_video_structure",
+                       return_value=(change, signal)):
+                result = video_structure_features(Path("selected.mp4"), bins=4)
+        self.assertEqual(result["technical"]["frameRate"], "30000/1001")
+
     def test_video_structure_observes_two_signals_in_one_provider_pass(self) -> None:
         def native_emulator(args, **kwargs):
             root = Path(kwargs["cwd"])
@@ -143,7 +161,6 @@ class RichPerceptionTest(unittest.TestCase):
         ) as called:
             change, signal = _observe_video_structure(
                 Path("source.mp4"),
-                fps=30,
                 total_frames=300,
                 sample_step_frames=6,
                 ffmpeg="ffmpeg",
@@ -162,7 +179,7 @@ class RichPerceptionTest(unittest.TestCase):
         ):
             with self.assertRaisesRegex(RuntimeError, "both video structure observations"):
                 _observe_video_structure(
-                    Path("source.mp4"), fps=30, total_frames=300,
+                    Path("source.mp4"), total_frames=300,
                     sample_step_frames=6, ffmpeg="ffmpeg",
                 )
 

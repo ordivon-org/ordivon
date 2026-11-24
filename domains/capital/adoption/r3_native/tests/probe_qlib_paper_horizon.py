@@ -5,20 +5,23 @@ new opt-in H5/H20 can forecast entry next OPEN->exit later OPEN, matching
 the fixed native holding exit event, NOT its actual orders or fill prices.
 Legacy intraday switching is NOT executable by the current Paper state
 machine. No order authority, actual orders, or PG write is created here.
+The exact Qlib prediction CSV, Dataset parquet and Cboe normalized source
+bytes must match this study's producer receipts before economic replay.
+These are local artifact and horizon contracts, NOT independent publisher,
+historical PIT, licensing, adjustment, model skill or total-return proofs.
 Historical Cboe prices were captured AFTER these test dates: NOT PIT.
 """
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import math
 import os
-import re
 import sys
 from collections import Counter
 from datetime import date
 from decimal import Decimal
-from hashlib import sha256
-from io import BytesIO
 from pathlib import Path
 
 # Economic evaluation uses assert-heavy experimental invariants.
@@ -39,109 +42,110 @@ OUT = Path(os.environ.get("ORDIVON_FINANCE_R3_RESEARCH_OUT_DIR", str(ROOT / "out
 SYMBOLS = ("IWM", "QQQ", "SPY")
 ZERO = "0"
 OPENING = "1000"  # investment sleeve only; $9,000 remains protected cash
-_SHA = re.compile(r"[0-9a-f]{64}\Z")
 
 
-def _read_study_owned_bytes(path: Path, digest: object, *, role: str) -> bytes:
-    """A digest binds a local study artifact, never historical publisher/PIT."""
-    if not isinstance(digest, str) or not _SHA.fullmatch(digest):
-        raise ValueError(f"{role}: missing exact study source digest")
-    payload = path.read_bytes()
-    if sha256(payload).hexdigest() != digest:
-        raise ValueError(f"{role}: study source differs from frozen study receipt")
-    return payload
+def _native_prediction_scores(exit_kind: str, expected_sha256: str) -> pd.Series:
+    """Read one digest-bound native forecast, not a label or rewritten CSV."""
+    names = {
+        "close": "predicted_next_open_to_close_fractional_return",
+        "next_open": "predicted_next_open_to_next_open_fractional_return",
+    }
+    expected = names.get(exit_kind)
+    if expected is None:
+        raise ValueError("unknown native Qlib prediction exit event")
+    prediction_bytes = (OUT / "qlib_test_predictions.csv").read_bytes()
+    if hashlib.sha256(prediction_bytes).hexdigest() != expected_sha256:
+        raise ValueError("Qlib prediction snapshot digest differs from study")
+    table = pd.read_csv(io.BytesIO(prediction_bytes))
+    if list(table.columns) != ["datetime", "instrument", expected]:
+        raise ValueError("Qlib prediction column schema differs from native producer")
+    scores = table.set_index(["datetime", "instrument"])[expected]
+    if not scores.index.is_unique:
+        raise ValueError("duplicate prediction keys in native study")
+    return scores
 
 
-def _native_study_inputs(report: dict) -> tuple[pd.Series, pd.DataFrame, dict[str, pd.DataFrame]]:
-    """Consume *same hash-admitted bytes* for forecasts, labels and each ETF.
+def _native_pinned_dataset(report: dict) -> pd.DataFrame:
+    """Consume the same Qlib dataset bytes recorded by the study producer."""
+    raw = (OUT / "qlib_static_dataset.parquet").read_bytes()
+    if hashlib.sha256(raw).hexdigest() != report.get("qlib_dataset_sha256"):
+        raise ValueError("Qlib dataset snapshot digest differs from study")
+    dataset = pd.read_parquet(io.BytesIO(raw))
+    if not dataset.index.is_unique:
+        raise ValueError("duplicate dataset keys in native study")
+    return dataset
 
-    A prior report's CLOSE forecast may not be reused with NEXT_OPEN labels,
-    even when both experiments used the same ETF universe and holding count.
-    The report must bind every actual source file read by this consumer.
-    """
-    pred = _read_study_owned_bytes(
-        OUT / "qlib_test_predictions.csv", report.get("qlib_prediction_sha256"),
-        role="Qlib prediction",
-    )
-    dataset = _read_study_owned_bytes(
-        OUT / "qlib_static_dataset.parquet", report.get("qlib_dataset_sha256"),
-        role="Qlib labeled dataset",
-    )
+
+def _native_pinned_bars(symbol: str, report: dict) -> pd.DataFrame:
+    """Reuse producer-receipt bytes, never promote a source to publisher auth."""
     receipts = report.get("provider_receipts")
-    if not isinstance(receipts, list) or len(receipts) != len(SYMBOLS):
-        raise ValueError("Qlib source receipts must cover exact ETF universe")
-    receipt_map = {item.get("symbol"): item for item in receipts if isinstance(item, dict)}
-    if set(receipt_map) != set(SYMBOLS) or len(receipt_map) != len(receipts):
-        raise ValueError("Qlib source receipts contain missing/duplicate/wrong instrument")
-    bars = {}
-    for symbol in SYMBOLS:
-        item = receipt_map[symbol]
-        if item.get("provider") != "cboe":
-            raise ValueError("Qlib source provider differs from study receipt")
-        payload = _read_study_owned_bytes(
-            OUT / f"openbb_cboe_{symbol}_normalized.csv",
-            item.get("normalized_sha256"), role=f"{symbol} OHLCV",
-        )
-        data = pd.read_csv(BytesIO(payload))
-        # A matching digest authenticates study bytes, not market semantics.
-        # Recompute the existing Markets contracts on the very same bytes;
-        # do not accept a fake holiday or impossible HILO bar as economics.
-        date_receipt = item.get("session_grid_qualification")
-        if not isinstance(date_receipt, dict):
-            raise ValueError(f"{symbol}: missing source session qualification")
-        if "session_date" not in data.columns:
-            raise ValueError(f"{symbol}: source session_date column missing")
-        date_actual = require_xnys_session_grid(
-            data["session_date"], symbol=symbol,
-            requested_start=date_receipt.get("requestedStart"),
-            requested_end=date_receipt.get("requestedEnd"),
-        )
-        if date_actual != date_receipt:
-            raise ValueError(f"{symbol}: source session qualification differs from study receipt")
-        shape_receipt = item.get("hilo_source_shape_qualification")
-        if not isinstance(shape_receipt, dict):
-            raise ValueError(f"{symbol}: missing source OHLCV qualification")
-        indexed = data.set_index("session_date")
-        shape_actual = require_ohlcv_shape_for_hilo(indexed, symbol=symbol)
-        if shape_actual != shape_receipt:
-            raise ValueError(f"{symbol}: source OHLCV qualification differs from study receipt")
-        bars[symbol] = indexed.sort_index()
-    predictions = pd.read_csv(BytesIO(pred)).set_index(["datetime", "instrument"]).iloc[:, 0]
-    labels = pd.read_parquet(BytesIO(dataset))
-    if not predictions.index.is_unique or not labels.index.is_unique:
-        raise ValueError("Duplicate historical prediction or label keys")
-    return predictions, labels, bars
-
-
-def _study_identity(report: dict) -> dict:
-    skill = report["signal_quality"]
-    hold = skill["holding_sessions"]
-    exit_price = skill["exit_price_kind"]
-    if exit_price == "next_open":
-        expected_horizon = f"next_session_open_to_T_plus_{hold+1}_open"
-    elif exit_price == "close" and hold == 1:
-        expected_horizon = "new_entry_next_session_open_to_close"
-    elif exit_price == "close":
-        expected_horizon = f"next_session_open_to_T_plus_{hold}_close"
-    else:
-        raise ValueError("Unknown Qlib research exit event")
-    forecast = report["forecast"]
     if (
-        forecast.get("exit_price_kind") != exit_price
-        or forecast.get("holding_sessions") != hold
-        or forecast.get("target_horizon") != expected_horizon
+        not isinstance(receipts, list)
+        or len(receipts) != len(SYMBOLS)
+        or any(not isinstance(row, dict) for row in receipts)
+        or {row.get("symbol") for row in receipts} != set(SYMBOLS)
     ):
-        raise ValueError("Study forecast exit/holding/horizon mismatches native label")
+        raise ValueError("Qlib study source receipts must cover the exact ETF universe")
+    matched = [r for r in receipts if isinstance(r, dict) and r.get("symbol") == symbol]
+    if len(matched) != 1 or matched[0].get("provider") != "cboe":
+        raise ValueError("Qlib source snapshot identity differs from producer")
+    raw = (OUT / f"openbb_cboe_{symbol}_normalized.csv").read_bytes()
+    receipt = matched[0]
+    if hashlib.sha256(raw).hexdigest() != receipt.get("normalized_sha256"):
+        raise ValueError("Qlib source snapshot digest differs from producer")
+
+    # The study's hash binds bytes, not valid exchange dates or realistic
+    # OHLCV. Re-run the existing Markets gates on those exact admitted bytes.
+    # A missing original qualification must never become a new claim of PIT.
+    data = pd.read_csv(io.BytesIO(raw))
+    dates = receipt.get("session_grid_qualification")
+    if not isinstance(dates, dict):
+        raise ValueError(f"{symbol}: missing source session qualification")
+    if "session_date" not in data.columns:
+        raise ValueError(f"{symbol}: source session_date missing")
+    actual_dates = require_xnys_session_grid(
+        data["session_date"], symbol=symbol,
+        requested_start=dates.get("requestedStart"),
+        requested_end=dates.get("requestedEnd"),
+    )
+    if actual_dates != dates:
+        raise ValueError(f"{symbol}: source session qualification differs from producer")
+    shape = receipt.get("hilo_source_shape_qualification")
+    if not isinstance(shape, dict):
+        raise ValueError(f"{symbol}: missing source OHLCV qualification")
+    indexed = data.set_index("session_date")
+    actual_shape = require_ohlcv_shape_for_hilo(indexed, symbol=symbol)
+    if actual_shape != shape:
+        raise ValueError(f"{symbol}: source OHLCV qualification differs from producer")
+    return indexed.sort_index()
+
+
+
+
+def _require_study_keys(predictions: pd.Series, labels: pd.Series) -> None:
+    if not predictions.index.is_unique or not labels.index.is_unique:
+        raise ValueError("duplicate prediction or label keys")
+    if not predictions.index.isin(labels.index).all():
+        raise ValueError("native prediction lacks corresponding dataset label")
+    for _, rows in predictions.groupby(level="datetime"):
+        if set(rows.index.get_level_values("instrument")) != set(SYMBOLS):
+            raise ValueError("native prediction must cover exact ETF universe per decision")
+
+
+def _consumed_study_identity(report: dict) -> dict:
+    # Only call after every source and exit definition has been validated.
+    skill = report["signal_quality"]
     return {
-        "holdingSessions": hold,
-        "exitPriceKind": exit_price,
-        "forecastTargetHorizon": expected_horizon,
+        "holdingSessions": skill["holding_sessions"],
+        "exitPriceKind": skill["exit_price_kind"],
+        "forecastTargetHorizon": report["forecast"]["target_horizon"],
         "qlibPredictionSha256": report["qlib_prediction_sha256"],
         "qlibDatasetSha256": report["qlib_dataset_sha256"],
         "sourceReceipts": {
             item["symbol"]: item["normalized_sha256"]
             for item in report["provider_receipts"]
         },
+        "sourceStanding": "LOCAL_STUDY_BYTES_BOUND_NOT_PROVIDER_OR_PIT_ATTESTED",
     }
 
 
@@ -158,10 +162,25 @@ def run_multisession(report: dict, hold: int) -> dict:
     assert skill["multi_session_holding_state_representable"] is True
     exit_price = skill.get("exit_price_kind", "close")
     assert exit_price in ("close", "next_open")
-    if exit_price == "next_open":
-        assert skill["label_forward_sessions"] == hold + 1
-        assert skill["matches_native_fixed_holding_exit_event"] is True
-    assert report["forecast"]["point_in_time_eligible"] is False
+    forecast = report["forecast"]
+    exit_step = hold + (exit_price == "next_open")
+    exit_event = "open" if exit_price == "next_open" else "close"
+    if (
+        skill.get("standing") != "RETROSPECTIVE_BACKFILL_TEST_ONLY"
+        or skill.get("label_forward_sessions") != exit_step
+        or skill.get("horizon")
+        != f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{exit_step}_{exit_event}"
+        or skill.get("matches_native_fixed_holding_exit_event") is not (exit_price == "next_open")
+        or forecast.get("kind") != "uncalibrated_multisession_holding_return"
+        or forecast.get("holding_sessions") != hold
+        or forecast.get("exit_price_kind") != exit_price
+        or forecast.get("target_horizon")
+        != f"next_session_open_to_T_plus_{exit_step}_{exit_event}"
+        or forecast.get("native_strategy_exit_event_matches_target")
+        is not (exit_price == "next_open")
+    ):
+        raise ValueError("Qlib forecast horizon/label disagree with economic exit event")
+    assert forecast["point_in_time_eligible"] is False
     assert report["portfolio_target"] is None
 
     allocation = plan_strategic_contribution({
@@ -177,10 +196,11 @@ def run_multisession(report: dict, hold: int) -> dict:
     assert allocation["allocationsMinor"]["SPY"] == 100_000
     assert allocation["executionAuthorized"] is False
 
-    study_identity = _study_identity(report)
-    predictions, full_labels, bars = _native_study_inputs(report)
-    labels = full_labels["label"]["LABEL0"]
+    predictions = _native_prediction_scores(exit_price, report["qlib_prediction_sha256"])
+    labels = _native_pinned_dataset(report)["label"]["LABEL0"]
+    _require_study_keys(predictions, labels)
     assert len(predictions) == skill["sample_rows"]
+    bars = {sym: _native_pinned_bars(sym, report) for sym in SYMBOLS}
     sessions = list(bars["SPY"].index)
     assert all(list(bars[sym].index) == sessions for sym in SYMBOLS)
     index_of = {day: i for i, day in enumerate(sessions)}
@@ -245,7 +265,7 @@ def run_multisession(report: dict, hold: int) -> dict:
         "kind": "ordivon.finance.r3.qlib-disjoint-holding-economic-counterexample",
         "standing": "RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
         "source_forecast_skill": skill,
-        "native_study_identity": study_identity,
+        "native_study_identity": _consumed_study_identity(report),
         "holding_sessions": hold,
         "exit_price_kind": exit_price,
         "native_fixed_holding_economic_event_matched": exit_price == "next_open",
@@ -330,14 +350,30 @@ def run() -> dict:
     assert allocation["allocationsMinor"]["SPY"] == 100_000
     assert allocation["protectedReserveMinor"] == 900_000
     assert allocation["executionAuthorized"] is False
-    study_identity = _study_identity(report)
-    predictions, dataset, bars = _native_study_inputs(report)
+    forecast = report["forecast"]
+    if (
+        skill.get("holding_sessions") != 1
+        or skill.get("exit_price_kind") != "close"
+        or skill.get("label_forward_sessions") != 1
+        or forecast.get("kind") != "uncalibrated_next_session_open_to_close_fractional_regression"
+        or forecast.get("holding_sessions") != 1
+        or forecast.get("exit_price_kind") != "close"
+        or forecast.get("target_horizon") != "new_entry_next_session_open_to_close"
+        or forecast.get("native_strategy_exit_event_matches_target") is not False
+    ):
+        raise ValueError("Qlib H1 forecast target/label disagree with hypothetical close exit")
+    predictions = _native_prediction_scores("close", report["qlib_prediction_sha256"])
+    dataset = _native_pinned_dataset(report)
     labels = dataset["label"]["LABEL0"]
-    assert predictions.index.is_unique and labels.index.is_unique
-    assert predictions.index.isin(labels.index).all()
+    _require_study_keys(predictions, labels)
     assert len(predictions) == skill["sample_rows"] == 816
     assert len(set(predictions.index.get_level_values("datetime"))) == 272
 
+    bars = {}
+    for sym in SYMBOLS:
+        data = _native_pinned_bars(sym, report)
+        assert data.index.is_unique
+        bars[sym] = data
     sessions = list(bars["SPY"].index)
     assert all(list(bars[s].index) == sessions for s in SYMBOLS)
     next_date = dict(zip(sessions[:-1],sessions[1:]))
@@ -432,7 +468,7 @@ def run() -> dict:
         "kind":"ordivon.finance.r3.qlib-economic-consumer-counterexample",
         "standing":"RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
         "source_model_skill":skill,
-        "native_study_identity":study_identity,
+        "native_study_identity": _consumed_study_identity(report),
         "capital_budget_lego":"ordivon_capital.portfolio.strategic_contribution",
         "total_initial_cash_minor":1_000_000,
         "protected_cash_minor":900_000,

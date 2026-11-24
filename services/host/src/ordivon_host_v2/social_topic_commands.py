@@ -11,6 +11,7 @@ from .errors import ConflictError
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
+from .topic_cursor_records import ack_topic_cursor_in_tx
 
 
 class SocialTopicCommands:
@@ -68,18 +69,22 @@ class SocialTopicCommands:
         *,
         topic_ref: str,
         actor_ref: str,
-        state: Literal["open", "closed"],
-        expected_state: Literal["open", "closed"],
+        state: Literal["open", "closed", "archived"],
+        expected_state: Literal["open", "closed", "archived"],
         expected_high_sequence: int,
         client_request_id: str,
     ) -> dict[str, Any]:
-        """Compare-and-set topic openness; retain all messages and replay evidence.
+        """CAS for open, closed and logical archive; never deletes message bytes.
 
-        The topic row lock is the same lock used before message sequence allocation,
-        so closing cannot silently overtake a concurrent message.post.
+        The same row lock fences message posting. Archive requires a closed
+        topic; restoring to writeable requires two explicit transitions.
         """
-        if state not in ("open", "closed") or expected_state not in ("open", "closed"):
-            raise ValueError("topic state must be open or closed")
+        if state not in ("open", "closed", "archived") or expected_state not in (
+            "open",
+            "closed",
+            "archived",
+        ):
+            raise ValueError("topic state must be open, closed, or archived")
         if type(expected_high_sequence) is not int or expected_high_sequence < 0:
             raise ValueError("expected_high_sequence must be a non-negative integer")
         request = {
@@ -107,6 +112,10 @@ class SocialTopicCommands:
                 raise ConflictError("topic state changed since expected state")
             if high != expected_high_sequence:
                 raise ConflictError("topic messages changed since expected high sequence")
+            if state == "archived" and topic["state"] == "open":
+                raise ConflictError("topic must be closed before archiving")
+            if state == "open" and topic["state"] == "archived":
+                raise ConflictError("restore archived topic to closed before reopening")
             admission = "existing" if state == topic["state"] else "committed"
             if admission == "committed":
                 topic = conn.execute(
@@ -159,40 +168,9 @@ class SocialTopicCommands:
                 return replay
             self._require_actor(conn, actor_ref)
             self._require_topic(conn, topic_ref)
-            high = int(
-                conn.execute(
-                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
-                    (topic_ref,),
-                ).fetchone()["high"]
+            result = ack_topic_cursor_in_tx(
+                conn, actor_ref=actor_ref, topic_ref=topic_ref, cursor=cursor
             )
-            if cursor > high:
-                raise ConflictError("topic cursor cannot acknowledge beyond current topic horizon")
-            current = conn.execute(
-                "SELECT cursor FROM topic_consumption_cursors "
-                "WHERE actor_ref=%s AND topic_ref=%s FOR UPDATE",
-                (actor_ref, topic_ref),
-            ).fetchone()
-            previous = 0 if current is None else int(current["cursor"])
-            if cursor < previous:
-                raise ConflictError("topic cursor cannot move backwards")
-            updated = conn.execute(
-                "INSERT INTO topic_consumption_cursors(actor_ref,topic_ref,cursor) VALUES (%s,%s,%s) "
-                "ON CONFLICT (actor_ref,topic_ref) DO UPDATE SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp() "
-                "WHERE topic_consumption_cursors.cursor<=EXCLUDED.cursor RETURNING cursor",
-                (actor_ref, topic_ref, cursor),
-            ).fetchone()
-            if updated is None:
-                raise ConflictError("topic cursor cannot move backwards")
-            result = {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-cursor-ack",
-                "actorRef": actor_ref,
-                "topicRef": topic_ref,
-                "previousCursor": previous,
-                "cursor": cursor,
-                "topicHighSequence": high,
-                "truthBoundary": "topic navigation acknowledgement only; not semantic acceptance",
-            }
             record_command_receipt(
                 conn, client_request_id, "topic.cursor.ack", request_digest, result
             )

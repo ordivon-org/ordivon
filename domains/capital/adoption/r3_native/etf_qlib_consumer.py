@@ -109,10 +109,9 @@ for symbol in SYMBOLS:
         print("EXACT_DUPLICATE_REMOVED", symbol, "rows", duplicate_rows, "same_values_verified", True)
     if len(raw_normalized) < 400 or raw_normalized.index.has_duplicates:
         raise ValueError(f"Provider {symbol} insufficient/duplicate rows: {len(raw_normalized)}")
-    # HILO consumes high/low; an internally impossible source bar cannot
-    # be silently used as model feature, even if raw source SHA matches.
-    # E.g. pinned QQQ 2026-05-20 high 713.13 < close 713.15 and IWM
-    # 2023-06-05 high 180.82 < open 181.37. Do not "fix" either value.
+    # HILO uses HIGH/LOW. Reject impossible bars *before* producing Qlib
+    # features, even when source bytes and trading-session dates are verified.
+    # Never auto-repair captured QQQ/IWM OHLCV or rewrite frozen research.
     hilo_input_qualification = require_ohlcv_shape_for_hilo(raw_normalized, symbol=symbol)
     # The provider is NOT authoritative for whether the exchange actually
     # traded. Reject fake holidays and missing sessions before generating any

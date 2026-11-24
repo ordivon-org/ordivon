@@ -1,65 +1,57 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 from contextlib import asynccontextmanager
 from importlib.metadata import version as package_version
 from typing import Any
-from urllib.parse import urlsplit
 
 import uvicorn
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.server.mcpserver.exceptions import ToolError
-from mcp.server.transport_security import TransportSecuritySettings
-from mcp_types import CallToolResult, TextContent
-from starlette.responses import JSONResponse
 
-from .access_auth import (
-    CloudflareAccessConfig,
-    CloudflareAccessMiddleware,
-    CloudflareAccessVerifier,
-)
-from .audit import GatewayAuditMiddleware
-from .authzen_authorizer import AuthZenPrincipalAuthorizer
-from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
+from .capabilities.host.tools import register_host_tools
 from .contracts import (
     ArtifactChunk,
+    CapabilityInquiryProjection,
     CapabilityProjection,
     CapabilityResolution,
     CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
+    RuntimeReleaseAdmission,
+    RuntimeReleaseProjection,
     SystemDescription,
 )
-from .host_tools import register_host_tools
-from .http_ingress_guard import GatewayHTTPIngressGuard
-from .service import GatewayError, GatewayService
-from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
-
-
-def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
-    error = (
-        dict(exc.error)
-        if exc.error is not None
-        else {
-            "code": "OWNER_CALL_FAILED",
-            "message": str(exc),
-            "origin": "gateway_adapter",
-        }
-    )
-    structured: dict[str, Any] = {"error": error}
-    if exc.owner_id is not None:
-        structured["gatewayOwnerId"] = exc.owner_id
-    if exc.tool_name is not None:
-        structured["gatewayOwnerTool"] = exc.tool_name
-    return CallToolResult(
-        content=[TextContent(type="text", text=str(exc))],
-        structuredContent=structured,
-        isError=True,
-    )
+from .security import (
+    CapabilityAuthorizer,
+    GatewayAuditMiddleware,
+    TrustedCloudflareOperator,
+    install_tool_security,
+    require_release_access,
+)
+from .security import (
+    access_verifier_from_env as _access_verifier_from_env,
+)
+from .security import (
+    capability_authorizer_from_env as _capability_authorizer_from_env,
+)
+from .security import (
+    qualify_gateway_operation_ref as _qualify_gateway_operation_ref,
+)
+from .security import (
+    require_http_execution_identity as _require_http_execution_identity,
+)
+from .security import (
+    trusted_operator_from_env as _trusted_operator_from_env,
+)
+from .security import (
+    verified_execution_request_id as _verified_execution_request_id,
+)
+from .service import GatewayService
+from .transport.http import build_http_app
+from .transport.owner_error_projection import owner_error_result as _owner_error_result
+from .transport.upstream import McpOwnerCaller, OwnerCallError
 
 
 async def _owner_boundary(call) -> Any:
@@ -69,96 +61,13 @@ async def _owner_boundary(call) -> Any:
         return _owner_error_result(exc)
 
 
-def _verified_execution_scope(context: Context | None) -> tuple[str, str] | None:
-    """Request-local authority from the existing verified HTTP ingress, if present."""
-    try:
-        request = context.request_context.request
-    except ValueError, AttributeError:
-        return None
-    scope = getattr(request, "scope", None)
-    state = scope.get("state") if isinstance(scope, dict) else None
-    if not isinstance(state, dict):
-        return None
-    principal = state.get("ordivon_access_principal")
-    issuer = state.get("ordivon_access_issuer")
-    if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
-        return None
-    return issuer, principal
-
-
-def _require_http_execution_identity(context: Context | None) -> None:
-    """HTTP execution tools must not downgrade to unqualified STDIO semantics.
-
-    In normal HTTP requests Cloudflare/loopback ingress populates verified
-    request state; an absent/malformed context must reject before an owner RPC.
-    """
-    if _verified_execution_scope(context) is None:
-        raise ToolError("HTTP execution requires verified ingress Principal identity")
-
-
-def _verified_execution_request_id(
-    public_request_id: str,
-    capability: str,
-    context: Context | None,
-) -> str:
-    """Scope owner idempotency to verified ingress, not caller-claimed identity.
-
-    Unqualified direct/stdio callers retain their old requestId, with no
-    claim that they have a verified HTTP principal or reattach protection.
-    """
-    verified = _verified_execution_scope(context)
-    if verified is None:
-        return public_request_id
-    issuer, principal = verified
-    canonical = json.dumps(
-        [
-            "ordivon.gateway-principal-scoped-execution-request.v1",
-            issuer,
-            principal,
-            capability,
-            public_request_id,
-        ],
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
-    return "request:gw-principal:" + hashlib.sha256(canonical).hexdigest()
-
-
-async def _qualify_gateway_operation_ref(
-    gateway: GatewayService,
-    operation_ref: str,
-    capability: str | None,
-    public_request_id: str | None,
-    context: Context | None,
-) -> None:
-    """Use the same actual owner lookup before any observe or cancel effect.
-
-    This composes existing execution.resolve with existing owner job identity
-    instead of treating a caller-supplied operationRef as principal proof.
-    """
-    if _verified_execution_scope(context) is None:
-        return  # Legacy non-HTTP path; no identity qualification asserted.
-    if not isinstance(public_request_id, str) or not public_request_id:
-        raise ToolError("verified operation requires original requestId")
-    if not isinstance(capability, str) or not capability:
-        raise ToolError("verified operation requires original capability")
-    owner_request_id = _verified_execution_request_id(public_request_id, capability, context)
-    try:
-        recovered = await gateway.execution_resolve(
-            capability=capability, request_id=owner_request_id
-        )
-    except GatewayError as exc:
-        raise ToolError("operationRef cannot be qualified for this principal") from exc
-    if recovered.resolution != "found" or recovered.operation_ref != operation_ref:
-        raise ToolError("operationRef cannot be qualified for this principal")
-
-
 def build_server(
     service: GatewayService | None = None,
     *,
     capability_authorizer: CapabilityAuthorizer | None = None,
     protect_artifact_reads: bool = False,
     require_http_execution_identity: bool = False,
+    trusted_operator: TrustedCloudflareOperator | None = None,
 ) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
@@ -177,16 +86,13 @@ def build_server(
         lifespan=gateway_lifespan,
     )
     server.middleware.append(GatewayAuditMiddleware())
-    if require_http_execution_identity:
-        server.middleware.append(GatewayHTTPIngressGuard())
-    # Verified HTTP Host reads and writes must reach the existing Security PEP
-    # even when the PDP is not configured (fail closed, not bearer=actor).
-    if (
-        capability_authorizer is not None
-        or protect_artifact_reads
-        or require_http_execution_identity
-    ):
-        server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
+    install_tool_security(
+        server,
+        capability_authorizer=capability_authorizer,
+        protect_artifact_reads=protect_artifact_reads,
+        require_http_execution_identity=require_http_execution_identity,
+        trusted_operator=trusted_operator,
+    )
 
     @server.tool(name="system.describe")
     def system_describe() -> SystemDescription:
@@ -195,6 +101,15 @@ def build_server(
     @server.tool(name="capability.describe")
     async def capability_describe(capability: str | None = None) -> CapabilityProjection:
         return await gateway.capability_describe(capability)
+
+    @server.tool(name="capability.inquire")
+    async def capability_inquire(
+        capability: str, verifyReadOnly: bool = False
+    ) -> CapabilityInquiryProjection:
+        """Optionally re-observe read-only Owner state, never issue a business effect."""
+        return await gateway.capability_inquire(
+            capability=capability, verify_read_only=verifyReadOnly
+        )
 
     @server.tool(name="capability.search")
     async def capability_search(
@@ -223,6 +138,38 @@ def build_server(
             workspace_id=workspaceId,
             agent_id=agentId,
         )
+
+    @server.tool(name="runtime.release.apply")
+    async def runtime_release_apply(
+        requestId: str,
+        workspaceId: str,
+        commit: str,
+        candidateManifestDigest: str,
+        expectedToolCount: int,
+        ctx: Context = None,
+    ) -> RuntimeReleaseAdmission:
+        # Release admission policy belongs to Security; Runtime still owns the effect.
+        require_release_access(
+            ctx, require_http_execution_identity, capability_authorizer, trusted_operator
+        )
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(
+            gateway.runtime_release_apply(
+                request_id=scoped,
+                workspace_id=workspaceId,
+                commit=commit,
+                candidate_manifest_digest=candidateManifestDigest,
+                expected_tool_count=expectedToolCount,
+            )
+        )
+
+    @server.tool(name="runtime.release.get")
+    async def runtime_release_get(requestId: str, ctx: Context = None) -> RuntimeReleaseProjection:
+        # The same original principal-scoped key must be used after response
+        # loss; no new release request, retry or operational preflight here.
+        _require_http_execution_identity(ctx)
+        scoped = _verified_execution_request_id(requestId, "runtime.release.linux", ctx)
+        return await _owner_boundary(gateway.runtime_release_get(request_id=scoped))
 
     @server.tool(name="execution.submit")
     async def execution_submit(
@@ -323,105 +270,9 @@ def build_server(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    register_host_tools(server, gateway, _owner_boundary)
+    register_host_tools(server, gateway, _owner_boundary, _owner_error_result)
 
     return server
-
-
-def _bool_env(name: str, default: bool = False) -> bool:
-    value = os.environ.get(name)
-    if value is None:
-        return default
-    normalized = value.strip().lower()
-    if normalized in {"1", "true", "yes"}:
-        return True
-    if normalized in {"0", "false", "no"}:
-        return False
-    raise RuntimeError(f"{name} must be true or false")
-
-
-def _access_verifier_from_env() -> CloudflareAccessVerifier | None:
-    if not _bool_env("ORDIVON_GATEWAY_TRUST_CF_ACCESS"):
-        return None
-    issuer = os.environ.get("ORDIVON_GATEWAY_CF_ACCESS_ISSUER", "").strip().rstrip("/")
-    audience = os.environ.get("ORDIVON_GATEWAY_CF_ACCESS_AUDIENCE", "").strip()
-    if not issuer or not audience:
-        raise RuntimeError("Gateway Cloudflare Access trust requires issuer and audience")
-    jwks_url = os.environ.get(
-        "ORDIVON_GATEWAY_CF_ACCESS_JWKS_URL",
-        f"{issuer}/cdn-cgi/access/certs",
-    ).strip()
-    return CloudflareAccessVerifier(
-        CloudflareAccessConfig(
-            issuer=issuer,
-            audience=audience,
-            jwks_url=jwks_url,
-        )
-    )
-
-
-def build_http_app(
-    server: MCPServer,
-    *,
-    host: str,
-    path: str,
-    public_origin: str | None,
-    access_verifier: CloudflareAccessVerifier | None,
-    local_bearer_token_file: str | None = None,
-):
-    allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
-    allowed_origins = [
-        "http://127.0.0.1:*",
-        "http://localhost:*",
-        "http://[::1]:*",
-    ]
-    if public_origin:
-        parsed = urlsplit(public_origin)
-        if (
-            parsed.scheme != "https"
-            or not parsed.hostname
-            or parsed.username is not None
-            or parsed.password is not None
-            or parsed.path not in ("", "/")
-            or parsed.query
-            or parsed.fragment
-        ):
-            raise RuntimeError("ORDIVON_GATEWAY_PUBLIC_ORIGIN must be one canonical HTTPS origin")
-        if access_verifier is None:
-            raise RuntimeError(
-                "public Gateway origin requires Cloudflare Access assertion verification"
-            )
-        allowed_hosts.append(parsed.netloc)
-        allowed_origins.append(f"https://{parsed.netloc}")
-
-    app = server.streamable_http_app(
-        streamable_http_path=path,
-        stateless_http=True,
-        json_response=True,
-        max_sessions=256,
-        host=host,
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=allowed_hosts,
-            allowed_origins=allowed_origins,
-        ),
-    )
-
-    async def health(_request):
-        return JSONResponse(
-            {"status": "ok", "service": "ordivon-gateway"},
-            headers={"Cache-Control": "no-store"},
-        )
-
-    app.add_route("/health", health, methods=["GET"])
-    if access_verifier is not None or local_bearer_token_file is not None:
-        return CloudflareAccessMiddleware(
-            app,
-            access_verifier,
-            protected_path_prefix=path,
-            local_bearer_token_file=local_bearer_token_file,
-        )
-    return app
 
 
 def _reject_retired_worker_database_config() -> None:
@@ -430,29 +281,6 @@ def _reject_retired_worker_database_config() -> None:
         raise RuntimeError(
             "Gateway SQLite External Worker was retired; use PostgreSQL Owner Runtime."
         )
-
-
-def _capability_authorizer_from_env() -> CapabilityAuthorizer | None:
-    """Bind the existing AuthZEN PDP to Gateway's protected HTTP Tool path.
-
-    Read token bytes through the mature private-file helper per decision,
-    rather than freezing credentials at process start or exposing them to Tool
-    arguments. The policy service, not Gateway, owns authorization truth.
-    """
-    endpoint = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT", "").strip()
-    token_file = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", "").strip()
-    if bool(endpoint) != bool(token_file):
-        raise RuntimeError(
-            "Gateway AuthZEN requires both evaluation endpoint and private token file"
-        )
-    if not endpoint:
-        return None
-    return AuthZenPrincipalAuthorizer(
-        endpoint,
-        bearer_token_provider=lambda: _read_private_secret_file(
-            token_file, "Gateway AuthZEN bearer token"
-        ),
-    )
 
 
 def main() -> None:
@@ -464,6 +292,7 @@ def main() -> None:
         capability_authorizer=_capability_authorizer_from_env(),
         protect_artifact_reads=(transport == "streamable-http"),
         require_http_execution_identity=(transport == "streamable-http"),
+        trusted_operator=_trusted_operator_from_env(),
     )
     if transport == "stdio":
         server.run()

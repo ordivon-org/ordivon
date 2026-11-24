@@ -16,6 +16,11 @@ It consumes the existing source-owned Episode manifest through the Data
 projector, binding and file inspector, then independently checks the Research
 analysis receipt before issuing a concrete HOLD promotion decision. A missing,
 tampered or contradictory required source returns DATA_NOT_DELIVERED.
+Research requires the `episode-corpus-manifest-json` output port at contract
+version `1.0.0` separately from the product version; adding another
+same-name port at `2.0.0` does not veto the selected input. This is qualified
+by current producer metadata, exact source bytes and Research's own receipt,
+not by the separate inspection CLI.
 
 This is only one demonstrably closed consumer information handoff; it does
 not verify the unmaterialized Parquet port, create a universal autonomous Data
@@ -152,8 +157,10 @@ python3 packages/data/scripts/inspect_federation.py \
 version and distribution passed the current scoped digest check; it is
 **not** full product publication or proof about other output ports, rights,
 freshness or scientific quality. Unknown/wrong-version port selections
-exit 3; evidence mismatch exits 2. Unrelated observed falsification also
-blocks the CLI rather than silently admitting a partially corrupted catalog.
+exit 3; a mismatch on the *selected* port exits 2. An unrelated
+FALSIFIED port remains visible in the full inspection report but does not
+veto a consumer's exact selected-port gate. Whole-catalog admission and
+ungated inspection still exit 2 when any distribution is FALSIFIED.
 
 The optional binding is a current observation: consumers must read back the file against
 its declared digest before using it, since mutable pathnames can change.

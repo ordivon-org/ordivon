@@ -73,22 +73,24 @@ Linux 侧 `127.0.0.1:19982` 是独立的、目的域名受限的 Codex Consumer�
 
 ### 4. 让 iPad 或 iPhone 使用电脑提供的 VPN 出口
 
-服务器已通过 Tailscale 广告批准的 Exit Node：**ordivon-surfshark-exit**。
+**历史配置记录（非当前就绪证明）：**此前登记并获批准的 Tailscale Exit Node 名称为 **ordivon-surfshark-exit**。使用前先在**实际承载该出口的 Network 节点**运行 `task consumer:mobile-tailnet-exit:verify`，检查已安装 SourceCut、服务端 Tailscale 广告/批准状态及 Gluetun 健康；它不会替 iPad/iPhone 验证实际公网出口。若当前节点、管理员批准或服务状态无法观察，保留 `UNKNOWN`，不要将历史名称和上次 READY 当作今日可用性。
 
-1. 在需要使用 VPN 的 **每台设备**打开 Tailscale。
-2. 选择这个已批准的 Exit Node；不能只看服务器的 READY 标识。
-3. 使用同一台 iPad/iPhone 的浏览器打开 https://ipinfo.io，核对公网出口。
+1. 在需要使用 VPN 的 **每台设备**打开 Tailscale，确认已连接。
+2. 在该设备上选择当前确实可见的 **ordivon-surfshark-exit**；如果不在候选列表中，先检查服务端/批准状态，不能只看历史配置。
+3. 使用同一台 iPad/iPhone 的浏览器打开 https://ipinfo.io，核对实际公网出口，不以 Linux 服务端 READY 代替。
 4. 单独验证 Wi-Fi、蜂窝移动网络切换后的 DNS 和出口。
 
 如果某台 iOS 设备离线，服务器无法代替它完成选择和出口验收。服务端运行正常 ≠ 手机流量已经被转发。
 
+**Agent 调用预算与单次诊断：** 当前 `consumers/mobile-tailnet-exit/Taskfile.yml` 的 `consumer:mobile-tailnet-exit:ready` 使用原生 `timeout`，最多轮询 **120 秒**。如果通过 Runtime 提交完整 `verify`，Job 截止时间必须覆盖这一原生上限及源码校验开销；如果调用方先超时，只能报告该 Job `timed_out` 和实际采到的状态，不能冒称整个 `verify` 已 PASS 或 FAIL。只需快速区分服务端当前原因时，可以只读执行已安装的 `/usr/local/libexec/network-v2/mobile-tailnet-exit-ready` 一次，检查它输出的 `standing`；这是**单次服务端观测**，不能替代完整 SourceCut 验证，也不能替 iOS 设备验收公网流量。修改原生时间上限后以当前 Taskfile 为准。
+
 ### iPad 局域网直连与共享出口
 
-同一局域网实测 iPad 到 Exit Node 的 Tailscale 链路从东京 DERP
-约 400ms 改为直连约 6–9ms。Gluetun 使用原生
-`FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24` 实现局域网可达性。
-**这允许整个 LAN 网段的出站通信，并非只放行一个 UDP 端口。**
-公网流量仍应从 Surfshark 出口发出，iPad 进入外部网络时可能回退 DERP。
+**既往局域网验收样本，不是当前吞吐或延迟保证：**当时 iPad 到 Exit Node 的 Tailscale 链路从东京 DERP
+约 400ms 改为直连约 6–9ms；当时使用 Gluetun 原生
+`FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24` 允许局域网可达性。
+**这一配置会允许整个 LAN 网段的出站通信，并非只放行一个 UDP 端口。**
+今日是否仍加载该子网和路由，应核对当前安装配置；公网流量是否经 Surfshark，则必须从当前 iPad 的真实出口独立验收。远程访问时可能回退 DERP。
 如 LAN 网段更换，重新核对源配置、加载的路由及 iPad 自身 IPinfo/DNS。
 Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv6 绕开 VPN。
 
@@ -116,6 +118,22 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 检查生产配置，执行 task core:verify 和受影响的 consumer:*:verify。task core:converge 先验证源码，再根据独立的 `core:sourcecut`（已安装字节与服务 enable 状态）决定是否安装；不会仅因外部网站、DNS 或 Blackbox 临时失效而重新安装。随后使用原生 `systemctl start` 恢复未运行的服务，并运行 `core:verify` 对真实网络结果单独验收。健康检查失败仍返回失败，但不触发盲目重新安装。Gluetun 物理 Provider 的准备与启动是不同操作，不要混为一谈。
 
 源码发布走仓库现有的 GitHub PR、必需 CI、合并队列；只有合并之后再进行生产读回，才算实际发布完成。
+
+### 2026-11-14 ZTE 物理上游与原生 Windows Chrome 验收
+
+源生只读 `task provider:zte-u30pro:observe` 于北京时间 16:23
+实际确认当前网关为 **ZTE U30 Pro MU5358**，LAN `192.168.0.1`；
+当前运营商中国移动 5G，PPP WAN 已连接，RSRP -72 dBm、SNR 27 dB，
+十次低强度网关 ICMP 0% 丢包、平均约 1.98ms。该观察**不认证**
+当天 08:41–14:20 故障具体发生在设备、无线运营商还是更远上游，
+也没有发现第二条独立 WAN。无感地增加 USB 路由优先级不能修复同一网关掉线。
+
+Windows 原生 Chrome 的策略为固定代理 `127.0.0.1:19781`。
+16:16 使用独立临时 Chrome 用户目录启动 `--headless=new`，
+**不提供任何代理覆盖命令行参数**，真实访问 Cloudflare HTTP/TLS
+获得出口国家 **MY**、退出码 0，临时目录随即清理。
+这证明当前正常 Chrome 政策和被测 HTTPS 路径，
+不等于所有扩展、WebRTC、iOS 设备流量已被验证。
 
 ### 2026-11-13 Windows/WSL 生产路径核验
 
@@ -195,12 +213,21 @@ Windows NCSI 恢复后 Carrier / PyPI / 直连 IPv4 首次采样成功
 
 ### 多个应用同时断网时如何定位
 
-从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：它只在 PyPI、Codex 与 Claude **三路每分钟 HTTPS 探针最近 90 秒都有样本、并持续两分钟同时失败**时成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席须查看 `NetworkConsumerEvidenceMissing`（观测缺失），而非把无样本解释为 NetworkVPN/Scoped `Unavailable` 的实测失败；不能把缺测当作成功或失败。
+从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：PyPI、Codex 与 Claude 的**三路每 30 秒 HTTPS 探针**需要在最近 90 秒内都有样本、共同失败持续两分钟，告警才成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席须查看 `NetworkConsumerEvidenceMissing`（观测缺失），而非把无样本解释为 NetworkVPN/Scoped `Unavailable` 的实测失败；不能把缺测当作成功或失败。
 
     curl -fsS http://127.0.0.1:29090/api/v1/alerts |
       jq '.data.alerts[] | select(.labels.alertname=="NetworkCorrelatedConsumerOutage")'
 
 随后顺序检查 `task provider:gluetun:verify`、Gluetun 原生日志、`task provider:gluetun:observe-exit`，最后复测受到影响的 Consumer。代理 CONNECT 200 但 HTTPS TLS 超时属于 **尚未完成源站请求**，不能宣布 READY；`systemctl active` 也不能取代源站探测。先使用 Gluetun 自带健康恢复，**不要在故障时另开一条 WireGuard 或重启全部 Consumer**。IPinfo 的未认证端点有共享限流，只用于一次性出口采样，不用来替代 Prometheus 健康检查。
+
+**告警与自动恢复准入是两个不同的消费者。** 告警的持续两分钟条件
+不能直接授权更换 Surfshark 国家。现有一分钟 systemd 恢复任务必须
+检查每路**三条原始采样**，最新年龄不超过 75 秒、最早不超过 165 秒、
+相邻采样不间断超过 45 秒，三路最新时间戳错位不超过 45 秒；
+还必须独立证实物理 WAN 通畅、目标国家允许、官方 API 授权、
+真实 HTTPS 业务完成。监控消失、数据陈旧或时间交错均返回 UNKNOWN。
+详见现有 [Gluetun Provider 指导](../providers/gluetun/README.md)，不要
+用旧的每分钟采样图表或猜测恢复动作。
 
 **DNS 故障与 VPN 故障不能混为一谈。** DNS 超时既可能导致健康检查受影响，也可能只是底层隧道故障的结果。应分别验证原生 IP/TLS 健康目标与 DNS 上游。不要为此添加第二个 VPN Watchdog：Gluetun 自带健康检查与自动恢复。
 

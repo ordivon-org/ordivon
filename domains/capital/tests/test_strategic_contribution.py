@@ -161,3 +161,28 @@ def test_invalid_cli_never_emits_a_success_receipt(raw: str) -> None:
     observed = run_cli(raw)
     assert observed.returncode != 0
     assert observed.stdout == ""
+
+
+def test_first_run_launcher_uses_pinned_stdlib_without_research_bootstrap() -> None:
+    """New Agents must complete the read-only example without installing the research stack."""
+    launcher = ROOT / "scripts/run-strategic-contribution-brief"
+    source = launcher.read_text(encoding="utf-8")
+    assert "run-capability-python" not in source
+    assert "uv sync" not in source
+    assert "mise" in source and "exec -- python" in source
+
+    observed = subprocess.run(
+        [str(launcher)],
+        input=EXAMPLE.read_text(encoding="utf-8"),
+        text=True,
+        capture_output=True,
+        cwd=ROOT,
+        env=dict(os.environ),
+        timeout=25,
+        check=False,
+    )
+    assert observed.returncode == 0, observed.stderr
+    plan = json.loads(observed.stdout)
+    assert plan["standing"] == "READ_ONLY_PROJECTION"
+    assert plan["cashAfterMinor"] == 40000
+    assert plan["executionAuthorized"] is False

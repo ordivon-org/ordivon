@@ -32,6 +32,7 @@ from .social_contracts import (
     TopicResumeResponse,
 )
 from .social_store import SocialStore
+from .wire_common import ExactCursorWire
 
 
 def register_social_tools(
@@ -152,8 +153,8 @@ def register_social_tools(
     def topic_state_set(
         topicRef: str,
         actorRef: str,
-        state: Literal["open", "closed"],
-        expectedState: Literal["open", "closed"],
+        state: Literal["open", "closed", "archived"],
+        expectedState: Literal["open", "closed", "archived"],
         expectedHighSequence: int,
     ) -> TopicResponse:
         request = {
@@ -179,9 +180,14 @@ def register_social_tools(
         afterTopicRef: str | None = None,
         limit: int = 100,
         maxBytes: int = 262_144,
+        includeArchived: bool = False,
     ) -> TopicListResponse:
         return social.list_topics(
-            spaceRef, after_topic_ref=afterTopicRef, limit=limit, max_bytes=maxBytes
+            spaceRef,
+            after_topic_ref=afterTopicRef,
+            limit=limit,
+            max_bytes=maxBytes,
+            include_archived=includeArchived,
         )
 
     @mcp.tool(name="topic.cursor.get")
@@ -191,7 +197,9 @@ def register_social_tools(
 
     @mcp.tool(name="topic.cursor.ack")
     @_project_domain_errors
-    def topic_cursor_ack(actorRef: str, topicRef: str, cursor: int) -> TopicCursorResponse:
+    def topic_cursor_ack(
+        actorRef: str, topicRef: str, cursor: ExactCursorWire
+    ) -> TopicCursorResponse:
         request = {"actorRef": actorRef, "topicRef": topicRef, "cursor": cursor}
         return social.ack_topic_cursor(
             actor_ref=actorRef,
@@ -204,7 +212,7 @@ def register_social_tools(
     @_project_domain_errors
     def topic_resume(
         topicRef: str,
-        afterSequence: int = 0,
+        afterSequence: ExactCursorWire = 0,
         limit: int = 50,
         maxBytes: int = 524_288,
     ) -> TopicResumeResponse:

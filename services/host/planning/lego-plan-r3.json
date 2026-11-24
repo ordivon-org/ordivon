@@ -161,7 +161,7 @@
   ],
   "freezeRule": {
     "default": "FROZEN",
-    "evidence": "planning/host-friction-observatory-r1.json",
+    "evidence": "git-blob:a5503d5be27a121b7b9a3d5fa2088ea44cac4c79",
     "reopenOnlyFor": [
       "Host-owned durable invariant failure",
       "material re-entry cost not reducible by preserving a more specific caller-owned coordinate",

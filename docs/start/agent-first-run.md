@@ -14,6 +14,21 @@ by the fact or external effect you must inspect. For this exercise, use
 The model's familiarity with a package or old documentation is not evidence
 that its deployment, data source, release or consumer is current.
 
+## Tool discovery under the real execution identity
+
+For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
+and choose the **actual node and Runtime identity** before probing. The
+read-only `probe_executables.py` reports PATH resolution only; missing from
+PATH never proves the application is not installed. A Windows service context
+and the interactive desktop user can have different tools and PATH entries.
+
+For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
+and the natural Owner's native entrypoint. Skills search/resolve/read supplies
+**advisory procedures**; it does not install a CLI, establish connected MCP
+availability, confer provider authority, or satisfy domain acceptance.
+Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
+arguments, then verify the final consumer's result.
+
 ## 2. Discover a project Skill without confusing Workspace identities
 
 When the Ordivon Skills MCP is connected, project Skills are deliberately
@@ -31,11 +46,18 @@ skills.read(skillId="project-ordivon-next/finance-paper-investment",
 
 The `skillId` above is an example of an actual qualified Skills Owner
 resolution; always use the exact returned ID, revisions and source currentness
-when available. The live test found all three project Finance procedures
-(`finance-paper-investment`, `finance-experiment-review` and
-`finance-paper-risk-review`) with that project context, and successfully
-read the first Skill. A global query returning no Finance results does not
-imply missing project packages.
+when available. **Search is an implicit-invocation discovery view, not a
+complete inventory of explicitly addressable Skills.** For example, on
+2026-11-15, scoped `skills.search(query="finance", workspaceId="ordivon-next")`
+did not include the project binding for `finance-experiment-review`, while
+`skills.resolve(ref="finance-experiment-review", workspaceId="ordivon-next",
+invocationMode="explicit")` resolved that exact project Skill with
+`implicitInvocation=false`, `scanState=WARN` and
+`riskTags=["CROSS_SKILL_ROUTING"]`. This is a dated observation, not a
+permanent Skill count or permission to auto-invoke the explicitly selected
+Skill. Inspect its actual current advisory metadata, selection and warnings;
+the final business action still belongs to the natural Owner. Unscoped search
+results also do not prove that project packages are absent.
 
 The named project registrations belong to the existing
 [Skills owner](../architecture/SKILLS.md). Check its active configuration
@@ -95,17 +117,31 @@ generic `SUCCESS` status.
   [CONTRIBUTING](../../CONTRIBUTING.md) and the owner's tests.
 
 This page is a starting tutorial, **not** a second mandatory global workflow
-or a new Agent authority.\r\n\r\n## Tool discovery under the real execution identity
+or a new Agent authority.
 
-For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
-and choose the **actual node and Runtime identity** before probing. The
-read-only `probe_executables.py` reports PATH resolution only; missing from
-PATH never proves the application is not installed. A Windows service context
-and the interactive desktop user can have different tools and PATH entries.
+## Optional: find the original Gateway execution after response loss
 
-For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
-and the natural Owner's native entrypoint. Skills search/resolve/read supplies
-**advisory procedures**; it does not install a CLI, establish connected MCP
-availability, confer provider authority, or satisfy domain acceptance.
-Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
-arguments, then verify the final consumer's result.
+For a **previously admitted Gateway** `execution.submit`, preserve the exact
+original `requestId`, `capability`, and caller identity. Do not infer the Job
+from a similar name, a Runtime Workspace ID, or an Artifact digest. If the
+Gateway response is missing or unclear, query the existing discovery and
+observation tools before deciding whether any further action is needed:
+
+```text
+execution.resolve(capability="execution.linux", requestId="<original-request-id>")
+# If resolution is found, take the exact operation_ref from that response:
+execution.get(operationRef="<returned-operation-ref>",
+              requestId="<original-request-id>", capability="execution.linux")
+```
+
+Use the capability originally selected; `execution.linux` is only an example.
+`found` binds one native operation to this caller; `absent` or `ambiguous` is
+**not** permission to repeat a possibly effectful submission. The verified
+Gateway may reject `execution.get` without the original request identity or
+when the operation belongs to another caller. For a Job submitted *directly*
+through Runtime rather than Gateway, use Runtime's native `job.observe`
+instead of inventing a Gateway correlation. A terminal, committed Runtime
+process result still does **not** prove an external Provider or domain effect.
+See [Agent execution causal chain](../AGENT_EXECUTION_CAUSAL_CHAIN_R2.md) for
+uncertain outcomes and natural-Owner reconciliation. Do not add a new recovery
+registry, retry wrapper, or proof layer for this read path.

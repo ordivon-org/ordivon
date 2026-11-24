@@ -10,9 +10,9 @@ import pytest
 from psycopg.types.json import Jsonb
 
 from ordivon_host_v2.collaboration_inputs import MessageInput, MessageKind, SpaceInput, TopicInput
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
-from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.getenv("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -30,7 +30,7 @@ def _new_message() -> tuple[SocialStore, MessageInput]:
         f"topic:integrity:{token}",
         f"message:integrity:{token}",
     )
-    WorkStore(DSN).declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{actor}",
     )

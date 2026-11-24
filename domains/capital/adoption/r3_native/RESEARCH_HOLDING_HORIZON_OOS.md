@@ -432,3 +432,17 @@ study_horizon_cash_sensitivity_r6.json，旧 9 事件快照
 也未被覆盖。不能与此前文档 R9 真实模型的 +73.16
 结果相减并称其为股息导致的 alpha 变化；要重放
 真正 R9 模型，必须恢复其原始具体预测来源。
+
+
+### R5 convergence requalification (2026-11-24)
+
+The preceding R4/R6/R7 sections are archived experiment reports. Their
+private underlying historical Qlib prediction/panel bytes have not been
+reacquired in this round; neither selected-window claims nor economic
+results are newly certified. Current source retains the stronger existing
+score-column, exact-horizon and Markets gates, adds exact ETF universe/key
+coverage and emits the actually consumed study identity. The separate
+issuer-event audit counts only hypothetical candidate windows. In
+particular, ordinary cash distribution ex-date entitlement is not a
+payment receipt, adjusted-price correction or an authenticated historical
+event. Never transfer selected assets from CLOSE to NEXT_OPEN.

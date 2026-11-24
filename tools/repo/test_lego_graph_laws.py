@@ -2091,7 +2091,7 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     revision = subprocess.check_output(
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
-    path = "services/gateway/src/ordivon_gateway/routing.py"
+    path = "services/gateway/src/ordivon_gateway/logic/routing.py"
     result = module.inspect_owner_source_path(
         source_revision=revision, source_path=path, root=ROOT,
     )
@@ -2144,7 +2144,7 @@ def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> 
 
     real = module.inspect_owner_source_path(
         source_revision=revision,
-        source_path="services/gateway/src/ordivon_gateway/routing.py",
+        source_path="services/gateway/src/ordivon_gateway/logic/routing.py",
         root=ROOT,
     )
     assert real["ownerPartitions"][0]["registrationStanding"] == (
@@ -2259,7 +2259,7 @@ def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
     ).strip()
     plain = module.inspect_owner_source_path(
         source_revision=cut,
-        source_path="services/gateway/src/ordivon_gateway/routing.py",
+        source_path="services/gateway/src/ordivon_gateway/logic/routing.py",
         root=ROOT,
     )
     assert plain["nativeContractCarrier"] is None
@@ -2368,7 +2368,7 @@ def _gateway_host_route_source() -> str:
     """Concatenate actual registered route definitions for source graph checks."""
     base = ROOT / "services/gateway/src/ordivon_gateway"
     return "\n".join(
-        (base / f"host_{owner}_tools.py").read_text(encoding="utf-8").replace(
+        (base / "capabilities" / "host" / f"{owner}.py").read_text(encoding="utf-8").replace(
             "from __future__ import annotations\n", ""
         )
         for owner in ("work", "social", "attention")
@@ -2443,7 +2443,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     assert not (social_routes.keys() & attention_routes.keys())
     actual_host = {**work_routes, **social_routes, **attention_routes}
     gateway_registrar = ast.parse(
-        (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text(
+        (ROOT / "services/gateway/src/ordivon_gateway/capabilities/host/tools.py").read_text(
             encoding="utf-8"
         )
     )
@@ -2455,7 +2455,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
         registration = f"register_host_{owner}_tools"
         assert any(
             isinstance(node, ast.ImportFrom) and node.level == 1
-            and node.module == f"host_{owner}_tools"
+            and node.module == owner
             and any(alias.name == registration for alias in node.names)
             for node in gateway_registrar.body
         ), f"Gateway {owner} adapter not imported"
@@ -2463,15 +2463,15 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
             isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
             and node.func.id == registration
             and [arg.id if isinstance(arg, ast.Name) else None for arg in node.args]
-            == ["server", "_host"]
+            == (["server", "_host", "project_error"] if owner == "work" else ["server", "_host"])
             for node in ast.walk(gateway_register)
         ), f"Gateway {owner} adapter not registered"
     actual_gateway = _mcp_decorated_route_functions(
-        ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
+        ROOT / "services/gateway/src/ordivon_gateway/capabilities/host/tools.py", "server",
         source_override=gateway_text)
     # Bind real registrar composition to the northbound entry point, not
     # detached source declarations that happen to mention tool names.
-    assert "register_host_tools(server, gateway, _owner_boundary)" in (
+    assert "register_host_tools(server, gateway, _owner_boundary, _owner_error_result)" in (
         ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py"
     ).read_text()
     dispatches = {
@@ -2540,7 +2540,14 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     assert {"HostService schema gate", "WorkStore PostgreSQL transaction consumer",
             "SocialStore PostgreSQL transaction consumer",
             "AttentionStore PostgreSQL transaction consumer"} <= set(nodes["O04"]["consumers"])
-    assert "REQUIRED_SCHEMA_VERSION = 13" in host_text
+    # Bind the live Host service schema gate to the actual Alembic source
+    # HEAD, not a duplicate hard-coded version in this consumer test.
+    migrations = ROOT / "services/host/migrations/versions"
+    latest = max(
+        int(path.name.split("_", 1)[0])
+        for path in migrations.glob("????_*.py")
+    )
+    assert f"REQUIRED_SCHEMA_VERSION = {latest}" in host_text
     assert "schema_version" in host_text
 
 

@@ -1,5 +1,9 @@
 # Temporary open-connectivity phase (2026-11-12)
 
+This records the November 12 starting point. The subsequent Gluetun
+candidate policy reintroduces a nearby country pool; open TCP destination
+behavior is unchanged.
+
 User direction: remove optional Network routing and destination limits first;
 reconsider consumer-specific constraints later. This is a temporary transition,
 not a claim that a working VPN is always available.

@@ -110,7 +110,25 @@ Consumer graph / action authority:
   Carrier probes plus three consumer-origin probes. `query_range` evaluation
   timestamps are NOT fresh raw scrape timestamps. The recovery predicate
   uses one native Prometheus range-vector query and 3 aligned original
-  samples per Claude/Codex/PyPI lane; missing evidence remains UNKNOWN.
+  samples per Claude/Codex/PyPI lane, at **30s** scrape intervals. It requires
+  latest original sample age <=75s, earliest <=165s, within-lane gap <=45s,
+  and latest cross-lane skew <=45s; missing or stale evidence remains UNKNOWN.
+  The separate alert NetworkCorrelatedConsumerOutage with Prometheus for:2m
+  is NOT the authorized decision to switch the physical tunnel.
+  Native Prometheus further exposes two independent symptom classifications:
+  `NetworkSharedUnderlaySuspected` requires two fresh *host-direct* HTTPS
+  origins and all three fresh VPN-scoped consumers to fail together;
+  `NetworkVPNPathFailureWithDirectHealthy` requires the same three failed
+  VPN consumers while both independent host-direct origins succeed. Either
+  branch needs five observed current metrics, for:2m. Single-origin
+  failures, missing/expired scrapes, and mixed direct outcomes cannot
+  establish either specialised failure-domain claim; the existing general
+  correlated-consumer alert still reports the VPN consumer symptoms.
+  Neither new alert is a Gluetun switching authorization or proof of
+  a modem/ISP/provider root cause. Verify source via
+  `promtool test rules tests/fixtures/network-fault-domain-alerts.test.yml`;
+  real Alertmanager receiver delivery remains separately UNKNOWN until wired
+  and consumer-tested.
 - **C3 — Selection**: recent consumer-qualified native Gluetun sessions
   rank first. Explicit source `recovery-hints.json` stores at most two
   nonsecret previously sampled country hints for a maximum seven days.

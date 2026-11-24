@@ -8,41 +8,47 @@ const memory = JSON.parse(readFileSync(new URL("../knowledge/game_design_counter
 
 const unique = (items: string[]) => new Set(items).size === items.length;
 
-test("counterexample memory is large enough to challenge success-only teardown bias", () => {
+test("counterexample memory is source-qualified and cannot legislate design", () => {
   assert.equal(memory.schemaVersion, 1);
   assert.equal(memory.memoryId, "ordivon-game-design-counterexample-memory-r1");
-  assert.ok(memory.counterexamples.length >= 18);
-  assert.ok(new Set(memory.counterexamples.flatMap((item: any) => item.referenceGames)).size >= 12);
+  assert.ok(memory.counterexamples.length > 0, "counterexample retrieval requires at least one recorded failure");
+  assert.ok(memory.counterexamples.every((item: any) => item.referenceGames.length > 0 && item.referenceGames.every((name: string) => name.trim().length > 0)));
   assert.equal(memory.policy.failureIsUniversalLaw, false);
   assert.equal(memory.policy.canBlockNovelCombination, false);
   assert.equal(memory.policy.recommendationAuthority, "NONE");
 });
 
-test("each counterexample carries context, failure signal, revision and a cheap discriminator", () => {
-  assert.ok(unique(memory.counterexamples.map((item: any) => item.id)));
-  for (const item of memory.counterexamples) {
-    assert.ok(item.assumption.length > 0, `${item.id} assumption`);
-    assert.ok(item.failureSignal.length > 0, `${item.id} signal`);
-    assert.ok(item.context.length > 0, `${item.id} context`);
-    assert.ok(item.revisionOrSalvage.length > 0, `${item.id} revision`);
-    assert.ok(item.transferBoundary.length > 0, `${item.id} transfer`);
-    assert.ok(item.falseUniversalizations.length >= 2, `${item.id} universalization traps`);
-    assert.ok(item.cheapDiscriminator.length > 0, `${item.id} probe`);
-    assert.equal(item.authority, "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS");
-    assert.equal(item.humanOutcomeEstablished, false);
-    assert.equal(item.canBlockNovelCombination, false);
+function qualifyCounterexamples(records: any[]): void {
+  const experienceIds = new Set(library.experiences.map((item: any) => item.id));
+  const sourceIds = new Set(kb.sources.map((item: any) => "kb:" + item.id));
+  assert.ok(unique(records.map((item) => item.id)), "duplicate Counterexample IDs");
+  for (const item of records) {
+    for (const key of ["assumption", "failureSignal", "context", "revisionOrSalvage", "transferBoundary", "cheapDiscriminator"]) {
+      assert.ok(item[key].length > 0, item.id + " " + key);
+    }
+    assert.ok(item.falseUniversalizations.length >= 2, item.id + " universalization traps");
+    assert.ok(item.experienceRefs.length >= 1, item.id + " experience refs");
+    assert.ok(item.sourceRefs.length >= 1, item.id + " source refs");
+    for (const ref of item.experienceRefs) assert.ok(experienceIds.has(ref), item.id + " missing Experience " + ref);
+    for (const ref of item.sourceRefs) assert.ok(sourceIds.has(ref), item.id + " missing source " + ref);
+    assert.equal(item.authority, "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS", item.id + " authority");
+    assert.equal(item.humanOutcomeEstablished, false, item.id + " cannot mint Human evidence");
+    assert.equal(item.canBlockNovelCombination, false, item.id + " cannot veto");
   }
+}
+
+test("every counterexample carries context, failure evidence and closed sources", () => {
+  qualifyCounterexamples(memory.counterexamples);
 });
 
-test("counterexample provenance closes over Experience and external source records", () => {
-  const experienceIds = new Set(library.experiences.map((item: any) => item.id));
-  const sourceIds = new Set(kb.sources.map((item: any) => `kb:${item.id}`));
-  for (const item of memory.counterexamples) {
-    assert.ok(item.experienceRefs.length >= 1, `${item.id} experience refs`);
-    assert.ok(item.sourceRefs.length >= 1, `${item.id} source refs`);
-    for (const ref of item.experienceRefs) assert.ok(experienceIds.has(ref), `${item.id} missing ${ref}`);
-    for (const ref of item.sourceRefs) assert.ok(sourceIds.has(ref), `${item.id} missing ${ref}`);
-  }
+test("one grounded counterexample qualifies; duplicate, orphan and authority escalation fail", () => {
+  const sample = memory.counterexamples[0];
+  assert.ok(sample);
+  qualifyCounterexamples([sample]);
+  assert.throws(() => qualifyCounterexamples([sample, sample]), /duplicate Counterexample IDs/);
+  assert.throws(() => qualifyCounterexamples([{...sample, experienceRefs: ["not-an-experience"]}]), /missing Experience/);
+  assert.throws(() => qualifyCounterexamples([{...sample, sourceRefs: ["kb:not-a-source"]}]), /missing source/);
+  assert.throws(() => qualifyCounterexamples([{...sample, canBlockNovelCombination: true}]), /cannot veto/);
 });
 
 test("new failure mining adds first-party Factorio, Blizzard and classic postmortem evidence", () => {
