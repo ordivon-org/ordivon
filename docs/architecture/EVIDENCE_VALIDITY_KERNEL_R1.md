@@ -269,7 +269,7 @@ Optional read-only Agent consumer:
 
 This resolves the official prior root-verification Check Run, checks the
 linked GitHub workflow run repository and exact source SHA, then invokes
-mature gh run download into a disposable directory. The reader compares
+the native Artifact-ID download through gh api (R5 now checks ZIP digest/size). The reader compares
 the historical report sourceCut/SOURCE_FILES set and Git blob modes/OIDs,
 PASS probe inventory and tool entrypoint record shapes without executing
 it. A caller-supplied local file may alternatively be examined with
@@ -515,3 +515,37 @@ Native references:
 - https://docs.github.com/en/rest/actions/workflow-runs
 
 No new CI dispatch, storage, scheduler, or proof admission is introduced.
+
+## R5 integration: immutable archive and independent historical facts
+
+The read-only Formal Artifact consumer now invokes the official gh API by
+Artifact ID (not mutable name resolution), checks compressed bytes against
+the GitHub size and SHA-256 metadata, and parses the one bounded regular JSON
+ZIP member without extracting the archive. Duplicate JSON keys, unexpected
+members, oversized payloads and unqualified archive identity fail closed.
+The metadata and accepted bytes are bounded; this is not a physical network
+transfer quota. The same pagination validator is reused for Check Runs,
+Attempt Jobs and Artifact listings.
+
+The prior provenance marker is replaced by
+GITHUB_ARTIFACT_ID_DIGEST_VERIFIED_NOT_PROOF_EQUIVALENCE. Old unverified
+download metadata is not equivalent to this new content qualification.
+Native Artifact metadata lacks a Run Attempt identity; later-attempt
+association is UNKNOWN_FORMAL_ARTIFACT_ATTEMPT until independently bound.
+
+Real source evidence recovered on 2026-11-24:
+Artifact 14073198750 (3994 compressed bytes) from Run 43499713609,
+Attempt 1, was downloaded by ID. Its exact ZIP SHA-256 matched the native
+metadata, and its 36 declared Git inputs / 21 probes / 8 tool records
+matched execution SourceCut 72d97e758f22383cf0a464a3ea5e08d5f9f0aad5.
+GitHub now returns an empty historical pull_requests association on Run,
+Attempt, Suite and Check Run. Git still independently identifies both
+parents (5f6a0d1f93024c8992a5d78d61771ad5a0fbbf5a and
+ef001b0d3e111721bcca856be960a6027737bb77). The native artifact-content
+binding and independent Git snapshot comparison survive; original PR
+Base attestation remains UNKNOWN. The comparison at 18f161988416...
+observed 19 changed declared paths (36 old, 45 target). Both stronger
+typed Claims remain unsupported, with precise missing-binding and source
+change obligations; no solver replay or proof reuse is admitted.
+
+Native reference: https://docs.github.com/en/rest/actions/artifacts
