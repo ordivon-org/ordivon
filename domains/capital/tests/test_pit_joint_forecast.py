@@ -632,6 +632,36 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         self.assertEqual(old_json["input_sha256"], new_json["input_sha256"])
         self.assertEqual(new_json["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
 
+    def test_native_pit_consumers_reject_duplicate_economic_and_time_keys(self):
+        import json
+        import os
+        import subprocess
+        import tempfile
+
+        raw = json.dumps(self.payload())
+        cases = {
+            "future_publication": raw.replace(
+                '"published_at":', '"published_at": "2027-01-01T00:00:00+00:00", "published_at":', 1
+            ),
+            "economic_preference": raw.replace('"gamma": 2.0', '"gamma": -100, "gamma": 2.0', 1),
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            file = Path(temp) / "vintages.json"
+            for case, content in cases.items():
+                file.write_text(content, encoding="utf-8")
+                for module in (
+                    "ordivon_capital.research.pit_joint_forecast",
+                    "ordivon_capital.applications.pit_portfolio",
+                ):
+                    with self.subTest(case=case, module=module):
+                        result = subprocess.run(
+                            [sys.executable, "-m", module, "--input", str(file)],
+                            capture_output=True, text=True, check=False,
+                            env={**os.environ, "PYTHONPATH": str(ROOT)},
+                        )
+                        self.assertNotEqual(result.returncode, 0, result.stdout)
+                        self.assertEqual(result.stdout, "")
+
     def test_missing_economic_owner_terms_never_create_an_optimal_policy(self):
         from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 

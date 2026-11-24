@@ -1,0 +1,63 @@
+name: Setup root verification
+description: Acquire verified tools and install the root CI toolchain only.
+runs:
+  using: composite
+  steps:
+    - name: Network - acquire verified Python via official GitHub API
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+    - name: Network - acquire verified mise via official GitHub API
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
+    - name: Install monorepo toolchain
+      uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+      with:
+        version: 2026.9.12
+        sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
+        # Avoid eager --monorepo tool installation: Owner queue tasks already
+        # install their own toolchain only when the consumer selects them.
+        install: false
+        cache: true
+
+    - name: Install root verification tools
+      # mise-action's GitHub token is scoped to its action. This separate
+      # native install otherwise uses anonymous GitHub Releases API calls.
+      env:
+        MISE_GITHUB_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Network acquisition resilience: native mise remains the owner of
+        # tool installation/checksums. Re-run only missing pinned tools.
+        # Bounded retries avoid treating transient GitHub Release 502/504
+        # as a toolchain or repository failure.
+        for attempt in 1 2 3; do
+          if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+            break
+          fi
+          if [ "$attempt" -eq 3 ]; then
+            echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+            exit 1
+          fi
+          sleep $((attempt * 3))
+        done
+
+    - name: Install verified GNU Bash 5.3.20
+      shell: bash
+      run: |
+        set -euo pipefail
+        tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+        echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+    - name: Install pinned SQL validation CLIs
+      shell: bash
+      run: |
+        set -euo pipefail
+        tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+        echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"

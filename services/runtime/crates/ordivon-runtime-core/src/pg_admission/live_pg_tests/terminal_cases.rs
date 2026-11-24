@@ -367,6 +367,79 @@ fn pg18_readonly_job_projection_fences_stage_and_incoherent_terminal() {
         )
         .unwrap();
 
+    // A hash-valid pair with inverted durable causal order is not an
+    // observed effect followed by its derived terminal. Swap their sequence
+    // values using a temporary positive slot to preserve SQL uniqueness.
+    let source_sequence: i64 = scratch
+        .admin
+        .query_one(
+            "SELECT event_sequence FROM job_events WHERE job_id=$1 AND event_type='PROCESS_EXITED'",
+            &[&input.job_id],
+        )
+        .unwrap()
+        .get(0);
+    let terminal_sequence: i64 = scratch
+        .admin
+        .query_one(
+            "SELECT event_sequence FROM job_events WHERE job_id=$1 AND event_type='JOB_TERMINAL'",
+            &[&input.job_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(terminal_sequence, source_sequence + 1);
+    let swap =
+        |client: &mut Client, first: i64, second: i64| {
+            let temporary = terminal_sequence + 100;
+            let mut tx = client.transaction().unwrap();
+            for (from, to) in [(first, temporary), (second, first), (temporary, second)] {
+                assert_eq!(tx.execute(
+                "UPDATE job_events SET event_sequence=$1 WHERE job_id=$2 AND event_sequence=$3",
+                &[&to, &input.job_id, &from],
+            ).unwrap(), 1);
+            }
+            tx.commit().unwrap();
+        };
+    swap(&mut scratch.admin, source_sequence, terminal_sequence);
+    assert_eq!(
+        store
+            .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+            .unwrap(),
+        PgJobReadback::Inconclusive,
+        "a derived terminal may not precede its physical/source witness"
+    );
+    swap(&mut scratch.admin, terminal_sequence, source_sequence);
+    assert!(matches!(
+        store.observe_job_readonly(&input.job_id, &input.expected_source_sha256),
+        Ok(PgJobReadback::Observed(_))
+    ));
+
+    // A gap is also impossible for the original atomic pair. Keep both
+    // event contents and digests unchanged to isolate the sequence witness.
+    scratch
+        .admin
+        .execute(
+            "UPDATE job_events SET event_sequence=$1 WHERE job_id=$2 AND event_type='JOB_TERMINAL'",
+            &[&(terminal_sequence + 1), &input.job_id],
+        )
+        .unwrap();
+    assert_eq!(
+        store
+            .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+            .unwrap(),
+        PgJobReadback::Inconclusive,
+    );
+    scratch
+        .admin
+        .execute(
+            "UPDATE job_events SET event_sequence=$1 WHERE job_id=$2 AND event_type='JOB_TERMINAL'",
+            &[&terminal_sequence, &input.job_id],
+        )
+        .unwrap();
+    assert!(matches!(
+        store.observe_job_readonly(&input.job_id, &input.expected_source_sha256),
+        Ok(PgJobReadback::Observed(_))
+    ));
+
     // A corrupt durable reservation must never yield a successful readback.
     scratch
         .admin

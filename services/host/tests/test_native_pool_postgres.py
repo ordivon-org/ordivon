@@ -129,7 +129,7 @@ def test_one_pool_serves_mcp_work_social_attention_and_status() -> None:
             assert any(row["sourceRef"] == posted["messageRef"] for row in changes["events"])
             result = await call(client, "host.status", {"detail": "integrity"})
             assert result["doctor"]["healthy"] is True
-            assert result["authority"]["journalSchema"] == 14
+            assert result["authority"]["journalSchema"] == 15
 
     with ConnectionPool(
         DSN, min_size=1, max_size=1, kwargs={"row_factory": dict_row},

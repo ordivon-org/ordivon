@@ -1600,6 +1600,10 @@ PY_CRASH_ABSENCE
     exit 1
   fi
   echo "Issuer crashed-launcher unit-absent native late-spawn counterexample PASS"
+
+  # Exact issued-set stability and early ACK reachability are model gates,
+  # not optional unit tests that can skip on a cold Owner checkout.
+  ORDIVON_TLA_TOOLS_JAR="$JAR" python3 "$ROOT/scripts/verify_issuer_revoke_epoch_model.py" -v
 )
 
 case "${1:-check}" in
