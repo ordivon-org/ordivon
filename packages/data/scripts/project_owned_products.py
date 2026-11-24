@@ -5,37 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPO = PACKAGE_ROOT.parents[1]
 sys.path.insert(0, str(PACKAGE_ROOT / "src"))
-from ordivon_data.git_sources import committed_owner_products
+from ordivon_data.git_sources import committed_owner_products, tracked_owner_products
 from ordivon_data.local_evidence import LocalEvidenceBinding
 from ordivon_data.odps_projection import project_catalog
-
-
-def tracked_owner_products(repo: Path) -> list[Path]:
-    """Use Git's existing tracked source inventory, not another product registry."""
-    result = subprocess.run(
-        [
-            "/usr/bin/git",
-            "--no-replace-objects",
-            "-C",
-            str(repo),
-            "ls-files",
-            "-z",
-            "--",
-            "*/odps.json",
-        ],
-        check=True,
-        capture_output=True,
-    )
-    return sorted(
-        repo / path.decode("utf-8") for path in result.stdout.split(b"\0") if path
-    )
 
 
 def main() -> int:

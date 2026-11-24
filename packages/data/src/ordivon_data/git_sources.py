@@ -6,6 +6,7 @@ it does not register products, publish physical files, or infer data rights.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -21,9 +22,27 @@ def _git(repo: Path, *args: str) -> bytes:
             check=True,
             capture_output=True,
             timeout=20,
+            env={key: value for key, value in os.environ.items()
+                 if not key.startswith("GIT_")},
         ).stdout
     except (OSError, subprocess.SubprocessError) as error:
         raise ValueError("committed ODPS source cannot be resolved") from error
+
+
+def _require_repo_root(repo: Path) -> Path:
+    """An explicit checkout cannot silently resolve to its parent repository."""
+    root = repo.resolve(strict=True)
+    actual = Path(os.fsdecode(_git(root, "rev-parse", "--show-toplevel").rstrip(b"\n")))
+    if actual.resolve(strict=True) != root:
+        raise ValueError("Git source path is not the exact checkout root")
+    return root
+
+
+def tracked_owner_products(repo: Path) -> list[Path]:
+    """Discover tracked paths in the same explicit checkout, not foreign Git env."""
+    root = _require_repo_root(repo)
+    paths = _git(root, "ls-files", "-z", "--", "*/odps.json")
+    return sorted(root / path.decode("utf-8") for path in paths.split(b"\0") if path)
 
 
 def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes]]:
@@ -36,6 +55,7 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
     """
     if not isinstance(revision, str) or not revision or revision.startswith("-"):
         raise ValueError("Git source revision must be a nonempty revision")
+    repo = _require_repo_root(repo)
     commit = (
         _git(repo, "rev-parse", "--verify", "--end-of-options", revision + "^{commit}")
         .decode("ascii")

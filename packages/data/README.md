@@ -101,7 +101,9 @@ python3 packages/data/scripts/project_owned_products.py --at-commit HEAD
 ```
 
 The reader resolves the revision once and consumes regular ODPS blobs from
-that committed tree, not the mutable index or working directory. The exact
+that committed tree, not the mutable index or working directory. The Git
+reader is bound to the explicit checkout root and ignores inherited Git
+repository overrides from other Agent workspaces. The exact
 commit is emitted on stderr; the DCAT projection is still bound to the
 individual metadata byte digests. `--product` is a separate explicit live
 input mode. A committed metadata SourceCut does not freeze independently
