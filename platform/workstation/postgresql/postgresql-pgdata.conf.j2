@@ -1,0 +1,7 @@
+# Managed by Ordivon Operations v2: shared persistent PostgreSQL substrate.
+[Service]
+PIDFile={{ operations_postgres_data_dir }}/postmaster.pid
+ExecStartPre=
+ExecStartPre=/usr/bin/postgresql-check-db-dir {{ operations_postgres_data_dir }}
+ExecStart=
+ExecStart=/usr/bin/postgres -D {{ operations_postgres_data_dir }}
