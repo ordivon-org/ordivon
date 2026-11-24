@@ -16,6 +16,24 @@ SCRIPT = ROOT / "tools/repo/check_github_governance.py"
 DEPENDABOT = ROOT / ".github/dependabot.yml"
 
 
+def effective_ci_steps(job: dict) -> list[dict]:
+    """Observe the setup action actually invoked by a native workflow lane."""
+    import yaml
+
+    expanded = []
+    for step in job["steps"]:
+        if step.get("uses") == "./.github/actions/setup-root-verification":
+            action = yaml.safe_load(
+                (ROOT / step["uses"] / "action.yml").read_text(encoding="utf-8")
+            )
+            if action["runs"]["using"] != "composite":
+                raise ValueError("root setup is not a native composite")
+            expanded.extend(action["runs"]["steps"])
+        else:
+            expanded.append(step)
+    return expanded
+
+
 def required_ci_steps(workflow: dict) -> list[dict]:
     """Current source-qualified preflight plus actual isolated Owner executor.
 
@@ -24,9 +42,9 @@ def required_ci_steps(workflow: dict) -> list[dict]:
     """
     jobs = workflow["jobs"]
     return [
-        *jobs["root-preflight"]["steps"],
-        *jobs["repo-mechanics"]["steps"],
-        *jobs["owner-verification"]["steps"],
+        *effective_ci_steps(jobs["root-preflight"]),
+        *effective_ci_steps(jobs["repo-mechanics"]),
+        *effective_ci_steps(jobs["owner-verification"]),
     ]
 
 
@@ -242,9 +260,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         jobs = workflow["jobs"]
         self.assertNotIn("needs", jobs["root-preflight"])
         self.assertNotIn("needs", jobs["repo-mechanics"])
-        preflight = [step["name"] for step in jobs["root-preflight"]["steps"]]
-        mechanics = [step["name"] for step in jobs["repo-mechanics"]["steps"]]
-        owner = [step["name"] for step in jobs["owner-verification"]["steps"]]
+        preflight = [step["name"] for step in effective_ci_steps(jobs["root-preflight"])]
+        mechanics = [step["name"] for step in effective_ci_steps(jobs["repo-mechanics"])]
+        owner = [step["name"] for step in effective_ci_steps(jobs["owner-verification"])]
         self.assertLess(preflight.index("Install root verification tools"),
                         preflight.index("Select affected owners"))
         self.assertNotIn("Repository mechanics", preflight)
@@ -282,7 +300,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         script = next(
-            step["run"] for step in workflow["jobs"]["repo-mechanics"]["steps"]
+            step["run"] for step in effective_ci_steps(workflow["jobs"]["repo-mechanics"])
             if step["name"] == "Install root verification tools"
         )
         for fail_until, expected_rc, expected_calls in ((1, 0, 2), (9, 1, 3)):
@@ -498,7 +516,7 @@ exit 0
             job = workflow["jobs"][job_name]
             self.assertNotIn("env", job)
             matches = [
-                step for step in job["steps"]
+                step for step in effective_ci_steps(job)
                 if step.get("name") == "Install root verification tools"
             ]
             self.assertEqual(len(matches), 1, job_name)

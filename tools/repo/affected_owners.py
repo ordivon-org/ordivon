@@ -79,6 +79,8 @@ CROSS_CUTTING_PATHS = frozenset(
     {
         "mise.toml",
         ".github/workflows/ci.yml",
+        ".github/actions/setup-root-verification/action.yml",
+        "tools/repo/verify_authority_history.sh",
         "tools/repo/owners.toml",
         "tools/repo/affected_owners.py",
         "tools/repo/test_affected_owners.py",
