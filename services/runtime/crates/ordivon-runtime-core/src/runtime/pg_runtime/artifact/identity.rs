@@ -1,6 +1,6 @@
 //! Original committed PostgreSQL Artifact origin and content contradiction checks.
 //! A mismatched disk receipt is an integrity error, never a transient DB outage.
-use super::{RuntimeError, RuntimeErrorCode, RuntimeResult, universal};
+use super::{universal, RuntimeError, RuntimeErrorCode, RuntimeResult};
 
 // PostgreSQL is available when its committed Artifact disagrees with disk.
 // Report an integrity contradiction, not a transient Registry outage: a
