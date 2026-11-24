@@ -199,21 +199,98 @@ def test_work_parent_cycle_fails_closed() -> None:
 
 
 
-def test_concurrent_reciprocal_work_relations_cannot_commit_cycle() -> None:
+def test_composed_relation_reference_receipt_and_attention_consumer() -> None:
+    """Actual reference failure, transaction replay and natural Attention readback."""
+    from ordivon_host_v2.errors import ActorRefNotFound, WorkNotFound
+
+    assert DSN is not None
+    store = WorkStore(DSN)
+    attention = AttentionStore(DSN)
+    actor, a = refs("relation-composition")
+    missing_actor, b = refs("relation-composition-target")
+    declare_actor(store, actor)
+    with pytest.raises(ActorRefNotFound):
+        store.create_work(
+            WorkCreateInput(
+                work_ref=a, kind="task", actor_ref=missing_actor, initial_snapshot=snapshot("open")
+            ),
+            client_request_id=f"missing-actor:{a}",
+        )
+    store.create_work(
+        WorkCreateInput(
+            work_ref=a, kind="task", actor_ref=actor, initial_snapshot=snapshot("open")
+        ),
+        client_request_id=f"create:{a}",
+    )
+    with pytest.raises(ActorRefNotFound):
+        store.commit_snapshot(
+            a,
+            expected_revision=1,
+            snapshot=snapshot("unadmitted"),
+            actor_ref=missing_actor,
+            client_request_id=f"missing-commit-actor:{a}",
+        )
+    assert store.get_work(a)["revision"] == 1
+    relation = WorkRelationInput(
+        source_work_ref=a, relation=WorkRelationKind.PARENT_OF, target_work_ref=b, actor_ref=actor
+    )
+    relation_id = f"rel:{a}:{b}"
+    with pytest.raises(WorkNotFound):
+        store.add_relation(relation, client_request_id=relation_id)
+    # The failed prerequisite must roll back its reservation, so the same ID
+    # can succeed once the missing natural record exists.
+    store.create_work(
+        WorkCreateInput(
+            work_ref=b, kind="task", actor_ref=actor, initial_snapshot=snapshot("open")
+        ),
+        client_request_id=f"create:{b}",
+    )
+    attention.follow(
+        actor_ref=actor, target_kind="work", target_ref=a, client_request_id=f"follow:{a}"
+    )
+    baseline = attention.delta(actor, after_sequence=0)["snapshotHighSequence"]
+    result = store.add_relation(relation, client_request_id=relation_id)
+    replay = store.add_relation(relation, client_request_id=relation_id)
+    assert result["admission"] == "committed"
+    assert replay == {**result, "admission": "existing"}
+    with pytest.raises(ConflictError):
+        store.add_relation(
+            relation.model_copy(update={"relation": WorkRelationKind.DEPENDS_ON}),
+            client_request_id=relation_id,
+        )
+    delta = attention.delta(actor, after_sequence=baseline)
+    relevant = [e for e in delta["events"] if e["eventKind"] == "work_relation"]
+    assert len(relevant) == 1
+    assert relevant[0]["sourceRef"] == f"{a}:parent_of:{b}"
+    assert relevant[0]["navigationRef"] == a
+    with psycopg.connect(DSN) as conn:
+        assert conn.execute(
+            "SELECT count(*) FROM command_receipts WHERE client_request_id IN (%s,%s)",
+            (f"missing-actor:{a}", f"missing-commit-actor:{a}"),
+        ).fetchone() == (0,)
+        assert conn.execute(
+            "SELECT count(*) FROM work_relations WHERE source_work_ref=%s AND target_work_ref=%s",
+            (a, b),
+        ).fetchone() == (1,)
+
+
+def test_concurrent_reciprocal_work_relations_cannot_commit_cycle(monkeypatch) -> None:
     """Two Agent writers cannot each validate on a stale graph then commit a cycle."""
     assert DSN is not None
     actor, a = refs("concurrent-cycle-a")
     _, b = refs("concurrent-cycle-b")
 
-    class DelayedAfterCycleCheck(WorkStore):
-        def _reject_cycle(self, conn, relation):
-            super()._reject_cycle(conn, relation)
-            # Two independent requests race after reading the same empty DAG.
-            # The sleep is deliberately after the real SQL cycle check, not
-            # a mock of the storage transaction or its visible contract.
-            sleep(0.35)
+    from ordivon_host_v2.work_relation_commands import WorkRelationCommands
 
-    store = DelayedAfterCycleCheck(DSN)
+    reject_cycle = WorkRelationCommands._reject_cycle
+
+    def delayed_after_cycle_check(self, conn, relation):
+        reject_cycle(self, conn, relation)
+        # Keep the original live SQL race oracle, not a WorkStore MRO contract.
+        sleep(0.35)
+
+    monkeypatch.setattr(WorkRelationCommands, "_reject_cycle", delayed_after_cycle_check)
+    store = WorkStore(DSN)
     declare_actor(store, actor)
     for ref in (a, b):
         store.create_work(
@@ -257,6 +334,7 @@ def test_concurrent_reciprocal_work_relations_cannot_commit_cycle() -> None:
             (a, a),
         ).fetchall()
     assert len(edges) == 1
+
 
 def test_space_can_link_multiple_works_without_becoming_work_container() -> None:
     assert DSN is not None

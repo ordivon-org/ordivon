@@ -13,9 +13,9 @@ from .errors import ConflictError, WorkNotFound
 from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .postgres_connections import HostPostgresConnections
 from .references.actor_refs import ActorReferenceLookup
-from .references.record_refs import RecordReferenceLookup
 from .work_inputs import (
     WorkCreateInput,
+    WorkRelationInput,
     WorkSnapshotInput,
     WorkState,
 )
@@ -24,12 +24,7 @@ from .work_relation_commands import WorkRelationCommands
 from .work_revision_logic import next_work_revision
 
 
-class WorkStore(
-    ActorReferenceLookup,
-    WorkRelationCommands,
-    RecordReferenceLookup,
-    HostPostgresConnections,
-):
+class WorkStore(HostPostgresConnections):
     """Greenfield Social Work Fabric Work Graph authority.
 
     This store owns durable Host semantic work continuity only. It deliberately does not
@@ -56,6 +51,12 @@ class WorkStore(
             max_bytes=max_bytes,
         )
 
+    def add_relation(self, value: WorkRelationInput, *, client_request_id: str) -> dict[str, Any]:
+        """Internal Work graph command, not an extra public MCP route."""
+        return WorkRelationCommands(self._connect).add_relation(
+            value, client_request_id=client_request_id
+        )
+
     def create_work(self, value: WorkCreateInput, *, client_request_id: str) -> dict[str, Any]:
         payload = value.initial_snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
@@ -71,7 +72,7 @@ class WorkStore(
             replay = claim_command_receipt(conn, client_request_id, "work.create", request_digest)
             if replay is not None:
                 return replay
-            self._require_actor(conn, value.actor_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
             # PostgreSQL's unique WorkRef arbiter is the creation linearization
             # point. SELECT-before-INSERT cannot arbitrate concurrent identical
             # requests: both can observe absence and leak UniqueViolation.
@@ -149,7 +150,7 @@ class WorkStore(
             )
             if replay is not None:
                 return replay
-            self._require_actor(conn, actor_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
             current = conn.execute(
                 "SELECT work_ref,state,current_revision FROM works WHERE work_ref=%s FOR UPDATE",
                 (work_ref,),
