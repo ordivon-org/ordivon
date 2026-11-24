@@ -128,7 +128,7 @@ A response code alone is not a general proof of domain completion: the
 committed receipt is the canary's authoritative result.
 
 See [the bounded protocol model and concrete race witnesses](formal/README.md).
-Use `mise run formal:effect-response` from this directory when the existing
+Use `mise run web:formal:effect-response` from the repository root when the existing
 pinned Runtime TLC JAR is available.
 
 ## Delegated Agent authority

@@ -43,10 +43,10 @@ Reuse the existing Runtime TLC pin
 (`services/runtime/formal/toolchain.lock.json`). From the repository root:
 
 ```sh
-mise --cd apps/web run formal:effect-response
+mise run web:formal:effect-response
 # Or, if the pinned JAR is elsewhere:
 ORDIVON_TLA_TOOLS_JAR=/absolute/path/tla2tools-v1.7.4.jar \
-  mise --cd apps/web run formal:effect-response
+  mise run web:formal:effect-response
 ```
 
 Expected: the current configuration passes; each of the three legacy
