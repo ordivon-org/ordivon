@@ -111,18 +111,15 @@ class AttentionStore(
                 raise ConflictError(
                     "attention cursor cannot acknowledge beyond current change horizon"
                 )
-            current = conn.execute(
-                "SELECT cursor FROM attention_cursors WHERE actor_ref=%s FOR UPDATE", (actor_ref,)
-            ).fetchone()
-            previous = 0 if current is None else int(current["cursor"])
-            if cursor < previous:
-                raise ConflictError("attention cursor cannot move backwards")
+            # PG18 returns the actual predecessor at the unique-key UPSERT
+            # linearization point, even when a concurrent first ACK was invisible
+            # to a preceding SELECT. The monotonic predicate remains authoritative.
             updated = conn.execute(
                 "INSERT INTO attention_cursors(actor_ref,cursor) VALUES (%s,%s) "
                 "ON CONFLICT (actor_ref) DO UPDATE "
                 "SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp() "
                 "WHERE attention_cursors.cursor <= EXCLUDED.cursor "
-                "RETURNING cursor",
+                "RETURNING COALESCE(OLD.cursor,0) AS previous_cursor, NEW.cursor AS cursor",
                 (actor_ref, cursor),
             ).fetchone()
             if updated is None:
@@ -131,8 +128,8 @@ class AttentionStore(
                 "schemaVersion": 1,
                 "kind": "ordivon.host-attention-ack",
                 "actorRef": actor_ref,
-                "previousCursor": previous,
-                "cursor": cursor,
+                "previousCursor": int(updated["previous_cursor"]),
+                "cursor": int(updated["cursor"]),
                 "truthBoundary": "navigation acknowledgement only; not evidence that message content was semantically accepted",
             }
             record_command_receipt(conn, client_request_id, "attention.ack", request_digest, result)

@@ -59,6 +59,7 @@
     "portfolio": [
       "portfolio_counterfactuals.py",
       "strategic_contribution.py",
+      "liability_reserve.py",
       "paper_contribution_plan.py",
       "paper_investment.py",
       "passive_benchmark.py",
