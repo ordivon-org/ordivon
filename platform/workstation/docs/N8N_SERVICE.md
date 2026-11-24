@@ -88,6 +88,13 @@ A completed cut requires all of the following on the same node:
 10. A second Ansible apply is idempotent and does not rotate secrets or restart PostgreSQL without a setting change.
 
 `scripts/verify-n8n-rootless.sh` performs the local runtime acceptance probes.
+Supply the qualified local PostgreSQL Unix socket directory as `PGHOST` and
+its port as `PGPORT`, matching the observed server and shared Ansible inventory.
+For privileged calls, pass them explicitly through the privilege transition:
+`sudo env PGHOST="$PGHOST" PGPORT="$PGPORT" ./scripts/verify-n8n-rootless.sh`.
+The smoke CLIs deliberately have no fallback endpoint; these values are
+not credentials or an instruction to change the server.
+
 
 ## Ordivon integration boundary
 

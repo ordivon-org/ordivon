@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# The operator supplies the qualified local cluster endpoint (libpq inputs).
+# Do not infer another database when this invocation lacks a source binding.
+: "${PGHOST:?PGHOST must name the qualified local PostgreSQL Unix socket directory}"
+: "${PGPORT:?PGPORT must name the qualified local PostgreSQL port}"
+if [[ "$PGHOST" != /* || "$PGHOST" == *,* || ! "$PGPORT" =~ ^[1-9][0-9]{0,4}$ ]] || (( PGPORT > 65535 )); then
+  echo "invalid local PostgreSQL endpoint" >&2
+  exit 2
+fi
 if [[ ${EUID} -ne 0 ]]; then echo 'must run as root' >&2; exit 2; fi
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SOURCE="$ROOT/n8n/workflows/ordivon-distribution-adapter-smoke-v1.json"
 WORKFLOW_ID=ordivon-dist-adapter-smoke-v1
-SOCKET=/var/lib/postgres/ordivon-data-r5-pg-14550-v4
-PORT=14550
 STATE=/var/lib/n8n/.n8n
 RUNTIME=/run/user/934
 run_n8n() {
@@ -14,14 +21,14 @@ run_n8n() {
 python3 -m json.tool "$SOURCE" >/dev/null
 current=$(mktemp)
 trap 'rm -f "$current" "$STATE/ordivon-distribution-adapter-smoke-v1.import.json"' EXIT
-runuser -u postgres -- psql -h "$SOCKET" -p "$PORT" -d n8n -Atqc "select json_build_object('id',id,'name',name,'active',active,'nodes',nodes,'connections',connections,'settings',settings)::text from workflow_entity where id='$WORKFLOW_ID';" > "$current"
+runuser -u postgres -- psql -h "$PGHOST" -p "$PGPORT" -d n8n -Atqc "select json_build_object('id',id,'name',name,'active',active,'nodes',nodes,'connections',connections,'settings',settings)::text from workflow_entity where id='$WORKFLOW_ID';" > "$current"
 if [[ -s "$current" ]] && python3 - "$SOURCE" "$current" <<'PY'
 import json,sys
 source=json.load(open(sys.argv[1]));current=json.load(open(sys.argv[2]));keys=('id','name','active','nodes','connections','settings')
 if {k:source.get(k) for k in keys}!={k:current.get(k) for k in keys}:raise SystemExit(1)
 PY
 then echo "n8n Distribution adapter workflow already converged: $WORKFLOW_ID";exit 0;fi
-mapfile -t projects < <(runuser -u postgres -- psql -h "$SOCKET" -p "$PORT" -d n8n -Atqc "select id from project where type='personal' order by \"createdAt\";")
+mapfile -t projects < <(runuser -u postgres -- psql -h "$PGHOST" -p "$PGPORT" -d n8n -Atqc "select id from project where type='personal' order by \"createdAt\";")
 [[ ${#projects[@]} -eq 1 ]] || { echo "expected exactly one personal n8n project, found ${#projects[@]}" >&2; exit 4; }
 install -o n8n -g n8n -m 0600 "$SOURCE" "$STATE/ordivon-distribution-adapter-smoke-v1.import.json"
 run_n8n podman exec ordivon-n8n n8n import:workflow --input=/home/node/.n8n/ordivon-distribution-adapter-smoke-v1.import.json --projectId="${projects[0]}"

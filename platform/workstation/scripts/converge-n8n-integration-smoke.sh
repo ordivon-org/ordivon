@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# The operator supplies the qualified local cluster endpoint (libpq inputs).
+# Do not infer another database when this invocation lacks a source binding.
+: "${PGHOST:?PGHOST must name the qualified local PostgreSQL Unix socket directory}"
+: "${PGPORT:?PGPORT must name the qualified local PostgreSQL port}"
+if [[ "$PGHOST" != /* || "$PGHOST" == *,* || ! "$PGPORT" =~ ^[1-9][0-9]{0,4}$ ]] || (( PGPORT > 65535 )); then
+  echo "invalid local PostgreSQL endpoint" >&2
+  exit 2
+fi
+
 if [[ ${EUID} -ne 0 ]]; then
   echo 'must run as root: PostgreSQL inspection and rootless n8n user handoff are required' >&2
   exit 2
@@ -9,8 +18,6 @@ fi
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SOURCE="$ROOT/n8n/workflows/ordivon-integration-smoke-v1.json"
 WORKFLOW_ID=ordivon-smoke-v1
-SOCKET=/var/lib/postgres/ordivon-data-r5-pg-14550-v4
-PORT=14550
 STATE=/var/lib/n8n/.n8n
 RUNTIME=/run/user/934
 
@@ -30,7 +37,7 @@ python3 -m json.tool "$SOURCE" >/dev/null
 
 current=$(mktemp)
 trap 'rm -f "$current" "$STATE/ordivon-integration-smoke-v1.import.json"' EXIT
-runuser -u postgres -- psql -h "$SOCKET" -p "$PORT" -d n8n -Atqc \
+runuser -u postgres -- psql -h "$PGHOST" -p "$PGPORT" -d n8n -Atqc \
   "select json_build_object('id',id,'name',name,'active',active,'nodes',nodes,'connections',connections,'settings',settings)::text from workflow_entity where id='$WORKFLOW_ID';" \
   > "$current"
 
@@ -48,7 +55,7 @@ then
   exit 0
 fi
 
-mapfile -t projects < <(runuser -u postgres -- psql -h "$SOCKET" -p "$PORT" -d n8n -Atqc \
+mapfile -t projects < <(runuser -u postgres -- psql -h "$PGHOST" -p "$PGPORT" -d n8n -Atqc \
   "select id from project where type='personal' order by \"createdAt\";")
 if [[ ${#projects[@]} -ne 1 ]]; then
   echo "expected exactly one personal n8n project for local acceptance, found ${#projects[@]}" >&2
