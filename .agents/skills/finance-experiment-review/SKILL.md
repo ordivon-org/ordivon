@@ -316,3 +316,14 @@ Use the existing native Qlib economics consumer's `native_study_identity`
 to bind forecasts, label data, ETF sources and CLOSE/NEXT_OPEN horizon.
 See `domains/capital/docs/FINANCE_GOLDEN_ROAD_R1.md` and its R5 source
 observation; no historical PIT or financial authority is conferred.
+
+### Historical macro vintage source: Philadelphia Fed ROUTPUT
+
+When ALFRED is unavailable, the existing Finance multi-frequency as-of
+consumer can optionally accept the real Philadelphia Fed ROUTPUT workbook.
+See `domains/capital/docs/FINANCE_RTDSM_ROUTPUT_R1.md` for exact source,
+digest, source-clock, reproduction and optional CLI flags. Use the native
+Calamine dependency in the research group. Do not use the current GDP
+series to fill an earlier missing vintage; do not compute a level ratio
+across rebasing vintages. GDP is macro context, not an ETF fill or
+a global liquidity score.

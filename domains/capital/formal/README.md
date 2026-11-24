@@ -360,6 +360,13 @@ reversal. Its native task is included in full Finance verify. The model
 cannot establish provider semantics; schema v2 and native behavioral tests
 make the declared basis and external-cost scope explicit.
 
+## Historical monthly vintage availability
+
+`MarketsCapturePITR1.smt2` also checks conservative following-month
+admission and a current-month leakage witness for RTDSM. This month-index
+model is not original provider timestamp attestation or a universal proof
+of calendar/Excel parsing.
+
 ## Dated liability reserve
 
 `PortfolioLiabilityReserve.lean` proves natural-number reserve and contribution
