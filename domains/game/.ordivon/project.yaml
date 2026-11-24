@@ -45,10 +45,6 @@ managed_paths:
   - examples/room-encounter/assert_process_restart.gd
   - examples/room-encounter/agent_episode.gd
   - examples/room-encounter/agent_episode_acceptance.py
-  - examples/orbit-collector/README.md
-  - examples/orbit-collector/Cargo.toml
-  - examples/orbit-collector/src/rules.rs
-  - examples/orbit-collector/src/gameplay.rs
   - mise.toml
   - examples/native-composition/assets/kenney-ui-art/button_rectangle_depth_border.png
 enforcement: strict

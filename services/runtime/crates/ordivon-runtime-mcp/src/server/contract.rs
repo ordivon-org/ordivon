@@ -17,9 +17,11 @@ pub struct WorkspaceOpenRequest {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     #[serde(default = "default_schema_version")]
     pub schema_version: u32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // The caller must allocate this stable logical identity BEFORE the first
+    // physical open request. Response loss is UNKNOWN; read back via
+    // workspace.get on the SAME ID rather than retrying an unkeyed mutation.
     #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
-    pub workspace_id: Option<String>,
+    pub workspace_id: String,
     pub source_repo: String,
     pub source_revision: String,
 }
@@ -28,9 +30,7 @@ impl WorkspaceOpenRequest {
     fn bind(self) -> GitWorkspaceCreateRequest {
         GitWorkspaceCreateRequest {
             schema_version: self.schema_version,
-            workspace_id: self
-                .workspace_id
-                .unwrap_or_else(|| format!("ws-{}", Uuid::now_v7())),
+            workspace_id: self.workspace_id,
             source_repo: self.source_repo,
             source_revision: self.source_revision,
         }

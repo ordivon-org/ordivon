@@ -83,3 +83,33 @@ consumers in `tests/test_conversation_binding_pg_selection.py` remain
 independent mandatory evidence. Under CEGAR, a real counterexample takes
 priority over this abstraction even if TLC reports PASS. No additional
 formal engine, source registry, or migration framework is introduced.
+
+## R45 Tool UNKNOWN recovery — bounded safety refinement (2026-11-16)
+
+Model: `ToolUnknownRecoveryR1.tla`. The existing Harness `formal:verify`
+task uses the Runtime-owned official SHA-pinned TLC checker; no replacement
+model checker, second Run Store or Owner execution engine is introduced.
+
+The finite state representation distinguishes original PG Intent, one
+physically admitted Owner submission, a lost response before/after admission,
+an UNKNOWN Receipt, `effect-dispatch-pending` Pause, Owner reachability,
+exact original Owner resolution and later bounded Run completion. Run
+completion is NOT independently verified domain TaskSolved. A lost reply
+before Owner admission may remain paused: missing Owner proof is not effect
+absence and never authorizes blind resubmission.
+
+Safety: at most one physical Owner submit; an observed/completed Tool step
+requires an observed original-Owner receipt; an UNKNOWN Pause stays UNKNOWN
+until exact Owner evidence arrives; reconciling requires the same Owner.
+
+Four intentionally false counterexample probes reach a physical submission,
+an ordinary recovered completion, a pre-admission unknown pause, and under
+a separately enabled unsafe retry rule the duplicate physical effect.
+This prevents a vacuous no-Tool-action safety proof.
+
+**Truth boundary:** TLC checks the finite abstraction, not actual SQL
+isolation, Gateway `execution.resolve` correctness, Runtime process launch,
+or arbitrary Provider behavior. Concrete consumers remain the scratch
+PostgreSQL18 `test_gateway_cli_consumer.py` plus the explicitly opt-in
+`test_live_gateway_unknown_recovery.py` real Gateway/Runtime Owner test.
+Any mismatch requires explicit independent falsification and refinement.

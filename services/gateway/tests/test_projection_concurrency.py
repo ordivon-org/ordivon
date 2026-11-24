@@ -100,8 +100,12 @@ def test_slow_owner_becomes_unknown_without_hiding_healthy_owner() -> None:
         assert by_id["artifact.runtime"].available
         assert cancelled.is_set()
         result = await service.capability_search(query="linux", include_unavailable=False)
-        assert result.total_matches == 1
-        assert result.matches[0].capability.observation_error
+        assert result.total_matches == 2
+        assert {match.capability.capability for match in result.matches} == {
+            "execution.linux",
+            "runtime.release.linux",
+        }
+        assert all(match.capability.observation_error for match in result.matches)
 
     asyncio.run(scenario())
 
@@ -181,7 +185,7 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
 
     import httpx2
 
-    import ordivon_gateway.upstream as upstream
+    import ordivon_gateway.transport.upstream as upstream
 
     async def scenario() -> None:
         call_started = asyncio.Event()
@@ -288,7 +292,7 @@ def test_completed_owner_tool_call_cancelled_during_sdk_close_reports_session_cl
     """A finished tools/call and cancellation during cleanup are distinguishable."""
     from types import SimpleNamespace
 
-    from ordivon_gateway import upstream
+    from ordivon_gateway.transport import upstream
 
     async def scenario() -> None:
         close_started = asyncio.Event()

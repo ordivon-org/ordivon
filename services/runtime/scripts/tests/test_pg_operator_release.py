@@ -85,6 +85,145 @@ class OperatorBinaryProfileGuards(unittest.TestCase):
             args.install_dir / "ordivon-runtime-runner",
         )
 
+    def test_backend_neutral_restore_prefers_explicit_pg_probe(self) -> None:
+        # PG-only service environment has no legacy ORDIVON_BIND. Reusing
+        # generic restore_previous must NOT invoke the SQLite probe.
+        with tempfile.TemporaryDirectory(prefix="pg-rollback-probe-") as root:
+            directory = Path(root)
+            previous = directory / "previous"
+            installed = directory / "installed"
+            previous.mkdir()
+            installed.mkdir()
+            (previous / "ordivon-runtime-pg").write_bytes(b"previous-native-pg")
+            (installed / "ordivon-runtime-pg").write_bytes(b"new-native-pg")
+            env = directory / "pg.env"
+            env.write_text("ORDIVON_PG_BIND=127.0.0.1:65501\n")
+            original = op.DEPLOY["restore_previous"]
+            command_calls: list[tuple[str, ...]] = []
+            probe_calls: list[str] = []
+
+            def physical(command, **_kwargs):
+                command_calls.append(tuple(str(part) for part in command))
+                return None
+
+            def native_probe(slice_seconds):
+                self.assertGreater(slice_seconds, 0)
+                probe_calls.append("pg")
+                self.assertEqual(
+                    (installed / "ordivon-runtime-pg").read_bytes(),
+                    b"previous-native-pg",
+                )
+                if len(probe_calls) == 1:
+                    raise RuntimeError("PG listener not ready yet")
+                return {"toolCount": 21, "nativePg": True}
+
+            # Reuse the ORIGINAL bounded wait, but invoke the PG-native
+            # callback instead of legacy ORDIVON_BIND/SQLite inspection.
+            ready = op.DEPLOY["wait_for_service_mcp_ready"]
+            with patch.dict(original.__globals__, {"run": physical}), patch.dict(
+                ready.__globals__, {
+                    "service_active": lambda *_a: True,
+                    "wait_service_active": lambda *_a: None,
+                    "probe_mcp": lambda *_a, **_kw: self.fail(
+                        "PG rollback must not invoke SQLite ORDIVON_BIND probe"
+                    ),
+                },
+            ):
+                result = original(
+                    previous,
+                    installed,
+                    [{"name": "ordivon-runtime-pg", "mode": 0o755}],
+                    Path("/usr/bin/true"),
+                    "ordivon-runtime.service",
+                    env,
+                    1.0,
+                    readiness_probe=native_probe,
+                )
+                self.assertEqual(
+                    [cmd[1] for cmd in command_calls], ["stop", "start"]
+                )
+                self.assertEqual(probe_calls, ["pg", "pg"])
+                self.assertEqual(result["probe"]["toolCount"], 21)
+                with self.assertRaisesRegex(
+                    RuntimeError, "no qualified evidence"
+                ):
+                    original(
+                        previous,
+                        installed,
+                        [{"name": "ordivon-runtime-pg", "mode": 0o755}],
+                        Path("/usr/bin/true"),
+                        "ordivon-runtime.service",
+                        env,
+                        1.0,
+                        readiness_probe=lambda _slice: {},
+                    )
+
+    def test_restored_pg_catalog_accepts_prior_count_but_checks_runner(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="pg-catalog-") as root:
+            installed = Path(root)
+            runner = installed / "ordivon-runtime-runner"
+            runner.write_bytes(b"previous-runner")
+            provider_digest = op.DEPLOY["sha256"](runner)
+            calls = []
+
+            def catalog(_url, _token, **kwargs):
+                calls.append(kwargs)
+                return {"toolCount": 21, "toolCatalogDigest": "sha256:" + "a" * 64}
+
+            class NativeMcp:
+                def __init__(self, *_a, **_kw):
+                    pass
+
+                def call_tool(self, name, _arguments):
+                    if name != "runtime.describe":
+                        raise AssertionError(name)
+                    return {"targets": [{
+                        "target": "local_linux",
+                        "executionProvider": {
+                            "contract": "local_linux_runner_v1",
+                            "executableDigest": provider_digest,
+                        },
+                    }]}
+
+            args = Namespace(
+                binaries=["ordivon-runtime-pg", "ordivon-runtime-runner"],
+                install_dir=installed,
+                env_file=installed / "pg.env",
+                systemctl=Path("/usr/bin/true"),
+                service="ordivon-runtime.service",
+                expected_tool_count=24,
+                required_tools=["job.exec"],
+                wait_seconds=1.0,
+            )
+            with patch.dict(op.DEPLOY, {
+                "load_environment_file": lambda _p: {
+                    "ORDIVON_PG_BIND": "127.0.0.1:65501",
+                    "ORDIVON_PG_TOKEN": "x" * 32,
+                },
+                "service_active": lambda *_a: True,
+                "probe_catalog": catalog,
+            }), patch.object(op, "McpClient", NativeMcp), patch.object(
+                op, "verified_live_service_executable",
+                return_value={"path": str(installed / "ordivon-runtime-pg")},
+            ):
+                previous = op.pg_mcp_readiness(args, previous_image=True)
+                self.assertEqual(previous["toolCount"], 21)
+                self.assertEqual(
+                    previous["activeRuntimeImage"]["runnerDigest"],
+                    provider_digest,
+                )
+                self.assertIsNone(calls[-1]["expected_tool_count"])
+                self.assertEqual(calls[-1]["required_tools"], ())
+                bounded = op.pg_mcp_readiness(
+                    args, previous_image=True, probe_wait_seconds=0.4
+                )
+                self.assertEqual(bounded["toolCount"], 21)
+                self.assertEqual(calls[-1]["wait_seconds"], 0.4)
+                current = op.pg_mcp_readiness(args)
+                self.assertEqual(current["toolCount"], 21)
+                self.assertEqual(calls[-1]["expected_tool_count"], 24)
+                self.assertEqual(calls[-1]["required_tools"], ("job.exec",))
+
 
 class NativePgReleaseOperator(unittest.TestCase):
     @classmethod
@@ -177,7 +316,23 @@ class NativePgReleaseOperator(unittest.TestCase):
         (self.install/"ordivon-runtime-pg").write_bytes(b"old-pg-runtime")
         (self.candidate/"ordivon-runtime-runner").write_bytes(b"new-runner")
         (self.install/"ordivon-runtime-runner").write_bytes(b"old-runner")
-        for name in ("ordivon-runtime-pg", "ordivon-runtime-runner"):
+        qualified_helper = self._testMethodName in {
+            "test_pg_reclaimer_helper_installs_with_native_pair_and_receipt",
+            "test_pg_reclaimer_helper_rolls_back_with_native_pair",
+            "test_pg_reclaimer_helper_candidate_digest_fails_before_dispatch",
+            "test_actual_systemd_pg_binary_replacement_and_http_mcp_readback",
+        }
+        if qualified_helper:
+            (self.candidate/"ordivon-runtime-pg-reclaim").write_bytes(
+                b"new-qualified-pg-reclaimer"
+            )
+            (self.install/"ordivon-runtime-pg-reclaim").write_bytes(
+                b"old-qualified-pg-reclaimer"
+            )
+        installed_names = ("ordivon-runtime-pg", "ordivon-runtime-runner")
+        if qualified_helper:
+            installed_names += ("ordivon-runtime-pg-reclaim",)
+        for name in installed_names:
             (self.candidate/name).chmod(0o755)
             (self.install/name).chmod(0o755)
         self.manifest=self.work/"candidate.json"
@@ -190,6 +345,14 @@ class NativePgReleaseOperator(unittest.TestCase):
             )
             for name in ("ordivon-runtime-pg", "ordivon-runtime-runner")
         ]
+        if qualified_helper:
+            artifacts.append(
+                op.DEPLOY["artifact_description"](
+                    self.candidate/"ordivon-runtime-pg-reclaim",
+                    {"name": "ordivon-runtime-pg-reclaim",
+                     "kind": "operator", "mode": 0o755},
+                )
+            )
         tool={"version":"test","resolvedPath":"/usr/bin/true",
               "digest":"sha256:"+"b"*64}
         candidate_json={
@@ -202,7 +365,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             "builtAtMs":1234,
             "toolchain":{"cargo":tool,"rustc":tool,"host":"x86_64-unknown-linux-gnu"},
             "artifacts":artifacts,
-            "binaries":artifacts,
+            "binaries":[item for item in artifacts if item["kind"] == "binary"],
         }
         self.manifest.write_text(json.dumps(candidate_json),encoding="utf-8")
         request_id="native-operator-"+uuid.uuid4().hex[:20]
@@ -224,6 +387,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             allowed_services=["ordivon-test-runtime.service"],
             required_tools=["runtime.describe","release.get"],
             binaries=["ordivon-runtime-pg","ordivon-runtime-runner"],
+            include_pg_reclaimer=qualified_helper,
             require_ref="HEAD",
             drain_seconds=3.,wait_seconds=2.,
             lock_file=self.work/"operator.lock",
@@ -360,6 +524,157 @@ class NativePgReleaseOperator(unittest.TestCase):
                 client.return_value.call_tool.call_args.args[0],"release.get"
             )
 
+    def test_release_drain_does_not_hold_source_lock_while_waiting(self) -> None:
+        """Native PG proof: a terminal writer must progress during Release drain.
+
+        The active-job projection is simulated, but a second *real* PG session
+        must acquire the production source row lock to clear that condition.
+        Holding FOR UPDATE while waiting creates a self-inflicted timeout.
+        """
+        from threading import Event, Thread
+
+        cleared = Event()
+        started = Event()
+        worker_errors: list[str] = []
+        workers: list[Thread] = []
+        self.args.drain_seconds = 0.8
+
+        def terminal_writer() -> None:
+            try:
+                with op.pg_connection(self.dsn, "fresh") as other:
+                    with other.transaction():
+                        other.execute(
+                            "SELECT state FROM _stage_control WHERE id='source' FOR UPDATE"
+                        )
+                    cleared.set()
+            except Exception as error:
+                worker_errors.append(str(error))
+                cleared.set()
+
+        def observed_active(conn, release_job_id):
+            if not started.is_set():
+                started.set()
+                thread = Thread(target=terminal_writer, daemon=True)
+                workers.append(thread)
+                thread.start()
+            return [] if cleared.is_set() else ["agent-finishing-in-pg"]
+
+        try:
+            with patch.object(op, "active_executions", side_effect=observed_active), \
+                 patch.object(op, "pg_mcp_readiness", return_value={
+                     "toolCount": 20,
+                     "toolCatalogDigest": "sha256:" + "f" * 64,
+                 }), patch.dict(op.DEPLOY, {"run": lambda _args: None}), \
+                 patch.object(op, "verified_release_consumer"):
+                outcome = op.apply_release(self.args)
+            self.assertEqual(outcome["status"], "deployed")
+            self.assertTrue(cleared.is_set(), "PG terminal writer must progress during drain")
+            self.assertFalse(worker_errors, worker_errors)
+        finally:
+            for thread in workers:
+                thread.join(timeout=3)
+
+    def test_pg_reclaimer_helper_installs_with_native_pair_and_receipt(self) -> None:
+        """The same PG ReleaseEffect must own every installed consumer byte."""
+        self.args.include_pg_reclaimer = True
+        calls = []
+        with patch.object(op, "pg_mcp_readiness", return_value={
+            "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+        }), patch.dict(op.DEPLOY, {"run": lambda command: calls.append(tuple(command))}), (
+            patch.object(op, "verified_release_consumer")
+        ):
+            result = op.apply_release(self.args)
+            self.assertEqual(result["status"], "deployed")
+            self.assertEqual(result["pgTerminal"], "succeeded")
+            self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                             b"new-qualified-pg-reclaimer")
+            self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(),
+                             b"new-pg-runtime")
+            self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(),
+                             b"new-runner")
+            self.assertEqual(len(calls), 2)
+            receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+            previous = json.loads((receipt / "manifest.json").read_text())
+            self.assertEqual(
+                {record["name"] for record in previous["previous"]},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            self.assertEqual((receipt / "previous" /
+                              "ordivon-runtime-pg-reclaim").read_bytes(),
+                             b"old-qualified-pg-reclaimer")
+            self.assertEqual(
+                {record["name"] for record in result["installed"]},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            replay = op.apply_release(self.args)
+            self.assertTrue(replay["replayed"])
+            self.assertEqual(len(calls), 2, "receipt replay must not reinstall helper")
+
+    def test_pg_reclaimer_helper_rolls_back_with_native_pair(self) -> None:
+        """Systemd start failure must roll back the helper, not just binaries."""
+        self.args.include_pg_reclaimer = True
+        calls = []
+
+        def failed_start(command):
+            calls.append(tuple(command))
+            if command[-2:] == ["start", self.args.service]:
+                raise RuntimeError("injected start failure")
+
+        def restore(previous, install_dir, records, systemctl, service, env_file, wait_seconds, *, readiness_probe=None):
+            self.assertEqual(
+                {item["name"] for item in records},
+                {"ordivon-runtime-pg", "ordivon-runtime-runner",
+                 "ordivon-runtime-pg-reclaim"},
+            )
+            for item in records:
+                op.DEPLOY["atomic_copy"](
+                    previous / item["name"], install_dir / item["name"],
+                    mode=item["mode"],
+                )
+            return {"serviceActive": True, "probe": {"recovered": True}}
+
+        with patch.dict(op.DEPLOY, {
+            "run": failed_start,
+            "restore_previous": restore,
+        }):
+            with self.assertRaisesRegex(RuntimeError, "rolled_back"):
+                op.apply_release(self.args)
+        self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                         b"old-qualified-pg-reclaimer")
+        self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(),
+                         b"old-pg-runtime")
+        self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(),
+                         b"old-runner")
+        self.assertEqual(len(calls), 2)
+        receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+        result = json.loads((receipt / "result.json").read_text())
+        self.assertEqual(result["status"], "rolled_back")
+        self.assertEqual(
+            self.db.execute("SELECT resolution FROM jobs WHERE job_id=%s",
+                            (self.job_id,)).fetchone()["resolution"], "failed",
+        )
+
+    def test_pg_reclaimer_helper_candidate_digest_fails_before_dispatch(self) -> None:
+        """A changed helper cannot borrow an older two-binary ReleaseEffect."""
+        self.args.include_pg_reclaimer = True
+        (self.candidate / "ordivon-runtime-pg-reclaim").write_bytes(
+            b"candidate-changed-after-manifest"
+        )
+        with self.assertRaisesRegex(RuntimeError, "release artifact"):
+            op.apply_release(self.args)
+        self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
+                         b"old-qualified-pg-reclaimer")
+        self.assertFalse((self.args.receipt_root /
+                          f"effect-{self.args.effect_id}").exists())
+        self.assertEqual(
+            self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s", (self.job_id, op.DISPATCH_EVENT),
+            ).fetchone()["n"], 0,
+        )
+
     def test_release_exactly_once_and_terminal_receipt(self) -> None:
         def run(args):
             self.calls.append(tuple(args))
@@ -417,12 +732,13 @@ class NativePgReleaseOperator(unittest.TestCase):
             calls.append(tuple(cmd))
             if cmd[-2:]==["start",self.args.service]:
                 raise RuntimeError("injected systemd start failure")
-        def restore(previous,install_dir,records,systemctl,service,env_file,wait_seconds):
+        def restore(previous,install_dir,records,systemctl,service,env_file,wait_seconds,*,readiness_probe=None):
             for record in records:
                 op.DEPLOY["atomic_copy"](
                     previous/record["name"], install_dir/record["name"],
                     mode=record["mode"],
                 )
+            self.assertTrue(callable(readiness_probe))
             return {"serviceActive":True,"probe":{"recovered":True}}
         with patch.dict(op.DEPLOY,{
             "run":failed_start,
@@ -446,7 +762,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             if str(target)==str(self.install/"ordivon-runtime-pg") and str(source).endswith(".next"):
                 raise OSError("injected mid-rename failure")
             return original_replace(source,target)
-        def restore(previous,install_dir,records,systemctl,service,env_file,wait_seconds):
+        def restore(previous,install_dir,records,systemctl,service,env_file,wait_seconds,*,readiness_probe=None):
             op.DEPLOY["atomic_copy"](
                 previous/"ordivon-runtime-pg",
                 install_dir/"ordivon-runtime-pg",mode=0o755,
@@ -532,6 +848,12 @@ class NativePgReleaseOperator(unittest.TestCase):
         """
         from shutil import copy2
         import socket
+        # The default-deny ordinary PG route removes the dangerous direct
+        # Claim release tool even without a dedicated Harness issuer:
+        # 21 portable + 3 Claim - release.apply - claim.release = 22.
+        # Preserve an exact source-bound catalog assertion in native E2E.
+        native_tool_count = 22
+        self.args.expected_tool_count = native_tool_count
         runner=SCRIPTS.parent/"target/debug/ordivon-runtime-runner"
         pg_binary=SCRIPTS.parent/"target/debug/ordivon-runtime-pg"
         if not runner.is_file() or not pg_binary.is_file():
@@ -558,7 +880,15 @@ class NativePgReleaseOperator(unittest.TestCase):
                 {"name":name,"kind":"binary","mode":0o755},
             ) for name in self.args.binaries
         ]
-        obj["binaries"]=obj["artifacts"]
+        if self.args.include_pg_reclaimer:
+            obj["artifacts"].append(
+                op.DEPLOY["artifact_description"](
+                    self.candidate/"ordivon-runtime-pg-reclaim",
+                    {"name":"ordivon-runtime-pg-reclaim","kind":"operator","mode":0o755},
+                )
+            )
+        obj["binaries"]=[item for item in obj["artifacts"]
+                         if item["kind"]=="binary"]
         self.manifest.write_text(json.dumps(obj),encoding="utf-8")
         fresh_manifest=op.DEPLOY["sha256"](self.manifest)
         self.args.candidate_manifest_digest=fresh_manifest
@@ -573,7 +903,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             "contract":"runtime_release_v1","effectId":self.args.effect_id,
             "requestDigest":request_digest,"workspaceId":"ws-test-release",
             "commit":self.args.commit,"candidateManifestDigest":fresh_manifest,
-            "expectedToolCount":20,"receiptPath":
+            "expectedToolCount":native_tool_count,"receiptPath":
                 str(self.args.receipt_root/f"effect-{self.args.effect_id}"),
         }
         bd=op.digest(op.canonical_json(binding).encode())
@@ -584,8 +914,9 @@ class NativePgReleaseOperator(unittest.TestCase):
         )
         self.db.execute(
             "UPDATE job_runtime_release_effects SET request_digest=%s,"
-            "candidate_manifest_digest=%s,binding_digest=%s WHERE job_id=%s",
-            (request_digest,fresh_manifest,bd,self.job_id),
+            "candidate_manifest_digest=%s,binding_digest=%s,"
+            "expected_tool_count=%s WHERE job_id=%s",
+            (request_digest,fresh_manifest,bd,native_tool_count,self.job_id),
         )
         self.db.execute(
             "CREATE ROLE runtime_app LOGIN"
@@ -658,11 +989,11 @@ class NativePgReleaseOperator(unittest.TestCase):
             shadow_catalog=op.DEPLOY["probe_catalog"](
                 f"http://{bind}/mcp","p"*32,
                 client_name="independent-shadow-process-probe",
-                expected_tool_count=20,
+                expected_tool_count=native_tool_count,
                 required_tools=("runtime.describe","release.get"),
                 wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
             )
-            self.assertEqual(shadow_catalog["toolCount"],20,
+            self.assertEqual(shadow_catalog["toolCount"],native_tool_count,
                              "unrelated executable also offers a healthy MCP catalog")
             with self.assertRaisesRegex(RuntimeError,"PG release preflight rejected"):
                 op.apply_release(self.args)
@@ -704,7 +1035,15 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed["status"],"deployed")
             self.assertEqual(observed["pgTerminal"],"succeeded")
             self.assertEqual(original.read_bytes(),pg_binary.read_bytes())
-            self.assertEqual(observed["probe"]["toolCount"],20)
+            self.assertEqual(
+                (self.install/"ordivon-runtime-pg-reclaim").read_bytes(),
+                (self.candidate/"ordivon-runtime-pg-reclaim").read_bytes(),
+            )
+            self.assertIn(
+                "ordivon-runtime-pg-reclaim",
+                {entry["name"] for entry in observed["installed"]},
+            )
+            self.assertEqual(observed["probe"]["toolCount"],native_tool_count)
             active=observed["probe"]["activeRuntimeImage"]
             self.assertEqual(active["path"],str(original))
             self.assertEqual(active["digest"],op.DEPLOY["sha256"](original))
@@ -738,7 +1077,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed_release["effectDisposition"],"deployed")
             self.assertEqual(observed_release["receiptAvailable"],True)
             self.assertEqual(observed_release["executionDisposition"],"succeeded")
-            self.assertEqual(observed_release["deployedToolCount"],20)
+            self.assertEqual(observed_release["deployedToolCount"],native_tool_count)
             self.assertEqual(observed_release["semanticCompletionEvaluated"],False)
             self.assertEqual(observed_release["commit"],self.args.commit)
             # After a valid deployment, drift only the effective systemd
@@ -748,11 +1087,11 @@ class NativePgReleaseOperator(unittest.TestCase):
             shadow_catalog=op.DEPLOY["probe_catalog"](
                 f"http://{bind}/mcp","p"*32,
                 client_name="replay-shadow-process-probe",
-                expected_tool_count=20,
+                expected_tool_count=native_tool_count,
                 required_tools=("runtime.describe","release.get"),
                 wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
             )
-            self.assertEqual(shadow_catalog["toolCount"],20)
+            self.assertEqual(shadow_catalog["toolCount"],native_tool_count)
             with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
                 op.apply_release(self.args)
             # MainPID now executes the *correct* installed ELF but a fresh
@@ -767,11 +1106,11 @@ class NativePgReleaseOperator(unittest.TestCase):
             runner_catalog=op.DEPLOY["probe_catalog"](
                 f"http://{bind}/mcp","p"*32,
                 client_name="independent-runner-drift-process-probe",
-                expected_tool_count=20,
+                expected_tool_count=native_tool_count,
                 required_tools=("runtime.describe","release.get"),
                 wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
             )
-            self.assertEqual(runner_catalog["toolCount"],20)
+            self.assertEqual(runner_catalog["toolCount"],native_tool_count)
             # Read the *actual* Runner provider, not a manifest declaration.
             live_provider=client.call_tool("runtime.describe",{"schemaVersion":1})
             self.assertEqual(

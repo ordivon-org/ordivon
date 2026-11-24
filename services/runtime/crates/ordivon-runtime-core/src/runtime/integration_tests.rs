@@ -238,7 +238,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     assert!(first.stdout_tail.contains("RUNTIME_OK"));
     assert!(first
         .stdout_tail
-        .contains("P5_CARGO_TARGET=/proc/self/fd/198"));
+        .contains("P5_CARGO_TARGET=/run/ordivon/cargo-target"));
     let private_target = executor
         .build_caches_root()
         .join(&workspace_id)
@@ -388,7 +388,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         "PRIVATE_TARGET"
     );
     println!(
-        "P5_STABLE_BUILD_PRESENTATION jobId={} stable=/proc/self/fd/198 privateBacking={} customOverrideJob={}",
+        "P5_STABLE_BUILD_PRESENTATION jobId={} stable=/run/ordivon/cargo-target privateBacking={} customOverrideJob={}",
         first.job_id,
         private_target.display(),
         custom.job_id
@@ -973,6 +973,59 @@ fn runtime_timeout_preserves_result_when_descendants_hold_output_pipes() {
         .iter()
         .any(|artifact| artifact.kind == "execution_result"));
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
+}
+
+#[test]
+#[ignore = "requires isolated Git/SQLite fixture and explicit local opt-in; never launches systemd"]
+fn contained_local_mount_environment_override_is_rejected_before_job_admission() {
+    if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
+        return;
+    }
+    let context = IntegrationContext::new("contained-mount-proposal-negative");
+    let runtime = context.runtime(2_000);
+    let mut request = context.request("synthetic-mount-override", 0);
+    request.execution.executable = "/usr/bin/true".to_string();
+    request.execution.args.clear();
+    request.execution.execution_profile = crate::ExecutionProfile::ContainedLocal;
+    request.execution.env.insert(
+        "HOME".to_string(),
+        "/root/synthetic-private-source".to_string(),
+    );
+    let error = runtime.run_job(&request).unwrap_err();
+    assert_eq!(error.code, crate::RuntimeErrorCode::InvalidRequest);
+    assert_eq!(error.field.as_deref(), Some("execution.env.HOME"));
+    assert!(!error.retryable);
+
+    let mut step_request = context.request("synthetic-step-mount-override", 0);
+    step_request.execution.executable = "/usr/bin/true".to_string();
+    step_request.execution.args.clear();
+    step_request.execution.execution_profile = crate::ExecutionProfile::ContainedLocal;
+    step_request.execution.steps = vec![crate::runtime::UniversalExecutionStep {
+        id: "step-one".to_string(),
+        executable: "/usr/bin/true".to_string(),
+        args: Vec::new(),
+        cwd_relative: ".".to_string(),
+        env: BTreeMap::from([(
+            "UV_CACHE_DIR".to_string(),
+            "/root/synthetic-private-source".to_string(),
+        )]),
+        timeout_ms: 1_000,
+        continue_on_error: false,
+    }];
+    let error = runtime.run_job(&step_request).unwrap_err();
+    assert_eq!(error.code, crate::RuntimeErrorCode::InvalidRequest);
+    assert_eq!(
+        error.field.as_deref(),
+        Some("execution.steps[0].env.UV_CACHE_DIR")
+    );
+    assert!(!error.retryable);
+    // The source-bound plan rejects the untrusted host mount BEFORE it can
+    // admit an idempotent Job, dispatch systemd, or consume workspace capacity.
+    let db = Connection::open(&context.registry.db_path).unwrap();
+    let admitted: i64 = db
+        .query_row("SELECT count(*) FROM jobs", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(admitted, 0);
 }
 
 #[test]

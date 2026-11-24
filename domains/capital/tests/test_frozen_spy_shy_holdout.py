@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -16,7 +16,7 @@ from frozen_spy_shy_holdout import format_partial_forward_markdown, observe  # n
 
 FROZEN = ROOT / "evidence/finance-research/spy-shy-forward-20261108/frozen-plan.json"
 POLICY = ROOT / "examples/paper_fixed_mix_etf_20261106.json"
-CLOCK = datetime(2026, 11, 13, 12, 0, tzinfo=UTC)
+CLOCK = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
 
 
 def fake(symbol: str, start: str, end: str):
@@ -38,6 +38,11 @@ def test_reuses_actual_frozen_research_and_existing_portfolio_with_private_bytes
     assert result["frozenAdjustedCloseMetricReproduced"] is False
     assert result["observedPriceBasis"] == "OPENBB_CBOE_DAILY_CLOSE_ADJUSTMENT_UNKNOWN"
     assert result["observedSessions"] == ["2026-11-09", "2026-11-10", "2026-11-11"]
+    assert result["sessionQualification"]["SPY"]["dateStanding"] == (
+        "EXCHANGE_SESSION_ALIGNED_SOURCE_UNVERIFIED"
+    )
+    assert result["sessionQualification"]["SHY"]["requestedEnd"] == "2026-11-11"
+    assert result["sessionQualification"]["SPY"]["capitalAuthority"] is False
     assert result["economicComparison"]["standing"] == "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION"
     assert result["economicComparison"]["contributedCapital"] == "100000"
     for key in ("alphaVerified", "historicalPITVerified", "completeHoldoutVerified", "realMoneyOrdersAuthorized", "dataRightsIndependentlyVerified"):
@@ -105,3 +110,52 @@ def test_human_facing_report_reuses_economic_result_and_keeps_unknowns(tmp_path)
     tampered["alphaVerified"] = True
     with pytest.raises(ValueError, match="unqualified result"):
         format_partial_forward_markdown(tampered)
+
+
+@pytest.mark.parametrize("polluted_day,through,received", [
+    ("2026-11-15", "2026-11-16", datetime(2026, 11, 16, 12, tzinfo=UTC)),
+    ("2026-11-26", "2026-11-27", datetime(2026, 11, 28, 12, tzinfo=UTC)),
+])
+def test_same_fake_session_in_both_etfs_cannot_pass_as_exchange_day(
+    tmp_path, polluted_day, through, received,
+):
+    import exchange_calendars as xcals
+
+    # A provider may not include its same-day close in this consumer.
+    # Use only the already finished dates, then inject the fake session.
+    safe_end = min(through, (received.date() - timedelta(days=1)).isoformat())
+    dates = [
+        d.strftime("%Y-%m-%d")
+        for d in xcals.get_calendar("XNYS").sessions_in_range("2026-11-09", safe_end)
+    ]
+    dates.append(polluted_day)
+    dates.sort()
+
+    def both_wrong(symbol, start, end):
+        assert end == through and start == "2026-11-09"
+        price = 100 if symbol == "SPY" else 50
+        frame = pd.DataFrame({
+            "open": [price] * len(dates), "high": [price] * len(dates),
+            "low": [price] * len(dates), "close": [price] * len(dates),
+            "volume": [100] * len(dates),
+        }, index=dates)
+        return "cboe", frame, received, received
+
+    dest = tmp_path / "invalid-private"
+    with pytest.raises(ValueError, match="XNYS_SESSION_GRID_MISMATCH"):
+        observe(FROZEN, POLICY, through, dest, both_wrong)
+    assert not dest.exists()
+
+
+def test_both_etfs_cannot_hide_missing_last_completed_xnys_session(tmp_path):
+    # November 12 is a valid session; both source files stop at November 11
+    # even though they were received November 13 and claim coverage through 13.
+    def both_stale(symbol, start, end):
+        provider, frame, _, _ = fake(symbol, start, end)
+        received = datetime(2026, 11, 13, 12, tzinfo=UTC)
+        return provider, frame, received, received
+
+    dest = tmp_path / "stale-private"
+    with pytest.raises(ValueError, match="XNYS_SESSION_GRID_MISMATCH"):
+        observe(FROZEN, POLICY, "2026-11-13", dest, both_stale)
+    assert not dest.exists()

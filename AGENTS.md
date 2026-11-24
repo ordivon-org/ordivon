@@ -1,12 +1,15 @@
 # Ordivon Monorepo Agent Rules
 
-**Linux PG Runtime Workspace lifecycle:** On workspace.open, read the returned
-retentionNotice. The hourly native cleanup can reclaim a clean, mainline-integrated
-Workspace after at least **4 hours of inactivity since its latest Runtime Job**
-once the last Job succeeds and no active/held consumer remains. Persist results
-to Git or Artifact storage; a Workspace is not durable evidence. This is a
-minimum quiet period, not a guaranteed four-hour reservation. Do not force-close
-dirty/unmerged Workspaces.
+**Linux PG Runtime Workspace lifecycle:** On `workspace.open`, read the returned
+`retentionNotice`. The installed `ordivon-runtime-lifecycle.timer` has an
+**operator-configured cadence**; do not assume an hourly sweep from the
+repository template. Four hours after the latest Runtime Job is a minimum
+quiet period, **not** a promised lease or automatic closure time. Native
+reclamation must independently qualify the installed policy, current Git
+source and dirty state, active/held Jobs, and other observed consumers.
+Publish deliverables to Git or Artifact; a Workspace is not durable storage.
+Do not force-close dirty or unintegrated Workspaces. For operational details,
+use [Runtime's current Agent entry](services/runtime/AGENTS.md).
 
 First session in this repository? Use
 [Agent first verified task](docs/start/agent-first-run.md) and
@@ -15,8 +18,8 @@ are optional onboarding pointers, not new execution authority or an additional
 mandatory workflow. The rules below govern consequential changes.
 
 
-1. Work inside the natural owner directory.
-2. Read prior exact-SourceCut verification receipts and the affected consumer/change scope BEFORE rerunning tests. Reuse existing scoped PASS evidence when its assumptions and inputs remain qualified. Run affected Owner-native verification only for newly required, invalidated or missing claims; distinguish reused PASS from a freshly executed PASS.
+1. Route a change to the directory and interface that owns its actual fact or effect. An Owner is a maintenance responsibility, **not an exclusive executor, permission class, or approval authority**: any genuinely authorized Agent may perform non-conflicting work, even after the prior Owner Agent retires.
+2. Use the affected Owner's focused native verification before claiming completion. Do not impose a whole-Owner test suite, formal proof or sign-off on an unrelated routine edit.
 3. Do not import another owner's internals merely because they are in the same Git tree.
 4. Cross-owner effects use the producing/consuming owners' explicit contracts.
 5. Root tooling may orchestrate checks but may not redefine owner truth.
@@ -35,104 +38,23 @@ mandatory workflow. The rules below govern consequential changes.
 15. **Agent decision evidence:** distinguish OBSERVED, DECLARED, DERIVED, VERIFIED, UNKNOWN and FALSIFIED with provenance and currentness. Treat hypotheses and predictions as candidates; consider rival explanations and value of further evidence where material. A model belief, Skill read, evidence graph or Tool discovery never confers effect authority. Finish real work with implementation or justified subtraction, actual execution/observation, affected verification and repair; report explicit remaining UNKNOWN rather than fictitious success.
 16. **Integration discipline:** compare current main, relevant branches/PRs and actual consumers before retaining changes. For cross-Owner or PR-sized work, exchange evidence and counterexamples in the existing Space when useful; a message or Owner opinion is not a proof or a permission gate. Prefer the smallest verified contribution and retire superseded code rather than accumulating parallel implementations.
 
-## Evidence-reuse / incremental verification admission
+## Scope effect gates; do not invent approval hierarchies
 
-**A new Agent turn is not a new verification obligation.** First identify the
-claim, formal/consumer scope, source revision, verifier/toolchain, environment
-assumptions and previous accepted receipt. A status question or conceptual
-design task does not by itself authorize re-running proof, replay or CI.
+- **Real permission:** authorization comes from the user's permitted action and the actual authenticated principal, OS/database credentials, Security policy and operation-specific constraints. Host ActorRef, owner names, Space membership, agent consensus, Issue labels and documentation cannot grant authority.
+- **Avoid artificial waits:** a retired or unavailable Owner Agent never blocks an otherwise authorized, non-conflicting executor. Exchange cross-owner evidence when it changes the affected consumer; no peer majority, historical signature or handoff ACK is a standing mandatory gate.
+- **Release by changed effect:** distinguish source/CI and reversible preparation; additive read-only endpoint; scoped write/external action; ingress/credential changes; and old consumer decommission. Verify only the contracts and risks the actual release changes. A new parallel candidate does not require the old endpoint's consumers to migrate before it can be prepared or independently tested.
+- **Safety plus liveness:** production admission must reject demonstrated unauthorized access, destructive conflicts and unqualified high-risk effects. It must also have a reachable, independently testable positive case for every release scope it claims to support. A checker deliberately rejecting every qualified release is an implementation defect, not a policy or Owner veto. Do not turn a necessary precondition or explanatory diagnostic string into a sufficient grant.
+- **Reconcile before retrying:** after response loss, use the owning system's exact operation identifier, revision/CAS and immutable receipt to distinguish not-started, committed and unknown. Preserve other Agents' in-flight consumers, credentials and cursors. Do not broaden a read-only database role to get a passing release check.
 
-- REUSE_SCOPED: a prior accepted PASS covers the same immutable SourceCut,
-  exact claim, verifier and assumptions. Read the receipt and keep its
-  original evidence date. Installed/external facts require separately
-  qualified generation, principal and currentness; source equality alone
-  never certifies current production behavior.
-- AFFECTED_RECHECK: changed inputs, contracts, owner APIs, verifier
-  assumptions or actual consumers intersect the proof's qualified
-  dependency/readset. Select the minimum new obligation, not every historic
-  test. Use the existing tools/repo/convergence_plan.py for Owner/CI queue
-  and check_architecture_docs.py --agent-impact for declared LEGO impact.
-- UNKNOWN_DEPENDENCY: missing evidence, unresolved dynamic/non-Git consumers,
-  incomplete proof readset, or a non-ancestral comparison. Investigate the
-  missing edge first. The existing declared source impact always reports
-  proofReuseAdmissible=false; NO_DECLARED_HIT is NOT a proof reuse grant.
-- FALSIFIED: a scoped counterexample changes the standing of the affected
-  claim; unrelated verified claims remain available.
+## Read-only verification evidence
 
-The repository already has affected_owners.py, convergence_plan.py,
-ci_owner_shards.py and GitHub Owner CI checks. Reuse them instead of building
-a competing selector or database. A prior CI PASS on another SHA is not
-automatically equivalent to a PASS on this SHA. Do not rerun unchanged
-TLA+ models/negative controls without affected inputs, and do not equate
-formal source proof with installed/physical effect evidence.
-
-For concrete GitHub Actions Check Run results use the already existing
-GitHub CLI and the bounded read-only native consumer first:
-
-    python3 tools/repo/evidence_validity.py --current-sha FULL_SHA --check-name root-verification
-
-Add --prior-sha FULL_ANCESTOR_SHA only when the current check is absent and
-changed-source impact would change the decision. For Formal Git input changes,
-add --formal-source-delta with two ancestral commits to compare the existing
-Formal producer's historical SOURCE_FILES modes/blobs without executing a
-proof.
-To inspect a historical Formal proof's ORIGINAL validated CI report, do not
-rerun the solvers. Opt in to the existing GitHub Check Run and pinned native
-artifact consumer with --prior-sha FULL_FORMAL_ANCESTOR_SHA,
---formal-source-delta and --fetch-historical-formal-report. The exact
-root-verification Check Run and workflow SHA must be qualified. The artifact
-exists only for runs that actually selected Formal, succeeded and uploaded it
-(30-day retention). Missing artifacts are UNKNOWN, not authorization for
-generic Harness ToolBridge redispatch or cross-version proof reuse.
- This is source input equivalence only; a toolchain/assumption/real
-consumer proof reuse or arbitrary Harness workspace.exec no-dispatch remains
-unqualified. The check-receipt decision can reuse a same-SHA check outcome
-without replay. It never asserts formal
-or installed proof reuse across Git commits. Do not create a second CI
-scheduler or run another verification Job after a same-SHA accepted receipt.
-
-In handoffs report REUSED_EXISTING_EVIDENCE separately from NEWLY_VERIFIED,
-UNKNOWN and FALSIFIED. Prioritize new business/consumer capabilities over
-repeated verification of unchanged claims.
-
-Before reusing a CI Formal receipt on a PR, distinguish the
-GitHub Check Run's PR Head SHA from the actual verified synthetic merge
-SourceCut. Read historicalFormalReceipt.verifiedExecutionSourceCut,
-sourceRelationship, and executionInputsVsCandidate; a two-snapshot
-input equality is neither temporal ancestry nor full proof reuse.
-The evidence consumer must validate the original PR base/head parents;
-do not copy the PR Head into the historical proof as if it had executed.
-No separate Harness execution-dispatch authority is implied.
-
-A local Git candidate that has not yet been pushed can return
-UNKNOWN_CURRENT_CHECK_PROVIDER while independent prior Formal Artifact
-and immutable Git input comparison still succeed. Do not let current
-provider unavailability erase previously qualified historical evidence
-or trigger automatic solver re-execution. The existing Runtime
-agent_evidence_admission.py already consumes exact GitHub CI
-for the named natural Owner. It is read-only, not an enforced
-Harness ToolBridge no-redispatch gate.
-
-For the actual bounded Formal declared-Git-input Claim, reuse
-tools/repo/evidence_validity.py with exact --current-sha,
-original --prior-sha, --fetch-historical-formal-report and
---claim-kind BOTH. One original artifact read returns both
-FORMAL_DECLARED_GIT_INPUTS_EQUAL (only the agent:formal-declared-source-impact
-consumer may receive scoped support) and FORMAL_PROOF_APPLICABLE_TO_TARGET
-(UNKNOWN until dynamic/toolchain/implementation/consumer assumptions
-are closed). Neither result authorizes any Runtime Job or generic Harness
-workspace.exec, nor does it establish installed currentness.
-See docs/architecture/EVIDENCE_VALIDITY_KERNEL_R1.md.
-The optional contained Z3 Media consumer in
-tools/formal/contained_z3.py performs a new native Bubblewrap
-empty-root model query with only selected Z3 and ELF files,
-not old proof reuse or installed application correctness.
-
-For a specific toolchain premise, optionally include
---compare-current-formal-tool-inputs to use the native formal
-read-only selected toolchain observation. This never closes a full
-dynamic readset or grants proof reuse/execution authority.
-
+For a specific existing GitHub Actions check, use
+`python3 tools/repo/evidence_validity.py --current-sha FULL_SHA --check-name root-verification`
+before contemplating a duplicate CI replay. A same-SHA named historical
+outcome is not current security, external assumptions, deployed acceptance
+or permission to skip an unrelated verification. Only affected Owner
+verification is required; unresolved scope remains UNKNOWN. See
+`docs/architecture/EVIDENCE_VALIDITY_KERNEL_R1.md` for the bounded consumer.
 
 ## Evidence-backed detailed reporting and handoffs
 

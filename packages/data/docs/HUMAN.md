@@ -84,7 +84,10 @@ bound port may use `inspect_federation.py --verify-local --require-port
 PRODUCT_ID PRODUCT_VERSION DISTRIBUTION_URN` with the exact version/port
 declared by the owner. This distinguishes a verified input from the whole
 multi-port product: `selectedPortIntegrityGate=PASS` does not change a
-global `integrityGate=NOT_ESTABLISHED`. A readable product record
+global `integrityGate=NOT_ESTABLISHED`. A mismatch on another output port
+remains reported but does not veto a verified selected port; global
+integrity requests still reject any FALSIFIED distribution.
+A readable product record
 and an output port do not establish available bytes; real product release
 still requires the producing owner's ODCS/ODPS contract and read-back.
 

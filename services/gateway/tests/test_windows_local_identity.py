@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ordivon_gateway.access_auth import AccessAuthError, _read_private_token_file
+from ordivon_gateway.security.access_auth import AccessAuthError, _read_private_token_file
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "packaging/windows/materialize_credentials.ps1"

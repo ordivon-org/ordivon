@@ -1,8 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-  echo "usage: install_release.sh <repo> <commit> <prefix> [expected_host_tree_oid]" >&2
+# The fourth argument is the independently reviewed Host Git tree OID.
+# Preparing without activating is intentionally available ONLY with that
+# tree pin: a candidate Git commit alone can be an unrelated Merge Queue SHA.
+if [ "$#" -lt 3 ] || [ "$#" -gt 5 ] ||
+   { [ "$#" -eq 5 ] && [ "$5" != "--prepare-only" ]; }; then
+  echo "usage: install_release.sh <repo> <commit> <prefix> [expected_host_tree_oid] [--prepare-only]" >&2
   exit 2
 fi
 
@@ -10,6 +14,10 @@ REPO=$1
 COMMIT=$2
 PREFIX=$3
 EXPECTED_HOST_TREE=${4:-}
+PREPARE_ONLY=false
+if [ "$#" -eq 5 ]; then
+  PREPARE_ONLY=true
+fi
 UV=${ORDIVON_HOST_V2_RELEASE_UV:-}
 PYTHON_INSTALL_DIR=${ORDIVON_HOST_V2_PYTHON_INSTALL_DIR:-$PREFIX/python}
 SOURCE_SUBTREE="services/host"
@@ -33,7 +41,7 @@ fi
 # An exact commit alone can name a different adjacent Merge Queue PR.
 # If an independently reviewed Host tree identity is available, verify
 # native Git tree OID before creating directories or invoking tools.
-if [[ "$#" -eq 4 ]]; then
+if [[ "$#" -ge 4 ]]; then
   case "$EXPECTED_HOST_TREE" in
     ''|*[!0-9a-f]*) echo "expected host tree must be a nonempty lowercase Git object ID" >&2; exit 2 ;;
   esac
@@ -146,6 +154,23 @@ chmod -R a+rX "$PYTHON_INSTALL_DIR"
 # The lock file belongs to the immutable Git release. The venv belongs to that release too.
 UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"
 chmod -R a+rX "$RELEASE"
+
+# Qualify the frozen release with the official MCP SDK before activation:
+# tool names alone cannot detect state or pagination argument drift.
+"$RELEASE/.venv/bin/python" "$RELEASE/packaging/verify_release.py"
+
+# Build, lock and source-verify the complete candidate before changing any
+# serving symlink. Host upstream authentication cannot safely be switched
+# until the real Gateway/peer/Cloudflare consumers and Security Principal
+# grants are qualified. This mode is never a live release or a permission
+# to skip Gateway's independent Host/Security release admission gate.
+if [ "$PREPARE_ONLY" = true ]; then
+  printf 'prepared_release=%s\n' "$COMMIT"
+  printf 'prepared_host_tree=%s\n' "$EXPECTED_HOST_TREE"
+  printf 'prepared_dir=%s\n' "$RELEASE"
+  printf 'activation=NOT_PERFORMED\n'
+  exit 0
+fi
 
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"

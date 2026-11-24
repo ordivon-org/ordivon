@@ -1913,6 +1913,19 @@ class ArtifactDeliveryTests(unittest.TestCase):
                     paths.append(evidence_path)
             self.assertEqual(verify_delivery_evidence(paths, profile, pptx, pdf)["status"], "PASS")
             self.assertEqual(verify_delivery_evidence(paths[:-1], profile, pptx, pdf)["status"], "FAIL")
+            # The delivery receipt was truthful at creation. An independently
+            # changed target readback cannot inherit that earlier PASS.
+            delivered_companion = root / "windows-workstation-companion.bin"
+            delivered_companion.write_bytes(b"replaced-after-readback")
+            self.assertEqual(verify_delivery_evidence(paths, profile, pptx, pdf)["status"], "FAIL")
+            shutil.copyfile(pdf, delivered_companion)
+            self.assertEqual(verify_delivery_evidence(paths, profile, pptx, pdf)["status"], "PASS")
+            # Likewise, a forged readback commitment cannot be accepted solely
+            # because the persisted digestMatched flag says True.
+            last = json.loads(paths[-1].read_text())
+            last["readback"]["digest"]["sha256"] = "0" * 64
+            paths[-1].write_text(json.dumps(last))
+            self.assertEqual(verify_delivery_evidence(paths, profile, pptx, pdf)["status"], "FAIL")
 
 
     def _fake_pandoc_docx_builder(self, root: Path) -> Path:

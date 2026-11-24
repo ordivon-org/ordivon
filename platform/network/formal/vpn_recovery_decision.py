@@ -124,12 +124,16 @@ def validate() -> None:
     # Source hint is only a time-bounded *candidate* and cannot bypass
     # the same active/underlay/allowed-country admission predicate. These
     # scenarios do not claim hot-standby reachability or real API effects.
-    hinted = policy.source_trial_hints(NOW, {"Malaysia", "North Macedonia", "Mexico"})
-    assert len(hinted) == 2
+    selected = set(policy.native.read_selector_policy()["selectedCountries"])
+    assert not policy.source_trial_hints(NOW, selected)
+    hinted = [
+        row | {"standing": "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT"}
+        for row in ({"catalogCountry": "Singapore", "medianOfConsumerP90Ms": 800},
+                    {"catalogCountry": "Japan", "medianOfConsumerP90Ms": 1200})
+    ]
     hint_cases = 0
     for active, underlay, current in product(
-        (True, False, None), (True, False, None),
-        ("Malaysia", "North Macedonia", "Mexico"),
+        (True, False, None), (True, False, None), sorted(selected),
     ):
         action = policy.decision(active_healthy=active,
             underlay_reachable=underlay, evidence=hinted, now=NOW,
@@ -140,20 +144,42 @@ def validate() -> None:
         z.add(BoolVal(expected) != BoolVal(trial))
         assert z.check() == unsat
         if trial:
-            assert "Hong Kong" not in action["trialCountries"]
+            assert set(action["trialCountries"]) <= selected - {current}
             assert len(set(action["trialCountries"])) == len(action["trialCountries"])
             assert len(action["trialCountries"]) <= 2
-            assert current not in action["trialCountries"]
             assert action["certifiedHotStandbyCount"] == 0
         hint_cases += 1
-    # Temporal expiry withdraws all hints; even a witnessed VPN-only
-    # failure with a healthy physical underlay no longer admits a trial.
-    expired = policy.source_trial_hints(NOW + timedelta(days=8),
-                                         {"Malaysia", "North Macedonia", "Mexico"})
+    # Cold trials use the current source country subset, not the catalog-wide
+    # permission list, and cannot be promoted to historical success.
+    expired = policy.source_trial_hints(NOW + timedelta(days=8), selected)
     assert expired == []
-    assert policy.decision(active_healthy=False, underlay_reachable=True,
-                           evidence=expired, now=NOW+timedelta(days=8),
-                           current_country="Malaysia")["decision"] == "HOLD_NO_RECENT_EVIDENCE"
+    cold_catalog = json.dumps({"surfshark":{"servers":[
+        {"vpn": "wireguard", "country": country, "ips": [f"192.0.2.{i}"]}
+        for i, country in enumerate(sorted(selected | {"Panama", "Hong Kong"}), 11)
+    ]}})
+    cold = policy.catalog_cold_trials(cold_catalog, selected)
+    assert {row["catalogCountry"] for row in cold} == selected
+    assert all(row["standing"] == "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"
+               and row["qualifiedNowStandby"] is False for row in cold)
+    cold_cases = 0
+    for active, underlay, current in product(
+        (True, False, None), (True, False, None),
+        sorted(selected),
+    ):
+        outcome=policy.decision(active_healthy=active, underlay_reachable=underlay,
+          evidence=expired+cold, now=NOW+timedelta(days=8),
+          current_country=current)
+        actual=outcome["decision"].startswith("TRIAL_ONLY_")
+        expected=active is False and underlay is True and (
+            len([x for x in cold if x["catalogCountry"]!=current])>0)
+        z=Solver()
+        z.add(BoolVal(actual)!=BoolVal(expected))
+        assert z.check()==unsat
+        if actual:
+            assert outcome["certifiedHotStandbyCount"]==0
+            assert "Hong Kong" not in outcome["trialCountries"]
+            assert len(outcome["trialCountries"])<=2
+        cold_cases+=1
 
     # Finite temporal *schedule* model, bound to the native source
     # intervals. The proof is only about maximum sampling/timer phase,
@@ -235,6 +261,58 @@ def validate() -> None:
         policy.http_raw_samples = original_http
     assert stale_mutants == 1
 
+
+    # Two source-owned host-direct HTTPS origins: a single success is not
+    # enough to authorize changing the only physical WireGuard session.
+    # This is exact tri-state admission refinement, not a two-WAN guarantee.
+    direct_cases = 0
+    for first, second in product((True, False, None), repeat=2):
+        observed = policy.direct_underlay_evidence((first, second))
+        expected = (True if first is True and second is True else
+                    False if first is False and second is False else None)
+        assert observed is expected
+        s = Solver()
+        s.add(BoolVal(observed is True) !=
+              And(BoolVal(first is True), BoolVal(second is True)))
+        assert s.check() == unsat
+        direct_cases += 1
+    single_origin_mutant = Solver()
+    first_ok, second_ok = Bool("first_direct_ok"), Bool("second_direct_ok")
+    single_origin_mutant.add(first_ok, Not(second_ok),
+                             Or(first_ok, second_ok),
+                             Not(And(first_ok, second_ok)))
+    assert single_origin_mutant.check() == sat
+    # Bind recovery admission's two HTTPS origin strings to the real native
+    # Prometheus direct consumer *targets*, not only to matching job names.
+    # Previous proof passed even if either job's target silently drifted.
+    # Reuse source's one-job YAML blocks; the native promtool/preflight owns
+    # full syntax/module/relabel validation, not this finite model.
+    direct_source = (source_root / "config/prometheus/prometheus.yml").read_text()
+    direct_jobs = ("blackbox-http-ipv4", "blackbox-http-ipv4-alternate")
+    def direct_target(source: str, job: str) -> str:
+        heading = "  - job_name: " + job + "\n"
+        assert source.count(heading) == 1
+        block = source.split(heading, 1)[1].split("  - job_name:", 1)[0]
+        assert "    metrics_path: /probe\n" in block
+        assert "        - http_2xx_ipv4\n" in block
+        target_lines = [row.removeprefix("          - ").strip()
+                        for row in block.splitlines()
+                        if row.startswith("          - https://")]
+        assert len(target_lines) == 1
+        return target_lines[0]
+
+    actual_direct = tuple(direct_target(direct_source, job) for job in direct_jobs)
+    assert actual_direct == policy.DIRECT_UNDERLAY_HTTPS
+    drift_cases = 0
+    for observed in policy.DIRECT_UNDERLAY_HTTPS:
+        bad_source = direct_source.replace(
+            "          - " + observed + "\n",
+            "          - https://unexpected.invalid/\n", 1)
+        assert bad_source != direct_source
+        mutated_targets = tuple(direct_target(bad_source, job) for job in direct_jobs)
+        assert mutated_targets != policy.DIRECT_UNDERLAY_HTTPS
+        drift_cases += 1
+
     # An incorrect selector copying duplicate countries into both slots has
     # a satisfiable distinctness violation; implemented source above cannot.
     c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
@@ -247,19 +325,24 @@ def validate() -> None:
         "standing": "SOURCE_ENUMERATION_REFINED_WITH_Z3",
         "finiteCases": cases,
         "distinctCandidateCases": country_cases,
+        "twoDirectOriginTriStateCases": direct_cases,
+        "directProbeTargetDriftMutantsRejected": drift_cases,
+        "singleOriginOptimisticMutantRefuted": True,
         "timeBoundedSourceHintCases": hint_cases,
+        "postExpiryCatalogColdTrialCases": cold_cases,
         "sourceBoundMaxSamplingAndTimerDecisionSeconds": worst_case,
         "raw30sFreshnessCounterexampleCases": raw_cases,
         "previousStaleZeroMutantRejected": stale_mutants,
         "premises": [
             "observed consumer failure (not UNKNOWN)",
             "direct underlay reachable",
-            "recent allowed historical candidate",
+            "approved trial country (recent quality or official catalog-only cold)",
             "no switch inside cooldown",
             "candidate different from active country",
         ],
         "negativeControls": [
             "missing underlay guard mutant SAT",
+            "single successful host-direct origin prematurely grants VPN mutation SAT",
             "UNKNOWN active must not grant trial",
             "duplicate fallback country mutation SAT",
         ],

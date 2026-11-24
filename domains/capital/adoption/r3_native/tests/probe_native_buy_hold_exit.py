@@ -50,8 +50,8 @@ from nautilus_trader.persistence import ParquetDataCatalog
 from nautilus_trader.trading import Strategy, StrategyConfig
 
 from ordivon_capital.accounting.paper_close import PaperSession, value_session
+from ordivon_capital.applications.nautilus_paper_bridge import next_open_paper_session
 from ordivon_capital.portfolio.strategic_contribution import plan_strategic_contribution
-from ordivon_capital.trading.nautilus_paper_bridge import next_open_paper_session
 
 HOLD = int(os.environ["ORDIVON_FINANCE_R3_HOLD_SESSIONS"])
 if HOLD not in (5, 20):
@@ -79,19 +79,37 @@ if (MODEL_STUDY.get("signal_quality", {}).get("exit_price_kind") != "next_open"
 prediction_bytes = (RESEARCH / "qlib_test_predictions.csv").read_bytes()
 if MODEL_STUDY.get("qlib_prediction_sha256") != sha256(prediction_bytes).hexdigest():
     raise RuntimeError("Qlib prediction snapshot does not match recorded study")
+# The native Qlib producer emits one named NEXT_OPEN prediction field, not a
+# realized label or a column chosen by physical CSV order. A matching SHA
+# only commits bytes; it cannot independently attest the column's meaning.
+score_column = "predicted_next_open_to_next_open_fractional_return"
 with StringIO(prediction_bytes.decode("utf-8")) as fp:
-    signal_rows = [
-        row for row in csv.DictReader(fp) if row["datetime"] == DECISION_DAY
-    ]
+    reader = csv.DictReader(fp)
+    if reader.fieldnames != ["datetime", "instrument", score_column]:
+        raise RuntimeError("Qlib prediction column schema differs from native producer")
+    signal_rows = [row for row in reader if row["datetime"] == DECISION_DAY]
 if len(signal_rows) != 3 or {r["instrument"] for r in signal_rows} != {"IWM", "QQQ", "SPY"}:
     raise RuntimeError("Qlib predicted test day/ETF universe not exact")
 from math import isfinite
 
-scores = {r["instrument"]: float(next(v for k, v in r.items()
-                                  if k not in {"datetime", "instrument"}))
-          for r in signal_rows}
+scores = {r["instrument"]: float(r[score_column]) for r in signal_rows}
 if not all(isfinite(v) for v in scores.values()):
     raise RuntimeError("Qlib decision contains nonfinite OOS scores")
+# A single column name does not encode 5 versus 20 sessions. Compare the
+# Qlib frozen target, model quality, and the native T+H+1 OPEN exit event.
+skill = MODEL_STUDY["signal_quality"]
+forecast = MODEL_STUDY["forecast"]
+if (
+    skill.get("standing") != "RETROSPECTIVE_BACKFILL_TEST_ONLY"
+    or skill.get("label_forward_sessions") != HOLD + 1
+    or skill.get("horizon")
+    != f"decision_after_T_close_entry_T_plus_1_open_exit_T_plus_{HOLD + 1}_open"
+    or forecast.get("kind") != "uncalibrated_multisession_holding_return"
+    or forecast.get("holding_sessions") != HOLD
+    or forecast.get("exit_price_kind") != "next_open"
+    or forecast.get("target_horizon") != f"next_session_open_to_T_plus_{HOLD + 1}_open"
+):
+    raise RuntimeError("Qlib forecast horizon disagrees with native holding exit")
 # Explicit adversarial *test-only* score intervention, never represented as
 # real Qlib output. Tests that changing a decision changes the native fill.
 override = os.environ.get("ORDIVON_FINANCE_R3_TEST_FORCE_ASSET")

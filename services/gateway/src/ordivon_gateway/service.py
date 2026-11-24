@@ -3,56 +3,29 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from .capability_catalog import CapabilityCatalog
+from .capabilities.discovery import CapabilityCatalog
+from .capabilities.execution.commands import ExecutionCommandMethods
+from .capabilities.execution.observations import ExecutionObservationMethods
+from .capabilities.execution.release import RuntimeReleaseProxy
+from .capabilities.host.dispatch import HostContinuityAdapter
 from .contracts import (
     ArtifactChunk,
+    CapabilityInquiryProjection,
     CapabilityProjection,
     CapabilityResolution,
+    CapabilityRoute,
     CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
+    RuntimeReleaseAdmission,
+    RuntimeReleaseProjection,
     SystemDescription,
 )
-from .execution_coordinator import ExecutionCoordinator
-from .execution_refs import GatewayError
-from .execution_refs import parse_execution_ref as parse_execution_ref
-from .routing import CapabilityRoute, default_routes
-from .upstream import OwnerToolCaller
-
-_SOCIAL_WORK_HOST_TOOLS = frozenset(
-    {
-        "host.status",
-        "actor.declare",
-        "work.create",
-        "work.get",
-        "work.list",
-        "work.snapshot.commit",
-        "space.create",
-        "space.get",
-        "space.list",
-        "space.participation.set",
-        "space.participation.list",
-        "space.subject.list",
-        "topic.create",
-        "topic.cursor.ack",
-        "topic.cursor.get",
-        "topic.list",
-        "topic.state.set",
-        "topic.resume",
-        "message.post",
-        "message.search",
-        "message.relation.add",
-        "message.relation.list",
-        "subscription.follow",
-        "subscription.list",
-        "subscription.unfollow",
-        "attention.get",
-        "attention.delta",
-        "attention.ack",
-        "attention.reentry",
-    }
-)
+from .logic.execution_refs import GatewayError
+from .logic.execution_refs import parse_execution_ref as parse_execution_ref
+from .logic.owner_protocol import OwnerToolCaller
+from .logic.routing import default_routes
 
 
 class GatewayService:
@@ -77,7 +50,10 @@ class GatewayService:
         ):
             raise GatewayError("route identity must match its capability")
         self._catalog = CapabilityCatalog(caller, self._routes, projection_timeout_seconds)
-        self._execution = ExecutionCoordinator(caller, self._routes)
+        self._execution_commands = ExecutionCommandMethods(caller, self._routes)
+        self._execution_observations = ExecutionObservationMethods(caller, self._routes)
+        self._runtime_release = RuntimeReleaseProxy(caller)
+        self._host_continuity = HostContinuityAdapter(caller)
 
     async def aclose(self) -> None:
         """Close only process-owned upstream transports, never Owner Jobs."""
@@ -90,6 +66,13 @@ class GatewayService:
 
     async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
         return await self._catalog.capability_describe(capability)
+
+    async def capability_inquire(
+        self, *, capability: str, verify_read_only: bool = False
+    ) -> CapabilityInquiryProjection:
+        return await self._catalog.capability_inquire(
+            capability=capability, verify_read_only=verify_read_only
+        )
 
     async def capability_search(
         self,
@@ -121,6 +104,26 @@ class GatewayService:
             agent_id=agent_id,
         )
 
+    async def runtime_release_apply(
+        self,
+        *,
+        request_id: str,
+        workspace_id: str,
+        commit: str,
+        candidate_manifest_digest: str,
+        expected_tool_count: int,
+    ) -> RuntimeReleaseAdmission:
+        return await self._runtime_release.apply(
+            request_id=request_id,
+            workspace_id=workspace_id,
+            commit=commit,
+            candidate_manifest_digest=candidate_manifest_digest,
+            expected_tool_count=expected_tool_count,
+        )
+
+    async def runtime_release_get(self, *, request_id: str) -> RuntimeReleaseProjection:
+        return await self._runtime_release.get(request_id=request_id)
+
     async def execution_submit(
         self,
         *,
@@ -137,7 +140,7 @@ class GatewayService:
         stderr_limit_bytes: int | None = None,
         authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
-        return await self._execution.execution_submit(
+        return await self._execution_commands.execution_submit(
             capability=capability,
             request_id=request_id,
             workspace_id=workspace_id,
@@ -153,17 +156,19 @@ class GatewayService:
         )
 
     async def execution_resolve(self, *, capability: str, request_id: str) -> ExecutionResolution:
-        return await self._execution.execution_resolve(capability=capability, request_id=request_id)
+        return await self._execution_observations.execution_resolve(
+            capability=capability, request_id=request_id
+        )
 
     async def execution_get(
         self, operation_ref: str, *, event_limit: int = 10, wait_ms: int = 0
     ) -> ExecutionObservation:
-        return await self._execution.execution_get(
+        return await self._execution_observations.execution_get(
             operation_ref, event_limit=event_limit, wait_ms=wait_ms
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
-        return await self._execution.execution_cancel(operation_ref)
+        return await self._execution_commands.execution_cancel(operation_ref)
 
     async def artifact_read(
         self,
@@ -173,15 +178,10 @@ class GatewayService:
         offset: int = 0,
         max_bytes: int = 1_048_576,
     ) -> ArtifactChunk:
-        return await self._execution.artifact_read(
+        return await self._execution_observations.artifact_read(
             operation_ref, artifact_id, offset=offset, max_bytes=max_bytes
         )
 
     async def social_work_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        """Route one promoted Social Work Fabric operation to Host without re-owning semantics."""
-        if tool_name not in _SOCIAL_WORK_HOST_TOOLS:
-            raise GatewayError(f"unsupported Host Social Work tool: {tool_name}")
-        result = await self._caller.call_tool("host", tool_name, arguments)
-        if not isinstance(result, dict):
-            raise GatewayError("Host Social Work owner returned non-object response")
-        return result
+        """Expose the Host adapter through the existing stable Gateway façade."""
+        return await self._host_continuity.call(tool_name, arguments)

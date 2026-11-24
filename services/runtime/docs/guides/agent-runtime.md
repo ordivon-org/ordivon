@@ -228,3 +228,14 @@ is only a source-level Owner policy projection.
 This is on-demand Agent-consumable capability, **not yet wired automatically**
 into the Harness Run scheduling lifecycle. No second evidence registry,
 verifier service, or background monitoring job is introduced.
+
+### 2026-11-14 R5 native PG lost-result consumer regression
+
+A real disposable PG18/systemd native test now compares the same `lost` Job's
+`job.observe` and `job.list` northbound delivery: `unknown`,
+`resultAvailable=false`, single physical dispatch, and released reservation.
+Both existing `pg_vertical` tests for a failed retained Unit and for normal
+Runner success/cancel/replay were actually executed and passed on the tested
+main source `a31fe9e3882c6f912060954c0e9bc51c64fa5eb6`. These source
+consumer receipts do **not** establish that the installed Runtime executable
+has changed; use the native release receipt and post-install MCP readback.

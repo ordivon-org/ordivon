@@ -567,8 +567,8 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         grant = _nested_object(oauth.get("grant"))
         dns = planned[dns_address]["values"]
         windows_token = planned[windows_token_address]["values"]
-        native_tunnel = planned[native_tunnel_address]["values"]
-        native_tunnel_id = str(native_tunnel.get("tunnel_id", ""))
+        production_tunnel = planned[tunnel_address]["values"]
+        production_tunnel_id = str(production_tunnel.get("tunnel_id", ""))
 
         checks.update(
             {
@@ -614,8 +614,8 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
                 "gateway_dns_exact": dns.get("name") == "gateway-mcp.ordivon.com"
                 and dns.get("type") == "CNAME"
                 and dns.get("proxied") is True
-                and bool(native_tunnel_id)
-                and dns.get("content") == f"{native_tunnel_id}.cfargotunnel.com",
+                and bool(production_tunnel_id)
+                and dns.get("content") == f"{production_tunnel_id}.cfargotunnel.com",
                 "windows_service_token_exact": windows_token.get("name")
                 == WINDOWS_SERVICE_TOKEN_NAME
                 and windows_token.get("duration") == "8760h"

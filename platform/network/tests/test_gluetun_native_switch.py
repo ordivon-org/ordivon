@@ -110,14 +110,14 @@ def test_guarded_native_switch_success_only_after_real_consumer_receipt(monkeypa
     from datetime import datetime,timezone
     calls=[]
     before={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["North Macedonia"],"regions":[],"cities":[],"hostnames":[]}}}
+        "server_selection":{"countries":["Singapore"],"regions":[],"cities":[],"hostnames":[]}}}
     after={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["Mexico"],"regions":[],"cities":[],"hostnames":[]}}}
+        "server_selection":{"countries":["Japan"],"regions":[],"cities":[],"hostnames":[]}}}
     active=[{"standing":"NOT_QUALIFIED"},
-            {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"}]
+            {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Japan"}]
     monkeypatch.setattr(switch.quality,"observe",lambda hours:{
         "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-                       "trialCountry":"Mexico"}})
+                       "trialCountry":"Japan"}})
     monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
     monkeypatch.setattr(switch,"initial_preflight",lambda:{"standing":"NATIVE_API_AUTHORIZED_READONLY"})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
@@ -132,20 +132,20 @@ def test_guarded_native_switch_success_only_after_real_consumer_receipt(monkeypa
     monkeypatch.setattr(switch,"api_call",api)
     result=switch.guarded_recover()
     assert result["standing"]=="NATIVE_SWITCH_CONSUMED"
-    assert result["country"]=="Mexico"
+    assert result["country"]=="Japan"
     assert [c for c in calls if c[0]=="PUT"]==[
-        ("PUT",{"provider":{"server_selection":{"countries":["Mexico"]}}})]
+        ("PUT",{"provider":{"server_selection":{"countries":["Japan"]}}})]
 
 
 def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
     calls=[]
     before={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["North Macedonia"],"regions":[]}}}
+        "server_selection":{"countries":["Singapore"],"regions":[]}}}
     after={"type":"wireguard","provider":{"name":"surfshark",
-        "server_selection":{"countries":["Mexico"],"regions":[]}}}
+        "server_selection":{"countries":["Japan"],"regions":[]}}}
     monkeypatch.setattr(switch.quality,"observe",lambda hours:{
         "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-                       "trialCountry":"Mexico"}})
+                       "trialCountry":"Japan"}})
     monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
     monkeypatch.setattr(switch,"initial_preflight",lambda:{})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
@@ -163,8 +163,8 @@ def test_guarded_native_switch_rolls_back_if_trial_never_qualifies(monkeypatch):
     assert result["standing"]=="NATIVE_SWITCH_FAILED"
     assert result["rollback"]=="SELECTION_READBACK_VERIFIED"
     assert [c[1] for c in calls if c[0]=="PUT"]==[
-        {"provider":{"server_selection":{"countries":["Mexico"]}}},
-        {"provider":{"server_selection":{"countries":["North Macedonia"]}}},
+        {"provider":{"server_selection":{"countries":["Japan"]}}},
+        {"provider":{"server_selection":{"countries":["Singapore"]}}},
     ]
 
 
@@ -183,9 +183,14 @@ def test_recover_benign_policy_hold_is_process_success_but_auth_unknown_is_failu
     monkeypatch.setattr(switch,"guarded_recover",
       lambda:{"standing":"NATIVE_SWITCH_FAILED","effectAttempted":True})
     assert switch.main()==1
+    monkeypatch.setattr(switch,"guarded_recover",
+      lambda:{"standing":"NATIVE_SWITCH_RESTART_CONSUMED",
+              "effectAttempted":True,"recoveryProved":True})
+    assert switch.main()==0
 
 def test_systemd_health_gate_does_not_collect_full_history_when_green(monkeypatch):
     monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: True)
     monkeypatch.setattr(switch.quality, "observe",
         lambda **kw: (_ for _ in ()).throw(AssertionError("history should not load")))
     monkeypatch.setattr(switch, "api_call",
@@ -212,19 +217,19 @@ def test_recovery_next_distinct_historical_country_after_first_fails(monkeypatch
     original={"type":"wireguard","provider":{"name":"surfshark",
       "server_selection":{"countries":["Malaysia"],"regions":[]}}}
     first={"type":"wireguard","provider":{"name":"surfshark",
-      "server_selection":{"countries":["North Macedonia"],"regions":[]}}}
+      "server_selection":{"countries":["Singapore"],"regions":[]}}}
     second={"type":"wireguard","provider":{"name":"surfshark",
-      "server_selection":{"countries":["Mexico"],"regions":[]}}}
+      "server_selection":{"countries":["Japan"],"regions":[]}}}
     selection=[original]
     monkeypatch.setattr(switch.quality,"observe",lambda hours:{
         "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
-          "trialCountry":"North Macedonia","trialCountries":["North Macedonia","Mexico"]}})
+          "trialCountry":"Singapore","trialCountries":["Singapore","Japan"]}})
     monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
     monkeypatch.setattr(switch,"initial_preflight",lambda:{})
     monkeypatch.setattr(switch,"last_attempt",lambda:None)
     monkeypatch.setattr(switch,"mark_attempt",lambda:None)
     monkeypatch.setattr(switch,"bounded_consumer_observe",
-        lambda seconds=25:{"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Mexico"}
+        lambda seconds=25:{"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Japan"}
               if len([c for c in calls if c[0]=="PUT"])>=2
               else {"standing":"NOT_QUALIFIED"})
     # First trial passes readback but fails the consumer timeout. Second
@@ -235,15 +240,15 @@ def test_recovery_next_distinct_historical_country_after_first_fails(monkeypatch
         calls.append((method,payload))
         if method=="GET":return selection[0]
         country=payload["provider"]["server_selection"]["countries"][0]
-        selection[0] = first if country=="North Macedonia" else second
+        selection[0] = first if country=="Singapore" else second
         return {"status":200}
     monkeypatch.setattr(switch,"api_call",api)
     result=switch.guarded_recover()
     assert result["standing"]=="NATIVE_SWITCH_CONSUMED"
-    assert result["country"]=="Mexico"
-    assert result["countriesTried"]==["North Macedonia","Mexico"]
+    assert result["country"]=="Japan"
+    assert result["countriesTried"]==["Singapore","Japan"]
     assert [c[1]["provider"]["server_selection"]["countries"] for c in calls if c[0]=="PUT"]==[
-        ["North Macedonia"],["Mexico"]]
+        ["Singapore"],["Japan"]]
 
 
 def test_bounded_consumer_probe_timeout_is_unknown_and_not_success(monkeypatch):
@@ -253,3 +258,295 @@ def test_bounded_consumer_probe_timeout_is_unknown_and_not_success(monkeypatch):
         raise subprocess.TimeoutExpired(cmd=args[0],timeout=kw["timeout"])
     monkeypatch.setattr(switch.subprocess,"run",timeout)
     assert switch.bounded_consumer_observe(20)["standing"]=="UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"
+
+
+def test_expired_quality_plus_native_catalog_cold_candidates_reaches_second_business_success(monkeypatch):
+    """Integrated policy -> official catalog -> 2 tried API candidates -> origin acceptance.
+
+    All API and physical effects are fixtures; this never changes production.
+    """
+    import json
+    from itertools import count
+    class Result:
+        returncode=0
+        def __init__(self,text): self.stdout=text
+    stored=json.dumps({"surfshark":{"servers":[
+        {"country":"Malaysia","vpn":"wireguard","ips":["192.0.2.1"]},
+        {"country":"Singapore","vpn":"wireguard","ips":["192.0.2.2"]},
+        {"country":"Japan","vpn":"wireguard","ips":["192.0.2.3"]},
+        {"country":"Hong Kong","vpn":"wireguard","ips":["192.0.2.4"]},
+    ]}})
+    def native_run(args,**kw):
+        if args[:2]==["/usr/bin/podman","exec"]: return Result(stored)
+        if args[0]=="/usr/bin/journalctl": return Result("")
+        if args[0]=="/usr/bin/curl":return Result("200")
+        raise AssertionError("Unexpected external subprocess")
+    monkeypatch.setattr(switch.quality.subprocess,"run",native_run)
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(switch.quality,"current_catalog_country",lambda catalog:"Malaysia")
+    # The previous verified quality hint has expired and grants no quality.
+    monkeypatch.setattr(switch.quality,"source_trial_hints",lambda *a,**kw:[])
+    monkeypatch.setattr(switch,"initial_preflight",lambda:{"standing":"NATIVE_API_AUTHORIZED_READONLY"})
+    monkeypatch.setattr(switch,"last_attempt",lambda:None)
+    monkeypatch.setattr(switch,"mark_attempt",lambda:None)
+    selection=["Malaysia"]
+    puts=[]
+    def api(method,payload=None):
+        if method=="PUT":
+            chosen=payload["provider"]["server_selection"]["countries"]
+            puts.append(chosen)
+            selection[:]=chosen
+            return {"status":200}
+        return {"type":"wireguard","provider":{"name":"surfshark",
+            "server_selection":{"countries":selection[:],"regions":[]}}}
+    monkeypatch.setattr(switch,"api_call",api)
+    def consumer(seconds=25):
+        return {"standing":"QUALIFIED_ACTIVE_SAMPLE","currentCatalogCountry":"Japan"} if (
+            len(puts)>1) else {"standing":"NOT_QUALIFIED"}
+    monkeypatch.setattr(switch,"bounded_consumer_observe",consumer)
+    monkeypatch.setattr(switch.time,"monotonic",count(start=0,step=10).__next__)
+    monkeypatch.setattr(switch.time,"sleep",lambda s:None)
+    outcome=switch.guarded_recover()
+    assert puts==[["Singapore"],["Japan"]]
+    assert outcome["standing"]=="NATIVE_SWITCH_CONSUMED"
+    assert outcome["country"]=="Japan"
+    assert outcome["countriesTried"]==["Singapore","Japan"]
+    assert outcome["effectAttempted"] is True
+    assert selection==["Japan"]
+
+
+def test_catalog_cold_preference_never_overrides_shared_underlay_failure(monkeypatch):
+    """The verified physical outage must not cause a futile country switch."""
+    import json
+    class Result:
+        returncode=28
+        def __init__(self,text):self.stdout=text
+    catalog=json.dumps({"surfshark":{"servers":[
+        {"vpn":"wireguard","country":"Singapore","ips":["192.0.2.2"]},
+    ]}})
+    def native_run(args,**kw):
+        if args[:2]==["/usr/bin/podman","exec"]:return Result(catalog)
+        if args[0]=="/usr/bin/journalctl":return Result("")
+        if args[0]=="/usr/bin/curl":return Result("")
+        raise AssertionError("Unexpected subprocess")
+    monkeypatch.setattr(switch.quality.subprocess,"run",native_run)
+    monkeypatch.setattr(switch.quality,"recent_failure_witness",lambda now:True)
+    monkeypatch.setattr(switch.quality,"source_trial_hints",
+        lambda *a,**kw: (_ for _ in ()).throw(AssertionError("Must not read hints when WAN fails")))
+    monkeypatch.setattr(switch.quality,"catalog_cold_trials",
+        lambda *a,**kw: (_ for _ in ()).throw(AssertionError("No cold catalog reads when WAN fails")))
+    monkeypatch.setattr(switch.quality,"current_catalog_country",lambda x:"Malaysia")
+    monkeypatch.setattr(switch,"api_call",
+        lambda *a,**kw: (_ for _ in ()).throw(AssertionError("No API may be opened")))
+    result=switch.guarded_recover()
+    assert result["standing"]=="HOLD_SHARED_UNDERLAY_OR_UNKNOWN"
+    assert result["effectAttempted"] is False
+
+
+def test_partial_consumer_native_health_stuck_restarts_only_existing_service(monkeypatch):
+    # Production counterexample 2026-11-15: three consumer jobs still had
+    # healthy samples, while native Gluetun health was 500 and mobile failed.
+    import subprocess
+    from types import SimpleNamespace
+    calls = []
+    states = iter([False, False, False, True])
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: next(states), raising=False)
+    monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: True)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch, "mark_attempt", lambda: calls.append("cooldown"))
+    monkeypatch.setattr(switch.time, "sleep", lambda sec: None)
+    monkeypatch.setattr(switch, "bounded_consumer_observe", lambda seconds=25: {
+        "standing": "QUALIFIED_ACTIVE_SAMPLE"
+    })
+    def native_run(args, **kwargs):
+        calls.append(tuple(args))
+        assert args == ["/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"]
+        return subprocess.CompletedProcess(args, 0, "", "")
+    monkeypatch.setattr(switch.subprocess, "run", native_run)
+    result = switch.guarded_recover()
+    assert result["standing"] == "NATIVE_HEALTH_RESTART_CONSUMED"
+    assert result["effectAttempted"] is True
+    assert calls == ["cooldown", (
+        "/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"
+    )]
+
+
+def test_native_health_one_bad_sample_does_not_restart(monkeypatch):
+    calls = iter([False, True])
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: next(calls), raising=False)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    assert switch.guarded_recover()["effectAttempted"] is False
+
+
+@pytest.mark.parametrize("underlay", [False, None])
+def test_native_health_bad_but_underlay_not_proven_never_restarts(monkeypatch, underlay):
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: False, raising=False)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: underlay)
+    monkeypatch.setattr(switch.time, "sleep", lambda sec: None)
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    result = switch.guarded_recover()
+    assert result["standing"] == "HOLD_NATIVE_HEALTH_UNDERLAY_UNKNOWN_OR_DOWN"
+    assert result["effectAttempted"] is False
+
+
+def test_native_health_bad_but_cooldown_blocks_restart(monkeypatch):
+    from datetime import datetime, timezone
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: False, raising=False)
+    monkeypatch.setattr(switch, "last_attempt", lambda: datetime.now(timezone.utc))
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    result = switch.guarded_recover()
+    assert result["standing"] == "HOLD_COOLDOWN"
+    assert result["effectAttempted"] is False
+
+
+def test_native_health_unknown_does_not_restart(monkeypatch):
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: None, raising=False)
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+                        (_ for _ in ()).throw(AssertionError("unexpected restart")))
+    result = switch.guarded_recover()
+    assert result["standing"] == "HOLD_NATIVE_HEALTH_UNKNOWN"
+    assert result["effectAttempted"] is False
+
+
+@pytest.mark.parametrize("returncode,output,expected", [
+    (0, "", True),
+    (1, "ERROR HTTP response status is not OK: 500 500 Internal Server Error", False),
+    (125, "Error: container exited", None),
+    (1, "some unrecognized native failure", None),
+])
+def test_native_health_only_classifies_official_500(monkeypatch, returncode, output, expected):
+    import subprocess
+    def fake_run(args, **kwargs):
+        assert args == ["/usr/bin/podman", "exec",
+                        "network-v2-gluetun-owned-r1", "/gluetun-entrypoint", "healthcheck"]
+        return subprocess.CompletedProcess(args, returncode, "", output)
+    monkeypatch.setattr(switch.subprocess, "run", fake_run)
+    assert switch.native_health_state() is expected
+
+
+def test_native_health_restart_failure_is_effect_unknown_and_bounded(monkeypatch):
+    import subprocess
+    states=iter([False, False, False])
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: False)
+    monkeypatch.setattr(switch, "native_health_state", lambda: next(states), raising=False)
+    monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: True)
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch, "mark_attempt", lambda: None)
+    monkeypatch.setattr(switch.time, "sleep", lambda sec: None)
+    def fail_restart(args, **kwargs):
+        raise subprocess.TimeoutExpired(args, 70)
+    monkeypatch.setattr(switch.subprocess, "run", fail_restart)
+    result=switch.guarded_recover()
+    assert result["standing"] == "NATIVE_HEALTH_RESTART_UNQUALIFIED"
+    assert result["effectAttempted"] is True
+
+
+# 2026-11-15 real consumer incident: three native country trials returned
+# TRIAL_UNKNOWN/rollback UNKNOWN_OR_FAILED while two host-direct origins
+# remained reachable, and all scoped Claude/Codex/PyPI consumers failed.
+def _failed_native_api_scenario(monkeypatch, *, direct=True, recovered=False,
+                                restart_timeout=False, unknown=False):
+    import subprocess
+    before={"type":"wireguard","provider":{"name":"surfshark",
+             "server_selection":{"countries":["Malaysia"],"regions":[]}}}
+    effects=[]
+    monkeypatch.setattr(switch.quality, "recent_failure_witness", lambda now: True)
+    monkeypatch.setattr(switch.quality, "observe", lambda hours: {
+        "recommended":{"decision":"TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF",
+                       "trialCountry":"Singapore",
+                       "trialCountries":["Singapore"]}})
+    monkeypatch.setattr(switch.quality, "direct_underlay_witness", lambda: direct)
+    monkeypatch.setattr(switch, "initial_preflight", lambda: {"standing":"NATIVE_API_AUTHORIZED_READONLY"})
+    monkeypatch.setattr(switch, "last_attempt", lambda: None)
+    monkeypatch.setattr(switch, "mark_attempt", lambda: effects.append("cooldown"))
+    monkeypatch.setattr(switch.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(switch, "native_health_state", lambda: True)
+    def api(method, payload=None):
+        if method=="GET":
+            return before
+        effects.append("native_api_put_unknown")
+        raise ValueError("NATIVE_API_UNKNOWN")
+    monkeypatch.setattr(switch, "api_call", api)
+    observations=[]
+    def consumer(seconds=25):
+        observations.append(seconds)
+        if unknown:
+            return {"standing":"UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"}
+        if "restart" in effects or (recovered and len(observations) >= 2):
+            return {"standing":"QUALIFIED_ACTIVE_SAMPLE",
+                    "currentCatalogCountry":"Malaysia"}
+        return {"standing":"NOT_QUALIFIED"}
+    monkeypatch.setattr(switch, "bounded_consumer_observe", consumer)
+    def native_run(args, **kwargs):
+        assert args == ["/usr/bin/systemctl","restart","network-v2-gluetun-owned.service"]
+        effects.append("restart")
+        if restart_timeout:
+            raise subprocess.TimeoutExpired(args, kwargs.get("timeout", 60))
+        return subprocess.CompletedProcess(args, 0, "", "")
+    monkeypatch.setattr(switch.subprocess, "run", native_run)
+    return effects
+
+
+def test_api_trial_and_rollback_unknown_recovers_via_single_native_restart(monkeypatch):
+    effects=_failed_native_api_scenario(monkeypatch)
+    result=switch.guarded_recover()
+    assert result["standing"]=="NATIVE_SWITCH_RESTART_CONSUMED"
+    assert result["effectAttempted"] is True
+    assert result["recoveryProved"] is True
+    assert effects.count("restart")==1
+    assert effects.count("cooldown")==1
+    assert effects.count("native_api_put_unknown")==2
+    assert result["trials"][0]["failureStage"]=="PUT"
+
+
+@pytest.mark.parametrize("direct", [False, None])
+def test_api_trial_failed_but_direct_underlay_not_proven_never_restarts(monkeypatch,direct):
+    effects=_failed_native_api_scenario(monkeypatch,direct=direct)
+    result=switch.guarded_recover()
+    assert result["standing"]=="NATIVE_SWITCH_FAILED"
+    assert result["effectAttempted"] is True
+    assert effects.count("restart")==0
+
+
+def test_api_trial_unknown_but_consumer_recovered_does_not_restart(monkeypatch):
+    effects=_failed_native_api_scenario(monkeypatch,recovered=True)
+    result=switch.guarded_recover()
+    assert result["effectAttempted"] is True
+    assert effects.count("restart")==0
+
+
+def test_api_trial_unknown_restart_timeout_is_not_proved(monkeypatch):
+    effects=_failed_native_api_scenario(monkeypatch,restart_timeout=True)
+    result=switch.guarded_recover()
+    assert result["standing"]=="NATIVE_SWITCH_RESTART_UNQUALIFIED"
+    assert result["effectAttempted"] is True
+    assert result["recoveryProved"] is False
+    assert effects.count("restart")==1
+
+
+def test_api_trial_fallback_outside_budget_is_skipped(monkeypatch):
+    effects=_failed_native_api_scenario(monkeypatch)
+    ticks=iter([0.0,0.0,0.0,180.0])
+    monkeypatch.setattr(switch.time,"monotonic",lambda: next(ticks))
+    result=switch.guarded_recover()
+    assert result["standing"]=="NATIVE_SWITCH_FAILED"
+    assert effects.count("restart")==0
+
+
+def test_api_trial_unknown_consumer_observation_does_not_authorize_restart(monkeypatch):
+    """UNKNOWN is not a failed business receipt, even with old failure samples."""
+    effects = _failed_native_api_scenario(monkeypatch, unknown=True)
+    result = switch.guarded_recover()
+    assert result["standing"] == "NATIVE_SWITCH_FAILED"
+    assert result["effectAttempted"] is True  # Original API PUT was attempted.
+    assert effects.count("restart") == 0

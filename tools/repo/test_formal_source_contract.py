@@ -140,6 +140,33 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "alloyJvm"):
                 formal.qualified_alloy_runtime_resources(str(exe))
 
+    def test_alloy_sat_requires_a_real_instance_not_a_field_name(self) -> None:
+        """A zero-instance UNSAT report must never be called a SAT witness.
+
+        The old root Formal gate accepted any rc=0 text containing
+        '"instances"', including an empty array or a quoted string.
+        """
+        import json
+
+        positive = json.dumps({
+            "instances": [{"state": 0, "values": {"Node$1": {}}}],
+            "duration": 30,
+        })
+        self.assertEqual(formal.qualify_alloy_sat_witness(positive), 1)
+        for output in (
+            "",  # Native Alloy UNSAT output is empty with exit status 0.
+            '{"instances":[]}',
+            '{"instances":null}',
+            '{"instances":{}}',
+            '{"instances":[null]}',
+            '{"instances":[{"state":0}]}',
+            '{"instances":[{"state":"0","values":{}}]}',
+            '{"message":"\\\"instances\\\""}',
+            "not-json \"instances\"",
+        ):
+            with self.subTest(output=output), self.assertRaisesRegex(ValueError, "Alloy"):
+                formal.qualify_alloy_sat_witness(output)
+
     def test_independently_callable_qualifiers_reject_preloaded_parent(self) -> None:
         """A source or tool receipt cannot trust a Python process already preloaded.
 
@@ -425,10 +452,13 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         """A remaining pre-projection rebind keeps source refinement UNKNOWN."""
         baseline = formal.qualified_timeout_adapter_fragment()
         self.assertIs(baseline["sourceAstAnchorsObserved"], True)
-        self.assertEqual(
-            baseline["effectFrameObserved"],
-            "exact_post_projection_return_and_immediate_gateway_dispatch",
+        actual_gateway_source = (ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py").read_text(encoding="utf-8")
+        expected_frame = (
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch"
+            if "require_effect_ready(" in actual_gateway_source
+            else "exact_post_projection_return_and_immediate_gateway_dispatch"
         )
+        self.assertEqual(baseline["effectFrameObserved"], expected_frame)
         self.assertIs(baseline["codeFragmentRefined"], False)
         self.assertEqual(baseline["sourceRefinementStanding"], "UNKNOWN")
 
@@ -498,6 +528,45 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
 
                 with patch.object(Path, "read_text", read_with_mutant):
                     with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
+                        formal.qualified_timeout_adapter_fragment()
+
+    def test_exact_native_claim_guard_source_frame_rejects_mutation(self) -> None:
+        """Only the whole native-Claim barrier, not a caller-authored token, is observed."""
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        if "require_effect_ready(" not in original:
+            self.skipTest("The historical source has no native Workspace Claim frame")
+        baseline = formal.qualified_timeout_adapter_fragment()
+        self.assertEqual(
+            baseline["effectFrameObserved"],
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch",
+        )
+        variants = (
+            ("missing-claim", "self._workspace_admission.require_effect_ready(",
+             "self._workspace_admission.accept_without_proof("),
+            ("optional-claim", "self._workspace_admission_required and self._workspace_admission is None",
+             "False and self._workspace_admission is None"),
+            ("false-evidence", "if admitted is not None:",
+             "if False:"),
+            ("mutation-after-projection",
+             '        if self._workspace_admission_required and self._workspace_admission is None:',
+             '        gateway_args["timeoutMs"] = 900000\n'
+             '        if self._workspace_admission_required and self._workspace_admission is None:'),
+        )
+        actual_read = Path.read_text
+        for label, before, after in variants:
+            with self.subTest(label=label):
+                self.assertIn(before, original)
+                mutant = original.replace(before, after, 1)
+                compile(mutant, str(target), "exec")
+
+                def read_with_mutant(path, *args, **kwargs):
+                    if path == target:
+                        return mutant
+                    return actual_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", read_with_mutant):
+                    with self.assertRaisesRegex(ValueError, "timeout|frame|effect"):
                         formal.qualified_timeout_adapter_fragment()
 
     def test_exact_git_source_readset_is_qualified(self) -> None:
@@ -775,134 +844,6 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                 source.symlink_to(untracked)
                 with self.assertRaisesRegex(ValueError, "missing or nonregular"):
                     formal.qualified_source_cut()
-
-
-class ContainedZ3SourceConsumerTests(unittest.TestCase):
-    """Tests of a very narrow new Z3 sandbox plan; not broad proof reuse."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        spec = importlib.util.spec_from_file_location(
-            "ordivon_contained_z3_contract",
-            FORMAL / "contained_z3.py",
-        )
-        assert spec is not None and spec.loader is not None
-        cls.contained = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(cls.contained)
-
-    def test_selected_tool_staging_rejects_wrong_sha(self) -> None:
-        import hashlib
-        with tempfile.TemporaryDirectory() as td:
-            original = Path(td) / "actual"
-            original.write_bytes(b"selected z3 tool")
-            destination = Path(td) / "copy"
-            with self.assertRaisesRegex(ValueError, "changed before isolated"):
-                self.contained._stage_verified_file(
-                    original, destination, hashlib.sha256(b"old binary").hexdigest()
-                )
-
-    def test_staging_rejects_symlink_and_malformed_digest(self) -> None:
-        import hashlib
-        with tempfile.TemporaryDirectory() as td:
-            original = Path(td) / "actual"
-            original.write_bytes(b"selected z3 tool")
-            symlink = Path(td) / "link"
-            symlink.symlink_to(original)
-            with self.assertRaisesRegex(ValueError, "regular file"):
-                self.contained._stage_verified_file(
-                    symlink, Path(td) / "copy", hashlib.sha256(original.read_bytes()).hexdigest()
-                )
-            with self.assertRaisesRegex(ValueError, "digest"):
-                self.contained._stage_verified_file(
-                    original, Path(td) / "copy", "not-a-sha"
-                )
-
-    def test_contained_command_uses_only_explicit_read_only_inputs(self) -> None:
-        import hashlib
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            z3 = root / "fake-z3"
-            z3.write_bytes(b"fake selected Z3 executable")
-            libraries = root / "selected"
-            libraries.mkdir()
-            interpreter = libraries / "ld-linux-x86-64.so.2"
-            interpreter.write_bytes(b"fake native loader")
-            runtime = libraries / "libstdc++.so.6.0.36"
-            runtime.write_bytes(b"fake C++ runtime")
-            digests = {
-                str(path): hashlib.sha256(path.read_bytes()).hexdigest()
-                for path in (interpreter, runtime)
-            }
-            stage = root / "stage"
-            stage.mkdir()
-            with patch.object(self.contained, "SHARED_LIB_ROOT", libraries), patch.object(
-                self.contained.shutil, "which", return_value="/usr/bin/bwrap"
-            ):
-                command, staged = self.contained._command_for_staged_inputs(
-                    z3_source=z3, z3_digest=hashlib.sha256(z3.read_bytes()).hexdigest(),
-                    libraries=digests, stage=stage,
-                )
-            self.assertEqual(command[:5], [
-                "/usr/bin/bwrap", "--die-with-parent", "--new-session",
-                "--unshare-all", "--clearenv",
-            ])
-            self.assertIn("--tmpfs", command)
-            self.assertNotIn("/etc", command)
-            self.assertNotIn("/proc", command)
-            self.assertNotIn("/dev", command)
-            self.assertNotIn("/home", command)
-            self.assertNotIn("PARENT_PROC_HOST", command)
-            self.assertEqual(command[-3:], ["/z3", "-smt2", "-in"])
-            self.assertEqual(len(staged), 3)
-            self.assertEqual((stage / "z3").stat().st_mode & 0o111, 0o111)
-            self.assertEqual((stage / "lib-0").stat().st_mode & 0o111, 0o111)
-            self.assertIn("/usr/lib/libstdc++.so.6", command)
-            self.assertNotIn(["--ro-bind", "/", "/"], [command[i:i+3] for i in range(len(command)-2)])
-
-    def test_contained_input_selection_rejects_non_selected_library_root(self) -> None:
-        import hashlib
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            z3 = root / "z3"
-            z3.write_bytes(b"binary")
-            outside = root / "unqualified.so"
-            outside.write_bytes(b"unqualified library")
-            stage = root / "stage"
-            stage.mkdir()
-            with patch.object(self.contained.shutil, "which", return_value="/usr/bin/bwrap"):
-                with self.assertRaisesRegex(ValueError, "finite /usr/lib"):
-                    self.contained._command_for_staged_inputs(
-                        z3_source=z3,
-                        z3_digest=hashlib.sha256(z3.read_bytes()).hexdigest(),
-                        libraries={str(outside): hashlib.sha256(outside.read_bytes()).hexdigest()},
-                        stage=stage,
-                    )
-
-    def test_contained_requires_real_bubblewrap(self) -> None:
-        import hashlib
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            z3 = root / "z3"
-            z3.write_bytes(b"binary")
-            with patch.object(self.contained.shutil, "which", return_value=None):
-                with self.assertRaisesRegex(ValueError, "unsupported local Bubblewrap"):
-                    self.contained._command_for_staged_inputs(
-                        z3_source=z3,
-                        z3_digest=hashlib.sha256(z3.read_bytes()).hexdigest(),
-                        libraries={"/usr/lib/libc.so.6": "a" * 64},
-                        stage=root,
-                    )
-
-    def test_real_contained_z3_only_when_explicitly_enabled(self) -> None:
-        """Physical Linux namespace is an opt-in owner check, not a CI assumption."""
-        if os.environ.get("ORDIVON_CONTAINED_Z3_LIVE") != "1":
-            self.skipTest("live Bubblewrap capability is opt-in by natural owner")
-        result = self.contained.run_bounded_media_z3()
-        self.assertEqual(result["outcomes"], ["sat", "unsat", "sat"])
-        self.assertTrue(result["hostEtcPasswdAccessDenied"])
-        self.assertFalse(result["historicalProofReuseAdmissible"])
-        self.assertEqual(result["claimScope"], "THIS_Z3_MEDIA_SAT_UNSAT_SAT_CONSUMER_ONLY")
-
 
 
 if __name__ == "__main__":

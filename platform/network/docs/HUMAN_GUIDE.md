@@ -73,22 +73,24 @@ Linux 侧 `127.0.0.1:19982` 是独立的、目的域名受限的 Codex Consumer�
 
 ### 4. 让 iPad 或 iPhone 使用电脑提供的 VPN 出口
 
-服务器已通过 Tailscale 广告批准的 Exit Node：**ordivon-surfshark-exit**。
+**历史配置记录（非当前就绪证明）：**此前登记并获批准的 Tailscale Exit Node 名称为 **ordivon-surfshark-exit**。使用前先在**实际承载该出口的 Network 节点**运行 `task consumer:mobile-tailnet-exit:verify`，检查已安装 SourceCut、服务端 Tailscale 广告/批准状态及 Gluetun 健康；它不会替 iPad/iPhone 验证实际公网出口。若当前节点、管理员批准或服务状态无法观察，保留 `UNKNOWN`，不要将历史名称和上次 READY 当作今日可用性。
 
-1. 在需要使用 VPN 的 **每台设备**打开 Tailscale。
-2. 选择这个已批准的 Exit Node；不能只看服务器的 READY 标识。
-3. 使用同一台 iPad/iPhone 的浏览器打开 https://ipinfo.io，核对公网出口。
+1. 在需要使用 VPN 的 **每台设备**打开 Tailscale，确认已连接。
+2. 在该设备上选择当前确实可见的 **ordivon-surfshark-exit**；如果不在候选列表中，先检查服务端/批准状态，不能只看历史配置。
+3. 使用同一台 iPad/iPhone 的浏览器打开 https://ipinfo.io，核对实际公网出口，不以 Linux 服务端 READY 代替。
 4. 单独验证 Wi-Fi、蜂窝移动网络切换后的 DNS 和出口。
 
 如果某台 iOS 设备离线，服务器无法代替它完成选择和出口验收。服务端运行正常 ≠ 手机流量已经被转发。
 
+**Agent 调用预算与单次诊断：** 当前 `consumers/mobile-tailnet-exit/Taskfile.yml` 的 `consumer:mobile-tailnet-exit:ready` 使用原生 `timeout`，最多轮询 **120 秒**。如果通过 Runtime 提交完整 `verify`，Job 截止时间必须覆盖这一原生上限及源码校验开销；如果调用方先超时，只能报告该 Job `timed_out` 和实际采到的状态，不能冒称整个 `verify` 已 PASS 或 FAIL。只需快速区分服务端当前原因时，可以只读执行已安装的 `/usr/local/libexec/network-v2/mobile-tailnet-exit-ready` 一次，检查它输出的 `standing`；这是**单次服务端观测**，不能替代完整 SourceCut 验证，也不能替 iOS 设备验收公网流量。修改原生时间上限后以当前 Taskfile 为准。
+
 ### iPad 局域网直连与共享出口
 
-同一局域网实测 iPad 到 Exit Node 的 Tailscale 链路从东京 DERP
-约 400ms 改为直连约 6–9ms。Gluetun 使用原生
-`FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24` 实现局域网可达性。
-**这允许整个 LAN 网段的出站通信，并非只放行一个 UDP 端口。**
-公网流量仍应从 Surfshark 出口发出，iPad 进入外部网络时可能回退 DERP。
+**既往局域网验收样本，不是当前吞吐或延迟保证：**当时 iPad 到 Exit Node 的 Tailscale 链路从东京 DERP
+约 400ms 改为直连约 6–9ms；当时使用 Gluetun 原生
+`FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24` 允许局域网可达性。
+**这一配置会允许整个 LAN 网段的出站通信，并非只放行一个 UDP 端口。**
+今日是否仍加载该子网和路由，应核对当前安装配置；公网流量是否经 Surfshark，则必须从当前 iPad 的真实出口独立验收。远程访问时可能回退 DERP。
 如 LAN 网段更换，重新核对源配置、加载的路由及 iPad 自身 IPinfo/DNS。
 Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv6 绕开 VPN。
 

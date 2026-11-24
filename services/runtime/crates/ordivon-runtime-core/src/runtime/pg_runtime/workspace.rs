@@ -1,5 +1,7 @@
-//! PostgreSQL Runtime Workspace lifecycle and mutation.
+//! PostgreSQL Runtime Workspace identity, mutation and inventory.
+//! Consumer-safe retirement is isolated in workspace/retirement.rs.
 use super::*;
+mod retirement;
 
 // The advisory lock serializes Job admission, terminal/lease updates and
 // Workspace effects. A PostgreSQL SERIALIZABLE snapshot is frozen when the
@@ -13,49 +15,9 @@ use super::*;
 const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
     postgres::IsolationLevel::ReadCommitted;
 
-// An automated collector does not have evidence that the consumer released
-// its Workspace merely because the final Job exited successfully. The native
-// PG owner must re-read latest activity INSIDE the same admission/close fence,
-// not trust the sweep's earlier global SQL snapshot. Explicit
-// consumerReleased=true remains the caller's separate release assertion.
-const WORKSPACE_JOB_CONTINUATION_HOLD_MS: i64 = 4 * 60 * 60 * 1000;
-
-// Read committed AFTER the shared admission lock, so a recently completed
-// Job no longer listed in activeJobIds still retains the Workspace long
-// enough for consumers to inspect artifacts and source.
-// Reuse existing PG jobs/attempts/events, with no additional registry/table.
-fn require_recent_pg_job_consumer_continuation(
-    tx: &mut postgres::Transaction<'_>,
-    workspace_id: &str,
-) -> RuntimeResult<()> {
-    let row = tx
-        .query_one(
-            "WITH owned_jobs AS (
-                SELECT job_id, created_at_ms FROM jobs WHERE workspace_id=$1
-            )
-            SELECT GREATEST(
-                COALESCE((SELECT MAX(created_at_ms) FROM owned_jobs),0),
-                COALESCE((SELECT MAX(a.finished_at_ms) FROM attempts a
-                          JOIN owned_jobs j ON j.job_id=a.job_id),0),
-                COALESCE((SELECT MAX(e.observed_at_ms) FROM job_events e
-                          JOIN owned_jobs j ON j.job_id=e.job_id),0)
-            ),
-            (EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::bigint",
-            &[&workspace_id],
-        )
-        .map_err(io)?;
-    let last_job_activity_ms: i64 = row.get(0);
-    let now_ms: i64 = row.get(1);
-    if last_job_activity_ms > now_ms.saturating_sub(WORKSPACE_JOB_CONTINUATION_HOLD_MS) {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::WorkspaceStateMismatch,
-            "Workspace has recent PG Job activity inside the consumer continuation window; an explicit consumerReleased is required before close",
-            Some("consumerReleased"),
-            true,
-        ));
-    }
-    Ok(())
-}
+// Reuse the existing legacy Runtime bounded-Git-probe pattern (452e0c):
+// the PG-only page already batches SQL and still needs current Git truth.
+const WORKSPACE_LIST_LIVE_GIT_PARALLELISM: usize = 4;
 
 // The same PG consumer definition must govern Workspace mutation/close
 // admission AND workspace.get/list projections. A resolved Job can still own
@@ -78,7 +40,7 @@ impl PgRuntime {
     /// Common qualified, lock-ordered transaction for every Workspace write.
     /// Do not take a SERIALIZABLE/REPEATABLE READ snapshot while *waiting* on
     /// the global advisory lock: it can predate a completed Job admission.
-    fn begin_workspace_effect_tx<'a>(
+    pub(super) fn begin_workspace_effect_tx<'a>(
         &self,
         db: &'a mut PgAdmissionStore,
     ) -> RuntimeResult<postgres::Transaction<'a>> {
@@ -92,52 +54,6 @@ impl PgRuntime {
             .map_err(io)?;
         self.require_qualified_writer_tx(&mut tx)?;
         Ok(tx)
-    }
-    /// Close only when PG proves no active or held consumer, then reuse the
-    /// existing workspace source/dirty/continuation and dependency checks.
-    pub fn close_workspace(
-        &self,
-        request: &WorkspaceCloseRequest,
-    ) -> RuntimeResult<WorkspaceCloseResult> {
-        let mut db = self.store()?;
-        let mut tx = self.begin_workspace_effect_tx(&mut db)?;
-        let active: i64 = tx
-            .query_one(
-                &workspace_consumer_sql("count(*)", "j.workspace_id=$1", ""),
-                &[&request.workspace_id],
-            )
-            .map_err(io)?
-            .get(0);
-        if active != 0 {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::ConcurrencyLimit,
-                "Workspace has PG-owned active or held Jobs",
-                Some("workspaceId"),
-                false,
-            ));
-        }
-        if !request.consumer_released {
-            // The external lifecycle script's initial PG snapshot is
-            // advisory only: a Job can start and complete during the scan.
-            // This guard shares the native admission lock with workspace.close
-            // and must precede any Git/worktree effect.
-            require_recent_pg_job_consumer_continuation(&mut tx, &request.workspace_id)?;
-        }
-        let dependents =
-            universal::workspace_cleanup_dependents(&self.config.executor, &request.workspace_id)
-                .map_err(io)?;
-        if !dependents.is_empty() {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::ConcurrencyLimit,
-                "Workspace has dependent Workspaces",
-                Some("workspaceId"),
-                false,
-            ));
-        }
-        let result = universal::remove_git_workspace(&self.config.executor, request)
-            .map_err(super::super::error::map_universal_error)?;
-        workspace_effect_commit(tx.commit(), "workspace.close")?;
-        Ok(result)
     }
     /// Mutations reuse the upstream atomic file batch, fenced against PG Job admission.
     /// No SQLite authority, historical Job import, or dual writer is involved.
@@ -197,6 +113,10 @@ impl PgRuntime {
         request: &RuntimeWorkspaceGetRequest,
         include_source_state_digest: bool,
         known_active_jobs: Option<Vec<String>>,
+        known_git: Option<
+            Result<(String, universal::WorkspaceHeadMode, bool), universal::UniversalExecError>,
+        >,
+        inventory_record: Option<&universal::WorkspaceRecord>,
     ) -> RuntimeResult<serde_json::Value> {
         if request.schema_version != 1 {
             return Err(RuntimeError::invalid(
@@ -206,9 +126,24 @@ impl PgRuntime {
         }
         let record = universal::load_workspace_record(&self.config.executor, &request.workspace_id)
             .map_err(super::super::error::map_universal_error)?;
-        let (head, head_mode, dirty) =
-            universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
-                .map_err(super::super::error::map_universal_error)?;
+        if let Some(observed) = inventory_record {
+            // The page's Git probe may run concurrently with a close/reopen.
+            // Never attach HEAD/dirty from that earlier physical identity to
+            // a new durable Workspace record with the same public ID.
+            if &record != observed {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::WorkspaceStateMismatch,
+                    "Workspace identity changed between physical list inventory and Git projection",
+                    Some("workspaceId"),
+                    true,
+                ));
+            }
+        }
+        let (head, head_mode, dirty) = known_git
+            .unwrap_or_else(|| {
+                universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
+            })
+            .map_err(super::super::error::map_universal_error)?;
         let jobs = if let Some(known) = known_active_jobs {
             known
         } else {
@@ -253,7 +188,7 @@ impl PgRuntime {
         &self,
         request: &RuntimeWorkspaceGetRequest,
     ) -> RuntimeResult<serde_json::Value> {
-        self.get_workspace_projected(request, true, None)
+        self.get_workspace_projected(request, true, None, None, None)
     }
     /// Fresh PG workspaces only; historical SQLite Workspace registries are deliberately absent.
     pub fn list_workspaces(
@@ -349,9 +284,56 @@ impl PgRuntime {
                     .push(row.get::<_, String>(1));
             }
         }
+        // Git status is the real source of HEAD/dirty truth. Bound read-only
+        // fan-out within the selected physical page; never cache these results
+        // or treat a successful Git probe as original Run consumer release.
+        // Exact digest mode intentionally stays serial to bound disk pressure.
+        let live_git = if records.len() <= 1 || request.include_source_state_digest {
+            records
+                .iter()
+                .map(|record| {
+                    universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
+                })
+                .collect::<Vec<_>>()
+        } else {
+            let workers = records.len().min(WORKSPACE_LIST_LIVE_GIT_PARALLELISM);
+            let chunk_size = records.len().div_ceil(workers);
+            std::thread::scope(|scope| -> RuntimeResult<Vec<_>> {
+                let mut threads = Vec::with_capacity(workers);
+                for (chunk_index, chunk) in records.chunks(chunk_size).enumerate() {
+                    threads.push(scope.spawn(move || {
+                        chunk
+                            .iter()
+                            .enumerate()
+                            .map(|(offset, record)| {
+                                (
+                                    chunk_index * chunk_size + offset,
+                                    universal::workspace_head_and_dirty_at(Path::new(
+                                        &record.workspace_path,
+                                    )),
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    }));
+                }
+                let mut indexed = Vec::with_capacity(records.len());
+                for worker in threads {
+                    indexed.extend(worker.join().map_err(|_| {
+                        RuntimeError::new(
+                            RuntimeErrorCode::ToolFailed,
+                            "Workspace live Git projection worker panicked",
+                            Some("workspaceId"),
+                            false,
+                        )
+                    })?);
+                }
+                indexed.sort_by_key(|(index, _)| *index);
+                Ok(indexed.into_iter().map(|(_, git)| git).collect())
+            })?
+        };
         let mut workspaces = Vec::with_capacity(records.len());
-        for record in records {
-            let workspace_id = record.workspace_id;
+        for (record, git) in records.into_iter().zip(live_git) {
+            let workspace_id = record.workspace_id.clone();
             let jobs = active_jobs.remove(&workspace_id).unwrap_or_default();
             match self.get_workspace_projected(
                 &RuntimeWorkspaceGetRequest {
@@ -360,6 +342,8 @@ impl PgRuntime {
                 },
                 request.include_source_state_digest,
                 Some(jobs),
+                Some(git),
+                Some(&record),
             ) {
                 Ok(value) => {
                     workspaces.push(value);
@@ -388,12 +372,12 @@ impl PgRuntime {
         let tx = self.begin_workspace_effect_tx(&mut db)?;
         // Both host VHD backing and guest PostgreSQL/worktree carriers must
         // pass while the existing PG Workspace effect/admission lock is held.
-        super::engine::ensure_workspace_headroom(&self.config.workspace_headroom)?;
+        super::workspace_headroom::ensure_workspace_headroom(&self.config.workspace_headroom)?;
         let mut result = universal::create_git_workspace(&self.config.executor, request)
             .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.open")?;
         result.retention_notice = Some(
-            "PG Runtime Workspace is temporary: systemd runs native cleanup hourly.              After at least 4 hours of inactivity since the latest Runtime Job,              a Workspace may be automatically closed if the last Job succeeded,              its Git commit is included in origin/main, no active Job or process              uses it, and Git has no tracked or untracked changes.              Save deliverables in Git/Artifact storage; do not treat this Workspace              as durable. If more work is needed, create/reopen a fresh Workspace."
+            "PG Runtime Workspace is temporary. The systemd lifecycle timer may be disabled; when enabled, its cadence is operator-defined and no cleanup is guaranteed. Four hours after the latest Job activity is a minimum quiet period, not an ownership lease or promised cleanup time. An eligible clean Workspace may be reclaimed after native Job, source, and policy checks. Other Agent or external consumers are not proven absent by Job completion or a caller's consumerReleased assertion. Publish valuable source and ignored outputs to their real Git/Artifact/destination consumers and read them back before relinquishing the Workspace. Continue unfinished work in a new or retained Workspace."
                 .to_string(),
         );
         Ok(result)

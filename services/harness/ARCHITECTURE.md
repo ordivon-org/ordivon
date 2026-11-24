@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-14
+updated: 2026-11-16
 summary: Canonical world model for Harness as the durable cognitive execution substrate of an Agent, including cognition, control, effects, continuity and caller/Runtime/Host boundaries.
 evidence_status: verified
 readiness: READY
@@ -189,24 +189,6 @@ Higher-level multi-Run planning, aggregate resource envelopes, profile discovery
 
 Harness now executes one current Agent-loop scheduling kernel. The experimental LoopDriver/morphology identity layer is retired because current authoritative state contains no bound LoopDriver records and no independent consumer selects an alternate mode. Explicit deliberate-then-tool behavior is caller/domain composition: perform a no-Tool Agent turn under owner authority, retain whatever cognition evidence that owner chooses, then enter `DomainToolLoopRunner` with the exact Tool grant. Harness does not own a generic two-phase lifecycle or strategy policy.
 
-## External verification evidence and execution semantics
-
-A caller/Agent may consume the repository's read-only exact-commit
-GitHub Check Run decision, natural Owner change-impact projection, and
-optional Formal declared Git readset comparison before proposing
-another verification. This is evidence context, not a Harness Run
-Tool-effect permission. Existing OperationalClaimStandingView projects
-roles only for already-admitted evidence, not domain truth.
-
-Generic Agent Loop -> ToolBridge -> Runtime workspace.exec also carries
-compilation, experiments, browser work and other valid effects. Suppressing
-them by command text or an old Check Run PASS would break the exact
-Tool Intent, Dispatch Fence and Receipt contract. A future typed
-verification-specific Task must bind the actual task identity, current
-SourceCut, accepted evidence and closed proof readset before deciding
-NO_DISPATCH. No general Harness pre-dispatch gate is installed by the
-present read-only query.
-
 ## Self-change evidence and promotion authority
 
 RSI P2 validated one bounded source-improvement loop without moving source-generation, evaluation, or promotion policy into Harness:
@@ -370,9 +352,102 @@ A Provider turn that simultaneously requests ordinary Tools and submits a Run co
 
 ## Tool lifecycle
 
+### Current consumer-critical path and owner boundaries
+
+The source-owned, default no-Tool CLI remains intact. A caller who explicitly
+selects Gateway execution can first inspect the original MCP Tool schemas
+with `gateway-profile` **without creating a Run or opening PostgreSQL**.
+The returned catalog/grant digests must match the caller's immutable
+`HarnessRunContract` before dispatch.
+
+| Logical LEGO | Current capability | Physical/semantic truth owner |
+| --- | --- | --- |
+| L1 Run admission | `core_contracts.py`, `agent_run.py`, `independent_cli.py` | Harness PostgreSQL Run |
+| L2–L4 cognition, loop, Provider | `working_view.py`, `ordivon/loop.py`, `ordivon/deepseek.py` | Harness for Run/Provider only |
+| L5 effect proposal and fence | `plugin_gateway_effect.py`, `ordivon/runtime_bridge.py` | Harness Intent; Runtime admission is separate |
+| L6/L8 journal and uncertainty | `postgres_store.py`, `ordivon/run_continuity.py` | One existing Harness PG writer; UNKNOWN is not safe retry |
+| L7 physical observations | Gateway MCP `execution.get`, `artifact.read` and native Runtime Artifact | Runtime/Gateway owner receipts; byte-bounded model projection |
+| L9 task success | original independent `evals/harness-edit-addressing-002/qa.py` and domain callers | Domain verifier, not model `candidate_completed` |
+
+A native process exit code, a committed Tool Receipt, and a model's
+`candidate_completed` are insufficient on their own to prove a coding TaskSolved.
+The domain-hidden verifier remains outside the model-visible Workspace.
+
+**R45 source-only continuity boundary:** if and only if the original ToolStep
+has a durable UNKNOWN Receipt and `effect-dispatch-pending` Pause, a fresh
+`resume` can reconcile that exact Owner operation and continue the same Run.
+The original Tool intent and dispatched physical operation must not be
+resubmitted. Other `runtime_unknown` outcomes remain stopped. This source
+PG18 regression is not a certificate of production-installed Gateway/Runtime
+behavior or a guarantee of domain TaskSolved. Rust native `DurableJournal`
+production binding and issuer-current physical spawn remain independent
+qualifications; do not build a second Journal or Tool execution engine.
 Tool-bearing Runs bind a complete Tool catalog digest and Tool grant digest. Before physical delivery, Harness records a Tool intent and dispatch fence. Runtime requests carry Harness authority references. Observation-only failures can be corrected by the Agent; ambiguous external effects require reconciliation and may terminate recovery as UNKNOWN.
 
-The primary CLI intentionally supports only the canonical no-Tool DeepSeek profile. Tool-bearing applications use `ordivon_harness.api`/`core` with an application-supplied `HarnessRuntimeClient`.
+The primary CLI defaults to the canonical no-Tool DeepSeek profile. The opt-in `gateway-profile`/Gateway Run path consumes a caller-selected authenticated MCP endpoint, existing Workspace, explicit executable grant and the original PostgreSQL Journal; it does not discover or mint Runtime authority. Other Tool-bearing applications continue to use `ordivon_harness.api` with an application-supplied `HarnessRuntimeClient`.
+
+### R8 cross-database Workspace consumer lifetime (open production gap)
+
+**Observed on 2026-11-16, not yet a deployed fix.** An independent Runtime
+consumer reproduced a Harness PostgreSQL Run paused for `needs_input` with a
+frozen Gateway Tool grant pointing to a native Git Workspace. Even with zero
+Tool calls and no active Runtime Job, a non-force native Workspace close with
+`consumerReleased=true` removed that Workspace. The original Harness Run still
+reopened as `PAUSED`, but its frozen physical Workspace no longer existed.
+The disposable reproduction is recorded as Runtime Job
+`job-01a1e41a-ca97-775b-ab8d-48c231b6455a` and Host #28453.
+This is a confirmed physical *counterexample*, not proof that production
+customer source was lost. Runtime's caller release assertion is not the
+Harness Run's authenticated consumer release certificate.
+
+The minimal **target contract** below is accepted for R8 architecture review;
+it is not a claim that the current Runtime or installed Harness enforces it:
+
+| Phase | Owner and required fact | Can the original Workspace be closed? |
+| --- | --- | --- |
+| PROVISIONAL | Harness PG creates/opens an immutable Run and frozen grant without claiming physical Workspace readiness | Not proven safe by Harness status alone |
+| HELD | A trusted Harness issuer binds the Run, frozen grant epoch and stable native Workspace incarnation; Runtime PG commits a per-Run consumer claim under its own native-close admission fence and certifies exact-key readback | No while any matching native claim remains held |
+| ACTIVE or PAUSED | A Workspace-backed Run obtains HELD **before its first model turn that can pause**, and the physical submission path checks the current native grant/claim epoch again | No; PAUSED is not terminal |
+| SEALED | Original Harness PG authority forbids new Tool intents; Provider/Tool UNKNOWN effects are reconciled; the Run is terminal or has an explicit safe successor; Git/Artifact/domain delivery is attested by its natural consumer | Not yet, until the per-Run native release commits |
+| RELEASED | A trusted issuer submits a source-qualified finalizer for the exact claim and epoch; Runtime PG verifies the claim release under the same native lock, and each other Run sharing the Workspace releases separately | Only after every native Job, Git/source and external consumer qualification permits native close |
+
+**Identity and concurrency.** A native Workspace incarnation is immutable
+over ordinary source editing; mutable `sourceStateDigest` belongs to the
+*current* Workspace-close source CAS and must not invalidate a long-lived
+claim after a legitimate Agent edit. Harness and Runtime PostgreSQL schemas
+may live in different databases: identical advisory-lock integers across
+different databases do **not** protect one shared physical Workspace.
+Short native Runtime PG transactions fence claim reserve, actual effect
+admission and close; a persistent HELD claim protects long user waits without
+holding a database transaction open. Lost reserve/release responses require
+same-key native readback; UNKNOWN must not be interpreted as permission to
+submit another effect or release a claim.
+
+**Effect paths and exceptions.** The existing `HarnessAgentRun.run/resume`
+composition and both `PluginGatewayExecutionBridgeFactory` /
+`GatewayMcpRuntimeAdapter._submit` and built-in `HarnessRuntimeBridge`
+must consume one thin authenticated Workspace-eligibility contract.
+A custom Tool bridge needs it only if it truly uses a Runtime-owned
+Workspace. No-Tool Runs and tools unrelated to Runtime Workspaces require no
+such claim. An old PAUSED Run that predates the claim contract must be
+inspected and explicitly repaired or superseded; neither a new Workspace
+with the same display name nor a bare Harness PG Run status authorizes
+silent physical recovery.
+
+**Other outstanding risk.** The already demonstrated revocation window
+between a Runtime job's admission and physical OS spawn is an *independent*
+issuer-currentness problem. A successful Workspace claim alone does not
+prove that a revoked high-risk effect cannot start. Native effect startup,
+issuer credentials and risk-tiered revocation semantics belong to Runtime
+and Gateway natural owners; Harness does not create a second executor,
+credential authority, queue or distributed transaction coordinator.
+
+The existing Harness PostgreSQL Journal, `ToolStep` Intent/Receipt,
+`runtime_port.py` and owner-native Runtime Claim prototype remain the
+preferred composition points. Actual acceptance must reproduce the failing
+cross-PG native close, then prove its safe rejection, safe legal release,
+multi-Run sharing, editing during HELD, and independent domain TaskSolved.
+See `docs/VERIFICATION.md` and `docs/OPERATIONS.md`.
 
 ## Pause, resume and recovery
 
@@ -381,6 +456,28 @@ Pause snapshots retain Provider source identity plus the Run state content or co
 ## Completion
 
 Harness can conclude that an Agent Run produced a candidate-completed result and can record a `CompletionProposal`. That is not the same as caller/domain completion. Final verification and commitment remain outside Harness.
+
+### R8 Domain QA, durable delivery and finalization are different facts
+
+A real Coding Run can pass independent hidden QA and still leave its
+edited candidate inaccessible to its intended user. The historical R4
+HARNESS-EDIT-ADDRESSING-002 evidence supports `DomainQA_PASS`, but the
+task required no delivered artifacts, its merged test/evidence PR did not
+contain the model-edited candidate, and its ephemeral native Workspace
+is now closed. The strongest supported delivery status is therefore
+`DELIVERY_TO_CONSUMER_UNVERIFIED`; permanent loss has not been proven.
+New Coding task acceptance requires the exact output Git commit/patch
+or Runtime Artifact to be durable and byte-read-back by the downstream
+consumer before releasing its Workspace claim.
+
+Run terminality is also insufficient as a certified-release condition:
+`STOPPED` is terminal under source semantics even for certain UNKNOWN
+reasons, and only the latest Tool event may appear in a current-head
+projection. A finalizer must review the original PostgreSQL ordered Run
+event chain for *every* Provider/Tool effect, verify no unresolved
+UNKNOWN/Prepared effects, and pair that source fact with independent
+Git/Artifact/domain delivery evidence. Never infer safe release from
+`terminal=true`, latest Tool head or native Job exit code alone.
 
 ## Integration boundary
 
