@@ -23,6 +23,7 @@ from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import canonical_chatgpt_resource, chatgpt_resource_from_page_url
 from conversation_output_evidence import (
     DOM_SNAPSHOT_ARGS, DOM_SNAPSHOT_EXPRESSION, qualify_snapshot, sha256_bytes,
+    validate_dom_message_id,
     select_exact_turn_output as select_exact_turn_output,
     recommendation as recommendation,
 )
@@ -54,11 +55,15 @@ def endpoint_from_config(path: Path, endpoint_id: str) -> BrowserlessEndpoint:
 
 
 def observe_output(
-    page, target_resource: str, expected_prompt: str, fetch_error_text: str | None
+    page, target_resource: str, expected_prompt: str, fetch_error_text: str | None,
+    *, expected_dom_user_message_id: str | None = None,
 ) -> dict:
     """Observe through Playwright; reuse the transport-independent qualifier."""
     snapshot = page.evaluate(DOM_SNAPSHOT_EXPRESSION, DOM_SNAPSHOT_ARGS)
-    return qualify_snapshot(snapshot, target_resource, expected_prompt, page.url, fetch_error_text)
+    return qualify_snapshot(
+        snapshot, target_resource, expected_prompt, page.url, fetch_error_text,
+        expected_dom_user_message_id=expected_dom_user_message_id,
+    )
 
 
 def main() -> int:
@@ -68,7 +73,10 @@ def main() -> int:
     parser.add_argument("--target-resource", required=True)
     parser.add_argument("--expected-user-prompt-file", type=Path, required=True)
     parser.add_argument("--receipt-out", type=Path, required=True)
+    parser.add_argument("--expected-dom-user-message-id")
     args = parser.parse_args()
+    if args.expected_dom_user_message_id is not None:
+        validate_dom_message_id(args.expected_dom_user_message_id)
 
     expected_file_raw = args.expected_user_prompt_file.read_bytes()
     expected_prompt = expected_file_raw.decode("utf-8")
@@ -130,7 +138,10 @@ def main() -> int:
                 if time.monotonic() >= hydration_deadline:
                     break
                 page.wait_for_timeout(500)
-            observation = observe_output(page, target_resource, expected_prompt, fetch_error_text)
+            observation = observe_output(
+                page, target_resource, expected_prompt, fetch_error_text,
+                expected_dom_user_message_id=args.expected_dom_user_message_id,
+            )
             receipt = {
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-conversation-output-receipt",

@@ -104,3 +104,96 @@ def test_bad_or_empty_prompt_digest_is_not_valid_evidence():
     for value in ("sha256:bad", "", m.sha256_bytes(b"")):
         with pytest.raises(ValueError):
             m.qualify_snapshot_by_digest(snapshot(), RESOURCE, value, RESOURCE)
+
+
+def repeated_history():
+    before = snapshot()
+    before["messages"][0]["messageId"] = "old-user"
+    before["messages"][1]["messageId"] = "old-assistant"
+    after = {**before, "messages": before["messages"] + [
+        {"role": "user", "text": "request", "visible": True, "messageId": "new-user"},
+        {"role": "assistant", "text": "new answer", "visible": True, "messageId": "new-assistant"},
+    ]}
+    return before, after
+
+
+def test_same_prompt_old_history_is_not_new_turn():
+    m = load_evidence()
+    before, after = repeated_history()
+    digest = m.sha256_bytes(b"request")
+    # Without a causal witness the lone old occurrence looks like a role pair.
+    assert m.qualify_snapshot_by_digest(before, RESOURCE, digest, RESOURCE)["standing"] == "CAPTURED"
+    anchored = m.qualify_snapshot_by_digest(
+        before, RESOURCE, digest, RESOURCE, expected_dom_user_message_id="new-user",
+    )
+    assert anchored["standing"] == "EXPECTED_USER_MESSAGE_ID_NOT_VISIBLE"
+    assert anchored["assistantOutput"] is None
+    assert m.qualify_snapshot_by_digest(after, RESOURCE, digest, RESOURCE)["standing"] == "EXPECTED_USER_TURN_AMBIGUOUS"
+    result = m.qualify_snapshot_by_digest(
+        after, RESOURCE, digest, RESOURCE, expected_dom_user_message_id="new-user",
+    )
+    assert result["standing"] == "CAPTURED"
+    assert result["assistantOutput"] == "new answer"
+    assert result["observedDomUserMessageId"] == "new-user"
+
+
+def test_only_one_new_ordered_user_message_creates_append_witness():
+    m = load_evidence()
+    before, after = repeated_history()
+    digest = m.sha256_bytes(b"request")
+    witness = m.qualify_user_append_witness(before, after, RESOURCE, digest)
+    assert witness["evidenceScope"] == "OBSERVED_DOM_APPEND_ONLY"
+    assert witness["domUserMessageId"] == "new-user"
+    assert witness["promptDigest"] == digest
+    assert witness["previousUserCount"] == 1
+    assert witness["observedUserCount"] == 2
+    assert "new answer" not in str(witness)
+    assert "old-user" not in str(witness)
+    assert m.qualify_user_append_witness(before, before, RESOURCE, digest) is None
+
+
+@pytest.mark.parametrize("change", ["missing-id", "duplicate-id", "history-edit", "history-drop",
+                                    "two-appends", "wrong-prompt", "drift", "challenge", "hidden-user"])
+def test_unqualified_append_has_no_witness(change):
+    m = load_evidence()
+    before, after = repeated_history()
+    after = {**after, "messages": [dict(x) for x in after["messages"]]}
+    if change == "missing-id":
+        del after["messages"][2]["messageId"]
+    elif change == "duplicate-id":
+        after["messages"][2]["messageId"] = "old-user"
+    elif change == "history-edit":
+        after["messages"][0]["text"] = "edited"
+    elif change == "history-drop":
+        after["messages"] = after["messages"][2:]
+    elif change == "two-appends":
+        after["messages"].append({"role":"user","text":"another","visible":True,"messageId":"third-user"})
+    elif change == "wrong-prompt":
+        after["messages"][2]["text"] = "other"
+    elif change == "drift":
+        after["url"] = "https://chatgpt.com/c/different"
+    elif change == "challenge":
+        after["challenge"] = True
+    elif change == "hidden-user":
+        after["messages"][2]["visible"] = False
+    assert m.qualify_user_append_witness(before, after, RESOURCE, m.sha256_bytes(b"request")) is None
+
+
+@pytest.mark.parametrize("change", ["wrong-text", "hidden", "duplicate-id", "wrong-role"])
+def test_anchored_message_conflict_never_returns_output(change):
+    m = load_evidence()
+    _, after = repeated_history()
+    if change == "wrong-text":
+        after["messages"][2]["text"] = "other"
+    elif change == "hidden":
+        after["messages"][2]["visible"] = False
+    elif change == "duplicate-id":
+        after["messages"][0]["messageId"] = "new-user"
+    else:
+        after["messages"][2]["role"] = "assistant"
+    result = m.qualify_snapshot_by_digest(
+        after, RESOURCE, m.sha256_bytes(b"request"), RESOURCE,
+        expected_dom_user_message_id="new-user",
+    )
+    assert result["standing"] != "CAPTURED"
+    assert result["assistantOutput"] is None

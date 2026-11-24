@@ -18,6 +18,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, expect, 
 from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import canonical_chatgpt_resource, chatgpt_resource_from_page_url
 from standard_identifiers import require_uuid7
+from conversation_output_evidence import observe_dom_snapshot, qualify_user_append_witness
 
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
@@ -322,6 +323,7 @@ def main() -> int:
                         f"Browserless continuation conversation fetch failed after composer fill: {detail or 'provider fetch error'}"
                     )
 
+                before_user_snapshot = observe_dom_snapshot(page)
                 now = int(time.time() * 1000)
                 if pg_effects is not None:
                     admission = pg_effects.claim_before_send(
@@ -384,6 +386,17 @@ def main() -> int:
                     page, target_resource, generation_started=generation_started
                 )
                 target_still_bound = route_observation["targetStillBoundAfterSend"]
+                user_append_witness = None
+                if composer_cleared and generation_started and target_still_bound:
+                    # Optional corroboration only. Failure to observe this DOM
+                    # witness never rewrites SEND standing or permits another SEND.
+                    try:
+                        user_append_witness = qualify_user_append_witness(
+                            before_user_snapshot, observe_dom_snapshot(page),
+                            target_resource, prompt_digest,
+                        )
+                    except (ValueError, TypeError):
+                        pass
                 receipt = {
                     "schemaVersion": 1,
                     "kind": "ordivon.browserless-turn-receipt",
@@ -400,6 +413,7 @@ def main() -> int:
                     "composerCleared": composer_cleared,
                     "generationStarted": generation_started,
                     "assistantOutputRead": False,
+                    "observedUserAppendWitness": user_append_witness,
                 }
                 receipt["receiptDigest"] = digest_obj(receipt)
                 state = (

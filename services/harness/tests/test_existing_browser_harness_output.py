@@ -223,3 +223,21 @@ def test_digest_only_different_valid_digest_does_not_capture():
                 expected_prompt_digest="sha256:" + hashlib.sha256(b"other").hexdigest())
     assert value["standing"] == "EXPECTED_USER_TURN_NOT_VISIBLE"
     assert value["assistantOutput"] is None
+
+
+def test_observer_cannot_substitute_old_same_text_for_expected_dom_id():
+    t = Transport()
+    t.snapshot["messages"][2]["messageId"] = "old-user"
+    t.snapshot["messages"][3]["messageId"] = "old-answer"
+    result = run(t, expected_dom_user_message_id="new-user")
+    assert result["standing"] == "EXPECTED_USER_MESSAGE_ID_NOT_VISIBLE"
+    assert result["assistantOutput"] is None
+    t.snapshot["messages"] += [
+        {"role": "user", "text": PROMPT, "visible": True, "messageId": "new-user"},
+        {"role": "assistant", "text": "new result", "visible": True, "messageId": "new-answer"},
+    ]
+    result = run(t, expected_dom_user_message_id="new-user")
+    assert result["standing"] == "CAPTURED"
+    assert result["assistantOutput"] == "new result"
+    assert result["observedDomUserMessageId"] == "new-user"
+    assert result["evidenceScope"] == "OBSERVED_DOM_MESSAGE_ID_MATCH"

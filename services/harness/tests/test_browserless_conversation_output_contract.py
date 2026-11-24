@@ -140,6 +140,31 @@ class BrowserlessConversationOutputContractTests(unittest.TestCase):
                 self.assertEqual(page.method_calls[0][0], "evaluate")
                 self.assertEqual(len(page.method_calls), 1)
 
+    def test_reader_uses_expected_dom_identity_without_selecting_old_same_prompt(self):
+        resource = "https://chatgpt.com/c/12345678-1234-1234-1234-123456789abc"
+        page = Mock()
+        page.url = resource
+        page.evaluate.return_value = {
+            "url": resource,
+            "messages": [
+                {"role": "user", "text": "request", "visible": True, "messageId": "old-user"},
+                {"role": "assistant", "text": "old result", "visible": True, "messageId": "old-answer"},
+                {"role": "user", "text": "request", "visible": True, "messageId": "new-user"},
+                {"role": "assistant", "text": "new result", "visible": True, "messageId": "new-answer"},
+            ],
+            "generating": False,
+            "fetchError": None,
+            "challenge": False,
+        }
+        unanchored = observe_output(page, resource, "request", None)
+        self.assertIsNone(unanchored["assistantOutput"])
+        anchored = observe_output(
+            page, resource, "request", None, expected_dom_user_message_id="new-user",
+        )
+        self.assertEqual(anchored["assistantOutput"], "new result")
+        self.assertEqual(anchored["evidenceScope"], "OBSERVED_DOM_MESSAGE_ID_MATCH")
+        self.assertEqual(anchored["observedDomUserMessageId"], "new-user")
+
     def test_output_capture_only_classifies_terminal_recommendation(self):
         self.assertEqual(recommendation("review\nACCEPTABLE_TO_SUBMIT"), "ACCEPTABLE_TO_SUBMIT")
         self.assertIsNone(recommendation("ACCEPTABLE_TO_SUBMIT\nadditional discussion"))

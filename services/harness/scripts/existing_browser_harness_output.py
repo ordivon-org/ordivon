@@ -26,6 +26,7 @@ try:
         DOM_SNAPSHOT_EXPRESSION,
         qualify_snapshot_by_digest,
         sha256_bytes,
+        validate_dom_message_id,
         validate_prompt_digest,
     )
 except ModuleNotFoundError:
@@ -38,6 +39,7 @@ except ModuleNotFoundError:
         DOM_SNAPSHOT_EXPRESSION,
         qualify_snapshot_by_digest,
         sha256_bytes,
+        validate_dom_message_id,
         validate_prompt_digest,
     )
 
@@ -115,10 +117,13 @@ def _matching_targets(response: object, resource: str) -> list[tuple[str, str]]:
 def read_existing_turn(
     transport: ObservationTransport, *, target_resource: str,
     expected_prompt_digest: str, observation_id: str, expected_prompt: str | None = None,
+    expected_dom_user_message_id: str | None = None,
 ) -> dict:
     if not isinstance(target_resource, str) or canonical_chatgpt_resource(target_resource) != target_resource:
         raise ValueError("target must be one canonical conversation resource")
     validate_prompt_digest(expected_prompt_digest)
+    if expected_dom_user_message_id is not None:
+        validate_dom_message_id(expected_dom_user_message_id)
     if expected_prompt is not None and (
         not isinstance(expected_prompt, str) or not expected_prompt
         or expected_prompt != expected_prompt.strip()
@@ -135,7 +140,11 @@ def read_existing_turn(
         "targetResource": target_resource,
         "expectedPromptDigest": expected_prompt_digest,
         "observationSource": "EXISTING_DAEMON_EXPLICIT_SESSION",
-        "evidenceScope": "OBSERVED_ROLE_PAIR_ONLY",
+        "evidenceScope": (
+            "OBSERVED_ROLE_PAIR_ONLY" if expected_dom_user_message_id is None
+            else "DOM_MESSAGE_ID_REQUIRED"
+        ),
+        "observedDomUserMessageId": None,
         "targetId": None,
         "standing": "DAEMON_UNAVAILABLE",
         "sessionDetached": None,
@@ -197,7 +206,8 @@ def read_existing_turn(
                 standing = "TARGET_RESOURCE_DRIFTED"
             else:
                 observation = qualify_snapshot_by_digest(
-                    remote["value"], target_resource, expected_prompt_digest, after[0][1]
+                    remote["value"], target_resource, expected_prompt_digest, after[0][1],
+                    expected_dom_user_message_id=expected_dom_user_message_id,
                 )
                 standing = observation["standing"]
     except ValueError:
@@ -217,6 +227,8 @@ def read_existing_turn(
     receipt["standing"] = standing
     if standing == "CAPTURED" and observation is not None:
         # Do not return the raw DOM, other messages, error text, or session ID.
+        receipt["evidenceScope"] = observation["evidenceScope"]
+        receipt["observedDomUserMessageId"] = observation["observedDomUserMessageId"]
         receipt["assistantOutput"] = observation["assistantOutput"]
         receipt["assistantOutputDigest"] = observation["assistantOutputDigest"]
     return receipt
@@ -229,6 +241,7 @@ def main() -> int:
     parser.add_argument("--expected-user-prompt-file", type=Path)
     parser.add_argument("--expected-prompt-digest", required=True)
     parser.add_argument("--observation-id", required=True)
+    parser.add_argument("--expected-dom-user-message-id")
     args = parser.parse_args()
     try:
         prompt = (args.expected_user_prompt_file.read_bytes().decode("utf-8")
@@ -238,6 +251,7 @@ def main() -> int:
             target_resource=args.target_resource, expected_prompt=prompt,
             expected_prompt_digest=args.expected_prompt_digest,
             observation_id=args.observation_id,
+            expected_dom_user_message_id=args.expected_dom_user_message_id,
         )
     except (OSError, UnicodeError, ValueError):
         # Do not include potentially private prompt bytes, filenames or SDK
