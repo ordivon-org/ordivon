@@ -222,7 +222,19 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         for directory in cargo["directories"]:
             self.assertTrue((ROOT / directory.lstrip("/") / "Cargo.toml").is_file())
             self.assertTrue((ROOT / directory.lstrip("/") / "Cargo.lock").is_file())
-        self.assertEqual(by_ecosystem["github-actions"]["directory"], "/")
+        actions = by_ecosystem["github-actions"]
+        actual_manifests = [
+            path for name in ("action.yml", "action.yaml")
+            for path in (ROOT / ".github" / "actions").rglob(name)
+        ]
+        self.assertEqual(
+            set(actions["directories"]),
+            {"/", *("/" + path.parent.relative_to(ROOT).as_posix() for path in actual_manifests)},
+        )
+        self.assertEqual(actions["groups"]["same-dependency"], {
+            "patterns": ["*"], "group-by": "dependency-name",
+        })
+        self.assertNotIn("directory", actions)
 
 
 if __name__ == "__main__":

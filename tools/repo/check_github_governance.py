@@ -46,7 +46,17 @@ def main() -> int:
     assert config["version"] == 2
 
     github_actions = update_for(config, "github-actions")
-    assert configured_dirs(github_actions) == {"/"}
+    # The root native updater scans workflows, not nested composite action
+    # manifests. Derive the additional update locations from tracked sources.
+    action_manifests = (
+        *tracked(".github/actions/**/action.yml"),
+        *tracked(".github/actions/**/action.yaml"),
+    )
+    action_dirs = {"/", *("/" + Path(path).parent.as_posix() for path in action_manifests)}
+    assert configured_dirs(github_actions) == action_dirs, "GitHub Actions dependency coverage drift"
+    assert github_actions.get("groups", {}).get("same-dependency") == {
+        "patterns": ["*"], "group-by": "dependency-name",
+    }, "GitHub Actions shared dependency updates must use native grouping"
 
     # Renovate PEP 621 is the single Python manifest + uv.lock update owner.
     # Keep this check against the actual tracked consumers, not a duplicate list.
@@ -149,16 +159,26 @@ def main() -> int:
     ]
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
-    # Exact upstream v5.2.2 commit (verified against the immutable GitHub tag).
-    # Keep this review gate: Dependabot must not silently change action code.
-    mise_action_pin = "jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550"
+    # Root composite is a real consumer, not a duplicate historical version
+    # registry. Keep full-SHA and cross-consumer coherence; a synchronized
+    # reviewed native update can change the actual dependency.
     jobs = yaml.safe_load(workflow)["jobs"]
     setup_ref = "./.github/actions/setup-root-verification"
     setup = yaml.safe_load((ROOT / setup_ref / "action.yml").read_text(encoding="utf-8"))
     assert setup["runs"]["using"] == "composite"
-    assert any(step.get("uses") == mise_action_pin for step in setup["runs"]["steps"]), (
-        "root verification must use the qualified mise action"
+    mise_pins = [
+        step["uses"] for step in setup["runs"]["steps"]
+        if isinstance(step.get("uses"), str) and step["uses"].startswith("jdx/mise-action@")
+    ]
+    assert len(mise_pins) == 1 and re.fullmatch(r"jdx/mise-action@[0-9a-f]{40}", mise_pins[0]), (
+        "root verification must use one SHA-pinned mise action"
     )
+    mise_action_pin = mise_pins[0]
+    mismatched_mise = [
+        (path, ref) for path, ref in action_refs
+        if ref.startswith("jdx/mise-action@") and ref != mise_action_pin
+    ]
+    assert not mismatched_mise, f"Mise action consumer pin drift: {mismatched_mise}"
     for job_name in ("root-preflight", "repo-mechanics", "owner-verification"):
         steps = jobs[job_name]["steps"]
         callers = [i for i, step in enumerate(steps) if step.get("uses") == setup_ref]
@@ -175,7 +195,9 @@ def main() -> int:
     assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in snapshot_scan
 
     runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
-    assert mise_action_pin in runtime_release
+    assert (RUNTIME_RELEASE_WORKFLOW.name, mise_action_pin) in action_refs, (
+        "Runtime release must consume the same SHA-pinned mise action"
+    )
     for required in (
         'runtime-v*',
         'artifact-metadata: write',
