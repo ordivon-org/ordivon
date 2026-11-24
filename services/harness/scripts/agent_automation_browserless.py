@@ -1543,6 +1543,11 @@ class BrowserlessAutomationService:
         # original workflow identity, and provider readiness is irrelevant once the effect fence
         # exists.
         if ledger_before is not None:
+            expected_digest = "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+            if ledger_before.get("promptDigest") != expected_digest:
+                raise BrowserlessAutomationConflict(
+                    "continuation prompt differs from claimed turn identity"
+                )
             temporal = self._temporal_admit(
                 spec_path,
                 "continue",
@@ -1579,12 +1584,18 @@ class BrowserlessAutomationService:
                 prompt=prompt,
                 turn_request_id=turn_request_id,
             )
-            if retry.get("retryStanding") != "admitted-after-failed":
+            retry_standing = retry.get("retryStanding")
+            if retry_standing == "admitted-after-failed" and retry.get("disposition") == "admitted":
+                retry_admitted = True
+            elif retry_standing in {"not-admitted-prior-running", "not-admitted-existing"} and retry.get("disposition") == "existing":
+                # The launcher has verified the original input. A concurrent or
+                # running exact replay is neither a failed operation nor a new admission.
+                retry_admitted = False
+            else:
                 raise BrowserlessAutomationHold(
-                    f"continuation retry not admitted: {retry.get('retryStanding') or 'prior workflow is not proven failed'}"
+                    f"continuation retry not admitted: {retry_standing or 'prior workflow is not proven failed'}"
                 )
             temporal = retry
-            retry_admitted = True
         return {
             "schemaVersion": 1,
             "kind": "ordivon.temporal-conversation-continue-admission",

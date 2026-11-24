@@ -188,6 +188,17 @@ This Wake cutover does not by itself switch Harness Run/CAS, conversation
 materialization, conversation role-binding, or Turn Effect send receipts.
 Do not mark those separate Owners as cut over.
 
+### Continuation replay identity
+
+Temporal workflow ID reuse alone does not establish continuation equivalence.
+The launcher verifies the exact existing run's first history event and decoded
+input (campaign, agent, frozen spec, turn ID and prompt) before acknowledging
+replay or attempting a failed-run retry. A missing or different history input
+withholds admission. Running/concurrent identical replays return existing,
+not a new provider SEND. An already claimed turn must also agree with its
+durable prompt digest. Temporal admission, the effect receipt and the eventual
+assistant output remain distinct evidence boundaries.
+
 ### PG-only Browserless identity/effect consumer selection
 
 The deployed Browserless owner has **three independent identity/effect seams**:

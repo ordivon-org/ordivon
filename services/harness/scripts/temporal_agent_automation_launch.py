@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import json
 import uuid
+from dataclasses import asdict
 from pathlib import Path
 
 from temporalio.client import Client, WorkflowExecutionStatus
@@ -33,6 +34,31 @@ def _materialization_for(spec: CampaignLaunchSpec, agent_id: str):
         raise ValueError("agentId does not identify exactly one campaign request") from error
 
 
+async def _require_existing_continue_input(
+    client: Client, value: AgentContinueInput, *, workflow_id: str, run_id: str | None,
+) -> None:
+    """Read the immutable start event of the exact run; never infer input from ID."""
+    if not run_id:
+        raise ValueError("continuation identity cannot be verified without exact run ID")
+    handle = client.get_workflow_handle(workflow_id, run_id=run_id)
+    async for event in handle.fetch_history_events(page_size=1):
+        if event.event_id != 1 or not event.HasField("workflow_execution_started_event_attributes"):
+            break
+        started = event.workflow_execution_started_event_attributes
+        if started.workflow_type.name != AGENT_CONTINUE_WORKFLOW:
+            raise ValueError("continuation identity has different workflow type")
+        decoded = await client.data_converter.decode(started.input.payloads)
+        if len(decoded) != 1 or not isinstance(decoded[0], dict):
+            raise ValueError("continuation identity input is not a single record")
+        original = dict(decoded[0])
+        # Old dataclass encodings can omit the optional campaign reference.
+        original.setdefault("campaign_ref", None)
+        if original != asdict(value):
+            raise ValueError("continuation identity conflicts with existing run input")
+        return
+    raise ValueError("continuation identity start event is not available")
+
+
 async def _admit_workflow(
     client: Client, workflow, value, *, workflow_id: str, task_queue: str,
     reuse_failed_only: bool = False,
@@ -47,7 +73,11 @@ async def _admit_workflow(
                 WorkflowIDReusePolicy.ALLOW_DUPLICATE_FAILED_ONLY
                 if reuse_failed_only else WorkflowIDReusePolicy.REJECT_DUPLICATE
             ),
-            id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
+            id_conflict_policy=(
+                WorkflowIDConflictPolicy.FAIL
+                if workflow == AGENT_CONTINUE_WORKFLOW
+                else WorkflowIDConflictPolicy.USE_EXISTING
+            ),
         )
     except WorkflowAlreadyStartedError as error:
         # REJECT_DUPLICATE intentionally prevents a completed deterministic effect identity
@@ -55,12 +85,16 @@ async def _admit_workflow(
         # not an ambiguous admission failure: the exact Workflow ID already exists and no
         # provider effect was dispatched by this call. Preserve the original Run ID when
         # Temporal supplies it so acceptance can prove that replay did not mint a new run.
+        if workflow == AGENT_CONTINUE_WORKFLOW:
+            await _require_existing_continue_input(
+                client, value, workflow_id=workflow_id, run_id=error.run_id
+            )
         result = {"workflowId": workflow_id, "disposition": "existing"}
         if error.run_id:
             result["runId"] = error.run_id
         return result
-    # USE_EXISTING covers an exact identity that is still running; either way this call has
-    # successfully converged on the requested deterministic Workflow identity.
+    # For continuations, FAIL prevents an attached run from looking newly admitted.
+    # Other existing workflow families retain their original policy.
     return {"workflowId": handle.id, "disposition": "admitted"}
 
 
@@ -68,6 +102,9 @@ async def _admit_failed_continue_retry(
     client: Client, value: AgentContinueInput, *, logical_workflow_id: str, task_queue: str
 ) -> dict[str, str]:
     prior = await client.get_workflow_handle(logical_workflow_id).describe()
+    await _require_existing_continue_input(
+        client, value, workflow_id=logical_workflow_id, run_id=prior.run_id
+    )
     if prior.status != WorkflowExecutionStatus.FAILED:
         return {
             "workflowId": logical_workflow_id,
@@ -77,8 +114,8 @@ async def _admit_failed_continue_retry(
         }
     # Temporal itself arbitrates retry runs of this ONE logical Workflow ID.
     # Random retry Workflow IDs allow two Agents to fork a failed operation.
-    # FAILED_ONLY permits a new run after failure; USE_EXISTING converges
-    # concurrent starts on the same in-flight run. The PG effect fence remains
+    # FAILED_ONLY permits a new run after failure; FAIL exposes concurrent
+    # starts as conflicts whose exact input must be checked. The PG effect fence remains
     # the separate authority for the actual provider SEND.
     admission = await _admit_workflow(
         client,
