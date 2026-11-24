@@ -113,3 +113,32 @@ def test_multiple_contexts_do_not_select_arbitrarily():
     result = read(SimpleNamespace(contexts=[SimpleNamespace(pages=[p]), SimpleNamespace(pages=[])]))
     assert result["standing"] == "CONTEXT_AMBIGUOUS"
     assert p.method_calls == []
+
+
+@pytest.mark.parametrize("raw", [b"same prompt", b"same prompt\n", b"same prompt\r\n"])
+def test_prompt_file_transport_newline_preserves_original_contract(tmp_path, raw):
+    path = tmp_path / "prompt.txt"
+    path.write_bytes(raw)
+    actual, file_digest = reader._prompt_file_digests(path)
+    assert actual == DIGEST
+    assert file_digest == "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+@pytest.mark.parametrize("raw", [b" same prompt", b"same prompt\n\n", b"", b"\xff"])
+def test_prompt_file_rejects_noncanonical_or_unreadable_bytes(tmp_path, raw):
+    path = tmp_path / "prompt.txt"
+    path.write_bytes(raw)
+    with pytest.raises((ValueError, UnicodeError)):
+        reader._prompt_file_digests(path)
+
+
+def test_result_does_not_disclose_raw_page_query_or_fetch_error():
+    p = page(RESOURCE + "?private=synthetic-query")
+    p.evaluate.return_value["url"] = p.url
+    p.evaluate.return_value["fetchError"] = "synthetic-private-error"
+    result = read(SimpleNamespace(contexts=[SimpleNamespace(pages=[p])]))
+    assert result["standing"] == "CONVERSATION_FETCH_FAILED"
+    assert result["pageUrlObserved"] == RESOURCE
+    assert result["conversationFetchError"] == "OBSERVED"
+    assert "synthetic-query" not in str(result)
+    assert "synthetic-private-error" not in str(result)

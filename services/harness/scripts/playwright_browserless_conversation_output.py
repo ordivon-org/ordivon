@@ -145,9 +145,23 @@ def read_existing_playwright_output(
             observation["conversationFetchError"] = "OBSERVED"
         if observation["standing"] == "TARGET_RESOURCE_DRIFTED":
             return withheld("TARGET_RESOURCE_DRIFTED")
+        # Do not disclose raw query strings/fragments from provider URLs.
+        observation["pageUrlObserved"] = observation["observedResourceAfterWait"]
         return {**observation, "releaseAttempted": False, "mainTextChars": None}
     except Exception:
         return withheld("TRANSPORT_ERROR")
+
+
+def _prompt_file_digests(path: Path) -> tuple[str, str]:
+    raw = path.read_bytes()
+    text = raw.decode("utf-8")
+    if text.endswith("\r\n"):
+        text = text[:-2]
+    elif text.endswith("\n"):
+        text = text[:-1]
+    if not text.strip() or text != text.strip():
+        raise ValueError("expected prompt must be nonempty and trimmed after one transport newline")
+    return sha256_bytes(text.encode("utf-8")), sha256_bytes(raw)
 
 
 def main() -> int:
@@ -173,18 +187,9 @@ def main() -> int:
         expected_prompt_digest = validate_prompt_digest(args.expected_prompt_digest)
         expected_prompt_file_digest = None
     else:
-        expected_file_raw = args.expected_user_prompt_file.read_bytes()
-        expected_prompt = expected_file_raw.decode("utf-8")
-        if expected_prompt.endswith("\\r\\n"):
-            expected_prompt = expected_prompt[:-2]
-        elif expected_prompt.endswith("\\n"):
-            expected_prompt = expected_prompt[:-1]
-        if not expected_prompt.strip() or expected_prompt != expected_prompt.strip():
-            raise SystemExit(
-                "expected user prompt must be non-empty and trimmed after one transport newline is removed"
-            )
-        expected_prompt_digest = sha256_bytes(expected_prompt.encode("utf-8"))
-        expected_prompt_file_digest = sha256_bytes(expected_file_raw)
+        expected_prompt_digest, expected_prompt_file_digest = _prompt_file_digests(
+            args.expected_user_prompt_file
+        )
     observation_id = args.observation_id if args.observation_id is not None else str(uuid.uuid4())
     if re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", observation_id) is None:
         parser.error("invalid observation identity")
