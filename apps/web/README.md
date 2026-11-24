@@ -182,3 +182,16 @@ The Security-owned OAuth/DPoP verifier uses an accepted pinned RFC 7800 /
 Keycloak interoperability profile for oauth4webapi 3.8.8. That profile is
 cryptographically tested and is not, by itself, a production blocker. Upstream
 removal remains preferred.
+
+### Native Agent E2E fixture ownership
+
+The native Agent test uses an isolated Keycloak lab realm, never a production
+issuer. The launcher allocates two distinct loopback port candidates, binds
+the synthetic token audience to the Web port, and runs the resolved local
+Keycloak image ID with a per-run container ID. Host-loopback is the qualified
+Linux carrier; a bridge publication may be unreachable on this host. Ports
+are candidates, not reservations: a collision fails the native start.
+Cleanup verifies the exact container ID and name, and retains coordinates
+if removal cannot be confirmed. No shared-name replacement, network-wide
+cleanup, or production service is involved. The browser still uses virtual
+CTAP2/WebAuthn, not physical human-presence evidence.
