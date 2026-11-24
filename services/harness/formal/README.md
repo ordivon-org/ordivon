@@ -179,3 +179,9 @@ new distinct effect, with a weak partial-cut omission counterexample and a
 positive clean-admission reachability probe. The original Provider same-ID
 replay/supersession remains a separate state machine; this bounded model
 does not qualify native external effects.
+
+R42 also strengthens the actual original PG validation behind the
+existing `integrity` premise: known typed Provider/Tool object fields
+must retain their original reference edges even when CAS bytes exist.
+The real PG mutation/admission regressions test this refinement; the
+abstract model does not claim an SQL-level proof.

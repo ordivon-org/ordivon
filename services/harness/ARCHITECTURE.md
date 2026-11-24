@@ -310,6 +310,14 @@ does not acquire a new external-effect identity. The old partial-read
 failure can no longer hide a pending original effect from these consumers.
 This does not certify Runtime physical quiescence or Domain delivery.
 
+Known original Tool and Provider event object fields must have their
+own persisted reference edges, even when CAS bytes remain readable.
+One pure field/edge predicate serves new original Writer admission
+(input Event conflict) and history validation (Journal corruption).
+Unknown opaque Trace fields are not interpreted as references, and null
+privacy-redacted/legacy optional objects remain admissible. Exact old
+replay remains an identity check; no second reference registry or GC.
+
 The actual Adaptive Edit experiment and scale acceptance consumers share
 one disposable PostgreSQL schema lifecycle in a dedicated test database.
 The experiment no longer constructs SQLite storage, does not infer a

@@ -310,3 +310,12 @@ lifecycle. A deterministic Provider fixture executes an actual in-memory
 read/edit sequence and checks visible/hidden verifiers, oracle bytes, PG
 Doctor, failure cleanup, and pre-existing schema collision safety. This is
 not paid model performance or physical Runtime qualification.
+
+For typed original Provider/Tool events, actual PG tests delete the
+Intent or Provider record reference edge while its CAS bytes remain.
+Original validation and Doctor must reject, and source inspection must
+not certify the detached Tool. New original Writer admission rejects
+missing typed references as an input conflict, preserving Run revision
+and the existing Lease; an opaque Trace field with the same name still
+does not invent a reference. This strengthens the existing model's
+integrity premise, not a new registry, GC rule or physical release proof.
