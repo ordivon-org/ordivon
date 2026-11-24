@@ -2039,6 +2039,20 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 continuity.inspect_issued_tool_sources()
             with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict)):
                 continuity.inspect_unsettled_tool_sources()
+        # A second read with the same revisions can still substitute event
+        # content. Use the exact first validated cut rather than rereading it.
+        substituted = tuple(
+            replace(event, event_kind="harness.trace-recorded", data={"trace": "substituted"})
+            if event.data.get("toolStepIntentDigest") == intent.digest else event
+            for event in history
+        )
+        self.assertEqual(len(substituted), len(history))
+        self.assertEqual([event.run_revision for event in substituted],
+                         [event.run_revision for event in history])
+        with patch.object(self.store, "list_run_events", side_effect=(history, substituted)) as reader:
+            source = continuity.inspect_issued_tool_sources()
+            self.assertEqual(source["originalRunIssuedCount"], 1)
+            self.assertEqual(reader.call_count, 1)
         # The same missing source must block new admission, not only the
         # later diagnostic. A fresh request key is intentionally legitimate.
         later = replace(

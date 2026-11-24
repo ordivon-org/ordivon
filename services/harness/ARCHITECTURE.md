@@ -315,6 +315,12 @@ no longer instantiate the Run command facade or allocate an execution
 identity merely to inspect effects. The binding factory is shared by the
 original command facade and reader, and no extra state owner is introduced.
 
+The original `validate_run_history` port returns the exact projection and
+events verified by the Store. Issued/unsettled/finalization source consumers
+reuse that cut rather than rereading merely equal revisions; the existing
+post-read current-revision fence remains. Legacy SQLite returns its existing
+validated cut only for its remaining consumers, not PG qualification.
+
 Global Doctor requires a stable native PG snapshot; locking existing Run
 rows cannot fence new Run creation or global CAS phantoms. Standalone
 Doctor uses its original read-only REPEATABLE READ transaction. Caller

@@ -31,20 +31,10 @@ class RunSourceInspection:
         for explicit owner recovery/finalization reads, not the hot Turn path.
         Concurrent legitimate appends invalidate the cut, not the Journal.
         """
-        projection = self.store.load_run(self.harness_run_id)
-        self.store.validate_run_history(self.harness_run_id)
-        events = self.store.list_run_events(self.harness_run_id)
-        if (
-            not events
-            or len(events) != projection.revision
-            or any(
-                event.run_revision != revision or event.harness_run_id != self.harness_run_id
-                for revision, event in enumerate(events, 1)
-            )
-        ):
-            raise HarnessRevisionConflict(
-                "Run source history differs from the original revision"
-            )
+        # The Store returns the exact rows it verified, not a second read
+        # with merely matching Revision/length. The public source consumer
+        # still fences the current revision after the cut and effect reads.
+        projection, events = self.store.validate_run_history(self.harness_run_id)
         self._require_current_source_cut(projection)
         return projection, events
 

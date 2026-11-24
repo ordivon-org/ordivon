@@ -233,6 +233,10 @@ class HarnessStore(Protocol):
         self, harness_run_id: str, *, after_sequence: int = 0
     ) -> tuple[HarnessRunEventRecord, ...]: ...
 
+    def validate_run_history(
+        self, harness_run_id: str
+    ) -> tuple[HarnessRunProjection, tuple[HarnessRunEventRecord, ...]]: ...
+
     def acquire_run_lease(
         self,
         harness_run_id: str,

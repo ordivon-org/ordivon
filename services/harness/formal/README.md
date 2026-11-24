@@ -163,3 +163,11 @@ requires a stable snapshot for a healthy global report. It intentionally
 does not model arbitrary SQL histories, CAS contents, or physical effects.
 The real PG test drives the original Doctor and a second live Store
 connection and retains the valid per-Run nested row-lock path.
+
+### R41 continuation: verified source consumption
+
+OriginalSourceCutR1 now distinguishes original validated content from a
+substituted second read with the same revision positions. The reread probe
+reaches a substituted consumption after valid acceptance; the positive probe
+reaches actual consumption of the original cut. This abstracts content
+identity, not a proof of database cryptographic integrity.

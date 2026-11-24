@@ -287,3 +287,11 @@ effects and its Doctor must succeed without opening a Run command facade.
 The shared original immutable Provider reader preserves the same identity,
 state, request, result and failure checks; the negative pending-effect
 regressions remain in the same real PostgreSQL suite.
+
+Source inspection consumes the exact original history cut returned by the
+existing validation port. The real PG fixture substitutes a second
+same-revision read after successful validation: the original code loses
+the issued Tool, the new consumer uses exactly one Journal read and retains
+the original identity. Concurrent append and actual missing-edge regressions
+remain enforced; the original SourceCut formal gate adds a reread and
+positive consumption probe.

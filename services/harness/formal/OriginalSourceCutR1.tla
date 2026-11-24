@@ -4,9 +4,9 @@ EXTENDS Naturals, Sequences
 (* Bounded source-read model, not a second Journal or physical release proof.
    integrity abstracts the existing original Store validator; it is an explicit
    premise, NOT a proof of CAS/SQL correctness. N represents committed revisions. *)
-CONSTANTS N, UnsafeTailOnly
-VARIABLES observed, integrity, accepted, pendingRevision, terminal
-vars == <<observed, integrity, accepted, pendingRevision, terminal>>
+CONSTANTS N, UnsafeTailOnly, UnsafeReRead
+VARIABLES observed, integrity, accepted, pendingRevision, terminal, consumed
+vars == <<observed, integrity, accepted, pendingRevision, terminal, consumed>>
 
 Reads == UNION { [1..k -> 1..N] : k \in 0..N }
 TypeOK == /\ observed \in Reads
@@ -14,17 +14,19 @@ TypeOK == /\ observed \in Reads
           /\ accepted \in BOOLEAN
           /\ pendingRevision \in 0..N
           /\ terminal \in BOOLEAN
+          /\ consumed \in {"none", "original", "substituted"}
 
 Init == /\ observed = <<>>
         /\ integrity = FALSE
         /\ accepted = FALSE
         /\ pendingRevision \in 0..N
         /\ terminal = FALSE
+        /\ consumed = "none"
 
 Read == /\ ~accepted
         /\ observed' \in Reads
         /\ integrity' \in BOOLEAN
-        /\ UNCHANGED <<accepted, pendingRevision, terminal>>
+        /\ UNCHANGED <<accepted, pendingRevision, terminal, consumed>>
 
 TailMatches == IF Len(observed) = 0 THEN FALSE ELSE observed[Len(observed)] = N
 ExactCut == /\ Len(observed) = N
@@ -33,7 +35,7 @@ ExactCut == /\ Len(observed) = N
 Accept == /\ ~accepted
           /\ IF UnsafeTailOnly THEN TailMatches ELSE (ExactCut /\ integrity)
           /\ accepted' = TRUE
-          /\ UNCHANGED <<observed, integrity, pendingRevision, terminal>>
+          /\ UNCHANGED <<observed, integrity, pendingRevision, terminal, consumed>>
 
 (* Zero denotes no outstanding effect. An incomplete source may hide the
    original pending revision. This models the normal terminal transaction,
@@ -44,12 +46,20 @@ CommitNormalTerminal ==
     /\ ~terminal
     /\ ~PendingVisible
     /\ terminal' = TRUE
-    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision>>
+    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision, consumed>>
 
 Quiesce == /\ accepted
            /\ UNCHANGED vars
 
-Next == Read \/ Accept \/ CommitNormalTerminal \/ Quiesce
+(* Equal revision positions do not prove equal content. The accepted cut
+   is already validated; the consumer must not substitute a second read. *)
+ConsumeVerified ==
+    /\ accepted
+    /\ consumed = "none"
+    /\ consumed' \in (IF UnsafeReRead THEN {"original", "substituted"} ELSE {"original"})
+    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision, terminal>>
+
+Next == Read \/ Accept \/ CommitNormalTerminal \/ ConsumeVerified \/ Quiesce
 Spec == Init /\ [][Next]_vars
 
 (* Independently formulated coverage: no original revision is omitted. *)
@@ -60,5 +70,7 @@ AcceptedIntegrity == accepted => integrity
 AcceptanceIsUnreachable == ~accepted
 TerminalHasNoPending == terminal => pendingRevision = 0
 TerminalIsUnreachable == ~terminal
+UsesVerifiedContent == consumed # "substituted"
+SourceConsumptionIsUnreachable == consumed = "none"
 
 ====

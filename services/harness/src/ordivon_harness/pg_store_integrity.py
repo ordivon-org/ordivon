@@ -168,16 +168,20 @@ class PostgresIntegrity:
                         "Original Run creation Contract reference differs"
                     )
 
-    def validate_run_history(self, harness_run_id: str) -> None:
+    def validate_run_history(
+        self, harness_run_id: str
+    ) -> tuple[HarnessRunProjection, tuple[HarnessRunEventRecord, ...]]:
+        """Return the exact original cut verified inside one native snapshot."""
         with self._history_snapshot(harness_run_id=harness_run_id):
-            self._validate_run_history_snapshot(harness_run_id)
+            projection, events, _ = self._validate_run_history_snapshot(harness_run_id)
+            return projection, events
 
     def _validate_run_history_snapshot(
         self, harness_run_id: str
-    ) -> tuple[tuple[HarnessRunEventRecord, ...], HarnessRunContract]:
+    ) -> tuple[HarnessRunProjection, tuple[HarnessRunEventRecord, ...], HarnessRunContract]:
         projection = self.load_run(harness_run_id)
         events = self.list_run_events(harness_run_id)
-        return events, self._validate_original_run_history(projection, events)
+        return projection, events, self._validate_original_run_history(projection, events)
 
     def _validate_original_run_history(
         self, projection: HarnessRunProjection, events: tuple[HarnessRunEventRecord, ...]
@@ -275,7 +279,7 @@ class PostgresIntegrity:
             self.inspect_object(row["digest"])
         runs = self.list_runs()
         for run in runs:
-            history, contract = self._validate_run_history_snapshot(run.harness_run_id)
+            _, history, contract = self._validate_run_history_snapshot(run.harness_run_id)
             if not run.status.terminal:
                 continue
             if not any(

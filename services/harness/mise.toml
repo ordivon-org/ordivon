@@ -230,7 +230,7 @@ fi
   java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config OriginalSourceCutR1.cfg OriginalSourceCutR1.tla
   source_probe="$(mktemp)"
   trap 'rm -f "$source_probe"' EXIT
-  for spec in "tail:NoMissingOriginalRevision" "accept:AcceptanceIsUnreachable" "terminal-omit:TerminalHasNoPending" "terminal-accept:TerminalIsUnreachable"; do
+  for spec in "tail:NoMissingOriginalRevision" "accept:AcceptanceIsUnreachable" "terminal-omit:TerminalHasNoPending" "terminal-accept:TerminalIsUnreachable" "reread:UsesVerifiedContent" "consume:SourceConsumptionIsUnreachable"; do
     IFS=: read -r label predicate <<< "$spec"
     if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "OriginalSourceCutR1.$label-probe.cfg" OriginalSourceCutR1.tla > "$source_probe" 2>&1; then
       echo "R38 $label counterexample unexpectedly absent" >&2
