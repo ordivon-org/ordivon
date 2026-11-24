@@ -501,6 +501,9 @@ def test_pressure_gate_has_no_provider_or_control_side_effects() -> None:
         merge_group_runs=[
             {
                 "id": 70,
+                "path": ".github/workflows/ci.yml",
+                "event": "merge_group",
+                "run_attempt": 1,
                 "head_branch": "gh-readonly-queue/main/pr-7-base",
                 "head_sha": "a",
                 "created_at": "2026-09-23T00:00:05Z",
@@ -511,6 +514,8 @@ def test_pressure_gate_has_no_provider_or_control_side_effects() -> None:
             "70": [
                 {
                     "name": "root-verification",
+                    "run_id": 70,
+                    "run_attempt": 1,
                     "created_at": "2026-09-23T00:00:06Z",
                     "started_at": "2026-09-23T00:00:08Z",
                     "completed_at": "2026-09-23T00:00:30Z",
@@ -525,6 +530,26 @@ def test_pressure_gate_has_no_provider_or_control_side_effects() -> None:
     assert gates["QUEUE_CONTENTION"]["status"] == "NOT_PROVEN"
     assert gates["CI_WASTE"]["status"] == "INSUFFICIENT_EVIDENCE"
     assert assessment["controlsAdmitted"] == []
+
+    # A legacy, workflow-unqualified observation must not be interpreted as
+    # evidence of low contention, and it must not authorize controls.
+    unqualified = queue_module.ProviderSnapshot(
+        repository=queue_snapshot.repository,
+        pulls=queue_snapshot.pulls,
+        timelines=queue_snapshot.timelines,
+        merge_group_runs=[
+            {key: value for key, value in run.items() if key != "path"}
+            for run in queue_snapshot.merge_group_runs
+        ],
+        jobs=queue_snapshot.jobs,
+    )
+    unqualified_assessment = pressure_module.assess(
+        queue_module.analyze(unqualified), ci_projection
+    )
+    unqualified_gates = {row["gate"]: row for row in unqualified_assessment["gates"]}
+    assert unqualified_gates["QUEUE_CONTENTION"]["status"] == "INSUFFICIENT_EVIDENCE"
+    assert unqualified_assessment["controlsAdmitted"] == []
+
 
     annotated_ci = ci_module.project(
         ci_module.normalize(
