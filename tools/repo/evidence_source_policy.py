@@ -5,6 +5,7 @@ It rejects mixing a historical Git diff with a different local policy cut.
 """
 from __future__ import annotations
 
+import stat
 from pathlib import Path
 
 from source_history_legos import current_tree, git
@@ -49,6 +50,8 @@ def qualify_current_selector(repo: Path, source_cut: str) -> None:
             or file.resolve() != file
         ):
             raise ValueError("selector control input is not a regular Git file")
+        expected_mode, _, expected_blob = identity.split(":")
+        actual_mode = "100755" if file.stat().st_mode & stat.S_IXUSR else "100644"
         actual = git(repo, "hash-object", "--no-filters", "--", relative).strip()
-        if actual != identity.rsplit(":", 1)[1]:
+        if actual_mode != expected_mode or actual != expected_blob:
             raise ValueError(f"selector control input differs from SourceCut: {relative}")

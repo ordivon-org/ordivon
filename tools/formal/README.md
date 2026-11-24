@@ -10,7 +10,7 @@ the large proof systems. No new mathematical kernel, graph authority,
 package manager or agent is created.
 
 For read-only incremental input impact before contemplating another
-expensive Formal run, use the already deployed repository source
+expensive Formal run, use the repository source
 consumer in tools/repo/evidence_validity.py with --current-sha,
 --prior-sha and --formal-source-delta. It compares this runner's
 historical SOURCE_FILES declarations and Git mode/blob identities;

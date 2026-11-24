@@ -264,6 +264,13 @@ def test_selector_control_inputs_use_actual_git_blobs(monkeypatch, tmp_path):
             policy.qualify_current_selector(repo, cut)
         path.write_bytes(original)
     policy.qualify_current_selector(repo, cut)
+    executable = repo / policy.CONTROL_INPUTS[0]
+    original_mode = executable.stat().st_mode
+    executable.chmod(original_mode | 0o100)
+    with pytest.raises(ValueError, match="differs from SourceCut"):
+        policy.qualify_current_selector(repo, cut)
+    executable.chmod(original_mode)
+    policy.qualify_current_selector(repo, cut)
     with pytest.raises(ValueError, match="checkout differs"):
         policy.qualify_current_selector(repo, "0" * len(cut))
     path = repo / policy.CONTROL_INPUTS[0]
