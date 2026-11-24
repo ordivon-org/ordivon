@@ -54,45 +54,108 @@ def endpoint_from_config(path: Path, endpoint_id: str) -> BrowserlessEndpoint:
     return endpoint
 
 
-def prompt_markers(text: str) -> list[str]:
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    if not lines:
-        return []
-    markers = [lines[0]]
-    for prefix in (
-        "MANUSCRIPT_SHA256=",
-        "PAYLOAD_SHA256=",
-        "BYTE_RANGE=",
-        "PAYLOAD_END",
-        "All four numbered manuscript payload chunks",
-        "All four revised manuscript payload chunks",
+def select_exact_turn_output(
+    messages: list[tuple[str, str]], expected_prompt: str
+) -> tuple[str, bool, str | None]:
+    """Resolve only an unambiguous observed user/assistant pair.
+
+    The caller's prompt is not a provider-issued turn identifier. Repeated
+    exact prompts, multiple candidate assistant messages and unstructured
+    page text cannot prove which result belongs to the requested turn.
+    """
+    matches = [
+        index
+        for index, (role, text) in enumerate(messages)
+        if role == "user" and text == expected_prompt
+    ]
+    if not matches:
+        return "EXPECTED_USER_TURN_NOT_VISIBLE", False, None
+    if len(matches) != 1:
+        return "EXPECTED_USER_TURN_AMBIGUOUS", True, None
+    following = messages[matches[0] + 1 :]
+    candidates: list[str] = []
+    for role, text in following:
+        if role == "user":
+            break
+        if role == "assistant":
+            candidates.append(text)
+    if len(candidates) > 1:
+        return "ASSISTANT_OUTPUT_AMBIGUOUS", True, None
+    if not following or following[0][0] != "assistant" or not candidates or not candidates[0]:
+        return "ASSISTANT_OUTPUT_NOT_VISIBLE", True, None
+    return "CAPTURED", True, candidates[0]
+
+
+def observe_output(
+    page, target_resource: str, expected_prompt: str, fetch_error_text: str | None
+) -> dict:
+    """Observe the DOM and its URL in one browser evaluation, without effects."""
+    snapshot = page.evaluate(
+        """({mainSelector, messageSelector, stopSelector, fetchErrorSelector}) => {
+            const visible = node => !!node.getClientRects().length
+                && getComputedStyle(node).visibility === "visible";
+            const mains = [...document.querySelectorAll(mainSelector)];
+            const messages = mains.length === 1
+                ? [...mains[0].querySelectorAll(messageSelector)].map(node => ({
+                    role: node.getAttribute("data-message-author-role") || "",
+                    text: node.innerText.trim(), visible: visible(node)
+                })) : [];
+            const error = [...document.querySelectorAll(fetchErrorSelector)].find(visible);
+            return {
+                url: location.href,
+                messages,
+                generating: [...document.querySelectorAll(stopSelector)].some(visible),
+                fetchError: error ? error.innerText.trim().slice(0, 240) : null
+            };
+        }""",
+        {
+            "mainSelector": MAIN_SELECTOR,
+            "messageSelector": MESSAGE_SELECTOR,
+            "stopSelector": STOP_SELECTOR,
+            "fetchErrorSelector": FETCH_ERROR_SELECTOR,
+        },
+    )
+    observed = chatgpt_resource_from_page_url(snapshot["url"])
+    target_still_bound = (
+        observed == target_resource and chatgpt_resource_from_page_url(page.url) == target_resource
+    )
+    messages = [
+        (node["role"], node["text"] if node["visible"] else "") for node in snapshot["messages"]
+    ]
+    standing, expected_visible, assistant_text = select_exact_turn_output(messages, expected_prompt)
+    # A hidden matching prompt may make an otherwise visible match ambiguous.
+    if any(
+        node["role"] == "user" and node["text"] == expected_prompt and not node["visible"]
+        for node in snapshot["messages"]
     ):
-        match = next((line for line in lines if line.startswith(prefix)), None)
-        if match and match not in markers:
-            markers.append(match)
-    return markers
-
-
-def body_anchored_output(
-    body_text: str, expected_prompt: str
-) -> tuple[bool, str | None, list[str]]:
-    markers = prompt_markers(expected_prompt)
-    if not markers or not all(marker in body_text for marker in markers):
-        return False, None, markers
-    exact_index = body_text.find(expected_prompt)
-    if exact_index >= 0:
-        tail = body_text[exact_index + len(expected_prompt) :]
-    else:
-        anchor = markers[-1]
-        anchor_index = body_text.rfind(anchor)
-        tail = body_text[anchor_index + len(anchor) :] if anchor_index >= 0 else ""
-    footer_index = tail.find("ChatGPT can make mistakes.")
-    if footer_index >= 0:
-        tail = tail[:footer_index]
-    tail = tail.strip()
-    while tail.startswith("Show more"):
-        tail = tail[len("Show more") :].lstrip()
-    return True, tail or None, markers
+        standing = "EXPECTED_USER_TURN_AMBIGUOUS"
+        assistant_text = None
+    error = fetch_error_text if fetch_error_text is not None else snapshot["fetchError"]
+    if error is not None:
+        standing = "CONVERSATION_FETCH_FAILED"
+    elif not target_still_bound:
+        standing = "TARGET_RESOURCE_DRIFTED"
+    elif snapshot["generating"]:
+        standing = "ASSISTANT_GENERATING"
+    if standing != "CAPTURED":
+        assistant_text = None
+    return {
+        "standing": standing,
+        "pageUrlObserved": snapshot["url"],
+        "observedResourceAfterWait": observed,
+        "targetStillBoundAfterWait": target_still_bound,
+        "expectedUserTurnVisible": expected_visible,
+        "promptMarkersUsed": [],
+        "captureMethod": "role-scoped" if assistant_text is not None else None,
+        "conversationFetchError": error,
+        "generationActive": snapshot["generating"],
+        "assistantOutputRead": assistant_text is not None,
+        "assistantOutput": assistant_text,
+        "assistantOutputDigest": sha256_bytes(assistant_text.encode("utf-8"))
+        if assistant_text is not None
+        else None,
+        "recommendation": recommendation(assistant_text) if assistant_text is not None else None,
+    }
 
 
 def recommendation(text: str) -> str | None:
@@ -171,81 +234,16 @@ def main() -> int:
                 if time.monotonic() >= hydration_deadline:
                     break
                 page.wait_for_timeout(500)
-            observed_resource_after_wait = chatgpt_resource_from_page_url(page.url)
-            target_still_bound = observed_resource_after_wait == target_resource
-
-            stop = page.locator(STOP_SELECTOR)
-            generation_active = stop.count() == 1 and stop.is_visible()
-            nodes = page.locator(MESSAGE_SELECTOR)
-            messages: list[tuple[str, str]] = []
-            for index in range(nodes.count()):
-                node = nodes.nth(index)
-                role = node.get_attribute("data-message-author-role") or ""
-                text = node.inner_text().strip()
-                messages.append((role, text))
-
-            matched_index = None
-            for index, (role, text) in enumerate(messages):
-                if role == "user" and text == expected_prompt:
-                    matched_index = index
-            assistant_text = None
-            capture_method = None
-            prompt_markers_used: list[str] = []
-            if matched_index is not None:
-                for role, text in messages[matched_index + 1 :]:
-                    if role == "user":
-                        break
-                    if role == "assistant" and text:
-                        assistant_text = text
-                        capture_method = "role-scoped"
-                        break
-            body_text = page.locator("body").inner_text()
-            body_visible, body_output, prompt_markers_used = body_anchored_output(
-                body_text, expected_prompt
-            )
-            expected_user_visible = matched_index is not None or body_visible
-            if assistant_text is None and body_output is not None:
-                assistant_text = body_output
-                capture_method = "body-anchor"
-
-            if fetch_error_text is not None:
-                standing = "CONVERSATION_FETCH_FAILED"
-            elif not target_still_bound:
-                standing = "TARGET_RESOURCE_DRIFTED"
-            elif not expected_user_visible:
-                standing = "EXPECTED_USER_TURN_NOT_VISIBLE"
-            elif generation_active:
-                standing = "ASSISTANT_GENERATING"
-            elif assistant_text is None:
-                standing = "ASSISTANT_OUTPUT_NOT_VISIBLE"
-            else:
-                standing = "CAPTURED"
-
+            observation = observe_output(page, target_resource, expected_prompt, fetch_error_text)
             receipt = {
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-conversation-output-receipt",
-                "standing": standing,
                 "targetResource": target_resource,
                 "browserlessEndpointId": endpoint.endpoint_id,
-                "pageUrlObserved": page.url,
-                "observedResourceAfterWait": observed_resource_after_wait,
-                "targetStillBoundAfterWait": target_still_bound,
                 "expectedUserPromptDigest": expected_prompt_digest,
                 "expectedUserPromptFileDigest": expected_prompt_file_digest,
-                "expectedUserTurnVisible": expected_user_visible,
-                "promptMarkersUsed": prompt_markers_used,
-                "captureMethod": capture_method,
-                "conversationFetchError": fetch_error_text,
                 "mainTextChars": len(main_text),
-                "generationActive": generation_active,
-                "assistantOutputRead": assistant_text is not None,
-                "assistantOutput": assistant_text,
-                "assistantOutputDigest": sha256_bytes(assistant_text.encode("utf-8"))
-                if assistant_text is not None
-                else None,
-                "recommendation": recommendation(assistant_text)
-                if assistant_text is not None
-                else None,
+                **observation,
                 "providerEffectAttempted": False,
                 "composerFilled": False,
                 "sendAttempted": False,
@@ -258,7 +256,7 @@ def main() -> int:
             )
             os.chmod(args.receipt_out, 0o600)
             print(json.dumps(receipt, sort_keys=True, ensure_ascii=False))
-            return 0 if standing == "CAPTURED" else 3
+            return 0 if receipt["standing"] == "CAPTURED" else 3
         finally:
             browser.close()
 
