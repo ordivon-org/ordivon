@@ -117,6 +117,20 @@ pnpm test
 pnpm e2e
 ```
 
+## Agent effect response consistency
+
+`src/agent-canary-routes.ts` registers the delegated canary mutation routes
+and shares their admission/receipt orchestration. The Security-owned evaluator
+and WebStore transaction remain separate. After the asynchronous decision,
+exact replay is reconciled before any new approval or effect; current grant
+uniqueness, identity, digest and revision are checked before STEP_UP or ALLOW.
+A response code alone is not a general proof of domain completion: the
+committed receipt is the canary's authoritative result.
+
+See [the bounded protocol model and concrete race witnesses](formal/README.md).
+Use `mise run web:formal:effect-response` from the repository root when the existing
+pinned Runtime TLC JAR is available.
+
 ## Delegated Agent authority
 
 The website now owns the product/domain half of delegated Agent authority:
