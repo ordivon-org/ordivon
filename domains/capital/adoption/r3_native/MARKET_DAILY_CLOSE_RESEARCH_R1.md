@@ -100,3 +100,21 @@ deliberately pinned to Cboe history through 2026-11-12 and Nasdaq
 a new source-specific contract and consumer tests, NOT a blind
 forward-fill or silent cast. This capture is not yet an unattended
 production Markets ingestion system. No duplicate data/owner registry.
+
+### R5 requalification (2026-11-24)
+
+The historical capture contract is fixed to the 2026-11-13 closing
+session. A self-consistent shorter or later grid cannot inherit the
+November 12/13 source-role split. The consumer delegates exchange
+session validation to Markets' existing require_xnys_session_grid,
+and rejects boolean schema versions and boolean closing prices. The
+calendar dependency is already a project dependency; no duplicate test
+dependency is required.
+
+The original private 43-series, 971-session panel and manifest were
+recovered by exact SHA-256 (a1daef34db81615b4ab26ada498ed2d7121833a42cc974303357aeb006cd2e59
+and 76c1687bd1123792994bb621e625c47709fe561b7205b9d9d3439cb8f01039f4).
+The old and requalified CLI output matched byte for byte; the 13
+behavior tests passed. This is retrospective descriptive research,
+not a current quote, historical PIT proof, or executable trading signal.
+Original provider bytes are not redistributed.

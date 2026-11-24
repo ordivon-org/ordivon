@@ -10,12 +10,22 @@ import argparse
 import hashlib
 import io
 import json
+import sys
 from pathlib import Path
 
-import exchange_calendars as xcals
 import numpy as np
 import pandas as pd
 
+# The repository deliberately uses uv package=false; preserve direct CLI use.
+if __name__ == "__main__":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+
+from ordivon_capital.markets.equity_session_calendar import (  # noqa: E402
+    MarketSessionQualificationError,
+    require_xnys_session_grid,
+)
+
+CAPTURE_END = "2026-11-13"
 KIND = "ordivon.finance.close-only-research-panel"
 INDEX_SYMBOLS = frozenset(("VIX", "VXN", "VVIX", "VIX9D"))
 MAG7 = ("AAPL", "MSFT", "AMZN", "GOOGL", "META", "TSLA", "NVDA")
@@ -52,7 +62,8 @@ def describe_close_panel(panel_bytes: bytes, manifest_bytes: bytes) -> dict:
     try:
         manifest = json.loads(manifest_bytes, object_pairs_hook=_unique_keys)
         if (
-            manifest["schemaVersion"] != 1
+            type(manifest["schemaVersion"]) is not int
+            or manifest["schemaVersion"] != 1
             or manifest["kind"] != KIND
             or manifest["panelDigest"] != _sha(panel_bytes)
             or manifest["calendarSource"] != "exchange_calendars XNYS"
@@ -100,9 +111,22 @@ def describe_close_panel(panel_bytes: bytes, manifest_bytes: bytes) -> dict:
             or len(dates) < 205
         ):
             raise ResearchPanelError("panel date bounds invalid")
-        if not dates.equals(xcals.get_calendar("XNYS").sessions_in_range(dates[0], dates[-1])):
-            raise ResearchPanelError("market panel contains a holiday or omits an exchange session")
+        try:
+            require_xnys_session_grid(
+                dates,
+                symbol="close-panel",
+                requested_start=manifest["firstSession"],
+                requested_end=manifest["lastSession"],
+            )
+        except MarketSessionQualificationError as exc:
+            raise ResearchPanelError(
+                "market panel contains a holiday or omits an exchange session"
+            ) from exc
+        if manifest["lastSession"] != CAPTURE_END:
+            raise ResearchPanelError("source role date does not match fixed capture end")
         df.index = dates
+        if any(pd.api.types.is_bool_dtype(dtype) for dtype in df.dtypes):
+            raise ResearchPanelError("boolean close price is not a price observation")
         df = df.apply(pd.to_numeric, errors="raise")
         array = df.to_numpy(dtype=float)
         if not np.isfinite(array[~pd.isna(array)]).all() or (df <= 0).any().any():

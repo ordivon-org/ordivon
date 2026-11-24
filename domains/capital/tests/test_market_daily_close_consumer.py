@@ -188,6 +188,35 @@ class ResearchPanelTest(unittest.TestCase):
         with self.assertRaisesRegex(ResearchPanelError, "coverage"):
             describe_close_panel(raw, to_bytes(manifest))
 
+    def test_stale_but_complete_grid_cannot_claim_fixed_source_role(self):
+        data, _, manifest = source_fixture()
+        data = data.iloc[:-1]
+        raw = data.to_csv().encode()
+        manifest["sessions"] = len(data)
+        manifest["lastSession"] = str(data.index[-1].date())
+        manifest["panelDigest"] = _digest(raw)
+        for row in manifest["records"]:
+            row["lastObservedSession"] = manifest["lastSession"]
+            row["validRows"] = len(data)
+            row["latestSessionClose"] = str(data[row["symbol"]].iloc[-1])
+        with self.assertRaisesRegex(ResearchPanelError, "source role date"):
+            describe_close_panel(raw, to_bytes(manifest))
+
+    def test_boolean_schema_version_cannot_alias_integer_version(self):
+        _, raw, manifest = source_fixture()
+        manifest["schemaVersion"] = True
+        with self.assertRaisesRegex(ResearchPanelError, "manifest"):
+            describe_close_panel(raw, to_bytes(manifest))
+
+    def test_boolean_price_is_not_a_numeric_close(self):
+        data, _, manifest = source_fixture()
+        data["QQQ"] = True
+        raw = data.to_csv().encode()
+        manifest["panelDigest"] = _digest(raw)
+        manifest["records"][list(data.columns).index("QQQ")]["latestSessionClose"] = "1"
+        with self.assertRaisesRegex(ResearchPanelError, "boolean close"):
+            describe_close_panel(raw, to_bytes(manifest))
+
     def test_nontrading_future_session_cannot_be_promoted(self):
         data, _, manifest = source_fixture()
         next_day = pd.DataFrame(
