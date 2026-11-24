@@ -51,6 +51,10 @@ def main() -> None:
         max_waiting=64,
         open=False,
     ) as pool:
+        # Both serving transports must require the actual migrated authority
+        # before serving any tool. Keep build_server() usable for offline SDK
+        # contract discovery; it is not the process entrypoint.
+        HostV2(dsn, pool=pool).initialize()
         server = build_server(dsn, pool=pool)
         if transport == "stdio":
             server.run()
