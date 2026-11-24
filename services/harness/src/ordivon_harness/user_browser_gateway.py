@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import uuid
 from dataclasses import dataclass
 
 from .gateway_execution_port import GatewayExecutionPort, GatewayExecutionRequest
@@ -182,9 +183,22 @@ class UserBrowserGatewayController:
             raise RuntimeError('Windows user-browser classification detail is invalid')
         return payload
 
-    def classify(self) -> dict:
+    def classify(self, *, observation_id: str | None = None) -> dict:
+        """A new observation must not replay an unrelated historical classification.
+
+        Callers recovering one ambiguous observation should preserve its explicit
+        ID. This does not change materialization/reconcile effect identity or
+        authorize a provider SEND.
+        """
+        if observation_id is None:
+            observation_id = str(uuid.uuid4())
+        if not isinstance(observation_id, str) or re.fullmatch(r'[A-Za-z0-9._:-]{1,128}', observation_id) is None:
+            raise ValueError('Windows user-browser observation ID is invalid')
         request_id = 'user-browser:classify:' + _digest_text(
-            '|'.join((self.config.workspace_id, self.config.driver_path, self.config.proxy_url))
+            json.dumps([
+                self.config.workspace_id, self.config.driver_path, self.config.proxy_url,
+                observation_id,
+            ], ensure_ascii=False, separators=(',', ':'))
         )[7:39]
         result = self.port.execute(
             GatewayExecutionRequest(
@@ -205,7 +219,12 @@ class UserBrowserGatewayController:
             raise RuntimeError('Windows user-browser classification requires Runtime recovery')
         if result.exit_code != 0:
             raise RuntimeError(f'Windows user-browser classification failed with exit code {result.exit_code}')
-        return self._parse_classification(self.port.read_stdout(result))
+        return {
+            **self._parse_classification(self.port.read_stdout(result)),
+            'observationId': observation_id,
+            'executionRequestId': request_id,
+            'nativeJobId': result.native_id,
+        }
 
     def materialize(self, **kwargs) -> dict:
         return self._run('materialize', **kwargs)
