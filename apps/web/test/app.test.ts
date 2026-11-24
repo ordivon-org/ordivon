@@ -279,3 +279,68 @@ test("WebAuthn challenges are one-shot even before browser ceremony tests", () =
   );
   store.close();
 });
+
+test("operator grant view reads only the authenticated principal and renders observed availability", async () => {
+  const f = await fixture();
+  try {
+    const create = (grantId: string, principalId: string, expiresAtEpochSeconds: number, remainingEffects: number) =>
+      f.store.createAgentGrant({
+        grantId, principalId, agentId: "agent:<script>alert(1)</script>",
+        audience: config.origin, allowedActions: ["canary.note.create"],
+        resourcePrefixes: ["/canary/notes"], expiresAtEpochSeconds,
+        maxRiskClass: "R2", stepUpAtOrAbove: "R4", remainingEffects,
+      }, f.now());
+    create("grant:current", "principal:test", f.now() + 20, 3);
+    const revoked = create("grant:revoked", "principal:test", f.now() + 20, 3);
+    f.store.revokeAgentGrant("principal:test", revoked.grantId, revoked.grantDigest, f.now());
+    create("grant:expired", "principal:test", f.now() + 1, 3);
+    create("grant:exhausted", "principal:test", f.now() + 20, 0);
+    f.store.ensurePrincipal("principal:other", "other", "Other", f.now());
+    create("grant:other-private", "principal:other", f.now() + 20, 3);
+    f.advance(2);
+    const response = await f.app.inject({
+      method: "GET", url: "/operator/grants?principalId=principal:other",
+      headers: { cookie: sessionCookie(f.token) },
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.headers["cache-control"], "no-store");
+    assert.match(String(response.headers["content-type"]), /text\/html/);
+    assert.match(response.body, /<th scope="row">grant:current<\/th><td>[^<]*<\/td><td data-availability="candidate"/);
+    assert.match(response.body, /<th scope="row">grant:revoked<\/th><td>[^<]*<\/td><td data-availability="revoked"/);
+    assert.match(response.body, /<th scope="row">grant:expired<\/th><td>[^<]*<\/td><td data-availability="expired"/);
+    assert.match(response.body, /<th scope="row">grant:exhausted<\/th><td>[^<]*<\/td><td data-availability="exhausted"/);
+    assert.match(response.body, /not an admission decision/);
+    assert.match(response.body, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+    assert.doesNotMatch(response.body, /<script>|grant:other-private/);
+    assert.equal(f.store.getAgentGrant("grant:current").remainingEffects, 3);
+    const other = f.store.createSession("principal:other", f.now(), 60, 300, null);
+    const otherView = await f.app.inject({
+      method: "GET", url: "/operator/grants",
+      headers: { cookie: sessionCookie(other.token) },
+    });
+    assert.equal(otherView.statusCode, 200);
+    assert.match(otherView.body, /grant:other-private/);
+    assert.doesNotMatch(otherView.body, /grant:current/);
+    const head = await f.app.inject({
+      method: "HEAD", url: "/operator/grants",
+      headers: { cookie: sessionCookie(f.token) },
+    });
+    assert.equal(head.statusCode, 200);
+    assert.equal(head.headers["cache-control"], "no-store");
+    assert.equal(head.body, "");
+
+    const denied = await f.app.inject({ method: "GET", url: "/operator/grants" });
+    assert.equal(denied.statusCode, 401);
+    assert.equal(denied.headers["cache-control"], "no-store");
+    assert.doesNotMatch(denied.body, /grant:current/);
+    f.advance(100);
+    const expired = await f.app.inject({
+      method: "GET", url: "/operator/grants", headers: { cookie: sessionCookie(f.token) },
+    });
+    assert.equal(expired.statusCode, 401);
+    assert.equal(expired.headers["cache-control"], "no-store");
+  } finally {
+    await f.app.close();
+    f.store.close();
+  }
+});

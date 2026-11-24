@@ -243,6 +243,14 @@ try {
   assert.equal(grantFlow.grantsStatus, 200);
   assert.equal(grantFlow.grantsBody.grants.length, 1);
   assert.equal(grantFlow.grantsBody.grants[0].active, true);
+  const operatorCurrent = await page.goto(config.origin + "/operator/grants");
+  assert.equal(operatorCurrent?.status(), 200);
+  assert.equal(operatorCurrent?.headers()["cache-control"], "no-store");
+  assert.equal(await page.getByRole("heading", { name: "Agent grants" }).count(), 1);
+  const grantRow = page.getByRole("row").filter({
+    hasText: grantFlow.verifyBody.grant.grantId as string,
+  });
+  assert.equal(await grantRow.getByRole("cell", { name: "Candidate (not an admission decision)" }).count(), 1);
 
   const pendingEffect = {
     effectId:
@@ -396,6 +404,10 @@ try {
   assert.equal(revokeFlow.verifyStatus, 200);
   assert.equal(revokeFlow.replayStatus, 409);
   assert.equal(revokeFlow.verifyBody.grant.active, false);
+  await page.getByRole("link", { name: "Refresh owner observation" }).click();
+  assert.equal(await page.getByRole("row").filter({
+    hasText: issuedGrantId,
+  }).getByRole("cell", { name: "Revoked", exact: true }).count(), 1);
 
   const browserFlow = await page.evaluate(async () => {
     const me = await fetch("/api/me");
@@ -452,6 +464,10 @@ try {
   assert.equal(browserFlow.passkeys.body.credentials.length, 1);
   assert.equal(browserFlow.logout.status, 200);
   assert.equal(browserFlow.afterLogout.status, 401);
+  const operatorDenied = await page.goto(config.origin + "/operator/grants");
+  assert.equal(operatorDenied?.status(), 401);
+  assert.equal(operatorDenied?.headers()["cache-control"], "no-store");
+  assert.equal(await page.getByRole("heading", {name: "Agent grants"}).count(), 0);
 
   const afterCookies = await context.cookies(config.origin);
   assert.equal(

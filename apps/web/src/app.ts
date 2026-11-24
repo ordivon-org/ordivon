@@ -13,6 +13,7 @@ import type {
 } from "@simplewebauthn/server";
 
 import type { WebConfig } from "./config.ts";
+import { renderOperatorGrants } from "./operator-grants-view.ts";
 import { WebProblem } from "./errors.ts";
 import { stableDigest } from "./identity-digests.ts";
 import {
@@ -449,6 +450,16 @@ export async function createWebApp(
       return reply.code(201).send({ note });
     },
   );
+
+  app.get("/operator/grants", async (request, reply) => {
+    // Also cover authentication failures, not only the successful HTML.
+    reply.header("Cache-Control", "no-store");
+    const auth = authenticated(request);
+    const observedAt = now();
+    const grants = store.listAgentGrants(auth.principal.principalId);
+    return reply.type("text/html; charset=utf-8")
+      .send(renderOperatorGrants(auth.principal, grants, observedAt));
+  });
 
   app.get("/api/security/agents/grants", async (request) => {
     const auth = authenticated(request);

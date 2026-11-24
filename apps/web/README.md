@@ -182,3 +182,23 @@ The Security-owned OAuth/DPoP verifier uses an accepted pinned RFC 7800 /
 Keycloak interoperability profile for oauth4webapi 3.8.8. That profile is
 cryptographically tested and is not, by itself, a production blocker. Upstream
 removal remains preferred.
+
+
+## Read-only operator grant view
+
+The first browser operator slice is GET /operator/grants. It reads the
+current authenticated Principal's existing Web-owned Grant records and
+renders a fresh observation with the server clock, revision, quota and
+scope. It is not an admission or execution surface: "Candidate" means
+only that the observed Grant is active, unexpired and has positive quota;
+request-specific Security and transactional commit checks remain necessary.
+Expired, exhausted and revoked are shown separately. The existing API is
+unchanged; there is no new persistence layer, browser credential, public
+deployment or cross-owner access.
+
+The HTML uses native accessible table/heading/link semantics and escaping.
+Successful and denied responses are no-store. Refresh explicitly observes
+the current owner; the page is not a live subscription. Browser E2E checks
+issue -> view -> revoke -> refresh -> logout -> denial using the existing
+virtual authenticator. The framework-independent observation/authorization
+boundary is the reference behavior for future React/Solid/UI SDK consumers.
