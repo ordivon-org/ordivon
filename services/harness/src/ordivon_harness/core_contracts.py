@@ -149,6 +149,10 @@ class HarnessPrivacyPolicy:
     allow_tool_content: bool = False
 
     def __post_init__(self) -> None:
+        if not isinstance(self.content_policy, str):
+            raise ValueError("Harness content policy must be a string")
+        if type(self.allow_model_content) is not bool or type(self.allow_tool_content) is not bool:
+            raise ValueError("Harness content capture flags must be booleans")
         if self.content_policy not in _CONTENT_POLICIES:
             raise ValueError(f"unsupported Harness content policy: {self.content_policy}")
         if self.content_policy == "metadata-only" and (
@@ -170,13 +174,6 @@ class HarnessPrivacyPolicy:
             {"contentPolicy", "allowModelContent", "allowToolContent"},
             "HarnessPrivacyPolicy",
         )
-        if not isinstance(value["contentPolicy"], str):
-            raise ValueError("Harness content policy must be a string")
-        if (
-            type(value["allowModelContent"]) is not bool
-            or type(value["allowToolContent"]) is not bool
-        ):
-            raise ValueError("Harness content capture flags must be booleans")
         return cls(
             content_policy=value["contentPolicy"],
             allow_model_content=value["allowModelContent"],
@@ -277,9 +274,13 @@ class HarnessRunContract:
             object.__setattr__(self, "_legacy_correlation", _freeze_json(validated))
         elif self._legacy_correlation is not None:
             raise ValueError("schema-v2 Harness Run Contract must not contain correlation")
+        if type(self.created_at_ms) is not int:
+            raise ValueError("HarnessRunContract creation time must be an integer")
         if self.created_at_ms < 0:
             raise ValueError("Harness Run creation time must be non-negative")
         if self.deadline_ms is not None:
+            if type(self.deadline_ms) is not int:
+                raise ValueError("HarnessRunContract deadline must be an integer or null")
             if self.deadline_ms < self.created_at_ms:
                 raise ValueError("Harness Run deadline precedes creation")
 
@@ -384,10 +385,6 @@ class HarnessRunContract:
                 raise ValueError(f"HarnessRunContract {field} must contain objects")
         created_at_ms = value["createdAtMs"]
         deadline_ms = value["deadlineMs"]
-        if type(created_at_ms) is not int:
-            raise ValueError("HarnessRunContract creation time must be an integer")
-        if deadline_ms is not None and type(deadline_ms) is not int:
-            raise ValueError("HarnessRunContract deadline must be an integer or null")
         budget = value["budget"]
         completion = value["completionContract"]
         validate_json_value(budget)

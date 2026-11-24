@@ -219,6 +219,49 @@ class HarnessCoreContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "fields differ"):
             HarnessRunContract.from_dict(value)
 
+    def test_direct_privacy_admission_has_same_boolean_domain_as_wire(self) -> None:
+        for bad in ("false", "true", 0, 1, None, []):
+            for flag, wire_name in (
+                ("allow_model_content", "allowModelContent"),
+                ("allow_tool_content", "allowToolContent"),
+            ):
+                with self.subTest(flag=flag, bad=bad):
+                    raw = {
+                        "contentPolicy": "bounded-private-content",
+                        "allowModelContent": False,
+                        "allowToolContent": False,
+                        wire_name: bad,
+                    }
+                    with self.assertRaises(ValueError):
+                        HarnessPrivacyPolicy.from_dict(raw)
+                    with self.assertRaises(ValueError):
+                        HarnessPrivacyPolicy(
+                            content_policy="bounded-private-content", **{flag: bad}
+                        )
+
+    def test_direct_time_admission_has_same_integer_domain_as_wire(self) -> None:
+        for field, wire_name in (
+            ("created_at_ms", "createdAtMs"),
+            ("deadline_ms", "deadlineMs"),
+        ):
+            for bad in (True, False, 20000.0):
+                with self.subTest(field=field, bad=bad):
+                    base = replace(contract(), created_at_ms=0, deadline_ms=20000)
+                    raw = base.to_dict()
+                    raw[wire_name] = bad
+                    with self.assertRaises(ValueError):
+                        HarnessRunContract.from_dict(raw)
+                    with self.assertRaises(ValueError):
+                        replace(base, **{field: bad})
+
+    def test_legacy_bool_version_is_readable_without_identity_rewrite(self) -> None:
+        # Historical Rust and Python readers deliberately recognize this exact
+        # v1 representation. Type fixes must not invalidate issued digests.
+        raw = contract().to_dict()
+        raw["schemaVersion"] = True
+        raw["correlation"] = {"traceparent": None, "tracestate": None, "links": []}
+        self.assertEqual(HarnessRunContract.from_dict(raw).digest, canonical_digest(raw))
+
     def test_metadata_only_policy_rejects_content_capture(self) -> None:
         with self.assertRaisesRegex(ValueError, "metadata-only"):
             HarnessPrivacyPolicy(
