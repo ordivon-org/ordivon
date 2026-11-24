@@ -697,20 +697,53 @@ class ConvergencePlanTests(unittest.TestCase):
 
         Source & task-selection contract only, NOT runtime effect or theorem.
         """
-        root = MODULE_PATH.parents[2]
+        # Materialize the exact current source in an isolated local clone.
+        # The oracle owns its two-commit interval: no unrelated repository
+        # history, network fetch, or permanent workspace state is necessary.
+        temp = tempfile.TemporaryDirectory(prefix="ordivon-temporal-")
+        self.addCleanup(temp.cleanup)
+        original = MODULE_PATH.parents[2]
+        root = Path(temp.name) / "checkout"
+        subprocess.run(
+            ["git", "clone", "--quiet", "--shared", "--no-checkout",
+             str(original), str(root)],
+            check=True, capture_output=True, timeout=30,
+        )
+
         def git(*args: str) -> str:
             return subprocess.check_output(
                 ["git", "-C", str(root), "--no-replace-objects", *args],
-                text=True, stderr=subprocess.PIPE
+                text=True, stderr=subprocess.PIPE, timeout=30,
             ).strip()
+
+        source_cut = MODULE._git("rev-parse", "HEAD")
+        git("checkout", "--quiet", "--detach", source_cut)
+        git("config", "user.name", "Temporal consumer fixture")
+        git("config", "user.email", "temporal-fixture@example.invalid")
+        base = git("rev-parse", "HEAD")
+        formal = root / "tools/formal/mise.toml"
+        formal.write_bytes(formal.read_bytes() + b"\n# controlled temporal source change\n")
+        docs = root / "docs/architecture/temporal-impact-fixture.md"
+        self.assertFalse(docs.exists())
+        docs.write_text("Independent repository-only fixture change.\n")
+        git("add", "--", "tools/formal/mise.toml",
+            "docs/architecture/temporal-impact-fixture.md")
+        git("commit", "--quiet", "-m", "controlled scoped and unscoped source changes")
         head = git("rev-parse", "HEAD")
-        latest_formal = git(
-            "log", "-1", "--format=%H", "HEAD", "--", "tools/formal/mise.toml"
-        )
-        base = git("rev-parse", latest_formal + "^")
-        receipt = MODULE.build_qualified_temporal_impact(
-            base=base, head=head, prefixes=["tools/formal/"]
-        )
+        self.assertEqual(git("rev-parse", "HEAD^"), base)
+        env = {**os.environ, "MISE_TRUSTED_CONFIG_PATHS": str(root)}
+        cli = [sys.executable, str(root / "tools/repo/convergence_plan.py")]
+
+        def invoke(*, base: str, head: str, prefixes: list[str]) -> dict:
+            command = [*cli, "--base", base, "--head", head]
+            for prefix in prefixes:
+                command.extend(("--impact-prefix", prefix))
+            return json.loads(subprocess.check_output(
+                command, cwd=root, env=env, text=True, stderr=subprocess.PIPE,
+                timeout=120,
+            ))
+
+        receipt = invoke(base=base, head=head, prefixes=["tools/formal/"])
         self.assertEqual(receipt["sourceCuts"]["current"], head)
         self.assertIn("tools/formal/mise.toml", receipt["selectedChangedPaths"])
         self.assertEqual(receipt["queueVerifyTasks"], ["formal:verify"])
@@ -734,19 +767,19 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertFalse(receipt["sourceConsumerEvidence"]["impactClosureAdmissible"])
         self.assertEqual(receipt["sourceConsumerEvidence"]["sourceCut"], head)
         args = [
-            sys.executable, str(MODULE_PATH), "--base", base, "--head", head,
+            *cli, "--base", base, "--head", head,
             "--impact-prefix", "tools/formal/"
         ]
-        actual = __import__("json").loads(subprocess.check_output(args, text=True))
+        actual = __import__("json").loads(subprocess.check_output(args, cwd=root, env=env, text=True, timeout=120))
         self.assertEqual(actual["selectedChangedPaths"], receipt["selectedChangedPaths"])
         partial_queue = subprocess.run(
             [*args, "--format", "queue-tasks"],
-            text=True, capture_output=True, check=False,
+            cwd=root, env=env, text=True, capture_output=True, check=False, timeout=120,
         )
         self.assertNotEqual(partial_queue.returncode, 0)
         self.assertEqual(partial_queue.stdout, "")
         self.assertIn("unobserved Git source changes", partial_queue.stderr)
-        empty = MODULE.build_qualified_temporal_impact(
+        empty = invoke(
             base=base, head=head, prefixes=["tools/formal/not-a-real-subtree/"]
         )
         self.assertEqual(empty["queueVerifyTasks"], [])
@@ -759,7 +792,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertFalse(empty["gitDeltaCoverage"]["allTrackedGitChangesObserved"])
         # Exact no-change interval is complete in Git SOURCE space only.
         # It is not evidence that current code/installation is correct.
-        unchanged = MODULE.build_qualified_temporal_impact(
+        unchanged = invoke(
             base=head, head=head, prefixes=["tools/repo/"]
         )
         self.assertTrue(unchanged["gitDeltaCoverage"]["allTrackedGitChangesObserved"])
@@ -772,8 +805,8 @@ class ConvergencePlanTests(unittest.TestCase):
             dict(base=base, head=head, prefixes=["tools/formal/", "tools/formal/"]),
             dict(base=base, head=head, prefixes=["../unbounded/"]),
         ):
-            with self.assertRaises(ValueError):
-                MODULE.build_qualified_temporal_impact(**wrong)
+            with self.assertRaises(subprocess.CalledProcessError):
+                invoke(**wrong)
         forged = subprocess.run(
             [*args, "--changed-file", "docs/README.md"],
             text=True, capture_output=True, check=False
