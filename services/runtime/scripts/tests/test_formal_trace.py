@@ -847,6 +847,22 @@ class FormalTraceContractTests(unittest.TestCase):
                 self.assertEqual(len(receipt["sourcePaths"]), 2)
                 self.assertTrue(any(path.endswith(".sql") for path in receipt["sourcePaths"]))
                 self.assertFalse(receipt["proofReuseAdmissible"])
+                unextended = depfile.read_text(encoding="utf-8")
+                env_row = "# env-dep:CARGO_MANIFEST_DIR=" + str(root / "crates/ordivon-runtime-core") + "\n"
+                depfile.write_text(unextended + env_row, encoding="utf-8")
+                with_env = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(with_env["sourcePaths"], receipt["sourcePaths"])
+                self.assertNotEqual(with_env["compilerEnvironmentDigest"], receipt["compilerEnvironmentDigest"])
+                for bad in (
+                    env_row + env_row,
+                    "# env-dep:CARGO_MANIFEST_DIR=/elsewhere\n",
+                    "# env-dep:UNKNOWN_KEY=opaque\n",
+                    "# env-dep:CARGO_MANIFEST_DIR\n",
+                ):
+                    depfile.write_text(unextended + bad, encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "compiler environment"):
+                        self.module._native_libtest_depfile_receipt(bin_path, sha)
+                depfile.write_text(unextended, encoding="utf-8")
                 original_sql = sql.read_text(encoding="utf-8")
                 sql.write_text("CREATE TABLE different(id TEXT);\n", encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "physical/Git blob mismatch"):
@@ -1306,17 +1322,33 @@ class FormalTraceContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "ignored/always-on"):
                 self.module._require_native_test_role(row, {native}, set(), require_ignored=True)
 
+    def test_pg_impact_selects_own_readset_and_never_infers_reuse(self):
+        trace, invariants = manifests()
+        sql = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/dispatch_cases.rs"
+        result = self.module.project_proving_test_source_impact(trace, invariants, {sql}, profile="pg")
+        self.assertEqual(result["implementationProfile"], "pg")
+        rows = {row["id"]: row for row in result["standingByWitness"]}
+        self.assertEqual(set(rows), {row["id"] for row in trace["pgNativeWitnesses"]})
+        self.assertEqual(rows["PG.dispatchCAS"]["standing"], "RECHECK_REQUIRED")
+        self.assertEqual(rows["PG.terminalProjection"]["standing"], "UNKNOWN")
+        self.assertFalse(result["proofReuseAdmissible"])
+        observed = self.module.project_proving_test_source_impact(trace, invariants, {sql}, compiler_inputs={sql}, profile="pg")
+        self.assertEqual({x["standing"] for x in observed["standingByWitness"]}, {"RECHECK_REQUIRED"})
+        self.assertEqual(observed["sourceReadsetEvidence"]["implementationProfile"], "pg")
+
     def test_pg_profile_rejects_missing_or_relabelled_witness(self):
         trace, invariants = manifests()
-        for change in ("missing", "legacy-role", "unknown-relation"):
+        for change in ("missing", "legacy-role", "unknown-relation", "missing-condition"):
             mutated = copy.deepcopy(trace)
             rows = mutated["pgNativeWitnesses"]
             if change == "missing":
                 rows.pop()
             elif change == "legacy-role":
                 next(row for row in rows if row["evidenceMode"] == "physical-opt-in")["evidenceMode"] = "always-on"
-            else:
+            elif change == "unknown-relation":
                 rows[0]["modelRelations"] = ["Nonexistent"]
+            else:
+                next(row for row in rows if row["evidenceMode"] == "physical-opt-in").pop("condition")
             with self.subTest(change=change):
                 self.assertTrue(self.module.validate(mutated, invariants))
 

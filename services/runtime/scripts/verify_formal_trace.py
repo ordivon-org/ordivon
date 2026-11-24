@@ -109,8 +109,11 @@ def validate_pg_witnesses(trace: dict[str, Any]) -> list[str]:
             errors.append(f"PG native witness {identity} has invalid model relations")
         if not isinstance(row.get("scope"), str) or not row["scope"].strip():
             errors.append(f"PG native witness {identity} lacks bounded scope")
-        if mode == "physical-opt-in" and not symbol.startswith("pg18_"):
-            errors.append(f"PG native witness {identity} is not selected by physical PG18 lane")
+        if mode == "physical-opt-in":
+            if not symbol.startswith("pg18_"):
+                errors.append(f"PG native witness {identity} is not selected by physical PG18 lane")
+            if not isinstance(row.get("condition"), str) or not row["condition"].strip():
+                errors.append(f"PG native witness {identity} lacks physical qualification condition")
     return errors
 
 
@@ -628,7 +631,27 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         raise ValueError("compiler depfile libtest target/readset mismatch")
     if not first_sources or len(first_sources) != len(set(first_sources)) or len(first_sources) > 4096:
         raise ValueError("compiler depfile source cardinality invalid")
-    phony_rules = [line for line in lines[1:] if line and not line.startswith(str(executable) + ": ")]
+    # Cargo's parse_rustc_dep_info recognizes '# env-dep:' separately
+    # from file rules. Qualify the one observed PG source-build dependency
+    # against the actual checkout, rather than silently dropping comments.
+    # Unreviewed environment variables remain UNKNOWN; do not leak values.
+    compiler_environment = {}
+    phony_rules = []
+    for line in lines[1:]:
+        if not line or line.startswith(str(executable) + ": "):
+            continue
+        if line.startswith("# env-dep:"):
+            name, separator, value = line.removeprefix("# env-dep:").partition("=")
+            if (
+                name != "CARGO_MANIFEST_DIR"
+                or not separator
+                or name in compiler_environment
+                or value != str(ROOT.resolve(strict=True) / "crates/ordivon-runtime-core")
+            ):
+                raise ValueError("compiler environment dependency unqualified")
+            compiler_environment[name] = hashlib.sha256(value.encode("utf-8")).hexdigest()
+        else:
+            phony_rules.append(line)
     if sorted(phony_rules) != sorted(f"{source}:" for source in first_sources):
         raise ValueError("compiler depfile phony source rules disagree")
     # rustc -Z binary-dep-depinfo is not assumed: generated sources/build.rs,
@@ -675,13 +698,15 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         "executableSha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
         "depfileSha256": hashlib.sha256(contents.encode("utf-8")).hexdigest(),
         "sourceGitBlobsDigest": hashlib.sha256(canonical).hexdigest(),
+        "compilerEnvironmentDigest": _native_execution_context_digest(compiler_environment),
+        "compilerEnvironmentNames": sorted(compiler_environment),
         "sourcePaths": sorted(path for path, _ in rows),
         "scope": "one-cargo-libtest-rustc-depfile; external/build/dynamic-completeness-UNKNOWN",
         "proofReuseAdmissible": False,
     }
 
 
-def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
+def _qualify_current_compiler_readset(source_head: str, profile: str = "legacy") -> dict[str, Any]:
     """Reuse the existing Cargo artifact selector for one bound libtest depfile."""
     import os
     import subprocess
@@ -702,7 +727,7 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
             "ordivon-runtime-core",
             "--no-default-features",
             "--features",
-            "transactional-runtime",
+            NATIVE_PROFILE_FEATURES[profile],
             "--lib",
             "--no-run",
             "--message-format=json",
@@ -717,7 +742,7 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
     )
     if result.returncode:
         raise ValueError("native compiler artifact selection failed")
-    artifact = _native_cargo_test_artifact(result.stdout)
+    artifact = _native_cargo_test_artifact(result.stdout, profile)
     expected = (ROOT / "crates/ordivon-runtime-core/src/lib.rs").resolve(strict=True)
     if Path(artifact["target"]["src_path"]).resolve(strict=True) != expected:
         raise ValueError("Cargo selected unexpected libtest source")
@@ -726,7 +751,7 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
     if not binary.resolve(strict=True).is_relative_to(expected_root):
         raise ValueError("Cargo libtest artifact outside target directory")
     receipt = _native_libtest_depfile_receipt(binary, source_head)
-    receipt["implementationProfile"] = "legacy"
+    receipt["implementationProfile"] = profile
     if _qualified_native_source_head() != source_head:
         raise ValueError("compiler source changed during Cargo artifact selection")
     return receipt
@@ -738,6 +763,7 @@ def project_proving_test_source_readsets(
     compiler_inputs: set[str] | None = None,
     *,
     source_cut: str | None = None,
+    profile: str = "legacy",
 ) -> dict[str, Any]:
     """Project Runtime-owned source readsets without making an impact decision.
 
@@ -785,22 +811,30 @@ def project_proving_test_source_readsets(
         owned(trace["formalSpecification"]["modulePath"]),
         owned(trace["formalSpecification"]["configPath"]),
     }
-    for item in invariant_manifest.get("invariants", []):
-        if item.get("id") in REQUIRED_RUNTIME_INVARIANT_BINDINGS:
-            for ref in item.get("proof", []):
-                if isinstance(ref, str) and "::" in ref:
-                    common.add(owned(ref.split("::", 1)[0]))
+    if profile == "legacy":
+        for item in invariant_manifest.get("invariants", []):
+            if item.get("id") in REQUIRED_RUNTIME_INVARIANT_BINDINGS:
+                for ref in item.get("proof", []):
+                    if isinstance(ref, str) and "::" in ref:
+                        common.add(owned(ref.split("::", 1)[0]))
 
+    selected = native_profile_trace(trace, profile)
     carriers = {
         item["id"]: owned(item["path"])
         for key in ("contractSeams", "supportingContracts")
-        for item in trace[key]
+        for item in selected[key]
     }
     readsets: dict[str, set[str]] = {}
-    for witness in trace["provingTests"]:
+    witnesses = selected["provingTests"]
+    if profile == "pg":
+        witnesses = [*witnesses, *selected["conditionalAcceptanceTests"]]
+    for witness in witnesses:
         files = set(common)
         files.add(owned(witness["path"]))
-        files.update(carriers[target] for target in witness["proves"] if target in carriers)
+        targets = witness["modelRelations"] if profile == "pg" else witness["proves"]
+        files.update(carriers[target] for target in targets if target in carriers)
+        if profile == "pg" and witness["evidenceMode"] == "physical-opt-in":
+            files.add(owned("scripts/pg_disposable_physical.py"))
         readsets[witness["id"]] = files
 
     if compiler_inputs is not None:
@@ -819,6 +853,7 @@ def project_proving_test_source_readsets(
 
     evidence: dict[str, Any] = {
         "kind": "ordivon.source-readset-evidence",
+        "implementationProfile": profile,
         "truthRole": "runtime-owner-source-readsets-not-proof-or-consumer-authority",
         "scopePrefix": prefix,
         "items": [
@@ -855,6 +890,8 @@ def project_proving_test_source_impact(
     invariant_manifest: dict[str, Any],
     changed_paths: set[str],
     compiler_inputs: set[str] | None = None,
+    *,
+    profile: str = "legacy",
 ) -> dict[str, Any]:
     """Rebuild one Runtime-owned Git-source impact projection, never proof reuse."""
 
@@ -870,7 +907,7 @@ def project_proving_test_source_impact(
         raise ValueError("impact changed paths must be exact normalized Git paths")
 
     readset_evidence = project_proving_test_source_readsets(
-        trace, invariant_manifest, compiler_inputs
+        trace, invariant_manifest, compiler_inputs, profile=profile
     )
     readsets = {
         item["id"].removeprefix("proof:runtime:"): set(item["sourcePaths"])
@@ -906,6 +943,7 @@ def project_proving_test_source_impact(
         )
     return {
         "kind": "ordivon.runtime-formal-source-impact",
+        "implementationProfile": profile,
         "truthRole": "non-authoritative-exact-git-source-projection",
         "standingByWitness": rows,
         "sourceReadsetEvidence": readset_evidence,
@@ -1277,6 +1315,7 @@ def qualify_native_witnesses(trace: dict[str, Any], profile: str = "legacy") -> 
         # formatting, into the exact proof-evidence identity.
         "compilerSourceReadset": {
             "sourceGitBlobsDigest": compiler_inputs["sourceGitBlobsDigest"],
+            "compilerEnvironmentDigest": compiler_inputs["compilerEnvironmentDigest"],
             "scope": compiler_inputs["scope"],
         },
     }
@@ -1328,8 +1367,6 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--impact-base and --impact-head must be supplied together")
     if args.impact_compiler and not args.impact_base:
         parser.error("--impact-compiler requires --impact-base and --impact-head")
-    if args.native_profile != "legacy" and args.impact_base:
-        parser.error("source impact currently describes the legacy trace; PG profile impact is UNKNOWN")
     if args.native_witnesses and args.impact_base:
         parser.error("--native-witnesses cannot be combined with --impact-base")
     for source in (TRACE, INVARIANTS):
@@ -1353,19 +1390,21 @@ def main(argv: list[str] | None = None) -> int:
     if args.impact_base:
         try:
             delta = _git_source_changes(args.impact_base, args.impact_head)
-            compiler = _qualify_current_compiler_readset(args.impact_head) if args.impact_compiler else None
+            compiler = _qualify_current_compiler_readset(args.impact_head, args.native_profile) if args.impact_compiler else None
             compiler_inputs = set(compiler["sourcePaths"]) if compiler else None
             projection = project_proving_test_source_impact(
                 trace,
                 invariant_manifest,
                 delta,
                 compiler_inputs=compiler_inputs,
+                profile=args.native_profile,
             )
             projection["sourceReadsetEvidence"] = project_proving_test_source_readsets(
                 trace,
                 invariant_manifest,
                 compiler_inputs,
                 source_cut=args.impact_head,
+                profile=args.native_profile,
             )
             if compiler:
                 projection["compilerEvidence"] = compiler
