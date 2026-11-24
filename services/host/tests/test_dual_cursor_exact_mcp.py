@@ -67,7 +67,7 @@ def test_direct_attention_ack_rejects_non_exact_or_negative_cursor(cursor: objec
         store.ack("actor:cursor", cursor=cursor, client_request_id="ack:invalid")
 
 
-def test_exact_cursor_wire_preserves_existing_integer_json_schema() -> None:
-    assert TypeAdapter(ExactCursorWire).json_schema() == TypeAdapter(int).json_schema()
-    for cursor in (0, 1, 9223372036854775807):
+def test_exact_cursor_wire_advertises_actual_safe_integer_domain() -> None:
+    assert TypeAdapter(ExactCursorWire).json_schema() == {"type": "integer", "minimum": 0, "maximum": (1 << 53) - 1}
+    for cursor in (0, 1, (1 << 53) - 1):
         assert TypeAdapter(ExactCursorWire).validate_python(cursor) == cursor

@@ -7,6 +7,7 @@ from typing import Any
 from .attention_delta_queries import AttentionDeltaQueries
 from .attention_reentry import project_reentry, reentry_topic_refs
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, validate_max_bytes
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .topic_cursor_records import list_topic_cursors_in_tx
 
 
@@ -25,9 +26,9 @@ class AttentionReentryQueries(AttentionDeltaQueries):
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         if after_sequence is not None and (
-            type(after_sequence) is not int or after_sequence < 0
+            type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError("after_sequence must be non-negative integer")
+            raise ValueError("after_sequence must be non-negative integer within JSON safe integer range")
         # Cursor, events, and topic resume cursors come from one MVCC snapshot.
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")

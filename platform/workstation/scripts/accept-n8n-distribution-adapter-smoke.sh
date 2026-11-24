@@ -5,7 +5,7 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 MONOREPO_ROOT=$(cd "$ROOT/../.." && pwd)
 DIST_INTENT=${DIST_INTENT:-$MONOREPO_ROOT/capabilities/distribution/evidence/r7-artifact-development-publication-intent.json}
 SOCKET=/var/lib/postgres/ordivon-data-r5-pg-14550-v4
-PORT=55434
+PORT=14550
 WF=ordivon-dist-adapter-smoke-v1
 [[ -f "$DIST_INTENT" ]] || { echo "missing Distribution intent: $DIST_INTENT" >&2; exit 3; }
 curl -fsS http://127.0.0.1:5678/healthz/readiness >/dev/null

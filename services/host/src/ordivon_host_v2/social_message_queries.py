@@ -18,6 +18,7 @@ from .collection_pagination import (
     validate_max_bytes,
 )
 from .errors import ConflictError
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .social_errors import MessageNotFound
 from .social_message_records import require_message, verify_message_content_digest
 
@@ -39,8 +40,8 @@ class SocialMessageReadQueries:
     ) -> dict[str, Any]:
         if direction not in {"outgoing", "incoming", "both"}:
             raise ValueError("direction must be outgoing, incoming, or both")
-        if type(after_change_sequence) is not int or after_change_sequence < 0:
-            raise ValueError("after_change_sequence must be non-negative")
+        if type(after_change_sequence) is not int or not 0 <= after_change_sequence <= HOST_WIRE_INT_MAX:
+            raise ValueError("after_change_sequence must be a non-negative safe integer")
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
@@ -163,9 +164,9 @@ class SocialMessageReadQueries:
         if type(limit) is not int or not 1 <= limit <= 200:
             raise ValueError("limit must be in [1,200]")
         if before_sequence is not None and (
-            type(before_sequence) is not int or before_sequence < 1
+            type(before_sequence) is not int or not 1 <= before_sequence <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError("before_sequence must be positive")
+            raise ValueError("before_sequence must be a positive safe integer")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         # PostgreSQL 'simple' FTS does not segment Chinese words. Match a
         # single unspaced CJK phrase literally so it can occur within a

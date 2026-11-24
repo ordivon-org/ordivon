@@ -956,11 +956,28 @@ class FormalTraceContractTests(unittest.TestCase):
             {"UNKNOWN"},
         )
 
+    def test_native_cargo_build_inputs_are_positive_witness_edges(self):
+        trace, invariants = manifests()
+        for relative in ("Cargo.lock", "Cargo.toml", "rust-toolchain.toml",
+                         "crates/ordivon-runtime-core/Cargo.toml",
+                         "crates/ordivon-runtime-mcp/Cargo.toml"):
+            with self.subTest(relative=relative):
+                path = "services/runtime/" + relative
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
+                self.assertEqual(
+                    {r["standing"] for r in result["standingByWitness"]},
+                    {"RECHECK_REQUIRED"},
+                )
+                self.assertTrue(all(path in r["matchedChangedPaths"] for r in result["standingByWitness"]))
+                self.assertEqual(result["unindexedRuntimeChanges"], [])
+                self.assertFalse(result["proofReuseAdmissible"])
+                self.assertTrue(all(not r["dependenciesComplete"] for r in result["sourceReadsetEvidence"]["items"]))
+
     def test_runtime_formal_source_impact_known_recheck_not_erased_by_unknown(self):
         trace, invariants = manifests()
         changed = {
             "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
-            "services/runtime/Cargo.lock",
+            "services/runtime/crates/ordivon-runtime-core/src/unknown_new_module.rs",
         }
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
@@ -1006,6 +1023,100 @@ class FormalTraceContractTests(unittest.TestCase):
         )
         self.assertIn("ONLY", result["scope"])
         self.assertFalse(any("PASS" == row["standing"] for row in result["standingByWitness"]))
+
+    def test_ancestor_toolchain_changes_are_not_unrelated_repository_changes(self):
+        trace, invariants = manifests()
+        for path in ("services/.cargo/config.toml", "services/rust-toolchain.toml",
+                     "services/mise.toml", "services/Cargo.toml"):
+            with self.subTest(path=path):
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
+                self.assertEqual({r["standing"] for r in result["standingByWitness"]}, {"UNKNOWN"})
+                self.assertIn(path, result["crosscuttingAssumptionChanges"])
+
+    def test_native_source_cut_ignores_inherited_git_worktree_redirection(self):
+        import os
+        import subprocess
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            repo = base / "repo"
+            source = repo / "services/runtime"
+            source.mkdir(parents=True)
+            core = source / "core.rs"
+            core.write_text("fn original() {}\n")
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), "-c", "user.name=FormalTest",
+                     "-c", "user.email=test@example.invalid", *args],
+                    stderr=subprocess.PIPE,
+                ).decode().strip()
+            git("init", "-q")
+            git("add", ".")
+            git("commit", "-qm", "baseline")
+            head = git("rev-parse", "HEAD")
+            alternate = base / "clean-alternate"
+            git("worktree", "add", "--detach", str(alternate), head)
+            old_root = self.module.ROOT
+            self.module.ROOT = source
+            try:
+                self.assertEqual(self.module._git_source_changes(head, head), set())
+                core.write_text("fn changed() {}\n")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(head, head)
+                with patch.dict(os.environ, {"GIT_WORK_TREE": str(alternate)}):
+                    self.assertEqual(git("status", "--porcelain"), "")
+                    with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                        self.module._git_source_changes(head, head)
+                    with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                        self.module._qualified_native_source_head()
+            finally:
+                self.module.ROOT = old_root
+
+    def test_exact_git_source_impact_rejects_replace_ref_and_ancestor_dirty_config(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            source = repo / "services/runtime"
+            source.mkdir(parents=True)
+            (source / "core.rs").write_text("fn baseline() {}\n")
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), "-c", "user.name=FormalTest",
+                     "-c", "user.email=test@example.invalid", *args],
+                    stderr=subprocess.PIPE,
+                ).decode().strip()
+            git("init", "-q")
+            git("add", ".")
+            git("commit", "-qm", "baseline")
+            base = git("rev-parse", "HEAD")
+            tree = git("rev-parse", "HEAD^{tree}")
+            (source / "core.rs").write_text("fn changed() {}\n")
+            git("add", ".")
+            git("commit", "-qm", "changed")
+            head = git("rev-parse", "HEAD")
+            old_root = self.module.ROOT
+            self.module.ROOT = source
+            try:
+                self.assertEqual(self.module._git_source_changes(base, head),
+                                 {"services/runtime/core.rs"})
+                config = repo / "services/.cargo/config.toml"
+                config.parent.mkdir()
+                config.write_text("[build]\nrustflags = []\n")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(base, head)
+                config.unlink()
+                config.parent.rmdir()
+                substitute = git("commit-tree", tree, "-p", base, "-m", "substitute")
+                git("replace", head, substitute)
+                git("reset", "--hard", head)
+                self.assertEqual(git("diff", "--name-only", base, head), "")
+                self.assertEqual(git("status", "--porcelain"), "")
+                with self.assertRaisesRegex(ValueError, "replace"):
+                    self.module._git_source_changes(base, head)
+            finally:
+                self.module.ROOT = old_root
 
     def test_runtime_formal_source_impact_rejects_hidden_dirty_git_index_flags(self):
         import subprocess

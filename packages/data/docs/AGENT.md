@@ -68,7 +68,13 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    product PASS or permission to publish. The unmaterialized Episode Parquet
    remains UNKNOWN. A directory path or catalog version does not prove
    that data is deployed.
-2. Verify the exact physical bytes under explicit scope. Unknown remains
+2. Verify the exact physical bytes under explicit scope. Reuse the shared
+   descriptor-bound local reader for producer binding and consumer observation;
+   do not add pathname-based hash fallbacks. Treat unsupported descriptor
+   operations, malformed access URIs, and unavailable reads as scoped UNKNOWN
+   in discovery; strict producer admission still rejects missing evidence with
+   typed I/O errors. This observes one opened descriptor, not future
+   immutability or retention. Unknown remains
    typed UNKNOWN rather than FALSE or PASS. A file digest match does not
    prove statistics, correctness, licenses, or scientific causal claims.
 3. Use the original domain-native contract to verify semantics and release

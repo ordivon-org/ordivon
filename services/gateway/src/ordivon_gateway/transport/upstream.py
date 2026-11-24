@@ -5,6 +5,7 @@ import json
 import logging
 import time
 from collections.abc import Generator, Mapping
+from contextlib import suppress
 from typing import Any
 
 import httpx2
@@ -211,7 +212,14 @@ class McpOwnerCaller:
                 )
                 phase = "typed_readonly_call" if typed_runtime_read else "sdk_client_call"
                 meta: dict[str, Any] = {}
-                inject_trace_context(meta)
+                try:
+                    inject_trace_context(meta)
+                except Exception:
+                    # The optional carrier is not authority or business input.
+                    # Discard partially injected context instead of forwarding it.
+                    meta.clear()
+                    with suppress(Exception):
+                        _LOG.warning("gateway owner trace propagation unavailable")
                 try:
                     if typed_runtime_read:
                         result = await client.session.send_request(
@@ -250,15 +258,16 @@ class McpOwnerCaller:
             # Observation deadlines cancel the SDK task; its session cleanup
             # can then add latency. Log the exact phase without payloads,
             # credentials, response bodies, or a new Gateway state store.
-            _LOG.warning(
-                "gateway_owner_rpc_cancelled owner=%s tool=%s phase=%s "
-                "total_ms=%d phase_before_cleanup_ms=%s",
-                owner_id,
-                tool_name,
-                phase,
-                int((time.perf_counter() - started) * 1000),
-                tool_elapsed_ms,
-            )
+            with suppress(Exception):
+                _LOG.warning(
+                    "gateway_owner_rpc_cancelled owner=%s tool=%s phase=%s "
+                    "total_ms=%d phase_before_cleanup_ms=%s",
+                    owner_id,
+                    tool_name,
+                    phase,
+                    int((time.perf_counter() - started) * 1000),
+                    tool_elapsed_ms,
+                )
             raise
         except OwnerCallError:
             raise

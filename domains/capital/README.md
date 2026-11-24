@@ -33,6 +33,14 @@ Expect exactly `allocationsMinor.BOND_CORE=10000` cents,
 Inputs are caller-supplied and neither risk suitability nor provider
 pricing is thereby verified.
 
+**Fund NAV total-return comparison R2:** the existing passive benchmark
+accepts schemaVersion 2 for matched USD fund NAV total returns already
+including distributions and net of fund expenses. Only external investor
+costs may be declared separately; see
+[Fund NAV benchmark R2](docs/FINANCE_FUND_NAV_BENCHMARK_R2.md).
+The September 2026 SHY/SPY example transcribes issuer-reported rounded
+monthly data and remains retrospective, not authenticated PIT or fills.
+
 For dated outstanding cash needs, use the same read-only entry:
 ```sh
 domains/capital/scripts/run-strategic-contribution-brief \
