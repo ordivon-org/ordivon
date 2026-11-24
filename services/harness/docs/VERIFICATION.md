@@ -43,15 +43,14 @@ No implementation-bound evidence should be cited without its Harness/implementat
 
 The supported Agent Run Python API and installed-wheel Host-free
 create/reopen/inspect smoke require a fresh PostgreSQL test authority, not
-SQLite. An Owner PostgreSQL qualification shard can supply HARNESS_PG_TEST_DSN
-from a dedicated disposable test service. Tests create isolated unique schemas
-and drop only those schemas. The portable queue/release wheel gate validates
-metadata, isolated installation, imports and CLI even without this authority,
-but explicitly reports the Host-free PostgreSQL smoke as NOT_RUN. Supplying
-HARNESS_PG_TEST_DSN makes that smoke mandatory and fail-closed. Local real
+SQLite. The existing Owner queue requires HARNESS_PG_TEST_DSN from a dedicated
+disposable test service before running its gates; the CI already supplies it.
+Tests create isolated unique schemas and drop only those schemas. A separately
+invoked wheel metadata check without PG authority still reports the Host-free
+PostgreSQL smoke as NOT_RUN; it cannot qualify the formal queue. Local real
 PostgreSQL qualification must use an equivalent test-only DSN; no old SQLite
-Run data are migrated or replayed. Missing PG authority is SKIPPED or NOT_RUN,
-never a PASS receipt.
+Run data are migrated or replayed. Individual pure tests may run without PG,
+but missing PG authority is SKIPPED or NOT_RUN, never a PASS receipt.
 
 ## Test quality: stable behavior before file layout (R37)
 
@@ -362,3 +361,9 @@ prove privacy of WAL, logs, backups or physical pages. Native concurrent
 threads use explicit independent original PG connections. Historical
 SQLite-specific Store tests remain, as does a legacy Research Temporal
 pilot with retired imports pending its owner/consumer decision.
+
+The existing AgentRun test support now reuses the same owned-schema fixture
+as the migrated behavior tests. A real forced name collision must raise
+DuplicateSchema before opening a pre-existing schema, and preserve both
+pre-existing sentinel tables. The existing queue rejects absent test DSN
+before tool execution; this is not a new verification service or workflow.

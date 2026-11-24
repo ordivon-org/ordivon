@@ -3,32 +3,19 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-import os
 from pathlib import Path
-import unittest
-import uuid
 
-import psycopg
-from psycopg import sql
 
-from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.agent_run import HarnessAgentRun
+from tests.pg_fixture import pg_test_schema
 
 
 @contextmanager
 def isolated_harness_schema():
-    dsn = os.environ.get("HARNESS_PG_TEST_DSN")
-    if not dsn:
-        raise unittest.SkipTest("HARNESS_PG_TEST_DSN real PostgreSQL test authority is absent")
-    # These unique test schemas are created from scratch and destroyed at teardown.
-    schema = "hpg_test_" + uuid.uuid4().hex[:20]
-    with PostgresHarnessStore(dsn, schema=schema, initialize=True):
-        pass
-    try:
-        yield dsn, schema
-    finally:
-        with psycopg.connect(dsn, autocommit=True) as conn:
-            conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+    with pg_test_schema() as database:
+        with database.connect(initialize=True):
+            pass
+        yield database.dsn, database.schema
 
 
 class PostgresAgentRunCase:

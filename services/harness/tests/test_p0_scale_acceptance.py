@@ -103,6 +103,49 @@ class HarnessP0ScaleAcceptanceTests(unittest.TestCase):
             finally:
                 connection.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(name)))
 
+    def test_formal_queue_requires_pg_authority_before_running_tools(self) -> None:
+        import tomllib
+
+        queue = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]["queue"]["run"]
+        # No executable lookup path: this specifically tests the precondition,
+        # not a second invocation of the real queue or external package tools.
+        result = subprocess.run(
+            ["/usr/bin/bash", "-c", queue],
+            cwd=ROOT, env={"PATH": "/nonexistent"}, text=True,
+            capture_output=True, timeout=5,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("HARNESS_PG_TEST_DSN", result.stderr)
+
+    def test_existing_agent_run_schema_fixture_never_takes_over_collision(self) -> None:
+        import psycopg
+        from psycopg import sql
+        import uuid
+        from tests.pg_test_support import isolated_harness_schema
+
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("dedicated PostgreSQL test database required")
+        candidate = uuid.uuid4()
+        names = ("hpg_test_" + candidate.hex[:20], "hpg_behavior_" + candidate.hex)
+        with psycopg.connect(dsn, autocommit=True) as connection:
+            for name in names:
+                connection.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(name)))
+                connection.execute(sql.SQL("CREATE TABLE {}.sentinel (id integer)").format(sql.Identifier(name)))
+                connection.execute(sql.SQL("INSERT INTO {}.sentinel VALUES (42)").format(sql.Identifier(name)))
+            try:
+                with patch.object(uuid, "uuid4", return_value=candidate):
+                    with self.assertRaises(psycopg.errors.DuplicateSchema):
+                        with isolated_harness_schema():
+                            pass
+                for name in names:
+                    self.assertEqual(connection.execute(
+                        sql.SQL("SELECT id FROM {}.sentinel").format(sql.Identifier(name))
+                    ).fetchone(), (42,))
+            finally:
+                for name in names:
+                    connection.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(name)))
+
     def test_failed_workload_removes_only_its_fresh_schema(self) -> None:
         import psycopg
 
