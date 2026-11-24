@@ -58,19 +58,23 @@ impl PgAdmissionStore {
         let attempt_id: String = attempt.get(0);
         // The selected Attempt cannot certify the whole Job while an older
         // Attempt still has an unresolved lifecycle or capacity reservation.
-        // Read the original PG history in the same snapshot; missing
-        // reservation evidence is not a released predecessor.
-        let unsettled_predecessor: bool = tx
+        // Scheduler allocations are separate from admission reservations:
+        // a terminal writer releases both, while a never-dispatched Attempt
+        // may have no allocation. Check the original PG history in one snapshot.
+        let terminal_job = job.get::<_, Option<String>>(1).is_some();
+        let unsettled_history: bool = tx
             .query_one(
                 "SELECT EXISTS(SELECT 1 FROM attempts a \
-             LEFT JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id \
-             WHERE a.job_id=$1 AND a.attempt_id<>$2 \
-               AND (a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost') \
-                    OR c.state IS DISTINCT FROM 'released'))",
-                &[&job_id, &attempt_id],
+                 LEFT JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id \
+                 LEFT JOIN job_allocations x ON x.attempt_id=a.attempt_id \
+                 WHERE a.job_id=$1 AND (\
+                   (a.attempt_id<>$2 AND (a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost') \
+                    OR c.state IS DISTINCT FROM 'released')) \
+                   OR (x.state='active' AND (a.attempt_id<>$2 OR $3::boolean))))",
+                &[&job_id, &attempt_id, &terminal_job],
             )?
             .get(0);
-        if unsettled_predecessor {
+        if unsettled_history {
             return Ok(PgJobReadback::Inconclusive);
         }
         let Some(reservation) = tx.query_opt(
