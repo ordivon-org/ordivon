@@ -319,3 +319,13 @@ missing typed references as an input conflict, preserving Run revision
 and the existing Lease; an opaque Trace field with the same name still
 does not invent a reference. This strengthens the existing model's
 integrity premise, not a new registry, GC rule or physical release proof.
+
+Four existing production behavioral test consumers now run against the
+original PostgreSQL Store rather than SQLite: Run continuity port,
+Provider recovery signal fencing, structured result carrier persistence,
+and no-progress completion. The shared disposable test schema helper
+requires the explicit dedicated HARNESS_PG_TEST_DSN. Pure interface and
+carrier assertions still run without a database; PG behaviors are not
+silently represented as SQLite success. The existing queue supplies a
+disposable PG DSN. Historical SQLite storage tests remain until their
+real consumers are independently migrated or retired.

@@ -18,7 +18,7 @@ def isolated_acceptance_schema(dsn: str, *, purpose: str) -> Iterator[str]:
     """Create and drop only a fresh owned schema in an explicit test database."""
     if not dsn or not dsn.strip():
         raise ValueError("HARNESS_PG_TEST_DSN is required for PostgreSQL Harness acceptance")
-    if purpose not in {"scale", "edit"}:
+    if purpose not in {"scale", "edit", "behavior"}:
         raise ValueError("unknown Harness acceptance purpose")
     schema = f"hpg_{purpose}_" + uuid.uuid4().hex
     with psycopg.connect(dsn, autocommit=True) as connection:

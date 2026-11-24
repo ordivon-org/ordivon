@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.completion import structured_completion_contract_digest
@@ -10,7 +8,7 @@ from ordivon_harness.ordivon.loop import RunBudget, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_store
 from ordivon_harness.standalone import (
     HarnessCognitionProfile,
     HarnessCognitionSeed,
@@ -46,8 +44,7 @@ COMPLETION = {
 
 class StructuredNoProgressCompletionTests(unittest.TestCase):
     def test_harness_no_progress_does_not_synthesize_agent_conclusion(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_store() as store:
             runtime = FakeRuntime("structured-no-progress")
             base = private_contract("structured-no-progress", max_model_calls=3, max_tool_calls=3)
             contract_budget = dict(base.budget)
@@ -57,7 +54,6 @@ class StructuredNoProgressCompletionTests(unittest.TestCase):
                 completion_contract=COMPLETION,
                 budget=contract_budget,
             )
-            store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             clock = FixedClock()
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -172,7 +168,6 @@ class StructuredNoProgressCompletionTests(unittest.TestCase):
                 str(stopped[0].payload.get("detail")),
             )
             self.assertTrue(runner.doctor()["healthy"])
-            store.close()
 
 
 if __name__ == "__main__":
