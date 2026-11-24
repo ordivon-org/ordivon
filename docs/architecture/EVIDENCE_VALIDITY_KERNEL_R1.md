@@ -574,3 +574,38 @@ dirty bytes, mode-only drift, added or removed Rust member, untracked old
 root, and missing or dirty control inputs. The qualification consumes existing
 Git, dependency policy and relocation-map facts; it creates no database,
 new scheduler, or ownership authority.
+
+R5 composition includes the new native Artifact archive reader in the evidence-specific direct source scope.
+
+## R6 candidate: original execution event and attempt-specific artifact
+
+R5 observed that the native historical PR association can disappear after
+merge. The hard kernel is preservation at the original producer, not a
+new evidence database or an attempt to reconstruct a current PR Base.
+The existing root-preflight, after its existing Formal receipt validator,
+executes the committed formal_github_origin.py bytes and augments the
+same temporary JSON report with githubExecutionOrigin. This is a bounded
+producer assertion from native GitHub event/environment coordinates,
+checked against exact Git checkout, original parent order, producer and
+workflow regular Git blobs. It does not copy the raw event, credentials,
+or run another solver. The same pinned upload action publishes one
+attempt-named Artifact; its digest and ID are qualified by R5's reader.
+
+The consumer selects only the requested native Run's current Attempt
+artifact (legacy names are eligible only for Attempt 1). It independently
+reads the native repo-preflight job and its successful publication step
+in that Attempt; verifies the captured event and native immutable Git
+identities; and only then grants the bounded source-fact projection.
+If old provider PR associations are missing, a new, qualified producer
+event witness is labeled separately from providerBaseAttested. A legacy
+artifact without it stays partial. Missing origin, missing publication,
+wrong attempt, wrong PR Base/Head/parents and ambiguity are negative
+controls. A partial rerun that did not publish a new artifact cannot
+promote a previous artifact into its current attempt.
+
+Trust boundary: the original event witness is not an independent signed
+GitHub webhook, SLSA attestation or cryptographic binding of all dynamic
+inputs. It is an observed original producer assertion carried in the
+exact GitHub archive from an independently observed successful native
+job. No proofReuseAdmissible, physical execution authority, current
+security standing or deployment acceptance is granted.

@@ -32,6 +32,8 @@ SCOPE_INPUTS = {
     "evidence": (
         "tools/repo/evidence_validity.py", "tools/repo/evidence_source_policy.py",
         "tools/repo/evidence_github_checks.py", "tools/repo/evidence_check_decision.py",
+        "tools/repo/evidence_formal_archive.py",
+        "tools/repo/formal_github_origin.py",
         "tools/repo/source_history_legos.py", "tools/repo/ci_telemetry.py",
     ),
 }
