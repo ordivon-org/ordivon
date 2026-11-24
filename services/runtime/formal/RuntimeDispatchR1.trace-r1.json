@@ -124,7 +124,7 @@
     },
     {
       "id": "RuntimeDispatch.terminalEvidence",
-      "path": "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+      "path": "crates/ordivon-runtime-core/src/runtime/job_attempt_state/lifecycle_tests.rs",
       "symbol": "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
       "proves": [
         "RuntimeDispatch.TerminalEvidenceIsCommitted"
