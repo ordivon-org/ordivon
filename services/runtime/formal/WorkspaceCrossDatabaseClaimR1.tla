@@ -155,11 +155,13 @@ IndependentRecipientObserve(r, output, subject) ==
 
 \* A separate authority-qualified COMPLETE original census at the terminal
 \* cut. This is an abstract proof obligation, not an implementation of
-\* output discovery; an absent/partial census stays incomplete even if the
+\* output discovery. Qualification for release is published only after the
+\* producer's delivery record (capture may precede it); an absent/partial
+\* census stays incomplete even if the
 \* observed set happens to be empty. It cannot be reopened in this model.
 QualifyCompleteOutputCensus(r) ==
     /\ phase = "open"
-    /\ r \in published
+    /\ r \in delivered
     /\ harness[r] = "finished"
     /\ r \notin censusComplete
     /\ censusComplete' = censusComplete \cup {r}
@@ -568,6 +570,8 @@ ReleaseRequiresCompleteOriginalCensus ==
 
 ClosedRequiresCompleteOriginalCensus ==
     phase = "closed" => published \subseteq censusComplete
+
+AcceptanceRequiresDelivery == RecipientAccepted \subseteq delivered
 
 \* Intentionally false reachability predicate. A wrong-subject observation
 \* is possible; a correct gate may never promote it to acceptance.

@@ -128,3 +128,20 @@ def test_recipient_identity_and_complete_census_gate_is_nonvacuous_and_falsifiab
     final = bad_empty.stdout.rsplit("State ", 1)[-1]
     assert "censusComplete = {}" in final, bad_empty.stdout
     assert '"released"' in final, bad_empty.stdout
+
+    # Refinement counterexample: publishing an empty output census before
+    # the original delivery record falsely projects an accepted Run.
+    begin = source.index("QualifyCompleteOutputCensus(r) ==")
+    finish = source.index("NativeRelease(r) ==")
+    qualifier = source[begin:finish]
+    delivered_guard = "    /\\ r \\in delivered\n"
+    assert qualifier.count(delivered_guard) == 1
+    premature = source[:begin] + qualifier.replace(
+        delivered_guard, "    /\\ r \\in published\n", 1
+    ) + source[finish:]
+    bad_order = run(premature, "AcceptanceRequiresDelivery")
+    assert bad_order.returncode == 12, bad_order.stdout
+    assert "Invariant AcceptanceRequiresDelivery is violated." in bad_order.stdout
+    final = bad_order.stdout.rsplit("State ", 1)[-1]
+    assert 'censusComplete = {"runB"}' in final, bad_order.stdout
+    assert "delivered = {}" in final, bad_order.stdout
