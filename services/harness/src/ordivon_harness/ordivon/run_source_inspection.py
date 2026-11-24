@@ -28,7 +28,8 @@ class RunSourceInspection:
 
         A latest Event matching the projection does not prove the absence of
         missing earlier events or detached CAS references. This full check is
-        for explicit owner recovery/finalization reads, not the hot Turn path.
+        for owner recovery, finalization and new external-effect admission;
+        ordinary same-effect replay retains its existing read path.
         Concurrent legitimate appends invalidate the cut, not the Journal.
         """
         # The Store returns the exact rows it verified, not a second read

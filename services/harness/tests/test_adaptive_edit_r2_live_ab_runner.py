@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import os
+from dataclasses import replace
+from unittest.mock import patch
 from pathlib import Path
 import unittest
 
@@ -191,6 +194,113 @@ class AdaptiveEditR2LiveABRunnerTests(unittest.TestCase):
             runtime.call_tool("workspace.patch", request)
         self.assertEqual(runtime.files["allocation.py"], before)
         self.assertFalse(runtime.receipts)
+
+    def test_live_entry_requires_explicit_test_db_before_credentials(self) -> None:
+        with patch.dict(os.environ, {"HARNESS_PG_TEST_DSN": "", "ORDIVON_HARNESS_PG_DSN": "unused"}, clear=True):
+            with (
+                patch("sys.argv", [str(SCRIPT)]),
+                patch.object(runner.DeepSeekSettings, "from_secret_file",
+                             side_effect=AssertionError("no provider setup without test database")) as secret,
+                self.assertRaises(SystemExit) as exc,
+            ):
+                runner.main()
+            self.assertEqual(exc.exception.code, 2)
+            secret.assert_not_called()
+
+    def test_original_experiment_runs_on_real_pg_without_live_provider(self) -> None:
+        import psycopg
+        from ordivon_harness.ordivon.model import ScriptedTurnAdapter
+        from tests.test_r3_supported_agent_run import completed
+        from tests.test_adaptive_edit_bridge import scripted_tool_turn
+
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("dedicated PostgreSQL test database required")
+        settings = runner.DeepSeekSettings(api_key="test-only-not-a-real-key")
+        original_adapter_id = runner.DeepSeekTurnAdapter.adapter_id
+
+        class TestAdapter(ScriptedTurnAdapter):
+            adapter_id = original_adapter_id
+            model_id = settings.model
+
+            def __init__(self, settings, *, completion_contract):
+                del completion_contract
+                task = runner.DEFAULT_TASK
+                before = (task.fixture / task.target_path).read_text()
+                after = task.oracle.read_text()
+                read = runner.AgentToolCall(
+                    "tool-call:pg-adaptive:read", "read_workspace",
+                    {"relativePath": task.target_path, "maxBytes": 4096},
+                )
+                edit = runner.AgentToolCall(
+                    "tool-call:pg-adaptive:edit", "edit_workspace",
+                    {"relativePath": task.target_path, "sourceDigest": runner.sha(before),
+                     "codec": "exact-replacement-v1", "oldText": before, "newText": after},
+                )
+                super().__init__(tuple(replace(item, model_id=settings.model) for item in (
+                    scripted_tool_turn("pg-adaptive", 1, read),
+                    scripted_tool_turn("pg-adaptive", 2, edit),
+                    completed("model-call:pg-adaptive:3"),
+                )))
+
+        with psycopg.connect(dsn, autocommit=True) as connection:
+            def schemas():
+                return {row[0] for row in connection.execute(
+                    "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'hpg_edit_%'"
+                )}
+            before = schemas()
+            with patch.object(runner, "DeepSeekTurnAdapter", TestAdapter):
+                result = runner.run_one("exact-replacement-v1", 1, settings, dsn=dsn)
+            self.assertEqual(schemas(), before)
+        self.assertEqual(result["status"], "completed", result)
+        self.assertTrue(result["candidateCompleted"], result)
+        self.assertEqual(result["storageBackend"], "postgresql")
+        self.assertTrue(result["journalHealthy"])
+        self.assertGreater(result["journalEvents"], 1)
+        self.assertEqual(result["modelCalls"], 3)
+        self.assertEqual(result["toolCalls"], 2)
+        self.assertEqual(result["runtimeOperations"], ["workspace.read", "workspace.read", "workspace.patch"])
+        self.assertEqual(result["editObservationStatuses"], ["observed"])
+        self.assertTrue(result["visiblePassed"])
+        self.assertTrue(result["hiddenPassed"])
+        self.assertTrue(result["oracleExact"])
+
+    def test_failed_adapter_setup_removes_only_owned_pg_schema(self) -> None:
+        import psycopg
+
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("dedicated PostgreSQL test database required")
+        settings = runner.DeepSeekSettings(api_key="test-only-not-a-real-key")
+        with psycopg.connect(dsn, autocommit=True) as connection:
+            def schemas():
+                return {row[0] for row in connection.execute(
+                    "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'hpg_edit_%'"
+                )}
+            before = schemas()
+            with (
+                patch.object(runner, "DeepSeekTurnAdapter",
+                             adapter_id=runner.DeepSeekTurnAdapter.adapter_id,
+                             side_effect=RuntimeError("injected setup failure")),
+                self.assertRaisesRegex(RuntimeError, "injected setup failure"),
+            ):
+                runner.run_one("exact-replacement-v1", 1, settings, dsn=dsn)
+            self.assertEqual(schemas(), before)
+
+    def test_fixtures_follow_script_location_not_invoking_directory(self) -> None:
+        import tempfile
+
+        original = Path.cwd()
+        with tempfile.TemporaryDirectory() as temporary:
+            try:
+                os.chdir(temporary)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                self.assertEqual(module.ROOT, ROOT)
+                self.assertTrue(module.DEFAULT_TASK.fixture.is_dir())
+                self.assertTrue(module.DEFAULT_TASK.oracle.is_file())
+            finally:
+                os.chdir(original)
 
     def test_summary_is_descriptive_only(self) -> None:
         records = [

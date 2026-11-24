@@ -5,8 +5,8 @@ EXTENDS Naturals, Sequences
    integrity abstracts the existing original Store validator; it is an explicit
    premise, NOT a proof of CAS/SQL correctness. N represents committed revisions. *)
 CONSTANTS N, UnsafeTailOnly, UnsafeReRead
-VARIABLES observed, integrity, accepted, pendingRevision, terminal, consumed
-vars == <<observed, integrity, accepted, pendingRevision, terminal, consumed>>
+VARIABLES observed, integrity, accepted, pendingRevision, terminal, consumed, newEffect
+vars == <<observed, integrity, accepted, pendingRevision, terminal, consumed, newEffect>>
 
 Reads == UNION { [1..k -> 1..N] : k \in 0..N }
 TypeOK == /\ observed \in Reads
@@ -14,6 +14,7 @@ TypeOK == /\ observed \in Reads
           /\ accepted \in BOOLEAN
           /\ pendingRevision \in 0..N
           /\ terminal \in BOOLEAN
+          /\ newEffect \in BOOLEAN
           /\ consumed \in {"none", "original", "substituted"}
 
 Init == /\ observed = <<>>
@@ -21,12 +22,13 @@ Init == /\ observed = <<>>
         /\ accepted = FALSE
         /\ pendingRevision \in 0..N
         /\ terminal = FALSE
+        /\ newEffect = FALSE
         /\ consumed = "none"
 
 Read == /\ ~accepted
         /\ observed' \in Reads
         /\ integrity' \in BOOLEAN
-        /\ UNCHANGED <<accepted, pendingRevision, terminal, consumed>>
+        /\ UNCHANGED <<accepted, pendingRevision, terminal, consumed, newEffect>>
 
 TailMatches == IF Len(observed) = 0 THEN FALSE ELSE observed[Len(observed)] = N
 ExactCut == /\ Len(observed) = N
@@ -35,7 +37,7 @@ ExactCut == /\ Len(observed) = N
 Accept == /\ ~accepted
           /\ IF UnsafeTailOnly THEN TailMatches ELSE (ExactCut /\ integrity)
           /\ accepted' = TRUE
-          /\ UNCHANGED <<observed, integrity, pendingRevision, terminal, consumed>>
+          /\ UNCHANGED <<observed, integrity, pendingRevision, terminal, consumed, newEffect>>
 
 (* Zero denotes no outstanding effect. An incomplete source may hide the
    original pending revision. This models the normal terminal transaction,
@@ -44,9 +46,10 @@ PendingVisible == \E slot \in 1..Len(observed) : observed[slot] = pendingRevisio
 CommitNormalTerminal ==
     /\ accepted
     /\ ~terminal
+    /\ ~newEffect
     /\ ~PendingVisible
     /\ terminal' = TRUE
-    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision, consumed>>
+    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision, consumed, newEffect>>
 
 Quiesce == /\ accepted
            /\ UNCHANGED vars
@@ -57,9 +60,20 @@ ConsumeVerified ==
     /\ accepted
     /\ consumed = "none"
     /\ consumed' \in (IF UnsafeReRead THEN {"original", "substituted"} ELSE {"original"})
-    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision, terminal>>
+    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision, terminal, newEffect>>
 
-Next == Read \/ Accept \/ CommitNormalTerminal \/ ConsumeVerified \/ Quiesce
+(* NEW distinct effect admission shares the exact-cut obligation. Same
+   original Provider replay/supersession is not a new distinct effect and
+   is separately governed by ToolUnknownRecovery/ProviderClaim models. *)
+AdmitNewEffect ==
+    /\ accepted
+    /\ ~terminal
+    /\ ~newEffect
+    /\ ~PendingVisible
+    /\ newEffect' = TRUE
+    /\ UNCHANGED <<observed, integrity, accepted, pendingRevision, terminal, consumed>>
+
+Next == Read \/ Accept \/ CommitNormalTerminal \/ AdmitNewEffect \/ ConsumeVerified \/ Quiesce
 Spec == Init /\ [][Next]_vars
 
 (* Independently formulated coverage: no original revision is omitted. *)
@@ -70,6 +84,8 @@ AcceptedIntegrity == accepted => integrity
 AcceptanceIsUnreachable == ~accepted
 TerminalHasNoPending == terminal => pendingRevision = 0
 TerminalIsUnreachable == ~terminal
+NewEffectHasNoPending == newEffect => pendingRevision = 0
+NewEffectIsUnreachable == ~newEffect
 UsesVerifiedContent == consumed # "substituted"
 SourceConsumptionIsUnreachable == consumed = "none"
 

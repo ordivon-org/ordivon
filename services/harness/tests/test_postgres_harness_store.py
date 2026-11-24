@@ -2368,6 +2368,29 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 ttl_ms=10_000,
             )
         self.assertEqual(self.store.load_run(run.harness_run_id).revision, revision)
+        # A same-revision partial read cannot erase the original pending
+        # Tool from a NEW Provider Claim; the cached Snapshot remains real.
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+        original_events = self.store.list_run_events
+        def omitted(run_id: str, *, after_sequence: int = 0):
+            return tuple(event for event in original_events(run_id, after_sequence=after_sequence)
+                         if event.data.get("toolStepIntentDigest") != intent.digest)
+        with patch.object(self.store, "list_run_events", side_effect=omitted):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict,
+                                    HarnessProviderCallRecoveryRequired)):
+                continuity.claim_provider_call(
+                    source=continuity.snapshot_provider_source(pending_snapshot),
+                    turn_id="turn:pg-after-pending-tool",
+                    turn_sequence=1,
+                    request_digest=canonical_digest({"request": "after-tool"}),
+                    provider_request_digest=canonical_digest({"wire": "after-tool"}),
+                    adapter_id=run.adapter_id,
+                    requested_model_id=run.requested_model_id,
+                    holder_id="holder:pg-after-pending-tool",
+                    ttl_ms=10_000,
+                )
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, revision)
         # A real settled original Tool permits the same legitimate Snapshot
         # Provider source; the guard must not turn safe recovery into deadlock.
         observation = {"schemaVersion": 1, "kind": "pg.after-tool", "status": "observed"}
@@ -2564,6 +2587,18 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             current.bind_state(state())
             with self.assertRaisesRegex(HarnessSuperseded, "unresolved Tool"):
                 current.prepare_tool_step(third)
+            self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
+            # Actual old PG history remains intact. Inject a partial read
+            # which hides A, while the current B head and revision remain.
+            from ordivon_harness.store_errors import HarnessJournalCorruption
+
+            read_events = reopened.list_run_events
+            def partial_read(run_id: str, *, after_sequence: int = 0):
+                return tuple(event for event in read_events(run_id, after_sequence=after_sequence)
+                             if event.data.get("toolStepIntentDigest") != first.digest)
+            with patch.object(reopened, "list_run_events", side_effect=partial_read):
+                with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict, HarnessSuperseded)):
+                    current.prepare_tool_step(third)
             self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
             # Old Tool A remains unresolved even after Tool B is OBSERVED.
             # The terminal guard scans ALL historical effects, not only B.

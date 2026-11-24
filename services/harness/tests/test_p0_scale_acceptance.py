@@ -74,6 +74,35 @@ class HarnessP0ScaleAcceptanceTests(unittest.TestCase):
                 MODULE.main()
             self.assertEqual(exc.exception.code, 2)
 
+    def test_acceptance_schema_collision_never_removes_existing_schema(self) -> None:
+        import psycopg
+        from psycopg import sql
+        from types import SimpleNamespace
+        import uuid
+        from scripts import harness_acceptance_pg
+
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("dedicated PostgreSQL test database required")
+        suffix = uuid.uuid4().hex
+        name = "hpg_edit_" + suffix
+        with psycopg.connect(dsn, autocommit=True) as connection:
+            connection.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(name)))
+            try:
+                connection.execute(sql.SQL("CREATE TABLE {}.sentinel (id integer)").format(sql.Identifier(name)))
+                connection.execute(sql.SQL("INSERT INTO {}.sentinel VALUES (42)").format(sql.Identifier(name)))
+                with (
+                    patch.object(harness_acceptance_pg.uuid, "uuid4", return_value=SimpleNamespace(hex=suffix)),
+                    self.assertRaises(psycopg.errors.DuplicateSchema),
+                ):
+                    with harness_acceptance_pg.isolated_acceptance_schema(dsn, purpose="edit"):
+                        self.fail("colliding schema is not owned")
+                self.assertEqual(connection.execute(
+                    sql.SQL("SELECT id FROM {}.sentinel").format(sql.Identifier(name))
+                ).fetchone(), (42,))
+            finally:
+                connection.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(name)))
+
     def test_failed_workload_removes_only_its_fresh_schema(self) -> None:
         import psycopg
 

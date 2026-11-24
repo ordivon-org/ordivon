@@ -10,17 +10,19 @@ import math
 from pathlib import Path
 import os
 import subprocess
-import uuid
-from contextlib import contextmanager
-from collections.abc import Iterator
 import time
 from typing import Any
 
 from ordivon_harness.core_contracts import HarnessBoundReference, HarnessRunContract
-import psycopg
-from psycopg import sql
 
 from ordivon_harness.postgres_store import PostgresHarnessStore
+try:
+    from harness_acceptance_pg import isolated_acceptance_schema
+except ModuleNotFoundError as error:
+    if error.name != "harness_acceptance_pg":
+        raise
+    from scripts.harness_acceptance_pg import isolated_acceptance_schema
+
 from ordivon_harness.store import HarnessEventAdmission, HarnessEventWrite
 
 DIGEST_A = "sha256:" + "a" * 64
@@ -86,22 +88,6 @@ def _revision() -> str:
     ).strip()
 
 
-@contextmanager
-def _isolated_scale_schema(dsn: str) -> Iterator[str]:
-    """Create and drop only a fresh owned schema in an explicit test database."""
-    if not dsn or not dsn.strip():
-        raise ValueError("HARNESS_PG_TEST_DSN is required for PostgreSQL scale acceptance")
-    schema = "hpg_scale_" + uuid.uuid4().hex
-    with psycopg.connect(dsn, autocommit=True) as connection:
-        # No IF NOT EXISTS: a pre-existing schema is not ours to remove.
-        connection.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
-    try:
-        yield schema
-    finally:
-        with psycopg.connect(dsn, autocommit=True) as connection:
-            connection.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
-
-
 def _source_clean() -> bool:
     return not subprocess.check_output(
         ["git", "status", "--porcelain", "--", "src", "scripts", "pyproject.toml", "uv.lock"],
@@ -144,7 +130,7 @@ def run_acceptance(
     if inspect_samples < 1:
         raise ValueError("inspect sample count must be positive")
 
-    with _isolated_scale_schema(dsn) as schema:
+    with isolated_acceptance_schema(dsn, purpose="scale") as schema:
         return _run_scale(
             dsn=dsn, schema=schema, run_count=run_count, events_per_run=events_per_run,
             batch_size=batch_size, inspect_samples=inspect_samples,

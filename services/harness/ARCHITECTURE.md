@@ -302,6 +302,20 @@ Store, an explicit dedicated test DSN, a fresh owned disposable schema and
 distinct trace CAS payloads; existing historical SQLite receipts are
 unchanged. A clean revision is required for persistent benchmark evidence.
 
+**R42 source refinement (2026-11-24, candidate):**
+New Tool and Provider claim admission now consumes the original Store's
+exact verified Run cut, rather than an unqualified event list. Existing
+revision/lease fencing still applies; exact same-Provider recovery replay
+does not acquire a new external-effect identity. The old partial-read
+failure can no longer hide a pending original effect from these consumers.
+This does not certify Runtime physical quiescence or Domain delivery.
+
+The actual Adaptive Edit experiment and scale acceptance consumers share
+one disposable PostgreSQL schema lifecycle in a dedicated test database.
+The experiment no longer constructs SQLite storage, does not infer a
+production DSN, and records its Journal Doctor standing and actual report
+date. Historical experimental evidence is unchanged.
+
 **R41 source refinement (2026-11-24, candidate):**
 The PG Store still owns one connection and the original atomic
 Run/Event/Lease admission transaction. Its existing responsibility seams

@@ -171,3 +171,11 @@ substituted second read with the same revision positions. The reread probe
 reaches a substituted consumption after valid acceptance; the positive probe
 reaches actual consumption of the original cut. This abstracts content
 identity, not a proof of database cryptographic integrity.
+
+### R42 new distinct effect admission
+
+OriginalSourceCutR1 extends its existing exact-cut model to admission of a
+new distinct effect, with a weak partial-cut omission counterexample and a
+positive clean-admission reachability probe. The original Provider same-ID
+replay/supersession remains a separate state machine; this bounded model
+does not qualify native external effects.

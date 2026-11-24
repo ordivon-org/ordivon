@@ -94,8 +94,11 @@ class ToolContinuity:
         # settled. Reuse the same full-Journal source observer as Finalization.
         # The exact observed_revision below is still fenced by the PG Lease
         # acquisition; a concurrent Writer cannot bypass this admission CAS.
+        verified_projection, verified_events = self._read_verified_source_cut()
+        if verified_projection.revision != observed_revision:
+            raise HarnessSuperseded("Run changed during new Tool admission")
         unsettled_provider_ids, unsettled_tool_digests = inspect_all_unsettled_effect_sources(
-            self.store.list_run_events(self.harness_run_id),
+            verified_events,
             store=self.store,
             harness_run_id=self.harness_run_id,
             binding=self.binding,

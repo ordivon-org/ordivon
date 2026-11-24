@@ -295,3 +295,18 @@ the issued Tool, the new consumer uses exactly one Journal read and retains
 the original identity. Concurrent append and actual missing-edge regressions
 remain enforced; the original SourceCut formal gate adds a reread and
 positive consumption probe.
+
+### R42 verified new effect admission and PG experiment consumers
+
+Real PostgreSQL fixtures retain pending Tool A and exercise both new Tool
+and Provider admission with an injected partial read. The original writer
+accepted each new effect before the correction; both must reject without
+advancing Run revision now, with positive settled/replay paths retained.
+The original SourceCut model covers distinct new-effect admission and
+nonvacuity using the same TLC gate.
+
+Adaptive Edit and Scale share the existing disposable test PG schema
+lifecycle. A deterministic Provider fixture executes an actual in-memory
+read/edit sequence and checks visible/hidden verifiers, oracle bytes, PG
+Doctor, failure cleanup, and pre-existing schema collision safety. This is
+not paid model performance or physical Runtime qualification.

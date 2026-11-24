@@ -199,8 +199,13 @@ class ProviderContinuityCommands:
             # Provider and Tool in the original PG history. This is inside
             # the original PG Lease, so the admission read and append cannot
             # race another Writer on this Run.
+            verified_projection, verified_events = self._read_verified_source_cut()
+            if verified_projection.revision != lease.run_revision:
+                raise HarnessProviderCallRecoveryRequired(
+                    "Run changed during new Provider admission"
+                )
             unsettled_providers, unsettled_tools = inspect_all_unsettled_effect_sources(
-                self.store.list_run_events(self.harness_run_id),
+                verified_events,
                 store=self.store,
                 harness_run_id=self.harness_run_id,
                 binding=self.binding,

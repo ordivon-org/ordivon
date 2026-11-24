@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -26,9 +27,17 @@ from ordivon_harness.ordivon.model import AgentToolCall, AgentToolDefinition
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from ordivon_harness.runtime_port import HarnessRuntimeErrorDetail, HarnessRuntimeToolRejected
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+try:
+    from harness_acceptance_pg import isolated_acceptance_schema
+except ModuleNotFoundError as error:
+    if error.name != "harness_acceptance_pg":
+        raise
+    from scripts.harness_acceptance_pg import isolated_acceptance_schema
 
-ROOT = Path.cwd()
+
+
+ROOT = Path(__file__).resolve().parents[1]
 CODECS = ("exact-replacement-v1", "anchored-line-v1")
 
 
@@ -417,6 +426,7 @@ def run_one(
     replicate: int,
     settings: DeepSeekSettings,
     *,
+    dsn: str,
     task_spec: LiveTaskSpec = DEFAULT_TASK,
     max_total_tokens: int = 64_000,
 ) -> dict[str, JsonValue]:
@@ -510,8 +520,10 @@ def run_one(
         },
         {"role": "user", "content": objective},
     )
-    with tempfile.TemporaryDirectory() as directory:
-        store = SQLiteHarnessStore.initialize(Path(directory) / "state")
+    with (
+        isolated_acceptance_schema(dsn, purpose="edit") as schema,
+        PostgresHarnessStore(dsn, schema=schema, initialize=True) as store,
+    ):
         store.create_run(contract)
         continuity = EventSourcedRunContinuity(store, contract)
         bridge = TreatmentBridge(
@@ -539,10 +551,14 @@ def run_one(
             outcome = verify(source, task_spec)
             rejected = sum(1 for o in result.observations if o.status == "rejected")
             edit_obs = [o for o in result.observations if o.tool_name == "edit_workspace"]
+            doctor = store.doctor(full=True)
             record = {
                 "treatment": codec,
                 "replicate": replicate,
                 "status": "completed",
+                "storageBackend": doctor["storageBackend"],
+                "journalHealthy": doctor["healthy"],
+                "journalEvents": doctor["events"],
                 "stopCode": result.stop_code.value,
                 "candidateCompleted": result.candidate_completed,
                 "modelCalls": result.model_calls,
@@ -581,7 +597,6 @@ def run_one(
                 "oracleExact": source == task_spec.oracle.read_text(),
                 **outcome,
             }
-        store.close()
         return record
 
 
@@ -638,6 +653,10 @@ def main() -> int:
     if args.start_replicate < 1 or args.replicates < 1 or args.max_total_tokens < 1:
         parser.error("replicate indexes/counts and max-total-tokens must be positive")
 
+    dsn = os.environ.get("HARNESS_PG_TEST_DSN", "").strip()
+    if not dsn:
+        parser.error("HARNESS_PG_TEST_DSN dedicated test database is required; no SQLite fallback")
+
     settings = DeepSeekSettings.from_secret_file(
         timeout_seconds=30.0,
         max_response_bytes=2_097_152,
@@ -655,6 +674,7 @@ def main() -> int:
                 codec,
                 replicate,
                 settings,
+                dsn=dsn,
                 task_spec=task_spec,
                 max_total_tokens=args.max_total_tokens,
             )
@@ -682,7 +702,7 @@ def main() -> int:
     report: dict[str, JsonValue] = {
         "schemaVersion": 1,
         "kind": "ordivon.adaptive-edit-r2-live-ab",
-        "date": "2026-09-14",
+        "date": datetime.now(timezone.utc).date().isoformat(),
         "taskId": task_spec.task["taskId"],
         "provider": "deepseek",
         "requestedModel": settings.model,

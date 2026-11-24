@@ -130,7 +130,7 @@ Historical P2 evidence remains contextual rather than replayed benchmark data: i
 
 ## Live model-specific profile
 
-`scripts/run_adaptive_edit_r2_live_ab.py` now provides an explicit, opt-in live Provider A/B runner. Ordinary regression tests import and test its treatment fencing and Runtime-shaped in-memory fixture but do not contact DeepSeek.
+`scripts/run_adaptive_edit_r2_live_ab.py` now provides an explicit, opt-in live Provider A/B runner. New runs require a dedicated `HARNESS_PG_TEST_DSN`, use the original PostgreSQL Journal in a fresh disposable schema, and record its Doctor standing. Historical SQLite results remain unchanged. Ordinary regression tests import and test its treatment fencing and Runtime-shaped in-memory fixture but do not contact DeepSeek.
 
 The first corrected live profile used:
 
