@@ -84,12 +84,12 @@ def test_work_queries_have_no_mutation_commands_or_receipts() -> None:
         assert forbidden not in literals
 
 
-def test_work_read_rejects_revision_outside_postgres_bigint_before_connection() -> None:
+def test_work_read_rejects_revision_outside_json_safe_integer_before_connection() -> None:
     """The actual store rejects a nonrepresentable revision, not the DB driver."""
     import pytest
 
     with pytest.raises(ValueError, match="positive PostgreSQL BIGINT"):
-        WorkStore("postgresql://unreachable").get_work("work:outside", (1 << 63))
+        WorkStore("postgresql://unreachable").get_work("work:outside", (1 << 53))
 
 
 def test_native_mcp_work_revision_types_reject_unrepresentable_values() -> None:
@@ -101,9 +101,9 @@ def test_native_mcp_work_revision_types_reject_unrepresentable_values() -> None:
 
     read = TypeAdapter(PositiveWorkRevision)
     write = TypeAdapter(AdvancableWorkRevision)
-    assert read.validate_python((1 << 63) - 1) == (1 << 63) - 1
-    assert write.validate_python((1 << 63) - 2) == (1 << 63) - 2
+    assert read.validate_python((1 << 53) - 1) == (1 << 53) - 1
+    assert write.validate_python((1 << 53) - 2) == (1 << 53) - 2
     with pytest.raises(ValidationError):
-        read.validate_python(1 << 63)
+        read.validate_python(1 << 53)
     with pytest.raises(ValidationError):
-        write.validate_python((1 << 63) - 1)
+        write.validate_python((1 << 53) - 1)

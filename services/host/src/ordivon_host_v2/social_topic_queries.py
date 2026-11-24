@@ -16,6 +16,7 @@ from .collection_pagination import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .social_errors import TopicResumeCursorAhead
 from .social_message_records import verify_message_content_digest
 from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
@@ -98,8 +99,8 @@ class SocialTopicReadQueries:
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
-        if type(after_sequence) is not int or after_sequence < 0:
-            raise ValueError("after_sequence must be non-negative")
+        if type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX:
+            raise ValueError("after_sequence must be non-negative within JSON safe integer range")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
