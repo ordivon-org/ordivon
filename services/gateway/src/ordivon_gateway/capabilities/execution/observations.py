@@ -271,6 +271,15 @@ class ExecutionObservationMethods:
         content = result.get("content")
         if not isinstance(content, str):
             raise GatewayError("artifact owner returned invalid content")
+        # The cursor is measured in bytes, not Python code points. Refuse
+        # a contradictory range even at EOF; otherwise an Agent may silently
+        # skip bytes or consume overlapping content. Do not replace bad UTF-8.
+        try:
+            content_bytes = len(content.encode("utf-8"))
+        except UnicodeEncodeError:
+            raise GatewayError("artifact owner returned invalid UTF-8 content") from None
+        if content_bytes != next_offset - observed_offset:
+            raise GatewayError("artifact owner returned content inconsistent with byte cursor")
         return ArtifactChunk(
             operation_ref=operation_ref,
             owner_id=owner_id,
