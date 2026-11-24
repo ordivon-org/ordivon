@@ -118,10 +118,30 @@ RequestNativeStop ==
 \* Physical observation means NO pending systemd manager job and no
 \* bound cgroup/PID (including activating/start-pre units). The source
 \* implementation must independently prove these facts before using it.
+\* A Manager Job can disappear while its original operation remains active.
+\* This is witnessed by the native opt-in Manager handoff experiment:
+\* CancelJob followed by the original executing Unit writing completion bytes.
+\* Neither this transition nor an effect completed before ACK is a drain proof.
+CancelRunningManagerJob ==
+    /\ LaunchPolicy = "drainAck"
+    /\ stopIntent
+    /\ nativeUnit = "running"
+    /\ nativeUnit' = "running_manager_cancelled"
+    /\ UNCHANGED <<issuer, attempt, pgGuard, dispatchCount,
+                   stopIntent, dispatchFenced, revokeAck,
+                   spawnedAfterCommit, spawnedAfterAck>>
+
+CompleteOriginalEffect ==
+    /\ nativeUnit = "running_manager_cancelled"
+    /\ nativeUnit' = IF revokeAck THEN "effect_after_ack" ELSE "effect_completed"
+    /\ UNCHANGED <<issuer, attempt, pgGuard, dispatchCount,
+                   stopIntent, dispatchFenced, revokeAck,
+                   spawnedAfterCommit, spawnedAfterAck>>
+
 ObserveNativeQuiescence ==
     /\ LaunchPolicy = "drainAck"
     /\ stopIntent
-    /\ nativeUnit \in {"pending", "running"}
+    /\ nativeUnit \in {"pending", "running", "running_manager_cancelled", "effect_completed"}
     /\ nativeUnit' = "quiescent"
     /\ UNCHANGED <<issuer, attempt, pgGuard, dispatchCount,
                    stopIntent, dispatchFenced, revokeAck,
@@ -149,6 +169,8 @@ Next ==
     \/ CommitRevoke
     \/ NativeTargetSpawn
     \/ RequestNativeStop
+    \/ CancelRunningManagerJob
+    \/ CompleteOriginalEffect
     \/ ObserveNativeQuiescence
     \/ PublishRevokeAck
 
@@ -159,7 +181,8 @@ TypeOK ==
     /\ issuer \in {"current", "revoked"}
     /\ attempt \in {"none", "admitted", "issued"}
     /\ pgGuard \in {"none", "held", "lost"}
-    /\ nativeUnit \in {"absent", "pending", "running", "quiescent"}
+    /\ nativeUnit \in {"absent", "pending", "running", "running_manager_cancelled",
+                       "effect_completed", "effect_after_ack", "quiescent"}
     /\ dispatchCount \in 0..1
     /\ stopIntent \in BOOLEAN
     /\ dispatchFenced \in BOOLEAN
@@ -177,6 +200,10 @@ AckRequiresPhysicalQuiescence ==
 \* Negative-control non-vacuity: ACK and physical native target spawn are
 \* reachable on legitimate paths in the drainAck design.
 AckUnreachable == ~revokeAck
-TargetSpawnUnreachable == nativeUnit \notin {"running", "quiescent"}
+TargetSpawnUnreachable == nativeUnit # "running"
+\* A quiet Unit may have never executed. These predicates require actual
+\* running/continued-effect witnesses, not quiescence alone.
+ManagerCancelEffectUnreachable == nativeUnit # "effect_completed"
+NoOriginalEffectAfterAck == nativeUnit # "effect_after_ack"
 
 =============================================================================

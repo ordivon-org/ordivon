@@ -8,6 +8,8 @@ run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
+mise run verify:formal:passive-benchmark
+mise run verify:formal:liability-reserve
 mise run verify:formal:unit-r-margin
 mise run verify:formal:unit-r-rebalance
 mise run verify:formal:algebraic-capital
@@ -178,7 +180,7 @@ description = "Native Z3 proof of Portfolio cashflow-matched benchmark transitio
 run = """
 set -euo pipefail
 observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/PortfolioPassiveBenchmarkR1.smt2)"
-expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat')"
+expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat\nunsat\nsat')"
 if [ "$observed" != "$expected" ]; then
   printf 'Unexpected model result (unknown/timeout/SAT obligation is not verified): %s\n' "$observed" >&2
   exit 1
@@ -269,4 +271,12 @@ if observed != expected:
     raise SystemExit(f"Accounting reservation formal obligations mismatch: {observed!r} != {expected!r}")
 print("AccountingReservationR1: 9 universal QF_LIA checks UNSAT; 4 invalid-state counterexamples SAT")
 PYZ3
+"""
+
+[tasks."verify:formal:liability-reserve"]
+description = "Lean proof of dated-liability cash reserve contribution bounds"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioLiabilityReserve.lean
 """

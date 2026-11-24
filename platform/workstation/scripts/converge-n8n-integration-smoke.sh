@@ -10,7 +10,7 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SOURCE="$ROOT/n8n/workflows/ordivon-integration-smoke-v1.json"
 WORKFLOW_ID=ordivon-smoke-v1
 SOCKET=/var/lib/postgres/ordivon-data-r5-pg-14550-v4
-PORT=55434
+PORT=14550
 STATE=/var/lib/n8n/.n8n
 RUNTIME=/run/user/934
 

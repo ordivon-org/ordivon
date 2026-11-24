@@ -9,6 +9,7 @@ from .attention_projections import TargetKind as TargetKind
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ActorRefNotFound, ConflictError
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .postgres_connections import HostPostgresConnections
 from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
@@ -93,8 +94,8 @@ class AttentionStore(
             return result
 
     def ack(self, actor_ref: str, *, cursor: int, client_request_id: str) -> dict[str, Any]:
-        if type(cursor) is not int or cursor < 0:
-            raise ValueError("cursor must be a non-negative exact integer")
+        if type(cursor) is not int or not 0 <= cursor <= HOST_WIRE_INT_MAX:
+            raise ValueError("cursor must be a non-negative exact integer within JSON safe integer range")
         request = {"operation": "attention.ack", "actorRef": actor_ref, "cursor": cursor}
         request_digest = canonical_digest(request)
         with self._connect() as conn, conn.transaction():
@@ -111,18 +112,15 @@ class AttentionStore(
                 raise ConflictError(
                     "attention cursor cannot acknowledge beyond current change horizon"
                 )
-            current = conn.execute(
-                "SELECT cursor FROM attention_cursors WHERE actor_ref=%s FOR UPDATE", (actor_ref,)
-            ).fetchone()
-            previous = 0 if current is None else int(current["cursor"])
-            if cursor < previous:
-                raise ConflictError("attention cursor cannot move backwards")
+            # PG18 returns the actual predecessor at the unique-key UPSERT
+            # linearization point, even when a concurrent first ACK was invisible
+            # to a preceding SELECT. The monotonic predicate remains authoritative.
             updated = conn.execute(
                 "INSERT INTO attention_cursors(actor_ref,cursor) VALUES (%s,%s) "
                 "ON CONFLICT (actor_ref) DO UPDATE "
                 "SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp() "
                 "WHERE attention_cursors.cursor <= EXCLUDED.cursor "
-                "RETURNING cursor",
+                "RETURNING COALESCE(OLD.cursor,0) AS previous_cursor, NEW.cursor AS cursor",
                 (actor_ref, cursor),
             ).fetchone()
             if updated is None:
@@ -131,8 +129,8 @@ class AttentionStore(
                 "schemaVersion": 1,
                 "kind": "ordivon.host-attention-ack",
                 "actorRef": actor_ref,
-                "previousCursor": previous,
-                "cursor": cursor,
+                "previousCursor": int(updated["previous_cursor"]),
+                "cursor": int(updated["cursor"]),
                 "truthBoundary": "navigation acknowledgement only; not evidence that message content was semantically accepted",
             }
             record_command_receipt(conn, client_request_id, "attention.ack", request_digest, result)

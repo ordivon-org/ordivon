@@ -202,6 +202,37 @@ def replay_passive_benchmark(
     }
 
 
+def replay_fund_nav_benchmark(request: dict[str, Any]) -> dict[str, Any]:
+    """Compare declared fund NAV total returns without charging fund fees again."""
+    from .fund_return_inputs import NAV_BASIS, normalize_fund_return_request
+
+    try:
+        periods, evidence = normalize_fund_return_request(request)
+    except ValueError as exc:
+        raise PassiveBenchmarkError(str(exc)) from exc
+    result = replay_passive_benchmark(
+        opening_balance=request["openingBalance"], currency=request["currency"],
+        periods=periods,
+    )
+    return {
+        **result,
+        "schemaVersion": 2,
+        "standing": "DESCRIPTIVE_FUND_NAV_REPLAY_NO_SOURCE_VALIDATION",
+        "returnBasis": NAV_BASIS,
+        "fundExpenseTreatment": "ALREADY_EMBEDDED_IN_DECLARED_RETURN_NOT_DEDUCTED_AGAIN",
+        "distributionTreatment": "ALREADY_EMBEDDED_IN_DECLARED_RETURN_NOT_ADDED_AGAIN",
+        "feeConvention": "EXTERNAL_INVESTOR_FRACTION_AND_FIXED_COST_AT_START_BEFORE_RETURN",
+        "returnEvidence": evidence,
+        "dataStanding": "CALLER_DECLARED_UNATTESTED",
+        "notEvaluated": [
+            "Source authenticity, point-in-time availability and complete distributions",
+            "Market price fills, realized taxes, transaction costs and FX",
+            "Time-weighted or money-weighted return and drawdown",
+            "Independent strategy verification and capital authorization",
+        ],
+    }
+
+
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     output: dict[str, Any] = {}
     for key, value in pairs:
@@ -217,19 +248,22 @@ def main() -> int:
     args = parser.parse_args()
     try:
         data = json.loads(args.input.read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
-        if type(data) is not dict or set(data) != {
-            "schemaVersion", "kind", "openingBalance", "currency", "periods",
-        }:
-            raise PassiveBenchmarkError("input: invalid root fields")
-        if type(data["schemaVersion"]) is not int or data["schemaVersion"] != 1:
-            raise PassiveBenchmarkError("input: invalid schemaVersion")
-        if data["kind"] != "ordivon.capital.finance.passive-benchmark-input":
-            raise PassiveBenchmarkError("input: unsupported kind")
-        out = replay_passive_benchmark(
-            opening_balance=data["openingBalance"],
-            currency=data["currency"],
-            periods=data["periods"],
-        )
+        if type(data) is dict and type(data.get("schemaVersion")) is int and data["schemaVersion"] == 2:
+            out = replay_fund_nav_benchmark(data)
+        else:
+            if type(data) is not dict or set(data) != {
+                "schemaVersion", "kind", "openingBalance", "currency", "periods",
+            }:
+                raise PassiveBenchmarkError("input: invalid root fields")
+            if type(data["schemaVersion"]) is not int or data["schemaVersion"] != 1:
+                raise PassiveBenchmarkError("input: invalid schemaVersion")
+            if data["kind"] != "ordivon.capital.finance.passive-benchmark-input":
+                raise PassiveBenchmarkError("input: unsupported kind")
+            out = replay_passive_benchmark(
+                opening_balance=data["openingBalance"],
+                currency=data["currency"],
+                periods=data["periods"],
+            )
     except (PassiveBenchmarkError, ValueError, OSError, UnicodeError) as exc:
         print(json.dumps({
             "standing": "REJECTED", "capitalAuthority": "NONE",

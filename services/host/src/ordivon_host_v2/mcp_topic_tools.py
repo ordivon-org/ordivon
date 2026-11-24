@@ -14,7 +14,7 @@ from .social_contracts import (
     TopicResumeResponse,
 )
 from .social_store import SocialStore
-from .wire_common import ExactCursorWire
+from .wire_common import ExactCursorWire, NonnegativeHostInteger
 
 
 def register_topic_tools(
@@ -43,7 +43,7 @@ def register_topic_tools(
         actorRef: str,
         state: Literal["open", "closed", "archived"],
         expectedState: Literal["open", "closed", "archived"],
-        expectedHighSequence: int,
+        expectedHighSequence: NonnegativeHostInteger,
     ) -> TopicResponse:
         request = {
             "topicRef": topicRef,

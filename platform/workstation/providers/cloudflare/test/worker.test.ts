@@ -436,3 +436,68 @@ test("non-PNG Browser output fails before Browser Artifacts commit", async () =>
   );
   assert.ok(memory.objects.has(`receipts/v2/${requestId}.json`));
 });
+
+test("signed unsupported methods preserve route-specific Allow without execution", async () => {
+  const memory = new MemoryR2();
+  const environment = makeEnv(memory);
+  const routes = [
+    ["/health", "POST", "GET"],
+    ["/v1/capabilities", "POST", "GET"],
+    ["/v1/fetch", "GET", "POST"],
+    ["/v1/browser/run", "GET", "POST"],
+    ["/v1/receipts/request_method_001", "POST", "GET"],
+    ["/v1/artifacts/fetch/v1/request_method_001.body", "POST", "GET"]
+  ] as const;
+  for (const [path, method, allow] of routes) {
+    const response = await handleRequest(
+      signedRequest(`https://edge.invalid${path}`, { method }),
+      environment,
+      { fetcher: async () => assert.fail("wrong method dispatched fetch") }
+    );
+    assert.equal(response.status, 405, path);
+    assert.equal(response.headers.get("allow"), allow, path);
+    assert.deepEqual(await response.json(), { error: "method_not_allowed", allow });
+  }
+  assert.equal(memory.objects.size, 0);
+});
+
+test("authentication binds method, query and original body before route dispatch", async () => {
+  const memory = new MemoryR2();
+  const environment = makeEnv(memory);
+  const url = "https://edge.invalid/v1/fetch";
+  const body = '{"url":"https://allowed.example.org/data"}';
+  const signed = signedRequest(url, { method: "POST", body });
+  const variants = [
+    new Request(url, { method: "GET", headers: signed.headers }),
+    new Request(url + "?extra=1", { method: "POST", body, headers: signed.headers }),
+    new Request(url, { method: "POST", body: body + " ", headers: signed.headers })
+  ];
+  for (const request of variants) {
+    const response = await handleRequest(request, environment, {
+      fetcher: async () => assert.fail("invalid signature dispatched fetch")
+    });
+    assert.equal(response.status, 401);
+    assert.equal((await response.json() as { error: string }).error, "invalid_authentication");
+  }
+  assert.equal(memory.objects.size, 0);
+});
+
+test("artifact routing rejects encoded separators and distinguishes authenticated unknown routes", async () => {
+  const memory = new MemoryR2();
+  const environment = makeEnv(memory);
+  for (const encoded of ["%2f", "%2F", "%5c", "%5C", "%ZZ"]) {
+    const response = await handleRequest(
+      signedRequest(`https://edge.invalid/v1/artifacts/fetch${encoded}v1/request_artifact_001.body`),
+      environment
+    );
+    assert.equal(response.status, 400, encoded);
+    assert.equal((await response.json() as { error: string }).error, "invalid_artifact_key");
+  }
+  const unknown = "https://edge.invalid/v1/unknown";
+  const unsigned = await handleRequest(new Request(unknown), environment);
+  assert.equal(unsigned.status, 401);
+  const signed = await handleRequest(signedRequest(unknown), environment);
+  assert.equal(signed.status, 404);
+  assert.deepEqual(await signed.json(), { error: "not_found" });
+  assert.equal(memory.objects.size, 0);
+});

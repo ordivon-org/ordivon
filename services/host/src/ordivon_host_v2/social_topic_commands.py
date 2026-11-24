@@ -8,6 +8,7 @@ from .collaboration_inputs import (
 )
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ConflictError
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
@@ -85,8 +86,8 @@ class SocialTopicCommands:
             "archived",
         ):
             raise ValueError("topic state must be open, closed, or archived")
-        if type(expected_high_sequence) is not int or expected_high_sequence < 0:
-            raise ValueError("expected_high_sequence must be a non-negative integer")
+        if type(expected_high_sequence) is not int or not 0 <= expected_high_sequence <= HOST_WIRE_INT_MAX:
+            raise ValueError("expected_high_sequence must be a non-negative integer within JSON safe integer range")
         request = {
             "operation": "topic.state.set",
             "topicRef": topic_ref,
@@ -151,8 +152,8 @@ class SocialTopicCommands:
         cursor: int,
         client_request_id: str,
     ) -> dict[str, Any]:
-        if type(cursor) is not int or cursor < 0:
-            raise ValueError("cursor must be non-negative")
+        if type(cursor) is not int or not 0 <= cursor <= HOST_WIRE_INT_MAX:
+            raise ValueError("cursor must be non-negative within JSON safe integer range")
         request = {
             "operation": "topic.cursor.ack",
             "actorRef": actor_ref,

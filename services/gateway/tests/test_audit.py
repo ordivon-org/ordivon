@@ -6,6 +6,7 @@ import logging
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from opentelemetry.sdk.trace import TracerProvider
 
 from ordivon_gateway.mcp_server import build_server
@@ -84,3 +85,101 @@ def test_gateway_audit_uses_verified_request_state_not_tool_arguments(caplog) ->
     assert span.attributes["ordivon.operation_ref"] == "ordivon-exec:v1:runtime.linux:job-1"
     assert span.attributes["ordivon.owner_id"] == "runtime.linux"
     assert span.attributes["ordivon.native_id"] == "job-1"
+
+
+@pytest.mark.parametrize("fault", ["before", "after"])
+def test_optional_audit_failure_preserves_exact_owner_result(monkeypatch, fault) -> None:
+    import ordivon_gateway.security.audit as audit
+
+    ctx = SimpleNamespace(
+        request=SimpleNamespace(
+            scope={
+                "state": {
+                    "ordivon_access_principal": "principal:test",
+                    "ordivon_access_issuer": "https://issuer.example",
+                }
+            }
+        ),
+        method="tools/call",
+        params={"name": "execution.submit"},
+    )
+    result = {"structuredContent": {"native_id": "job-1"}, "isError": False}
+    calls = []
+
+    def fail(*args, **kwargs):
+        raise OSError("simulated diagnostic sink failure")
+
+    if fault == "before":
+        monkeypatch.setattr(audit.trace, "get_current_span", fail)
+    else:
+        monkeypatch.setattr(audit.logger, "info", fail)
+
+    async def owner(_ctx):
+        calls.append(_ctx)
+        return result
+
+    assert asyncio.run(GatewayAuditMiddleware()(ctx, owner)) is result
+    assert calls == [ctx]
+
+
+@pytest.mark.parametrize("failure", [PermissionError("owner denied"), asyncio.CancelledError()])
+def test_audit_does_not_swallow_owner_failure_or_cancellation(failure) -> None:
+    ctx = SimpleNamespace(request=None, method="tools/call", params={"name": "execution.submit"})
+
+    async def owner(_ctx):
+        raise failure
+
+    with pytest.raises(type(failure)) as caught:
+        asyncio.run(GatewayAuditMiddleware()(ctx, owner))
+    assert caught.value is failure
+
+
+@pytest.mark.parametrize("denied", [False, True])
+def test_native_mcp_result_survives_broken_audit_handler(caplog, denied) -> None:
+    from mcp import Client
+
+    from ordivon_gateway.logic.owner_protocol import OwnerCallError
+    from ordivon_gateway.service import GatewayService
+
+    calls = []
+    owner_error = {"code": "UNAUTHORIZED", "message": "fixture denied"}
+
+    class Owner:
+        def is_configured(self, owner_id):
+            return owner_id == "host"
+
+        async def call_tool(self, owner_id, tool_name, arguments):
+            calls.append((owner_id, tool_name))
+            if denied:
+                raise OwnerCallError(
+                    "fixture denied", owner_id=owner_id, tool_name=tool_name, error=owner_error
+                )
+            return {"fixtureReceipt": "owner-result"}
+
+    class BrokenSink(logging.Handler):
+        emitted = 0
+
+        def emit(self, record):
+            self.emitted += 1
+            raise OSError("simulated log device unavailable")
+
+    async def run() -> None:
+        async with Client(build_server(GatewayService(Owner())), raise_exceptions=False) as client:
+            result = await client.call_tool("topic.resume", {"topicRef": "topic:fixture"})
+            assert result.is_error is denied
+            if denied:
+                assert result.structured_content["error"] == owner_error
+            else:
+                assert result.structured_content == {"fixtureReceipt": "owner-result"}
+
+    logger = logging.getLogger("ordivon_gateway.audit")
+    caplog.set_level(logging.INFO, logger=logger.name)
+    sink = BrokenSink()
+    logger.addHandler(sink)
+    try:
+        asyncio.run(run())
+    finally:
+        logger.removeHandler(sink)
+    assert calls == [("host", "topic.resume")]
+    # Both the correlation event and the bounded diagnostic fallback failed.
+    assert sink.emitted == 2

@@ -26,6 +26,7 @@
 | 需求 | 对应自然 Owner / 现有模块 | 当前实际能力 | 不等于什么 |
 |---|---|---|---|
 | 查询、整理 ETF 收盘行情和历史版本 | Markets · `etf_eod_snapshot.py`, `historical_close_snapshot.py` | 有来源与时间边界的行情快照准入 | 自动获取全市场真实、实时的价格 |
+| 对照 QQQ/SMH/Mag7/VIX 的跨市场日线、排除假交易日 | Markets 数据 + Finance R3 只读研究消费（见 ../adoption/r3_native/MARKET_DAILY_CLOSE_RESEARCH_R1.md） | 43 序列统一收盘价格、EMA200、跨资产日变动及来源资格反证 | 已认证复权/PIT、真实资金信号、Paper 授权 |
 | 将新存款分配给长期目标资产 | Portfolio · `strategic_contribution.py` | 给定持仓、市值与目标比例，计算**只买不卖**的计划 | 投资建议、实际订单或可信行情 |
 | 比较主动策略与相同现金流的被动指数 | Portfolio · `passive_benchmark.py` | 纯函数、现金流与费用口径匹配的描述性对照 | 真实预测、税务计算或交易执行 |
 | 用已冻结的历史行情重放模拟策略 | Portfolio · `paper_investment.py` | 生成逐日模拟净值、回撤和基准差异 | 真实订单成交、可复现的未来 Alpha |
@@ -213,7 +214,7 @@ Markets 独立准入的原始未复权收盘价，而不从复权历史柱子猜
 
 ```sh
 cd domains/capital
-scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk \
+scripts/run-capability-python -m ordivon_capital.applications.paper_risk_cli \
   --account PAPER_ACCOUNT --session YYYY-MM-DD \
   --snapshot /private/etf-raw-marks.json \
   --binding /private/operator-market-binding.json
@@ -238,7 +239,7 @@ Accounting/Markets/Risk 原生消费者给出。
 
 ```sh
 cd domains/capital
-scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+scripts/run-capability-python -m ordivon_capital.applications.paper_performance_cli \
   --account PAPER_ACCOUNT --session YYYY-MM-DD --previous-session YYYY-MM-DD \
   --snapshot /private/etf-raw-marks.json \
   --binding /private/operator-market-binding.json
@@ -380,7 +381,7 @@ Paper 日结、独立 Markets 估值绑定和 Risk 结果；原有机器 JSON
 从 domains/capital 目录调用现有脚本：
 
     export ORDIVON_CAPITAL_PAPER_PG_DSN='...经核实的专用Paper测试或模拟数据库...'
-    scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+    scripts/run-capability-python -m ordivon_capital.applications.paper_performance_cli \
       --account PAPER_ACCOUNT --session YYYY-MM-DD \
       --previous-session YYYY-MM-DD \
       --snapshot /path/to/private-market-snapshot.json \
@@ -426,7 +427,7 @@ UNKNOWN、历史 PIT 不明时不可报告风险通过或授予真实交易效�
 
 ~~~sh
 export ORDIVON_CAPITAL_PAPER_PG_DSN='...已验证的专用Paper数据库DSN...'
-scripts/run-capability-python -m ordivon_capital.portfolio.paper_contribution_plan \
+scripts/run-capability-python -m ordivon_capital.applications.paper_contribution_cli \
   --account PAPER_ACCOUNT \
   --market-snapshot /path/to/private-raw-eod.json \
   --market-binding /path/to/validated-binding.json \

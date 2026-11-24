@@ -5860,7 +5860,7 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
         &dedicated,
         &"h".repeat(48),
         "workspace.exec",
-        original_request,
+        original_request.clone(),
     );
     assert_eq!(
         status, 200,
@@ -5900,6 +5900,68 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
         dispatch_before, 0,
         "source must be revoked before any dispatch"
     );
+
+    // Produce a second genuine Run/Fence in the original same PG issuer,
+    // intentionally colliding its test-only client key with the first.
+    // The usual Harness lowering derives keys from the Run binding; this
+    // exercises the Runtime invariant even under an explicit collision.
+    let second_run = format!("harness-run:r17-native-other-{}", &id[..19]);
+    let original_key = source["clientRequestId"].as_str().unwrap();
+    let other = Command::new(&python)
+        .arg(&script)
+        .arg("issue")
+        .arg("--dsn")
+        .arg(&fixture_dsn)
+        .arg("--schema")
+        .arg(&issuer_schema)
+        .arg("--run")
+        .arg(&second_run)
+        .arg("--workspace")
+        .arg(&workspace_id)
+        .arg("--client-request-id")
+        .arg(original_key)
+        .env("PYTHONPATH", &pythonpath)
+        .output()
+        .unwrap();
+    assert!(
+        other.status.success(),
+        "original second Harness publisher: {}",
+        String::from_utf8_lossy(&other.stderr)
+    );
+    let other: Value = serde_json::from_slice(&other.stdout).unwrap();
+    assert_eq!(other["runId"], second_run);
+    assert_eq!(other["clientRequestId"], original_key);
+    assert_ne!(other["fenceDigest"], source["fenceDigest"]);
+    let (collision_status, collision) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.exec",
+        other["loweredRequest"].clone(),
+    );
+    assert_eq!(collision_status, 200, "{collision}");
+    assert_eq!(collision["isError"], true, "{collision}");
+    assert_eq!(
+        collision["structuredContent"]["error"]["code"], "IDEMPOTENCY_CONFLICT",
+        "{collision}"
+    );
+    let key_jobs: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM jobs WHERE principal=$1 AND client_request_id=$2",
+            &[&"harness-dispatch-r16", &original_key],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(key_jobs, 1);
+    let original_job_key: String = fixture
+        .db
+        .query_one(
+            "SELECT job_id FROM idempotency_keys WHERE principal=$1 AND client_request_id=$2",
+            &[&"harness-dispatch-r16", &original_key],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(original_job_key, job);
 
     let revoked = original("revoke");
     assert_eq!(revoked["sourceStanding"], "unknown");
@@ -5965,6 +6027,46 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
         false
     );
     assert_eq!(readback["structuredContent"]["episodes"]["dispatches"], 0);
+    // The exact original request still recovers its existing cancelled
+    // Job after the source revocation; it must not create another effect.
+    let (replay_status, replay) = r16_dedicated_call(
+        &dedicated,
+        &"h".repeat(48),
+        "workspace.exec",
+        original_request,
+    );
+    assert_eq!(replay_status, 200, "{replay}");
+    assert_ne!(replay["isError"], true, "{replay}");
+    assert_eq!(replay["structuredContent"]["jobId"], job);
+    assert_eq!(
+        replay["structuredContent"]["status"], "cancelled",
+        "{replay}"
+    );
+    let final_dispatches: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(final_dispatches, 0);
+    let final_key_count: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM jobs WHERE principal=$1 AND client_request_id=$2",
+            &[&"harness-dispatch-r16", &original_key],
+        )
+        .unwrap()
+        .get(0);
+    let final_attempt_count: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM attempts WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get(0);
+    assert_eq!(final_key_count, 1);
+    assert_eq!(final_attempt_count, 1);
+    eprintln!("R17_CROSS_RUN_COLLISION_REJECTED_EXACT_REPLAY_SAME_CANCELLED_JOB");
 
     // Keep the only physical native blocker fully terminal before Fixture
     // Drop; never leave an orphaned test-owned systemd Unit or cgroup.
@@ -6829,6 +6931,10 @@ printf '%s' "$(git rev-parse HEAD)"
 fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() {
     let mut fixture = Fixture::new();
     fixture.host_visible_test_runner = true;
+    // Original contained_local consumer needs the native nonroot Git owner
+    // established on the Workspace BEFORE the trusted->contained cutover.
+    // This is the existing mature fixture mechanism, not a new Runtime grant.
+    fixture.contained_nonroot_test = true;
     let repo = fixture.repo();
     let initial_endpoint = fixture.endpoint();
     let opened = call(
