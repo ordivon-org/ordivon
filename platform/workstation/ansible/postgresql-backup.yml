@@ -4,9 +4,6 @@
   become: true
   gather_facts: false
   vars:
-    operations_postgres_data_dir: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
-    operations_postgres_port: 55434
-    operations_postgres_socket: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
     operations_pgbackrest_stanza: ordivon
   tasks:
     - name: Install mature PostgreSQL backup and Ansible PostgreSQL adapter packages
@@ -36,8 +33,8 @@
         mode: "0755"
 
     - name: Install pgBackRest configuration
-      ansible.builtin.copy:
-        src: ../postgresql/pgbackrest.conf
+      ansible.builtin.template:
+        src: ../postgresql/pgbackrest.conf.j2
         dest: /etc/pgbackrest/pgbackrest.conf
         owner: root
         group: root
@@ -52,8 +49,8 @@
         mode: "0755"
 
     - name: Bind packaged PostgreSQL service to the shared persistent cluster
-      ansible.builtin.copy:
-        src: ../postgresql/postgresql-pgdata.conf
+      ansible.builtin.template:
+        src: ../postgresql/postgresql-pgdata.conf.j2
         dest: /etc/systemd/system/postgresql.service.d/20-ordivon-pgdata.conf
         owner: root
         group: root

@@ -16,6 +16,7 @@ import psycopg
 import pytest
 
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.work_inputs import (
     ActorKind,
     ActorRefInput,
@@ -63,7 +64,7 @@ def _three_works(store: WorkStore) -> tuple[str, list[str]]:
     token = uuid4().hex
     actor = f"actor:agent:dag3:{token}"
     works = [f"work:dag3:{token}:{i}" for i in range(3)]
-    store.declare_actor(
+    ActorReferenceStore(store.dsn).declare_actor(
         ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
         client_request_id=f"declare:{actor}",
     )

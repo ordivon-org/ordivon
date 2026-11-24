@@ -3,10 +3,8 @@
 1. Start with the actual product consumer and natural source owner. This package
    operates only on a read-only cross-domain discovery projection; it does not
    override domain-owned ODCS/ODPS, source bytes, scientific facts or finance.
-2. For Data changes, read README.md, the current Data Lifecycle R6 census,
-   the applicable producer's native tests and the real Research/Capital consumer.
-   Do not route routine port selection, tooling or source recovery choices to
-   a human; the human requests an outcome through the natural domain Owner.
+2. For Data changes, use README.md, the current Data Lifecycle
+   R6 source census and the applicable producer's native tests.
 3. Use existing DuckDB, Parquet/PyArrow Artifact verification, domain ingest
    and W3C/Bitol standards. No duplicate parser, schema, catalog, broker or scheduler.
 4. Bind exact source revision and file/product digest. Keep missing/unavailable
@@ -21,13 +19,24 @@
    specification/model/implementation/consumer map; run `mise run
    data:formal:verify`, then `mise run data:verify` and the affected native
    consumer. Never claim CrossHair bounded search is a universal code proof.
-9. Agent workflow: choose the exact producer and needed output, verify declared
-   bytes within an explicit owner root, then use the domain Owner's own
-   contract and read-back. An unused port's UNKNOWN never promotes to FAIL or
-   PASS for a different selected input. The default discovery CLI success
-   means only inspection completed, not global product admission.
-10. For data product publication, cross-version readers and physical retirement,
-    the Lean models in formal/ are ABSTRACT: require Owner-native transaction,
-    active-reader, retention and recovery evidence before any physical effect.
-    No Data-owned lifecycle publisher, Agent scheduler, or universal verifier
-    exists. External Skills are methods, never execution authorization.
+9. Selected-port admission is deliberately narrower than global catalog
+   integrity. Use exact product/version/port identities; an unrelated
+   FALSIFIED or UNKNOWN port remains visible but does not veto a VERIFIED
+   selected port. Selected FALSIFIED fails, selected UNKNOWN is unestablished.
+   Run the actual selected-port CLI and independent Research acceptance in
+   data:verify before claiming this behavior.
+10. For ongoing R1 source changes, follow planning/CONSUMER_BOUND_DELIVERY_SPEC_R1.md.
+    This is a temporary consumer-backed implementation spec, not an extra
+    authority, universal workflow, or permanent onboarding dependency.
+11. Capture the final consumer's constraints, exact source/port version, accepted
+    semantics and rights. For reproducible metadata use `project_owned_products.py
+    --at-commit REVISION`; capture the resolved commit. It does not freeze
+    external file bytes. Reuse the shared descriptor-bound reader, not a
+    pathname-based hash fallback. Unsupported operations or unobserved bytes
+    are UNKNOWN in discovery and rejected by strict producer binding.
+12. Distinguish format integrity, factual/scientific truth, rights and consumer
+    outcome. Use the affected Owner's native acceptance and read-back rather
+    than inventing a universal verifier. Use Lean for abstract properties,
+    bounded symbolic checks for pure functions and independent I/O evidence.
+    Real reader/retention/recovery authority remains required for retirement;
+    a database MVCC snapshot is not an external Artifact lease.

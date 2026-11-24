@@ -8,6 +8,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
+import pg_issuer_consumer
 from affected_owners import Owner, load_owners
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -117,6 +118,35 @@ def _matches_source_glob(path: str, pattern: str) -> bool:
     )
 
 
+def _source_matches_registered_consumer(finding: Finding, seam: Seam) -> bool:
+    """Resolve the sole PG18 Harness publisher by behavior, not source filename.
+
+    Directory-wide exceptions are forbidden: this special test-only Source
+    contract binds to the one genuine annotated and ignored native test,
+    with all three original Harness publisher references verified.
+    The ordinary file-level glob semantics remain unchanged.
+    """
+    if seam.source_glob == pg_issuer_consumer.RUNTIME_PG_CORE_ROOT:
+        if not (
+            seam.kind == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+            and (seam.from_owner, seam.to_owner) == ("runtime", "harness")
+            and seam.contract_ref
+            == "services/harness/tests/original_pg_issuer_native_fixture.py"
+            and seam.allowed_fragment in {
+                'root.join("services/harness/tests/original_pg_issuer_native_fixture.py")',
+                'root.join("services/harness/src")',
+                'root.join("services/harness")',
+            }
+        ):
+            return False
+        try:
+            exact_source = pg_issuer_consumer.locate_original_harness_issuer_source(ROOT)
+        except ValueError:
+            return False
+        return finding.source_path == exact_source
+    return _matches_source_glob(finding.source_path, seam.source_glob)
+
+
 def _matching_seams(
     finding: Finding,
     seams: tuple[Seam, ...],
@@ -126,7 +156,7 @@ def _matching_seams(
         seam for seam in seams
         if seam.from_owner == finding.from_owner
         and seam.to_owner == finding.to_owner
-        and _matches_source_glob(finding.source_path, seam.source_glob)
+        and _source_matches_registered_consumer(finding, seam)
         and (
             seam.allowed_fragment == finding.import_module
             if finding.import_module is not None
@@ -169,6 +199,23 @@ def validate_consumed_seams(
     return {seam: tuple(uses) for seam, uses in observations.items()}
 
 
+def _mentions_owner_path(line: str, root: str) -> bool:
+    """Match a path component, not a similar-looking sibling name.
+
+    services/gateway-authzen is outside services/gateway.
+    services/gateway/src is a genuine gateway owner reference.
+    """
+    start = 0
+    while (index := line.find(root, start)) >= 0:
+        end = index + len(root)
+        left_ok = index == 0 or not (line[index - 1].isalnum() or line[index - 1] in "_.-")
+        right_ok = end == len(line) or not (line[end].isalnum() or line[end] in "_.-")
+        if left_ok and right_ok:
+            return True
+        start = index + 1
+    return False
+
+
 def findings_for_text(
     source_path: str,
     text: str,
@@ -183,7 +230,7 @@ def findings_for_text(
             if target.name == source.name:
                 continue
             target_literal = target.root.rstrip("/")
-            if target_literal in line:
+            if _mentions_owner_path(line, target_literal):
                 findings.append(
                     Finding(
                         source_path=source_path,

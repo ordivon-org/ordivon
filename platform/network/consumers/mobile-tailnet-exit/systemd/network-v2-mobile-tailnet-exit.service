@@ -1,12 +1,16 @@
 [Unit]
 Description=Network v2 mobile Tailscale exit over the owned Gluetun provider namespace
-After=network-v2-gluetun-owned.service network-online.target
+After=network-v2-gluetun-owned.service network-v2-mobile-tailnet-derp-underlay.service network-online.target
+Wants=network-v2-mobile-tailnet-derp-underlay.service
 ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
 
 [Service]
 Type=simple
 Environment=MOBILE_TAILNET_RUNTIME_DIR=/run/ordivon-mobile-surfshark-tailnet-r1
 Environment=MOBILE_TAILNET_STATE_DIR=/var/lib/ordivon-mobile-surfshark-tailnet-r1
+Environment="HTTPS_PROXY=http://10.253.239.1:19690"
+Environment="HTTP_PROXY=http://10.253.239.1:19690"
+Environment="NO_PROXY=localhost,127.0.0.1,::1"
 ExecStart=/usr/local/libexec/network-v2/mobile-tailnet-exit-run
 Restart=always
 # Native bounded exponential retry, avoiding provider-outage restart storms.

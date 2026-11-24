@@ -41,7 +41,7 @@ test("mechanism nodes and within-experience edges are mechanically closed over t
 });
 
 test("cross-game retrieval facets are broad aliases, not exhaustive categories", () => {
-  assert.ok(graph.retrievalFacets.length >= 14);
+  assert.ok(graph.retrievalFacets.length > 0, "query must preserve at least one authored retrieval facet");
   assert.ok(unique(graph.retrievalFacets.map((facet: any) => facet.id)));
   const experienceIds = new Set(library.experiences.map((experience: any) => experience.id));
   for (const facet of graph.retrievalFacets) {
@@ -56,7 +56,7 @@ test("cross-game retrieval facets are broad aliases, not exhaustive categories",
 });
 
 test("conditionalities preserve apparent conflicts as conditions rather than universal verdicts", () => {
-  assert.ok(graph.conditionalities.length >= 12);
+  assert.ok(graph.conditionalities.length > 0, "query must preserve at least one falsifiable conditionality");
   assert.ok(unique(graph.conditionalities.map((item: any) => item.id)));
   const experienceIds = new Set(library.experiences.map((experience: any) => experience.id));
   for (const item of graph.conditionalities) {
@@ -90,6 +90,26 @@ test("relationship spec is the authored semantic layer and graph preserves its i
   assert.deepEqual(graph.conditionalities.map((item: any) => item.id), spec.conditionalities.map((item: any) => item.id));
 });
 
+
+test("one source-grounded facet is derivable without a minimum catalog quota", () => {
+  const oneFacet = spec.retrievalFacets[0];
+  assert.ok(oneFacet);
+  const referenced = new Set(oneFacet.experienceRefs);
+  const smallLibrary = {
+    ...library,
+    experiences: library.experiences.filter((experience: any) => referenced.has(experience.id)),
+  };
+  const smallSpec = { ...spec, retrievalFacets: [oneFacet], conditionalities: [] };
+  const reduced = buildMechanismRelationshipGraphFromSources(
+    {raw: JSON.stringify(smallLibrary), value: smallLibrary},
+    {raw: JSON.stringify(smallSpec), value: smallSpec},
+  );
+  assert.deepEqual(reduced.retrievalFacets.map((item: any) => item.id), [oneFacet.id]);
+  assert.equal(reduced.conditionalities.length, 0);
+  assert.equal(reduced.policy.recommendationAuthority, "NONE");
+  assert.equal(reduced.policy.closedOntology, false);
+  assert.equal(reduced.sourceLibrary.libraryId, library.libraryId);
+});
 
 test("on-demand CLI consumes the source-derived relationship graph", () => {
   for (const [type, items] of Object.entries({

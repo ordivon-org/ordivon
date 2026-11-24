@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
-import { hashToken, stableDigest } from "./identity-digests.ts";
+import { hashToken } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
-import { AgentGrantStore } from "./store-agent-grants.ts";
+import { AgentGrantStore, scopeContains } from "./store-agent-grants.ts";
 import { SessionStore } from "./store-sessions.ts";
+import { ChallengeStore } from "./store-challenges.ts";
 import { initializeWebStoreSchema } from "./store-schema.ts";
 import type {
   AgentEffectReceipt,
@@ -29,7 +30,6 @@ import {
 import type {
   PrincipalRow,
   CredentialRow,
-  ChallengeRow,
   AgentEffectRow,
   NoteRow,
 } from "./store-row-projections.ts";
@@ -38,11 +38,13 @@ export class WebStore {
   readonly db: DatabaseSync;
   private readonly grants: AgentGrantStore;
   private readonly sessions: SessionStore;
+  private readonly challenges: ChallengeStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     initializeWebStoreSchema(this.db);
     this.grants = new AgentGrantStore(this.db, (...args) => this.audit(...args));
+    this.challenges = new ChallengeStore(this.db);
     this.sessions = new SessionStore(this.db, (...args) => this.audit(...args), (id) => this.getPrincipal(id));
   }
 
@@ -231,34 +233,7 @@ export class WebStore {
     ttlSeconds = 120,
     payload: unknown = {},
   ): ChallengeRecord {
-    const challengeId = randomUUID();
-    const payloadDigest = stableDigest(payload);
-    const record: ChallengeRecord = {
-      challengeId,
-      purpose,
-      principalId,
-      challenge,
-      payloadDigest,
-      payload,
-      expiresAt: now + ttlSeconds,
-    };
-    this.db
-      .prepare(`
-        INSERT INTO webauthn_challenges (
-          challenge_id, purpose, principal_id, challenge,
-          payload_digest, payload_json, expires_at, consumed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
-      `)
-      .run(
-        record.challengeId,
-        record.purpose,
-        record.principalId,
-        record.challenge,
-        record.payloadDigest,
-        JSON.stringify(record.payload),
-        record.expiresAt,
-      );
-    return record;
+    return this.challenges.createChallenge(purpose, principalId, challenge, now, ttlSeconds, payload);
   }
 
   consumeChallenge(
@@ -266,51 +241,7 @@ export class WebStore {
     purpose: ChallengePurpose,
     now: number,
   ): ChallengeRecord {
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
-      const row = this.db
-        .prepare("SELECT * FROM webauthn_challenges WHERE challenge_id = ?")
-        .get(challengeId) as ChallengeRow | undefined;
-      if (
-        row === undefined ||
-        row.purpose !== purpose ||
-        row.consumed_at !== null ||
-        row.expires_at <= now
-      ) {
-        throw new WebProblem(
-          409,
-          "challenge-invalid",
-          "Challenge unavailable",
-          "The WebAuthn challenge is missing, expired, consumed, or has the wrong purpose.",
-        );
-      }
-      const update = this.db
-        .prepare(
-          "UPDATE webauthn_challenges SET consumed_at = ? WHERE challenge_id = ? AND consumed_at IS NULL",
-        )
-        .run(now, challengeId);
-      if (update.changes !== 1) {
-        throw new WebProblem(
-          409,
-          "challenge-race",
-          "Challenge already consumed",
-          "The WebAuthn challenge was consumed concurrently.",
-        );
-      }
-      this.db.exec("COMMIT");
-      return {
-        challengeId: row.challenge_id,
-        purpose: row.purpose,
-        principalId: row.principal_id,
-        challenge: row.challenge,
-        payloadDigest: row.payload_digest,
-        payload: JSON.parse(row.payload_json) as unknown,
-        expiresAt: row.expires_at,
-      };
-    } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw error;
-    }
+    return this.challenges.consumeChallenge(challengeId, purpose, now);
   }
 
   createSession(
@@ -485,7 +416,11 @@ export class WebStore {
         "The committed effect belongs to a different Agent.",
       );
     }
-    if (existing.effectDigest !== effect.effectDigest) {
+    if (
+      existing.effectDigest !== effect.effectDigest ||
+      existing.action !== effect.action ||
+      existing.resource !== effect.resource
+    ) {
       throw new WebProblem(
         409,
         "effect-conflict",
@@ -624,6 +559,35 @@ export class WebStore {
         };
   }
 
+  // OPA ALLOW is not the effect. Recheck concrete authority inside the
+  // existing transaction before its write becomes visible.
+  private assertCommitEffectBinding(
+    current: AgentGrantSnapshot,
+    selected: AgentGrantSnapshot,
+    agentId: string,
+    effect: AgentEffectRequest,
+    expectedAction: string,
+    expectedResource: string,
+    expectedType: string,
+  ): void {
+    if (
+      current.principalId !== selected.principalId ||
+      current.agentId !== selected.agentId ||
+      current.agentId !== agentId ||
+      current.audience !== effect.audience ||
+      !current.allowedActions.includes(effect.action) ||
+      !current.resourcePrefixes.some((prefix) => scopeContains(prefix, effect.resource)) ||
+      effect.action !== expectedAction ||
+      effect.resource !== expectedResource ||
+      effect.effectType !== expectedType
+    ) {
+      throw new WebProblem(
+        403, "agent-effect-not-authorized", "Effect not authorized",
+        "The current Agent Grant does not bind the concrete Effect and target.",
+      );
+    }
+  }
+
   commitAgentCanaryCreate(
     grant: AgentGrantSnapshot,
     agentId: string,
@@ -654,6 +618,10 @@ export class WebStore {
           "Mutable Agent authority changed before the Effect commit fence.",
         );
       }
+      this.assertCommitEffectBinding(
+        current, grant, agentId, effect,
+        "canary.note.create", "/canary/notes", "website.canary.note.create",
+      );
       const noteId = randomUUID();
       const note: CanaryNote = {
         noteId,
@@ -750,6 +718,10 @@ export class WebStore {
           "Mutable authority or the effect-bound approval changed before commit.",
         );
       }
+      this.assertCommitEffectBinding(
+        current, grant, agentId, effect,
+        "canary.note.publish", "/canary/notes/" + noteId, "website.canary.note.publish",
+      );
       const noteRow = this.db
         .prepare("SELECT * FROM canary_notes WHERE note_id = ? AND principal_id = ?")
         .get(noteId, current.principalId) as NoteRow | undefined;

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-real-coding-domain-consumer-evidence",
+  "observedLocalDate": "2026-11-16",
+  "implementationRevision": "659e526e60bd6bf02ed068fa92be49819a12e4c4",
+  "sourceImplementationRevision": "659e526e60bd6bf02ed068fa92be49819a12e4c4",
+  "taskId": "HARNESS-EDIT-ADDRESSING-002",
+  "taskPublicFixtureRevision": "ec517293139b593b0b8180c12528ded81e3b41b3",
+  "taskWorkspaceId": "ws-gpt6-harness-r4-coding-edit-20261116",
+  "publicFiles": [
+    "SPEC.md",
+    "feature_flags.py",
+    "test_feature_flags.py"
+  ],
+  "hiddenMaterialIncludedInTaskWorkspace": false,
+  "trueProvider": "deepseek-flash",
+  "actualGatewayCapability": "execution.linux",
+  "actualRuntimeOwner": "runtime.linux",
+  "scratchDatabase": "isolated-disposable-postgresql-18.7",
+  "originalPostgresRunId": "harness-run:real-coding-r4-c4cc2d5ff6e340c5",
+  "originalPostgresStatus": "completed",
+  "harnessStopCode": "candidate_completed",
+  "realModelCalls": 4,
+  "realGatewayToolCalls": 3,
+  "realTotalTokens": 9550,
+  "physicalJobs": [
+    {
+      "jobId": "job-01a1e2f7-878b-75bd-a100-1de63fa41956",
+      "role": "read public task source",
+      "executionDisposition": "succeeded",
+      "exitCode": 0,
+      "operationDigest": "sha256:c6e2d823023b59eb336ac99c4504d4bae7feb0a6d20233a987516acb73f0c4dc"
+    },
+    {
+      "jobId": "job-01a1e2f7-95b0-73f6-8729-c86d67950cc4",
+      "role": "modify only feature_flags.py",
+      "executionDisposition": "succeeded",
+      "exitCode": 0,
+      "operationDigest": "sha256:5c5570395271722a1cba47305623ed7c586931c82730278f4637af84c21e02ed"
+    },
+    {
+      "jobId": "job-01a1e2f7-a557-75be-b8e1-c85d8767bd17",
+      "role": "run public unittest",
+      "executionDisposition": "succeeded",
+      "exitCode": 0,
+      "operationDigest": "sha256:2f273c603a9770c5ac00a914fb9b98818fd7f00f3c166820a30fc0fa9744a58c"
+    }
+  ],
+  "originalPostgresOwnerReceiptObserved": true,
+  "independentGatewayLastOwnerReadback": true,
+  "finalSourceDigest": "sha256:970943c12c5f09183c3ec4e1c9e74ddde95cd52515fe019e19ea7f2a62149e14",
+  "changedSourcePaths": [
+    "feature_flags.py"
+  ],
+  "protectedPublicFilesUnchanged": true,
+  "independentDomainVerifier": {
+    "harnessTestFile": "tests/test_live_coding_task_r4.py",
+    "verifierEntry": "evals/harness-edit-addressing-002/qa.py",
+    "visiblePassed": true,
+    "hiddenPassed": true,
+    "taskSolved": true
+  },
+  "consumerTest": {
+    "runtimeExecutionJobId": "job-01a1e2f7-73d7-721e-a9be-944da28967dd",
+    "status": "passed",
+    "totalPassed": 1,
+    "elapsedSeconds": 15.59
+  },
+  "boundaries": [
+    "One bounded live provider task, not a population success-rate estimate",
+    "Original scratch PG18 server and schema were destroyed after test; physical Runtime Owner Job and source evidence references remain",
+    "Model was given only public task Git source via its selected Workspace; hidden oracle/verifier were caller-side",
+    "The domain verifier, not Harness candidate_completed nor Runtime exit0 alone, decides TaskSolved",
+    "No Provider key or first-party Gateway bearer bytes were retained in this file"
+  ]
+}

@@ -7,6 +7,10 @@ import json
 import sys
 from typing import Any
 
+from ordivon_capital.applications.goal_funded_contribution import (
+    REQUEST_KIND,
+    plan_goal_funded_contribution,
+)
 from ordivon_capital.portfolio.strategic_contribution import (
     AllocationPolicyError,
     plan_strategic_contribution,
@@ -33,7 +37,11 @@ def main() -> int:
             object_pairs_hook=_no_duplicate_json_keys,
             parse_constant=_no_nonfinite,
         )
-        result = plan_strategic_contribution(raw)
+        result = (
+            plan_goal_funded_contribution(raw)
+            if isinstance(raw, dict) and raw.get("kind") == REQUEST_KIND
+            else plan_strategic_contribution(raw)
+        )
         rendered = json.dumps(result, sort_keys=True, indent=2, allow_nan=False)
     except (AllocationPolicyError, ValueError, TypeError, OSError) as exc:
         print(f"strategic contribution rejected: {exc}", file=sys.stderr)

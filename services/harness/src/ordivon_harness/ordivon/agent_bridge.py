@@ -76,20 +76,14 @@ class HarnessAgentBridge:
         if run_store.binding.harness_run_id != contract.harness_run_id:
             raise ValueError("Harness Run binding differs from its Contract")
         if contract.tool_catalog_digest != expected_tool_catalog_digest:
-            raise ValueError(
-                "HarnessAgentBridge no-Tool or expected Tool surface differs"
-            )
+            raise ValueError("HarnessAgentBridge no-Tool or expected Tool surface differs")
         if contract.tool_grant_digest != expected_tool_grant_digest:
-            raise ValueError(
-                "HarnessAgentBridge no-Tool or expected Tool Grant differs"
-            )
+            raise ValueError("HarnessAgentBridge no-Tool or expected Tool Grant differs")
         self.contract = contract
         self.run_store = run_store
         self.catalog_digest = contract.tool_catalog_digest
         self._provider_source = provider_source or run_store.assignment_provider_source()
-        self._provider_holder_id = provider_holder_id or new_execution_owner_id(
-            "agent-bridge"
-        )
+        self._provider_holder_id = provider_holder_id or new_execution_owner_id("agent-bridge")
         self._provider_adapter_id: str | None = None
         self._provider_requested_model_id: str | None = None
         self._active_provider_call: StoredHarnessProviderCall | None = None
@@ -202,8 +196,7 @@ class HarnessAgentBridge:
             )
         adapter_id, requested_model_id = self._require_provider_configuration()
         contains_tool_projection = any(
-            message.get("role") == "tool" or "toolCalls" in message
-            for message in request.messages
+            message.get("role") == "tool" or "toolCalls" in message for message in request.messages
         )
         retain_request = self.contract.privacy.allow_model_content and (
             self.contract.privacy.allow_tool_content or not contains_tool_projection
@@ -319,6 +312,7 @@ class HarnessAgentBridge:
         try:
             pause_reason = {
                 "needs_input": HarnessRunPauseReason.NEEDS_INPUT,
+                "effect_dispatch_pending": HarnessRunPauseReason.EFFECT_DISPATCH_PENDING,
             }[reason]
         except KeyError as error:
             raise ToolBridgeError(

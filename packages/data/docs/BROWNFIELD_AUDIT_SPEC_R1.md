@@ -1,5 +1,7 @@
 # Data Brownfield Architecture and Subtractive Modernization — R1
 
+**Historical audit snapshot.** This preserves the November 10 original audit rationale. Its file counts, open PRs, versions and plan describe that historical cut, not current source, permission or runtime facts. Use the current README, AGENTS and formal map for live instructions.
+
 Status: source-audited and implementation-scoped, not release-approved.
 Audit SourceCut: GitHub `main@ef17d6879d12faa61fff3bb762b0d500d73c9113`, observed 2026-11-10 01:45 +08.
 Parallel pending change: [#1970](https://github.com/ordivon-org/ordivon/pull/1970) head `299978505c1967c965d2fd7ac6ac6ead80a47a08` OPEN at source freeze; it is NOT part of this mainline audit.

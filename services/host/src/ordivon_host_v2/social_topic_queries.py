@@ -16,6 +16,10 @@ from .collection_pagination import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .postgres_bounds import HOST_WIRE_INT_MAX
+from .social_errors import TopicResumeCursorAhead
+from .social_message_records import verify_message_content_digest
+from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
 
 
 class SocialTopicReadQueries:
@@ -30,18 +34,22 @@ class SocialTopicReadQueries:
         after_topic_ref: str | None = None,
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+        include_archived: bool = False,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
+        if type(include_archived) is not bool:
+            raise ValueError("include_archived must be a boolean")
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_space(conn, space_ref)
             rows = conn.execute(
                 "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
-                "WHERE space_ref=%s AND (%s::text IS NULL OR topic_ref>%s) "
+                "WHERE space_ref=%s AND (%s OR state <> 'archived') "
+                "AND (%s::text IS NULL OR topic_ref>%s) "
                 "ORDER BY topic_ref LIMIT %s",
-                (space_ref, after_topic_ref, after_topic_ref, limit + 1),
+                (space_ref, include_archived, after_topic_ref, after_topic_ref, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
             candidates = [
@@ -91,12 +99,19 @@ class SocialTopicReadQueries:
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
-        if type(after_sequence) is not int or after_sequence < 0:
-            raise ValueError("after_sequence must be non-negative")
+        if type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX:
+            raise ValueError("after_sequence must be non-negative within JSON safe integer range")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             topic = self._require_topic(conn, topic_ref)
+            # A cursor from Attention's global change clock (or a different
+            # Topic) can be numerically ahead of this Topic's message horizon.
+            # Returning an empty hasMore=false page would conceal that mistake.
+            # Read the Topic high in the same MVCC cut as the message page.
+            topic_high = topic_high_sequence_in_tx(conn, topic_ref)
+            if after_sequence > topic_high:
+                raise TopicResumeCursorAhead(topic_ref, after_sequence, topic_high)
             rows = conn.execute(
                 "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
                 "message_kind,body,message_digest,recorded_at_ms,created_at "
@@ -106,7 +121,7 @@ class SocialTopicReadQueries:
             ).fetchall()
             sql_more = len(rows) > limit
             for row in rows[:limit]:
-                self._verify_message_content_digest(row)
+                verify_message_content_digest(row)
             candidates = [
                 {
                     "sequence": int(row["sequence"]),
@@ -160,22 +175,4 @@ class SocialTopicReadQueries:
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             self._require_topic(conn, topic_ref)
-            row = conn.execute(
-                "SELECT cursor FROM topic_consumption_cursors WHERE actor_ref=%s AND topic_ref=%s",
-                (actor_ref, topic_ref),
-            ).fetchone()
-            high = int(
-                conn.execute(
-                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
-                    (topic_ref,),
-                ).fetchone()["high"]
-            )
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-cursor",
-                "actorRef": actor_ref,
-                "topicRef": topic_ref,
-                "cursor": 0 if row is None else int(row["cursor"]),
-                "topicHighSequence": high,
-                "truthBoundary": "topic navigation cursor only; not evidence of semantic acceptance",
-            }
+            return get_topic_cursor_in_tx(conn, actor_ref=actor_ref, topic_ref=topic_ref)

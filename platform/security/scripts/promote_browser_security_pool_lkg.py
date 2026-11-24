@@ -18,7 +18,10 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +54,11 @@ class ResealError(RuntimeError):
 
 
 def sha256_file(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 def _canonical_bytes(value: object) -> bytes:
@@ -276,30 +283,108 @@ def _candidate_artifacts(
     return candidates, pairs
 
 
-def _atomic_write_batch(values: dict[Path, bytes]) -> None:
-    originals: dict[Path, bytes | None] = {
-        path: path.read_bytes() if path.exists() else None for path in values
-    }
-    staged: dict[Path, Path] = {}
+def _fsync_directory(path: Path) -> None:
+    if os.name == "nt":
+        # os.replace is a single-file atomic publication on NTFS; Python
+        # cannot fsync a Windows directory as a regular file descriptor.
+        return
+    directory_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
-        for path, raw in values.items():
-            path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = path.with_name(path.name + ".reseal-tmp")
-            tmp.write_bytes(raw)
-            staged[path] = tmp
-        for path, tmp in staged.items():
-            os.replace(tmp, path)
-    except Exception:
-        for tmp in staged.values():
-            tmp.unlink(missing_ok=True)
-        for path, raw in originals.items():
-            if raw is None:
-                path.unlink(missing_ok=True)
-            else:
-                restore = path.with_name(path.name + ".reseal-restore")
-                restore.write_bytes(raw)
-                os.replace(restore, path)
-        raise
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
+@contextmanager
+def _index_publication_lock(directory: Path):
+    """Serialize pointer swaps without tying the lock to a replaced index inode."""
+    if os.name == "nt":
+        import msvcrt
+
+        lock_path = directory / ".lkg-publish.lock"
+        with lock_path.open("a+b") as stream:
+            if stream.tell() == 0:
+                stream.write(b"0")
+                stream.flush()
+            stream.seek(0)
+            msvcrt.locking(stream.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield None
+            finally:
+                stream.seek(0)
+                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield fd
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+
+def _publish_lkg_generation(
+    *,
+    generation_dir: Path,
+    blobs: dict[Path, bytes],
+    index_path: Path,
+    index_raw: bytes,
+    expected_old_index_sha256: str,
+) -> None:
+    """Publish immutable carrier files before a single atomic index switch.
+
+    An interrupted publication may leave an unreferenced generation, never an
+    index pointing at a partially replaced set of carrier files. This Linux
+    publisher serializes index revisions on the stable parent directory inode.
+    """
+    generation_root = generation_dir.parent
+    generation_root.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=".lkg-stage-", dir=generation_root))
+    try:
+        for destination, raw in blobs.items():
+            if destination.parent != generation_dir:
+                raise ResealError("generation artifact must be a direct child of its generation")
+            staged = stage / destination.name
+            with staged.open("xb") as stream:
+                stream.write(raw)
+                stream.flush()
+                os.fsync(stream.fileno())
+        _fsync_directory(stage)
+        if generation_dir.exists():
+            if any(
+                not destination.is_file() or destination.read_bytes() != raw
+                for destination, raw in blobs.items()
+            ):
+                raise ResealError("existing generation has conflicting bytes")
+        else:
+            os.replace(stage, generation_dir)
+            _fsync_directory(generation_root)
+
+        # Index identity is checked again under an OS-held publication lock,
+        # so another writer cannot silently replace the intended generation.
+        with _index_publication_lock(index_path.parent) as parent_fd:
+            if sha256_file(index_path) != expected_old_index_sha256:
+                raise ResealError("pool LKG index changed during reseal publication")
+            staged_index: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="wb", prefix=".lkg-index-", dir=index_path.parent, delete=False
+                ) as stream:
+                    staged_index = Path(stream.name)
+                    stream.write(index_raw)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.replace(staged_index, index_path)
+                staged_index = None
+                if parent_fd is not None:
+                    os.fsync(parent_fd)
+            finally:
+                if staged_index is not None:
+                    staged_index.unlink(missing_ok=True)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
 
 
 def reseal(
@@ -346,16 +431,29 @@ def reseal(
         raise ResealError("Harness pool classification disagrees with Security-v2 recomputation")
     _validate_reseal_classification(recomputed)
 
+    # Derive an immutable generation identity from the exact candidate bytes.
+    # The fixed historical LKG files stay untouched; current readers follow
+    # the one versioned index into the new generation.
+    candidates_raw: dict[str, tuple[bytes, bytes]] = {}
+    generation_inputs: dict[str, dict[str, str]] = {}
+    for carrier in sorted(candidates):
+        manifest_raw = _canonical_bytes(candidates[carrier]["manifest"])
+        bundle_raw = _canonical_bytes(candidates[carrier]["bundle"])
+        candidates_raw[carrier] = (manifest_raw, bundle_raw)
+        generation_inputs[carrier] = {
+            "manifestSha256": "sha256:" + hashlib.sha256(manifest_raw).hexdigest(),
+            "bundleSha256": "sha256:" + hashlib.sha256(bundle_raw).hexdigest(),
+        }
+    generation_id = hashlib.sha256(_canonical_bytes(generation_inputs)).hexdigest()
+    generation_dir = fixture_root / "lkg-generations" / generation_id
+
     writes: dict[Path, bytes] = {}
     new_rows: list[dict[str, Any]] = []
     for carrier in sorted(candidates):
         suffix = carrier.rsplit("-", 1)[-1]
-        manifest_name = f"harness-r2-live-lkg-carrier{suffix}-manifest.json"
-        bundle_name = f"harness-r2-live-lkg-carrier{suffix}-bundle.json"
-        manifest_path = fixture_root / manifest_name
-        bundle_path = fixture_root / bundle_name
-        manifest_raw = _canonical_bytes(candidates[carrier]["manifest"])
-        bundle_raw = _canonical_bytes(candidates[carrier]["bundle"])
+        manifest_path = generation_dir / f"harness-r2-live-lkg-carrier{suffix}-manifest.json"
+        bundle_path = generation_dir / f"harness-r2-live-lkg-carrier{suffix}-bundle.json"
+        manifest_raw, bundle_raw = candidates_raw[carrier]
         writes[manifest_path] = manifest_raw
         writes[bundle_path] = bundle_raw
         manifest = candidates[carrier]["manifest"]
@@ -364,13 +462,13 @@ def reseal(
             {
                 "browserBinaryDigest": manifest["browserBinaryDigest"],
                 "bundle": str(bundle_path.relative_to(ROOT.resolve())),
-                "bundleSha256": "sha256:" + hashlib.sha256(bundle_raw).hexdigest(),
+                "bundleSha256": generation_inputs[carrier]["bundleSha256"],
                 "carrierId": carrier,
                 "challengeStanding": manifest["challengeStanding"],
                 "controlLayerEndpointId": control["endpointId"],
                 "detectorVersion": _detector_version(manifest),
                 "manifest": str(manifest_path.relative_to(ROOT.resolve())),
-                "manifestSha256": "sha256:" + hashlib.sha256(manifest_raw).hexdigest(),
+                "manifestSha256": generation_inputs[carrier]["manifestSha256"],
                 "networkAuthority": manifest["networkAuthority"],
                 "witnessId": manifest["witnessId"],
             }
@@ -403,8 +501,13 @@ def reseal(
     new_index_digest = "sha256:" + hashlib.sha256(index_raw).hexdigest()
     if new_index_digest == old_index_digest:
         raise ResealError("reseal produced no pool-index identity change")
-    writes[index_path] = index_raw
-    _atomic_write_batch(writes)
+    _publish_lkg_generation(
+        generation_dir=generation_dir,
+        blobs=writes,
+        index_path=index_path,
+        index_raw=index_raw,
+        expected_old_index_sha256=old_index_digest,
+    )
 
     return {
         "schemaVersion": 1,
@@ -421,7 +524,8 @@ def reseal(
             "sharedInfrastructureChanges"
         ],
         "modifiedFiles": [
-            str(path.resolve().relative_to(ROOT.resolve())) for path in sorted(writes)
+            str(path.resolve().relative_to(ROOT.resolve()))
+            for path in sorted([*writes, index_path])
         ],
         "providerChallengeVisited": False,
         "providerSendAttempted": False,

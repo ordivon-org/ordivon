@@ -5,7 +5,7 @@ from json import dumps, loads
 
 import pytest
 
-from ordivon_capital.trading import paper_fill_calendar
+from ordivon_capital.accounting import paper_fill_calendar
 
 
 def calendar_payload(omit=False):
@@ -87,8 +87,29 @@ def test_calendar_evidence_is_committed_in_paper_receipt():
                          datetime(2026, 11, 10, 21, tzinfo=UTC), captured, "FIRST_OBSERVED"),
         ),
     )
-    with pytest.raises(ValueError, match="disagree on session closes"):
+    # Markets now independently rejects a source that misstates the
+    # official XNYS prior close, before comparing it with the execution calendar.
+    with pytest.raises(ValueError, match="XNYS official close disagrees with supplied session 2026-11-09"):
         store.close_session(account, replace(day, marks={}), mark_snapshot=wrong_prior, **arguments)
+
+    # Exercise the *separate* execution-vs-market disagreement with a
+    # market snapshot whose close times actually satisfy official XNYS.
+    official_market = replace(
+        wrong_prior,
+        marks=(
+            replace(wrong_prior.marks[0], session_close_at=datetime(2026, 11, 9, 21, tzinfo=UTC)),
+            wrong_prior.marks[1],
+        ),
+    )
+    shifted_calendar = loads(payload)
+    shifted_calendar["days"][0]["close"] = "22:00:00Z"
+    shifted_bytes = dumps(shifted_calendar).encode()
+    with pytest.raises(ValueError, match="market snapshot and execution calendar disagree on session closes"):
+        store.close_session(
+            account, replace(day, marks={}), mark_snapshot=official_market,
+            calendar_bytes=shifted_bytes, calendar_sha256=sha256(shifted_bytes).hexdigest(),
+        )
+
     closed = store.close_session(account, day, **arguments)
     assert closed["execution_evidence"]["calendar_sha256"] == arguments["calendar_sha256"]
     assert closed["execution_evidence"]["settlement_date"] == "2026-11-12"

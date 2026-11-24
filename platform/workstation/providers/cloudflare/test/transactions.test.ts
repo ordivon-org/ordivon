@@ -249,6 +249,135 @@ test("ambiguous commit response is recovered by rereading committed state", asyn
   );
 });
 
+for (const operation of ["fetch", "browser.run"] as const) {
+  for (const observation of ["read-failed", "pending-before-late-commit"] as const) {
+    test(`${operation}: uncertain commit ${observation} preserves evidence for original receipt`, async () => {
+      const memory = new MemoryR2();
+      const base = makeEnv(memory);
+      const bucket = base.ARTIFACTS;
+      const requestId = "request_uncertain_" + operation.replace(".", "_") + "_" + observation.replaceAll("-", "_");
+      const key = requestStateKey(requestId);
+      let lostReply = false;
+      let recoveryRead = false;
+      let finishLateCommit: (() => Promise<unknown>) | undefined;
+      const environment = {
+        ...base,
+        ARTIFACTS: {
+          ...bucket,
+          async put(objectKey: string, value: Parameters<R2Bucket["put"]>[1], options?: R2PutOptions) {
+            if (objectKey === key && memory.putCount(key) === 1 && !lostReply) {
+              lostReply = true;
+              if (observation === "read-failed") {
+                await bucket.put(objectKey, value, options);
+              } else {
+                finishLateCommit = () => bucket.put(objectKey, value, options);
+              }
+              throw new Error("injected lost commit response");
+            }
+            return bucket.put(objectKey, value, options);
+          },
+          async get(objectKey: string) {
+            if (objectKey === key && lostReply && !recoveryRead) {
+              recoveryRead = true;
+              if (observation === "read-failed") throw new Error("injected recovery read failure");
+            }
+            return bucket.get(objectKey);
+          }
+        } as R2Bucket
+      };
+      const url = operation === "fetch" ? "/v1/fetch" : "/v1/browser/run";
+      const body = JSON.stringify({ url: "https://allowed.example.org/result" });
+      let providerCalls = 0;
+      const dependencies = {
+        fetcher: async () => { providerCalls += 1; return new Response("result"); },
+        browserRunner: {
+          async quickAction() {
+            providerCalls += 1;
+            return new Response(JSON.stringify({
+              success: true,
+              result: {
+                content: "<html>result</html>",
+                screenshot: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).toString("base64")
+              },
+              meta: { status: 200, title: "result" }
+            }), { headers: { "content-type": "application/json", "x-browser-ms-used": "123" } });
+          }
+        },
+        logWriter: NO_LOG
+      };
+      const invoke = () => handleRequest(
+        signedRequest("https://edge.invalid" + url, { method: "POST", body, requestId }),
+        environment,
+        dependencies
+      );
+      const response = await invoke();
+      assert.equal(response.status, 503);
+      assert.ok(recoveryRead);
+      if (finishLateCommit !== undefined) assert.notEqual(await finishLateCommit(), null);
+      const record = await loadReceiptRecord(bucket, requestId);
+      assert.equal(record?.status, "succeeded");
+      if (record?.status !== "succeeded") assert.fail("expected committed success");
+      assert.equal(record.artifacts?.length, operation === "fetch" ? 1 : 3);
+      for (const evidence of record.artifacts ?? []) {
+        assert.notEqual(await bucket.get(evidence.key), null, evidence.key);
+      }
+      assert.equal(memory.deletedKeys.length, 0);
+      const replay = await invoke();
+      assert.equal(replay.status, 200);
+      const envelope = await replay.json() as EdgeReceiptEnvelope;
+      assert.equal(envelope.replayed, true);
+      assert.deepEqual(envelope.receipt, record);
+      assert.equal(providerCalls, 1);
+    });
+  }
+}
+
+test("an ambiguous commit cleans only an observed superseded generation", async () => {
+  const memory = new MemoryR2();
+  const bucket = memory.asBucket();
+  const requestId = "request_ambiguous_takeover_001";
+  const options = {
+    bucket, requestId, requestDigest: DIGEST, operation: "fetch" as const,
+    policyVersion: TEST_POLICY_VERSION, workerVersion: WORKER_VERSION
+  };
+  const first = await beginRequest({ ...options, now: new Date("2026-07-27T00:00:00Z") });
+  if (first.kind !== "acquired") assert.fail("expected first lease");
+  const oldKey = `fetch/v2/${requestId}/g1/body`;
+  const newKey = `fetch/v2/${requestId}/g2/body`;
+  await bucket.put(oldKey, "old");
+  const receipt = createReceipt({
+    operation: "fetch", status: "succeeded", receiptId: requestId,
+    requestDigest: DIGEST, execution: first.lease,
+    startedAt: new Date(first.lease.acquired_at), completedAt: new Date("2026-07-27T00:00:01Z"),
+    artifact: artifact(oldKey), artifacts: [artifact(oldKey)],
+    fetch: { requested_url: "https://allowed.example.org/result",
+      final_url: "https://allowed.example.org/result", http_status: 200, redirect_count: 0 }
+  });
+  const ambiguousBucket = {
+    ...bucket,
+    async put(key: string, value: Parameters<R2Bucket["put"]>[1], opts?: R2PutOptions) {
+      if (key === requestStateKey(requestId)) {
+        const second = await beginRequest({ ...options, now: new Date("2026-07-27T00:01:01Z") });
+        if (second.kind !== "acquired") assert.fail("expected takeover");
+        assert.equal(second.lease.lease_generation, 2);
+        await bucket.put(newKey, "new");
+        throw new Error("commit response unavailable after takeover");
+      }
+      return bucket.put(key, value, opts);
+    }
+  } as R2Bucket;
+  await assert.rejects(
+    commitReceipt({ bucket: ambiguousBucket, lease: first.lease, receipt, artifactKeys: [oldKey] }),
+    (error: unknown) => errorCode(error) === "receipt_commit_unavailable"
+  );
+  assert.equal(await bucket.get(oldKey), null);
+  assert.notEqual(await bucket.get(newKey), null);
+  assert.deepEqual(memory.deletedKeys, [oldKey]);
+  const current = await loadReceiptRecord(bucket, requestId);
+  assert.equal(current?.status, "pending");
+  assert.equal(current?.execution.lease_generation, 2);
+});
+
 test("expired requests cannot cross a policy version boundary", async () => {
   const memory = new MemoryR2();
   const bucket = memory.asBucket();

@@ -36,10 +36,19 @@ def _text(value: Any, *, field: str) -> str:
 
 
 def project_odps(
-    source: Path, *, bindings: tuple[LocalEvidenceBinding, ...] = ()
+    source: Path | bytes, *, bindings: tuple[LocalEvidenceBinding, ...] = ()
 ) -> tuple[dict[str, Any], str]:
-    """Project ONE owner-declared DataProduct, never its physical availability."""
-    raw = source.read_bytes()
+    """Project one ODPS metadata blob, never its physical availability.
+
+    Bytes may originate from an exact Git commit, while Path remains the
+    explicit live/local mode consumed by existing owner workflows.
+    """
+    if isinstance(source, Path):
+        raw = source.read_bytes()
+    elif isinstance(source, bytes):
+        raw = source
+    else:
+        raise TypeError("ODPS input must be a Path or immutable bytes")
     product = json.loads(raw)
     if not isinstance(product, dict):
         raise TypeError("ODPS document must be an object")
@@ -128,19 +137,14 @@ def project_odps(
         entry["@id"] = dataset_uri
     if rights:
         entry["odrl:hasPolicy"] = {"@id": rights[0]}
-    claimed_ports: set[str] = set()
     for binding in bindings:
-        if binding.product_id != product_id:
-            continue
-        if binding.port_name in claimed_ports:
-            raise ValueError("duplicate local evidence binding for output port")
-        claimed_ports.add(binding.port_name)
-        qualified_local_distribution(product, entry, binding)
+        if binding.product_id == product_id:
+            qualified_local_distribution(product, entry, binding)
     return entry, "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
 def project_catalog(
-    sources: list[Path], *, bindings: tuple[LocalEvidenceBinding, ...] = ()
+    sources: list[Path | bytes], *, bindings: tuple[LocalEvidenceBinding, ...] = ()
 ) -> dict[str, Any]:
     """Build an immutable-source-fingerprinted DCAT discovery view, not a registry."""
     if not sources:

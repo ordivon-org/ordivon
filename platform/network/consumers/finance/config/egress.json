@@ -76,73 +76,8 @@
     "rules": [
       {
         "inbound": [
-          "finance-okx"
-        ],
-        "domain": "openapi.okx.com",
-        "port": 443,
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "inbound": [
-          "finance-binance-usdm"
-        ],
-        "domain": "fapi.binance.com",
-        "port": 443,
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "inbound": [
-          "finance-okx-ws"
-        ],
-        "domain": "ws.okx.com",
-        "port": 8443,
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "inbound": [
-          "finance-binance-usdm-ws"
-        ],
-        "domain": "fstream.binance.com",
-        "port": 443,
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "inbound": [
-          "finance-binance-spot-public"
-        ],
-        "domain": "data-api.binance.vision",
-        "port": 443,
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "inbound": [
-          "finance-binance-spot-public-ws"
-        ],
-        "domain": "data-stream.binance.vision",
-        "port": 443,
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "inbound": [
-          "finance-binance-wallet"
-        ],
-        "domain": "api.binance.com",
-        "port": 443,
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "inbound": [
           "finance-us-treasury-public"
         ],
-        "domain": "home.treasury.gov",
-        "port": 443,
         "action": "route",
         "outbound": "public-direct"
       },
@@ -150,14 +85,10 @@
         "inbound": [
           "finance-fred-public-csv"
         ],
-        "domain": "fred.stlouisfed.org",
-        "port": 443,
         "action": "route",
         "outbound": "public-direct"
-      },
-      {
-        "action": "reject"
       }
-    ]
+    ],
+    "final": "provider-carrier"
   }
 }

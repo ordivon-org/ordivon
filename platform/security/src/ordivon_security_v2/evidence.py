@@ -16,13 +16,18 @@ class EvidenceRef:
 
     @classmethod
     def from_path(cls, *, provider: str, format: str, path: Path) -> EvidenceRef:
-        data = path.read_bytes()
+        digest = sha256()
+        length = 0
+        with path.open("rb") as source:
+            while chunk := source.read(1024 * 1024):
+                digest.update(chunk)
+                length += len(chunk)
         return cls(
             provider=provider,
             format=format,
             path=str(path),
-            sha256="sha256:" + sha256(data).hexdigest(),
-            byte_length=len(data),
+            sha256="sha256:" + digest.hexdigest(),
+            byte_length=length,
         )
 
     def to_dict(self) -> dict[str, object]:

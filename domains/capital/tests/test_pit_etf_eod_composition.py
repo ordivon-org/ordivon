@@ -11,6 +11,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
+from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 from ordivon_capital.markets.etf_eod_snapshot import (
     SnapshotAdmissionError,
     admit_etf_eod_snapshot,
@@ -22,7 +23,6 @@ from ordivon_capital.research.pit_joint_forecast import (
     etf_eod_capture_to_pit_vintages,
     from_json_payload,
     point_in_time_prices,
-    solve_pit_payload,
 )
 
 SOURCE = "synthetic-source-not-attested"
