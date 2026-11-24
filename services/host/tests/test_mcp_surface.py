@@ -192,7 +192,7 @@ def test_official_mcp_exposes_social_work_surface_and_runs_vertical_slice() -> N
 
             status = await call(client, "host.status", {"detail": "integrity"})
             assert status["schemaVersion"] == 3
-            assert status["authority"]["journalSchema"] == 14
+            assert status["authority"]["journalSchema"] == 15
             assert status["doctor"]["healthy"] is True
             assert "board" not in status
 
