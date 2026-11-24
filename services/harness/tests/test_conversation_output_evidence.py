@@ -75,3 +75,32 @@ def test_static_expression_has_no_effect_commands():
     for fragment in ("fetch(", ".click(", "window.close(", "document.cookie", "localStorage"):
         assert fragment not in expression
     assert isinstance(json.dumps(m.DOM_SNAPSHOT_ARGS), str)
+
+
+def test_digest_match_is_equivalent_to_exact_text_and_withholds_hidden_duplicates():
+    m = load_evidence()
+    exact = snapshot()
+    digest = m.sha256_bytes(b"request")
+    value = m.qualify_snapshot_by_digest(exact, RESOURCE, digest, RESOURCE)
+    assert value == m.qualify_snapshot(exact, RESOURCE, "request", RESOURCE)
+    exact["messages"].append({"role": "user", "text": "request", "visible": False})
+    value = m.qualify_snapshot_by_digest(exact, RESOURCE, digest, RESOURCE)
+    assert value["standing"] == "EXPECTED_USER_TURN_AMBIGUOUS"
+    assert value["assistantOutput"] is None
+
+
+def test_digest_matching_never_normalizes_provider_bytes_after_observation():
+    m = load_evidence()
+    exact = snapshot()
+    exact["messages"][0]["text"] = "request\r\nline"
+    digest = m.sha256_bytes(b"request\nline")
+    value = m.qualify_snapshot_by_digest(exact, RESOURCE, digest, RESOURCE)
+    assert value["standing"] == "EXPECTED_USER_TURN_NOT_VISIBLE"
+    assert value["assistantOutput"] is None
+
+
+def test_bad_or_empty_prompt_digest_is_not_valid_evidence():
+    m = load_evidence()
+    for value in ("sha256:bad", "", m.sha256_bytes(b"")):
+        with pytest.raises(ValueError):
+            m.qualify_snapshot_by_digest(snapshot(), RESOURCE, value, RESOURCE)

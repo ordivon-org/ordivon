@@ -6,6 +6,8 @@ A snapshot alone cannot prove a provider-issued turn ID or domain acceptance.
 from __future__ import annotations
 
 import hashlib
+import re
+from collections.abc import Callable
 
 try:
     from chatgpt_provider_resource import chatgpt_resource_from_page_url
@@ -44,19 +46,23 @@ def sha256_bytes(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def select_exact_turn_output(
-    messages: list[tuple[str, str]], expected_prompt: str
-) -> tuple[str, bool, str | None]:
-    """Resolve only an unambiguous observed user/assistant pair.
+def validate_prompt_digest(value: str) -> str:
+    if (
+        not isinstance(value, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", value) is None
+        or value == sha256_bytes(b"")
+    ):
+        raise ValueError("expected nonempty prompt SHA-256 digest")
+    return value
 
-    The caller's prompt is not a provider-issued turn identifier. Repeated
-    exact prompts, multiple candidate assistant messages and unstructured
-    page text cannot prove which result belongs to the requested turn.
-    """
+
+def _select_turn_output(
+    messages: list[tuple[str, str]], matches_prompt: Callable[[str], bool]
+) -> tuple[str, bool, str | None]:
+    """Resolve only an unambiguous observed user/assistant pair."""
     matches = [
         index
         for index, (role, text) in enumerate(messages)
-        if role == "user" and text == expected_prompt
+        if role == "user" and matches_prompt(text)
     ]
     if not matches:
         return "EXPECTED_USER_TURN_NOT_VISIBLE", False, None
@@ -76,6 +82,13 @@ def select_exact_turn_output(
     return "CAPTURED", True, candidates[0]
 
 
+def select_exact_turn_output(
+    messages: list[tuple[str, str]], expected_prompt: str
+) -> tuple[str, bool, str | None]:
+    """Text-based caller: no provider-issued turn identifier is inferred."""
+    return _select_turn_output(messages, lambda text: text == expected_prompt)
+
+
 def recommendation(text: str) -> str | None:
     labels = ("DO_NOT_SUBMIT", "REPAIR_THEN_REREVIEW", "ACCEPTABLE_TO_SUBMIT")
     stripped = text.rstrip()
@@ -83,9 +96,9 @@ def recommendation(text: str) -> str | None:
     return matches[0] if len(matches) == 1 else None
 
 
-def qualify_snapshot(
-    snapshot: object, target_resource: str, expected_prompt: str, page_url_after: str,
-    fetch_error_text: str | None = None,
+def _qualify_snapshot(
+    snapshot: object, target_resource: str, matches_prompt: Callable[[str], bool],
+    page_url_after: str, fetch_error_text: str | None = None,
 ) -> dict:
     """Classify one observed DOM cut; unknown evidence never yields output."""
     observed = None
@@ -123,11 +136,11 @@ def qualify_snapshot(
                 (node["role"], node["text"] if node["visible"] else "")
                 for node in nodes
             ]
-            standing, expected_visible, assistant_text = select_exact_turn_output(
-                messages, expected_prompt
+            standing, expected_visible, assistant_text = _select_turn_output(
+                messages, matches_prompt
             )
             if any(
-                node["role"] == "user" and node["text"] == expected_prompt and not node["visible"]
+                node["role"] == "user" and matches_prompt(node["text"]) and not node["visible"]
                 for node in nodes
             ):
                 standing = "EXPECTED_USER_TURN_AMBIGUOUS"
@@ -158,3 +171,32 @@ def qualify_snapshot(
         if assistant_text is not None else None,
         "recommendation": recommendation(assistant_text) if assistant_text is not None else None,
     }
+
+
+
+def qualify_snapshot(
+    snapshot: object, target_resource: str, expected_prompt: str, page_url_after: str,
+    fetch_error_text: str | None = None,
+) -> dict:
+    return _qualify_snapshot(
+        snapshot, target_resource, lambda text: text == expected_prompt,
+        page_url_after, fetch_error_text,
+    )
+
+
+def qualify_snapshot_by_digest(
+    snapshot: object, target_resource: str, expected_prompt_digest: str, page_url_after: str,
+    fetch_error_text: str | None = None,
+) -> dict:
+    """Match exact observed UTF-8 bytes to a durable nonempty prompt digest.
+
+    Equality relies on SHA-256 collision resistance. No extra normalization
+    or recovery of the original prompt is required. A rendering mismatch
+    withholds output rather than broadening the match.
+    """
+    digest = validate_prompt_digest(expected_prompt_digest)
+    return _qualify_snapshot(
+        snapshot, target_resource,
+        lambda text: bool(text) and sha256_bytes(text.encode("utf-8")) == digest,
+        page_url_after, fetch_error_text,
+    )
