@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -21,7 +19,7 @@ from ordivon_harness.ordivon.model import (
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_schema
 from ordivon_harness.standalone import (
     HarnessCognitionProfile,
     HarnessCognitionSeed,
@@ -254,10 +252,9 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
         )
 
     def test_product_runner_bootstraps_and_projects_without_manual_cognition_handlers(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             run_contract = cognition_contract("bootstrap")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             clock = FixedClock()
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -285,10 +282,9 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store.close()
 
     def test_product_bootstrap_recovers_after_only_initial_working_set_was_recorded(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             run_contract = cognition_contract("bootstrap-recovery")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             clock = FixedClock()
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -319,10 +315,9 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store.close()
 
     def test_product_runner_composes_promotion_and_transition_across_resume(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             run_contract = cognition_contract("resume")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             clock = FixedClock()
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -370,12 +365,11 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store.close()
 
     def test_full_product_profile_composes_history_without_manual_reader_wiring(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             run_contract = private_contract(
                 "r0-history-product", max_model_calls=4, max_tool_calls=2
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             clock = FixedClock()
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -408,8 +402,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store.close()
 
     def test_product_runner_composes_cognition_without_provider_feature_flags(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             base = cognition_contract("request-bound-capability")
             adapter = DeepSeekTurnAdapter(DeepSeekSettings(api_key="r0-test-secret"))
             run_contract = replace(
@@ -418,7 +411,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
                 adapter_id=adapter.adapter_id,
                 requested_model_id=adapter.model_id,
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             clock = FixedClock()
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)

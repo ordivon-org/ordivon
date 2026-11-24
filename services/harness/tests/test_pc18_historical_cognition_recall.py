@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_bytes, canonical_digest
@@ -20,7 +18,8 @@ from ordivon_harness.ordivon.model import (
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_fixture import pg_test_schema
 from ordivon_harness.working_view import (
     WORKING_SET_HISTORY_CONTROL_NAME,
     AgentWorkingSetTransitionProposal,
@@ -175,7 +174,7 @@ class ForgedHistoryReader:
 class HistoricalCognitionRecallTests(unittest.TestCase):
     @staticmethod
     def seed_history(
-        store: SQLiteHarnessStore,
+        store: PostgresHarnessStore,
         continuity: EventSourcedRunContinuity,
     ) -> tuple[
         HarnessWorkingViewSource,
@@ -312,15 +311,14 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             disabled.invoke(disabled_request)
 
     def test_agent_recalls_prior_selected_pin_without_runtime_effect_or_tool_budget(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc18-recall",
                 max_model_calls=4,
                 max_tool_calls=0,
             )
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
                 source_a, source_k, source_u, pin_a, pin_k, pin_u = self.seed_history(
@@ -387,15 +385,14 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
                 self.assertTrue(continuity.doctor()["healthy"])
 
     def test_history_query_survives_clean_pause_and_is_reconstructed_from_journal(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc18-pause",
                 max_model_calls=4,
                 max_tool_calls=0,
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             source_a, _source_k, _source_u, _pin_a, pin_k, _pin_u = self.seed_history(
@@ -436,7 +433,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             retained = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -480,15 +477,14 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_forged_history_reader_is_rejected_before_second_provider_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc18-forged",
                 max_model_calls=3,
                 max_tool_calls=0,
             )
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
                 _source_a, _source_k, _source_u, _pin_a, _pin_k, pin_u = self.seed_history(
@@ -532,15 +528,14 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
 
 
     def test_history_catalog_paginates_committed_cognition_only(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc18-pagination",
                 max_model_calls=1,
                 max_tool_calls=0,
             )
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store,
@@ -571,8 +566,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
                 self.assertIsNone(page_two["nextBeforeSequence"])
 
     def test_history_control_requires_tool_content_authority_for_provider_transcript(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = replace(
                 private_contract(
@@ -586,7 +580,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
                     allow_tool_content=False,
                 ),
             )
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store,

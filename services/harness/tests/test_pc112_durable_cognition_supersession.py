@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -19,7 +17,7 @@ from ordivon_harness.ordivon.model import (
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 from ordivon_harness.working_view import (
     AgentCallerIngressPromotionProposal,
     AgentWorkingSetTransitionProposal,
@@ -111,13 +109,13 @@ class ForgedWorkingSetProjector:
 
 class DurableCognitionSupersessionTests(unittest.TestCase):
     @staticmethod
-    def initialize(root: Path, suffix: str):
+    def initialize(database: PgTestSchema, suffix: str):
         run_contract = private_contract(
             f"pc112-{suffix}",
             max_model_calls=8,
             max_tool_calls=0,
         )
-        store = SQLiteHarnessStore.initialize(root)
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -187,11 +185,11 @@ class DurableCognitionSupersessionTests(unittest.TestCase):
         return continuity.load_current_snapshot()
 
     def test_current_working_set_refs_align_exact_pins_to_message_ranges(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store, _clock, _contract, continuity, _bridge, projector, _task, _stale,
                 task_pin, stale_pin,
-            ) = self.initialize(Path(directory) / "state", "ranges")
+            ) = self.initialize(database, "ranges")
             view, refs = projector.project_with_refs()
             self.assertEqual(view.messages[0]["content"], "Current durable launch code: RED-9.")
             self.assertEqual(view.messages[1]["content"], "PC112_TASK durable task instruction.")
@@ -268,10 +266,10 @@ class DurableCognitionSupersessionTests(unittest.TestCase):
         self.assertNotIn("workingSetSelection", hidden_transport.requests[0]["messages"][0]["content"])
 
     def test_forged_current_source_identity_is_rejected_before_provider_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store, clock, run_contract, continuity, bridge, projector, *_rest
-            ) = self.initialize(Path(directory) / "state", "forged-ref")
+            ) = self.initialize(database, "forged-ref")
             adapter = ScriptedTurnAdapter((needs_input_turn("pc112-forged", "should not dispatch"),))
             with self.assertRaisesRegex(
                 HarnessProviderCallRequestMismatch,
@@ -297,12 +295,11 @@ class DurableCognitionSupersessionTests(unittest.TestCase):
             store.close()
 
     def test_correction_is_promotion_plus_ordinary_selection_and_stale_pin_remains_history(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             (
                 store, clock, run_contract, continuity, bridge, projector, _task, _stale,
                 task_pin, stale_pin,
-            ) = self.initialize(root, "correction")
+            ) = self.initialize(database, "correction")
             retained = self.pause(
                 run_contract=run_contract, continuity=continuity, bridge=bridge,
                 projector=projector, clock=clock,

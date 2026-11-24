@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
     HarnessWorkingSetPin,
@@ -31,7 +29,7 @@ from tests.test_pc15_epistemic_control import (
 class CognitionTransitionProgressTests(unittest.TestCase):
     @staticmethod
     def initialize(
-        root: Path,
+        database: PgTestSchema,
         suffix: str,
         *,
         max_model_calls: int,
@@ -43,7 +41,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             max_model_calls=max_model_calls,
             max_tool_calls=max_tool_calls,
         )
-        store = SQLiteHarnessStore.initialize(root)
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(
@@ -112,7 +110,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
         )
 
     def test_same_selection_attempt_reset_does_not_reopen_closed_soft_effect_gate(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -126,7 +124,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 _pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "same-selection-gate",
                 max_model_calls=3,
                 max_tool_calls=3,
@@ -184,7 +182,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             store.close()
 
     def test_selection_change_reopens_closed_soft_gate(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -198,7 +196,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "changed-selection-gate",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -259,7 +257,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             store.close()
 
     def test_same_selection_attempt_reset_still_discards_transient_tool_exchange(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -273,7 +271,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 _pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "same-selection-transient",
                 max_model_calls=3,
                 max_tool_calls=2,
@@ -330,8 +328,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             store.close()
 
     def test_fresh_resume_reconstructs_closed_soft_gate_without_new_caller_input(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -345,7 +342,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 _pin_a,
                 _pin_b,
             ) = self.initialize(
-                root,
+                database,
                 "resume-soft-gate",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -388,7 +385,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             retained = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.open() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -436,8 +433,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_projected_resume_input_resets_gate_once_model_visible(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -451,7 +447,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 _pin_a,
                 _pin_b,
             ) = self.initialize(
-                root,
+                database,
                 "resume-new-input",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -492,7 +488,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             retained = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.open() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -553,7 +549,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
 
 
     def test_same_selection_reset_does_not_clear_soft_progress_before_gate_closes(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -567,7 +563,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 _pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "same-selection-counter",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -625,7 +621,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             store.close()
 
     def test_selection_change_never_reopens_exhausted_hard_tool_budget(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -639,7 +635,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "hard-budget-selection-change",
                 max_model_calls=3,
                 max_tool_calls=1,

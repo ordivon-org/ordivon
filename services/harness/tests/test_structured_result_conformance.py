@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -21,7 +19,7 @@ from ordivon_harness.ordivon.model import (
 )
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_store
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from ordivon_harness.structured_result_conformance import (
     JSON_SCHEMA_DRAFT_2020_12_URI,
@@ -281,9 +279,7 @@ class StructuredResultConformanceTests(unittest.TestCase):
             completion_contract
         )
         clock = FixedClock()
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_store() as store:
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             bridge = CountingDomainGateBridge(run_contract, continuity)
@@ -305,7 +301,6 @@ class StructuredResultConformanceTests(unittest.TestCase):
                 bridge.validated_summaries[0],
                 encode_structured_completion_result(completion_contract, valid),
             )
-            store.close()
 
     def test_runner_rejects_invalid_result_then_accepts_corrected_result(self) -> None:
         completion_contract = completion()
@@ -322,9 +317,7 @@ class StructuredResultConformanceTests(unittest.TestCase):
             completion_contract
         )
         clock = FixedClock()
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_store() as store:
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             bridge = HarnessAgentBridge(run_contract, continuity)
@@ -350,7 +343,6 @@ class StructuredResultConformanceTests(unittest.TestCase):
             rejected = [event for event in result.trace.events if event.kind == "conclusion_rejected"]
             self.assertEqual(len(rejected), 1)
             self.assertEqual(rejected[0].payload["errorKind"], "model_correctable")
-            store.close()
 
 
 if __name__ == "__main__":

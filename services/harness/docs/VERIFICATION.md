@@ -329,3 +329,15 @@ carrier assertions still run without a database; PG behaviors are not
 silently represented as SQLite success. The existing queue supplies a
 disposable PG DSN. Historical SQLite storage tests remain until their
 real consumers are independently migrated or retired.
+
+### R43 production behavior consumer migration (candidate)
+
+Sixteen existing SQLite-backed behavior files now exercise original PG
+connections and one explicitly owned disposable schema per case. The
+fixture distinguishes managed connection lifetime from explicit close
+and reopen, including independent thread connections. Behavioral assertions
+for provider/tool recovery, cognition promotion, working-set selection,
+concurrency, and Adaptive Edit are preserved. The materialization test
+uses the original PG CAS contract (canonical payload bytes, kind stored
+as row metadata), not the historical SQLite envelope digest. Legacy
+storage and privacy-specific tests remain until separately qualified.

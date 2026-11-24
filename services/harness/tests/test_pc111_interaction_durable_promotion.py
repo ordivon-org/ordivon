@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_bytes, canonical_digest
@@ -19,7 +17,7 @@ from ordivon_harness.ordivon.model import (
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 from ordivon_harness.working_view import (
     AgentCallerIngressPromotionProposal,
     AgentWorkingSetTransitionProposal,
@@ -182,7 +180,7 @@ def deepseek_needs_input_response(summary: str = "no promotable caller ingress")
 class InteractionDurablePromotionTests(unittest.TestCase):
     @staticmethod
     def initialize(
-        root: Path,
+        database: PgTestSchema,
         suffix: str,
         *,
         max_model_calls: int = 8,
@@ -194,7 +192,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             max_model_calls=max_model_calls,
             max_tool_calls=max_tool_calls,
         )
-        store = SQLiteHarnessStore.initialize(root)
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(
@@ -267,8 +265,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
         return continuity.load_current_snapshot()
 
     def test_agent_promotes_exact_subset_then_only_promoted_bytes_survive_next_interaction(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -279,7 +276,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 _runtime,
                 source_a,
                 pin_a,
-            ) = self.initialize(root, "subset")
+            ) = self.initialize(database, "subset")
             retained = self.pause(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -356,7 +353,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             next_snapshot = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.open() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -398,7 +395,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_caller_ingress_is_not_materialized_or_selected_without_agent_promotion(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -409,7 +406,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 _runtime,
                 _source_a,
                 pin_a,
-            ) = self.initialize(Path(directory) / "state", "no-auto")
+            ) = self.initialize(database, "no-auto")
             retained = self.pause(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -454,7 +451,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             store.close()
 
     def test_out_of_range_promotion_is_rejected_without_working_set_change(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -465,7 +462,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 _runtime,
                 _source_a,
                 pin_a,
-            ) = self.initialize(Path(directory) / "state", "bad-index")
+            ) = self.initialize(database, "bad-index")
             retained = self.pause(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -507,8 +504,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             store.close()
 
     def test_promotion_provider_response_loss_replays_without_redispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -519,7 +515,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 _runtime,
                 _source_a,
                 pin_a,
-            ) = self.initialize(root, "response-loss")
+            ) = self.initialize(database, "response-loss")
             retained = self.pause(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -560,7 +556,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             self.assertEqual(continuity.load_current_working_set().pins, (pin_a,))
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.open() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -620,7 +616,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_dropping_promoted_pin_reexposes_same_interaction_caller_authority(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -631,7 +627,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 _runtime,
                 _source_a,
                 pin_a,
-            ) = self.initialize(Path(directory) / "state", "drop-reexposes")
+            ) = self.initialize(database, "drop-reexposes")
             retained = self.pause(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -697,7 +693,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             store.close()
 
     def test_repromoting_already_durable_caller_index_is_rejected(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -708,7 +704,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 _runtime,
                 _source_a,
                 _pin_a,
-            ) = self.initialize(Path(directory) / "state", "repeat-promotion")
+            ) = self.initialize(database, "repeat-promotion")
             retained = self.pause(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -764,11 +760,10 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             store.close()
 
     def test_model_only_privacy_can_promote_caller_ingress_without_tool_authority(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = cognition_contract("pc111-model-only-promotion")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,

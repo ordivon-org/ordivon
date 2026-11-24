@@ -3,8 +3,6 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 import json
-from pathlib import Path
-import tempfile
 import threading
 import unittest
 
@@ -21,7 +19,7 @@ from ordivon_harness.ordivon.model import (
 )
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_schema
 from ordivon_harness.store import HarnessEventWrite
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
@@ -329,8 +327,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
         self.assertIn("submit_run_conclusion", names)
 
     def test_deepseek_wire_transition_drives_mature_loop_to_successor_view(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = replace(
                 cognition_contract("pc13-deepseek-loop"),
@@ -338,7 +335,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 adapter_id=DeepSeekTurnAdapter.adapter_id,
                 requested_model_id="deepseek-v4-flash",
             )
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -404,11 +401,10 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 self.assertTrue(continuity.doctor()["healthy"])
 
     def test_mature_loop_applies_agent_proposal_and_next_turn_sees_b(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = cognition_contract("pc13-agent-transition")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -491,11 +487,10 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 self.assertTrue(continuity.doctor()["healthy"])
 
     def test_provider_completion_replay_applies_agent_transition_without_redispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = cognition_contract("pc13-provider-replay")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
@@ -539,7 +534,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             )
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -580,11 +575,10 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_exact_transition_replay_is_idempotent(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract("pc13-idempotent")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -605,7 +599,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
 
             # A fresh Store/Continuity instance must recognize the exact durable
             # transition as replay rather than inventing another cognition branch.
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -625,11 +619,10 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_continuity_doctor_rejects_forged_transition_proposal_binding(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract("pc13-doctor")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -709,11 +702,10 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                     continuity.doctor()
 
     def test_competing_agent_transitions_from_one_view_have_one_winner(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract("pc13-concurrent")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -736,7 +728,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             barrier = threading.Barrier(2)
 
             def writer(proposal: AgentWorkingSetTransitionProposal):
-                with SQLiteHarnessStore(root) as thread_store:
+                with database.connect() as thread_store:
                     thread_continuity = EventSourcedRunContinuity.open(
                         thread_store,
                         run_contract.harness_run_id,
@@ -760,7 +752,7 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
             rejected = [item for item in outcomes if item[0] == "rejected"]
             self.assertEqual(len(committed), 1, outcomes)
             self.assertEqual(len(rejected), 1, outcomes)
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,

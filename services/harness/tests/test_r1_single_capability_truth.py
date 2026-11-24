@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_bytes, canonical_digest
@@ -12,7 +10,7 @@ from ordivon_harness.ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapt
 from ordivon_harness.ordivon.loop import RunBudget
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_store
 from ordivon_harness.ordivon.model import (
     AgentCallerIngressRef,
     AgentTurnCapabilities,
@@ -168,10 +166,8 @@ class R1SingleCapabilityTruthTests(unittest.TestCase):
         self.assertIsNotNone(result.working_set_transition)
 
     def test_continuity_rejects_same_provider_call_with_changed_capability_truth(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_store() as store:
             value = provider_contract()
-            store = SQLiteHarnessStore.initialize(root)
             store.create_run(value)
             clock = MutableClock()
             continuity = EventSourcedRunContinuity(store, value, clock_ms=clock)
@@ -218,7 +214,6 @@ class R1SingleCapabilityTruthTests(unittest.TestCase):
                     request=changed,
                 )
             self.assertTrue(continuity.doctor()["healthy"])
-            store.close()
 
     def test_promotion_capability_requires_exact_addressable_caller_ref(self) -> None:
         with self.assertRaisesRegex(

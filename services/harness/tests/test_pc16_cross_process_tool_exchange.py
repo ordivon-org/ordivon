@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
@@ -10,7 +8,7 @@ from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_schema
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
     HarnessWorkingSetPin,
@@ -54,15 +52,14 @@ class CrashAfterFirstDurableObservationBridge(HarnessRuntimeBridge):
 
 class CrossProcessToolExchangeTests(unittest.TestCase):
     def test_fresh_process_rebuilds_complete_current_attempt_tool_exchange(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc16-cross-process-exchange",
                 max_model_calls=2,
                 max_tool_calls=2,
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -133,7 +130,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             self.assertEqual(len(retained_before_close.snapshot.active_tool_step_intent_digests), 1)
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -195,15 +192,14 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
 
 
     def test_successor_attempt_does_not_restore_predecessor_tool_exchange(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc16-attempt-boundary",
                 max_model_calls=4,
                 max_tool_calls=2,
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -272,7 +268,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             )
             store.close()
 
-            with SQLiteHarnessStore(root) as store_b:
+            with database.connect() as store_b:
                 continuity_b = EventSourcedRunContinuity.open(
                     store_b,
                     run_contract.harness_run_id,
@@ -330,7 +326,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
                     proposal.next_attempt_id,
                 )
 
-            with SQLiteHarnessStore(root) as store_c:
+            with database.connect() as store_c:
                 continuity_c = EventSourcedRunContinuity.open(
                     store_c,
                     run_contract.harness_run_id,
@@ -382,8 +378,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
 
 
     def test_cross_process_tool_exchange_recovery_fails_without_tool_content_authority(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = replace(
                 private_contract(
@@ -397,7 +392,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
                     allow_tool_content=False,
                 ),
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -456,7 +451,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             self.assertIsNone(current_tool.observation)
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
