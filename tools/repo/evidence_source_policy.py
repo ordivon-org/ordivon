@@ -13,6 +13,8 @@ from source_history_legos import current_tree, git
 # pg_issuer_consumer adapter is checked if present in the target tree.
 CONTROL_INPUTS = (
     "tools/repo/evidence_validity.py",
+    "tools/repo/evidence_github_checks.py",
+    "tools/repo/evidence_check_decision.py",
     "tools/repo/evidence_source_policy.py",
     "tools/repo/source_history_legos.py",
     "tools/repo/convergence_plan.py",

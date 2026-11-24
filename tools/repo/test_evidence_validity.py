@@ -72,6 +72,8 @@ def test_actual_current_pass_is_reused_without_rescheduling(monkeypatch):
     assert result["existingCheckReceiptReusable"] is True
     assert result["proofReuseAdmissible"] is False
     assert result["reuseScope"] == "EXACT_COMMIT_NAMED_PROVIDER_CHECK_OUTCOME"
+    assert result["currentApplicability"] == "UNKNOWN_EXTERNAL_ASSUMPTIONS"
+    assert result["currentSecurityStanding"] == "NOT_ASSESSED_BY_CHECK_RECEIPT"
     assert result["currentEvidence"]["checkRunId"] == GOOD["id"]
     assert len(gh.calls) == 1
     selection.assert_not_called()
