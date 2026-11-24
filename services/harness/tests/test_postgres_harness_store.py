@@ -155,6 +155,40 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertEqual(reopened.get_object(obj.digest), raw)
             self.assertEqual(reopened.create_run(run), HarnessEventAdmission.EXISTING)
 
+    def test_admitted_contract_replay_survives_caller_and_export_mutation(self) -> None:
+        """The original PG journal binds bytes, not caller-owned container aliases."""
+        from ordivon_harness.core_contracts import HarnessRunContract
+
+        base = contract()
+        wire = base.to_dict()
+        wire["completionContract"] = {
+            "mode": "structured-result-v1",
+            "resultKind": "choice",
+            "resultSchema": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"choice": {"type": "string", "enum": ["a"]}},
+                "required": ["choice"],
+            },
+        }
+        source = HarnessRunContract.from_dict(wire)
+        original_refs = list(source.context_refs)
+        admitted = replace(source, context_refs=original_refs)  # type: ignore[arg-type]
+        exact_wire = admitted.to_dict()
+        exact_digest = canonical_digest(exact_wire)
+        self.assertEqual(self.store.create_run(admitted), HarnessEventAdmission.CREATED)
+        original_refs.clear()
+        wire["completionContract"]["resultSchema"]["properties"]["choice"]["enum"].append("b")
+        exported = admitted.to_dict()
+        exported["completionContract"]["resultSchema"]["required"].clear()
+        self.assertEqual(admitted.digest, exact_digest)
+        self.assertEqual(admitted.to_dict(), exact_wire)
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            self.assertEqual(reopened.create_run(replace(admitted)), HarnessEventAdmission.EXISTING)
+            self.assertEqual(reopened.create_run(HarnessRunContract.from_dict(exact_wire)),
+                             HarnessEventAdmission.EXISTING)
+            self.assertTrue(reopened.doctor()["healthy"])
+
     def test_event_read_avoids_n_plus_one_queries_without_losing_cas_checks(self) -> None:
         run = contract()
         self.store.create_run(run)

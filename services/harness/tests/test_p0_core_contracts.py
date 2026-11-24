@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from types import MappingProxyType
 import unittest
 
 from anc_canonical import canonical_digest
@@ -151,6 +152,66 @@ class HarnessCoreContractTests(unittest.TestCase):
         exported["budget"]["maxModelCalls"] = 77
         exported["completionContract"]["mode"] = "export-mutated"
         self.assertEqual(run_contract.digest, digest)
+
+    def test_nested_budget_cannot_change_admitted_identity(self) -> None:
+        # The core contract admits JSON, even where the production RunBudget
+        # restricts the actual executable budget to flat integer limits.
+        budget = {"maxModelCalls": 2, "futureBudget": {"limits": [1, 2]}}
+        value = replace(contract(), budget=budget)
+        exact = value.to_dict()
+        digest = canonical_digest(exact)
+        budget["futureBudget"]["limits"].append(3)
+        self.assertEqual(value.digest, digest)
+        exported = value.to_dict()
+        exported["budget"]["futureBudget"]["limits"].append(4)
+        self.assertEqual(value.to_dict(), exact)
+        self.assertEqual(value.digest, digest)
+        with self.assertRaises(TypeError):
+            value.budget["futureBudget"]["limits"] = []  # type: ignore[index]
+
+    def test_structured_contract_rebind_preserves_admitted_wire_identity(self) -> None:
+        raw = contract().to_dict()
+        raw["completionContract"] = {
+            "mode": "structured-result-v1",
+            "resultKind": "test-choice",
+            "resultSchema": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"choice": {"type": "string", "enum": ["a"]}},
+                "required": ["choice"],
+            },
+        }
+        for version in (1, 2):
+            with self.subTest(version=version):
+                wire = dict(raw, schemaVersion=version)
+                if version == 1:
+                    wire["correlation"] = {"traceparent": None, "tracestate": None, "links": []}
+                admitted = HarnessRunContract.from_dict(wire)
+                rebound = replace(admitted)
+                self.assertEqual(rebound.to_dict(), wire)
+                self.assertEqual(rebound.digest, canonical_digest(wire))
+                self.assertEqual(admitted.digest, rebound.digest)
+
+    def test_reference_collections_are_snapshotted_at_construction(self) -> None:
+        base = contract()
+        for field in ("context_refs", "source_refs", "prior_artifact_refs"):
+            with self.subTest(field=field):
+                refs = list(getattr(base, field))
+                value = replace(base, **{field: refs})
+                refs.append(HarnessBoundReference("context:other", "context", DIGEST_A))
+                self.assertEqual(value.digest, base.digest)
+                self.assertIsInstance(getattr(value, field), tuple)
+
+    def test_raw_json_still_rejects_non_json_values_and_keys(self) -> None:
+        for bad in ({"nested": {1: "bad"}}, {"nested": (1, 2)}, {"nested": 1.0}):
+            with self.subTest(bad=bad), self.assertRaises((TypeError, ValueError)):
+                replace(contract(), budget=bad)
+            raw = contract().to_dict()
+            raw["budget"] = bad
+            with self.subTest(wire=bad), self.assertRaises((TypeError, ValueError)):
+                HarnessRunContract.from_dict(raw)
+        with self.assertRaises((TypeError, ValueError)):
+            replace(contract(), budget=MappingProxyType({1: "invalid"}))
 
     def test_exact_decode_rejects_host_projection_injection(self) -> None:
         value = contract().to_dict()

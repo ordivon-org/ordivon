@@ -56,24 +56,37 @@ def _freeze_json(value: Any) -> Any:
     return value
 
 
-def _thaw_json(value: Any) -> JsonValue:
-    if isinstance(value, Mapping):
-        return {str(key): _thaw_json(item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return [_thaw_json(item) for item in value]
+def _thaw_json(value: Any, *, allow_frozen: bool = True) -> JsonValue:
+    """Project detached wire JSON without coercing keys or scalar values."""
+    if isinstance(value, dict) or (allow_frozen and isinstance(value, MappingProxyType)):
+        projected: dict[str, JsonValue] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ValueError("JSON object key is not a string")
+            validate_json_value(key)
+            projected[key] = _thaw_json(item, allow_frozen=allow_frozen)
+        return projected
+    if isinstance(value, list) or (allow_frozen and isinstance(value, tuple)):
+        return [_thaw_json(item, allow_frozen=allow_frozen) for item in value]
     validate_json_value(value)
     return value
 
 
-def _json_object(
-    value: Mapping[str, JsonValue], label: str, *, require_non_empty: bool = True
-) -> None:
-    if require_non_empty and not value:
-        raise ValueError(f"{label} must be non-empty")
-    # ``dataclasses.replace`` may feed an already-frozen MappingProxyType back
-    # through the constructor. Validate the canonical JSON projection rather
-    # than the container implementation used to prevent post-construction drift.
-    validate_json_value(dict(value))
+def _json_object_snapshot(
+    value: Mapping[str, JsonValue], label: str
+) -> dict[str, JsonValue]:
+    if not isinstance(value, Mapping) or not value:
+        raise ValueError(f"{label} must be a non-empty object")
+    # dataclasses.replace may feed the existing private immutable representation
+    # back to admission. Raw wire inputs are still validated as actual JSON by
+    # from_dict; ordinary constructor maps must not silently admit tuples,
+    # non-string keys or floating-point values.
+    if isinstance(value, MappingProxyType):
+        snapshot = _thaw_json(value)
+    else:
+        snapshot = _thaw_json(dict(value), allow_frozen=False)
+    assert isinstance(snapshot, dict)
+    return snapshot
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,6 +219,15 @@ class HarnessRunContract:
         _text(self.harness_implementation_id, "Harness implementation identity", max_bytes=300)
         _identity(self.caller_id, "caller", "Harness caller")
         _text(self.caller_run_ref, "Harness caller Run reference", max_bytes=1_024)
+        # Freeze the actual caller-provided collections before checking them.
+        # A frozen dataclass alone does not freeze nested caller-owned objects.
+        for field in ("context_refs", "source_refs", "prior_artifact_refs"):
+            references = getattr(self, field)
+            if not isinstance(references, (tuple, list)) or any(
+                not isinstance(item, HarnessBoundReference) for item in references
+            ):
+                raise ValueError(f"Harness {field} must contain bound references")
+            object.__setattr__(self, field, tuple(references))
         if not self.context_refs:
             raise ValueError("Harness Run Contract requires at least one Context reference")
         self._unique_refs(self.context_refs, "Context")
@@ -216,30 +238,28 @@ class HarnessRunContract:
         _text(self.requested_model_id, "Harness requested model identity", max_bytes=300)
         _digest(self.tool_catalog_digest, "Harness Tool catalog digest")
         _digest(self.tool_grant_digest, "Harness Tool grant digest")
-        _json_object(self.budget, "Harness budget")
-        _json_object(self.completion_contract, "Harness completion contract")
-        if self.completion_contract.get("mode") == STRUCTURED_COMPLETION_MODE:
-            result_schema = self.completion_contract.get("resultSchema")
+        budget_snapshot = _json_object_snapshot(self.budget, "Harness budget")
+        completion_snapshot = _json_object_snapshot(
+            self.completion_contract, "Harness completion contract"
+        )
+        if completion_snapshot.get("mode") == STRUCTURED_COMPLETION_MODE:
+            result_schema = completion_snapshot.get("resultSchema")
             if not isinstance(result_schema, Mapping):
                 raise ValueError(
                     "structured completion resultSchema must be an object"
                 )
-            _json_object(
-                result_schema,
-                "structured completion resultSchema",
-            )
+            if not result_schema:
+                raise ValueError("structured completion resultSchema must be non-empty")
             if len(canonical_bytes(dict(result_schema))) > _MAX_STRUCTURED_RESULT_SCHEMA_BYTES:
                 raise ValueError(
                     "structured completion resultSchema exceeds 65536 canonical bytes"
                 )
-            validate_structured_result_schema(self.completion_contract)
-        elif "conformancePolicy" in self.completion_contract:
+            validate_structured_result_schema(completion_snapshot)
+        elif "conformancePolicy" in completion_snapshot:
             raise ValueError(
                 "structured completion conformancePolicy requires structured-result-v1"
             )
-        object.__setattr__(self, "budget", MappingProxyType(dict(self.budget)))
-        completion_snapshot = _thaw_json(self.completion_contract)
-        assert isinstance(completion_snapshot, dict)
+        object.__setattr__(self, "budget", _freeze_json(budget_snapshot))
         object.__setattr__(
             self,
             "completion_contract",
@@ -288,7 +308,7 @@ class HarnessRunContract:
             "requestedModelId": self.requested_model_id,
             "toolCatalogDigest": self.tool_catalog_digest,
             "toolGrantDigest": self.tool_grant_digest,
-            "budget": dict(self.budget),
+            "budget": _thaw_json(self.budget),
             "completionContract": _thaw_json(self.completion_contract),
             "systemManifestRef": self.system_manifest_ref.to_dict(),
             "createdAtMs": self.created_at_ms,
