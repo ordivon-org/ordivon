@@ -2,9 +2,9 @@
 //! No SQLite Registry, no new permission engine and no unsealed output.
 use super::PathBuf;
 use super::{
+    io, require_pg_artifact_identity, require_pg_artifact_origin, universal,
     ArtifactContentMetadata, ArtifactContentReadResult, ArtifactContentRequest, PgRuntime,
-    RuntimeError, RuntimeErrorCode, RuntimeResult, io, require_pg_artifact_identity,
-    require_pg_artifact_origin, universal,
+    RuntimeError, RuntimeErrorCode, RuntimeResult,
 };
 use std::path::Path;
 

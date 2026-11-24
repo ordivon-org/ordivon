@@ -53,15 +53,13 @@ fn pg_artifact_page_preserves_valid_byte_cursor_boundaries() {
 fn pg18_artifact_readers_reject_cross_job_attempt_origin() {
     let dsn = std::env::var("ORDIVON_PG_TEST_DSN").expect("disposable PG DSN");
     let mut admin = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
-    assert!(
-        admin
-            .query_one(
-                "SELECT inet_server_addr() IS NULL AND current_setting('listen_addresses') = ''",
-                &[],
-            )
-            .unwrap()
-            .get::<_, bool>(0)
-    );
+    assert!(admin
+        .query_one(
+            "SELECT inet_server_addr() IS NULL AND current_setting('listen_addresses') = ''",
+            &[],
+        )
+        .unwrap()
+        .get::<_, bool>(0));
     let id = Uuid::now_v7().simple().to_string();
     let schema = format!("test_artifact_{id}");
     let role = format!("test_artifact_app_{id}");
