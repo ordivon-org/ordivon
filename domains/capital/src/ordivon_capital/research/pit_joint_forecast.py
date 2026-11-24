@@ -168,6 +168,15 @@ def market_capture_to_pit_vintages(
         raise PointInTimeError(
             "whole market snapshot cannot be captured before its market close"
         )
+    from ordivon_capital.markets.equity_session_calendar import (
+        MarketSessionQualificationError,
+        require_xnys_eod_session_closes,
+    )
+
+    try:
+        require_xnys_eod_session_closes({last_session.isoformat(): close_at})
+    except MarketSessionQualificationError as exc:
+        raise PointInTimeError(str(exc)) from exc
     names = tuple(assets)
     if not names or len(names) != len(set(names)):
         raise PointInTimeError("unique nonempty market assets required")
