@@ -744,6 +744,22 @@ def make_one_step_optimizer_contract(
     return {"gamma": gamma, "nodes": nodes}
 
 
+def load_pit_payload(path: Path) -> dict[str, Any]:
+    """Decode unambiguous PIT evidence for both native consumers."""
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise PointInTimeError(f"duplicate JSON input key: {key}")
+            result[key] = value
+        return result
+
+    payload = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(payload, dict):
+        raise PointInTimeError("point-in-time payload must be a JSON object")
+    return payload
+
+
 def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Produce a reproducible, zero-authority optimizer contract plus evidence."""
     expected = {
@@ -817,53 +833,16 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Research-to-Portfolio native consumer, no second optimization engine.
-
-    The only market probabilities are the caller's past-visible empirical or
-    lagged-neighbor hypotheses. The caller must also supply actual economic
-    preferences and provider financing/margin terms. This function neither
-    authenticates those inputs nor creates any order/Paper event.
-    """
-    import dataclasses
-
-    from ordivon_capital.portfolio.multistage_policy import (
-        InformationNode,
-        MultistageProblem,
-        solve_multistage,
-    )
-
-    result = from_json_payload(payload)
-    contract = result["optimizer_input"]
-    vectors = {"risky_gross", "maintenance", "initial_margin", "turnover_cost"}
-    nodes = tuple(
-        InformationNode(
-            **{key: tuple(value) if key in vectors else value for key, value in raw.items()}
-        )
-        for raw in contract["nodes"]
-    )
-    solution = solve_multistage(MultistageProblem(gamma=contract["gamma"], nodes=nodes))
-    return {
-        **result,
-        "conditional_allocation": dataclasses.asdict(solution),
-        "allocation_standing": "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
-    }
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Read-only PIT research to existing Capital optimizer"
+        description="Read-only PIT forecast evidence and optimizer input"
     )
     parser.add_argument("--input", type=Path, required=True)
-    parser.add_argument(
-        "--solve",
-        action="store_true",
-        help="run the existing read-only one-step CRRA consumer, with no trades",
-    )
     args = parser.parse_args()
     try:
-        payload = json.loads(args.input.read_text(encoding="utf-8"))
-        outcome = solve_pit_payload(payload) if args.solve else from_json_payload(payload)
+        payload = load_pit_payload(args.input)
+        outcome = from_json_payload(payload)
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:
         parser.error(f"incomplete point-in-time market/economic contract: {e}")
     print(json.dumps(outcome, ensure_ascii=False, sort_keys=True))

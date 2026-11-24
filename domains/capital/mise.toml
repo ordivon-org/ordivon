@@ -8,6 +8,8 @@ run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
+mise run verify:formal:passive-benchmark
+mise run verify:formal:liability-reserve
 mise run verify:formal:unit-r-margin
 mise run verify:formal:unit-r-rebalance
 mise run verify:formal:algebraic-capital
@@ -178,7 +180,7 @@ description = "Native Z3 proof of Portfolio cashflow-matched benchmark transitio
 run = """
 set -euo pipefail
 observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/PortfolioPassiveBenchmarkR1.smt2)"
-expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat')"
+expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat\nunsat\nsat')"
 if [ "$observed" != "$expected" ]; then
   printf 'Unexpected model result (unknown/timeout/SAT obligation is not verified): %s\n' "$observed" >&2
   exit 1
@@ -252,6 +254,17 @@ eod_expected = ["unsat", "unsat", "unsat", "sat", "sat"]
 if eod_results != eod_expected:
     raise SystemExit(f"Markets EOD -> Paper gate model mismatch: {eod_results!r}")
 print("MarketsEodPaperCalendarR1: 3 abstract consumer invariants UNSAT; 2 counterexamples SAT")
+distribution_raw = Path("formal/ResearchExDividendHoldingHorizonR1.smt2").read_bytes()
+distribution_ctx = z3.Context()
+distribution_results = z3.z3core.Z3_eval_smtlib2_string(
+    distribution_ctx.ref(), distribution_raw
+).splitlines()
+distribution_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "sat"]
+if distribution_results != distribution_expected:
+    raise SystemExit(
+        f"Research issuer dividend holding horizon model mismatch: {distribution_results!r}"
+    )
+print("ResearchExDividendHoldingHorizonR1: 4 abstract invariants UNSAT; 2 wrong/valid witnesses SAT")
 PYZ3
 """
 
@@ -269,4 +282,12 @@ if observed != expected:
     raise SystemExit(f"Accounting reservation formal obligations mismatch: {observed!r} != {expected!r}")
 print("AccountingReservationR1: 9 universal QF_LIA checks UNSAT; 4 invalid-state counterexamples SAT")
 PYZ3
+"""
+
+[tasks."verify:formal:liability-reserve"]
+description = "Lean proof of dated-liability cash reserve contribution bounds"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioLiabilityReserve.lean
 """

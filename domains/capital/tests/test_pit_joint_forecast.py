@@ -563,7 +563,7 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         }
 
     def test_one_api_consumes_pit_joint_distribution_and_existing_solver(self):
-        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+        from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 
         payload = self.payload()
         out = solve_pit_payload(payload)
@@ -585,7 +585,7 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         self.assertNotIn("conditional_allocation", evidence)
 
     def test_future_released_revision_does_not_change_conditional_policy(self):
-        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+        from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 
         payload = self.payload()
         before = solve_pit_payload(payload)
@@ -623,7 +623,8 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
             ]
             old = subprocess.run(command, capture_output=True, text=True, check=True, env=env)
             full = subprocess.run(
-                [*command, "--solve"], capture_output=True, text=True, check=True, env=env
+                [sys.executable, "-m", "ordivon_capital.applications.pit_portfolio", "--input", str(file)],
+                capture_output=True, text=True, check=True, env=env,
             )
         old_json, new_json = json.loads(old.stdout), json.loads(full.stdout)
         self.assertNotIn("conditional_allocation", old_json)
@@ -631,8 +632,38 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         self.assertEqual(old_json["input_sha256"], new_json["input_sha256"])
         self.assertEqual(new_json["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
 
+    def test_native_pit_consumers_reject_duplicate_economic_and_time_keys(self):
+        import json
+        import os
+        import subprocess
+        import tempfile
+
+        raw = json.dumps(self.payload())
+        cases = {
+            "future_publication": raw.replace(
+                '"published_at":', '"published_at": "2027-01-01T00:00:00+00:00", "published_at":', 1
+            ),
+            "economic_preference": raw.replace('"gamma": 2.0', '"gamma": -100, "gamma": 2.0', 1),
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            file = Path(temp) / "vintages.json"
+            for case, content in cases.items():
+                file.write_text(content, encoding="utf-8")
+                for module in (
+                    "ordivon_capital.research.pit_joint_forecast",
+                    "ordivon_capital.applications.pit_portfolio",
+                ):
+                    with self.subTest(case=case, module=module):
+                        result = subprocess.run(
+                            [sys.executable, "-m", module, "--input", str(file)],
+                            capture_output=True, text=True, check=False,
+                            env={**os.environ, "PYTHONPATH": str(ROOT)},
+                        )
+                        self.assertNotEqual(result.returncode, 0, result.stdout)
+                        self.assertEqual(result.stdout, "")
+
     def test_missing_economic_owner_terms_never_create_an_optimal_policy(self):
-        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+        from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 
         payload = self.payload()
         payload["economic_contract"].pop("gamma")

@@ -36,7 +36,10 @@ class FakeCursorConn:
         elif "FROM topic_consumption_cursors" in query:
             self.rows = [{"cursor": self.current}]
         elif "INSERT INTO topic_consumption_cursors" in query:
-            self.rows = [{"cursor": int(params[2])}]
+            requested = int(params[2])
+            self.rows = [] if requested < self.current else [
+                {"previous_cursor": self.current, "cursor": requested}
+            ]
         else:
             raise AssertionError(f"unexpected SQL: {query}")
         return self
@@ -65,15 +68,14 @@ def test_read_and_ack_share_callers_connection_and_cursor_domain() -> None:
     assert after["previousCursor"] == 3 and after["cursor"] == 7
     assert after["topicHighSequence"] == 7
     assert all(params[0] == "actor:a" for sql, params in conn.queries if "topic_consumption_cursors" in sql)
-    assert any("FOR UPDATE" in sql for sql, _ in conn.queries)
     assert any("WHERE topic_consumption_cursors.cursor<=EXCLUDED.cursor" in sql for sql, _ in conn.queries)
 
 
-def test_backward_ack_rejected_before_upsert() -> None:
+def test_backward_ack_rejected_by_atomic_upsert() -> None:
     conn = FakeCursorConn(high=7, current=4)
     with pytest.raises(ConflictError, match="backwards"):
         ack_topic_cursor_in_tx(conn, actor_ref="actor:a", topic_ref="topic:a", cursor=3)
-    assert all("INSERT INTO topic_consumption_cursors" not in sql for sql, _ in conn.queries)
+    assert any("INSERT INTO topic_consumption_cursors" in sql for sql, _ in conn.queries)
 
 
 def test_attention_bulk_cursor_reads_are_single_snapshot_and_empty_safe() -> None:

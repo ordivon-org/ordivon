@@ -78,6 +78,14 @@ allowed roots can become VERIFIED. A digest mismatch becomes FALSIFIED.
 Missing data, malformed file URI authority, missing accessURL, and files
 outside the explicit scope remain UNKNOWN rather than FALSE.
 
+Producer binding and consumer inspection share one descriptor-relative
+regular-file reader on supported POSIX hosts. It refuses symlink traversal,
+hashes the opened descriptor, and distinguishes missing, unreadable, and failed
+I/O from an observed digest mismatch. Malformed access URIs remain scoped
+UNKNOWN; strict producer admission retains typed I/O errors. Unsupported
+descriptor operations or observed in-place changes do not establish evidence.
+The observation does not freeze a mutable file or guarantee later retention.
+
 Historical federated catalog uses `file://studies/...`, whose authority
 component is `studies`. The CLI deliberately treats that as an unsupported
 file URI rather than silently rewriting the frozen evidence. The source owner

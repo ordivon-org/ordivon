@@ -58,9 +58,11 @@
     "portfolio": [
       "portfolio_counterfactuals.py",
       "strategic_contribution.py",
+      "liability_reserve.py",
       "paper_contribution_plan.py",
       "paper_investment.py",
       "passive_benchmark.py",
+      "fund_return_inputs.py",
       "paper_vintage.py",
       "paper_close_performance.py",
       "algebraic_policy.py",
@@ -91,7 +93,8 @@
       "investment_candidate.py",
       "unit_r_dca.py",
       "pit_joint_forecast.py",
-      "independent_policy_replay.py"
+      "independent_policy_replay.py",
+      "etf_distribution_label_audit.py"
     ],
     "governance": [
       "policy_decision.py",

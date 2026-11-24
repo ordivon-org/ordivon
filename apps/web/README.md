@@ -80,6 +80,14 @@ identifier.
 SimpleWebAuthn owns WebAuthn protocol generation and verification. Ordivon owns
 Principal/challenge/session semantics only.
 
+Challenge persistence is isolated in `src/store-challenges.ts`, using the
+existing WebStore connection and one-shot transaction. Creation captures a
+single JSON payload snapshot; consumption validates its stored digest and
+decodes the payload before marking it consumed. Malformed or mismatched
+storage fails closed and rolls back. The digest is an integrity consistency
+check, not cryptographic protection against an actor who can rewrite both
+payload and digest in the database.
+
 Initial Principal enrollment still uses a canary-only bootstrap enrollment
 token. A deployed site must replace this with its existing authenticated
 account/invitation authority.
@@ -116,6 +124,20 @@ pnpm typecheck
 pnpm test
 pnpm e2e
 ```
+
+## Agent effect response consistency
+
+`src/agent-canary-routes.ts` registers the delegated canary mutation routes
+and shares their admission/receipt orchestration. The Security-owned evaluator
+and WebStore transaction remain separate. After the asynchronous decision,
+exact replay is reconciled before any new approval or effect; current grant
+uniqueness, identity, digest and revision are checked before STEP_UP or ALLOW.
+A response code alone is not a general proof of domain completion: the
+committed receipt is the canary's authoritative result.
+
+See [the bounded protocol model and concrete race witnesses](formal/README.md).
+Use `mise run web:formal:effect-response` from the repository root when the existing
+pinned Runtime TLC JAR is available.
 
 ## Delegated Agent authority
 

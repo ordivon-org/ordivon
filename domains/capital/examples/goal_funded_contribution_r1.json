@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.finance.portfolio.goal-funded-contribution-request",
+  "currency": "USD",
+  "cashMinor": 50000,
+  "contributionMinor": 20000,
+  "asOfDate": "2026-11-24",
+  "reserveThroughDate": "2027-11-24",
+  "emergencyReserveMinor": 10000,
+  "obligations": [
+    {"id": "tuition", "dueDate": "2027-06-01", "amountMinor": 30000},
+    {"id": "later-goal", "dueDate": "2029-06-01", "amountMinor": 80000}
+  ],
+  "holdingsMinor": {"INDEX_CORE": 80000, "BOND_CORE": 20000},
+  "targetWeightsBps": {"INDEX_CORE": 6000, "BOND_CORE": 4000}
+}
