@@ -170,5 +170,97 @@ class BrowserlessConversationOutputContractTests(unittest.TestCase):
         self.assertIsNone(recommendation("ACCEPTABLE_TO_SUBMIT\nadditional discussion"))
 
 
+# The CLI is the actual caller of the receipt file boundary. These synthetic
+# observations exercise real local filesystem writes, not a live browser.
+class PrivateReceiptFileTests(unittest.TestCase):
+    def _run(self, receipt_path):
+        import sys
+        from unittest.mock import patch
+        from scripts import playwright_browserless_conversation_output as output
+
+        resource = "https://chatgpt.com/c/12345678-1234-1234-1234-123456789abc"
+        endpoint = Mock()
+        endpoint.endpoint_id = "isolated-test"
+        observation = {"standing": "CAPTURED", "assistantOutput": "synthetic result"}
+        args = [
+            "observe", "--config", "unused", "--endpoint-id", endpoint.endpoint_id,
+            "--target-resource", resource, "--expected-prompt-digest",
+            output.sha256_bytes(b"synthetic prompt"), "--expected-dom-user-message-id",
+            "synthetic-user", "--observation-id", "synthetic-observation",
+            "--receipt-out", str(receipt_path),
+        ]
+        with (
+            patch.object(sys, "argv", args),
+            patch.object(output, "endpoint_from_config", return_value=endpoint),
+            patch.object(output, "sync_playwright") as playwright,
+            patch.object(output, "read_existing_playwright_output", return_value=observation),
+            patch("builtins.print"),
+        ):
+            self.assertEqual(output.main(), 0)
+            playwright.return_value.__enter__.return_value.chromium.connect_over_cdp.return_value.close.assert_called_once()
+
+    def test_receipt_replaces_symlink_without_touching_its_target(self):
+        import json
+        import stat
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            parent = Path(directory)
+            target = parent / "unrelated"
+            target.write_bytes(b"original unrelated content")
+            target.chmod(0o644)
+            receipt = parent / "receipt.json"
+            receipt.symlink_to(target)
+            self._run(receipt)
+            self.assertEqual(target.read_bytes(), b"original unrelated content")
+            self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o644)
+            self.assertFalse(receipt.is_symlink())
+            self.assertEqual(stat.S_IMODE(receipt.stat().st_mode), 0o600)
+            self.assertEqual(json.loads(receipt.read_bytes())["assistantOutput"], "synthetic result")
+
+    def test_receipt_publication_is_private_before_replace(self):
+        import os
+        import stat
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+
+        with TemporaryDirectory() as directory:
+            receipt = Path(directory) / "receipt.json"
+            receipt.write_bytes(b"previous receipt")
+            receipt.chmod(0o644)
+            original_replace = os.replace
+            calls = []
+
+            def checked_replace(source, destination):
+                self.assertEqual(Path(destination), receipt)
+                self.assertEqual(receipt.read_bytes(), b"previous receipt")
+                self.assertEqual(stat.S_IMODE(Path(source).stat().st_mode), 0o600)
+                calls.append(destination)
+                original_replace(source, destination)
+
+            old_umask = os.umask(0)
+            try:
+                with patch("os.replace", side_effect=checked_replace):
+                    self._run(receipt)
+            finally:
+                os.umask(old_umask)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(stat.S_IMODE(receipt.stat().st_mode), 0o600)
+            self.assertEqual(list(Path(directory).iterdir()), [receipt])
+
+    def test_replace_failure_preserves_previous_receipt_and_cleans_temporary(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+
+        with TemporaryDirectory() as directory:
+            receipt = Path(directory) / "receipt.json"
+            receipt.write_bytes(b"previous receipt")
+            with patch("os.replace", side_effect=OSError("synthetic replace failure")):
+                with self.assertRaises(OSError):
+                    self._run(receipt)
+            self.assertEqual(receipt.read_bytes(), b"previous receipt")
+            self.assertEqual(list(Path(directory).iterdir()), [receipt])
+
+
 if __name__ == "__main__":
     unittest.main()

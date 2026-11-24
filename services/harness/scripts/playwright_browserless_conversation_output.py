@@ -11,6 +11,7 @@ import json
 import rfc8785
 import os
 import re
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -164,6 +165,29 @@ def _prompt_file_digests(path: Path) -> tuple[str, str]:
     return sha256_bytes(text.encode("utf-8")), sha256_bytes(raw)
 
 
+def _write_private_receipt(path: Path, receipt: dict) -> None:
+    """Publish complete private bytes; never truncate an existing destination.
+
+    The caller owns the destination directory and recipient authorization.
+    This local file operation does not establish consumer acceptance.
+    """
+    raw = (json.dumps(receipt, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            os.fchmod(handle.fileno(), 0o600)
+            handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
@@ -220,12 +244,7 @@ def main() -> int:
                 "sendAttempted": False,
             }
             receipt["receiptDigest"] = digest_obj(receipt)
-            args.receipt_out.parent.mkdir(parents=True, exist_ok=True)
-            args.receipt_out.write_text(
-                json.dumps(receipt, sort_keys=True, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            os.chmod(args.receipt_out, 0o600)
+            _write_private_receipt(args.receipt_out, receipt)
             print(json.dumps(receipt, sort_keys=True, ensure_ascii=False))
             return 0 if receipt["standing"] == "CAPTURED" else 3
         finally:
