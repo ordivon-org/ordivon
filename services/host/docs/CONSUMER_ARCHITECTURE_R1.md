@@ -438,3 +438,12 @@ consumer benefit, accurate source-path closure and formal/prod tests. M4
 PG integration test organization awaits consumer-driven evidence. Principal
 identity, legacy ingress and Plugin archive parameter capture remain P0
 with their natural Gateway/Security/Harness owners.
+
+
+## R3 Work read composition (2026-11-24)
+
+WorkStore now composes WorkReadQueries with an explicit native connection factory;
+readback inside create/commit still uses read_work_in_tx on the caller transaction.
+The pure bounded revision successor lives in work_revision_logic.py and the existing
+CrossHair source target follows it. Public WorkStore/MCP and PG schema are unchanged.
+The older inherited read facet descriptions above are historical.
