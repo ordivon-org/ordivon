@@ -303,3 +303,16 @@ economic replay for separate qualification. Do not promote calendar
 intersection (including far-future dates) to `PIT_VERIFIED`,
 `HOLDOUT_AVAILABLE`, `OOS_VALIDATED`, capital authority or strategy alpha.
 No new data catalog, temporal proof service or Agent is needed.
+
+### ETF ordinary cash distribution and study identity
+
+Use `ordivon_capital.research.etf_distribution_label_audit` with original
+panel bytes and exact panel SHA, caller-observed issuer event JSON and
+declared H5/H20 decision range. It is a read-only overlap diagnostic for
+ordinary cash distributions, NOT an adjusted return or settlement engine.
+Do not equate ex-date with payable date, unobserved events with zero, or
+a hypothetical candidate window with a selected model holding.
+Use the existing native Qlib economics consumer's `native_study_identity`
+to bind forecasts, label data, ETF sources and CLOSE/NEXT_OPEN horizon.
+See `domains/capital/docs/FINANCE_GOLDEN_ROAD_R1.md` and its R5 source
+observation; no historical PIT or financial authority is conferred.

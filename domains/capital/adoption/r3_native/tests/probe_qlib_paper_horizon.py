@@ -59,7 +59,10 @@ def _native_prediction_scores(exit_kind: str, expected_sha256: str) -> pd.Series
     table = pd.read_csv(io.BytesIO(prediction_bytes))
     if list(table.columns) != ["datetime", "instrument", expected]:
         raise ValueError("Qlib prediction column schema differs from native producer")
-    return table.set_index(["datetime", "instrument"])[expected]
+    scores = table.set_index(["datetime", "instrument"])[expected]
+    if not scores.index.is_unique:
+        raise ValueError("duplicate prediction keys in native study")
+    return scores
 
 
 def _native_pinned_dataset(report: dict) -> pd.DataFrame:
@@ -67,14 +70,22 @@ def _native_pinned_dataset(report: dict) -> pd.DataFrame:
     raw = (OUT / "qlib_static_dataset.parquet").read_bytes()
     if hashlib.sha256(raw).hexdigest() != report.get("qlib_dataset_sha256"):
         raise ValueError("Qlib dataset snapshot digest differs from study")
-    return pd.read_parquet(io.BytesIO(raw))
+    dataset = pd.read_parquet(io.BytesIO(raw))
+    if not dataset.index.is_unique:
+        raise ValueError("duplicate dataset keys in native study")
+    return dataset
 
 
 def _native_pinned_bars(symbol: str, report: dict) -> pd.DataFrame:
     """Reuse producer-receipt bytes, never promote a source to publisher auth."""
     receipts = report.get("provider_receipts")
-    if not isinstance(receipts, list):
-        raise ValueError("Qlib study has no source snapshot receipts")
+    if (
+        not isinstance(receipts, list)
+        or len(receipts) != len(SYMBOLS)
+        or any(not isinstance(row, dict) for row in receipts)
+        or {row.get("symbol") for row in receipts} != set(SYMBOLS)
+    ):
+        raise ValueError("Qlib study source receipts must cover the exact ETF universe")
     matched = [r for r in receipts if isinstance(r, dict) and r.get("symbol") == symbol]
     if len(matched) != 1 or matched[0].get("provider") != "cboe":
         raise ValueError("Qlib source snapshot identity differs from producer")
@@ -109,6 +120,33 @@ def _native_pinned_bars(symbol: str, report: dict) -> pd.DataFrame:
     return indexed.sort_index()
 
 
+
+
+def _require_study_keys(predictions: pd.Series, labels: pd.Series) -> None:
+    if not predictions.index.is_unique or not labels.index.is_unique:
+        raise ValueError("duplicate prediction or label keys")
+    if not predictions.index.isin(labels.index).all():
+        raise ValueError("native prediction lacks corresponding dataset label")
+    for _, rows in predictions.groupby(level="datetime"):
+        if set(rows.index.get_level_values("instrument")) != set(SYMBOLS):
+            raise ValueError("native prediction must cover exact ETF universe per decision")
+
+
+def _consumed_study_identity(report: dict) -> dict:
+    # Only call after every source and exit definition has been validated.
+    skill = report["signal_quality"]
+    return {
+        "holdingSessions": skill["holding_sessions"],
+        "exitPriceKind": skill["exit_price_kind"],
+        "forecastTargetHorizon": report["forecast"]["target_horizon"],
+        "qlibPredictionSha256": report["qlib_prediction_sha256"],
+        "qlibDatasetSha256": report["qlib_dataset_sha256"],
+        "sourceReceipts": {
+            item["symbol"]: item["normalized_sha256"]
+            for item in report["provider_receipts"]
+        },
+        "sourceStanding": "LOCAL_STUDY_BYTES_BOUND_NOT_PROVIDER_OR_PIT_ATTESTED",
+    }
 
 
 def run_multisession(report: dict, hold: int) -> dict:
@@ -160,6 +198,7 @@ def run_multisession(report: dict, hold: int) -> dict:
 
     predictions = _native_prediction_scores(exit_price, report["qlib_prediction_sha256"])
     labels = _native_pinned_dataset(report)["label"]["LABEL0"]
+    _require_study_keys(predictions, labels)
     assert len(predictions) == skill["sample_rows"]
     bars = {sym: _native_pinned_bars(sym, report) for sym in SYMBOLS}
     sessions = list(bars["SPY"].index)
@@ -226,6 +265,7 @@ def run_multisession(report: dict, hold: int) -> dict:
         "kind": "ordivon.finance.r3.qlib-disjoint-holding-economic-counterexample",
         "standing": "RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
         "source_forecast_skill": skill,
+        "native_study_identity": _consumed_study_identity(report),
         "holding_sessions": hold,
         "exit_price_kind": exit_price,
         "native_fixed_holding_economic_event_matched": exit_price == "next_open",
@@ -325,8 +365,7 @@ def run() -> dict:
     predictions = _native_prediction_scores("close", report["qlib_prediction_sha256"])
     dataset = _native_pinned_dataset(report)
     labels = dataset["label"]["LABEL0"]
-    assert predictions.index.is_unique and labels.index.is_unique
-    assert predictions.index.isin(labels.index).all()
+    _require_study_keys(predictions, labels)
     assert len(predictions) == skill["sample_rows"] == 816
     assert len(set(predictions.index.get_level_values("datetime"))) == 272
 
@@ -429,6 +468,7 @@ def run() -> dict:
         "kind":"ordivon.finance.r3.qlib-economic-consumer-counterexample",
         "standing":"RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
         "source_model_skill":skill,
+        "native_study_identity": _consumed_study_identity(report),
         "capital_budget_lego":"ordivon_capital.portfolio.strategic_contribution",
         "total_initial_cash_minor":1_000_000,
         "protected_cash_minor":900_000,

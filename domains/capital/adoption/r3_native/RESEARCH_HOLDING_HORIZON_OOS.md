@@ -286,3 +286,163 @@ basis. It settles calendar sensitivity for five current-source model/Portfolio
 combinations plus two pure Paper transition paths. It does NOT prove
 correctness of original market prices, durable PostgreSQL paper accounting
 replay, real broker execution or predictive alpha.
+
+
+## 2026-11-14：发行方现金事件对 H5/H20 价格标签的反证
+
+Qlib R3 在历史回填价格上按 T+1 开盘买入、T+H+1 开盘
+卖出测量价格标签，原数据不具已认证的股息现金流、公司行动、
+来源许可或历史首次可知时间。
+新增现有 Research 下面的轻量日期暴露消费者
+src/ordivon_capital/research/etf_distribution_label_audit.py。
+它只计算已观察 issuer ex-date 与交易所会话索引的相交，
+不向 Portfolio/Accounting 写钱、不重新计算策略收益。
+持有在 ex-date 前进入、ex-date 开盘退出的持仓可能获得
+分红权；若 ex-date 开盘才买入则不享该分红。
+这是数学场景条件，不是券商账户/股东登记证明。
+
+具体采用 2026-11-13 收盘更新的 971 行私有面板
+（sha256 a1daef34db81615b4ab26ada498ed2d7121833a42cc974303357aeb006cd2e59），
+2025-10-01 至 2026-10-29 所有完整假设决策窗口中：
+H5 共272期，QQQ/IWM各20期跨已观察事件；
+H20 共262期，QQQ/IWM各80期跨已观察事件。
+SPY 因只观察一项公开分红，仅有5/20期下界。
+QQQ 四项发行方日期 2025-12-22、2026-03-23、
+2026-06-22、2026-09-21；IWM 四项 2025-12-16、
+2026-03-17、2026-06-15、2026-09-15。
+具体发行方事件的人工观察时间为2026-11-14，
+不能证明2025/26模型决策时刻可知。现有记录位于
+私有 issuer-events-diagnostic-20261114-r1，没有上传 Git。
+
+新增形式模型 ResearchExDividendHoldingHorizonR1.smt2，
+证明抽象 session index 中买入当日除息不应获得分红、
+在除息日退出仍可能享有分红、单个发行方事件最多
+影响 H 个相邻候选窗口。不能用抽象证明替代
+真实股东登记、市场价格调价、Python实现精化或分红到账。
+
+
+### 2026-11-14 R6：P0 纠错——H20 CLOSE 的选股绝不能冒充 H20 NEXT_OPEN
+
+本轮重新审查 PR_REVIEW_ECONOMIC_HORIZON_R7.md 与本文件 R9：
+旧研究 H20 CLOSE 标签在 T+H CLOSE 卖出，Qlib 实际
+13 个不重叠窗口选择 IWM 13 次。它取得相对同期 SPY
+负 USD 35.674754 的原生 Portfolio 比较，不构成投资 Alpha。
+R9 后来将 H20 NEXT_OPEN 作为新的原生 Qlib 标签
+（T+H+1 OPEN 卖出），**重新训练模型**，获得另一个
+13 窗口研究，报告相对同期 SPY 正 USD 73.16，但没有提供
+这里可消费的逐窗口本轮模型预测文件。
+
+R5 一度错误地把 R7 CLOSE 的 IWM13 次选择移植到
+R9 NEXT_OPEN，再计算它 4/13 个 IWM 选中窗口跨越
+除息日。这违反 Study Identity 的退出事件定义，撤回
+该选股归属与它的 4/13 模型已选暴露声明。原先私有
+h20_13_iwm_selection_calendar_conditional_reconstruction.json
+仅保留为**假设所有13次都买IWM**的来源反例，不能再用
+作真正 H20 NEXT_OPEN 模型的选股证据。
+
+独立消费者复算：基于 2026-11-14 保存的三只 ETF
+原始 OpenBB Cboe CSV、每20决策会话一个持仓窗口、固定
+13 次 IWM，以及**现有 Portfolio passive_benchmark**：
+- H20 CLOSE / all IWM 相对 SPY 为约负 USD 35.67，
+  与 R7 早先同模型记录的负 USD 35.674754 对上。
+- H20 NEXT_OPEN / 假设 all IWM 相对 SPY 为约负
+  USD 25.98，**不等于 R9 的实际 Qlib NEXT_OPEN
+  模型报告正 USD 73.16**。这不是同一实验。
+
+所有价格均属事后快照，无独立 PIT、价格调整/发行方
+现金分配、真实成交与税费认证。新旧发行方事件扫描仍可
+用于 **所有候选假设价格标签**（H5 272/H20 262），
+但若要计算**模型真实已选持仓**的分红暴露，必须从
+exact Qlib model prediction SHA、exit_price_kind、
+source SHA、frozen segment、holding horizon 和选择规则
+重放。单靠 H20 模型名称、逐期选择频数、甚至 SHA
+相同却价格退出事件不同都不够。不得向 Portfolio 或
+Accounting 发送因上述错误归属计算的收益或分红应收。
+这是一条经济 SourceCut 消费者正确性约束，不是
+删除历史实验，亦无需建新 Alpha/PIT 平台。
+
+### Accounting 不应把卖出交割应收偷换成 ETF 现金分配
+
+真实 PaperValuation.receivable_minor 仅代表 pending_sales
+对应的交易卖出应收；sale_settlement_dates 不是发行方
+分红 payable date。Markets ETF EOD
+admit_etf_eod_snapshot 当前拒绝任何 corporateActions.events
+非空的来源；这恰好保留了没有现成分红权益模型的边界。
+本轮 Research 日期暴露计数不能自动变成会计应收，
+也不能事后回填原来 13 个 H20 价格标签的假想利润。
+只有取得发行方数据的完整版本、历史首次可知时点、
+使用权、除息/付款与适当复权经济语义后，
+才考虑以正式合约扩展 Accounting 真实事件处理。
+
+
+### R6 已完成：历史模型 SourceCut 归属、原生经济回放与现金情景反证
+
+现有 probe_qlib_paper_horizon.py 的 Portfolio 原生经济消费者
+新增严格同一实验数据入口：在消费预测之前，校验
+native_study_result.json 的 qlib_prediction_sha256 和
+qlib_dataset_sha256；在读取三个 ETF 原始 OHLCV 之前校验
+各自 provider_receipts.normalized_sha256，再将校验过的
+内存字节直接用于 Pandas/Parquet，不再从校验前路径重新读取。
+明确绑定 holding_sessions、exit_price_kind、
+forecast.target_horizon 的精确经济定义；生成
+native_study_identity 字段（预测、标签、来源 SHA
+与退出事件），令 Agent 的经济消费者有实际输入证明，
+而不是靠文本名称继承其他模型结果。这是 SourceCut
+字段绑定，不是供应商版权许可/市场发布时间认证。
+
+新增 Capital 原生 10 个针对性用例：快照原样 PASS；
+修改预测、Parquet 标签、SPY 原始市场记录 FAIL；
+H20 仅凭持仓参数跨用 CLOSE/NEXT_OPEN 模型 FAIL；
+缺失、重复或伪造 provider 记录 FAIL；未知预测哈希 FAIL。
+并未重新训练 Qlib 0.9.7 旧模型：原有私有预测快照不可访问，
+旧 OpenBB OHLCV 含 HILO 不自洽行，按照目前 Markets
+来源质量准入应中止，而不应为复现盈利而绕过来源检查。
+
+私有非 Git 的发行方 r6 新观察表增加三项 SPY：
+2025-12-19、2026-03-20、2026-06-18，原 SPY
+2026-09-18、QQQ 四项、IWM 四项仍保留。新快照
+issuer_distribution_observed_12events.json 共12项。
+SPY 2026 年除息/支付日期可核对 State Street 美国
+官方分红计划，历史金额主要由二级来源交叉确认，
+并**未**取得可认证原始美版 State Street 全历史 XLSX。
+不能据此将4/4理解成完全覆盖、完整调整或历史 first-known。
+美国 SPY / NYSE Arca 和新加坡 S27 / SGX 即使
+同属一个基金及 ISIN，除息日仍可能因市场而不同；
+新加坡公告中的 2026-06-17 日期不能代入美国
+2026-06-18 的开盘持仓标签。
+
+复用现有原生 Portfolio.passive_benchmark，固定 all-IWM
+13 个窗口进行条件性、**非 Qlib NEXT_OPEN 模型**的
+现金敏感性分析（每份已观察分红额简单计入窗口估值；
+假设价格未含该分配、零税费、忽略 pay date 未到账，
+并不构成可再投资现金或认证总回报）：
+- H20 CLOSE all-IWM 相对 SPY：价格场景 -35.67 USD；
+  观察现金条件场景 -36.68 USD；
+- H20 NEXT_OPEN all-IWM 相对 SPY：价格场景
+  -25.98 USD；观察现金条件场景 -26.93 USD；
+- 与同期固定 IWM 比，在完全相同输入下两口径均
+  精确零差。这是同资产同日期的代数和 Portfolio 复算
+  事实，不能反推新 H20 NEXT_OPEN 模型是否选择 IWM。
+
+私人可复算脚本与 SOURCE SHA / per-window 事件 /
+条件经济结果在
+/root/projects/ordivon-private/finance/issuer-events-diagnostic-20261114-r6/
+audit_old_study_horizon_economics.py、
+study_horizon_cash_sensitivity_r6.json，旧 9 事件快照
+也未被覆盖。不能与此前文档 R9 真实模型的 +73.16
+结果相减并称其为股息导致的 alpha 变化；要重放
+真正 R9 模型，必须恢复其原始具体预测来源。
+
+
+### R5 convergence requalification (2026-11-24)
+
+The preceding R4/R6/R7 sections are archived experiment reports. Their
+private underlying historical Qlib prediction/panel bytes have not been
+reacquired in this round; neither selected-window claims nor economic
+results are newly certified. Current source retains the stronger existing
+score-column, exact-horizon and Markets gates, adds exact ETF universe/key
+coverage and emits the actually consumed study identity. The separate
+issuer-event audit counts only hypothetical candidate windows. In
+particular, ordinary cash distribution ex-date entitlement is not a
+payment receipt, adjusted-price correction or an authenticated historical
+event. Never transfer selected assets from CLOSE to NEXT_OPEN.
