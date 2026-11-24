@@ -2364,6 +2364,62 @@ def _mcp_decorated_route_functions(
     return found
 
 
+def _host_registered_routes(path: Path, entry: str, owner: str) -> dict:
+    """Source-only reachability witness for direct native registrar composition.
+
+    Follow only relative imported registrars actually invoked with the same
+    MCP server, Store and request-id factory. Do not scan detached files or
+    confuse an advertised decorator with an installed/native behavior proof.
+    """
+    import ast
+
+    visited: set[tuple[Path, str]] = set()
+    routes: dict = {}
+
+    def visit(module_path: Path, function_name: str) -> None:
+        key = (module_path.resolve(), function_name)
+        assert key not in visited, f"duplicate or cyclic registrar {key}"
+        visited.add(key)
+        tree = ast.parse(module_path.read_text(encoding="utf-8"))
+        register = next(
+            n for n in tree.body
+            if isinstance(n, ast.FunctionDef) and n.name == function_name
+        )
+        assert [a.arg for a in register.args.args] == ["mcp", owner, "request_id"]
+        # Only definitions directly executed in this registrar body bind tools.
+        direct = ast.Module(
+            body=[n for n in register.body
+                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))],
+            type_ignores=[],
+        )
+        local = _mcp_decorated_route_functions(
+            module_path, "mcp", source_override=ast.unparse(direct))
+        assert not routes.keys() & local.keys(), "duplicate reachable MCP routes"
+        routes.update(local)
+        imports = {
+            alias.asname or alias.name: (n.module, alias.name)
+            for n in tree.body if isinstance(n, ast.ImportFrom) and n.level == 1
+            and n.module and "." not in n.module
+            for alias in n.names
+        }
+        for statement in register.body:
+            if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+                continue
+            call = statement.value
+            if not isinstance(call.func, ast.Name) or call.func.id not in imports:
+                continue
+            if not call.func.id.startswith("register_"):
+                continue
+            assert not call.keywords and [
+                a.id if isinstance(a, ast.Name) else None for a in call.args
+            ] == ["mcp", owner, "request_id"], "registrar must preserve owner binding"
+            module_name, child = imports[call.func.id]
+            visit(module_path.with_name(module_name + ".py"), child)
+
+    visit(path, entry)
+    return routes
+
+
 def _gateway_host_route_source() -> str:
     """Concatenate actual registered route definitions for source graph checks."""
     base = ROOT / "services/gateway/src/ordivon_gateway"
@@ -2435,9 +2491,9 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
         for n in ast.walk(register)
     ), "Social tools are detached from the Host northbound registrar"
     direct_routes = _mcp_decorated_route_functions(host_mcp_path, "mcp")
-    work_routes = _mcp_decorated_route_functions(work_mcp_path, "mcp")
-    social_routes = _mcp_decorated_route_functions(social_mcp_path, "mcp")
-    attention_routes = _mcp_decorated_route_functions(attention_mcp_path, "mcp")
+    work_routes = _host_registered_routes(work_mcp_path, "register_work_tools", "work")
+    social_routes = _host_registered_routes(social_mcp_path, "register_social_tools", "social")
+    attention_routes = _host_registered_routes(attention_mcp_path, "register_attention_tools", "attention")
     assert not direct_routes, "The top-level Host registrar must only compose native owners"
     assert not (work_routes.keys() & (social_routes.keys() | attention_routes.keys()))
     assert not (social_routes.keys() & attention_routes.keys())
@@ -2549,6 +2605,34 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     )
     assert f"REQUIRED_SCHEMA_VERSION = {latest}" in host_text
     assert "schema_version" in host_text
+
+
+def test_host_registered_route_graph_ignores_detached_and_rejects_wrong_owner(tmp_path: Path) -> None:
+    root = tmp_path / "mcp_social_tools.py"
+    leaf = tmp_path / "mcp_message_tools.py"
+    root.write_text(
+        "from .mcp_message_tools import register_message_tools\n"
+        "def register_social_tools(mcp, social, request_id):\n"
+        "    register_message_tools(mcp, social, request_id)\n"
+    )
+    leaf.write_text(
+        "def register_message_tools(mcp, social, request_id):\n"
+        "    @mcp.tool(name='message.post')\n"
+        "    def post(): return social.post_message()\n"
+        "def detached(mcp):\n"
+        "    @mcp.tool(name='message.detached')\n"
+        "    def fake(): pass\n"
+    )
+    assert set(_host_registered_routes(root, "register_social_tools", "social")) == {"message.post"}
+    original = root.read_text()
+    root.write_text(original.replace(
+        "register_message_tools(mcp, social, request_id)", "pass"))
+    assert not _host_registered_routes(root, "register_social_tools", "social")
+    root.write_text(original.replace(
+        "register_message_tools(mcp, social, request_id)",
+        "register_message_tools(mcp, wrong_owner, request_id)"))
+    with pytest.raises(AssertionError, match="owner binding"):
+        _host_registered_routes(root, "register_social_tools", "social")
 
 
 def test_host_core_parent_lego_consumer_refinement_is_bound_to_real_calls() -> None:

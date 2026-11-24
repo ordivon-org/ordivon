@@ -8,6 +8,7 @@ from typing import Any, Literal
 from mcp.server import MCPServer
 
 from ...logic.host_tool_contracts import HostCollectionBytes
+from .numeric_wire import HostNonnegativeInteger
 
 
 def register_host_attention_tools(
@@ -71,7 +72,10 @@ def register_host_attention_tools(
 
     @server.tool(name="attention.delta")
     async def attention_delta(
-        actorRef: str, afterSequence: int, limit: int = 100, maxBytes: HostCollectionBytes = 262_144
+        actorRef: str,
+        afterSequence: HostNonnegativeInteger,
+        limit: int = 100,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "attention.delta",
@@ -86,7 +90,7 @@ def register_host_attention_tools(
     @server.tool(name="attention.reentry")
     async def attention_reentry(
         actorRef: str,
-        afterSequence: int | None = None,
+        afterSequence: HostNonnegativeInteger | None = None,
         limit: int = 100,
         maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
@@ -101,5 +105,5 @@ def register_host_attention_tools(
         )
 
     @server.tool(name="attention.ack")
-    async def attention_ack(actorRef: str, cursor: int) -> dict[str, Any]:
+    async def attention_ack(actorRef: str, cursor: HostNonnegativeInteger) -> dict[str, Any]:
         return await _host("attention.ack", {"actorRef": actorRef, "cursor": cursor})

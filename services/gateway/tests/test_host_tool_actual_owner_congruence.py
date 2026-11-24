@@ -99,9 +99,9 @@ def test_every_registered_host_action_and_read_selector_matches_actual_owner_cal
     [
         (
             "work.py",
-            'return await _host("work.get", {"workRef": workRef, "revision": verified_revision})',
+            'return await _host("work.get", {"workRef": workRef, "revision": revision})',
             'return await _host("work.snapshot.commit", '
-            '{"workRef": workRef, "revision": verified_revision})',
+            '{"workRef": workRef, "revision": revision})',
             "public action != delegated Owner tool",
         ),
         (

@@ -46,6 +46,16 @@ mandatory workflow. The rules below govern consequential changes.
 - **Safety plus liveness:** production admission must reject demonstrated unauthorized access, destructive conflicts and unqualified high-risk effects. It must also have a reachable, independently testable positive case for every release scope it claims to support. A checker deliberately rejecting every qualified release is an implementation defect, not a policy or Owner veto. Do not turn a necessary precondition or explanatory diagnostic string into a sufficient grant.
 - **Reconcile before retrying:** after response loss, use the owning system's exact operation identifier, revision/CAS and immutable receipt to distinguish not-started, committed and unknown. Preserve other Agents' in-flight consumers, credentials and cursors. Do not broaden a read-only database role to get a passing release check.
 
+## Read-only verification evidence
+
+For a specific existing GitHub Actions check, use
+`python3 tools/repo/evidence_validity.py --current-sha FULL_SHA --check-name root-verification`
+before contemplating a duplicate CI replay. A same-SHA named historical
+outcome is not current security, external assumptions, deployed acceptance
+or permission to skip an unrelated verification. Only affected Owner
+verification is required; unresolved scope remains UNKNOWN. See
+`docs/architecture/EVIDENCE_VALIDITY_KERNEL_R1.md` for the bounded consumer.
+
 ## Evidence-backed detailed reporting and handoffs
 
 When a user requests a detailed progress/completion report, or when handing off a

@@ -7,14 +7,14 @@ from mcp.server import MCPServer
 from pydantic import Field
 
 from .mcp_domain_errors import _project_domain_errors
-from .postgres_bounds import POSTGRES_BIGINT_MAX
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .work_contracts import WorkListResponse, WorkResponse
 from .work_inputs import WorkCreateInput, WorkSnapshotInput, WorkState
 from .work_store import WorkStore
 
 # Exact Host CAS identities and inventory limits use bounded strict integers.
-PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1, le=POSTGRES_BIGINT_MAX)]
-AdvancableWorkRevision = Annotated[int, Field(strict=True, ge=1, le=POSTGRES_BIGINT_MAX - 1)]
+PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1, le=HOST_WIRE_INT_MAX)]
+AdvancableWorkRevision = Annotated[int, Field(strict=True, ge=1, le=HOST_WIRE_INT_MAX - 1)]
 PositiveWorkListLimit = Annotated[int, Field(strict=True, ge=1, le=200)]
 
 

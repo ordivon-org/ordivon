@@ -2919,7 +2919,19 @@ fn clean_workspace_close_succeeds_without_force() {
     let tmp_presentation = config
         .workspace_tmp_presentation_path(workspace_id)
         .unwrap();
-    let _ = fs::remove_file(&tmp_presentation);
+    // PG-only tests do not run the legacy execution-environment setup that
+    // creates the short TMPDIR presentation root. Prepare this fixture
+    // independently of other tests and their execution order.
+    use std::os::unix::fs::DirBuilderExt;
+    let parent = tmp_presentation.parent().unwrap();
+    match fs::DirBuilder::new().mode(0o700).create(parent) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(error) => panic!("create temporary presentation fixture: {error}"),
+    }
+    assert!(fs::symlink_metadata(parent).unwrap().file_type().is_dir());
+    // The canonical store is unique to this Sandbox. Never unlink another
+    // presentation to manufacture the test precondition.
     std::os::unix::fs::symlink(
         config.canonical_workspace_tmp_path(workspace_id).unwrap(),
         &tmp_presentation,

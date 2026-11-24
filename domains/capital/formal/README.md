@@ -352,12 +352,13 @@ trade settlement.
 Official references: https://docs.tigerbeetle.com/coding/two-phase-transfers/
 and https://www.postgresql.org/docs/current/transaction-iso.html .
 
-## Historical monthly vintage availability
+## Fund NAV total-return cost basis
 
-`MarketsCapturePITR1.smt2` also checks conservative following-month
-admission and a current-month leakage witness for RTDSM. This month-index
-model is not original provider timestamp attestation or a universal proof
-of calendar/Excel parsing.
+The existing `PortfolioPassiveBenchmarkR1.smt2` additionally proves
+strict fee drag from duplicate positive fund fees and exhibits a ranking
+reversal. Its native task is included in full Finance verify. The model
+cannot establish provider semantics; schema v2 and native behavioral tests
+make the declared basis and external-cost scope explicit.
 
 ## Dated liability reserve
 
@@ -366,3 +367,10 @@ bounds for arbitrary finite obligations. Run
 `mise run //domains/capital:verify:formal:liability-reserve`.
 Python parser/date selection refinement is tested separately; real
 liability completeness remains caller-dependent.
+
+## Historical monthly vintage availability
+
+`MarketsCapturePITR1.smt2` also checks conservative following-month
+admission and a current-month leakage witness for RTDSM. This month-index
+model is not original provider timestamp attestation or a universal proof
+of calendar/Excel parsing.
