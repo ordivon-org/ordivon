@@ -5,7 +5,8 @@
   "packageManager": "pnpm@12.16.1",
   "scripts": {
     "typecheck": "tsc -p react/tsconfig.json && tsc -p solid/tsconfig.json",
-    "benchmark": "node bench.mjs"
+    "benchmark": "node bench.mjs",
+    "compiler:witness": "node compiler-witness.mjs"
   },
   "dependencies": {
     "react": "19.3.1",
