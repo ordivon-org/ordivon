@@ -335,7 +335,7 @@ def main() -> int:
     ap.add_argument("--expected-source-sha256", required=True)
     ap.add_argument("--destination", type=Path, required=True)
     ap.add_argument("--pg-host", required=True)
-    ap.add_argument("--pg-port", type=int, default=55434)
+    ap.add_argument("--pg-port", type=int, default=14550)
     ap.add_argument("--pg-database", default="ordivon_host_stage_r1")
     ap.add_argument("--pg-user", default="postgres")
     ap.add_argument("--pg-schema", default="host_retired_final_20260912")
