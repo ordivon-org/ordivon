@@ -681,8 +681,15 @@ export class WebStore {
         grantId: current.grantId,
         action: effect.action,
       });
+      // Read back the receipt before committing its associated business changes.
+      // A missing or malformed receipt must roll back the same owner transaction.
+      const receipt = this.getAgentEffect(effect.effectId);
+      if (receipt === null) {
+        throw new WebProblem(500, "effect-receipt-missing", "Effect receipt missing",
+          "The newly written Effect has no readable owner receipt.");
+      }
       this.db.exec("COMMIT");
-      return { receipt: this.getAgentEffect(effect.effectId)!, replayed: false };
+      return { receipt, replayed: false };
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;
@@ -786,8 +793,15 @@ export class WebStore {
         grantId: current.grantId,
         action: effect.action,
       });
+      // Read back the receipt before committing its associated business changes.
+      // A missing or malformed receipt must roll back the same owner transaction.
+      const receipt = this.getAgentEffect(effect.effectId);
+      if (receipt === null) {
+        throw new WebProblem(500, "effect-receipt-missing", "Effect receipt missing",
+          "The newly written Effect has no readable owner receipt.");
+      }
       this.db.exec("COMMIT");
-      return { receipt: this.getAgentEffect(effect.effectId)!, replayed: false };
+      return { receipt, replayed: false };
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;
