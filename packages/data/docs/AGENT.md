@@ -27,6 +27,10 @@ with positive/negative acceptance tests included in data:verify.
 
 ## SourceCut before execution
 
+For reproducible metadata discovery, pass `--at-commit REVISION` to
+`scripts/project_owned_products.py`. Capture the resolved commit from stderr.
+The committed metadata tree does not freeze independently bound local bytes.
+
 Select one final consumer. Capture the exact source revision, data-product
 ID/version, declared source digests, data rights and accepted quality/semantics.
 Discovery metadata is only a candidate until its producing owner confirms it.

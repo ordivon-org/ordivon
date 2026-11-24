@@ -482,3 +482,36 @@ for case in 'HostAttentionReentryR1:unsafe:ReturnedCursorFromSameCut' 'HostAtten
   printf '%s\\n' "$negative" | grep -Fx "Error: Invariant $invariant is violated."
 done
 """
+
+# Source-scoped response protocol proof. Reuses the pinned Runtime TLC JAR;
+# no separate toolchain or unconditional gate on machines without it.
+[tasks."web:formal:effect-response"]
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+jar="${ORDIVON_TLA_TOOLS_JAR:-$repo_root/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
+if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
+  echo "Web effect response TLC requires the existing pinned absolute TLA+ JAR" >&2
+  exit 2
+fi
+expected="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
+observed="$(sha256sum -- "$jar" | cut -d' ' -f1)"
+test "$observed" = "$expected" || { echo "TLA+ toolchain digest mismatch" >&2; exit 2; }
+cd "$repo_root/apps/web/formal"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+java -cp "$jar" tla2sany.SANY AgentEffectResponseR1.tla
+java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/safe" -config AgentEffectResponseR1.cfg AgentEffectResponseR1.tla > "$tmp/safe.log"
+grep -F 'Model checking completed. No error has been found.' "$tmp/safe.log"
+grep -F 'distinct states found' "$tmp/safe.log"
+for pair in legacy-revoke:NoStaleApproval legacy-replay:ExactCommitWins legacy-ambiguity:NoAmbiguousCommit reach-step-up:NeverStepUp reach-replay:NeverReplay; do
+  name="${pair%:*}"
+  invariant="${pair#*:}"
+  set +e
+  java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/$name" -config "AgentEffectResponseR1.$name.cfg" AgentEffectResponseR1.tla > "$tmp/$name.log" 2>&1
+  status=$?
+  set -e
+  test "$status" = 12 || { cat "$tmp/$name.log"; exit 1; }
+  grep -F "Invariant $invariant is violated" "$tmp/$name.log"
+done
+"""
