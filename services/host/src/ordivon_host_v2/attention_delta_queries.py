@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
 
 import psycopg
@@ -10,10 +12,17 @@ from .attention_sql import ATTENTION_DELTA_SQL
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError
 from .postgres_bounds import HOST_WIRE_INT_MAX
+from .references.actor_refs import ActorReferenceLookup
 
 
 class AttentionDeltaQueries:
     """Single-snapshot cursor and delta reads; never semantic acceptance."""
+
+    def __init__(
+        self,
+        connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]],
+    ) -> None:
+        self._connect = connect
 
     def get(
         self,
@@ -25,7 +34,7 @@ class AttentionDeltaQueries:
         self._validate_delta_page(limit=limit, max_bytes=max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_actor(conn, actor_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
             row = conn.execute(
                 "SELECT cursor FROM attention_cursors WHERE actor_ref=%s", (actor_ref,)
             ).fetchone()
@@ -53,7 +62,7 @@ class AttentionDeltaQueries:
         self._validate_delta_page(limit=limit, max_bytes=max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_actor(conn, actor_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
             return self._delta_in_tx(
                 conn, actor_ref, after_sequence=after_sequence, limit=limit, max_bytes=max_bytes
             )
