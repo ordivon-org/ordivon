@@ -65,6 +65,18 @@ test the historical source consumer when it is available:
 All command paths above are relative to `domains/capital` except the direct reference to the other canonical Skill. Before using one, check its exact option interface (`--help`) and latest source/contract version.
 
 
+## Compare fund total returns without double charging fees
+
+For issuer-published USD fund NAV total returns already net of fund
+expenses, use the existing passive benchmark CLI with schemaVersion 2:
+`examples/fund_nav_benchmark_202609_r2.json`.
+Require identical, contiguous return intervals for each leg; use only
+explicit external investor costs. Do not insert gross index, market-price,
+unqualified adjusted-close, annualized multi-year or price-only returns
+into this NAV basis. A source reference is not historical PIT attestation.
+See `domains/capital/docs/FINANCE_FUND_NAV_BENCHMARK_R2.md`.
+Do not rewrite frozen legacy results based on unverified fee semantics.
+
 ## Algebraic investment research is not Paper settlement
 
 For normalized monthly 1r investment optimization, the canonical
