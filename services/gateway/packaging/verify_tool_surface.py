@@ -98,17 +98,50 @@ def main() -> None:
     )
 
 
+# JSON Schema keywords whose values are subschemas, not arbitrary JSON.
+_SCHEMA_MAPS = {"properties", "patternProperties", "$defs", "definitions", "dependentSchemas"}
+_SCHEMA_ARRAYS = {"allOf", "anyOf", "oneOf", "prefixItems"}
+_SCHEMA_VALUES = {
+    "additionalProperties", "unevaluatedProperties", "propertyNames",
+    "additionalItems", "unevaluatedItems", "contains", "not", "if", "then", "else",
+    "contentSchema", "items",
+}
+_SCHEMA_ANNOTATIONS = {"title", "description", "examples"}
+
+
 def _semantic_schema(value: Any) -> Any:
-    """Ignore prose but retain wire defaults, bounds, types and enum contracts."""
-    if isinstance(value, dict):
-        return {
-            key: _semantic_schema(item)
-            for key, item in value.items()
-            if key not in {"title", "description", "examples"}
-        }
-    if isinstance(value, list):
-        return [_semantic_schema(item) for item in value]
-    return value
+    """Ignore prose only at schema positions; preserve data and named maps.
+
+    JSON Schema properties and definition names can themselves be "title",
+    "description" or "examples". Defaults, constants, enumerations and
+    unrecognized extension keywords are opaque JSON, never subschemas.
+    The comparator is conservative, not a schema implication solver.
+    """
+    if not isinstance(value, dict):
+        return value
+    result = {}
+    for key, item in value.items():
+        if key in _SCHEMA_ANNOTATIONS:
+            continue
+        if key in _SCHEMA_MAPS and isinstance(item, dict):
+            result[key] = {name: _semantic_schema(schema) for name, schema in item.items()}
+        elif (key in _SCHEMA_ARRAYS or key == "items") and isinstance(item, list):
+            result[key] = [_semantic_schema(schema) for schema in item]
+        elif key in _SCHEMA_VALUES:
+            result[key] = _semantic_schema(item)
+        elif key == "dependencies" and isinstance(item, dict):
+            # Legacy dialect: a dependency is either a schema or property names.
+            result[key] = {name: _semantic_schema(schema) for name, schema in item.items()}
+        else:
+            result[key] = item
+    return result
+
+
+def _same_schema(previous: Any, candidate: Any) -> bool:
+    # JSON booleans are not numbers, unlike Python's True == 1.
+    return json.dumps(_semantic_schema(previous), sort_keys=True) == json.dumps(
+        _semantic_schema(candidate), sort_keys=True
+    )
 
 
 def _tool_contract_map(contracts: Any) -> dict[str, dict[str, Any]]:
@@ -156,19 +189,19 @@ def _compare_object_schema(
     for prop in sorted(previous_props.keys() - next_props.keys()):
         issues.append(f"{field} removed field {name}.{prop}")
     for prop in sorted(previous_props.keys() & next_props.keys()):
-        if _semantic_schema(previous_props[prop]) != _semantic_schema(next_props[prop]):
+        if not _same_schema(previous_props[prop], next_props[prop]):
             issues.append(f"{field} changed field {name}.{prop}")
     for definition in sorted(previous_defs.keys() - next_defs.keys()):
         issues.append(f"{field} removed definition {name}.{definition}")
     for definition in sorted(previous_defs.keys() & next_defs.keys()):
-        if _semantic_schema(previous_defs[definition]) != _semantic_schema(next_defs[definition]):
+        if not _same_schema(previous_defs[definition], next_defs[definition]):
             issues.append(f"{field} changed definition {name}.{definition}")
     # The outer object constraints matter too: additionalProperties=false,
     # oneOf/anyOf, maxProperties and new closed-world clauses can break callers.
     ignored = {"properties", "required", "$defs", "title", "description", "examples"}
     old_outer = {k: v for k, v in previous.items() if k not in ignored}
     new_outer = {k: v for k, v in candidate.items() if k not in ignored}
-    if _semantic_schema(old_outer) != _semantic_schema(new_outer):
+    if not _same_schema(old_outer, new_outer):
         issues.append(f"{field} changed object constraints {name}")
     return issues
 

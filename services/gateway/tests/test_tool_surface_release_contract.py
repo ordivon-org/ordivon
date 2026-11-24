@@ -283,3 +283,114 @@ def test_native_public_abi_detects_lost_required_output_and_schema_definition() 
         "input changed definition topic.list.Custom" in e
         for e in _native_abi_verifier().compare_native_tool_contracts(old, new)
     )
+
+
+def test_native_abi_preserves_schema_named_fields_and_literal_values() -> None:
+    """Schema annotations are not names in a property map or JSON values."""
+    from copy import deepcopy
+
+    verifier = _native_abi_verifier()
+    old = _old_client_contract()
+    old[0]["inputSchema"]["properties"]["data"] = {
+        "type": "object",
+        "properties": {key: {"type": "string"} for key in ("description", "title", "examples")},
+        "required": ["description", "title", "examples"],
+        "description": "original documentation",
+    }
+    for name in ("description", "title", "examples"):
+        new = deepcopy(old)
+        new[0]["inputSchema"]["properties"]["data"]["properties"][name]["type"] = "integer"
+        assert verifier.compare_native_tool_contracts(old, new), name
+    for keyword, key in (("default", "description"), ("const", "title"), ("enum", "examples")):
+        literal_old = deepcopy(old)
+        literal = {name: "original" for name in ("description", "title", "examples")}
+        literal_old[0]["inputSchema"]["properties"]["data"][keyword] = (
+            [literal] if keyword == "enum" else literal
+        )
+        new = deepcopy(literal_old)
+        value = new[0]["inputSchema"]["properties"]["data"][keyword]
+        (value[0] if keyword == "enum" else value)[key] = "different"
+        assert verifier.compare_native_tool_contracts(literal_old, new), keyword
+    new = deepcopy(old)
+    new[0]["inputSchema"]["properties"]["data"]["description"] = "new prose"
+    new[0]["inputSchema"]["properties"]["data"]["properties"]["title"]["title"] = "new title"
+    assert verifier.compare_native_tool_contracts(old, new) == []
+
+
+def test_native_abi_preserves_names_and_schema_positions_under_applicators() -> None:
+    from copy import deepcopy
+
+    verifier = _native_abi_verifier()
+    old = _old_client_contract()
+    old[0]["outputSchema"]["properties"]["topics"] = {
+        "type": "array",
+        "items": {
+            "anyOf": [{
+                "type": "object",
+                "$defs": {"title": {"type": "string"}},
+                "properties": {"description": {"$ref": "#/$defs/title"}},
+                "patternProperties": {"examples": {"type": "string"}},
+                "dependentSchemas": {"title": {"required": ["description"]}},
+            }, {"type": "null"}],
+        },
+    }
+    for map_name, name, replacement in (
+        ("$defs", "title", {"type": "integer"}),
+        ("patternProperties", "examples", {"type": "integer"}),
+        ("dependentSchemas", "title", {"required": ["other"]}),
+    ):
+        new = deepcopy(old)
+        new[0]["outputSchema"]["properties"]["topics"]["items"]["anyOf"][0][map_name][name] = replacement
+        assert verifier.compare_native_tool_contracts(old, new), map_name
+    new = deepcopy(old)
+    new[0]["outputSchema"]["properties"]["topics"]["items"]["anyOf"][0]["$defs"]["title"]["description"] = "prose"
+    assert verifier.compare_native_tool_contracts(old, new) == []
+
+
+def test_native_abi_does_not_equate_boolean_and_number_in_json_values() -> None:
+    from copy import deepcopy
+
+    old = _old_client_contract()
+    old[0]["inputSchema"]["properties"]["spaceRef"] = {
+        "type": "object", "default": {"description": True},
+    }
+    new = deepcopy(old)
+    new[0]["inputSchema"]["properties"]["spaceRef"]["default"] = {"description": 1}
+    assert _native_abi_verifier().compare_native_tool_contracts(old, new)
+
+
+def test_native_sdk_nested_business_field_change_rejects_old_valid_call() -> None:
+    """The actual SDK creates same-named nested definitions, not hand-written schema."""
+    from mcp.server import MCPServer
+    from pydantic import create_model
+
+    async def observe(field_type):
+        payload = create_model("Payload", description=(field_type, ...))
+        outer = create_model("Outer", data=(payload, ...))
+
+        def tool(value):
+            return value
+
+        tool.__annotations__ = {"value": outer, "return": outer}
+        server = MCPServer("abi-context-native")
+        server.tool(name="sample.tool")(tool)
+        async with Client(server, raise_exceptions=False) as client:
+            listed = (await client.list_tools()).tools
+            assert len(listed) == 1
+            response = await client.call_tool(
+                "sample.tool", {"value": {"data": {"description": "old-valid"}}}
+            )
+            row = listed[0]
+            return [{
+                "name": row.name,
+                "inputSchema": row.input_schema,
+                "outputSchema": row.output_schema,
+            }], response.is_error
+
+    old, old_error = asyncio.run(observe(str))
+    candidate, candidate_error = asyncio.run(observe(int))
+    assert not old_error
+    assert candidate_error
+    changes = _native_abi_verifier().compare_native_tool_contracts(old, candidate)
+    assert "input changed definition sample.tool.Payload" in changes
+    assert "output changed definition sample.tool.Payload" in changes
