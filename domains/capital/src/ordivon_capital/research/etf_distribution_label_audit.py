@@ -33,6 +33,15 @@ class DistributionLabelAuditError(ValueError):
     """Input or source-calendar evidence is insufficient for a bounded audit."""
 
 
+def _unique_issuer_object(pairs: list[tuple[str, object]]) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise DistributionLabelAuditError(f"duplicate issuer JSON key: {key}")
+        result[key] = value
+    return result
+
+
 def _day(raw: object, label: str) -> date:
     if type(raw) is not str:
         raise DistributionLabelAuditError(f"{label} must be a canonical ISO date")
@@ -80,12 +89,18 @@ def audit_native_price_label_dividend_overlap(
         raise DistributionLabelAuditError("decision range is inverted")
 
     try:
-        reader = csv.DictReader(io.StringIO(panel_bytes.decode("utf-8"), newline=""))
+        reader = csv.DictReader(
+            io.StringIO(panel_bytes.decode("utf-8"), newline=""), strict=True
+        )
         fields = reader.fieldnames or []
         if len(fields) != len(set(fields)) or not fields or fields[0] != "session_date":
             raise DistributionLabelAuditError("panel needs a unique leading session_date")
         source_rows = list(reader)
-        if not source_rows or len(source_rows) > 10000 or any(None in row for row in source_rows):
+        if (
+            not source_rows
+            or len(source_rows) > 10000
+            or any(None in row or None in row.values() for row in source_rows)
+        ):
             raise DistributionLabelAuditError("invalid or oversized panel rows")
         sessions = tuple(_day(row["session_date"], "panel session") for row in source_rows)
     except (UnicodeError, csv.Error, TypeError) as exc:
@@ -105,7 +120,9 @@ def audit_native_price_label_dividend_overlap(
         raise DistributionLabelAuditError(str(exc)) from exc
 
     try:
-        observed = json.loads(observed_events_bytes)
+        observed = json.loads(observed_events_bytes, object_pairs_hook=_unique_issuer_object)
+    except DistributionLabelAuditError:
+        raise
     except (ValueError, UnicodeError, TypeError) as exc:
         raise DistributionLabelAuditError("issuer observations must be JSON") from exc
     if type(observed) is not dict or set(observed) != {
@@ -159,13 +176,18 @@ def audit_native_price_label_dividend_overlap(
         seen.add(key)
         by_symbol[symbol].append(ex_date)
     for symbol in by_symbol:
-        if any(not row[symbol] for row in source_rows):
-            raise DistributionLabelAuditError(f"{symbol} has a missing source panel quote")
+        for row in source_rows:
+            try:
+                quote = Decimal(row[symbol])
+                if not quote.is_finite() or quote <= 0:
+                    raise ValueError("nonpositive or nonfinite quote")
+            except (InvalidOperation, ValueError, TypeError) as exc:
+                raise DistributionLabelAuditError(
+                    f"{symbol} has an invalid or missing source panel quote"
+                ) from exc
 
-    eligible = [
-        t for t, T in enumerate(sessions)
-        if first <= T <= last and t + hold_sessions + 1 < len(sessions)
-    ]
+    requested_inside_source = [t for t, T in enumerate(sessions) if first <= T <= last]
+    eligible = [t for t in requested_inside_source if t + hold_sessions + 1 < len(sessions)]
     if not eligible:
         raise DistributionLabelAuditError("no complete next-open label horizon in source")
     results = {}
@@ -200,6 +222,9 @@ def audit_native_price_label_dividend_overlap(
         "holdingSessions": hold_sessions,
         "exitEvent": "T_PLUS_H_PLUS_1_OPEN",
         "candidateWindows": len(eligible),
+        "decisionRangeInsideSourceDateBounds": sessions[0] <= first <= last <= sessions[-1],
+        "sourceDecisionSessions": len(requested_inside_source),
+        "excludedIncompleteExitWindows": len(requested_inside_source) - len(eligible),
         "firstEligibleDecision": sessions[eligible[0]].isoformat(),
         "lastEligibleDecision": sessions[eligible[-1]].isoformat(),
         "sourceDateStanding": "EXCHANGE_CALENDARS_XNYS_DATE_GRID_ONLY",

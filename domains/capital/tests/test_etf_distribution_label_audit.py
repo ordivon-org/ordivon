@@ -130,3 +130,49 @@ def test_unknown_issuer_events_cannot_become_qualified_zero_events():
     events["events"] = []
     with pytest.raises(DistributionLabelAuditError, match="events are required"):
         run(raw, events)
+
+
+@pytest.mark.parametrize("bad_quote", ["NaN", "inf", "not-a-quote", "0", "-1", " "])
+def test_hash_matched_invalid_quote_cannot_count_as_present(bad_quote):
+    panel, events, _ = fixture()
+    panel = panel.replace(b"2026-06-15,100,100,100", f"2026-06-15,100,100,{bad_quote}".encode())
+    with pytest.raises(DistributionLabelAuditError, match="source panel quote"):
+        run(panel, events)
+
+
+def test_nonrectangular_panel_cannot_hide_missing_unselected_cells():
+    panel, events, _ = fixture()
+    # IWM is the only event-bearing symbol, so remove the final cell
+    # of an added unselected column. Date grid and IWM quotes remain intact.
+    lines = panel.decode().splitlines()
+    lines[0] += ",OTHER"
+    for i in range(1, len(lines) - 1):
+        lines[i] += ",100"
+    changed = ("\n".join(lines) + "\n").encode()
+    with pytest.raises(DistributionLabelAuditError, match="panel rows"):
+        run(changed, events)
+
+
+def test_duplicate_json_key_cannot_silently_redefine_evidence():
+    panel, events, _ = fixture()
+    raw = json.dumps(events).replace(
+        '"coverage": "OBSERVED_ONLY_NOT_COMPLETE"',
+        '"coverage": "VERIFIED_COMPLETE", "coverage": "OBSERVED_ONLY_NOT_COMPLETE"',
+    ).encode()
+    with pytest.raises(DistributionLabelAuditError, match="duplicate issuer JSON key"):
+        audit_native_price_label_dividend_overlap(
+            panel_bytes=panel, observed_events_bytes=raw,
+            expected_panel_sha256=hashlib.sha256(panel).hexdigest(),
+            decision_start="2026-06-01", decision_end="2026-06-29", hold_sessions=5,
+        )
+
+
+def test_incomplete_exit_and_source_range_have_explicit_counts():
+    raw, events, dates = fixture()
+    result = run(raw, events, hold=20, first="2026-05-01", last=dates[-1])
+    assert result["decisionRangeInsideSourceDateBounds"] is False
+    assert result["sourceDecisionSessions"] == len(dates)
+    assert result["excludedIncompleteExitWindows"] == 21
+    assert result["sourceDecisionSessions"] == (
+        result["candidateWindows"] + result["excludedIncompleteExitWindows"]
+    )

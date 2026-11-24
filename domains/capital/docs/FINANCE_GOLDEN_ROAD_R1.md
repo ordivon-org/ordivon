@@ -491,3 +491,42 @@ It also rejects duplicate prediction/dataset keys, incorrect per-decision
 ETF universe, missing labels, or extra/missing source receipts. Current
 model tests cover the actual existing consumer, not retired helper names.
 Historic R4/R6/R7 figures remain archived, not independently requalified.
+
+### R6 source requalification and exact candidate denominator
+
+All twelve archived ordinary cash event rows (four per SPY, QQQ, IWM)
+now match present-day first-party sources by ex-date, payment date and
+exact USD amount. The underlying 2026-11-14 private observation file
+remains unchanged (SHA-256 e22ea14124fa8136e6b877382cc2dce1977d31bab043d0763047ad7a51dc72c4).
+The additional private derived observations are distinct, not a rewrite
+of the earlier capture or a backdated first publication.
+
+* State Street US historical distributions workbook, CUSIP 78462F103:
+  SHA-256 0008b3cc16472d89944e1cf36dced2ec5df5430e07c8731fcf1e38f3dd67774c.
+* Invesco public distribution JSON, CUSIP 46090E103 and USD:
+  HTTPS 200, 27,437 bytes, SHA-256
+  8cac48440d684d73a51016d1b98323b2ffd85a378bd82f987c43c807f0ae1aa2.
+  URL: https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46090E103/distribution?idType=cusip&productType=ETF&loadType=initial .
+  The public issuer response contained 89 rows; only the four scoped
+  archived events were reconciled, including ordinary-income amounts.
+* BlackRock official IWM product 239710 US distribution table:
+  four exact date/amount matches, latest probe SHA-256
+  a17483dac3afe62c42a8a78ee3ddfa0d452a02465eda1bcc75a7e465eace2e9e,
+  with 1,852,892 response bytes. HTML can change between requests.
+
+Provider raw responses have not been redistributed; the private facts,
+digests and runtime jobs constitute present observation only. These do
+not prove full-event coverage, historical first-publication times,
+the source price adjustment convention, taxes or redistribution rights.
+
+The original panel SHA a1daef34db81615b4ab26ada498ed2d7121833a42cc974303357aeb006cd2e59
+is re-consumed by the refined audit. It now rejects duplicate JSON keys,
+nonrectangular CSV, nonfinite/nonpositive/malformed observed-symbol quotes,
+and explicitly exposes the requested source decision count and incomplete
+exit exclusions. Within the declared dates 2025-10-01 through 2026-10-29:
+H5 has 272 source decisions, zero incomplete exits, and 20 observed
+event-exposed windows per ETF; H20 has 272 decisions, ten incomplete exits,
+and 80 exposed among the 262 eligible windows. Nine new negative controls
+failed against the prior implementation and pass after the change.
+The reported denominator is candidate windows, not selected positions.
+No original historical model predictions were recovered in this round.
