@@ -1,8 +1,9 @@
 """Actual pinned-TLC checks for early revocation and exact issued-set closure.
 
-Run after scripts/tla-formal bootstrap, or with the already supported
-ORDIVON_TLA_TOOLS_JAR. A missing default JAR skips explicitly; an explicitly
-requested or supplied toolchain must verify. All model mutations are disposable.
+The existing scripts/tla-formal falsify-issuer-revoke-epoch entrypoint
+executes these controls after its pinned-JAR check. Missing toolchain is an
+error, never a successful zero-test run. General unittest discovery does
+not run a second copy. All model mutations are disposable.
 """
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ import subprocess
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "formal"
 MODEL = "IssuerRevokeEpochR1"
 JAR_ENV = "ORDIVON_TLA_TOOLS_JAR"
@@ -24,9 +25,6 @@ class IssuerRevokeEpochModelTests(unittest.TestCase):
     def setUpClass(cls):
         lock = json.loads((FORMAL / "toolchain.lock.json").read_text(encoding="utf-8"))
         jar = Path(os.environ[JAR_ENV]) if JAR_ENV in os.environ else ROOT / lock["cacheRelativePath"]
-        required = os.environ.get("ORDIVON_RUN_ISSUER_EPOCH_MODEL_TEST") == "1" or JAR_ENV in os.environ
-        if not jar.is_file() and not required:
-            raise unittest.SkipTest("pinned TLC JAR not materialized; run scripts/tla-formal bootstrap")
         subprocess.run(
             ["bash", str(ROOT / "scripts/tla-formal"), "verify"],
             cwd=ROOT, check=True, timeout=20,
@@ -50,11 +48,8 @@ class IssuerRevokeEpochModelTests(unittest.TestCase):
         self.assertEqual(source.count(old), 1, "semantic mutation target changed")
         return source.replace(old, new, 1)
 
-    def test_safety_and_early_ack_paths_are_reachable(self):
-        config = (FORMAL / f"{MODEL}.safe.cfg").read_text(encoding="utf-8")
-        result = self.run_model(self.source, config)
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("Model checking completed. No error has been found.", result.stdout)
+    def test_early_ack_paths_are_reachable(self):
+        # The safe model is already checked by the original formal check lane.
         for case, invariant in (
             ("zero-issued", "ZeroIssuedAckUnreachable"),
             ("single-issued", "SingleIssuedAckUnreachable"),
@@ -68,6 +63,7 @@ class IssuerRevokeEpochModelTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 12, result.stdout)
                 self.assertIn(f"Error: Invariant {invariant} is violated.", result.stdout)
                 self.assertIn("revokeAck = TRUE", result.stdout)
+                print(f"Issuer {case}: {invariant} reachability PASS", flush=True)
 
     def test_issuer_fence_removal_permits_late_issue_and_is_rejected(self):
         mutant = self.replace_once(

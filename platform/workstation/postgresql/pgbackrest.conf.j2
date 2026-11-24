@@ -1,7 +1,7 @@
 [ordivon]
-pg1-path=/var/lib/postgres/ordivon-data-r5-pg-14550-v4
-pg1-port=14550
-pg1-socket-path=/var/lib/postgres/ordivon-data-r5-pg-14550-v4
+pg1-path={{ operations_postgres_data_dir }}
+pg1-port={{ operations_postgres_port }}
+pg1-socket-path={{ operations_postgres_socket }}
 
 [global]
 repo1-path=/var/lib/pgbackrest

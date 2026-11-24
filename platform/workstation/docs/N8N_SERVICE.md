@@ -26,6 +26,14 @@ systemd --user (n8n, linger)
 
 The Pod uses rootless `pasta` with a deterministic private network. Only `127.0.0.1:5678` is published to the host. The task broker (5679) and runner launcher (5680) remain private in the shared Pod network namespace.
 
+The managed PostgreSQL port and data/socket paths are shared Ansible inventory
+inputs in `ansible/group_vars/operations_local.yml`. The pgBackRest, n8n,
+Temporal and PostgreSQL systemd config templates consume those inputs. Inventory
+changes describe an expected existing cluster; they do not migrate a server or
+change its own listening port. Validate the actual endpoint before deployment.
+Run the native template-render test to verify default and overridden inputs
+without deploying any services.
+
 The container gateway `10.89.10.1` is mapped by pasta to host loopback, allowing the n8n container to reach PostgreSQL at `127.0.0.1:14550` without exposing PostgreSQL beyond host loopback.
 
 ## Pinned images

@@ -71,6 +71,11 @@ implementation refinement is established, not from abstract proofs alone.
 
 ## Inspect actual producer-owned product metadata
 
+Use `python3 packages/data/scripts/project_owned_products.py --at-commit HEAD`
+for the committed metadata view rather than the mutable checkout view. The
+resolved commit is emitted separately from the JSON; physical byte availability
+and retention still require independent verification.
+
 Run `python3 packages/data/scripts/project_owned_products.py` for a live
 **checkout-relative** ODPS-to-DCAT projection over Git-tracked products.
 Use `--product` to select a particular owner's qualified document. The current

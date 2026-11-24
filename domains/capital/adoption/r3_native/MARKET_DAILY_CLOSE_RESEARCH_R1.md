@@ -118,3 +118,22 @@ The old and requalified CLI output matched byte for byte; the 13
 behavior tests passed. This is retrospective descriptive research,
 not a current quote, historical PIT proof, or executable trading signal.
 Original provider bytes are not redistributed.
+
+
+### R7 source-rights boundary
+
+The original capture manifest declares EXTERNAL_RIGHTS UNKNOWN. An
+open-source OpenBB client does not grant market-data usage rights.
+The Cboe website terms (https://www.cboe.com/terms/) restrict copying,
+storage and derivative use beyond permitted scope or consent; Nasdaq's
+website terms (https://www.nasdaq.com/legal) explicitly restrict extraction
+for AI and data-analysis development without permission. These are public
+website terms, not evidence of which specific agreement covers this
+capture. No applicable license or exception was recovered.
+
+Preserve existing evidence and synthetic consumer tests; do not renew
+automated capture, expand model-training use or redistribute these raw
+files until the natural source owner supplies the applicable permission
+and scope. No legal conclusion about historical capture is inferred.
+An approved source still requires independent PIT and corporate-action
+evidence; it must not bypass existing Markets/Paper admission.

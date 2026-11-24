@@ -55,6 +55,8 @@ canonical rows, not that A may use B's private implementation.
 | --- | --- | --- | --- |
 | MCP adapters | WorkStore, SocialStore, AttentionStore | mcp_tool_registration.py | Keep thin composition |
 | WorkStore | PostgreSQL works/work_snapshots/receipts | work_store.py | Keep native transaction/CAS |
+| WorkStore | WorkReadQueries / WorkRelationCommands | explicit native checkout composition | Preserve internal DAG command, no additional MCP route |
+| Work mutation and relation command | conn-scoped ActorRef / WorkRef checks | references/actor_refs.py, references/record_refs.py | Explicit reference prerequisites, no MRO or IAM decision |
 | SocialStore | PostgreSQL topics/messages/relations, WorkRef lookup | social_* | Keep one social write authority |
 | Attention projections | existing Work/Social owner rows + subscription/cursors | attention_sql.py | Keep rebuildable SQL, no extra event store |
 | Gateway | Host published tools/contract | installed Gateway and MCP server | Contract-test real SDK input/output |

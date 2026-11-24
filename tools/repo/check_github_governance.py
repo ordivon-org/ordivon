@@ -152,7 +152,21 @@ def main() -> int:
     # Exact upstream v5.2.2 commit (verified against the immutable GitHub tag).
     # Keep this review gate: Dependabot must not silently change action code.
     mise_action_pin = "jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550"
-    assert mise_action_pin in workflow
+    jobs = yaml.safe_load(workflow)["jobs"]
+    setup_ref = "./.github/actions/setup-root-verification"
+    setup = yaml.safe_load((ROOT / setup_ref / "action.yml").read_text(encoding="utf-8"))
+    assert setup["runs"]["using"] == "composite"
+    assert any(step.get("uses") == mise_action_pin for step in setup["runs"]["steps"]), (
+        "root verification must use the qualified mise action"
+    )
+    for job_name in ("root-preflight", "repo-mechanics", "owner-verification"):
+        steps = jobs[job_name]["steps"]
+        callers = [i for i, step in enumerate(steps) if step.get("uses") == setup_ref]
+        assert len(callers) == 1, f"{job_name}: missing or duplicated setup consumer"
+        assert not steps[callers[0]].get("if"), f"{job_name}: root setup must not be conditional"
+        assert not steps[callers[0]].get("continue-on-error"), f"{job_name}: root setup failure must propagate"
+        assert any(step.get("uses", "").startswith("actions/checkout@")
+                   for step in steps[:callers[0]]), f"{job_name}: setup must follow checkout"
     assert "gitleaks/gitleaks-action@" not in workflow
     assert "run: mise run repo:secrets:verify" in workflow
     assert "run: tools/repo/check_tracked_secrets.sh" in workflow
