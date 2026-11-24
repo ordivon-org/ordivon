@@ -13,7 +13,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-08-08
+updated: 2026-11-09
 summary: Canonical operational contract for Harness Run execution, concurrent worker fencing, targeted reopen validation, Doctor, recovery, and escalation.
 evidence_status: verified
 readiness: READY
@@ -28,34 +28,71 @@ related:
 
 ## Authority
 
-One state root means one independent Harness Journal/CAS. There is no Host-backed writer and no cutover mode.
+The first-party Harness CLI uses a caller-provisioned PostgreSQL database
+and selected Harness schema. Set `HARNESS_PG_DSN` (and optionally
+`HARNESS_PG_SCHEMA`, default `harness`) before invoking CLI operations.
+There is no SQLite CLI fallback, Host-backed writer or cutover selector.
+The supported public Python Run API requires PostgreSQL and does not accept a state-root SQLite fallback.
 
 ```bash
-ordivon-harness --state-root /path/to/harness-state doctor
-ordivon-harness --state-root /path/to/harness-state status HARNESS_RUN_ID
-ordivon-harness --state-root /path/to/harness-state inspect HARNESS_RUN_ID
+ordivon-harness doctor
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
 ```
 
 ## Store administration
 
 ```bash
-ordivon-harness --state-root /path/to/harness-state store-init
-ordivon-harness --state-root /path/to/harness-state store-doctor
-ordivon-harness --state-root /path/to/harness-state store-events HARNESS_RUN_ID
-ordivon-harness --state-root /path/to/harness-state store-backup /path/to/backup
-ordivon-harness store-verify-backup /path/to/backup
-ordivon-harness store-restore /path/to/backup /new/state/root
+ordivon-harness store-init
+ordivon-harness store-doctor
+ordivon-harness store-events HARNESS_RUN_ID
 ```
 
-Only `store-init` creates an authority root. Backup/restore refuse unsafe destination reuse and verification checks both database and retained CAS object truth.
+`store-init` creates the selected Harness schema/tables in an existing
+operator-provisioned PostgreSQL database, not a new database authority.
+Backup/restore belong to the PostgreSQL owner through its native tooling
+(e.g. `pg_dump` and `pg_restore`) with exact database and schema selection.
+The CLI exposes no old SQLite backup, verify-backup or restore subcommand.
 
-Ordinary Store open performs global schema/SQLite/CAS validation. It deliberately does not replay every Run history. A Run is semantically replay-validated when its Continuity Store is opened, before Provider or Tool execution can resume. `doctor` / `store-doctor` remains the explicit authority-wide check that replays all Run histories.
+Opening a PostgreSQL Store validates its schema and retained Run authority.
+It deliberately does not replay every Run history. A Run is semantically replay-validated when its Continuity Store is opened, before Provider or Tool execution can resume. `doctor` / `store-doctor` remains the explicit authority-wide check that replays all Run histories.
 
 ## Run handling
 
 A CREATED Run is executed with `run`. A PAUSED Run requires `resume`. A terminal Run is inspected rather than executed again. Contract digest conflicts fail closed.
 
-Multiple workers may open the same authority root, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
+Multiple workers may open the same PostgreSQL Harness schema, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
+
+### Workspace retention while a Tool-enabled Run can resume (open P0)
+
+**Operator safety notice, 2026-11-16:** Native Runtime `workspace.close`
+currently trusts an explicit `consumerReleased=true` caller assertion in
+a way that does not certify a PAUSED or ACTIVE Harness Run in another
+PostgreSQL database has released its frozen Workspace. The real disposable
+counterexample is Runtime Job
+`job-01a1e41a-ca97-775b-ab8d-48c231b6455a`
+(see the exact authoritative evidence ID in `VERIFICATION.md`);
+the normal caller claim, inactive Job list or four-hour idle age is
+**not** sufficient evidence for reclaiming a live Harness consumer.
+
+Before closing a Workspace referenced by a nonterminal original Run,
+inspect its original Run/Grant, all unresolved Provider/Tool effects,
+the native Workspace/Job projection, uncommitted source and outstanding
+Git/Artifact/domain recipients. Until the native Runtime PG Claim and
+certified release are installed and physically qualified, keep such a
+Workspace held; do not use force or an unverified release assertion to
+make cleanup appear successful. Source edits change the current close-CAS
+digest but not the Run's frozen Workspace identity. Successful terminal
+delivery permits a *qualified* per-Run finalizer, not immediate deletion
+of another Run's Workspace. Missing or uncertain evidence is a HOLD and
+should be reported to the natural Harness/Runtime owners.
+
+**Finalizer rule:** Before certifying release, inspect the full
+Harness PostgreSQL ordered Run event chain, not merely `terminal=true`
+or the latest Tool head; verify every uncertain external effect is
+settled. A hidden QA PASS without a persisted candidate and downstream
+byte-level acceptance is not a delivery certificate. Other PAUSED
+Runs sharing this Workspace may still have their own HELD claims.
 
 ## Provider recovery
 

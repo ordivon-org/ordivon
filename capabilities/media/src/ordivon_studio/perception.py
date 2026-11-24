@@ -12,10 +12,12 @@ from typing import Any
 
 from .assets import hash_file
 from .perception_selection import select_perception_frames
+from .perception_timing import video_timing
 from .perception_video_io import (
-    _extract_frame,
     analyze_temporal_change,
     build_contact_sheet,
+    count_video_frames,
+    extract_review_frames,
 )
 
 
@@ -26,30 +28,20 @@ def build_video_perception_bundle(
     output_directory: Path,
     requested_frames: Iterable[int] = (),
     ffmpeg: str = "/usr/bin/ffmpeg",
+    ffprobe: str = "/usr/bin/ffprobe",
     sample_step_frames: int = 5,
 ) -> dict[str, Any]:
-    streams = probe.get("streams")
-    videos = [item for item in streams if isinstance(item, dict) and item.get("codec_type") == "video"] if isinstance(streams, list) else []
-    if len(videos) != 1:
-        raise ValueError("perception requires exactly one video stream")
-    stream = videos[0]
-    frame_rate = stream.get("avg_frame_rate") or stream.get("r_frame_rate")
-    if not isinstance(frame_rate, str) or "/" not in frame_rate:
-        raise ValueError("video frame rate is unavailable")
-    numerator_text, denominator_text = frame_rate.split("/", 1)
-    fps = float(numerator_text) / float(denominator_text)
-    frame_count = stream.get("nb_frames")
-    if isinstance(frame_count, str) and frame_count.isdigit():
-        total_frames = int(frame_count)
-    else:
-        duration = stream.get("duration") or (probe.get("format") or {}).get("duration")
-        if duration is None:
-            raise ValueError("video frame count/duration is unavailable")
-        total_frames = max(1, int(round(float(duration) * fps)))
+    timing = video_timing(probe)
+    fps = float(timing.rate)
+    total_frames = timing.total_frames
+    count_basis = timing.frame_count_basis
+    if count_basis == "duration-times-reported-rate-estimate":
+        total_frames = count_video_frames(video_path, ffprobe)
+        count_basis = "native-ffprobe-decoded-frame-count"
+    frame_rate = timing.rate_label
 
     change_samples = analyze_temporal_change(
         video_path,
-        fps=fps,
         total_frames=total_frames,
         sample_step_frames=sample_step_frames,
         ffmpeg=ffmpeg,
@@ -60,17 +52,22 @@ def build_video_perception_bundle(
         requested_frames=requested_frames,
     )
 
+    samples_by_frame = {sample["frame"]: sample for sample in change_samples}
     frames_directory = output_directory / "frames"
     frame_records: list[dict[str, Any]] = []
-    frame_paths: list[Path] = []
-    for frame in selected:
-        output_path = frames_directory / f"frame-{frame:06d}.png"
-        _extract_frame(video_path, frame, output_path, ffmpeg)
-        frame_paths.append(output_path)
+    frame_paths = extract_review_frames(video_path, selected, frames_directory, ffmpeg)
+    for frame, output_path in zip(selected, frame_paths, strict=True):
         frame_records.append(
             {
                 "frame": frame,
-                "timeSeconds": round(frame / fps, 6),
+                "timeSeconds": (
+                    samples_by_frame[frame]["timeSeconds"]
+                    if frame in samples_by_frame else round(frame / fps, 6)
+                ),
+                "timeSecondsBasis": (
+                    "native-ffmpeg-filter-pts"
+                    if frame in samples_by_frame else "average-rate-estimate-not-source-pts"
+                ),
                 "selectionReasons": reasons[frame],
                 "path": output_path.relative_to(output_directory).as_posix(),
                 "blob": hash_file(output_path).as_dict(),
@@ -85,7 +82,9 @@ def build_video_perception_bundle(
     return {
         "strategy": "coverage-plus-temporal-change",
         "totalFrames": total_frames,
+        "frameCountBasis": count_basis,
         "frameRate": frame_rate,
+        "frameRateBasis": timing.rate_source,
         "sampleStepFrames": sample_step_frames,
         "changeMetric": {
             "id": "mean-absolute-luma-difference",
@@ -106,8 +105,17 @@ def build_video_perception_bundle(
         ],
         "inspectionLayers": [
             {"order": 1, "kind": "coarse-temporal-scan", "inputs": [contact["path"]]},
-            {"order": 2, "kind": "full-resolution-frame-inspection", "inputs": [record["path"] for record in frame_records]},
-            {"order": 3, "kind": "continuous-playback", "inputs": ["reviewed-artifact"], "when": "timing, pacing, continuity, animation, or audio-image relation remains material"},
+            {
+                "order": 2,
+                "kind": "full-resolution-frame-inspection",
+                "inputs": [record["path"] for record in frame_records],
+            },
+            {
+                "order": 3,
+                "kind": "continuous-playback",
+                "inputs": ["reviewed-artifact"],
+                "when": "timing, pacing, continuity, animation, or audio-image relation remains material",
+            },
         ],
         "interpretationBoundary": "Mechanical sampling prepares real pixels for perception; it does not infer hierarchy, legibility, causality, affect, truth, or aesthetic quality.",
     }

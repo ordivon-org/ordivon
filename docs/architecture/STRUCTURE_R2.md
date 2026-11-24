@@ -178,18 +178,19 @@ R2 does not introduce a universal registry, root contract authority, global prov
 registry, universal verifier, Agent Service replacement, workflow engine, Task database, or
 a requirement that external natural owners be mirrored as local packages.
 
-## Current standing
+## Current source standing
 
-S0 is deployed repository mechanics. S1A extracted the generic Composition implementation
-into the independent `packages/composition` source owner. S1B migrated the remaining Next
-consumers to the declared public `ordivon_composition` package API and retired the historical
-Python compatibility facades after repository-wide inventory found no external path callers.
-R3 seam-specific verifiers, Admission dogfood, and task-local bindings remain with Next.
-S2A relocates only the portable control Plugin package bytes to the repository extension
-boundary; Next remains its release/materialization consumer. Therefore S1 and S2A/S2B/S2C are closed at the repository source-layout level,
-while S3-S9 remain open. An installed Skills MCP release is not updated by a source move.
+Repository mechanics, `packages/composition/` and
+`extensions/ordivon-control-plane/` are present in the current source.
+The former `meta/next/` source tree and Next Owner are retired; neither
+is present in the tracked source or `tools/repo/owners.toml`. S1/S2
+references above describe the migration, not a live Next release or
+materialization consumer. A planned S3–S9 destination is not an
+installed capability or a reason to recreate the retired owner.
 
-For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
-`tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment
-configuration remain authoritative. Structure R2 never infers deployment relocation from a
-planned target path.
+For source paths and verification tasks, use `tools/repo/owners.toml`,
+`dependency_contracts.toml`, root `mise.toml`, the actual Owner files,
+and current deployment configuration. The 2026-09-28
+`CURRENT_ARCHITECTURE.md` is historical topology evidence, not a source
+of current paths or installed-state authority. Structure R2 does not
+infer a deployed relocation from a target directory.

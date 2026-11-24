@@ -22,4 +22,4 @@
 
 ## Source evidence
 
-`/root/projects/ordivon/capabilities/artifact/docs/ARTIFACT_FAMILY_MOVING_IMAGE_R1.md`
+[Historical family evidence](../../../../capabilities/artifact/docs/ARTIFACT_FAMILY_MOVING_IMAGE_R1.md)

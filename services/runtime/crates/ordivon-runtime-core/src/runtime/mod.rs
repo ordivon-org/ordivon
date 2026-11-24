@@ -1,20 +1,30 @@
+mod admission_validation;
 mod artifact_release_state;
+mod build_target_contract;
+mod workspace_headroom;
+pub(crate) use artifact_release_state::ReleaseStateContract;
 mod authority_contract;
 mod control_primitives;
 #[cfg(feature = "operator-tools")]
 mod doctor;
+#[cfg(feature = "transactional-runtime")]
 mod engine;
 mod error;
 mod evidence;
 #[allow(dead_code)]
 mod execution_provider;
 mod host_dependency;
+#[cfg(feature = "transactional-runtime")]
 mod inspection;
+mod inspection_contract;
 mod job_attempt_state;
+#[cfg(feature = "transactional-runtime")]
 mod lifecycle_locks;
 mod operation_circuit;
 mod platform;
+#[cfg(feature = "transactional-runtime")]
 mod registry;
+#[cfg(feature = "transactional-runtime")]
 mod registry_storage;
 #[cfg(feature = "operator-tools")]
 mod repair;
@@ -22,6 +32,7 @@ mod reservation_state;
 mod supervisor;
 mod types;
 mod windows;
+mod windows_authorization;
 mod windows_broker;
 mod workspace_state;
 
@@ -31,17 +42,13 @@ pub use doctor::{
     RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal, RuntimeDoctorReport,
     RuntimeDoctorReservationState, RuntimeDoctorSummary, RUNTIME_DOCTOR_SCHEMA_VERSION,
 };
-pub use engine::{
-    ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig, WorkspaceHeadroomConfig,
-};
+#[cfg(feature = "transactional-runtime")]
+pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
+#[cfg(feature = "transactional-runtime")]
 pub const RUNTIME_MAX_MIGRATION_VERSION: i64 = registry::MAX_MIGRATION_VERSION;
-pub use inspection::{
-    inspect_job, RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt,
-    RuntimeInspectionCondition, RuntimeInspectionConfig, RuntimeInspectionEpisodes,
-    RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
-    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT,
-};
+#[cfg(feature = "transactional-runtime")]
+pub use inspection::{inspect_job, RuntimeInspectionConfig};
 #[cfg(feature = "operator-tools")]
 pub use inspection::{
     inspect_registry, inspect_registry_activity, inspect_registry_archive,
@@ -63,9 +70,16 @@ pub use inspection::{
     DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
 };
+pub use inspection_contract::{
+    RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt, RuntimeInspectionCondition,
+    RuntimeInspectionEpisodes, RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
+    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT,
+};
+#[cfg(feature = "transactional-runtime")]
 pub(crate) use registry::Registry;
+#[cfg(feature = "transactional-runtime")]
 pub use registry::RegistryConfig;
-#[cfg(test)]
+#[cfg(all(test, feature = "transactional-runtime"))]
 pub(crate) use registry::{
     RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM, RUNTIME_MIGRATION_CHECKSUM,
     RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM, RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM,
@@ -123,14 +137,17 @@ pub(crate) use types::{ArtifactRegistration, TerminalCommit};
 pub use types::{ArtifactRegistration, RuntimeInvariantViolation, TerminalCommit};
 pub use windows::{
     materialize_windows_credential_binding, WindowsCredentialMaterializationObservation,
-    WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile, WindowsExecutionConfig,
+    WindowsExecutionConfig,
 };
+pub use windows_authorization::{WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile};
 pub use windows_broker::WindowsPrivilegedBrokerConfig;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "transactional-runtime"))]
 mod integration_tests;
-#[cfg(test)]
+#[cfg(all(test, feature = "transactional-runtime"))]
 mod tests;
 
 #[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
 pub mod pg_runtime;
+
+pub use workspace_headroom::WorkspaceHeadroomConfig;

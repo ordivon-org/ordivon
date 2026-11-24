@@ -1,0 +1,62 @@
+# Prometheus native evaluation: failing sample != absent observation.
+# The model-provider is deliberately absent while PyPI/DNS-A/Claude actually fail.
+rule_files:
+  - ../../config/prometheus/consumer.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '1 1 0 0 0'
+      - series: 'probe_success{job="blackbox-vpn-finance-okx"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-vpn-finance-binance-usdm"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-dns-a"}'
+        values: '1 1 0 0 0'
+      - series: 'probe_success{job="blackbox-dns-aaaa"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-scoped-codex-access"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '1 1 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-supply-chain"}'
+        values: '1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkVPNPyPIUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: blackbox-vpn-pypi
+              severity: warning
+            exp_annotations:
+              summary: Shared VPN proxy cannot complete the PyPI HTTPS consumer
+      - eval_time: 4m
+        alertname: NetworkVPNModelProviderUnavailable
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkDNSAddressUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: blackbox-dns-a
+              severity: warning
+            exp_annotations:
+              summary: Local DNS A/AAAA address resolution is unavailable
+      - eval_time: 4m
+        alertname: NetworkScopedConsumerUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: blackbox-scoped-claude-api
+              severity: warning
+            exp_annotations:
+              summary: Scoped consumer proxy cannot complete expected origin HTTPS
+      - eval_time: 4m
+        alertname: NetworkConsumerEvidenceMissing
+        exp_alerts:
+          - exp_labels:
+              job: blackbox-vpn-model-provider
+              severity: warning
+            exp_annotations:
+              summary: Consumer probe evidence is missing; service health UNKNOWN, not failed

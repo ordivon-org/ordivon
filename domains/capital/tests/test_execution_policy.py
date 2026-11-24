@@ -32,14 +32,18 @@ class ExecutionPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(PolicyDecisionError, "policy denied external financial write"):
             enforce_external_write(ROOT, CONFIG)
 
-
-    def test_local_policy_is_single_decision_point(self):
+    def test_execution_lane_does_not_bypass_external_write_denial(self):
         result = evaluate_execution_policy(ROOT, CONFIG)
         self.assertTrue(result["allowNonLive"])
         self.assertFalse(result["allowExternalWrite"])
-        source = (ROOT / "src/ordivon_capital/governance/policy_decision.py").read_text()
-        self.assertNotIn("currentLane must remain NON_LIVE", source)
-        self.assertNotIn("non-live lane cannot bind", source)
+        with tempfile.TemporaryDirectory() as td:
+            config = json.loads(CONFIG.read_text())
+            config["currentLane"] = "EXTERNAL_WRITE"
+            path = Path(td) / "policy.json"
+            path.write_text(json.dumps(config))
+            changed = evaluate_execution_policy(ROOT, path)
+            self.assertFalse(changed["allowNonLive"])
+            self.assertFalse(changed["allowExternalWrite"])
 
     def test_contract_path_escape_is_rejected(self):
         doc = json.loads(CONFIG.read_text())

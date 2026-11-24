@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 import pytest
 
 from ordivon_host_v2.canonical_json import canonical_digest
-from ordivon_host_v2.work_store import WorkStore
+from ordivon_host_v2.work_queries import read_work_in_tx
 
 _TIME = datetime(2026, 10, 25, tzinfo=UTC)
 _PAYLOAD = {
@@ -58,19 +58,19 @@ class _Rows:
 def test_host_work_read_rejects_payload_digest_corruption_before_projection() -> None:
     conn = _Rows("sha256:" + "0" * 64, "sha256:" + "0" * 64)
     with pytest.raises(RuntimeError, match="snapshot.*digest"):
-        WorkStore("postgresql://never-used")._get_work_in_tx(conn, "work:verification", None)
+        read_work_in_tx(conn, "work:verification", None)
 
 
 def test_host_work_read_rejects_current_pointer_digest_corruption() -> None:
     conn = _Rows(canonical_digest(_PAYLOAD), "sha256:" + "0" * 64)
     with pytest.raises(RuntimeError, match="current.*digest"):
-        WorkStore("postgresql://never-used")._get_work_in_tx(conn, "work:verification", None)
+        read_work_in_tx(conn, "work:verification", None)
 
 
 def test_host_work_read_accepts_integrity_preserving_current_snapshot() -> None:
     correct = canonical_digest(_PAYLOAD)
     conn = _Rows(correct, correct)
-    result = WorkStore("postgresql://never-used")._get_work_in_tx(conn, "work:verification", None)
+    result = read_work_in_tx(conn, "work:verification", None)
     assert result["snapshotDigest"] == correct
     assert canonical_digest(result["snapshot"]) == correct
     assert result["revision"] == 2
@@ -80,6 +80,6 @@ def test_host_work_read_accepts_integrity_preserving_current_snapshot() -> None:
 def test_host_historical_work_read_does_not_require_current_pointer_match() -> None:
     historical = canonical_digest(_PAYLOAD)
     conn = _Rows(historical, "sha256:" + "1" * 64)
-    result = WorkStore("postgresql://never-used")._get_work_in_tx(conn, "work:verification", 1)
+    result = read_work_in_tx(conn, "work:verification", 1)
     assert result["snapshotDigest"] == historical
     assert result["state"] == "historical_state_unknown"

@@ -1,6 +1,126 @@
+// A contained Job's HOME and tool caches are materialized by Runtime in its
+// Workspace-owned roots. Linux's systemd provider binds these environment
+// values into its mount namespace; caller overrides must not turn a restricted
+// task into a host-directory bind request (including per-step overrides).
+// TrustedLocal intentionally retains the operator-authorized broader contract.
+fn validate_contained_mount_environment(
+    runtime_environment: &BTreeMap<String, String>,
+    caller_overrides: &BTreeMap<String, String>,
+    field_prefix: &str,
+) -> RuntimeResult<()> {
+    for name in [
+        "HOME",
+        "TMPDIR",
+        "XDG_CACHE_HOME",
+        "CARGO_TARGET_DIR",
+        "UV_CACHE_DIR",
+        "PIP_CACHE_DIR",
+        "npm_config_cache",
+        "PNPM_HOME",
+        "COREPACK_HOME",
+        "BUN_INSTALL_CACHE_DIR",
+        "GOMODCACHE",
+        "GOCACHE",
+    ] {
+        if let Some(value) = caller_overrides.get(name) {
+            if runtime_environment.get(name) != Some(value) {
+                return Err(RuntimeError::invalid(
+                    "contained_local mount-bound environment paths are Runtime-owned",
+                    &format!("{field_prefix}.{name}"),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod contained_mount_environment_tests {
+    use super::*;
+
+    #[test]
+    fn runtime_owned_paths_can_be_repeated_but_not_retargeted_to_host_secrets() {
+        let base = BTreeMap::from([
+            ("HOME".to_string(), "/cache/workspace/home".to_string()),
+            ("TMPDIR".to_string(), "/cache/workspace/tmp".to_string()),
+            ("UV_CACHE_DIR".to_string(), "/cache/workspace/uv".to_string()),
+        ]);
+        validate_contained_mount_environment(&base, &BTreeMap::new(), "execution.env").unwrap();
+        let same = BTreeMap::from([(
+            "HOME".to_string(),
+            "/cache/workspace/home".to_string(),
+        )]);
+        validate_contained_mount_environment(&base, &same, "execution.env").unwrap();
+        let safe_unrelated = BTreeMap::from([(
+            "MY_APP_SETTING".to_string(),
+            "value".to_string(),
+        )]);
+        validate_contained_mount_environment(&base, &safe_unrelated, "execution.env").unwrap();
+
+        for (name, target) in [
+            ("HOME", "/root/synthetic-private"),
+            ("TMPDIR", "/root/synthetic-private"),
+            ("UV_CACHE_DIR", "/etc/ordivon"),
+            ("PIP_CACHE_DIR", "/root/synthetic-private"),
+            ("CARGO_TARGET_DIR", "/root/synthetic-private"),
+        ] {
+            let forged = BTreeMap::from([(name.to_string(), target.to_string())]);
+            for origin in ["execution.env", "execution.steps[0].env"] {
+                let error = validate_contained_mount_environment(&base, &forged, origin)
+                    .expect_err("caller must not turn a cache or HOME into a host bind");
+                assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+                assert_eq!(error.field.as_deref(), Some(format!("{origin}.{name}").as_str()));
+                assert!(!error.retryable);
+            }
+        }
+    }
+}
+
 // Execution plan resolution, input/credential materialization and ownership checks.
 // Durable Runtime admission remains the sole authority for committed execution inputs.
 impl Runtime {
+    // Recheck a persisted ContainedLocal plan BEFORE committing physical
+    // dispatch intent. A pre-upgrade Job might already contain untrusted HOME
+    // or cache bind sources; new-admission validation alone cannot make those
+    // historical plan bytes safe to execute after a restart.
+    fn verify_committed_contained_mount_environment(
+        &self,
+        plan: &RuntimeExecutionPlan,
+    ) -> RuntimeResult<()> {
+        if plan.execution_target != super::ExecutionTarget::LocalLinux
+            || plan.execution_profile != super::ExecutionProfile::ContainedLocal
+        {
+            return Ok(());
+        }
+        let record = load_workspace_record(&self.executor, &plan.workspace_id)
+            .map_err(map_universal_error)?;
+        if record.workspace_path != plan.workspace_path {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "contained plan no longer binds the original physical Workspace",
+                Some("workspaceId"),
+                false,
+            ));
+        }
+        let trusted = self.execution_environment(
+            &record,
+            super::ExecutionProfile::ContainedLocal,
+        )?;
+        validate_contained_mount_environment(
+            &trusted,
+            &plan.env,
+            "executionPlan.env",
+        )?;
+        for (index, step) in plan.steps.iter().enumerate() {
+            validate_contained_mount_environment(
+                &trusted,
+                &step.env,
+                &format!("executionPlan.steps[{index}].env"),
+            )?;
+        }
+        Ok(())
+    }
+
     fn resolve_plan(&self, request: &JobRunRequest) -> RuntimeResult<RuntimeExecutionPlan> {
         let record = load_workspace_record(&self.executor, &request.execution.workspace_id)
             .map_err(map_universal_error)?;
@@ -94,6 +214,22 @@ impl Runtime {
                 )
             }
         };
+        if request.execution.execution_target == super::ExecutionTarget::LocalLinux
+            && request.execution.execution_profile == super::ExecutionProfile::ContainedLocal
+        {
+            validate_contained_mount_environment(
+                &base_environment,
+                &request.execution.env,
+                "execution.env",
+            )?;
+            for (index, step) in request.execution.steps.iter().enumerate() {
+                validate_contained_mount_environment(
+                    &base_environment,
+                    &step.env,
+                    &format!("execution.steps[{index}].env"),
+                )?;
+            }
+        }
         let mut steps = Vec::with_capacity(request.execution.steps.len());
         for (step_index, step) in request.execution.steps.iter().enumerate() {
             let step_cwd = resolve_workspace_cwd(

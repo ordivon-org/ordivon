@@ -114,7 +114,7 @@ Standing: `ACCEPTED_FOR_CURRENT_SOFTWARE_SLICE`; current vulnerability freshness
 
 ### Business Operations — accepted for the current local workload
 
-ERPNext `16.34.2` is now the accepted mature local owner for the current business-operations slice. Detailed evidence and authority boundaries are recorded in `migrations/records/business-operations-erpnext-r1.md`.
+ERPNext `16.34.2` is now the accepted mature local owner for the current business-operations slice. Detailed evidence and authority boundaries are recorded in `docs/migration/retirement/business-operations-erpnext-r1.md`.
 
 Observed:
 

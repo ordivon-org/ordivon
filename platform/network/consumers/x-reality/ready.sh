@@ -24,9 +24,9 @@ for _ in 1 2 3; do
   sleep 1
 done
 [[ "$code" == 401 && "$connect" == 200 && -z "$extra" ]]
-set +e
-curl -q -4 --noproxy '' -sS -o /dev/null --proxy "$proxy" --connect-timeout 2 --max-time 5 https://example.com/ >/dev/null 2>&1
-unknown_rc=$?
-set -e
-[ "$unknown_rc" -ne 0 ]
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.x-reality-readiness","standing":"READY","proxy":"%s","xHttpStatus":%s,"unknownDestination":"REJECTED","directFallback":false,"authenticationAttempted":false,"credentialMaterialized":false,"userContextProven":false}\n' "$proxy" "$code"
+open_receipt=$(curl -q -4 --noproxy '' -sS -I -o /dev/null   --proxy "$proxy" --connect-timeout 4 --max-time 12   -w '%{http_code} %{http_connect} %{time_appconnect}' https://example.com/)
+read -r open_http open_connect open_tls extra <<< "$open_receipt"
+[[ "$open_http" =~ ^2[0-9]{2}$ && "$open_connect" == 200 && -z "$extra" ]]
+awk -v tls="$open_tls" 'BEGIN{exit !(tls > 0)}'
+
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.x-reality-readiness","standing":"READY","proxy":"%s","xHttpStatus":%s,"unknownDestination":"ORIGIN_PROVED","directFallback":false,"authenticationAttempted":false,"credentialMaterialized":false,"userContextProven":false}\n' "$proxy" "$code"

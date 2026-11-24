@@ -14,11 +14,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::{
-    canonical_directory, now_unix_ms, sha256_file, workspace_source_state_digest_at,
-    write_json_atomic, write_resource_receipt_from_cgroup_root, CapturedOutput,
-    RunnerExecutionStep, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
-    RunnerStepResult, RunnerTerminalStatus, UniversalExecError, UniversalExecErrorCode,
-    UNIVERSAL_EXEC_SCHEMA_VERSION,
+    canonical_directory, now_unix_ms, sha256_file, workspace_source_readset_digest_at,
+    workspace_source_state_digest_at, write_json_atomic, write_resource_receipt_from_cgroup_root,
+    CapturedOutput, RunnerExecutionStep, RunnerProgress, RunnerRequest, RunnerResult,
+    RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus, UniversalExecError,
+    UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const REQUEST_FILE: &str = "request.json";
@@ -47,7 +47,8 @@ struct WorkspaceSourceObservationEvidence<'a> {
     observation_error_code: Option<&'a str>,
     observed_unix_ms: u128,
 }
-const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
+const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/run/ordivon/cargo-target";
+const LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const TRUSTED_BUILD_TARGET_PRESENTATION_FD: libc::c_int = 198;
 
 pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
@@ -154,7 +155,11 @@ fn observe_workspace_source(request: &RunnerRequest) -> Result<Option<String>, U
         ),
         "workspacePath",
     )?;
-    workspace_source_state_digest_at(&workspace).map(Some)
+    if let Some(paths) = request.workspace_read_paths.as_deref() {
+        workspace_source_readset_digest_at(&workspace, paths).map(Some)
+    } else {
+        workspace_source_state_digest_at(&workspace).map(Some)
+    }
 }
 
 fn write_workspace_source_observation(
@@ -755,8 +760,16 @@ fn execute_step(
     command.envs(&step.env);
     let credentials_directory = std::env::var_os(SYSTEMD_CREDENTIALS_DIRECTORY_ENV);
     apply_systemd_credential_environment(&mut command, credentials_directory.as_deref());
-    let _build_target_backing = if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+    if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
         == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+        && !Path::new(TRUSTED_BUILD_TARGET_PRESENTATION).is_dir()
+    {
+        return Err(runner_error(
+            "trusted Cargo target requires the native per-Unit Workspace bind mount",
+        ));
+    }
+    let _build_target_backing = if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+        == Some(LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION)
     {
         let backing = request.build_target_backing.as_deref().ok_or_else(|| {
             runner_error("stable Cargo target presentation has no private backing")
@@ -1471,11 +1484,18 @@ fn validate_request_identity(request: &RunnerRequest) -> Result<(), UniversalExe
             ));
         }
     }
-    let uses_stable_build_target = request.env.get("CARGO_TARGET_DIR").map(String::as_str)
-        == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+    let is_native_build_target = |value: &str| {
+        value == TRUSTED_BUILD_TARGET_PRESENTATION
+            || value == LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION
+    };
+    let uses_stable_build_target = request
+        .env
+        .get("CARGO_TARGET_DIR")
+        .is_some_and(|value| is_native_build_target(value))
         || request.steps.iter().any(|step| {
-            step.env.get("CARGO_TARGET_DIR").map(String::as_str)
-                == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+            step.env
+                .get("CARGO_TARGET_DIR")
+                .is_some_and(|value| is_native_build_target(value))
         });
     match request.build_target_backing.as_deref() {
         None if !uses_stable_build_target => {}

@@ -12,6 +12,7 @@ use serde_json::json;
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -22,25 +23,204 @@ pub struct PgRuntimeConfig {
     pub dsn: String,
     pub schema: String,
     pub source_sha256: String,
+    /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
+    pub harness_issuer_schema: Option<String>,
+    /// Dedicated Harness principal and same-PG issuer cut for the one
+    /// ordinary scheduler's later dispatch, not ordinary admissions.
+    pub harness_dispatch_issuer: Option<(String, String)>,
     pub executor: UniversalExecutorConfig,
+    /// Existing physical carrier guards shared with Runtime::workspace.open.
+    pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
+}
+
+/// Per-process progress cursors for bounded background reconciliation scans.
+/// They are hints, never durable execution authority: after a restart the scan
+/// restarts at the beginning, and ordinary Job state stays in PostgreSQL.
+#[derive(Clone, Default)]
+struct ReconciliationCursor {
+    key: Option<(i64, String)>,
+    upper_fence: Option<(i64, String)>,
+    generation: u64,
+}
+
+#[derive(Default)]
+struct ReconciliationCursors {
+    issued: ReconciliationCursor,
+    cancelled: ReconciliationCursor,
 }
 
 #[derive(Clone)]
 pub struct PgRuntime {
     config: PgRuntimeConfig,
+    reconciliation_cursors: Arc<Mutex<ReconciliationCursors>>,
+}
+
+/// Northbound delivery describes availability of an execution result, not
+/// whether PostgreSQL committed a terminal control record. A native-stop-only
+/// LOST result is mechanically converged but has no Runner result or proof of
+/// a domain effect. Keep job.list and job.observe on the same projection law.
+fn pg_delivery_disposition(
+    resolution: Option<&str>,
+    runner_result_available: bool,
+) -> &'static str {
+    match resolution {
+        None => "in_progress",
+        Some("lost") => "unknown",
+        Some("orphaned") => "reconciliation_required",
+        Some("succeeded" | "failed" | "timed_out" | "cancelled") if runner_result_available => {
+            "committed"
+        }
+        Some(_) => "reconciliation_required",
+    }
+}
+
+#[cfg(test)]
+mod pg_delivery_semantics_tests {
+    use super::pg_delivery_disposition;
+
+    #[test]
+    fn control_commit_is_not_runner_result_delivery() {
+        for (resolution, available, expected) in [
+            (None, false, "in_progress"),
+            (None, true, "in_progress"),
+            (Some("succeeded"), true, "committed"),
+            (Some("failed"), true, "committed"),
+            (Some("timed_out"), true, "committed"),
+            (Some("cancelled"), true, "committed"),
+            (Some("cancelled"), false, "reconciliation_required"),
+            (Some("succeeded"), false, "reconciliation_required"),
+            (Some("lost"), false, "unknown"),
+            (Some("lost"), true, "unknown"),
+            (Some("orphaned"), false, "reconciliation_required"),
+            (Some("orphaned"), true, "reconciliation_required"),
+            (Some("alien"), true, "reconciliation_required"),
+            (Some("alien"), false, "reconciliation_required"),
+        ] {
+            assert_eq!(pg_delivery_disposition(resolution, available), expected);
+        }
+    }
+}
+
+/// One original owner-controlled filesystem boundary shared by the normal
+/// PG issuer, accepted-before-dispatch cancellation and native stop. Neither
+/// the systemd service umask nor a disposable PG18 MCP process' umask may
+/// decide whether the contained untrusted task can READ its frozen request.
+fn prepare_private_pg_attempt_bundle(path: &Path) -> RuntimeResult<()> {
+    fs::create_dir_all(path).map_err(io)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let metadata = fs::symlink_metadata(path).map_err(io)?;
+        if !metadata.is_dir() || metadata.uid() != 0 {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "PG Attempt control bundle must be a root-owned directory",
+                Some("bundlePath"),
+                false,
+            ));
+        }
+        // Before ANY request or cancel marker is published, remove search
+        // authority from the nonroot Agent child. The trusted UID0 Runner
+        // continues writing its existing start/result/artifact files here.
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(io)?;
+    }
+    Ok(())
 }
 
 fn error(message: impl Into<String>) -> RuntimeError {
     RuntimeError::new(RuntimeErrorCode::RegistryUnavailable, message, None, false)
 }
+// A PostgreSQL serialization/deadlock abort has a definite failed transaction,
+// not a permanently unavailable Registry. Distinguish it at the shared
+// PgAdmissionError boundary. Never replay an already admitted Job: MCP retains
+// its committed operationId and the reconcile_first retry contract.
+fn transient_pg_transaction_abort(code: Option<&postgres::error::SqlState>) -> bool {
+    code.is_some_and(|code| {
+        code == &postgres::error::SqlState::T_R_SERIALIZATION_FAILURE
+            || code == &postgres::error::SqlState::T_R_DEADLOCK_DETECTED
+    })
+}
+
 fn pg(e: PgAdmissionError) -> RuntimeError {
-    let code = match e {
-        PgAdmissionError::IdempotencyConflict => RuntimeErrorCode::IdempotencyConflict,
-        PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
-        PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
-        _ => RuntimeErrorCode::RegistryUnavailable,
+    let issuer_not_current = matches!(&e, PgAdmissionError::IssuerNotCurrent);
+    let aborted = matches!(
+        &e,
+        PgAdmissionError::Database(err) if transient_pg_transaction_abort(err.code())
+    );
+    let code = if aborted {
+        RuntimeErrorCode::RegistryBusy
+    } else {
+        match &e {
+            PgAdmissionError::IdempotencyConflict => RuntimeErrorCode::IdempotencyConflict,
+            PgAdmissionError::Capacity => RuntimeErrorCode::ConcurrencyLimit,
+            PgAdmissionError::UnknownCommit => RuntimeErrorCode::DispatchOutcomeUnknown,
+            PgAdmissionError::WorkspaceStale => RuntimeErrorCode::WorkspaceStateMismatch,
+            PgAdmissionError::IssuerNotCurrent => RuntimeErrorCode::AuthorizationDenied,
+            _ => RuntimeErrorCode::RegistryUnavailable,
+        }
     };
-    RuntimeError::new(code, format!("PostgreSQL Runtime: {e:?}"), None, false)
+    let mut error = RuntimeError::new(
+        code,
+        format!("PostgreSQL Runtime: {e:?}"),
+        issuer_not_current.then_some("execution.foreignReferences"),
+        aborted,
+    );
+    if aborted {
+        error.retry_after_ms = Some(250);
+    }
+    error
+}
+
+#[cfg(test)]
+mod pg_transaction_error_contract_tests {
+    use super::*;
+
+    #[test]
+    fn only_true_postgres_transaction_aborts_are_transient() {
+        use postgres::error::SqlState;
+        for code in [
+            &SqlState::T_R_SERIALIZATION_FAILURE,
+            &SqlState::T_R_DEADLOCK_DETECTED,
+        ] {
+            assert!(transient_pg_transaction_abort(Some(code)));
+        }
+        assert!(!transient_pg_transaction_abort(Some(
+            &SqlState::UNIQUE_VIOLATION
+        )));
+        assert!(!transient_pg_transaction_abort(Some(
+            &SqlState::UNDEFINED_TABLE
+        )));
+        assert!(!transient_pg_transaction_abort(None));
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_abort_is_registry_busy_not_permanent_unavailable() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit disposable PostgreSQL connection required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (state, busy) in [
+            ("40001", true),  // actual server serialization abort
+            ("40P01", true),  // actual server deadlock abort
+            ("23505", false), // unrelated integrity violation
+        ] {
+            let actual = db
+                .batch_execute(&format!(
+                    "DO $$ BEGIN RAISE EXCEPTION SQLSTATE '{state}'; END $$;"
+                ))
+                .unwrap_err();
+            let mapped = pg(PgAdmissionError::Database(actual));
+            if busy {
+                assert_eq!(mapped.code, RuntimeErrorCode::RegistryBusy);
+                assert!(mapped.retryable);
+                assert_eq!(mapped.retry_after_ms, Some(250));
+            } else {
+                assert_eq!(mapped.code, RuntimeErrorCode::RegistryUnavailable);
+                assert!(!mapped.retryable);
+                assert_eq!(mapped.retry_after_ms, None);
+            }
+        }
+    }
 }
 fn io(e: impl std::fmt::Display) -> RuntimeError {
     error(e.to_string())
@@ -74,17 +254,22 @@ fn decode<T: serde::de::DeserializeOwned>(s: &str) -> RuntimeResult<T> {
 }
 
 mod artifact;
+mod claim;
 mod job;
 mod native_stop;
 mod node_query;
 mod reconciliation;
+mod release;
+mod scheduling;
 mod workspace;
+pub use claim::{WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
 
 impl PgRuntime {
     pub fn new(config: PgRuntimeConfig) -> RuntimeResult<Self> {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
+        super::workspace_headroom::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
         {
@@ -93,7 +278,10 @@ impl PgRuntime {
                 "sourceSha256",
             ));
         }
-        let runtime = Self { config };
+        let runtime = Self {
+            config,
+            reconciliation_cursors: Arc::new(Mutex::new(ReconciliationCursors::default())),
+        };
         // Fail closed before advertising a live MCP endpoint. Schema existence is
         // NOT permission to admit new Jobs. Qualification is an external,
         // operator-owned PG record and must match the exact configured source.
@@ -122,6 +310,15 @@ impl PgRuntime {
             false,
         )
         .map_err(pg)?;
+        // Fail startup if the operator has not installed the Runtime-owned
+        // claim fence. A missing table must NEVER silently downgrade Close
+        // to the older Job-only protection.
+        db.client
+            .query(
+                "SELECT claim_id FROM workspace_consumer_claims LIMIT 0",
+                &[],
+            )
+            .map_err(io)?;
         // Authorization includes the independently controlled app-role
         // privilege check in store(); only now may native paths be created.
         runtime.config.executor.ensure_store().map_err(io)?;

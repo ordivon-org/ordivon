@@ -16,7 +16,7 @@ For each consequential change, independently record:
 - CONSUMED: the actual application request, app process binding, and its real return.
 - UNKNOWN: all unsampled paths. A historical PASS expires when its relevant source/installation/process/evironment/consumer edge changes.
 
-SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sample of zero upstream CONNECT is not universal noninterference across IPv6, DNS/DoH or other clients.
+SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sample of zero upstream CONNECT is not universal noninterference across IPv6, DNS/DoH or other clients. During NS2 negative-flow sampling, tcpdump/reader loss or capture overflow invalidates the witness; do not convert an unobserved packet into a policy PASS.
 
 ## 2. Capability → owner → native interface
 
@@ -48,6 +48,118 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
 6. Publish through existing GitHub PR/required CI/merge queue. Re-fetch merged main; requalify deployed source and consumer effects. If main is new but live differs, say SOURCE_MERGED_LIVE_OLD rather than PASS.
 7. Before deleting a file, volume, unit or Workspace, check consumers for read/write/start/recovery dependency. Remove via the **native owner API**; never direct-delete an actively protected Runtime backing store.
 8. Report source commit, installed generation, loaded processes, real positive and negative consumer witness, deleted resources and remaining UNKNOWN. Host Work owns changing task state; do not create a second status file.
+
+### Network detailed report and release acceptance
+
+Use the root `AGENTS.md` evidence-backed reporting contract when a detailed
+Network report or handoff is requested. Keep the report bound to **one exact
+source revision and a dated live observation**. For release-sized work,
+report these separately, with an exact command/receipt or `UNKNOWN`:
+
+| Stage | Natural authority and readback | Claim not implied |
+| --- | --- | --- |
+| SOURCE | Network Git revision, changed files and native `mise run ci` or scoped tests | Git merged or deployed |
+| MERGED | GitHub PR state, required checks, merge-group result and actual main commit | Installed source has changed |
+| INSTALLED | Go Task materialize and byte parity of systemd/Quadlet/config/helper | systemd loaded those bytes |
+| LOADED | `systemctl show` effective dependencies, ExecStart/ExecStop, PID/generation and daemon-reload state | Correct kernel/network effect |
+| EXECUTED | Live `ip`, `iptables-legacy`, provider-ready probes, negative destination/port oracle | Application request succeeded |
+| CONSUMED | Owner-native `task consumer:<name>:verify` and actual target process/request return | Other unsampled clients/protocols passed |
+| UNKNOWN / FALSIFIED | Named edge, reproducible negative result or missing observation; Owner and next acceptance action | Silent success or universal failure |
+
+Record the before/after PID and namespace inode when an installed change
+could disturb the shared VPN. A `task` exit code is scoped to the checks that
+task actually executes. In particular, `consumer:mobile-tailnet-exit:verify`
+proves the *server-side* exit path, not each iPad/iPhone client's DNS or
+public-IP selection; Windows Chrome's Linux proxy check does not substitute
+for a native browser process witness. A `SOURCE_PASS` before merge and
+a successful test on the *old installed generation* are separate facts.
+
+If GitHub toolchain downloads are unavailable, report the failing upstream
+asset/HTTP code and exact CI run, with Network source tests separately.
+Only successful required `merge_group` checks permit the corresponding
+protected-main claim. Do not bypass signatures, required checks or other
+Owner release decisions, and do not add a Network-owned report state store.
+
+For an actual outage, include timestamped impact, the observed trigger,
+contributing causes and links to tracked corrective actions. Outside incidents,
+keep the main report organized by user decision, changed responsibilities,
+verified consumer effect, blockers and precise next steps.
+
+### 2026-11-14 real outage: consumer-first fault-domain separation
+
+Observed physical facts must outrank a proposed VPN-country optimization.
+At 08:41 CST Windows Wi-Fi and USB RNDIS NCSI both lost internet capability;
+both default routes currently share the **same gateway MAC and IPv4 next hop**.
+At 14:20 both recovered together. Five complete hours of simultaneous zero
+success on *direct* IPv4 Blackbox, Carrier, Claude, Codex and PyPI constitute
+a common-underlay failure domain, not independent evidence that a Surfshark
+endpoint failed. Gluetun itself logged 3,178 healthcheck-directed reconnects
+with no successful internet until physical recovery. This is causal alignment,
+not proof of which device/ISP internal component failed.
+
+Consumer graph / action authority:
+
+- **C0 — Windows access and WAN**: WLAN and USB RNDIS `Up` only prove
+  L2 interface status. NCSI 4042, neighbor next hop and explicit per-interface
+  direct HTTPS are the independent WAN evidence. Workstation owns physical
+  Windows routing and any separately verified independent ISP.
+- **C1 — Provider**: original Gluetun owns one WireGuard identity,
+  firewall and its native health restart. On loss of underlying Internet,
+  new VPN-country APIs cannot create WAN reachability.
+- **C2 — Quality witness**: Prometheus has distinct direct IPv4 and VPN
+  Carrier probes plus three consumer-origin probes. `query_range` evaluation
+  timestamps are NOT fresh raw scrape timestamps. The recovery predicate
+  uses one native Prometheus range-vector query and 3 aligned original
+  samples per Claude/Codex/PyPI lane, at **30s** scrape intervals. It requires
+  latest original sample age <=75s, earliest <=165s, within-lane gap <=45s,
+  and latest cross-lane skew <=45s; missing or stale evidence remains UNKNOWN.
+  The separate alert NetworkCorrelatedConsumerOutage with Prometheus for:2m
+  is NOT the authorized decision to switch the physical tunnel.
+  Native Prometheus further exposes two independent symptom classifications:
+  `NetworkSharedUnderlaySuspected` requires two fresh *host-direct* HTTPS
+  origins and all three fresh VPN-scoped consumers to fail together;
+  `NetworkVPNPathFailureWithDirectHealthy` requires the same three failed
+  VPN consumers while both independent host-direct origins succeed. Either
+  branch needs five observed current metrics, for:2m. Single-origin
+  failures, missing/expired scrapes, and mixed direct outcomes cannot
+  establish either specialised failure-domain claim; the existing general
+  correlated-consumer alert still reports the VPN consumer symptoms.
+  Neither new alert is a Gluetun switching authorization or proof of
+  a modem/ISP/provider root cause. Verify source via
+  `promtool test rules tests/fixtures/network-fault-domain-alerts.test.yml`;
+  real Alertmanager receiver delivery remains separately UNKNOWN until wired
+  and consumer-tested.
+- **C3 — Selection**: recent consumer-qualified native Gluetun sessions
+  rank first. Explicit source `recovery-hints.json` stores at most two
+  nonsecret previously sampled country hints for a maximum seven days.
+  Journal churn may remove old sessions, but a hint is not current liveness.
+  Exclude the running country and Hong Kong; never allow a stale hint to
+  bypass current physical underlay or raw consumer failure admission.
+- **C4 — Effect and rollback**: only existing Gluetun authorized
+  `GET/PUT /v1/vpn/settings` may select one candidate at a time; validate
+  native readback, kernel endpoint country and two real TLS/HTTP consumers.
+  One failed candidate may permit one independent alternate before restoring
+  original *filter*, verified by GET. Restoring a filter does not restore
+  old TCP sessions or prove user traffic.
+- **C5 — Downstream consumers**: Finance nine lanes, Claude, Codex, model
+  provider, supply chain, Windows Chrome and Tailscale server exit are distinct
+  acceptance boundaries; iOS device-origin is still UNKNOWN.
+
+Release evidence is split into SOURCE / MERGED / INSTALLED / LOADED /
+EXECUTED / CONSUMED. A staged bundle may use eight nonsecret source files
+while production still uses seven; `provider:gluetun:verify` must reject that
+source-installed drift until the corresponding protected-main merge is
+materialized by the existing native installer. DO NOT fix by restarting
+the healthy physical VPN or bypassing original Gluetun control permissions.
+
+For this specific incident, 328 real systemd decision receipts contained
+169 holds for shared underlay/UNKNOWN, 159 healthy holds, zero native country
+changes, and zero systemd recovery errors. Its first recovered real
+consumer monitoring samples were 11–34 seconds after the 14:20:44 Windows
+NCSI restoration, not an exact end-to-end TCP restoration SLA. The only
+material missing facility for surviving another same-common-path outage is
+a truly independent Internet uplink; adding VPN node catalogs cannot replace
+this prerequisite.
 
 ### Formal scoped-route proof (source, not live effects)
 
@@ -140,7 +252,7 @@ test subtraction belongs to that Owner's concurrently reviewed PR.
 
 ### Shared-path incident classifier (native Prometheus, not a new controller)
 
-Use existing `NetworkCorrelatedConsumerOutage` alongside the individual `NetworkVPNPyPIUnavailable` / `NetworkScopedConsumerUnavailable` alerts. Its exact predicate is `count(series) == 3 AND sum(series) == 0 AND count(time()-timestamp(series) < 90s) == 3` maintained for 2m. This models **three simultaneously sampled failures**, not a proved VPN-causal fault. A missing series makes the correlated predicate UNKNOWN; individual `absent()` alerts retain missing-series coverage. One healthy consumer is a counterexample to the correlated predicate; CONNECT 200 with TLS failing does not count as healthy.
+Use existing `NetworkCorrelatedConsumerOutage` alongside the individual `NetworkVPNPyPIUnavailable` / `NetworkScopedConsumerUnavailable` alerts. Its exact predicate is `count(series) == 3 AND sum(series) == 0 AND count(time()-timestamp(series) < 90s) == 3` maintained for 2m. This models **three simultaneously sampled failures**, not a proved VPN-causal fault. A missing series makes the correlated predicate UNKNOWN; `NetworkConsumerEvidenceMissing` reports absent per-job probe evidence without claiming a VPN/consumer outage, while the `Unavailable` alerts require an observed `probe_success == 0`. One healthy consumer is a counterexample to the correlated predicate; CONNECT 200 with TLS failing does not count as healthy.
 
 Triage: source+loaded Prometheus rule parity → `/api/v1/alerts` plus Blackbox history → native Gluetun health and endpoint-rotation journal → Provider HTTPS `verify` → exact impacted Consumer request. Match source timestamps, target/PID, installed generation and origin HTTPS. Gluetun's official native check/auto-heal owns physical recovery; do not add an Agent polling loop, a second tunnel or an IPinfo scraper. Any new endpoint/health-target policy is justified only with independent before/after consumer SLO evidence.
 
@@ -201,3 +313,20 @@ Never print Podman Secrets, full container environments, app tokens, credentials
 The documentation follows Diátaxis: how-to for Humans, contract/reference
 for Agents, and existing architecture for explanation. Do not add a fourth
 parallel reference corpus just to satisfy a directory taxonomy.
+
+
+### Enabled consumer Target lifecycle (Model Provider, Supply Chain, X Reality)
+
+These three enabled Targets can become inactive while their sing-box
+egress services remain active if services are started independently.
+PartOf= on the service propagates stopping/restarting the Target but
+does not activate the Target when the service alone starts. The native
+service Upholds= back to its Target closes that direction without a
+custom watchdog: while service active, systemd restores Target; when
+Target is intentionally stopped, PartOf= stops service and Upholds
+ceases. Qualified by native isolated systemd RED/GREEN experiment
+and tests/test_systemd_target_lifecycle.py. Do not enable a disabled
+consumer, do not restart the global Gluetun Provider, and do not use
+systemd unit active as an HTTP/TLS consumer-readiness substitute.
+Production must prove source == installed == systemd-loaded, then
+actual real consumer TLS consequence with original service PIDs stable.

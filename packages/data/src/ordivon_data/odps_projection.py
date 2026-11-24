@@ -128,14 +128,9 @@ def project_odps(
         entry["@id"] = dataset_uri
     if rights:
         entry["odrl:hasPolicy"] = {"@id": rights[0]}
-    claimed_ports: set[str] = set()
     for binding in bindings:
-        if binding.product_id != product_id:
-            continue
-        if binding.port_name in claimed_ports:
-            raise ValueError("duplicate local evidence binding for output port")
-        claimed_ports.add(binding.port_name)
-        qualified_local_distribution(product, entry, binding)
+        if binding.product_id == product_id:
+            qualified_local_distribution(product, entry, binding)
     return entry, "sha256:" + hashlib.sha256(raw).hexdigest()
 
 

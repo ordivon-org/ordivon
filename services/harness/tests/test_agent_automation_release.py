@@ -37,6 +37,8 @@ class ReleaseTests(unittest.TestCase):
             patch.object(r, "require_mcp_runtime_importable", return_value=None),
             patch.object(r, "require_worker_runtime_importable", return_value=None),
             patch.object(r, "require_playwright_runtime_importable", return_value=None),
+            patch.object(r, "require_live_mcp_surface_compatibility", return_value={}),
+            patch.object(r, "require_same_mcp_source_before_stop", return_value=None),
             patch.object(
                 r,
                 "require_browser_security_release_qualification",
@@ -1146,3 +1148,217 @@ class PlaywrightRuntimeContractTests(unittest.TestCase):
             r.PLAYWRIGHT_RUNTIME_VERSIONS,
             {"playwright": "1.63.0", "rfc8785": "0.1.4", "psycopg": "3.3.6"},
         )
+
+
+class LiveAutomationMcpAbiPreStopTests(unittest.TestCase):
+    """The existing evaluator is a required pre-stop consumer, not a release certificate."""
+
+    @staticmethod
+    def _source(tools: tuple[str, ...], fields: tuple[str, ...] = ("campaignId", "workBinding")) -> str:
+        lines = ["class CampaignSpecInput:"]
+        lines.extend(f"    {field}: str" for field in fields)
+        lines.extend(["", "def bind():"])
+        for i, name in enumerate(tools):
+            lines.extend((f"    @server.tool(name={name!r})", f"    def handler{i}(): pass"))
+        return "\n".join(lines) + "\n"
+
+    def _qualify(
+        self,
+        *,
+        installed_tools: tuple[str, ...],
+        candidate_tools: tuple[str, ...],
+        live_tools: tuple[str, ...],
+        candidate_fields: tuple[str, ...] = ("campaignId", "workBinding"),
+        installed_fields: tuple[str, ...] = ("campaignId", "workBinding"),
+        response_error: str = "",
+    ) -> dict[str, object]:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            old = root / "installed"
+            candidate = root / "candidate"
+            for path in (old / "config", old / "scripts", old / "src", candidate / "scripts"):
+                path.mkdir(parents=True, exist_ok=True)
+            (old / "config/agent-automation.toml").write_text(
+                "[agent_automation]\n"
+                'mcp_bind = "127.0.0.1"\n'
+                "mcp_port = 8896\n"
+                'mcp_token_file = "/etc/ordivon/agent-automation-mcp.token"\n'
+                f"mcp_runtime_python = {json.dumps(sys.executable)}\n"
+            )
+            (old / "scripts/agent_automation_mcp.py").write_text(
+                self._source(installed_tools, installed_fields)
+            )
+            (candidate / "scripts/agent_automation_mcp.py").write_text(
+                self._source(candidate_tools, candidate_fields)
+            )
+            current = root / "current"
+            current.symlink_to(old, target_is_directory=True)
+            reply = subprocess.CompletedProcess(
+                ["official-mcp"], 1 if response_error else 0,
+                stdout=json.dumps([{"name": name} for name in live_tools]),
+                stderr=response_error,
+            )
+            with (
+                patch.object(r, "CURRENT", current),
+                patch.object(r, "run", return_value=reply) as subprocess_called,
+            ):
+                result = r.require_live_mcp_surface_compatibility(candidate)
+            subprocess_called.assert_called_once()
+            argv = subprocess_called.call_args.args[0]
+            self.assertEqual(argv[0], sys.executable)
+            self.assertEqual(argv[1], "-c")
+            self.assertNotIn("Bearer ", " ".join(argv))
+            return result
+
+    def test_live_tool_name_subtraction_blocks_before_any_service(self):
+        with self.assertRaisesRegex(r.ReleaseError, "breaking or UNKNOWN"):
+            self._qualify(
+                installed_tools=("campaign.launch", "conversation.turnOutput", "browser.route.plan"),
+                candidate_tools=("campaign.launch",),
+                live_tools=("campaign.launch", "conversation.turnOutput", "browser.route.plan"),
+            )
+
+    def test_campaign_field_subtraction_blocks_even_if_tools_unchanged(self):
+        with self.assertRaisesRegex(r.ReleaseError, "breaking or UNKNOWN"):
+            self._qualify(
+                installed_tools=("campaign.launch",),
+                candidate_tools=("campaign.launch",),
+                live_tools=("campaign.launch",),
+                installed_fields=("campaignId", "sharedAttachments", "workBinding"),
+                candidate_fields=("campaignId",),
+            )
+
+    def test_installed_live_mismatch_holds_unknown(self):
+        with self.assertRaisesRegex(r.ReleaseError, "breaking or UNKNOWN"):
+            self._qualify(
+                installed_tools=("campaign.launch",),
+                candidate_tools=("campaign.launch",),
+                live_tools=("different.tool",),
+            )
+
+    def test_nonsubtraction_remains_not_release_qualified(self):
+        result = self._qualify(
+            installed_tools=("campaign.launch",),
+            candidate_tools=("campaign.launch", "conversation.output"),
+            live_tools=("campaign.launch",),
+        )
+        self.assertEqual(
+            result["status"], "NO_NAME_OR_FIELD_SUBTRACTION_DETECTED_NOT_RELEASE_APPROVED"
+        )
+        self.assertFalse(result["releaseQualified"])
+        self.assertFalse(result["callerUsageProven"])
+
+    def test_live_error_never_leaks_private_credentials(self):
+        with self.assertRaises(r.ReleaseError) as caught:
+            self._qualify(
+                installed_tools=("campaign.launch",),
+                candidate_tools=("campaign.launch",),
+                live_tools=("campaign.launch",),
+                response_error="Bearer a-secret-token-must-not-reach-a-log",
+            )
+        self.assertNotIn("a-secret-token", str(caught.exception))
+        self.assertIn("unavailable", str(caught.exception))
+
+    def test_abi_qualification_happens_before_any_release_fence_or_stop(self):
+        with tempfile.TemporaryDirectory() as td:
+            candidate = Path(td) / "candidate"
+            candidate.mkdir()
+            with (
+                patch.object(r.os, "geteuid", return_value=0),
+                patch.object(r, "exact_commit", return_value="c" * 40),
+                patch.object(r, "materialize", return_value={"path": str(candidate)}),
+                patch.object(r, "require_operator_carrier_available", return_value=None),
+                patch.object(r, "require_mcp_runtime_importable", return_value=None),
+                patch.object(r, "require_worker_runtime_importable", return_value=None),
+                patch.object(r, "require_playwright_runtime_importable", return_value=None),
+                patch.object(r, "require_live_mcp_surface_compatibility",
+                             side_effect=r.ReleaseError("live interface subtraction")),
+                patch.object(r, "release_admission_fence",
+                             side_effect=AssertionError("admission fence changed")) as fence,
+                patch.object(r, "active", side_effect=AssertionError("service mutated")) as active,
+                patch.object(r, "run", side_effect=AssertionError("service stopped")) as actions,
+            ):
+                with self.assertRaisesRegex(r.ReleaseError, "interface subtraction"):
+                    r.activate(Path(td), "HEAD")
+                fence.assert_not_called()
+                active.assert_not_called()
+                actions.assert_not_called()
+
+    def test_pre_fence_current_change_blocks_even_admission_mutation(self):
+        with tempfile.TemporaryDirectory() as td:
+            candidate = Path(td) / "candidate"
+            candidate.mkdir()
+            with (
+                patch.object(r.os, "geteuid", return_value=0),
+                patch.object(r, "exact_commit", return_value="c" * 40),
+                patch.object(r, "materialize", return_value={"path": str(candidate)}),
+                patch.object(r, "require_operator_carrier_available"),
+                patch.object(r, "require_mcp_runtime_importable"),
+                patch.object(r, "require_worker_runtime_importable"),
+                patch.object(r, "require_playwright_runtime_importable"),
+                patch.object(r, "require_live_mcp_surface_compatibility",
+                             return_value={"verifiedInstalledRelease": "old"}),
+                patch.object(r, "require_same_mcp_source_before_stop",
+                             side_effect=r.ReleaseError("MCP Current/source drift")),
+                patch.object(r, "release_admission_fence",
+                             side_effect=AssertionError("fence touched")) as fence,
+                patch.object(r, "active", side_effect=AssertionError("service touched")) as active,
+            ):
+                with self.assertRaisesRegex(r.ReleaseError, "drift"):
+                    r.activate(Path(td), "HEAD")
+                fence.assert_not_called()
+                active.assert_not_called()
+
+    def test_installed_source_swap_after_preflight_is_refused(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            old = root / "old"
+            replacement = root / "replacement"
+            for directory in (old, replacement):
+                (directory / "scripts").mkdir(parents=True)
+            source = old / "scripts/agent_automation_mcp.py"
+            source.write_bytes(b"original-mcp")
+            (replacement / "scripts/agent_automation_mcp.py").write_bytes(b"other-mcp")
+            import hashlib
+            preflight = {
+                "verifiedInstalledRelease": str(old.resolve()),
+                "verifiedInstalledSourceSha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                "verifiedCandidateSourcePath": str(source.resolve()),
+                "verifiedCandidateSourceSha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            }
+            current = root / "current"
+            current.symlink_to(old, target_is_directory=True)
+            with patch.object(r, "CURRENT", current):
+                r.require_same_mcp_source_before_stop(preflight)
+                source.write_bytes(b"mutation-after-read")
+                with self.assertRaisesRegex(r.ReleaseError, "drift"):
+                    r.require_same_mcp_source_before_stop(preflight)
+                source.write_bytes(b"original-mcp")
+                current.unlink()
+                current.symlink_to(replacement, target_is_directory=True)
+                with self.assertRaisesRegex(r.ReleaseError, "drift"):
+                    r.require_same_mcp_source_before_stop(preflight)
+                current.unlink()
+                current.symlink_to(old, target_is_directory=True)
+                (replacement / "scripts/agent_automation_mcp.py").write_bytes(b"original-mcp")
+                preflight["verifiedCandidateSourcePath"] = str(
+                    (replacement / "scripts/agent_automation_mcp.py").resolve()
+                )
+                r.require_same_mcp_source_before_stop(preflight)
+                (replacement / "scripts/agent_automation_mcp.py").write_bytes(
+                    b"candidate-changed-after-qualify"
+                )
+                with self.assertRaisesRegex(r.ReleaseError, "drift"):
+                    r.require_same_mcp_source_before_stop(preflight)
+
+    def test_existing_release_contains_gate_source_and_activate_precedes_fence(self):
+        self.assertIn("evals/automation-mcp-surface-005/verify.py", r.RELEASE_PATHS)
+        source = (ROOT / "scripts/agent_automation_release.py").read_text()
+        tree = ast.parse(source)
+        fn = next(x for x in tree.body if isinstance(x, ast.FunctionDef) and x.name == "activate")
+        calls = [x for x in ast.walk(fn) if isinstance(x, ast.Call)]
+        pre = min(x.lineno for x in calls if isinstance(x.func, ast.Name)
+                  and x.func.id == "require_live_mcp_surface_compatibility")
+        fence = min(x.lineno for x in calls if isinstance(x.func, ast.Name)
+                    and x.func.id == "release_admission_fence")
+        self.assertLess(pre, fence)

@@ -14,6 +14,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
+use super::build_target_contract::{
+    requires_private_cargo_build_target, TRUSTED_BUILD_TARGET_PRESENTATION,
+};
 use super::evidence::{
     prepare_runner_terminal_from_bundle, validate_workspace_source_observation_artifact,
 };
@@ -26,16 +29,18 @@ use super::supervisor::{
     SupervisorObservation, SupervisorRecoveryDisposition, SupervisorUnitState, TerminationIntent,
 };
 use super::windows::*;
+use super::workspace_headroom::{
+    ensure_workspace_headroom, validate_workspace_headroom, WorkspaceHeadroomConfig,
+};
 use super::workspace_state::{
     ensure_workspace_close_allowed, ensure_workspace_mutation_allowed, project_workspace_summary,
     WorkspaceProjectionFacts,
 };
 use super::{
-    runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
-    validate_logical_id, AdmissionOutcome, ArtifactContentMetadata, ArtifactContentReadResult,
-    ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest, ArtifactReadResult,
-    ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent,
-    CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
+    runtime_release_effect_id, runtime_release_request_identity_digest, AdmissionOutcome,
+    ArtifactContentMetadata, ArtifactContentReadResult, ArtifactContentRequest, ArtifactDescriptor,
+    ArtifactReadRequest, ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
+    AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
     ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode,
     InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
     JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunRequest, Registry, RegistryConfig,
@@ -46,7 +51,7 @@ use super::{
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
     RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TerminalCommit,
-    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
     canonical_directory, create_git_workspace, list_open_workspace_record_inventory,
@@ -84,25 +89,7 @@ const DEFAULT_EXECUTION_HOME: &str = "/root";
 const STALE_PREPARED_INPUT_AGE_MS: u64 = 60_000;
 const WINDOWS_NATIVE_OUTER_DEADLINE_GRACE_MS: u64 = 5_000;
 const HOST_DEPENDENCY_CONTINUITY_SCOPE: &str = "runtime_host_namespace_path_witness";
-const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const WINDOWS_INPUT_PRESENTATION_COMPONENTS: [&str; 1] = ["OrdivonImmutableInputs"];
-const CONTAINED_RUNTIME_ENVIRONMENT: [&str; 15] = [
-    "HOME",
-    "TMPDIR",
-    "XDG_CACHE_HOME",
-    "CARGO_TARGET_DIR",
-    "UV_CACHE_DIR",
-    "PIP_CACHE_DIR",
-    "npm_config_cache",
-    "PNPM_HOME",
-    "COREPACK_HOME",
-    "BUN_INSTALL_CACHE_DIR",
-    "GOMODCACHE",
-    "GOCACHE",
-    "GIT_OPTIONAL_LOCKS",
-    "ORDIVON_PAYLOAD_UID",
-    "ORDIVON_PAYLOAD_GID",
-];
 
 fn set_environment_value_case_insensitive(
     environment: &mut BTreeMap<String, String>,
@@ -212,12 +199,6 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
     *poll_index = poll_index.saturating_add(1);
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorkspaceHeadroomConfig {
-    pub path: PathBuf,
-    pub minimum_free_bytes: u64,
-}
-
 #[derive(Clone, Debug)]
 pub struct RuntimeConfig {
     pub node_id: String,
@@ -271,7 +252,7 @@ pub struct Runtime {
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
-    workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    workspace_headroom: Vec<WorkspaceHeadroomConfig>,
     topology_lock: Arc<Mutex<()>>,
     workspace_leases: WorkspaceLeaseTable,
     control_terminal_lock: Arc<Mutex<()>>,
@@ -465,7 +446,10 @@ include!("engine/terminal_evidence.rs");
 include!("engine/workspace_evidence.rs");
 include!("engine/job_activity_evidence.rs");
 include!("engine/input_bindings.rs");
-include!("engine/admission_validation.rs");
+use super::admission_validation::{
+    effective_limits_from_plan_json, validate_new_admission_policy, validate_observe_request,
+    validate_run_proposal_structure, validate_run_request_structure,
+};
 include!("engine/artifact_projection.rs");
 mod output;
 use self::output::{decode_utf8_range_bytes, read_output_text, OutputView, RangeFields};
@@ -697,20 +681,6 @@ fn now_ms() -> RuntimeResult<u64> {
                 false,
             )
         })
-}
-
-fn validate_text_id(value: &str, field: &str) -> RuntimeResult<()> {
-    if value.trim().is_empty()
-        || value.len() > 256
-        || value.as_bytes().contains(&0)
-        || value.chars().any(char::is_control)
-    {
-        return Err(RuntimeError::invalid(
-            format!("{field} must be non-empty, bounded, and control-free"),
-            field,
-        ));
-    }
-    Ok(())
 }
 
 fn serialization_error(error: serde_json::Error) -> RuntimeError {
@@ -1004,6 +974,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: Some(&inputs),
             credential_source_root: None,
             credential_names: &[],
@@ -1029,6 +1000,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: Some(&inputs),
             credential_source_root: None,
             credential_names: &[],
@@ -1671,6 +1643,7 @@ mod trusted_systemd_command_tests {
             bundle_path: Path::new("/var/lib/ordivon/attempts/attempt-test"),
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1719,6 +1692,7 @@ mod trusted_systemd_command_tests {
             memory_max_bytes: Some(512 * 1024 * 1024),
             tasks_max: Some(64),
             cpu_quota_percent: Some(250),
+            scheduling: None,
         };
         let environment = BTreeMap::new();
         let command = build_systemd_run_command(&SystemdRunSpec {
@@ -1727,6 +1701,7 @@ mod trusted_systemd_command_tests {
             bundle_path: Path::new("/var/lib/ordivon/attempts/attempt-budget"),
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1775,6 +1750,7 @@ mod trusted_systemd_command_tests {
             bundle_path: &bundle,
             workspace_path: &workspace,
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1792,7 +1768,10 @@ mod trusted_systemd_command_tests {
         for required in [
             "ProtectSystem=strict",
             "ProtectHome=tmpfs",
+            "InaccessiblePaths=-/etc/ordivon",
             "PrivateNetwork=yes",
+            "ProtectProc=invisible",
+            "PrivatePIDs=yes",
             "NoNewPrivileges=yes",
             "CapabilityBoundingSet=",
             "ProtectControlGroups=yes",

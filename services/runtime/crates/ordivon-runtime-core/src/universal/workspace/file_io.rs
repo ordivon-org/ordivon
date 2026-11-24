@@ -1,3 +1,13 @@
+fn classify_workspace_root_open_error(error: &std::io::Error) -> UniversalExecErrorCode {
+    // Unsupported secure-open primitives are not evidence of an ACL/path denial.
+    // Keep the no-follow contract fail-closed while projecting truthful readiness.
+    if error.kind() == std::io::ErrorKind::Unsupported {
+        UniversalExecErrorCode::ToolUnavailable
+    } else {
+        UniversalExecErrorCode::WorkspacePathDenied
+    }
+}
+
 fn open_workspace_regular_file(
     record: &WorkspaceRecord,
     relative: &str,
@@ -7,7 +17,7 @@ fn open_workspace_regular_file(
     let logical_path = workspace_root.join(&relative_path);
     let root = open_directory_nofollow(workspace_root).map_err(|error| {
         UniversalExecError::new(
-            UniversalExecErrorCode::WorkspacePathDenied,
+            classify_workspace_root_open_error(&error),
             format!("cannot open Workspace root without following symlinks: {error}"),
             Some("workspaceId"),
             false,
@@ -20,6 +30,9 @@ fn open_workspace_regular_file(
                 UniversalExecErrorCode::WorkspacePathDenied
             }
             Some(libc::ENOSYS) => UniversalExecErrorCode::ToolUnavailable,
+            _ if error.kind() == std::io::ErrorKind::Unsupported => {
+                UniversalExecErrorCode::ToolUnavailable
+            }
             _ if error.kind() == std::io::ErrorKind::InvalidInput => {
                 UniversalExecErrorCode::WorkspacePathDenied
             }
@@ -390,4 +403,29 @@ fn bounded_utf8(
         )
     })?;
     Ok((text, bytes))
+}
+
+#[cfg(test)]
+mod workspace_open_error_tests {
+    use super::*;
+
+    #[test]
+    fn unsupported_secure_open_is_unavailable_not_path_denied() {
+        let unsupported = std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "secure no-follow handle unavailable",
+        );
+        let actual_denial = std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "directory ACL denied access",
+        );
+        assert_eq!(
+            classify_workspace_root_open_error(&unsupported),
+            UniversalExecErrorCode::ToolUnavailable
+        );
+        assert_eq!(
+            classify_workspace_root_open_error(&actual_denial),
+            UniversalExecErrorCode::WorkspacePathDenied
+        );
+    }
 }

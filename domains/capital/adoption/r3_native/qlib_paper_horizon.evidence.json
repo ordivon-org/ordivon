@@ -1,0 +1,150 @@
+{
+  "actual_capital_paper_horizon": "T+1 open entry and carry across sessions",
+  "candidate_sessions": 272,
+  "capital_budget_lego": "ordivon_capital.portfolio.strategic_contribution",
+  "decision_policy_admitted": false,
+  "economic_comparison_investment_sleeve_minor": 100000,
+  "economic_trade_dates": [
+    "2025-10-02",
+    "2026-10-30"
+  ],
+  "fixed_qqq_hold_vs_fixed_spy_hold_zero_cost": {
+    "benchmarkNetGainVsContributions": "127.200047729849054352365609",
+    "benchmarkTerminalWealth": "1127.200047729849054352365609",
+    "capitalAuthority": "NONE",
+    "cashFlowConvention": "MATCHED_DEPOSIT_AT_PERIOD_START",
+    "contributedCapital": "1000",
+    "currency": "USD",
+    "feeConvention": "FRACTION_AND_FIXED_COST_AT_START_BEFORE_RETURN",
+    "kind": "ordivon.capital.finance.cashflow-matched-passive-benchmark",
+    "notEvaluated": [
+      "Market-data provenance, total-return reconstruction and investability",
+      "Realized tax/transaction execution, inflation and foreign-exchange conversion",
+      "Time-weighted or money-weighted return and drawdown",
+      "Independent strategy verification and capital authorization"
+    ],
+    "periodCount": 272,
+    "schemaVersion": 1,
+    "standing": "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION",
+    "strategyNetGainVsContributions": "137.414136755234157510665974",
+    "strategyTerminalWealth": "1137.414136755234157510665974",
+    "terminalWealthDifference": "10.214089025385103158300365"
+  },
+  "fractional_ETF_shares_assumed": true,
+  "kind": "ordivon.finance.r3.qlib-economic-consumer-counterexample",
+  "model_daily_prediction_horizon": "T+1 open->T+1 close",
+  "model_daily_selected_assets": {
+    "IWM": 165,
+    "QQQ": 71,
+    "SPY": 36
+  },
+  "model_daily_strategy_executable_by_current_paper": false,
+  "model_vs_equal_weight_intraday_zero_cost": {
+    "benchmarkNetGainVsContributions": "-12.4623321367177910536856001",
+    "benchmarkTerminalWealth": "987.5376678632822089463143999",
+    "capitalAuthority": "NONE",
+    "cashFlowConvention": "MATCHED_DEPOSIT_AT_PERIOD_START",
+    "contributedCapital": "1000",
+    "currency": "USD",
+    "feeConvention": "FRACTION_AND_FIXED_COST_AT_START_BEFORE_RETURN",
+    "kind": "ordivon.capital.finance.cashflow-matched-passive-benchmark",
+    "notEvaluated": [
+      "Market-data provenance, total-return reconstruction and investability",
+      "Realized tax/transaction execution, inflation and foreign-exchange conversion",
+      "Time-weighted or money-weighted return and drawdown",
+      "Independent strategy verification and capital authorization"
+    ],
+    "periodCount": 272,
+    "schemaVersion": 1,
+    "standing": "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION",
+    "strategyNetGainVsContributions": "-37.5216288522559262844821896",
+    "strategyTerminalWealth": "962.4783711477440737155178104",
+    "terminalWealthDifference": "-25.0592967155381352307965895"
+  },
+  "model_vs_spy_intraday_symmetric_10bps_cost_scenario": {
+    "benchmarkNetGainVsContributions": "-250.6512458434355732714975655",
+    "benchmarkTerminalWealth": "749.3487541565644267285024345",
+    "capitalAuthority": "NONE",
+    "cashFlowConvention": "MATCHED_DEPOSIT_AT_PERIOD_START",
+    "contributedCapital": "1000",
+    "currency": "USD",
+    "feeConvention": "FRACTION_AND_FIXED_COST_AT_START_BEFORE_RETURN",
+    "kind": "ordivon.capital.finance.cashflow-matched-passive-benchmark",
+    "notEvaluated": [
+      "Market-data provenance, total-return reconstruction and investability",
+      "Realized tax/transaction execution, inflation and foreign-exchange conversion",
+      "Time-weighted or money-weighted return and drawdown",
+      "Independent strategy verification and capital authorization"
+    ],
+    "periodCount": 272,
+    "schemaVersion": 1,
+    "standing": "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION",
+    "strategyNetGainVsContributions": "-266.8315359589309395451875486",
+    "strategyTerminalWealth": "733.1684640410690604548124514",
+    "terminalWealthDifference": "-16.1802901154953662736899831"
+  },
+  "model_vs_spy_intraday_zero_cost": {
+    "benchmarkNetGainVsContributions": "-16.2806998722724405677310621",
+    "benchmarkTerminalWealth": "983.7193001277275594322689379",
+    "capitalAuthority": "NONE",
+    "cashFlowConvention": "MATCHED_DEPOSIT_AT_PERIOD_START",
+    "contributedCapital": "1000",
+    "currency": "USD",
+    "feeConvention": "FRACTION_AND_FIXED_COST_AT_START_BEFORE_RETURN",
+    "kind": "ordivon.capital.finance.cashflow-matched-passive-benchmark",
+    "notEvaluated": [
+      "Market-data provenance, total-return reconstruction and investability",
+      "Realized tax/transaction execution, inflation and foreign-exchange conversion",
+      "Time-weighted or money-weighted return and drawdown",
+      "Independent strategy verification and capital authorization"
+    ],
+    "periodCount": 272,
+    "schemaVersion": 1,
+    "standing": "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION",
+    "strategyNetGainVsContributions": "-37.5216288522559262844821896",
+    "strategyTerminalWealth": "962.4783711477440737155178104",
+    "terminalWealthDifference": "-21.2409289799834857167511275"
+  },
+  "note": "No native strategy was executed here. All assets fixed retrospectively; no price basis adjustment or independent PIT.",
+  "protected_cash_minor": 900000,
+  "real_execution_costs_qualified": false,
+  "real_orders_or_accounting_effects": "NONE",
+  "source_corporate_actions_verified": false,
+  "source_dividends_reinvested": false,
+  "source_historical_pit_eligible": false,
+  "source_model_skill": {
+    "asset_universe": [
+      "SPY",
+      "QQQ",
+      "IWM"
+    ],
+    "horizon": "decision_after_T_close_entry_at_T_plus_1_open_exit_at_T_plus_1_close",
+    "model_mse": 7.513403553302489e-05,
+    "model_mse_reduction_vs_train_only_mean": -0.0016736939184289756,
+    "model_mse_reduction_vs_zero": -0.0018161839055284013,
+    "outperforms_both_unconditional_baselines": false,
+    "paper_buy_and_hold_consumer_horizon_compatible": false,
+    "prices_from_historical_backfill": true,
+    "profitable_executable_strategy_demonstrated": false,
+    "qlib_native_signal_analysis_metrics": {
+      "IC": -0.08596630348546297,
+      "ICIR": -0.12266015772565181,
+      "Rank IC": -0.09894033084394523,
+      "Rank ICIR": -0.13382896485364917
+    },
+    "sample_rows": 816,
+    "sample_sessions": 272,
+    "standing": "RETROSPECTIVE_BACKFILL_TEST_ONLY",
+    "train_only_mean_baseline_mse": 7.500849427233077e-05,
+    "transaction_costs_and_market_impact_modeled": false,
+    "zero_return_baseline_mse": 7.499782568905879e-05
+  },
+  "standing": "RETROSPECTIVE_NON_EXECUTABLE_HYPOTHETICAL_ONLY",
+  "test_feature_dates": [
+    "2025-10-01",
+    "2026-10-29"
+  ],
+  "total_initial_cash_minor": 1000000,
+  "whole_share_Paper_execution_equivalence_proven": false,
+  "wrong_same_day_label_sessions": 272
+}

@@ -63,3 +63,45 @@ class HarnessRuntimeToolRejected(HarnessRuntimeClientError):
         super().__init__(f"{operation} rejected [{detail.code}]: {detail.message}")
         self.operation = operation
         self.detail = detail
+
+
+class HarnessWorkspaceAdmissionUnavailable(HarnessRuntimeClientError):
+    """Workspace-bound Run has no current Runtime-owned HELD/issuer qualification.
+
+    This is an infrastructure/authority uncertainty, never a model-correctable
+    Tool argument error. Caller must not invoke Provider or new physical Effect.
+    """
+
+
+@runtime_checkable
+class WorkspaceBoundEffectAdmission(Protocol):
+    """Trusted issuer-backed consumer of the Runtime PG Workspace Claim.
+
+    A caller-supplied RunRef or a local Boolean cannot authenticate HELD.
+    Implementations MUST use the original claim key and the Runtime Owner
+    qualified reserve/get and current-issuer evidence. Any missing/UNKNOWN,
+    revoked, or identity-mismatched evidence raises the exception above.
+    No long PostgreSQL transaction may span an Agent model Turn.
+
+    This is a Port contract, not a new Store or a claim that Runtime has
+    deployed the required native issuer/claim endpoint.
+    """
+
+    def require_turn_ready(
+        self,
+        *,
+        run_ref: str,
+        workspace_id: str,
+        tool_grant_digest: str,
+        turn_id: str | None = None,
+    ) -> None: ...
+
+    def require_effect_ready(
+        self,
+        *,
+        run_ref: str,
+        workspace_id: str,
+        tool_grant_digest: str,
+        runtime_operation: str,
+        client_request_id: str,
+    ) -> None: ...
