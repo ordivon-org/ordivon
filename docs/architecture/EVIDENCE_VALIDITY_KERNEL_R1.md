@@ -491,3 +491,29 @@ qualification are separate modules. The check decision always records
 currentApplicability=UNKNOWN_EXTERNAL_ASSUMPTIONS and
 currentSecurityStanding=NOT_ASSESSED_BY_CHECK_RECEIPT. External advisory
 freshness, dynamic reads and deployed behavior require separate evidence.
+
+## Shared exact-Git selector contract (R4 candidate)
+
+The CI shell, qualified temporal/source explanation and cross-cut evidence
+consumer use one bounded source input qualifier, with scopes ci, projection
+and evidence. It checks exact HEAD, tracked regular-file type, Git blob and
+executable mode, and derives test-only source and contract witnesses from the
+existing dependency policy. For the Runtime PG issuer locator, directory
+membership includes all Rust source files, including absence of an additional
+member. Deployed relocation presence is compared with the immutable tree.
+
+For CI, execute the committed qualifier from Git before importing mutable
+checkout producers. Source checks bracket selection; they are not a sandbox,
+a process-memory attestation or an atomic observation. A same-SHA historic
+check receipt remains a separately scoped provider fact. Non-Git tool inputs,
+external assumptions, runtime consumers and concurrent changes remain
+UNKNOWN; this does not grant proof reuse.
+
+Bounded acceptance obligation: for each scope, accepted qualification implies
+that all declared control inputs have equal Git mode and blob, known witness
+paths qualify, the observed Rust membership equals the committed membership,
+and the checked relocation paths preserve presence. Counterexamples include
+dirty bytes, mode-only drift, added or removed Rust member, untracked old
+root, and missing or dirty control inputs. The qualification consumes existing
+Git, dependency policy and relocation-map facts; it creates no database,
+new scheduler, or ownership authority.

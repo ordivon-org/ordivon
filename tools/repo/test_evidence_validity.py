@@ -284,6 +284,80 @@ def test_selector_control_inputs_use_actual_git_blobs(monkeypatch, tmp_path):
     policy.qualify_current_selector(repo, cut)
 
 
+def test_shared_selector_contract_qualifies_membership_presence_and_modes(tmp_path):
+    """All three real consumers reject the same bounded Git input mutations."""
+    import subprocess
+
+    from selector_source_contract import control_inputs, qualify_selector_source
+
+    repo = tmp_path.resolve()
+    scopes = ("ci", "projection", "evidence")
+
+    def git(*args):
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True
+        ).strip()
+
+    def write(relative, contents):
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(contents)
+        return path
+
+    git("init", "-q")
+    git("config", "user.name", "Shared selector test")
+    git("config", "user.email", "selector-fixture@example.invalid")
+    for relative in sorted({p for scope in scopes for p in control_inputs(scope)}):
+        write(relative, "bounded fixture source\n")
+    write("tools/repo/dependency_contracts.toml", """
+[[seams]]
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+from_owner = "runtime"
+to_owner = "harness"
+source_glob = "fixture/runtime/"
+contract_ref = "fixture/harness.py"
+""")
+    write("docs/architecture/structure-r2-transition-r1.json",
+          '{"mappings":[{"mode":"move","standing":"DEPLOYED",'
+          '"sourcePaths":["old/root/"],"targetPaths":["fixture/runtime/"]}]}')
+    rust = write("fixture/runtime/issuer.rs", "// original test\n")
+    write("fixture/harness.py", "# witness\n")
+    git("add", ".")
+    git("commit", "-qm", "qualified source fixture")
+    cut = git("rev-parse", "HEAD")
+
+    def all_clean():
+        for scope in scopes:
+            qualify_selector_source(repo, cut, scope=scope)
+
+    def all_reject(message):
+        for scope in scopes:
+            with pytest.raises(ValueError, match=message):
+                qualify_selector_source(repo, cut, scope=scope)
+
+    all_clean()
+    original = rust.read_bytes()
+    rust.write_bytes(original + b"changed")
+    all_reject("differs from exact Git SourceCut")
+    rust.write_bytes(original)
+    extra = write("fixture/runtime/extra.rs", "// new member\n")
+    all_reject("Rust membership differs")
+    extra.unlink()
+    rust.unlink()
+    all_reject("Rust membership differs")
+    rust.write_bytes(original)
+    mode = rust.stat().st_mode
+    rust.chmod(mode ^ 0o100)
+    all_reject("differs from exact Git SourceCut")
+    rust.chmod(mode)
+    old = repo / "old/root"
+    old.mkdir(parents=True)
+    all_reject("source presence differs")
+    old.rmdir()
+    old.parent.rmdir()
+    all_clean()
+
+
 def test_no_known_source_impact_does_not_prove_cross_cut_reuse(monkeypatch):
     monkeypatch.setattr(
         module.convergence_plan,
