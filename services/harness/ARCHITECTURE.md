@@ -242,6 +242,31 @@ its historical functions as aliases to the extracted modules; there is only
 one implementation. No new PostgreSQL Writer, Runtime schedule, effect issuer,
 tool registry or extra state authority was introduced.
 
+**R38 source-boundary refinement (2026-11-24, candidate):**
+The three explicit original-effect source reads (all issued, unsettled,
+finalization) reuse the original Store history validator. A matching last
+revision alone does not establish a complete Journal. The source cut checks
+contiguous Run revisions, exact Run identity and current revision again
+after scanning; a concurrent append invalidates the cut. The PostgreSQL
+validator supplies its existing consistent-snapshot Event/CAS-edge checks.
+This is a read-only source assertion, not a Runtime/OS or Domain certificate.
+No new writer, ledger, registry or authority is introduced.
+
+| Existing composition | Delegated responsibility | New source module |
+| --- | --- | --- |
+| Run continuity | Working Set admission and transition | `ordivon/working_set_commands.py` |
+| Run continuity | Caller ingress and durable promotion | `ordivon/caller_ingress.py` |
+| Run continuity | Working View provenance / Provider request validation | `ordivon/working_view_validation.py` |
+| Runtime Bridge | Search tool contract and ripgrep result projection | `ordivon/workspace_search.py` |
+
+The three continuity components still share the original facade's Store and
+lease; extraction is not independent replacement or a second PG Writer.
+Run composition depends on the search contract rather than the physical
+Runtime bridge. Existing tool digests, public API, source read schemas and
+actual consumer behavior remain the acceptance surface; no fixed filename
+requirement is added. Source inspection remains deliberately distinct from
+trusted native all-attempts/NoFutureSpawn and original recipient delivery.
+
 **Original Run birth and legacy adoption are distinct operations.**
 For NEW Workspace-bearing Runs, the supported `HarnessAgentRun.create`
 first obtains the native HELD Workspace Claim, then commits the original Run

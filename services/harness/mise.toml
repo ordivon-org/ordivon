@@ -223,4 +223,25 @@ fi
   done
 )
 
+# R38: original source coverage and non-vacuous acceptance via the same TLC.
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY OriginalSourceCutR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config OriginalSourceCutR1.cfg OriginalSourceCutR1.tla
+  source_probe="$(mktemp)"
+  trap 'rm -f "$source_probe"' EXIT
+  for spec in "tail:NoMissingOriginalRevision" "accept:AcceptanceIsUnreachable"; do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "OriginalSourceCutR1.$label-probe.cfg" OriginalSourceCutR1.tla > "$source_probe" 2>&1; then
+      echo "R38 $label counterexample unexpectedly absent" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$source_probe"; then
+      cat "$source_probe" >&2
+      exit 1
+    fi
+    echo "R38 $label counterexample: PASS"
+  done
+)
+
 """

@@ -18,7 +18,7 @@ from .gateway_execution_policy import (
 )
 from .execution_binding import HarnessExecutionBinding
 from .ordivon.agent_bridge import NO_TOOL_AGENT_SURFACE_DIGEST, NO_TOOL_AGENT_GRANT_DIGEST
-from .ordivon.runtime_bridge import (
+from .ordivon.workspace_search import (
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
 )

@@ -113,3 +113,18 @@ or arbitrary Provider behavior. Concrete consumers remain the scratch
 PostgreSQL18 `test_gateway_cli_consumer.py` plus the explicitly opt-in
 `test_live_gateway_unknown_recovery.py` real Gateway/Runtime Owner test.
 Any mismatch requires explicit independent falsification and refinement.
+
+## R38 original source coverage — bounded refinement (2026-11-24)
+
+`OriginalSourceCutR1.tla` models all bounded revision sequences of length
+0..N, including omissions, duplicates, permutations and an independent
+integrity verdict. The old last-revision-only guard has a concrete omitted
+revision counterexample. The exact-cut guard requires every position and
+integrity; the positive model checks coverage independently, and a deliberate
+acceptance reachability counterexample rules out vacuous rejection of all reads.
+The existing Runtime-owned SHA-pinned TLC gate checks all three configs.
+The integrity verdict is a premise, not an implementation proof of PostgreSQL,
+CAS or native Runtime drain. Concrete tests in
+`tests/test_postgres_harness_store.py` retain the partial projection and actual
+detached PG payload-edge counterexamples. No claim release follows from this
+model alone.

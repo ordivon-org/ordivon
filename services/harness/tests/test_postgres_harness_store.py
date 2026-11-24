@@ -1929,6 +1929,79 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(public_source["issuedIntents"], issued["issuedIntents"])
         self.assertFalse(public_source["safeToAcknowledgeNoFutureSpawn"])
 
+    def test_effect_source_inspection_rejects_missing_original_history(self) -> None:
+        """An intact latest revision cannot certify a truncated older Tool history."""
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:source-cut-old",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:source-cut-old",
+            tool_call_id="tool-call:source-cut-old",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"tool": "source-cut"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"path": "README.md"}),
+            client_request_id="request:source-cut-old",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        observation = {"schemaVersion": 1, "kind": "pg.test-observation", "status": "observed"}
+        clock.advance()
+        receipt = HarnessToolStepReceipt(
+            receipt_id="harness-tool-step-receipt:source-cut-old",
+            intent_digest=intent.digest, harness_run_id=run.harness_run_id,
+            tool_call_id=intent.tool_call_id, status=HarnessToolStepStatus.OBSERVED,
+            runtime_job_ref="runtime-job:source-cut-old",
+            observation_digest=canonical_digest(observation),
+            reconciled=False, created_at_ms=clock(),
+        )
+        continuity.record_tool_step_receipt(receipt, observation)
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:source-cut", ttl_ms=10000, now_ms=clock(),
+        )
+        self.store.append_event(
+            event_id="event:source-cut-tail", harness_run_id=run.harness_run_id,
+            event_kind="harness.trace-recorded", data={"trace": "tail"},
+            expected_revision=lease.run_revision, recorded_at_ms=clock(),
+            lease=lease, lease_checked_at_ms=clock(),
+        )
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 1)
+        history = self.store.list_run_events(run.harness_run_id)
+        truncated = tuple(e for e in history if e.data.get("toolStepIntentDigest") != intent.digest)
+        self.assertLess(len(truncated), len(history))
+        self.assertEqual(truncated[-1], history[-1])
+        # The real PG original is unchanged. Simulate a partial read projection
+        # which loses the whole settled Intent/Receipt pair, but not its tail.
+        with patch.object(self.store, "list_run_events", return_value=truncated):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict)):
+                continuity.inspect_issued_tool_sources()
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict)):
+                continuity.inspect_unsettled_tool_sources()
+        # Real PG corruption: remove only the persisted payload reference,
+        # leaving the Event and CAS object readable.
+        prepared = next(e for e in history if e.event_kind == "harness.tool-step-prepared")
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND role='payload'",
+            (prepared.event_id,),
+        )
+        for inspect in (continuity.inspect_issued_tool_sources,
+                        continuity.inspect_unsettled_tool_sources,
+                        continuity.inspect_finalization_source):
+            with self.assertRaises(HarnessJournalCorruption):
+                inspect()
+
     def test_issued_epoch_rejects_reused_runtime_client_request_id(self) -> None:
         """A second prepared Intent cannot reuse the first Runtime Job key."""
         run = tool_fixture.private_tool_contract()

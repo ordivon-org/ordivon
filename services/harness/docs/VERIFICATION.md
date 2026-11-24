@@ -226,3 +226,24 @@ Promotion verification is split across authority owners. Harness verifies exact 
 After reseal is reviewed and committed, Harness finalize requires: the promotion gate is still closed, MCP is still stopped, the worker remains active, no Workflow/browser session is active, the Security-v2 revision differs from the pre-reseal revision, the pool-index digest differs from the pre-reseal digest, and a fresh live pool against that new index returns `NO_OBSERVED_DRIFT`. Any failure preserves the closed gate; image-mutation failures additionally restore the pre-attempt Quadlet and carriers.
 
 A current-image live read-only plan on 2026-09-18 returned `NOOP_ALREADY_CURRENT`, with rendered source Quadlet SHA-256 exactly equal to the installed Quadlet and every active carrier on the same control image; sleeping carriers are represented explicitly instead of forcing residency. MCP/worker remained healthy and admission stayed open. No real different-image `--apply` has been executed as part of this acceptance.
+
+### R38 original effect source coverage (2026-11-24)
+
+Original Run recovery and finalization reads must reject missing historical
+revision pairs and missing persisted PG event payload edges, even when the
+last revision matches and the CAS object still exists. The existing
+`test_postgres_harness_store.py` includes the real-PG fixture with a
+truncated-read fault and a detached-edge fault; the latter changes only the
+disposable PostgreSQL schema. The supported source-read APIs are unchanged.
+The native formal gate uses `OriginalSourceCutR1` with a safety check, an
+expected old-tail-only counterexample and an expected positive-acceptance
+reachability witness. Bounded model PASS does not imply SQL implementation,
+all native Attempts, OS no-future-spawn or real recipient delivery.
+
+R38 candidate validation: isolated original PostgreSQL test environment,
+1746 passed, 74 skipped, 5 deselected and 406 passing subtests. The first
+invocation without a workspace-local environment exposed four legitimate
+owner-environment tests; the original locked offline environment was
+materialized and the unmodified tests reran green. Formal gate, dependency
+boundary tests, Ruff, documentation and evidence-contract checks passed.
+Production install and real Domain/OS finalization remain distinct.

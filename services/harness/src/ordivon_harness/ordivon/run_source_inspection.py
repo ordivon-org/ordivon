@@ -10,6 +10,7 @@ from __future__ import annotations
 from anc_canonical import JsonValue
 
 from ..protocol import HarnessToolStepIntent, HarnessToolStepReceipt
+from ..store import HarnessRunEventRecord, HarnessRunProjection
 from ..store_errors import HarnessRevisionConflict
 from .continuity_guards import (
     _TOOL_EVENT_KINDS,
@@ -20,6 +21,37 @@ from .continuity_guards import (
 
 
 class RunSourceInspection:
+    def _read_verified_source_cut(
+        self,
+    ) -> tuple[HarnessRunProjection, tuple[HarnessRunEventRecord, ...]]:
+        """Reuse original Store integrity and bind the read to one Run revision.
+
+        A latest Event matching the projection does not prove the absence of
+        missing earlier events or detached CAS references. This full check is
+        for explicit owner recovery/finalization reads, not the hot Turn path.
+        Concurrent legitimate appends invalidate the cut, not the Journal.
+        """
+        projection = self.store.load_run(self.harness_run_id)
+        self.store.validate_run_history(self.harness_run_id)
+        events = self.store.list_run_events(self.harness_run_id)
+        if (
+            not events
+            or len(events) != projection.revision
+            or any(
+                event.run_revision != revision or event.harness_run_id != self.harness_run_id
+                for revision, event in enumerate(events, 1)
+            )
+        ):
+            raise HarnessRevisionConflict(
+                "Run source history differs from the original revision"
+            )
+        self._require_current_source_cut(projection)
+        return projection, events
+
+    def _require_current_source_cut(self, projection: HarnessRunProjection) -> None:
+        if self.store.load_run(self.harness_run_id).revision != projection.revision:
+            raise HarnessRevisionConflict("Run changed during source verification")
+
     def _inspect_original_tool_sources(self, *, include_settled: bool) -> dict[str, JsonValue]:
         """Read verified original Tool Intent identities without duplicating a Registry.
 
@@ -27,12 +59,7 @@ class RunSourceInspection:
         certificate. Never return Tool arguments, model content, or credentials.
         A legacy Run may hide an unresolved Intent behind a later observed one.
         """
-        projection = self.store.load_run(self.harness_run_id)
-        events = self.store.list_run_events(self.harness_run_id)
-        if not events or events[-1].run_revision != projection.revision:
-            raise HarnessRevisionConflict(
-                "Tool recovery source Run changed during Journal readback"
-            )
+        projection, events = self._read_verified_source_cut()
         _, pending = inspect_all_unsettled_effect_sources(
             events,
             store=self.store,
@@ -105,10 +132,7 @@ class RunSourceInspection:
             raise ValueError("Original Run Tool sources do not cover the selected Intent identities")
         # A third Writer may append a new Event between the first projection
         # and this projection. No mixed-revision source may be presented.
-        if self.store.load_run(self.harness_run_id).revision != projection.revision:
-            raise HarnessRevisionConflict(
-                "Tool recovery source Run changed during source verification"
-            )
+        self._require_current_source_cut(projection)
         # The original Run's clientRequestIds form the exact existing Runtime
         # idempotency keys (within its dedicated principal). A recycled key
         # cannot represent two distinct ToolIntents in a reliable drain set.
@@ -174,22 +198,9 @@ class RunSourceInspection:
         from ..independent_result_reader import IndependentRunReader
         from .continuity_guards import inspect_all_unsettled_effect_sources
 
-        projection = self.store.load_run(self.harness_run_id)
+        projection, events = self._read_verified_source_cut()
         if not projection.status.terminal:
-            # Nonterminal status always blocks Release, but must not hide the
-            # original unresolved Provider/Tool identities required by an
-            # authenticated Owner's future reconciliation. Reuse the same
-            # verified full-Journal scan as terminal Finalization and reject
-            # a mixed-revision read without creating any secondary state.
-            events = self.store.list_run_events(self.harness_run_id)
-            if (
-                not events
-                or events[-1].run_revision != projection.revision
-                or len(events) != projection.revision
-            ):
-                raise HarnessRevisionConflict(
-                    "nonterminal finalization source Run changed during Journal readback"
-                )
+            # Nonterminal status blocks Release, not owner recovery of original effects.
             provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
                 events,
                 store=self.store,
@@ -198,10 +209,7 @@ class RunSourceInspection:
                 allow_tool_content=self.contract.privacy.allow_tool_content,
                 provider_record_reader=self._load_provider_from_event,
             )
-            if self.store.load_run(self.harness_run_id).revision != projection.revision:
-                raise HarnessRevisionConflict(
-                    "nonterminal finalization source Run changed during verification"
-                )
+            self._require_current_source_cut(projection)
             blockers = ["run_not_terminal"]
             if provider_ids:
                 blockers.append("provider_unsettled")
@@ -223,13 +231,7 @@ class RunSourceInspection:
                 "externalDeliveryStanding": "unknown",
                 "runtimeClaimStanding": "unknown",
             }
-        self.store.validate_run_history(self.harness_run_id)
-        events = self.store.list_run_events(self.harness_run_id)
-        if (
-            not events
-            or events[-1].event_id != projection.terminal_event_id
-            or events[-1].run_revision != projection.revision
-        ):
+        if events[-1].event_id != projection.terminal_event_id:
             raise ValueError("finalization Run terminal projection differs from Journal")
         terminal = IndependentRunReader(
             self.store, self.contract, self.binding, clock_ms=self.clock_ms
@@ -242,6 +244,7 @@ class RunSourceInspection:
             allow_tool_content=self.contract.privacy.allow_tool_content,
             provider_record_reader=self._load_provider_from_event,
         )
+        self._require_current_source_cut(projection)
         blockers: list[str] = []
         if terminal.receipt.stop_reason == "unknown":
             blockers.append("unknown_run_stop")
