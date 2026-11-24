@@ -8,14 +8,19 @@ import hashlib
 import json
 import math
 from pathlib import Path
-import sqlite3
+import os
 import subprocess
-import tempfile
+import uuid
+from contextlib import contextmanager
+from collections.abc import Iterator
 import time
 from typing import Any
 
 from ordivon_harness.core_contracts import HarnessBoundReference, HarnessRunContract
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+import psycopg
+from psycopg import sql
+
+from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.store import HarnessEventAdmission, HarnessEventWrite
 
 DIGEST_A = "sha256:" + "a" * 64
@@ -80,20 +85,49 @@ def _revision() -> str:
     ).strip()
 
 
-def _counts(database: Path) -> tuple[int, int, int]:
-    connection = sqlite3.connect(database)
+@contextmanager
+def _isolated_scale_schema(dsn: str) -> Iterator[str]:
+    """Create and drop only a fresh owned schema in an explicit test database."""
+    if not dsn or not dsn.strip():
+        raise ValueError("HARNESS_PG_TEST_DSN is required for PostgreSQL scale acceptance")
+    schema = "hpg_scale_" + uuid.uuid4().hex
+    with psycopg.connect(dsn, autocommit=True) as connection:
+        # No IF NOT EXISTS: a pre-existing schema is not ours to remove.
+        connection.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
     try:
-        runs = int(connection.execute("SELECT COUNT(*) FROM runs").fetchone()[0])
-        events = int(connection.execute("SELECT COUNT(*) FROM run_events").fetchone()[0])
-        objects = int(connection.execute("SELECT COUNT(*) FROM object_refs").fetchone()[0])
-        return runs, events, objects
+        yield schema
     finally:
-        connection.close()
+        with psycopg.connect(dsn, autocommit=True) as connection:
+            connection.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+
+
+def _source_clean() -> bool:
+    return not subprocess.check_output(
+        ["git", "status", "--porcelain", "--", "src", "scripts", "pyproject.toml", "uv.lock"],
+        cwd=Path(__file__).resolve().parents[1], text=True,
+    ).strip()
+
+
+def _counts(store: PostgresHarnessStore) -> dict[str, int]:
+    """Independent SQL cardinalities of the original PG owner tables."""
+    result = store.connection.execute(
+        """
+        SELECT (SELECT count(*) FROM runs) AS runs,
+               (SELECT count(*) FROM run_events) AS events,
+               (SELECT count(*) FROM objects) AS objects,
+               (SELECT count(*) FROM run_object_refs WHERE role='payload') AS payload_edges,
+               (SELECT count(*) FROM run_object_refs) AS object_edges,
+               (SELECT count(*) FROM objects o WHERE NOT EXISTS
+                   (SELECT 1 FROM run_object_refs r WHERE r.digest=o.digest)) AS orphan_objects,
+               (SELECT count(*) FROM run_leases) AS leases
+        """
+    ).fetchone()
+    return {key: int(value) for key, value in result.items()}
 
 
 def run_acceptance(
     *,
-    root: Path,
+    dsn: str,
     run_count: int,
     events_per_run: int,
     batch_size: int,
@@ -109,9 +143,25 @@ def run_acceptance(
     if inspect_samples < 1:
         raise ValueError("inspect sample count must be positive")
 
+    with _isolated_scale_schema(dsn) as schema:
+        return _run_scale(
+            dsn=dsn, schema=schema, run_count=run_count, events_per_run=events_per_run,
+            batch_size=batch_size, inspect_samples=inspect_samples,
+            max_write_ms=max_write_ms, max_reopen_ms=max_reopen_ms,
+            max_inspect_p95_ms=max_inspect_p95_ms,
+        )
+
+
+def _run_scale(
+    *, dsn: str, schema: str, run_count: int, events_per_run: int, batch_size: int,
+    inspect_samples: int, max_write_ms: int, max_reopen_ms: int,
+    max_inspect_p95_ms: int,
+) -> dict[str, Any]:
+    revision = _revision()
+    source_clean = _source_clean()
     started_at_ms = time.time_ns() // 1_000_000
     write_started = time.perf_counter_ns()
-    with SQLiteHarnessStore.initialize(root) as store:
+    with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
         for run_index in range(run_count):
             created_at_ms = 1_000_000 + run_index * (events_per_run + 2)
             contract = _contract(run_index, created_at_ms)
@@ -132,7 +182,7 @@ def run_acceptance(
                     HarnessEventWrite(
                         event_id=f"event:p0-scale:{run_index:04d}:{next_event + offset:04d}",
                         event_kind="harness.trace-recorded",
-                        data={"kind": "scale-trace"},
+                        data={"kind": "scale-trace", "runIndex": run_index, "eventIndex": next_event + offset},
                         recorded_at_ms=created_at_ms + 1 + next_event + offset,
                     )
                     for offset in range(count)
@@ -150,13 +200,12 @@ def run_acceptance(
                 remaining -= count
     write_elapsed_ms = (time.perf_counter_ns() - write_started) / 1_000_000
 
-    database = root / "harness.sqlite3"
-    actual_runs, actual_events, object_count = _counts(database)
     expected_events = run_count * events_per_run
 
     reopen_started = time.perf_counter_ns()
-    with SQLiteHarnessStore(root) as reopened:
+    with PostgresHarnessStore(dsn, schema=schema) as reopened:
         doctor = reopened.doctor(full=True)
+        counts = _counts(reopened)
         inspect_latencies_ms: list[float] = []
         samples = min(run_count, inspect_samples)
         for sample in range(samples):
@@ -172,15 +221,19 @@ def run_acceptance(
                 raise AssertionError("scale Run projection differs from event history")
     reopen_elapsed_ms = (time.perf_counter_ns() - reopen_started) / 1_000_000
 
-    object_files = tuple((root / "objects").glob("*.json"))
     checks = {
-        "runCountExact": actual_runs == run_count,
-        "eventCountExact": actual_events == expected_events,
+        "runCountExact": counts["runs"] == run_count,
+        "eventCountExact": counts["events"] == expected_events,
         "doctorHealthy": doctor.get("healthy") is True,
         "doctorCountsExact": (
             doctor.get("runs") == run_count and doctor.get("events") == expected_events
         ),
-        "objectReferenceCountMatchesFiles": object_count == len(object_files),
+        "doctorObjectCountExact": doctor.get("objects") == counts["objects"] == expected_events + run_count,
+        "eventPayloadEdgesExact": counts["payload_edges"] == expected_events,
+        "objectEdgesExact": counts["object_edges"] == expected_events + run_count,
+        "noOrphanObjects": counts["orphan_objects"] == 0,
+        "noOutstandingLeases": counts["leases"] == 0,
+        "postgresBackend": doctor.get("storageBackend") == "postgresql",
         "writeWithinBound": write_elapsed_ms <= max_write_ms,
         "reopenAndFullDoctorWithinBound": reopen_elapsed_ms <= max_reopen_ms,
         "inspectP95UnderBound": (
@@ -190,15 +243,15 @@ def run_acceptance(
     receipt: dict[str, Any] = {
         "schemaVersion": 1,
         "kind": "ordivon.harness-p0-scale-acceptance",
-        "implementationRevision": _revision(),
+        "implementationRevision": revision,
+        "sourceStanding": ("commit-bound" if source_clean and _source_clean() and _revision() == revision else "working-tree"),
         "configuration": {
             "runCount": run_count,
             "eventsPerRun": events_per_run,
             "expectedEventCount": expected_events,
             "batchSize": batch_size,
             "inspectSamples": min(run_count, inspect_samples),
-            "sqliteSynchronous": "FULL",
-            "sqliteJournalMode": "WAL",
+            "storageBackend": "postgresql",
             "maxWriteMs": max_write_ms,
             "maxReopenMs": max_reopen_ms,
             "maxInspectP95Ms": max_inspect_p95_ms,
@@ -208,15 +261,8 @@ def run_acceptance(
             "reopenAndFullDoctorElapsedMs": round(reopen_elapsed_ms, 3),
             "inspectP50Ms": round(_percentile(inspect_latencies_ms, 0.50), 3),
             "inspectP95Ms": round(_percentile(inspect_latencies_ms, 0.95), 3),
-            "databaseBytes": database.stat().st_size,
-            "objectFiles": len(object_files),
-            "objectReferenceRows": object_count,
         },
-        "counts": {
-            "runs": actual_runs,
-            "events": actual_events,
-            "objects": object_count,
-        },
+        "counts": counts,
         "checks": checks,
         "passed": all(checks.values()),
         "startedAtMs": started_at_ms,
@@ -232,7 +278,6 @@ def run_acceptance(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--state-root", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--runs", type=int, default=1_000)
     parser.add_argument("--events-per-run", type=int, default=100)
@@ -243,36 +288,28 @@ def main() -> int:
     parser.add_argument("--max-inspect-p95-ms", type=int, default=1_000)
     args = parser.parse_args()
 
-    temporary: tempfile.TemporaryDirectory[str] | None = None
-    if args.state_root is None:
-        temporary = tempfile.TemporaryDirectory(prefix="ordivon-harness-p0-scale-")
-        root = Path(temporary.name) / "state"
-    else:
-        root = args.state_root.resolve()
-        if root.exists():
-            raise SystemExit(f"scale state root already exists: {root}")
-
-    try:
-        receipt = run_acceptance(
-            root=root,
-            run_count=args.runs,
-            events_per_run=args.events_per_run,
-            batch_size=args.batch_size,
-            inspect_samples=args.inspect_samples,
-            max_write_ms=args.max_write_ms,
-            max_reopen_ms=args.max_reopen_ms,
-            max_inspect_p95_ms=args.max_inspect_p95_ms,
-        )
-        encoded = json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
-        if args.output is not None:
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(encoded, encoding="utf-8")
-            args.output.chmod(0o600)
-        print(encoded, end="")
-        return 0 if receipt["passed"] else 1
-    finally:
-        if temporary is not None:
-            temporary.cleanup()
+    dsn = os.environ.get("HARNESS_PG_TEST_DSN", "").strip()
+    if not dsn:
+        parser.error("HARNESS_PG_TEST_DSN dedicated test database is required; no SQLite fallback")
+    receipt = run_acceptance(
+        dsn=dsn,
+        run_count=args.runs,
+        events_per_run=args.events_per_run,
+        batch_size=args.batch_size,
+        inspect_samples=args.inspect_samples,
+        max_write_ms=args.max_write_ms,
+        max_reopen_ms=args.max_reopen_ms,
+        max_inspect_p95_ms=args.max_inspect_p95_ms,
+    )
+    encoded = json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+    if args.output is not None:
+        if receipt["sourceStanding"] != "commit-bound":
+            parser.error("refusing persistent scale evidence from an uncommitted source tree")
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(encoded, encoding="utf-8")
+        args.output.chmod(0o600)
+    print(encoded, end="")
+    return 0 if receipt["passed"] else 1
 
 
 if __name__ == "__main__":

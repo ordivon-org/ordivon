@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
-import tempfile
+import os
+from unittest.mock import patch
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,24 +20,59 @@ class HarnessP0ScaleAcceptanceTests(unittest.TestCase):
         self.assertEqual(MODULE._percentile([1.0, 2.0, 3.0, 100.0], 0.50), 2.0)
 
     def test_small_scale_receipt_is_exact_and_healthy(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            receipt = MODULE.run_acceptance(
-                root=Path(directory) / "state",
-                run_count=8,
-                events_per_run=12,
-                batch_size=11,
-                inspect_samples=4,
-                max_write_ms=30_000,
-                max_reopen_ms=30_000,
-                max_inspect_p95_ms=1_000,
-            )
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("dedicated PostgreSQL test database required")
+        receipt = MODULE.run_acceptance(
+            dsn=dsn,
+            run_count=8,
+            events_per_run=12,
+            batch_size=11,
+            inspect_samples=4,
+            max_write_ms=30_000,
+            max_reopen_ms=30_000,
+            max_inspect_p95_ms=1_000,
+        )
         self.assertTrue(receipt["passed"])
         self.assertEqual(receipt["counts"]["runs"], 8)
         self.assertEqual(receipt["counts"]["events"], 96)
+        self.assertEqual(receipt["configuration"]["storageBackend"], "postgresql")
+        self.assertEqual(receipt["counts"]["payload_edges"], 96)
+        self.assertEqual(receipt["counts"]["object_edges"], 104)
+        self.assertEqual(receipt["counts"]["objects"], 104)
+        self.assertEqual(receipt["counts"]["orphan_objects"], 0)
+        self.assertEqual(receipt["counts"]["leases"], 0)
         self.assertTrue(all(receipt["checks"].values()))
         self.assertTrue(
             receipt["integrity"]["payloadDigest"].startswith("sha256:")
         )
+
+    def test_scale_requires_explicit_test_dsn_not_production_fallback(self) -> None:
+        with patch.dict(os.environ, {"HARNESS_PG_TEST_DSN": "", "HARNESS_PG_DSN": "unused"}, clear=True):
+            with patch("sys.argv", [str(SCRIPT)]), self.assertRaises(SystemExit) as exc:
+                MODULE.main()
+            self.assertEqual(exc.exception.code, 2)
+
+    def test_failed_workload_removes_only_its_fresh_schema(self) -> None:
+        import psycopg
+
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("dedicated PostgreSQL test database required")
+        with psycopg.connect(dsn, autocommit=True) as connection:
+            def schemas():
+                return {row[0] for row in connection.execute(
+                    "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'hpg_scale_%'"
+                )}
+            before = schemas()
+            with patch.object(MODULE, "_run_scale", side_effect=RuntimeError("injected")):
+                with self.assertRaisesRegex(RuntimeError, "injected"):
+                    MODULE.run_acceptance(
+                        dsn=dsn, run_count=1, events_per_run=2, batch_size=1,
+                        inspect_samples=1, max_write_ms=1000,
+                        max_reopen_ms=1000, max_inspect_p95_ms=1000,
+                    )
+            self.assertEqual(schemas(), before)
 
 
 if __name__ == "__main__":

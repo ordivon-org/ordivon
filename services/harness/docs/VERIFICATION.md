@@ -124,7 +124,7 @@ A `verified` entry is current only while no later invalidating implementation pa
 
 ## P0 scale acceptance
 
-The full P0 persistence closeout uses:
+The full P0 persistence closeout uses an explicitly provided dedicated PostgreSQL test database (set `HARNESS_PG_TEST_DSN` first; never use the production DSN):
 
 ```bash
 uv run python scripts/harness_p0_scale_acceptance.py \
@@ -134,7 +134,7 @@ uv run python scripts/harness_p0_scale_acceptance.py \
   --output evidence/hho-p0-scale-1000x100-<revision>.json
 ```
 
-The receipt must bind the exact implementation revision and prove 1,000 Runs, 100,000 Events, a healthy full-history Doctor after reopen, exact object-reference/file agreement, and sampled current-Run inspection below the recorded one-second gate. Thresholds and machine measurements remain in the receipt rather than becoming timeless prose.
+The receipt must bind the exact implementation revision and prove 1,000 Runs, 100,000 Events, a healthy full-history Doctor after reopen, exact original PostgreSQL object and event-edge cardinality, no orphan objects or outstanding leases, and sampled current-Run inspection below the recorded one-second gate. Each trace payload has a distinct Run/Event identity so CAS deduplication cannot mask the measured workload. Persistent output requires a clean, commit-bound source; dirty-tree smoke output is explicitly unqualified. Thresholds and machine measurements remain in the receipt rather than becoming timeless prose.
 
 ## Historical live receipts
 
