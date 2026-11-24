@@ -223,6 +223,7 @@
         "test/agent-native-e2e.ts",
         "src/agent-canary-routes.ts",
         "formal/AgentEffectResponseR1.tla",
+        "formal/EffectApprovalRecordR1.tla",
         "formal/README.md"
       ],
       "dependencies": [
