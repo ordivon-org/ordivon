@@ -5,7 +5,7 @@ mod pagination;
 mod text;
 
 use super::*;
-use identity::require_pg_artifact_identity;
+use identity::{read_bound_pg_artifact_registration, require_pg_artifact_identity};
 use pagination::artifact_utf8_window;
 
 #[cfg(test)]

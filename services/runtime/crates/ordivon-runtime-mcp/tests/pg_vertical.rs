@@ -1828,6 +1828,175 @@ fn pg_binary_artifact_representation_is_not_registry_failure() {
     }
 }
 
+/// Two genuine native Job owners, with a deliberately contradictory Artifact
+/// registration in the disposable database. The real harmless bytes/hash
+/// remain exact: only the relation between Job and Attempt is falsified.
+#[test]
+#[ignore = "disposable PG18, native Runner and two MCP principals"]
+fn pg_artifact_registration_must_bind_its_own_job_attempt() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let submit = |endpoint: &str, key: &str, marker: &str| -> String {
+        let opened = call(
+            endpoint,
+            "workspace.open",
+            json!({"workspaceId":key,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+        );
+        assert_ne!(opened["isError"], true, "{opened}");
+        let result = call(
+            endpoint,
+            "workspace.exec",
+            json!({
+            "clientRequestId":key,"execution":{"workspaceId":key,
+            "executable":"/usr/bin/printf","args":[marker],"cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        let job = result["structuredContent"]["jobId"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let deadline = Instant::now() + Duration::from_secs(25);
+        loop {
+            let observed = call(
+                endpoint,
+                "job.observe",
+                json!({"jobId":job,"waitMs":1000,"stdoutTailBytes":256}),
+            );
+            assert_ne!(observed["isError"], true, "{observed}");
+            if observed["structuredContent"]["executionTerminal"] == true {
+                assert_eq!(
+                    observed["structuredContent"]["executionDisposition"],
+                    "succeeded"
+                );
+                assert_eq!(observed["structuredContent"]["stdoutTail"], marker);
+                break;
+            }
+            assert!(Instant::now() < deadline, "{observed}");
+        }
+        job
+    };
+    let first = fixture.endpoint_for_principal("r5-artifact-original");
+    let original = submit(
+        &first,
+        "r5-artifact-original-job",
+        "R5_ORIGINAL_DISPOSABLE_BYTES",
+    );
+    let row = fixture.db.query_one(
+        "SELECT artifact_id,attempt_id,digest,byte_length FROM artifacts WHERE job_id=$1 AND kind='stdout'",
+        &[&original],
+    ).unwrap();
+    let artifact: String = row.get(0);
+    let attempt: String = row.get(1);
+    let digest: String = row.get(2);
+    let byte_length: i64 = row.get(3);
+    let good = call(
+        &first,
+        "artifact.read",
+        json!({"jobId":original,"artifactId":artifact,"offset":0,"maxBytes":1024}),
+    );
+    assert_eq!(
+        good["structuredContent"]["content"],
+        "R5_ORIGINAL_DISPOSABLE_BYTES"
+    );
+    let mut old = fixture.endpoint.take().unwrap();
+    old.kill().unwrap();
+    old.wait().unwrap();
+
+    let other_endpoint = fixture.endpoint_for_principal("r5-artifact-other");
+    let other = submit(
+        &other_endpoint,
+        "r5-artifact-other-job",
+        "R5_OTHER_DISPOSABLE_BYTES",
+    );
+    let directly_denied = call(
+        &other_endpoint,
+        "artifact.read",
+        json!({"jobId":original,"artifactId":artifact,"offset":0,"maxBytes":1024}),
+    );
+    assert_eq!(directly_denied["isError"], true);
+    // Independently persisted Job and Attempt foreign keys permit the
+    // contradictory registration. Do not touch real production metadata.
+    assert_eq!(
+        fixture
+            .db
+            .execute(
+                "UPDATE artifacts SET job_id=$1 WHERE artifact_id=$2",
+                &[&other, &artifact]
+            )
+            .unwrap(),
+        1
+    );
+    let relation = fixture.db.query_one("SELECT r.job_id,a.job_id,r.attempt_id,r.digest,r.byte_length FROM artifacts r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE r.artifact_id=$1",&[&artifact]).unwrap();
+    assert_eq!(relation.get::<_, String>(0), other);
+    assert_eq!(relation.get::<_, String>(1), original);
+    assert_eq!(relation.get::<_, String>(2), attempt);
+    assert_eq!(relation.get::<_, String>(3), digest);
+    assert_eq!(relation.get::<_, i64>(4), byte_length);
+    let bad_text = call(
+        &other_endpoint,
+        "artifact.read",
+        json!({"jobId":other,"artifactId":artifact,"offset":0,"maxBytes":1024}),
+    );
+    let bad_content = call(
+        &other_endpoint,
+        "artifact.content",
+        json!({"jobId":other,"artifactId":artifact,"maxBytes":1024}),
+    );
+    // Restore fixture metadata before assertions; no other domain effect.
+    assert_eq!(
+        fixture
+            .db
+            .execute(
+                "UPDATE artifacts SET job_id=$1 WHERE artifact_id=$2",
+                &[&original, &artifact]
+            )
+            .unwrap(),
+        1
+    );
+    let other_artifact: String = fixture
+        .db
+        .query_one(
+            "SELECT artifact_id FROM artifacts WHERE job_id=$1 AND kind='stdout'",
+            &[&other],
+        )
+        .unwrap()
+        .get(0);
+    let other_good = call(
+        &other_endpoint,
+        "artifact.read",
+        json!({"jobId":other,"artifactId":other_artifact,"offset":0,"maxBytes":1024}),
+    );
+    assert_eq!(
+        other_good["structuredContent"]["content"],
+        "R5_OTHER_DISPOSABLE_BYTES"
+    );
+    eprintln!(
+        "ARTIFACT_OWNER_EDGE text_denied={} content_denied={}",
+        bad_text["isError"] == true,
+        bad_content["isError"] == true
+    );
+    assert!(bad_text["isError"]==true && bad_content["isError"]==true,
+        "a digest-valid Artifact from a different Job's Attempt cannot be returned via either read carrier");
+    for rejected in [&bad_text, &bad_content] {
+        assert_eq!(
+            rejected["structuredContent"]["error"]["code"], "ARTIFACT_IDENTITY_CONFLICT",
+            "{rejected}"
+        );
+    }
+    let raw_good = call(
+        &other_endpoint,
+        "artifact.content",
+        json!({"jobId":other,"artifactId":other_artifact,"maxBytes":1024}),
+    );
+    assert_ne!(raw_good["isError"], true, "{raw_good}");
+    assert_eq!(raw_good["content"][0]["type"], "resource");
+    assert_eq!(
+        raw_good["structuredContent"]["byteLength"],
+        "R5_OTHER_DISPOSABLE_BYTES".len()
+    );
+}
+
 /// Real native PG18+HTTP MCP+Git consumer for the existing bounded
 /// Workspace.list projection. Pages must remain stable with >4 physical
 /// Workspaces; a broken Git checkout is a local issue, not a lost cursor.

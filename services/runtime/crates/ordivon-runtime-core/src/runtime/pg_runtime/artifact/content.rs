@@ -1,10 +1,9 @@
 //! Exact byte resource read for MCP, backed by a PostgreSQL registration.
 //! No SQLite Registry, no new permission engine and no unsealed output.
-use super::PathBuf;
 use super::{
-    io, require_pg_artifact_identity, universal, ArtifactContentMetadata,
-    ArtifactContentReadResult, ArtifactContentRequest, PgRuntime, RuntimeError, RuntimeErrorCode,
-    RuntimeResult,
+    io, read_bound_pg_artifact_registration, require_pg_artifact_identity, universal,
+    ArtifactContentMetadata, ArtifactContentReadResult, ArtifactContentRequest, PgRuntime,
+    RuntimeError, RuntimeResult,
 };
 use std::path::Path;
 
@@ -25,18 +24,11 @@ impl PgRuntime {
         }
         let mut db = self.store()?;
         self.authorize(&mut db, &request.job_id, principal)?;
-        let row=db.client.query_opt(
-            "SELECT a.bundle_path,r.relative_path,r.digest,r.byte_length,r.media_type,r.truncated              FROM artifacts r JOIN attempts a ON a.attempt_id=r.attempt_id              WHERE r.job_id=$1 AND r.artifact_id=$2",
-            &[&request.job_id,&request.artifact_id]
-        ).map_err(io)?.ok_or_else(|| RuntimeError::new(
-            RuntimeErrorCode::ArtifactNotFound,
-            "Artifact not found for this Job",
-            Some("artifactId"),
-            false,
-        ))?;
-        let relative: String = row.get(1);
+        let registration =
+            read_bound_pg_artifact_registration(&mut db, &request.job_id, &request.artifact_id)?;
+        let relative = registration.relative_path;
         universal::validate_relative_path(&relative, "artifactPath").map_err(io)?;
-        let base = PathBuf::from(row.get::<_, String>(0));
+        let base = registration.bundle;
         let dir = universal::open_directory_nofollow(&base).map_err(io)?;
         let mut file =
             universal::open_regular_file_beneath(&dir, Path::new(&relative), true).map_err(io)?;
@@ -52,17 +44,17 @@ impl PgRuntime {
                 "maxBytes",
             ));
         }
-        let digest: String = row.get(2);
-        let len: i64 = row.get(3);
+        let digest = registration.digest;
+        let len = registration.byte_length;
         require_pg_artifact_identity(&bytes, len, &digest)?;
         Ok(ArtifactContentReadResult {
             metadata: ArtifactContentMetadata {
                 job_id: request.job_id.clone(),
                 artifact_id: request.artifact_id.clone(),
                 digest,
-                media_type: row.get(4),
+                media_type: registration.media_type,
                 byte_length: len as u64,
-                truncated: row.get(5),
+                truncated: registration.truncated,
             },
             bytes,
         })

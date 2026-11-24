@@ -1,8 +1,7 @@
 //! Original bounded UTF-8 text Artifact paging by stable byte cursor.
-use super::PathBuf;
 use super::{
-    artifact_utf8_window, io, require_pg_artifact_identity, universal, ArtifactReadRequest,
-    ArtifactReadResult, PgRuntime, RuntimeError, RuntimeErrorCode, RuntimeResult,
+    artifact_utf8_window, io, read_bound_pg_artifact_registration, require_pg_artifact_identity,
+    universal, ArtifactReadRequest, ArtifactReadResult, PgRuntime, RuntimeError, RuntimeResult,
 };
 use std::path::Path;
 
@@ -23,14 +22,10 @@ impl PgRuntime {
         }
         let mut db = self.store()?;
         self.authorize(&mut db, &request.job_id, principal)?;
-        let r=db.client.query_opt("SELECT a.bundle_path,r.relative_path,r.digest,r.byte_length FROM artifacts r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE r.job_id=$1 AND r.artifact_id=$2", &[&request.job_id,&request.artifact_id]).map_err(io)?.ok_or_else(|| RuntimeError::new(
-            RuntimeErrorCode::ArtifactNotFound,
-            "Artifact not found for this Job",
-            Some("artifactId"),
-            false,
-        ))?;
-        let bundle: PathBuf = r.get::<_, String>(0).into();
-        let relative: String = r.get(1);
+        let registration =
+            read_bound_pg_artifact_registration(&mut db, &request.job_id, &request.artifact_id)?;
+        let bundle = registration.bundle;
+        let relative = registration.relative_path;
         universal::validate_relative_path(&relative, "artifactPath").map_err(io)?;
         let mut file = universal::open_regular_file_beneath(
             &universal::open_directory_nofollow(&bundle).map_err(io)?,
@@ -44,11 +39,11 @@ impl PgRuntime {
             .take(self.config.executor.max_output_bytes.max(4 * 1024 * 1024) + 1)
             .read_to_end(&mut bytes)
             .map_err(io)?;
-        let digest: String = r.get(2);
-        require_pg_artifact_identity(&bytes, r.get::<_, i64>(3), &digest)?;
+        let digest = registration.digest;
+        require_pg_artifact_identity(&bytes, registration.byte_length, &digest)?;
         let text = std::str::from_utf8(&bytes).map_err(|_| {
             RuntimeError::new(
-                RuntimeErrorCode::ArtifactNotUtf8,
+                super::RuntimeErrorCode::ArtifactNotUtf8,
                 "Artifact is not valid UTF-8; use artifact.content for verified binary bytes",
                 Some("artifactId"),
                 false,
