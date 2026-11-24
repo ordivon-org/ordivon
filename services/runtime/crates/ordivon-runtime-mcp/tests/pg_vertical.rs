@@ -5690,6 +5690,21 @@ fn pg_mcp_scheduler_revoked_harness_job_reuses_existing_cancel() {
     eprintln!("R16_NATIVE_MCP_SCHEDULER_ISSUER_DENIED_CANCEL_RELEASED_PASS");
 }
 
+/// One test-only carrier for the original Harness issuer consumer.
+fn original_harness_fixture_command() -> Command {
+    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
+    let script = repo_root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
+    let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".into());
+    let pythonpath = format!(
+        "{}:{}",
+        repo_root.join("services/harness/src").display(),
+        repo_root.join("services/harness").display()
+    );
+    let mut command = Command::new(python);
+    command.arg(script).env("PYTHONPATH", pythonpath);
+    command
+}
+
 /// Opt-in true Publisher→restricted PG source→authenticated MCP admission→
 /// source revocation→single native Scheduler→dedicated client readback.
 /// Capacity is held by a **real**, harmless test-owned native Job to produce a
@@ -5710,17 +5725,8 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
         "host={} user=postgres dbname=postgres",
         fixture.root.display()
     );
-    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
-    let script = repo_root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
-    let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".into());
-    let pythonpath = format!(
-        "{}:{}",
-        repo_root.join("services/harness/src").display(),
-        repo_root.join("services/harness").display()
-    );
     let original = |action: &str| -> Value {
-        let out = Command::new(&python)
-            .arg(&script)
+        let out = original_harness_fixture_command()
             .arg(action)
             .arg("--dsn")
             .arg(&fixture_dsn)
@@ -5730,7 +5736,6 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
             .arg(&run_id)
             .arg("--workspace")
             .arg(&workspace_id)
-            .env("PYTHONPATH", &pythonpath)
             .output()
             .unwrap();
         assert!(
@@ -5907,8 +5912,7 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
     // exercises the Runtime invariant even under an explicit collision.
     let second_run = format!("harness-run:r17-native-other-{}", &id[..19]);
     let original_key = source["clientRequestId"].as_str().unwrap();
-    let other = Command::new(&python)
-        .arg(&script)
+    let other = original_harness_fixture_command()
         .arg("issue")
         .arg("--dsn")
         .arg(&fixture_dsn)
@@ -5920,7 +5924,6 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
         .arg(&workspace_id)
         .arg("--client-request-id")
         .arg(original_key)
-        .env("PYTHONPATH", &pythonpath)
         .output()
         .unwrap();
     assert!(
@@ -6111,18 +6114,9 @@ fn pg18_original_harness_terminal_cut_joins_observed_and_unsubmitted_keys() {
         "host={} user=postgres dbname=postgres",
         fixture.root.display()
     );
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
-    let script = root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
-    let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".into());
-    let pythonpath = format!(
-        "{}:{}",
-        root.join("services/harness/src").display(),
-        root.join("services/harness").display()
-    );
     let observation_file = fixture.root.join("r6-original-observation.json");
     let source_call = |action: &str| -> Value {
-        let out = Command::new(&python)
-            .arg(&script)
+        let out = original_harness_fixture_command()
             .arg(action)
             .arg("--dsn")
             .arg(&dsn)
@@ -6134,7 +6128,6 @@ fn pg18_original_harness_terminal_cut_joins_observed_and_unsubmitted_keys() {
             .arg(&ws)
             .arg("--observation-file")
             .arg(&observation_file)
-            .env("PYTHONPATH", &pythonpath)
             .output()
             .unwrap();
         assert!(
