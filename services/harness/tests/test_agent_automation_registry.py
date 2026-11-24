@@ -102,6 +102,65 @@ class RegistryTests(unittest.TestCase):
             ):
                 r.register(v)
 
+    def test_retired_fields_are_inspectable_but_never_runnable_or_rewritten(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = CampaignRegistry(Path(d))
+            current = r.register(spec())
+            v = spec()
+            v["sharedAttachments"] = [{
+                "stagingRelativePath": "synthetic.txt",
+                "digest": "sha256:" + "a" * 64,
+                "mediaType": "text/plain",
+                "presentationName": "synthetic.txt",
+            }]
+            v["workBinding"] = {
+                "workRef": "work:synthetic",
+                "workRevision": 1,
+                "workSnapshotDigest": "sha256:" + "b" * 64,
+            }
+            raw = rfc8785.dumps(v)
+            ref = "sha256:" + hashlib.sha256(raw).hexdigest()
+            p = r.blob_root / ref[7:]
+            p.write_bytes(raw)
+            inspected = r.inspect(ref)
+            self.assertEqual(inspected["campaignRef"], ref)
+            self.assertEqual(inspected["standing"], "RETIRED_FIELDS_PRESENT_NOT_RUNNABLE")
+            self.assertFalse(inspected["runnable"])
+            self.assertIsNone(inspected["schema"])
+            self.assertEqual(inspected["retiredFields"], ["sharedAttachments", "workBinding"])
+            self.assertEqual(inspected["descriptor"]["digest"], ref)
+            self.assertNotIn("sharedAttachments", inspected)
+            self.assertNotIn("workBinding", inspected)
+            with self.assertRaises(AgentAutomationRegistryError):
+                r.resolve(ref)
+            with self.assertRaises(AgentAutomationRegistryError):
+                r.register(v)
+            census = r.list_registered()
+            self.assertEqual(census["registered"], 1)
+            self.assertEqual(census["campaigns"][0]["campaignRef"], current["campaignRef"])
+            self.assertEqual(census["retiredReadOnly"], [inspected])
+            self.assertEqual(census["issues"], [])
+            self.assertEqual(p.read_bytes(), raw)
+            self.assertEqual(len(list(r.blob_root.iterdir())), 2)
+
+    def test_retired_inspection_never_excuses_other_invalid_or_noncanonical_data(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = CampaignRegistry(Path(d))
+            for v, canonical in (
+                ({**spec(), "sharedAttachments": [], "unknown": True}, True),
+                ({**spec(), "sharedAttachments": [], "roster": []}, True),
+                ({**spec(), "sharedAttachments": []}, False),
+            ):
+                raw = rfc8785.dumps(v) if canonical else json.dumps(v, indent=2).encode()
+                ref = "sha256:" + hashlib.sha256(raw).hexdigest()
+                (r.blob_root / ref[7:]).write_bytes(raw)
+                with self.assertRaises(AgentAutomationRegistryError):
+                    r.inspect(ref)
+            census = r.list_registered()
+            self.assertEqual(census["registered"], 0)
+            self.assertEqual(census["retiredReadOnly"], [])
+            self.assertEqual(len(census["issues"]), 3)
+
     def test_registry_lists_only_current_cas_blobs(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

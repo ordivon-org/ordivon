@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Content-addressed registry for current CampaignSpec v2 objects only."""
+"""Current CampaignSpec registry with read-only observation of retired fields."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CURRENT_SCHEMA_PATH = ROOT / "schemas" / "agent-automation" / "campaign-spec-v2.schema.json"
 CURRENT_MEDIA_TYPE = "application/vnd.ordivon.agent-campaign.v2+json"
 CURRENT_SCHEMA_ID = "urn:ordivon:schema:agent-campaign-spec:2"
+RETIRED_FIELDS = frozenset({"sharedAttachments", "workBinding"})
 
 
 def _load_current_schema() -> dict[str, Any]:
@@ -177,7 +178,7 @@ class CampaignRegistry:
             spec, campaign_ref=descriptor["digest"], disposition=disposition, descriptor=descriptor
         )
 
-    def _resolve(self, digest_hex: str) -> Path:
+    def _read_verified_blob(self, digest_hex: str) -> tuple[Path, dict[str, Any], dict[str, Any]]:
         path = self.blob_root / digest_hex
         if not path.is_file() or path.is_symlink():
             raise AgentAutomationRegistryError("campaignRef is not registered")
@@ -193,11 +194,17 @@ class CampaignRegistry:
             raise AgentAutomationRegistryError(
                 f"registered CampaignSpec JSON is unreadable: {type(error).__name__}: {error}"
             ) from error
-        _validate_current(value)
+        if not isinstance(value, dict):
+            raise AgentAutomationRegistryError("registered CampaignSpec must be a JSON object")
         if _jcs_bytes(value) != raw:
             raise AgentAutomationRegistryError(
                 "registered CampaignSpec bytes are not RFC 8785 canonical JSON"
             )
+        return path, value, descriptor
+
+    @staticmethod
+    def _current_spec(value: dict[str, Any]) -> CampaignLaunchSpec:
+        _validate_current(value)
         try:
             spec = CampaignLaunchSpec.from_dict(value)
         except Exception as error:
@@ -208,6 +215,11 @@ class CampaignRegistry:
             raise AgentAutomationRegistryError(
                 "registered CampaignSpec is not in normalized domain form"
             )
+        return spec
+
+    def _resolve(self, digest_hex: str) -> Path:
+        path, value, _ = self._read_verified_blob(digest_hex)
+        self._current_spec(value)
         return path
 
     def resolve(self, campaign_ref: str) -> Path:
@@ -215,24 +227,42 @@ class CampaignRegistry:
 
     def inspect(self, campaign_ref: str) -> dict[str, Any]:
         digest_hex = self._parse_ref(campaign_ref)
-        path = self._resolve(digest_hex)
-        spec = CampaignLaunchSpec.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        _, value, descriptor = self._read_verified_blob(digest_hex)
+        retired = RETIRED_FIELDS.intersection(value)
+        if retired:
+            # This projection is ONLY for a metadata observation. The original
+            # bytes and identity remain intact; retired field values are not
+            # validated, returned or interpreted as an executable spec.
+            spec = self._current_spec({k: v for k, v in value.items() if k not in retired})
+            return {
+                **self._registration_view(
+                    spec, campaign_ref=campaign_ref,
+                    disposition="retired-read-only", descriptor=descriptor,
+                ),
+                "schema": None,
+                "standing": "RETIRED_FIELDS_PRESENT_NOT_RUNNABLE",
+                "runnable": False,
+                "retiredFields": sorted(retired),
+            }
+        spec = self._current_spec(value)
         return self._registration_view(
-            spec,
-            campaign_ref=campaign_ref,
-            disposition="observed",
-            descriptor=_sha256_descriptor(path.read_bytes()),
+            spec, campaign_ref=campaign_ref, disposition="observed", descriptor=descriptor,
         )
 
     def list_registered(self) -> dict[str, Any]:
         rows: list[dict[str, Any]] = []
         issues: list[dict[str, str]] = []
+        retired: list[dict[str, Any]] = []
         for path in sorted(self.blob_root.iterdir()):
             if not path.is_file() or path.is_symlink():
                 continue
             ref = self.PREFIX + path.name
             try:
-                rows.append(self.inspect(ref))
+                view = self.inspect(ref)
+                if view.get("runnable") is False:
+                    retired.append(view)
+                else:
+                    rows.append(view)
             except Exception as error:
                 issues.append({"campaignRef": ref, "error": f"{type(error).__name__}: {error}"})
         return {
@@ -240,5 +270,6 @@ class CampaignRegistry:
             "kind": "ordivon.agent-automation-campaign-registry-census",
             "registered": len(rows),
             "campaigns": rows,
+            "retiredReadOnly": retired,
             "issues": issues,
         }
