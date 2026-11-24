@@ -4564,7 +4564,7 @@ fn workspace_list_surfaces_invalid_current_physical_candidate() {
 }
 
 #[test]
-fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
+fn workspace_list_surfaces_corrupt_record_only_history_without_inventing_open_workspace() {
     let (_sandbox, runtime, executor) =
         workspace_fixture("workspace-list-history-poison", "workspace-list-current");
     fs::write(
@@ -4586,7 +4586,16 @@ fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
 
     assert_eq!(result.workspaces.len(), 1);
     assert_eq!(result.workspaces[0].workspace_id, "workspace-list-current");
-    assert!(result.issues.is_empty());
+    // The bytes cannot tell us whether this was irrelevant history or an
+    // interrupted CLOSING intent. UNKNOWN is diagnostic, never absent or
+    // eligible for automatic close; it must not invent an OPEN Workspace.
+    assert_eq!(result.issues.len(), 1);
+    assert_eq!(result.issues[0].workspace_id, "historical-poison");
+    assert_eq!(
+        result.issues[0].stage,
+        RuntimeWorkspaceIssueStage::Inventory
+    );
+    assert_eq!(result.issues[0].code, "METADATA_CORRUPT");
 }
 
 #[test]
@@ -5020,6 +5029,38 @@ fn partial_runner_stdout_without_result_stays_lost_not_success() {
     assert_eq!(observed.execution_disposition, Some(JobResolution::Lost));
     assert!(bundle.join("stdout.log").exists());
     assert!(!bundle.join("result.json").exists());
+    // A LOST control receipt cannot turn mutable, unsealed Runner logs
+    // into committed immutable stdout/stderr Artifacts. The writer may
+    // arrive after this control-only resolution.
+    assert!(!runtime
+        .registry()
+        .list_artifacts(&created.job.job_id)
+        .unwrap()
+        .iter()
+        .any(|artifact| matches!(artifact.kind.as_str(), "stdout" | "stderr")));
+    fs::write(
+        bundle.join("stdout.log"),
+        b"partial output, no terminal result\nlate producer append\n",
+    )
+    .unwrap();
+    let reread = runtime
+        .observe_job(&JobObserveRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: created.job.job_id.clone(),
+            wait_ms: 0,
+            wait_until: JobObserveWaitUntil::Terminal,
+            stdout_tail_bytes: 128,
+            stderr_tail_bytes: 128,
+            stdout_offset: None,
+            stderr_offset: None,
+        })
+        .unwrap();
+    assert_eq!(reread.execution_disposition, Some(JobResolution::Lost));
+    assert!(reread.stdout_tail.contains("late producer append"));
+    assert!(!reread
+        .artifacts
+        .iter()
+        .any(|artifact| matches!(artifact.kind.as_str(), "stdout" | "stderr")));
 }
 
 #[test]
@@ -7573,6 +7614,27 @@ fn runtime_startup_reclaims_absent_orphan_and_reopens_workspace_slot() {
             &format!("{}.orphan-remediation", created.attempt.attempt_id),
         )
         .unwrap();
+    assert!(
+        !runtime
+            .registry()
+            .list_artifacts(&created.job.job_id)
+            .unwrap()
+            .iter()
+            .any(|artifact| matches!(artifact.kind.as_str(), "stdout" | "stderr")),
+        "absent orphan -> LOST must retain the control receipt, not publish a mutable log"
+    );
+    // Only the original log changes; persisted Artifact identities must not.
+    fs::write(
+        Path::new(&attempt.bundle_path).join("stdout.log"),
+        b"partial\nlate append\n",
+    )
+    .unwrap();
+    assert!(!runtime
+        .registry()
+        .list_artifacts(&created.job.job_id)
+        .unwrap()
+        .iter()
+        .any(|artifact| artifact.kind == "stdout"));
 
     let admitted = runtime
         .registry()
@@ -7624,6 +7686,15 @@ fn job_cancel_reclaims_absent_orphan_as_cancelled() {
         })
         .unwrap();
     assert_eq!(observation.status, "cancelled");
+    assert!(
+        runtime
+            .registry()
+            .list_artifacts(&created.job.job_id)
+            .unwrap()
+            .iter()
+            .any(|artifact| artifact.kind == "stdout"),
+        "absent orphan -> CANCELLED preserves its existing stopped-process stdout registration"
+    );
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
     assert_eq!(
         runtime

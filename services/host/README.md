@@ -4,6 +4,24 @@ Clean-room, external-first reconstruction of Ordivon Host.
 
 Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_host` and does not copy its persistence implementation.
 
+## Production-compatible Topic archive release
+
+The currently installed direct Host Cloudflare Access connector and local
+Gateway consume the pre-existing loopback Host HTTP transport without a Host
+Owner bearer. A Schema14 function-only deployment may explicitly set
+ORDIVON_HOST_V2_LEGACY_DIRECT_HTTP=true on the Host systemd service to retain
+that existing ingress while upgrading the native Topic archival schema.
+The listener still must bind loopback and requires the existing canonical
+ORDIVON_HOST_V2_PUBLIC_ORIGIN HTTPS setting. Cloudflare Access must remain
+active; this switch does not establish Principal or Host delegation.
+
+Without that explicit compatibility flag, the new Host HTTP service still
+requires ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE. Configuring both is an
+error rather than allowing anonymous override. Remove the compatibility
+mode only after all real direct MCP clients, Gateway/peer and Cloudflare
+consumers migrate to Owner-credentialed access. This does not alter any
+Tool semantics, PostgreSQL grants or the independent Gateway release gate.
+
 ## Substrate
 
 - PostgreSQL is the authority store.
@@ -37,6 +55,48 @@ Use
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
 
+## Work / Topic / Message lifecycle and archival boundary
+
+Host owns semantic continuity, not the lifecycle of an external Runtime Job or
+domain Goal. Do not terminalize records because they have been idle for N days.
+
+- Work: open may be explicitly committed via the existing CAS to completed or
+  abandoned, with a final current checkpoint. Terminal Work remains readable
+  by work.get and may be excluded from an Agent's active inventory with the
+  existing work.list(state="open") filter. Old Work revisions are optional
+  retained history, not mandatory duplicate archives.
+- Topic: open accepts messages; closed rejects new messages but may be
+  reopened. A closed Topic may be changed via existing topic.state.set CAS to
+  archived; archived rejects posts and is hidden from default topic.list.
+  topic.list(includeArchived=true) exposes it, and topic.resume still reads
+  its original messages. Explicit restoration: archived -> closed -> open,
+  each transition rechecking the topic's message horizon.
+- Message: Messages are immutable. Their logical archive tier is inherited
+  from the Topic; message.get(messageRef, expectedDigest) still retrieves the
+  exact content after Topic archive. Existing direct search and historical
+  references remain available. This is not physical deletion or off-host cold
+  storage.
+
+Physical retention is a separate operator decision. A candidate can be
+inspected based on closed/archived Topic, terminal Work and record age, but no
+time threshold alone proves that linked Work snapshots, message_relations
+(including text target references), subscriptions, Topic/Attention cursors,
+command receipts or external consumers are released. Physical purge requires
+a verified restorable archive and exact consumer closure; current source does
+not automatically purge Messages, Topics, Works, or references. Keep existing
+pgBackRest backup separate from a selective retrievable archive; backup
+verification is not consumer-safe deletion proof.
+
+## Attention recovery model (one transaction cut)
+
+From the repository root, run `mise run host:formal:attention-reentry` with the existing pinned TLA+ JAR.
+The model covers interleaved relevant/unrelated change commits, monotone ACKs,
+one-page re-entry and one captured MVCC cut. Both mixed-snapshot Topic cursor
+and non-final page skipping are falsified with separate unsafe transitions.
+This is a bounded abstract model, not a PostgreSQL SQL/source refinement or
+installed Agent proof: retain the existing real PG18 single-snapshot and
+pagination consumer tests. No new Host database, Tool or model executor.
+
 ## Host formal verification: Human and Agent entrypoints
 
 **Human:** From services/host, run mise run formal:reply-source to check both
@@ -49,7 +109,7 @@ invalid before PostgreSQL access because the next revision would overflow.
 
 **Agent:** The proof subjects are the actual called functions
 social_message_commands._reply_target_precedes_source and
-work_store._next_work_revision, not separate model copies. Preserve their
+work_revision_logic.next_work_revision, not separate model copies. Preserve their
 PEP 316 pre/postconditions, re-run the same native CrossHair entrypoint
 after changing these source files, and then qualify the Work CAS transaction
 and reply-edge SQL using existing Host PostgreSQL consumer tests.
@@ -79,7 +139,7 @@ effective contract is the existing `WorkStore.commit_snapshot` public behavior:
 | c | UNKNOWN(reason=unmeasured transaction latency under realistic contention, scope=Host PG18 Work CAS, obligation=record consumer-relevant cost if optimizing) |
 | epsilon | UNKNOWN(reason=no general quantified external availability/failure bound, scope=database/deployment effects, obligation=qualify installed PG consumer); pure revision arithmetic is exact |
 | prov | Actual code in `src/ordivon_host_v2/work_store.py` and `work_queries.py`; locked CrossHair 0.0.112 source contract, real PostgreSQL 18 Alembic/pytest via `mise run test:postgres:disposable`, exact SourceCut is the tested Git revision |
-| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> _next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> _get_work_in_tx -> record_command_receipt |
+| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> read_work_in_tx -> record_command_receipt |
 
 Evidence standing is **DECLARATION_COMPLETE** for this scoped contract; the
 native CrossHair confirms the called revision arithmetic only, while the
@@ -90,6 +150,10 @@ an installed production SourceCut witness, or DOMAIN_ACCEPTED. Preserve these
 distinct proof obligations; do not delete the real CAS/race/replay tests merely
 because the revision increment has a source-level proof.
 
+## First-principles Host logic and capability composition
+
+[Host Logic Capability Architecture R1](docs/LOGIC_CAPABILITY_ARCHITECTURE_R1.md) derives the Work/Social/Attention continuity requirements from actual failure and recovery scenarios, maps Thought/Logic/Capability LEGO, and records the current directory/module boundaries. The first source extraction separates ActorRef semantics from Work and read-only Doctor from the Host service façade, without changing MCP contracts or granting permissions.
+
 ## Host Owner operation guide
 
 See [Host Owner Guide](docs/HOST_OWNER_GUIDE.md) for directory retention decisions, reusable LEGO boundaries, and separate Human/Agent workflows. This guide is not a second authority for the MCP tool list or database schema.
@@ -98,7 +162,7 @@ Work Graph relation commands and cycle detection now live in src/ordivon_host_v2
 
 ## Current product surface
 
-Host v2 runs Social Work Fabric schema 13. The release-owned
+Host v2 runs Social Work Fabric schema 14 **when this source release is installed**; the running production schema must be read independently. The release-owned
 [`mcp-surface.json`](mcp-surface.json) is the single declared inventory of
 MCP tools; native tests compare that manifest with the actual server surface.
 Do not maintain an independent count or partial list of current tools here.
@@ -123,7 +187,18 @@ Re-entry uses two different cursors: `attention.*` uses the global Social Work c
 
 Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, custom event bus, graph database, voting/ranking subsystem, or opaque extension-state subsystem. Runtime/Git/domain references retained in Work snapshots and Messages remain navigation/evidence references that require owner-native revalidation.
 
-External-news publication is not a Host responsibility. Its unconsumed \`news_publications\` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
+External-news publication is not a Host responsibility. Its unconsumed `news_publications` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
+
+The Host installer accepts an optional fifth argument --prepare-only
+only when the fourth argument pins an independently reviewed Host Git tree
+OID. Preparation verifies immutable Git source, MCP tool surface, exact
+Python/uv versions and the locked release-local package, but leaves current
+and the systemd process intact and prints activation=NOT_PERFORMED. A later
+ordinary activation independently revalidates the same immutable candidate.
+This mode does not authorize a deployment, reload secrets, provision Actor
+Grants or prove migration of the main/peer Gateway and Cloudflare clients.
+The separate Gateway Host/Security release check and live positive/negative
+Agent consumers must still pass before cutting over the single Host Writer.
 
 Production releases are immutable Git-SHA directories with a release-local `.venv`; systemd executes only `/opt/ordivon/host-v2/current/.venv/...`. This prevents a shared Python environment from retaining stale code when the package version is unchanged.
 
@@ -158,7 +233,7 @@ does not retry effects or expose DSN/internal exception messages. Other
 operational failures such as a closed pool retain the normal generic
 internal error boundary.
 
-## Native PostgreSQL pool diagnostics (MCP Host surface epoch 6)
+## Native PostgreSQL pool diagnostics (introduced with Host surface epoch 6)
 
 The read-only host.pool.stats MCP tool uses Psycopg's official
 ConnectionPool.get_stats() in the serving Host process. It does not
@@ -185,3 +260,24 @@ so repeated consumers would interfere with each other. Never derive
 domain acceptance, scheduling priority, or a safe command retry from
 a pool gauge alone; typed pre-checkout rejections have their own
 MCP error contract.
+
+## MCP input/output consumer contract release gate
+
+The published MCP surface is not only a set of Tool names. Agents cache tool
+input/output schemas and cannot use newly added arguments if their discovery is
+stale. `mcp-surface.json` carries the native SDK `tools/list` contract digest;
+`packaging/verify_tool_surface.py` requires a new surface epoch and package
+version whenever Tool names or input/output contracts change. After the frozen
+release-local `uv sync --locked`, `packaging/verify_release.py` asks the official
+MCP SDK for the actual Host schemas and checks the digest **before** the service
+symlink can move. This reuses the existing Gateway technique; it adds no second
+registry, database or new public Tool. Client reconnect/recapture is still
+required when a consuming platform serves an older cached Tool schema. A source
+check alone is not an installed Agent consumer acceptance.
+
+## Bounded consumer architecture
+
+[Consumer Architecture R1](docs/CONSUMER_ARCHITECTURE_R1.md) records the
+current Work/Social/Attention dependency direction, real consumers, rejected
+second authorities and closure conditions. It does not replace the MCP surface,
+PG migration chain or the installed Agent consumer observations.

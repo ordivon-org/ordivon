@@ -142,6 +142,13 @@ def verify_delivery_evidence(evidence_paths: Iterable[Path], profile: dict[str, 
         expected_digest = expected_artifacts.get(str(role))
         if expected_digest is not None and value.get("source", {}).get("digest", {}).get("sha256") != expected_digest:
             item_failures.append("read-back evidence source digest does not match the current build artifact")
+        # A persisted digestMatched flag reflects the past. Reuse the existing
+        # file-fact verifier against the presently accessible readback bytes.
+        readback_fact = value.get("readback")
+        if not isinstance(readback_fact, dict) or verify_file_fact(readback_fact)["status"] != "PASS":
+            item_failures.append("read-back evidence referenced bytes are unavailable or changed")
+        elif expected_digest is not None and readback_fact.get("digest", {}).get("sha256") != expected_digest:
+            item_failures.append("read-back evidence actual digest does not match the current build artifact")
         if not value.get("destinationReference"):
             item_failures.append("read-back evidence omitted destinationReference")
         failures.extend(f"{path}: {item}" for item in item_failures)

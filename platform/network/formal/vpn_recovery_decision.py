@@ -121,6 +121,198 @@ def validate() -> None:
         assert mismatch.check() == unsat
         country_cases += 1
 
+    # Source hint is only a time-bounded *candidate* and cannot bypass
+    # the same active/underlay/allowed-country admission predicate. These
+    # scenarios do not claim hot-standby reachability or real API effects.
+    selected = set(policy.native.read_selector_policy()["selectedCountries"])
+    assert not policy.source_trial_hints(NOW, selected)
+    hinted = [
+        row | {"standing": "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT"}
+        for row in ({"catalogCountry": "Singapore", "medianOfConsumerP90Ms": 800},
+                    {"catalogCountry": "Japan", "medianOfConsumerP90Ms": 1200})
+    ]
+    hint_cases = 0
+    for active, underlay, current in product(
+        (True, False, None), (True, False, None), sorted(selected),
+    ):
+        action = policy.decision(active_healthy=active,
+            underlay_reachable=underlay, evidence=hinted, now=NOW,
+            current_country=current)
+        expected = active is False and underlay is True
+        trial = action["decision"].startswith("TRIAL_ONLY_")
+        z = Solver()
+        z.add(BoolVal(expected) != BoolVal(trial))
+        assert z.check() == unsat
+        if trial:
+            assert set(action["trialCountries"]) <= selected - {current}
+            assert len(set(action["trialCountries"])) == len(action["trialCountries"])
+            assert len(action["trialCountries"]) <= 2
+            assert action["certifiedHotStandbyCount"] == 0
+        hint_cases += 1
+    # Cold trials use the current source country subset, not the catalog-wide
+    # permission list, and cannot be promoted to historical success.
+    expired = policy.source_trial_hints(NOW + timedelta(days=8), selected)
+    assert expired == []
+    cold_catalog = json.dumps({"surfshark":{"servers":[
+        {"vpn": "wireguard", "country": country, "ips": [f"192.0.2.{i}"]}
+        for i, country in enumerate(sorted(selected | {"Panama", "Hong Kong"}), 11)
+    ]}})
+    cold = policy.catalog_cold_trials(cold_catalog, selected)
+    assert {row["catalogCountry"] for row in cold} == selected
+    assert all(row["standing"] == "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"
+               and row["qualifiedNowStandby"] is False for row in cold)
+    cold_cases = 0
+    for active, underlay, current in product(
+        (True, False, None), (True, False, None),
+        sorted(selected),
+    ):
+        outcome=policy.decision(active_healthy=active, underlay_reachable=underlay,
+          evidence=expired+cold, now=NOW+timedelta(days=8),
+          current_country=current)
+        actual=outcome["decision"].startswith("TRIAL_ONLY_")
+        expected=active is False and underlay is True and (
+            len([x for x in cold if x["catalogCountry"]!=current])>0)
+        z=Solver()
+        z.add(BoolVal(actual)!=BoolVal(expected))
+        assert z.check()==unsat
+        if actual:
+            assert outcome["certifiedHotStandbyCount"]==0
+            assert "Hong Kong" not in outcome["trialCountries"]
+            assert len(outcome["trialCountries"])<=2
+        cold_cases+=1
+
+    # Finite temporal *schedule* model, bound to the native source
+    # intervals. The proof is only about maximum sampling/timer phase,
+    # not VPN interruption, Prometheus scheduling under load or WAN TTR.
+    from pathlib import Path
+    source_root = ROOT
+    fast_jobs = {
+        "blackbox-scoped-claude-api": "claude.yml",
+        "blackbox-scoped-codex-mcp": "codex.yml",
+        "blackbox-vpn-pypi": "supply-chain.yml",
+    }
+    for job, fragment in fast_jobs.items():
+        raw = (source_root/"config/prometheus/consumers"/fragment).read_text()
+        piece = raw.split("  - job_name: " + job + "\n", 1)[1].split("  - job_name:", 1)[0]
+        assert "scrape_interval: 30s" in piece
+        assert "scrape_timeout: 12s" in piece
+    timer_source = (source_root/"providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer").read_text()
+    assert "OnCalendar=*-*-* *:*:00" in timer_source
+    assert "RandomizedDelaySec=5s" in timer_source
+    assert "AccuracySec=5s" in timer_source
+    scan = 30
+    timer_period = 60
+    scrape_deadline = 12
+    timer_jitter = 10
+    worst_case = (3 * scan) + timer_period + scrape_deadline + timer_jitter
+    assert worst_case == 172
+    old_worst_case = (3 * 60) + 120 + scrape_deadline + 15
+    z = Solver()
+    z.add(BoolVal(worst_case < old_worst_case) == BoolVal(False))
+    assert z.check() == unsat
+
+    # Real-consumer signal freshness refinement. The 30s scrape policy
+    # must not promote retained 135-second-old failed samples into current
+    # failure after Prometheus/Blackbox stopped. Model original, not
+    # query_range replayed timestamps, on a finite boundary grid.
+    assert policy.FAILURE_SCRAPE_SECONDS == scan
+    assert policy.FAILURE_LAST_SAMPLE_AGE_SECONDS == 75
+    assert policy.FAILURE_MAX_SAMPLE_GAP_SECONDS == 45
+    assert policy.FAILURE_MAX_WINDOW_AGE_SECONDS == 165
+    assert policy.FAILURE_CROSS_LANE_SKEW_SECONDS == 45
+    original_http = policy.http_raw_samples
+    raw_cases = 0
+    stale_mutants = 0
+    try:
+        for age, gap, skew in product(
+            (15, 65, 75, 76, 100, 135, 151),
+            (30, 45, 46, 60),
+            (0, 30, 45, 46),
+        ):
+            windows = [
+                {"metric": {"job": job}, "values": [
+                    [NOW.timestamp()-age-extra-2*gap, "0"],
+                    [NOW.timestamp()-age-extra-gap, "0"],
+                    [NOW.timestamp()-age-extra, "0"],
+                ]}
+                for i, job in enumerate(policy.JOBS)
+                for extra in ([skew] if i==2 else [0])
+            ]
+            policy.http_raw_samples = lambda metric, now, values=windows: values
+            action = policy.recent_failure_witness(NOW)
+            expected = (
+                age <= 75 and age+skew <= 75 and
+                gap <= 45 and
+                age+skew+2*gap <= 165 and
+                skew <= 45
+            )
+            model = Solver()
+            model.add(BoolVal(action is True) != BoolVal(expected))
+            assert model.check() == unsat, (age,gap,skew,action,expected)
+            if action is None:
+                assert not expected
+            raw_cases += 1
+            if age == 135 and gap == 30 and skew == 0:
+                # The pre-fix 150-second freshness bound admitted this.
+                old_mutant_admits = age <= 150 and age+2*gap <= 300
+                assert old_mutant_admits and action is None
+                stale_mutants += 1
+    finally:
+        policy.http_raw_samples = original_http
+    assert stale_mutants == 1
+
+
+    # Two source-owned host-direct HTTPS origins: a single success is not
+    # enough to authorize changing the only physical WireGuard session.
+    # This is exact tri-state admission refinement, not a two-WAN guarantee.
+    direct_cases = 0
+    for first, second in product((True, False, None), repeat=2):
+        observed = policy.direct_underlay_evidence((first, second))
+        expected = (True if first is True and second is True else
+                    False if first is False and second is False else None)
+        assert observed is expected
+        s = Solver()
+        s.add(BoolVal(observed is True) !=
+              And(BoolVal(first is True), BoolVal(second is True)))
+        assert s.check() == unsat
+        direct_cases += 1
+    single_origin_mutant = Solver()
+    first_ok, second_ok = Bool("first_direct_ok"), Bool("second_direct_ok")
+    single_origin_mutant.add(first_ok, Not(second_ok),
+                             Or(first_ok, second_ok),
+                             Not(And(first_ok, second_ok)))
+    assert single_origin_mutant.check() == sat
+    # Bind recovery admission's two HTTPS origin strings to the real native
+    # Prometheus direct consumer *targets*, not only to matching job names.
+    # Previous proof passed even if either job's target silently drifted.
+    # Reuse source's one-job YAML blocks; the native promtool/preflight owns
+    # full syntax/module/relabel validation, not this finite model.
+    direct_source = (source_root / "config/prometheus/prometheus.yml").read_text()
+    direct_jobs = ("blackbox-http-ipv4", "blackbox-http-ipv4-alternate")
+    def direct_target(source: str, job: str) -> str:
+        heading = "  - job_name: " + job + "\n"
+        assert source.count(heading) == 1
+        block = source.split(heading, 1)[1].split("  - job_name:", 1)[0]
+        assert "    metrics_path: /probe\n" in block
+        assert "        - http_2xx_ipv4\n" in block
+        target_lines = [row.removeprefix("          - ").strip()
+                        for row in block.splitlines()
+                        if row.startswith("          - https://")]
+        assert len(target_lines) == 1
+        return target_lines[0]
+
+    actual_direct = tuple(direct_target(direct_source, job) for job in direct_jobs)
+    assert actual_direct == policy.DIRECT_UNDERLAY_HTTPS
+    drift_cases = 0
+    for observed in policy.DIRECT_UNDERLAY_HTTPS:
+        bad_source = direct_source.replace(
+            "          - " + observed + "\n",
+            "          - https://unexpected.invalid/\n", 1)
+        assert bad_source != direct_source
+        mutated_targets = tuple(direct_target(bad_source, job) for job in direct_jobs)
+        assert mutated_targets != policy.DIRECT_UNDERLAY_HTTPS
+        drift_cases += 1
+
     # An incorrect selector copying duplicate countries into both slots has
     # a satisfiable distinctness violation; implemented source above cannot.
     c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
@@ -133,15 +325,24 @@ def validate() -> None:
         "standing": "SOURCE_ENUMERATION_REFINED_WITH_Z3",
         "finiteCases": cases,
         "distinctCandidateCases": country_cases,
+        "twoDirectOriginTriStateCases": direct_cases,
+        "directProbeTargetDriftMutantsRejected": drift_cases,
+        "singleOriginOptimisticMutantRefuted": True,
+        "timeBoundedSourceHintCases": hint_cases,
+        "postExpiryCatalogColdTrialCases": cold_cases,
+        "sourceBoundMaxSamplingAndTimerDecisionSeconds": worst_case,
+        "raw30sFreshnessCounterexampleCases": raw_cases,
+        "previousStaleZeroMutantRejected": stale_mutants,
         "premises": [
             "observed consumer failure (not UNKNOWN)",
             "direct underlay reachable",
-            "recent allowed historical candidate",
+            "approved trial country (recent quality or official catalog-only cold)",
             "no switch inside cooldown",
             "candidate different from active country",
         ],
         "negativeControls": [
             "missing underlay guard mutant SAT",
+            "single successful host-direct origin prematurely grants VPN mutation SAT",
             "UNKNOWN active must not grant trial",
             "duplicate fallback country mutation SAT",
         ],

@@ -9,7 +9,7 @@ service; starting the actual healthy services is an idempotent no-op.
 It fixes the observed failure mode where an early Podman storage error
 prevented the generated provider-network unit from starting during WSL boot.
 Podman later recovered, but systemd did not re-attempt the failed target.
-Periodic attempts use a two-minute calendar plus a boot-relative attempt.
+Periodic attempts use the existing **one-minute native timer** plus a boot-relative attempt.
 
 The existing provider-identity-exclusive check refuses competing WireGuard
 identity realization. A missing selector or disabled Gluetun target disables
@@ -87,16 +87,68 @@ or without authenticated API access. A permitted historical country is
 only a **trial**, not a current certified standby. If its consumer/TLS tests
 do not pass after a bounded period, native settings selection is returned
 to its previous source; this cannot resurrect original TCP sessions or
-guarantee the former exact Surfshark endpoint IP. Production automatic triggering **was installed on the existing two-minute
+guarantee the former exact Surfshark endpoint IP. Production automatic triggering **was installed on the existing native
 systemd reconciler** after PR #2181 merged (2026-11-14), and both a manual
 systemd start and repeated automatic healthy no-op runs were observed.
 This is activated native logic; real unattended failure-triggered failover
 time is still UNKNOWN.
 
+## Native recovery physical-underlay admission (two host-direct origins)
+
+Only after a fresh three-lane Claude/Codex/PyPI outage, the existing
+`quality_history.py` directly probes the same two public HTTPS origins
+already owned by native Blackbox: `https://example.com/` and
+`https://www.apple.com/library/test/success.html`, with curl
+`--noproxy '*'` and IPv4. **Both** must independently return valid HTTP
+200/TLS responses before a candidate country becomes eligible for native
+Gluetun API trial. Both failed => physical path considered unavailable;
+missing, timed out, conflicting, or one failed => UNKNOWN and no VPN change.
+This replaces the previous single-direct-origin optimistic admission.
+It does **not** prove an independent WAN, rule out origin-specific outages,
+or identify the ISP/ZTE internal component. The check executes only at a
+fresh VPN-consumer failure boundary, never as a healthy-polling daemon.
+
+The source-linked Z3 finite model and native negative tests explicitly
+refute accepting one successful direct origin as sufficient. The current
+systemd 4-minute one-shot remains the execution boundary. Real unattended
+fault-to-consumer-recovery TTR is still UNKNOWN, and no extra VPN exists.
+
+## Native recovery detection speed (consumer-scoped, 2026-11-14)
+
+The source-selected one-minute Gluetun recovery timer reuses the original systemd
+unit. Claude API, Codex MCP and PyPI source-owned Prometheus Blackbox jobs
+scrape every **30 seconds**, retaining their original 12-second timeout,
+source URLs, module mapping and credential boundaries. Other Codex and
+Supply Chain jobs remain at their existing intervals. No new monitor,
+extra API listener, control agent or VPN identity is created.
+
+The three-lane failure gate still requires three original raw scrape
+samples per lane, aligned and recent, and an independent physical underlay
+before any official Gluetun API country trial. With reliable 30-second
+sampling and a 60-second timer, the scheduling-only worst-case before the
+recovery decision is approximated by three probes (up to 90s after failure)
+plus a next timer (up to 60s plus native timer jitter); this is **not** a
+real-world failover-time SLA or an estimate of the following API trial. The
+normal healthy consumer no-op has been observed below 0.2 seconds; direct
+and VPN probes must continue proving the physical WAN distinction.
+
+This targeted probe-rate increase costs six samples per minute rather than
+three across the failure-detection lanes. Recent healthy 30min observed
+P90 Blackbox probe durations were below 2.2 seconds (native timeout 12s),
+leaving ample execution slack in the 30s scrape cadence. Production installation requires an explicit byte-verified migration of
+three consumer-owned Prometheus fragments with native Prometheus SIGHUP;
+the existing Provider bundle installer owns the original timer unit's
+systemd reload/restart. The timer restart does NOT restart Gluetun.
+Do not invoke generic core:converge to silently overwrite a protected
+monitoring SourceCut. Verify loaded native Prometheus targets' interval,
+all 19 scrape pools, current real HTTPS consumers and stable VPN/Tailscale
+PIDs separately after migration.
+
 ## Active bounded recovery consumer on existing systemd timer
 
-The already installed `network-v2-gluetun-owned-reconcile.timer` runs its
-native oneshot service every two minutes. The selected source adds exactly one
+The existing `network-v2-gluetun-owned-reconcile.timer` has a source-bound
+**one-minute** cadence (previously two minutes). It remains the same native
+systemd timer and oneshot with exactly one physical Gluetun instance. The selected source adds exactly one
 `ExecStartPost` action to that same service:
 `/usr/bin/python3 /usr/local/libexec/network-v2/gluetun-native/native_switch.py --recover`.
 No new daemon, timer, WireGuard interface or proxy is created. The native
@@ -114,7 +166,7 @@ two distinct bounded API trials and selection rollback.
 `task provider:gluetun:native-bundle:validate` checks source only;
 `...:install` checks source-vs-loaded Gluetun configuration and an actually
 authorized upstream API GET, copies only the required nonsecret Python
-modules and two geographic policy JSONs to the root-owned libexec tree,
+modules and three source policy JSONs to the root-owned libexec tree,
 then installs the existing updated oneshot unit and performs
 `systemctl daemon-reload`. It does not restart Gluetun, Tailscale or
 other consumers. `...:verify` proves exact source/installed file and
@@ -147,7 +199,7 @@ VPN failure.
   A country trial succeeding for Claude/Codex/PyPI does NOT imply that
   Finance or mobile device traffic can use it.
 - **Recovery trigger**: existing Gluetun health-restart remains authoritative
-  for tunnel recovery. The existing two-minute provider systemd timer **is
+  for tunnel recovery. The existing native provider systemd timer **is
   now wired to** `native-recover`; its repeated active healthy results are
   `HOLD_CONSUMER_HEALTHY_OR_PARTIAL` with no effect. Failover uses at most
   two distinct recently successful country candidates, only after the
@@ -156,6 +208,31 @@ VPN failure.
   temporary monitor silence nor a missing kernel endpoint alone authorizes
   or blocks the proven failure action. Official native API readback verifies
   attempted changes and selection restoration. No claim of hot standby.
+
+### Current-sample admission boundary after the 30-second rollout
+
+2026-11-14 production fault-falsification found that the previous one-minute
+scrape logic still allowed **three failed origin samples whose latest original
+timestamp was 135 seconds old**. When monitoring stopped after prior failures,
+that stale evidence could authorize a new country trial even if a client had
+already recovered. The 30-second native sampling cadence must therefore be
+paired with a source-bound original-timestamp safety condition.
+
+The one-shot now requires each of three distinct raw samples per lane to have
+its most recent sample at most **75 seconds** old, the oldest at most
+**165 seconds** old, and no gap greater than **45 seconds**. The three lanes'
+latest sample timestamps may differ by at most **45 seconds**. Late/missing
+telemetry returns `UNKNOWN` and never grants a VPN mutation. Real current
+successful samples return `FALSE` for a correlated failure. This uses the
+existing single Prometheus range-vector call; there is no new monitoring
+process, storage, timetable or additional endpoint probe.
+
+The finite source-bound Z3 test enumerates sampling ages, missing-interval
+gaps and cross-lane skews, including the previously accepted 135-second-old
+all-zero mutant. This proves the bounded timestamp predicate against its
+explicit abstraction, not all possible Prometheus scheduling behavior or
+real-world VPN failover time. Required live consumer checks and healthy
+Gluetun/Tailscale PID continuity remain separate release gates.
 
 ### Recovery decision and partial failures
 
@@ -178,7 +255,54 @@ moves to the second candidate, and exhaustion attempts the prior native
 selection with authenticated GET readback. Restoring a selection filter
 does **not** imply restored sessions or successful consumer traffic.
 Cooldown remains ten minutes between auto-triggered recovery runs.
-Never select Hong Kong.
+Trials and rollback are confined to the configured candidate country pool.
+
+## Cold catalog trial when recent quality evidence is unavailable
+
+Expiring historical quality hints never become current observations. A
+single live WireGuard Provider can only directly qualify its current session.
+If recent business history is absent, the configured nearby countries can be
+tried when present in Gluetun's own WireGuard catalog. Cold catalog membership
+does not prove current reachability or latency.
+
+At most two distinct countries can be tried after fresh three-lane failure
+and independent underlay success. The existing authenticated settings API
+and endpoint/TLS/origin checks remain required. Rollback restores the prior
+country filter within the same nearby pool. The ten-minute cooldown and
+healthy-session hold still apply.
+
+## Time-bounded alternative-country memory without a new registry
+
+The production 2026-11-14 common-underlay outage generated 3,178 native
+Gluetun health reconnects in about 5.6 hours, while the Windows WLAN and USB
+RNDIS interfaces simultaneously lost Internet reachability (NCSI). The
+existing two-minute systemd consumer correctly recorded 169
+`HOLD_SHARED_UNDERLAY_OR_UNKNOWN` decisions and never initiated a futile
+country switch. Both interfaces use the same gateway IP **and gateway MAC**:
+they are not proven independent WAN supplies.
+
+The 3,178 repeated log sessions also left the 48-hour quality report with
+only current Malaysia sessions, despite previously validated successful
+North Macedonia and Mexico sessions. For a genuinely different event
+where the **physical underlay is reachable but the current VPN is down**,
+that missing evidence should not permanently disable second-country trials.
+
+The source-owned `config/recovery-hints.json` retains only two already
+verified **historical** country hints, from a native Gluetun-journal and
+three-consumer Prometheus sample observed at 2026-11-14 02:56 CST:
+North Macedonia (99.644%, consumer P90-median 1820ms) and Mexico
+(99.153%, 3732ms). Hints expire after at most seven days. They are
+`SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT`, never a currently live standby.
+Actual recent consumer-qualified journal segments always rank ahead of these
+source hints. Only fresh correlated consumer failure, independently healthy
+direct underlay, original API authorization, non-Hong-Kong allowlist, cooldown
+and post-switch real HTTPS origin evidence can lead to an actual change.
+
+No session is restarted merely because this source policy is installed.
+No extra Timer, daemon, database, hot WireGuard or IP endpoint registry is
+introduced. Expired hints cease to be eligible; refreshing them requires
+another real observed qualified consumer interval, not guessing an IP.
+This avoids treating a remembered country as evidence of present liveness.
 
 ## Historical consumer quality — native evidence, never fictitious hot spares
 
@@ -236,9 +360,10 @@ Two immutable semantic sources distinguish *permission* from *selection*:
 Surfshark WireGuard countries and excludes Hong Kong; its positive list must
 continue matching the nonexcluded official catalog.
 `providers/gluetun/config/exit-selector.json` is the candidate-country
-filter. The initial `"selectedCountries": "allAllowed"` preserves the exact
-previous 99-country production environment; a named country subset is allowed
-only when it belongs to the permission list. Neither catalog membership nor
+filter. The selected pool is Singapore, Japan and Malaysia. The permission list
+still mirrors the wider catalog, but does not admit those other countries
+to native reconnect, authenticated recovery or rollback. A named country
+subset is allowed only when it belongs to the permission list. Neither catalog membership nor
 candidate admission proves a currently successful endpoint. The provider must
 still observe actual consumer VPN readiness.
 
@@ -274,6 +399,21 @@ Provider candidate. Gluetun's native VPN restart, firewall and cache
 remain the only owners of those functions. Physical and DNS failures
 must still be independently measured; this configuration does not prove
 that future reconnect storms have ceased.
+
+For a native Gluetun healthcheck returning HTTP 500, first distinguish the
+**health-server standing** from the actual VPN namespace and application
+consumers. Compare a one-shot `/gluetun-entrypoint healthcheck` with the
+existing `task provider:gluetun:observe-exit`, `dns-consumer`,
+`dns-dot-upstreams` and the actual affected `consumer:*:verify`. A successful
+TLS dial to a configured health target at a later instant does **not** prove
+why Gluetun's internal startup check remained failed; conversely HTTP 500
+does not prove every Carrier consumer is offline. If sampled business HTTPS
+and DNS still succeed, do not restart the shared Provider, change countries,
+replace native health targets or disable its kill switch merely to clear the
+status. The mobile Tailnet server may still report `PROVIDER_HEALTH_NOT_READY`;
+that is not a device-origin iOS egress verdict. Use the original systemd/
+Gluetun recovery and independently qualified physical underlay only when
+actual consumer effects require intervention.
 
 The existing Custom provider candidate environment remains a valid
 credential materialization input and recovery source. Deployment is
@@ -357,6 +497,19 @@ this explicit ratio when adopting a newer official release or if the provider
 hostname-to-record mapping changes. The live provider must not be restarted
 by a source-only PR.
 
+
+### Nearby country pool and latency admission
+
+The stable image can enforce membership in the three-country pool for every
+startup and reconnect. List order does not control the native distribution
+of endpoints. The existing recovery one-shot prioritizes recent business
+quality, with no restart of a working Provider just to seek a faster endpoint.
+Among the latest qualified historical sessions, a median of the three probe
+p90s above 1500 ms suppresses that country from recovery trials, including as
+a catalog-only fallback, while the evidence is fresh. This measures complete
+Claude, Codex and PyPI requests and is not a Tailscale ping budget. Unknown
+nearby countries remain eligible for bounded cold trials; two can be tried in
+a recovery invocation, with live origin acceptance and no wider fallback.
 
 ### Native multi-country ordered fallback — qualified preview, NOT live
 

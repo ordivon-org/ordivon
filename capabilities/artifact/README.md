@@ -42,6 +42,11 @@ Build providers, verifier plugins, trust overlays, OCI package assembly and dura
 
 Reference: `docs/ARTIFACT_VERIFICATION_SERVICE_R1.md` and `planning/lego-plan-r2.json`, checked against their current source files.
 
+Current convergence contract: `docs/ARTIFACT_STANDING_CONVERGENCE_SPEC_R21.md` and
+`docs/ARTIFACT_STANDING_CONVERGENCE_PLAN_R21.md`. These guide the
+shared v1/v2 Standing implementation; a plan is not deployed capability or
+consumer acceptance.
+
 **Profile authority and refinement:** `artifact_core/profiles.py` now
 binds parsed JSON and SHA-256 to the same indexed source bytes, reuses
 Draft 2020-12 Schema validation, and rejects malformed, ambiguous or
@@ -243,3 +248,14 @@ invocation, **not** source-path continuity or later consumer readback.
 This is a current **source-path map**, not proof of installed deployment,
 active job routing, or a final business consumer. The source/subject identity
 fix for Ogg/Matroska does not change any of those independent boundaries.
+
+## Portable Artifact handoff (source-only R1)
+
+`artifact_operations/portable_bundle.py` reuses native verification to construct a
+relocatable ZIP of subject bytes, object contract, canonical Profile snapshot
+and fresh evidence. The consumer checks the embedded Profile against its
+installed authority and **re-verifies** under a new path. Original absolute
+paths remain provenance, never the consumer's source location. This is not
+a claim of target application acceptance or remote publication.
+See `docs/ARTIFACT_PORTABLE_HANDOFF_R1.md` and
+`tests/test_artifact_portable_bundle.py`.

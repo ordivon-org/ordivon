@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import UTC, date, datetime
 
 from ordivon_capital.accounting.paper_close import PaperValuation, value_session
-from ordivon_capital.trading.nautilus_paper_bridge import (
+from ordivon_capital.applications.nautilus_paper_bridge import (
     NautilusPaperBridgeError,
     next_open_paper_session,
 )

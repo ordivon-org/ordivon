@@ -1,9 +1,12 @@
-//! One existing PostgreSQL cluster, one source Run serialization cut, and
-//! one Runtime Job admission transaction. No new Store/authority table.
+//! One existing PostgreSQL cluster and the original Harness Run SQL
+//! serialization cut, reused in BOTH new-Job admission and later PG Dispatch.
+//! The sole Scheduler carries the operator-bound dedicated principal/schema;
+//! ordinary Jobs do not acquire a foreign Harness admission requirement.
 //!
-//! This is an OPTIONAL admission-current policy. It neither authenticates
-//! arbitrary foreignReferences without an issuer PG read nor claims that
-//! source authority remains current at a later systemd-run spawn.
+//! This checks source currentness only at each committed PG transaction cut.
+//! It is NOT an authorization lease across PG-commit -> native Launcher
+//! in-flight -> systemd Unit birth, nor a strict NoFutureSpawn or Domain ACK.
+//! No new Registry, authority table, or scheduler is introduced.
 use super::{PgAdmissionError, PgAdmissionInput};
 use postgres::Transaction;
 use serde_json::Value;
@@ -34,13 +37,29 @@ pub(super) fn require_current_harness_issuer_for_new_job(
     i: &PgAdmissionInput,
     issuer_schema: &str,
 ) -> Result<(), PgAdmissionError> {
+    require_current_harness_issuer_for_plan(
+        tx,
+        &i.execution_plan_json,
+        &i.client_request_id,
+        issuer_schema,
+    )
+}
+
+/// Reuse the same PG source-owned Run cut at later dispatch, using the
+/// original immutable admitted Job plan and clientRequestId.
+pub(super) fn require_current_harness_issuer_for_plan(
+    tx: &mut Transaction<'_>,
+    execution_plan_json: &str,
+    client_request_id: &str,
+    issuer_schema: &str,
+) -> Result<(), PgAdmissionError> {
     // The caller cannot choose this schema. The configured service endpoint
     // uses its existing SAME-PG connection and operator-qualified SQL role.
     // The query identifier has already passed exact_schema.
     if !super::exact_schema(issuer_schema) {
         return Err(stale());
     }
-    let plan: Value = serde_json::from_str(&i.execution_plan_json).map_err(|_| stale())?;
+    let plan: Value = serde_json::from_str(execution_plan_json).map_err(|_| stale())?;
     let refs = plan
         .get("foreignReferences")
         .and_then(Value::as_array)
@@ -134,8 +153,7 @@ pub(super) fn require_current_harness_issuer_for_new_job(
         || fence.get("fenceId").and_then(Value::as_str) != Some(fence_id)
         || fence.get("harnessRunId").and_then(Value::as_str) != Some(run_id)
         || fence.get("runRevision").and_then(Value::as_i64) != Some(generation)
-        || fence.get("clientRequestId").and_then(Value::as_str)
-            != Some(i.client_request_id.as_str())
+        || fence.get("clientRequestId").and_then(Value::as_str) != Some(client_request_id)
         || fence.get("runtimeOperation").and_then(Value::as_str) != Some("workspace.exec")
         || data
             .get("toolStepIntentObjectDigest")
@@ -149,8 +167,7 @@ pub(super) fn require_current_harness_issuer_for_new_job(
             .get("runtimeArgumentsDigest")
             .and_then(Value::as_str)
             .is_none_or(|v| !v.starts_with("sha256:") || v.len() != 71)
-        || intent.get("clientRequestId").and_then(Value::as_str)
-            != Some(i.client_request_id.as_str())
+        || intent.get("clientRequestId").and_then(Value::as_str) != Some(client_request_id)
     {
         return Err(stale());
     }

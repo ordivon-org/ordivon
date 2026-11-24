@@ -33,6 +33,10 @@ Expect exactly `allocationsMinor.BOND_CORE=10000` cents,
 Inputs are caller-supplied and neither risk suitability nor provider
 pricing is thereby verified.
 
+**Finance multi-frequency as-of state (2026-11-20):** [Liquidity As-of R2](docs/FINANCE_LIQUIDITY_ASOF_R2.md) composes official dated Fed H.4.1, Treasury DTS and NY Fed SOFR at an explicit research time, with cross-source TGA accounting reconciliation, not a fabricated daily global-liquidity index.
+
+**Finance liquidity science (2026-11-20):** The direct, negative-results SOFR-to-SPX price-index ablation in [Finance Liquidity Research R1](docs/FINANCE_LIQUIDITY_RESEARCH_R1.md) is a Research-only experiment, not a market-wide liquidity proxy, qualified historical PIT test, investable SPY benchmark or broker policy. No new Owner, native executor, ledger or trading authority was added.
+
 **Canonical sources remain `domains/capital` / `ordivon_capital`.**
 Finance is the investment-management program rather than a second
 source/package/Agent owner. Its current capabilities include the existing
@@ -422,7 +426,9 @@ checks that via pg_attribute.attnotnull and compares other constraints
 independently. The strict PG deparser comparison deliberately fails closed
 after a server upgrade until the actual installed version is requalified.
 These checks do not amount to a proof of arbitrary SQL equivalence or a
-production deployment certificate.\r\n\r\n## Agent tool selection and local execution
+production deployment certificate.
+
+## Agent tool selection and local execution
 
 Select the financial consumer first: `markets/` for market observations,
 `research/` for hypotheses/experiments, `portfolio/` for decisions,

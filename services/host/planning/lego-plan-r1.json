@@ -333,7 +333,7 @@
         "non-resurrection of terminal Work",
         "complete snapshot digest and pointer correspondence"
       ],
-      "replacementContract": "Preserve revision/content identities, observable replay/conflict behavior and complete history; migrate persisted snapshots before changing substrate.",
+      "replacementContract": "Preserve current revision and canonical payload identity, observable replay/conflict behavior and exact reads of retained historical revisions; earlier revisions may be unavailable and must never be fabricated. Refine replacement against current snapshot and retained-revision consumer contracts.",
       "evidenceScope": {
         "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
         "qualification": "SOURCE_CONFIRMED",

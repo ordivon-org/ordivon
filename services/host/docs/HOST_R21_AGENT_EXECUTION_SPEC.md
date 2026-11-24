@@ -1,5 +1,7 @@
 # Host R2.1 Contract-Driven Execution — Specification
 
+> **Historical investigation — superseded contract.** This document records the earlier full-history incident and original options. Current Host authority is defined by README.md, work_queries.py, service.py, and native test_host_history_doctor_postgres.py: the CURRENT Work snapshot is mandatory; older historical revisions are optional retention, checked for integrity when present and never fabricated. The historical checklist below is not a current implementation or production release gate.
+
 Status: execution specification; source-bound, not installed policy or new authority
 SourceCut: `3b43977e682d8c7668f6371ffd998c7821e4312a` (GitHub main, 2026-11-09 20:50 CST)
 Natural owner: `services/host`

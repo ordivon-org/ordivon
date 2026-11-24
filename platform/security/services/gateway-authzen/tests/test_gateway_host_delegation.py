@@ -12,6 +12,7 @@ import copy
 import json
 import secrets
 import shutil
+import subprocess
 import time
 import uuid
 from pathlib import Path
@@ -372,10 +373,12 @@ def set_read_grant(policy_endpoint, *, global_reads: bool = False):
         "space.list",
         "topic.resume",
         "topic.cursor.get",
+        "message.get",
         "message.search",
         "attention.reentry",
         "subscription.list",
     ]
+    grant["exactRefs"].append("message:project:one")
     if global_reads:
         grant["allowUnscopedReads"] = True
     path.write_text(json.dumps(grant_data([grant])))
@@ -392,6 +395,7 @@ def set_read_grant(policy_endpoint, *, global_reads: bool = False):
             "topic.cursor.get",
             {"topicRef": "topic:project:one", "actorRef": "actor:project:delegate"},
         ),
+        ("message.get", {"messageRef": "message:project:one"}),
         ("message.search", {"topicRef": "topic:project:one"}),
         ("attention.reentry", {"actorRef": "actor:project:delegate"}),
         ("subscription.list", {"actorRef": "actor:project:delegate"}),
@@ -415,6 +419,8 @@ def test_host_read_valid_principal_actor_and_scoped_resource_allow(
             "topic.cursor.get",
             {"topicRef": "topic:outside:one", "actorRef": "actor:project:delegate"},
         ),
+        ("message.get", {"messageRef": "message:outside:one"}),
+        ("message.get", {}),
         ("message.search", {"topicRef": "topic:project:one", "spaceRef": "space:outside:one"}),
         ("work.get", {"actorRef": "actor:project:delegate"}),
         ("work.list", {}),
@@ -476,6 +482,7 @@ def test_host_read_forgeries_cannot_be_authorized(policy_endpoint, mutate) -> No
         ),
         ("topic.list", {"spaceRef": "space:project:one"}),
         ("topic.resume", {"topicRef": "topic:project:one"}),
+        ("message.get", {"messageRef": "message:project:one"}),
         ("message.search", {"topicRef": "topic:project:one"}),
         ("message.relation.list", {"messageRef": "message:project:one"}),
         ("subscription.list", {"actorRef": "actor:project:delegate"}),
@@ -631,3 +638,82 @@ def test_cf_access_operator_delegation_is_verified_issuer_and_exact_principal_bo
     request["subject"]["id"] = principal
     request["subject"]["properties"]["issuer"] = "https://imposter.test"
     assert evaluate(policy_endpoint, request) is False
+
+
+def test_exact_message_read_remains_mandatory_even_with_global_read_grant(policy_endpoint) -> None:
+    """A broad Host read grant cannot turn a missing messageRef into a scan."""
+    set_read_grant(policy_endpoint, global_reads=True)
+    assert (
+        evaluate(
+            policy_endpoint,
+            read_payload(tool="message.get", selectors={"messageRef": "message:project:one"}),
+        )
+        is True
+    )
+    assert evaluate(policy_endpoint, read_payload(tool="message.get", selectors={})) is False
+    assert (
+        evaluate(
+            policy_endpoint,
+            read_payload(tool="message.get", selectors={"actorRef": "actor:project:delegate"}),
+        )
+        is False
+    )
+    assert (
+        evaluate(
+            policy_endpoint,
+            read_payload(tool="message.get", selectors={"messageRef": "message:foreign:other"}),
+        )
+        is False
+    )
+
+
+def test_security_read_selector_surface_matches_gateway_source_inventory() -> None:
+    """Live Rego table must cover exactly the Gateway's reviewed Host read tools.
+
+    This source-consumer check prevents a new authenticated Gateway read from
+    being silently refused by the independent natural Security owner.
+    """
+    inventory_path = ROOT.parents[3] / "services/gateway/enforcement-surface.json"
+    entries = json.loads(inventory_path.read_text(encoding="utf-8"))["tools"]
+    gateway_reads = {
+        item["name"]
+        for item in entries
+        if item["routeOwner"] == "host" and item["operation"] == "read"
+    }
+    assert gateway_reads
+    result = subprocess.run(
+        [
+            OPA,
+            "eval",
+            "--data",
+            str(ROOT / "policies/gateway_artifact.rego"),
+            "--format=json",
+            "data.ordivon.security.gateway_artifact.host_read_selector_fields",
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=15,
+    )
+    envelope = json.loads(result.stdout)
+    actual = envelope["result"][0]["expressions"][0]["value"]
+    assert isinstance(actual, dict)
+    assert set(actual) == gateway_reads
+
+    required_result = subprocess.run(
+        [
+            OPA,
+            "eval",
+            "--data",
+            str(ROOT / "policies/gateway_artifact.rego"),
+            "--format=json",
+            "data.ordivon.security.gateway_artifact.host_read_required_fields",
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=15,
+    )
+    required = json.loads(required_result.stdout)["result"][0]["expressions"][0]["value"]
+    assert all(set(fields).issubset(actual[tool]) for tool, fields in required.items())
+    assert required["message.get"] == ["messageRef"]

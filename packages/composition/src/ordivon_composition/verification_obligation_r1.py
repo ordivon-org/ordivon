@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -80,6 +81,10 @@ def _immutable_git_manifest(
             "source-bound impact needs an exact Git cut and canonical relative path"
         )
 
+    # A caller's inherited GIT_DIR / GIT_OBJECT_DIRECTORY can redirect -C
+    # to a foreign repository. Read only the explicitly supplied Git owner.
+    git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+
     def git(*argv: str) -> bytes:
         try:
             # Exact SourceCut addresses Git's original objects, not any
@@ -87,6 +92,7 @@ def _immutable_git_manifest(
             return subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(repo), *argv],
                 stderr=subprocess.PIPE,
+                env=git_env,
             )
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc

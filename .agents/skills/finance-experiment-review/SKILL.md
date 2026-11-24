@@ -95,6 +95,47 @@ budget, independent market timestamp or provider financial effects.
 REVIEW_REQUIRED still requires independent review even when the caller
 claims independentReproduction=true; it never grants capital or orders.
 
+### Primary-dealer financing (official optional Research inputs)
+
+The same Finance liquidity as-of research consumer supports the
+NY Fed Primary Dealer metadata catalog and exactly 3 post-2024
+series: PDPOSGST-TOT, PDSIOSB-UTSETTOT, PDSOOS-UTSETTOT.
+Those Wednesday reports are normally released the FOLLOWING
+Thursday near 16:15 New York time (the consumer uses a 16:30
+buffer, and shifts federal holidays); do not leak them to the
+observation-week equity decision. The source has an official
+structural break in 2024. Any asterisk value is non-published
+and must remain null with PUBLISHED_VALUE_WITHHELD status,
+not zero, extrapolated, or smoothed. The real source audit,
+five as-of replay examples, IDs and optional command arguments
+are documented in domains/capital/docs/FINANCE_LIQUIDITY_ASOF_R2.md.
+No trade/portfolio effect or independent first-vintage certification
+is implied by this data reception.
+
+## Official monetary-liquidity as-of consumer (R2)
+
+Before using historical liquidity features, run
+domains/capital/scripts/research/finance_liquidity_asof.py against
+privately captured official H.4.1 dated HTML, FiscalData DTS JSON
+and NY Fed SOFR CSV. Supply --h41 / --dts / --sofr and an explicit
+timezone-qualified --at as described in
+domains/capital/docs/FINANCE_LIQUIDITY_ASOF_R2.md.
+
+The H.4.1 Wednesday stocks are not weekly averages; after 2022,
+the DTS TGA Closing Balance amount is on the open_today_bal field. Treasury DTS
+is normally published by 16:00 **the next US federal business day**;
+R2 uses existing USFederalHolidayCalendar and a conservative 16:30
+New York scheduled cutoff, NOT two naive calendar days.
+Thursday 16:00 New York stock close precedes the generally 16:30
+H.4.1 publication. The H.4.1 reverse-repo total includes foreign
+official accounts and is NOT synonymous with ON RRP; the existing
+Research as-of reader verifies its reported foreign-official and Others
+subdivisions. Keep conflicting source dates/values as unknown
+or explicit conflict rather than picking a convenient latest number.
+Archived web pages, blank revision flags and SHA-256 digests do
+not prove historical first-publication timestamps. This consumer
+never creates capital or trading authority.
+
 ## Method
 
 1. Select the simplest cash-flow-matched passive benchmark before claiming a
@@ -139,6 +180,14 @@ threshold or hindsight-based selection.
 The caller must store independent pre-holdout source and forecast evidence
 through the canonical Research/Artifact owners. `READ_ONLY_NO_TRADE_NO_ACCOUNTING`
 remains mandatory.
+
+**Price-basis refinement:** `prequential_energy_evaluation` evaluates each
+realized return using both prices available at the same evaluation cutoff,
+but that alone does not make unlike adjustment conventions comparable.
+The two realized endpoints for each asset must have the same declared
+`price_basis`; a frozen-to-evaluation reference ratio is not reported if
+their bases differ. Such a retrospective result remains source-unattested,
+even when the calendar, byte digests and code checks pass.
 
 ## Native precommitment to source-replay consumer
 

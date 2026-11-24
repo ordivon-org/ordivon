@@ -23,7 +23,6 @@ ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[3]  # domains/capital/adoption/r3_native -> monorepo root
 CAPITAL = ROOT.parents[1]
 CAP_SRC = CAPITAL / "src"
-assert (CAP_SRC / "ordivon_capital/accounting/paper_close.py").is_file()
 sys.path.insert(0, str(CAP_SRC))
 
 PEER_COMMIT = "9f7f948af44233c862b10e34741859bc3cf2c122"
@@ -31,7 +30,7 @@ PEER_PATH = "domains/capital/src/ordivon_capital/trading/nautilus_paper_bridge.p
 # Consume the CURRENT integrated Finance bridge unless replaying a pinned peer.
 bridge_mode = os.environ.get("ORDIVON_FINANCE_R3_BRIDGE_MODE", "integrated")
 if bridge_mode == "integrated":
-    from ordivon_capital.trading import nautilus_paper_bridge as native_bridge
+    from ordivon_capital.applications import nautilus_paper_bridge as native_bridge
 elif bridge_mode == "peer":
     payload = subprocess.check_output(
         ["git", "-C", str(REPO), "show", f"{PEER_COMMIT}:{PEER_PATH}"]

@@ -3,52 +3,47 @@
 import ast
 from pathlib import Path
 
-from ordivon_host_v2.social_read_queries import SocialReadQueries
 from ordivon_host_v2.social_store import SocialStore
 
 
-def test_social_read_queries_are_inherited_not_reimplemented_in_the_write_owner() -> None:
-    queries = {
-        "list_message_relations",
-        "get_space",
-        "list_space_subjects",
-        "list_participations",
-        "list_topics",
-        "list_spaces",
-        "_verify_message_content_digest",
-        "get_message",
-        "search_messages",
-        "resume_topic",
-        "get_topic_cursor",
-        "_get_space_in_tx",
-        "_require_message",
-    }
-    assert issubclass(SocialStore, SocialReadQueries)
-    assert all(callable(getattr(SocialReadQueries, name)) for name in queries)
-    assert all(name not in SocialStore.__dict__ for name in queries)
-    from ordivon_host_v2.social_message_queries import SocialMessageReadQueries
-    from ordivon_host_v2.social_space_queries import SocialSpaceReadQueries
-    from ordivon_host_v2.social_topic_queries import SocialTopicReadQueries
+def test_social_public_queries_use_one_explicit_message_record_helper() -> None:
+    """The public SocialStore facade stays callable without a hidden Message MRO hook."""
+    from ordivon_host_v2 import (
+        social_message_commands,
+        social_message_queries,
+        social_topic_queries,
+    )
+    from ordivon_host_v2.social_message_records import (
+        require_message,
+        verify_message_content_digest,
+    )
 
-    assert {name for name in queries if name in SocialSpaceReadQueries.__dict__} == {
+    public_queries = {
+        "list_message_relations",
         "get_space",
         "list_space_subjects",
         "list_participations",
+        "list_topics",
         "list_spaces",
-        "_get_space_in_tx",
-    }
-    assert {name for name in queries if name in SocialMessageReadQueries.__dict__} == {
-        "list_message_relations",
-        "_verify_message_content_digest",
         "get_message",
         "search_messages",
-        "_require_message",
-    }
-    assert {name for name in queries if name in SocialTopicReadQueries.__dict__} == {
-        "list_topics",
         "resume_topic",
         "get_topic_cursor",
     }
+    assert all(callable(getattr(SocialStore, name)) for name in public_queries)
+    assert (
+        social_message_commands.verify_message_content_digest
+        is social_message_queries.verify_message_content_digest
+        is social_topic_queries.verify_message_content_digest
+    )
+    assert (
+        social_message_commands.require_message
+        is social_message_queries.require_message
+        is require_message
+    )
+    assert not hasattr(SocialStore, "_verify_message_content_digest")
+    assert not hasattr(SocialStore, "_require_message")
+    assert callable(verify_message_content_digest)
 
 
 def test_social_query_facet_cannot_own_insert_or_mutation_commands() -> None:

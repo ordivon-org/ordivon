@@ -28,6 +28,16 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
     if schema == {"type": "object", "properties": {}, "additionalProperties": False}:
         if checked:
             raise ValueError(f"invalid arguments for {name} at <root>: unexpected properties")
+    elif name == "studio_dependencies_propose":
+        # The dependency-acquisition proposal must remain callable before its
+        # own JSON Schema validator is installed. Its sole target enum is
+        # already declared in the advertised contract above.
+        if (
+            set(checked) != {"target"}
+            or not isinstance(checked.get("target"), str)
+            or checked["target"] not in schema["properties"]["target"]["enum"]
+        ):
+            raise ValueError(f"invalid arguments for {name} at <root>: expected only target=js or python")
     else:
         from jsonschema import Draft202012Validator
 

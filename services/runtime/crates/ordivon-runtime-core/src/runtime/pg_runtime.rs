@@ -25,6 +25,9 @@ pub struct PgRuntimeConfig {
     pub source_sha256: String,
     /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
     pub harness_issuer_schema: Option<String>,
+    /// Dedicated Harness principal and same-PG issuer cut for the one
+    /// ordinary scheduler's later dispatch, not ordinary admissions.
+    pub harness_dispatch_issuer: Option<(String, String)>,
     pub executor: UniversalExecutorConfig,
     /// Existing physical carrier guards shared with Runtime::workspace.open.
     pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
@@ -50,6 +53,78 @@ struct ReconciliationCursors {
 pub struct PgRuntime {
     config: PgRuntimeConfig,
     reconciliation_cursors: Arc<Mutex<ReconciliationCursors>>,
+}
+
+/// Northbound delivery describes availability of an execution result, not
+/// whether PostgreSQL committed a terminal control record. A native-stop-only
+/// LOST result is mechanically converged but has no Runner result or proof of
+/// a domain effect. Keep job.list and job.observe on the same projection law.
+fn pg_delivery_disposition(
+    resolution: Option<&str>,
+    runner_result_available: bool,
+) -> &'static str {
+    match resolution {
+        None => "in_progress",
+        Some("lost") => "unknown",
+        Some("orphaned") => "reconciliation_required",
+        Some("succeeded" | "failed" | "timed_out" | "cancelled") if runner_result_available => {
+            "committed"
+        }
+        Some(_) => "reconciliation_required",
+    }
+}
+
+#[cfg(test)]
+mod pg_delivery_semantics_tests {
+    use super::pg_delivery_disposition;
+
+    #[test]
+    fn control_commit_is_not_runner_result_delivery() {
+        for (resolution, available, expected) in [
+            (None, false, "in_progress"),
+            (None, true, "in_progress"),
+            (Some("succeeded"), true, "committed"),
+            (Some("failed"), true, "committed"),
+            (Some("timed_out"), true, "committed"),
+            (Some("cancelled"), true, "committed"),
+            (Some("cancelled"), false, "reconciliation_required"),
+            (Some("succeeded"), false, "reconciliation_required"),
+            (Some("lost"), false, "unknown"),
+            (Some("lost"), true, "unknown"),
+            (Some("orphaned"), false, "reconciliation_required"),
+            (Some("orphaned"), true, "reconciliation_required"),
+            (Some("alien"), true, "reconciliation_required"),
+            (Some("alien"), false, "reconciliation_required"),
+        ] {
+            assert_eq!(pg_delivery_disposition(resolution, available), expected);
+        }
+    }
+}
+
+/// One original owner-controlled filesystem boundary shared by the normal
+/// PG issuer, accepted-before-dispatch cancellation and native stop. Neither
+/// the systemd service umask nor a disposable PG18 MCP process' umask may
+/// decide whether the contained untrusted task can READ its frozen request.
+fn prepare_private_pg_attempt_bundle(path: &Path) -> RuntimeResult<()> {
+    fs::create_dir_all(path).map_err(io)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let metadata = fs::symlink_metadata(path).map_err(io)?;
+        if !metadata.is_dir() || metadata.uid() != 0 {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "PG Attempt control bundle must be a root-owned directory",
+                Some("bundlePath"),
+                false,
+            ));
+        }
+        // Before ANY request or cancel marker is published, remove search
+        // authority from the nonroot Agent child. The trusted UID0 Runner
+        // continues writing its existing start/result/artifact files here.
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(io)?;
+    }
+    Ok(())
 }
 
 fn error(message: impl Into<String>) -> RuntimeError {
@@ -179,6 +254,7 @@ fn decode<T: serde::de::DeserializeOwned>(s: &str) -> RuntimeResult<T> {
 }
 
 mod artifact;
+mod claim;
 mod job;
 mod native_stop;
 mod node_query;
@@ -186,13 +262,14 @@ mod reconciliation;
 mod release;
 mod scheduling;
 mod workspace;
+pub use claim::{WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
 
 impl PgRuntime {
     pub fn new(config: PgRuntimeConfig) -> RuntimeResult<Self> {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
-        super::engine::validate_workspace_headroom(&config.workspace_headroom)?;
+        super::workspace_headroom::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
         {
@@ -233,6 +310,15 @@ impl PgRuntime {
             false,
         )
         .map_err(pg)?;
+        // Fail startup if the operator has not installed the Runtime-owned
+        // claim fence. A missing table must NEVER silently downgrade Close
+        // to the older Job-only protection.
+        db.client
+            .query(
+                "SELECT claim_id FROM workspace_consumer_claims LIMIT 0",
+                &[],
+            )
+            .map_err(io)?;
         // Authorization includes the independently controlled app-role
         // privilege check in store(); only now may native paths be created.
         runtime.config.executor.ensure_store().map_err(io)?;

@@ -96,7 +96,6 @@ def observe() -> dict[str, object]:
     # Source and installed/loaded admission is separate from current health.
     run("/usr/bin/python3", str(NATIVE_PROFILE), "--verify")
     selected = native.read_selector_policy()
-    allowed = native.parse_allowed_policy(native.ALLOW_POLICY.read_text())
     pid = run(
         "/usr/bin/podman", "inspect", CONTAINER, "--format", "{{.State.Pid}}"
     ).strip()
@@ -134,7 +133,7 @@ def observe() -> dict[str, object]:
     after = kernel_endpoint()
     result = standing(
         catalog_location=country, actual_exit=exit_country,
-        allowed=set(allowed["allowedCountries"]),
+        allowed=set(selected["selectedCountries"]),
         active_endpoint_stable=(before == after),
         provider_running=service.get("status") == "running",
         business_receipts=[p["httpTlsAndConnect"] for p in probes.values()],

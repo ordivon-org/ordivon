@@ -26,6 +26,15 @@ JOBS = (
     "blackbox-vpn-pypi",
 )
 PROM = "http://127.0.0.1:29090"
+# Three native Prometheus Blackbox jobs scrape every 30 seconds.
+# Keep this one-shot admission bound to genuinely fresh, contiguous raw data.
+# These thresholds fail closed on missed or stale scrapes; they are not a
+# monitoring-retention or user-facing recovery-time SLA.
+FAILURE_SCRAPE_SECONDS = 30
+FAILURE_LAST_SAMPLE_AGE_SECONDS = 75
+FAILURE_MAX_SAMPLE_GAP_SECONDS = 45
+FAILURE_MAX_WINDOW_AGE_SECONDS = 165
+FAILURE_CROSS_LANE_SKEW_SECONDS = 45
 CONNECT = re.compile(
     r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z).*"
     r"\[wireguard\] Connecting to ((?:\d{1,3}\.){3}\d{1,3}):\d+"
@@ -35,6 +44,119 @@ WARMUP = timedelta(minutes=3)
 WITNESS_MIN = 12
 SUCCESS_FLOOR = 0.97
 HISTORICAL_TTL = timedelta(hours=24)
+SOURCE_TRIAL_HINTS = Path(__file__).resolve().parent / "config/recovery-hints.json"
+SOURCE_HINT_MAX_AGE = timedelta(days=7)
+# Milliseconds for the median of the three business probe p90s, including
+# DNS/CONNECT/TLS/HTTP. This is an admission budget, not an RTT estimate.
+RECOVERY_P90_BUDGET_MS = 1500
+
+def source_trial_hints(now: datetime, allowed: set[str],
+                       path: Path = SOURCE_TRIAL_HINTS) -> list[dict[str, object]]:
+    """A finite, *stale-able* source preference, not current node liveness.
+
+    Existing Gluetun journald is bounded and a 3178-restart shared-underlay
+    incident can discard past successful-country journal segments. When that
+    happens two actually observed historic candidates must not disappear from
+    the only fallback plan. Only a real fresh 3-lane consumer outage, healthy
+    independent underlay and official authenticated post-trial receipt can
+    authorize any effect. This file NEVER grants those conditions.
+    """
+    raw = native._strict_json_mapping(path.read_text(encoding="utf-8"),
+                                      "VPN recovery trial hints")
+    required = {"kind", "observedAtUtc", "expiresAtUtc", "candidates"}
+    if set(raw) not in (required, required | {"coldTrialCountries"}) or (
+        raw["kind"] != "ordivon.network.historical-consumer-trial-hints"
+    ):
+        raise ValueError("Unexpected VPN recovery trial hint schema")
+    # Unlike time-bounded quality evidence, this optional order is merely a
+    # policy preference for last-resort COLD TRIALS of Gluetun's own catalog.
+    # It never claims the old measured quality survives hint expiration.
+    cold = raw.get("coldTrialCountries", [])
+    if (not isinstance(cold, list) or len(cold) > 3 or
+        len(cold) != len(set(str(v) for v in cold)) or
+        any(not isinstance(country, str) or country not in allowed
+            or country == "Hong Kong" for country in cold)):
+        raise ValueError("Invalid or forbidden cold-trial country preference")
+    observed = datetime.fromisoformat(str(raw["observedAtUtc"]).replace("Z", "+00:00"))
+    expires = datetime.fromisoformat(str(raw["expiresAtUtc"]).replace("Z", "+00:00"))
+    if observed.tzinfo is None or expires.tzinfo is None or (
+        expires <= observed or expires - observed > SOURCE_HINT_MAX_AGE
+    ):
+        raise ValueError("Invalid historic trial hint time boundary")
+    if not isinstance(raw["candidates"], list) or (len(raw["candidates"]) > 2 or not (raw["candidates"] or cold)):
+        raise ValueError("Expected up to two historical hints or a nonempty cold pool")
+    seen: set[str] = set()
+    results: list[dict[str, object]] = []
+    for row in raw["candidates"]:
+        if not isinstance(row, dict) or set(row) != {
+            "country", "worstConsumerSuccessRatio", "medianOfConsumerP90Ms"
+        }:
+            raise ValueError("Invalid historic candidate evidence")
+        country = row["country"]
+        if (not isinstance(country, str) or country not in allowed or
+            country == "Hong Kong" or country in seen):
+            raise ValueError("Unknown, forbidden or duplicate source trial candidate")
+        seen.add(country)
+        ratio = row["worstConsumerSuccessRatio"]
+        ms = row["medianOfConsumerP90Ms"]
+        if (isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or
+            not 0.97 <= ratio <= 1 or isinstance(ms, bool) or
+            not isinstance(ms, int) or not 1 <= ms <= 60_000):
+            raise ValueError("No bounded consumer quality evidence for source trial hint")
+        results.append({
+            "catalogCountry": country,
+            "standing": "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT",
+            "lastObservedHoursAgo": round(max(0,(now-observed).total_seconds())/3600,2),
+            "medianOfConsumerP90Ms": ms,
+            "worstConsumerSuccessRatio": ratio,
+            "qualifiedNowStandby": False,
+            "evidenceBasis": "prior verified real Gluetun journal + three-lane Prometheus",
+            "expiresAtUtc": expires.isoformat(),
+        })
+    if not observed <= now < expires:
+        return []  # Expired or future evidence must never authorize trials.
+    return results
+
+
+
+
+def catalog_cold_trials(
+    catalog_raw: str, allowed: set[str], path: Path = SOURCE_TRIAL_HINTS,
+) -> list[dict[str, object]]:
+    """Last-resort policy preferences present in Gluetun's OWN server catalog.
+
+    These are *not* quality measurements, live endpoints or hot standbys.
+    Used only inside observe() after independently proven physical Internet
+    and a fresh three-lane VPN-only consumer failure. Existing official
+    authenticated Gluetun PUT and post-switch HTTPS receipts remain mandatory.
+    """
+    # Use the exact existing source validator, even after quality TTL expires.
+    # The 7-day successful-session quality hints still expire normally.
+    source_trial_hints(datetime.now(timezone.utc), allowed, path)
+    source = native._strict_json_mapping(path.read_text(encoding="utf-8"),
+                                         "VPN recovery trial hints")
+    preference = source.get("coldTrialCountries", [])
+    if not preference:
+        return []
+    catalog = json.loads(catalog_raw)
+    servers = catalog.get("surfshark", {}).get("servers", [])
+    if not isinstance(servers, list):
+        raise ValueError("Official Gluetun catalog format unknown")
+    available = {
+        row.get("country")
+        for row in servers
+        if isinstance(row, dict) and row.get("vpn") == "wireguard"
+        and isinstance(row.get("ips"), list) and row["ips"]
+    }
+    return [{
+        "catalogCountry": country,
+        "standing": "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED",
+        "coldTrialRank": i,
+        "qualifiedNowStandby": False,
+        "evidenceBasis": "source policy + stored native Gluetun catalog only",
+    } for i, country in enumerate(preference) if country in available]
+
+
 
 
 @dataclass(frozen=True)
@@ -180,13 +302,24 @@ def decision(
     if last_switch is not None and now - last_switch < cooldown:
         return {"decision": "HOLD_COOLDOWN", "trialCountry": None}
     candidates = [row for row in evidence
-                  if row.get("standing") == "RECENT_HISTORICAL_CONSUMER_SUCCESS"
+                  if row.get("standing") in (
+                      "RECENT_HISTORICAL_CONSUMER_SUCCESS",
+                      "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT",
+                      "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED")
                   and row.get("catalogCountry") is not None
                   and row.get("catalogCountry") != current_country]
     if not candidates:
         return {"decision": "HOLD_NO_RECENT_EVIDENCE", "trialCountry": None}
+    priority = {
+        "RECENT_HISTORICAL_CONSUMER_SUCCESS": 0,
+        "SOURCE_TIME_BOUNDED_CONSUMER_TRIAL_HINT": 1,
+        "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED": 2,
+    }
     candidates.sort(key=lambda row: (
-        int(row.get("medianOfConsumerP90Ms", 1000000)),
+        priority[row["standing"]],
+        int(row.get("coldTrialRank", 1000000)) if (
+            row["standing"] == "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"
+        ) else int(row.get("medianOfConsumerP90Ms", 1000000)),
         -float(row.get("worstConsumerSuccessRatio", 0)),
         float(row.get("lastObservedHoursAgo", 1000000)),
     ))
@@ -196,7 +329,8 @@ def decision(
     for row in candidates:
         if row["catalogCountry"] not in {x["country"] for x in distinct}:
             distinct.append({"country": row["catalogCountry"],
-                             "historicalHostname": row.get("catalogHostname")})
+                             "historicalHostname": row.get("catalogHostname"),
+                             "evidenceStanding": row["standing"]})
         if len(distinct) == 2:
             break
     return {
@@ -204,6 +338,7 @@ def decision(
         "trialCountry": distinct[0]["country"],
         "trialCountries": [row["country"] for row in distinct],
         "historicalCatalogHostname": distinct[0]["historicalHostname"],
+        "trialEvidenceStandings": [row["evidenceStanding"] for row in distinct],
         "certifiedHotStandbyCount": 0,
     }
 
@@ -276,12 +411,16 @@ def recent_failure_witness(now: datetime) -> bool | None:
         # Monitor silence must never become a fresh VPN failure; require
         # three distinct scrape evaluations and a recent last measurement.
         if (len(set(times)) != 3 or
-            now.timestamp() - times[-1] > 150 or
-            now.timestamp() - times[0] > 300):
+            now.timestamp() - times[-1] > FAILURE_LAST_SAMPLE_AGE_SECONDS or
+            now.timestamp() - times[0] > FAILURE_MAX_WINDOW_AGE_SECONDS or
+            any(right - left > FAILURE_MAX_SAMPLE_GAP_SECONDS
+                for left, right in zip(times, times[1:]))):
             return None
-    # All lanes must refer to a comparable observation window; accepting
-    # disjoint epochs would fabricate correlated failure.
-    if max(x[-1][0] for x in windows) - min(x[-1][0] for x in windows) > 90:
+    # The 30s consumer jobs must give three consecutive, recent original
+    # measurements; a retained failed value from a dead exporter/Prometheus
+    # is not evidence of a failure NOW. Cross-lane epochs also must overlap.
+    if (max(x[-1][0] for x in windows) - min(x[-1][0] for x in windows)
+        > FAILURE_CROSS_LANE_SKEW_SECONDS):
         return None
     return all(all(v == 0 for _, v in values) for values in windows)
 
@@ -301,6 +440,62 @@ def current_catalog_country(catalog: str) -> str | None:
         check=True, capture_output=True, text=True, timeout=8,
     ).stdout
     return observe_active.catalog_country(catalog, observe_active.endpoint_ip(raw))
+
+
+DIRECT_UNDERLAY_HTTPS = (
+    "https://example.com/",
+    "https://www.apple.com/library/test/success.html",
+)
+
+
+def direct_underlay_evidence(observations: tuple[bool | None, bool | None]) -> bool | None:
+    """Two known-good direct origins imply reachability; mixed => UNKNOWN.
+
+    Neither origin is a separate WAN; do not infer modem/ISP root cause.
+    """
+    if observations == (True, True):
+        return True
+    if observations == (False, False):
+        return False
+    return None
+
+
+def direct_underlay_witness() -> bool | None:
+    """Run two current host-direct HTTPS observations only during an outage."""
+    observations: list[bool | None] = []
+    for origin in DIRECT_UNDERLAY_HTTPS:
+        try:
+            result = subprocess.run([
+                "/usr/bin/curl", "-q", "--noproxy", "*", "-4",
+                "--silent", "--show-error", "--connect-timeout", "3",
+                "--max-time", "7", "-o", "/dev/null", "-w", "%{http_code}",
+                origin,
+            ], capture_output=True, text=True, timeout=9)
+            observations.append(result.returncode == 0 and result.stdout == "200")
+        except (OSError, subprocess.SubprocessError):
+            observations.append(None)
+    return direct_underlay_evidence((observations[0], observations[1]))
+
+
+def recovery_evidence(
+    history: list[dict[str, object]], hints: list[dict[str, object]],
+    cold: list[dict[str, object]], selected: set[str],
+) -> list[dict[str, object]]:
+    """Apply the active country pool and latest fresh, comparable latency evidence."""
+    latest: dict[str, dict[str, object]] = {}
+    # observe() appends intervals oldest first; incomplete or stale samples
+    # cannot displace a measured fresh session.
+    for row in history:
+        if row["standing"] == "RECENT_HISTORICAL_CONSUMER_SUCCESS":
+            latest[str(row["catalogCountry"])] = row
+    slow = {country for country, row in latest.items()
+            if int(row["medianOfConsumerP90Ms"]) > RECOVERY_P90_BUDGET_MS}
+    return [
+        row for row in [*latest.values(), *hints, *cold]
+        if row["catalogCountry"] in selected - slow
+        and (row["standing"] == "SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED"
+             or int(row["medianOfConsumerP90Ms"]) <= RECOVERY_P90_BUDGET_MS)
+    ]
 
 
 def observe(*, hours: int) -> dict[str, object]:
@@ -358,23 +553,25 @@ def observe(*, hours: int) -> dict[str, object]:
             catalog_identity = current_catalog_country(catalog)
         except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
             catalog_identity = None
-    # Physical baseline is synthetic and does NOT route user traffic outside
-    # VPN. If it cannot be verified, no endpoint switching is recommended.
-    underlay_ok: bool | None = None
-    if active_ok is False:
-        try:
-            response = subprocess.run([
-                "/usr/bin/curl", "-q", "--noproxy", "*", "-4",
-                "--silent", "--show-error", "--connect-timeout", "3",
-                "--max-time", "7", "-o", "/dev/null", "-w", "%{http_code}",
-                "https://example.com/",
-            ], capture_output=True, text=True, timeout=9)
-            underlay_ok = response.returncode == 0 and response.stdout == "200"
-        except (OSError, subprocess.SubprocessError):
-            underlay_ok = None
+    # These two distinct *host-direct* HTTPS origins are the same source-owned
+    # physical-path controls consumed by the existing Blackbox jobs. They
+    # cannot prove which modem/ISP component failed, but a lone healthy origin
+    # must not be promoted to evidence that the shared physical Internet is
+    # reliably available for a provider-wide VPN selection mutation.
+    underlay_ok = direct_underlay_witness() if active_ok is False else None
+    selected = set(native.read_selector_policy()["selectedCountries"])
+    # Preference-only evidence is read ONLY at a witnessed outage boundary.
+    # It cannot change a healthy VPN, or defeat missing/failed underlay.
+    hints = source_trial_hints(now, selected) if (
+        active_ok is False and underlay_ok is True) else []
+    # Preserve liveness after quality hints expire: trial *only* two explicit
+    # source-preferred countries which still occur in Gluetun's own catalog.
+    # Catalog existence NEVER becomes live success or an automatic hot spare.
+    cold = catalog_cold_trials(catalog, selected) if (
+        active_ok is False and underlay_ok is True) else []
     plan = decision(
         active_healthy=active_ok, underlay_reachable=underlay_ok,
-        evidence=results, now=now,
+        evidence=recovery_evidence(results, hints, cold, selected), now=now,
         current_country=catalog_identity,
     )
     # A lost kernel WG endpoint is an expected symptom of a genuine outage.
@@ -385,6 +582,8 @@ def observe(*, hours: int) -> dict[str, object]:
         "observationUtc": now.isoformat(),
         "scope": "correlated historical endpoint dwell and VPN consumer probe quality",
         "history": results,
+        "sourceTrialHints": hints,
+        "sourceCatalogColdTrials": cold,
         "active": {
             "standing": observed,
             "catalogCountry": catalog_identity,
