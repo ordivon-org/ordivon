@@ -51,6 +51,33 @@ try{
  store.revokeAgentGrant("principal:probe",first.grantId,first.grantDigest,now());
  await page.getByRole("button",{name:"Refresh owner observation"}).click();
  await page.locator('[data-status="observed"]').waitFor();
+ // Browser accessibility semantics and keyboard behavior are independent of
+ // the Agent bridge and must act on the same real Owner projection.
+ const combo=page.getByRole("combobox",{name:"Grant availability"});
+ assert.equal(await combo.count(),1);
+ assert.equal(await page.getByRole("table",{name:"Current owner grants"}).count(),1);
+ await combo.focus();
+ await page.keyboard.press("ArrowDown");
+ const listbox=page.getByRole("listbox",{name:"Grant availability"});
+ await listbox.waitFor();
+ assert.equal(await listbox.getByRole("option").count(),5);
+ assert.equal(await listbox.getByRole("option",{name:"All grants",exact:true}).evaluate(e=>document.activeElement===e),true);
+ await page.keyboard.press("Escape");
+ await listbox.waitFor({state:"hidden"});
+ assert.equal(await combo.getAttribute("aria-expanded"),"false");
+ assert.equal(await combo.evaluate(e=>document.activeElement===e),true);
+ await page.keyboard.press("ArrowDown");
+ await listbox.waitFor();
+ await page.keyboard.press("ArrowDown");
+ assert.equal(await listbox.getByRole("option",{name:"Candidate",exact:true}).evaluate(e=>document.activeElement===e),true);
+ await page.keyboard.press("Enter");
+ await listbox.waitFor({state:"hidden"});
+ await page.waitForFunction(()=>document.querySelectorAll("tbody tr").length===1);
+ assert.equal(await page.getByText("grant:two",{exact:true}).count(),1);
+ assert.equal(await page.getByText("grant:one",{exact:true}).count(),0);
+ await combo.click();
+ await listbox.getByRole("option",{name:"All grants",exact:true}).click();
+ await page.waitForFunction(()=>document.querySelectorAll("tbody tr").length===2);
  const action=await page.evaluate(()=> (window as any).probe.bridge.act({steps:[{ref:"Grant availability",action:"setValue",args:["revoked"]}]}));
  assert.equal(action.ok,true,JSON.stringify(action));
  await page.waitForFunction(()=>document.querySelectorAll("tbody tr").length===1);
@@ -196,6 +223,6 @@ try{
  assert.equal(logoutRequests,1);
  await peer.close();
  assert.deepEqual(errors,[]);
- console.log(JSON.stringify({ownerRows:2,foreignRows:0,semanticChoices:5,filterApplied:true,unknownActionDenied:true,humanFilterApplied:true,quotaUnchanged:true,staleSuccessAfterDenialRejected:true,lifecycleLateResponseRejected:true,identityChangedOnResume:true,nativeBackNavigationDenial:true,restoredFromBFCache,peerNativeLogout:true,peerLateResponseRejected:true,unsolicitedHintDoesNotDenyOwner:true,committedLogoutResponseLossUnknown:true,noLogoutReplay:true,scope:"isolated test-only route; real WebStore/session, not physical WebAuthn"}));
+ console.log(JSON.stringify({ownerRows:2,foreignRows:0,semanticChoices:5,filterApplied:true,unknownActionDenied:true,humanFilterApplied:true,semanticComboboxAccessibleName:true,keyboardEscapeFocusRestored:true,keyboardFilterApplied:true,quotaUnchanged:true,staleSuccessAfterDenialRejected:true,lifecycleLateResponseRejected:true,identityChangedOnResume:true,nativeBackNavigationDenial:true,restoredFromBFCache,peerNativeLogout:true,peerLateResponseRejected:true,unsolicitedHintDoesNotDenyOwner:true,committedLogoutResponseLossUnknown:true,noLogoutReplay:true,scope:"isolated test-only route; real WebStore/session, not physical WebAuthn"}));
  await context.close();
 }finally{await browser.close();await app.close();store.close()}

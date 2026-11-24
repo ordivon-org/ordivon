@@ -57,6 +57,25 @@ observation, nor is generation a server revision or authority token.
 The read projection retains only fields used by this consumer.
 No durable client cache; no effect admission logic.
 
+R7 native Solid 2.0.3 probe (Node browser export, synthetic values) directly
+compares async createMemo and createDeferred. Both suppress a late older
+completion after a newer denial; both also retain the earlier settled answer
+during refetch, including latest(), while isPending() is true. That retention
+is useful for ordinary non-sensitive content but cannot replace this
+consumer's immediate lifecycle/identity invalidation. Keep the small explicit
+generation transition; no extra Query/cache package is justified here.
+Run the pinned native witness with pnpm probe:native-async. This is a native
+reactive observation, not browser authorization proof or a requirement on
+future Solid versions. See Solid's createDeferred and Loading documentation:
+https://docs.solidjs.com/reference/solid-js/reactivity/create-deferred/
+https://docs.solidjs.com/reference/solid-js/components-jsx/loading/
+
+The browser probe also checks the named combobox, listbox and five options,
+keyboard opening/selection, Escape close and focus restoration, and actual
+table row changes. This tests a subset of the WAI-ARIA combobox pattern, not
+a full accessibility or screen-reader conformance audit:
+https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
+
 A same-origin BroadcastChannel carries only the literal session-changed hint
 after a human sign-out attempt (including response loss). It cannot carry
 identity, authorization, or business state. Recipients clear rows and pending
