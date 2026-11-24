@@ -61,3 +61,18 @@
 原 Native MCP SDK 的普通 `int` 参数可将 `True`、`1.0` 与 `"1"` 统一转换成整数 `1`；因此即使 Store 检查 `type(cursor) is int`，也已经失去了输入来源。R61 在现有 `wire_common.py` 复用 Pydantic `Field(strict=True)` 做成 `ExactCursorWire`，由 `mcp_attention_tools.py` 和 `mcp_social_tools.py` 的五个游标读写工具共用。标准 JSON Schema 仍然是 `{"type":"integer"}`，不增加 Tool 或正常输出字段。
 
 正向见证：合法整数 0、1、当前有效高水位穿过相同 Store；逆向负控：布尔、浮点和数字字符串均在 MCP 参数验证时被拒绝，不能进入持久化游标。对直接 Python Store 调用，`AttentionStore.ack` 也使用精确整数前置条件。负数继续由既有非负验证拒绝。**这只能确认输入数值类型，不会因此证明该整数来自正确的 Topic 或客户端真的读过页面**。
+
+
+## R3: exact concurrent ACK receipt (PostgreSQL 18)
+
+The former cursor SELECT FOR UPDATE cannot lock a nonexistent row. Two first ACKs
+can both observe absence: the monotonic UPSERT protects the stored cursor, but the
+second response incorrectly reported previousCursor=0. A durable receipt then
+replayed that incorrect predecessor. Both cursor domains now obtain OLD/NEW from
+the same native PG18 UPSERT with its existing monotonic predicate. COALESCE(OLD.cursor,0)
+represents a true first insert; a conflicting update returns the actual prior row.
+No new locks, tables or MCP tools. Domain-specific horizons and error strings remain.
+The native two-transaction consumer test holds the first actual ACK uncommitted,
+allows the second ACK to reach the UPSERT, then commits the first and checks
+both original and replayed predecessor. This is a cursor-transition receipt, not
+proof of semantic consumption. PG18 is the supported qualification target.

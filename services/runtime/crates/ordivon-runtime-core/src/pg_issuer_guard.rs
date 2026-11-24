@@ -146,8 +146,13 @@ pub(super) fn require_current_harness_issuer_for_plan(
             .get("dispatchFenceObjectDigest")
             .and_then(Value::as_str)
             != Some(fence_digest)
+        // Harness Intent.digest and its canonical CAS object digest name
+        // the same bytes. Do not accept two separately valid identities:
+        // an unrelated Intent must not satisfy the original Fence.
         || data.get("toolStepIntentDigest").and_then(Value::as_str)
-            != fence.get("intentDigest").and_then(Value::as_str)
+            != Some(intent_object_digest.as_str())
+        || fence.get("intentDigest").and_then(Value::as_str)
+            != Some(intent_object_digest.as_str())
         || fence.get("schemaVersion").and_then(Value::as_i64) != Some(2)
         || fence.get("kind").and_then(Value::as_str) != Some("ordivon.harness-dispatch-fence")
         || fence.get("fenceId").and_then(Value::as_str) != Some(fence_id)
