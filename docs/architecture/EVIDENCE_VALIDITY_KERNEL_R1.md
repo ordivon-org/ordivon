@@ -46,6 +46,20 @@ It does not initiate verification, dispatch CI, or mutate Host Work/Runtime.
   proofReuseAdmissible=false until real proof readset closure is
   independently established.
 
+## Provider completeness and selector cut (review refinement)
+
+Request the explicit all-attempt Check Runs view rather than silently using
+the default filtered view. Reject duplicate IDs, incomplete pages and a
+changing total count during pagination. This is bounded provider observation,
+not an atomic snapshot or a guarantee that provider retention is complete.
+
+For cross-cut impact only, require the local selector checkout to be the
+requested current SourceCut, and qualify known direct control-input blobs
+before and after the native plan. A mismatch yields UNKNOWN_SOURCE_RELATION;
+it does not invalidate a separately observed exact-SHA provider receipt.
+Dynamic source seams, external data, security-advisory freshness and full
+proof-input closure are not established by this finite check.
+
 ## Native Formal declared source-readset consumer (R2)
 
 For a question about WHICH Formal source inputs changed (rather than

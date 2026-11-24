@@ -228,6 +228,51 @@ def test_cross_sha_policy_mismatch_cannot_emit_source_affected(monkeypatch):
     plan.assert_not_called()
 
 
+def test_selector_control_inputs_use_actual_git_blobs(monkeypatch, tmp_path):
+    import subprocess
+
+    import evidence_source_policy as policy
+
+    repo = tmp_path.resolve()
+    monkeypatch.setattr(
+        policy, "__file__", str(repo / "tools/repo/evidence_source_policy.py")
+    )
+
+    def git(*args):
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Evidence Test")
+    git("config", "user.email", "evidence-test@example.invalid")
+    for relative in policy.CONTROL_INPUTS:
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("control input " + relative + "\n")
+    git("add", ".")
+    git("commit", "-qm", "exact policy fixture")
+    cut = git("rev-parse", "HEAD")
+    policy.qualify_current_selector(repo, cut)
+    for relative in policy.CONTROL_INPUTS:
+        path = repo / relative
+        original = path.read_bytes()
+        path.write_bytes(original + b"changed")
+        with pytest.raises(ValueError, match="differs from SourceCut"):
+            policy.qualify_current_selector(repo, cut)
+        path.write_bytes(original)
+    policy.qualify_current_selector(repo, cut)
+    with pytest.raises(ValueError, match="checkout differs"):
+        policy.qualify_current_selector(repo, "0" * len(cut))
+    path = repo / policy.CONTROL_INPUTS[0]
+    original = path.read_bytes()
+    path.unlink()
+    with pytest.raises(ValueError, match="not a regular Git file"):
+        policy.qualify_current_selector(repo, cut)
+    path.write_bytes(original)
+    policy.qualify_current_selector(repo, cut)
+
+
 def test_no_known_source_impact_does_not_prove_cross_cut_reuse(monkeypatch):
     monkeypatch.setattr(
         module.convergence_plan,
