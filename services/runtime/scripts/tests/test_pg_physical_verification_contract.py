@@ -12,6 +12,7 @@ import subprocess
 import tomllib
 import tempfile
 import shlex
+import shutil
 import unittest
 
 
@@ -116,6 +117,13 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
                     if label == "positive":
                         self.assertEqual(result.returncode, 0, combined)
                         self.assertIn(f"{lane.upper()}_PG18_PASS={len(names)}/{len(names)}", combined)
+                        if lane == "physical":
+                            if "PG_SOURCE_CUT_UNQUALIFIED=1" in result.stdout:
+                                self.assertIn("PG_FORMAL_CONDITIONAL_WITNESSES_EXECUTED_UNQUALIFIED_SOURCE=", result.stdout)
+                                self.assertNotIn("PG_FORMAL_CONDITIONAL_WITNESSES_PASS=", result.stdout)
+                            else:
+                                self.assertIn("PG_SOURCE_CUT_OBSERVED=", result.stdout)
+                                self.assertIn("PG_FORMAL_CONDITIONAL_WITNESSES_PASS=", result.stdout)
                     else:
                         self.assertNotEqual(result.returncode, 0, combined)
                         self.assertNotIn("_PG18_PASS=", combined)
@@ -191,6 +199,97 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
             self.assertNotEqual(changed.returncode, 0, changed.stdout + changed.stderr)
             self.assertNotIn("STAGE_PG18_PASS=", changed.stdout)
             self.assertIn("artifact", changed.stderr.lower())
+
+    def test_source_observation_is_exact_and_distinguishes_local_execution(self):
+        """Run the real stage task against a disposable Git checkout and Cargo stub.
+
+        This challenges source attribution, not database behavior or rustc.
+        """
+        with MISE.open("rb") as stream:
+            command = tomllib.load(stream)["tasks"]["test:postgres-registry:stage"]["run"]
+        with tempfile.TemporaryDirectory() as raw:
+            temp = Path(raw)
+            repo = temp / "repo"
+            runtime = repo / "services/runtime"
+            scripts = runtime / "scripts"
+            scripts.mkdir(parents=True)
+            for name in ("pg_disposable_physical.py", "verify_formal_trace.py"):
+                shutil.copyfile(ROOT / "scripts" / name, scripts / name)
+            source = runtime / "crates/ordivon-runtime-core/src/lib.rs"
+            source.parent.mkdir(parents=True)
+            source.write_text("// original\n")
+            git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], env=git_env, text=True,
+                    stderr=subprocess.PIPE,
+                ).strip()
+
+            git("init", "-q")
+            git("add", ".")
+            git("-c", "user.name=fixture", "-c", "user.email=fixture@example.test",
+                "commit", "-qm", "exact cut")
+            cut = git("rev-parse", "HEAD")
+
+            cargo = temp / "cargo"
+            binary = temp / "ordivon_runtime_core-fixture"
+            identity = "fixture::historical_pg_stage_is_not_an_admission_authority"
+            artifact = json.dumps({
+                "reason": "compiler-artifact",
+                "target": {"name": "ordivon_runtime_core", "kind": ["lib"], "src_path": str(source)},
+                "profile": {"test": True},
+                "features": ["postgres-registry-admission", "runtime-contract"],
+                "executable": str(binary),
+            })
+            # Foreign Git selectors must not reach either native subprocess.
+            guard = ('[ -z "${GIT_DIR+x}" ] && [ -z "${GIT_WORK_TREE+x}" ] '
+                     '&& [ -z "${GIT_INDEX_FILE+x}" ] || exit 99\n')
+            cargo.write_text('#!/bin/sh\n' + guard + f'printf "%s\n" {shlex.quote(artifact)}\n')
+            cargo.chmod(0o700)
+            binary.write_text(
+                '#!/bin/sh\n' + guard +
+                'case " $* " in *" --list "*) '
+                'if [ "${MUTATE_SOURCE:-0}" = 1 ]; then '
+                f'echo "// changed while listing" >> {shlex.quote(str(source))}; fi; '
+                f'printf "%s\n" {shlex.quote(identity + ": test")};; '
+                f'*) printf "%s\n" {shlex.quote("test " + identity + " ... ok")}; '
+                'printf "%s\n" "test result: ok. 1 passed; 0 failed; 0 ignored;";; esac\n'
+            )
+            binary.chmod(0o700)
+            env = {**git_env, "PATH": raw + os.pathsep + os.environ["PATH"],
+                   "CARGO_TARGET_DIR": raw, "ORDIVON_PG_STAGE_TEST_DSN": "fixture",
+                   "GIT_DIR": str(temp / "foreign"), "GIT_WORK_TREE": str(temp / "foreign"),
+                   "GIT_INDEX_FILE": str(temp / "foreign-index"), "PYTHONDONTWRITEBYTECODE": "1"}
+
+            def invoke(**extra):
+                return subprocess.run(["bash", "-c", command], cwd=runtime, env={**env, **extra},
+                                      capture_output=True, text=True, timeout=15)
+
+            clean = invoke()
+            self.assertEqual(clean.returncode, 0, clean.stdout + clean.stderr)
+            self.assertIn(f"PG_SOURCE_CUT_OBSERVED={cut}", clean.stdout)
+            self.assertIn("STAGE_PG18_PASS=1/1", clean.stdout)
+
+            drift = invoke(MUTATE_SOURCE="1")
+            self.assertNotEqual(drift.returncode, 0, drift.stdout + drift.stderr)
+            self.assertNotIn("STAGE_PG18_PASS=", drift.stdout)
+            self.assertNotIn("PG_SOURCE_CUT_OBSERVED=", drift.stdout)
+            self.assertIn("source cut changed", drift.stderr)
+
+            local = invoke()
+            self.assertEqual(local.returncode, 0, local.stdout + local.stderr)
+            self.assertIn("STAGE_PG18_PASS=1/1", local.stdout)
+            self.assertIn("PG_SOURCE_CUT_UNQUALIFIED=1", local.stdout)
+            self.assertNotIn("PG_SOURCE_CUT_OBSERVED=", local.stdout)
+
+            git("update-index", "--assume-unchanged",
+                "services/runtime/crates/ordivon-runtime-core/src/lib.rs")
+            self.assertEqual(git("status", "--porcelain"), "")
+            hidden = invoke()
+            self.assertEqual(hidden.returncode, 0, hidden.stdout + hidden.stderr)
+            self.assertIn("PG_SOURCE_CUT_UNQUALIFIED=1", hidden.stdout)
+            self.assertNotIn("PG_SOURCE_CUT_OBSERVED=", hidden.stdout)
 
     def test_fresh_physical_lane_cannot_run_without_test_dsn(self) -> None:
         self._assert_dsn_required(

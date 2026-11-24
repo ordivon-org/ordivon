@@ -126,14 +126,41 @@ def required_pg_physical_witnesses(inventory: frozenset[str]) -> frozenset[str]:
     )
 
 
+def observe_source_cut() -> str | None:
+    """Dirty development execution is useful, but cannot attest a Git cut."""
+    if __package__:
+        from .verify_formal_trace import _qualified_native_source_head
+    else:
+        from verify_formal_trace import _qualified_native_source_head
+
+    try:
+        return _qualified_native_source_head()
+    except (ValueError, OSError):
+        return None
+
+
+def require_same_source_cut(source_head: str | None) -> None:
+    """A clean starting cut must remain qualified at observed boundaries."""
+    if source_head is not None and observe_source_cut() != source_head:
+        raise ValueError("PG native source cut changed or became unqualified")
+
+
+def report_source_cut(source_head: str | None) -> None:
+    # A local native PASS is not a claim of clean source or immutable inputs.
+    if source_head is None:
+        print("PG_SOURCE_CUT_UNQUALIFIED=1")
+    else:
+        print(f"PG_SOURCE_CUT_OBSERVED={source_head}")
+
+
 def compile_pg_test_binary(cargo: str, env: dict[str, str]) -> tuple[Path, str]:
     """Build once using Cargo's original artifact identity; no test DSN at build time."""
     if __package__:
-        from .verify_formal_trace import _native_cargo_test_artifact, sha256
+        from .verify_formal_trace import _exact_source_git_environment, _native_cargo_test_artifact, sha256
     else:
-        from verify_formal_trace import _native_cargo_test_artifact, sha256
+        from verify_formal_trace import _exact_source_git_environment, _native_cargo_test_artifact, sha256
 
-    build_env = dict(env)
+    build_env = _exact_source_git_environment(env)
     build_env.pop("ORDIVON_PG_TEST_DSN", None)
     build_env.pop("ORDIVON_PG_STAGE_TEST_DSN", None)
     args = CARGO_ARGS[: CARGO_ARGS.index("--") - 1]
@@ -161,17 +188,19 @@ def compile_pg_test_binary(cargo: str, env: dict[str, str]) -> tuple[Path, str]:
 
 def verify_native_selection(
     compiled: tuple[Path, str], args: tuple[str, ...], env: dict[str, str],
-    *, identity: str | None = None,
+    *, identity: str | None = None, source_head: str | None = None,
 ) -> int:
     """List and execute one Cargo-selected libtest artifact without rebuilding."""
     if __package__:
-        from .verify_formal_trace import sha256
+        from .verify_formal_trace import _exact_source_git_environment, sha256
     else:
-        from verify_formal_trace import sha256
+        from verify_formal_trace import _exact_source_git_environment, sha256
 
     binary, digest = compiled
+    env = _exact_source_git_environment(env)
 
     def unchanged() -> None:
+        require_same_source_cut(source_head)
         if binary.is_symlink() or sha256(binary) != digest:
             raise ValueError("PG native artifact changed after compilation")
 
@@ -202,9 +231,11 @@ def verify_native_selection(
     if result.returncode:
         raise RuntimeError(f"native PostgreSQL test failed (exit={result.returncode})")
     count = exact_test_count(result.stdout, expected)
+    report_source_cut(source_head)
     print(f"PG_LIBTEST_ARTIFACT_SHA256={digest}")
     if required:
-        print(f"PG_FORMAL_CONDITIONAL_WITNESSES_PASS={len(required)}/{len(required)}")
+        standing = "PASS" if source_head is not None else "EXECUTED_UNQUALIFIED_SOURCE"
+        print(f"PG_FORMAL_CONDITIONAL_WITNESSES_{standing}={len(required)}/{len(required)}")
     return count
 
 
@@ -219,10 +250,11 @@ def explicit_lane(lane: str) -> int:
         raise RuntimeError("cargo must be installed")
     env = cargo_environment(os.environ)
     env.pop("ORDIVON_PG_TEST_DSN" if stage else "ORDIVON_PG_STAGE_TEST_DSN", None)
+    source_head = observe_source_cut()
     count = verify_native_selection(
         compile_pg_test_binary(cargo, env),
         single_case_args(STAGE_CASE) if stage else CARGO_ARGS,
-        env, identity=STAGE_CASE if stage else None,
+        env, identity=STAGE_CASE if stage else None, source_head=source_head,
     )
     print(f"{'STAGE' if stage else 'PHYSICAL'}_PG18_PASS={count}/{count}")
     return 0
@@ -294,15 +326,14 @@ def main() -> int:
                 timeout=60,
             )
             started = True
-            source = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
-            dirty = bool(subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"], text=True).strip())
-            print(f"sourceCut={source} standing={'DIRTY_UNQUALIFIED' if dirty else 'CLEAN'}")
+            source_head = observe_source_cut()
             fixture_env = fixture_environment(os.environ, root, port)
             compiled = compile_pg_test_binary(cargo, fixture_env)
-            n = verify_native_selection(compiled, CARGO_ARGS, fixture_env)
+            n = verify_native_selection(compiled, CARGO_ARGS, fixture_env, source_head=source_head)
             print(f"DISPOSABLE_PG18_PASS={n}/{n}")
             n = verify_native_selection(
-                compiled, WINDOWS_PG_WITNESS_ARGS, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
+                compiled, WINDOWS_PG_WITNESS_ARGS, fixture_env, identity=WINDOWS_PG_WITNESS_CASE,
+                source_head=source_head
             )
             print(f"DISPOSABLE_WINDOWS_PG_WITNESS_PASS={n}/{n}")
         finally:

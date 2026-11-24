@@ -433,9 +433,13 @@ obligation. The physical lane selects one PG-only Cargo libtest artifact,
 lists ignored witnesses and executes their exact full names from that same
 artifact, and compares its digest at execution boundaries. The disposable PG
 and Windows data-reader cases reuse that artifact. Database DSNs are withheld
-from compilation; each execution receives only its intended test DSN. This is
-bounded observed artifact identity, not a proof of exhaustive build closure or
-immutable execution against arbitrary concurrent writers. The stage lane
+from compilation; each execution receives only its intended test DSN. The
+runner reuses the native source guard before compilation and across execution
+boundaries. A dirty local run can report native execution, but not a qualified
+source cut or formal conditional PASS. A previously qualified cut changing
+during the run rejects the result. These are bounded observations, not a
+proof of exhaustive build closure or immutable execution against arbitrary
+concurrent writers. The stage lane
 must select exactly its one named witness; its passing result is not a
 fresh-epoch or Windows production acceptance. An operator DSN is not supplied
 by default and is never inherited by the disposable fixture.

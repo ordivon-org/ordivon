@@ -637,14 +637,15 @@ def _ancestor_build_input(path: str) -> bool:
     )
 
 
-def _exact_source_git_environment() -> dict[str, str]:
+def _exact_source_git_environment(original: dict[str, str] | None = None) -> dict[str, str]:
     """Bind Git to the explicit checkout and literal ancestry, not parent overrides."""
     import os
 
     # Same native Git semantics as tools/repo/source_history_legos.py:
     # inherited GIT_WORK_TREE/GIT_DIR/GIT_INDEX_FILE/config may redirect source.
     # Disable local graft ancestry and replacement semantics in child processes.
-    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env = {key: value for key, value in (os.environ if original is None else original).items()
+           if not key.startswith("GIT_")}
     env["GIT_GRAFT_FILE"] = os.devnull
     env["GIT_NO_REPLACE_OBJECTS"] = "1"
     return env
