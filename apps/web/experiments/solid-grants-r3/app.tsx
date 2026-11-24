@@ -1,0 +1,52 @@
+import {createSignal,createMemo,For,flush} from "solid-js";
+import {render} from "@solidjs/web";
+import {createAgent} from "@ui-sdk/solid/agent";
+import {Select,SelectContent,SelectItem,SelectLabel,SelectTrigger,SelectValue} from "@ui-sdk/solid/select";
+import "@ui-sdk/core/web.css";
+import {grantAvailability,type GrantAvailability} from "../../src/grant-observation.ts";
+import {initial,begin,settle,readObservation,type Outcome} from "./observation.ts";
+
+type Filter="all"|GrantAvailability;
+const items=[{value:"all",label:"All grants"},{value:"candidate",label:"Candidate"},{value:"revoked",label:"Revoked"},{value:"expired",label:"Expired"},{value:"exhausted",label:"Quota exhausted"}];
+const bridge=createAgent({allow:step=>step.action==="setValue"&&items.some(item=>item.value===step.args[0])});
+const changes:unknown[]=[];
+bridge.subscribe(change=>changes.push(change));
+const [state,setState]=createSignal(initial);
+const [filter,setFilter]=createSignal<Filter>("all");
+async function refresh(){
+  const next=begin(state());setState(next);flush();
+  let outcome:Outcome;
+  try {
+    const response=await fetch("/api/security/agents/grants",{credentials:"same-origin",cache:"no-store"});
+    if(response.status===401||response.status===403) outcome={status:"denied",observation:null};
+    else if(!response.ok) outcome={status:"unavailable",observation:null};
+    else outcome={status:"observed",observation:readObservation(await response.json())};
+  } catch {
+    outcome={status:"unavailable",observation:null};
+  }
+  setState(old=>settle(old,next.generation,outcome));flush();
+}
+function App(){
+ const rows=createMemo(()=>{
+   const current=state();
+   if(current.status!=="observed")return [];
+   return current.observation.grants
+     .map(grant=>({grant,availability:grantAvailability(grant,current.observation.observedAt)}))
+     .filter(row=>filter()==="all"||row.availability===filter());
+ });
+ return <main><h1>Agent grants — research prototype</h1>
+ <p>Candidate is not an admission decision. Read-only owner observation.</p>
+ <button type="button" onClick={()=>void refresh()}>Refresh owner observation</button>
+ <p role="status" data-status={state().status}>{state().status} {state().observation?.observedAt}</p>
+ <Select items={items} value={filter()} onValueChange={value=>{if(items.some(x=>x.value===value))setFilter(value as Filter)}}>
+ <SelectLabel>Grant availability</SelectLabel><SelectTrigger data-testid="filter"><SelectValue/></SelectTrigger>
+ <SelectContent>{items.map(item=><SelectItem value={item.value}>{item.label}</SelectItem>)}</SelectContent>
+ </Select>
+ <table><caption>Current owner grants</caption><thead><tr><th>Grant</th><th>Agent</th><th>Availability</th><th>Remaining effects</th></tr></thead>
+ <tbody><For each={rows()} keyed={row=>row.grant.grantId}>{row=><tr><th scope="row">{row().grant.grantId}</th><td>{row().grant.agentId}</td><td>{row().availability}</td><td>{row().grant.remainingEffects}</td></tr>}</For></tbody></table>
+ </main>;
+}
+render(()=> <App/>,document.getElementById("root")!);
+// Test harness only. No WebMCP registration, network agent or mutation capability.
+Object.assign(window,{probe:{bridge,changes,refresh}});
+void refresh();

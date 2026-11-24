@@ -14,6 +14,7 @@ import type {
 
 import type { WebConfig } from "./config.ts";
 import { renderOperatorGrants } from "./operator-grants-view.ts";
+import type { GrantObservation } from "./grant-observation.ts";
 import { WebProblem } from "./errors.ts";
 import { stableDigest } from "./identity-digests.ts";
 import {
@@ -461,9 +462,14 @@ export async function createWebApp(
       .send(renderOperatorGrants(auth.principal, grants, observedAt));
   });
 
-  app.get("/api/security/agents/grants", async (request) => {
+  app.get("/api/security/agents/grants", async (request): Promise<GrantObservation> => {
     const auth = authenticated(request);
-    return { grants: store.listAgentGrants(auth.principal.principalId) };
+    const observedAt = now();
+    return {
+      principalId: auth.principal.principalId,
+      observedAt,
+      grants: store.listAgentGrants(auth.principal.principalId),
+    };
   });
 
   app.post(
