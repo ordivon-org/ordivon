@@ -76,7 +76,10 @@ pub(super) fn qualified_schema_constraints(
 ) -> Result<(), PgAdmissionError> {
     let rows = client.query(
         "SELECT r.relname::text,c.contype::text,ARRAY_AGG(a.attname::text ORDER BY k.ordinality), \
-         COALESCE(ref_ns.nspname::text,''),COALESCE(ref_rel.relname::text,'') \
+         COALESCE(ref_ns.nspname::text,''),COALESCE(ref_rel.relname::text,''), \
+         ARRAY(SELECT ra.attname::text FROM unnest(c.confkey) WITH ORDINALITY AS rk(attnum,ordinality) \
+               JOIN pg_catalog.pg_attribute ra ON ra.attrelid=c.confrelid AND ra.attnum=rk.attnum \
+               ORDER BY rk.ordinality) \
          FROM pg_catalog.pg_constraint c \
          JOIN pg_catalog.pg_class r ON r.oid=c.conrelid \
          JOIN pg_catalog.pg_namespace n ON n.oid=r.relnamespace \
@@ -89,7 +92,7 @@ pub(super) fn qualified_schema_constraints(
          GROUP BY r.relname,c.oid,c.contype,ref_ns.nspname,ref_rel.relname",
         &[&schema],
     )?;
-    let actual: HashSet<(String, String, Vec<String>, String)> = rows
+    let actual: HashSet<(String, String, Vec<String>, String, Vec<String>)> = rows
         .iter()
         .map(|row| {
             let ref_schema: String = row.get(3);
@@ -103,9 +106,13 @@ pub(super) fn qualified_schema_constraints(
                 } else {
                     String::new()
                 },
+                row.get(5),
             )
         })
         .collect();
+    // All existing foreign keys reference the identically named identity
+    // columns on their target. Validate confkey as well as conkey: a valid
+    // FK to another unique column on the same table is not that relation.
     let required: &[(&str, &str, &[&str], &str)] = &[
         ("workspace_consumer_claims", "p", &["claim_id"], ""),
         (
@@ -156,6 +163,11 @@ pub(super) fn qualified_schema_constraints(
             (*kind).to_owned(),
             columns.iter().map(|name| (*name).to_owned()).collect(),
             (*target).to_owned(),
+            if *kind == "f" {
+                columns.iter().map(|name| (*name).to_owned()).collect()
+            } else {
+                Vec::new()
+            },
         ))
     }) {
         return Err(PgAdmissionError::Unqualified);

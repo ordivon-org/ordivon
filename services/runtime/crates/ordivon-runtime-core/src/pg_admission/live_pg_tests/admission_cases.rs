@@ -195,6 +195,32 @@ fn pg18_rejects_foreign_key_that_points_at_wrong_pg_target() {
 
 #[test]
 #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_rejects_foreign_key_that_points_at_wrong_target_column() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
+    scratch
+        .admin
+        .batch_execute(
+            "ALTER TABLE jobs ADD CONSTRAINT fixture_unique_request UNIQUE(client_request_id);
+         ALTER TABLE attempts DROP CONSTRAINT attempts_job_id_fkey;
+         ALTER TABLE attempts ADD CONSTRAINT attempts_job_id_fkey
+           FOREIGN KEY(job_id) REFERENCES jobs(client_request_id)",
+        )
+        .expect("test-only same-table wrong-column reference");
+    assert!(
+        matches!(
+            PgAdmissionStore::connect(&dsn, &scratch.name),
+            Err(PgAdmissionError::Unqualified)
+        ),
+        "writer qualification must reject a constraint to the same table but wrong identity column"
+    );
+    assert_eq!(scratch.count("jobs"), 0);
+}
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
 fn pg18_native_atomic_admission_replay_fence_and_rollback() {
     let dsn = physical_pg_test_dsn();
     let mut scratch = Scratch::new(&dsn);
