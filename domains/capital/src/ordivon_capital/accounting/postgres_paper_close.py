@@ -19,8 +19,8 @@ from ..markets.equity_session_calendar import (
     require_xnys_eod_session_closes,
 )
 from ..markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, admit_etf_eod_snapshot
-from ..trading.paper_fill_calendar import admit_paper_session_calendar
 from .paper_close import PaperSession, PaperValuation, decode_session, value_session
+from .paper_fill_calendar import admit_paper_session_calendar
 from .postgres_ledger import PostgresAccountingLedger
 from .substrate import AccountingAccount, LedgerApplyStatus, stable_accounting_id
 

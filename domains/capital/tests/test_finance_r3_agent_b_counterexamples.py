@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from test_nautilus_paper_bridge import episode
 
-from ordivon_capital.trading.nautilus_paper_bridge import (
+from ordivon_capital.applications.nautilus_paper_bridge import (
     NautilusPaperBridgeError,
     next_open_paper_session,
 )
@@ -163,7 +163,9 @@ class _NativeNode:
 
 class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
     def test_retained_native_run_can_witness_next_open_paper(self):
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         node = _NativeNode(e)
         args = {key: value for key, value in e.items() if key not in ("orders", "fills", "order_events")}
@@ -172,7 +174,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
         self.assertEqual(result.buys[0].cost_minor, 100012)
 
     def test_report_cannot_drop_an_order_retained_in_native_cache(self):
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         node = _NativeNode(e)
         node._orders.append(_NativeOrder("C-2", [
@@ -183,7 +187,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
     def test_incomplete_event_history_and_disposed_engine_fail_closed(self):
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         args = {key: value for key, value in e.items() if key not in ("orders", "fills", "order_events")}
         node = _NativeNode(e)
@@ -195,7 +201,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
     def test_native_order_quantity_conserves_all_report_fills(self):
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         for field, value in (("filled_qty", "1"), ("filled_qty", "3"), ("quantity", "1")):
             with self.subTest(field=field, value=value):
                 e = episode()
@@ -206,7 +214,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
                     next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
     def test_unfilled_native_order_with_zero_report_qty_remains_valid(self):
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         node = _NativeNode(e)
         node.scenario["orders"].append({
@@ -226,7 +236,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
     def test_native_canceled_order_without_fills_is_verified_zero_economic_effect(self):
         import pandas as pd
 
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         e["fills"] = []
         e["order_events"] = []
@@ -245,7 +257,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
     def test_native_unfinished_order_cannot_be_silently_booked_as_zero_fill(self):
         import pandas as pd
 
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         e["fills"] = []
         e["order_events"] = []
@@ -262,7 +276,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
     def test_native_canceled_report_requires_cached_cancel_event(self):
         import pandas as pd
 
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         e["fills"] = []
         e["order_events"] = []
@@ -276,7 +292,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
     def test_native_partially_filled_open_order_requires_different_consumer(self):
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         node = _NativeNode(e)
         node.scenario["orders"][0].update(quantity="3", filled_qty="2", status="PARTIALLY_FILLED")
@@ -285,7 +303,9 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
     def test_native_event_is_proven_to_belong_to_cached_order(self):
-        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        from ordivon_capital.applications.nautilus_paper_bridge import (
+            next_open_native_paper_session,
+        )
         e = episode()
         node = _NativeNode(e)
         node._orders[0]._events[1].record["client_order_id"] = "C-OTHER"

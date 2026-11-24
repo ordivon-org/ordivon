@@ -109,7 +109,7 @@ invalid before PostgreSQL access because the next revision would overflow.
 
 **Agent:** The proof subjects are the actual called functions
 social_message_commands._reply_target_precedes_source and
-work_store._next_work_revision, not separate model copies. Preserve their
+work_revision_logic.next_work_revision, not separate model copies. Preserve their
 PEP 316 pre/postconditions, re-run the same native CrossHair entrypoint
 after changing these source files, and then qualify the Work CAS transaction
 and reply-edge SQL using existing Host PostgreSQL consumer tests.
@@ -139,7 +139,7 @@ effective contract is the existing `WorkStore.commit_snapshot` public behavior:
 | c | UNKNOWN(reason=unmeasured transaction latency under realistic contention, scope=Host PG18 Work CAS, obligation=record consumer-relevant cost if optimizing) |
 | epsilon | UNKNOWN(reason=no general quantified external availability/failure bound, scope=database/deployment effects, obligation=qualify installed PG consumer); pure revision arithmetic is exact |
 | prov | Actual code in `src/ordivon_host_v2/work_store.py` and `work_queries.py`; locked CrossHair 0.0.112 source contract, real PostgreSQL 18 Alembic/pytest via `mise run test:postgres:disposable`, exact SourceCut is the tested Git revision |
-| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> _next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> read_work_in_tx -> record_command_receipt |
+| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> read_work_in_tx -> record_command_receipt |
 
 Evidence standing is **DECLARATION_COMPLETE** for this scoped contract; the
 native CrossHair confirms the called revision arithmetic only, while the

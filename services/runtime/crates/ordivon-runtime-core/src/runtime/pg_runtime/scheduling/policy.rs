@@ -1,6 +1,8 @@
 //! Pure, advisory scheduling policy: fairness and pressure screening.
 //! Actual allocation authority remains PostgreSQL `claim_resources`.
-use super::*;
+use crate::resource_scheduling::{NodeResources, ResourceScheduling, WorkspaceAccess};
+use serde_json::json;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Immutable PG candidate snapshot. Dominant shares are rescored after every
 /// successful allocation; execution plans need not be queried or decoded again.

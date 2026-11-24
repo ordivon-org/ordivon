@@ -1,9 +1,13 @@
 # Runtime-owned Workspace consumer claim — R1
 
-**Status:** historical R1 physical-Claim design; a Native-first Harness Run-birth
-consumer is separately installed. Ordinary release default-DENY (#2493)
-and claim-only authenticated ingress (#2502) are both merged SOURCE,
-**not** installed in Linux Runtime at the observed service PID 1854.
+**Status (2026-11-20 installed readback):** historical R1 physical-Claim design;
+Native-first Harness Run-birth is installed separately. The ordinary raw
+`workspace.claim.release` default-DENY (#2493) and claim-only code (#2502)
+are included in the installed Linux Runtime SourceCut `c343558e2ee1ba7c8194b62c23fa6e68be84098c`.
+An authenticated ordinary `/mcp` readback showed `workspace.claim.get` visible,
+`workspace.claim.release` absent and a raw synthetic release call denied.
+This confirms the **ordinary route guard only**, not a deployed dedicated
+`/harness/mcp` Finalizer or complete Domain/OS release qualification.
 **Not:** a certified independent Domain Finalizer or permission to remove an
 original PAUSED/ACTIVE Run's Workspace.
 
@@ -49,8 +53,13 @@ different databases. Do not infer that a successful Job releases a logical Run.
   Harness Job issuer schema or a copied Harness PostgreSQL database.
   Configuring the optional issuer schema activates the distinct existing
   same-PG Job Issuer contract. These are separate capabilities.
-  The installed Runtime observed at PID 1854 still uses the old ordinary
-  release behavior; the source fix alone cannot protect it.
+  The earlier PID 1854/source-only observation is superseded: a qualified
+  Runtime ReleaseEffect deployed SourceCut `c343558e...` on 2026-11-20;
+  the installed service readback reported PID 2604301 and Runner digest
+  `sha256:88d2625db83c3f61865fa55d252b5d9bb3cc748c6072dd44da62e013972439b9`.
+  Ordinary release is now denied in the installed native MCP route, but a
+  dedicated caller with release credentials can still release prematurely
+  without independently authenticated full-output and NoFutureSpawn evidence.
 
 The schema includes the canonical native `store_root` because Workspace IDs
 are store-local. Absolute path-based scope is adequate only within the
@@ -62,9 +71,9 @@ identical paths require an independently proven Runtime authority identity.
 Harness R27 has an installed native-first Run-birth consumer: reserve a real
 Runtime PG Claim, then create the original Harness PG Run. This protects new
 Runs against ordinary close while the Claim stays HELD; it does **not** protect
-historical unclaimed PAUSED Runs. The installed old ordinary-principal
-release API can still be called directly; new SOURCE #2493 blocks that path
-only after an independently qualified installation. The following list is
+historical unclaimed PAUSED Runs. Ordinary raw release is denied by the
+installed 2026-11-20 Runtime, but privileged Finalizer/domain acceptance
+and all-issued OS Manager handoff drainage remain unqualified. The following list is
 the **target complete consumer contract**, not a claim
 that all five stages are already installed and accepted:
 
@@ -99,8 +108,8 @@ Arbitrary age expiry is not proof that an activated user has released it.
   recovered by swapping to a new bearer/principal. Keep old/unknown consumers
   HELD rather than rewriting a physical pin based on elapsed time.
 - A dedicated `/harness/mcp` bearer and principal provide a Claim-only
-  route in merged SOURCE #2502. With or without that profile, #2493 denies
-  ordinary raw release in SOURCE; neither change certifies a `COMPLETED`
+  route from #2502 when independently configured and authenticated.
+  The installed ordinary route now denies raw release; neither change certifies a `COMPLETED`
   Harness Run, original recipient byte ACK, or all issued OS effects drained.
   A historical claim held by the old ordinary principal is **not** silently
   transferable to the new principal; do not restore general release just

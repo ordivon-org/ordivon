@@ -29,6 +29,9 @@ struct Fixture {
     /// is intentionally no foreign Harness Schema or issuer SQL function.
     claim_only_profile: bool,
     harness_schema_override: Option<String>,
+    // Only the contained-native tests install disposable nonroot payload ownership.
+    // Original other PostgreSQL18 fixtures preserve historical owner behavior.
+    contained_nonroot_test: bool,
     ordinary_contained_only: bool,
 }
 impl Fixture {
@@ -161,6 +164,7 @@ impl Fixture {
             harness_dispatch_test: false,
             claim_only_profile: false,
             harness_schema_override: None,
+            contained_nonroot_test: false,
             ordinary_contained_only: false,
         }
     }
@@ -234,6 +238,11 @@ impl Fixture {
             .env("ORDIVON_PG_PRINCIPAL", principal)
             .stdout(Stdio::null())
             .stderr(output);
+        if self.contained_nonroot_test || self.ordinary_contained_only {
+            endpoint
+                .env("ORDIVON_PG_WORKSPACE_UID", "65534")
+                .env("ORDIVON_PG_WORKSPACE_GID", "65534");
+        }
         if self.ordinary_contained_only {
             endpoint.env("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE", "contained_local");
         } else {
@@ -506,6 +515,9 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
     }
 
     let mut fixture = Fixture::new();
+    // A sibling native systemd Runner cannot execute Cargo's private source
+    // path: use the established host-visible per-fixture runner artifact.
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let commit = String::from_utf8(
         Command::new("git")
@@ -566,6 +578,31 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
         .as_str()
         .unwrap()
         .to_string();
+    // Test the promised state, not the duration of a submit call. A real
+    // native PG/systemd job can still be STARTING after the initial 5s
+    // submit wait; grafting a fake ReleaseEffect before the ordinary Job
+    // terminates does not test the intended missing-operator-receipt case.
+    let terminal_deadline = Instant::now() + Duration::from_secs(70);
+    loop {
+        let actual = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":7000,"waitUntil":"terminal",
+                "stdoutTailBytes":0,"stderrTailBytes":0}),
+        );
+        assert_ne!(actual["isError"], true, "{actual}");
+        if actual["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                actual["structuredContent"]["status"], "succeeded",
+                "original native ordinary Job did not succeed: {actual}"
+            );
+            break;
+        }
+        assert!(
+            Instant::now() < terminal_deadline,
+            "original native ordinary Job did not reach terminal before release graft: {actual}"
+        );
+    }
     let release = RuntimeReleaseRequest {
         schema_version: 1,
         client_request_id: client_id.into(),
@@ -5198,22 +5235,31 @@ fn pg18_claim_finalizer_only_ingress_boots_without_foreign_harness_schema() {
         "Claim HELD must block NativeClose"
     );
 
-    // This verifies physical capability only. Real operation must additionally
-    // qualify Harness Run terminal + recipient ByteACK + native OS effects.
-    let (release_http, release) = r16_dedicated_call(
-        &dedicated,
-        &"h".repeat(48),
-        "workspace.claim.release",
-        key.clone(),
-    );
-    assert_eq!(release_http, 200);
-    assert_ne!(release["isError"], true, "{release}");
-    assert_eq!(release["structuredContent"]["state"], "released");
-    let (replay_http, replay) =
-        r16_dedicated_call(&dedicated, &"h".repeat(48), "workspace.claim.release", key);
-    assert_eq!(replay_http, 200);
-    assert_eq!(replay["structuredContent"]["claimId"], claim_id);
-
+    // Independent Domain output acceptance and every issued native OS Job
+    // have not been verified. Even this SAME original dedicated bearer and
+    // SAME original immutable key may NOT release a HELD Run. Both first
+    // attempt and replay must fail before opening any PG write transaction.
+    for _ in 0..2 {
+        let (http, response) = r16_raw_mcp_envelope(
+            &dedicated,
+            &"h".repeat(48),
+            "workspace.claim.release",
+            key.clone(),
+        );
+        assert_eq!(http, 200, "{response}");
+        assert_eq!(response["error"]["code"], -32602, "{response}");
+        assert!(
+            response["error"]["message"]
+                .as_str()
+                .is_some_and(|message| message.contains("independently received")),
+            "{response}"
+        );
+    }
+    let (get_http, after) =
+        r16_dedicated_call(&dedicated, &"h".repeat(48), "workspace.claim.get", key);
+    assert_eq!(get_http, 200);
+    assert_eq!(after["structuredContent"]["claimId"], claim_id);
+    assert_eq!(after["structuredContent"]["state"], "held");
     let closed = call(
         &ordinary,
         "workspace.close",
@@ -5222,14 +5268,25 @@ fn pg18_claim_finalizer_only_ingress_boots_without_foreign_harness_schema() {
             "expectedSourceStateDigest":original_source_digest,
         }),
     );
-    assert_ne!(closed["isError"], true, "{closed}");
-    assert_eq!(closed["structuredContent"]["removed"], true);
+    assert_eq!(closed["isError"], true, "unsafe original Close: {closed}");
+    assert_eq!(
+        closed["structuredContent"]["error"]["code"], "CONCURRENCY_LIMIT",
+        "{closed}"
+    );
+    let claim_state: String = fixture
+        .db
+        .query_one(
+            "SELECT state FROM workspace_consumer_claims WHERE claim_id=$1",
+            &[&claim_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(claim_state, "held", "native PG pin must not be released");
 
     eprintln!(
-        "R52_PG18_CLAIM_ONLY_PORT_NO_HARNESS_SCHEMA_PASS \
-         exact original PG Claim HELD/nonforce close DENIED; \
-         raw Job/Close/Root denied; finalizer own key release replay; \
-         original Workspace CAS Close only after release"
+        "R65_NATIVE_PG18_DEDICATED_BEARER_NO_DOMAIN_OR_OS_FINALIZER_HELD \
+         reserve/read succeed, raw release/replay DENIED before PG, \
+         original Workspace nonforce Close DENIED"
     );
 }
 
@@ -6027,7 +6084,7 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
     assert!(
         denied["error"]["message"]
             .as_str()
-            .is_some_and(|message| message.contains("authenticated Run finalizer route")),
+            .is_some_and(|message| message.contains("independently received")),
         "the native handler must explain its route-bound denial: {denied}"
     );
     let still_held = call(
@@ -6108,6 +6165,25 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
     assert_eq!(dedicated_read_status, 200);
     assert_eq!(held_after["structuredContent"]["state"], "held");
 
+    // A fresh dedicated-principal HELD Claim must also resist the exact same
+    // bearer + key before ANY original independent recipient or OS drain.
+    let (same_http, protected) = r16_raw_mcp_envelope(
+        &dedicated_url,
+        &"h".repeat(48),
+        "workspace.claim.release",
+        json!({"schemaVersion":1,"clientRequestId":dedicated_key}),
+    );
+    assert_eq!(same_http, 200, "{protected}");
+    assert_eq!(protected["error"]["code"], -32602, "{protected}");
+    let (held_http, still_held) = r16_dedicated_call(
+        &dedicated_url,
+        &"h".repeat(48),
+        "workspace.claim.get",
+        json!({"schemaVersion":1,"clientRequestId":dedicated_key}),
+    );
+    assert_eq!(held_http, 200);
+    assert_eq!(still_held["structuredContent"]["state"], "held");
+
     eprintln!(
         "R28_NATIVE_PG18_MCP_RAW_RELEASE_ROUTE_DENIED_OLD_CLAIM_PRESERVED_NEW_DEDICATED_HELD_PASS"
     );
@@ -6121,9 +6197,11 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
 fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let mut fixture = Fixture::new();
     fixture.host_visible_test_runner = true;
-    // This is the actual ordinary-Agent policy. A test that secretly needs
-    // trusted_local to commit a file would green a broken Coding cutover.
+    // Exercise the actual ordinary-Agent contained-only route while the
+    // independent operator config binds its task to nonroot UID/GID.
+    // Neither a trusted_local escape nor a root-contained task may green.
     fixture.ordinary_contained_only = true;
+    fixture.contained_nonroot_test = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     // A normal Agent must discover exactly the profiles the same native PG
@@ -6155,6 +6233,22 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
         json!({"workspaceId":"ws-contained-git","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(opened["isError"], true, "native Workspace OPEN: {opened}");
+    // A second Workspace is the exact scope a different Agent could hold
+    // under the same operator-owned test UID/GID. It must not become visible
+    // through the first task's native contained mount, even by absolute path.
+    let foreign = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-contained-foreign","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(
+        foreign["isError"], true,
+        "foreign native Workspace: {foreign}"
+    );
+    let foreign_probe = fixture
+        .root
+        .join("store/workspaces/ws-contained-foreign/foreign-probe.txt");
+    fs::write(&foreign_probe, b"foreign scope must not be read").unwrap();
     // A caller's HOME/TMPDIR/CARGO_TARGET_DIR is untrusted DATA. The
     // ContainedLocal systemd launcher bind-mounts those paths: fail before
     // native Job admission rather than granting arbitrary host mount access.
@@ -6235,10 +6329,48 @@ fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let command = r#"set -eu
 if test -e /etc/ordivon && test -r /etc/ordivon; then echo 'CONTAINED_CONTROL_DIRECTORY_VISIBLE'; exit 53; fi
 if test -r /etc/ordivon/runtime-mcp.token; then echo 'CONTAINED_SECRET_VISIBLE'; exit 54; fi
+# Only ask the kernel whether the root-owned host credential is readable.
+# Do NOT open or print any secret contents. A pass means the process is NOT
+# isolated from host-root-owned credentials outside the configured denylist.
+if test -r /etc/shadow; then echo 'CONTAINED_HOST_ROOT_READABLE'; exit 57; fi
+if test "$(id -u)" != 65534; then echo 'CONTAINED_TASK_NOT_NONROOT'; exit 58; fi
+# The real systemd mount table exposes this task's *own* original PG Attempt
+# bundle, even if the containing host source path is hidden by /var tmpfs.
+# The trusted UID0 Runner writes request/result and cancel marker here; the
+# nonroot Agent child must not read that request or create/replace a marker.
+# Do not inspect or mutate any other Attempt, secret, or control file.
+bundle="$(awk '$5 ~ /\/pg-attempts\/attempt-/ { print $5 }' /proc/self/mountinfo)"
+if test -z "$bundle" || test "$(printf '%s\n' "$bundle" | wc -l)" -ne 1; then
+    echo 'CONTAINED_OWN_ATTEMPT_BUNDLE_NOT_UNIQUE'; exit 63
+fi
+if test -r "$bundle/request.json"; then
+    echo 'CONTAINED_OWN_ATTEMPT_REQUEST_READABLE'; exit 64
+fi
+if test -w "$bundle"; then
+    echo 'CONTAINED_OWN_ATTEMPT_BUNDLE_WRITABLE'; exit 65
+fi
+control_probe="$bundle/.r59-benign-noclobber"
+if (set -C; printf 'own-bundle-probe' > "$control_probe") 2>/dev/null; then
+    rm -f -- "$control_probe"
+    echo 'CONTAINED_OWN_ATTEMPT_CONTROL_PROBE_CREATED'; exit 66
+fi
+# Native Runner retains only CAP_DAC_READ_SEARCH for original-source
+# reconciliation; the untrusted child must inherit NO effective capabilities.
+while read -r field value _; do
+    if test "$field" = "CapEff:" && test "$value" != "0000000000000000"; then
+        echo 'CONTAINED_TASK_HAS_EFFECTIVE_CAPS'; exit 62
+    fi
+done < /proc/self/status
+if mv .git .git-moved 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_REBIND'; exit 59; fi
+if rm .git 2>/dev/null; then echo 'CONTAINED_GIT_POINTER_DELETE'; exit 60; fi
+if test -r "$FOREIGN_PROBE" || test -w "$FOREIGN_PROBE"; then
+    echo 'CONTAINED_FOREIGN_WORKSPACE_ACCESS'; exit 61;
+fi
 printf 'native-contained-workspace' > contained-native.txt
+chmod 600 contained-native.txt
 git rev-parse --is-inside-work-tree >/dev/null
-if git add contained-native.txt >/dev/null 2>&1; then echo 'CONTAINED_WRITABLE_SHARED_GIT_AUTHORITY'; exit 55; fi
-printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
+if ! git add contained-native.txt; then echo 'CONTAINED_PRIVATE_GIT_ADD_FAILED'; git rev-parse --absolute-git-dir; echo GIT_DIR_BIND_PRESENT=${GIT_DIR:+yes}; exit 55; fi
+printf 'PG_CONTAINED_GIT_PRIVATE_ADD_AND_CREDENTIAL_BOUNDARY_OK'
 "#;
     let mut result = call(
         &endpoint,
@@ -6251,6 +6383,7 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
                 "args":["-lc",command],
                 "cwdRelative":".",
                 "executionProfile":"contained_local",
+                "env":{"FOREIGN_PROBE": foreign_probe.to_string_lossy().into_owned()},
                 "timeoutMs":15000
             },
             "waitMs":10000,
@@ -6300,7 +6433,27 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     );
     assert_eq!(
         result["structuredContent"]["stdoutTail"],
-        "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
+        "PG_CONTAINED_GIT_PRIVATE_ADD_AND_CREDENTIAL_BOUNDARY_OK"
+    );
+    // Independent trusted Runtime test receiver verifies the real native
+    // filesystem metadata, not just a task-printed string or static args.
+    // It never reads request.json or another Job's Attempt bundle.
+    let own_bundle: String = fixture
+        .db
+        .query_one("SELECT bundle_path FROM attempts WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get(0);
+    let native_mode = fs::symlink_metadata(&own_bundle).unwrap();
+    assert!(native_mode.file_type().is_dir());
+    assert_eq!(
+        native_mode.uid(),
+        0,
+        "PG Attempt control bundle must be root-owned"
+    );
+    assert_eq!(
+        native_mode.mode() & 0o777,
+        0o700,
+        "native Agent's own PG control bundle must be private before request.json"
     );
     let workspace = call(
         &endpoint,
@@ -6331,12 +6484,11 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     assert_ne!(read["isError"], true, "{read}");
     assert_eq!(
         read["structuredContent"]["content"],
-        "PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK"
+        "PG_CONTAINED_GIT_PRIVATE_ADD_AND_CREDENTIAL_BOUNDARY_OK"
     );
-    // A real contained-only Coding Agent must be able to deliver a source
-    // candidate without returning to a trusted_local root-equivalent Job.
-    // Use Git's existing alternate object directory and private index,
-    // leaving the shared common-dir/HEAD/refs read-only to the Agent.
+    // The ordinary nonroot Coding task uses standard Git add/commit against
+    // its exact-SHA independent Git index/refs. The original protected Git
+    // repository never becomes writable and no second trusted Job is needed.
     let original_head = Command::new("git")
         .arg("-C")
         .arg(&repo)
@@ -6349,19 +6501,8 @@ printf 'PG_CONTAINED_GIT_READ_AND_CREDENTIAL_BOUNDARY_OK'
     let private_commit_script = r#"set -eu
 if test -r /etc/ordivon/runtime-mcp.token; then exit 53; fi
 if test -r /etc/ordivon; then exit 54; fi
-git init -q --bare .agent-private.git
-common="$(git rev-parse --path-format=absolute --git-common-dir)"
-printf '%s\n' "$common/objects" > .agent-private.git/objects/info/alternates
-export GIT_OBJECT_DIRECTORY="$PWD/.agent-private.git/objects"
-export GIT_ALTERNATE_OBJECT_DIRECTORIES="$common/objects"
-export GIT_INDEX_FILE="$PWD/.agent-private-index"
-git read-tree HEAD
-git add contained-native.txt
-tree="$(git write-tree)"
-base="$(git rev-parse HEAD)"
-candidate="$(printf 'original contained source delivery\n' | git -c user.name=ContainedAgent -c user.email=agent@example.invalid commit-tree "$tree" -p "$base")"
-git --git-dir="$PWD/.agent-private.git" update-ref refs/heads/agent-candidate "$candidate"
-printf '%s' "$candidate"
+git -c user.name=ContainedAgent -c user.email=agent@example.invalid commit -qm 'original contained source delivery'
+printf '%s' "$(git rev-parse HEAD)"
 "#;
     let mut candidate = call(
         &endpoint,
@@ -6388,6 +6529,24 @@ printf '%s' "$candidate"
         );
         assert_ne!(candidate["isError"], true, "{candidate}");
     }
+    if candidate["structuredContent"]["executionDisposition"] != "succeeded" {
+        let result_artifact = candidate["structuredContent"]["artifacts"]
+            .as_array()
+            .and_then(|items| items.iter().find(|item| item["kind"] == "execution_result"))
+            .and_then(|item| item["artifactId"].as_str());
+        if let Some(artifact_id) = result_artifact {
+            let actual = call(
+                &endpoint,
+                "artifact.read",
+                json!({"jobId":candidate_job,"artifactId":artifact_id,
+                       "offset":0,"maxBytes":4096}),
+            );
+            eprintln!(
+                "R63_CONTAINED_PRIVATE_GIT_RESULT={}",
+                actual["structuredContent"]["content"]
+            );
+        }
+    }
     assert_eq!(
         candidate["structuredContent"]["executionDisposition"], "succeeded",
         "real contained private Git candidate creation: {candidate}"
@@ -6401,7 +6560,7 @@ printf '%s' "$candidate"
     );
     let private_bare = fixture
         .root
-        .join("store/workspaces/ws-contained-git/.agent-private.git");
+        .join("store/cache/workspaces/ws-contained-git/agent-git");
     let original_without_candidate = Command::new("git")
         .arg("-C")
         .arg(&repo)
@@ -6432,7 +6591,7 @@ printf '%s' "$candidate"
         .arg("fetch")
         .args(["--no-tags"])
         .arg(&private_bare)
-        .arg("refs/heads/agent-candidate:refs/heads/reviewed-contained-output")
+        .arg("refs/heads/agent-work:refs/heads/reviewed-contained-output")
         .output()
         .unwrap();
     assert!(
@@ -6496,11 +6655,165 @@ printf '%s' "$candidate"
         json!({"workspaceId":"ws-contained-git"}),
     );
     assert_ne!(state["isError"], true, "{state}");
+    // A Git candidate belongs to the separate original consumer and must
+    // remain in this Workspace until independent source acceptance. The
+    // original protected HEAD is intentionally unchanged.
     assert_eq!(
         state["structuredContent"]["dirty"], true,
         "source proposal must remain retained until original recipient acceptance: {state}"
     );
-    eprintln!("R57_CONTAINED_ONLY_GIT_ALTERNATES_SOURCE_RECIPIENT_FETCH_NATIVE_PG18_PASS");
+    // Cache parent directories are shared operator assets; only original
+    // Workspace-private cache descendants may receive the task's group.
+    for ancestor in ["cache", "cache/workspaces", "cache/tmp", "cache/build"] {
+        let path = fixture.root.join("store").join(ancestor);
+        let meta = fs::metadata(&path).expect("shared cache ancestor");
+        assert_eq!(meta.uid(), 0, "root owner changed for {ancestor}");
+        assert_ne!(
+            meta.gid(),
+            65534,
+            "task group owns shared ancestor {ancestor}"
+        );
+        assert_eq!(
+            meta.permissions().mode() & 0o020,
+            0,
+            "shared cache ancestor became group writable: {ancestor}"
+        );
+    }
+
+    // Original-runtime lifecycle falsifier: an ordinary Coding Agent can
+    // produce a UNIQUE Git commit with NO change to the original Workspace
+    // source files. A caller-asserted consumerReleased and the original
+    // sourceStateDigest are not sufficient to GC the only candidate.
+    let empty_ws = "ws-contained-git-empty";
+    let opened_empty = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":empty_ws,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened_empty["isError"], true, "{opened_empty}");
+    let mut empty = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-contained-only-git-empty-commit-r60",
+            "execution":{"workspaceId":empty_ws,"executable":"/usr/bin/bash",
+                "args":["-lc",
+                    "set -eu; git -c user.name=ContainedAgent -c user.email=agent@example.invalid -c commit.gpgSign=false commit --allow-empty -qm 'native-only-original-git-candidate'; printf '%s' $(git rev-parse HEAD)"],
+                "cwdRelative":".","executionProfile":"contained_local","timeoutMs":15000},
+            "waitMs":7000,"stdoutTailBytes":256}),
+    );
+    assert_ne!(empty["isError"], true, "{empty}");
+    let empty_job = empty["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    for _ in 0..22 {
+        if empty["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        empty = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":empty_job,"waitMs":1500,"stdoutTailBytes":256}),
+        );
+        assert_ne!(empty["isError"], true, "{empty}");
+    }
+    assert_eq!(
+        empty["structuredContent"]["executionDisposition"], "succeeded",
+        "{empty}"
+    );
+    let empty_commit = empty["structuredContent"]["stdoutTail"].as_str().unwrap();
+    assert_eq!(empty_commit.len(), 40);
+    assert_ne!(
+        empty_commit, original_head,
+        "an empty private commit must advance only Agent Git"
+    );
+
+    let empty_original = call(&endpoint, "workspace.get", json!({"workspaceId":empty_ws}));
+    assert_ne!(empty_original["isError"], true, "{empty_original}");
+    assert_eq!(
+        empty_original["structuredContent"]["dirty"], false,
+        "the outer root-owned Git tree is intentionally byte-clean: {empty_original}"
+    );
+    let source_digest = empty_original["structuredContent"]["sourceStateDigest"]
+        .as_str()
+        .expect("original CAS source state");
+    let refused = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":empty_ws,"consumerReleased":true,"force":false,
+              "expectedSourceStateDigest":source_digest}),
+    );
+    assert_eq!(
+        refused["isError"], true,
+        "private-only candidate cannot disappear from the original CAS Close: {refused}"
+    );
+    assert_eq!(
+        refused["structuredContent"]["error"]["code"], "WORKSPACE_DIRTY",
+        "{refused}"
+    );
+    let snapshot = fixture
+        .root
+        .join("store/cache/workspaces")
+        .join(empty_ws)
+        .join("agent-git");
+    assert!(
+        snapshot.join("objects").is_dir(),
+        "private candidate must remain"
+    );
+    let receiver = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .arg("fetch")
+        .args(["--no-tags"])
+        .arg(&snapshot)
+        .arg("refs/heads/agent-work:refs/heads/reviewed-empty-output")
+        .output()
+        .unwrap();
+    assert!(
+        receiver.status.success(),
+        "consumer must import independently: {}",
+        String::from_utf8_lossy(&receiver.stderr)
+    );
+    let received = Command::new("git")
+        .arg("-C")
+        .arg(&repo)
+        .args(["rev-parse", "refs/heads/reviewed-empty-output"])
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8(received.stdout).unwrap().trim(),
+        empty_commit
+    );
+    // The independent test-owned consumer now possesses immutable Git
+    // objects. Only then may the source-side private ref be relinquished.
+    let retired = Command::new("git")
+        .arg("--git-dir")
+        .arg(&snapshot)
+        .args(["update-ref", "refs/heads/agent-work", original_head])
+        .output()
+        .unwrap();
+    assert!(
+        retired.status.success(),
+        "retire candidate after receiver readback: {}",
+        String::from_utf8_lossy(&retired.stderr)
+    );
+    let closed = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":empty_ws,"consumerReleased":true,"force":false,
+              "expectedSourceStateDigest":source_digest}),
+    );
+    assert_ne!(
+        closed["isError"], true,
+        "candidate accepted, original native Close: {closed}"
+    );
+    assert_eq!(closed["structuredContent"]["removed"], true, "{closed}");
+    assert!(
+        !snapshot.exists(),
+        "old private Git cache was not collected"
+    );
+    eprintln!("R60_REAL_PG18_GIT_EMPTY_COMMIT_SOURCECLEAN_NATIVE_CLOSE_DENY_THEN_INDEPENDENT_ACCEPT_CLOSE_PASS");
+    eprintln!("R63_ORDINARY_NONROOT_PRIVATE_GIT_ORIGINAL_SOURCE_RECIPIENT_PASS");
 }
 
 /**
@@ -6516,6 +6829,10 @@ printf '%s' "$candidate"
 fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() {
     let mut fixture = Fixture::new();
     fixture.host_visible_test_runner = true;
+    // Original contained_local consumer needs the native nonroot Git owner
+    // established on the Workspace BEFORE the trusted->contained cutover.
+    // This is the existing mature fixture mechanism, not a new Runtime grant.
+    fixture.contained_nonroot_test = true;
     let repo = fixture.repo();
     let initial_endpoint = fixture.endpoint();
     let opened = call(

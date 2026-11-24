@@ -1770,6 +1770,8 @@ mod trusted_systemd_command_tests {
             "ProtectHome=tmpfs",
             "InaccessiblePaths=-/etc/ordivon",
             "PrivateNetwork=yes",
+            "ProtectProc=invisible",
+            "PrivatePIDs=yes",
             "NoNewPrivileges=yes",
             "CapabilityBoundingSet=",
             "ProtectControlGroups=yes",

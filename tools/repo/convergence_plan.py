@@ -13,6 +13,12 @@ from collections.abc import Iterable
 from pathlib import Path
 
 import affected_owners
+from pg_issuer_consumer import (
+    RUNTIME_PG_CORE_ROOT as _RUNTIME_PG_CORE_ROOT,
+)
+from pg_issuer_consumer import (
+    locate_original_harness_issuer_source as _original_harness_issuer_behavior_source,
+)
 
 DEPENDENCY_PATH = Path(__file__).with_name("dependency_contracts.toml")
 ROOT_TASKS_PATH = Path(__file__).resolve().parents[2] / "mise.toml"
@@ -157,8 +163,11 @@ def load_dependency_graph(
             seam.get("kind") == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
             and (left, right) == ("runtime", "harness")
         ):
+            # The original Harness issuer is a *physical test behavior*,
+            # not a permanent file address. Its bounded Rust owner source
+            # root plus one unique, annotated libtest case is the consumer.
             test_sources = {
-                "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs": "root",
+                _RUNTIME_PG_CORE_ROOT: "root",
                 "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs": "repo_root",
             }
             source = seam.get("source_glob")
@@ -171,7 +180,12 @@ def load_dependency_graph(
             } if prefix is not None else {}
             fragment = seam.get("allowed_fragment")
             repo = Path(__file__).resolve().parents[2]
-            actual = repo / source if isinstance(source, str) else repo
+            if source == _RUNTIME_PG_CORE_ROOT:
+                # Resolve the true test by executable Cargo behavior. No
+                # exact pg_admission.rs/issuer_cases.rs file-shape assertion.
+                actual = repo / _original_harness_issuer_behavior_source(repo)
+            else:
+                actual = repo / source if isinstance(source, str) else repo
             if (
                 fragment not in allowed_paths
                 or seam.get("contract_ref") != fixture
@@ -680,8 +694,8 @@ def build_qualified_temporal_impact(
     implementation proof, runtime call graph, installed-effect certification,
     or permission to reuse stale proofs.
     """
-    from source_history_legos import compact_source_impact, source_membership_delta
     import exhaustive_coverage as source
+    from source_history_legos import compact_source_impact, source_membership_delta
 
     if not prefixes or len(prefixes) > 8 or len(set(prefixes)) != len(prefixes):
         raise ValueError("temporal impact requires 1..8 distinct scoped Git prefixes")
