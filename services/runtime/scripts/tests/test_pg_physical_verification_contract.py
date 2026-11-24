@@ -54,17 +54,34 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
                     else "ORDIVON_PG_TEST_DSN")
         with tempfile.TemporaryDirectory() as temp:
             cargo = Path(temp) / "cargo"
-            cargo.write_text(
+            binary = Path(temp) / "ordivon_runtime_core-fixture"
+            artifact = json.dumps({
+                "reason": "compiler-artifact",
+                "target": {"name": "ordivon_runtime_core", "kind": ["lib"],
+                           "src_path": str(ROOT / "crates/ordivon-runtime-core/src/lib.rs")},
+                "profile": {"test": True},
+                "features": ["postgres-registry-admission", "runtime-contract"],
+                "executable": str(binary),
+            })
+            binary.write_text(
                 '#!/bin/sh\n'
                 f'[ -n "${variable}" ] && [ -z "${opposite}" ] || exit 97\n'
                 'case " $* " in *" --list "*) '
-                f'printf "%s\\n" {shlex.quote(inventory)};; '
-                f'*) printf "%s\\n" {shlex.quote(output)}; exit {exit_code};; esac\n',
+                f'printf "%s\n" {shlex.quote(inventory)};; '
+                f'*) printf "%s\n" {shlex.quote(output)}; exit {exit_code};; esac\n',
+                encoding="utf-8",
+            )
+            binary.chmod(0o700)
+            cargo.write_text(
+                '#!/bin/sh\n'
+                f'[ -z "${variable}" ] && [ -z "${opposite}" ] || exit 98\n'
+                'case " $* " in *" --no-run "*) '
+                f'printf "%s\n" {shlex.quote(artifact)};; *) exit 96;; esac\n',
                 encoding="utf-8",
             )
             cargo.chmod(0o700)
             env = {**os.environ, "PATH": temp + os.pathsep + os.environ["PATH"],
-                   variable: dsn, opposite: "must-not-reach-child"}
+                   "CARGO_TARGET_DIR": temp, variable: dsn, opposite: "must-not-reach-child"}
             return subprocess.run(["bash", "-c", command], cwd=ROOT, env=env,
                                   capture_output=True, text=True, timeout=15)
 
@@ -116,6 +133,64 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
                 result = self._run_stub_lane(task, variable, inventory, output, dsn="  ")
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertIn(variable, result.stderr)
+
+    def test_stage_inventory_and_execution_use_one_compiler_selected_binary(self):
+        """The real task must not ask Cargo to rebuild after listing."""
+        with MISE.open("rb") as stream:
+            command = tomllib.load(stream)["tasks"]["test:postgres-registry:stage"]["run"]
+        with tempfile.TemporaryDirectory() as raw:
+            temp = Path(raw)
+            binary = temp / "ordivon_runtime_core-fixture"
+            cargo = temp / "cargo"
+            calls = temp / "cargo-calls"
+            identity = "fixture::historical_pg_stage_is_not_an_admission_authority"
+            artifact = json.dumps({
+                "reason": "compiler-artifact",
+                "target": {"name": "ordivon_runtime_core", "kind": ["lib"],
+                           "src_path": str(ROOT / "crates/ordivon-runtime-core/src/lib.rs")},
+                "profile": {"test": True},
+                "features": ["postgres-registry-admission", "runtime-contract"],
+                "executable": str(binary),
+            })
+            listing = f"{identity}: test"
+            result = f"test {identity} ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored;"
+            binary.write_text(
+                "#!/bin/sh\n"
+                '[ -n "$ORDIVON_PG_STAGE_TEST_DSN" ] && [ -z "$ORDIVON_PG_TEST_DSN" ] || exit 97\n'
+                'case " $* " in *" --list "*) '
+                f'printf "%s\n" {shlex.quote(listing)};; '
+                f'*) printf "%s\n" {shlex.quote(result)};; esac\n'
+            )
+            binary.chmod(0o700)
+            cargo.write_text(
+                "#!/bin/sh\n"
+                f'echo call >> {shlex.quote(str(calls))}\n'
+                'case " $* " in *" --no-run "*) '
+                '[ -z "$ORDIVON_PG_STAGE_TEST_DSN" ] && [ -z "$ORDIVON_PG_TEST_DSN" ] || exit 98; '
+                f'printf "%s\n" {shlex.quote(artifact)};; '
+                # Old two-Cargo implementation gets a green result despite
+                # never selecting a single build artifact.
+                f'*" --list "*) printf "%s\n" {shlex.quote(listing)};; '
+                f'*) printf "%s\n" {shlex.quote(result)};; esac\n'
+            )
+            cargo.chmod(0o700)
+            env = {**os.environ, "PATH": raw + os.pathsep + os.environ["PATH"],
+                   "CARGO_TARGET_DIR": raw, "ORDIVON_PG_STAGE_TEST_DSN": "fixture",
+                   "ORDIVON_PG_TEST_DSN": "must-not-reach-child"}
+            observed = subprocess.run(["bash", "-c", command], cwd=ROOT, env=env,
+                                      capture_output=True, text=True, timeout=15)
+            self.assertEqual(observed.returncode, 0, observed.stdout + observed.stderr)
+            self.assertEqual(calls.read_text().splitlines(), ["call"])
+            # An on-disk executable change during listing cannot qualify.
+            binary.write_text(binary.read_text().replace(
+                'case " $* " in *" --list "*) ',
+                'case " $* " in *" --list "*) echo "# drift" >> "$0"; ',
+            ))
+            changed = subprocess.run(["bash", "-c", command], cwd=ROOT, env=env,
+                                     capture_output=True, text=True, timeout=15)
+            self.assertNotEqual(changed.returncode, 0, changed.stdout + changed.stderr)
+            self.assertNotIn("STAGE_PG18_PASS=", changed.stdout)
+            self.assertIn("artifact", changed.stderr.lower())
 
     def test_fresh_physical_lane_cannot_run_without_test_dsn(self) -> None:
         self._assert_dsn_required(
