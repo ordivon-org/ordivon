@@ -93,8 +93,9 @@ def test_windows_service_identity_env_is_file_reference_only(
     assert endpoint.access_client_secret_file == client_secret
 
 
+@pytest.mark.parametrize("trace_failure", [False, True])
 def test_conforming_owner_uses_first_class_mcp_client(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, trace_failure: bool
 ) -> None:
     import ordivon_gateway.transport.upstream as upstream
 
@@ -134,16 +135,14 @@ def test_conforming_owner_uses_first_class_mcp_client(
         ),
     )
     monkeypatch.setattr(upstream, "Client", FakeClient)
-    monkeypatch.setattr(
-        upstream,
-        "inject_trace_context",
-        lambda meta: meta.update(
-            {
-                "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
-                "tracestate": "vendor=value",
-            }
-        ),
-    )
+
+    def inject(meta):
+        meta["traceparent"] = "00-11111111111111111111111111111111-2222222222222222-01"
+        if trace_failure:
+            raise OSError("partial diagnostic metadata")
+        meta["tracestate"] = "vendor=value"
+
+    monkeypatch.setattr(upstream, "inject_trace_context", inject)
 
     caller = McpOwnerCaller(
         {
@@ -162,7 +161,9 @@ def test_conforming_owner_uses_first_class_mcp_client(
     assert observed["call"] == (
         "host.status",
         {"detail": "summary"},
-        {
+        None
+        if trace_failure
+        else {
             "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
             "tracestate": "vendor=value",
         },
@@ -536,3 +537,56 @@ def test_owner_credential_rejects_oversized_secret(tmp_path: Path) -> None:
     _secret(oversized, "x" * 16_385)
     with pytest.raises(OwnerCallError, match="size bound"):
         _read_private_secret_file(str(oversized), "owner bearer token")
+
+
+def test_owner_cancellation_survives_diagnostic_warning_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from ordivon_gateway.transport import upstream
+
+    cancellation = asyncio.CancelledError("fixture cancellation")
+    attempts = []
+
+    class Pool:
+        async def aclose(self):
+            pass
+
+    class Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def call_tool(self, *args, **kwargs):
+            attempts.append("call")
+            raise cancellation
+
+    def broken_warning(*args, **kwargs):
+        raise OSError("diagnostic device unavailable")
+
+    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: Pool())
+    monkeypatch.setattr(upstream, "streamable_http_client", lambda *args, **kwargs: object())
+    monkeypatch.setattr(upstream, "Client", Client)
+    monkeypatch.setattr(upstream._LOG, "warning", broken_warning)
+    caller = McpOwnerCaller(
+        {
+            "host": OwnerEndpoint(
+                "https://host.example/mcp", bearer_token_file=_secret(tmp_path / "token", "x" * 48)
+            )
+        }
+    )
+
+    async def run():
+        try:
+            with pytest.raises(asyncio.CancelledError) as caught:
+                await caller.call_tool("host", "host.status", {"detail": "summary"})
+            assert caught.value is cancellation
+        finally:
+            await caller.aclose()
+
+    asyncio.run(run())
+    assert attempts == ["call"]
