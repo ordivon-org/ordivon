@@ -11,17 +11,54 @@ use std::path::Path;
 // Keep the exact recovery current-Attempt selectors shared with native PG
 // falsification tests; current is an explicit Job pointer, not MAX(number).
 pub(super) const RECOVERY_CURRENT_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
-pub(super) const RELEASE_CURRENT_ATTEMPT_STATE_SQL: &str = "SELECT a.state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
 
 // Observation is not an external effect. A terminal PG Job intentionally
 // clears current_attempt_id after its terminal Attempt and events are committed.
 // Bind read-only projection to the exact Attempt already qualified by
 // observe_job_readonly(), never to an unverified newest historical Attempt.
 pub(super) const READBACK_VERIFIED_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number FROM jobs j JOIN attempts a ON a.job_id=j.job_id AND a.attempt_id=$2 WHERE j.job_id=$1 AND j.row_version=$3 AND a.row_version=$4 AND j.resolution IS NOT DISTINCT FROM $5::TEXT AND (($5::TEXT IS NULL AND j.current_attempt_id=a.attempt_id) OR ($5::TEXT IS NOT NULL AND j.current_attempt_id IS NULL AND a.state=$5::TEXT))";
-// Both native release control and normal native reconciliation use the
-// existing one PG query to detect completed work. It never authorizes an
-// external effect based on a historical Attempt.
-pub(super) const RECONCILIATION_STAGE_SQL: &str = "SELECT (SELECT resolution FROM jobs WHERE job_id=$1), EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)";
+// Resolve stage and exact current Attempt in one PostgreSQL statement snapshot.
+// A concurrent terminal commit clears current_attempt_id atomically. Separate
+// stage and current-pointer queries can observe opposite sides of that commit.
+pub(super) const RECONCILIATION_READBACK_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number,j.resolution,EXISTS(SELECT 1 FROM job_runtime_release_effects e WHERE e.job_id=j.job_id),j.current_attempt_id FROM jobs j LEFT JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
+
+pub(super) enum ReconciliationReadback {
+    // A resolved pointer is never native effect authority. Read-only projection
+    // still independently validates the terminal Attempt/reservation/events.
+    Resolved,
+    ReleaseAccepted,
+    Active(postgres::Row),
+}
+
+pub(super) fn classify_reconciliation_readback(
+    row: Option<postgres::Row>,
+    job: &str,
+) -> RuntimeResult<ReconciliationReadback> {
+    let row = require_recovery_current_attempt(row, job)?;
+    if row.get::<_, Option<String>>(12).is_some() {
+        if row.get::<_, Option<String>>(14).is_none() {
+            return Ok(ReconciliationReadback::Resolved);
+        }
+        return require_recovery_current_attempt(None, job).map(ReconciliationReadback::Active);
+    }
+    if row.get::<_, Option<String>>(0).is_none() {
+        return require_recovery_current_attempt(None, job).map(ReconciliationReadback::Active);
+    }
+    if row.get::<_, bool>(13) {
+        return if row.get::<_, String>(1) == "accepted" {
+            Ok(ReconciliationReadback::ReleaseAccepted)
+        } else {
+            Err(RuntimeError::new(
+                RuntimeErrorCode::ReconciliationRequired,
+                "ReleaseEffect requires operator receipt reconciliation",
+                Some("runtimeReleaseEffect"),
+                false,
+            )
+            .with_operation_id(job))
+        };
+    }
+    Ok(ReconciliationReadback::Active(row))
+}
 
 /// An absent or foreign current Attempt is an inconsistent committed
 /// lifecycle identity, not PostgreSQL transport unavailability. Never infer
@@ -60,29 +97,43 @@ pub(super) fn needs_recovery_observation(state: AttemptState, terminal: bool) ->
 // projected from the *registered* Artifact path (old live-path registrations
 
 impl PgRuntime {
-    // One existing PG read, shared by regular reconciliation and cancellation.
-    // An accepted STOP_REQUESTED Attempt needs qualified native identity but
-    // no executable Plan: no OS dispatch may ever consume those Plan bytes.
-    pub(super) fn current_attempt_row(
+    pub(super) fn reconciliation_readback(
         &self,
         db: &mut PgAdmissionStore,
         job: &str,
-    ) -> RuntimeResult<postgres::Row> {
-        require_recovery_current_attempt(
+    ) -> RuntimeResult<ReconciliationReadback> {
+        classify_reconciliation_readback(
             db.client
-                .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&job])
+                .query_opt(RECONCILIATION_READBACK_SQL, &[&job])
                 .map_err(pg_read_error)?,
             job,
         )
     }
 
-    pub(in crate::runtime::pg_runtime) fn attempt(
+    // A late terminal commit after a native call or a losing bind CAS must
+    // stop effect reconciliation, not turn cleared current into corruption.
+    // Never replace the original physical Attempt with a different owner.
+    pub(super) fn refresh_reconciling_attempt(
         &self,
         db: &mut PgAdmissionStore,
         job: &str,
-    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
-        let r = self.current_attempt_row(db, job)?;
-        self.decode_attempt_record(&r, job)
+        expected_attempt_id: &str,
+    ) -> RuntimeResult<Option<AttemptRecord>> {
+        match self.reconciliation_readback(db, job)? {
+            ReconciliationReadback::Resolved => Ok(None),
+            ReconciliationReadback::Active(row)
+                if row.get::<_, String>(0) == expected_attempt_id =>
+            {
+                self.decode_attempt_identity(&row, job).map(Some)
+            }
+            _ => Err(RuntimeError::new(
+                RuntimeErrorCode::ReconciliationRequired,
+                "original native Attempt changed during reconciliation",
+                Some("currentAttemptId"),
+                false,
+            )
+            .with_operation_id(job)),
+        }
     }
 
     /// Read-only identity may be historical only after the existing PG

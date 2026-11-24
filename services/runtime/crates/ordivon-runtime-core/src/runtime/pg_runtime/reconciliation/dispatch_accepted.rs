@@ -1,5 +1,5 @@
 //! One already-admitted Attempt's exact bundle, PG handoff, and native systemd spawn.
-//! A false result means PG/OS dispatch was already blocked or not requested.
+//! A false result means no further native reconciliation is needed at this cut.
 use super::{
     error, fs, io, now, pg, prepare_private_pg_attempt_bundle, universal, AttemptRecord,
     AttemptState, AttemptTerminationIntent, ExecutionProfile, PgAdmissionStore, PgBundleReady,
@@ -282,7 +282,10 @@ impl PgRuntime {
                 )
                 .with_operation_id(job.to_string()));
             }
-            *a = self.attempt(db, job)?.0;
+            let Some(current) = self.refresh_reconciling_attempt(db, job, &a.attempt_id)? else {
+                return Ok(false);
+            };
+            *a = current;
             // A cancellation may win *after* the pre-handoff CAS and while
             // systemd-run delivers to the asynchronous Manager. Request an
             // exact Unit stop; the later OS+PG reconciliation alone may

@@ -3,8 +3,7 @@ use super::{
     decode, error, fs, io, native_running_witness, now, observed_namespace_pid, pg, pg_read_error,
     universal, AttemptState, AttemptTerminationIntent, NativePidReadback, PgAdmissionError,
     PgAdmissionStore, PgArtifactRegistration, PgRuntime, PgTerminalNoArtifacts,
-    RunnerStartEvidence, RuntimeError, RuntimeErrorCode, RuntimeResult, RECONCILIATION_STAGE_SQL,
-    RELEASE_CURRENT_ATTEMPT_STATE_SQL,
+    ReconciliationReadback, RunnerStartEvidence, RuntimeResult,
 };
 use std::path::{Path, PathBuf};
 
@@ -22,44 +21,14 @@ impl PgRuntime {
         job: &str,
         allow_dispatch: bool,
     ) -> RuntimeResult<()> {
-        // Preserve the existing one-query ReleaseEffect classification, now
-        // also reading the terminal flag. The atomic terminal PG transition
-        // deliberately clears current_attempt_id. A resolved Job has no
-        // remaining native effect to reconcile; ONLY project/get then verify
-        // its lifecycle, reservation, exact Attempt, and terminal events.
-        // This does not make a historical Attempt eligible for Runner effects.
-        let stage = db
-            .client
-            .query_one(RECONCILIATION_STAGE_SQL, &[&job])
-            .map_err(pg_read_error)?;
-        if stage.get::<_, Option<String>>(0).is_some() {
-            return Ok(());
-        }
-        let is_release: bool = stage.get(1);
-        if is_release {
-            // Accepted means no physical release dispatch occurred. Any other
-            // Attempt state without a release-specific operator receipt is
-            // inconsistent; never reconcile it through the generic Runner.
-            let row = db
-                .client
-                .query_opt(RELEASE_CURRENT_ATTEMPT_STATE_SQL, &[&job])
-                .map_err(pg_read_error)?;
-            return match row.map(|value| value.get::<_, String>(0)).as_deref() {
-                Some("accepted") => Ok(()),
-                _ => Err(RuntimeError::new(
-                    RuntimeErrorCode::ReconciliationRequired,
-                    "ReleaseEffect requires operator receipt reconciliation",
-                    Some("runtimeReleaseEffect"),
-                    false,
-                )
-                .with_operation_id(job)),
-            };
-        }
-        // Decode the *same* committed current-Attempt row just once.
-        // A pre-dispatch STOP_REQUESTED is locally finalizable without
-        // consulting the frozen execution Plan or mutable Provider snapshot.
-        // All other states preserve the existing strict full-Plan readback.
-        let row = self.current_attempt_row(db, job)?;
+        // Resolve terminal/release classification and the current Attempt in
+        // a single statement snapshot; a resolved Job is projection-only.
+        let row = match self.reconciliation_readback(db, job)? {
+            ReconciliationReadback::Resolved | ReconciliationReadback::ReleaseAccepted => {
+                return Ok(())
+            }
+            ReconciliationReadback::Active(row) => row,
+        };
         if row.get::<_, String>(1) == "accepted" && row.get::<_, String>(2) == "stop_requested" {
             let a = self.decode_attempt_identity(&row, job)?;
             return self.reconcile_accepted_cancel(db, job, &a);
@@ -141,7 +110,12 @@ impl PgRuntime {
                             Err(PgAdmissionError::Blocked | PgAdmissionError::UnknownCommit) => {
                                 // A concurrent cancellation/terminal won. Read its
                                 // original PG Attempt; never redispatch or revive it.
-                                a = self.attempt(db, job)?.0;
+                                let Some(current) =
+                                    self.refresh_reconciling_attempt(db, job, &a.attempt_id)?
+                                else {
+                                    return Ok(());
+                                };
+                                a = current;
                             }
                             Err(err) => return Err(pg(err)),
                         }

@@ -170,19 +170,24 @@ fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects(
     // reauthorize a terminal ReleaseEffect after its PG current pointer
     // was atomically cleared. Unresolved accepted work still requires
     // strict current identity and stays eligible for normal reconciliation.
-    let release_terminal = db
-        .query_one(RECONCILIATION_STAGE_SQL, &[&"terminal-a"])
-        .unwrap();
-    assert_eq!(
-        release_terminal.get::<_, Option<String>>(0).as_deref(),
-        Some("succeeded")
-    );
-    assert!(release_terminal.get::<_, bool>(1));
-    let unresolved_stage = db
-        .query_one(RECONCILIATION_STAGE_SQL, &[&"accepted-b"])
-        .unwrap();
-    assert!(unresolved_stage.get::<_, Option<String>>(0).is_none());
-    assert!(!unresolved_stage.get::<_, bool>(1));
+    assert!(matches!(
+        classify_reconciliation_readback(
+            db.query_opt(RECONCILIATION_READBACK_SQL, &[&"terminal-a"])
+                .unwrap(),
+            "terminal-a"
+        )
+        .unwrap(),
+        ReconciliationReadback::Resolved
+    ));
+    assert!(matches!(
+        classify_reconciliation_readback(
+            db.query_opt(RECONCILIATION_READBACK_SQL, &[&"accepted-b"])
+                .unwrap(),
+            "accepted-b"
+        )
+        .unwrap(),
+        ReconciliationReadback::Active(_)
+    ));
 
     // In this fixture, the lifecycle/event verifier has already
     // established exact terminal-verified; a later historical Attempt
@@ -296,36 +301,84 @@ fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects(
 
 #[test]
 #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
-fn native_pg_release_effect_uses_current_attempt_for_dispatch_boundary() {
+fn pg18_native_reconciliation_one_cut_handles_terminal_race_and_release_identity() {
     let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
         .expect("dedicated disposable PostgreSQL cluster required");
     let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
     db.batch_execute(
         "CREATE TEMP TABLE jobs (
-                job_id text PRIMARY KEY, current_attempt_id text);
+                job_id text PRIMARY KEY, current_attempt_id text,
+                resolution text, execution_plan_json text, operation_digest text);
+             CREATE TEMP TABLE job_runtime_release_effects (job_id text PRIMARY KEY);
              CREATE TEMP TABLE attempts (
                 attempt_id text PRIMARY KEY, job_id text,
-                attempt_number bigint, state text);
-             INSERT INTO jobs VALUES ('release-a','release-current');
+                attempt_number bigint, state text, termination_intent text,
+                launch_token_digest text, bundle_path text, unit_name text,
+                created_at_ms bigint, row_version bigint, bundle_digest text);
+             INSERT INTO jobs VALUES
+                ('release-a','release-current',NULL,'{}','op-a'),
+                ('race-b','race-current',NULL,'{}','op-b'),
+                ('invalid-c',NULL,NULL,'{}','op-c');
+             INSERT INTO job_runtime_release_effects VALUES ('release-a');
              INSERT INTO attempts VALUES
-                ('release-current','release-a',1,'accepted'),
-                ('release-future','release-a',2,'running');",
+                ('release-current','release-a',1,'accepted','natural','l-a','/tmp/a','unit-a',1,0,NULL),
+                ('release-future','release-a',2,'running','natural','l-f','/tmp/f','unit-f',1,0,NULL),
+                ('race-current','race-b',1,'running','natural','l-b','/tmp/b','unit-b',1,0,NULL),
+                ('invalid-history','invalid-c',1,'succeeded','natural','l-c','/tmp/c','unit-c',1,0,NULL);",
+    ).unwrap();
+    let read = |db: &mut postgres::Client, job: &str| {
+        classify_reconciliation_readback(
+            db.query_opt(RECONCILIATION_READBACK_SQL, &[&job]).unwrap(),
+            job,
+        )
+    };
+    assert!(matches!(
+        read(&mut db, "release-a").unwrap(),
+        ReconciliationReadback::ReleaseAccepted
+    ));
+    let row = read(&mut db, "race-b").unwrap();
+    match row {
+        ReconciliationReadback::Active(row) => assert_eq!(row.get::<_, String>(0), "race-current"),
+        _ => panic!("active original Attempt must be exact"),
+    }
+    // Deterministic interleaving: a stage read before the terminal commit,
+    // then the strict old current selector after the same commit. The
+    // old two-query path reports an incoherent current pointer.
+    let earlier: Option<String> = db
+        .query_one("SELECT resolution FROM jobs WHERE job_id='race-b'", &[])
+        .unwrap()
+        .get(0);
+    assert!(earlier.is_none());
+    db.batch_execute("BEGIN; UPDATE attempts SET state='succeeded' WHERE attempt_id='race-current'; UPDATE jobs SET resolution='succeeded',current_attempt_id=NULL WHERE job_id='race-b'; COMMIT;").unwrap();
+    assert!(require_recovery_current_attempt(
+        db.query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&"race-b"])
+            .unwrap(),
+        "race-b"
     )
-    .unwrap();
-    let row = db
-        .query_one(RELEASE_CURRENT_ATTEMPT_STATE_SQL, &[&"release-a"])
-        .unwrap();
-    assert_eq!(row.get::<_, String>(0), "accepted");
+    .is_err());
+    assert!(matches!(
+        read(&mut db, "race-b").unwrap(),
+        ReconciliationReadback::Resolved
+    ));
     db.execute(
         "UPDATE jobs SET current_attempt_id=NULL WHERE job_id='release-a'",
         &[],
     )
     .unwrap();
+    for job in ["release-a", "invalid-c", "missing"] {
+        match read(&mut db, job) {
+            Err(error) => assert_eq!(error.code, RuntimeErrorCode::ReconciliationRequired),
+            Ok(_) => panic!("unresolved absent pointer must not borrow history: {job}"),
+        }
+    }
+    db.execute(
+        "UPDATE jobs SET current_attempt_id='release-current' WHERE job_id='race-b'",
+        &[],
+    )
+    .unwrap();
     assert!(
-        db.query_opt(RELEASE_CURRENT_ATTEMPT_STATE_SQL, &[&"release-a"])
-            .unwrap()
-            .is_none(),
-        "missing release current pointer cannot borrow a historical Attempt"
+        read(&mut db, "race-b").is_err(),
+        "resolved plus foreign pointer is corrupt"
     );
 }
 
