@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import sqlite3
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,6 +17,7 @@ import playwright_browserless_turn_once as turn  # noqa: E402
 from agent_automation_browserless import (  # noqa: E402
     BrowserlessAutomationConfig,
     BrowserlessAutomationHold,
+    BrowserlessAutomationConflict,
     BrowserlessAutomationService,
 )
 
@@ -214,3 +217,72 @@ def test_wake_without_affinity_admits_materialization_fallback_and_does_not_cont
     assert value["turnRequestId"] == TURN_ID
     assert value["promptSent"] is False
     assert value["promptSendStanding"] == "NOT_SENT_BY_THIS_ADMISSION"
+
+# A durable turn effect outranks a new placement decision. These fixtures use
+# the actual local wake mapping and effect read; provider/Temporal calls are spies.
+@pytest.mark.parametrize("state", ["UNKNOWN", "COMPLETED"])
+@pytest.mark.parametrize("placement", ["MATERIALIZE_FALLBACK", "HOLD_EXISTING_AFFINITY"])
+def test_wake_replay_preserves_claimed_turn(tmp_path: Path, state: str, placement: str) -> None:
+    svc = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(config(tmp_path)))
+    path = spec_path(tmp_path)
+    from sqlite_wake_turn_map import SQLiteWakeTurnMap
+
+    digest = "sha256:" + hashlib.sha256(b"next").hexdigest()
+    ledger = svc.config.turn_ledger
+    owner = SQLiteWakeTurnMap(ledger, uuid7_factory=lambda: TURN_ID)
+    owner.allocate(campaign_ref=CAMPAIGN_REF, agent_id="A01",
+                   wake_intent_id="wake:claimed", prompt_digest=digest)
+    with sqlite3.connect(ledger) as db:
+        db.execute("CREATE TABLE turn_effects(turn_request_id TEXT PRIMARY KEY, "
+                   "prompt_digest TEXT, target_coordinate TEXT, state TEXT, "
+                   "receipt_json TEXT, updated_at_ms INTEGER)")
+        db.execute("INSERT INTO turn_effects VALUES(?,?,?,?,?,?)",
+                   (TURN_ID, digest, "https://chatgpt.com/c/original", state, None, 1))
+    with (
+        mock.patch.object(svc, "conversation_affinity", return_value={"placementAction": placement}) as affinity,
+        mock.patch.object(svc, "launch_reconcile") as materialize,
+        mock.patch.object(svc, "_temporal_admit",
+                          return_value={"workflowId": TURN_ID, "disposition": "existing"}) as temporal,
+        mock.patch("agent_automation_browserless.campaign_census", return_value={"materializations": []}),
+    ):
+        result = svc.launch_wake(path, CAMPAIGN_REF, "A01",
+                                 wake_intent_id="wake:claimed", prompt="next")
+    affinity.assert_not_called()
+    materialize.assert_not_called()
+    temporal.assert_called_once_with(path, "continue", agent_id="A01", prompt="next",
+                                     turn_request_id=TURN_ID)
+    assert result["turnRequestId"] == TURN_ID
+    assert result["placementAction"] == "CONTINUE"
+    assert result["continuation"]["turnLedgerStanding"] == state
+    assert result["continuation"]["retryAdmitted"] is False
+    assert result["promptSent"] is None
+    assert result["promptSendStanding"] == "UNCONFIRMED"
+
+@pytest.mark.parametrize("failure", ["wrong-digest", "unavailable"])
+def test_wake_effect_observation_failure_never_places_again(tmp_path: Path, failure: str) -> None:
+    svc = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(config(tmp_path)))
+    path = spec_path(tmp_path)
+    from sqlite_wake_turn_map import SQLiteWakeTurnMap
+
+    digest = "sha256:" + hashlib.sha256(b"next").hexdigest()
+    SQLiteWakeTurnMap(svc.config.turn_ledger, uuid7_factory=lambda: TURN_ID).allocate(
+        campaign_ref=CAMPAIGN_REF, agent_id="A01", wake_intent_id="wake:claimed",
+        prompt_digest=digest,
+    )
+    error = BrowserlessAutomationConflict if failure == "wrong-digest" else OSError
+    observation = (
+        {"return_value": {"promptDigest": "sha256:" + "b" * 64, "state": "UNKNOWN"}}
+        if failure == "wrong-digest" else {"side_effect": OSError("effect read unavailable")}
+    )
+    with (
+        mock.patch.object(svc, "_turn_effect_row", **observation),
+        mock.patch.object(svc, "conversation_affinity") as affinity,
+        mock.patch.object(svc, "launch_reconcile") as materialize,
+        mock.patch.object(svc, "_temporal_admit") as temporal,
+        pytest.raises(error),
+    ):
+        svc.launch_wake(path, CAMPAIGN_REF, "A01",
+                        wake_intent_id="wake:claimed", prompt="next")
+    affinity.assert_not_called()
+    materialize.assert_not_called()
+    temporal.assert_not_called()

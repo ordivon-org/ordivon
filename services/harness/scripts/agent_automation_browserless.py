@@ -1639,25 +1639,34 @@ class BrowserlessAutomationService:
             )
         except WakeTurnConflict as error:
             raise BrowserlessAutomationConflict(str(error)) from error
-        affinity = self.conversation_affinity(spec_path, campaign_ref, agent_id)
-        if affinity["placementAction"] == "HOLD_EXISTING_AFFINITY":
-            raise BrowserlessAutomationHold(
-                "existing conversation affinity is not currently usable"
+        # A persisted turn effect outranks fresh placement. Exact replay follows
+        # the existing continuation fence, not a new materialization decision.
+        # This is an observation, not an atomic cross-store admission fence.
+        observed_effect = self._turn_effect_row(mapping["turnRequestId"])
+        if observed_effect is not None and observed_effect.get("promptDigest") != prompt_digest:
+            raise BrowserlessAutomationConflict(
+                "wake mapping differs from the claimed turn prompt identity"
             )
-        if affinity["placementAction"] == "MATERIALIZE_FALLBACK":
-            materialization = self.launch_reconcile(spec_path, agent_id)
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.conversation-wake",
-                "campaignRef": campaign_ref,
-                "agentId": agent_id,
-                "wakeIntentId": wake_intent_id,
-                "turnRequestId": mapping["turnRequestId"],
-                "placementAction": "MATERIALIZE_FALLBACK",
-                "promptSent": False,
-                "promptSendStanding": "NOT_SENT_BY_THIS_ADMISSION",
-                "materialization": materialization,
-            }
+        if observed_effect is None:
+            affinity = self.conversation_affinity(spec_path, campaign_ref, agent_id)
+            if affinity["placementAction"] == "HOLD_EXISTING_AFFINITY":
+                raise BrowserlessAutomationHold(
+                    "existing conversation affinity is not currently usable"
+                )
+            if affinity["placementAction"] == "MATERIALIZE_FALLBACK":
+                materialization = self.launch_reconcile(spec_path, agent_id)
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.conversation-wake",
+                    "campaignRef": campaign_ref,
+                    "agentId": agent_id,
+                    "wakeIntentId": wake_intent_id,
+                    "turnRequestId": mapping["turnRequestId"],
+                    "placementAction": "MATERIALIZE_FALLBACK",
+                    "promptSent": False,
+                    "promptSendStanding": "NOT_SENT_BY_THIS_ADMISSION",
+                    "materialization": materialization,
+                }
         continuation = self.launch_continue(
             spec_path,
             agent_id,
