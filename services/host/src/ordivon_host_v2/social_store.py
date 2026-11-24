@@ -1,20 +1,26 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 # Existing tests/tool consumers monkeypatch the shared psycopg module here.
 import psycopg as psycopg
 
-from .collaboration_inputs import MessageRelationKind
+from .collaboration_inputs import (
+    MessageInput,
+    MessageRelationInput,
+    MessageRelationKind,
+    ParticipationStanding,
+    SpaceInput,
+    TopicInput,
+)
 from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     DEFAULT_SPACE_MAX_BYTES,
 )
+from .coordination_inputs import CoordinationIntentInput
 from .coordination_intent_commands import CoordinationIntentCommands
 from .postgres_connections import HostPostgresConnections
-from .references.actor_refs import ActorReferenceLookup
-from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
@@ -31,16 +37,87 @@ from .social_topic_commands import SocialTopicCommands
 from .social_topic_queries import SocialTopicReadQueries
 
 
-class SocialStore(
-    SocialSpaceCommands,
-    SocialTopicCommands,
-    SocialMessageCommands,
-    CoordinationIntentCommands,
-    ActorReferenceLookup,
-    RecordReferenceLookup,
-    HostPostgresConnections,
-):
+class SocialStore(HostPostgresConnections):
     """Durable Social Graph records without IAM, scheduling, ranking, or effect authority."""
+
+    def create_space(self, value: SpaceInput, *, client_request_id: str) -> dict[str, Any]:
+        return SocialSpaceCommands(self._connect).create_space(
+            value, client_request_id=client_request_id
+        )
+
+    def set_participation(
+        self,
+        *,
+        space_ref: str,
+        actor_ref: str,
+        standing: ParticipationStanding,
+        client_request_id: str,
+    ) -> dict[str, Any]:
+        return SocialSpaceCommands(self._connect).set_participation(
+            space_ref=space_ref,
+            actor_ref=actor_ref,
+            standing=standing,
+            client_request_id=client_request_id,
+        )
+
+    def create_topic(self, value: TopicInput, *, client_request_id: str) -> dict[str, Any]:
+        return SocialTopicCommands(self._connect).create_topic(
+            value, client_request_id=client_request_id
+        )
+
+    def set_topic_state(
+        self,
+        *,
+        topic_ref: str,
+        actor_ref: str,
+        state: Literal["open", "closed", "archived"],
+        expected_state: Literal["open", "closed", "archived"],
+        expected_high_sequence: int,
+        client_request_id: str,
+    ) -> dict[str, Any]:
+        return SocialTopicCommands(self._connect).set_topic_state(
+            topic_ref=topic_ref,
+            actor_ref=actor_ref,
+            state=state,
+            expected_state=expected_state,
+            expected_high_sequence=expected_high_sequence,
+            client_request_id=client_request_id,
+        )
+
+    def ack_topic_cursor(
+        self,
+        *,
+        actor_ref: str,
+        topic_ref: str,
+        cursor: int,
+        client_request_id: str,
+    ) -> dict[str, Any]:
+        return SocialTopicCommands(self._connect).ack_topic_cursor(
+            actor_ref=actor_ref,
+            topic_ref=topic_ref,
+            cursor=cursor,
+            client_request_id=client_request_id,
+        )
+
+    def post_message(self, value: MessageInput) -> dict[str, Any]:
+        return SocialMessageCommands(self._connect).post_message(value)
+
+    def add_message_relation(
+        self,
+        value: MessageRelationInput,
+        *,
+        client_request_id: str,
+    ) -> dict[str, Any]:
+        return SocialMessageCommands(self._connect).add_message_relation(
+            value, client_request_id=client_request_id
+        )
+
+    def declare_intent(
+        self, value: CoordinationIntentInput, *, client_request_id: str
+    ) -> dict[str, Any]:
+        return CoordinationIntentCommands(self._connect).declare_intent(
+            value, client_request_id=client_request_id
+        )
 
     def get_space(
         self,
@@ -139,7 +216,9 @@ class SocialStore(
         )
 
     def get_topic_cursor(self, *, actor_ref: str, topic_ref: str) -> dict[str, Any]:
-        return SocialTopicReadQueries(self._connect).get_topic_cursor(actor_ref=actor_ref, topic_ref=topic_ref)
+        return SocialTopicReadQueries(self._connect).get_topic_cursor(
+            actor_ref=actor_ref, topic_ref=topic_ref
+        )
 
     def list_message_relations(
         self,
@@ -166,7 +245,9 @@ class SocialStore(
         *,
         expected_digest: str | None = None,
     ) -> dict[str, Any]:
-        return SocialMessageReadQueries(self._connect).get_message(message_ref, expected_digest=expected_digest)
+        return SocialMessageReadQueries(self._connect).get_message(
+            message_ref, expected_digest=expected_digest
+        )
 
     def search_messages(
         self,
