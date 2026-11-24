@@ -181,6 +181,8 @@ def test_wake_continue_reuses_stable_turn_identity(tmp_path: Path) -> None:
         first = svc.launch_wake(path, CAMPAIGN_REF, "A01", wake_intent_id="wake:1", prompt="next")
         second = svc.launch_wake(path, CAMPAIGN_REF, "A01", wake_intent_id="wake:1", prompt="next")
     assert first["turnRequestId"] == second["turnRequestId"] == TURN_ID
+    assert all(value["promptSent"] is None for value in (first, second))
+    assert all(value["promptSendStanding"] == "UNCONFIRMED" for value in (first, second))
     assert cont.call_count == 2
     assert all(call.kwargs["turn_request_id"] == TURN_ID for call in cont.call_args_list)
 
@@ -211,3 +213,4 @@ def test_wake_without_affinity_admits_materialization_fallback_and_does_not_cont
     assert value["placementAction"] == "MATERIALIZE_FALLBACK"
     assert value["turnRequestId"] == TURN_ID
     assert value["promptSent"] is False
+    assert value["promptSendStanding"] == "NOT_SENT_BY_THIS_ADMISSION"

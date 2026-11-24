@@ -244,3 +244,7 @@ worker quiescence and consumer deployment coordination. The physical PG tests
 use isolated, disposable PostgreSQL databases and do not certify production
 worker absence or cross-store atomicity. Retire old schema/code only after
 consumer penetration proves there is no remaining durable writer.
+
+### Wake admission is not provider delivery
+
+A continuation wake returns its durable turn identity and Temporal admission, not a provider delivery receipt. The compatibility field `promptSent` is null with `promptSendStanding=UNCONFIRMED` on continuation admission (including replay); it is false with `NOT_SENT_BY_THIS_ADMISSION` on materialization fallback, scoped only to that admission. Neither is permission to resend. Consumers must reconcile the same turn identity with the effect authority before asserting delivery, and separately qualify assistant output. Do not infer an earlier turn's delivery from a fallback response. The nullable field is a consumer-visible semantic correction; validate existing callers before activation.

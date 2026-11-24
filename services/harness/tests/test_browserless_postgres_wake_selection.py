@@ -56,7 +56,8 @@ def test_postgres_selected_only_after_source_retirement(
     )
     assert calls == ["PG", "sealed", "allocate"]
     assert result["turnRequestId"] == TURN_ID
-    assert result["promptSent"] is True
+    assert result["promptSent"] is None
+    assert result["promptSendStanding"] == "UNCONFIRMED"
 
 
 def test_unsealed_legacy_state_fails_closed_before_any_pg_write(

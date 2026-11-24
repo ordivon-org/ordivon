@@ -1655,6 +1655,7 @@ class BrowserlessAutomationService:
                 "turnRequestId": mapping["turnRequestId"],
                 "placementAction": "MATERIALIZE_FALLBACK",
                 "promptSent": False,
+                "promptSendStanding": "NOT_SENT_BY_THIS_ADMISSION",
                 "materialization": materialization,
             }
         continuation = self.launch_continue(
@@ -1672,7 +1673,11 @@ class BrowserlessAutomationService:
             "wakeIntentId": wake_intent_id,
             "turnRequestId": mapping["turnRequestId"],
             "placementAction": "CONTINUE",
-            "promptSent": True,
+            # Temporal admission does not prove a provider SEND. Preserve
+            # UNKNOWN even for replay: only an exact effect receipt can
+            # qualify delivery, and that is not observed in this response.
+            "promptSent": None,
+            "promptSendStanding": "UNCONFIRMED",
             "continuation": continuation,
         }
 

@@ -403,7 +403,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="conversation.wake",
         title="Wake role with continue-first placement",
-        description="Map one stable wakeIntentId to one UUIDv7 turnRequestId, continue the preferred existing conversation when available, or admit materialization fallback without sending the wake prompt. Exact replay converges on the same turn identity.",
+        description="Map one stable wakeIntentId to one UUIDv7 turnRequestId, continue the preferred existing conversation when available, or admit materialization fallback without sending the wake prompt. Exact replay converges on the same turn identity. Continuation admission returns promptSent=null (UNCONFIRMED), not proof of SEND or permission to resend. Materialization fallback does not send the wake prompt in this admission.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
