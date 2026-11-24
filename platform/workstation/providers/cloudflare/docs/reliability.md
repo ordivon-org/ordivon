@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-03
+updated: 2026-11-24
 summary: Canonical failure model for authoritative request state, conditional transitions, lease fencing, generation-bound Artifacts, ambiguous writes, cleanup, retention, and replay.
 evidence_status: verified
 readiness: READY
@@ -42,7 +42,7 @@ Clients may retry transient transport failures only with the same signed Request
 
 ## Recovery
 
-Reread authoritative state after ambiguous writes, accept a matching committed Receipt, clean only the executor's generation-bound Artifacts when commit did not win, use conditional takeover for same-policy expired leases, and process validated cleanup tombstones through bounded GC.
+Reread authoritative state after ambiguous writes, accept a matching committed Receipt, clean only the executor's generation-bound Artifacts when non-commit is established, use conditional takeover for same-policy expired leases, and process validated cleanup tombstones through bounded GC.
 
 ## Evidence
 
@@ -99,7 +99,10 @@ This prevents cleanup by a stale executor from deleting a newer executor's outpu
 If an R2 commit call throws after the platform may already have accepted the write, Edge rereads the authoritative state:
 
 - matching committed Receipt: treat the operation as committed;
-- pending or different generation: clean the executor's Artifact set and fail closed.
+- observed same-intent, strictly newer lease generation: the original ETag is permanently fenced within the retention window; clean only the old generation;
+- unavailable, absent, same-generation pending, or otherwise inconclusive read: return `503 receipt_commit_unavailable` and retain the original Artifact set. Do not create a cleanup tombstone. Reconcile with the original Request ID; a delayed write may still commit.
+
+An explicit failed conditional write is different from an exception with unknown commit outcome. The latter is not evidence of non-commit. Unresolved Artifacts remain subject to the existing bounded retention policy; no new durable store or recovery protocol is introduced.
 
 ## Pending receipt reads
 
@@ -121,7 +124,7 @@ Committed `receipts/v1` objects remain readable and replayable. They are normali
 
 ## Tested failures
 
-The test suite injects R2 failures and proves:
+The test suite injects R2 failures and checks:
 
 - pending records are observable;
 - stale leases cannot commit;
@@ -129,6 +132,8 @@ The test suite injects R2 failures and proves:
 - stale Artifact cleanup cannot delete the current generation;
 - commit failure removes newly written Artifacts;
 - an ambiguous post-write error is recovered by rereading committed state;
+- Fetch and Browser preserve committed evidence when recovery reads fail or a write commits after a pending observation;
+- positively observed same-intent takeover still permits old-generation cleanup without removing the new generation;
 - expired requests cannot cross a policy-version boundary;
 - rate-limited operations are receipted and replay does not consume the budget again;
 - Receipt serialization excludes lease tokens and ETags.
@@ -152,3 +157,23 @@ Request-ID idempotency, authoritative request state, and Receipt mirrors are ret
 ## Browser navigation evidence
 
 Browser snapshot Receipts preserve the requested URL and explicitly report `final_url_observed: false` because the current provider response does not expose a trustworthy final navigation URL. Consumers must not infer final page identity from the requested URL.
+
+## Bounded formal model: ambiguous commit evidence
+
+`formal/EdgeCommitEvidenceR1.tla` separates the actual R2 state from the observed state and the cleanup decision. It models one intent, an outstanding generation-1 conditional commit, a possible generation-2 takeover, read failure, and late completion. The assumed environment has generation-specific keys, monotonic fenced conditional writes, and no retention expiry or external deletion during the modeled trace.
+
+| Model action / observation | Concrete seam | Verification bridge |
+| --- | --- | --- |
+| LateCommit / Takeover | R2 conditional write and `beginRequest` | injected late PUT completion and existing lease-fencing tests |
+| Observe unknown / pending | `loadRequestState` unavailable or same-generation pending | Fetch and Browser fault injection |
+| Choose retain | `commitReceipt` ambiguous-write catch | original success receipt still references retrievable bytes |
+| Choose cleanup | same-intent strictly newer observed generation | old-generation-only cleanup test |
+| Choose recover | matching committed Receipt readback | existing post-write response-loss test |
+
+Run the optional owner-scoped model check using the existing Runtime-pinned TLC toolchain:
+
+```bash
+ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar pnpm formal:verify
+````
+
+The positive model checks five invariants. The unsafe cleanup strategy must violate committed evidence integrity; three additional negative-property probes require reachability of late commit, cleanup, and recovery. The model does not cover R2 availability/liveness, retention expiry, corrupt or foreign state, repeated internal commit invocations, or all TypeScript traces. It is not a complete implementation refinement proof or a production acceptance result. Keep concrete HTTP/Artifact regression tests until a qualified refinement bridge replaces their specific obligations.
