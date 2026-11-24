@@ -686,6 +686,16 @@ def project_proving_test_source_readsets(
         owned("planning/invariants-r1.json"),
         owned("scripts/verify_formal_trace.py"),
         owned("scripts/tests/test_formal_trace.py"),
+        # The actual Cargo --locked workspace invocation consumes these
+        # positive build inputs even though rustc dep-info only names the
+        # selected libtest source files. This is deliberately conservative:
+        # the workspace lock/manifest may affect resolution without changing
+        # a particular compiled witness's behavior.
+        owned("Cargo.lock"),
+        owned("Cargo.toml"),
+        owned("rust-toolchain.toml"),
+        owned("crates/ordivon-runtime-core/Cargo.toml"),
+        owned("crates/ordivon-runtime-mcp/Cargo.toml"),
         # The formal model evidence is consumed through the pinned TLC runner.
         # These shared checker inputs are distinct from individual Rust witnesses.
         owned("formal/toolchain.lock.json"),

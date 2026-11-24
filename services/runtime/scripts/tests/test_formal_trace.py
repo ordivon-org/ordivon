@@ -956,11 +956,28 @@ class FormalTraceContractTests(unittest.TestCase):
             {"UNKNOWN"},
         )
 
+    def test_native_cargo_build_inputs_are_positive_witness_edges(self):
+        trace, invariants = manifests()
+        for relative in ("Cargo.lock", "Cargo.toml", "rust-toolchain.toml",
+                         "crates/ordivon-runtime-core/Cargo.toml",
+                         "crates/ordivon-runtime-mcp/Cargo.toml"):
+            with self.subTest(relative=relative):
+                path = "services/runtime/" + relative
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
+                self.assertEqual(
+                    {r["standing"] for r in result["standingByWitness"]},
+                    {"RECHECK_REQUIRED"},
+                )
+                self.assertTrue(all(path in r["matchedChangedPaths"] for r in result["standingByWitness"]))
+                self.assertEqual(result["unindexedRuntimeChanges"], [])
+                self.assertFalse(result["proofReuseAdmissible"])
+                self.assertTrue(all(not r["dependenciesComplete"] for r in result["sourceReadsetEvidence"]["items"]))
+
     def test_runtime_formal_source_impact_known_recheck_not_erased_by_unknown(self):
         trace, invariants = manifests()
         changed = {
             "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
-            "services/runtime/Cargo.lock",
+            "services/runtime/crates/ordivon-runtime-core/src/unknown_new_module.rs",
         }
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
