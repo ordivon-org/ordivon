@@ -6,7 +6,7 @@ GET /api/security/agents/grants with its additive principalId and observedAt
 metadata. The server-rendered /operator/grants remains the baseline.
 The only Agent action is a local filter. The test bridge is exposed on
 window exclusively in the test build, not registered via WebMCP or routed
-to any model. No domain mutation or external credentials are added.
+to any model. No Agent domain mutation or external credentials are added. R5 adds a human-only sign-out control using the existing native session endpoints.
 
 ## Reproduce
 
@@ -35,7 +35,12 @@ after a newer denial. Browser tests use the actual route and a deliberately
 held response, not a fake client-only response. R4 adds synthetic pagehide /
 pageshow event interleavings and a browser-native back navigation after
 server-side session revocation while the document is away. BFCache restoration
-is reported independently through the trusted pageshow event.
+is reported independently through the trusted pageshow event. R5 additionally
+uses two real browser tabs in the same storage partition and the existing
+CSRF + POST /api/session/logout routes. It holds a real prior authorized GET
+until logout has completed, then verifies the peer's invalidation fence.
+A second test commits logout once but discards its response; the sender
+reports unknown rather than success/retry, while a fresh owner GET denies.
 
 ## Reconciliation
 
@@ -51,6 +56,18 @@ browser can guarantee continuous revocation visibility without a new owner
 observation, nor is generation a server revision or authority token.
 The read projection retains only fields used by this consumer.
 No durable client cache; no effect admission logic.
+
+A same-origin BroadcastChannel carries only the literal session-changed hint
+after a human sign-out attempt (including response loss). It cannot carry
+identity, authorization, or business state. Recipients clear rows and pending
+generations, without claiming logout or automatically fetching. An unsolicited
+hint cannot prevent the next authenticated owner observation. The sender
+clears data before logout; only the native positive receipt confirms logout.
+The channel closes on pagehide and reopens on pageshow, preserving the
+tested BFCache path. Do not poll authenticated GETs: they extend the owner
+idle deadline. This is not a continuous revocation guarantee, a cross-browser
+notification service, or protection against arbitrary same-origin script
+execution. An unobserved remote revocation still requires an owner read.
 
 ## Bounded model
 
@@ -71,7 +88,7 @@ controls as well as the safe model; temporary state is removed automatically:
 
 ## Remaining qualification
 
-Independent review, identity changes while continuously visible (without a new observation),
+Independent review, identity changes/revocation outside the cooperating same-origin tabs (without a new observation),
 production supply-chain admission, explicit operator authentication flow,
 native installed owner/API access, usability/accessibility and end-to-end
 performance remain unqualified. No production install or release.

@@ -7,7 +7,7 @@ import type {WebConfig} from "../../src/config.ts";
 
 const executable=process.env.ORDIVON_WEB_CHROMIUM_EXECUTABLE;
 if(!executable)throw Error("set ORDIVON_WEB_CHROMIUM_EXECUTABLE");
-const config:WebConfig={host:"127.0.0.1",port:0,origin:"http://localhost",rpID:"localhost",rpName:"Solid read probe",databasePath:":memory:",sessionIdleSeconds:300,sessionAbsoluteSeconds:3600};
+const config={host:"127.0.0.1",port:0,origin:"http://localhost",rpID:"localhost",rpName:"Solid read probe",databasePath:":memory:",sessionIdleSeconds:300,sessionAbsoluteSeconds:3600} satisfies WebConfig;
 const now=()=>Math.floor(Date.now()/1000);
 const store=new WebStore(":memory:");
 const app=await createWebApp(config,{store});
@@ -22,6 +22,8 @@ await app.listen({host:config.host,port:0});
 const address=app.server.address();
 assert.ok(address&&typeof address!=="string");
 const origin="http://localhost:"+address.port;
+// Bind actual ephemeral origin before the first request; sameOriginGuard reads this object.
+config.origin=origin;
 const browser=await chromium.launch({headless:true,executablePath:executable,ignoreDefaultArgs:["--disable-back-forward-cache"],args:["--host-resolver-rules=MAP localhost 127.0.0.1"]});
 try{
  store.ensurePrincipal("principal:probe","probe","Probe",now());
@@ -121,7 +123,79 @@ try{
  await page.locator('[data-status="denied"]').waitFor({timeout:10000});
  assert.equal(await page.locator("tbody tr").count(),0);
  const restoredFromBFCache=await page.evaluate(()=> (window as any).nativePageShow.some((e:any)=>e.trusted&&e.persisted));
+
+ // Continuously visible, same-storage-partition tabs. A real native logout
+ // plus an invalidation-only hint must fence an already-authorized response.
+ const thirdSession=store.createSession("principal:probe",now(),300,3600,null);
+ await context.addCookies([{name:"__Host-session",value:thirdSession.token,url:"https://localhost/",secure:true,httpOnly:true,sameSite:"Lax"}]);
+ await page.evaluate(()=> (window as any).probe.refresh());
+ await page.locator('[data-status="observed"]').waitFor();
+ const peer=await context.newPage();
+ await peer.goto(origin+"/__solid_probe/");
+ await peer.locator('[data-status="observed"]').waitFor();
+ assert.equal(await page.evaluate(()=>document.visibilityState),"visible");
+ let holdPeer!:()=>void;const capturedPeer=new Promise<void>(r=>{holdPeer=r});
+ let releasePeer!:()=>void;const peerGate=new Promise<void>(r=>{releasePeer=r});
+ await page.route("**/api/security/agents/grants",async route=>{
+   const old=await route.fetch();assert.equal(old.status(),200);
+   holdPeer();await peerGate;await route.fulfill({response:old});
+ });
+ await page.evaluate(()=>{(window as any).peerRefresh=(window as any).probe.refresh()});
+ await capturedPeer;
+ await peer.evaluate(()=>{
+   const channel=new BroadcastChannel("ordivon-web-observation-invalidation-v1");
+   channel.postMessage({principalId:"forged",grants:[{grantId:"forged"}]});channel.close();
+ });
+ const logoutResponse=peer.waitForResponse(r=>r.url().endsWith("/api/session/logout"));
+ await peer.getByRole("button",{name:"Sign out"}).click();
+ assert.equal((await logoutResponse).status(),200);
+ await peer.locator('[data-logout="confirmed"]').waitFor();
+ assert.equal(await peer.locator("tbody tr").count(),0);
+ await page.locator('[data-status="suspended"]').waitFor({timeout:3000});
+ releasePeer();
+ await page.evaluate(()=> (window as any).peerRefresh);
+ assert.equal(await page.locator("tbody tr").count(),0);
+ assert.equal(await page.locator('[data-status="suspended"]').count(),1);
+ await page.unroute("**/api/security/agents/grants");
+ await page.evaluate(()=> (window as any).probe.refresh());
+ await page.locator('[data-status="denied"]').waitFor();
+ // A same-origin hint is not a logout assertion: a valid owner
+ // observation must still be accepted when the hint was unsolicited.
+ const fourthSession=store.createSession("principal:other",now(),300,3600,null);
+ await context.addCookies([{name:"__Host-session",value:fourthSession.token,url:"https://localhost/",secure:true,httpOnly:true,sameSite:"Lax"}]);
+ await page.evaluate(()=> (window as any).probe.refresh());
+ await page.locator('[data-status="observed"]').waitFor();
+ await peer.evaluate(()=>{
+   const channel=new BroadcastChannel("ordivon-web-observation-invalidation-v1");
+   channel.postMessage("session-changed");channel.close();
+ });
+ await page.locator('[data-status="suspended"]').waitFor();
+ assert.equal(await page.locator("tbody tr").count(),0);
+ await page.evaluate(()=> (window as any).probe.refresh());
+ await page.locator('[data-status="observed"]').waitFor();
+ assert.equal(await page.getByText("grant:foreign",{exact:true}).count(),1);
+
+ // A committed logout whose response is lost is not a confirmation.
+ // Use the real owner POST once; discard only its response.
+ await peer.evaluate(()=> (window as any).probe.refresh());
+ await peer.locator('[data-status="observed"]').waitFor();
+ let logoutRequests=0;
+ await peer.route("**/api/session/logout",async route=>{
+   logoutRequests++;
+   const committed=await route.fetch();assert.equal(committed.status(),200);
+   await route.abort("failed");
+ });
+ await peer.getByRole("button",{name:"Sign out"}).click();
+ await peer.locator('[data-logout="unknown"]').waitFor();
+ assert.equal(logoutRequests,1);
+ assert.equal(await peer.locator("tbody tr").count(),0);
+ await page.locator('[data-status="suspended"]').waitFor();
+ assert.equal(await page.locator("tbody tr").count(),0);
+ await page.evaluate(()=> (window as any).probe.refresh());
+ await page.locator('[data-status="denied"]').waitFor();
+ assert.equal(logoutRequests,1);
+ await peer.close();
  assert.deepEqual(errors,[]);
- console.log(JSON.stringify({ownerRows:2,foreignRows:0,semanticChoices:5,filterApplied:true,unknownActionDenied:true,humanFilterApplied:true,quotaUnchanged:true,staleSuccessAfterDenialRejected:true,lifecycleLateResponseRejected:true,identityChangedOnResume:true,nativeBackNavigationDenial:true,restoredFromBFCache,scope:"isolated test-only route; real WebStore/session, not physical WebAuthn"}));
+ console.log(JSON.stringify({ownerRows:2,foreignRows:0,semanticChoices:5,filterApplied:true,unknownActionDenied:true,humanFilterApplied:true,quotaUnchanged:true,staleSuccessAfterDenialRejected:true,lifecycleLateResponseRejected:true,identityChangedOnResume:true,nativeBackNavigationDenial:true,restoredFromBFCache,peerNativeLogout:true,peerLateResponseRejected:true,unsolicitedHintDoesNotDenyOwner:true,committedLogoutResponseLossUnknown:true,noLogoutReplay:true,scope:"isolated test-only route; real WebStore/session, not physical WebAuthn"}));
  await context.close();
 }finally{await browser.close();await app.close();store.close()}
