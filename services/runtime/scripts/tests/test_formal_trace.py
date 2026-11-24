@@ -1007,6 +1007,60 @@ class FormalTraceContractTests(unittest.TestCase):
         self.assertIn("ONLY", result["scope"])
         self.assertFalse(any("PASS" == row["standing"] for row in result["standingByWitness"]))
 
+    def test_ancestor_toolchain_changes_are_not_unrelated_repository_changes(self):
+        trace, invariants = manifests()
+        for path in ("services/.cargo/config.toml", "services/rust-toolchain.toml",
+                     "services/mise.toml", "services/Cargo.toml"):
+            with self.subTest(path=path):
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
+                self.assertEqual({r["standing"] for r in result["standingByWitness"]}, {"UNKNOWN"})
+                self.assertIn(path, result["crosscuttingAssumptionChanges"])
+
+    def test_exact_git_source_impact_rejects_replace_ref_and_ancestor_dirty_config(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            source = repo / "services/runtime"
+            source.mkdir(parents=True)
+            (source / "core.rs").write_text("fn baseline() {}\n")
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), "-c", "user.name=FormalTest",
+                     "-c", "user.email=test@example.invalid", *args],
+                    stderr=subprocess.PIPE,
+                ).decode().strip()
+            git("init", "-q")
+            git("add", ".")
+            git("commit", "-qm", "baseline")
+            base = git("rev-parse", "HEAD")
+            tree = git("rev-parse", "HEAD^{tree}")
+            (source / "core.rs").write_text("fn changed() {}\n")
+            git("add", ".")
+            git("commit", "-qm", "changed")
+            head = git("rev-parse", "HEAD")
+            old_root = self.module.ROOT
+            self.module.ROOT = source
+            try:
+                self.assertEqual(self.module._git_source_changes(base, head),
+                                 {"services/runtime/core.rs"})
+                config = repo / "services/.cargo/config.toml"
+                config.parent.mkdir()
+                config.write_text("[build]\nrustflags = []\n")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(base, head)
+                config.unlink()
+                config.parent.rmdir()
+                substitute = git("commit-tree", tree, "-p", base, "-m", "substitute")
+                git("replace", head, substitute)
+                git("reset", "--hard", head)
+                self.assertEqual(git("diff", "--name-only", base, head), "")
+                self.assertEqual(git("status", "--porcelain"), "")
+                with self.assertRaisesRegex(ValueError, "replace"):
+                    self.module._git_source_changes(base, head)
+            finally:
+                self.module.ROOT = old_root
+
     def test_runtime_formal_source_impact_rejects_hidden_dirty_git_index_flags(self):
         import subprocess
 

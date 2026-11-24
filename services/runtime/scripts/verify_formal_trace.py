@@ -505,6 +505,22 @@ _ROOT_BUILD_INPUTS = frozenset(
 )
 
 
+# Cargo/rustup/mise may resolve inputs in ancestors between the owner root
+# and repository root, even when those paths did not exist at the base cut.
+# Keep one scope for both change projection and physical checkout checks.
+_ANCESTOR_BUILD_INPUTS = frozenset(
+    prefix + name for prefix in ("", "services/") for name in _ROOT_BUILD_INPUTS
+)
+_ANCESTOR_CARGO_DIRS = (".cargo", "services/.cargo")
+
+
+def _ancestor_build_input(path: str) -> bool:
+    return path in _ANCESTOR_BUILD_INPUTS or any(
+        path == directory or path.startswith(directory + "/")
+        for directory in _ANCESTOR_CARGO_DIRS
+    )
+
+
 def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[str, Any]:
     """Join one Cargo-selected libtest executable's rustc depfile to exact Git blobs.
 
@@ -777,7 +793,7 @@ def project_proving_test_source_impact(
     crosscutting_assumption_changes = {
         path
         for path in changed_paths
-        if path in _ROOT_BUILD_INPUTS or path.startswith(".cargo/")
+        if _ancestor_build_input(path)
     }
     rows = []
     for witness_id, readset in sorted(readsets.items()):
@@ -810,7 +826,7 @@ def project_proving_test_source_impact(
         ),
         "crosscuttingAssumptionChanges": sorted(crosscutting_assumption_changes),
         "changedPaths": sorted(changed_paths),
-        "scope": "Runtime tracked Git source plus declared root build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
+        "scope": "Runtime tracked Git source plus declared ancestor build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
         "proofReuseAdmissible": False,
         "nonClaims": [
             "REUSE_CANDIDATE is not proof PASS, implementation refinement, or installed acceptance.",
@@ -832,19 +848,24 @@ def _git_source_changes(base: str, head: str) -> set[str]:
 
     def git(*args: str) -> bytes:
         return subprocess.run(
-            ["git", "-C", str(repo), *args],
+            ["git", "--no-replace-objects", "-C", str(repo), *args],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         ).stdout
 
+    # A replacement ref can make a nominal commit identify different bytes
+    # and even hide a real source delta. Reject it rather than mix identities
+    # with Cargo or other subprocesses that may use ordinary Git semantics.
+    if git("for-each-ref", "--format=%(refname)", "refs/replace"):
+        raise ValueError("impact Git replace refs invalidate exact SourceCut")
     actual_head = git("rev-parse", "HEAD").decode().strip()
     if head != actual_head:
         raise ValueError(f"impact HEAD is not checkout HEAD: {head} != {actual_head}")
     # Git status can hide edited tracked files when the index carries
     # assume-unchanged or skip-worktree bits. Such flags defeat a source
     # currentness claim even when --porcelain reports an empty worktree.
-    source_scope = ("services/runtime", *sorted(_ROOT_BUILD_INPUTS), ".cargo")
+    source_scope = ("services/runtime", *sorted(_ANCESTOR_BUILD_INPUTS), *_ANCESTOR_CARGO_DIRS)
     index_rows = git("ls-files", "-v", "-z", "--", *source_scope)
     if any(not row.startswith(b"H ") for row in index_rows.split(b"\x00") if row):
         raise ValueError("impact Runtime/formal build tracked source has unsafe Git index flags")
