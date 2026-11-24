@@ -628,43 +628,77 @@ def test_nonancestor_or_invalid_impact_stays_unknown(monkeypatch):
     assert not result["proofReuseAdmissible"]
 
 
-def test_future_state_space_bound_enforces_reuse_only_on_current_success():
-    statuses = ("ABSENT", "IN_PROGRESS", "PASS", "NOT_PASS")
-    for now, past, affected in itertools.product(statuses, statuses, (False, True)):
-
-        def check(standing, sha):
-            if standing == "ABSENT":
-                return None
-            return {
-                "headSha": sha,
-                "status": (
-                    "completed" if standing in {"PASS", "NOT_PASS"} else "in_progress"
-                ),
-                "conclusion": "success" if standing == "PASS" else "failure",
-            }
-
-        impact = {
-            "changedPaths": ["services/gateway/foo.py"] if affected else [],
-            "verificationOwners": ["gateway"] if affected else [],
-            "queueVerifyTasks": ["gateway:verify"] if affected else [],
-        }
-        decision = module._decision(
-            current_sha=CURRENT,
-            prior_sha=PREVIOUS,
-            check_name="root-verification",
-            current_check=check(now, CURRENT),
-            prior_check=check(past, PREVIOUS),
-            source_impact=impact,
+# Independent finite contract for the exact-Check consumer. Each row fixes the
+# public disposition AND its next operation. Source selection is not a verifier.
+@pytest.mark.parametrize(
+    "now,past,impact_kind,expected_disposition,expected_operation",
+    [
+        (now, past, impact, disposition, operation)
+        for now, disposition, operation in (
+            ("PASS", "REUSE_CURRENT_RECEIPT", "consume-existing-check"),
+            ("IN_PROGRESS", "OBSERVE_EXISTING_RUN", "inspect-existing-check"),
+            ("NOT_PASS", "INVESTIGATE_EXISTING_RESULT", "inspect-existing-check"),
         )
-        assert decision["proofReuseAdmissible"] is False
-        assert decision["existingCheckReceiptReusable"] is (now == "PASS")
-        if now != "PASS":
-            assert decision["reuseScope"] is None
-        if now == "ABSENT" and past == "PASS":
-            assert decision["disposition"] in {
-                "SOURCE_AFFECTED",
-                "UNKNOWN_CROSS_CUT_READSET",
-            }
+        for past, impact in itertools.product(
+            ("ABSENT", "IN_PROGRESS", "PASS", "NOT_PASS"),
+            ("UNKNOWN", "CLEAR", "AFFECTED"),
+        )
+    ] + [
+        ("ABSENT", past, impact, "UNKNOWN_NO_ACCEPTED_EVIDENCE", "find-real-evidence")
+        for past, impact in itertools.product(
+            ("ABSENT", "IN_PROGRESS", "NOT_PASS"),
+            ("UNKNOWN", "CLEAR", "AFFECTED"),
+        )
+    ] + [
+        ("ABSENT", "PASS", "UNKNOWN", "UNKNOWN_SOURCE_RELATION", "inspect-source-lineage"),
+        ("ABSENT", "PASS", "CLEAR", "UNKNOWN_CROSS_CUT_READSET", "inspect-proof-readset"),
+        ("ABSENT", "PASS", "AFFECTED", "SOURCE_AFFECTED", "inspect-affected-proof-obligations"),
+    ],
+)
+def test_exact_check_consumer_finite_contract(
+    now, past, impact_kind, expected_disposition, expected_operation,
+):
+    def check(standing, sha):
+        if standing == "ABSENT":
+            return None
+        return {
+            "headSha": sha,
+            "status": "completed" if standing in {"PASS", "NOT_PASS"} else "in_progress",
+            "conclusion": "success" if standing == "PASS" else "failure",
+        }
+
+    affected = impact_kind == "AFFECTED"
+    impact = None if impact_kind == "UNKNOWN" else {
+        "changedPaths": ["services/gateway/foo.py"] if affected else [],
+        "verificationOwners": ["gateway"] if affected else [],
+        "queueVerifyTasks": ["gateway:verify"] if affected else [],
+    }
+    current, prior = check(now, CURRENT), check(past, PREVIOUS)
+    decision = module._decision(
+        current_sha=CURRENT,
+        prior_sha=PREVIOUS,
+        check_name="root-verification",
+        current_check=current,
+        prior_check=prior,
+        source_impact=impact,
+    )
+    assert decision["disposition"] == expected_disposition
+    assert decision["nextOperation"] == expected_operation
+    assert decision["currentSourceCut"] == CURRENT
+    assert decision["priorSourceCut"] == PREVIOUS
+    assert decision["currentEvidence"] == current
+    assert decision["priorEvidence"] == prior
+    assert decision["claim"] == {"kind": "GITHUB_ACTIONS_CHECK_RESULT", "name": "root-verification"}
+    assert decision["proofReuseAdmissible"] is False
+    assert decision["currentApplicability"] == "UNKNOWN_EXTERNAL_ASSUMPTIONS"
+    assert decision["currentSecurityStanding"] == "NOT_ASSESSED_BY_CHECK_RECEIPT"
+    assert decision["existingCheckReceiptReusable"] is (now == "PASS")
+    assert decision["reuseScope"] == (
+        "EXACT_COMMIT_NAMED_PROVIDER_CHECK_OUTCOME" if now == "PASS" else None
+    )
+    assert decision["sourceImpact"] == (
+        impact if now == "ABSENT" and past == "PASS" else None
+    )
 
 
 def test_invalid_repo_and_check_name_refuse_injection():

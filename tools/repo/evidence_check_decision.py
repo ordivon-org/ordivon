@@ -26,6 +26,15 @@ def _decision(
     prior_check: dict[str, Any] | None,
     source_impact: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    """Project qualified provider observations without executing or proving claims.
+
+    Caller owns exact Git/Check Run/attempt qualification. None as a Check
+    means absence within that qualified observation, not provider failure.
+    None as impact means the source relation could not be established.
+    A current observation takes precedence over all historical observations.
+    A reusable current receipt is strictly weaker than proof applicability.
+    The finite consumer contract lives in test_evidence_validity.py.
+    """
     now = _standing(current_check)
     previous = _standing(prior_check)
     selection = None
