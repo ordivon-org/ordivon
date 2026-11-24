@@ -33,6 +33,20 @@ Expect exactly `allocationsMinor.BOND_CORE=10000` cents,
 Inputs are caller-supplied and neither risk suitability nor provider
 pricing is thereby verified.
 
+For dated outstanding cash needs, use the same read-only entry:
+```sh
+domains/capital/scripts/run-strategic-contribution-brief \
+  < domains/capital/examples/goal_funded_contribution_r1.json
+```
+The synthetic example reserves $400 ($100 emergency + $300 tuition),
+caps a requested $200 contribution at $100, and separately reports
+$800 outside the explicit reserve horizon. It never assumes future income,
+investment returns or asset sales. A reserve shortfall produces no allocation
+plan; an outside-horizon obligation is **not** certified as funded. This is
+not an account observation, suitability assessment or execution grant.
+See [dated liability reserve](docs/FINANCE_GOAL_RESERVE_R1.md).
+
+
 **Finance multi-frequency as-of state (2026-11-20):** [Liquidity As-of R2](docs/FINANCE_LIQUIDITY_ASOF_R2.md) composes official dated Fed H.4.1, Treasury DTS and NY Fed SOFR at an explicit research time, with cross-source TGA accounting reconciliation, not a fabricated daily global-liquidity index.
 
 **Finance liquidity science (2026-11-20):** The direct, negative-results SOFR-to-SPX price-index ablation in [Finance Liquidity Research R1](docs/FINANCE_LIQUIDITY_RESEARCH_R1.md) is a Research-only experiment, not a market-wide liquidity proxy, qualified historical PIT test, investable SPY benchmark or broker policy. No new Owner, native executor, ledger or trading authority was added.

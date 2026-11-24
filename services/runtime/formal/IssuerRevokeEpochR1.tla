@@ -85,7 +85,7 @@ CrashNativeCaller(a) ==
 
 CommitRevoke ==
     /\ issuer = "current"
-    /\ issued = AttemptIds
+    \* Revoke freezes the actual issued subset, including an empty subset.
     /\ issuer' = "revoked"
     /\ fenced' = TRUE
     /\ UNCHANGED <<issued, launcher, nativeUnit, stopIntent,
@@ -171,6 +171,9 @@ ObserveQuiet(a) ==
                    nativeHandoffPending, crashedCallers>>
 
 LaunchFinalized(a) ==
+    \* A never-issued slot needs no OS drain; fencing excludes future issue.
+    \/ (a \notin issued /\ launcher[a] = "not_started" /\
+        nativeUnit[a] = "absent" /\ a \notin nativeHandoffPending)
     \/ (launcher[a] = "blocked" /\ nativeUnit[a] = "absent")
     \/ (launcher[a] = "delivered" /\ nativeUnit[a] = "quiescent" /\
         a \in stopIntent)
@@ -179,7 +182,6 @@ LaunchFinalized(a) ==
 PublishAck ==
     /\ issuer = "revoked"
     /\ fenced
-    /\ issued = AttemptIds
     /\ ~revokeAck
     /\ \A a \in AttemptIds: LaunchFinalized(a)
     /\ revokeAck' = TRUE
@@ -216,26 +218,41 @@ TypeOK ==
     /\ nativeHandoffPending \subseteq AttemptIds
     /\ crashedCallers \subseteq AttemptIds
 
+\* The revoke cut freezes the actual issued set, not the bounded universe.
+IssuedSetStableAfterFence == [][~fenced \/ UNCHANGED issued]_vars
+NoUnissuedNativeEffects ==
+    \A a \in AttemptIds \ issued:
+        /\ launcher[a] = "not_started"
+        /\ nativeUnit[a] = "absent"
+        /\ a \notin nativeHandoffPending
+        /\ a \notin stopIntent
+
 NoUnitBirthAfterAck == ~unitBornAfterAck
 NoSpawnAfterAck == ~spawnedAfterAck
 AckRequiresAllIssuedQuiescent ==
-    revokeAck => (fenced /\ issuer = "revoked" /\ issued = AttemptIds /\
+    revokeAck => (fenced /\ issuer = "revoked" /\
                   \A a \in AttemptIds: LaunchFinalized(a))
 
 \* Distinguish actual manager handoff from a stale "Unit absent" snapshot.
 AckRequiresNoHandoffPending == revokeAck => nativeHandoffPending = {}
 
 \* Legitimate crash + later manager delivery + native Stop + ACK is reachable.
-CrashThenAckUnreachable == ~(revokeAck /\ crashedCallers # {})
+CrashThenAckUnreachable == ~(revokeAck /\ issued = AttemptIds /\ crashedCallers # {})
 
 \* A different positive path uses a qualified original Manager Job cancellation
 \* with no target creation. The original issuer still needs all OTHER issued
 \* Attempts independently finalized before it may publish an epoch-wide ACK.
 ExactCancelAckUnreachable ==
-    ~(revokeAck /\ \E a \in crashedCallers: launcher[a] = "blocked")
+    ~(revokeAck /\ issued = AttemptIds /\ \E a \in crashedCallers: launcher[a] = "blocked")
 
 \* Separate intentionally false positive-path reachability checks.
-AckUnreachable == ~revokeAck
+AckUnreachable == ~(revokeAck /\ issued = AttemptIds)
+ZeroIssuedAckUnreachable == ~(revokeAck /\ issued = {})
+SingleIssuedAckUnreachable ==
+    ~(revokeAck /\ \E a \in AttemptIds: issued = {a})
+SingleIssuedDrainAckUnreachable ==
+    ~(revokeAck /\ \E a \in AttemptIds:
+        issued = {a} /\ nativeUnit[a] = "quiescent")
 TargetSpawnUnreachable ==
     \A a \in AttemptIds: nativeUnit[a] \notin {"running", "quiescent"}
 
