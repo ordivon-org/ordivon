@@ -514,4 +514,18 @@ for pair in legacy-revoke:NoStaleApproval legacy-replay:ExactCommitWins legacy-a
   test "$status" = 12 || { cat "$tmp/$name.log"; exit 1; }
   grep -F "Invariant $invariant is violated" "$tmp/$name.log"
 done
+java -cp "$jar" tla2sany.SANY EffectApprovalRecordR1.tla
+java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/approval-safe" -config EffectApprovalRecordR1.cfg EffectApprovalRecordR1.tla > "$tmp/approval-safe.log"
+grep -F 'Model checking completed. No error has been found.' "$tmp/approval-safe.log"
+grep -F 'distinct states found' "$tmp/approval-safe.log"
+for pair in legacy-terminal:TerminalConsumed legacy-binding:BindingImmutable legacy-pending:NoPendingAfterCommit reach-commit:NeverCommitted reach-renew:NeverRenewed; do
+  name="${pair%:*}"
+  invariant="${pair#*:}"
+  set +e
+  java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/approval-$name" -config "EffectApprovalRecordR1.$name.cfg" EffectApprovalRecordR1.tla > "$tmp/approval-$name.log" 2>&1
+  status=$?
+  set -e
+  test "$status" = 12 || { cat "$tmp/approval-$name.log"; exit 1; }
+  grep -F "Invariant $invariant is violated" "$tmp/approval-$name.log"
+done
 """

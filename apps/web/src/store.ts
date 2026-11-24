@@ -483,6 +483,10 @@ export class WebStore {
         SELECT effect_id, effect_digest
         FROM pending_effect_approvals
         WHERE effect_id = ? AND principal_id = ? AND expires_at > ?
+          AND NOT EXISTS (
+            SELECT 1 FROM agent_effects
+            WHERE agent_effects.effect_id = pending_effect_approvals.effect_id
+          )
       `)
       .get(effectId, principalId, now) as
       | { effect_id: string; effect_digest: string }
@@ -506,19 +510,22 @@ export class WebStore {
     now: number,
     ttlSeconds = 120,
   ): void {
-    this.db
+    // Preserve terminal consumption evidence in the same native statement.
+    // A late approval must not reopen a committed effect or replace its binding.
+    const update = this.db
       .prepare(`
         INSERT INTO effect_approvals (
           effect_id, effect_digest, principal_id, credential_id,
           verified_at, expires_at, consumed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NULL)
+        ) SELECT ?, ?, ?, ?, ?, ?, NULL
+        WHERE NOT EXISTS (SELECT 1 FROM agent_effects WHERE effect_id = ?)
         ON CONFLICT(effect_id) DO UPDATE SET
-          effect_digest = excluded.effect_digest,
-          principal_id = excluded.principal_id,
           credential_id = excluded.credential_id,
           verified_at = excluded.verified_at,
-          expires_at = excluded.expires_at,
-          consumed_at = NULL
+          expires_at = excluded.expires_at
+        WHERE effect_approvals.consumed_at IS NULL
+          AND effect_approvals.effect_digest = excluded.effect_digest
+          AND effect_approvals.principal_id = excluded.principal_id
       `)
       .run(
         effectId,
@@ -527,7 +534,14 @@ export class WebStore {
         credentialId,
         now,
         now + ttlSeconds,
+        effectId,
       );
+    if (update.changes !== 1) {
+      throw new WebProblem(
+        409, "effect-approval-closed", "Effect approval unavailable",
+        "The Effect is already committed or the approval binding is no longer writable.",
+      );
+    }
   }
 
   effectApproval(
