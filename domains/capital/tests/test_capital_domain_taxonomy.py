@@ -4,6 +4,8 @@ import ast
 import json
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src/ordivon_capital"
 TAXONOMY = json.loads((ROOT / "config/capital_domain_taxonomy.json").read_text())
@@ -36,6 +38,16 @@ def test_business_domain_dependency_graph_is_acyclic_and_apps_stay_outside_core(
                     elif node.module:
                         targets = [node.module.split(".")]
                 for target in targets:
+                    if owner in {"risk", "portfolio"}:
+                        assert not (
+                            target[0] in {"psycopg", "sqlite3"}
+                            or target[:2] == ["ordivon_capital", "accounting"]
+                        ), (
+                            "Pure risk/portfolio math may not read a database",
+                            owner,
+                            source.name,
+                            target,
+                        )
                     if len(target) < 2 or target[0] != "ordivon_capital":
                         continue
                     dest = target[1]
@@ -62,6 +74,25 @@ def test_business_domain_dependency_graph_is_acyclic_and_apps_stay_outside_core(
 
     for owner in domains:
         traverse(owner)
+
+
+def test_no_database_dependency_rule_catches_a_new_bad_import(monkeypatch):
+    # Inject an illegal edge in-memory, rather than requiring any old source
+    # file or private helper to be kept. The rule must fail on the bad program.
+    original = Path.read_text
+    portfolio_file = next(
+        p for p in (SRC / "portfolio").glob("*.py") if p.name != "__init__.py"
+    )
+
+    def injected(path: Path, *args, **kwargs):
+        source = original(path, *args, **kwargs)
+        if path == portfolio_file:
+            source += "\nfrom ordivon_capital.accounting import postgres_ledger\n"
+        return source
+
+    monkeypatch.setattr(Path, "read_text", injected)
+    with pytest.raises(AssertionError, match="Pure risk/portfolio math"):
+        test_business_domain_dependency_graph_is_acyclic_and_apps_stay_outside_core()
 
 
 def _forbidden_market_imports(source: str) -> list[str]:
