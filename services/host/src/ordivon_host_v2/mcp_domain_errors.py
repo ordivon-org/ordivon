@@ -4,6 +4,7 @@ import json
 from functools import wraps
 
 from mcp.server.mcpserver.exceptions import ToolError
+from psycopg.errors import CheckViolation, SequenceGeneratorLimitExceeded
 from psycopg_pool import PoolTimeout, TooManyRequests
 from pydantic import ValidationError
 
@@ -132,6 +133,22 @@ def _project_domain_errors(func):
     def wrapped(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except (CheckViolation, SequenceGeneratorLimitExceeded) as exc:
+            # Do not turn unrelated SQL constraint failures into capacity errors.
+            if isinstance(exc, CheckViolation) and (
+                exc.diag.table_name != "swf_change_clock"
+                or exc.diag.constraint_name != "swf_exact_change_clock"
+            ):
+                raise
+            payload = {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-domain-error",
+                "code": "RESOURCE_EXHAUSTED",
+                "retryable": False,
+                "reason": "generated_coordinate_exhausted",
+                "suggestedAction": "coordinate-owner-wire-version-migration",
+            }
+            raise ToolError(json.dumps(payload, sort_keys=True, separators=(",", ":"))) from None
         except (
             WorkNotFound,
             ActorRefNotFound,
