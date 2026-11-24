@@ -69,7 +69,7 @@ class ValidatedInformationTree:
 
 
 def _finite(x: float) -> bool:
-    return isinstance(x, (int, float)) and math.isfinite(x)
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
 
 
 def validate_information_tree(problem: MultistageProblem) -> ValidatedInformationTree:
@@ -97,14 +97,17 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
         root.conditional_probability == 1.0
         and root.risky_gross == ()
         and root.maintenance == ()
+        and _finite(root.cash_gross) and _finite(root.debt_gross)
         and root.cash_gross == root.debt_gross == 1.0
     ):
         raise AlgebraicPolicyError("root has no incoming market return")
     ordered = tuple(sorted(nodes, key=lambda x: (x.t, x.id)))
     children: dict[str, list[InformationNode]] = defaultdict(list)
     for node in ordered:
-        if not isinstance(node.t, int) or node.t < 0:
+        if type(node.t) is not int or node.t < 0:
             raise AlgebraicPolicyError("nonnegative integer month index required")
+        if type(node.terminal) is not bool:
+            raise AlgebraicPolicyError("terminal must be a boolean")
         if not _finite(node.conditional_probability) or node.conditional_probability <= 0:
             raise AlgebraicPolicyError("strictly positive conditional probability required")
         if node.parent is not None:
@@ -171,7 +174,7 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
                 "intermediate obligations require exact decision-node coverage"
             )
         if any(
-            not _finite(v) or isinstance(v, bool) or v < 0
+            not _finite(v) or v < 0
             for v in claims.values()
         ):
             raise AlgebraicPolicyError(
@@ -184,7 +187,7 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
                 "terminal liabilities require one explicit obligation per leaf"
             )
         if any(
-            not _finite(v) or isinstance(v, bool) or v < 0
+            not _finite(v) or v < 0
             for v in claims.values()
         ):
             raise AlgebraicPolicyError("nonnegative finite terminal liabilities required")

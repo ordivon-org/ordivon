@@ -744,6 +744,22 @@ def make_one_step_optimizer_contract(
     return {"gamma": gamma, "nodes": nodes}
 
 
+def load_pit_payload(path: Path) -> dict[str, Any]:
+    """Decode unambiguous PIT evidence for both native consumers."""
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise PointInTimeError(f"duplicate JSON input key: {key}")
+            result[key] = value
+        return result
+
+    payload = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(payload, dict):
+        raise PointInTimeError("point-in-time payload must be a JSON object")
+    return payload
+
+
 def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Produce a reproducible, zero-authority optimizer contract plus evidence."""
     expected = {
@@ -825,7 +841,7 @@ def main() -> int:
     parser.add_argument("--input", type=Path, required=True)
     args = parser.parse_args()
     try:
-        payload = json.loads(args.input.read_text(encoding="utf-8"))
+        payload = load_pit_payload(args.input)
         outcome = from_json_payload(payload)
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:
         parser.error(f"incomplete point-in-time market/economic contract: {e}")

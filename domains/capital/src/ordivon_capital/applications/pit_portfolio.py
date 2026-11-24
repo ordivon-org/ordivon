@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..portfolio.multistage_policy import InformationNode, MultistageProblem, solve_multistage
-from ..research.pit_joint_forecast import PointInTimeError, from_json_payload
+from ..research.pit_joint_forecast import PointInTimeError, from_json_payload, load_pit_payload
 
 
 def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -45,7 +45,7 @@ def main() -> int:
     parser.add_argument("--input", type=Path, required=True)
     args = parser.parse_args()
     try:
-        outcome = solve_pit_payload(json.loads(args.input.read_text(encoding="utf-8")))
+        outcome = solve_pit_payload(load_pit_payload(args.input))
     except (PointInTimeError, ValueError, TypeError, KeyError) as exc:
         parser.error(f"incomplete PIT/Portfolio economic contract: {exc}")
     print(json.dumps(outcome, ensure_ascii=False, sort_keys=True))
