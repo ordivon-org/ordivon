@@ -54,6 +54,8 @@ class WitnessOwner:
                 "body": "test",
             },
         ),
+        ("message.search", "beforeSequence", {"query": "test"}),
+        ("message.relation.list", "afterChangeSequence", {"messageRef": "message:fixture"}),
         ("work.get", "revision", {"workRef": "work:fixture"}),
         (
             "work.snapshot.commit",
@@ -75,7 +77,7 @@ def test_native_sdk_host_numeric_boundary(name, field, base):
             if "anyOf" in spec:
                 spec = next(x for x in spec["anyOf"] if x.get("type") == "integer")
             maximum = SAFE - 1 if name == "work.snapshot.commit" else SAFE
-            minimum = 1 if name.startswith("work.") else 0
+            minimum = 1 if name.startswith("work.") or name == "message.search" else 0
             for value in (True, 1.0, "1", minimum - 1, maximum + 1):
                 result = await client.call_tool(name, {**base, field: value})
                 assert result.is_error, (name, value, result)

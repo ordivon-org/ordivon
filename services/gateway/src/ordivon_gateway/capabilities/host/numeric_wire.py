@@ -11,5 +11,6 @@ from pydantic import Field
 
 HOST_WIRE_INT_MAX = (1 << 53) - 1
 HostNonnegativeInteger = Annotated[int, Field(strict=True, ge=0, le=HOST_WIRE_INT_MAX)]
-HostPositiveRevision = Annotated[int, Field(strict=True, ge=1, le=HOST_WIRE_INT_MAX)]
+HostPositiveInteger = Annotated[int, Field(strict=True, ge=1, le=HOST_WIRE_INT_MAX)]
+HostPositiveRevision = HostPositiveInteger
 HostAdvancableRevision = Annotated[int, Field(strict=True, ge=1, le=HOST_WIRE_INT_MAX - 1)]

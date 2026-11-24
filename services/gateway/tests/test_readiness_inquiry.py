@@ -283,7 +283,7 @@ def test_native_mcp_inquiry_validates_and_unrelated_tool_schemas_are_identical()
             assert content["inquiry"]["next_checks"]
             assert owners.calls == []
 
-            # Exclude the independently versioned nine Host numeric schemas;
+            # Exclude the independently versioned eleven Host numeric schemas;
             # the frozen 0.10.20 native-SDK projection proves all other legacy
             # schemas remain exact. The full manifest gate verifies the new ABI.
             import hashlib
@@ -297,6 +297,8 @@ def test_native_mcp_inquiry_validates_and_unrelated_tool_schemas_are_identical()
                 "topic.resume",
                 "topic.state.set",
                 "message.post",
+                "message.search",
+                "message.relation.list",
                 "work.get",
                 "work.snapshot.commit",
             }
@@ -305,7 +307,7 @@ def test_native_mcp_inquiry_validates_and_unrelated_tool_schemas_are_identical()
                 for t in tools
                 if t.name not in versioned
             ]
-            assert len(previous) == 32
+            assert len(previous) == 30
             records = [
                 {
                     "name": t["name"],
@@ -322,7 +324,7 @@ def test_native_mcp_inquiry_validates_and_unrelated_tool_schemas_are_identical()
             )
             digest = "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
             assert (
-                digest == "sha256:b25dd6ebdd82d606c5e3d0782eae80364078d1bc7d199f4672717966ef19e28e"
+                digest == "sha256:7e2a0c9b18e940094f3cd4ca544189f14d2b30611bad665aab7e51430933e48f"
             )
 
     asyncio.run(scenario())

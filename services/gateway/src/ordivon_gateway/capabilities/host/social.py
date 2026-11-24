@@ -9,7 +9,7 @@ from mcp.server import MCPServer
 from pydantic import Field
 
 from ...logic.host_tool_contracts import HostCollectionBytes, HostMessageBytes
-from .numeric_wire import HostNonnegativeInteger
+from .numeric_wire import HostNonnegativeInteger, HostPositiveInteger
 
 
 def register_host_social_tools(
@@ -235,7 +235,7 @@ def register_host_social_tools(
         query: str,
         spaceRef: str | None = None,
         topicRef: str | None = None,
-        beforeSequence: int | None = None,
+        beforeSequence: HostPositiveInteger | None = None,
         limit: int = 50,
         maxBytes: HostMessageBytes = 524_288,
     ) -> dict[str, Any]:
@@ -278,7 +278,7 @@ def register_host_social_tools(
             "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
         ]
         | None = None,
-        afterChangeSequence: int = 0,
+        afterChangeSequence: HostNonnegativeInteger = 0,
         limit: int = 100,
         maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
