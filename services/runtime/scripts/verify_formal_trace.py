@@ -657,7 +657,8 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
     # rustc -Z binary-dep-depinfo is not assumed: generated sources/build.rs,
     # toolchain and dynamic directory membership remain independent obligations.
     repo = ROOT.parents[1]
-    rows = []
+    rows = {}
+    raw_paths_by_git_path = {}
     for name in first_sources:
         if "\\" in name:
             raise ValueError("compiler dependency outside accepted Runtime source")
@@ -681,8 +682,15 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         absolute = ROOT / relative
         if not relative.startswith("crates/") or not absolute.is_file() or absolute.is_symlink():
             raise ValueError("compiler dependency absent or outside Runtime source")
-        if absolute.resolve(strict=True) != ROOT.resolve(strict=True) / relative:
-            raise ValueError("compiler source path alias")
+        canonical_absolute = ROOT.resolve(strict=True) / relative
+        # Resolve the original spelling as well as its normalized path.
+        # Otherwise a symlink before ".." can be erased by normpath.
+        try:
+            raw_absolute = Path(name) if os.path.isabs(name) else ROOT / name
+            if absolute.resolve(strict=True) != canonical_absolute or raw_absolute.resolve(strict=True) != canonical_absolute:
+                raise ValueError("compiler source path alias")
+        except OSError as error:
+            raise ValueError("compiler dependency absent or path alias") from error
         git_path = "services/runtime/" + relative.replace(os.sep, "/")
         found = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repo), "ls-tree", source_head, "--", git_path],
@@ -705,10 +713,22 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         )
         if hashlib.sha256(absolute.read_bytes()).digest() != hashlib.sha256(committed).digest():
             raise ValueError("compiler dependency physical/Git blob mismatch")
-        rows.append((git_path, header[2]))
-    if len({path for path, _ in rows}) != len(rows):
-        raise ValueError("compiler depfile source path normalization collision")
-    canonical = json.dumps(sorted(rows), separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        spellings = raw_paths_by_git_path.setdefault(git_path, [])
+        if spellings:
+            # One exact absolute/relative pair is an observed rustc
+            # include_str representation, not a second source. Both
+            # spellings independently passed physical and Git blob checks.
+            # Unreviewed alias multiplicities and conflicting blobs fail.
+            if (
+                len(spellings) != 1
+                or os.path.isabs(spellings[0]) == os.path.isabs(name)
+                or rows[git_path] != header[2]
+            ):
+                raise ValueError("compiler depfile source path normalization collision")
+        spellings.append(name)
+        rows[git_path] = header[2]
+    canonical = json.dumps(sorted(rows.items()), separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    aliases = {path: sorted(names) for path, names in raw_paths_by_git_path.items() if len(names) > 1}
     return {
         "sourceHead": source_head,
         "executableSha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
@@ -716,7 +736,10 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         "sourceGitBlobsDigest": hashlib.sha256(canonical).hexdigest(),
         "compilerEnvironmentDigest": _native_execution_context_digest(compiler_environment),
         "compilerEnvironmentNames": sorted(compiler_environment),
-        "sourcePaths": sorted(path for path, _ in rows),
+        "rawSourcePathCount": len(first_sources),
+        "canonicalAliasPaths": sorted(aliases),
+        "compilerSourceAliasDigest": _native_execution_context_digest(aliases),
+        "sourcePaths": sorted(rows),
         "scope": "one-cargo-libtest-rustc-depfile; external/build/dynamic-completeness-UNKNOWN",
         "proofReuseAdmissible": False,
     }
@@ -1332,6 +1355,7 @@ def qualify_native_witnesses(trace: dict[str, Any], profile: str = "legacy") -> 
         "compilerSourceReadset": {
             "sourceGitBlobsDigest": compiler_inputs["sourceGitBlobsDigest"],
             "compilerEnvironmentDigest": compiler_inputs["compilerEnvironmentDigest"],
+            "compilerSourceAliasDigest": compiler_inputs["compilerSourceAliasDigest"],
             "scope": compiler_inputs["scope"],
         },
     }

@@ -803,6 +803,7 @@ class FormalTraceContractTests(unittest.TestCase):
             rust = root / "crates/ordivon-runtime-core/src/lib.rs"
             sql = root / "crates/ordivon-runtime-core/migrations/schema.sql"
             rust.parent.mkdir(parents=True)
+            (rust.parent / "runtime").mkdir()
             sql.parent.mkdir(parents=True)
             rust.write_text("fn original() {}\n", encoding="utf-8")
             sql.write_text("CREATE TABLE original(id INTEGER);\n", encoding="utf-8")
@@ -861,6 +862,30 @@ class FormalTraceContractTests(unittest.TestCase):
                 absolute_receipt = self.module._native_libtest_depfile_receipt(bin_path, sha)
                 self.assertEqual(absolute_receipt["sourcePaths"], receipt["sourcePaths"])
                 self.assertEqual(absolute_receipt["sourceGitBlobsDigest"], receipt["sourceGitBlobsDigest"])
+                # Real PG rustc emits both a relative include and an
+                # absolute include of the same tracked SQL blob.
+                doubled_inputs = [*native_inputs, absolute_sql]
+                joined_double = " ".join(doubled_inputs)
+                paired = (
+                    f"{depfile}: {joined_double}\n\n{bin_path}: {joined_double}\n\n"
+                    + "\n".join(f"{path}:" for path in doubled_inputs)
+                    + "\n" + env_row
+                )
+                depfile.write_text(paired, encoding="utf-8")
+                merged = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(merged["sourcePaths"], receipt["sourcePaths"])
+                self.assertEqual(merged["sourceGitBlobsDigest"], receipt["sourceGitBlobsDigest"])
+                self.assertEqual(merged["rawSourcePathCount"], 3)
+                self.assertEqual(merged["canonicalAliasPaths"], ["services/runtime/crates/ordivon-runtime-core/migrations/schema.sql"])
+                self.assertNotEqual(merged["compilerSourceAliasDigest"], absolute_receipt["compilerSourceAliasDigest"])
+                # A raw intermediate symlink changes path traversal before
+                # normalization; normalized name alone is not evidence.
+                (rust.parent / "foreign").symlink_to(base, target_is_directory=True)
+                depfile.write_text(unextended.replace(native_inputs[1],
+                    "crates/ordivon-runtime-core/src/foreign/../../migrations/schema.sql"), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "absent|alias|outside"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+                (rust.parent / "foreign").unlink()
                 for malformed in (
                     abs_depfile.replace(absolute_sql, str(base / "outside.sql")),
                     abs_depfile.replace(absolute_sql, str(sql.parent / ".." / "migrations/schema.sql")),
