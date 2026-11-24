@@ -312,3 +312,14 @@ semantics, PG idempotency, and an actual acyclic core-domain AST dependency
 graph. A source-file inventory test is not a behavioral acceptance criterion.
 For any future baseline, re-run the dependency graph and tests on the current
 main, not on this historical document.
+
+## 2026-11-21 PIT-to-Portfolio boundary extraction (source candidate)
+
+The evidence-only Research producer remains `research/pit_joint_forecast.py` and
+retains `from_json_payload`, while `applications/pit_portfolio.py` consumes its
+optimizer-input contract and invokes the existing `portfolio.multistage_policy`
+solver. The original mixed Research `--solve` CLI moves to the application
+entrypoint; the Research CLI remains evidence-only. No optimizer, PG ledger,
+market provider, execution or order authority is duplicated. Qualification
+requires existing PIT/ETF consumer tests and a regression on forecast evidence
+and conditional allocation; historical PIT and alpha remain unproven.
