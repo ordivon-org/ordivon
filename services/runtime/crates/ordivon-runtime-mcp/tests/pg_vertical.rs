@@ -1716,6 +1716,118 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     eprintln!("real PostgreSQL + HTTP MCP verified; native initial launch outcome: {exec}");
 }
 
+#[test]
+#[ignore = "uses a disposable PG18 and native Runner to consume binary Artifact bytes"]
+fn pg_binary_artifact_representation_is_not_registry_failure() {
+    use sha2::Digest as _;
+
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-binary-artifact","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let submitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"pg-binary-artifact-original",
+            "execution":{
+                "workspaceId":"ws-pg-binary-artifact",
+                "executable":"/usr/bin/python3",
+                "args":["-c","import sys; sys.stdout.buffer.write(bytes([255,0,65,128]))"],
+                "cwdRelative":".",
+                "timeoutMs":10000
+            },
+            "waitMs":12000,
+            "stdoutTailBytes":0,
+        }),
+    );
+    assert_ne!(submitted["isError"], true, "{submitted}");
+    let observed = &submitted["structuredContent"];
+    assert_eq!(observed["executionDisposition"], "succeeded", "{observed}");
+    let job = observed["jobId"].as_str().unwrap();
+    let stdout = observed["artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|artifact| artifact["kind"] == "stdout")
+        .expect("registered stdout");
+    let id = stdout["artifactId"].as_str().unwrap();
+    let digest = format!(
+        "sha256:{}",
+        hex::encode(sha2::Sha256::digest([0xff, 0x00, 0x41, 0x80]))
+    );
+    assert_eq!(stdout["digest"], digest);
+    assert_eq!(stdout["retainedBytes"], 4);
+    let binary_text = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":job,"artifactId":id,"offset":0,"maxBytes":100}),
+    );
+    assert_eq!(binary_text["isError"], true, "{binary_text}");
+    assert_eq!(
+        binary_text["structuredContent"]["error"]["code"], "ARTIFACT_NOT_UTF8",
+        "{binary_text}"
+    );
+    assert_eq!(
+        binary_text["structuredContent"]["error"]["retryable"],
+        false
+    );
+    assert_eq!(
+        binary_text["structuredContent"]["error"]["field"],
+        "artifactId"
+    );
+    let binary_content = call(
+        &endpoint,
+        "artifact.content",
+        json!({"jobId":job,"artifactId":id,"maxBytes":100}),
+    );
+    assert_ne!(binary_content["isError"], true, "{binary_content}");
+    assert_eq!(binary_content["structuredContent"]["digest"], digest);
+    assert_eq!(binary_content["structuredContent"]["byteLength"], 4);
+    assert_eq!(binary_content["content"][0]["resource"]["blob"], "/wBBgA==");
+    for tool in ["artifact.read", "artifact.content"] {
+        let mut args = json!({"jobId":job,"artifactId":"absent-fixture","maxBytes":100});
+        if tool == "artifact.read" {
+            args["offset"] = json!(0);
+        }
+        let missing = call(&endpoint, tool, args);
+        assert_eq!(missing["isError"], true, "{missing}");
+        assert_eq!(
+            missing["structuredContent"]["error"]["code"], "ARTIFACT_NOT_FOUND",
+            "{missing}"
+        );
+        assert_eq!(missing["structuredContent"]["error"]["retryable"], false);
+        assert_eq!(missing["structuredContent"]["error"]["field"], "artifactId");
+    }
+    // Same-length damage to our disposable fixture is an integrity conflict,
+    // not a representational failure and not a PostgreSQL outage.
+    let row = fixture.db.query_one(
+        "SELECT a.bundle_path,r.relative_path FROM artifacts r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE r.job_id=$1 AND r.artifact_id=$2",
+        &[&job,&id],
+    ).unwrap();
+    let path = PathBuf::from(row.get::<_, String>(0)).join(row.get::<_, String>(1));
+    assert!(path.starts_with(&fixture.root));
+    fs::write(path, [0xfe, 0x00, 0x41, 0x80]).unwrap();
+    for tool in ["artifact.read", "artifact.content"] {
+        let mut args = json!({"jobId":job,"artifactId":id,"maxBytes":100});
+        if tool == "artifact.read" {
+            args["offset"] = json!(0);
+        }
+        let damaged = call(&endpoint, tool, args);
+        assert_eq!(damaged["isError"], true, "{damaged}");
+        assert_eq!(
+            damaged["structuredContent"]["error"]["code"], "ARTIFACT_IDENTITY_CONFLICT",
+            "{damaged}"
+        );
+    }
+}
+
 /// Real native PG18+HTTP MCP+Git consumer for the existing bounded
 /// Workspace.list projection. Pages must remain stable with >4 physical
 /// Workspaces; a broken Git checkout is a local issue, not a lost cursor.
