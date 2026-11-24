@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from ordivon_host_v2.errors import WorkNotFound
-from ordivon_host_v2.references.actor_refs import ActorReferenceLookup, ActorReferenceRegistry
+from ordivon_host_v2.references.actor_refs import ActorReferenceRegistry
 from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.references.record_refs import RecordReferenceLookup
 from ordivon_host_v2.social_errors import SpaceNotFound, TopicNotFound
