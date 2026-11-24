@@ -29,7 +29,7 @@ from .pg_store_codec import (
 from .pg_store_objects import PostgresObjects
 from .pg_store_queries import PostgresQueries
 from .pg_store_leases import PostgresLeases
-from .pg_store_integrity import PostgresIntegrity, missing_typed_effect_reference_fields
+from .pg_store_integrity import PostgresIntegrity, invalid_typed_effect_reference_fields
 from .store_errors import (
     HarnessEventConflict,
     HarnessJournalCorruption,
@@ -294,12 +294,12 @@ class PostgresHarnessStore(PostgresObjects, PostgresQueries, PostgresLeases, Pos
             terminal_id = None
             preceding: set[str] = set()
             for idx, (e, _) in enumerate(prepared):
-                missing = missing_typed_effect_reference_fields(
-                    e.event_kind, e.data, {ref.digest for ref in e.referenced_objects}
+                invalid = invalid_typed_effect_reference_fields(
+                    e.event_kind, e.data, {ref.digest: ref.kind for ref in e.referenced_objects}
                 )
-                if missing:
+                if invalid:
                     raise HarnessEventConflict(
-                        "New typed effect Event has missing object references: " + ", ".join(missing)
+                        "New typed effect Event has missing or mismatched object references: " + ", ".join(invalid)
                     )
                 if status.terminal:
                     raise HarnessTerminalConflict("terminal Event followed by another Event")

@@ -312,6 +312,12 @@ acknowledgment. Existing installed schema qualification must explicitly
 verify the function body; changing the Python release pointer alone does
 not replace an already-installed SQL function.
 
+PG CAS digests bind canonical content, not separate kind metadata. The
+existing original typed-effect reference predicate now validates expected
+kind as well as same-Run/Event edge ownership. Writer and history validation
+share the predicate; the history query joins metadata in the existing
+reference read, without a per-reference query loop.
+
 Twenty-four additional direct SQLite behavior test consumers now use the
 original PG Store; logical privacy checks scan durable test-schema table
 cells with a positive persisted-content witness, not physical WAL/backup

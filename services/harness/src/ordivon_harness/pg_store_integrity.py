@@ -25,38 +25,54 @@ from .store import (
 
 from .pg_store_codec import _CONTRACT_OBJECT_KIND
 
-def missing_typed_effect_reference_fields(
-    event_kind: str, data: dict[str, JsonValue], reference_digests: set[str],
+def invalid_typed_effect_reference_fields(
+    event_kind: str, data: dict[str, JsonValue], reference_kinds: dict[str, str],
 ) -> tuple[str, ...]:
-    """Known original Provider/Tool object fields must have durable edges.
+    """Known original Provider/Tool object fields require matching typed edges.
 
-    This is the existing Event/reference relation, not a registry. Unknown
-    fields on opaque Trace events are not interpreted as object references.
-    Null privacy-redacted and historical optional object fields are allowed.
+    Unknown opaque event fields are not inferred. Null privacy-redacted and
+    historical optional object fields are allowed. Kind is durable metadata,
+    not part of the PostgreSQL CAS payload digest.
     """
     if event_kind in {
         "harness.provider-call-claimed", "harness.provider-call-superseded",
         "harness.provider-call-dispatching", "harness.provider-call-completed",
         "harness.provider-call-failed", "harness.provider-call-unknown",
     }:
-        required = ("providerCallRecordObjectDigest", "stateObjectDigest")
-        optional = ("requestObjectDigest", "resultObjectDigest", "failureObjectDigest")
+        required = {
+            "providerCallRecordObjectDigest": "harness-provider-call-record",
+            "stateObjectDigest": "harness-run-state",
+        }
+        optional = {
+            "requestObjectDigest": "agent-turn-request",
+            "resultObjectDigest": "agent-turn-result",
+            "failureObjectDigest": "harness-provider-call-failure",
+        }
     elif event_kind == "harness.tool-step-prepared":
-        required = ("toolStepIntentObjectDigest", "snapshotObjectDigest", "stateObjectDigest")
-        optional = ("dispatchFenceObjectDigest",)
+        required = {
+            "toolStepIntentObjectDigest": "harness-tool-step-intent",
+            "snapshotObjectDigest": "harness-run-snapshot",
+            "stateObjectDigest": "harness-run-state",
+        }
+        optional = {"dispatchFenceObjectDigest": "harness-dispatch-fence"}
     elif event_kind in {
         "harness.tool-step-recorded", "harness.tool-step-unknown", "harness.tool-step-reconciled",
     }:
-        required = ("toolStepIntentObjectDigest", "receiptObjectDigest")
-        optional = (
-            "dispatchFenceObjectDigest", "previousReceiptObjectDigest", "observationObjectDigest",
-        )
+        required = {
+            "toolStepIntentObjectDigest": "harness-tool-step-intent",
+            "receiptObjectDigest": "harness-tool-step-receipt",
+        }
+        optional = {
+            "dispatchFenceObjectDigest": "harness-dispatch-fence",
+            "previousReceiptObjectDigest": "harness-tool-step-receipt",
+            "observationObjectDigest": "harness-tool-observation",
+        }
     else:
         return ()
+    fields = required | {field: kind for field, kind in optional.items() if data.get(field) is not None}
     return tuple(
-        field
-        for field in (*required, *(field for field in optional if data.get(field) is not None))
-        if not isinstance(data.get(field), str) or data[field] not in reference_digests
+        field for field, kind in fields.items()
+        if not isinstance(data.get(field), str) or reference_kinds.get(data[field]) != kind
     )
 
 
@@ -167,23 +183,28 @@ class PostgresIntegrity:
         rows = self.connection.execute(
             "SELECT e.event_id, e.payload_digest, e.event_kind, "
             "r.digest AS reference_digest, r.role AS reference_role, "
-            "r.harness_run_id AS reference_run_id "
+            "r.harness_run_id AS reference_run_id, o.kind AS reference_kind "
             "FROM run_events e "
             "LEFT JOIN run_object_refs r ON r.event_id=e.event_id "
+            "LEFT JOIN objects o ON o.digest=r.digest "
             "WHERE e.harness_run_id=%s ORDER BY e.run_revision",
             (harness_run_id,),
         ).fetchall()
         refs: dict[str, set[tuple[str, str]]] = {}
+        kinds: dict[str, dict[str, str]] = {}
         for row in rows:
             event_id = row["event_id"]
             ref_digest = row["reference_digest"]
-            if ref_digest is None or row["reference_run_id"] != harness_run_id:
+            if (ref_digest is None or row["reference_run_id"] != harness_run_id
+                    or row["reference_kind"] is None):
                 raise HarnessJournalCorruption(
                     "Original Run Event has missing or foreign-owned object references"
                 )
             refs.setdefault(event_id, set()).add(
                 (row["reference_role"], ref_digest)
             )
+            if row["reference_role"] == "reference":
+                kinds.setdefault(event_id, {})[ref_digest] = row["reference_kind"]
         if set(refs) != {event.event_id for event in events}:
             raise HarnessJournalCorruption("Original Run Event reference graph differs")
         for event in events:
@@ -193,12 +214,12 @@ class PostgresIntegrity:
                 raise HarnessJournalCorruption(
                     "Original Run Event payload reference differs from Journal"
                 )
-            missing = missing_typed_effect_reference_fields(
-                event.event_kind, event.data, {digest for role, digest in edges if role == "reference"}
+            invalid = invalid_typed_effect_reference_fields(
+                event.event_kind, event.data, kinds.get(event.event_id, {})
             )
-            if missing:
+            if invalid:
                 raise HarnessJournalCorruption(
-                    "Original typed effect Event has missing object references: " + ", ".join(missing)
+                    "Original typed effect Event has missing or mismatched object references: " + ", ".join(invalid)
                 )
             if event.event_kind == "harness.run-created":
                 expected = {

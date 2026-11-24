@@ -367,3 +367,11 @@ as the migrated behavior tests. A real forced name collision must raise
 DuplicateSchema before opening a pre-existing schema, and preserve both
 pre-existing sentinel tables. The existing queue rejects absent test DSN
 before tool execution; this is not a new verification service or workflow.
+
+The R43 typed-effect reference contract also binds expected object kind.
+A real PG corruption fixture changes only the Snapshot CAS kind, preserving
+its content/digest and original reference edge. Original history and issued
+source/Doctor must reject. The original Writer rejects a newly supplied
+wrong-kind typed reference as input conflict and preserves Run revision and
+Lease. This uses the same shared predicate and one existing reference query
+with a kind join, not a new reader or storage authority.

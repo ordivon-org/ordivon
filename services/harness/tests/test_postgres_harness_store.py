@@ -2985,11 +2985,61 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         original_bytes = self.store.get_object(digest, expected_kind="harness-tool-step-intent")
         self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 1)
         self.assertTrue(self.store.doctor()["healthy"])
+        # Content digest alone does not prove the required object type:
+        # R43's issuer SQL already checks Snapshot/State kinds, so the
+        # original source validation must agree with the same evidence.
+        snapshot_digest = prepared.data["snapshotObjectDigest"]
+        self.store.connection.execute(
+            "UPDATE objects SET kind='wrong-snapshot-kind' WHERE digest=%s",
+            (snapshot_digest,),
+        )
+        try:
+            with self.assertRaisesRegex(HarnessJournalCorruption, "snapshotObjectDigest"):
+                self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaises(HarnessJournalCorruption):
+                continuity.inspect_issued_tool_sources()
+            with self.assertRaises(HarnessJournalCorruption):
+                self.store.doctor()
+        finally:
+            self.store.connection.execute(
+                "UPDATE objects SET kind='harness-run-snapshot' WHERE digest=%s",
+                (snapshot_digest,),
+            )
+        self.assertTrue(self.store.doctor()["healthy"])
         before = self.store.load_run(run.harness_run_id)
         now = before.updated_at_ms + 1
         lease = self.store.acquire_run_lease(
             run.harness_run_id, owner_id="worker:typed-edge-admission", ttl_ms=10000, now_ms=now
         )
+        self.store.connection.execute(
+            "UPDATE objects SET kind='wrong-snapshot-kind' WHERE digest=%s",
+            (snapshot_digest,),
+        )
+        try:
+            wrong_kind = tuple(
+                self.store.inspect_object(row["digest"])
+                for row in self.store.connection.execute(
+                    "SELECT digest FROM run_object_refs WHERE event_id=%s AND role='reference'",
+                    (prepared.event_id,),
+                )
+            )
+            with self.assertRaisesRegex(HarnessEventConflict, "snapshotObjectDigest"):
+                self.store.append_events(
+                    harness_run_id=run.harness_run_id,
+                    events=(HarnessEventWrite(
+                        event_id="event:typed-edge-admission-wrong-kind",
+                        event_kind=prepared.event_kind, data=prepared.data,
+                        recorded_at_ms=now + 1, referenced_objects=wrong_kind,
+                    ),),
+                    expected_revision=lease.run_revision, lease=lease, lease_checked_at_ms=now,
+                )
+            self.assertEqual(self.store.load_run(run.harness_run_id), before)
+        finally:
+            self.store.connection.execute(
+                "UPDATE objects SET kind='harness-run-snapshot' WHERE digest=%s",
+                (snapshot_digest,),
+            )
+        self.assertEqual(self.store.doctor()["leases"], 1)
         incomplete = tuple(
             self.store.inspect_object(row["digest"])
             for row in self.store.connection.execute(
