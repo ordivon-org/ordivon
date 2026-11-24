@@ -7,7 +7,11 @@ row validation; it does not introduce separate persistence or route policy.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
+
+import psycopg
 
 from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
@@ -17,6 +21,8 @@ from .collection_pagination import (
     validate_max_bytes,
 )
 from .postgres_bounds import HOST_WIRE_INT_MAX
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import TopicResumeCursorAhead
 from .social_message_records import verify_message_content_digest
 from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
@@ -25,7 +31,10 @@ from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in
 class SocialTopicReadQueries:
     """Read-only PostgreSQL projections; SocialStore remains the sole write authority."""
 
-    dsn: str
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def list_topics(
         self,
@@ -43,7 +52,7 @@ class SocialTopicReadQueries:
             raise ValueError("include_archived must be a boolean")
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_space(conn, space_ref)
+            RecordReferenceLookup._require_space(conn, space_ref)
             rows = conn.execute(
                 "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
                 "WHERE space_ref=%s AND (%s OR state <> 'archived') "
@@ -104,7 +113,7 @@ class SocialTopicReadQueries:
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            topic = self._require_topic(conn, topic_ref)
+            topic = RecordReferenceLookup._require_topic(conn, topic_ref)
             # A cursor from Attention's global change clock (or a different
             # Topic) can be numerically ahead of this Topic's message horizon.
             # Returning an empty hasMore=false page would conceal that mistake.
@@ -176,6 +185,6 @@ class SocialTopicReadQueries:
     def get_topic_cursor(self, *, actor_ref: str, topic_ref: str) -> dict[str, Any]:
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_actor(conn, actor_ref)
-            self._require_topic(conn, topic_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
+            RecordReferenceLookup._require_topic(conn, topic_ref)
             return get_topic_cursor_in_tx(conn, actor_ref=actor_ref, topic_ref=topic_ref)

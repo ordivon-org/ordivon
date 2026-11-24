@@ -10,6 +10,7 @@ updates:
 
   - package-ecosystem: npm
     directories:
+      - "/apps/web/experiments/grant-render-benchmark"
       - "/apps/web"
       - "/capabilities/artifact/artifact-delivery/node"
       - "/capabilities/media"

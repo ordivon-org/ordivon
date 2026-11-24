@@ -9,6 +9,7 @@ they never start a cluster and never fall back to another lane's DSN.
 from __future__ import annotations
 
 import os
+import json
 import re
 import shutil
 import socket
@@ -104,6 +105,27 @@ def listed_single_case(output: str, identity: str) -> frozenset[str]:
     return frozenset(cases)
 
 
+def required_pg_physical_witnesses(inventory: frozenset[str]) -> frozenset[str]:
+    """Bind the physical lane to the same named formal conditional obligations.
+
+    The general inventory remains dynamic; removing one required witness
+    must not look green merely because the remaining selected tests pass.
+    """
+    if __package__:
+        from .verify_formal_trace import TRACE, native_profile_trace, validate_pg_witnesses, _native_witness_name
+    else:
+        from verify_formal_trace import TRACE, native_profile_trace, validate_pg_witnesses, _native_witness_name
+
+    trace = json.loads(TRACE.read_text(encoding="utf-8"))
+    errors = validate_pg_witnesses(trace)
+    if errors:
+        raise ValueError("PG formal physical obligations unqualified: " + "; ".join(errors))
+    return frozenset(
+        _native_witness_name(row, set(inventory))
+        for row in native_profile_trace(trace, "pg")["conditionalAcceptanceTests"]
+    )
+
+
 def verify_native_selection(
     cargo: str, args: tuple[str, ...], env: dict[str, str], *, identity: str | None = None
 ) -> int:
@@ -119,6 +141,7 @@ def verify_native_selection(
         listed_pg18_tests(listed.stdout) if identity is None
         else listed_single_case(listed.stdout, identity)
     )
+    required = required_pg_physical_witnesses(expected) if identity is None else frozenset()
     result = subprocess.run(
         [cargo, *args], cwd=ROOT, env=env, capture_output=True,
         text=True, timeout=400,
@@ -129,7 +152,10 @@ def verify_native_selection(
             print(line[:230])
     if result.returncode:
         raise RuntimeError(f"native PostgreSQL test failed (exit={result.returncode})")
-    return exact_test_count(result.stdout, expected)
+    count = exact_test_count(result.stdout, expected)
+    if required:
+        print(f"PG_FORMAL_CONDITIONAL_WITNESSES_PASS={len(required)}/{len(required)}")
+    return count
 
 
 def explicit_lane(lane: str) -> int:

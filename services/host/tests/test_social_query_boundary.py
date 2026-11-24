@@ -51,7 +51,6 @@ def test_social_query_facet_cannot_own_insert_or_mutation_commands() -> None:
     read_sources = [
         (source_dir / module).read_text()
         for module in (
-            "social_read_queries.py",
             "social_space_queries.py",
             "social_message_queries.py",
             "social_topic_queries.py",

@@ -1716,6 +1716,118 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     eprintln!("real PostgreSQL + HTTP MCP verified; native initial launch outcome: {exec}");
 }
 
+#[test]
+#[ignore = "uses a disposable PG18 and native Runner to consume binary Artifact bytes"]
+fn pg_binary_artifact_representation_is_not_registry_failure() {
+    use sha2::Digest as _;
+
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-binary-artifact","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let submitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"pg-binary-artifact-original",
+            "execution":{
+                "workspaceId":"ws-pg-binary-artifact",
+                "executable":"/usr/bin/python3",
+                "args":["-c","import sys; sys.stdout.buffer.write(bytes([255,0,65,128]))"],
+                "cwdRelative":".",
+                "timeoutMs":10000
+            },
+            "waitMs":12000,
+            "stdoutTailBytes":0,
+        }),
+    );
+    assert_ne!(submitted["isError"], true, "{submitted}");
+    let observed = &submitted["structuredContent"];
+    assert_eq!(observed["executionDisposition"], "succeeded", "{observed}");
+    let job = observed["jobId"].as_str().unwrap();
+    let stdout = observed["artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|artifact| artifact["kind"] == "stdout")
+        .expect("registered stdout");
+    let id = stdout["artifactId"].as_str().unwrap();
+    let digest = format!(
+        "sha256:{}",
+        hex::encode(sha2::Sha256::digest([0xff, 0x00, 0x41, 0x80]))
+    );
+    assert_eq!(stdout["digest"], digest);
+    assert_eq!(stdout["retainedBytes"], 4);
+    let binary_text = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":job,"artifactId":id,"offset":0,"maxBytes":100}),
+    );
+    assert_eq!(binary_text["isError"], true, "{binary_text}");
+    assert_eq!(
+        binary_text["structuredContent"]["error"]["code"], "ARTIFACT_NOT_UTF8",
+        "{binary_text}"
+    );
+    assert_eq!(
+        binary_text["structuredContent"]["error"]["retryable"],
+        false
+    );
+    assert_eq!(
+        binary_text["structuredContent"]["error"]["field"],
+        "artifactId"
+    );
+    let binary_content = call(
+        &endpoint,
+        "artifact.content",
+        json!({"jobId":job,"artifactId":id,"maxBytes":100}),
+    );
+    assert_ne!(binary_content["isError"], true, "{binary_content}");
+    assert_eq!(binary_content["structuredContent"]["digest"], digest);
+    assert_eq!(binary_content["structuredContent"]["byteLength"], 4);
+    assert_eq!(binary_content["content"][0]["resource"]["blob"], "/wBBgA==");
+    for tool in ["artifact.read", "artifact.content"] {
+        let mut args = json!({"jobId":job,"artifactId":"absent-fixture","maxBytes":100});
+        if tool == "artifact.read" {
+            args["offset"] = json!(0);
+        }
+        let missing = call(&endpoint, tool, args);
+        assert_eq!(missing["isError"], true, "{missing}");
+        assert_eq!(
+            missing["structuredContent"]["error"]["code"], "ARTIFACT_NOT_FOUND",
+            "{missing}"
+        );
+        assert_eq!(missing["structuredContent"]["error"]["retryable"], false);
+        assert_eq!(missing["structuredContent"]["error"]["field"], "artifactId");
+    }
+    // Same-length damage to our disposable fixture is an integrity conflict,
+    // not a representational failure and not a PostgreSQL outage.
+    let row = fixture.db.query_one(
+        "SELECT a.bundle_path,r.relative_path FROM artifacts r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE r.job_id=$1 AND r.artifact_id=$2",
+        &[&job,&id],
+    ).unwrap();
+    let path = PathBuf::from(row.get::<_, String>(0)).join(row.get::<_, String>(1));
+    assert!(path.starts_with(&fixture.root));
+    fs::write(path, [0xfe, 0x00, 0x41, 0x80]).unwrap();
+    for tool in ["artifact.read", "artifact.content"] {
+        let mut args = json!({"jobId":job,"artifactId":id,"maxBytes":100});
+        if tool == "artifact.read" {
+            args["offset"] = json!(0);
+        }
+        let damaged = call(&endpoint, tool, args);
+        assert_eq!(damaged["isError"], true, "{damaged}");
+        assert_eq!(
+            damaged["structuredContent"]["error"]["code"], "ARTIFACT_IDENTITY_CONFLICT",
+            "{damaged}"
+        );
+    }
+}
+
 /// Real native PG18+HTTP MCP+Git consumer for the existing bounded
 /// Workspace.list projection. Pages must remain stable with >4 physical
 /// Workspaces; a broken Git checkout is a local issue, not a lost cursor.
@@ -7310,4 +7422,146 @@ fn pg_direct_implicit_profile_exact_replay_and_explicit_trusted_denial() {
         2
     );
     eprintln!("R61_DIRECT_MCP_IMPLICIT_NATIVE_EXEC_AND_PLAN_EXACT_REPLAY_GREEN");
+}
+
+/// Genuine native result plus synthetic prior Attempt in disposable PG.
+/// Exact-key Job discovery must not attribute a prior result to the current
+/// Attempt even if both the Job identity and registration bytes are valid.
+#[test]
+#[ignore = "disposable PG18 and native Runner"]
+fn pg_job_list_exact_key_does_not_substitute_historical_result() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":"ws-r6-list-result","sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let key = "r6-list-current-result";
+    let submitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":key,"execution":{"workspaceId":"ws-r6-list-result","executable":"/usr/bin/printf","args":["R6_CURRENT_NATIVE"],"cwdRelative":".","timeoutMs":15000},
+            "waitMs":15000,"stdoutTailBytes":256
+        }),
+    );
+    assert_ne!(submitted["isError"], true, "{submitted}");
+    let job = submitted["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let current = loop {
+        let o = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":1000,"stdoutTailBytes":256}),
+        );
+        assert_ne!(o["isError"], true, "{o}");
+        if o["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(o["structuredContent"]["executionDisposition"], "succeeded");
+            assert_eq!(o["structuredContent"]["stdoutTail"], "R6_CURRENT_NATIVE");
+            break o["structuredContent"]["attemptId"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+        }
+        assert!(Instant::now() < deadline, "{o}");
+    };
+    let lookup = || {
+        let result = call(
+            &endpoint,
+            "job.list",
+            json!({"clientRequestId":key,"limit":2}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        let rows = result["structuredContent"]["jobs"].as_array().unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["jobId"], job);
+        assert_eq!(rows[0]["attemptId"], current);
+        rows[0].clone()
+    };
+    let before = lookup();
+    assert_eq!(before["resultAvailable"], true);
+    assert_eq!(before["deliveryDisposition"], "committed");
+    let prior = format!("r6-previous-{}", Uuid::now_v7());
+    let prior_bundle = fixture.root.join("store/pg-attempts").join(&prior);
+    let row=fixture.db.query_one("SELECT artifact_id,relative_path,byte_length,digest FROM artifacts WHERE job_id=$1 AND attempt_id=$2 AND kind='execution_result'",&[&job,&current]).unwrap();
+    let artifact: String = row.get(0);
+    let relative: String = row.get(1);
+    let len: i64 = row.get(2);
+    let digest: String = row.get(3);
+    let native_bundle: String = fixture
+        .db
+        .query_one(
+            "SELECT bundle_path FROM attempts WHERE attempt_id=$1",
+            &[&current],
+        )
+        .unwrap()
+        .get(0);
+    let original = PathBuf::from(native_bundle).join(&relative);
+    let historical = prior_bundle.join(&relative);
+    assert!(original.starts_with(&fixture.root) && historical.starts_with(&fixture.root));
+    fs::create_dir_all(historical.parent().unwrap()).unwrap();
+    // Preserve exact native bytes in the synthetic historical bundle. This is
+    // a representation falsifier, not evidence of a physical retry.
+    fs::copy(&original, &historical).unwrap();
+    let mut tx = fixture.db.transaction().unwrap();
+    assert_eq!(
+        tx.execute(
+            "UPDATE attempts SET attempt_number=2 WHERE attempt_id=$1 AND attempt_number=1",
+            &[&current]
+        )
+        .unwrap(),
+        1
+    );
+    tx.execute("INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version) SELECT $1,job_id,1,'failed','natural',launch_token_digest,$2,$3,created_at_ms,0 FROM attempts WHERE attempt_id=$4",&[&prior,&prior_bundle.to_string_lossy().to_string(),&format!("ordivon-pg-{prior}.service"),&current]).unwrap();
+    assert_eq!(
+        tx.execute(
+            "UPDATE artifacts SET attempt_id=$1 WHERE artifact_id=$2",
+            &[&prior, &artifact]
+        )
+        .unwrap(),
+        1
+    );
+    tx.commit().unwrap();
+    let row = fixture
+        .db
+        .query_one(
+            "SELECT attempt_id,byte_length,digest FROM artifacts WHERE artifact_id=$1",
+            &[&artifact],
+        )
+        .unwrap();
+    assert_eq!(row.get::<_, String>(0), prior);
+    assert_eq!(row.get::<_, i64>(1), len);
+    assert_eq!(row.get::<_, String>(2), digest);
+    let historical_only = lookup();
+    // Restore the exact native registration before asserting the result.
+    fixture
+        .db
+        .execute(
+            "UPDATE artifacts SET attempt_id=$1 WHERE artifact_id=$2",
+            &[&current, &artifact],
+        )
+        .unwrap();
+    let restored = lookup();
+    assert_eq!(restored["resultAvailable"], true);
+    assert_eq!(restored["deliveryDisposition"], "committed");
+    eprintln!(
+        "EXACT_KEY historical_only resultAvailable={} deliveryDisposition={}",
+        historical_only["resultAvailable"], historical_only["deliveryDisposition"]
+    );
+    assert_eq!(historical_only["artifactCount"], before["artifactCount"]);
+    assert_eq!(historical_only["executionTerminal"], true);
+    assert_eq!(historical_only["resultAvailable"], false);
+    assert_eq!(
+        historical_only["deliveryDisposition"],
+        "reconciliation_required"
+    );
 }

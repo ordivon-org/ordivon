@@ -992,7 +992,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "artifact.read",
-        description = "Read a bounded verified UTF-8 range from one Job Artifact by Job and Artifact identity. This compatibility surface is continuation-aware text projection; use artifact.content when the complete retained Artifact must be projected as binary bytes.",
+        description = "Read a bounded verified UTF-8 range from one Job Artifact by Job and Artifact identity. This compatibility surface is continuation-aware text projection; use artifact.content when the complete retained Artifact must be projected as binary bytes. Invalid UTF-8 in an otherwise digest-verified Artifact is ARTIFACT_NOT_UTF8 (non-retryable), not a Registry outage. For an authorized Job, absence of the requested registered Artifact is ARTIFACT_NOT_FOUND in both text and content reads.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<ArtifactReadResult>>(),
         annotations(
             title = "Read transactional job artifact",

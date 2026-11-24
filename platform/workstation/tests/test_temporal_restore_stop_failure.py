@@ -58,5 +58,66 @@ class RestoreSmokeFailedStopTests(unittest.TestCase):
                 log.unlink(missing_ok=True)
 
 
+    def test_recovered_configuration_and_failed_stop_do_not_emit_pass(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="ordivon-restore-fixture-", dir="/tmp") as temp:
+            base = Path(temp)
+            shim = base / "sudo"
+            shim.write_text(
+                '#!/bin/sh\n'
+                'case "$*" in\n'
+                '  *pgbackrest*)\n'
+                '    printf "archive_command = bad\\n" > "$RESTORE_ROOT/postgresql.auto.conf"\n'
+                '    touch "$RESTORE_ROOT/recovery.signal"; exit 0;;\n'
+                '  *pg_ctl*start*)\n'
+                '    printf "999999\\n%s\\n" "$RESTORE_ROOT" > "$RESTORE_ROOT/postmaster.pid"\n'
+                '    touch "$FIXTURE_STARTED"; exit 0;;\n'
+                '  *pg_ctl*stop*) touch "$FIXTURE_STOP"; exit 72;;\n'
+                '  *psql*"select not pg_is_in_recovery"*) printf "t\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"schema_version"*) printf "1.14\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"executions_visibility"*) printf "test-workflow|2\\n"; exit 0;;\n'
+                '  *psql*temporal*"schema_version"*) printf "1.19\\n"; exit 0;;\n'
+                'esac\nexit 73\n',
+                encoding="utf-8",
+            )
+            shim.chmod(0o755)
+            chown = base / "chown"
+            chown.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            chown.chmod(0o755)
+            identity = uuid.uuid4().hex
+            data = Path(f"/var/tmp/ordivon-restore-fixture-{identity}-data")
+            socket = Path(f"/var/tmp/ordivon-restore-fixture-{identity}-socket")
+            log = Path(f"/var/tmp/ordivon-restore-fixture-{identity}.log")
+            env = {
+                **os.environ,
+                "PATH": f"{temp}:/usr/bin:/bin",
+                "RESTORE_ROOT": str(data),
+                "SOCKET_ROOT": str(socket),
+                "LOG": str(log),
+                "FIXTURE_STARTED": str(base / "started"),
+                "FIXTURE_STOP": str(base / "stop"),
+            }
+            try:
+                result = subprocess.run(
+                    ["/bin/bash", str(SCRIPT), "fake-backup", "test-workflow", "55439"],
+                    env=env, text=True, capture_output=True, timeout=10, check=False,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertTrue((base / "started").exists(), result.stdout + result.stderr)
+                self.assertTrue((base / "stop").exists(), result.stdout + result.stderr)
+                self.assertNotIn('"standing":"PASS"', result.stdout)
+                self.assertEqual((data / "postgresql.auto.conf").read_text(), "")
+                config = (data / "ordivon-smoke.conf").read_text()
+                self.assertIn("listen_addresses = ''", config)
+                self.assertIn("archive_mode = off", config)
+                self.assertIn("recovery_target_action = 'promote'", config)
+                self.assertTrue((data / "postmaster.pid").exists())
+            finally:
+                for path in (data, socket):
+                    if path.exists() and not path.is_symlink():
+                        shutil.rmtree(path)
+                log.unlink(missing_ok=True)
+
+
+
 if __name__ == "__main__":
     unittest.main()

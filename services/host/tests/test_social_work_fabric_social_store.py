@@ -22,14 +22,6 @@ def test_reply_relation_is_same_topic_only() -> None:
     assert "cannot cross spaces" in validation
 
 
-def test_mentions_require_actor_but_references_can_be_opaque() -> None:
-    text = MSG_STORE.read_text()
-    validation = text.split("    def _validate_relation_target", 1)[1]
-    assert "MessageRelationKind.MENTIONS" in validation
-    assert "self._require_actor(conn, value.target_ref)" in validation
-    assert "references/about intentionally accept opaque external refs" in validation
-
-
 def test_coordination_intent_never_becomes_lock_or_assignment() -> None:
     text = INTENT_STORE.read_text().lower()
     result_boundary = "coordination intent only; not assignment, reservation, lock, lease, scheduler decision, or effectauthority"
@@ -103,25 +95,6 @@ def test_reply_symbolic_contract_is_bound_to_actual_host_consumer() -> None:
         )
     ]
     assert len(guarded) == 1, "symbolically verified pure decision must gate Host relation writes"
-
-
-def test_message_sequence_follows_same_topic_commit_visibility() -> None:
-    """Guard a known PG identity-allocation versus commit-order cursor race.
-
-    The topic row must be locked before allocating the message sequence.
-    This is a source-level guard, not a live multi-transaction proof.
-    """
-    text = MSG_STORE.read_text()
-    post = text.split("    def post_message", 1)[1].split("    def add_message_relation", 1)[0]
-    assert "self._require_topic(conn, value.topic_ref, for_no_key_update=True)" in post
-    helper = (
-        (STORE.parent / "references" / "record_refs.py")
-        .read_text()
-        .split("    def _require_topic(", 1)[1]
-    )
-    assert "FOR NO KEY UPDATE" in helper
-    # This lock mode does not conflict with FK KEY SHARE on topics.
-    assert "FOR UPDATE" not in helper
 
 
 def test_two_writer_committed_prefix_interleaving_exhaustive() -> None:

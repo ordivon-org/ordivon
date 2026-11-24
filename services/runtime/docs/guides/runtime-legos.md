@@ -425,10 +425,28 @@ selection and exact execution-witness comparison:
 `ORDIVON_PG_TEST_DSN`; `mise run test:postgres-registry:stage` requires the
 separate historical-stage test DSN `ORDIVON_PG_STAGE_TEST_DSN`.
 Empty or wrong inventories, zero executed tests, mismatched test identities,
-duplicate execution, and nonzero native exits cannot qualify. The stage lane
+duplicate execution, and nonzero native exits cannot qualify. The fresh PG
+lanes additionally require every named PG physical-opt-in witness from
+`formal/RuntimeDispatchR1.trace-r1.json` to occur in the native inventory
+and execute successfully; a nonempty remainder cannot hide a missing required
+obligation. The stage lane
 must select exactly its one named witness; its passing result is not a
 fresh-epoch or Windows production acceptance. An operator DSN is not supplied
 by default and is never inherited by the disposable fixture.
+
+For source-level formal trace evidence, `mise run formal:verify` executes the
+existing Legacy trace and the explicit PG-only profile. Query the current
+implementation with
+`python3 scripts/verify_formal_trace.py --native-profile pg --native-witnesses`.
+The PG profile separately names always-on native code witnesses, shared typed
+contracts, and compiled-but-not-executed physical PostgreSQL witnesses. Do not
+substitute one profile for the other. For incremental source impact, use the
+same profile plus `--impact-base <ancestor-commit> --impact-head <checkout-commit>`
+and optionally `--impact-compiler`. The compiler's exact tracked PG SQL inputs,
+package-directory dependency and qualified absolute/relative spellings are
+bound to its source receipt. Composition consumes the positive path readsets;
+external/build/dynamic closure, whole-model implementation refinement,
+installed currentness, and domain acceptance remain UNKNOWN.
 
 ## Agent usage
 
