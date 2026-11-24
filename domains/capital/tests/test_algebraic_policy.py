@@ -6,12 +6,14 @@ recommended allocations, risk budgets, loan rates or market forecasts.
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 
 import pytest
 
 from ordivon_capital.portfolio.algebraic_policy import (
     AlgebraicPolicyError,
     OnePeriodProblem,
+    OnePeriodSolution,
     Scenario,
     merton_single_risky_crra,
     solve_one_period,
@@ -137,3 +139,122 @@ def test_reject_unknown_probability_distribution_and_unknown_utility() -> None:
                 Scenario(.3, (1.2,), 1, 1, (.2,)),
             ),
         ))
+
+
+# Solver-independent acceptance specification for the existing public result.
+# The tolerance is numerical reconstruction in normalized 1r, not a risk budget.
+# No optimizer internals, constraint matrices, or solver status are an oracle.
+def assert_one_period_economic_replay(
+    problem: OnePeriodProblem, result: OnePeriodSolution
+) -> None:
+    """Check observable economic identities; not a global optimum certificate."""
+    atol = 1e-6
+    n = len(problem.initial_margin)
+    w = result.risky_weights
+    c, b = result.cash_weight, result.debt_weight
+    assert len(w) == n
+    assert len(result.scenario_equities) == len(problem.scenarios)
+    assert all(math.isfinite(x) and x >= -atol for x in (*w, c, b))
+    fees = math.fsum(
+        k * abs(new - old)
+        for k, new, old in zip(problem.turnover_cost, w, problem.old_weights, strict=True)
+    )
+    assert result.transaction_cost == pytest.approx(fees, abs=atol, rel=0)
+    assert math.fsum((*w, c, -b, fees)) == pytest.approx(1.0, abs=atol, rel=0)
+    assert result.post_trade_equity == pytest.approx(1.0 - fees, abs=atol, rel=0)
+    initial = math.fsum(
+        m * x for m, x in zip(problem.initial_margin, w, strict=True)
+    )
+    assert initial + fees <= 1.0 + atol
+
+    wealth = []
+    for scenario, claimed in zip(problem.scenarios, result.scenario_equities, strict=True):
+        positions = tuple(
+            x * gross for x, gross in zip(w, scenario.risky_gross_returns, strict=True)
+        )
+        actual = math.fsum(
+            (*positions, c * scenario.cash_gross_return, -b * scenario.debt_gross_return)
+        )
+        maintenance = math.fsum(
+            x * m for x, m in zip(positions, scenario.maintenance, strict=True)
+        )
+        assert math.isfinite(actual) and actual > 0
+        assert actual >= maintenance - atol
+        assert claimed == pytest.approx(actual, abs=atol, rel=0)
+        wealth.append((scenario.probability, actual))
+
+    gamma = problem.gamma
+    expected = math.fsum(p * v for p, v in wealth)
+    utility = math.fsum(
+        p * (math.log(v) if gamma == 1 else math.expm1((1 - gamma) * math.log(v)) / (1 - gamma))
+        for p, v in wealth
+    )
+    ce = (
+        math.exp(utility) if gamma == 1
+        else math.exp(math.log1p((1 - gamma) * utility) / (1 - gamma))
+    )
+    assert result.expected_equity == pytest.approx(expected, abs=atol, rel=0)
+    assert result.expected_utility == pytest.approx(utility, abs=atol, rel=0)
+    assert result.certainty_equivalent == pytest.approx(ce, abs=atol, rel=0)
+    assert result.standing == "SCENARIO_OPTIMUM_NOT_FORWARD_VERIFIED"
+
+
+def _solver_contract_cases() -> tuple[OnePeriodProblem, ...]:
+    return (
+        one_asset(
+            returns=(.7, .9), probs=(.5, .5), gamma=3, initial=.5,
+            maintenance=(.25, .3), cash=1.02, debt=1.04,
+        ),
+        one_asset(
+            returns=(1.8, 2.0), probs=(.4, .6), gamma=1, initial=.4,
+            maintenance=(.2, .2), cash=1, debt=1.01,
+        ),
+        one_asset(
+            returns=(.2, 2.0), probs=(.05, .95), gamma=1, initial=.4,
+            maintenance=(.7, .4), cash=1.01, debt=1.04, turnover=.02,
+        ),
+        one_asset(
+            returns=(.75, 1.3), probs=(.4, .6), gamma=.5, initial=.5,
+            maintenance=(.25, .3), cash=1.01, debt=1.04, turnover=.01, previous=.2,
+        ),
+        OnePeriodProblem(
+            gamma=2, initial_margin=(.5, .6), turnover_cost=(.01, .02),
+            old_weights=(.2, .1),
+            scenarios=(
+                Scenario(.4, (.7, 1.1), 1.01, 1.04, (.25, .3)),
+                Scenario(.6, (1.4, .9), 1.01, 1.04, (.25, .3)),
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "problem", _solver_contract_cases(),
+    ids=("dominated", "borrow", "maintenance_fee", "fractional_gamma", "two_assets"),
+)
+def test_public_solver_result_matches_independent_economic_spec(problem: OnePeriodProblem) -> None:
+    assert_one_period_economic_replay(problem, solve_one_period(problem))
+
+
+@pytest.mark.parametrize(
+    "field", (
+        "risky_weights", "cash_weight", "transaction_cost", "post_trade_equity",
+        "scenario_equities", "expected_equity", "expected_utility", "certainty_equivalent",
+        "standing",
+    ),
+)
+def test_independent_spec_rejects_forged_success_even_with_zero_residual(field: str) -> None:
+    problem = _solver_contract_cases()[2]
+    result = solve_one_period(problem)
+    assert_one_period_economic_replay(problem, result)
+    value = getattr(result, field)
+    if field == "standing":
+        forged = "FORWARD_VERIFIED"
+    elif isinstance(value, tuple):
+        forged = (value[0] + .1, *value[1:])
+    else:
+        forged = value + .1
+    with pytest.raises(AssertionError):
+        assert_one_period_economic_replay(
+            problem, replace(result, **{field: forged, "numerical_residual": 0.0})
+        )
