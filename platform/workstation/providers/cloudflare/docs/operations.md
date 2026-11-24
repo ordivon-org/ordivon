@@ -196,18 +196,18 @@ ordivon-edge-lifecycle
 
 Retention is defined once in `config/edge-policy.json`. Request states, Receipt mirrors, cleanup tombstones, and Request-ID idempotency are retained for 90 days. Fetch and Browser Artifacts are retained for 91 days so a replayable Receipt does not outlive its result. Legacy Receipt objects remain untouched until their existing lifecycle expires.
 
-When immediate Artifact cleanup is deferred, inspect or execute the bounded GC controller:
+When immediate Artifact cleanup is deferred, inspect the bounded cleanup-record audit:
 
 ```bash
 python3 scripts/ordivon_edge_gc.py --dry-run
 python3 scripts/ordivon_edge_gc.py
 ```
 
-GC accepts only generation-matching `fetch/v2` and `browser/v2` keys from `cleanup/v2` tombstones.
+Both GC invocations are remote-read-only. A valid legacy tombstone is reported as `deferred` with disposition `native_retention`, not as a completed deletion. The audit binds exact Request ID, operation, lease generation, and generated Artifact paths. The existing R2 expiration rules own deferred deletion; an unreadable or invalid record is a diagnostic failure, never deletion authority.
 
 ## Local operational installation
 
-Install the client, the exact provider policy snapshot, release controller, lifecycle controller, GC controller, and daily GC timer:
+Install the client, the exact provider policy snapshot, release controller, lifecycle controller, GC controller, and daily cleanup-audit timer:
 
 ```bash
 scripts/install-edge-operations
@@ -220,7 +220,7 @@ systemctl status ordivon-edge-gc.timer
 systemctl list-timers ordivon-edge-gc.timer
 ```
 
-The service is root-only, uses a `0077` umask, and processes at most 100 cleanup tombstones per run.
+The service is root-only, uses a `0077` umask, and audits at most 100 cleanup tombstones per run. It writes a private local audit receipt and performs no remote deletion.
 
 ## Client transport and Artifact integrity
 

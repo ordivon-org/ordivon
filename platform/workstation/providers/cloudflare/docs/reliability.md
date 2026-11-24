@@ -141,7 +141,7 @@ If immediate R2 deletion fails, Edge writes a bounded cleanup tombstone:
 cleanup/v2/<request-id>/g<generation>.json
 ```
 
-The tombstone contains only Request ID, operation, lease generation, Artifact keys, reason, and timestamp. It contains no lease token or ETag. The GC controller validates that every requested deletion belongs to the same Request ID and generation and is under `fetch/v2` or `browser/v2` before deleting anything.
+The tombstone contains only Request ID, operation, lease generation, Artifact keys, reason, and timestamp. It contains no lease token or ETag. The v1 tombstone lacks a request digest, immutable lease identity, and a conditional cross-object deletion fence. It is not a deletion authorization. The bounded GC audit validates exact Request ID, operation, generation, and generated Artifact paths, reports valid records as deferred to native retention, and never deletes remote objects. This avoids treating a historical reason or negative read as proof that an Artifact is unreferenced. Immediate Worker cleanup for qualified outcomes is unchanged by the audit transition. Deferred objects may therefore remain until the existing R2 lifecycle expires them.
 
 ## Policy fingerprint and retention window
 
