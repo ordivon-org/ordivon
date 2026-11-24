@@ -549,11 +549,11 @@ def explain_source_impacts(
     for path in (affected_owners.MANIFEST_PATH, DEPENDENCY_PATH, ROOT_TASKS_PATH):
         if not path.resolve().is_relative_to(repo):
             raise ValueError("verification contract outside active Git repository")
-    cut = source_tools.exact_commit(repo, source_cut)
-    qualify_selector_source(repo, cut, scope="projection")
     declared_head = plan.get("headRevision")
     if declared_head is not None and source_cut != declared_head:
         raise ValueError("SourceCut mismatch with change plan headRevision")
+    cut = source_tools.exact_commit(repo, source_cut)
+    qualify_selector_source(repo, cut, scope="projection")
     changed = plan.get("changedPaths")
     if not isinstance(changed, list) or len(changed) > 32:
         raise ValueError("bounded source impact requires at most 32 changed paths")
