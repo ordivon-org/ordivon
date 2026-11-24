@@ -1033,6 +1033,46 @@ class FormalTraceContractTests(unittest.TestCase):
                 self.assertEqual({r["standing"] for r in result["standingByWitness"]}, {"UNKNOWN"})
                 self.assertIn(path, result["crosscuttingAssumptionChanges"])
 
+    def test_native_source_cut_ignores_inherited_git_worktree_redirection(self):
+        import os
+        import subprocess
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            repo = base / "repo"
+            source = repo / "services/runtime"
+            source.mkdir(parents=True)
+            core = source / "core.rs"
+            core.write_text("fn original() {}\n")
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), "-c", "user.name=FormalTest",
+                     "-c", "user.email=test@example.invalid", *args],
+                    stderr=subprocess.PIPE,
+                ).decode().strip()
+            git("init", "-q")
+            git("add", ".")
+            git("commit", "-qm", "baseline")
+            head = git("rev-parse", "HEAD")
+            alternate = base / "clean-alternate"
+            git("worktree", "add", "--detach", str(alternate), head)
+            old_root = self.module.ROOT
+            self.module.ROOT = source
+            try:
+                self.assertEqual(self.module._git_source_changes(head, head), set())
+                core.write_text("fn changed() {}\n")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(head, head)
+                with patch.dict(os.environ, {"GIT_WORK_TREE": str(alternate)}):
+                    self.assertEqual(git("status", "--porcelain"), "")
+                    with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                        self.module._git_source_changes(head, head)
+                    with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                        self.module._qualified_native_source_head()
+            finally:
+                self.module.ROOT = old_root
+
     def test_exact_git_source_impact_rejects_replace_ref_and_ancestor_dirty_config(self):
         import subprocess
 
