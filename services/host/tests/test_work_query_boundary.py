@@ -7,22 +7,66 @@ from ordivon_host_v2.work_queries import WorkReadQueries
 from ordivon_host_v2.work_store import WorkStore
 
 
-def test_work_reads_and_mutations_share_one_explicit_same_transaction_readback() -> None:
-    """WorkStore keeps its public read API, but command readback is no longer an MRO hook."""
-    import inspect
+def test_work_reads_use_one_explicit_read_only_session(monkeypatch) -> None:
+    from contextlib import contextmanager
 
-    from ordivon_host_v2.work_queries import read_work_in_tx
+    from ordivon_host_v2 import work_queries
 
-    assert callable(WorkStore.get_work)
-    assert callable(WorkStore.list_works)
-    assert callable(read_work_in_tx)
-    assert "read_work_in_tx(conn, work_ref, revision)" in inspect.getsource(
-        WorkReadQueries.get_work
-    )
-    assert "read_work_in_tx(conn, work_ref, next_revision)" in inspect.getsource(
-        WorkStore.commit_snapshot
-    )
-    assert not hasattr(WorkStore, "_get_work_in_tx")
+    calls = []
+
+    class Session:
+        @contextmanager
+        def transaction(self):
+            calls.append("begin")
+            yield
+            calls.append("commit")
+
+        def execute(self, sql, params=None):
+            calls.append(sql)
+            assert sql.startswith(("SET TRANSACTION", "SELECT"))
+            return self
+
+        def fetchall(self):
+            return []
+
+    session = Session()
+
+    @contextmanager
+    def connect():
+        calls.append("checkout")
+        yield session
+        calls.append("return")
+
+    def readback(conn, work_ref, revision):
+        assert conn is session
+        calls.append("readback")
+        return {"workRef": work_ref, "revision": revision}
+
+    monkeypatch.setattr(work_queries, "read_work_in_tx", readback)
+    store = WorkStore("postgresql://unused.invalid")
+    monkeypatch.setattr(store, "_connect", connect)
+    assert store.get_work("work:test", 7) == {"workRef": "work:test", "revision": 7}
+    assert calls == [
+        "checkout", "begin", "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        "readback", "commit", "return",
+    ]
+    calls.clear()
+    assert store.list_works()["works"] == []
+    assert calls[:3] == [
+        "checkout", "begin", "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+    ]
+    assert calls[3].startswith("SELECT")
+    assert calls[4:] == ["commit", "return"]
+
+
+def test_work_query_facet_accepts_explicit_connection_factory() -> None:
+    def forbidden():
+        raise AssertionError("validation must precede checkout")
+
+    import pytest
+
+    with pytest.raises(ValueError, match="positive PostgreSQL BIGINT"):
+        WorkReadQueries(forbidden).get_work("work:test", True)
 
 
 def test_work_queries_have_no_mutation_commands_or_receipts() -> None:

@@ -117,7 +117,52 @@ fn pg18_harness_issuer_current_at_dispatch_after_admission() {
             ],
         )
         .unwrap();
+    // An individually digest-valid but different Tool Intent is not the
+    // Intent committed by the original Fence. Keep the original semantic
+    // digest and update only the object reference and its valid CAS bytes.
+    let mut substituted_intent: serde_json::Value = serde_json::from_slice(&intent_raw).unwrap();
+    substituted_intent["runtimeArgumentsDigest"] =
+        serde_json::Value::String(format!("sha256:{}", "d".repeat(64)));
+    let (substituted_intent_digest, substituted_intent_raw) = encoded(&substituted_intent);
+    let mut substituted_payload: serde_json::Value = serde_json::from_slice(&payload_raw).unwrap();
+    substituted_payload["data"]["toolStepIntentObjectDigest"] =
+        serde_json::Value::String(substituted_intent_digest.clone());
+    let (substituted_payload_digest, substituted_payload_raw) = encoded(&substituted_payload);
+    let issuer_schema = scratch.name.clone();
+    let set_objects = |client: &mut Client, wrong: bool| {
+        let (pd, pr, id, ir) = if wrong {
+            (
+                &substituted_payload_digest,
+                &substituted_payload_raw,
+                &substituted_intent_digest,
+                &substituted_intent_raw,
+            )
+        } else {
+            (&payload_digest, &payload_raw, &intent_digest, &intent_raw)
+        };
+        client
+            .execute(
+                &format!(
+                    "UPDATE \"{}\".issuer_cut_fixture SET payload_digest=$1,payload_raw=$2,intent_digest=$3,intent_raw=$4 WHERE run_id=$5",
+                    issuer_schema
+                ),
+                &[pd, pr, id, ir, &run_id],
+            )
+            .unwrap()
+    };
+    let mut source = Client::connect(&dsn, NoTls).unwrap();
+    assert_eq!(set_objects(&mut source, true), 1);
     let mut db = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    assert!(
+        matches!(
+            db.admit_with_workspace_guard(&harness, &|| Ok(()), Some(&scratch.name)),
+            Err(PgAdmissionError::IssuerNotCurrent)
+        ),
+        "a valid CAS object cannot substitute for the Fence's semantic Intent"
+    );
+    assert_eq!(scratch.count("jobs"), 0);
+    assert_eq!(scratch.count("attempts"), 0);
+    assert_eq!(set_objects(&mut source, false), 1);
     assert_eq!(
         db.admit_with_workspace_guard(&harness, &|| Ok(()), Some(&scratch.name),)
             .unwrap(),
@@ -143,7 +188,24 @@ fn pg18_harness_issuer_current_at_dispatch_after_admission() {
 
     // An independent source writer revokes the original Run after admission,
     // before the durable dispatch transaction commits.
-    let mut source = Client::connect(&dsn, NoTls).unwrap();
+    assert_eq!(set_objects(&mut source, true), 1);
+    assert!(
+        matches!(
+            db.mark_dispatch_issued_pg(
+                &issued,
+                Some(&scratch.name),
+                Some("original-harness-principal"),
+            ),
+            Err(PgAdmissionError::IssuerNotCurrent)
+        ),
+        "the later dispatch must reject a substituted current Intent"
+    );
+    assert_eq!(
+        scratch.count("job_events"),
+        4,
+        "no dispatch event on mismatched Intent"
+    );
+    assert_eq!(set_objects(&mut source, false), 1);
     source
         .execute(
             &format!(

@@ -7,6 +7,8 @@ pagination semantics; no alternative Work state or event log is introduced.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
 
 import psycopg
@@ -94,9 +96,12 @@ def _state_at_revision(
 
 
 class WorkReadQueries:
-    """Read-only Work projections inherited by the canonical WorkStore."""
+    """Read-only Work projections with an explicit native session dependency."""
 
-    dsn: str
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def get_work(self, work_ref: str, revision: int | None = None) -> dict[str, Any]:
         if revision is not None and (

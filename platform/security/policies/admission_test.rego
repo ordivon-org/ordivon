@@ -157,3 +157,11 @@ test_rejects_stale_provider_evidence_before_using_findings if {
     "providerResults": array.concat(array.slice(complete_results, 0, 4), [changed]),
   })
 }
+
+test_unknown_source_observation_denies_even_clean_provider_results if {
+  result := decision with input as object.union(base_input, {
+    "observedSubjectRevision": "UNKNOWN",
+  })
+  not result.allow
+  result.standing == "STALE_EVIDENCE"
+}
