@@ -358,13 +358,53 @@ function receiptMatchesLease(
   lease: ExecutionLease
 ): boolean {
   return (
+    receipt.schema_version === EDGE_SCHEMA_VERSION &&
     receipt.receipt_id === lease.request_id &&
     receipt.request_digest === lease.request_digest &&
     receipt.operation === lease.operation &&
     receipt.execution.policy_version === lease.policy_version &&
     receipt.execution.capability_version === lease.capability_version &&
+    receipt.execution.worker_version_id === lease.worker_version_id &&
+    receipt.execution.worker_version_tag === lease.worker_version_tag &&
+    receipt.execution.worker_version_timestamp === lease.worker_version_timestamp &&
     receipt.execution.lease_generation === lease.lease_generation
   );
+}
+
+// A write outcome describes this attempt, not the history of the lease.
+type CommitWriteOutcome = "committed" | "rejected" | "unknown";
+type CommitObservation =
+  | { readonly kind: "observed"; readonly state: RequestState | null }
+  | { readonly kind: "unavailable" };
+type CommitResolution =
+  | { readonly kind: "recover"; readonly receipt: EdgeReceipt }
+  | { readonly kind: "fenced" }
+  | { readonly kind: "retain" };
+
+function resolveCommitObservation(
+  lease: ExecutionLease,
+  observation: CommitObservation
+): CommitResolution {
+  if (observation.kind === "unavailable" || observation.state === null) {
+    return { kind: "retain" };
+  }
+  const state = observation.state;
+  if (
+    state.request_id !== lease.request_id ||
+    state.request_digest !== lease.request_digest ||
+    state.operation !== lease.operation
+  ) {
+    return { kind: "retain" };
+  }
+  if (state.state === "committed" && receiptMatchesLease(state.receipt, lease)) {
+    return { kind: "recover", receipt: state.receipt };
+  }
+  // This fence is valid within the request-state lifetime. Artifact identity
+  // across retention epochs is a separate obligation.
+  if (state.execution.lease_generation > lease.lease_generation) {
+    return { kind: "fenced" };
+  }
+  return { kind: "retain" };
 }
 
 async function mirrorReceipt(
@@ -393,12 +433,8 @@ export async function commitReceipt(
   options: CommitReceiptOptions
 ): Promise<EdgeReceipt> {
   if (!receiptMatchesLease(options.receipt, options.lease)) {
-    await cleanupArtifacts(
-      options.bucket,
-      options.lease,
-      options.artifactKeys ?? [],
-      "receipt_lease_mismatch"
-    );
+    // Invalid local input proves nothing about a previously committed receipt.
+    // Retain bytes; no destructive effect is authorized by this validation error.
     throw new EdgeError(
       "receipt_lease_mismatch",
       500,
@@ -418,9 +454,9 @@ export async function commitReceipt(
     receipt: options.receipt
   };
 
-  let committed: R2Object | null;
+  let outcome: CommitWriteOutcome;
   try {
-    committed = await options.bucket.put(
+    const committed = await options.bucket.put(
       requestStateKey(options.lease.request_id),
       JSON.stringify(committedState),
       {
@@ -437,62 +473,46 @@ export async function commitReceipt(
         }
       }
     );
+    outcome = committed === null ? "rejected" : "committed";
   } catch {
+    outcome = "unknown";
+  }
+
+  if (outcome !== "committed") {
     const observation = await loadRequestState(
       options.bucket,
       options.lease.request_id
-    ).then(
-      (current) => ({ kind: "observed", current } as const),
-      () => ({ kind: "unavailable" } as const)
+    ).then<CommitObservation, CommitObservation>(
+      (current) => ({ kind: "observed", state: current?.state ?? null }),
+      () => ({ kind: "unavailable" })
     );
-    const current = observation.kind === "observed" ? observation.current : undefined;
-    if (
-      current?.state.state === "committed" &&
-      receiptMatchesLease(current.state.receipt, options.lease)
-    ) {
-      await mirrorReceipt(
-        options.bucket,
-        current.state.receipt,
-        options.onMirrorFailure
-      );
-      return current.state.receipt;
+    const resolution = resolveCommitObservation(options.lease, observation);
+    if (resolution.kind === "recover") {
+      await mirrorReceipt(options.bucket, resolution.receipt, options.onMirrorFailure);
+      return resolution.receipt;
     }
-    // A failed or negative observation cannot disprove an in-flight commit.
-    // Only a newer generation of the same intent fences this lease permanently.
-    // Do not enqueue cleanup for unresolved evidence: GC could delete a late
-    // committed receipt's Artifacts. The existing retention policy bounds it.
-    if (
-      current != null &&
-      current.state.request_digest === options.lease.request_digest &&
-      current.state.operation === options.lease.operation &&
-      current.state.execution.lease_generation > options.lease.lease_generation
-    ) {
+    if (resolution.kind === "fenced") {
       await cleanupArtifacts(
         options.bucket,
         options.lease,
         options.artifactKeys ?? [],
-        "receipt_commit_unavailable"
+        outcome === "rejected" ? "execution_lease_lost" : "receipt_commit_unavailable"
       );
+      if (outcome === "rejected") {
+        throw new EdgeError(
+          "execution_lease_lost",
+          409,
+          "The execution lease was replaced before the result could be committed."
+        );
+      }
     }
+    // Neither a rejected attempt nor a failed read proves that an earlier
+    // invocation did not commit. Keep evidence until an exact fence is known.
     throw new EdgeError(
       "receipt_commit_unavailable",
       503,
       "The commit outcome could not be confirmed. Reconcile the original request ID.",
       "failed"
-    );
-  }
-
-  if (committed === null) {
-    await cleanupArtifacts(
-      options.bucket,
-      options.lease,
-      options.artifactKeys ?? [],
-      "execution_lease_lost"
-    );
-    throw new EdgeError(
-      "execution_lease_lost",
-      409,
-      "The execution lease was replaced before the result could be committed."
     );
   }
 

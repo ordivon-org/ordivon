@@ -102,7 +102,7 @@ If an R2 commit call throws after the platform may already have accepted the wri
 - observed same-intent, strictly newer lease generation: the original ETag is permanently fenced within the retention window; clean only the old generation;
 - unavailable, absent, same-generation pending, or otherwise inconclusive read: return `503 receipt_commit_unavailable` and retain the original Artifact set. Do not create a cleanup tombstone. Reconcile with the original Request ID; a delayed write may still commit.
 
-An explicit failed conditional write is different from an exception with unknown commit outcome. The latter is not evidence of non-commit. Unresolved Artifacts remain subject to the existing bounded retention policy; no new durable store or recovery protocol is introduced.
+An explicit failed conditional write proves only that this write was rejected, not that an earlier invocation of the same lease did not commit. Both outcomes use the typed observation decision in `src/idempotency.ts`; a repeated commit must recover the original Receipt or retain its evidence if the read is inconclusive. A confirmed newer generation permits cleanup. An invalid local Receipt (including mismatched Worker identity) is rejected without deleting evidence. This assumes one request-state lifetime; Artifact identity across retention epochs is a separate obligation.
 
 ## Pending receipt reads
 
@@ -130,7 +130,8 @@ The test suite injects R2 failures and checks:
 - stale leases cannot commit;
 - takeover increments generation;
 - stale Artifact cleanup cannot delete the current generation;
-- commit failure removes newly written Artifacts;
+- a rejected conditional write without an observed fence preserves evidence;
+- repeating an internal commit recovers its original Receipt and retains evidence even when the recovery read is unavailable or absent;
 - an ambiguous post-write error is recovered by rereading committed state;
 - Fetch and Browser preserve committed evidence when recovery reads fail or a write commits after a pending observation;
 - positively observed same-intent takeover still permits old-generation cleanup without removing the new generation;
@@ -160,7 +161,7 @@ Browser snapshot Receipts preserve the requested URL and explicitly report `fina
 
 ## Bounded formal model: ambiguous commit evidence
 
-`formal/EdgeCommitEvidenceR1.tla` separates the actual R2 state from the observed state and the cleanup decision. It models one intent, an outstanding generation-1 conditional commit, a possible generation-2 takeover, read failure, and late completion. The assumed environment has generation-specific keys, monotonic fenced conditional writes, and no retention expiry or external deletion during the modeled trace.
+`formal/EdgeCommitEvidenceR1.tla` separates the actual R2 state from the observed state and the cleanup decision. It models one intent, an outstanding generation-1 conditional commit, a possible generation-2 takeover, read failure, late completion, and a repeated conditional write after commit. The assumed environment has generation-specific keys, monotonic fenced conditional writes, and no retention expiry or external deletion during the modeled trace.
 
 | Model action / observation | Concrete seam | Verification bridge |
 | --- | --- | --- |
@@ -176,4 +177,4 @@ Run the optional owner-scoped model check with an explicit, absolute path to the
 ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar pnpm formal:verify
 ```
 
-The positive model checks five invariants. The unsafe cleanup strategy must violate committed evidence integrity; three additional negative-property probes require reachability of late commit, cleanup, and recovery. The model does not cover R2 availability/liveness, retention expiry, corrupt or foreign state, repeated internal commit invocations, or all TypeScript traces. It is not a complete implementation refinement proof or a production acceptance result. Keep concrete HTTP/Artifact regression tests until a qualified refinement bridge replaces their specific obligations.
+The positive model checks five invariants. The original unsafe cleanup and repeated-rejection cleanup mutants must violate committed evidence integrity. Five negative-property probes require reachability of late commit, cleanup, recovery, repeated recovery, and repeated rejection with an unknown observation. The model does not cover R2 availability/liveness, retention expiry, corrupt or foreign state, arbitrary concurrent internal invocations, or all TypeScript traces. It is not a complete implementation refinement proof or a production acceptance result. Keep concrete HTTP/Artifact regression tests until a qualified refinement bridge replaces their specific obligations.

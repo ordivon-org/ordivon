@@ -18,7 +18,7 @@ java -cp "$jar" tla2sany.SANY EdgeCommitEvidenceR1.tla
 java -cp "$jar" tlc2.TLC -workers 1 -config EdgeCommitEvidenceR1.cfg EdgeCommitEvidenceR1.tla > positive.log || { cat positive.log; exit 1; }
 grep -F 'Model checking completed. No error has been found.' positive.log
 grep -E 'states generated|distinct states|depth' positive.log
-for check in 'unsafe:CommittedEvidenceExists' 'late-probe:NeverLateAfterPendingObservation' 'cleanup-probe:NeverCleanup' 'recover-probe:NeverRecover'; do
+for check in 'unsafe:CommittedEvidenceExists' 'late-probe:NeverLateAfterPendingObservation' 'cleanup-probe:NeverCleanup' 'recover-probe:NeverRecover' 'repeat-unsafe:CommittedEvidenceExists' 'repeat-recover-probe:NeverRepeatedRecovery' 'repeat-unknown-probe:NeverRepeatedUnknownRetain'; do
   variant="${check%%:*}"
   inv="${check#*:}"
   set +e

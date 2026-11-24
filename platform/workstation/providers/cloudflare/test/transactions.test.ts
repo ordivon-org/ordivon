@@ -191,7 +191,74 @@ test("lease takeover increments generation and fences the stale executor", async
   assert.equal(stored?.execution.lease_generation, 2);
 });
 
-test("commit failure removes newly written artifacts and preserves pending state", async () => {
+test("repeating an internal commit reconciles the original receipt and preserves its artifact", async () => {
+  const memory = new MemoryR2();
+  const bucket = memory.asBucket();
+  const requestId = "request_commit_repeat_001";
+  const acquired = await beginRequest({
+    bucket, requestId, requestDigest: DIGEST, operation: "fetch",
+    policyVersion: TEST_POLICY_VERSION, workerVersion: WORKER_VERSION,
+    now: new Date("2026-07-27T00:00:00Z")
+  });
+  if (acquired.kind !== "acquired") assert.fail("expected acquired lease");
+  const key = `fetch/v2/${requestId}/g1/body`;
+  await bucket.put(key, "original");
+  const receipt = createReceipt({
+    operation: "fetch", status: "succeeded", receiptId: requestId,
+    requestDigest: DIGEST, execution: acquired.lease,
+    startedAt: new Date(acquired.lease.acquired_at),
+    completedAt: new Date("2026-07-27T00:00:01Z"),
+    artifact: artifact(key), artifacts: [artifact(key)],
+    fetch: { requested_url: "https://allowed.example.org/result",
+      final_url: "https://allowed.example.org/result", http_status: 200, redirect_count: 0 }
+  });
+  const options = { bucket, lease: acquired.lease, receipt, artifactKeys: [key] };
+  const original = await commitReceipt(options);
+  let repeated: Awaited<ReturnType<typeof commitReceipt>> | undefined;
+  let failure: unknown;
+  try { repeated = await commitReceipt(options); } catch (error) { failure = error; }
+  assert.equal(await (await bucket.get(key))?.text(), "original",
+    "a rejected second conditional write cannot disprove the first commit");
+  assert.equal(failure, undefined);
+  assert.deepEqual(repeated, original);
+  assert.deepEqual(await loadReceiptRecord(bucket, requestId), original);
+  assert.deepEqual(memory.deletedKeys, []);
+  for (const observation of ["unavailable", "absent"] as const) {
+    const unconfirmedBucket = {
+      ...bucket,
+      async get(candidate: string) {
+        if (candidate === requestStateKey(requestId)) {
+          if (observation === "unavailable") throw new Error("recovery read unavailable");
+          return null;
+        }
+        return bucket.get(candidate);
+      }
+    } as R2Bucket;
+    await assert.rejects(
+      commitReceipt({ ...options, bucket: unconfirmedBucket }),
+      (error: unknown) => errorCode(error) === "receipt_commit_unavailable"
+    );
+    assert.equal(await (await bucket.get(key))?.text(), "original");
+    assert.deepEqual(await loadReceiptRecord(bucket, requestId), original);
+    assert.deepEqual(memory.deletedKeys, []);
+  }
+  // A local invalid receipt is not authority to delete earlier committed bytes.
+  for (const invalidReceipt of [
+    { ...receipt, request_digest: "e".repeat(64) },
+    { ...receipt, execution: { ...receipt.execution, worker_version_id: "foreign-worker" } }
+  ]) {
+    let mismatch: unknown;
+    try {
+      await commitReceipt({ ...options, receipt: invalidReceipt });
+    } catch (error) { mismatch = error; }
+    assert.equal(await (await bucket.get(key))?.text(), "original");
+    assert.equal(errorCode(mismatch), "receipt_lease_mismatch");
+    assert.deepEqual(await loadReceiptRecord(bucket, requestId), original);
+    assert.deepEqual(memory.deletedKeys, []);
+  }
+});
+
+test("rejected conditional write without an observed fence retains evidence and pending state", async () => {
   const memory = new MemoryR2();
   const environment = makeEnv(memory);
   const requestId = "request_commit_loss_001";
@@ -210,14 +277,14 @@ test("commit failure removes newly written artifacts and preserves pending state
       logWriter: NO_LOG
     }
   );
-  assert.equal(response.status, 409);
+  assert.equal(response.status, 503);
   assert.equal(
     ((await response.json()) as { error: string }).error,
-    "execution_lease_lost"
+    "receipt_commit_unavailable"
   );
   const artifactKey = `fetch/v2/${requestId}/g1/body`;
-  assert.equal(await environment.ARTIFACTS.get(artifactKey), null);
-  assert.ok(memory.deletedKeys.includes(artifactKey));
+  assert.notEqual(await environment.ARTIFACTS.get(artifactKey), null);
+  assert.deepEqual(memory.deletedKeys, []);
   const state = await loadReceiptRecord(environment.ARTIFACTS, requestId);
   assert.equal(state?.status, "pending");
 });
