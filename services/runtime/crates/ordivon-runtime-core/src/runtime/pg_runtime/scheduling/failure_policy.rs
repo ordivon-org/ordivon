@@ -1,6 +1,6 @@
 //! Pure classification of candidate corruption and scoped reconciliation errors.
 //! These decisions have no PostgreSQL or native OS side effects.
-use super::*;
+use super::{RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan, RuntimeResult};
 
 /// A corrupt committed candidate is a Job-local *invalid request*, not a
 /// failed PostgreSQL Registry. Preserve that distinction in Job events so an

@@ -351,7 +351,14 @@ pub(crate) fn append_contained_properties(
         "--property=PrivateDevices=yes",
         "--property=PrivateNetwork=yes",
         "--property=NoNewPrivileges=yes",
-        "--property=CapabilityBoundingSet=",
+        // Trusted Runner (not target Command) needs only native capability
+        // to drop each child to the already qualified Workspace owner.
+        // The trusted Runner must re-read original source bytes created by
+        // the unprivileged payload (often 0600) when verifying the next
+        // PG-bound attempt. CAP_DAC_READ_SEARCH grants only read/traverse,
+        // not arbitrary file modification. The child is still setuid()
+        // nonroot with NO_NEW_PRIVS and no ambient capabilities.
+        "--property=CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_DAC_READ_SEARCH",
         "--property=AmbientCapabilities=",
         "--property=RestrictSUIDSGID=yes",
         "--property=RestrictNamespaces=yes",
@@ -363,6 +370,11 @@ pub(crate) fn append_contained_properties(
         "--property=ProtectKernelLogs=yes",
         "--property=ProtectControlGroups=yes",
         "--property=ProtectProc=invisible",
+        // File-system mount isolation by itself is not process isolation.
+        // Two contained tasks with the same nonroot UID can otherwise open
+        // each other's mount view via /proc/<peer-pid>/root despite a denied
+        // direct path. Scope /proc and PIDs to this native systemd Unit.
+        "--property=PrivatePIDs=yes",
         "--property=ProcSubset=pid",
         "--property=KeyringMode=private",
         "--property=RestrictAddressFamilies=AF_UNIX",

@@ -224,7 +224,7 @@ mutation harness.
 
 ## R3 Q1 reusable Qlib-native Paper batch consumer (simulation only, 2026-11-13)
 
-The accounting.paper_simulation_run module is an adapter over existing
+The applications.paper_simulation_run module composes existing
 PostgresPaperClose.close_session and read_committed_paper_close, NOT a new
 OMS, valuation model, account database, order router, or scheduler.
 It consumes an independently executed Qlib OOS study and Nautilus backtest.
@@ -237,7 +237,7 @@ Using private previously produced study and native output paths:
     export ORDIVON_CAPITAL_PAPER_PG_DSN='host=127.0.0.1 ... dbname=ordivon_paper'
     cd domains/capital
     scripts/run-capability-python \
-      -m ordivon_capital.accounting.paper_simulation_run \
+      -m ordivon_capital.applications.paper_simulation_run \
       --study /private/research/native_study_result.json \
       --predictions /private/research/qlib_test_predictions.csv \
       --native /private/nonlive/native_holding_result.json \
@@ -293,7 +293,7 @@ production broker deployment or prospective market-return demonstration.
 
 ## Q1 Portfolio / Governance Paper-only scoped binding (2026-11-13)
 
-The original accounting.paper_simulation_run optionally consumes a private
+The current applications.paper_simulation_run optionally consumes a private
 --mandate JSON. The existing Portfolio strategic_contribution component
 checks the model-selected asset allocation, its $1,000 maximum investment
 sleeve and $9,000 protected reserve. The original Governance

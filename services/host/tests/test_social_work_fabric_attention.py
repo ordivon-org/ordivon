@@ -54,12 +54,100 @@ def test_bounded_subscription_lateral_uses_existing_topic_space_change_indexes()
     assert "bool_or(mc.replied_to_me)" in sql
 
 
-def test_attention_never_ranks() -> None:
-    source = (ATTENTION.parent / "attention_projections.py").read_text()
-    assert '"rankingApplied": False' in source
+class _Result:
+    def __init__(self, *, one=None, all_rows=()):
+        self.one = one
+        self.all_rows = all_rows
+
+    def fetchone(self):
+        return self.one
+
+    def fetchall(self):
+        return list(self.all_rows)
+
+
+class _AttentionConnection:
+    """Minimal deterministic storage evidence for public-boundary unit tests.
+
+    The disposable PG suite separately verifies actual SQL and MVCC behavior.
+    """
+
+    def __init__(self):
+        self.inserted_cursors = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return None
+
+    def transaction(self):
+        return self
+
+    def execute(self, query, params=None):
+        if query.startswith("SET TRANSACTION"):
+            return _Result()
+        if "SELECT value FROM swf_change_clock" in query:
+            return _Result(one={"value": 10})
+        if "SELECT cursor FROM attention_cursors" in query:
+            return _Result(one={"cursor": 7})
+        if "INSERT INTO attention_cursors" in query:
+            if params[1] < 7:
+                return _Result()
+            self.inserted_cursors.append(params[1])
+            return _Result(one={"previous_cursor": 7, "cursor": params[1]})
+        if query == ATTENTION_DELTA_SQL:
+            return _Result(all_rows=[{
+                "change_sequence": 8,
+                "event_kind": "message",
+                "source_ref": "message:example",
+                "context_ref": "topic:example",
+                "followed_work": False,
+                "followed_space": False,
+                "followed_topic": True,
+                "mentioned": False,
+                "replied_to_me": False,
+                "own_participation": False,
+                "own_coordination_intent": False,
+                "navigation_kind": "topic",
+                "navigation_ref": "topic:example",
+            }])
+        raise AssertionError(f"unexpected SQL operation: {str(query)[:90]}")
+
+
+def test_attention_cursor_is_monotonic_and_horizon_bounded(monkeypatch) -> None:
+    from ordivon_host_v2 import attention_store as module
+    from ordivon_host_v2.errors import ConflictError
+
+    db = _AttentionConnection()
+    monkeypatch.setattr(AttentionStore, "_connect", lambda self: db)
+    monkeypatch.setattr(AttentionStore, "_require_actor", staticmethod(lambda _db, _actor: None))
+    monkeypatch.setattr(module, "claim_command_receipt", lambda *_: None)
+    monkeypatch.setattr(module, "record_command_receipt", lambda *_: None)
+    store = AttentionStore("postgresql://unused.invalid/host")
+    with pytest.raises(ConflictError, match="beyond current change horizon"):
+        store.ack("actor:agent:test", cursor=11, client_request_id="test-ahead")
+    with pytest.raises(ConflictError, match="cannot move backwards"):
+        store.ack("actor:agent:test", cursor=6, client_request_id="test-rewind")
+    assert db.inserted_cursors == []
+    committed = store.ack("actor:agent:test", cursor=8, client_request_id="test-valid")
+    assert committed["previousCursor"] == 7
+    assert committed["cursor"] == 8
+    assert db.inserted_cursors == [8]
+
+
+def test_attention_never_ranks(monkeypatch) -> None:
+    db = _AttentionConnection()
+    monkeypatch.setattr(AttentionStore, "_connect", lambda self: db)
+    monkeypatch.setattr(AttentionStore, "_require_actor", staticmethod(lambda _db, _actor: None))
+    projection = AttentionStore("postgresql://unused.invalid/host").delta(
+        "actor:agent:test", after_sequence=7
+    )
+    assert projection["snapshotHighSequence"] == 10
+    assert projection["rankingApplied"] is False
+    assert projection["events"][0]["navigationRef"] == "topic:example"
+    assert "priority" not in projection["events"][0]
     assert "ORDER BY change_sequence,event_kind,source_ref" in ATTENTION_DELTA_SQL
-    assert "ORDER BY priority" not in source
-    assert "ORDER BY score" not in source
 
 
 def test_subscription_is_routing_preference_not_assignment() -> None:

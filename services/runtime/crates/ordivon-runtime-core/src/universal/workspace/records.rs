@@ -88,6 +88,92 @@ fn verified_interrupted_open(
     Ok(actual)
 }
 
+
+/// Each unprivileged Workspace uses its own exact-SourceRevision shallow Git
+/// objects/index/refs; the original root-owned linked Worktree stays the
+/// physical Runtime source-digest/CAS owner. No alternates or new service.
+/// This runs under the existing durable Workspace OPENING identity, before
+/// any ordinary Agent can write the Workspace or its separate cache.
+#[cfg(unix)]
+fn create_workspace_private_git_snapshot(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+    source: &Path,
+    revision: &str,
+    workspace: &Path,
+) -> Result<(), UniversalExecError> {
+    let (Some(uid), Some(gid)) = (config.workspace_uid, config.workspace_gid) else {
+        return Ok(());
+    };
+    if uid == 0 || gid == 0 {
+        return Err(unfinished_open_error("private Git requires a nonroot Workspace identity"));
+    }
+    let cache = config.workspace_cache_path(workspace_id);
+    match fs::symlink_metadata(&cache) {
+        Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            fs::create_dir(&cache).map_err(|e| io_error(&cache, "create Workspace Git cache", e))?;
+        }
+        _ => return Err(unfinished_open_error("Workspace Git cache is not a real directory")),
+    }
+    let private = cache.join("agent-git");
+    let run = |label: &str, mut command: Command| -> Result<(), UniversalExecError> {
+        let output = command.output().map_err(|e| tool_unavailable("git", e))?;
+        if !output.status.success() {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::ToolFailed,
+                format!("prepare independent Workspace Git {label}: {}", String::from_utf8_lossy(&output.stderr).trim()),
+                Some("workspaceId"),
+                false,
+            ));
+        }
+        Ok(())
+    };
+    match fs::symlink_metadata(&private) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let mut init = workspace_git_command();
+            init.args(["init", "--quiet", "--bare"]).arg(&private);
+            run("init", init)?;
+            let mut fetch = workspace_git_command();
+            fetch.arg("--git-dir").arg(&private).args(["fetch", "--no-tags", "--depth=1"])
+                .arg(source).arg(revision);
+            run("shallow exact revision", fetch)?;
+            let mut ref_update = workspace_git_command();
+            ref_update.arg("--git-dir").arg(&private)
+                .args(["update-ref", "refs/heads/agent-work", revision]);
+            run("private ref", ref_update)?;
+            let mut head = workspace_git_command();
+            head.arg("--git-dir").arg(&private)
+                .args(["symbolic-ref", "HEAD", "refs/heads/agent-work"]);
+            run("private HEAD", head)?;
+            let mut index = workspace_git_command();
+            index.arg("--git-dir").arg(&private).arg("--work-tree").arg(workspace)
+                .args(["read-tree", "HEAD"]);
+            run("private index", index)?;
+        }
+        Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {
+            // Only a partially completed OPENING can retry. Never fetch
+            // after an Agent obtained a normal active Workspace record.
+            if workspace_private_git_has_outputs(&private, revision)? {
+                return Err(unfinished_open_error("interrupted private Git has unknown output"));
+            }
+        }
+        _ => return Err(unfinished_open_error("private Git is not a real directory")),
+    }
+    // Only this new cache tree, not the shared source repository, is writable
+    // by the ordinary Agent. Existing native ownership traversal is reused.
+    transfer_workspace_ownership(&private, uid, gid)?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn create_workspace_private_git_snapshot(
+    _config: &UniversalExecutorConfig, _workspace_id: &str, _source: &Path,
+    _revision: &str, _workspace: &Path,
+) -> Result<(), UniversalExecError> {
+    Ok(())
+}
+
 pub(crate) fn create_git_workspace_record(
     config: &UniversalExecutorConfig,
     request: &GitWorkspaceCreateRequest,
@@ -190,6 +276,9 @@ pub(crate) fn create_git_workspace_record(
     if let (Some(uid), Some(gid)) = (config.workspace_uid, config.workspace_gid) {
         transfer_workspace_ownership(&canonical_target, uid, gid)?;
     }
+    create_workspace_private_git_snapshot(
+        config, &request.workspace_id, &source_repo, &revision, &canonical_target,
+    )?;
     let record = WorkspaceRecord {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         workspace_id: request.workspace_id.clone(),

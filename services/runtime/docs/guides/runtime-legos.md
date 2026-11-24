@@ -167,7 +167,7 @@ Coding/Research agent cannot be claimed isolated until original grants
 select contained_local and OS/native consumers are actually installed.
 Domain Run Completed/recipient ByteACK/native effect drain are distinct.
 
-### Directory ownership after this source-only refactor
+### Actual PG Admission module ownership (current source)
 
 This is an incremental reorganization inside the existing owner, not a
 second runtime or a completed fleet migration.
@@ -178,19 +178,37 @@ second runtime or a completed fleet migration.
 | pg_admission/writer_authority.rs | PostgreSQL schema identification, physical epoch and qualified relational constraints | Job admission business transaction or a new approval system |
 | pg_admission/terminal_contract.rs | Pure Attempt terminal state decision, Artifact manifest; original Kani proof stays adjacent | PG commit, OS stop |
 | pg_admission/cancel_contract.rs | Cancellation immutable identity and DTO | Process termination |
-| pg_admission.rs | Existing PostgreSQL transaction/CAS implementations and replay, with above contracts imported | Cloudflare parsing, extra Registry |
+| pg_admission.rs | Small public facade: stable DTO exports and owner module composition | New Authorization DB, SQL transaction implementations |
+| pg_admission/admission.rs | Atomic new Job admission, idempotency and shared transaction linearization | Runtime OS launch, user-authentication parsing |
+| pg_admission/release.rs | Runtime ReleaseEffect binding/qualification, reusing the original admission transaction | A second Release store or process publisher |
+| pg_admission/readback.rs | Read-only PG admission confirmation after uncertain reply | Reissuing a physical Job |
+| pg_admission/terminal.rs | One PG Attempt terminal/registered Artifact commit | Domain task completion |
+| pg_admission/cancellation.rs | Cancel intent and exact PG readback | Assuming OS Process has stopped |
+| pg_admission/retry.rs | Bounded retry of definitely aborted PostgreSQL transactions | Retrying systemd/JobObject effects |
+| pg_admission/contract_tests.rs, live_pg_tests/*_cases.rs | Pure contracts and domain-scoped PG18 behavioral tests | Positional source files, public authority declarations |
 | runtime/pg_runtime/ | PG-bound Job/Workspace/scheduling/reconciliation use-case composition | Harness goal/Run semantics |
 | runtime/pg_runtime/job/cancellation.rs | Existing PG Job cancel use-case: authorize -> persist intent -> native stop request -> reconciliation/readback | HTTP principal decoding, invented native stop implementation, semantic task completion |
 | runtime/platform/ and universal/ | Native Linux/Windows execution and generic Git/Runner/FS capabilities | Upstream Agent reasoning or policy hierarchy |
 | ordivon-runtime-mcp/src/ | Protocol presentation and existing authenticated principal mapping | Reimplement PG Job state machine |
 | runtime/engine/, runtime/registry/ | Gated SQLite legacy path; retain only while installed Windows needs it | Linux PG production writer |
 
-**Concrete code move:** The old approximately 4,038-line pg_admission.rs
-mixed input uniqueness, qualified writer authority, terminal/Artifact
-policy, cancel intent and PG business transactions. Four small cohesive
-modules now own those first four responsibilities; SQL transactions stay
-in the established parent. Public DTOs and call signatures are retained;
-no database schema, public Tool, release or installed service is changed.
+**Concrete code move (PG Admission R10):** The former 3,816-line
+pg_admission.rs contained four distinct PostgreSQL effects, readback/retry,
+and over 2,700 lines of colocated physical tests. Its 71-line facade now
+delegates the original SQL transactions to separate admission, release,
+readback, terminal, cancellation, and retry modules; 25 native PG18 tests are grouped
+by behavioral domain with a common disposable fixture. Public Rust DTOs,
+method signatures, transaction boundaries, event schema, and OS ownership
+remain unchanged; source-only modularization is not an installed release.
+
+**Test quality:** Use the native Cargo harness, disposable PostgreSQL 18,
+and explicit fail-closed missing-DSN behavior to validate admission,
+cancellation, artifact terminal, issuer currentness and Windows evidence.
+Never require a named test to remain in a specific Rust source file or use
+a fully qualified implementation-module path as an execution identity.
+The Windows witness remains mandatory: exactly one matching business
+test must run and pass. Existing historical planning snapshots are not
+runtime authority or proof of today's installed backend.
 
 ### Dependency and retirement rules
 

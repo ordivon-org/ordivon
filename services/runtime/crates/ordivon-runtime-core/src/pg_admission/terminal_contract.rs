@@ -1,5 +1,5 @@
 //! Pure Artifact manifest, terminal transitions and Attempt terminal DTOs.
-//! The PostgreSQL transaction committing the transition remains in pg_admission.rs.
+//! The PostgreSQL transaction committing the transition is in pg_admission/terminal.rs.
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 

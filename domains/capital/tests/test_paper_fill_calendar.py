@@ -5,7 +5,7 @@ from json import dumps, loads
 
 import pytest
 
-from ordivon_capital.trading import paper_fill_calendar
+from ordivon_capital.accounting import paper_fill_calendar
 
 
 def calendar_payload(omit=False):

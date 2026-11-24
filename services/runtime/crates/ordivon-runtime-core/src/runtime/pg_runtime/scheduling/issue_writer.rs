@@ -1,6 +1,10 @@
 //! Qualified PG Job event writer for scheduler issues, separate from selection policy.
 //! Uses the existing writer, lock, current-Attempt fence, and Job event ledger.
-use super::*;
+use super::{
+    encode, io, json, now, PgAdmissionStore, PgRuntime, RuntimeError, RuntimeErrorCode,
+    RuntimeResult,
+};
+use crate::universal;
 
 /// One durable diagnostic per Attempt and issue class, using the existing PG
 /// Job event ledger. No new table, worker, admission outcome or terminal state.

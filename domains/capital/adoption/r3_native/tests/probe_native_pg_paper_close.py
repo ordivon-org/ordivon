@@ -36,11 +36,11 @@ from ordivon_capital.accounting.postgres_paper_close import (
     read_committed_paper_close,
     read_latest_committed_paper_close,
 )
+from ordivon_capital.applications.nautilus_paper_bridge import next_open_native_paper_session
 from ordivon_capital.markets.etf_eod_snapshot import (
     SnapshotAdmissionError,
     admit_etf_eod_snapshot,
 )
-from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
 
 OUT = ROOT / "output" / "native_pg_paper_e2e.json"
 NY = ZoneInfo("America/New_York")

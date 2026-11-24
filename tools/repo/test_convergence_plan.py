@@ -1015,7 +1015,7 @@ class ConvergencePlanTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             policy = Path(directory) / "dependency_contracts.toml"
             original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
-            exact = 'source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs"'
+            exact = 'source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/"'
             self.assertIn(exact, original)
             policy.write_text(
                 original.replace(
@@ -1027,6 +1027,51 @@ class ConvergencePlanTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "unapproved original Harness test-only"):
                 MODULE.load_dependency_graph(path=policy)
+
+    def test_original_harness_pg_issuer_follows_actual_business_test_not_its_filename(self) -> None:
+        """A Rust test module may move; fake consumers cannot claim its edge."""
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            root = repo / MODULE._RUNTIME_PG_CORE_ROOT
+            nested = root / "new_domain" / "further_split.rs"
+            nested.parent.mkdir(parents=True)
+            body = chr(10).join((
+                '#[test]',
+                '#[ignore = "requires explicit PG18 fixture"]',
+                'fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {',
+                'let x = root.join("services/harness/tests/original_pg_issuer_native_fixture.py");',
+                'let y = root.join("services/harness/src");',
+                'let z = root.join("services/harness");',
+                '}',
+            )) + chr(10)
+            nested.write_text(body, encoding="utf-8")
+            self.assertEqual(
+                MODULE._original_harness_issuer_behavior_source(repo),
+                nested.relative_to(repo).as_posix(),
+            )
+            # Consumer disappears: no static file path may falsely establish it.
+            nested.write_text(body.replace("fn pg18_original_harness_store_real_issuer", "fn retired_issuer"), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unapproved original Harness"):
+                MODULE._original_harness_issuer_behavior_source(repo)
+            nested.write_text(body, encoding="utf-8")
+            # A second source pretending to be the same test is ambiguous.
+            impostor = root / "rogue.rs"
+            impostor.write_text(body, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unapproved original Harness"):
+                MODULE._original_harness_issuer_behavior_source(repo)
+            impostor.unlink()
+            # The test must actually consume the original Harness issuer.
+            nested.write_text(body.replace('root.join("services/harness/src")', '"unrelated"'), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unapproved original Harness"):
+                MODULE._original_harness_issuer_behavior_source(repo)
+            nested.write_text(body, encoding="utf-8")
+            # A symlink to a foreign source is not an approved native consumer.
+            nested.unlink()
+            nested.symlink_to(Path(directory) / "other.rs")
+            with self.assertRaisesRegex(ValueError, "unapproved original Harness"):
+                MODULE._original_harness_issuer_behavior_source(repo)
 
     def test_authority_catalog_queue_projection_uses_native_verification(self) -> None:
         plan = MODULE.build_plan(changed_files=["catalogs/authorities/README.md"])

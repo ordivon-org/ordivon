@@ -1,6 +1,8 @@
 //! Native Linux resource observation for PostgreSQL scheduling.
 //! Missing controller evidence remains UNKNOWN, never fabricated free capacity.
-use super::*;
+use super::{RuntimeError, RuntimeErrorCode, RuntimeResult};
+use crate::resource_scheduling::ResourceRequest;
+use std::{fs, path::Path};
 
 /// Native controller read errors mean UNKNOWN, never an unschedulable verdict.
 pub(super) fn native_resource_error(message: impl std::fmt::Display) -> RuntimeError {

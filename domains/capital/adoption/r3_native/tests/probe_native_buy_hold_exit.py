@@ -50,8 +50,8 @@ from nautilus_trader.persistence import ParquetDataCatalog
 from nautilus_trader.trading import Strategy, StrategyConfig
 
 from ordivon_capital.accounting.paper_close import PaperSession, value_session
+from ordivon_capital.applications.nautilus_paper_bridge import next_open_paper_session
 from ordivon_capital.portfolio.strategic_contribution import plan_strategic_contribution
-from ordivon_capital.trading.nautilus_paper_bridge import next_open_paper_session
 
 HOLD = int(os.environ["ORDIVON_FINANCE_R3_HOLD_SESSIONS"])
 if HOLD not in (5, 20):

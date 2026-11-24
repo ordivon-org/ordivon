@@ -76,33 +76,44 @@ unexecuted or unqualified stages are UNKNOWN.
 
 ## Production change classification: same route is not Host cutover
 
-In production the original install_release.sh first proves whether the exact
-installed and prepared SourceCuts qualify for an **unchanged-authority software
-upgrade**, with packaging/check_same_route_admission.py. That source/consumer
-check requires identical ingress/AuthZEN/PEP bytes, bounded equivalence of
-private Owner credential handling and MCP composition, live same-configured
-Owner routes, actual candidate Host SDK read and local/public anonymous-denial
-canaries. Source-qualified A also checks the **complete executable Gateway
-package**, not just the old list of Security/entrypoint files: additions or
-deletions of package modules, symlinked sources, and AST-different Python leaf
-adapters are unqualified; source comments may differ without changing AST.
-A stable `tools/list` name/input schema does not guarantee an unchanged
-Owner Tool dispatch: a public `work.get` must not silently forward
-`work.snapshot.commit`. A real behavior change needs its own Security,
-Owner-dispatch, and Agent consumer proof before production release; Host/
-Cloudflare migration B evidence cannot substitute for that separate proof.
-No caller flag may request this classification. It does not grant
-authorization; a working authenticated Agent and post-restart canary/rollback
-remain independent.
+The original `install_release.sh` first uses the **exact immutable candidate
+SourceCut's own checker** (never an older /root checkout). It separates
+three different kinds of changes without a caller-supplied skip flag:
 
-When code, live route, ingress, credential policy or observation changes,
-UNKNOWN is not A: the original check_live_host_admission.py still applies
-the full **Host/Cloudflare/Security cutover** conditions and its current
-NO_GO. Security's service-private LoadCredential is not a Gateway policy
-readback API. Independent Host/socket observations never transmit a bearer in
-the unavailable branch, and an empty TCP snapshot does not prove migration.
-Keep natural Security, Host, Network and Cloudflare consumers authoritative.
-See docs/HOST_DIRECT_CONSUMER_GATE_R7.md for exact A/B evidence and rollback.
+- **A: same executable source and authority**. Python source inventory/AST,
+  ingress, Security, transport, native MCP Tool ABI, resolved Owner endpoints,
+  Host read and anonymous-negative canaries stay as the original checks.
+- **C: existing Action→Effect behavior changes without authority migration**.
+  No new executable module, SDK ABI, Python dependencies, Principal/Ingress,
+  Host/Cloudflare route, Owner credential, AuthZEN target projection, service
+  identity or MCP root change qualifies. Changes are limited to the existing
+  execution command, Host dispatch and request contract, and Security PEP
+  continuation seams; candidate-native **inert** real module canaries verify
+  DENY/STEP_UP/UNKNOWN/forged-resource zero-Owner-dispatch, public read→write,
+  in-place nested JSON mutation after AuthZEN ALLOW, selector/Actor tampering
+  rejection, and Linux Runtime original-key noncommitted-only profile fallback. It is not a new grant, universal Python
+  proof or permission to reinterpret an uncertain effect. Original live A
+  identity/Host-read/anonymous canaries and original GitHub protected source,
+  native Tool ABI, post-restart PID/cwd/Agent Consumer gates still apply.
+- **B: real authority migration**, where Host route, trusted issuer/PEP
+  boundary, Cloudflare/Ingress, or Owner identity changes; the original
+  `check_live_host_admission.py` applies and normally remains NO_GO until
+  natural consumers are actually qualified. A changed business file is
+  **not** evidence of a Host migration.
+
+An unqualified code-only C change exits **4** from the original checker and
+fails the official installer *without* entering unrelated B. An unknown or
+true authority migration still enters the existing fail-closed B conditions.
+The full source-equivalence A predicate no longer contains a one-off
+old/new `execution/commands.py` SHA pair: existing operation seams are
+qualified against real effects and consumers, not historical commit history.
+No caller flag may request a change class; no Security or Owner authority
+has moved. The checker can only qualify the **pre-promotion** operation
+contract. An installed SourceCut, real PID/cwd, original Host positive/negative
+and authenticated ChatGPT consumer readback after restart remain essential.
+Do not claim `contained_local` is non-root or full multiagent isolation:
+a previously installed Runtime runner still produced UID 0 in its physical
+contained Job; this is a separate Runtime natural Owner problem.
 
 ## R44 physical readiness is not systemd Type=simple "Started"
 
@@ -155,6 +166,32 @@ independently represents nonblank nonce qualification. This is NOT a proof
 that installed Security grants exist.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
+
+## Host public Action / actual Owner operation (R47 source consumer)
+
+The **existing** `GatewayCapabilityAuthorizationMiddleware` already sees
+`ServerRequestContext.params["name"]` and the original Tool arguments.
+After its normal Security ALLOW or verified trusted-operator branch, it now
+binds that public Tool identity only for `call_next(ctx)` using Python's
+request-local `ContextVar` in the existing `logic/host_tool_contracts.py`.
+The normal unprotected Tool branch also binds its real public name: a public
+capability probe must never secretly dispatch a Host write/read.
+
+The existing `capabilities/host/dispatch.py` rejects a different delegated
+Host Tool, a retargeted authorized read selector, or changed public Host
+arguments **before** its original Owner caller is reached. This reuses the
+same MCP Tool and AuthZEN resource projection; it is not a second
+authenticator, authorization service, policy store, or independent grant.
+The binding is reset even when a Tool fails. Direct local service calls
+outside MCP have no verified-public-request claim and retain the original
+Owner semantics; they are not production Agent permission evidence.
+
+The adversarial tests in `tests/test_host_public_action_effect_binding.py`
+exercise read→write replacement, scope replacement, mutated write Actor,
+cross-request isolation, DENY zero-dispatch, and original MCP SDK positive/
+negative Tool calls. They are **source** evidence only; do not infer the
+running installed SourceCut changed until the protected PR is merged,
+installed and the actual connected Agent repeats the Host business canary.
 
 ## Shared HTTP request identity (source contract)
 
