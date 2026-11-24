@@ -351,3 +351,11 @@ trade settlement.
 
 Official references: https://docs.tigerbeetle.com/coding/two-phase-transfers/
 and https://www.postgresql.org/docs/current/transaction-iso.html .
+
+## Dated liability reserve
+
+`PortfolioLiabilityReserve.lean` proves natural-number reserve and contribution
+bounds for arbitrary finite obligations. Run
+`mise run //domains/capital:verify:formal:liability-reserve`.
+Python parser/date selection refinement is tested separately; real
+liability completeness remains caller-dependent.

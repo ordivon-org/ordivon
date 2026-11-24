@@ -12,7 +12,7 @@ Gatus -> black-box endpoint contracts
 Grafana -> visualization when explicitly admitted
 ```
 
-Current live shared slices:
+Configured shared slices (not a claim of current service readiness):
 
 - metrics: node_exporter `127.0.0.1:29100` -> Prometheus `127.0.0.1:29091`;
 - logs: journald -> Vector -> Loki HTTP `127.0.0.1:3100` / gRPC `127.0.0.1:9096`.
@@ -28,3 +28,20 @@ Rules:
 5. no black-box probe, metric or log line is promoted into an owner semantic-success or root-cause verdict;
 6. alerting should be actionable and SLO-oriented rather than one alert per low-level check;
 7. downstream components with readiness windows must converge before dependent native health checks are admitted; health checks are not disabled to hide ordering bugs.
+
+## Native trace acceptance
+
+The optional heavy profile is not a boot-time availability promise. Validate the
+current Vector configuration with `vector validate --no-environment observability/vector.yaml`
+from the Workstation owner directory. To exercise the actual OTLP HTTP receiver
+and forwarding sink without starting production services:
+
+```sh
+ORDIVON_NATIVE_VECTOR_TEST=1 uv run --locked python -m pytest -q tests/test_observability_traces_native.py
+```
+
+The native test requires the installed `/usr/bin/vector` and uses only scratch
+loopback ports and a temporary disk buffer. It checks that a synthetic span's
+trace ID, span ID and name reach a disposable HTTP witness. It is not Tempo
+storage/query acceptance, Gateway/Harness live trace acceptance, or business
+completion evidence. A default CI skip is not a native PASS.

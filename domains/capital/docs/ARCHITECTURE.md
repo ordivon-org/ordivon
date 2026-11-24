@@ -283,8 +283,8 @@ remaining UNKNOWNs. An isolated test is not a deployment or live-money grant.
 
 ## Finance implementation update — 2026-11-21, current Git source
 
-The original 2026-11-16 Architecture R1 section below is an ARCHIVED
-observation, not a work queue. Its report that Qlib consumers select the
+The original 2026-11-16 Architecture R1 section is preserved in Git history,
+not in the current execution guide. Its former proposals are not a work queue. Its report that Qlib consumers select the
 first arbitrary CSV value is now RESOLVED: current native and Accounting
 consumers require the named NEXT_OPEN score and matching H5/H20 exit semantics.
 
@@ -300,9 +300,26 @@ domain: applications/paper_simulation_run.py composes Portfolio mandate +
 Governance NON_LIVE decision + Accounting PG close, while
 applications/nautilus_paper_bridge.py translates native Nautilus effects to
 the Paper accounting input. No old import-only shims remain.
+The follow-up read-only Paper entrypoint split keeps
+risk/paper_close_risk.py, portfolio/paper_close_performance.py and
+portfolio/paper_contribution_plan.py free of direct PG/CLI I/O; application
+consumers paper_risk_cli, paper_performance_cli and paper_contribution_cli
+own CLI parsing, source readback and presentation orchestration.
+
 
 Regression acceptance is based on observable economic outcomes, source/cut
 semantics, PG idempotency, and an actual acyclic core-domain AST dependency
 graph. A source-file inventory test is not a behavioral acceptance criterion.
 For any future baseline, re-run the dependency graph and tests on the current
 main, not on this historical document.
+
+## 2026-11-21 PIT-to-Portfolio boundary extraction (source candidate)
+
+The evidence-only Research producer remains `research/pit_joint_forecast.py` and
+retains `from_json_payload`, while `applications/pit_portfolio.py` consumes its
+optimizer-input contract and invokes the existing `portfolio.multistage_policy`
+solver. The original mixed Research `--solve` CLI moves to the application
+entrypoint; the Research CLI remains evidence-only. No optimizer, PG ledger,
+market provider, execution or order authority is duplicated. Qualification
+requires existing PIT/ETF consumer tests and a regression on forecast evidence
+and conditional allocation; historical PIT and alpha remain unproven.
