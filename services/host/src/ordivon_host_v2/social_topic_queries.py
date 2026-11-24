@@ -140,6 +140,9 @@ class SocialTopicReadQueries:
                 "spaceRef": topic["space_ref"],
                 "title": topic["title"],
                 "state": topic["state"],
+                # Same MVCC cut as the state and returned message page.
+                "changeSequence": int(topic["change_sequence"]),
+                "topicHighSequence": topic_high,
             }
 
             def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:

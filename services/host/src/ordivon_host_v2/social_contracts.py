@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypedDict
 
-from .wire_common import AdmissionWire
+from .wire_common import AdmissionWire, NonnegativeHostInteger, PositiveHostInteger
 
 
 class SpaceResponse(TypedDict):
@@ -68,6 +68,8 @@ class TopicResponse(TypedDict):
     createdByActorRef: str
     createdAt: str
     updatedAt: str
+    # Pre-epoch-9 topic.create receipts remain exact historical evidence.
+    changeSequence: NotRequired[PositiveHostInteger]
     truthBoundary: str
 
 
@@ -82,10 +84,19 @@ class TopicListResponse(TypedDict):
     truthBoundary: str
 
 
+class TopicResumeCoordinate(TypedDict):
+    topicRef: str
+    spaceRef: str
+    title: str
+    state: Literal["open", "closed", "archived"]
+    changeSequence: PositiveHostInteger
+    topicHighSequence: NonnegativeHostInteger
+
+
 class TopicResumeResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-topic-resume"]
-    topic: dict[str, Any]
+    topic: TopicResumeCoordinate
     messages: list[dict[str, Any]]
     hasMore: bool
     nextAfterSequence: int

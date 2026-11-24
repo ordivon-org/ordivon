@@ -56,12 +56,14 @@ def test_close_reopen_preserves_messages_and_idempotency() -> None:
     posted = social.post_message(message)
     seq = posted["sequence"]
     request = f"topic-close:{uuid4().hex}"
+    original_change = social.resume_topic(topic)["topic"]["changeSequence"]
     result = social.set_topic_state(
         topic_ref=topic,
         actor_ref=actor,
         state="closed",
         expected_state="open",
         expected_high_sequence=seq,
+        expected_change_sequence=original_change,
         client_request_id=request,
     )
     assert (result["admission"], result["state"]) == ("committed", "closed")
@@ -71,6 +73,7 @@ def test_close_reopen_preserves_messages_and_idempotency() -> None:
         state="closed",
         expected_state="open",
         expected_high_sequence=seq,
+        expected_change_sequence=original_change,
         client_request_id=request,
     )
     assert (replay["admission"], replay["state"]) == ("existing", "closed")
@@ -94,6 +97,7 @@ def test_close_reopen_preserves_messages_and_idempotency() -> None:
         state="open",
         expected_state="closed",
         expected_high_sequence=seq,
+        expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
         client_request_id=f"topic-reopen:{uuid4().hex}",
     )
     assert reopened["state"] == "open"
@@ -116,6 +120,7 @@ def test_close_reopen_preserves_messages_and_idempotency() -> None:
             state="closed",
             expected_state="open",
             expected_high_sequence=seq,
+            expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
             client_request_id=f"stale-close:{uuid4().hex}",
         )
 
@@ -141,6 +146,7 @@ def test_closed_topic_archive_hides_inventory_preserves_messages_and_restores() 
             state="archived",
             expected_state="open",
             expected_high_sequence=seq,
+            expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
             client_request_id=f"bad-archive:{uuid4().hex}",
         )
 
@@ -150,6 +156,7 @@ def test_closed_topic_archive_hides_inventory_preserves_messages_and_restores() 
         state="closed",
         expected_state="open",
         expected_high_sequence=seq,
+        expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
         client_request_id=f"close:archive:{uuid4().hex}",
     )
     archived = social.set_topic_state(
@@ -158,6 +165,7 @@ def test_closed_topic_archive_hides_inventory_preserves_messages_and_restores() 
         state="archived",
         expected_state="closed",
         expected_high_sequence=seq,
+        expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
         client_request_id=f"archive:{uuid4().hex}",
     )
     assert archived["state"] == "archived"
@@ -193,6 +201,7 @@ def test_closed_topic_archive_hides_inventory_preserves_messages_and_restores() 
             state="open",
             expected_state="archived",
             expected_high_sequence=seq,
+            expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
             client_request_id=f"bad-restore:{uuid4().hex}",
         )
     restored = social.set_topic_state(
@@ -201,6 +210,7 @@ def test_closed_topic_archive_hides_inventory_preserves_messages_and_restores() 
         state="closed",
         expected_state="archived",
         expected_high_sequence=seq,
+        expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
         client_request_id=f"restore:archive:{uuid4().hex}",
     )
     assert restored["state"] == "closed"
@@ -216,6 +226,7 @@ def test_topic_state_compare_and_set_is_strict_and_reversible() -> None:
             state="closed",
             expected_state="open",
             expected_high_sequence=True,
+            expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
             client_request_id=f"bool:{uuid4().hex}",
         )
     with pytest.raises(ConflictError, match="state changed"):
@@ -225,6 +236,7 @@ def test_topic_state_compare_and_set_is_strict_and_reversible() -> None:
             state="open",
             expected_state="closed",
             expected_high_sequence=0,
+            expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
             client_request_id=f"stale:{uuid4().hex}",
         )
     unchanged = social.set_topic_state(
@@ -233,6 +245,7 @@ def test_topic_state_compare_and_set_is_strict_and_reversible() -> None:
         state="open",
         expected_state="open",
         expected_high_sequence=0,
+        expected_change_sequence=social.resume_topic(topic)["topic"]["changeSequence"],
         client_request_id=f"no-op:{uuid4().hex}",
     )
     assert unchanged["admission"] == "existing"
@@ -240,6 +253,7 @@ def test_topic_state_compare_and_set_is_strict_and_reversible() -> None:
 
 def test_concurrent_message_and_close_have_one_serialized_winner() -> None:
     social, actor, space, topic = setup_topic()
+    initial_change = social.resume_topic(topic)["topic"]["changeSequence"]
     barrier = Barrier(2)
 
     def close() -> str:
@@ -251,6 +265,7 @@ def test_concurrent_message_and_close_have_one_serialized_winner() -> None:
                 state="closed",
                 expected_state="open",
                 expected_high_sequence=0,
+                expected_change_sequence=initial_change,
                 client_request_id=f"close-race:{uuid4().hex}",
             )
             return "close"

@@ -30,13 +30,13 @@ class SocialTopicCommands:
             row = conn.execute(
                 "INSERT INTO topics(topic_ref,space_ref,title,state,created_by_actor_ref) "
                 "VALUES (%s,%s,%s,'open',%s) ON CONFLICT (topic_ref) DO NOTHING "
-                "RETURNING topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at",
+                "RETURNING topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at,change_sequence",
                 (value.topic_ref, value.space_ref, value.title, value.actor_ref),
             ).fetchone()
             admission = "committed"
             if row is None:
                 row = conn.execute(
-                    "SELECT topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at "
+                    "SELECT topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at,change_sequence "
                     "FROM topics WHERE topic_ref=%s",
                     (value.topic_ref,),
                 ).fetchone()
@@ -60,6 +60,7 @@ class SocialTopicCommands:
                 "createdByActorRef": row["created_by_actor_ref"],
                 "createdAt": row["created_at"].isoformat(),
                 "updatedAt": row["updated_at"].isoformat(),
+                "changeSequence": int(row["change_sequence"]),
                 "truthBoundary": "named asynchronous conversation axis only; not Work lifecycle or authority",
             }
             record_command_receipt(conn, client_request_id, "topic.create", request_digest, result)
@@ -73,6 +74,7 @@ class SocialTopicCommands:
         state: Literal["open", "closed", "archived"],
         expected_state: Literal["open", "closed", "archived"],
         expected_high_sequence: int,
+        expected_change_sequence: int,
         client_request_id: str,
     ) -> dict[str, Any]:
         """CAS for open, closed and logical archive; never deletes message bytes.
@@ -88,6 +90,8 @@ class SocialTopicCommands:
             raise ValueError("topic state must be open, closed, or archived")
         if type(expected_high_sequence) is not int or not 0 <= expected_high_sequence <= HOST_WIRE_INT_MAX:
             raise ValueError("expected_high_sequence must be a non-negative integer within JSON safe integer range")
+        if type(expected_change_sequence) is not int or not 1 <= expected_change_sequence <= HOST_WIRE_INT_MAX:
+            raise ValueError("expected_change_sequence must be a positive integer within JSON safe integer range")
         request = {
             "operation": "topic.state.set",
             "topicRef": topic_ref,
@@ -95,6 +99,7 @@ class SocialTopicCommands:
             "state": state,
             "expectedState": expected_state,
             "expectedHighSequence": expected_high_sequence,
+            "expectedChangeSequence": expected_change_sequence,
         }
         digest = canonical_digest(request)
         with self._connect() as conn, conn.transaction():
@@ -111,6 +116,10 @@ class SocialTopicCommands:
             )
             if topic["state"] != expected_state:
                 raise ConflictError("topic state changed since expected state")
+            # A committed lifecycle occurrence never repeats even if state/high do.
+            # Check under the same row lock used by the existing posting fence.
+            if int(topic["change_sequence"]) != expected_change_sequence:
+                raise ConflictError("topic lifecycle changed since expected change sequence")
             if high != expected_high_sequence:
                 raise ConflictError("topic messages changed since expected high sequence")
             if state == "archived" and topic["state"] == "open":
@@ -123,7 +132,7 @@ class SocialTopicCommands:
                     "UPDATE topics SET state=%s,updated_at=clock_timestamp(),"
                     "change_sequence=swf_next_change_sequence() WHERE topic_ref=%s "
                     "RETURNING topic_ref,space_ref,title,state,created_by_actor_ref,"
-                    "created_at,updated_at",
+                    "created_at,updated_at,change_sequence",
                     (state, topic_ref),
                 ).fetchone()
                 if topic is None:
@@ -139,7 +148,8 @@ class SocialTopicCommands:
                 "createdByActorRef": topic["created_by_actor_ref"],
                 "createdAt": topic["created_at"].isoformat(),
                 "updatedAt": topic["updated_at"].isoformat(),
-                "truthBoundary": "topic openness only; no message deletion, consumer-release proof, or authority transfer",
+                "changeSequence": int(topic["change_sequence"]),
+                "truthBoundary": "receipt of this topic lifecycle occurrence only; replay may be historical; no message deletion, consumer-release proof, or authority transfer",
             }
             record_command_receipt(conn, client_request_id, "topic.state.set", digest, result)
             return result

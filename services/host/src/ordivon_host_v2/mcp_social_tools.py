@@ -156,6 +156,7 @@ def register_social_tools(
         state: Literal["open", "closed", "archived"],
         expectedState: Literal["open", "closed", "archived"],
         expectedHighSequence: NonnegativeHostInteger,
+        expectedChangeSequence: PositiveHostInteger,
     ) -> TopicResponse:
         request = {
             "topicRef": topicRef,
@@ -163,6 +164,7 @@ def register_social_tools(
             "state": state,
             "expectedState": expectedState,
             "expectedHighSequence": expectedHighSequence,
+            "expectedChangeSequence": expectedChangeSequence,
         }
         return social.set_topic_state(
             topic_ref=topicRef,
@@ -170,6 +172,7 @@ def register_social_tools(
             state=state,
             expected_state=expectedState,
             expected_high_sequence=expectedHighSequence,
+            expected_change_sequence=expectedChangeSequence,
             client_request_id=request_id("topic-state-set", request),
         )
 
