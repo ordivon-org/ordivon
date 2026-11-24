@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-03
+updated: 2026-11-24
 summary: Canonical failure model for authoritative request state, conditional transitions, lease fencing, generation-bound Artifacts, ambiguous writes, cleanup, retention, and replay.
 evidence_status: verified
 readiness: READY
@@ -43,6 +43,22 @@ Clients may retry transient transport failures only with the same signed Request
 ## Recovery
 
 Reread authoritative state after ambiguous writes, accept a matching committed Receipt, clean only the executor's generation-bound Artifacts when commit did not win, use conditional takeover for same-policy expired leases, and process validated cleanup tombstones through bounded GC.
+
+## Shared operation lifecycle
+
+The signed HTTP boundary in `src/index.ts` reads the bounded original body and authenticates it before dispatch. Fetch and Browser Run use the same `runOperation` in `src/operation-lifecycle.ts`. Operation-specific validation and execution remain in their existing Fetch/Browser modules; `src/idempotency.ts` remains the authority for R2 state transitions and reconciliation.
+
+The shared lifecycle has the following behavioral obligations:
+
+| Branch | Required behavior | Source / observable evidence |
+| --- | --- | --- |
+| Committed replay | Return the existing Receipt before checking the budget or invoking a provider | `beginRequest`; repeated signed request, unchanged provider and limiter call counts |
+| Acquired lease | Check budget, validate input, then invoke the selected capability | `runOperation`; rejected/rate-limited requests have no provider execution |
+| Execution failure | Commit a failed/rejected Receipt without success evidence | `createReceipt`; failure Receipt and absent success Artifacts |
+| Successful execution | Commit the operation-specific evidence and complete generation-bound Artifact key set | `createReceipt`, `commitReceipt`; matching stored Receipt and bytes |
+| Lost or ambiguous commit | Reconcile the original state; never reinterpret the commit error as an execution failure | `commitReceipt`; precommit rejection and post-write response-loss injection for both capabilities |
+
+Receipt construction and successful commit deliberately remain outside the catch for provider execution errors. A failed commit must not trigger a second, contradictory failure Receipt. Neither this module nor the HTTP router owns another request-state store. The fault-injection tests exercise these obligations with a simulated R2 binding; they are not a formal refinement proof or a live Cloudflare deployment qualification.
 
 ## Evidence
 
@@ -121,14 +137,14 @@ Committed `receipts/v1` objects remain readable and replayable. They are normali
 
 ## Tested failures
 
-The test suite injects R2 failures and proves:
+The test suite injects R2 failures and checks:
 
 - pending records are observable;
 - stale leases cannot commit;
 - takeover increments generation;
 - stale Artifact cleanup cannot delete the current generation;
-- commit failure removes newly written Artifacts;
-- an ambiguous post-write error is recovered by rereading committed state;
+- commit failure removes newly written Artifacts for Fetch and Browser Run;
+- an ambiguous post-write error is recovered by rereading committed state for both capabilities;
 - expired requests cannot cross a policy-version boundary;
 - rate-limited operations are receipted and replay does not consume the budget again;
 - Receipt serialization excludes lease tokens and ETags.

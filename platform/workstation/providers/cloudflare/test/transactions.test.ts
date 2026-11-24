@@ -412,3 +412,71 @@ test("structured logs contain execution identity but not request content", async
   assert.match(serialized, /test-worker-version/);
   assert.match(serialized, /lease_generation/);
 });
+
+for (const fault of ["return_null", "throw_after"] as const) {
+  test(`Browser commit ${fault} preserves the same recovery contract as Fetch`, async () => {
+    const memory = new MemoryR2();
+    const environment = makeEnv(memory);
+    const requestId = "request_browser_commit_" + fault;
+    const stateKey = requestStateKey(requestId);
+    memory.faultPut(stateKey, 2, fault);
+    const body = JSON.stringify({ url: "https://allowed.example.org/page" });
+    let browserCalls = 0;
+    let limitCalls = 0;
+    const dependencies = {
+      browserRunner: {
+        async quickAction() {
+          browserCalls += 1;
+          return new Response(JSON.stringify({
+            success: true,
+            result: {
+              content: "<html>browser result</html>",
+              screenshot: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).toString("base64")
+            },
+            meta: { status: 200, title: "Browser result" }
+          }), {
+            headers: { "content-type": "application/json", "x-browser-ms-used": "123" }
+          });
+        }
+      },
+      rateLimit: async () => { limitCalls += 1; return true; },
+      logWriter: NO_LOG
+    };
+    const invoke = () => handleRequest(
+      signedRequest("https://edge.invalid/v1/browser/run", { method: "POST", body, requestId }),
+      environment,
+      dependencies
+    );
+    const response = await invoke();
+    assert.equal(browserCalls, 1);
+    assert.equal(limitCalls, 1);
+    assert.equal(memory.putCount(stateKey), 2);
+    if (fault === "return_null") {
+      assert.equal(response.status, 409);
+      assert.equal((await response.json() as { error: string }).error, "execution_lease_lost");
+      assert.equal((await loadReceiptRecord(environment.ARTIFACTS, requestId))?.status, "pending");
+      assert.equal(memory.deletedKeys.length, 3);
+      for (const key of memory.deletedKeys) {
+        assert.equal(await environment.ARTIFACTS.get(key), null);
+      }
+    } else {
+      assert.equal(response.status, 200);
+      const envelope = await response.json() as EdgeReceiptEnvelope;
+      assert.equal(envelope.receipt.status, "succeeded");
+      assert.equal(envelope.receipt.operation, "browser.run");
+      assert.equal(envelope.receipt.artifacts?.length, 3);
+      assert.equal(memory.deletedKeys.length, 0);
+      for (const artifact of envelope.receipt.artifacts ?? []) {
+        assert.notEqual(await environment.ARTIFACTS.get(artifact.key), null);
+      }
+      const replay = await invoke();
+      assert.equal(replay.status, 200);
+      const replayed = await replay.json() as EdgeReceiptEnvelope;
+      assert.equal(replayed.replayed, true);
+      assert.deepEqual(replayed.receipt, envelope.receipt);
+      assert.equal(browserCalls, 1);
+      assert.equal(limitCalls, 1);
+      assert.equal(memory.putCount(stateKey), 2);
+    }
+  });
+}
