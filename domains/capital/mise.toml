@@ -8,6 +8,7 @@ run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
+mise run verify:formal:liability-reserve
 mise run verify:formal:unit-r-margin
 mise run verify:formal:unit-r-rebalance
 mise run verify:formal:algebraic-capital
@@ -269,4 +270,12 @@ if observed != expected:
     raise SystemExit(f"Accounting reservation formal obligations mismatch: {observed!r} != {expected!r}")
 print("AccountingReservationR1: 9 universal QF_LIA checks UNSAT; 4 invalid-state counterexamples SAT")
 PYZ3
+"""
+
+[tasks."verify:formal:liability-reserve"]
+description = "Lean proof of dated-liability cash reserve contribution bounds"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioLiabilityReserve.lean
 """

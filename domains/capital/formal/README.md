@@ -364,3 +364,11 @@ model or verifier. The native PostgreSQL transaction witnesses in
 `tests/test_paper_head_readback.py` exercise visibility, competing
 same-session writers and terminated-backend rollback separately; they
 are not consequences of the arithmetic proof.
+
+## Dated liability reserve
+
+`PortfolioLiabilityReserve.lean` proves natural-number reserve and contribution
+bounds for arbitrary finite obligations. Run
+`mise run //domains/capital:verify:formal:liability-reserve`.
+Python parser/date selection refinement is tested separately; real
+liability completeness remains caller-dependent.
