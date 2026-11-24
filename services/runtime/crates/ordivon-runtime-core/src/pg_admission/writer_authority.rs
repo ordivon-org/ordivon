@@ -76,7 +76,10 @@ pub(super) fn qualified_schema_constraints(
 ) -> Result<(), PgAdmissionError> {
     let rows = client.query(
         "SELECT r.relname::text,c.contype::text,ARRAY_AGG(a.attname::text ORDER BY k.ordinality), \
-         COALESCE(ref_ns.nspname::text,''),COALESCE(ref_rel.relname::text,'') \
+         COALESCE(ref_ns.nspname::text,''),COALESCE(ref_rel.relname::text,''), \
+         ARRAY(SELECT ra.attname::text FROM unnest(c.confkey) WITH ORDINALITY AS rk(attnum,ordinality) \
+               JOIN pg_catalog.pg_attribute ra ON ra.attrelid=c.confrelid AND ra.attnum=rk.attnum \
+               ORDER BY rk.ordinality) \
          FROM pg_catalog.pg_constraint c \
          JOIN pg_catalog.pg_class r ON r.oid=c.conrelid \
          JOIN pg_catalog.pg_namespace n ON n.oid=r.relnamespace \
@@ -89,23 +92,35 @@ pub(super) fn qualified_schema_constraints(
          GROUP BY r.relname,c.oid,c.contype,ref_ns.nspname,ref_rel.relname",
         &[&schema],
     )?;
-    let actual: HashSet<(String, String, Vec<String>, String)> = rows
+    #[derive(Eq, Hash, PartialEq)]
+    struct ConstraintIdentity {
+        table: String,
+        kind: String,
+        columns: Vec<String>,
+        target_table: String,
+        target_columns: Vec<String>,
+    }
+    let actual: HashSet<ConstraintIdentity> = rows
         .iter()
         .map(|row| {
             let ref_schema: String = row.get(3);
             let ref_table: String = row.get(4);
-            (
-                row.get(0),
-                row.get(1),
-                row.get(2),
-                if ref_schema == schema {
+            ConstraintIdentity {
+                table: row.get(0),
+                kind: row.get(1),
+                columns: row.get(2),
+                target_table: if ref_schema == schema {
                     ref_table
                 } else {
                     String::new()
                 },
-            )
+                target_columns: row.get(5),
+            }
         })
         .collect();
+    // All existing foreign keys reference the identically named identity
+    // columns on their target. Validate confkey as well as conkey: a valid
+    // FK to another unique column on the same table is not that relation.
     let required: &[(&str, &str, &[&str], &str)] = &[
         ("workspace_consumer_claims", "p", &["claim_id"], ""),
         (
@@ -151,12 +166,17 @@ pub(super) fn qualified_schema_constraints(
         ("_stage_control", "p", &["id"], ""),
     ];
     if required.iter().any(|(table, kind, columns, target)| {
-        !actual.contains(&(
-            (*table).to_owned(),
-            (*kind).to_owned(),
-            columns.iter().map(|name| (*name).to_owned()).collect(),
-            (*target).to_owned(),
-        ))
+        !actual.contains(&ConstraintIdentity {
+            table: (*table).to_owned(),
+            kind: (*kind).to_owned(),
+            columns: columns.iter().map(|name| (*name).to_owned()).collect(),
+            target_table: (*target).to_owned(),
+            target_columns: if *kind == "f" {
+                columns.iter().map(|name| (*name).to_owned()).collect()
+            } else {
+                Vec::new()
+            },
+        })
     }) {
         return Err(PgAdmissionError::Unqualified);
     }

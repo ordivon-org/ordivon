@@ -54,3 +54,18 @@ configurations violates its named invariant, and both reachability controls
 violate their deliberate "never" invariants. Temporary TLC state is removed.
 This task is explicit rather than an unconditional dependency install or
 new default gate.
+
+
+## EffectApprovalRecordR1
+
+The existing Web effect-response task also checks one R4 Effect with a
+retained pending row, one approval record and two possible binding
+identities. WriteApproval is the atomic conditional approval upsert;
+Commit abstracts the successful native Effect/approval transaction.
+LookupPending abstracts the live pending query. The safe model requires
+terminal consumption, immutable binding and no pending observation after
+commit. Three legacy counterexamples and two reachability controls
+(Commit and live renewal) must fail their respective invariants. This is
+a finite record model, not a proof of WebAuthn, SQL refinement, authorization
+or distributed transaction correctness. The native store and browser
+tests independently exercise the real consumer.

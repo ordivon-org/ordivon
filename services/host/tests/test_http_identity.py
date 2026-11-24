@@ -199,6 +199,8 @@ def test_explicit_legacy_loopback_http_compatibility_preserves_existing_live_cli
 ) -> None:
     """A schema-only upgrade must not silently break the existing direct Host client."""
     from ordivon_host_v2 import http_transport, mcp_server
+
+    monkeypatch.setattr(mcp_server.HostV2, "initialize", lambda self: None)
     from ordivon_host_v2.http_identity import AuthenticatedHostApp
 
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
@@ -223,6 +225,8 @@ def test_legacy_http_compatibility_never_overrides_declared_host_bearer(
 ) -> None:
     from ordivon_host_v2 import http_transport, mcp_server
 
+    monkeypatch.setattr(mcp_server.HostV2, "initialize", lambda self: None)
+
     credential, _ = provision(tmp_path)
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
     monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid-host-test-dsn")
@@ -236,7 +240,10 @@ def test_legacy_http_compatibility_never_overrides_declared_host_bearer(
 def test_http_cli_refuses_missing_credential_before_network_bind(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    from ordivon_host_v2.mcp_server import main
+    from ordivon_host_v2 import mcp_server
+
+    monkeypatch.setattr(mcp_server.HostV2, "initialize", lambda self: None)
+    main = mcp_server.main
 
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
     monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid-host-test-dsn")
@@ -265,6 +272,8 @@ def test_host_http_main_installs_native_bearer_gate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     from ordivon_host_v2 import http_transport, mcp_server
+
+    monkeypatch.setattr(mcp_server.HostV2, "initialize", lambda self: None)
     from ordivon_host_v2.http_identity import AuthenticatedHostApp
 
     credential, _resource = provision(tmp_path)

@@ -225,6 +225,12 @@ issue -> view -> revoke -> refresh -> logout -> denial using the existing
 virtual authenticator. The framework-independent observation/authorization
 boundary is the reference behavior for future React/Solid/UI SDK consumers.
 
+Terminal approval evidence follows the committed Effect: a live pending
+approval lookup excludes committed Effects, and the native approval write
+does not reopen a consumed record or replace its Principal/digest binding.
+Exact replay still returns the historical receipt without changing quota.
+This is a Web owner record invariant, not a new authorization provider.
+
 ### Native Agent E2E fixture ownership
 
 The native Agent test uses an isolated Keycloak lab realm, never a production

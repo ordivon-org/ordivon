@@ -14,7 +14,7 @@ persistence:
       sql:
         pluginName: "postgres12"
         databaseName: "temporal"
-        connectAddr: "127.0.0.1:14550"
+        connectAddr: "127.0.0.1:[[ operations_postgres_port ]]"
         connectProtocol: "tcp"
         user: "temporal"
         password: {{ env "TEMPORAL_POSTGRES_PASSWORD" | quote }}
@@ -25,7 +25,7 @@ persistence:
       sql:
         pluginName: "postgres12"
         databaseName: "temporal_visibility"
-        connectAddr: "127.0.0.1:14550"
+        connectAddr: "127.0.0.1:[[ operations_postgres_port ]]"
         connectProtocol: "tcp"
         user: "temporal"
         password: {{ env "TEMPORAL_POSTGRES_PASSWORD" | quote }}

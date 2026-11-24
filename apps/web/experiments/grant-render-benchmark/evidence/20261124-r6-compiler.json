@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "runtimeJobId": "job-01a20cee-efe2-7062-bb0c-d88354bdc227",
+  "sourceRevision": "dcd281a1f9a79f9e0d3e4bf28c7e7b25814454df",
+  "versions": {
+    "react": "19.3.1",
+    "vite": "8.3.5",
+    "viteReactPlugin": "6.3.0",
+    "oxcTransformReact": "0.156.0"
+  },
+  "scope": "Only pinned fixture functions, unminified build compiler-on/off, not all application coverage.",
+  "cases": [
+    {
+      "compiler": false,
+      "GrantRow": {
+        "cacheSlots": 0,
+        "sha256": "fb48b6727a4c84ea942f5d798d3f54bda409d70f46abce3cb8288c8f910d8168"
+      },
+      "App": {
+        "cacheSlots": 0,
+        "sha256": "01695a76b5394b9f23d28072a17da1285d745d1e972e1fd599a31edc7568aa74"
+      }
+    },
+    {
+      "compiler": true,
+      "GrantRow": {
+        "cacheSlots": 17,
+        "sha256": "c82f4b2ae751f75425d596560ef292bc658b94a9ca46a0ec0b4fcf323439f6af"
+      },
+      "App": {
+        "cacheSlots": 9,
+        "sha256": "b8c7cba39db7887823b7c3ee1494652a48360871b6927f509bff7b6145a53a0c"
+      }
+    }
+  ]
+}

@@ -578,3 +578,45 @@ test("a newly ambiguous grant cannot authorize an effect after asynchronous ALLO
     f.store.close();
   }
 });
+
+test("committed approval evidence is terminal and remains consumed", async () => {
+  const f = await fixture();
+  try {
+    const note = f.store.createCanaryNote("principal:test", "approval evidence fixture", f.now());
+    const effect = {
+      effectId: effectId("terminal-approval-record"), effectDigest: effectId("terminal-approval-content"),
+      action: "canary.note.publish", resource: "/canary/notes/" + note.noteId,
+      audience: config.origin, riskClass: "R4" as const,
+      effectType: "website.canary.note.publish",
+    };
+    f.store.registerPendingEffectApproval("principal:test", effect, f.now());
+    f.store.putEffectApproval("principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now());
+    const getApproval = () => f.store.db.prepare(
+      "SELECT * FROM effect_approvals WHERE effect_id = ?",
+    ).get(effect.effectId);
+    const original = getApproval();
+    assert.equal(original?.consumed_at, null);
+    assert.throws(() => f.store.putEffectApproval(
+      "principal:test", "credential:test", effect.effectId, effectId("different-approval-binding"), f.now(),
+    ), (error: unknown) => error instanceof Error && "status" in error && error.status === 409);
+    assert.deepEqual(getApproval(), original);
+    // The live, exact binding may still be refreshed before consumption.
+    f.store.putEffectApproval("principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now(), 240);
+    assert.equal(getApproval()?.expires_at, f.now() + 240);
+    const committed = f.store.commitAgentCanaryPublish(f.grant, f.agent.agentId, effect, note.noteId, f.now());
+    const before = getApproval();
+    assert.equal(before?.consumed_at, f.now());
+    // A terminal owner record must not accept another approval.
+    assert.throws(() => f.store.putEffectApproval(
+      "principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now(),
+    ), (error: unknown) => error instanceof Error && "status" in error && error.status === 409);
+    assert.deepEqual(getApproval(), before);
+    assert.throws(() => f.store.requirePendingEffectApproval("principal:test", effect.effectId, f.now()),
+      (error: unknown) => error instanceof Error && "status" in error && error.status === 404);
+    assert.deepEqual(f.store.resolveAgentEffectReplay(f.agent.agentId, effect), committed.receipt);
+    assert.equal(f.store.getAgentGrant(f.grant.grantId).remainingEffects, f.grant.remainingEffects - 1);
+  } finally {
+    await f.app.close();
+    f.store.close();
+  }
+});

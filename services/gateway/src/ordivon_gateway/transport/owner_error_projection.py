@@ -1,7 +1,8 @@
 """Public MCP presentation of Owner failures; no credential or policy authority.
 
-Only the already-typed Host domain envelope may contribute bounded diagnostic
-fields to user-visible text. Other upstream content remains opaque.
+Only qualified Host navigation and Runtime Artifact error envelopes may
+contribute bounded diagnostic fields to user-visible text. Other upstream
+content remains opaque.
 """
 
 from __future__ import annotations
@@ -55,8 +56,37 @@ def _host_cursor_recovery_text(exc: OwnerCallError) -> str | None:
     )
 
 
+def _runtime_artifact_recovery_text(exc: OwnerCallError) -> str | None:
+    """Only project qualified Artifact reads; never interpret arbitrary error text."""
+    if exc.owner_id != "runtime.linux" or exc.tool_name != "artifact.read":
+        return None
+    error = exc.error
+    if not isinstance(error, dict) or (
+        error.get("origin") != "runtime_core"
+        or error.get("retryable") is not False
+        or error.get("retryClass") != "never"
+        or error.get("commitState") != "not_committed"
+        or error.get("field") != "artifactId"
+    ):
+        return None
+    code = error.get("code")
+    if not isinstance(code, str):
+        return None
+    action = {
+        "ARTIFACT_NOT_UTF8": "authorized-binary-owner-path",
+        "ARTIFACT_NOT_FOUND": "reobserve-original-operation",
+        "ARTIFACT_IDENTITY_CONFLICT": "stop-consumption",
+    }.get(code)
+    if action is None:
+        return None
+    return (
+        "owner tool returned error: runtime.linux/artifact.read; "
+        f"code={code} suggestedAction={action} retryable=false"
+    )
+
+
 def owner_error_result(exc: OwnerCallError) -> CallToolResult:
-    """Preserve the wire envelope while emitting a safe Host-error summary."""
+    """Preserve the wire envelope while emitting a qualified safe recovery summary."""
     error = (
         dict(exc.error)
         if exc.error is not None
@@ -71,7 +101,7 @@ def owner_error_result(exc: OwnerCallError) -> CallToolResult:
         structured["gatewayOwnerId"] = exc.owner_id
     if exc.tool_name is not None:
         structured["gatewayOwnerTool"] = exc.tool_name
-    message = _host_cursor_recovery_text(exc) or str(exc)
+    message = _host_cursor_recovery_text(exc) or _runtime_artifact_recovery_text(exc) or str(exc)
     return CallToolResult(
         content=[TextContent(type="text", text=message)],
         structuredContent=structured,

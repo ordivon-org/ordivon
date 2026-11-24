@@ -2095,6 +2095,53 @@ exit 0
                 )
                 self.assertEqual(governance.main(), 0)
 
+    def test_mise_action_version_is_consumer_coherence_not_frozen_old_sha(self) -> None:
+        """A coherent immutable update is admissible; partial/floating updates are not."""
+        import importlib.util
+        import re
+        from unittest import mock
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location("governance_mise_pin_test", SCRIPT)
+        assert spec is not None and spec.loader is not None
+        governance = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(governance)
+        old_read = Path.read_text
+        setup = ROOT / ".github/actions/setup-root-verification/action.yml"
+        paths = [setup, *sorted((ROOT / ".github/workflows").glob("*.yml"))]
+        consumers = [path for path in paths if "jdx/mise-action@" in old_read(path)]
+        self.assertGreater(len(consumers), 1)
+        for label, targets, replacement, expected in (
+            ("all-pinned", consumers, "e" * 40, None),
+            ("partial-pinned", [setup], "e" * 40, "Mise action consumer pin drift"),
+            ("floating", consumers, "v5", "non-SHA action references"),
+        ):
+            with self.subTest(case=label):
+                def read(path, *args, **kwargs):
+                    text = old_read(path, *args, **kwargs)
+                    if path in targets:
+                        return re.sub(r"jdx/mise-action@[0-9a-f]{40}",
+                                      "jdx/mise-action@" + replacement, text)
+                    return text
+
+                with mock.patch.object(Path, "read_text", read):
+                    if expected is None:
+                        self.assertEqual(governance.main(), 0)
+                    else:
+                        with self.assertRaisesRegex(AssertionError, expected):
+                            governance.main()
+
+        # Exercise the natural updater coverage against a missing real manifest.
+        def uncovered(path, *args, **kwargs):
+            text = old_read(path, *args, **kwargs)
+            if path == ROOT / ".github/dependabot.yml":
+                return text.replace('      - "/.github/actions/setup-root-verification"\n', "")
+            return text
+
+        with mock.patch.object(Path, "read_text", uncovered):
+            with self.assertRaisesRegex(AssertionError, "GitHub Actions dependency coverage drift"):
+                governance.main()
+
     def test_optimized_mode_refuses_assert_based_governance_verification(self) -> None:
         result = self.run_contract(invalid=False, optimized=True)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)

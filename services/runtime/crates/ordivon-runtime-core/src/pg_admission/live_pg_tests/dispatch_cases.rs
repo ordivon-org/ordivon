@@ -292,3 +292,96 @@ fn pg18_bundle_and_dispatch_commit_before_external_effect() {
         Some("starting")
     );
 }
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_concurrent_dispatch_has_one_committed_issuer() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let input = payload("dispatch-race", "job-dispatch-race", "ws-dispatch-race", 2);
+    store.admit(&input).unwrap();
+    allocate_fixture(&mut scratch, &input);
+    let bundle = format!("sha256:{}", "b".repeat(64));
+    assert_eq!(
+        store
+            .commit_bundle_ready_pg(&PgBundleReady {
+                attempt_id: input.attempt_id.clone(),
+                expected_row_version: 0,
+                bundle_digest: bundle.clone(),
+                observed_at_ms: input.created_at_ms + 1,
+                expected_source_sha256: input.expected_source_sha256.clone(),
+            })
+            .unwrap(),
+        1
+    );
+    let issued = PgDispatchIssued {
+        attempt_id: input.attempt_id.clone(),
+        expected_row_version: 1,
+        expected_bundle_digest: bundle.clone(),
+        observed_at_ms: input.created_at_ms + 2,
+        expected_source_sha256: input.expected_source_sha256.clone(),
+    };
+
+    // Independent connections, both contending for the same committed version.
+    // A database serialization loser is not a second dispatch authorization.
+    let gate = Arc::new(Barrier::new(3));
+    let workers: Vec<_> = (0..2)
+        .map(|_| {
+            let mut contender = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+            let issued = issued.clone();
+            let gate = gate.clone();
+            thread::spawn(move || {
+                gate.wait();
+                contender.mark_dispatch_issued_pg(&issued, None, None)
+            })
+        })
+        .collect();
+    gate.wait();
+    let mut winners = 0;
+    let mut rejected = 0;
+    for worker in workers {
+        match worker.join().unwrap() {
+            Ok(2) => winners += 1,
+            Err(PgAdmissionError::Blocked) => rejected += 1,
+            Err(PgAdmissionError::Database(error))
+                if error.code() == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE) =>
+            {
+                rejected += 1;
+            }
+            unexpected => panic!("unsafe concurrent dispatch result: {unexpected:?}"),
+        }
+    }
+    assert_eq!((winners, rejected), (1, 1));
+
+    // Independently read persisted state and events, not only return values.
+    let row = scratch
+        .admin
+        .query_one(
+            "SELECT a.state,a.row_version,a.bundle_digest,j.current_attempt_id,r.state, \
+             (SELECT COUNT(*) FROM job_events e WHERE e.attempt_id=a.attempt_id \
+              AND e.event_type='DISPATCH_ISSUED') \
+             FROM attempts a JOIN jobs j ON j.job_id=a.job_id \
+             JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id \
+             WHERE a.attempt_id=$1",
+            &[&input.attempt_id],
+        )
+        .unwrap();
+    assert_eq!(row.get::<_, String>(0), "starting");
+    assert_eq!(row.get::<_, i64>(1), 2);
+    assert_eq!(row.get::<_, Option<String>>(2), Some(bundle));
+    assert_eq!(
+        row.get::<_, Option<String>>(3),
+        Some(input.attempt_id.clone())
+    );
+    assert_eq!(row.get::<_, String>(4), "active");
+    assert_eq!(row.get::<_, i64>(5), 1);
+    assert_eq!(scratch.count("job_events"), 5);
+    assert!(matches!(
+        store.mark_dispatch_issued_pg(&issued, None, None),
+        Err(PgAdmissionError::Blocked)
+    ));
+    assert_eq!(scratch.count("job_events"), 5);
+    // This fixture commits the database fence; it never calls the OS launcher.
+}

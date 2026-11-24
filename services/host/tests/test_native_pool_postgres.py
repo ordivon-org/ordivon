@@ -179,6 +179,11 @@ def test_mcp_process_owns_and_closes_pool(
     monkeypatch.setenv("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE", "2")
     monkeypatch.setattr(mcp_server, "ConnectionPool", FakePool)
     monkeypatch.setattr(mcp_server, "build_server", fake_build_server)
+
+    def readiness(service) -> None:
+        events.append(("ready", service._pool))
+
+    monkeypatch.setattr(mcp_server.HostV2, "initialize", readiness)
     if transport == "streamable-http":
         credential = tmp_path / "host-bearer"
         credential.write_text("t" * 48, encoding="utf-8")
@@ -200,16 +205,18 @@ def test_mcp_process_owns_and_closes_pool(
     mcp_server.main()
 
     assert events[1] == "open"
-    assert events[2][0] == "bound"
+    assert events[2][0] == "ready"
+    assert events[3][0] == "bound"
+    assert events[2][1] is events[3][1]
     assert events[0][1]["max_size"] == 2
     assert events[0][1]["open"] is False
     if transport == "stdio":
-        assert events[3][0] == "run"
-        assert events[4] == "close"
+        assert events[4][0] == "run"
+        assert events[5] == "close"
     else:
-        assert [e[0] for e in events[3:-1]] == ["app", "protect", "serve"]
-        assert events[3][1]["stateless_http"] is True
-        assert events[4][1] is events[5][1]
+        assert [e[0] for e in events[4:-1]] == ["app", "protect", "serve"]
+        assert events[4][1]["stateless_http"] is True
+        assert events[5][1] is events[6][1]
         assert events[-1] == "close"
 
 
