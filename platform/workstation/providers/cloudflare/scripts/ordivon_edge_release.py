@@ -44,9 +44,10 @@ def resolve_provider_root(
     for candidate in candidates:
         if (candidate / "wrangler.jsonc").is_file():
             return candidate
-        nested = candidate / "providers" / "cloudflare"
-        if (nested / "wrangler.jsonc").is_file():
-            return nested
+        for relative in ("platform/workstation/providers/cloudflare", "providers/cloudflare"):
+            nested = candidate / relative
+            if (nested / "wrangler.jsonc").is_file():
+                return nested
     return script_root
 
 
@@ -237,6 +238,11 @@ def run(
     environment: dict[str, str] | None = None,
     capture: bool = False,
 ) -> subprocess.CompletedProcess[str]:
+    if arguments[0] == "git":
+        # Git-local environment and replace refs must not redirect a SourceCut.
+        inherited = os.environ if environment is None else environment
+        environment = {key: value for key, value in inherited.items() if not key.startswith("GIT_")}
+        arguments = ["git", "--no-replace-objects", *arguments[1:]]
     completed = subprocess.run(
         arguments,
         cwd=ROOT,
