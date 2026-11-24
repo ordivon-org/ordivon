@@ -379,3 +379,10 @@ bounds for arbitrary finite obligations. Run
 `mise run //domains/capital:verify:formal:liability-reserve`.
 Python parser/date selection refinement is tested separately; real
 liability completeness remains caller-dependent.
+
+## Historical monthly vintage availability
+
+`MarketsCapturePITR1.smt2` also checks conservative following-month
+admission and a current-month leakage witness for RTDSM. This month-index
+model is not original provider timestamp attestation or a universal proof
+of calendar/Excel parsing.

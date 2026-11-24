@@ -510,6 +510,9 @@ def run(
     at: list[str],
     raw_dealer_catalog: bytes | None = None,
     raw_dealer_series: dict[str, bytes] | None = None,
+    raw_routput: bytes | None = None,
+    routput_sha256: str | None = None,
+    routput_quarter: str | None = None,
 ) -> dict:
     releases = [parse_h41(raw, file_label=name) for name, raw in raw_h41.items()]
     dts = [parse_dts(raw) for raw in raw_dts]
@@ -536,6 +539,21 @@ def run(
         )
         for day in at
     ]
+    if (raw_routput is None) != (routput_sha256 is None):
+        raise ValueError("ROUTPUT workbook and expected digest must be provided together")
+    if raw_routput is None and routput_quarter is not None:
+        raise ValueError("ROUTPUT quarter requires a workbook")
+    if raw_routput is not None:
+        from ordivon_capital.markets.rtdsm_real_output import parse_routput_archive, routput_asof
+
+        archive = parse_routput_archive(raw_routput, expected_sha256=routput_sha256)
+        for day, snapshot in zip(at, snapshots, strict=True):
+            snapshot["realOutput"] = routput_asof(
+                archive, when=datetime.fromisoformat(day), observation_quarter=routput_quarter
+            )
+            snapshot["sourceQualification"]["routput"] = (
+                "DECLARED_RTDSM_MONTHLY_VINTAGE_NOT_EXACT_PUBLICATION_TIMESTAMP"
+            )
     return {
         "kind": "ordivon.finance.research.monetary-liquidity-asof-observation",
         "standing": "RELEASE_CALENDAR_ALIGNED_SOURCE_HISTORY_UNATTESTED",
@@ -576,6 +594,9 @@ def main():
         action="append",
         help="ISO8601 timezone-qualified research as-of instant",
     )
+    parser.add_argument("--routput", type=Path, help="Optional Philadelphia Fed monthly ROUTPUT XLSX")
+    parser.add_argument("--routput-sha256", help="Expected SHA-256 of the original workbook")
+    parser.add_argument("--routput-quarter", help="Optional observation quarter YYYY:Qn")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.dealer_series and len({p.stem for p in args.dealer_series}) != len(args.dealer_series):
@@ -595,6 +616,9 @@ def main():
             if args.dealer_series
             else None
         ),
+        raw_routput=_read(args.routput, 8_000_000) if args.routput else None,
+        routput_sha256=args.routput_sha256,
+        routput_quarter=args.routput_quarter,
         at=args.at,
     )
     serialized = json.dumps(data, indent=2, sort_keys=True)
