@@ -1,6 +1,6 @@
 use super::types::PgJobSnapshot;
 use crate::pg_admission::{
-    PgAdmissionError, PgArtifactRegistration, pg_artifact_manifest_digest, valid_pg_artifacts,
+    pg_artifact_manifest_digest, valid_pg_artifacts, PgAdmissionError, PgArtifactRegistration,
 };
 use postgres::Transaction;
 use sha2::{Digest, Sha256};
