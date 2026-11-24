@@ -28,6 +28,8 @@ SAFE = (1 << 53) - 1
     ("attention.delta", "afterSequence", {"actorRef": "actor:boundary"}),
     ("attention.reentry", "afterSequence", {"actorRef": "actor:boundary"}),
     ("topic.resume", "afterSequence", {"topicRef": "topic:boundary"}),
+    ("message.search", "beforeSequence", {"query": "test"}),
+    ("message.relation.list", "afterChangeSequence", {"messageRef": "message:boundary"}),
     ("work.get", "revision", {"workRef": "work:boundary"}),
     ("work.snapshot.commit", "expectedRevision", {
         "workRef": "work:boundary", "actorRef": "actor:boundary",
@@ -43,7 +45,7 @@ def test_native_mcp_numeric_schema_and_invalid_inputs(monkeypatch, operation, fi
 
     for owner, methods in [
         (WorkStore, ("get_work", "commit_snapshot")),
-        (SocialStore, ("post_message", "set_topic_state", "ack_topic_cursor", "resume_topic")),
+        (SocialStore, ("post_message", "set_topic_state", "ack_topic_cursor", "resume_topic", "search_messages", "list_message_relations")),
         (AttentionStore, ("ack", "delta", "reentry")),
     ]:
         for method in methods:
@@ -58,8 +60,8 @@ def test_native_mcp_numeric_schema_and_invalid_inputs(monkeypatch, operation, fi
             expected_max = SAFE - 1 if operation == "work.snapshot.commit" else SAFE
             # Test the real SDK, not the annotation's appearance in a source file.
             assert spec.get("maximum") == expected_max
-            assert spec.get("minimum") == (1 if operation.startswith("work.") else 0)
-            for invalid in (True, 1.0, "1", -1, expected_max + 1):
+            assert spec.get("minimum") == (1 if operation.startswith("work.") or operation == "message.search" else 0)
+            for invalid in (True, 1.0, "1", spec.get("minimum") - 1, expected_max + 1):
                 result = await client.call_tool(operation, {**arguments, field: invalid})
                 assert result.is_error
             assert not calls
@@ -78,6 +80,8 @@ def test_native_mcp_numeric_schema_and_invalid_inputs(monkeypatch, operation, fi
                     "expectedRevision": "expected_revision",
                     "afterSequence": "after_sequence",
                     "cursor": "cursor",
+                    "beforeSequence": "before_sequence",
+                    "afterChangeSequence": "after_change_sequence",
                 }[field]
                 value = kwargs[name]
             assert type(value) is int and value == expected_max

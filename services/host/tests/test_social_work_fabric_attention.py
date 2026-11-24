@@ -92,8 +92,10 @@ class _AttentionConnection:
         if "SELECT cursor FROM attention_cursors" in query:
             return _Result(one={"cursor": 7})
         if "INSERT INTO attention_cursors" in query:
+            if params[1] < 7:
+                return _Result()
             self.inserted_cursors.append(params[1])
-            return _Result(one={"cursor": params[1]})
+            return _Result(one={"previous_cursor": 7, "cursor": params[1]})
         if query == ATTENTION_DELTA_SQL:
             return _Result(all_rows=[{
                 "change_sequence": 8,
