@@ -31,6 +31,54 @@ Ordivon Harness is the **durable cognitive execution substrate of an Agent** and
 
 Harness does not build the Agent's world model for it. It preserves the structural truth required for an Agent to build, revise, inspect and act from its own world model without conflating history, cognition, observation, control or physical effects.
 
+## Proposed architecture refinement (2026-11-25; design only)
+
+This section records a candidate direction for review, not installed behavior or
+approval to change the existing writer. Preserve the responsibility boundary
+above while changing the mechanism. A provider-native goal/loop is preferable
+where its admitted identity, budget, cancellation, recovery and result contract
+can be demonstrated. Harness retains the semantic contract and journal; a
+workflow engine may schedule or wake it, but neither engine nor Host owns its
+journal or external effect. Runtime owns physical execution; the domain
+consumer owns acceptance. A leaf task need not have a workflow.
+
+The normative obligations are independent of implementation language:
+
+- Admission binds the immutable Run contract, source identity and grant. A
+  journal append uses the exact predecessor revision and current lease/fence;
+  exact replay does not create another physical effect. Unknown commitment
+  requires reconciliation with the original owner, not a fresh dispatch.
+- Cancellation and completion are separate: no future launch and settlement
+  of all issued effects require original physical evidence. A candidate
+  conclusion, receipt-shaped result or successful process is not independent
+  domain acceptance. Workspace retention is not inferred from zero active jobs.
+- Preserve previously issued canonical bytes. New cross-owner wire coordinates
+  need a named, versioned codec with independent cross-language vectors; never
+  silently reinterpret the owner-local integer JSON profile as RFC 8785.
+- Scope durable cognition by exact references; skill discovery or resource read
+  is not authority or automatic retention. A paginated immutable manifest
+  must either preserve its exact enumeration or explicitly invalidate a cursor.
+
+Implementation navigation (not an additional module registry): the existing
+`core_contracts.py`, `store.py`, `run_state.py`,
+`ordivon/run_continuity.py`, `ordivon/provider_lifecycle.py`,
+`ordivon/run_recovery.py`, and `independent_result.py` under
+`src/ordivon_harness/` are the current semantic reference. The existing
+`crates/harness-core` and `crates/harness-pg` are the Rust candidate seams;
+no second production writer. Prefer a typed pure semantic kernel, explicit
+ports and independently verified PG/effect adapters over a line-by-line port.
+Provider/Temporal/Restate/DBOS replacement remains a matched experiment,
+not a decision by name.
+
+Code is the reference for signatures, fields, supported operations and
+mechanical behavior. Put executable examples and local invariants beside the
+public types and derive API navigation from source. Keep only independent
+intent/invariants, cross-owner compatibility, nonlocal failure assumptions,
+migration/recovery decisions and durable evidence outside the code. Do not
+replace independent specifications or negative controls with generated prose
+or tests derived solely from the implementation. Existing historical records
+are retained until a separate consumer/retention review; no blanket deletion.
+
 ## Harness world model
 
 The current architecture is not a `messages[]` transcript machine. It has six distinct state domains:
