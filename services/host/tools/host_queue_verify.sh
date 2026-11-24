@@ -94,6 +94,14 @@ if [[ -n "$container" ]]; then
       export ORDIVON_HOST_V2_BOUNDARY_CHANGE_DSN="$boundary_dsn"
     fi
   done
+  # Preserve the original 0014 state in separate destructive negative fixtures.
+  for variant in clock history allocator lock; do
+    database="ordivon_migration_$variant"
+    docker exec "$container" createdb -U ordivon_ci "$database"
+    migration_dsn="postgresql://ordivon_ci:$password@127.0.0.1:$port/$database"
+    ORDIVON_HOST_V2_DSN="$migration_dsn" uv run alembic upgrade 0014
+    export "ORDIVON_HOST_V2_MIGRATION_${variant^^}_DSN=$migration_dsn"
+  done
 fi
 uv run ruff check .
 uv run python -m pytest

@@ -36,7 +36,7 @@ an automatic fallback to imprecise numbers or an in-place counter reset).
 
 ## Reproducible validation
 
-Host queue automatically creates two *additional fresh databases* only when
+Host queue automatically creates two *additional fresh capacity databases* only when
 it owns a new disposable PostgreSQL container. The tests refuse nonempty
 fixture databases before seeding. With caller-supplied test DSN, these cases
 are skipped unless separate fresh schema-15
@@ -51,3 +51,24 @@ counter may ever be seeded to test this.
 Source candidate depends on #2624 exact integer wire admission. Its schema
 15 is not deployed; the old production schema remains 14. A merged source
 or a passing scratch test is not independent release authorization.
+
+The same owned disposable queue creates three more schema-14 fixtures for
+migration rejection: out-of-range global clock, out-of-range historical
+change_sequence with an otherwise valid clock, and message identity allocator
+already beyond the new maximum. Each must reject the upgrade and preserve
+exact old Alembic/schema versions, clock, row, sequence bound/position and
+the full native constraint catalog. The negative fixtures require separate
+ORDIVON_HOST_V2_MIGRATION_CLOCK_DSN, ORDIVON_HOST_V2_MIGRATION_HISTORY_DSN,
+ORDIVON_HOST_V2_MIGRATION_ALLOCATOR_DSN when run manually. Tests refuse
+nonempty or non-schema-14 fixture databases before seeding. This evidence
+proves transactional rejection on these cases, not actual production data
+standing or migration lock duration.
+
+For the fourth dedicated schema-14 fixture (ORDIVON_HOST_V2_MIGRATION_LOCK_DSN),
+a real reader holds ACCESS SHARE on the last constrained table. A migration
+client with session-local PGOPTIONS lock_timeout=500ms and
+statement_timeout=10000ms must fail, roll back all earlier DDL, and succeed
+after natural lock release. For an authorized deployment choose the actual
+lock and statement timeouts explicitly for that session; quiesce affected
+consumers, do not kill unrelated writers or globally change PostgreSQL
+settings. The bounded test is not evidence of production lock duration.
