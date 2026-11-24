@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 
 import convergence_plan
 from ci_telemetry import Gh
+from evidence_source_policy import qualify_current_selector
 from source_history_legos import current_tree, require_ancestral_source_cuts
 from source_history_legos import git as git_native
 
@@ -43,9 +44,10 @@ def _provider_checks(gh: Gh, repo: str, sha: str) -> list[dict[str, Any]]:
     """Read all pages: a truncated or malformed listing grants no PASS."""
     rows: list[dict[str, Any]] = []
     page = 1
+    expected_count = None
     while True:
         payload = gh.api(
-            f"repos/{repo}/commits/{sha}/check-runs?per_page=100&page={page}"
+            f"repos/{repo}/commits/{sha}/check-runs?filter=all&per_page=100&page={page}"
         )
         if (
             not isinstance(payload, dict)
@@ -55,6 +57,10 @@ def _provider_checks(gh: Gh, repo: str, sha: str) -> list[dict[str, Any]]:
             raise ValueError("GitHub Check Runs provider response is incomplete")
         count = payload["total_count"]
         batch = payload["check_runs"]
+        if expected_count is None:
+            expected_count = count
+        elif count != expected_count:
+            raise ValueError("GitHub Check Runs listing changed during pagination")
         if count < 0 or count > MAX_CHECK_ROWS or len(batch) > 100:
             raise ValueError("GitHub Check Runs exceed bounded complete query")
         if not all(isinstance(row, dict) for row in batch):
@@ -254,7 +260,9 @@ def decide(
         try:
             # Use existing native Git ancestry check, not a sibling PR diff.
             require_ancestral_source_cuts(Path.cwd(), prior_sha, current_sha)
+            qualify_current_selector(Path.cwd(), current_sha)
             impact = convergence_plan.build_plan(base=prior_sha, head=current_sha)
+            qualify_current_selector(Path.cwd(), current_sha)
         except (ValueError, subprocess.CalledProcessError):
             # Nonancestral or unqualified selection is UNKNOWN, not "no hit".
             impact = None

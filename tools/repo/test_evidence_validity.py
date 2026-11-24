@@ -51,6 +51,7 @@ def source_id(monkeypatch):
     # smoke uses actual Git objects and live GitHub metadata separately.
     monkeypatch.setattr(module, "_exact_commit", lambda sha: sha)
     monkeypatch.setattr(module, "require_ancestral_source_cuts", lambda *a: None)
+    monkeypatch.setattr(module, "qualify_current_selector", lambda *a: None)
 
 
 def provider(row: dict | None = None, *, previous: list[dict] | None = None):
@@ -156,6 +157,38 @@ def test_complete_multi_page_check_run_listing():
     assert len(gh.calls) == 2
 
 
+def test_provider_requests_all_attempts_not_completed_only_view():
+    class DefaultFiltered:
+        def api(self, endpoint):
+            rows = [dict(GOOD)]
+            if "filter=all" in endpoint:
+                rows.append(dict(GOOD, id=102, status="queued", conclusion=None))
+            return {"total_count": len(rows), "check_runs": rows}
+
+    result = module.decide(
+        repo=module.DEFAULT_REPOSITORY, current_sha=CURRENT, github=DefaultFiltered()
+    )
+    assert result["disposition"] == "OBSERVE_EXISTING_RUN"
+
+
+def test_provider_page_count_change_is_not_complete_evidence():
+    class MovingPages:
+        def api(self, endpoint):
+            page = int(endpoint.rsplit("&page=", 1)[1])
+            if page == 1:
+                return {"total_count": 101, "check_runs": [
+                    {"name": "other-check", "id": i} for i in range(1, 101)
+                ]}
+            return {"total_count": 102, "check_runs": [
+                dict(GOOD, id=101), {"name": "other-check", "id": 102}
+            ]}
+
+    with pytest.raises(ValueError, match="changed"):
+        module.decide(
+            repo=module.DEFAULT_REPOSITORY, current_sha=CURRENT, github=MovingPages()
+        )
+
+
 def test_cross_sha_prior_pass_uses_native_owner_impact_not_false_reuse(monkeypatch):
     native = {
         "changedPaths": ["services/gateway/src/ordivon_gateway/mcp_server.py"],
@@ -176,6 +209,23 @@ def test_cross_sha_prior_pass_uses_native_owner_impact_not_false_reuse(monkeypat
     assert result["sourceImpact"]["queueVerifyTasks"] == native["queueVerifyTasks"]
     assert result["proofReuseAdmissible"] is False
     called.assert_called_once_with(base=PREVIOUS, head=CURRENT)
+
+
+def test_cross_sha_policy_mismatch_cannot_emit_source_affected(monkeypatch):
+    past = dict(GOOD, head_sha=PREVIOUS)
+    plan = Mock(side_effect=AssertionError("mixed policy must not execute"))
+    monkeypatch.setattr(module.convergence_plan, "build_plan", plan)
+    monkeypatch.setattr(
+        module, "qualify_current_selector",
+        Mock(side_effect=ValueError("selector policy checkout differs")),
+    )
+    result = module.decide(
+        repo=module.DEFAULT_REPOSITORY, current_sha=CURRENT,
+        prior_sha=PREVIOUS, github=provider(previous=[past]),
+    )
+    assert result["disposition"] == "UNKNOWN_SOURCE_RELATION"
+    assert result["sourceImpact"] is None
+    plan.assert_not_called()
 
 
 def test_no_known_source_impact_does_not_prove_cross_cut_reuse(monkeypatch):
