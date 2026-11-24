@@ -6092,6 +6092,180 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
     eprintln!("R17_GENUINE_ORIGINAL_HARNESS_DEDICATED_MCP_PG_NATIVE_REVOKE_PASS");
 }
 
+/// Join original source-issued keys with real dedicated Runtime identities.
+/// A terminal source cut closes admission; it is not a whole-Run native
+/// settlement or independently accepted Domain-output certificate.
+#[test]
+#[ignore = "requires disposable PG18, original Harness Python deps and native systemd runner"]
+fn pg18_original_harness_terminal_cut_joins_observed_and_unsubmitted_keys() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    fixture.harness_dispatch_test = true;
+    let repo = fixture.repo();
+    let id = Uuid::now_v7().simple().to_string();
+    let schema = format!("r6_join_{}", &id[..19]);
+    fixture.harness_schema_override = Some(schema.clone());
+    let run = format!("harness-run:r6-join-{}", &id[..19]);
+    let ws = format!("r6-join-{}", &id[..19]);
+    let dsn = format!(
+        "host={} user=postgres dbname=postgres",
+        fixture.root.display()
+    );
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../");
+    let script = root.join("services/harness/tests/original_pg_issuer_native_fixture.py");
+    let python = std::env::var("HARNESS_PG_PYTHON").unwrap_or_else(|_| "python3".into());
+    let pythonpath = format!(
+        "{}:{}",
+        root.join("services/harness/src").display(),
+        root.join("services/harness").display()
+    );
+    let observation_file = fixture.root.join("r6-original-observation.json");
+    let source_call = |action: &str| -> Value {
+        let out = Command::new(&python)
+            .arg(&script)
+            .arg(action)
+            .arg("--dsn")
+            .arg(&dsn)
+            .arg("--schema")
+            .arg(&schema)
+            .arg("--run")
+            .arg(&run)
+            .arg("--workspace")
+            .arg(&ws)
+            .arg("--observation-file")
+            .arg(&observation_file)
+            .env("PYTHONPATH", &pythonpath)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "Harness {action}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let first = source_call("issue");
+    fixture.db.batch_execute(&format!(
+        "GRANT USAGE ON SCHEMA \"{schema}\" TO runtime_app;
+         GRANT EXECUTE ON FUNCTION \"{schema}\".harness_current_dispatch_cut(text,bigint,text) TO runtime_app;"
+    )).unwrap();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":ws,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let dedicated = endpoint.replacen("/mcp", "/harness/mcp", 1);
+    let bearer = "h".repeat(48);
+    let invoke = |name: &str, args: Value| -> Value {
+        let (status, result) = r16_dedicated_call(&dedicated, &bearer, name, args);
+        assert_eq!(status, 200, "{name}: {result}");
+        result
+    };
+    let first_request = first["loweredRequest"].clone();
+    let admitted = invoke("workspace.exec", first_request.clone());
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    let job = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let observed = loop {
+        let r = invoke("job.observe", json!({"jobId":job,"waitMs":1000}));
+        assert_ne!(r["isError"], true, "{r}");
+        let c = &r["structuredContent"];
+        if c["executionDisposition"] == "succeeded" {
+            assert_eq!(c["resultAvailable"], true, "{r}");
+            break c.clone();
+        }
+        assert!(
+            Instant::now() < deadline,
+            "original native Job not succeeded: {r}"
+        );
+    };
+    fs::write(&observation_file, serde_json::to_vec(&observed).unwrap()).unwrap();
+    let recorded = source_call("record-observed");
+    assert_eq!(recorded["source"]["originalRunIssuedCount"], 1);
+    let next = source_call("issue-next");
+    let first_key = first["clientRequestId"].as_str().unwrap();
+    let next_key = next["clientRequestId"].as_str().unwrap();
+    assert_ne!(first_key, next_key);
+    let pre = source_call("inspect-issued");
+    assert_eq!(pre["terminal"], false);
+    assert_eq!(pre["source"]["originalRunIssuedCount"], 2);
+    let sealed = source_call("seal-unsubmitted");
+    assert_eq!(sealed["terminal"], true);
+    assert_eq!(sealed["source"]["originalRunIssuedCount"], 2);
+    assert_eq!(sealed["source"]["safeToAcknowledgeNoFutureSpawn"], false);
+    assert_eq!(sealed["source"]["runtimeOwnerProofStanding"], "unknown");
+    let entries = sealed["source"]["issuedIntents"].as_array().unwrap();
+    let original = entries
+        .iter()
+        .find(|r| r["clientRequestId"] == first_key)
+        .unwrap();
+    let never = entries
+        .iter()
+        .find(|r| r["clientRequestId"] == next_key)
+        .unwrap();
+    assert_eq!(original["lastRecordedStatus"], "observed");
+    assert_eq!(original["sourceOwnerJobRef"], job);
+    assert_eq!(never["lastRecordedStatus"], "rejected");
+    assert!(never["sourceOwnerJobRef"].is_null());
+    assert_eq!(original["dispatchFenceDigest"], first["fenceDigest"]);
+    assert_eq!(never["dispatchFenceDigest"], next["fenceDigest"]);
+    let exact_jobs = |key: &str| -> Vec<Value> {
+        let r = invoke("job.list", json!({"clientRequestId":key,"limit":2}));
+        assert_ne!(r["isError"], true, "{r}");
+        r["structuredContent"]["jobs"].as_array().unwrap().clone()
+    };
+    let matching = exact_jobs(first_key);
+    assert_eq!(matching.len(), 1);
+    assert_eq!(matching[0]["jobId"], job);
+    assert!(exact_jobs(next_key).is_empty());
+    // Attempt inventory and durable dispatch count come from the disposable
+    // Runtime's own authoritative PG, not inferred from latest job.get.
+    let count: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM attempts WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get(0);
+    let dispatches: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!((count, dispatches), (1, 1));
+    // A genuine never-submitted source key cannot admit a Job after the
+    // original terminal source cut, despite previously valid Fence bytes.
+    let denied = invoke("workspace.exec", next["loweredRequest"].clone());
+    assert_eq!(denied["isError"], true, "{denied}");
+    assert!(exact_jobs(next_key).is_empty());
+    let replay = invoke("workspace.exec", first_request);
+    assert_ne!(replay["isError"], true, "{replay}");
+    assert_eq!(replay["structuredContent"]["jobId"], job);
+    assert_eq!(exact_jobs(first_key).len(), 1);
+    let after_count: i64 = fixture
+        .db
+        .query_one("SELECT count(*) FROM attempts WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get(0);
+    let after_dispatches: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!((after_count, after_dispatches), (1, 1));
+    assert_eq!(source_call("inspect-issued"), sealed);
+    eprintln!("R6_ORIGINAL_TERMINAL_ISSUED_JOIN_PASS keys=2 jobs=1 attempts=1 dispatches=1 absent=1 exact_replay=1");
+}
+
 #[test]
 #[ignore = "requires disposable PostgreSQL18 and isolated native Runtime MCP"]
 fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut() {
