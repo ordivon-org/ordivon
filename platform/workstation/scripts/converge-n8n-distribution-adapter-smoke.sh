@@ -9,6 +9,9 @@ if [[ "$PGHOST" != /* || "$PGHOST" == *,* || ! "$PGPORT" =~ ^[1-9][0-9]{0,4}$ ]]
   echo "invalid local PostgreSQL endpoint" >&2
   exit 2
 fi
+# libpq hostaddr/service can override or supplement an explicit socket host.
+# This invocation selects its own endpoint; do not inherit those selectors.
+unset PGHOSTADDR PGSERVICE PGSERVICEFILE
 if [[ ${EUID} -ne 0 ]]; then echo 'must run as root' >&2; exit 2; fi
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SOURCE="$ROOT/n8n/workflows/ordivon-distribution-adapter-smoke-v1.json"
