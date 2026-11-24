@@ -152,8 +152,9 @@ framework-native test runners, **not a new Ordivon test dispatcher**.
 | --- | --- | --- |
 | Host Python property/contract example | `cd services/host && mise run test:focused` | Hypothesis `@given` on real RFC 8785 canonicalization, plus independent literal example |
 | Host another exact test node | `cd services/host && HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused` | Scoped pytest test, *not* whole Host DB verification |
-| Rust selected core test | `cd services/runtime && mise run test:focused` | Installed cargo-nextest optional runner, JUnit `target/nextest/ci/junit.xml` |
+| Rust selected core test | `cd services/runtime && mise run test:focused` | PG-only by default; native cargo-nextest JUnit under the Cargo target directory; empty selection is a failure |
 | Rust another exact filter | `cd services/runtime && RUNTIME_TEST_EXPR='test(explicit_root_workspace_identity_is_not_forbidden_by_policy)' mise run test:focused` | That native test, not the entire Runtime suite |
+| Rust legacy-only filter | `cd services/runtime && RUNTIME_TEST_PROFILE=legacy mise run test:focused` | Explicit legacy feature while Windows still consumes it, not PostgreSQL qualification |
 | Source Owner qualification | `cd services/host && mise run verify`, or `cd services/runtime && mise run verify` | The existing Owner full gate |
 | Find the actual executable surface | `cd services/host && mise tasks ls`, or `cd services/runtime && mise tasks ls` | Official mise task discovery; no custom registry |
 
@@ -170,7 +171,7 @@ derive its expectation from the implementation.
 | Python behavior, fixtures, parameter tables | [pytest](https://github.com/pytest-dev/pytest), [fixtures](https://docs.pytest.org/en/stable/how-to/fixtures.html), [parametrize](https://docs.pytest.org/en/stable/how-to/parametrize.html) | `cd services/host && uv run python -m pytest -q tests/FILE.py`; also Harness/Gateway owner |
 | Python generated invariants | [Hypothesis](https://github.com/HypothesisWorks/hypothesis) | Already in Host; actual `test_canonical_property.py` runs with upstream Hypothesis via `mise run test:focused` |
 | Disposable PostgreSQL | [testcontainers-python](https://github.com/testcontainers/testcontainers-python) | Already in Host dev dependencies; qualified small real PG18 trial, **not** approved to replace Host queue (see binding caveat) |
-| Rust focused unit tests | [cargo-nextest](https://github.com/nextest-rs/nextest), [JUnit reference](https://nexte.st/docs/machine-readable/junit/) | `cd services/runtime && cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime -E 'test(public_requests_reject_unknown_fields_and_path_escape)' -P ci`; native optional fast feedback |
+| Rust focused unit tests | [cargo-nextest](https://github.com/nextest-rs/nextest), [JUnit reference](https://nexte.st/docs/machine-readable/junit/) | `cd services/runtime && mise run test:focused`; native optional fast feedback |
 | Rust complete source gate | [Cargo](https://github.com/rust-lang/cargo) | Keep `cd services/runtime && mise run verify` (Cargo + clippy + environment + docs). Nextest does not replace it |
 | Browser end-to-end | [Playwright](https://github.com/microsoft/playwright) | Already pinned in Web, Game TS and Harness. Invoke existing Owner E2E tasks |
 | TypeScript unit | [Node test runner](https://nodejs.org/api/test.html) | `cd apps/web && pnpm test`; `cd domains/game && pnpm test`. No new Vitest requirement |

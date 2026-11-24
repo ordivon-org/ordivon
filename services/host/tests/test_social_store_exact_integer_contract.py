@@ -53,7 +53,7 @@ def test_social_query_budget_must_be_exact_integer_before_sql(
         )
 
 
-@pytest.mark.parametrize("invalid", INVALID_INTEGERS)
+@pytest.mark.parametrize("invalid", (*INVALID_INTEGERS, 1 << 53))
 @pytest.mark.parametrize("operation,args,parameter", CURSOR_CONSUMERS)
 def test_social_sequence_cursor_must_be_exact_integer_before_sql(
     monkeypatch, invalid: object, operation: str, args: tuple[str, ...],
