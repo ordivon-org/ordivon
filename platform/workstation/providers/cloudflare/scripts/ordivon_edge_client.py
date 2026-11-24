@@ -204,24 +204,18 @@ def resolve_commit(repository: pathlib.Path, reference: str) -> str:
     ).stdout.strip()
 
 
-def worker_release_pathspecs(repository: pathlib.Path) -> tuple[str, ...]:
-    top_level = pathlib.Path(
-        git(repository, "rev-parse", "--show-toplevel").stdout.strip()
-    ).resolve()
-    monorepo_provider = top_level / "providers" / "cloudflare"
-    if (monorepo_provider / "wrangler.jsonc").is_file():
-        prefix = "providers/cloudflare"
-    elif (top_level / "wrangler.jsonc").is_file():
-        prefix = ""
-    else:
-        raise ClientError(
-            "Repository does not contain the Cloudflare provider at the root "
-            "or providers/cloudflare"
-        )
-    return tuple(
-        f":(top){prefix}/{relative}" if prefix else f":(top){relative}"
-        for relative in WORKER_RELEASE_INPUTS
-    )
+def worker_release_pathspecs(repository: pathlib.Path, commit: str) -> tuple[str, ...]:
+    # Resolve the provider layout from the selected Git tree, not from the
+    # mutable checkout. The canonical monorepo path precedes legacy layouts.
+    for prefix in ("platform/workstation/providers/cloudflare", "providers/cloudflare", ""):
+        marker = f"{prefix}/wrangler.jsonc" if prefix else "wrangler.jsonc"
+        kind = git(repository, "cat-file", "-t", f"{commit}:{marker}", check=False)
+        if kind.returncode == 0 and kind.stdout.strip() == "blob":
+            return tuple(
+                f":(top){prefix}/{relative}" if prefix else f":(top){relative}"
+                for relative in WORKER_RELEASE_INPUTS
+            )
+    raise ClientError(f"Selected commit does not contain the Cloudflare provider: {commit}")
 
 
 def release_digest(repository: pathlib.Path, commit: str) -> str:
@@ -232,7 +226,7 @@ def release_digest(repository: pathlib.Path, commit: str) -> str:
         "--full-tree",
         commit,
         "--",
-        *worker_release_pathspecs(repository),
+        *worker_release_pathspecs(repository, commit),
     ).stdout
     if not listing.strip():
         raise ClientError(f"Worker release inputs are empty at commit: {commit}")
@@ -349,6 +343,22 @@ def command_status(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def command_operation(
+    config: Config, *, operation: str, path: str, body: bytes, request_id: str
+) -> int:
+    request_id = request_id or make_request_id()
+    # Publish the original recovery coordinate before the external effect.
+    # stdout remains the existing response-only JSON contract.
+    print(
+        json.dumps({"event": "edge_request", "request_id": request_id, "operation": operation}),
+        file=sys.stderr,
+        flush=True,
+    )
+    status, _, response = request(config, "POST", path, body=body, request_id=request_id)
+    print_json_bytes(response)
+    return 0 if 200 <= status < 300 else 1
+
+
 def command_fetch(config: Config, args: argparse.Namespace) -> int:
     payload: dict[str, Any] = {
         "url": args.url,
@@ -358,15 +368,9 @@ def command_fetch(config: Config, args: argparse.Namespace) -> int:
     if args.accept:
         payload["accept"] = args.accept
     body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    status, _, response = request(
-        config,
-        "POST",
-        "/v1/fetch",
-        body=body,
-        request_id=args.request_id,
+    return command_operation(
+        config, operation="fetch", path="/v1/fetch", body=body, request_id=args.request_id
     )
-    print_json_bytes(response)
-    return 0 if 200 <= status < 300 else 1
 
 
 def command_browser_run(config: Config, args: argparse.Namespace) -> int:
@@ -380,15 +384,9 @@ def command_browser_run(config: Config, args: argparse.Namespace) -> int:
         "wait_after_ms": args.wait_after_ms,
     }
     body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    status, _, response = request(
-        config,
-        "POST",
-        "/v1/browser/run",
-        body=body,
-        request_id=args.request_id,
+    return command_operation(
+        config, operation="browser.run", path="/v1/browser/run", body=body, request_id=args.request_id
     )
-    print_json_bytes(response)
-    return 0 if 200 <= status < 300 else 1
 
 
 def command_receipt(config: Config, args: argparse.Namespace) -> int:

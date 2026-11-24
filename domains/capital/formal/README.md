@@ -352,6 +352,14 @@ trade settlement.
 Official references: https://docs.tigerbeetle.com/coding/two-phase-transfers/
 and https://www.postgresql.org/docs/current/transaction-iso.html .
 
+## Fund NAV total-return cost basis
+
+The existing `PortfolioPassiveBenchmarkR1.smt2` additionally proves
+strict fee drag from duplicate positive fund fees and exhibits a ranking
+reversal. Its native task is included in full Finance verify. The model
+cannot establish provider semantics; schema v2 and native behavioral tests
+make the declared basis and external-cost scope explicit.
+
 ## Dated liability reserve
 
 `PortfolioLiabilityReserve.lean` proves natural-number reserve and contribution
