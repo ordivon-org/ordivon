@@ -1,6 +1,6 @@
 use super::terminal_event::terminal_events_coherent;
 use super::types::{PgJobReadback, PgJobSnapshot};
-use crate::pg_admission::{PgAdmissionError, PgAdmissionStore, require_pg_writer_epoch};
+use crate::pg_admission::{require_pg_writer_epoch, PgAdmissionError, PgAdmissionStore};
 use postgres::IsolationLevel;
 
 impl PgAdmissionStore {
