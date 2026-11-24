@@ -446,7 +446,7 @@ run = "cd tools/formal && mise run verify"
 
 # Host owns the model; repo root composes Runtime-owned pinned TLC toolchain.
 [tasks."host:formal:attention-reentry"]
-description = "TLC: coherent re-entry, exact cursor receipts and negative controls"
+description = "TLC: coherent re-entry, exact cursor receipts, Topic occurrences and negative controls"
 run = """
 set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
@@ -462,14 +462,15 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 cp "$repo_root/services/host/formal/"HostAttentionReentryR1.* "$scratch/"
 cp "$repo_root/services/host/formal/"HostCursorReceiptR1.* "$scratch/"
+cp "$repo_root/services/host/formal/"HostTopicOccurrenceR1.* "$scratch/"
 cd "$scratch"
-for model in HostAttentionReentryR1 HostCursorReceiptR1; do
+for model in HostAttentionReentryR1 HostCursorReceiptR1 HostTopicOccurrenceR1; do
   java -cp "$jar" tla2sany.SANY "$model.tla" >/dev/null
   positive="$(java -Xmx512m -cp "$jar" tlc2.TLC -workers 1 -config "$model.cfg" "$model.tla")"
   printf '%s\\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
   printf '%s\\n' "$positive" | grep -F 'distinct states found'
 done
-for case in 'HostAttentionReentryR1:unsafe:ReturnedCursorFromSameCut' 'HostAttentionReentryR1:unsafe-page:NoSkippedEligiblePageEvent' 'HostCursorReceiptR1:unsafe-predecessor:ReceiptChain' 'HostCursorReceiptR1:unsafe-replay:ReplayExact'; do
+for case in 'HostAttentionReentryR1:unsafe:ReturnedCursorFromSameCut' 'HostAttentionReentryR1:unsafe-page:NoSkippedEligiblePageEvent' 'HostCursorReceiptR1:unsafe-predecessor:ReceiptChain' 'HostCursorReceiptR1:unsafe-replay:ReplayExact' 'HostTopicOccurrenceR1:unsafe-key:ReplayExactOccurrence' 'HostTopicOccurrenceR1:unsafe-cas:FreshCommit'; do
   IFS=: read -r model variant invariant <<< "$case"
   set +e
   negative="$(java -Xmx512m -cp "$jar" tlc2.TLC -workers 1 -config "$model.$variant.cfg" "$model.tla" 2>&1)"

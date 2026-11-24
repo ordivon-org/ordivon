@@ -49,3 +49,25 @@ No production activation without matched Host/Gateway and actual route/
 policy evidence; #2349 remains independent. Verify actual SDK+PG empty and
 nonempty cycle, old replay/no mutation, distinct stale rejection,
 strict invalid inputs, and existing concurrent close/post and archive tests.
+
+## Bounded transition model
+
+`formal/HostTopicOccurrenceR1.tla` uses the already pinned TLC 1.7.4
+and existing root task `mise run host:formal:attention-reentry`.
+One Topic, two actor identities, four lifecycle coordinates and two message
+horizons exercise legal state changes, no-ops, posts, durable receipt keys
+and historical replay. Generation exhaustion and invalid new commands have
+no admitted transition; rejection/abort may stutter. The positive model
+checks TypeOK, ReceiptGeneration, FreshCommit, ReplayExactOccurrence.
+Unsafe-key deliberately drops the generation from request identity;
+unsafe-cas deliberately drops the observed generation from CAS, allowing
+a second actor with an observation from the prior occurrence to commit.
+Both must violate their named invariant, not simply fail to execute TLC.
+
+Actual pinned verifier witness: job-01a20d58-9a9a-76cd-871e-e6668ac4593d:
+1,345,492 generated / 150,302 distinct states, zero queued, no invariant
+violation; both deliberate negative controls exit 12 with the named
+violations. These are abstract bounded safety results, not arbitrary
+concurrency proofs, source refinement, SQL transaction/digest verification,
+security authorization, or release/consumer acceptance. The native PG
+RED/GREEN tests remain the separate implementation evidence.
