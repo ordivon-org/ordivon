@@ -2093,6 +2093,38 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(public_source["issuedIntents"], issued["issuedIntents"])
         self.assertFalse(public_source["safeToAcknowledgeNoFutureSpawn"])
 
+    def test_source_inspection_rejects_a_rebound_contract_and_same_revision_drift(self) -> None:
+        """Original PG cut identity is more than a matching revision counter."""
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessRevisionConflict
+
+        run = contract()
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        original = self.store.load_run(run.harness_run_id)
+        issued = continuity.inspect_issued_tool_sources()
+        self.assertEqual(issued["contractDigest"], original.contract_digest)
+        self.assertEqual(issued["originalRunIssuedCount"], 0)
+        # An already-created internal observer must not certify a newly bound
+        # caller contract against the unchanged original PG journal.
+        with patch.object(continuity, "contract", replace(run, tool_grant_digest="sha256:" + "f" * 64)):
+            for observe in (continuity.inspect_issued_tool_sources,
+                            continuity.inspect_unsettled_tool_sources,
+                            continuity.inspect_finalization_source):
+                with self.subTest(observer=observe.__name__), self.assertRaises(ValueError):
+                    observe()
+        # Independent substitution of a later read projection, not actual
+        # corruption of PG: same counter but different immutable metadata.
+        verified = self.store.validate_run_history(run.harness_run_id)
+        drifted = replace(original, caller_run_ref="caller:foreign-cut")
+        with patch.object(self.store, "validate_run_history", return_value=verified):
+            with patch.object(self.store, "load_run", return_value=drifted):
+                for observe in (continuity.inspect_issued_tool_sources,
+                                continuity.inspect_unsettled_tool_sources,
+                                continuity.inspect_finalization_source):
+                    with self.subTest(drift=observe.__name__), self.assertRaises(HarnessRevisionConflict):
+                        observe()
+
     def test_effect_source_inspection_rejects_missing_original_history(self) -> None:
         """An intact latest revision cannot certify a truncated older Tool history."""
         from unittest.mock import patch

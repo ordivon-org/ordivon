@@ -40,7 +40,19 @@ class RunSourceInspection:
         return projection, events
 
     def _require_current_source_cut(self, projection: HarnessRunProjection) -> None:
-        if self.store.load_run(self.harness_run_id).revision != projection.revision:
+        # A revision is a cursor within one original Run, not its identity.
+        # Reject a rebound observer even when its new contract has the same ID.
+        if (
+            projection.harness_run_id != self.harness_run_id
+            or projection.contract_digest != self.contract.digest
+            or projection.caller_id != self.contract.caller_id
+            or projection.caller_run_ref != self.contract.caller_run_ref
+        ):
+            raise ValueError("Harness Run Contract differs from the verified source cut")
+        # Compare the whole original projection, not merely the revision.
+        # Legitimate concurrent append and inconsistent same-revision readback
+        # both invalidate the observation; neither is a release certificate.
+        if self.store.load_run(self.harness_run_id) != projection:
             raise HarnessRevisionConflict("Run changed during source verification")
 
     def _inspect_original_tool_sources(self, *, include_settled: bool) -> dict[str, JsonValue]:
