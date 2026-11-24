@@ -9,7 +9,8 @@ import unittest
 
 RUNTIME_ROOT = Path(__file__).resolve().parents[2]
 TAXONOMY = RUNTIME_ROOT / "planning" / "test-taxonomy-r1.json"
-POSITIVE_TEST = "public_requests_reject_unknown_fields_and_path_escape"
+POSITIVE_TEST = "nonterminal_native_transition_requires_reconciliation"
+LEGACY_TEST = "public_requests_reject_unknown_fields_and_path_escape"
 ZERO_MATCH_TEST = "ordivon_zero_match_probe_must_not_exist"
 
 
@@ -39,8 +40,14 @@ class FocusedVerificationContractTests(unittest.TestCase):
         self.assertGreater(artifact["size"], 0)
 
     @staticmethod
-    def run_focused(selector: str) -> subprocess.CompletedProcess[str]:
-        env = {**os.environ, "RUNTIME_TEST_EXPR": f"test({selector})"}
+    def run_focused(selector: str | None, profile: str | None = None) -> subprocess.CompletedProcess[str]:
+        env = dict(os.environ)
+        env.pop("RUNTIME_TEST_EXPR", None)
+        env.pop("RUNTIME_TEST_PROFILE", None)
+        if selector is not None:
+            env["RUNTIME_TEST_EXPR"] = f"test({selector})"
+        if profile is not None:
+            env["RUNTIME_TEST_PROFILE"] = profile
         return subprocess.run(
             ["mise", "run", "test:focused"],
             cwd=RUNTIME_ROOT,
@@ -59,7 +66,7 @@ class FocusedVerificationContractTests(unittest.TestCase):
         self.assertIn("no tests to run", combined)
 
     def test_real_focused_entrypoint_runs_named_consumer(self) -> None:
-        result = self.run_focused(POSITIVE_TEST)
+        result = self.run_focused(None)
         combined = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, combined)
         expected = tomllib.loads((RUNTIME_ROOT / "mise.toml").read_text(encoding="utf-8"))[
@@ -68,6 +75,28 @@ class FocusedVerificationContractTests(unittest.TestCase):
         self.assertIn(f"qualified cargo-nextest {expected}", combined)
         self.assertIn("1 test run", combined)
         self.assertIn(POSITIVE_TEST, combined)
+        self.assertIn("Runtime focused feature: postgres-registry-admission", combined)
+
+    def test_legacy_is_explicit_and_does_not_select_pg_only_test(self) -> None:
+        result = self.run_focused(POSITIVE_TEST, "legacy")
+        combined = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 4, combined)
+        self.assertIn("Runtime focused feature: transactional-runtime", combined)
+        self.assertIn("0 tests run", combined)
+
+    def test_legacy_consumer_still_runs(self) -> None:
+        result = self.run_focused(LEGACY_TEST, "legacy")
+        combined = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 0, combined)
+        self.assertIn("Runtime focused feature: transactional-runtime", combined)
+        self.assertIn("1 test run", combined)
+        self.assertIn(LEGACY_TEST, combined)
+
+    def test_unknown_profile_fails_before_test_execution(self) -> None:
+        result = self.run_focused(None, "typo")
+        combined = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 2, combined)
+        self.assertIn("Invalid RUNTIME_TEST_PROFILE", combined)
 
 
 if __name__ == "__main__":

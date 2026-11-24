@@ -61,6 +61,8 @@ set -euo pipefail
 cargo fmt --check
 scripts/owner-environment test
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+# Match the deployed Linux feature boundary, separately from all-features and legacy.
+cargo test --locked -p ordivon-runtime-core --no-default-features --features postgres-registry-admission --lib
 cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime -- --skip request_identity_and_terminal_winner_match_reference_model
 python3 scripts/tests/test_focused_verification_contract.py -v
 python3 scripts/tests/test_pg_physical_verification_contract.py -v
@@ -71,9 +73,24 @@ mise run formal:verify
 """
 
 [tasks."test:focused"]
-description = "Optional upstream cargo-nextest focused suite with native JUnit (RUNTIME_TEST_EXPR)"
+description = "Focused cargo-nextest, PG by default; explicit legacy profile (RUNTIME_TEST_EXPR)"
 run = """
 set -euo pipefail
+case "${RUNTIME_TEST_PROFILE:-pg}" in
+  pg)
+    feature=postgres-registry-admission
+    default_selector='test(nonterminal_native_transition_requires_reconciliation)'
+    ;;
+  legacy)
+    feature=transactional-runtime
+    default_selector='test(public_requests_reject_unknown_fields_and_path_escape)'
+    ;;
+  *)
+    echo "Invalid RUNTIME_TEST_PROFILE: expected pg or legacy" >&2
+    exit 2
+    ;;
+esac
+echo "Runtime focused feature: $feature"
 # A declared pin alone is not execution evidence: missing mise once
 # resolved an older PATH cargo-nextest while a focused test still passed.
 mise install http:cargo-nextest
@@ -90,7 +107,7 @@ if [[ "$actual_nextest" != "$expected_nextest" ]]; then
   exit 1
 fi
 echo "qualified cargo-nextest $actual_nextest"
-mise exec -- cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-test(public_requests_reject_unknown_fields_and_path_escape)}"
+mise exec -- cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features "$feature" --no-tests fail --retries 0 --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-$default_selector}"
 """
 
 
