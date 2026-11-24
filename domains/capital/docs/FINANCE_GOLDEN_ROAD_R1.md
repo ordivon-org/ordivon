@@ -86,6 +86,139 @@ Research/Portfolio/Accounting 经济消费者，而不是在报告
 原生验收和性能观测细节见 Finance R3 源审计回执，
 不是以本段文字代替测试。
 
+## 2026-11-14：发行方现金分配与 Research 持仓价格标签
+
+**真实消费者问题：** OpenBB Cboe ETF OHLCV 日线接口没有明确的
+分红/拆分调价参数；Qlib R3 H5/H20 研究标签是 T+1 OPEN →
+T+H+1 OPEN 的价格比率，并不自然成为含现金分配的总回报。
+两个行情端点的 close 相等，也不能证明原始价格复权语义、
+来源独立性、数据许可或历史首次可知时间。
+
+**唯一自然 Research 只读消费者：**
+ordivon_capital.research.etf_distribution_label_audit。
+输入仅包括冻结 CSV 面板、完整 XNYS 交易日网格和单独存放的
+私有发行方事件观察 JSON。重用已安装 Mature
+exchange-calendars 校验日历，检测
+entry_session < exDate <= exit_session
+的潜在分红暴露，不重复任何 Portfolio 收益、Accounting
+应收款或交易引擎。所有 issuer 事件来自本次人工观察，
+并非历史版本的独立时间认证，状态始终
+OBSERVED_ISSUER_EVENT_EXPOSURE_NOT_TOTAL_RETURN。
+
+本轮来源：私有
+finance/market-daily/capture-20261114-r3/daily_close_panel_20261113.csv
+sha256=a1daef34db81615b4ab26ada498ed2d7121833a42cc974303357aeb006cd2e59，
+以及私有
+finance/issuer-events-diagnostic-20261114-r1/issuer_distribution_observed.json。
+发行方公开原始页面：
+- QQQ：https://www.invesco.com/us/en/financial-products/etfs/invesco-qqq-trust-series-1.html
+- IWM：https://www.ishares.com/us/products/239710/iwm-ishares-russell-2000-etf
+- SPY：https://www.ssga.com/us/en/individual/resources/documents/etf-dividend-distributions
+
+2025-10-01 至 2026-10-29 的所有可评价**假设决策日期**
+（非 Qlib 真实选股与成交）：
+
+| 研究窗口 | 完整标签候选 | QQQ 跨已观察除息 | IWM 跨已观察除息 | SPY 跨已观察除息的下界 |
+| --- | ---: | ---: | ---: | ---: |
+| H5 T+H+1 OPEN | 272 | 20 | 20 | 5 |
+| H20 T+H+1 OPEN | 262 | 80 | 80 | 20 |
+
+QQQ、IWM 各核实四项季度事件；SPY 仅核实 2026-09-18
+一个事件，故 SPY 不是完整事件统计。没有观察到事件，
+**不意味着已经证明没有任何发行方事件**。需要独立
+来源历史发表时点、股息/拆分、调价语义、税费及权利
+才能真正做总收益回测。
+
+Agent 只读使用：
+
+    cd domains/capital
+    PYTHONPATH=src uv run --locked --group test python -m ordivon_capital.research.etf_distribution_label_audit --panel /private/panel.csv --observed-events /private/issuer_events.json --expected-panel-sha256 ACTUAL_64_HEX --decision-first 2025-10-01 --decision-last 2026-10-29 --holding-sessions 20
+
+现有 Consumer Graph：
+Markets XNYS / 来源字节 →
+Research Qlib 冻结 H5/H20 价格标签 →
+Research issuer-date label audit →
+只有在独立取得合格复权、历史可知性与使用许可后，才允许
+交给既有 Portfolio passive_benchmark / Research
+investment_candidate 真正经济对照及 Accounting/Risk。
+未认证前绝不回填 Qlib 已冻结输出、改写 Paper NAV、
+声称 Alpha 或启动资金/真实账户。应继续使用成熟 Skill
+finance-experiment-review 中 freeze/holdout/source 原则，
+不建立新的 Corporate Actions Bookkeeper。
+
+## 2026-11-14：Paper 账本不能把股票卖出应收冒充基金分红
+
+本轮核对原生 PaperSession/PaperValuation 和
+PostgresPaperClose 源码：Accounting 的 receivable_minor
+仅承载 pending_sales、sale_settlement_dates 等真实卖出交割
+应收，并不表示 ETF 除息后、派付日前存在独立的
+dividend receivable 账目。Markets ETF EOD 的
+admit_etf_eod_snapshot 要求 corporateActions.events 为
+空，任何要求分红或拆分现金效果的输入都会在来源层
+被拒绝；不应把 dividend 塞进 PaperSell settlement。
+
+所以应先核对已经上市 ETF 原始公司行动、历史发表时点、
+股东权益、record/payable date、券商税务口径、数据使用权
+和分红是否已经包含在历史复权收盘价中，再由现有自然
+Accounting Owner 决定是否需要添加新的事件类型。
+本轮只复用旧的禁止 corporateAction 事件契约，
+给 DIVIDEND 添加了原生负例，不修改 PG 账本、
+不产生第二套现金收益计算，也不授权真实账户。
+
+## 2026-11-14 R6：不要跨 Qlib 实验偷换 H20 实际选股
+
+研究实验的真实身份至少包含：模型及预测哈希、
+source digest / first-observed、hold_sessions、完整
+决策样本、exit_price_kind（CLOSE / NEXT_OPEN）、标签
+经济事件、数据源调整口径、挑选策略和费用约定。
+
+R7 真实 H20 CLOSE 模型记录的 IWM 13/13 属于
+T+H CLOSE 退出；R9 重新训练的 H20 NEXT_OPEN
+属于 T+H+1 OPEN 退出。不能因为都叫 H20，就把旧
+IWM 13/13 直接用于新 NEXT_OPEN 模型分红统计。
+本轮原生 Portfolio 在 private frozen OHLC 上对
+纯「13 次固定 IWM」重新计算，H20 CLOSE 相对 SPY
+约负 USD 35.67（吻合旧 R7 报告），H20 NEXT_OPEN
+约负 USD 25.98（与新 R9 的真实模型
+NEXT_OPEN 报告正 USD 73.16 不同）。因此撤回此前
+「H20 NEXT_OPEN 模型 4/13 次选中 IWM 跨分红」断言：
+那个 4/13 仅是预设全选 IWM 的**条件性场景**，
+实际 NEXT_OPEN 模型应恢复对应原始 Qlib prediction
+与完整 SourceCut 后再判断。
+
+原有 Research 日期消费者对所有候选日期窗口的
+QQQ/IWM 除息相交检查仍可重复，不产生资本权威。
+不要重写错误历史、继承不匹配的 benchmark 回执或
+基于错误标签选择所谓获利资产。详见
+adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
+
+## 2026-11-14：HILO 原生数据形状质量
+
+即使日期符合官方 XNYS、历史来源字节 SHA 正确，
+同一条 OHLCV 行仍可能内部矛盾；由 (high-low)/close
+构造 Qlib HILO 特征因此没有可复核的单一真实价格语义。
+已存在的 OpenBB/Cboe 私有来源中：
+QQQ 2026-05-20 的 high 比 close 低 USD 0.02；
+IWM 2023-06-05 的 high 比 open 低 USD 0.55。
+相比长期研究框架的系统性来源风险，这只涉及当前
+SPY/QQQ/IWM 各 971 行中两条，但 IWM 发生在训练数据，
+QQQ 发生在测试数据。不能为了保护历史回测排名而偷偷
+增加 high、剪裁 close 或让 Pandas 填补这些字段。
+另一个公开历史报价页面显示 QQQ 同日 high 为 713.15，
+不等于已取得具 PIT/许可证明的原始报价替换证据。
+
+复用现有 Pandas/NumPy 与 Markets 自然来源资格函数
+equity_ohlcv_shape.require_ohlcv_shape_for_hilo：
+高/低必须包住开盘和收盘，价格有限且大于零，
+成交量有限且非负；否则报明确的
+OHLC_BOUNDS_INVALID_FOR_HILO，在 Qlib HILO 生成前
+拒绝后续新模型运行。这个契约不能将旧模型神奇变成
+clean HILO，也不验证数据供应商首次可知时间。历史
+模型结果只作为不可信原始 SourceCut 的描述性敏感性报告；
+重新获取完整且可复验的原始 BAR 证据或预先定义一个
+独立的非 HILO 研究家族后才能进行新比较。无私人
+行情字节提交 Git，无真实账户/券商影响。
+
 ## Golden commands
 
 ### 1. Start without any database or broker
@@ -255,6 +388,63 @@ worker or trading runner without a proven consumer and resource budget.
 External broker finance writes remain NOT_ADMITTED.
 
 
+## 2026-11-14 R6：研究经济消费者新的精确输入合约
+
+已有 Qlib 测试经济消费者
+adoption/r3_native/tests/probe_qlib_paper_horizon.py
+现在拒绝与研究报告预测、Parquet 标签、三个 ETF
+原始市场数据 SHA 不匹配的快照，并检查 H1/H5/H20
+正确的 CLOSE/NEXT_OPEN 经济标签定义。其输出包含
+native_study_identity，供 Agent 审查实际所消费的
+预测字节、数据集与价格来源；变更一个文件不能仍然
+借用旧模型名字继续计算。因此历史旧报告可保留，
+新模型才有资格重新生成自己的结果，不用另写
+Qlib/Portfolio 计算引擎。
+
+私有 issuer-events-diagnostic-20261114-r6 中增加 SPY
+2025-12、2026-03、2026-06 的有限事件观察，
+当前三个 ETF 各观察到4个季度事件，但美版发行方
+历史 XLSX 未单独认证，全部返回 SOURCE_UNVERIFIED/
+PIT_UNKNOWN；现金敏感性脚本调用既有 Portfolio
+cashflow-matched comparator。美国 SPY（NYSE Arca）
+与同 ISIN 的新加坡 SPY 交易单位（SGX）存在
+2026-06-18 vs 2026-06-17 不同当地 ex-date，
+绝不能互用。同一基金不等于同一市场除息时间。
+
+H20 CLOSE 固定 13 次 IWM 的旧比较 -35.67 USD，
+与观察现金相加后的条件比较约 -36.68 USD；
+H20 NEXT_OPEN 假设固定 13 次 IWM 的价格比较
+-25.98 USD，条件现金 -26.93 USD。这些都是
+历史价格/条件现金情景，不是新 R9 NEXT_OPEN
+Qlib 模型重放，不是已认证的总回报，
+更不提供实盘/PG 影响。
+
+
+## 2026-11-15 R7：原生 Qlib→Portfolio 不能只凭来源哈希接受经济数据
+
+Portfolio 的既有研究经济消费者
+`adoption/r3_native/tests/probe_qlib_paper_horizon.py`
+在读取确切摘要绑定的预测、标签和三 ETF 原始 CSV 后，
+必须在 **同一次已核对字节读取** 上重新调用 Markets 自然
+Owner 的 `require_xnys_session_grid` 和
+`require_ohlcv_shape_for_hilo`。其返回值还必须与原研究的
+`session_grid_qualification` 和 `hilo_source_shape_qualification`
+完整一致。遗失旧资格回执应当明确拒绝并重新生成研究，
+而不能自动补上来源资格、捏造供应商信息或沿用旧经济收益。
+
+独立 RED→GREEN 反例：人为写入假交易日或不可能的 high，
+即便同步更改同一来源 CSV SHA 仍不能进入经济比较；
+删除原日历资格也不得进入经济比较。
+Markets 对 DataFrame 原始布尔 LOW/VOLUME 的 `True -> 1.0`
+隐式转换同样必须先于数值转换拒绝。均只修改已有 Markets
+与 Portfolio 自然消费者，不新增 Market Data Framework。
+
+这只证明**内部结构与原研究资格口径一致**；不能凭本地
+重新计算认证原始供应商真实性、NYSE Arca/Nasdaq 实际
+ETF 主场资格、原始数据合法再分发、历史 PIT、股息/复权、
+真实交易执行或投资 Alpha。恢复真实来源后仍须精确重训和
+独立前瞻评价。无需为了过关而修改旧数据或旧 Qlib 模型。
+
 ### Application composition and test-quality rule (2026-11-21)
 
 Use ordivon_capital.applications.paper_simulation_run for the native Paper
@@ -270,3 +460,73 @@ particular directory or that a private helper has a particular name does
 not protect these outcomes and cannot veto a correct module move.
 Use the core-domain dependency DAG test for actual architectural coupling,
 not a file-inventory hard gate.
+
+### R5 actual issuer observation and distinct research study identity (2026-11-24)
+
+The official BlackRock IWM distribution table was directly retrieved in
+the Linux Runtime (HTTP 200, 1,852,814 bytes, SHA-256
+`152a238b80597a3307213f8e3fb97e10a289519e72e7341eee8b812758d1aee8`;
+job-01a20c03-1b94-7139-9863-55b5dd686f9b). The source was
+https://www.blackrock.com/us/individual/products/239710/ishares-russell-2000-etf-iwm-us-class .
+The observed table records IWM 2026-06-15 ex/record date, 2026-06-18
+payment, USD 0.695129 income/share; 2026-09-15 ex/record date,
+2026-09-18 payment, USD 0.750436 income/share. This is a present-day
+source observation, not historical first-publication evidence. The
+bounded probe retained digest and table-row evidence in Runtime stdout,
+not the entire HTML, which may change. Do not claim complete distributions,
+raw source redistribution rights, historical PIT, execution or return.
+
+The SEC's ordinary distribution entitlement explanation is at
+https://www.investor.gov/introduction-investing/investing-basics/glossary/ex-dividend-dates-when-are-you-entitled-stock-and .
+The Research audit assumes ordinary cash distributions without special
+due-bill rules. It counts hypothetical next-open windows for which entry
+session < ex-date <= exit session; this is not cash availability on
+ex-date. Payment day, withholding and reinvestment are separate economic
+conditions. Paper pending-sale receivables are not fund distribution
+receivables. No automatic accounting or return correction is permitted.
+
+The current native consumer emits `native_study_identity` only after
+exact forecast, label, source receipts, economic exit and date/shape gates.
+It also rejects duplicate prediction/dataset keys, incorrect per-decision
+ETF universe, missing labels, or extra/missing source receipts. Current
+model tests cover the actual existing consumer, not retired helper names.
+Historic R4/R6/R7 figures remain archived, not independently requalified.
+
+### R6 source requalification and exact candidate denominator
+
+All twelve archived ordinary cash event rows (four per SPY, QQQ, IWM)
+now match present-day first-party sources by ex-date, payment date and
+exact USD amount. The underlying 2026-11-14 private observation file
+remains unchanged (SHA-256 e22ea14124fa8136e6b877382cc2dce1977d31bab043d0763047ad7a51dc72c4).
+The additional private derived observations are distinct, not a rewrite
+of the earlier capture or a backdated first publication.
+
+* State Street US historical distributions workbook, CUSIP 78462F103:
+  SHA-256 0008b3cc16472d89944e1cf36dced2ec5df5430e07c8731fcf1e38f3dd67774c.
+* Invesco public distribution JSON, CUSIP 46090E103 and USD:
+  HTTPS 200, 27,437 bytes, SHA-256
+  8cac48440d684d73a51016d1b98323b2ffd85a378bd82f987c43c807f0ae1aa2.
+  URL: https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46090E103/distribution?idType=cusip&productType=ETF&loadType=initial .
+  The public issuer response contained 89 rows; only the four scoped
+  archived events were reconciled, including ordinary-income amounts.
+* BlackRock official IWM product 239710 US distribution table:
+  four exact date/amount matches, latest probe SHA-256
+  a17483dac3afe62c42a8a78ee3ddfa0d452a02465eda1bcc75a7e465eace2e9e,
+  with 1,852,892 response bytes. HTML can change between requests.
+
+Provider raw responses have not been redistributed; the private facts,
+digests and runtime jobs constitute present observation only. These do
+not prove full-event coverage, historical first-publication times,
+the source price adjustment convention, taxes or redistribution rights.
+
+The original panel SHA a1daef34db81615b4ab26ada498ed2d7121833a42cc974303357aeb006cd2e59
+is re-consumed by the refined audit. It now rejects duplicate JSON keys,
+nonrectangular CSV, nonfinite/nonpositive/malformed observed-symbol quotes,
+and explicitly exposes the requested source decision count and incomplete
+exit exclusions. Within the declared dates 2025-10-01 through 2026-10-29:
+H5 has 272 source decisions, zero incomplete exits, and 20 observed
+event-exposed windows per ETF; H20 has 272 decisions, ten incomplete exits,
+and 80 exposed among the 262 eligible windows. Nine new negative controls
+failed against the prior implementation and pass after the change.
+The reported denominator is candidate windows, not selected positions.
+No original historical model predictions were recovered in this round.

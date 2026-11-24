@@ -7,7 +7,6 @@ import os
 import tempfile
 import sys
 import unittest
-import tomllib
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "pg_disposable_physical.py"
@@ -47,14 +46,15 @@ class DisposablePg18Contract(unittest.TestCase):
             finally:
                 os.close(fd)
 
-    def test_direct_cargo_invocation_reuses_native_owner_contract(self) -> None:
-        config = tomllib.loads((SOURCE.parents[1] / "mise.toml").read_text())
-        owner_run = config["tasks"]["test:postgres-registry:physical"]["run"]
-        for token in module.CARGO_ARGS:
-            if token == "test":
-                continue
-            self.assertIn(token, owner_run)
-        self.assertIn("printenv ORDIVON_PG_TEST_DSN", owner_run)
+    def test_single_case_selection_reuses_native_cargo_profile(self) -> None:
+        stage = module.single_case_args(module.STAGE_CASE)
+        self.assertEqual(
+            stage,
+            tuple(module.STAGE_CASE if arg == "pg18_" else arg for arg in module.CARGO_ARGS),
+        )
+        self.assertIn("--lib", stage)
+        self.assertIn("--ignored", stage)
+        self.assertIn("--test-threads=1", stage)
 
     def test_pg18_extended_owner_inventory_is_not_a_stale_literal_count(self) -> None:
         names = [
@@ -93,29 +93,27 @@ class DisposablePg18Contract(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     module.exact_test_count(false_green, expected)
 
-    def test_physical_windows_witness_is_bound_to_behavior_not_module_path(self) -> None:
-        name = module.WINDOWS_PG_WITNESS_CASE
-        self.assertNotIn("::", name)
-        for namespace in (
-            "pg_admission::live_pg_tests",
-            "pg_admission::live_pg_tests::admission_cases",
-            "new_pg_core::physical",
-        ):
-            evidence = (
-                f"test {namespace}::{name} ... ok\\n"
-                "test result: ok. 1 passed; 0 failed; 0 ignored;"
-            ).replace("\\n", "\n")
-            self.assertTrue(module.qualified_single_physical_witness(evidence, name))
-
-        for bad in (
-            "test result: ok. 0 passed; 0 failed; 0 ignored;",
-            f"test new_scope::{name} ... FAILED\ntest result: FAILED. 0 passed; 1 failed;",
-            f"test new_scope::{name} ... ok\ntest result: ok. 0 passed; 0 failed;",
-            "test new_scope::wrong ... ok\ntest result: ok. 1 passed; 0 failed;",
-            f"test new_scope::{name} ... ok\ntest extra::{name} ... ok\ntest result: ok. 2 passed; 0 failed;",
-        ):
-            with self.subTest(output=bad):
-                self.assertFalse(module.qualified_single_physical_witness(bad, name))
+    def test_single_witness_accepts_moved_module_but_not_changed_execution(self) -> None:
+        for identity in (module.WINDOWS_PG_WITNESS_CASE, module.STAGE_CASE):
+            for namespace in ("old_module", "new_pg_core::physical"):
+                name = f"{namespace}::{identity}"
+                expected = module.listed_single_case(f"{name}: test", identity)
+                evidence = f"test {name} ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored;"
+                self.assertEqual(module.exact_test_count(evidence, expected), 1)
+                for bad in (
+                    "test result: ok. 0 passed; 0 failed; 0 ignored;",
+                    evidence.replace(name, f"other_module::{identity}"),
+                    evidence.replace("... ok", "... FAILED"),
+                    evidence + "\ntest result: ok. 0 passed; 0 failed; 0 ignored;",
+                ):
+                    with self.subTest(identity=identity, output=bad):
+                        with self.assertRaises(ValueError):
+                            module.exact_test_count(bad, expected)
+            for invalid in ("0 tests, 0 benchmarks", f"{identity}_suffix: test",
+                            f"a::{identity}: test\nb::{identity}: test"):
+                with self.subTest(identity=identity, inventory=invalid):
+                    with self.assertRaises(ValueError):
+                        module.listed_single_case(invalid, identity)
 
     def test_inventory_rejects_empty_duplicate_and_unscoped_test(self) -> None:
         fixture = "pg_admission::live_pg_tests::pg18_existing"

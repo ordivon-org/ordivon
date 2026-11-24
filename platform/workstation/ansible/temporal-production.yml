@@ -4,7 +4,7 @@
   become: true
   gather_facts: false
   vars:
-    postgres_port: 55434
+    postgres_port: 14550
     postgres_socket: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
     temporal_db_user: temporal
     temporal_db_name: temporal

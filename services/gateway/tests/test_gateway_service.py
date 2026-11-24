@@ -1107,3 +1107,70 @@ def test_artifact_read_allows_empty_chunk_at_true_owner_eof() -> None:
     )
     assert chunk.eof is True
     assert chunk.next_offset == 1
+
+
+@pytest.mark.parametrize("owner_id", ["runtime.linux", "runtime.windows"])
+@pytest.mark.parametrize(
+    ("content", "advance", "eof", "accepted"),
+    [
+        ("abc", 3, True, True),
+        ("中🙂", 7, False, True),
+        ("", 0, True, True),
+        ("中", 1, True, False),
+        ("abc", 7, False, False),
+        ("abc", 0, True, False),
+        ("", 3, True, False),
+    ],
+)
+def test_agent_artifact_cursor_matches_actual_utf8_bytes(
+    owner_id: str, content: str, advance: int, eof: bool, accepted: bool
+) -> None:
+    """Real SDK consumer cannot skip or overlap Artifact bytes on a malformed Owner response."""
+    caller = FakeOwnerCaller()
+    caller.responses[(owner_id, "artifact.read")] = {
+        "jobId": "job-utf8-cursor",
+        "artifactId": "artifact-utf8-cursor",
+        "offset": 7,
+        "nextOffset": 7 + advance,
+        "eof": eof,
+        "digest": "sha256:abc",
+        "content": content,
+    }
+
+    async def scenario() -> None:
+        async with Client(build_server(GatewayService(caller)), raise_exceptions=False) as client:
+            result = await client.call_tool(
+                "artifact.read",
+                {
+                    "operationRef": f"ordivon-exec:v1:{owner_id}:job-utf8-cursor",
+                    "artifactId": "artifact-utf8-cursor",
+                    "offset": 7,
+                    "maxBytes": 32,
+                },
+            )
+            assert result.is_error is (not accepted)
+            if accepted:
+                assert result.structured_content["content"] == content
+                assert result.structured_content["next_offset"] == 7 + advance
+
+    asyncio.run(scenario())
+    assert [call[1] for call in caller.calls] == ["artifact.read"]
+
+
+def test_artifact_read_rejects_unpaired_unicode_surrogate() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "artifact.read")] = {
+        "jobId": "job-utf8",
+        "artifactId": "artifact-utf8",
+        "offset": 0,
+        "nextOffset": 3,
+        "eof": True,
+        "digest": "sha256:abc",
+        "content": "\ud800",
+    }
+    with pytest.raises(GatewayError, match="artifact.*UTF-8"):
+        asyncio.run(
+            GatewayService(caller).artifact_read(
+                "ordivon-exec:v1:runtime.linux:job-utf8", "artifact-utf8"
+            )
+        )

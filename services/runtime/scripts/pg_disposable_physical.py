@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""One disposable, non-production PostgreSQL fixture for the existing PG18 owner task.
+"""Native PG verification with one test-set acceptance check for all three lanes.
 
-Effect boundary: /var/tmp scratch cluster and existing native Rust owner tests only.
-Never reads an operator database DSN and never starts a TCP listener.
+Default: disposable /var/tmp cluster, no operator DSN or TCP listener.
+Explicit physical/stage lanes require their respective operator test DSN;
+they never start a cluster and never fall back to another lane's DSN.
 """
 
 from __future__ import annotations
@@ -17,11 +18,11 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# Same Cargo owner invocation as test:postgres-registry:physical; avoid recursively
-# invoking mise (nested mise inherits Runtime's ephemeral FD-backed paths).
+# One native Cargo selection for the disposable and explicit physical lanes.
 CARGO_ARGS = (
     "test",
     "--locked",
+    "--lib",
     "-p",
     "ordivon-runtime-core",
     "--no-default-features",
@@ -36,23 +37,17 @@ CARGO_ARGS = (
 # Independent Windows PG witness consumer; same disposable PG18 fixture, not
 # a Windows production Writer or a second persistent test authority.
 WINDOWS_PG_WITNESS_CASE = "windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
-WINDOWS_PG_WITNESS_ARGS = (
-    "test",
-    "--locked",
-    "-p",
-    "ordivon-runtime-core",
-    "--no-default-features",
-    "--features",
-    "postgres-registry-admission",
-    WINDOWS_PG_WITNESS_CASE,
-    "--",
-    "--ignored",
-    "--nocapture",
-    "--test-threads=1",
-)
+STAGE_CASE = "historical_pg_stage_is_not_an_admission_authority"
+
+
+def single_case_args(case: str) -> tuple[str, ...]:
+    return tuple(case if arg == "pg18_" else arg for arg in CARGO_ARGS)
+
+
+WINDOWS_PG_WITNESS_ARGS = single_case_args(WINDOWS_PG_WITNESS_CASE)
 PG18_LISTED_CASE = re.compile(r"^(\S+): test$", re.M)
 PG18_EXECUTED_CASE = re.compile(r"^test (\S+) \.\.\. ok$", re.M)
-PG18_RESULT = re.compile(r"test result: ok\. (\d+) passed; 0 failed; 0 ignored;")
+PG18_RESULT = re.compile(r"^test result: ok\. (\d+) passed; 0 failed; 0 ignored;", re.M)
 
 
 def fixture_environment(original: dict[str, str], socket_dir: Path, port: int) -> dict[str, str]:
@@ -60,6 +55,11 @@ def fixture_environment(original: dict[str, str], socket_dir: Path, port: int) -
     result = dict(original)
     result["ORDIVON_PG_TEST_DSN"] = f"host={socket_dir} port={port} user=postgres dbname=postgres"
     result.pop("ORDIVON_PG_STAGE_TEST_DSN", None)
+    return cargo_environment(result)
+
+
+def cargo_environment(original: dict[str, str]) -> dict[str, str]:
+    result = dict(original)
     # Runtime passes an FD-backed Cargo cache to the native tool invocation.
     # Python's subprocess closes unrelated FDs; resolve only this compiler
     # cache to the *same* actual directory before spawning a child Cargo.
@@ -70,25 +70,6 @@ def fixture_environment(original: dict[str, str], socket_dir: Path, port: int) -
             raise RuntimeError("FD-backed Cargo target is not an existing directory")
         result["CARGO_TARGET_DIR"] = str(actual)
     return result
-
-
-def qualified_single_physical_witness(output: str, test_identity: str) -> bool:
-    """Require exactly one real passing test by meaning, not Rust module path.
-
-    In particular, an empty --exact selection, duplicated test execution,
-    a failed binary, or a successful-but-different test is not evidence.
-    The caller also checks the physical subprocess exit status.
-    """
-    successes = PG18_EXECUTED_CASE.findall(output)
-    one_summary = re.findall(
-        r"(?m)^test result: ok\. 1 passed; 0 failed; 0 ignored;",
-        output,
-    )
-    return (
-        len(successes) == 1
-        and successes[0].rsplit("::", 1)[-1] == test_identity
-        and len(one_summary) == 1
-    )
 
 
 def listed_pg18_tests(output: str) -> frozenset[str]:
@@ -108,12 +89,66 @@ def exact_test_count(output: str, expected: frozenset[str]) -> int:
         or len(observed) != len(expected)
         or len(observed) != len(set(observed))
         or set(observed) != expected
-        or summaries.count(len(expected)) != 1
+        or summaries != [len(expected)]
     ):
         raise ValueError(
             f"physical PG18 result unqualified: expected={len(expected)} observed={len(observed)} summaries={summaries}"
         )
     return len(observed)
+
+
+def listed_single_case(output: str, identity: str) -> frozenset[str]:
+    cases = PG18_LISTED_CASE.findall(output)
+    if len(cases) != 1 or cases[0].rsplit("::", 1)[-1] != identity:
+        raise ValueError("physical native Cargo inventory must contain exactly the named witness")
+    return frozenset(cases)
+
+
+def verify_native_selection(
+    cargo: str, args: tuple[str, ...], env: dict[str, str], *, identity: str | None = None
+) -> int:
+    """Require nonempty native inventory and one PASS for every same named test."""
+    listing_args = [*args[:args.index("--")], "--", "--ignored", "--list"]
+    listed = subprocess.run(
+        [cargo, *listing_args], cwd=ROOT, env=env, capture_output=True,
+        text=True, timeout=400,
+    )
+    if listed.returncode:
+        raise RuntimeError(f"native Cargo inventory failed (exit={listed.returncode})")
+    expected = (
+        listed_pg18_tests(listed.stdout) if identity is None
+        else listed_single_case(listed.stdout, identity)
+    )
+    result = subprocess.run(
+        [cargo, *args], cwd=ROOT, env=env, capture_output=True,
+        text=True, timeout=400,
+    )
+    # libtest execution evidence comes from stdout, never compiler stderr.
+    for line in result.stdout.splitlines():
+        if line.startswith("test ") or line.startswith("test result:"):
+            print(line[:230])
+    if result.returncode:
+        raise RuntimeError(f"native PostgreSQL test failed (exit={result.returncode})")
+    return exact_test_count(result.stdout, expected)
+
+
+def explicit_lane(lane: str) -> int:
+    stage = lane == "--stage"
+    variable = "ORDIVON_PG_STAGE_TEST_DSN" if stage else "ORDIVON_PG_TEST_DSN"
+    if not os.environ.get(variable, "").strip():
+        print(f"{variable} is required for PostgreSQL qualification", file=sys.stderr)
+        return 2
+    cargo = shutil.which("cargo")
+    if cargo is None:
+        raise RuntimeError("cargo must be installed")
+    env = cargo_environment(os.environ)
+    env.pop("ORDIVON_PG_TEST_DSN" if stage else "ORDIVON_PG_STAGE_TEST_DSN", None)
+    count = verify_native_selection(
+        cargo, single_case_args(STAGE_CASE) if stage else CARGO_ARGS,
+        env, identity=STAGE_CASE if stage else None,
+    )
+    print(f"{'STAGE' if stage else 'PHYSICAL'}_PG18_PASS={count}/{count}")
+    return 0
 
 
 def run_checked(command: list[str], *, timeout: int = 90) -> None:
@@ -186,60 +221,12 @@ def main() -> int:
             dirty = bool(subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"], text=True).strip())
             print(f"sourceCut={source} standing={'DIRTY_UNQUALIFIED' if dirty else 'CLEAN'}")
             fixture_env = fixture_environment(os.environ, root, port)
-            # The exact Cargo-filtered native test inventory is the expected
-            # consumer set. A static number or a single Rust module prefix
-            # becomes stale when additional PG18 owner tests are added.
-            listing_args = [
-                *CARGO_ARGS[: CARGO_ARGS.index("--")],
-                "--",
-                "--ignored",
-                "--list",
-            ]
-            listed = subprocess.run(
-                [cargo, *listing_args],
-                cwd=ROOT,
-                env=fixture_env,
-                capture_output=True,
-                text=True,
-                timeout=400,
+            n = verify_native_selection(cargo, CARGO_ARGS, fixture_env)
+            print(f"DISPOSABLE_PG18_PASS={n}/{n}")
+            n = verify_native_selection(
+                cargo, WINDOWS_PG_WITNESS_ARGS, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
             )
-            if listed.returncode:
-                raise RuntimeError(
-                    "PG18 native Cargo test inventory failed: " + (listed.stderr or listed.stdout)[-2000:]
-                )
-            expected = listed_pg18_tests(listed.stdout)
-            result = subprocess.run(
-                [cargo, *CARGO_ARGS],
-                cwd=ROOT,
-                env=fixture_env,
-                capture_output=True,
-                text=True,
-                timeout=400,
-            )
-            output = result.stdout + "\n" + result.stderr
-            for line in output.splitlines():
-                if (line.startswith("test ") and "pg18_" in line) or (
-                    line.startswith("test result:") and "passed" in line
-                ):
-                    print(line[:230])
-            if result.returncode:
-                raise RuntimeError(f"PG18 native owner task failed: {output[-3500:]}")
-            n = exact_test_count(output, expected)
-            print(f"DISPOSABLE_PG18_PASS={n}/{len(expected)}")
-            windows_result = subprocess.run(
-                [cargo, *WINDOWS_PG_WITNESS_ARGS],
-                cwd=ROOT,
-                env=fixture_env,
-                capture_output=True,
-                text=True,
-                timeout=400,
-            )
-            windows_output = windows_result.stdout + "\n" + windows_result.stderr
-            if windows_result.returncode != 0 or not qualified_single_physical_witness(
-                windows_output, WINDOWS_PG_WITNESS_CASE
-            ):
-                raise RuntimeError("Windows PG evidence consumer unqualified: " + windows_output[-3000:])
-            print("DISPOSABLE_WINDOWS_PG_WITNESS_PASS=1/1")
+            print(f"DISPOSABLE_WINDOWS_PG_WITNESS_PASS={n}/{n}")
         finally:
             if started:
                 run_checked(
@@ -252,7 +239,13 @@ def main() -> int:
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(main())
+        args = sys.argv[1:]
+        if not args:
+            raise SystemExit(main())
+        if args in (["--physical"], ["--stage"]):
+            raise SystemExit(explicit_lane(args[0]))
+        print("usage: pg_disposable_physical.py [--physical | --stage]", file=sys.stderr)
+        raise SystemExit(2)
     except (RuntimeError, OSError, ValueError, subprocess.TimeoutExpired) as exc:
-        print(f"DISPOSABLE_PG18_UNQUALIFIED: {exc}", file=sys.stderr)
+        print(f"PG18_VERIFICATION_UNQUALIFIED: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
