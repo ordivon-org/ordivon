@@ -13,7 +13,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-08-03
+updated: 2026-11-24
 summary: Canonical operational contract for Cloudflare endpoint, signed client use, Fetch and Browser bounds, request state, budgets, lifecycle, installation, Artifact verification, and policy identity.
 evidence_status: verified
 readiness: READY
@@ -224,6 +224,8 @@ The service is root-only, uses a `0077` umask, and audits at most 100 cleanup to
 
 ## Client transport and Artifact integrity
 
+For `fetch` and `browser-run`, the client flushes a JSON `edge_request` event containing the original `request_id` and `operation` to stderr before dispatch. stdout remains the response-only JSON interface. Agents should retain the event or provide their own stable `--request-id`; on an uncertain outcome, query `ordivon-edge receipt <request-id> --wait` rather than create a new identity. The event identifies intent, not provider acceptance or completion.
+
 The client retries transient transport failures up to three times. A POST retry preserves the original Request ID and request body, so the Edge state machine returns a first execution, Pending state, or deterministic Receipt replay rather than creating a second operation. HTTP policy failures are not retried automatically.
 
 Artifact downloads fail closed unless `X-Ordivon-Sha256` is present and matches the downloaded bytes. `--sha256` additionally verifies the digest carried by the operation Receipt. The client writes through a same-directory temporary file, fsyncs it, atomically renames it, and applies mode `0600`.
@@ -235,5 +237,8 @@ Artifact downloads fail closed unless `X-Ordivon-Sha256` is present and matches 
 The installed lifecycle controller reads the installed provider policy at `/usr/local/lib/ordivon-operations/cloudflare-provider/edge-policy.json`; checkout execution uses the checkout policy, and `ORDIVON_EDGE_POLICY` is an explicit override. The install/doctor path digest-checks that materialized policy against current source. The lifecycle controller owns both observation and mutation semantics. `--check` performs exactly one GET and compares provider-owned expected/actual managed rules without PUT; the no-flag path preserves non-Ordivon rules, replaces all rules whose IDs begin with `edge-v2-`, then rereads the API and requires an exact match. It does not depend on Wrangler or the local Node dependency tree.
 
 ## Installed release source
+
+`ordivon-edge status --repo <repository-or-provider-path> --expected-ref <git-ref>` resolves Worker input paths from the selected Git commit, preferring the canonical `platform/workstation/providers/cloudflare` tree over legacy layouts. A dirty checkout or removal of a working-tree file does not change the selected commit digest. The `worker_inputs` observation and `source_relation` are distinct: an unresolved historical source commit does not establish a commit ancestry relation; the reported input digest can still be compared independently.
+
 
 `ordivon-edge-release` resolves `/root/projects/ordivon/platform/workstation/providers/cloudflare` by default. `ORDIVON_CLOUDFLARE_PROVIDER_ROOT` is the explicit override; legacy `ORDIVON_WORLD_REPO` remains a compatibility fallback and does not confer World ownership.
