@@ -32,7 +32,7 @@ from .social_contracts import (
     TopicResumeResponse,
 )
 from .social_store import SocialStore
-from .wire_common import ExactCursorWire
+from .wire_common import ExactCursorWire, NonnegativeHostInteger
 
 
 def register_social_tools(
@@ -155,7 +155,7 @@ def register_social_tools(
         actorRef: str,
         state: Literal["open", "closed", "archived"],
         expectedState: Literal["open", "closed", "archived"],
-        expectedHighSequence: int,
+        expectedHighSequence: NonnegativeHostInteger,
     ) -> TopicResponse:
         request = {
             "topicRef": topicRef,
@@ -228,7 +228,7 @@ def register_social_tools(
         topicRef: str,
         authorActorRef: str,
         body: str,
-        recordedAtMs: int,
+        recordedAtMs: NonnegativeHostInteger,
         messageKind: Literal[
             "note", "question", "proposal", "warning", "finding", "handoff"
         ] = "note",

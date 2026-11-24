@@ -26,19 +26,19 @@ def test_release_manifest_matches_exact_mcp_surface_and_package_identity() -> No
             assert version("ordivon-host-v2") == manifest["packageVersion"]
             assert client.server_info is not None
             assert client.server_info.version == manifest["packageVersion"]
-            assert manifest["surfaceEpoch"] == 7
+            assert manifest["surfaceEpoch"] == 8
 
     asyncio.run(scenario())
 
 
-def test_epoch7_surface_release_advances_package_identity_from_epoch6(tmp_path: Path) -> None:
+def test_epoch8_surface_release_advances_package_identity_from_epoch7(tmp_path: Path) -> None:
     import subprocess
 
     candidate = json.loads(MANIFEST.read_text(encoding="utf-8"))
     current = dict(candidate)
-    current["packageVersion"] = "0.8.0"
-    current["surfaceEpoch"] = 6
-    current["tools"] = [tool for tool in candidate["tools"] if tool != "host.pool.stats"]
+    current["packageVersion"] = "0.9.0"
+    current["surfaceEpoch"] = 7
+    current["contractDigest"] = "sha256:0c3553e4fb9b9134d9e3867e0419d7b119c78b3a55d48463e5d938810b4a2f3a"
     current_path = tmp_path / "current.json"
     current_path.write_text(json.dumps(current), encoding="utf-8")
     result = subprocess.run(
@@ -54,8 +54,8 @@ def test_epoch7_surface_release_advances_package_identity_from_epoch6(tmp_path: 
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "epoch=7" in result.stdout
-    assert "version=0.9.0" in result.stdout
+    assert "epoch=8" in result.stdout
+    assert "version=0.10.0" in result.stdout
     assert "changed=true" in result.stdout
 
 

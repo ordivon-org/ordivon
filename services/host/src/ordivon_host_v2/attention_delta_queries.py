@@ -9,6 +9,7 @@ import psycopg
 from .attention_sql import ATTENTION_DELTA_SQL
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError
+from .postgres_bounds import HOST_WIRE_INT_MAX
 
 
 class AttentionDeltaQueries:
@@ -47,8 +48,8 @@ class AttentionDeltaQueries:
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if type(after_sequence) is not int or after_sequence < 0:
-            raise ValueError("after_sequence must be non-negative integer")
+        if type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX:
+            raise ValueError("after_sequence must be non-negative integer within JSON safe integer range")
         self._validate_delta_page(limit=limit, max_bytes=max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")

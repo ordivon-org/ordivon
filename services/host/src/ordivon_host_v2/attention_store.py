@@ -9,6 +9,7 @@ from .attention_projections import TargetKind as TargetKind
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ActorRefNotFound, ConflictError
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .postgres_connections import HostPostgresConnections
 from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
@@ -93,8 +94,8 @@ class AttentionStore(
             return result
 
     def ack(self, actor_ref: str, *, cursor: int, client_request_id: str) -> dict[str, Any]:
-        if type(cursor) is not int or cursor < 0:
-            raise ValueError("cursor must be a non-negative exact integer")
+        if type(cursor) is not int or not 0 <= cursor <= HOST_WIRE_INT_MAX:
+            raise ValueError("cursor must be a non-negative exact integer within JSON safe integer range")
         request = {"operation": "attention.ack", "actorRef": actor_ref, "cursor": cursor}
         request_digest = canonical_digest(request)
         with self._connect() as conn, conn.transaction():
