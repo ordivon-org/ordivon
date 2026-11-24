@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import importlib.util
 import itertools
+import re
 from pathlib import Path
 from unittest.mock import Mock
 
+import evidence_github_checks as github_checks
 import pytest
 
 SOURCE = Path(__file__).with_name("evidence_validity.py")
@@ -44,6 +46,15 @@ class FixtureGh:
             "check_runs": records[(page - 1) * 100 : page * 100],
         }
 
+_NATIVE_SUITE_COUNT = github_checks._check_suite_count
+_NATIVE_ATTEMPT_SELECTION = github_checks._native_attempt_selection
+
+
+@pytest.fixture
+def native_provider_protocol(monkeypatch, source_id):
+    monkeypatch.setattr(github_checks, "_check_suite_count", _NATIVE_SUITE_COUNT)
+    monkeypatch.setattr(github_checks, "_native_attempt_selection", _NATIVE_ATTEMPT_SELECTION)
+
 
 @pytest.fixture(autouse=True)
 def source_id(monkeypatch):
@@ -52,6 +63,25 @@ def source_id(monkeypatch):
     monkeypatch.setattr(module, "_exact_commit", lambda sha: sha)
     monkeypatch.setattr(module, "require_ancestral_source_cuts", lambda *a: None)
     monkeypatch.setattr(module, "qualify_current_selector", lambda *a: None)
+    # Decision and Formal fixtures exercise their own seams. The native
+    # provider protocol cases below use the real qualification operators.
+    monkeypatch.setattr(github_checks, "_check_suite_count", lambda *a: (1, 1))
+
+    def fixture_attempt(gh, repo, sha, name, rows):
+        current = [row for row in rows if row.get("fixtureCurrentAttempt")]
+        if len(rows) == 1:
+            chosen = rows[0]
+        else:
+            assert len(current) == 1, "fixture must explicitly identify current attempt"
+            chosen = current[0]
+        match = re.search(r"/actions/runs/([0-9]+)", chosen.get("details_url") or "")
+        return chosen, {
+            "workflowRunId": int(match.group(1)) if match else 1,
+            "workflowRunAttempt": 1,
+            "checkSuiteId": 1,
+        }
+
+    monkeypatch.setattr(github_checks, "_native_attempt_selection", fixture_attempt)
 
 
 def provider(row: dict | None = None, *, previous: list[dict] | None = None):
@@ -111,7 +141,7 @@ def test_pending_failed_or_skipped_check_never_recurs_as_pass(
 
 def test_later_failed_rerun_overrides_older_success():
     gh = provider()
-    newer_failure = dict(GOOD, id=110, conclusion="failure")
+    newer_failure = dict(GOOD, id=110, conclusion="failure", fixtureCurrentAttempt=True)
     gh.rows[CURRENT] = [dict(GOOD), newer_failure]
     result = module.decide(
         repo=module.DEFAULT_REPOSITORY, current_sha=CURRENT, github=gh
@@ -164,7 +194,7 @@ def test_provider_requests_all_attempts_not_completed_only_view():
         def api(self, endpoint):
             rows = [dict(GOOD)]
             if "filter=all" in endpoint:
-                rows.append(dict(GOOD, id=102, status="queued", conclusion=None))
+                rows.append(dict(GOOD, id=102, status="queued", conclusion=None, fixtureCurrentAttempt=True))
             return {"total_count": len(rows), "check_runs": rows}
 
     result = module.decide(
@@ -189,6 +219,193 @@ def test_provider_page_count_change_is_not_complete_evidence():
         module.decide(
             repo=module.DEFAULT_REPOSITORY, current_sha=CURRENT, github=MovingPages()
         )
+
+
+
+class NativeProviderFixture:
+    """Controlled native REST protocol, not real workflow execution."""
+
+    def __init__(self):
+        self.repo = module.DEFAULT_REPOSITORY
+        self.sha = CURRENT
+        self.run_id = 731
+        self.suite_id = 812
+        self.attempt = 2
+        self.suite_count = 1
+        self.run_reads = 0
+        self.suite_reads = 0
+        self.suite_count_after = None
+        self.attempt_after = None
+        self.calls = []
+        self.checks = [
+            self.check(999, "completed", "success"),
+            self.check(101, "completed", "failure"),
+        ]
+        self.jobs = [self.job(self.checks[1])]
+        self.workflow_path = ".github/workflows/ci.yml"
+
+    def check(self, identifier, status, conclusion, *, run_id=None, suite_id=None):
+        return dict(
+            GOOD, id=identifier, head_sha=self.sha, status=status,
+            conclusion=conclusion, check_suite={"id": suite_id or self.suite_id},
+            details_url=f"https://github.com/{self.repo}/actions/runs/{run_id or self.run_id}/job/{identifier}",
+        )
+
+    def job(self, check):
+        return {
+            "id": check["id"], "name": check["name"], "run_id": self.run_id,
+            "run_attempt": self.attempt, "head_sha": self.sha,
+            "check_run_url": f"https://api.github.com/repos/{self.repo}/check-runs/{check['id']}",
+            "status": check["status"], "conclusion": check["conclusion"],
+        }
+
+    def api(self, endpoint):
+        self.calls.append(endpoint)
+        if "/check-suites?" in endpoint:
+            self.suite_reads += 1
+            count = (self.suite_count_after if self.suite_reads > 1
+                     and self.suite_count_after is not None else self.suite_count)
+            return {
+                "total_count": count, "check_suites": [
+                    {"id": self.suite_id, "head_sha": self.sha},
+                ] if count else [],
+            }
+        if "/check-runs?" in endpoint:
+            assert "filter=all" in endpoint
+            return {"total_count": len(self.checks), "check_runs": self.checks}
+        if endpoint.endswith(f"/actions/runs/{self.run_id}"):
+            self.run_reads += 1
+            attempt = (self.attempt_after if self.run_reads > 1
+                       and self.attempt_after is not None else self.attempt)
+            return {
+                "id": self.run_id, "head_sha": self.sha, "check_suite_id": self.suite_id,
+                "run_attempt": attempt, "repository": {"full_name": self.repo},
+                "path": self.workflow_path, "event": "pull_request",
+                "status": "completed", "conclusion": "failure",
+            }
+        if f"/attempts/{self.attempt}/jobs?" in endpoint:
+            return {"total_count": len(self.jobs), "jobs": self.jobs}
+        raise AssertionError(endpoint)
+
+
+def _native_provider_decision(fixture, *, run_id=None):
+    return module.decide_with_optional_formal_source_delta(
+        repo=fixture.repo, current_sha=fixture.sha, prior_sha=None,
+        check_name="root-verification", include_formal_source_delta=False,
+        github=fixture, current_workflow_run_id=run_id,
+    )
+
+
+def test_native_provider_current_attempt_not_numeric_id(native_provider_protocol):
+    fixture = NativeProviderFixture()
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "INVESTIGATE_EXISTING_RESULT"
+    assert result["currentEvidence"]["checkRunId"] == 101
+    assert result["currentEvidence"]["workflowRunAttempt"] == 2
+    assert result["currentEvidence"]["selectionBasis"] == "NATIVE_WORKFLOW_RUN_ATTEMPT_JOB"
+    assert result["currentEvidence"]["observationAtomic"] is False
+    assert fixture.run_reads == 2
+    assert not result["proofReuseAdmissible"]
+
+
+def test_native_provider_current_pending_attempt_not_old_pass(native_provider_protocol):
+    fixture = NativeProviderFixture()
+    fixture.checks[1] = fixture.check(101, "queued", None)
+    fixture.jobs = [fixture.job(fixture.checks[1])]
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "OBSERVE_EXISTING_RUN"
+    assert result["currentEvidence"]["checkRunId"] == 101
+
+
+def test_native_provider_qualified_pass_has_exact_run_job_and_attempt(native_provider_protocol):
+    fixture = NativeProviderFixture()
+    fixture.checks[1] = fixture.check(101, "completed", "success")
+    fixture.jobs = [fixture.job(fixture.checks[1])]
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "REUSE_CURRENT_RECEIPT"
+    assert result["currentEvidence"]["workflowRunId"] == 731
+    assert result["currentEvidence"]["checkSuiteId"] == 812
+    assert result["currentEvidence"]["workflowRunAttempt"] == 2
+    assert not result["proofReuseAdmissible"]
+
+
+@pytest.mark.parametrize("mutation,reason", [
+    ("suite-cap", "UNKNOWN_CHECK_SUITE_COVERAGE"),
+    ("suite-drift", "UNKNOWN_CHECK_SUITE_COVERAGE"),
+    ("distinct-context", "UNKNOWN_AMBIGUOUS_WORKFLOW_CONTEXT"),
+    ("different-workflow", "UNKNOWN_WORKFLOW_CONTEXT"),
+    ("wrong-job-url", "UNKNOWN_WORKFLOW_CONTEXT"),
+    ("missing-attempt-job", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("mismatched-job-status", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("mismatched-job-identity", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("attempt-drift", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+    ("duplicate-named-job", "UNKNOWN_WORKFLOW_ATTEMPT_CHECK"),
+])
+def test_native_provider_ambiguity_and_incomplete_observation_fail_closed(mutation, reason, native_provider_protocol):
+    fixture = NativeProviderFixture()
+    if mutation == "suite-cap":
+        fixture.suite_count = 1001
+    elif mutation == "suite-drift":
+        fixture.suite_count_after = 2
+    elif mutation == "distinct-context":
+        fixture.checks[0] = fixture.check(999, "completed", "success", run_id=732, suite_id=813)
+    elif mutation == "different-workflow":
+        fixture.workflow_path = ".github/workflows/other.yml"
+    elif mutation == "wrong-job-url":
+        fixture.checks[1]["details_url"] = fixture.checks[0]["details_url"]
+    elif mutation == "missing-attempt-job":
+        fixture.jobs = []
+    elif mutation == "mismatched-job-status":
+        fixture.jobs[0]["conclusion"] = "success"
+    elif mutation == "mismatched-job-identity":
+        fixture.jobs[0]["check_run_url"] = "https://api.github.com/repos/ordivon-org/ordivon/check-runs/999"
+    elif mutation == "attempt-drift":
+        fixture.attempt_after = 3
+    elif mutation == "duplicate-named-job":
+        fixture.jobs.append(fixture.job(fixture.checks[0]))
+    result = _native_provider_decision(fixture)
+    assert result["disposition"] == "UNKNOWN_CURRENT_CHECK_PROVIDER"
+    assert result["providerQualification"] == reason
+    assert not result["existingCheckReceiptReusable"]
+    assert not result["proofReuseAdmissible"]
+
+
+
+def test_native_provider_explicit_run_resolves_ambiguous_context_without_id_guess(native_provider_protocol):
+    fixture = NativeProviderFixture()
+    fixture.checks[0] = fixture.check(999, "completed", "success", run_id=732, suite_id=813)
+    ambiguous = _native_provider_decision(fixture)
+    assert ambiguous["nextOperation"] == "select-explicit-workflow-run-id"
+    assert ambiguous["observedWorkflowContextCount"] == 2
+    assert ambiguous["observedWorkflowContextsComplete"]
+    assert {row["workflowRunId"] for row in ambiguous["observedWorkflowContexts"]} == {731, 732}
+    # Reset the independent provider observation for the explicit lookup.
+    fixture = NativeProviderFixture()
+    fixture.checks[0] = fixture.check(999, "completed", "success", run_id=732, suite_id=813)
+    result = _native_provider_decision(fixture, run_id=731)
+    assert result["disposition"] == "INVESTIGATE_EXISTING_RESULT"
+    assert result["currentEvidence"]["workflowRunId"] == 731
+    assert result["currentEvidence"]["checkRunId"] == 101
+
+
+def test_native_provider_missing_requested_run_is_unknown_not_absence(native_provider_protocol):
+    fixture = NativeProviderFixture()
+    result = _native_provider_decision(fixture, run_id=10000)
+    assert result["providerQualification"] == "UNKNOWN_REQUESTED_WORKFLOW_CONTEXT"
+    assert result["nextOperation"] == "inspect-requested-workflow-run"
+    assert not result["existingCheckReceiptReusable"]
+
+
+def test_native_provider_rerun_artifact_attempt_is_unqualified(native_provider_protocol):
+    fixture = NativeProviderFixture()
+    fixture.checks[1] = fixture.check(101, "completed", "success")
+    fixture.jobs = [fixture.job(fixture.checks[1])]
+    with pytest.raises(github_checks.CheckObservationError) as exc:
+        module.fetch_original_formal_report(
+            repo=fixture.repo, source_sha=fixture.sha, github=fixture,
+        )
+    assert exc.value.reason == "UNKNOWN_FORMAL_ARTIFACT_ATTEMPT"
+    assert not any("/artifacts" in endpoint for endpoint in fixture.calls)
 
 
 def test_cross_sha_prior_pass_uses_native_owner_impact_not_false_reuse(monkeypatch):
@@ -813,8 +1030,89 @@ def test_ci_formal_receipt_published_only_after_existing_scoped_validator():
     assert "if-no-files-found: error" in selected
 
 
+def _formal_zip(report):
+    import hashlib
+    import io
+    import json
+    import zipfile
+
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("ordivon-core-formal-report.json", json.dumps(report))
+    raw = stream.getvalue()
+    return raw, "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+
+@pytest.mark.parametrize("mutation", [
+    "digest", "size", "wrong-name", "extra-member", "symlink",
+    "oversized", "duplicate-json", "nonfinite-json", "non-object-json",
+])
+def test_formal_archive_exact_identity_and_single_bounded_report(mutation):
+    import hashlib
+    import io
+    import stat
+    import zipfile
+
+    from evidence_formal_archive import MAX_BYTES, read_formal_archive
+
+    stream = io.BytesIO()
+    member = "ordivon-core-formal-report.json"
+    payload = b'{"status":"PASS"}'
+    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        if mutation == "wrong-name":
+            member = "../ordivon-core-formal-report.json"
+        elif mutation == "duplicate-json":
+            payload = b'{"status":"PASS","status":"FAIL"}'
+        elif mutation == "nonfinite-json":
+            payload = b'{"number":NaN}'
+        elif mutation == "non-object-json":
+            payload = b'[]'
+        elif mutation == "oversized":
+            payload = b"x" * (MAX_BYTES + 1)
+        elif mutation == "symlink":
+            member = zipfile.ZipInfo(member)
+            member.create_system = 3
+            member.external_attr = (stat.S_IFLNK | 0o777) << 16
+        archive.writestr(member, payload)
+        if mutation == "extra-member":
+            archive.writestr("unexpected.txt", "unqualified")
+    raw = stream.getvalue()
+    digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+    size = len(raw)
+    if mutation == "digest":
+        digest = "sha256:" + "0" * 64
+    elif mutation == "size":
+        size += 1
+    with pytest.raises(ValueError):
+        read_formal_archive(raw, expected_size=size, expected_digest=digest)
+
+
+def test_formal_archive_positive_exact_native_content():
+    from evidence_formal_archive import read_formal_archive
+
+    payload = {"status": "PASS", "sourceCut": PREVIOUS}
+    raw, digest = _formal_zip(payload)
+    assert read_formal_archive(raw, expected_size=len(raw), expected_digest=digest) == payload
+
+
+def test_formal_artifact_listing_moving_page_count_is_unqualified():
+    class MovingArtifactPages:
+        def api(self, endpoint):
+            if endpoint.endswith("page=1"):
+                return {"total_count": 101, "artifacts": [{"id": i} for i in range(1, 101)]}
+            return {"total_count": 102, "artifacts": [{"id": 101}, {"id": 102}]}
+
+    with pytest.raises(ValueError, match="changed"):
+        module._workflow_formal_artifact(
+            gh=MovingArtifactPages(), repo=module.DEFAULT_REPOSITORY, run_id="731",
+            head_sha=PREVIOUS, run={}, git_repo=Path("/unused"),
+        )
+
+
 def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch):
     names, report = _synthetic_formal_report()
+    raw, digest = _formal_zip(report)
     check = dict(
         GOOD,
         head_sha=PREVIOUS,
@@ -833,6 +1131,7 @@ def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch)
                 return {
                     "id": 731,
                     "head_sha": PREVIOUS,
+                    "check_suite_id": 1, "run_attempt": 1, "path": ".github/workflows/ci.yml",
                     "repository": {"full_name": module.DEFAULT_REPOSITORY},
                 }
             assert endpoint == (
@@ -844,9 +1143,9 @@ def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch)
                     {
                         "id": 19,
                         "name": "ordivon-core-formal-" + PREVIOUS,
-                        "size_in_bytes": 321,
+                        "size_in_bytes": len(raw),
                         "expired": False,
-                        "digest": "sha256:" + "a" * 64,
+                        "digest": digest,
                         "workflow_run": {"id": 731, "head_sha": PREVIOUS},
                     }
                 ],
@@ -867,11 +1166,9 @@ def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch)
     def download(cmd, **kwargs):
         cmds.append(cmd)
         assert kwargs["check"] is True and kwargs["timeout"] == 75
-        directory = Path(cmd[cmd.index("--dir") + 1])
-        (directory / "ordivon-core-formal-report.json").write_text(
-            __import__("json").dumps(report), encoding="utf-8"
-        )
-        return Mock(returncode=0)
+        assert cmd == ["gh", "api", "repos/ordivon-org/ordivon/actions/artifacts/19/zip"]
+        return Mock(returncode=0, stdout=raw)
+
 
     monkeypatch.setattr(module.subprocess, "run", download)
     result = module.fetch_original_formal_report(
@@ -884,11 +1181,12 @@ def test_fetch_original_formal_report_uses_github_run_and_native_gh(monkeypatch)
     assert result["originalWorkflowRunId"] == "731"
     assert result["githubArtifactName"] == "ordivon-core-formal-" + PREVIOUS
     assert result["proofReuseAdmissible"] is False
-    assert result["artifactProvenance"] == "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE"
-    assert cmds[0][:4] == ["gh", "run", "download", "731"]
+    assert result["artifactProvenance"] == module.ARCHIVE_PROVENANCE
+    assert cmds[0] == ["gh", "api", "repos/ordivon-org/ordivon/actions/artifacts/19/zip"]
     assert result["sourceRelationship"] == "DIRECT_WORKFLOW_HEAD"
     assert result["githubArtifactId"] == 19
-    assert len(provider.queries) == 3
+    assert len(provider.queries) == 4
+    assert result["archiveQualification"] == "EXACT_ARTIFACT_ID_SHA256_AND_SIZE"
 
 
 def test_fetch_formal_report_rejects_mismatched_provider_run_before_download(
@@ -942,6 +1240,7 @@ def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch)
     merge_sha = "c" * 40
     base_sha = "d" * 40
     report["sourceCut"] = merge_sha
+    raw, digest = _formal_zip(report)
     original = dict(
         GOOD,
         head_sha=PREVIOUS,
@@ -949,6 +1248,8 @@ def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch)
     )
 
     class PrProvider:
+        associations = True
+
         def api(self, endpoint):
             if "/commits/" in endpoint:
                 return {"total_count": 1, "check_runs": [original]}
@@ -956,6 +1257,7 @@ def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch)
                 return {
                     "id": 731,
                     "head_sha": PREVIOUS,
+                    "check_suite_id": 1, "run_attempt": 1, "path": ".github/workflows/ci.yml",
                     "event": "pull_request",
                     "repository": {"full_name": module.DEFAULT_REPOSITORY},
                     "pull_requests": [
@@ -964,7 +1266,7 @@ def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch)
                             "head": {"sha": PREVIOUS},
                             "base": {"sha": base_sha},
                         }
-                    ],
+                    ] if self.associations else [],
                 }
             assert endpoint.endswith("/actions/runs/731/artifacts?per_page=100&page=1")
             return {
@@ -973,9 +1275,9 @@ def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch)
                     {
                         "id": 222,
                         "name": "ordivon-core-formal-" + merge_sha,
-                        "size_in_bytes": 321,
+                        "size_in_bytes": len(raw),
                         "expired": False,
-                        "digest": "sha256:" + "a" * 64,
+                        "digest": digest,
                         "workflow_run": {"id": 731, "head_sha": PREVIOUS},
                     }
                 ],
@@ -997,13 +1299,9 @@ def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch)
     )
 
     def download(cmd, **kwargs):
-        assert "--name" in cmd
-        assert cmd[cmd.index("--name") + 1] == "ordivon-core-formal-" + merge_sha
-        out = Path(cmd[cmd.index("--dir") + 1])
-        (out / "ordivon-core-formal-report.json").write_text(
-            __import__("json").dumps(report), encoding="utf-8"
-        )
-        return Mock(returncode=0)
+        assert cmd == ["gh", "api", "repos/ordivon-org/ordivon/actions/artifacts/222/zip"]
+        return Mock(returncode=0, stdout=raw)
+
 
     monkeypatch.setattr(module.subprocess, "run", download)
     result = module.fetch_original_formal_report(
@@ -1016,6 +1314,20 @@ def test_real_pr_merge_formal_artifact_needs_both_exact_git_parents(monkeypatch)
     assert result["sourceRelationship"] == "PR_SYNTHETIC_MERGE_BASE_AND_HEAD"
     assert result["sourceCut"] == merge_sha
     assert result["proofReuseAdmissible"] is False
+    assert result["sourceRelationshipWitness"]["providerBaseAttested"] is True
+    provider = PrProvider()
+    provider.associations = False
+    partial = module.fetch_original_formal_report(
+        repo=module.DEFAULT_REPOSITORY, source_sha=PREVIOUS, github=provider,
+    )
+    assert partial["archiveQualification"] == "EXACT_ARTIFACT_ID_SHA256_AND_SIZE"
+    assert partial["standing"] == "CONTENT_MATCHES_DECLARED_GIT_SOURCE"
+    assert partial["sourceRelationship"] == "PR_SYNTHETIC_MERGE_HEAD_MATCH_BASE_UNATTESTED"
+    assert partial["sourceRelationshipWitness"] == {
+        "observedBase": base_sha, "observedHead": PREVIOUS, "providerBaseAttested": False,
+    }
+    assert partial["sourceRelationshipObligation"] == "RECOVER_ORIGINAL_PROVIDER_PR_BASE_ATTESTATION"
+    assert not partial["proofReuseAdmissible"]
 
     def wrong_parents(repo, *args):
         return merge_sha + " " + "e" * 40 + " " + PREVIOUS + chr(10)
@@ -1062,6 +1374,7 @@ def test_unqualified_artifact_missing_duplicate_expired_or_wrong_run_is_not_reus
                 return {
                     "id": 731,
                     "head_sha": PREVIOUS,
+                    "check_suite_id": 1, "run_attempt": 1, "path": ".github/workflows/ci.yml",
                     "repository": {"full_name": module.DEFAULT_REPOSITORY},
                 }
             return {"total_count": len(self.rows), "artifacts": self.rows}
@@ -1280,7 +1593,10 @@ def _qualified_typed_formal_receipt(
         "sourceCut": PREVIOUS,
         "verifiedExecutionSourceCut": PREVIOUS,
         "sourceRelationship": "PR_SYNTHETIC_MERGE_BASE_AND_HEAD",
-        "artifactProvenance": "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE",
+        "artifactProvenance": module.ARCHIVE_PROVENANCE,
+        "archiveQualification": "EXACT_ARTIFACT_ID_SHA256_AND_SIZE",
+        "originalWorkflowRunAttempt": 1,
+        "githubArtifactArchiveDigest": "sha256:" + "e" * 64,
         "originalCheckRunId": 112,
         "githubArtifactId": 554,
         "githubArtifactName": "ordivon-core-formal-" + PREVIOUS,
@@ -1307,6 +1623,29 @@ def _assess_typed(receipt=None, claim=None, consumer=None):
         target_source_cut=CURRENT,
         historical_receipt=receipt,
     )
+
+
+def test_typed_claim_preserves_partial_pr_binding_and_independent_source_change():
+    receipt = _qualified_typed_formal_receipt(status="CHANGED_DECLARED_SOURCE_INPUTS", changed=["proof.lean"])
+    receipt.update({
+        "sourceRelationship": "PR_SYNTHETIC_MERGE_HEAD_MATCH_BASE_UNATTESTED",
+        "requestedWorkflowHeadSha": "c" * 40,
+        "sourceRelationshipWitness": {
+            "observedBase": "d" * 40,
+            "observedHead": "c" * 40,
+            "providerBaseAttested": False,
+        },
+        "sourceRelationshipObligation": "RECOVER_ORIGINAL_PROVIDER_PR_BASE_ATTESTATION",
+    })
+    for claim in (module.FORMAL_SOURCE_INPUT_CLAIM, module.FORMAL_PROOF_APPLICABILITY_CLAIM):
+        result = _assess_typed(receipt, claim=claim)
+        assert result["decision"] == "UNKNOWN_ORIGINAL_PR_BASE_ATTESTATION"
+        assert result["nextOperation"] == "recover-original-provider-pr-base-attestation"
+        assert result["declaredSourceInputStanding"] == "CHANGED_DECLARED_SOURCE_INPUTS"
+        assert result["changedDeclaredPaths"] == ["proof.lean"]
+        assert result["evidenceRefs"][0]["kind"] == "GITHUB_ARTIFACT_ARCHIVE_CONTENT_ONLY"
+        assert len(result["unresolvedObligations"]) == 2
+        assert not result["claimSupported"] and not result["proofReuseAdmissible"]
 
 
 def test_typed_claim_narrow_source_fact_is_supported_without_proof_or_job():
@@ -1406,6 +1745,10 @@ def test_typed_claim_absent_original_report_requires_original_not_replay():
         {"originalCheckRunId": -1},
         {"githubArtifactName": "ordivon-core-formal-" + CURRENT},
         {"artifactProvenance": "UNVERIFIED_LOCAL_INPUT"},
+        {"archiveQualification": None},
+        {"githubArtifactArchiveDigest": "unqualified"},
+        {"originalWorkflowRunAttempt": 2},
+        {"sourceRelationship": "PR_SYNTHETIC_MERGE_HEAD_MATCH_BASE_UNATTESTED"},
         {"sourceRelationship": "ASSUMED_HEAD_EQUALS_MERGE"},
         {"proofReuseAdmissible": True},
         {
@@ -1531,7 +1874,10 @@ def _tool_snap_pair():
     base = _tool_snapshot_fixture()
     return (
         {
-            "artifactProvenance": "GITHUB_RUN_DOWNLOAD_NOT_PROOF_EQUIVALENCE",
+            "artifactProvenance": module.ARCHIVE_PROVENANCE,
+        "archiveQualification": "EXACT_ARTIFACT_ID_SHA256_AND_SIZE",
+        "originalWorkflowRunAttempt": 1,
+        "githubArtifactArchiveDigest": "sha256:" + "e" * 64,
             "originalObservedToolInputs": copy.deepcopy(base),
         },
         {

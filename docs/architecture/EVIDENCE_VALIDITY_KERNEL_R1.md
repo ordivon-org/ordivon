@@ -269,7 +269,7 @@ Optional read-only Agent consumer:
 
 This resolves the official prior root-verification Check Run, checks the
 linked GitHub workflow run repository and exact source SHA, then invokes
-mature gh run download into a disposable directory. The reader compares
+the native Artifact-ID download through gh api (R5 now checks ZIP digest/size). The reader compares
 the historical report sourceCut/SOURCE_FILES set and Git blob modes/OIDs,
 PASS probe inventory and tool entrypoint record shapes without executing
 it. A caller-supplied local file may alternatively be examined with
@@ -492,6 +492,65 @@ currentApplicability=UNKNOWN_EXTERNAL_ASSUMPTIONS and
 currentSecurityStanding=NOT_ASSESSED_BY_CHECK_RECEIPT. External advisory
 freshness, dynamic reads and deployed behavior require separate evidence.
 
+## R5 integration: native Check Run/Workflow Attempt context
+
+A Check Run numeric ID is not a declared temporal ordering. Qualify the
+GitHub commit Check Suite coverage (native limit: 1000 suites), the
+all-attempts bounded listing, exact Check Suite/Workflow Run identity and
+the named Job in the provider's current explicit Run Attempt. Re-observe
+the Run identity after reading the Attempt Jobs; this is bounded observation,
+not an atomic snapshot. The named job is not current security or proof reuse.
+
+If one SourceCut has multiple Run contexts, return
+UNKNOWN_AMBIGUOUS_WORKFLOW_CONTEXT with observed Run/Suite/Check identities.
+The caller can select --current-workflow-run-id or --prior-workflow-run-id
+rather than guessing the highest Check Run ID. Distinct contexts need not
+be reruns: actual 18f161988416b0b5a1b71afb6f5927984767a95f had merge_group
+Run 45365227069 and push Run 45366387771, both successful; both were read
+and independently matched to their explicit native Attempt 1 Job.
+
+Native references:
+- https://docs.github.com/en/rest/checks/runs
+- https://docs.github.com/en/rest/actions/workflow-jobs
+- https://docs.github.com/en/rest/actions/workflow-runs
+
+No new CI dispatch, storage, scheduler, or proof admission is introduced.
+
+## R5 integration: immutable archive and independent historical facts
+
+The read-only Formal Artifact consumer now invokes the official gh API by
+Artifact ID (not mutable name resolution), checks compressed bytes against
+the GitHub size and SHA-256 metadata, and parses the one bounded regular JSON
+ZIP member without extracting the archive. Duplicate JSON keys, unexpected
+members, oversized payloads and unqualified archive identity fail closed.
+The metadata and accepted bytes are bounded; this is not a physical network
+transfer quota. The same pagination validator is reused for Check Runs,
+Attempt Jobs and Artifact listings.
+
+The prior provenance marker is replaced by
+GITHUB_ARTIFACT_ID_DIGEST_VERIFIED_NOT_PROOF_EQUIVALENCE. Old unverified
+download metadata is not equivalent to this new content qualification.
+Native Artifact metadata lacks a Run Attempt identity; later-attempt
+association is UNKNOWN_FORMAL_ARTIFACT_ATTEMPT until independently bound.
+
+Real source evidence recovered on 2026-11-24:
+Artifact 14073198750 (3994 compressed bytes) from Run 43499713609,
+Attempt 1, was downloaded by ID. Its exact ZIP SHA-256 matched the native
+metadata, and its 36 declared Git inputs / 21 probes / 8 tool records
+matched execution SourceCut 72d97e758f22383cf0a464a3ea5e08d5f9f0aad5.
+GitHub now returns an empty historical pull_requests association on Run,
+Attempt, Suite and Check Run. Git still independently identifies both
+parents (5f6a0d1f93024c8992a5d78d61771ad5a0fbbf5a and
+ef001b0d3e111721bcca856be960a6027737bb77). The native artifact-content
+binding and independent Git snapshot comparison survive; original PR
+Base attestation remains UNKNOWN. The comparison at 18f161988416...
+observed 19 changed declared paths (36 old, 45 target). Both stronger
+typed Claims remain unsupported, with precise missing-binding and source
+change obligations; no solver replay or proof reuse is admitted.
+
+Native reference: https://docs.github.com/en/rest/actions/artifacts
+
+
 ## Shared exact-Git selector contract (R4 candidate)
 
 The CI shell, qualified temporal/source explanation and cross-cut evidence
@@ -517,3 +576,5 @@ dirty bytes, mode-only drift, added or removed Rust member, untracked old
 root, and missing or dirty control inputs. The qualification consumes existing
 Git, dependency policy and relocation-map facts; it creates no database,
 new scheduler, or ownership authority.
+
+R5 composition includes the new native Artifact archive reader in the evidence-specific direct source scope.

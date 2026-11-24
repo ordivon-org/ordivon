@@ -77,6 +77,76 @@ class ClientTests(unittest.TestCase):
             self.assertEqual(request.headers["X-ordivon-request-id"], "request_retry_001")
             self.assertEqual(request.data, b'{"url":"https://example.com/"}')
 
+    def test_operation_failure_keeps_original_request_id(self) -> None:
+        for command in ("fetch", "browser-run"):
+            for outcome in ("http", "transport", "invalid_json", "success"):
+                with self.subTest(command=command, outcome=outcome):
+                    args = client.parser().parse_args([command, "https://example.com/"])
+                    stdout, stderr = io.StringIO(), io.StringIO()
+                    calls = []
+
+                    def request(config, method, path, **kwargs):
+                        calls.append(kwargs["request_id"])
+                        # The recovery coordinate must be flushed before dispatch.
+                        self.assertEqual(json.loads(stderr.getvalue()), {
+                            "event": "edge_request", "request_id": args.request_id,
+                            "operation": "fetch" if command == "fetch" else "browser.run",
+                        })
+                        if outcome == "transport":
+                            raise client.ClientError("connection lost")
+                        if outcome == "http":
+                            return 503, {}, b'{"error":"receipt_commit_unavailable"}'
+                        if outcome == "invalid_json":
+                            return 200, {}, b'not-json'
+                        return 200, {}, b'{"receipt":{"status":"succeeded"}}'
+
+                    invoke = client.command_fetch if command == "fetch" else client.command_browser_run
+                    with (
+                        mock.patch.object(client, "request", side_effect=request),
+                        redirect_stdout(stdout),
+                        mock.patch("sys.stderr", stderr),
+                    ):
+                        if outcome in ("transport", "invalid_json"):
+                            with self.assertRaises(client.ClientError):
+                                invoke(self.config, args)
+                        else:
+                            self.assertEqual(invoke(self.config, args), 1 if outcome == "http" else 0)
+                    self.assertEqual(calls, [args.request_id])
+                    if outcome == "http":
+                        self.assertEqual(json.loads(stdout.getvalue()), {"error":"receipt_commit_unavailable"})
+                    if outcome == "success":
+                        self.assertEqual(json.loads(stdout.getvalue()), {"receipt":{"status":"succeeded"}})
+
+    def test_release_digest_uses_canonical_provider_at_selected_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = pathlib.Path(directory)
+            relative = pathlib.Path("platform/workstation/providers/cloudflare")
+            provider = repository / relative
+            subprocess.run(["git", "init", "-q", str(repository)], check=True)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(repository), *args], text=True).strip()
+            git("config", "user.name", "Test")
+            git("config", "user.email", "test@example.invalid")
+            for name in client.WORKER_RELEASE_INPUTS:
+                target = provider / name
+                if name == "src":
+                    target = target / "index.ts"
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(name + "\\n")
+            git("add", ".")
+            git("commit", "-qm", "canonical provider")
+            commit = git("rev-parse", "HEAD")
+            listing = subprocess.check_output([
+                "git", "-C", str(repository), "ls-tree", "-r", "--full-tree", commit, "--",
+                *[f":(top){relative}/{name}" for name in client.WORKER_RELEASE_INPUTS]
+            ])
+            expected = hashlib.sha256(listing).hexdigest()
+            self.assertEqual(client.release_digest(repository, commit), expected)
+            self.assertEqual(client.release_digest(provider, commit), expected)
+            # Working-tree deletion does not change the selected commit identity.
+            (provider / "wrangler.jsonc").unlink()
+            self.assertEqual(client.release_digest(repository, commit), expected)
+
     def test_artifact_hash_mismatch_preserves_existing_destination(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             destination = pathlib.Path(directory) / "artifact.bin"

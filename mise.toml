@@ -446,7 +446,7 @@ run = "cd tools/formal && mise run verify"
 
 # Host owns the model; repo root composes Runtime-owned pinned TLC toolchain.
 [tasks."host:formal:attention-reentry"]
-description = "TLC: coherent re-entry snapshot, no skipped event, and two negative controls"
+description = "TLC: coherent re-entry, exact cursor receipts and negative controls"
 run = """
 set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
@@ -458,15 +458,21 @@ fi
 expected="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
 observed="$(sha256sum -- "$jar" | cut -d' ' -f1)"
 test "$observed" = "$expected" || { echo "Host Attention TLA+ toolchain digest mismatch" >&2; exit 2; }
-cd "$repo_root/services/host/formal"
-java -cp "$jar" tla2sany.SANY HostAttentionReentryR1.tla >/dev/null
-positive="$(java -cp "$jar" tlc2.TLC -workers 1 -config HostAttentionReentryR1.cfg HostAttentionReentryR1.tla)"
-printf '%s\\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
-for case in 'HostAttentionReentryR1.unsafe.cfg:ReturnedCursorFromSameCut' 'HostAttentionReentryR1.unsafe-page.cfg:NoSkippedEligiblePageEvent'; do
-  config="${case%%:*}"
-  invariant="${case#*:}"
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
+cp "$repo_root/services/host/formal/"HostAttentionReentryR1.* "$scratch/"
+cp "$repo_root/services/host/formal/"HostCursorReceiptR1.* "$scratch/"
+cd "$scratch"
+for model in HostAttentionReentryR1 HostCursorReceiptR1; do
+  java -cp "$jar" tla2sany.SANY "$model.tla" >/dev/null
+  positive="$(java -Xmx512m -cp "$jar" tlc2.TLC -workers 1 -config "$model.cfg" "$model.tla")"
+  printf '%s\\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
+  printf '%s\\n' "$positive" | grep -F 'distinct states found'
+done
+for case in 'HostAttentionReentryR1:unsafe:ReturnedCursorFromSameCut' 'HostAttentionReentryR1:unsafe-page:NoSkippedEligiblePageEvent' 'HostCursorReceiptR1:unsafe-predecessor:ReceiptChain' 'HostCursorReceiptR1:unsafe-replay:ReplayExact'; do
+  IFS=: read -r model variant invariant <<< "$case"
   set +e
-  negative="$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" HostAttentionReentryR1.tla 2>&1)"
+  negative="$(java -Xmx512m -cp "$jar" tlc2.TLC -workers 1 -config "$model.$variant.cfg" "$model.tla" 2>&1)"
   status=$?
   set -e
   if [[ "$status" -ne 12 ]]; then
