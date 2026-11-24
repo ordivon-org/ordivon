@@ -360,6 +360,18 @@ reversal. Its native task is included in full Finance verify. The model
 cannot establish provider semantics; schema v2 and native behavioral tests
 make the declared basis and external-cost scope explicit.
 
+### Paper settlement guard refinement
+
+The canonical `paper_cash_settlement_r1.smt2` additionally checks exact
+equivalence of the intraday guard to prior free cash plus contribution
+minus new purchases (UNSAT for inequality), and a retained matured
+receivable counterexample (SAT). These preserve unique abstract
+obligations from historical PR #1690 without resurrecting its separate
+model or verifier. The native PostgreSQL transaction witnesses in
+`tests/test_paper_head_readback.py` exercise visibility, competing
+same-session writers and terminated-backend rollback separately; they
+are not consequences of the arithmetic proof.
+
 ## Dated liability reserve
 
 `PortfolioLiabilityReserve.lean` proves natural-number reserve and contribution
