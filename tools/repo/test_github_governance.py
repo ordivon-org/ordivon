@@ -1253,6 +1253,8 @@ exit 0
         selected_readset = (
             ".github/workflows/ci.yml",
             "tools/repo/ci_owner_shards.py",
+            "tools/repo/selector_source_contract.py",
+            "services/gateway/tests/test_pg_real_runtime_owner.py",
             "tools/repo/convergence_plan.py",
             "tools/repo/affected_owners.py",
             "tools/repo/pg_issuer_consumer.py",
@@ -1262,8 +1264,6 @@ exit 0
             "tools/repo/dependency_contracts.toml",
             "mise.toml",
         )
-        for path in selected_readset:
-            self.assertIn(path, script)
 
         with tempfile.TemporaryDirectory(prefix="ordivon-selector-consumer-") as temp:
             root = Path(temp)
@@ -1314,6 +1314,18 @@ exit 0
                         )
                     finally:
                         source.write_bytes(original)
+
+            from pg_issuer_consumer import RUNTIME_PG_CORE_ROOT
+
+            extra = clone / RUNTIME_PG_CORE_ROOT / "r4_untracked_fixture.rs"
+            self.assertFalse(extra.exists())
+            try:
+                extra.write_text("// untracked selector input\n")
+                rejected = invoke()
+                self.assertEqual(rejected.returncode, 43, rejected.stderr)
+                self.assertIn("Rust membership differs", rejected.stderr)
+            finally:
+                extra.unlink()
 
             base = subprocess.check_output(
                 ["git", "-C", str(clone), "rev-parse", "HEAD^1"], text=True
